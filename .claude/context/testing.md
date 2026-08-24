@@ -11,11 +11,15 @@ Alias → `packages/shared/src/__tests__/test-utils/`. Import test helpers from 
 - Mock factories (`mock-factories.ts`): `createMockGarden`, `createMockWork`, `createMockAction`, `createMockAuthContext`, `createMockSmartAccountClient`, `createMockFile`, … (18 factories).
 - Offline helpers (`offline-helpers.ts`): `createMockOfflineWork`/`Conflict`, `mockFetch`/`mockFetchSequence`/`mockFetchError`, `simulateNetworkConditions.{offline,online,slow}`.
 - `createSharedBarrelMock(actual, overrides)` — mock the shared barrel via `vi.importActual`, overriding only hooks (real exports auto-inherit; new hooks fail loud).
-- Re-exports `@testing-library/react` + `userEvent`.
+- Re-exports `@testing-library/react`. Import `userEvent` from
+  `@testing-library/user-event` only in DOM tests so Node projects do not load browser globals.
 
 ## Repo-tuned Vitest config (per-package `vitest.config.ts`)
 
-- jsdom env, `globals: true`, `pool: "threads"`, `isolate: true`, `testTimeout: 10000`.
+- Shared, client, and admin use inherited `node` and `dom` projects: DOM-free `.test.ts`
+  suites run in Node, while `.test.tsx` and documented DOM exceptions run in jsdom. Keep
+  coverage at the root config, never inside a project.
+- `globals: true`, `pool: "threads"`, `isolate: true`, `testTimeout: 10000`.
 - React deduped + aliased to the workspace-root runtime so hooks share one dispatcher — never add a second React instance.
 - Heavy SDKs alias-mocked to skip dep chains: EAS SDK → `src/__mocks__/eas-sdk.ts`, WalletConnect utils → `src/__mocks__/walletconnect-utils.ts`; `zod`/`viem`/`wagmi`/`multiformats` force-inlined via `server.deps.inline`.
 - Setup files: shared/client `setupTests.ts`, admin/agent `setup.ts` — all extend `packages/shared/src/__tests__/setupTests.base.ts`.
@@ -44,6 +48,17 @@ Auth / work / job-queue / vault / blockchain surfaces are the `critical` tier in
 - Offline sync — `hooks/app/useOffline.ts` + `modules/job-queue/**`
 
 ## Test-type conventions
+
+### Direct-tested seams
+
+A module counts as directly tested only when a test that names it as its subject imports the
+module through its own specifier outside every `vi.mock` factory. That subject-naming test must
+not mock the same specifier. Importing a barrel that re-exports the module, importing the real
+module only from a mock factory, or testing a mocked copy does not prove the seam.
+
+`bun run check:test-quality` enforces this rule for conventionally named tests. Existing audited
+violations live in `scripts/data/direct-tested-seam-baseline.json`; the baseline is exact and must
+shrink when a violation is fixed, while every new or stale entry fails the check.
 
 - Mutation hooks: assert the error path at both hook level (`isError` + handler/`logger.error` called) and component level (error toast surfaced). Errors are never swallowed.
 - Hook cleanup: verify timers cleared, listeners removed, `isMounted` guards on unmount — i.e. `.claude/rules/react-patterns.md` Rules 1-3.

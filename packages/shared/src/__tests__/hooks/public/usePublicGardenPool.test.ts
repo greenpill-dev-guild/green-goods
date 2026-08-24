@@ -19,8 +19,10 @@ vi.mock("../../../modules/data/graphql-client", () => ({
 vi.mock("../../../modules/app/logger", () => ({
   logger: { warn: (...args: unknown[]) => mocks.warn(...args) },
 }));
-vi.mock("../../../modules/data/ipfs", () => ({
-  getJsonByHash: (...args: unknown[]) => mocks.getJsonByHash(...args),
+vi.mock("../../../modules/commitment-pooling/document-store", () => ({
+  commitmentDocumentStore: {
+    readJson: (...args: unknown[]) => mocks.getJsonByHash(...args),
+  },
 }));
 vi.mock("../../../config/blockchain", () => ({ DEFAULT_CHAIN_ID: 42161 }));
 

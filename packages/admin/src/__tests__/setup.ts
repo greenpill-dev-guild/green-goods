@@ -5,26 +5,28 @@
  */
 
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
-import { resetTestQueryClient } from "@green-goods/shared/testing";
+import { resetTestQueryClient } from "@green-goods/shared/testing/query-client";
 
 // Mock window.matchMedia for components and libraries that rely on it in tests
 // (e.g., responsive layout logic and chart libraries that expect matchMedia in JSDOM)
-Object.defineProperty(window, "matchMedia", {
-  writable: true,
-  value: vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(), // Deprecated
-    removeListener: vi.fn(), // Deprecated
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-});
+if (typeof window !== "undefined") {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(), // Deprecated
+      removeListener: vi.fn(), // Deprecated
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
 
 // Polyfill scrollIntoView for jsdom (not implemented in jsdom)
-Element.prototype.scrollIntoView = vi.fn();
+if (typeof Element !== "undefined") Element.prototype.scrollIntoView = vi.fn();
 
 // Import base setup from shared (includes common mocks)
 import "@green-goods/shared/__tests__/setupTests.base";

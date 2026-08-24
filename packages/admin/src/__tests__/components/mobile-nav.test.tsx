@@ -103,6 +103,33 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   };
 });
 
+vi.mock("../../../../shared/src/hooks/auth/useAuth", () => ({
+  useAuth: () => ({
+    isAuthenticated: true,
+    eoaAddress: "0x1234567890123456789012345678901234567890",
+    isReady: true,
+    authMode: "wallet",
+  }),
+}));
+
+vi.mock("../../../../shared/src/hooks/garden/useEligibleAdminGardens", () => ({
+  useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
+}));
+
+vi.mock("../../../../shared/src/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
+  useAdminGardenWorkspaceSelection: () => ({
+    selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
+  }),
+}));
+
+vi.mock("../../../../shared/src/hooks/navigation/useGardenUrlSync", () => ({
+  useGardenUrlSync: () => ({ setGarden: vi.fn() }),
+}));
+
+vi.mock("../../../../shared/src/hooks/roles/useEffectiveToolbarPermissions", () => ({
+  useEffectiveToolbarPermissions: mockUseEffectiveToolbarPermissions,
+}));
+
 vi.mock("@green-goods/shared/profile-avatar", () => ({
   useResolvedProfileAvatar: () => ({
     avatarUri: null,

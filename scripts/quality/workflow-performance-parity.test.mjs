@@ -283,6 +283,35 @@ test("consumer Vitest configs share the local resource-aware worker policy", () 
   }
 });
 
+test("consumer Vitest projects separate Node and DOM without project coverage", () => {
+  for (const file of [
+    "packages/shared/vitest.config.ts",
+    "packages/client/vitest.config.ts",
+    "packages/admin/vitest.config.ts",
+  ]) {
+    const source = read(file);
+    assert.equal(source.match(/\bprojects\s*:/g)?.length, 1, `${file} must declare projects once`);
+    assert.equal(
+      source.match(/\bcoverage\s*:/g)?.length,
+      1,
+      `${file} must keep coverage only at the root`,
+    );
+    assert.equal(
+      source.match(/extends:\s*true/g)?.length,
+      2,
+      `${file} projects must inherit the root config`,
+    );
+    assert.match(source, /name:\s*["']node["']/);
+    assert.match(source, /name:\s*["']dom["']/);
+  }
+});
+
+test("test quality Check 5 enforces direct-tested seams", () => {
+  const source = read("scripts/quality/check-test-quality.sh");
+  assert.match(source, /Check 5: Direct-tested seam integrity/);
+  assert.match(source, /scripts\/quality\/check-direct-tested-seams\.mjs/);
+});
+
 test("PR Test jobs run plain tests; thresholds are enforced nightly and on main", () => {
   for (const file of ["shared.yml", "client.yml", "admin.yml"]) {
     const source = read(`.github/workflows/${file}`);

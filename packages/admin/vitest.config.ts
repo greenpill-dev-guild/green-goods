@@ -9,6 +9,8 @@ import { resolveVitestMaxWorkers } from "../../scripts/lib/dev-shared.js";
 
 const localReactPath = resolve(__dirname, "./node_modules/react");
 const localReactDomPath = resolve(__dirname, "./node_modules/react-dom");
+const nodeTestFiles = "src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts}";
+const domTestFiles = "src/**/*.{test,spec}.{jsx,tsx}";
 
 export default defineConfig({
   plugins: [react()],
@@ -170,5 +172,23 @@ export default defineConfig({
     },
     testTimeout: 10000,
     hookTimeout: 10000,
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "node",
+          environment: "node",
+          include: [nodeTestFiles],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "dom",
+          environment: "jsdom",
+          include: [domTestFiles],
+        },
+      },
+    ],
   },
 });

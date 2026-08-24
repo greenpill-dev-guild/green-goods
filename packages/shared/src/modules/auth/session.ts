@@ -276,7 +276,7 @@ function debugPasskeyConfig(): void {
 }
 
 // Expose debug function globally in development
-if (import.meta.env.DEV) {
+if (import.meta.env.DEV && typeof window !== "undefined") {
   (window as { __debugPasskey?: typeof debugPasskeyConfig }).__debugPasskey = debugPasskeyConfig;
 }
 

@@ -68,7 +68,9 @@ scripts/
 | `check-source-structure.js` | `bun run check:source-structure` | File-size limits + frozen-allowlist policy |
 | `check-staged-modules.mjs` | `bun run check:staged-modules`, validation selector | Keep deferred Card Endow modules marked and isolated from live Client imports |
 | `check-staged-modules.test.mjs` | `bun run test:validation-system` | Positive and fail-closed fixtures for the staged-module boundary |
-| `check-test-quality.sh` | `bun run check:test-quality` | Detect tautological assertions, ungoverned skips, `@ts-nocheck`, and newly malformed Solidity test names |
+| `check-test-quality.sh` | `bun run check:test-quality` | Detect tautological assertions, ungoverned skips, `@ts-nocheck`, malformed new Solidity test names, and direct-test seam drift |
+| `check-direct-tested-seams.mjs` | `bun run check:test-quality` | Require subject-named tests to import their module directly without mocking it, with an exact legacy baseline |
+| `check-direct-tested-seams.test.mjs` | `bun run test:validation-system` | Fixture proof for direct imports, mocked-subject rejection, and exact/stale baseline handling |
 | `check-story-coverage.ts` | `design.yml` (via `packages/shared` script) | Storybook coverage policy per package |
 | `check-story-quality.ts` | `design.yml` (via `packages/shared` script) | Storybook story-quality lints |
 | `check-docs-design-parity.mjs` | `bun run check:docs-design-parity` | `docs/DESIGN.md` ↔ `docs/src/css/custom.css` role-accent + section-accent parity (light + dark) |
@@ -154,6 +156,7 @@ scripts/
 - `design-token-usage-baseline.tsv` — audited baseline of legacy token references; consumed by `design/check-tokens.sh`.
 - `css-custom-property-baseline.tsv` — audited baseline of unresolved legacy CSS custom properties; consumed by `design/check-css-custom-properties.mjs`.
 - `ontology-drift-baseline.json` — audited burn-down baseline of known ontology drift (owner/expires/note per entry); consumed by `quality/check-ontology.mjs`.
+- `direct-tested-seam-baseline.json` — exact burn-down baseline for legacy tests that do not yet prove their named module seam; consumed by `quality/check-direct-tested-seams.mjs`.
 
 ## Companion locations
 

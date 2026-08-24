@@ -6,6 +6,9 @@ import { defineConfig } from "vitest/config";
 
 import { resolveVitestMaxWorkers } from "../../scripts/lib/dev-shared.js";
 
+const nodeTestFiles = "src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts}";
+const domTestFiles = "src/**/*.{test,spec}.{jsx,tsx}";
+
 export default defineConfig({
   plugins: [react()],
   test: {
@@ -61,8 +64,25 @@ export default defineConfig({
         statements: 63,
       },
     },
-    include: ["src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
     exclude: ["node_modules/", "dist/", "build/", "**/*.d.ts"],
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "node",
+          environment: "node",
+          include: [nodeTestFiles],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "dom",
+          environment: "jsdom",
+          include: [domTestFiles],
+        },
+      },
+    ],
   },
   resolve: {
     conditions: ["import", "module", "browser", "default"],

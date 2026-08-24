@@ -209,6 +209,44 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   };
 });
 
+vi.mock("../../../../shared/src/hooks/blockchain/useBaseLists", () => ({
+  useGardens: () => ({
+    data: [
+      {
+        id: gardenAddress,
+        name: "No Domain Garden",
+        domainMask: 0,
+      },
+    ],
+    isLoading: false,
+  }),
+  useActions: () => ({ data: [], isLoading: false }),
+}));
+
+vi.mock("../../../../shared/src/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
+  useAdminGardenWorkspaceSelection: () => ({
+    selectedGarden: {
+      id: gardenAddress,
+      tokenAddress: gardenAddress,
+      name: "No Domain Garden",
+    },
+  }),
+}));
+
+vi.mock("../../../../shared/src/hooks/garden/useGardenPermissions", () => ({
+  useGardenPermissions: () => ({ canManageGarden: mockCanManageGarden }),
+}));
+
+vi.mock("../../../../shared/src/hooks/work/useWorkMutation", () => ({
+  useWorkMutation: () => ({
+    error: null,
+    isError: false,
+    isPending: false,
+    mutate: vi.fn(),
+    reset: vi.fn(),
+  }),
+}));
+
 vi.mock("@/components/Garden/GardenSettingsEditor", () => ({
   GardenSettingsEditor: (props: {
     onDirtyStateChange?: (state: { isDirty: boolean; isSaving: boolean }) => void;

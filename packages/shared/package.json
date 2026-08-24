@@ -48,7 +48,8 @@
     "./utils": "./src/utils/index.ts",
     "./workflows": "./src/workflows/index.ts",
     "./__tests__/setupTests.base": "./src/__tests__/setupTests.base.ts",
-    "./testing": "./src/__tests__/test-utils/index.ts"
+    "./testing": "./src/__tests__/test-utils/index.ts",
+    "./testing/query-client": "./src/__tests__/test-utils/query-client.ts"
   },
   "scripts": {
     "lint": "bun --bun run oxlint src --deny-warnings",

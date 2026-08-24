@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "violations": [
+    "missing-direct-import|packages/admin/src/__tests__/components/hypercerts/CreateListingDialog.test.tsx|packages/admin/src/components/hypercerts/CreateListingDialog.tsx",
+    "missing-direct-import|packages/admin/src/__tests__/components/hypercerts/MarketplaceApprovalGate.test.tsx|packages/admin/src/components/hypercerts/MarketplaceApprovalGate.tsx",
+    "missing-direct-import|packages/client/src/__tests__/routes/Root.test.tsx|packages/client/src/routes/Root.tsx",
+    "missing-direct-import|packages/indexer/scripts/check-indexing-boundary.test.mjs|packages/indexer/scripts/check-indexing-boundary.mjs",
+    "missing-direct-import|packages/shared/src/__tests__/commitment-pooling.test.ts|packages/shared/src/commitment-pooling/index.ts",
+    "missing-direct-import|packages/shared/src/__tests__/components/ErrorBoundary.test.tsx|packages/shared/src/components/ErrorBoundary/index.ts",
+    "missing-direct-import|packages/shared/src/__tests__/hooks/hypercerts/useMarketplaceApprovals.test.ts|packages/shared/src/hooks/hypercerts/useMarketplaceApprovals.ts",
+    "missing-direct-import|packages/shared/src/__tests__/hooks/hypercerts/useMintHypercert.test.ts|packages/shared/src/hooks/hypercerts/useMintHypercert.ts",
+    "missing-direct-import|packages/shared/src/__tests__/public-contracts/upload-signing.test.ts|packages/shared/src/public-contracts/upload-signing.ts",
+    "missing-direct-import|packages/shared/src/__tests__/test-utils/controller-fixtures.test.ts|packages/shared/src/__tests__/test-utils/controller-fixtures.ts",
+    "missing-direct-import|scripts/design/check-css-custom-properties.test.mjs|scripts/design/check-css-custom-properties.mjs",
+    "missing-direct-import|scripts/harness/plan-hub.test.mjs|scripts/harness/plan-hub.mjs",
+    "missing-direct-import|scripts/quality/check-direct-tested-seams.test.mjs|scripts/quality/check-direct-tested-seams.mjs"
+  ]
+}
