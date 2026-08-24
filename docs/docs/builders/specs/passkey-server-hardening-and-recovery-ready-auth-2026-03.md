@@ -95,7 +95,9 @@ Today, account continuity depends too heavily on local browser state. That creat
 ## Non-goals
 
 - replace passkeys with embedded wallets
-- support arbitrary preview URLs or staging URLs inside the same passkey namespace
+- support arbitrary preview URLs inside the same passkey namespace (the named staging aliases are
+  in the namespace as of the 2026-08-23 revision below; unbounded per-deployment preview URLs are
+  not, and stay blocked in code)
 - build social recovery in this spec
 - solve support-team identity verification policy in this spec
 
@@ -133,7 +135,38 @@ These decisions should be treated as settled unless explicitly revised.
 4. In-app browsers and unsupported webviews are not passkey-capable environments for Green Goods.
 5. The smart-account address is first-class stored account state.
 6. Passkey-server credential discovery replaces local-only credential lookup.
-7. Staging and localhost are isolated from production passkey credentials.
+7. Localhost is isolated from production passkey credentials. Staging is not — see the revision below.
+
+### Revision 2026-08-23 — staging shares the production passkey namespace
+
+Decision 7 originally isolated staging as well. That is revised for the commitment pooling pilot,
+which runs on staging against Arbitrum mainnet with real gardens and real gardeners.
+
+A smart-account address is derived from `{credential, rpId}`, so an isolated staging RP ID does not
+merely mean a second login — it means a second address, with none of the gardener's hats, garden
+membership, or attestation history. Pilot commitments written from staging would be attributed to a
+throwaway identity on mainnet. One account across both origins is the point of the pilot, so staging
+now runs under the production RP ID and the production passkey-server project.
+
+What this changes:
+
+- `staging.greengoods.app` and `staging-admin.greengoods.app` are approved passkey origins.
+- Staging sets no `VITE_PASSKEY_RP_ID`, so it resolves the apex `greengoods.app` like production.
+- Staging and production share one Pimlico project, because the passkey server's credential
+  namespace is the project. A separate project makes username recovery return zero credentials on
+  staging and pushes the gardener into creating a new account.
+
+What this does not change:
+
+- Localhost stays isolated and keeps its own RP ID.
+- Per-deployment preview URLs stay blocked; `classifyPasskeyCeremonyContext` rejects `*.vercel.app`
+  in production builds, and that guard is deliberately not relaxed.
+- The apex RP ID, the canonical auth origin for ordinary sign-in, and the Android RP-continuity
+  discipline below are unchanged.
+
+Because staging is a publicly reachable origin that can now mint production credentials, it needs
+crawl and access controls that an isolated staging did not: `Disallow: /` and Vercel deployment
+protection on the staging aliases.
 
 ---
 
@@ -156,11 +189,11 @@ These decisions should be treated as settled unless explicitly revised.
 
 ## Environment separation
 
-- production passkey server project
-- staging passkey server project
+- one passkey server project shared by production and staging (see the 2026-08-23 revision above)
 - localhost development passkey server project or local mock
 
-Production credentials must never be created from preview URLs or localhost.
+Production credentials must never be created from preview URLs or localhost. They may be created
+from the named staging aliases, which are approved origins in the production namespace.
 
 ---
 

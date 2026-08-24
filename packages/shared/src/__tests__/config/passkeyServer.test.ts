@@ -116,6 +116,45 @@ describe("config/passkeyServer", () => {
       });
     });
 
+    // Staging shares production's passkeys on purpose: it deploys under
+    // `staging.greengoods.app` with no RP override, so the apex RP resolves and
+    // one gardener keeps one credential and one smart-account address across
+    // both origins. The address is derived from `{credential, rpId}`, so a
+    // narrower RP here would silently hand pilot gardeners a second account.
+    it("shares the apex RP ID with named subdomains of the production origin", () => {
+      for (const origin of [
+        "https://greengoods.app",
+        "https://www.greengoods.app",
+        "https://staging.greengoods.app",
+        "https://staging-admin.greengoods.app",
+      ]) {
+        expect(
+          classifyPasskeyCeremonyContext({
+            env: { PROD: true },
+            location: locationFor(origin),
+          })
+        ).toMatchObject({
+          supported: true,
+          rpId: "greengoods.app",
+          origin,
+        });
+      }
+    });
+
+    // Sharing the RP with the named staging alias must not extend to the
+    // per-deployment preview URLs, which are unbounded and publicly guessable.
+    it("still blocks preview deployment origins in production", () => {
+      expect(
+        classifyPasskeyCeremonyContext({
+          env: { PROD: true },
+          location: locationFor("https://green-goods-abc123-greenpilldevguild.vercel.app"),
+        })
+      ).toMatchObject({
+        supported: false,
+        reason: "preview_or_localhost_production",
+      });
+    });
+
     it("enforces custom staging RP IDs", () => {
       const env = { VITE_PASSKEY_RP_ID: "staging.greengoods.app" };
 
