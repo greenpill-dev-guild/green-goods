@@ -34,8 +34,8 @@
 | Zero direct-test baseline | `state_api` | 5 | complete |
 | Evidence-review selector and behavior/trigger fixtures | `state_api` | 6 | complete |
 | Builder documentation alignment | `state_api` | 7 | complete |
-| Ship, push, and exact-SHA coverage evidence | `qa_pass_1` | 8 | pending |
-| Independent seam/readiness review | `qa_pass_2` | 9 | pending |
+| Ship, push, and exact-SHA coverage evidence | `qa_pass_1` | 8 | complete |
+| Independent seam/readiness review | `qa_pass_2` | 9 | complete |
 | Two-point coverage ratchet review | `state_api` | 10 | due 2026-09-22 |
 
 ## Implementation Steps
@@ -49,9 +49,9 @@
 5. [x] Resolve all 13 baseline rows; correct real tests or narrow invalid subject inference with proof.
 6. [x] Add evidence-safe validation routing plus deterministic and semantic skill-routing scenarios.
 7. [x] Align architecture, Vitest, and agentic-evaluation builder docs.
-8. [ ] Run scoped checks and the exact-path Ship Gate, commit directly on `develop`, refresh and safely
+8. [x] Run scoped checks and the exact-path Ship Gate, commit directly on `develop`, refresh and safely
    push, dispatch coverage for the integration SHA, and record the receipt.
-9. Run a fresh read-only module-seams/readiness review over the committed range and close findings.
+9. [x] Run a fresh read-only module-seams/readiness review over the committed range and close findings.
 10. On 2026-09-22, raise supported coverage floors by two points with matching parity updates; if
     evidence is insufficient, record the blocker and keep the hub active.
 
@@ -102,4 +102,17 @@
 - [x] Render and execute the exact-path Ship validation plan.
 - [x] `bun format && bun lint && bun run test && VITE_CHAIN_ID=11155111 bun run build`
 - [x] `bun run build:docs`
-- [ ] Manual coverage dispatch succeeds for the pushed integration SHA
+- [x] Manual coverage dispatch succeeded for `446c75c2d7b8b2b4f8c31605828c8578f150d7a7`:
+  <https://github.com/greenpill-dev-guild/green-goods/actions/runs/32775723169>
+
+## Current Certification
+
+- Committed range reviewed: `0e6d133b9..446c75c2d`.
+- Findings: zero unresolved Must-Fix and zero unresolved Should-Fix findings.
+- Certified registry: four entries, all fresh; direct-test baseline: zero rows.
+- Coverage, measured as statements / branches / functions / lines:
+  - Shared: `62.76 / 54.01 / 61.29 / 64.29` against floors `61 / 52 / 59 / 62`.
+  - Admin: `52.75 / 48.37 / 47.38 / 54.39` against floors `51 / 47 / 44 / 53`.
+  - Client: `64.87 / 57.69 / 63.62 / 66.56` against floors `63 / 56 / 62 / 64`.
+- The implementation is certified for its current scope. The Plan Hub and PRD-835 stay active only
+  for the separate `2026-09-22` two-point coverage-ratchet checkpoint.

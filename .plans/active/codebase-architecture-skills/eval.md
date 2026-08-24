@@ -43,6 +43,26 @@ Every green or terminal claim records the exact command, UTC time, tested SHA, o
 validated paths, and clean-path status. The semantic trigger evaluation runs once. Coverage must
 name its workflow run and integration SHA. An environment-blocked external check remains `BLOCKED`.
 
+## Certification Result - 2026-08-24
+
+| Gate | Result | Evidence |
+|---|---|---|
+| AC-1 through AC-6 | PASS | Deterministic behavior, checker, validation-system, guidance-link, and Plan Hub checks passed. The semantic evaluation was invoked once, but its host-truncated receipt is not claimed as a pass. |
+| AC-7 | PASS | Exact-path selector checks and the full Ship Gate passed for implementation commit `446c75c2d7b8b2b4f8c31605828c8578f150d7a7`. |
+| AC-8 | PASS | Coverage run [32775723169](https://github.com/greenpill-dev-guild/green-goods/actions/runs/32775723169) succeeded on the exact implementation SHA for Shared, Admin, and Client. |
+| AC-9 | PASS | Read-only review of `0e6d133b9..446c75c2d` found no unresolved Must-Fix or Should-Fix findings. |
+
+Measured coverage (statements / branches / functions / lines):
+
+- Shared: `62.76 / 54.01 / 61.29 / 64.29`; floors `61 / 52 / 59 / 62`.
+- Admin: `52.75 / 48.37 / 47.38 / 54.39`; floors `51 / 47 / 44 / 53`.
+- Client: `64.87 / 57.69 / 63.62 / 66.56`; floors `63 / 56 / 62 / 64`.
+
+The certification is bounded to repository-static architecture evidence and the tested
+composition/consumer paths. The checker does not prove runtime reachability, adapter fidelity,
+deployed behavior, module depth, or useful coverage by itself; those limits remain explicit in the
+specialist review matrix.
+
 ## Scheduled Checkpoint
 
 `coverage_ratchet` is due `2026-09-22`. Raise every supported configured metric by two points and

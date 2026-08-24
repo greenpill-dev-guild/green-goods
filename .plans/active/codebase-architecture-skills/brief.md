@@ -31,6 +31,23 @@ the implemented architecture.
 - Out of scope: runtime product refactors, Solidity registry enforcement, new top-level skills,
   dependency installs, and the separate `client-structure-and-agent-guides` implementation.
 
+## Review Findings Carried Forward
+
+The predecessor review found five gaps that this successor owns without rewriting the archive:
+
+1. Architecture vocabulary and the deletion test were not shared across the existing skills.
+2. Architecture discovery, change review, repository drift, seam certification, and cleanup needed
+   explicit routing boundaries rather than three new overlapping skills.
+3. Direct-test enforcement lacked an export-aware registry, freshness proof, and controls for
+   self-mocking and false subject inference.
+4. Architecture-guidance review selected unrelated package suites instead of a narrow, safe
+   evidence set.
+5. Builder guidance blurred direct tests, conformance, consumer wiring, composition proof,
+   coverage floors, and architecture certification.
+
+The implementation and evaluation files map each finding to a changed surface and an acceptance
+gate. Deferred Agent candidates remain findings, not authorized refactors.
+
 ## Success Signal
 
 A review of the architecture guidance selects the three intended evidence checks; certified

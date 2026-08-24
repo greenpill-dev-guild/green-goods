@@ -4,7 +4,7 @@
 
 - Owner: Codex
 - Branch: `develop` (direct integration, as approved)
-- Status: implementation and pre-commit Ship proof complete; integration receipt pending
+- Status: implementation committed and pushed; current scope certified
 
 ## Scope
 
@@ -35,17 +35,20 @@
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending direct `develop` integration commit
-- Run at (UTC): `2026-08-24T20:43:00Z`
-- Exact command(s): recorded above and in `plan.todo.md`
-- Result: pre-commit Ship proof passed; commit-attributed receipt follows after exact-path staging
+- Tested implementation commit SHA: `446c75c2d7b8b2b4f8c31605828c8578f150d7a7`
+- Run at (UTC): `2026-08-24T20:52:42Z`
+- Exact command(s): `bun run validation:plan -- --intent ship --paths-file <exact-path-list>`;
+  `bun format`; `bun lint`; `bun run test`; `VITE_CHAIN_ID=11155111 bun run build`;
+  `bun run build:agent`; `bun run build:docs`; selected guidance, test-quality, validation-system,
+  Plan Hub, staged-module, and supply-chain checks
+- Result: all 18 exact-path checks and the full Ship Gate passed; implementation commit pushed to
+  `origin/develop`
 - Validated paths: architecture context/skills, successor hub, registry/checker, selector policy,
   corrected tests, Shared exports, and builder docs
-- Worktree identity command and result: pending commit-attributed exact-path check
-- Evidence-only diff command and result (if applicable): not applicable
-- Evidence-only worktree-status command and result (if applicable): not applicable
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- .claude docs packages/shared packages/client packages/indexer scripts` -> empty
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 446c75c2d7b8b2b4f8c31605828c8578f150d7a7..HEAD -- .claude docs packages/shared packages/client packages/indexer scripts` -> empty
+- Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- .claude docs packages/shared packages/client packages/indexer scripts` -> empty
 
 ## Risks / Blockers
 
-- Coverage dispatch and the independent committed-range review remain in QA passes 1 and 2.
 - The 2026-09-22 two-point coverage ratchet remains an active operational checkpoint.
