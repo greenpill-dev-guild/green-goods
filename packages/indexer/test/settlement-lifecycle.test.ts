@@ -8,6 +8,7 @@ import {
   processEvents,
   SettlementModule,
 } from "./v3";
+import { settlementMessage } from "./helpers/settlement-messages";
 import { executorConfiguration, sourceConfiguration } from "../src/handlers/settlement-projections";
 
 const CHAIN_ID = 42161;
@@ -119,52 +120,6 @@ function queued(
     recipient: contributor,
     token: addr(91),
     amount,
-    mockEventData: mockEvent(timestamp),
-  });
-}
-
-function command(
-  eventName: "SettlementCommandDispatched" | "SettlementCommandRetried",
-  executionKey: string,
-  commandMessageId: string,
-  isBatch: boolean,
-  subjectId: bigint,
-  attempt: bigint,
-  timestamp: number
-) {
-  return SettlementModule[eventName].createMockEvent({
-    executionKey,
-    commandMessageId,
-    isBatch,
-    subjectId,
-    attempt,
-    destinationChainSelector: 16_688_752_181_858_512n,
-    destinationExecutor: addr(80),
-    destinationGasLimit: 600_000n,
-    protocolVersion: 1n,
-    commandPayloadHash: bytes32(timestamp + 100),
-    fee: 3n,
-    mockEventData: mockEvent(timestamp),
-  });
-}
-
-function acknowledged(
-  executionKey: string,
-  acknowledgmentMessageId: string,
-  commandMessageId: string,
-  isBatch: boolean,
-  subjectId: bigint,
-  success: boolean,
-  timestamp: number
-) {
-  return SettlementModule.SettlementAcknowledged.createMockEvent({
-    executionKey,
-    acknowledgmentMessageId,
-    originatingCommandMessageId: commandMessageId,
-    isBatch,
-    subjectId,
-    success,
-    failureCode: success ? 0n : 8n,
     mockEventData: mockEvent(timestamp),
   });
 }
@@ -420,16 +375,20 @@ describe("settlement lifecycle projections", () => {
   });
 
   it("reconciles a reverse-ordered batch command and acknowledgment to every child", async () => {
-    const executionKey = bytes32(100);
-    const commandMessageId = bytes32(101);
-    const acknowledgmentMessageId = bytes32(102);
+    const message = settlementMessage(100, { isBatch: true, subjectId: 50n });
     let mockDb = createTestIndexer();
     seedSourceLane(mockDb);
     mockDb = await processEvents(mockDb, [
       payoutPlanCreated(40n, 400n, 1),
       payoutPlanFinalized(40n, 2n, 2),
-      command("SettlementCommandDispatched", executionKey, commandMessageId, true, 50n, 0n, 3),
-      acknowledged(executionKey, acknowledgmentMessageId, commandMessageId, true, 50n, true, 4),
+      SettlementModule.SettlementCommandDispatched.createMockEvent({
+        ...message.source.dispatched,
+        mockEventData: mockEvent(3),
+      }),
+      SettlementModule.SettlementAcknowledged.createMockEvent({
+        ...message.source.acknowledged(),
+        mockEventData: mockEvent(4),
+      }),
       SettlementModule.BatchCreated.createMockEvent({
         batchId: 50n,
         executorGarden: addr(1),
@@ -455,32 +414,36 @@ describe("settlement lifecycle projections", () => {
     assert.equal(plan?.confirmedPayoutCount, 2);
     assert.equal(plan?.status, "COMPLETE");
     assert.equal(
-      (await mockDb.SettlementMessage.get(`${CHAIN_ID}-${acknowledgmentMessageId}`))?.status,
+      (await mockDb.SettlementMessage.get(`${CHAIN_ID}-${message.ids.acknowledgmentMessageId}`))
+        ?.status,
       "ACKNOWLEDGED"
     );
   });
 
   it("preserves retry history and ignores duplicate or stale acknowledgments idempotently", async () => {
-    const failedKey = bytes32(200);
-    const failedCommand = bytes32(201);
-    const retryKey = bytes32(202);
-    const retryCommand = bytes32(203);
+    const message = settlementMessage(200, { subjectId: 61n });
     let mockDb = createTestIndexer();
     seedSourceLane(mockDb);
     mockDb = await processEvents(mockDb, [
       payoutPlanCreated(60n, 600n, 1),
       payoutPlanFinalized(60n, 1n, 2),
       queued(60n, 600n, 61n, addr(20), 300n, 3),
-      command("SettlementCommandDispatched", failedKey, failedCommand, false, 61n, 0n, 4),
-      acknowledged(failedKey, bytes32(204), failedCommand, false, 61n, false, 5),
+      SettlementModule.SettlementCommandDispatched.createMockEvent({
+        ...message.source.dispatched,
+        mockEventData: mockEvent(4),
+      }),
+      SettlementModule.SettlementAcknowledged.createMockEvent({
+        ...message.source.acknowledged({ success: false }),
+        mockEventData: mockEvent(5),
+      }),
       SettlementModule.DuplicateAcknowledgmentIgnored.createMockEvent({
-        executionKey: failedKey,
-        acknowledgmentMessageId: bytes32(205),
+        executionKey: message.ids.executionKey,
+        acknowledgmentMessageId: message.ids.duplicateAcknowledgmentMessageId,
         mockEventData: mockEvent(6),
       }),
       SettlementModule.StaleAcknowledgmentIgnored.createMockEvent({
-        executionKey: failedKey,
-        acknowledgmentMessageId: bytes32(206),
+        executionKey: message.ids.executionKey,
+        acknowledgmentMessageId: message.ids.staleAcknowledgmentMessageId,
         mockEventData: mockEvent(7),
       }),
       SettlementModule.DisbursementRequeued.createMockEvent({
@@ -488,8 +451,14 @@ describe("settlement lifecycle projections", () => {
         attempt: 1n,
         mockEventData: mockEvent(8),
       }),
-      command("SettlementCommandRetried", retryKey, retryCommand, false, 61n, 1n, 9),
-      acknowledged(retryKey, bytes32(207), retryCommand, false, 61n, true, 10),
+      SettlementModule.SettlementCommandRetried.createMockEvent({
+        ...message.source.retried,
+        mockEventData: mockEvent(9),
+      }),
+      SettlementModule.SettlementAcknowledged.createMockEvent({
+        ...message.source.acknowledged({ retry: true }),
+        mockEventData: mockEvent(10),
+      }),
     ]);
 
     const disbursement = await mockDb.Disbursement.get(`${CHAIN_ID}-61`);
@@ -499,41 +468,55 @@ describe("settlement lifecycle projections", () => {
     assert.equal(plan?.failedPayoutCount, 0);
     assert.equal(plan?.confirmedPayoutCount, 1);
     assert.equal(
-      (await mockDb.SettlementMessage.get(`${CHAIN_ID}-${bytes32(205)}`))?.status,
+      (
+        await mockDb.SettlementMessage.get(
+          `${CHAIN_ID}-${message.ids.duplicateAcknowledgmentMessageId}`
+        )
+      )?.status,
       "DUPLICATE"
     );
     assert.equal(
-      (await mockDb.SettlementMessage.get(`${CHAIN_ID}-${bytes32(206)}`))?.status,
+      (
+        await mockDb.SettlementMessage.get(
+          `${CHAIN_ID}-${message.ids.staleAcknowledgmentMessageId}`
+        )
+      )?.status,
       "STALE"
     );
   });
 
   it("preserves attempt timestamps across same-key transport retries", async () => {
-    const executionKey = bytes32(220);
-    const initialMessageId = bytes32(221);
-    const retryMessageId = bytes32(222);
+    const message = settlementMessage(220, { subjectId: 63n });
     let mockDb = createTestIndexer();
     seedSourceLane(mockDb);
     mockDb = await processEvents(mockDb, [
       payoutPlanCreated(62n, 620n, 1),
       payoutPlanFinalized(62n, 1n, 2),
       queued(62n, 620n, 63n, addr(20), 300n, 3),
-      command("SettlementCommandDispatched", executionKey, initialMessageId, false, 63n, 0n, 4),
-      command("SettlementCommandRetried", executionKey, retryMessageId, false, 63n, 0n, 9),
+      SettlementModule.SettlementCommandDispatched.createMockEvent({
+        ...message.source.dispatched,
+        mockEventData: mockEvent(4),
+      }),
+      SettlementModule.SettlementCommandRetried.createMockEvent({
+        ...message.source.retried,
+        executionKey: message.ids.executionKey,
+        attempt: 0n,
+        mockEventData: mockEvent(9),
+      }),
     ]);
 
     const commandIndex = await mockDb.SettlementCommandIndex.get(
-      `${CHAIN_ID}-${executionKey.toLowerCase()}`
+      `${CHAIN_ID}-${message.ids.executionKey.toLowerCase()}`
     );
     const subject = await mockDb.SettlementSubjectState.get(`${CHAIN_ID}-D-63`);
     const disbursement = await mockDb.Disbursement.get(`${CHAIN_ID}-63`);
-    assert.equal(commandIndex?.commandMessageId, retryMessageId.toLowerCase());
+    assert.equal(commandIndex?.commandMessageId, message.ids.retryCommandMessageId.toLowerCase());
     assert.equal(commandIndex?.createdAt, 4);
     assert.equal(commandIndex?.updatedAt, 9);
-    assert.equal(subject?.commandMessageId, retryMessageId.toLowerCase());
+    assert.equal(subject?.commandMessageId, message.ids.retryCommandMessageId.toLowerCase());
     assert.equal(subject?.dispatchedAt, 4);
     assert.equal(subject?.updatedAt, 9);
-    assert.equal(disbursement?.commandMessageId, retryMessageId.toLowerCase());
+    assert.equal(disbursement?.commandMessageId, message.ids.retryCommandMessageId.toLowerCase());
     assert.equal(disbursement?.dispatchedAt, 4);
     assert.equal(disbursement?.updatedAt, 9);
   });
@@ -577,8 +560,7 @@ describe("settlement lifecycle projections", () => {
   });
 
   it("projects a stranded batch failure to every child and payout-plan counter", async () => {
-    const executionKey = bytes32(280);
-    const commandMessageId = bytes32(281);
+    const message = settlementMessage(280, { isBatch: true, subjectId: 83n });
     let mockDb = createTestIndexer();
     seedSourceLane(mockDb);
     mockDb = await processEvents(mockDb, [
@@ -596,8 +578,11 @@ describe("settlement lifecycle projections", () => {
         disbursementIds: [81n, 82n],
         mockEventData: mockEvent(5),
       }),
-      command("SettlementCommandDispatched", executionKey, commandMessageId, true, 83n, 0n, 6),
-      stranded(executionKey, true, 83n, 7),
+      SettlementModule.SettlementCommandDispatched.createMockEvent({
+        ...message.source.dispatched,
+        mockEventData: mockEvent(6),
+      }),
+      stranded(message.ids.executionKey, true, 83n, 7),
     ]);
 
     const batch = await mockDb.SettlementBatch.get(`${CHAIN_ID}-83`);
@@ -626,16 +611,18 @@ describe("settlement lifecycle projections", () => {
   });
 
   it("projects an unbatched stranded failure without inventing an acknowledgment", async () => {
-    const executionKey = bytes32(290);
-    const commandMessageId = bytes32(291);
+    const message = settlementMessage(290, { subjectId: 91n });
     let mockDb = createTestIndexer();
     seedSourceLane(mockDb);
     mockDb = await processEvents(mockDb, [
       payoutPlanCreated(90n, 900n, 1),
       payoutPlanFinalized(90n, 1n, 2),
       queued(90n, 900n, 91n, addr(20), 300n, 3),
-      command("SettlementCommandDispatched", executionKey, commandMessageId, false, 91n, 0n, 4),
-      stranded(executionKey, false, 91n, 5),
+      SettlementModule.SettlementCommandDispatched.createMockEvent({
+        ...message.source.dispatched,
+        mockEventData: mockEvent(4),
+      }),
+      stranded(message.ids.executionKey, false, 91n, 5),
     ]);
 
     const disbursement = await mockDb.Disbursement.get(`${CHAIN_ID}-91`);
@@ -648,7 +635,7 @@ describe("settlement lifecycle projections", () => {
     assert.equal(subject?.acknowledgmentMessageId, undefined);
     assert.equal(plan?.failedPayoutCount, 1);
 
-    const attemptId = `${CHAIN_ID}-${executionKey.toLowerCase()}`;
+    const attemptId = `${CHAIN_ID}-${message.ids.executionKey.toLowerCase()}`;
     const failedAttempt = await mockDb.SettlementCommandIndex.get(attemptId);
     assert.equal(failedAttempt?.state, "FAILED");
     assert.equal(failedAttempt?.failureCode, 12);
@@ -671,9 +658,7 @@ describe("settlement lifecycle projections", () => {
   });
 
   it("projects executor peer, policy, route, execution, deferral, duplicate, and ack reserve", async () => {
-    const executionKey = bytes32(300);
-    const commandMessageId = bytes32(301);
-    const acknowledgmentMessageId = bytes32(302);
+    const message = settlementMessage(300, { subjectId: 77n });
     let mockDb = createTestIndexer();
     seedExecutorLane(mockDb);
     mockDb = await processEvents(mockDb, [
@@ -726,35 +711,19 @@ describe("settlement lifecycle projections", () => {
         mockEventData: celoEvent(8),
       }),
       CeloSettlementExecutor.SettlementExecutionStored.createMockEvent({
-        executionKey,
-        commandMessageId,
-        executorGarden: addr(1),
-        acknowledgmentReceiver: addr(70),
-        protocolVersion: 1n,
-        isBatch: false,
-        settlementId: 77n,
-        attempt: 0n,
-        status: 1n,
-        failureCode: 0n,
+        ...message.executor.stored,
         mockEventData: celoEvent(9),
       }),
       CeloSettlementExecutor.AcknowledgmentDeferred.createMockEvent({
-        executionKey,
-        commandMessageId,
-        reasonCode: 2n,
+        ...message.executor.deferred,
         mockEventData: celoEvent(10),
       }),
       CeloSettlementExecutor.AcknowledgmentSent.createMockEvent({
-        executionKey,
-        commandMessageId,
-        acknowledgmentMessageId,
-        fee: 5n,
-        reserveFunded: true,
+        ...message.executor.acknowledgmentSent,
         mockEventData: celoEvent(11),
       }),
       CeloSettlementExecutor.DuplicateSettlementMessage.createMockEvent({
-        executionKey,
-        commandMessageId: bytes32(303),
+        ...message.executor.duplicate,
         mockEventData: celoEvent(12),
       }),
       CeloSettlementExecutor.ExcessAcknowledgmentFeesWithdrawn.createMockEvent({
@@ -774,7 +743,9 @@ describe("settlement lifecycle projections", () => {
     const route = await mockDb.SettlementGardenRoute.get(
       `${EXECUTOR_CHAIN_ID}-${addr(1).toLowerCase()}`
     );
-    const execution = await mockDb.SettlementExecution.get(`${EXECUTOR_CHAIN_ID}-${executionKey}`);
+    const execution = await mockDb.SettlementExecution.get(
+      `${EXECUTOR_CHAIN_ID}-${message.ids.executionKey}`
+    );
     assert.equal(config?.role, "EXECUTOR");
     assert.equal(config?.batchSizeLimit, 12);
     assert.equal(config?.nativeFeeBalance, 80n);
@@ -783,10 +754,13 @@ describe("settlement lifecycle projections", () => {
     assert.equal(execution?.status, "SUCCESS");
     assert.equal(execution?.acknowledgmentSent, true);
     assert.equal(execution?.acknowledgmentDeferralCode, "NONE");
-    assert.deepEqual(execution?.duplicateMessageIds, [bytes32(303)]);
+    assert.deepEqual(execution?.duplicateMessageIds, [message.ids.duplicateCommandMessageId]);
     assert.equal(
-      (await mockDb.SettlementMessage.get(`${EXECUTOR_CHAIN_ID}-${acknowledgmentMessageId}`))
-        ?.reserveFunded,
+      (
+        await mockDb.SettlementMessage.get(
+          `${EXECUTOR_CHAIN_ID}-${message.ids.acknowledgmentMessageId}`
+        )
+      )?.reserveFunded,
       true
     );
   });
