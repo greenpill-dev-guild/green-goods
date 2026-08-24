@@ -38,10 +38,7 @@ export function useMerged<TOnline, TOffline, TMerged>(
 
   const onlineQuery = useQuery({
     queryKey: options.onlineKey,
-    // Wrapped, not passed by reference: a caller whose fetcher takes an
-    // optional injected dependency first would otherwise receive Query's
-    // QueryFunctionContext in its place. See the note in `useBaseLists`.
-    queryFn: () => options.fetchOnline(),
+    queryFn: options.fetchOnline,
     enabled: isEnabled,
     staleTime: options.staleTimeOnline ?? 30_000,
     gcTime: options.gcTimeOnline ?? 300_000,
@@ -49,7 +46,7 @@ export function useMerged<TOnline, TOffline, TMerged>(
 
   const offlineQuery = useQuery({
     queryKey: options.offlineKey,
-    queryFn: () => options.fetchOffline(),
+    queryFn: options.fetchOffline,
     enabled: isEnabled,
     staleTime: options.staleTimeOffline ?? 5_000,
     gcTime: options.gcTimeOffline ?? 30_000,

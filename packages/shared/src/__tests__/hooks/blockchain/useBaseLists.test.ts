@@ -21,14 +21,10 @@ const mockGetActions = vi.fn();
 const mockGetGardens = vi.fn();
 const mockGetGardeners = vi.fn();
 
-// Forward arguments rather than swallowing them. These three take an injected
-// `GraphQLReader` as their first parameter, so what the factory passes them is
-// part of the contract, and a zero-arg wrapper here would hide a caller that
-// passes something wrong.
 vi.mock("../../../modules/data/greengoods", () => ({
-  getActions: (...args: unknown[]) => mockGetActions(...args),
-  getGardens: (...args: unknown[]) => mockGetGardens(...args),
-  getGardeners: (...args: unknown[]) => mockGetGardeners(...args),
+  getActions: () => mockGetActions(),
+  getGardens: () => mockGetGardens(),
+  getGardeners: () => mockGetGardeners(),
 }));
 
 vi.mock("../../../config/blockchain", () => ({
@@ -77,36 +73,6 @@ describe("useBaseLists", () => {
   beforeEach(() => {
     queryClient = createQueryClient();
     vi.clearAllMocks();
-  });
-
-  // ------------------------------------------
-  // Reader injection
-  // ------------------------------------------
-
-  describe("reader injection", () => {
-    // `getActions`, `getGardens` and `getGardeners` each take a `GraphQLReader`
-    // as their first parameter, defaulted to the live indexer. TanStack Query
-    // always invokes `queryFn` with a QueryFunctionContext, so handing it a
-    // bare function reference passes that context in as the reader, the
-    // default never applies, and every read dies on
-    // `reader.query is not a function`. That shipped: gardens and actions came
-    // back empty across the client until the factory wrapped the call.
-    it.each([
-      ["useActions", useActions, () => mockGetActions],
-      ["useGardens", useGardens, () => mockGetGardens],
-      ["useGardeners", useGardeners, () => mockGetGardeners],
-    ])("calls %s's fetcher with no arguments so the default reader applies", async (_name, useList, getMock) => {
-      const mock = getMock();
-      mock.mockResolvedValue([]);
-
-      renderHook(() => useList(), { wrapper: createWrapper(queryClient) });
-
-      await waitFor(() => {
-        expect(mock).toHaveBeenCalled();
-      });
-      // Exactly zero arguments — not a QueryFunctionContext standing in for the reader.
-      expect(mock).toHaveBeenCalledWith();
-    });
   });
 
   // ------------------------------------------

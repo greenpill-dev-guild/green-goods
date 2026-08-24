@@ -34,14 +34,8 @@ function createBaseListHook<T>(
     const queryKey = getQueryKey(chainId);
 
     return useQuery({
-      // Called through a closure, never handed to Query as a bare reference.
-      // `getActions`, `getGardens` and `getGardeners` each take an injected
-      // `GraphQLReader` as their first parameter, defaulted to the real
-      // indexer. Query always invokes `queryFn` with a QueryFunctionContext,
-      // so passing the function directly hands that context in as the reader,
-      // the default never applies, and the read dies on
-      // `reader.query is not a function`.
-      queryFn: () => fetchFn(),
+      queryKey,
+      queryFn: fetchFn,
       staleTime: options?.staleTime ?? STALE_TIMES.baseLists,
       gcTime: options?.gcTime ?? GC_TIMES.baseLists,
       placeholderData: (previousData) => previousData ?? [],
