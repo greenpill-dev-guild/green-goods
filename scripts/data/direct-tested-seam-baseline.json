@@ -1,8 +1,6 @@
 {
   "version": 1,
   "violations": [
-    "missing-direct-import|packages/admin/src/__tests__/components/hypercerts/CreateListingDialog.test.tsx|packages/admin/src/components/hypercerts/CreateListingDialog.tsx",
-    "missing-direct-import|packages/admin/src/__tests__/components/hypercerts/MarketplaceApprovalGate.test.tsx|packages/admin/src/components/hypercerts/MarketplaceApprovalGate.tsx",
     "missing-direct-import|packages/client/src/__tests__/routes/Root.test.tsx|packages/client/src/routes/Root.tsx",
     "missing-direct-import|packages/indexer/scripts/check-indexing-boundary.test.mjs|packages/indexer/scripts/check-indexing-boundary.mjs",
     "missing-direct-import|packages/shared/src/__tests__/commitment-pooling.test.ts|packages/shared/src/commitment-pooling/index.ts",

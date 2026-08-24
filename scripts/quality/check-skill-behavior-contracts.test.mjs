@@ -26,7 +26,7 @@ const liveSources = loadSkillBehaviorSources();
 test("live guidance satisfies every skill behavior contract", () => {
   const report = evaluateSkillBehaviorContracts(liveSources);
   assert.deepEqual(report.failures, []);
-  assert.equal(report.results.length, 6);
+  assert.equal(report.results.length, 7);
 });
 test("audit contract fails without the explicit scope lock", () => {
   const sources = replaceRequiredMarker(
