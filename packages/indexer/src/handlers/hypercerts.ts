@@ -6,11 +6,11 @@ import {
   createDefaultHypercert,
   fetchJson,
   getTxHash,
+  indexCommitmentHypercert,
   parseHypercertMetadata,
+  poolingEntityId,
   ZERO_ADDRESS,
 } from "./shared";
-import { poolingEntityId } from "./commitment-pool-projections";
-import { indexCommitmentHypercert } from "./hypercert-allocations";
 
 // ============================================================================
 // HYPERCERT EVENT HANDLERS

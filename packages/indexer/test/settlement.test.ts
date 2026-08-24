@@ -1,27 +1,14 @@
 import assert from "assert";
 
-import { Addresses, createTestIndexer, SettlementModule, processEvents } from "./v3";
+import { createTestIndexer, SettlementModule, processEvents } from "./v3";
+import { addr, CHAINS, mockEvent as buildEvent, txHash } from "./helpers/events";
 
-const CHAIN_ID = 42161;
+const CHAIN_ID = CHAINS.arbitrum;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const ZERO_BYTES32 = `0x${"0".repeat(64)}`;
 
-function addr(index: number): string {
-  return Addresses.mockAddresses[index] || `0x${index.toString(16).padStart(40, "0")}`;
-}
-
-function txHash(index: number): string {
-  return `0x${index.toString(16).padStart(64, "0")}`;
-}
-
-function mockEvent(timestamp: number, logIndex = 0) {
-  return {
-    chainId: CHAIN_ID,
-    block: { timestamp, number: 0 },
-    srcAddress: undefined,
-    transaction: { hash: txHash(timestamp) },
-    logIndex,
-  };
+function sourceEvent(timestamp: number, logIndex = 0) {
+  return buildEvent(CHAIN_ID, timestamp, { logIndex });
 }
 
 async function seedProtocolGarden(protocolGarden: string) {
@@ -29,7 +16,7 @@ async function seedProtocolGarden(protocolGarden: string) {
   const event = SettlementModule.FundingConfigurationLocked.createMockEvent({
     protocolGarden,
     gDollarToken: addr(91),
-    mockEventData: mockEvent(1),
+    mockEventData: sourceEvent(1),
   });
   return SettlementModule.FundingConfigurationLocked.processEvent({ event, mockDb });
 }
@@ -54,14 +41,14 @@ describe("SettlementModule read model", () => {
       recipient: addr(8),
       token: addr(91),
       amount: 500n,
-      mockEventData: mockEvent(2),
+      mockEventData: sourceEvent(2),
     });
     const deposit = SettlementModule.FundingDepositRecorded.createMockEvent({
       fundingId,
       depositReference: txHash(77),
       amount: 500n,
       recordedBy: addr(7),
-      mockEventData: mockEvent(3),
+      mockEventData: sourceEvent(3),
     });
     const pledge = SettlementModule.FundingPledged.createMockEvent({
       fundingId,
@@ -71,7 +58,7 @@ describe("SettlementModule read model", () => {
       refundAccount: addr(8),
       expectedAmount: 500n,
       recordedBy: addr(7),
-      mockEventData: mockEvent(1),
+      mockEventData: sourceEvent(1),
     });
     mockDb = await processEvents(mockDb, [refund, refund, deposit, pledge, pledge]);
 
@@ -96,7 +83,7 @@ describe("SettlementModule read model", () => {
       subjectId: refundId,
       success: true,
       failureCode: 0n,
-      mockEventData: mockEvent(4),
+      mockEventData: sourceEvent(4),
     });
     mockDb = await SettlementModule.SettlementAcknowledged.processEvent({
       event: acknowledgment,
@@ -126,7 +113,7 @@ describe("SettlementModule read model", () => {
       recipient: addr(8),
       token: addr(91),
       amount: 500n,
-      mockEventData: mockEvent(5),
+      mockEventData: sourceEvent(5),
     });
     const acknowledgment = SettlementModule.SettlementAcknowledged.createMockEvent({
       executionKey: txHash(83),
@@ -136,7 +123,7 @@ describe("SettlementModule read model", () => {
       subjectId: refundId,
       success: true,
       failureCode: 0n,
-      mockEventData: mockEvent(6),
+      mockEventData: sourceEvent(6),
     });
     const pledge = SettlementModule.FundingPledged.createMockEvent({
       fundingId,
@@ -146,7 +133,7 @@ describe("SettlementModule read model", () => {
       refundAccount: addr(8),
       expectedAmount: 500n,
       recordedBy: addr(7),
-      mockEventData: mockEvent(4),
+      mockEventData: sourceEvent(4),
     });
     mockDb = await SettlementModule.DisbursementQueued.processEvent({ event: refund, mockDb });
     mockDb = await SettlementModule.SettlementAcknowledged.processEvent({
@@ -178,7 +165,7 @@ describe("SettlementModule read model", () => {
       beneficiaryAmount: 100n,
       recognitionSnapshotHash: ZERO_BYTES32,
       createdBy: addr(5),
-      mockEventData: mockEvent(1),
+      mockEventData: sourceEvent(1),
     });
     mockDb = await SettlementModule.CommitmentPayoutPlanCreated.processEvent({
       event: created,
@@ -192,7 +179,7 @@ describe("SettlementModule read model", () => {
     const configured = SettlementModule.FundingConfigurationLocked.createMockEvent({
       protocolGarden,
       gDollarToken: addr(91),
-      mockEventData: mockEvent(2),
+      mockEventData: sourceEvent(2),
     });
     mockDb = await SettlementModule.FundingConfigurationLocked.processEvent({
       event: configured,
@@ -227,7 +214,7 @@ describe("SettlementModule read model", () => {
       beneficiaryAmount: 900n,
       recognitionSnapshotHash: txHash(55),
       createdBy: addr(5),
-      mockEventData: mockEvent(2),
+      mockEventData: sourceEvent(2),
     });
     mockDb = await SettlementModule.CommitmentPayoutPlanCreated.processEvent({
       event: created,
@@ -245,7 +232,7 @@ describe("SettlementModule read model", () => {
       paymentSnapshotHash: txHash(56),
       completedWithoutDispatch: false,
       finalizedAt: 3n,
-      mockEventData: mockEvent(3),
+      mockEventData: sourceEvent(3),
     });
     mockDb = await SettlementModule.CommitmentPayoutPlanFinalized.processEvent({
       event: finalized,
@@ -265,7 +252,7 @@ describe("SettlementModule read model", () => {
       recipient: beneficiarySafe,
       token: addr(91),
       amount: 900n,
-      mockEventData: mockEvent(4),
+      mockEventData: sourceEvent(4),
     });
     mockDb = await SettlementModule.DisbursementQueued.processEvent({ event: queued, mockDb });
 
@@ -307,7 +294,7 @@ describe("SettlementModule read model", () => {
       beneficiaryAmount: 0n,
       recognitionSnapshotHash: ZERO_BYTES32,
       createdBy: addr(8),
-      mockEventData: mockEvent(10),
+      mockEventData: sourceEvent(10),
     });
     mockDb = await SettlementModule.CommitmentPayoutPlanCreated.processEvent({
       event: created,
@@ -327,7 +314,7 @@ describe("SettlementModule read model", () => {
       recipient: addr(9),
       token: addr(91),
       amount: 500n,
-      mockEventData: mockEvent(11),
+      mockEventData: sourceEvent(11),
     });
     mockDb = await SettlementModule.DisbursementQueued.processEvent({ event: queued, mockDb });
 
@@ -359,7 +346,7 @@ describe("SettlementModule credit release seam", () => {
       recipient: addr(3),
       token: addr(91),
       amount: 100n,
-      mockEventData: mockEvent(100, logIndex),
+      mockEventData: sourceEvent(100, logIndex),
     });
   }
 
@@ -368,7 +355,7 @@ describe("SettlementModule credit release seam", () => {
       disbursementId,
       creditRegistry: addr(80),
       loanId: 77n,
-      mockEventData: mockEvent(100, logIndex),
+      mockEventData: sourceEvent(100, logIndex),
     });
   }
 
@@ -377,7 +364,7 @@ describe("SettlementModule credit release seam", () => {
     const event = SettlementModule.CreditRegistryUpdated.createMockEvent({
       previousRegistry: ZERO_ADDRESS,
       newRegistry: addr(80),
-      mockEventData: mockEvent(99),
+      mockEventData: sourceEvent(99),
     });
     const after = await SettlementModule.CreditRegistryUpdated.processEvent({ event, mockDb });
     assert.equal(

@@ -1,13 +1,16 @@
 import { Addresses } from "../v3";
 
+export type HexAddress = `0x${string}`;
+
 export const CHAINS = {
   arbitrum: 42161,
   celo: 42220,
   sepolia: 11155111,
 } as const;
 
-export function addr(index: number): string {
-  return Addresses.mockAddresses[index] || `0x${index.toString().padStart(40, "0")}`;
+export function addr(index: number): HexAddress {
+  return (Addresses.mockAddresses[index] ||
+    `0x${index.toString().padStart(40, "0")}`) as HexAddress;
 }
 
 export function txHash(index: number): string {
@@ -20,6 +23,7 @@ export function mockEvent(
   options: {
     srcAddress?: string;
     txHash?: string;
+    txInput?: string;
     logIndex?: number;
     blockNumber?: number;
   } = {}
@@ -28,7 +32,7 @@ export function mockEvent(
     chainId,
     block: { timestamp, number: options.blockNumber ?? 0 },
     srcAddress: options.srcAddress,
-    transaction: { hash: options.txHash ?? txHash(timestamp) },
+    transaction: { hash: options.txHash ?? txHash(timestamp), input: options.txInput },
     logIndex: options.logIndex,
   };
 }

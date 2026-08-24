@@ -1,7 +1,6 @@
 import assert from "assert";
 import { encodeFunctionData } from "viem";
 import {
-  Addresses,
   CookieJarFactory,
   createTestIndexer,
   HatsModule,
@@ -11,9 +10,9 @@ import {
   indexedAddress,
   YieldSplitter,
 } from "./v3";
+import { addr, CHAINS, mockEvent, txHash } from "./helpers/events";
 
-const CHAIN_ID = 42161;
-type HexAddress = `0x${string}`;
+const CHAIN_ID = CHAINS.arbitrum;
 const CREATE_COOKIE_JAR_ABI = [
   {
     type: "function",
@@ -82,35 +81,6 @@ const CREATE_COOKIE_JAR_ABI = [
     outputs: [{ name: "jarAddress", type: "address" }],
   },
 ] as const;
-
-function addr(index: number): HexAddress {
-  return (Addresses.mockAddresses[index] ||
-    `0x${index.toString().padStart(40, "0")}`) as HexAddress;
-}
-
-function txHash(index: number): string {
-  return `0x${index.toString(16).padStart(64, "0")}`;
-}
-
-function mockEvent(
-  chainId: number,
-  timestamp: number,
-  opts: {
-    srcAddress?: string;
-    txHash?: string;
-    txInput?: string;
-    logIndex?: number;
-    blockNumber?: number;
-  } = {}
-) {
-  return {
-    chainId,
-    block: { timestamp, number: opts.blockNumber ?? 0 },
-    srcAddress: opts.srcAddress,
-    transaction: { hash: opts.txHash ?? txHash(timestamp), input: opts.txInput },
-    logIndex: opts.logIndex,
-  };
-}
 
 function createCookieJarInput(metadata: string): string {
   const multiTokenConfig = {

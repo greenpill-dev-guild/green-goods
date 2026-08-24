@@ -1,6 +1,5 @@
 import assert from "assert";
 import {
-  Addresses,
   CommitmentPoolingModule,
   createTestIndexer,
   HypercertMinter,
@@ -9,31 +8,10 @@ import {
   serveJsonSequence,
 } from "./v3";
 import { fetchJson } from "../src/handlers/shared";
+import { addr, CHAINS, mockEvent, txHash } from "./helpers/events";
 
-const CHAIN_ID = 42161;
+const CHAIN_ID = CHAINS.arbitrum;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-
-function addr(index: number): string {
-  return Addresses.mockAddresses[index] || `0x${index.toString().padStart(40, "0")}`;
-}
-
-function txHash(index: number): string {
-  return `0x${index.toString(16).padStart(64, "0")}`;
-}
-
-function mockEvent(
-  chainId: number,
-  timestamp: number,
-  opts: { srcAddress?: string; txHash?: string; logIndex?: number; blockNumber?: number } = {}
-) {
-  return {
-    chainId,
-    block: { timestamp, number: opts.blockNumber ?? 0 },
-    srcAddress: opts.srcAddress,
-    transaction: { hash: opts.txHash ?? txHash(timestamp) },
-    logIndex: opts.logIndex,
-  };
-}
 
 // ============================================================================
 // TRANSFER SINGLE (MINTS)

@@ -1,46 +1,27 @@
 import assert from "assert";
-import { encodeAbiParameters, keccak256, parseAbiParameters, type Address } from "viem";
+import { encodeAbiParameters, keccak256, parseAbiParameters } from "viem";
 
-import {
-  Addresses,
-  CeloSettlementExecutor,
-  createTestIndexer,
-  processEvents,
-  SettlementModule,
-} from "./v3";
+import { CeloSettlementExecutor, createTestIndexer, processEvents, SettlementModule } from "./v3";
 import { settlementMessage } from "./helpers/settlement-messages";
 import { assertRelationshipInEitherOrder } from "./helpers/delivery";
+import { addr, CHAINS, mockEvent as buildEvent, txHash } from "./helpers/events";
 import { executorConfiguration, sourceConfiguration } from "../src/handlers/settlement-projections";
 
-const CHAIN_ID = 42161;
+const CHAIN_ID = CHAINS.arbitrum;
 // The executor contract is indexed on Celo; Arbitrum is its remote lane.
-const EXECUTOR_CHAIN_ID = 42220;
+const EXECUTOR_CHAIN_ID = CHAINS.celo;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const ZERO_BYTES32 = `0x${"0".repeat(64)}`;
 const SNAPSHOT_PARAMETERS = parseAbiParameters(
   "uint256, uint256, uint32, uint256, uint256, (address contributor,address recipient,uint16 recognitionWeightBps,uint16 paymentWeightBps,uint256 amount)[]"
 );
 
-function addr(index: number): Address {
-  return (Addresses.mockAddresses[index] || `0x${index.toString(16).padStart(40, "0")}`) as Address;
-}
-
-function bytes32(index: number): string {
-  return `0x${index.toString(16).padStart(64, "0")}`;
-}
-
 function celoEvent(timestamp: number, logIndex = 0) {
-  return { ...mockEvent(timestamp, logIndex), chainId: EXECUTOR_CHAIN_ID };
+  return buildEvent(EXECUTOR_CHAIN_ID, timestamp, { logIndex });
 }
 
-function mockEvent(timestamp: number, logIndex = 0) {
-  return {
-    chainId: CHAIN_ID,
-    block: { timestamp, number: 0 },
-    srcAddress: undefined,
-    transaction: { hash: bytes32(timestamp) },
-    logIndex,
-  };
+function sourceEvent(timestamp: number, logIndex = 0) {
+  return buildEvent(CHAIN_ID, timestamp, { logIndex });
 }
 
 function seedSourceLane(mockDb: ReturnType<typeof createTestIndexer>): void {
@@ -80,7 +61,7 @@ function payoutPlanCreated(payoutPlanId: bigint, commitmentId: bigint, timestamp
     beneficiaryAmount: 0n,
     recognitionSnapshotHash: ZERO_BYTES32,
     createdBy: addr(5),
-    mockEventData: mockEvent(timestamp),
+    mockEventData: sourceEvent(timestamp),
   });
 }
 
@@ -93,10 +74,10 @@ function payoutPlanFinalized(payoutPlanId: bigint, payablePayoutCount: bigint, t
     beneficiaryAmount: 0n,
     gardenRetainedAmount: 0n,
     recognitionSnapshotHash: ZERO_BYTES32,
-    paymentSnapshotHash: bytes32(700),
+    paymentSnapshotHash: txHash(700),
     completedWithoutDispatch: false,
     finalizedAt: BigInt(timestamp),
-    mockEventData: mockEvent(timestamp),
+    mockEventData: sourceEvent(timestamp),
   });
 }
 
@@ -121,7 +102,7 @@ function queued(
     recipient: contributor,
     token: addr(91),
     amount,
-    mockEventData: mockEvent(timestamp),
+    mockEventData: sourceEvent(timestamp),
   });
 }
 
@@ -131,7 +112,7 @@ function stranded(executionKey: string, isBatch: boolean, subjectId: bigint, tim
     isBatch,
     subjectId,
     retiredExecutor: addr(80),
-    mockEventData: mockEvent(timestamp),
+    mockEventData: sourceEvent(timestamp),
   });
 }
 
@@ -145,23 +126,23 @@ describe("settlement lifecycle projections", () => {
         account: addr(2),
         recoveryOwners: [addr(3), addr(4), addr(5)],
         rolesModifier: addr(6),
-        roleKey: bytes32(1),
-        allowanceKey: bytes32(2),
-        permissionsConfigHash: bytes32(3),
-        recoveryConfigHash: bytes32(4),
+        roleKey: txHash(1),
+        allowanceKey: txHash(2),
+        permissionsConfigHash: txHash(3),
+        recoveryConfigHash: txHash(4),
         recoveryThreshold: 2n,
-        mockEventData: mockEvent(1),
+        mockEventData: sourceEvent(1),
       }),
       SettlementModule.SettlementRecoveryUpdated.createMockEvent({
         garden: addr(1),
         recoveryOwners: [addr(7), addr(8), addr(9)],
-        recoveryConfigHash: bytes32(5),
-        mockEventData: mockEvent(2),
+        recoveryConfigHash: txHash(5),
+        mockEventData: sourceEvent(2),
       }),
       SettlementModule.SettlementAccountStatusChanged.createMockEvent({
         garden: addr(1),
         active: false,
-        mockEventData: mockEvent(3),
+        mockEventData: sourceEvent(3),
       }),
       SettlementModule.CcipRouteUpdated.createMockEvent({
         destinationChainSelector: 16_688_752_181_858_512n,
@@ -170,50 +151,50 @@ describe("settlement lifecycle projections", () => {
         previousPeerExpiresAt: 99n,
         destinationGasLimit: 600_000n,
         protocolVersion: 2n,
-        mockEventData: mockEvent(4),
+        mockEventData: sourceEvent(4),
       }),
       SettlementModule.GardenerDeliveryStatusChanged.createMockEvent({
         enabled: true,
-        mockEventData: mockEvent(5),
+        mockEventData: sourceEvent(5),
       }),
       SettlementModule.BatchSizeLimitUpdated.createMockEvent({
         previousLimit: 0n,
         limit: 12n,
-        mockEventData: mockEvent(6),
+        mockEventData: sourceEvent(6),
       }),
       SettlementModule.DispatcherUpdated.createMockEvent({
         previousDispatcher: ZERO_ADDRESS,
         dispatcher: addr(10),
-        mockEventData: mockEvent(7),
+        mockEventData: sourceEvent(7),
       }),
       SettlementModule.FeeReserveMinimumUpdated.createMockEvent({
         previousMinimum: 0n,
         minimum: 10n,
-        mockEventData: mockEvent(8),
+        mockEventData: sourceEvent(8),
       }),
       SettlementModule.FeeReserveFunded.createMockEvent({
         funder: addr(11),
         amount: 30n,
-        mockEventData: mockEvent(9),
+        mockEventData: sourceEvent(9),
       }),
       SettlementModule.ExcessFeesWithdrawn.createMockEvent({
         recipient: addr(12),
         amount: 7n,
-        mockEventData: mockEvent(10),
+        mockEventData: sourceEvent(10),
       }),
       SettlementModule.HatsModuleUpdated.createMockEvent({
         previousModule: ZERO_ADDRESS,
         newModule: addr(13),
-        mockEventData: mockEvent(11),
+        mockEventData: sourceEvent(11),
       }),
       SettlementModule.CommitmentPoolingModuleUpdated.createMockEvent({
         previousModule: ZERO_ADDRESS,
         newModule: addr(14),
-        mockEventData: mockEvent(12),
+        mockEventData: sourceEvent(12),
       }),
       SettlementModule.PausedSet.createMockEvent({
         paused: false,
-        mockEventData: mockEvent(13),
+        mockEventData: sourceEvent(13),
       }),
     ]);
 
@@ -269,7 +250,7 @@ describe("settlement lifecycle projections", () => {
         paymentSnapshotHash: snapshotHash,
         reasonCID: "ipfs://snapshot-1",
         editedBy: addr(24),
-        mockEventData: mockEvent(1),
+        mockEventData: sourceEvent(1),
       }),
       ...rows.map((row, index) =>
         SettlementModule.ContributorPayoutSet.createMockEvent({
@@ -278,7 +259,7 @@ describe("settlement lifecycle projections", () => {
           ...row,
           reasonCID: "ipfs://snapshot-1",
           editedBy: addr(24),
-          mockEventData: mockEvent(2 + index),
+          mockEventData: sourceEvent(2 + index),
         })
       ),
       payoutPlanCreated(payoutPlanId, 300n, 4),
@@ -302,7 +283,7 @@ describe("settlement lifecycle projections", () => {
         amount: 300n,
         reasonCID: "ipfs://bad-snapshot",
         editedBy: addr(24),
-        mockEventData: mockEvent(5),
+        mockEventData: sourceEvent(5),
       }),
       SettlementModule.CommitmentPayoutSnapshotCommitted.createMockEvent({
         payoutPlanId,
@@ -310,10 +291,10 @@ describe("settlement lifecycle projections", () => {
         rowCount: 1n,
         gardenRetainedAmount: 0n,
         contributorPayoutTotal: 300n,
-        paymentSnapshotHash: bytes32(999),
+        paymentSnapshotHash: txHash(999),
         reasonCID: "ipfs://bad-snapshot",
         editedBy: addr(24),
-        mockEventData: mockEvent(6),
+        mockEventData: sourceEvent(6),
       }),
     ]);
     const unchanged = await mockDb.ContributorPayout.get(
@@ -348,7 +329,7 @@ describe("settlement lifecycle projections", () => {
         ...replacementRows[0],
         reasonCID: "ipfs://snapshot-3",
         editedBy: addr(24),
-        mockEventData: mockEvent(7),
+        mockEventData: sourceEvent(7),
       }),
       SettlementModule.CommitmentPayoutSnapshotCommitted.createMockEvent({
         payoutPlanId,
@@ -359,7 +340,7 @@ describe("settlement lifecycle projections", () => {
         paymentSnapshotHash: replacementHash,
         reasonCID: "ipfs://snapshot-3",
         editedBy: addr(24),
-        mockEventData: mockEvent(8),
+        mockEventData: sourceEvent(8),
       }),
     ]);
     const replacement = await mockDb.ContributorPayout.get(
@@ -380,11 +361,11 @@ describe("settlement lifecycle projections", () => {
     const commandAndAcknowledgment = [
       SettlementModule.SettlementCommandDispatched.createMockEvent({
         ...message.source.dispatched,
-        mockEventData: mockEvent(3),
+        mockEventData: sourceEvent(3),
       }),
       SettlementModule.SettlementAcknowledged.createMockEvent({
         ...message.source.acknowledged(),
-        mockEventData: mockEvent(4),
+        mockEventData: sourceEvent(4),
       }),
     ];
     const batchAndChildren = [
@@ -396,7 +377,7 @@ describe("settlement lifecycle projections", () => {
         kind: 0n,
         fundingRoute: 0n,
         disbursementIds: [51n, 52n],
-        mockEventData: mockEvent(5),
+        mockEventData: sourceEvent(5),
       }),
       queued(40n, 400n, 51n, addr(20), 180n, 6),
       queued(40n, 400n, 52n, addr(22), 120n, 7),
@@ -450,34 +431,34 @@ describe("settlement lifecycle projections", () => {
       queued(60n, 600n, 61n, addr(20), 300n, 3),
       SettlementModule.SettlementCommandDispatched.createMockEvent({
         ...message.source.dispatched,
-        mockEventData: mockEvent(4),
+        mockEventData: sourceEvent(4),
       }),
       SettlementModule.SettlementAcknowledged.createMockEvent({
         ...message.source.acknowledged({ success: false }),
-        mockEventData: mockEvent(5),
+        mockEventData: sourceEvent(5),
       }),
       SettlementModule.DuplicateAcknowledgmentIgnored.createMockEvent({
         executionKey: message.ids.executionKey,
         acknowledgmentMessageId: message.ids.duplicateAcknowledgmentMessageId,
-        mockEventData: mockEvent(6),
+        mockEventData: sourceEvent(6),
       }),
       SettlementModule.StaleAcknowledgmentIgnored.createMockEvent({
         executionKey: message.ids.executionKey,
         acknowledgmentMessageId: message.ids.staleAcknowledgmentMessageId,
-        mockEventData: mockEvent(7),
+        mockEventData: sourceEvent(7),
       }),
       SettlementModule.DisbursementRequeued.createMockEvent({
         disbursementId: 61n,
         attempt: 1n,
-        mockEventData: mockEvent(8),
+        mockEventData: sourceEvent(8),
       }),
       SettlementModule.SettlementCommandRetried.createMockEvent({
         ...message.source.retried,
-        mockEventData: mockEvent(9),
+        mockEventData: sourceEvent(9),
       }),
       SettlementModule.SettlementAcknowledged.createMockEvent({
         ...message.source.acknowledged({ retry: true }),
-        mockEventData: mockEvent(10),
+        mockEventData: sourceEvent(10),
       }),
     ]);
 
@@ -515,13 +496,13 @@ describe("settlement lifecycle projections", () => {
       queued(62n, 620n, 63n, addr(20), 300n, 3),
       SettlementModule.SettlementCommandDispatched.createMockEvent({
         ...message.source.dispatched,
-        mockEventData: mockEvent(4),
+        mockEventData: sourceEvent(4),
       }),
       SettlementModule.SettlementCommandRetried.createMockEvent({
         ...message.source.retried,
         executionKey: message.ids.executionKey,
         attempt: 0n,
-        mockEventData: mockEvent(9),
+        mockEventData: sourceEvent(9),
       }),
     ]);
 
@@ -556,13 +537,13 @@ describe("settlement lifecycle projections", () => {
         kind: 0n,
         fundingRoute: 0n,
         disbursementIds: [71n, 72n],
-        mockEventData: mockEvent(5),
+        mockEventData: sourceEvent(5),
       }),
       SettlementModule.BatchCancelled.createMockEvent({
         batchId: 73n,
         actor: addr(10),
         reasonCID: "ipfs://cancelled-batch",
-        mockEventData: mockEvent(6),
+        mockEventData: sourceEvent(6),
       }),
     ]);
 
@@ -596,11 +577,11 @@ describe("settlement lifecycle projections", () => {
         kind: 0n,
         fundingRoute: 0n,
         disbursementIds: [81n, 82n],
-        mockEventData: mockEvent(5),
+        mockEventData: sourceEvent(5),
       }),
       SettlementModule.SettlementCommandDispatched.createMockEvent({
         ...message.source.dispatched,
-        mockEventData: mockEvent(6),
+        mockEventData: sourceEvent(6),
       }),
       stranded(message.ids.executionKey, true, 83n, 7),
     ]);
@@ -623,7 +604,7 @@ describe("settlement lifecycle projections", () => {
       SettlementModule.DisbursementRequeued.createMockEvent({
         disbursementId: 81n,
         attempt: 1n,
-        mockEventData: mockEvent(8),
+        mockEventData: sourceEvent(8),
       }),
     ]);
     assert.equal((await mockDb.Disbursement.get(`${CHAIN_ID}-81`))?.state, "QUEUED");
@@ -640,7 +621,7 @@ describe("settlement lifecycle projections", () => {
       queued(90n, 900n, 91n, addr(20), 300n, 3),
       SettlementModule.SettlementCommandDispatched.createMockEvent({
         ...message.source.dispatched,
-        mockEventData: mockEvent(4),
+        mockEventData: sourceEvent(4),
       }),
       stranded(message.ids.executionKey, false, 91n, 5),
     ]);
@@ -665,7 +646,7 @@ describe("settlement lifecycle projections", () => {
       SettlementModule.DisbursementRequeued.createMockEvent({
         disbursementId: 91n,
         attempt: 1n,
-        mockEventData: mockEvent(6),
+        mockEventData: sourceEvent(6),
       }),
     ]);
     const requeued = await mockDb.Disbursement.get(`${CHAIN_ID}-91`);
@@ -720,9 +701,9 @@ describe("settlement lifecycle projections", () => {
         garden: addr(1),
         safe: addr(72),
         rolesModifier: addr(73),
-        roleKey: bytes32(310),
-        allowanceKey: bytes32(311),
-        permissionsConfigHash: bytes32(312),
+        roleKey: txHash(310),
+        allowanceKey: txHash(311),
+        permissionsConfigHash: txHash(312),
         mockEventData: celoEvent(7),
       }),
       CeloSettlementExecutor.GardenRouteStatusChanged.createMockEvent({
@@ -796,7 +777,7 @@ describe("settlement lifecycle projections", () => {
       ccipRouter: addr(92),
       localChainSelector: 4_949_039_107_694_359_620n,
       remoteEvmChainId: 42_220n,
-      mockEventData: mockEvent(1_000),
+      mockEventData: sourceEvent(1_000),
     });
     const after = await processEvents(mockDb, [pinned]);
 
