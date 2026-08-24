@@ -2,6 +2,7 @@
 
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { createConnection } from "node:net";
 import { availableParallelism, totalmem } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -234,6 +235,36 @@ async function commandOutput(command) {
   });
 }
 
+function portAvailable({ host, port, timeoutMs = 250 }) {
+  return new Promise((resolvePromise) => {
+    let settled = false;
+    const finish = (available) => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      resolvePromise(available);
+    };
+    const socket = createConnection({ host, port });
+    socket.setTimeout(timeoutMs);
+    socket.once("connect", () => finish(true));
+    socket.once("timeout", () => finish(false));
+    socket.once("error", () => finish(false));
+  });
+}
+
+export async function arbitrumForkAvailable({
+  rpcUrl = process.env.ARBITRUM_RPC_URL,
+  probe = portAvailable,
+} = {}) {
+  if (typeof rpcUrl === "string" && rpcUrl.trim() !== "") return true;
+  return probe({ host: "127.0.0.1", port: 3009 });
+}
+
+export function capabilityRecoveryHint(capability) {
+  if (capability !== "arbitrumFork") return null;
+  return "Start the local fork with `bun run dev:contracts:arbitrum-fork`.";
+}
+
 async function detectEnvironment(options) {
   const dependencies = [
     "node_modules/.bun",
@@ -254,7 +285,9 @@ async function detectEnvironment(options) {
     capabilities: {
       dependencies,
       foundry: await commandExists("forge"),
+      docker: await commandExists("docker"),
       indexerCodegen: dependencies,
+      arbitrumFork: await arbitrumForkAvailable(),
       authenticatedBrave: false,
       browser: false,
       ...options.capabilities,
@@ -748,6 +781,10 @@ async function main() {
     console.log(`\n${colors.yellow}Validation blocked:${colors.reset}`);
     for (const entry of execution.blocked) {
       console.log(`  - ${entry.id}: ${entry.blockedBy.join(", ")}`);
+      for (const capability of entry.blockedBy) {
+        const hint = capabilityRecoveryHint(capability);
+        if (hint) console.log(`    ${hint}`);
+      }
     }
   } else if (execution.status === "cancelled") {
     console.log(`\n${colors.yellow}Validation cancelled; no additional checks will run.${colors.reset}`);

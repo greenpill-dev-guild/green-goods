@@ -6,7 +6,9 @@ import test from "node:test";
 
 import {
   applyCompatibilityFilters,
+  arbitrumForkAvailable,
   buildLocalValidationPlan,
+  capabilityRecoveryHint,
   executePlan,
   isSupportedCiNodeVersion,
   loadPassingReceiptStore,
@@ -37,6 +39,40 @@ test("ci-local compatibility accepts Node 22 and newer", () => {
   assert.equal(isSupportedCiNodeVersion("22.0.0"), true);
   assert.equal(isSupportedCiNodeVersion("23.1.0"), true);
   assert.equal(isSupportedCiNodeVersion("invalid"), false);
+});
+
+test("ci-local detects the Arbitrum fork from an RPC override or port probe", async () => {
+  let probes = 0;
+  assert.equal(
+    await arbitrumForkAvailable({
+      rpcUrl: "https://rpc.example",
+      probe: async () => {
+        probes += 1;
+        return false;
+      },
+    }),
+    true,
+  );
+  assert.equal(probes, 0);
+
+  assert.equal(
+    await arbitrumForkAvailable({
+      rpcUrl: "",
+      probe: async ({ host, port }) => {
+        probes += 1;
+        assert.equal(host, "127.0.0.1");
+        assert.equal(port, 3009);
+        return true;
+      },
+    }),
+    true,
+  );
+  assert.equal(probes, 1);
+});
+
+test("the Arbitrum fork blocker names its recovery command", () => {
+  assert.match(capabilityRecoveryHint("arbitrumFork"), /bun run dev:contracts:arbitrum-fork/);
+  assert.equal(capabilityRecoveryHint("docker"), null);
 });
 
 function plan(checks, status = "ready") {

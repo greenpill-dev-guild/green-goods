@@ -43,6 +43,16 @@ function validatePolicy(policy) {
     for (const id of rule.checks ?? [rule.check]) {
       if (!ids.has(id)) throw new Error(`Validation rule references unknown check ${id}`);
     }
+    if (rule.intents !== undefined) {
+      if (!Array.isArray(rule.intents) || rule.intents.length === 0) {
+        throw new Error("Validation rule intents must be a non-empty array");
+      }
+      for (const intent of rule.intents) {
+        if (!policy.intentOrder.includes(intent)) {
+          throw new Error(`Validation rule references unknown intent ${intent}`);
+        }
+      }
+    }
   }
 }
 
@@ -467,6 +477,7 @@ export function selectValidation(input = {}, options = {}) {
     select("staged-modules", "client:staged-boundary");
   }
   for (const rule of evidenceOnly ? [] : (policy.conditionalRules ?? [])) {
+    if (rule.intents && !rule.intents.includes(intent)) continue;
     const matchingPaths = changedPaths.filter((path) => {
       if (!groupMatches(path, rule)) return false;
       if (rule.exact?.includes(path)) return true;

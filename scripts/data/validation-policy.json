@@ -85,6 +85,20 @@
       "contains": ["/src/"]
     },
     {
+      "check": "indexer-contract-events",
+      "intents": ["ship", "merge", "readiness", "release"],
+      "exact": [
+        "packages/indexer/config.yaml",
+        "packages/indexer/schema.graphql",
+        "packages/indexer/test/helpers/local-contract-events.ts"
+      ],
+      "prefixes": [
+        "packages/contracts/abis/",
+        "packages/contracts/deployments/",
+        "packages/indexer/src/handlers/"
+      ]
+    },
+    {
       "check": "design-guardrails",
       "exact": ["DESIGN.md", "docs/DESIGN.md"],
       "prefixes": [
@@ -405,6 +419,17 @@
       "budgetSeconds": 90,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies", "indexerCodegen"]
+    },
+    {
+      "id": "indexer-contract-events",
+      "command": "bun run test:contract-events",
+      "cwd": "packages/indexer",
+      "risk": "contract ABI or indexed event compatibility drifts from mined logs",
+      "expectedSignal": "real mined-log integration passes after starting the local fork with bun run dev:contracts:arbitrum-fork",
+      "freshness": "exact-inputs-and-toolchain-and-local-fork",
+      "budgetSeconds": 480,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies", "indexerCodegen", "foundry", "docker", "arbitrumFork"]
     },
     {
       "id": "contracts-build",

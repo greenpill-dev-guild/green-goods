@@ -606,6 +606,61 @@ test("missing required environment capability is explicitly blocked", () => {
   assert.ok(blocked.every((check) => check.blockedBy.includes("foundry")));
 });
 
+test("conditional validation rules honor their declared intents", () => {
+  const policy = structuredClone(loadPolicy());
+  policy.conditionalRules.push({
+    check: "indexer-test",
+    exact: ["docs/strict-indexer-probe.md"],
+    intents: ["ship"],
+  });
+
+  const checkpoint = selectValidation(
+    { intent: "checkpoint", changedPaths: ["docs/strict-indexer-probe.md"] },
+    { policy },
+  );
+  assert.ok(!ids(checkpoint).includes("indexer-test"));
+
+  const ship = selectValidation(
+    { intent: "ship", changedPaths: ["docs/strict-indexer-probe.md"] },
+    { policy },
+  );
+  assert.ok(ids(ship).includes("indexer-test"));
+});
+
+test("strict indexer contract changes select the real event integration", () => {
+  const probes = [
+    "packages/indexer/config.yaml",
+    "packages/indexer/schema.graphql",
+    "packages/indexer/test/helpers/local-contract-events.ts",
+    "packages/contracts/abis/SettlementModule.json",
+    "packages/contracts/deployments/42161-latest.json",
+    "packages/indexer/src/handlers/settlement.ts",
+  ];
+
+  for (const changedPath of probes) {
+    for (const intent of ["ship", "merge", "readiness", "release"]) {
+      const plan = selectValidation({ intent, changedPaths: [changedPath] });
+      const integration = plan.checks.find((check) => check.id === "indexer-contract-events");
+      assert.ok(integration, `${intent}: ${changedPath}`);
+      assert.equal(integration.command, "bun run test:contract-events");
+      assert.equal(integration.cwd, "packages/indexer");
+      assert.equal(integration.budgetSeconds, 480);
+      assert.deepEqual(integration.capabilities, [
+        "dependencies",
+        "indexerCodegen",
+        "foundry",
+        "docker",
+        "arbitrumFork",
+      ]);
+    }
+
+    for (const intent of ["qa", "checkpoint"]) {
+      const plan = selectValidation({ intent, changedPaths: [changedPath] });
+      assert.ok(!ids(plan).includes("indexer-contract-events"), `${intent}: ${changedPath}`);
+    }
+  }
+});
+
 test("exact toolchain parity is enforced only for tools selected checks need", () => {
   const matching = selectValidation({
     intent: "qa",
@@ -852,6 +907,7 @@ test("contract artifacts select contract strict checks and impacted consumers", 
     "admin-build",
     "indexer-test",
     "indexer-build",
+    "indexer-contract-events",
     "contracts-build",
     "contracts-test",
     "contracts-verify-fast",
