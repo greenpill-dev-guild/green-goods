@@ -41,7 +41,7 @@
 | A | **Resolved:** the client stops reading the dropped legacy fields and migrates both assessment screens to canonical v2 semantics. | Step 1.5 unblocked |
 | B | Why is `"resolvePackageJsonExports": false` set? If removable, 57 errors go with it; if not, those paths need excluding. | Step 1.3 |
 | C | `views/Garden/` (work capture) vs `views/Home/Garden/` (garden detail) — rename one? | Step 2.9 (optional) |
-| D | Staged marker syntax: JSDoc `@staged` tag vs a manifest file | Step 2.8, Step 4.2 |
+| D | **Resolved:** use the exact `STAGED_MODULES` manifest plus the existing machine-checked marker | `check-staged-modules.mjs` already owns the canonical staged set and marker; Phase 4 reuses it instead of creating another convention. |
 | E | `tsc -b` (app + node + test + shared, but adds 79 client test errors) vs `tsc --noEmit -p tsconfig.app.json` (app only, 234 files, much smaller change)? Plan assumes `-b`. | Steps 1.4, 1.9 — sets the size of Phase 1 |
 
 ---
@@ -102,16 +102,25 @@ documentation inventories into another root section. Existing root invariants an
 remain authoritative. Package leveling applies to the development/validation contract; it does not
 flatten the Contracts guide's legitimate security and deployment detail merely to match line counts.
 
-## Phase 4 — Enforcement (lane: `docs`, after Phase 2)
+## Phase 4 — Enforcement (lane: `docs`)
 
 Extends `scripts/quality/check-source-structure.js`, already wired into every package CI workflow.
 
-- [ ] **4.1** Placement: allowed top-level directories per package; no loose source files at `src/` root outside a declared set (`App.tsx`, `main.tsx`, `router.tsx`, `index.css`, `vite-env.d.ts`).
-- [ ] **4.2** Naming: PascalCase for files whose primary export is a component, camelCase otherwise, no hyphens. Honor the decision-D staged marker so staged files are not flagged.
-- [ ] **4.3** Layering: no `useX` hook definitions outside `packages/shared`; no imports of `@green-goods/shared/src/**` or any undeclared internal subpath.
-- [ ] **4.4** Dead-export scan that skips barrels, stories, tests, and anything carrying the staged marker.
-- [ ] **4.5** Run the extended gate across the whole tree before wiring it to fail; use the existing frozen-allowlist pattern for anything out of scope here. Note: `VaultCardWalletManage.tsx` currently holds a 726-line allowlist entry.
-- [ ] **4.6** Add the layout rules to `AGENTS.md` § Key Patterns so the gate and the guide agree.
+- [x] **4.1** Placement: allowed top-level directories per package; no loose source files at `src/` root outside a declared set.
+- [x] **4.2** Naming: client component files use PascalCase, other client TypeScript files use camelCase, and filenames use no hyphens. Reuse the exact decision-D manifest and marker so staged files are not flagged.
+- [x] **4.3** Layering: no new `useX` hook definitions outside `packages/shared`; no imports of `@green-goods/shared/src/**` or undeclared Shared subpaths.
+- [x] **4.4** Changed-file dead-export scan that skips barrels, stories, tests, and the exact staged-module set.
+- [x] **4.5** Run the extended gate across the whole tree before wiring it to fail. The initial exact baseline contains 22 pre-enforcement placement, naming, and hook-location violations; machine enforcement rejects baseline growth and requires stale entries to be removed as Phase 2 clears them.
+- [x] **4.6** Add the enforced rules to `AGENTS.md` § Key Patterns so the gate and guide agree.
+
+### Phase 4 implementation note — 2026-08-24
+
+The maintainer requested Phase 4 before Phase 2. Enforcement therefore landed as a strict ratchet
+instead of pretending the existing client layout was already compliant. The checker scans the whole
+tree, permits only the 22 exact pre-enforcement IDs, rejects baseline growth, and fails when a fixed
+violation leaves a stale entry. Phase 2 must delete matching baseline entries as it moves or renames
+the affected files. Dead exports are checked only on changed implementation files to avoid
+grandfathering heuristic false positives across untouched code.
 
 ## Requirements Coverage
 
@@ -123,14 +132,14 @@ Extends `scripts/quality/check-source-structure.js`, already wired into every pa
 | Staged components carry a marker and a story | `ui` | 2.8 | ⏳ |
 | Dead exports removed; `buttonVariants` collision resolved | `ui` | 2.6, 2.7 | ⏳ |
 | `AGENTS.md` agent-neutral, deduped, complete | `docs` | 3.1–3.7 | ✅ Phase 3 |
-| Structure gate enforces placement, naming, layering | `docs` | 4.1–4.6 | ⏳ |
+| Structure gate enforces placement, naming, layering | `docs` | 4.1–4.6 | ✅ Phase 4 |
 
 ## TDD / Proof Order
 
 - [ ] Phase 1's behavior boundary is the build gate itself. RED = the probe passing today (already captured in `spec.md`); GREEN = step 1.10, the same probe failing the build.
 - [ ] Phase 2 is a refactor with no behavior change — proof is the restored typecheck plus the existing client suite staying green. Record lane TDD mode as `not_applicable` with that note.
 - [x] Phase 3 prose is documentation; the new duplicate-policy guard used RED/GREEN fixture proof recorded in the docs handoff.
-- [ ] Phase 4 adds a gate; RED = the new rule failing on a deliberately misnamed/misplaced fixture, GREEN = the tree passing.
+- [x] Phase 4 adds a gate; RED = the fixture import failing before the checker exported the policy API, GREEN = nine policy fixtures plus the whole-tree gate passing with the exact shrinking baseline.
 - [ ] Record machine-readable proof with `node scripts/harness/plan-hub.mjs record-tdd`
 
 ## Lane Checklists
@@ -154,8 +163,8 @@ Extends `scripts/quality/check-source-structure.js`, already wired into every pa
 ### Docs (Phases 3–4)
 
 - [x] `AGENTS.md` and `scripts/quality/**` are security-sensitive surfaces — call them out in the PR summary
-- [ ] Run the extended gate tree-wide before wiring it to fail
-- [x] Write `handoffs/claude-docs.md` for the completed Phase 3 slice; keep the lane open for Phase 4
+- [x] Run the extended gate tree-wide before wiring it to fail
+- [x] Write `handoffs/claude-docs.md` for the completed Phases 3 and 4; keep the broader feature open for the remaining lanes
 
 ### QA Pass 1
 
@@ -172,5 +181,5 @@ Extends `scripts/quality/check-source-structure.js`, already wired into every pa
 - [ ] `bun format && bun lint`
 - [ ] `bun run test`
 - [ ] `VITE_CHAIN_ID=11155111 bun run build`
-- [ ] `bun run check:source-structure`
+- [x] `bun run check:source-structure`
 - [ ] `node scripts/quality/check-codex-docs.js`

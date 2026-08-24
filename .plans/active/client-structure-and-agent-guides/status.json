@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-19T19:13:54.605Z",
-    "updated_at": "2026-08-24T22:16:03Z"
+    "updated_at": "2026-08-24T22:47:26Z"
   },
   "links": {
     "brief": "brief.md",
@@ -129,22 +129,22 @@
     },
     "docs": {
       "owner": "claude",
-      "status": "in_progress",
+      "status": "completed",
       "branch": null,
-      "depends_on": ["ui"],
+      "depends_on": [],
       "handoff": "handoffs/claude-docs.md",
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "node --test scripts/quality/check-codex-docs.test.mjs",
-          "evidence": "RED: failed because check-codex-docs.js did not export findNearDuplicatePolicyBlocks."
+          "command": "node --test scripts/quality/check-source-structure.test.mjs",
+          "evidence": "RED: failed because check-source-structure.js did not export collectStructureViolations."
         },
         "green": {
-          "command": "node --test scripts/quality/check-codex-docs.test.mjs",
-          "evidence": "GREEN: 3 of 3 duplicate-policy fixtures passed."
+          "command": "node --test scripts/quality/check-source-structure.test.mjs",
+          "evidence": "GREEN: 9 of 9 structure-policy fixtures passed; the whole-tree checker matched 22 exact shrinking-baseline IDs."
         },
-        "note": "Phase 3 prose is documentation; its new duplicate-policy enforcement has focused RED/GREEN proof. Phase 4 source-structure enforcement remains pending."
+        "note": "Phase 3 duplicate-policy proof remains in the docs handoff. Phase 4 was explicitly pulled ahead of Phase 2 and implemented as a strict shrinking-baseline ratchet, removing the former UI dependency without claiming the 22 legacy violations are fixed."
       },
       "skill_tags": ["documentation", "tooling", "review"]
     }
@@ -221,6 +221,22 @@
       "status": "in_progress",
       "branch": null,
       "note": "Certified Phase 3 with the exact 26-check Ship plan, review guardrails, 162 validation-system tests, and guidance drift checks. The one semantic trigger evaluation was externally blocked by incomplete non-parseable evaluator output after its built-in retry; deterministic trigger contracts remain green."
+    },
+    {
+      "timestamp": "2026-08-24T22:38:02Z",
+      "actor": "codex",
+      "lane": "docs",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Implemented Phase 4 ahead of Phase 2 by maintainer direction as a whole-tree source-policy ratchet with 22 exact legacy IDs, nine RED/GREEN fixtures, and no baseline growth path. Final commit-attributed Ship evidence remains pending."
+    },
+    {
+      "timestamp": "2026-08-24T22:47:26Z",
+      "actor": "codex",
+      "lane": "docs",
+      "status": "completed",
+      "branch": null,
+      "note": "Completed Phases 3 and 4 after the exact 26-check Ship plan passed. Validation-system passed 171 tests and the whole-tree gate matched the 22 exact shrinking-baseline IDs. The handoff records an explicit non-commit dirty-tree receipt because this environment denied writes to .git/index.lock; the broader feature remains active for state/API, UI, and QA."
     }
   ]
 }

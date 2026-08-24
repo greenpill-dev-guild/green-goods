@@ -53,6 +53,19 @@ service entrypoints live in [`scripts/README.md`](scripts/README.md).
 - Any new user-facing string must be added to `en`, `es`, and `pt`.
 - Respect build dependency order: contracts -> shared -> indexer -> client/admin/agent.
 
+## Key Patterns
+
+- Keep package source inside the package-specific root files and top-level directories declared by
+  `scripts/quality/check-source-structure.js`.
+- In `packages/client/src`, component files use PascalCase, other TypeScript files use camelCase,
+  and filenames do not use hyphens. Framework entry files are declared by the structure checker.
+- Define `useX` hooks in `packages/shared`. Consume Shared through specifiers declared in
+  `packages/shared/package.json#exports`, never through `@green-goods/shared/src/**`.
+- Remove unused named exports when touching an implementation file. Barrels, tests, stories, and
+  the exact staged-module manifest are excluded from this check.
+- `scripts/data/source-structure-baseline.json` records pre-enforcement debt. It may only shrink;
+  new work never earns a baseline entry.
+
 ## Linear Workspace
 
 Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09. GitHub is for PRs and code review only — never open GitHub Issues for backlog work. Routine and label-scheme details: `docs/routines/README.md`. Live workspace state (active initiatives, projects, customers, cycle status) — query the Linear MCP at the time you need it; do not hardcode it here, it drifts.

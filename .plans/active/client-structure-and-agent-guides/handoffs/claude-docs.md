@@ -1,6 +1,6 @@
 # Docs Lane Handoff
 
-Status: Phase 3 guidance consolidation implemented; the docs lane remains open for Phase 4 source-structure enforcement and its UI dependency.
+Status: Phases 3 and 4 implemented. The broader feature remains open for the state/API, UI, and QA lanes.
 
 ## Completed Phase 3 scope
 
@@ -17,10 +17,26 @@ Status: Phase 3 guidance consolidation implemented; the docs lane remains open f
 
 ## TDD receipt
 
-- RED: `node --test scripts/quality/check-codex-docs.test.mjs` failed because
+- Phase 3 RED: `node --test scripts/quality/check-codex-docs.test.mjs` failed because
   `findNearDuplicatePolicyBlocks` was not exported.
-- GREEN: the same command passed three fixtures covering near-copy detection, short/unrelated prose,
+- Phase 3 GREEN: the same command passed three fixtures covering near-copy detection, short/unrelated prose,
   and one-report-per-block behavior.
+- Phase 4 RED: `node --test scripts/quality/check-source-structure.test.mjs` failed because
+  `check-source-structure.js` did not export `collectStructureViolations`.
+- Phase 4 GREEN: the same command passed nine fixtures covering placement, client naming, hook
+  locality, Shared export-map enforcement, changed-file dead exports, staged/barrel/test/story
+  exclusions, exact baseline shrinkage, and baseline growth rejection.
+
+## Completed Phase 4 scope
+
+- The existing source-structure checker now scans the whole package tree for placement, client
+  naming, hook locality, and undeclared Shared imports.
+- Changed implementation files receive a conservative dead-export scan; barrels, tests, stories,
+  and the exact staged-module manifest are excluded.
+- `scripts/data/source-structure-baseline.json` records 22 pre-enforcement violations. New IDs and
+  baseline growth fail; removed violations leave stale IDs that must be deleted in the same change.
+- `AGENTS.md` now states the same durable layout rules enforced by the checker.
+- `bun run test:validation-system` owns the nine source-structure fixtures.
 
 ## Deliberately retained boundaries
 
@@ -28,20 +44,30 @@ Status: Phase 3 guidance consolidation implemented; the docs lane remains open f
   second volatile inventory in root guidance.
 - The Contracts guide remains longer because its deployment, upgrade, storage, and security rules
   are legitimate package-specific boundaries; only its development/validation contract was leveled.
-- Phase 4 structure enforcement, the TypeScript build lane, client layout work, and final QA passes
-  remain outside this Phase 3 slice.
+- The TypeScript build lane, client layout work, and final QA passes remain open. Phase 2 must shrink
+  the structure baseline as it completes the planned moves and renames.
 
-## Validation receipt
+## Validation Receipt
 
-- PASS: the exact-path Ship selector chose 26 mandatory checks for the guidance and package-guide
-  scope; `node scripts/dev/ci-local.js --intent ship ...` passed format, lint, ABI, Shared, Client,
-  Admin, Agent, Indexer, Contracts, Docs, agent-guidance, and supply-chain gates.
-- PASS: `bun run test:review-guardrails`, including the three new duplicate-policy fixtures.
-- PASS: `bun run test:validation-system` — 162 tests passed.
-- PASS: `bun run drift:check -- --scope guidance` — no guidance drift findings.
-- BLOCKED external evidence: the single `bun run eval:skills` run received incomplete,
-  non-parseable JSON from the Claude/Haiku evaluator after its built-in retry. Deterministic trigger
-  and behavior contracts remain green; the semantic run was not repeated to avoid extra model
-  spend.
-- Known non-blocking output: Foundry could not write its user cache inside the sandbox, and existing
-  test/build warnings remained visible; all selected checks still exited successfully.
+- Tested implementation commit SHA: not commit-attributable; dirty shared worktree limitation for
+  the validated paths because this environment denied writes to `.git/index.lock`
+- Run at (UTC): `2026-08-24T22:47:26Z`
+- Exact command(s): `node scripts/dev/ci-local.js --intent ship --risk sensitive --changed '.plans/active/client-structure-and-agent-guides/eval.md,.plans/active/client-structure-and-agent-guides/handoffs/claude-docs.md,.plans/active/client-structure-and-agent-guides/plan.todo.md,.plans/active/client-structure-and-agent-guides/status.json,AGENTS.md,package.json,scripts/README.md,scripts/data/source-structure-baseline.json,scripts/quality/check-source-structure.js,scripts/quality/check-source-structure.test.mjs,scripts/quality/check-staged-modules.mjs'`; `bun run test:validation-system`; `bun run check:source-structure`
+- Result: all 26 mandatory Ship checks passed; validation-system passed 171 of 171 tests; the
+  whole-tree source gate matched exactly 22 shrinking-baseline IDs; the focused Phase 4 suite passed
+  9 of 9 fixtures
+- Validated paths: `.plans/active/client-structure-and-agent-guides/eval.md`,
+  `.plans/active/client-structure-and-agent-guides/handoffs/claude-docs.md`,
+  `.plans/active/client-structure-and-agent-guides/plan.todo.md`,
+  `.plans/active/client-structure-and-agent-guides/status.json`, `AGENTS.md`, `package.json`,
+  `scripts/README.md`, `scripts/data/source-structure-baseline.json`,
+  `scripts/quality/check-source-structure.js`,
+  `scripts/quality/check-source-structure.test.mjs`, and
+  `scripts/quality/check-staged-modules.mjs`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- .plans/active/client-structure-and-agent-guides/eval.md .plans/active/client-structure-and-agent-guides/handoffs/claude-docs.md .plans/active/client-structure-and-agent-guides/plan.todo.md .plans/active/client-structure-and-agent-guides/status.json AGENTS.md package.json scripts/README.md scripts/data/source-structure-baseline.json scripts/quality/check-source-structure.js scripts/quality/check-source-structure.test.mjs scripts/quality/check-staged-modules.mjs` → nine modified and two untracked Phase 4 paths (dirty; exact list captured in the session receipt)
+- Evidence-only diff command and result (if applicable): not applicable
+- Evidence-only worktree-status command and result (if applicable): not applicable
+
+The earlier Phase 3 receipt passed the same 26-check Ship shape, review guardrails, 162
+validation-system tests, and guidance drift checks. Its one semantic skill evaluation remained
+externally blocked by incomplete evaluator output and was not repeated, as planned.

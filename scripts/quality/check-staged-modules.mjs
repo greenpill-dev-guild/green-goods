@@ -11,7 +11,7 @@ export const STAGED_MODULES = [
   "packages/client/src/components/Public/VaultCardWalletManage.tsx",
 ];
 
-const STAGED_MARKER = "Staged — not yet wired into the live checkout.";
+export const STAGED_MARKER = "Staged — not yet wired into the live checkout.";
 const SOURCE_EXTENSIONS = [".ts", ".tsx"];
 
 function sourceFiles(directory) {

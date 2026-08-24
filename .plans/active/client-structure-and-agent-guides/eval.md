@@ -27,8 +27,8 @@
 | AC-10 | Guide neutrality | No "Codex Guide" title or Codex-specific instruction remains in root or package `AGENTS.md`; Codex mechanics live in `.codex/` | `docs` | PASS: `bun run check:codex-guidance`; root and package titles inspected |
 | AC-11 | Guide dedupe | No section body appears near-verbatim in both `AGENTS.md` and `CLAUDE.md`; one validation section, not three | `docs` | PASS: duplicate-policy RED/GREEN; 3 focused fixtures and `bun run test:review-guardrails` |
 | AC-12 | Guide completeness without bloat | `AGENTS.md` exposes common commands, package routing, criticality, environment/chain invariants, PostHog routing, and canonical architecture/validation/service links without duplicating volatile port or documentation inventories | `docs` | PASS: 26-check Ship plan, `check:guidance-links` (62 files), and guidance drift scope |
-| AC-13 | Gate teeth | A deliberately misnamed and a deliberately misplaced fixture each fail `bun run check:source-structure`; the real tree passes | `docs` | |
-| AC-14 | Gate respects staged | A file carrying the staged marker is not flagged by the dead-export scan | `docs` | |
+| AC-13 | Gate teeth | A deliberately misnamed and a deliberately misplaced fixture each fail the source-structure policy; the real tree passes `bun run check:source-structure` | `docs` | PASS: nine fixtures cover placement, naming, layering, dead exports, baseline exactness/growth, and exclusions; whole-tree gate passes with 22 exact legacy IDs |
+| AC-14 | Gate respects staged | A file in the exact staged manifest and carrying the staged marker is not flagged by naming or dead-export scans | `docs` | PASS: staged fixture plus existing `check-staged-modules` contract |
 
 ## Test Strategy
 
@@ -39,8 +39,9 @@
 - **Manual checks**: none required. Every gate here is a command.
 - **TDD proof**: Phase 1's RED is already captured (the probe passing today, recorded in `spec.md`
   § Research Evidence). GREEN is AC-1. Phase 3 prose is documentation, while its duplicate-policy
-  checker has a focused missing-export RED and three-fixture GREEN receipt. Phase 4's RED is a
-  misnamed fixture failing the new structure rule. Phase 2 remains `not_applicable` as a refactor.
+  checker has a focused missing-export RED and three-fixture GREEN receipt. Phase 4's RED is the
+  fixture suite failing before the checker exported its new policy API; GREEN is nine focused
+  fixtures plus the whole-tree checker. Phase 2 remains `not_applicable` as a refactor.
 
 ## Known Evidence Limits
 
