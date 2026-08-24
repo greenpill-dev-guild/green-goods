@@ -150,18 +150,20 @@ export function createPwaManifestBranding(flavor: PwaManifestFlavor): PwaManifes
   if (flavor === "staging") {
     return {
       flavor,
-      // The staging build is what we hand to beta users, so it reads as Green
-      // Goods rather than announcing itself as a QA surface. The dark green
-      // below is what tells the two apart, not the wording.
+      // The staging build is what we hand to beta users, so it reads as the
+      // product rather than announcing itself as a QA surface. The full name
+      // carries the Beta label wherever there is room for it; `shortName` is
+      // the home-screen label and stays plain, with the dark green below doing
+      // the distinguishing in the one place the text is truncated anyway.
       //
       // `manifestId` deliberately still says staging. It is the identity the
       // OS keys an installed app on, is never shown to anyone, and changing it
       // orphans every phone that already has this app: the rename would arrive
       // as a second icon beside the old one instead of updating in place.
       manifestId: STAGING_MANIFEST_ID,
-      name: "Green Goods",
+      name: "Green Goods Beta",
       shortName: "Green Goods",
-      description: "Green Goods beta. Real gardens, real records, ahead of the public release.",
+      description: "Green Goods Beta: Try and test new features before release",
       themeColor: STAGING_DARK_SURFACE,
       backgroundColor: STAGING_DARK_SURFACE,
       htmlThemeColorLight: STAGING_DARK_SURFACE,
