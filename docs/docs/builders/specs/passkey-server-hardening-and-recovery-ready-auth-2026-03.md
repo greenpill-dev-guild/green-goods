@@ -5,7 +5,7 @@ slug: /builders/specs/passkey-server-hardening-and-recovery-ready-auth-2026-03
 unlisted: true
 audience: developer
 owner: docs
-last_verified: 2026-03-26
+last_verified: 2026-08-23
 feature_status: Planned
 ---
 
@@ -14,6 +14,12 @@ feature_status: Planned
 Date: 2026-03-26  
 Author: Green Goods research draft  
 Status: Proposed implementation spec
+
+**What `last_verified` covers.** The 2026-08-23 date applies to the RP, origin and namespace
+material: the canonical decisions, the RP and origin model, environment separation, and the
+2026-08-23 revision, all checked against the deployed client and admin bundles and against the
+passkey code in `packages/shared`. The rest of this document is the March 2026 proposal as written
+and is still unimplemented; do not read the newer date as verification of it.
 
 ## Purpose
 
@@ -159,9 +165,15 @@ public key and authenticator id. A narrower RP ID causes a second address indire
 will not surface a `greengoods.app` credential to a `staging.greengoods.app` ceremony, so the
 gardener registers a new credential, and the new public key produces a new account. This
 distinction matters for future recovery and signer-rotation work, which turns on what actually
-determines the address. The address-determining inputs are modelled in
-`packages/shared/src/modules/commitment-pooling/account-profiles.ts`, which lists factory,
-implementation, initializer, passkey profile and salt, and no RP ID.
+determines the address.
+
+The authoritative path is `buildSmartAccount` in `packages/shared/src/workflows/auth-passkey-adapters.ts`:
+`toWebAuthnAccount({ credential, rpId })` becomes the owner passed to `toKernelSmartAccount`, and it
+is the credential's public key and authenticator id that land in Kernel's validator data and so in
+the counterfactual address. `account-profiles.ts` is a useful cross-check for what is *not* an input
+— it carries no RP ID — but it is not a model of the address: its fields are named
+compatibility labels for the factory, implementation, initializer, passkey profile and salt, and two
+different credentials under identical profiles still produce different accounts.
 
 What this changes once applied:
 
@@ -216,7 +228,10 @@ production passkey has been observed, may this section be restated as live behav
 
 #### Approved origins versus enforced origins
 
-The four origins named above are what this spec approves. They are not what the code enforces:
+This spec approves exactly three origins: `https://greengoods.app`, `https://www.greengoods.app`,
+and — after the rollout above — `https://staging.greengoods.app`. That is the list to use when
+configuring `expectedOrigin`; `staging-admin.greengoods.app` is deliberately not on it. They are not
+what the code enforces:
 `classifyPasskeyCeremonyContext` accepts any HTTPS host ending in `.greengoods.app`, so
 `unapproved.greengoods.app` would pass the same check. That gap is defense-in-depth rather than a
 live exposure, since it needs control of a `greengoods.app` subdomain, but the spec and the code
@@ -253,8 +268,8 @@ surface and is deliberately not settled by this revision.
 - localhost development passkey server project or local mock
 
 Production credentials must never be created from preview URLs or localhost. Once that rollout
-completes, they may be created from the named staging aliases, which become approved origins in the
-production namespace.
+completes, they may be created from `https://staging.greengoods.app`, which becomes an approved
+origin in the production namespace. No other staging or preview host joins it.
 
 ---
 
@@ -364,7 +379,9 @@ Green Goods should add explicit account identity records.
 - server `expectedRPID` must exactly match `greengoods.app` in production
 - server `expectedOrigin` must be an explicit allowlist
 - no wildcard production origin handling
-- no production passkey operations from non-production hosts
+- no production passkey operations from non-production hosts, with one bounded exception:
+  `https://staging.greengoods.app` once the 2026-08-23 revision is rolled out. It is named
+  individually, is access-protected, and is not a licence for other non-production hosts
 - all passkey server requests must be HTTPS
 - auth logs must exclude private credential material
 - support tools must classify failures into:
@@ -404,7 +421,9 @@ Do not create client-local auth hooks.
 ### Avoid
 
 - deriving the canonical account only from the local credential
-- starting passkey ceremonies from multiple production origins
+- starting passkey ceremonies from production origins beyond the enumerated set (the apex,
+  `www`, and — after the 2026-08-23 rollout — `staging`; see that revision for why staging is
+  bounded rather than a general multi-origin allowance)
 - environment-specific hidden auth behavior
 - passkey-only assumptions in code that should be signer-agnostic for recovery work
 
