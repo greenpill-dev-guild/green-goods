@@ -64,7 +64,7 @@ const FROZEN_ALLOWLIST = {
   "packages/client/src/components/Public/PublicFundingCard.tsx": 1015,
   "packages/client/src/components/Public/VaultCardEndowFlow.tsx": 1509,
   "packages/client/src/components/Public/VaultCardPaymentPanel.tsx": 709,
-  "packages/client/src/components/Public/VaultCardWalletManage.tsx": 726,
+  "packages/client/src/components/Public/VaultCardWalletManage.tsx": 695,
   "packages/client/src/components/Public/VaultCheckoutDialog.tsx": 1174,
   "packages/client/src/components/Public/VaultManagePositionsPanel.tsx": 928,
   "packages/client/src/components/Public/atoms/EditorialAtoms.tsx": 565,
@@ -77,7 +77,7 @@ const FROZEN_ALLOWLIST = {
   "packages/contracts/src/modules/Hats.sol": 851,
   "packages/contracts/src/modules/Octant.sol": 769,
   "packages/contracts/src/resolvers/Yield.sol": 899,
-  "packages/contracts/src/tokens/Garden.sol": 527,
+  "packages/contracts/src/tokens/Garden.sol": 502,
   "packages/shared/src/components/Canvas/NavigationBar.tsx": 577,
   "packages/shared/src/components/Toast/toast.service.tsx": 799,
   "packages/shared/src/hooks/app/useServiceWorkerUpdate.ts": 581,
@@ -95,7 +95,7 @@ const FROZEN_ALLOWLIST = {
   "packages/shared/src/utils/action/translations.ts": 564,
   "packages/shared/src/utils/cookie-jar-campaign.ts": 501,
   "packages/shared/src/utils/errors/contract-errors.ts": 823,
-  "packages/shared/src/utils/time.ts": 576,
+  "packages/shared/src/utils/time.ts": 536,
   "packages/shared/src/workflows/authMachine.ts": 724,
 };
 
