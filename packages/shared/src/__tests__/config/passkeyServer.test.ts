@@ -141,6 +141,22 @@ describe("config/passkeyServer", () => {
       }
     });
 
+    // Characterization, not endorsement. The spec approves four origins; the
+    // check trusts every subdomain, so an unapproved one passes too. Closing
+    // that gap is an open decision (see the spec's "Approved origins versus
+    // enforced origins"), and this case is what will fail if it is closed.
+    it("currently trusts any production subdomain, approved or not", () => {
+      expect(
+        classifyPasskeyCeremonyContext({
+          env: { PROD: true },
+          location: locationFor("https://unapproved.greengoods.app"),
+        })
+      ).toMatchObject({
+        supported: true,
+        rpId: "greengoods.app",
+      });
+    });
+
     // Sharing the RP with the named staging alias must not extend to the
     // per-deployment preview URLs, which are unbounded and publicly guessable.
     it("still blocks preview deployment origins in production", () => {

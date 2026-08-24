@@ -164,9 +164,31 @@ What this does not change:
 - The apex RP ID, the canonical auth origin for ordinary sign-in, and the Android RP-continuity
   discipline below are unchanged.
 
-Because staging is a publicly reachable origin that can now mint production credentials, it needs
-crawl and access controls that an isolated staging did not: `Disallow: /` and Vercel deployment
-protection on the staging aliases.
+#### Prerequisites, not follow-ups
+
+Staging runs unreleased code. Once it shares the namespace, a gardener signing in there is exposing
+their real account and real hats to whatever is currently on `develop`, and an open staging origin
+mints production credentials and draws on production paymaster sponsorship. These must be in place
+before the namespace is shared, not after:
+
+1. Vercel deployment access protection on `staging.greengoods.app` and `staging-admin.greengoods.app`.
+   `robots.txt` is a crawl hint, not access control, and must not be counted as one. Staging-specific
+   `Disallow: /` is still worth setting, as a second layer rather than the first.
+2. Confirmation that both staging builds omit `VITE_PASSKEY_RP_ID` and resolve the apex RP.
+3. Confirmation that both staging builds use the production Pimlico project.
+
+#### Approved origins versus enforced origins
+
+The four origins named above are what this spec approves. They are not what the code enforces:
+`classifyPasskeyCeremonyContext` accepts any HTTPS host ending in `.greengoods.app`, so
+`unapproved.greengoods.app` would pass the same check. That gap is defense-in-depth rather than a
+live exposure, since it needs control of a `greengoods.app` subdomain, but the spec and the code
+should not disagree silently.
+
+Closing it means either enforcing an explicit origin allowlist in `classifyPasskeyCeremonyContext`,
+which puts a new failure mode in front of every future subdomain, or declaring every
+`greengoods.app` subdomain trusted and saying so here. That is an open decision on a critical auth
+surface and is deliberately not settled by this revision.
 
 ---
 
@@ -419,7 +441,8 @@ Do not create client-local auth hooks.
 - Risk: Android login failures persist because unsupported contexts still leak through.  
   Mitigation: block ceremony start in unsupported contexts and funnel all passkey auth through one canonical origin.
 - Risk: support confusion across prod/staging/localhost credentials.  
-  Mitigation: isolate passkey projects and document environment boundaries clearly.
+  Mitigation: isolate the localhost project, keep production and staging in one documented namespace,
+  and gate staging behind deployment access protection so the shared namespace has a known audience.
 - Risk: partial migration leaves both credential-first and account-first logic alive.  
   Mitigation: centralize auth state transitions in shared workflows and remove duplicated assumptions.
 - Risk: multi-origin requirements return later.  
