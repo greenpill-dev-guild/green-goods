@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-23T02:50:35.809Z",
-    "updated_at": "2026-08-24T02:02:43.000Z"
+    "updated_at": "2026-08-24T03:29:33.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -957,26 +957,32 @@
     "ta_node_projects_shared": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["w0_vitest_worker_cap", "w0_load_sensitive_tests"],
-      "handoff": null
+      "handoff": "handoffs/wave-6-receipt.md",
+      "commit": "2ee5f5f9107435e557da292b350a8e4d82f3c2e7",
+      "validation": "Shared Node and DOM partitions passed with complete parity; focused source and test typechecks passed."
     },
     "ta_node_projects_admin_client": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["ta_node_projects_shared"],
-      "handoff": null
+      "handoff": "handoffs/wave-6-receipt.md",
+      "commit": "2ee5f5f9107435e557da292b350a8e4d82f3c2e7",
+      "validation": "Client and Admin Node and DOM partitions passed with complete parity. AC-W6 remains open because Admin import share is 76.35%, above the below-40% floor."
     },
     "ta_direct_tested_seam_rule": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["w0_receipt_debt_burndown"],
-      "handoff": null,
+      "handoff": "handoffs/wave-6-receipt.md",
+      "commit": "2ee5f5f9107435e557da292b350a8e4d82f3c2e7",
+      "validation": "Check 5, four fixtures, mocked-subject failure, and the exact 13-entry baseline passed without drift.",
       "review_owner": "claude"
     },
     "ta_coverage_ratchet": {
@@ -986,7 +992,8 @@
       "branch": null,
       "depends_on": ["w0_coverage_floors_nightly"],
       "handoff": null,
-      "due_date": "2026-09-22"
+      "due_date": "2026-09-22",
+      "note": "The two-point ratchet is scheduled for 2026-09-22 and is not due on the Wave 6 receipt date."
     }
   },
   "history": [
@@ -1061,6 +1068,14 @@
       "status": "wave_5_complete",
       "branch": null,
       "note": "Completed all eight committed Wave 5 Indexer rows on develop; retained metadata listener, Docker, and local Arbitrum fork limits as explicit environment blockers."
+    },
+    {
+      "timestamp": "2026-08-24T03:29:33.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "wave_6_architecture_complete_acceptance_blocked",
+      "branch": null,
+      "note": "Implemented all six Node/DOM partitions and the direct-tested-seam guard on develop. AC-W6 remains open because isolated Admin import share is 76.35%, quiet-machine and live CI timing receipts are unavailable, and the boundary gate retains the known Indexer localhost blocker."
     }
   ]
 }

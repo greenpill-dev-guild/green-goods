@@ -241,3 +241,30 @@ The consolidated receipt is `handoffs/wave-5-receipt.md`.
 - Blockers: nine metadata-server tests remain BLOCKED by `listen EPERM 127.0.0.1`. Docker and a
   local Arbitrum fork are unavailable, so the manual real-log case remains intentionally pending.
   These checks are not reported as passing and were not retried without a capability change.
+
+## Wave 6 Snapshot — 2026-08-23
+
+Wave 6 architecture is implemented at SHA `2ee5f5f9107435e557da292b350a8e4d82f3c2e7`.
+The consolidated receipt is `handoffs/wave-6-receipt.md`. AC-W6 remains open because the approved
+Admin import-share floor is not met.
+
+- Test architecture: Shared, Client, and Admin now use explicit Node and DOM Vitest projects with
+  matching exclusions and no project-local coverage configuration. All six partitions pass and
+  discover the same 384 Shared, 103 Client, and 99 Admin test files across their paired projects.
+- Direct-test enforcement: Check 5 is baseline-backed, its checker is 150 lines, four regression
+  fixtures pass, a mocked-subject fixture fails as required, and the exact 13-entry baseline has no
+  drift. The complete test-quality run discovered 862 tests.
+- Partition proof: Shared passed 2,107 Node and 2,126 DOM tests; Client passed 119 Node and 749 DOM
+  tests; Admin passed 100 Node and 611 DOM tests. Shared and Admin each retained their governed
+  skips.
+- Velocity limitation: the loaded-host DOM observations were Shared 70.26 seconds, Client 81.82
+  seconds, and Admin 143.08 seconds, so the quiet-machine 60/50/90 targets are not claimed. The
+  isolated Admin DOM import phase was 1,000.36 of 1,310.16 aggregate worker-phase seconds, or
+  76.35%, above the below-40% floor.
+- Bounded attempts: dependency optimization failed module exports/transformation, disabled
+  isolation leaked mocks, and an Admin facade failed to close the transitive root-import and mock
+  graph. All experiments were removed. A real migration of roughly 370 Admin root Shared imports
+  and 52 root-module mocks is required to continue safely.
+- Boundary proof: the single Quick Gate passed every check through Agent, then stopped after 298
+  passing Indexer tests because nine metadata tests could not bind localhost. This unchanged
+  environment blocker was not retried. The two-point coverage ratchet is not due until 2026-09-22.

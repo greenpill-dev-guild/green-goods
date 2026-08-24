@@ -30,6 +30,7 @@
 | 17 | Execute the remaining program only in the shared checkout on `develop`, with no new branches, worktrees, pull requests, or subagents. | Afo replaced the original lane-publication protocol on 2026-08-23 so the program can finish without duplicating fixes across stacked delivery units. |
 | 18 | Treat lane blocks as acceptance criteria inside wave batches, run one Repo Quick Gate per wave, and reserve the full Ship Gate for program exit. | Focused RED/GREEN proof remains required while repeated full-suite lane gates are removed. |
 | 19 | Record one consolidated receipt and Plan Hub update per wave. | Sublanes may reference the same tested wave SHA when their implementation and validation inputs are unchanged. |
+| 20 | Preserve isolated test correctness and keep AC-W6 blocked when bounded Vitest-only attempts cannot meet the Admin import-share floor. | Three configuration approaches either failed module transformation, leaked mocks across files, or moved the problem behind an incomplete facade. The remaining work is a production import-boundary migration, not honest test-runner tuning. |
 
 ## Research / Plan Gate
 
@@ -49,8 +50,8 @@
 | Every remaining shared module below A- regraded | Wave 3 | complete |
 | Every remaining client/admin module below A- regraded | Wave 4 | complete |
 | Every remaining indexer module below A- regraded | Wave 5 | complete |
-| DOM-free project routing and enforceable direct-test architecture | Wave 6 | in progress |
-| Module Health and Velocity targets with fresh receipts | Program exit | blocked on all committed waves |
+| DOM-free project routing and enforceable direct-test architecture | Wave 6 | implementation complete; performance acceptance blocked |
+| Module Health and Velocity targets with fresh receipts | Program exit | blocked on AC-W6 Admin import share, quiet-machine timing, and live CI metrics |
 
 ## Execution Steps
 
@@ -68,7 +69,7 @@
 12. [x] Complete Wave 3 shared ports, repositories, adapters, commands, transitions, hooks, providers, and shell contracts in dependency rounds.
 13. [x] Complete Wave 4 client and admin controller, view-model, state, and direct-test requirements.
 14. [x] Complete Wave 5 indexer event helpers, fixtures, delivery contracts, source split, automatic mined-log selection, and permission planner.
-15. [ ] Complete Wave 6 Vitest projects, direct-tested-seam guard, and the coverage ratchet when due.
+15. [ ] Complete Wave 6 Vitest projects, direct-tested-seam guard, and the coverage ratchet when due. Projects and guard are complete; AC-W6 remains blocked on Admin import share, and the ratchet is not due until 2026-09-22.
 16. [ ] Re-run the complete Module Health and Velocity procedures, attach fresh receipts, and close only the non-deferred program rows.
 
 ## Wave Lifecycle
