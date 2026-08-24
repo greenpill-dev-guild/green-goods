@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-23T02:50:35.809Z",
-    "updated_at": "2026-08-23T23:55:03.000Z"
+    "updated_at": "2026-08-24T02:02:43.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -884,58 +884,65 @@
     "ix_event_builders_and_projection_assertions": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["w0_receipt_debt_burndown"],
-      "handoff": null
+      "handoff": "handoffs/wave-5-receipt.md",
+      "commit": "aeeb62fbee128d00b213e027a9a5bd218286b08b"
     },
     "ix_settlement_message_fixtures": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["ix_event_builders_and_projection_assertions"],
-      "handoff": null
+      "handoff": "handoffs/wave-5-receipt.md",
+      "commit": "aeeb62fbee128d00b213e027a9a5bd218286b08b"
     },
     "ix_celo_executor_redelivery": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["ix_settlement_message_fixtures"],
-      "handoff": null
+      "handoff": "handoffs/wave-5-receipt.md",
+      "commit": "aeeb62fbee128d00b213e027a9a5bd218286b08b"
     },
     "ix_credit_registry_delivery_contracts": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["ix_event_builders_and_projection_assertions"],
-      "handoff": null
+      "handoff": "handoffs/wave-5-receipt.md",
+      "commit": "aeeb62fbee128d00b213e027a9a5bd218286b08b"
     },
     "ix_yield_cluster_separation": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["ix_event_builders_and_projection_assertions"],
-      "handoff": null
+      "handoff": "handoffs/wave-5-receipt.md",
+      "commit": "aeeb62fbee128d00b213e027a9a5bd218286b08b"
     },
     "ix_helpers_types_split": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["ix_yield_cluster_separation"],
-      "handoff": null
+      "handoff": "handoffs/wave-5-receipt.md",
+      "commit": "aeeb62fbee128d00b213e027a9a5bd218286b08b"
     },
     "ix_contract_events_auto_select": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["w0_path_scoped_strict_intents"],
-      "handoff": null,
+      "handoff": "handoffs/wave-5-receipt.md",
+      "commit": "aeeb62fbee128d00b213e027a9a5bd218286b08b",
       "review_owner": "claude"
     },
     "ix_hasura_permission_planner": {
@@ -1046,6 +1053,14 @@
       "status": "wave_4_complete",
       "branch": null,
       "note": "Completed all 21 committed Wave 4 Client/Admin rows on develop; retained Card Endow activation, authenticated Brave, Indexer localhost, and contract dual-chain localhost as explicit deferrals or blockers."
+    },
+    {
+      "timestamp": "2026-08-24T02:02:43.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "wave_5_complete",
+      "branch": null,
+      "note": "Completed all eight committed Wave 5 Indexer rows on develop; retained metadata listener, Docker, and local Arbitrum fork limits as explicit environment blockers."
     }
   ]
 }

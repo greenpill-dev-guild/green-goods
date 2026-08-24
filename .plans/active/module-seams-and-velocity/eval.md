@@ -217,3 +217,27 @@ The consolidated receipt is `handoffs/wave-4-receipt.md`.
 - Blockers: authenticated Brave is unavailable, so visible UI verification is BLOCKED rather than
   passing. The unchanged Indexer localhost evidence remains 277 passing, one pending, and nine
   `EPERM 127.0.0.1` bind failures; it was not retried without a capability change.
+
+## Wave 5 Snapshot — 2026-08-23
+
+Wave 5 is complete at implementation SHA `aeeb62fbee128d00b213e027a9a5bd218286b08b`.
+The consolidated receipt is `handoffs/wave-5-receipt.md`.
+
+- Module health: all eight committed Indexer rows are regraded A- or A. Event/projection fixtures,
+  settlement identities, redelivery cases, delivery laws, handler separation, helper concepts, and
+  mined-log selection now have direct named contracts. The Hasura permission planner remains the
+  pure, retry-safe boundary completed in Wave 2.
+- Direct proof: yield-cluster closure passed 66/66; the helper/type split selection passed 90/90;
+  the strict selector/runner suite passed 85/85; and the validation-system suite passed 140/140.
+  Source structure checked ten changed non-test source files with no ceiling growth, and the Indexer
+  build, ontology, test quality, guidance, immutable reports, and Plan Hub checks passed.
+- Exit invariants: no per-file event-builder copies remain in the closed inventory; the four guarded
+  entry handlers import only the public handler seam; six concept modules are each below 200 lines;
+  `types.ts` contains three live types; and strict ABI, deployment, handler, config, and schema
+  changes select the real mined-log integration with Docker/fork capability accounting.
+- Velocity: seven coherent implementation commits used focused GREEN proof and one boundary gate.
+  The full validation system finished in 2.28 seconds; the 16.1-second Quick Gate reached 298
+  passing Indexer tests before the environment restriction stopped the suite.
+- Blockers: nine metadata-server tests remain BLOCKED by `listen EPERM 127.0.0.1`. Docker and a
+  local Arbitrum fork are unavailable, so the manual real-log case remains intentionally pending.
+  These checks are not reported as passing and were not retried without a capability change.

@@ -48,8 +48,8 @@
 | Declared shared boundaries and smaller composition surfaces | Wave 2 | complete |
 | Every remaining shared module below A- regraded | Wave 3 | complete |
 | Every remaining client/admin module below A- regraded | Wave 4 | complete |
-| Every remaining indexer module below A- regraded | Wave 5 | held behind Wave 0 program start |
-| DOM-free project routing and enforceable direct-test architecture | Wave 6 | blocked on Wave 0 seam work |
+| Every remaining indexer module below A- regraded | Wave 5 | complete |
+| DOM-free project routing and enforceable direct-test architecture | Wave 6 | in progress |
 | Module Health and Velocity targets with fresh receipts | Program exit | blocked on all committed waves |
 
 ## Execution Steps
@@ -67,7 +67,7 @@
 11. [x] Complete Wave 2 client controllers, Community split and design pass, Hasura planner, and pooling subpath on `develop`.
 12. [x] Complete Wave 3 shared ports, repositories, adapters, commands, transitions, hooks, providers, and shell contracts in dependency rounds.
 13. [x] Complete Wave 4 client and admin controller, view-model, state, and direct-test requirements.
-14. [ ] Complete Wave 5 indexer event helpers, fixtures, delivery contracts, source split, automatic mined-log selection, and permission planner.
+14. [x] Complete Wave 5 indexer event helpers, fixtures, delivery contracts, source split, automatic mined-log selection, and permission planner.
 15. [ ] Complete Wave 6 Vitest projects, direct-tested-seam guard, and the coverage ratchet when due.
 16. [ ] Re-run the complete Module Health and Velocity procedures, attach fresh receipts, and close only the non-deferred program rows.
 
