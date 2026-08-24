@@ -1,4 +1,4 @@
-import { useAccessibleCookieJars } from "@green-goods/shared";
+import { useAccessibleCookieJars } from "@green-goods/shared/hooks/cookie-jar/useAccessibleCookieJars";
 import { RiCoinsLine, RiGiftLine } from "@remixicon/react";
 import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";

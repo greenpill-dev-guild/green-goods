@@ -16,63 +16,30 @@ const mockUseAttributions = vi.fn();
 const mockUseCommitment = vi.fn();
 const mockWorkViewSectionProps: { current: Record<string, unknown> | null } = { current: null };
 
-vi.mock("@green-goods/shared", () => ({
-  Confidence: {
-    NONE: "NONE",
-    LOW: "LOW",
-    MEDIUM: "MEDIUM",
-  },
-  DEFAULT_CHAIN_ID: 11155111,
-  VerificationMethod: {
-    HUMAN: "HUMAN",
-  },
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...classes: unknown[]) => classes.filter(Boolean).join(" "),
-  debugWarn: vi.fn(),
-  downloadWorkData: vi.fn(),
-  downloadWorkMedia: vi.fn(),
-  getJsonByHash: vi.fn(),
-  isUserAddress: (...args: unknown[]) => mockIsUserAddress(...args),
-  isValidAttestationId: (id: string) => /^0x[0-9a-f]{64}$/i.test(id),
-  jobQueue: { processJob: vi.fn() },
-  openEASExplorer: vi.fn(),
-  queryKeys: {
-    workApprovals: { all: ["workApprovals"] },
-    works: {
-      merged: () => ["works", "merged"],
-      online: () => ["works", "online"],
-    },
-  },
-  shareWork: vi.fn(),
-  toastService: {
-    success: vi.fn(),
-    error: vi.fn(),
-  },
-  useActions: () => ({ data: [] }),
-  useAsyncEffect: vi.fn(),
-  useCommitment: (...args: unknown[]) => mockUseCommitment(...args),
-  useCommitmentMetadataFor: () => ({ version: 1, title: "Prune the north beds" }),
-  useCommitmentWorkAttributionsForWork: (...args: unknown[]) => mockUseAttributions(...args),
-  useCommitmentPool: () => ({ pool: null }),
-  useGardenPermissions: () => ({
-    canManageGarden: mockCanManageGarden,
-  }),
-  useGardens: (...args: unknown[]) => mockUseGardens(...args),
-  useJobQueueEvents: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useNavigateToTop", () => ({
   useNavigateToTop: () => mockNavigate,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useOffline", () => ({
   useOffline: () => ({ isOnline: true, pendingCount: 0, syncStatus: "idle", refetch: vi.fn() }),
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useTimeout", () => ({
   useTimeout: () => ({
     set: (fn: () => void) => fn,
   }),
-  useTransactionSender: () => null,
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
   useUser: (...args: unknown[]) => mockUseUser(...args),
-  useWorkApproval: () => ({
-    mutate: vi.fn(),
-    isPending: false,
-  }),
-  useWorkApprovalActions: (...args: unknown[]) => mockUseWorkApprovalActions(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkDetailController", () => ({
   useWorkDetailController: () => mockUseWorkDetailController(),
-  useWorkMetadata: () => ({ metadata: null, isLoading: false, error: null, retryFetch: vi.fn() }),
-  useWorks: (...args: unknown[]) => mockUseWorks(...args),
 }));
 
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({

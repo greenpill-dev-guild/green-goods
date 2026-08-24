@@ -1,39 +1,40 @@
+import type { Address } from "@green-goods/shared/types/domain";
 import {
-  type Address,
   classifyTxError,
+  isMeaningfulTxErrorMessage,
+} from "@green-goods/shared/utils/errors/tx-error-classifier";
+import {
   formatTokenAmount,
+  getVaultAssetSymbol,
+  normalizeDecimalInput,
+} from "@green-goods/shared/utils/blockchain/vaults";
+import {
   formatUsdCents,
   formatUsdPrice,
-  getVaultAssetSymbol,
-  isMeaningfulTxErrorMessage,
-  normalizeDecimalInput,
   parseUsdToCents,
-  type PublicGardenSummary,
-  TransactionSuccessAffordance,
-  truncateAddress,
-  useAppKit,
-  useAuth,
-  useCookieJarDeposit,
-  useEthUsdPrice,
-  useGardenCookieJars,
-  useGardenVaults,
-  useUser,
-  useVaultDeposit,
   usdCentsToWei,
   weiToUsdCents,
-} from "@green-goods/shared";
-import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts";
+} from "@green-goods/shared/utils/blockchain/price-feeds";
+import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
+import { TransactionSuccessAffordance } from "@green-goods/shared/components/feedback/TransactionSuccessAffordance";
+import { truncateAddress } from "@green-goods/shared/utils/blockchain/address";
+import { useAppKit } from "@green-goods/shared/providers/AppKitProvider";
+import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
+import { useCookieJarDeposit } from "@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit";
+import { useEthUsdPrice } from "@green-goods/shared/hooks/blockchain/useEthUsdPrice";
+import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
+import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
+import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts/core";
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
 import { EditorialGhostButton, EditorialKicker, EditorialPrimaryButton } from "./atoms";
-
 const DAI_SYMBOL = "DAI";
 const WETH_SYMBOL = "WETH";
-
 type Denomination = "usd" | "weth";
-
 /**
  * Parse a user-typed token amount (WETH denomination) into wei. Mirrors the
  * tolerant input handling used across the public vault panels: normalize a bare
@@ -52,7 +53,6 @@ function parseTokenInputToWei(input: string, decimals: number): bigint {
     return 0n;
   }
 }
-
 interface PublicFundingCardProps {
   open: boolean;
   garden: PublicGardenSummary;

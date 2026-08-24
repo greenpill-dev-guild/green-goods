@@ -31,8 +31,7 @@ const mockTimeoutSet = vi.fn();
 const mockTimeoutClear = vi.fn();
 
 // Mock @green-goods/shared
-vi.mock("@green-goods/shared", () => ({
-  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", () => ({
   ConfirmDialog: ({
     isOpen,
     onClose,
@@ -53,24 +52,38 @@ vi.mock("@green-goods/shared", () => ({
           createElement("button", { "data-testid": "cancel-join", onClick: onClose }, "Cancel")
         )
       : null,
-  createPublicClientForChain: () => ({
-    estimateContractGas: vi.fn().mockResolvedValue(BigInt(100000)),
-  }),
-  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("@green-goods/shared/utils/debug", () => ({
   debugError: vi.fn(),
-  GardenAccountABI: [],
-  getDefaultChain: () => ({ chainId: 11155111 }),
+}));
+
+vi.mock("@green-goods/shared/utils/app/haptics", () => ({
   hapticLight: vi.fn(),
   hapticSuccess: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/utils/errors/contract-errors", () => ({
   isAlreadyGardenerError: () => false,
+  parseAndFormatError: () => ({ title: "Error", message: "Something went wrong" }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useJoinGarden", () => ({
   isGardenMember: (address: string, gardeners: string[], _operators: string[], _id: string) =>
     gardeners.includes(address),
-  parseAndFormatError: () => ({ title: "Error", message: "Something went wrong" }),
-  queryKeys: { gardens: { all: ["gardens"] } },
-  toastService: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
-  useGardens: () => mockGardensState,
   useJoinGarden: () => mockJoinState,
   usePendingJoinsVersion: () => 0,
+}));
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
+  toastService: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
+  useGardens: () => mockGardensState,
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useTimeout", () => ({
   useTimeout: () => ({ set: mockTimeoutSet, clear: mockTimeoutClear, isPending: false }),
 }));
 
@@ -310,7 +323,7 @@ describe("GardensList", () => {
 
   it("schedules a delayed ENS-discovery toast on first successful join", async () => {
     const user = userEvent.setup();
-    const { toastService } = await import("@green-goods/shared");
+    const { toastService } = await import("@green-goods/shared/components/Toast/toast.service");
     mockGardensState.data = [
       {
         id: "0xfresh",

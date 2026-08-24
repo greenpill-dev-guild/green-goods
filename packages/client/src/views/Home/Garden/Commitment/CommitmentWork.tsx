@@ -1,4 +1,5 @@
-import { type Action, StatusBadge, type Work } from "@green-goods/shared";
+import type { Action, Work } from "@green-goods/shared/types/domain";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import {
   type CommitmentReadModel,
   type CommitmentRequirementRecord,

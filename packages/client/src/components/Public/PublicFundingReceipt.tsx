@@ -1,8 +1,8 @@
-import { logger } from "@green-goods/shared";
+import { logger } from "@green-goods/shared/modules/app/logger";
 import type {
   PublicFundingReceipt as PublicFundingReceiptShape,
   ReadFundingIntentReceiptResponse,
-} from "@green-goods/shared/public-contracts";
+} from "@green-goods/shared/public-contracts/core";
 import { useCallback, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";

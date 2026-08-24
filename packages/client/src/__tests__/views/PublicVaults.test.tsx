@@ -11,7 +11,8 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { type OctantVaultCampaignManifest, VaultDepositStageError } from "@green-goods/shared";
+import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
+import { VaultDepositStageError } from "@green-goods/shared/hooks/vault/vault-helpers";
 import VaultsPage, { CampaignCard, VaultsPageContent } from "../../views/Public/Vaults";
 
 const sharedHookMocks = vi.hoisted(() => ({
@@ -71,25 +72,47 @@ const sharedHookMocks = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-
+vi.mock("@green-goods/shared/hooks/auth/useAuth", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal()),
     useAuth: () => ({
       loginWithWallet: sharedHookMocks.loginWithWallet,
     }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/auth/useUser", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useUser: () => ({
       primaryAddress: sharedHookMocks.primaryAddress,
       authMode: sharedHookMocks.authMode,
     }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useEnsName: () => ({
       data: sharedHookMocks.ensName,
       isLoading: false,
       isError: false,
     }),
+  };
+});
+
+vi.mock("@green-goods/shared/config/local-fork", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     isLocalArbitrumForkMode: () => sharedHookMocks.localArbitrumForkMode,
     LOCAL_ARBITRUM_FORK_CHAIN_ID: 42161,
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWalletEndow", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOctantVaultWalletEndow: (options?: { onLifecycleStep?: (step: string) => void }) => {
       sharedHookMocks.octantVaultWalletEndowOptions = options ?? null;
       return {
@@ -99,13 +122,31 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
         isPending: false,
       };
     },
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/vault/useWrapEthToWeth", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useWrapEthToWeth: () => ({
       mutate: sharedHookMocks.wrapEthToWethMutate,
       reset: sharedHookMocks.wrapEthToWethReset,
       error: sharedHookMocks.wrapEthToWethError,
       isPending: sharedHookMocks.wrapEthToWethIsPending,
     }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWalletBalances", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOctantVaultWalletBalances: () => sharedHookMocks.walletBalances,
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEthUsdPrice", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useEthUsdPrice: () => ({
       hasFeed: sharedHookMocks.ethUsdHasFeed,
       priceAnswer: sharedHookMocks.ethUsdPriceAnswer,
@@ -114,14 +155,39 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       isStale: false,
       updatedAt: 1770000000n,
     }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultStats", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOctantVaultStats: () => sharedHookMocks.octantVaultStats,
-    useOctantVaultHarvestableYield: (options: unknown) => {
-      sharedHookMocks.harvestableYieldOptions.push(options);
-      return sharedHookMocks.harvestableYield;
-    },
+  };
+});
+
+vi.mock(
+  "@green-goods/shared/hooks/vault/useOctantVaultHarvestableYield",
+  async (importOriginal) => {
+    return {
+      ...(await importOriginal()),
+      useOctantVaultHarvestableYield: (options: unknown) => {
+        sharedHookMocks.harvestableYieldOptions.push(options);
+        return sharedHookMocks.harvestableYield;
+      },
+    };
+  }
+);
+
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultStrategyApy", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOctantVaultStrategyApy: () => sharedHookMocks.strategyApy,
-    // The route-local management panel can mount after a card success handoff;
-    // it must render without a live QueryClient in this suite.
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultPositions", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOctantVaultPositions: () => ({
       positions: [],
       hasPositions: false,
@@ -130,6 +196,12 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       isFetching: false,
       refetch: vi.fn(async () => undefined),
     }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWithdraw", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOctantVaultRedeem: () => ({
       mutateAsync: vi.fn(async () => "0xhash"),
       mutate: vi.fn(),

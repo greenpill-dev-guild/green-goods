@@ -1,4 +1,5 @@
-import { type Action, cn } from "@green-goods/shared";
+import type { Action } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display";
 import type { EditorialDomain } from "./atoms";

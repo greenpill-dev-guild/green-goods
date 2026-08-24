@@ -10,4 +10,4 @@ export {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
-} from "@green-goods/shared";
+} from "@green-goods/shared/components/Form/Select/Select";

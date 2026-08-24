@@ -1,4 +1,5 @@
-import type { TimeFilter, Work } from "@green-goods/shared";
+import type { TimeFilter } from "@green-goods/shared/utils/time";
+import type { Work } from "@green-goods/shared/types/domain";
 import { RiCheckLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";

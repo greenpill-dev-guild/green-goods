@@ -1,4 +1,4 @@
-import type { ArrivalKind } from "@green-goods/shared";
+import type { ArrivalKind } from "@green-goods/shared/hooks/app/useArrivalState";
 
 /**
  * What the arrival toast's single action does. Resolved to a concrete side effect in Home

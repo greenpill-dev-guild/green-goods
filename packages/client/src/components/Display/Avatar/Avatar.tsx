@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as AvatarPrimitive from "@radix-ui/react-avatar";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";

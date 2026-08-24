@@ -1,4 +1,4 @@
-import { useInViewReveal } from "@green-goods/shared";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { useIntl } from "react-intl";
 import { EditorialHeading, EditorialKicker, EditorialLede, EditorialLinkArrow } from "./atoms";
 

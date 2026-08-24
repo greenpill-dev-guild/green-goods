@@ -1,14 +1,9 @@
-import {
-  type Action,
-  AudioPlayer,
-  formatTimeSpent,
-  type Garden,
-  getWorkMediaId,
-  isVideoFile,
-  mediaResourceManager,
-  type WorkInput,
-  cn,
-} from "@green-goods/shared";
+import type { Action, Garden, WorkInput } from "@green-goods/shared/types/domain";
+import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
+import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
+import { getWorkMediaId, isVideoFile } from "@green-goods/shared/modules/work/media-processing";
+import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiFileFill, RiPencilFill, RiTimeFill } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";

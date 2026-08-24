@@ -1,4 +1,6 @@
-import { DEFAULT_CHAIN_ID, useGardens, usePrimaryAddress } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import {
   useCommitmentPools,
   useCommitmentSeries,

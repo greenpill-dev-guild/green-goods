@@ -14,27 +14,74 @@ const mocks = vi.hoisted(() => ({
   refetchPower: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@green-goods/shared")>()),
-  useUser: () => ({ primaryAddress: GARDEN }),
-  useOffline: () => ({ isOnline: mocks.isOnline }),
-  useConvictionStrategies: () => ({ strategies: [POOL] }),
-  useHypercertConviction: () => ({
-    weights: [{ hypercertId: 12n, weight: 40n }],
-    isLoading: false,
-    isError: mocks.isError,
-    refetch: mocks.refetchWeights,
-  }),
-  useMemberVotingPower: () => ({
-    power: { isEligible: true, pointsBudget: 100n, totalStake: 40n, allocations: [] },
-    isLoading: false,
-    isError: mocks.isError,
-    refetch: mocks.refetchPower,
-  }),
-  useGardenCommunity: () => ({ community: null }),
-  useYieldAllocations: () => ({ allocations: [] }),
-  useAllocateHypercertSupport: () => ({ mutate: mocks.mutate, isPending: false }),
-}));
+vi.mock("@green-goods/shared/hooks/auth/useUser", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useUser: () => ({ primaryAddress: GARDEN }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/app/useOffline", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useOffline: () => ({ isOnline: mocks.isOnline }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/conviction/useConvictionStrategies", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useConvictionStrategies: () => ({ strategies: [POOL] }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/conviction/useHypercertConviction", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useHypercertConviction: () => ({
+      weights: [{ hypercertId: 12n, weight: 40n }],
+      isLoading: false,
+      isError: mocks.isError,
+      refetch: mocks.refetchWeights,
+    }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/conviction/useMemberVotingPower", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useMemberVotingPower: () => ({
+      power: { isEligible: true, pointsBudget: 100n, totalStake: 40n, allocations: [] },
+      isLoading: false,
+      isError: mocks.isError,
+      refetch: mocks.refetchPower,
+    }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/conviction/useGardenCommunity", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useGardenCommunity: () => ({ community: null }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/yield/useYieldAllocations", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useYieldAllocations: () => ({ allocations: [] }),
+  };
+});
+
+vi.mock(
+  "@green-goods/shared/hooks/conviction/useAllocateHypercertSupport",
+  async (importOriginal) => {
+    return {
+      ...(await importOriginal()),
+      useAllocateHypercertSupport: () => ({ mutate: mocks.mutate, isPending: false }),
+    };
+  }
+);
 
 const { ConvictionDrawer } = await import("@/components/Dialogs/ConvictionDrawer");
 

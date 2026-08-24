@@ -1,4 +1,4 @@
-import type { Address } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
 import type {
   CommitmentContributorRecord,
   CommitmentReadModel,

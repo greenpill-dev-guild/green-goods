@@ -1,15 +1,13 @@
-import {
-  Alert,
-  type Address,
-  type CampaignCookieJarCampaign,
-  truncateAddress,
-  useAppKit,
-  useCampaignCookieJar,
-  useCampaignCookieJarCampaigns,
-  useInViewReveal,
-  usePublicGardens,
-  useUser,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
+import { truncateAddress } from "@green-goods/shared/utils/blockchain/address";
+import { useAppKit } from "@green-goods/shared/providers/AppKitProvider";
+import { useCampaignCookieJar } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar";
+import { useCampaignCookieJarCampaigns } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJarCampaigns";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
+import { usePublicGardens } from "@green-goods/shared/hooks/public/usePublicGardens";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";

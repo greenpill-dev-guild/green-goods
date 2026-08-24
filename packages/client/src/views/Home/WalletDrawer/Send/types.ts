@@ -1,6 +1,6 @@
 export type {
   RecipientSource,
   SelectedRecipient,
-  SendableTokenBalance as SendableToken,
   SendStep,
-} from "@green-goods/shared";
+} from "@green-goods/shared/modules/wallet/send-flow";
+export type { SendableTokenBalance as SendableToken } from "@green-goods/shared/hooks/blockchain/useSendableTokens";

@@ -1,4 +1,6 @@
-import { APP_NAME, cn, useEventListener } from "@green-goods/shared";
+import { APP_NAME } from "@green-goods/shared/config/app";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { useEventListener } from "@green-goods/shared/hooks/utils/useEventListener";
 import { RiCloseLine, RiMenuLine } from "@remixicon/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";

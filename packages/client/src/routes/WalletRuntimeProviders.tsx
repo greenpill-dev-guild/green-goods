@@ -1,10 +1,8 @@
-import {
-  AppKitProvider,
-  AuthGate,
-  DEFAULT_CHAIN_ID,
-  useAnalyticsIdentity,
-  useApp,
-} from "@green-goods/shared";
+import { AppKitProvider } from "@green-goods/shared/providers/AppKitProvider";
+import { AuthGate } from "@green-goods/shared/providers/AuthGate";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useAnalyticsIdentity } from "@green-goods/shared/hooks/analytics/useAnalyticsIdentity";
+import { useApp } from "@green-goods/shared/providers/App";
 import type { ReactNode } from "react";
 
 function PwaAnalyticsIdentity() {

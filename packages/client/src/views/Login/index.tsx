@@ -1,4 +1,4 @@
-import { useLoginScreenController } from "@green-goods/shared";
+import { useLoginScreenController } from "@green-goods/shared/hooks/client-ui/auth/useLoginScreenController";
 import { Helmet } from "react-helmet-async";
 import { Navigate, Outlet } from "react-router-dom";
 

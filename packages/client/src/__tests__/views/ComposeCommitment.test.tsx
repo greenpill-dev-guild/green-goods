@@ -44,60 +44,36 @@ const ACTIONS = [
   },
 ];
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+vi.mock("@green-goods/shared/config/default-chain", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal()),
     DEFAULT_CHAIN_ID: 42161,
-    usePrimaryAddress: () => VIEWER,
-    useCommitmentPools: () => mockUsePools(),
-    useCommitmentCycles: () => mockUseCycles(),
-    useCommitmentCycleNames: () => ({ byCycleId: new Map(), isLoading: false }),
-    useActions: () => mockUseActions(),
-    useGardens: () => ({ data: [{ id: GARDEN, name: "Rocinha Community Garden" }] }),
-    useCommitmentJobs: () => ({
-      enqueue: mockEnqueue,
-      isPending: false,
-      error: null,
-      viewer: VIEWER,
-    }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/app/useOffline", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOffline: () => mockUseOffline(),
   };
 });
 
-vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
-  useCommitmentPools: () => mockUsePools(),
-  useCommitmentCycles: () => mockUseCycles(),
-  useCommitmentCycleNames: () => ({ byCycleId: new Map(), isLoading: false }),
-  useCommitmentJobs: () => ({
-    enqueue: mockEnqueue,
-    isPending: false,
-    error: null,
-    viewer: VIEWER,
-  }),
-}));
-
 // The view imports one public controller. These reader-edge mocks keep that
 // controller real while replacing only its external data sources.
-vi.mock("../../../../shared/src/hooks/app/useOffline", () => ({
-  useOffline: () => mockUseOffline(),
-}));
-
-vi.mock("../../../../shared/src/hooks/auth/usePrimaryAddress", () => ({
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => VIEWER,
 }));
 
-vi.mock("../../../../shared/src/hooks/commitment-pooling/useCommitmentPooling", () => ({
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling", () => ({
   useCommitmentPools: () => mockUsePools(),
   useCommitmentCycles: () => mockUseCycles(),
 }));
 
-vi.mock("../../../../shared/src/hooks/commitment-pooling/useCommitmentCycleNames", () => ({
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentCycleNames", () => ({
   useCommitmentCycleNames: () => ({ byCycleId: new Map(), isLoading: false }),
 }));
 
-vi.mock("../../../../shared/src/hooks/commitment-pooling/useCommitmentJobs", () => ({
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs", () => ({
   useCommitmentJobs: () => ({
     enqueue: mockEnqueue,
     isPending: false,
@@ -106,17 +82,19 @@ vi.mock("../../../../shared/src/hooks/commitment-pooling/useCommitmentJobs", () 
   }),
 }));
 
-vi.mock("../../../../shared/src/hooks/blockchain/useBaseLists", () => ({
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
   useActions: () => mockUseActions(),
   useGardens: () => ({ data: [{ id: GARDEN, name: "Rocinha Community Garden" }] }),
 }));
 
-vi.mock("../../../../shared/src/hooks/roles/useHasRole", () => ({
+vi.mock("@green-goods/shared/hooks/roles/useHasRole", () => ({
   useHasRole: () => ({ hasRole: false, isLoading: false }),
 }));
 
 const { ComposeCommitment } = await import("../../views/Home/Garden/Compose");
-const { useCommitmentComposerDraftStore } = await import("@green-goods/shared/stores");
+const { useCommitmentComposerDraftStore } = await import(
+  "@green-goods/shared/stores/useCommitmentComposerDraftStore"
+);
 
 const render = (direction: string | null = "offer") =>
   renderWithProviders(

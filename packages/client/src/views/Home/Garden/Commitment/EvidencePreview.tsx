@@ -1,4 +1,4 @@
-import { AddressDisplay } from "@green-goods/shared";
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { type ResolvedEvidence } from "@green-goods/shared/commitment-pooling";
 import { RiLink, RiMicLine } from "@remixicon/react";
 import { useIntl } from "react-intl";

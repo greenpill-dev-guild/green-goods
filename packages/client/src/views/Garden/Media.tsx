@@ -1,17 +1,17 @@
+import type { Action } from "@green-goods/shared/types/domain";
+import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
+import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
 import {
-  type Action,
-  AudioPlayer,
-  cn,
-  imageCompressor,
-  mediaResourceManager,
   getSafeMediaBatchMetadata,
   getSafeMediaMetadata,
   getWorkMediaId,
   isVideoFile,
-  prepareWorkSubmission,
-  toastService,
-  track,
-} from "@green-goods/shared";
+} from "@green-goods/shared/modules/work/media-processing";
+import { prepareWorkSubmission } from "@green-goods/shared/modules/work/submission-flow";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { track } from "@green-goods/shared/modules/app/posthog";
 import {
   RiCloseLine,
   RiImageFill,

@@ -6,7 +6,7 @@
  * offline statuses (syncing, uploading, sync_failed, offline) hit unhandled code paths.
  */
 
-import type { WorkDisplayStatus } from "@green-goods/shared";
+import type { WorkDisplayStatus } from "@green-goods/shared/types/domain";
 import { cleanup, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -17,10 +17,9 @@ vi.mock("react-intl", () => ({
   }),
 }));
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual("@green-goods/shared");
+vi.mock("@green-goods/shared/utils/form/normalizers", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal()),
     formatTimeSpent: (mins: number) => `${mins}m`,
   };
 });

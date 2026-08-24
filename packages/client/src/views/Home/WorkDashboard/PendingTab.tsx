@@ -1,4 +1,6 @@
-import { cn, type Address, type TimeFilter, type Work } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import type { Address, Work } from "@green-goods/shared/types/domain";
+import type { TimeFilter } from "@green-goods/shared/utils/time";
 import { RiCheckLine, RiTimeLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";

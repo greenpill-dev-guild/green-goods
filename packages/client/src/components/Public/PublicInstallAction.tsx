@@ -1,12 +1,12 @@
 import {
   type InstallAction,
-  getOpenInBrowserUrl,
-  useApp,
   useInstallGuidance,
-  useIsBraveBrowser,
-  usePublicInstallHandler,
-  useTunnelUrl,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/app/useInstallGuidance";
+import { getOpenInBrowserUrl } from "@green-goods/shared/utils/app/browser";
+import { useApp } from "@green-goods/shared/providers/App";
+import { useIsBraveBrowser } from "@green-goods/shared/hooks/app/useIsBraveBrowser";
+import { usePublicInstallHandler } from "@green-goods/shared/hooks/app/usePublicInstallHandler";
+import { useTunnelUrl } from "@green-goods/shared/hooks/app/useTunnelUrl";
 import { type MouseEventHandler, type ReactNode, useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { PUBLIC_PWA_ORIGIN, createPwaLaunchUrl } from "@/config/pwa-routing";

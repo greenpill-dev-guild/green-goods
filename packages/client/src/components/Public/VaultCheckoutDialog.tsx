@@ -1,29 +1,35 @@
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
 import {
-  cn,
-  formatAddress,
   formatTokenAmount,
+  normalizeDecimalInput,
+} from "@green-goods/shared/utils/blockchain/vaults";
+import {
   formatUsdCents,
-  getOctantVaultAssetDisplayPolicy,
-  getOctantVaultCampaignTransactionState,
+  parseUsdToCents,
+  usdCentsToWei,
+} from "@green-goods/shared/utils/blockchain/price-feeds";
+import { getOctantVaultAssetDisplayPolicy } from "@green-goods/shared/modules/vault-crowdfunding/copy";
+import { getOctantVaultCampaignTransactionState } from "@green-goods/shared/modules/vault-crowdfunding/route-manage";
+import {
   isLocalArbitrumForkMode,
   LOCAL_ARBITRUM_FORK_CHAIN_ID,
-  normalizeDecimalInput,
-  parseUsdToCents,
-  prepareOctantVaultWalletEndow,
-  type Address,
-  type OctantVaultCampaignManifest,
-  usdCentsToWei,
-  useAuth,
-  useEnsName,
-  useEthUsdPrice,
-  useOctantVaultWalletBalances,
-  useOctantVaultWalletEndow,
-  useTimeout,
-  useUser,
-  useWrapEthToWeth,
+} from "@green-goods/shared/config/local-fork";
+import { prepareOctantVaultWalletEndow } from "@green-goods/shared/modules/vault-crowdfunding/wallet-endow";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
+import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useEthUsdPrice } from "@green-goods/shared/hooks/blockchain/useEthUsdPrice";
+import { useOctantVaultWalletBalances } from "@green-goods/shared/hooks/vault/useOctantVaultWalletBalances";
+import { useOctantVaultWalletEndow } from "@green-goods/shared/hooks/vault/useOctantVaultWalletEndow";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useWrapEthToWeth } from "@green-goods/shared/hooks/vault/useWrapEthToWeth";
+import {
   VaultDepositStageError,
   type VaultEndowLifecycleStep,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/vault/vault-helpers";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
@@ -41,7 +47,6 @@ import {
   getTxExplorerUrl,
   getVaultCheckoutTransactionLabel,
 } from "./vaultCheckoutShell";
-
 const ETH_SYMBOL = "ETH";
 /**
  * Conservative combined gas units for the wrap + ERC20 approve + vault deposit
@@ -50,25 +55,20 @@ const ETH_SYMBOL = "ETH";
  */
 const WRAP_FLOW_GAS_UNITS = 500_000n;
 const VAULT_CHECKOUT_SLOW_WARNING_MS = 90_000;
-
 type VaultCheckoutLifecycleStep = "idle" | "approvalReset" | "approval" | "deposit";
-
 export interface VaultCheckoutGuardState {
   inputsLocked: boolean;
   closeLocked: boolean;
 }
-
 const UNLOCKED_CHECKOUT_GUARD: VaultCheckoutGuardState = {
   inputsLocked: false,
   closeLocked: false,
 };
-
 function usdCentsToStableTokenUnits(cents: bigint, decimals: number): bigint {
   if (cents <= 0n) return 0n;
   if (decimals >= 2) return cents * 10n ** BigInt(decimals - 2);
   return cents / 10n ** BigInt(2 - decimals);
 }
-
 function getAmountErrorMessage(
   formatMessage: ReturnType<typeof useIntl>["formatMessage"],
   amountInput: string,

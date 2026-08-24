@@ -1,20 +1,20 @@
+import { DialogShell } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { GreenWillBadgeView } from "@green-goods/shared/types/greenwill";
+import { isGreenWillDeployed } from "@green-goods/shared/config/blockchain";
 import {
-  DialogShell,
-  formatAddress,
-  type Address,
-  type GreenWillBadgeView,
-  isGreenWillDeployed,
   useClaimFirstSupportBadge,
   useClaimFirstWorkBadge,
   useClaimGenesisBadge,
-  useEnsName,
-  useGreenGoodsEnsName,
-  useGreenWillBadges,
-  useMyVaultDeposits,
-  useMyOnlineWorks,
-  usePrimaryAddress,
-  useProtocolMemberStatus,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/greenwill/useClaimGreenWillBadge";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { useGreenWillBadges } from "@green-goods/shared/hooks/greenwill/useGreenWillBadges";
+import { useMyVaultDeposits } from "@green-goods/shared/hooks/vault/useMyVaultDeposits";
+import { useMyOnlineWorks } from "@green-goods/shared/hooks/work/useMyWorks";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
+import { useProtocolMemberStatus } from "@green-goods/shared/hooks/ens/useProtocolMemberStatus";
 import { RiAwardLine, RiCoinsLine, RiHammerLine, RiSeedlingLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";

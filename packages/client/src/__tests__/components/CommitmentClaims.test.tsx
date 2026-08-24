@@ -1,5 +1,8 @@
 import type { CommitmentClaimRequestRecord } from "@green-goods/shared/commitment-pooling";
-import { claimFixture, commitmentFixture } from "@green-goods/shared/testing";
+import {
+  claimFixture,
+  commitmentFixture,
+} from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
 import { render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";

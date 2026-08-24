@@ -1,4 +1,7 @@
-import { Alert, ConfidenceSelector, cn, useWorkDetailController } from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { ConfidenceSelector } from "@green-goods/shared/components/Form/ConfidenceSelector";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { useWorkDetailController } from "@green-goods/shared/hooks/client-ui/work/useWorkDetailController";
 import {
   RiCheckLine,
   RiCloseLine,

@@ -19,8 +19,7 @@ const sharedMocks = vi.hoisted(() => ({
   useServiceWorkerUpdate: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", () => ({
-  // The notifier binds i18n-aware toasts via createUpdateToasts(formatMessage).
+vi.mock("@green-goods/shared/components/Toast/presets/update", () => ({
   createUpdateToasts: () => ({
     checking: sharedMocks.checking,
     downloading: sharedMocks.downloading,
@@ -28,7 +27,13 @@ vi.mock("@green-goods/shared", () => ({
     applying: sharedMocks.applying,
     stalled: sharedMocks.stalled,
   }),
+}));
+
+vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: sharedMocks.useApp,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useServiceWorkerUpdate", () => ({
   useServiceWorkerUpdate: sharedMocks.useServiceWorkerUpdate,
 }));
 

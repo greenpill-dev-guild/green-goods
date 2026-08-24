@@ -7,12 +7,11 @@
  * @vitest-environment jsdom
  */
 
+import type { Action, Work } from "@green-goods/shared/types/domain";
 import type {
-  Action,
   GardenCommitmentActs,
   GardenCommitmentController,
-  Work,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/client-ui/commitment/controller.types";
 import type {
   CommitmentDetail,
   CommitmentReadModel,
@@ -24,9 +23,9 @@ import {
   commitmentDetailFixture,
   commitmentFixture,
   contributorFixture,
-  gardenCommitmentControllerFixture,
   poolFixture,
-} from "@green-goods/shared/testing";
+} from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
+import { gardenCommitmentControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -56,15 +55,40 @@ const mockActs = {
   declineClaim: vi.fn(),
 } satisfies GardenCommitmentActs;
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+vi.mock("@green-goods/shared/config/default-chain", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal()),
     DEFAULT_CHAIN_ID: 42161,
-    useGardenCommitmentController: (...args: unknown[]) => mockUseController(...args),
-    useCommitmentReason: (...args: unknown[]) => mockReason(...args),
+  };
+});
+
+vi.mock(
+  "@green-goods/shared/hooks/client-ui/commitment/useGardenCommitmentController",
+  async (importOriginal) => {
+    return {
+      ...(await importOriginal()),
+      useGardenCommitmentController: (...args: unknown[]) => mockUseController(...args),
+    };
+  }
+);
+
+vi.mock("@green-goods/shared/hooks/app/useOffline", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOffline: () => ({ isOnline: true, pendingCount: 0, syncStatus: "idle" }),
+  };
+});
+
+vi.mock("@green-goods/shared/providers/JobQueue", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useJobQueue: () => ({ flush: mockFlush }),
+  };
+});
+
+vi.mock("@green-goods/shared/modules/job-queue/default-instance", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     jobQueue: { retryJob: mockRetryJob, discardJob: mockDiscardJob },
   };
 });

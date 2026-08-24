@@ -22,9 +22,15 @@ const { mockUsePublicGardens } = vi.hoisted(() => ({
   mockUsePublicGardens: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicGardens", () => ({
   usePublicGardens: mockUsePublicGardens,
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useInViewReveal", () => ({
   useInViewReveal: () => ({ ref: () => undefined, revealed: true }),
 }));
 

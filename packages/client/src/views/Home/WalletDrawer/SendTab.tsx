@@ -1,18 +1,16 @@
-import {
-  type Address,
-  Alert,
-  ConfirmDialog,
-  cn,
-  formatTokenAmount,
-  useCurrentChain,
-  useEnsName,
-  useOffline,
-  useSendFlowController,
-  useSendableTokens,
-  useSendToken,
-  useUser,
-  type WalletMode,
-} from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useSendFlowController } from "@green-goods/shared/hooks/client-ui/wallet/useSendFlowController";
+import { useSendableTokens } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
+import { useSendToken } from "@green-goods/shared/hooks/blockchain/useSendToken";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import type { WalletMode } from "@green-goods/shared/modules/wallet/send-flow";
 import { RiArrowLeftLine, RiLoader4Line, RiPencilLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";

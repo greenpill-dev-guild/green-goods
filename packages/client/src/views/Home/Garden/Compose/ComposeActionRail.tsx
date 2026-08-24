@@ -1,4 +1,6 @@
-import { type Action, cn, DomainBadge } from "@green-goods/shared";
+import type { Action } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { DomainBadge } from "@green-goods/shared/components/DomainBadge";
 import {
   type CommitmentComposerValues,
   MAX_COMMITMENT_REQUIREMENTS,

@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import messages from "../../../../shared/src/i18n/en.json";
+import messages from "@green-goods/shared/i18n/en.json";
 
 const TEST_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
 
@@ -14,13 +14,25 @@ const sharedMocks = vi.hoisted(() => ({
   useProtocolMemberStatus: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: {
     info: sharedMocks.toastInfo,
   },
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
   useGreenGoodsEnsName: sharedMocks.useGreenGoodsEnsName,
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: sharedMocks.usePrimaryAddress,
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useProtocolMemberStatus", () => ({
   useProtocolMemberStatus: sharedMocks.useProtocolMemberStatus,
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useTimeout", () => ({
   useTimeout: () => ({
     set: (callback: () => void, delay: number) => {
       const id = setTimeout(callback, delay);

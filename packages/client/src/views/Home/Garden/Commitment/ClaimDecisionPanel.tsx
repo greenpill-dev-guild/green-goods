@@ -1,4 +1,5 @@
-import { AddressDisplay, type Address } from "@green-goods/shared";
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import type { Address } from "@green-goods/shared/types/domain";
 import {
   type CommitmentClaimRequestRecord,
   MAX_REASON,

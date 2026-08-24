@@ -11,22 +11,33 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import messages from "../../../../shared/src/i18n/en.json";
+import messages from "@green-goods/shared/i18n/en.json";
 
 // Mock @green-goods/shared
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-  formatAddress: (addr: string, opts?: { ensName?: string }) =>
-    opts?.ensName || `${addr.slice(0, 6)}...${addr.slice(-4)}`,
+}));
+
+vi.mock("@green-goods/shared/utils/app/text", () => ({
   formatEnsNameForDisplay: (ensName?: string | null) =>
     ensName?.endsWith(".greengoods.eth") ? ensName.replace(".greengoods.eth", "") : ensName,
-  resolveAvatarUrl: (url: string) => url,
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuthState: () => ({ userName: "alice" }),
-  useEnsAvatar: () => ({ data: null, isLoading: false }),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
   useEnsName: () => ({ data: null }),
+}));
+
+vi.mock("@green-goods/shared/hooks/gardener/useGardenerProfile", () => ({
   useGardenerProfile: () => ({
     profile: null,
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
   useUser: () => ({
     user: { id: "0x1234567890abcdef1234567890abcdef12345678" },
   }),

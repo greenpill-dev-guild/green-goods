@@ -1,12 +1,11 @@
+import { capitalize } from "@green-goods/shared/utils/app/text";
+import { hapticLight } from "@green-goods/shared/utils/app/haptics";
+import { type Locale, useApp } from "@green-goods/shared/providers/App";
 import {
-  capitalize,
-  hapticLight,
-  type Locale,
   type ServiceWorkerUpdatePhase,
-  useApp,
   useServiceWorkerUpdate,
-  useTheme,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/app/useServiceWorkerUpdate";
+import { useTheme } from "@green-goods/shared/hooks/app/useTheme";
 import { RiEarthFill, RiRefreshLine, RiSettings2Line } from "@remixicon/react";
 import { type ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";

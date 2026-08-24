@@ -1,4 +1,5 @@
-import type { PublicGardenSummary, PublicImpactEvidenceRecord } from "@green-goods/shared";
+import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
+import type { PublicImpactEvidenceRecord } from "@green-goods/shared/public-contracts/public-impact";
 import type { Meta, StoryObj } from "@storybook/react";
 import { IntlProvider } from "react-intl";
 import { PublicEvidenceDialog } from "./PublicEvidenceDialog";

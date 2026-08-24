@@ -13,7 +13,7 @@ import userEvent from "@testing-library/user-event";
 import { type ReactElement, useState } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Address } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
 import {
   type CommitmentPoolRecord,
   commitmentNeedsSeat,
@@ -194,24 +194,22 @@ function useGardenPoolControllerMock(targetPool: CommitmentPoolRecord) {
   };
 }
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+vi.mock("@green-goods/shared/hooks/app/useOffline", async (importOriginal) => {
   return {
-    ...actual,
-    DEFAULT_CHAIN_ID: 42161,
-    usePrimaryAddress: () => VIEWER,
-    useCommitments: () => mockUseCommitments(),
-    useCommitmentCycles: () => mockUseCommitmentCycles(),
-    useCommitmentCycleNames: () => mockUseCommitmentCycleNames(),
-    useCommitmentQueueState: () => mockUseQueueState(),
-    useCommitmentReason: (cid: string | null) => mockUseReason(cid),
-    useJobQueue: () => ({ flush: mockFlush }),
-    jobQueue: { retryJob: mockRetryJob, discardJob: mockDiscardJob },
+    ...(await importOriginal()),
     useOffline: () => mockUseOffline(),
-    useHasRole: () => mockUseHasRole(),
-    useGardenPoolController: (...args: unknown[]) => mockUseGardenPoolController(...args),
   };
 });
+
+vi.mock(
+  "@green-goods/shared/hooks/client-ui/pool/useGardenPoolController",
+  async (importOriginal) => {
+    return {
+      ...(await importOriginal()),
+      useGardenPoolController: (...args: unknown[]) => mockUseGardenPoolController(...args),
+    };
+  }
+);
 
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),

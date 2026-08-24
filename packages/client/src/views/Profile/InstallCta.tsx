@@ -1,10 +1,8 @@
-import {
-  copyToClipboard,
-  hapticLight,
-  toastService,
-  useApp,
-  useInstallGuidance,
-} from "@green-goods/shared";
+import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
+import { hapticLight } from "@green-goods/shared/utils/app/haptics";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useApp } from "@green-goods/shared/providers/App";
+import { useInstallGuidance } from "@green-goods/shared/hooks/app/useInstallGuidance";
 import {
   RiAlertLine,
   RiDownloadLine,

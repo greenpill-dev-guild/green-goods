@@ -1,4 +1,4 @@
-import { useActions } from "@green-goods/shared";
+import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import {
   type CommitmentReadModel,
   type CommitmentRequirementRecord,

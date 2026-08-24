@@ -1,4 +1,4 @@
-import { useAuthState } from "@green-goods/shared";
+import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { APP_ROUTES } from "@/config/pwa-routing";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";

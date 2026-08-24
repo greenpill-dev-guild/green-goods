@@ -1,4 +1,6 @@
-import { cn, ImageWithFallback, type PublicImpactEvidenceRecord } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
+import type { PublicImpactEvidenceRecord } from "@green-goods/shared/public-contracts/public-impact";
 import { RiImageLine } from "@remixicon/react";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";

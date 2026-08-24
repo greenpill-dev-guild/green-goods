@@ -1,8 +1,10 @@
-import { logger, toastService, useInViewReveal } from "@green-goods/shared";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import type {
   PublicSubscribeRequest,
   PublicSubscribeResponse,
-} from "@green-goods/shared/public-contracts";
+} from "@green-goods/shared/public-contracts/core";
 import { type FormEvent, useCallback, useState } from "react";
 import { useIntl } from "react-intl";
 import { publicCuration } from "@/content/publicCuration";

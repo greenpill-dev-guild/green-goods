@@ -1,5 +1,5 @@
-import type { Address } from "@green-goods/shared";
-import { claimFixture } from "@green-goods/shared/testing";
+import type { Address } from "@green-goods/shared/types/domain";
+import { claimFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ClaimDecisionPanel } from "../../views/Home/Garden/Commitment/ClaimDecisionPanel";

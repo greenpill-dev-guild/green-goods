@@ -1,12 +1,9 @@
-import {
-  type Address,
-  cn,
-  copyToClipboard,
-  type FormatAddressVariant,
-  formatAddress,
-  toastService,
-  useTimeout,
-} from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
+import { type FormatAddressVariant, formatAddress } from "@green-goods/shared/utils/app/text";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
 import React, { useId, useState } from "react";
 import { useIntl } from "react-intl";

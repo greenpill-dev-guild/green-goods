@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiArrowRightLine, RiCloseLine, RiDeleteBinLine, RiDraftLine } from "@remixicon/react";
 import type React from "react";

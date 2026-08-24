@@ -1,4 +1,4 @@
-import { useNavigateToTop } from "@green-goods/shared";
+import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import {
   useCommitment,
   useCommitmentMetadataFor,

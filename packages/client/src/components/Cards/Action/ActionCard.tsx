@@ -1,4 +1,6 @@
-import { type Action, ActionBannerFallback, cn } from "@green-goods/shared";
+import type { Action } from "@green-goods/shared/types/domain";
+import { ActionBannerFallback } from "@green-goods/shared/components/Display/ActionBannerFallback";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 import { ImageWithFallback } from "../../Display/Image/ImageWithFallback";

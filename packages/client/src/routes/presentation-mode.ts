@@ -1,4 +1,4 @@
-import { getClientPresentationMode } from "@green-goods/shared/utils";
+import { getClientPresentationMode } from "@green-goods/shared/utils/app/pwa";
 import { redirect, type LoaderFunctionArgs } from "react-router-dom";
 import { APP_ROUTES, LEGACY_APP_ROUTES } from "@/config/pwa-routing";
 

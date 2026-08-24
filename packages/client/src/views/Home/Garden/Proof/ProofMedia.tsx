@@ -1,4 +1,7 @@
-import { AudioPlayer, cn, isVideoFile, mediaResourceManager } from "@green-goods/shared";
+import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { isVideoFile } from "@green-goods/shared/modules/work/media-processing";
+import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
 import { RiCloseLine, RiImageAddLine, RiLoader4Line, RiPlayFill } from "@remixicon/react";
 import { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";

@@ -1,4 +1,4 @@
-import { type PublicFieldNote } from "@green-goods/shared";
+import type { PublicFieldNote } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
 import { useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display";

@@ -44,7 +44,7 @@ avatarEditorMocks.editor.continueAfterReconnect = avatarEditorMocks.continueAfte
 avatarEditorMocks.editor.discardDraft = avatarEditorMocks.discardDraft;
 avatarEditorMocks.editor.save = avatarEditorMocks.save;
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", () => ({
   DialogShell: ({
     children,
     open,
@@ -54,7 +54,13 @@ vi.mock("@green-goods/shared", () => ({
     open: boolean;
     title: string;
   }) => (open ? <section aria-label={title}>{children}</section> : null),
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...values: unknown[]) => values.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/modules/job-queue/media-resource-manager", () => ({
   mediaResourceManager: {
     cleanupUrl: avatarEditorMocks.cleanupPreviewUrl,
     createUrl: avatarEditorMocks.createPreviewUrl,
@@ -63,8 +69,8 @@ vi.mock("@green-goods/shared", () => ({
 vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
   useOnlineStatus: () => avatarEditorMocks.online.isOnline,
 }));
-vi.mock("@green-goods/shared/profile-avatar", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@green-goods/shared/profile-avatar")>()),
+vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/hooks/profile/useProfileAvatar")>()),
   useProfileAvatarEditor: () => avatarEditorMocks.editor,
   useResolvedProfileAvatar: () => avatarEditorMocks.resolved,
 }));

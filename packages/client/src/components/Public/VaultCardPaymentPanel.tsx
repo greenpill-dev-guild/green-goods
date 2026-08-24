@@ -6,18 +6,18 @@
  * rollout — see .plans/archive/nyc-vault-crowdfunding/brief.md. Do not remove as
  * "dead code".
  */
+import { createPublicClientForChain } from "@green-goods/shared/config/pimlico";
+import { getOctantVaultAssetDisplayPolicy } from "@green-goods/shared/modules/vault-crowdfunding/copy";
 import {
-  createPublicClientForChain,
-  getOctantVaultAssetDisplayPolicy,
   hasRequiredOctantVaultFundingBalance,
-  logger,
   validateOctantVaultCardOnrampCompletion,
   validateOctantVaultCardOnrampQuote,
-  type OctantVaultCampaignManifest,
-  type OctantVaultCardEndowFallbackPlan,
   type OctantVaultCardOnrampCompletionExpectation,
-  useTimeout,
-} from "@green-goods/shared";
+} from "@green-goods/shared/modules/vault-crowdfunding/card-endow";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
+import type { OctantVaultCardEndowFallbackPlan } from "@green-goods/shared/modules/vault-crowdfunding/route-manage";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Bridge, getContract, readContract, type ThirdwebClient } from "thirdweb";

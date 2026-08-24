@@ -1,4 +1,5 @@
-import { useWorkSubmissionFlowController, WorkTab } from "@green-goods/shared";
+import { useWorkSubmissionFlowController } from "@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowController";
+import { WorkTab } from "@green-goods/shared/stores/workFlowTypes";
 import {
   RiArrowRightSLine,
   RiCameraFill,

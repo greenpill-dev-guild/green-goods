@@ -1,13 +1,10 @@
-import {
-  formatAddress,
-  formatEnsNameForDisplay,
-  formatFileSize,
-  truncateAddress,
-  useEnsName,
-  useGreenGoodsEnsName,
-  type Work,
-  WorkCardComponent as SharedWorkCard,
-} from "@green-goods/shared";
+import { formatAddress, formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
+import { formatFileSize } from "@green-goods/shared/utils/work/image-compression";
+import { truncateAddress } from "@green-goods/shared/utils/blockchain/address";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import type { Work } from "@green-goods/shared/types/domain";
+import { WorkCard as SharedWorkCard } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
 import React from "react";
 import { useIntl } from "react-intl";
 
@@ -172,6 +169,6 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   );
 };
 
-export type { StatusBadgeProps } from "@green-goods/shared";
+export type { StatusBadgeProps } from "@green-goods/shared/components/StatusBadge";
 // Re-export StatusBadge from shared for convenience
-export { StatusBadge } from "@green-goods/shared";
+export { StatusBadge } from "@green-goods/shared/components/StatusBadge";

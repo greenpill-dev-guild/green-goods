@@ -1,4 +1,7 @@
-import { DialogShell, PwaSheet, cn, useMediaQuery } from "@green-goods/shared";
+import { DialogShell } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { PwaSheet } from "@green-goods/shared/components/Dialog/PwaSheet";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { RiCloseLine, RiInformationLine } from "@remixicon/react";
 import {
   type CSSProperties,

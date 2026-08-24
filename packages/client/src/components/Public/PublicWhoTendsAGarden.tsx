@@ -1,4 +1,5 @@
-import { cn, useInViewReveal } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { EditorialHeading, EditorialKicker, EditorialLede, EditorialLinkArrow } from "./atoms";

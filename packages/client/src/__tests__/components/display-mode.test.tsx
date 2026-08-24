@@ -23,17 +23,40 @@ const mockUseApp = vi.fn();
 const mockUsePendingWorksCount = vi.fn();
 const mockUseUIStore = vi.fn();
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useTunnelUrl", () => ({
   useTunnelUrl: () => null,
+}));
+
+vi.mock("@green-goods/shared/components/SyncStatusBar", () => ({
   SyncStatusBar: ({ className }: { className?: string }) =>
     createElement("div", { "data-testid": "sync-status-bar", className }),
+}));
+
+vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: () => mockUseApp(),
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useWorks", () => ({
   usePendingWorksCount: () => mockUsePendingWorksCount(),
+}));
+
+vi.mock("@green-goods/shared/stores/useUIStore", () => ({
   useUIStore: (selector: (s: any) => any) => mockUseUIStore(selector),
+}));
+
+vi.mock("@green-goods/shared/config/app", () => ({
   APP_NAME: "Green Goods",
-  useAppKit: () => ({ open: vi.fn() }),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useIsBraveBrowser", () => ({
   useIsBraveBrowser: () => false,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useInstallGuidance", () => ({
   useInstallGuidance: () => ({
     scenario: "desktop",
     primaryAction: { type: "continue-in-browser", label: "Open on Mobile" },
@@ -44,7 +67,13 @@ vi.mock("@green-goods/shared", () => ({
     browserSwitchReason: null,
     openInBrowserUrl: null,
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/usePublicInstallHandler", () => ({
   usePublicInstallHandler: () => vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useEventListener", () => ({
   useEventListener: vi.fn(),
 }));
 

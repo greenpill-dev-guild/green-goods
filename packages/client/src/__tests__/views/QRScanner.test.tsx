@@ -2,7 +2,7 @@
 
 import { waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { BarcodeScannerPort } from "@green-goods/shared";
+import type { BarcodeScannerPort } from "@green-goods/shared/modules/wallet/barcode-scanner";
 import { renderWithProviders as render } from "../test-utils";
 import { QRScanner } from "../../views/Home/WalletDrawer/Send/QRScanner";
 

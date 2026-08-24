@@ -27,9 +27,15 @@ beforeAll(() => {
 });
 
 // Mock shared barrel imports — component imports everything from @green-goods/shared
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/modules/work/media-processing", () => ({
   getWorkMediaId: (file: File) => `media-${file.name}-${file.size}-${file.lastModified}`,
   isVideoFile: (file: File) => file.type.startsWith("video/"),
   getSafeMediaBatchMetadata: (files: File[]) => ({
@@ -46,6 +52,9 @@ vi.mock("@green-goods/shared", () => ({
     size_bucket: "0-1mb",
     media_kind: file.type.startsWith("video/") ? "video" : "image",
   }),
+}));
+
+vi.mock("@green-goods/shared/modules/work/submission-flow", () => ({
   prepareWorkSubmission: vi.fn(async (files: File[]) => {
     const accepted = [];
     const converted = [];
@@ -95,24 +104,31 @@ vi.mock("@green-goods/shared", () => ({
 
     return { accepted, rejected: [], converted };
   }),
+}));
+
+vi.mock("@green-goods/shared/components/Audio/AudioPlayer", () => ({
   AudioPlayer: ({ file }: any) => <div data-testid="audio-player">{file?.name}</div>,
-  AudioRecorder: ({ onRecordingComplete }: any) => (
-    <button
-      data-testid="audio-recorder"
-      onClick={() => onRecordingComplete?.(new File([], "recording.webm"))}
-    >
-      Record
-    </button>
-  ),
+}));
+
+vi.mock("@green-goods/shared/modules/app/posthog", () => ({
   track: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: {
     info: vi.fn(),
     error: vi.fn(),
   },
+}));
+
+vi.mock("@green-goods/shared/modules/job-queue/media-resource-manager", () => ({
   mediaResourceManager: {
     getOrCreateUrl: vi.fn((file: File) => `blob:mock-url-${file.name}`),
     cleanupUrls: vi.fn(),
   },
+}));
+
+vi.mock("@green-goods/shared/utils/work/image-compression", () => ({
   imageCompressor: {
     shouldCompress: () => false,
     compressImages: vi.fn().mockImplementation((files: File[]) => Promise.resolve(files)),
@@ -151,7 +167,7 @@ vi.mock("@/components/Features", () => ({
 }));
 
 // Import after mocks
-import { getWorkMediaId } from "@green-goods/shared";
+import { getWorkMediaId } from "@green-goods/shared/modules/work/media-processing";
 import { WorkMedia } from "../../views/Garden/Media";
 
 const messages = {

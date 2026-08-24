@@ -19,13 +19,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- Mocks ---
 
-const mockOpenWalletModal = vi.fn();
-
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/config/app", () => ({
   APP_NAME: "Green Goods",
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useTunnelUrl", () => ({
   useTunnelUrl: () => null,
-  useAppKit: () => ({ open: mockOpenWalletModal }),
+}));
+
+vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: () => ({
     isMobile: false,
     isInstalled: false,
@@ -33,7 +39,13 @@ vi.mock("@green-goods/shared", () => ({
     deferredPrompt: null,
     promptInstall: vi.fn(),
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useIsBraveBrowser", () => ({
   useIsBraveBrowser: () => false,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useInstallGuidance", () => ({
   useInstallGuidance: () => ({
     scenario: "desktop",
     primaryAction: { type: "continue-in-browser", label: "Open on Mobile" },
@@ -44,7 +56,13 @@ vi.mock("@green-goods/shared", () => ({
     browserSwitchReason: null,
     openInBrowserUrl: null,
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/usePublicInstallHandler", () => ({
   usePublicInstallHandler: () => vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useEventListener", () => ({
   useEventListener: vi.fn(),
 }));
 

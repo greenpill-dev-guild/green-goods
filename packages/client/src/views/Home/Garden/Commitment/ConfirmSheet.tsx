@@ -1,4 +1,7 @@
-import { type Address, AddressDisplay, Alert, DialogShell } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { DialogShell } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import {
   type CommitmentContributorRecord,
   type CommitmentReadModel,

@@ -1,4 +1,4 @@
-import { GardenTab } from "@green-goods/shared";
+import { GardenTab } from "@green-goods/shared/hooks/garden/useGardenTabs";
 import { RiFileChartFill, RiGroupFill, RiHammerFill, RiHandHeartLine } from "@remixicon/react";
 import type { IntlShape } from "react-intl";
 

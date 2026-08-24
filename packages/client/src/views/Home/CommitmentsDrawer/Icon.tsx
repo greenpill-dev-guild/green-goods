@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiHandHeartLine } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";

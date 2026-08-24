@@ -1,9 +1,9 @@
+import type { Address } from "@green-goods/shared/types/domain";
 import {
-  type Address,
   type BarcodeScannerPort,
   browserBarcodeScanner,
-  cn,
-} from "@green-goods/shared";
+} from "@green-goods/shared/modules/wallet/barcode-scanner";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCloseLine } from "@remixicon/react";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";

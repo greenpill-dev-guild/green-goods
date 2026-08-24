@@ -1,4 +1,5 @@
-import { ToastViewport, usePageView } from "@green-goods/shared";
+import { ToastViewport } from "@green-goods/shared/components/Toast/ToastViewport";
+import { usePageView } from "@green-goods/shared/hooks/analytics/usePageView";
 import { useLayoutEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { scrubReceiptTokenFragmentFromLocation } from "./receipt-token";

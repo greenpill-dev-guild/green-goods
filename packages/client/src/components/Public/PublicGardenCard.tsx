@@ -1,4 +1,5 @@
-import { cn, type PublicGardenSummary } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display";

@@ -1,4 +1,6 @@
-import { cn, useFocusTrap, useTimeout } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { useFocusTrap } from "@green-goods/shared/hooks/utils/useFocusTrap";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { RiCloseLine } from "@remixicon/react";
 import React, { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";

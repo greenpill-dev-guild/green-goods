@@ -43,7 +43,7 @@ let mockIsAuthenticated = false;
 let mockAuthUserName: string | null = null;
 let mockStoredUsername: string | null = null;
 
-vi.mock("../../../../shared/src/hooks/auth/useAuth", () => ({
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuth: () => ({
     loginWithPasskey: mockLoginWithPasskey,
     createAccount: mockCreateAccount,
@@ -59,7 +59,7 @@ vi.mock("../../../../shared/src/hooks/auth/useAuth", () => ({
   }),
 }));
 
-vi.mock("../../../../shared/src/providers/App", () => ({
+vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: () => ({
     platform: "unknown" as const,
     isMobile: false,
@@ -70,7 +70,7 @@ vi.mock("../../../../shared/src/providers/App", () => ({
   }),
 }));
 
-vi.mock("../../../../shared/src/hooks/app/useInstallGuidance", () => ({
+vi.mock("@green-goods/shared/hooks/app/useInstallGuidance", () => ({
   useInstallGuidance: () => ({
     showInstallPrompt: false,
     scenario: null,
@@ -80,71 +80,32 @@ vi.mock("../../../../shared/src/hooks/app/useInstallGuidance", () => ({
   }),
 }));
 
-vi.mock("../../../../shared/src/config/passkeyServer", () => ({
+vi.mock("@green-goods/shared/config/passkeyServer", () => ({
   classifyPasskeyCeremonyContext: mockClassifyPasskeyCeremonyContext,
   isPasskeyServerEnabled: () => mockPasskeyServerEnabled,
   normalizePasskeyAccountIdentifier: (value: string) =>
     value.trim().replace(/^@+/, "").toLowerCase(),
 }));
 
-vi.mock("../../../../shared/src/modules/auth/session", () => ({
+vi.mock("@green-goods/shared/modules/auth/session", () => ({
   getStoredUsername: () => mockStoredUsername,
 }));
-vi.mock("../../../../shared/src/components/Toast/toast.service", () => ({
-  toastService: mockToastService,
-}));
-vi.mock("../../../../shared/src/modules/app/error-categories", () => ({
+vi.mock("@green-goods/shared/modules/app/error-categories", () => ({
   trackAuthError: vi.fn(),
 }));
-vi.mock("../../../../shared/src/utils/app/clipboard", () => ({
+vi.mock("@green-goods/shared/utils/app/clipboard", () => ({
   copyToClipboard: vi.fn(),
 }));
-vi.mock("../../../../shared/src/utils/debug", () => ({
+vi.mock("@green-goods/shared/utils/debug", () => ({
   debugError: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", async () => ({
-  ...(await vi.importActual<
-    typeof import("../../../../shared/src/hooks/client-ui/auth/useLoginScreenController")
-  >("../../../../shared/src/hooks/client-ui/auth/useLoginScreenController")),
-  toastService: mockToastService,
-  copyToClipboard: vi.fn(),
-  classifyPasskeyCeremonyContext: mockClassifyPasskeyCeremonyContext,
-  isPasskeyServerEnabled: () => mockPasskeyServerEnabled,
-  getStoredUsername: () => mockStoredUsername,
-  normalizePasskeyAccountIdentifier: (value: string) =>
-    value.trim().replace(/^@+/, "").toLowerCase(),
-  useInstallGuidance: () => ({
-    showInstallPrompt: false,
-    scenario: null,
-    installAction: null,
-    dismissInstallPrompt: vi.fn(),
-    openInBrowserUrl: null,
-  }),
-  useApp: () => ({
-    platform: "unknown" as const,
-    isMobile: false,
-    isInstalled: false,
-    wasInstalled: false,
-    deferredPrompt: null,
-  }),
-  useAuth: () => ({
-    loginWithPasskey: mockLoginWithPasskey,
-    createAccount: mockCreateAccount,
-    loginWithWallet: mockLoginWithWallet,
-    loginWithEmbedded: mockLoginWithEmbedded,
-    isAuthenticating: false,
-    isAuthenticated: mockIsAuthenticated,
-    isReady: true,
-    smartAccountAddress: null,
-    hasStoredCredential: mockHasStoredCredential,
-    userName: mockAuthUserName,
-    error: mockAuthError,
-  }),
-  debugError: vi.fn(),
-  trackAuthError: vi.fn(),
-  APP_NAME: "Green Goods",
-}));
+vi.mock("@green-goods/shared/components/Toast/toast.service", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    toastService: mockToastService,
+  };
+});
 
 // Mock LoadingSplash component (boot state only)
 vi.mock("@/views/Login/components/LoadingSplash", () => ({
@@ -226,7 +187,7 @@ vi.mock("@/components/Layout", () => ({
 }));
 
 // Import after mocks
-import { toastService } from "@green-goods/shared";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { Login } from "../../views/Login";
 
 const createLoginTree = (initialRoute = "/home/login") =>
