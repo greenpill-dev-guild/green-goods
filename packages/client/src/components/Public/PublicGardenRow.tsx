@@ -100,7 +100,7 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
           <ImageWithFallback
             src={garden.bannerImage}
             alt=""
-            className="h-full w-full object-cover transition-transform group-hover:scale-[1.03]"
+            className="h-full w-full object-cover"
             backgroundFallback={
               <GardenCoverFallback
                 name={garden.name}
