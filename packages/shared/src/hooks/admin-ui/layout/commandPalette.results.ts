@@ -48,7 +48,7 @@ interface BuildCommandPaletteResultsOptions {
  * biased toward consecutive matches and matches near the start.
  * Returns 0 when the query doesn't match.
  */
-export function fuzzyScore(query: string, text: string): number {
+function fuzzyScore(query: string, text: string): number {
   if (!query) return 1;
   const q = query.toLowerCase();
   const t = text.toLowerCase();

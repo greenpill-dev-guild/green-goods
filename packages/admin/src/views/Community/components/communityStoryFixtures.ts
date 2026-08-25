@@ -5,8 +5,8 @@ import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-rol
 import type { CommunityMembersTabProps } from "./CommunityMembersTab";
 
 export const STORY_GARDEN_ID = "0x1234567890123456789012345678901234567890" as Address;
-export const STORY_OWNER = "0x1111111111111111111111111111111111111111" as Address;
-export const STORY_STEWARD = "0x2222222222222222222222222222222222222222" as Address;
+const STORY_OWNER = "0x1111111111111111111111111111111111111111" as Address;
+const STORY_STEWARD = "0x2222222222222222222222222222222222222222" as Address;
 
 export const storyGarden = {
   id: STORY_GARDEN_ID,

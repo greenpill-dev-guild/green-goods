@@ -83,7 +83,7 @@ export function toRecognitionBps(values: RecognitionPercent): CommitmentRecognit
   };
 }
 
-export function allocationSumPercent(values: AllocationPercent): number {
+function allocationSumPercent(values: AllocationPercent): number {
   const bps = toAllocationBps(values);
   const total =
     bps.gardeners + bps.treasury + bps.steward + bps.evaluator + bps.community + bps.funder;

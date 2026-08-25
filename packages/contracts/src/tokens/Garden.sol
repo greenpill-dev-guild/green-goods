@@ -128,9 +128,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         IGardensModule.WeightScheme weightScheme;
         uint8 domainMask;
         address[] gardeners;
-        // Tuple component names do not enter the selector, so this rename leaves
-        // mintGarden calldata byte-identical against the deployed contract.
-        address[] stewards;
+        address[] stewards; // Renamed from operators: tuple names never enter the selector, calldata is unchanged.
     }
 
     /// @notice Emitted for batch operations (Gas Optimized)

@@ -23,7 +23,7 @@ import type {
 } from "./pool-setup";
 
 /** `ICommitmentPoolingModule.PoolState`, by code. */
-export const POOL_STATE_CODE = {
+const POOL_STATE_CODE = {
   NONE: 0,
   NOT_READY: 1,
   READY: 2,
@@ -34,7 +34,7 @@ export const POOL_STATE_CODE = {
 } as const;
 
 /** `ICommitmentPoolingModule.CycleState`, by code. */
-export const CYCLE_STATE_CODE = {
+const CYCLE_STATE_CODE = {
   NONE: 0,
   SEEDED: 1,
   OPEN: 2,
@@ -58,7 +58,7 @@ const CYCLE_STATES_TERMINAL = new Set<number>([
 ]);
 
 /** The cycle an `openCycle` step targets, once known. */
-export function resolveStepCycleId(
+function resolveStepCycleId(
   step: Extract<PoolSetupStep, { action: "openCycle" }>,
   context: PoolSetupRunContext
 ): bigint | null {

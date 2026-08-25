@@ -136,7 +136,7 @@ const DOCS_BASE = "https://docs.greengoods.app";
  * Linked from PublicFooter and from PublicReadDeeper instances that touch
  * vocabulary-heavy surfaces.
  */
-export default function GlossaryPage() {
+export default function Glossary() {
   const { formatMessage } = useIntl();
   const { ref: termsRef, revealed: termsRevealed } = useInViewReveal<HTMLElement>();
 
