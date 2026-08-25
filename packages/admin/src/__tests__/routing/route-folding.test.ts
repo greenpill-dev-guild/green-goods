@@ -105,7 +105,7 @@ describe("route folding", () => {
     // The retired History stage keeps redirect stubs, never a hubView mount.
     expect(hubRouteBlock).toContain('path: "history"');
     expect(hubRouteBlock).toContain('path: ":historyEventId"');
-    expect(hubRouteBlock).toContain('<Navigate to="/hub" replace />');
+    expect(hubRouteBlock).toContain('<PreserveSearchRedirect pathname="/hub" />');
     expect(routeViews).toContain('const hubView = lazyView(() => import("@/views/Hub"));');
     expect(hubRouteBlock.match(/lazy:\s*hubView/g)?.length).toBeGreaterThanOrEqual(4);
     expect(hubRouteBlock).not.toMatch(/WorkDetail/);
