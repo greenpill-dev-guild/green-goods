@@ -4,7 +4,7 @@ import {
   type CommitmentCycleRecord,
   type CycleMetadataNameResolution,
 } from "@green-goods/shared/commitment-pooling";
-import { formatCommitmentUnits } from "@green-goods/shared/i18n";
+import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import { type RefObject, useEffect } from "react";
 import { useIntl } from "react-intl";
 

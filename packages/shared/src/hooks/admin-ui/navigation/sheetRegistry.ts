@@ -19,8 +19,8 @@ export const WORK_DETAIL_CONTENT_ID_PREFIX = "hub:work-detail:";
 export const CERTIFICATION_CONTENT_ID_PREFIX = "hub:certify:";
 export const SUBMIT_WORK_CONTENT_ID = "hub:submit-work";
 export const ACTION_CREATE_CONTENT_ID = "actions:create";
-export const ACTION_DETAIL_CONTENT_ID_PREFIX = "actions:detail:";
-export const ACTION_EDIT_CONTENT_ID_PREFIX = "actions:edit:";
+const ACTION_DETAIL_CONTENT_ID_PREFIX = "actions:detail:";
+const ACTION_EDIT_CONTENT_ID_PREFIX = "actions:edit:";
 
 export const ADMIN_RIGHT_SHEET_REGISTRY = {
   [PROFILE_SHEET_CONTENT_ID]: {
@@ -81,7 +81,7 @@ export function toActionDetailContentId(actionId: string) {
   return `${ACTION_DETAIL_CONTENT_ID_PREFIX}${actionId}`;
 }
 
-export function parseActionDetailContentId(contentId: string | null) {
+function parseActionDetailContentId(contentId: string | null) {
   if (!contentId?.startsWith(ACTION_DETAIL_CONTENT_ID_PREFIX)) return null;
   return contentId.slice(ACTION_DETAIL_CONTENT_ID_PREFIX.length) || null;
 }
@@ -90,7 +90,7 @@ export function toActionEditContentId(actionId: string) {
   return `${ACTION_EDIT_CONTENT_ID_PREFIX}${actionId}`;
 }
 
-export function parseActionEditContentId(contentId: string | null) {
+function parseActionEditContentId(contentId: string | null) {
   if (!contentId?.startsWith(ACTION_EDIT_CONTENT_ID_PREFIX)) return null;
   return contentId.slice(ACTION_EDIT_CONTENT_ID_PREFIX.length) || null;
 }
@@ -163,10 +163,6 @@ export function isActionsRouteSheetContentId(contentId: string | null) {
       contentId?.startsWith(ACTION_DETAIL_CONTENT_ID_PREFIX) ||
       contentId?.startsWith(ACTION_EDIT_CONTENT_ID_PREFIX)
   );
-}
-
-export function getRouteSheetSide(contentId: string | null): AdminSheetSide | null {
-  return getRouteSheetRegistryEntry(contentId)?.entry.side ?? null;
 }
 
 // Sheets of retired surfaces: persisted workspace state can outlive a release,

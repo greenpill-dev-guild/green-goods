@@ -17,7 +17,7 @@ import type { CommitmentDerivedState, CommitmentReadModel } from "./types";
 import type { CommitmentSeat } from "./selectors";
 
 /** Mirrors CommitmentPoolingCommonLib: a roster the contract will not grow past. */
-export const MAX_CONTRIBUTORS_PER_COMMITMENT = 40;
+const MAX_CONTRIBUTORS_PER_COMMITMENT = 40;
 /** Mirrors CommitmentPoolingCommonLib: linked work, counted as required and as attached. */
 export const MAX_LINKED_WORKS_PER_COMMITMENT = 40;
 

@@ -5,7 +5,7 @@ import {
   useCommitmentPool,
   useCommitmentWorkAttributionsForWork,
 } from "@green-goods/shared/commitment-pooling";
-import { formatCommitmentUnits } from "@green-goods/shared/i18n";
+import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import { RiHandHeartLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 

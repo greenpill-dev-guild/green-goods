@@ -24,6 +24,7 @@
     "./hooks/admin-ui/useCanvasChromeProbe": "./src/hooks/admin-ui/useCanvasChromeProbe.ts",
     "./hooks/app/useOnlineStatus": "./src/hooks/app/useOnlineStatus.ts",
     "./i18n": "./src/i18n/index.ts",
+    "./i18n/commitmentUnits": "./src/i18n/commitmentUnits.ts",
     "./lib/env": "./src/lib/env.ts",
     "./i18n/en": "./src/i18n/en.json",
     "./i18n/es": "./src/i18n/es.json",

@@ -1,6 +1,6 @@
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { type InboxCommitment } from "@green-goods/shared/commitment-pooling";
-import { formatCommitmentUnits } from "@green-goods/shared/i18n";
+import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import { RiSeedlingLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
