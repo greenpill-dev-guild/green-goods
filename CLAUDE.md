@@ -34,10 +34,12 @@ commands live in the nearest package guide. Service variants and operational ent
 
 ## Claude Tool Routing
 
-- For authenticated local UI QA, use the Claude Code Chrome/Chromium extension to claim the
-  already-open authenticated Brave profile or tab. If the extension cannot reach it, use visible
-  computer control of that Brave window. Do not substitute an isolated browser profile; report the
-  proof as `BLOCKED` when neither path is available.
+- For authenticated local UI QA, use the authenticated Brave QA profile.
+  Take the Claude Code Chrome/Chromium extension path and claim the already-open authenticated Brave profile/tab.
+  (Codex sessions take the Codex browser-extension path for the same window.)
+  If the extension cannot reach it, use visible computer control of that Brave window.
+  Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA.
+  If authenticated Brave access is blocked, stop and report QA as blocked.
 - Linear MCP is the visibility and coordination surface. Follow `AGENTS.md § Linear Workspace` and
   [`.claude/context/linear-routing-rules.md`](.claude/context/linear-routing-rules.md); keep Plan Hub
   lane truth in `.plans`.

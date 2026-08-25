@@ -102,3 +102,11 @@ foundations.
 - Package loop: `bun run test && bun run build`.
 - Conditional proof: Storybook checks apply only when shared primitives, stories, or tokens move.
 - Broader impact: run the root Repo Quick Gate when shared hooks, permissions, or public contracts move.
+
+## Authenticated Browser QA
+
+Local agentic browser QA for this package uses the authenticated Brave QA profile.
+Codex sessions use the Codex browser-extension path and claim the already-open Brave tab/window.
+Claude Code sessions use the Claude Code Chrome/Chromium extension path and select the authenticated Brave profile/tab.
+Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA.
+If authenticated Brave access is blocked, stop and report QA as blocked.
