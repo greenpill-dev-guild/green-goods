@@ -27,7 +27,7 @@ graph TB
         L2["Layer 2: AGENTS.md\nAlways loaded — invariants, scope constraints"]
         L3["Layer 3: context/*.md\nRead on demand — package and domain depth"]
         L4["Layer 4: rules/*.md\nPath-scoped — typescript, contracts, frontend"]
-        L5["Layer 5: skills/*\nProcedural — 11 skills, loaded on trigger"]
+        L5["Layer 5: skills/*\nProcedural — 12 skills, loaded on trigger"]
     end
 
     L1 --> L2 --> L3 --> L4 --> L5
@@ -46,7 +46,7 @@ as the durable repo-truth planning and execution hub:
 .claude/
   context/         # Package and domain context files
   rules/           # Path-scoped coding rules
-  skills/          # 11 skills -- the filesystem + SKILL.md frontmatter is the registry
+  skills/          # 12 skills -- the filesystem + SKILL.md frontmatter is the registry
   scripts/         # Hook helpers and Codex lane dispatch
   loop.md          # Maintenance loop: guidance consistency, stale references, build health
   launch.json      # Dev-server launch configs for the browser preview

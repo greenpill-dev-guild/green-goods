@@ -100,7 +100,9 @@ test.
 
 1. **Extract ALL requirements** from issue/task
 2. **Map each requirement** to planned steps
-3. **Audit codebase** — search for existing patterns
+3. **Resolve factual prerequisites** — inspect obvious local sources directly; route bounded,
+   decision-relevant questions that require reconciling repository or external evidence through
+   the passive `research` skill before asking the user
 4. **Read the Implementation Quality Contract** in `.claude/context/values.md`
 5. **Review CLAUDE.md** for compliance rules
 
@@ -372,7 +374,10 @@ The numbered decision table with rationale is the most effective planning patter
 ### Planning Traps to Avoid
 
 - **Over-planning polish work** — Small UI tweaks don't need 10-step plans
-- **Planning without reading code first** — Always audit existing patterns before writing a plan; investigate what you don't understand (describe the bug, or dispatch a research subagent)
+- **Planning without grounding first** — Inspect existing patterns before writing a plan. Use
+  `research` in the active agent when a factual prerequisite requires deeper evidence; use `debug`
+  for a bug. Ask the user only when the remaining question is judgment, preference, or inaccessible
+  private context.
 - **Vague steps** — "Update the component" is not a plan step; "Add `onSubmit` handler to `WorkForm` that calls `useJobQueue.addJob()`" is
 - **Missing test strategy** — Every feature plan needs a "Test Strategy" section. Contracts plans always include tests; frontend plans must too
 - **Stale plans** — If a plan sits untouched for 14+ days, reassess before executing
@@ -390,6 +395,7 @@ for QA Speed Mode examples, Repo Quick Gate, and the full Ship Gate live in
 
 - `plan/templates.md` — Copy-paste plan/status/batch-report templates
 - `plan/brainstorm.md` — Pre-plan exploration when requirements are fuzzy
+- `research` — Read-only evidence gathering for discoverable factual prerequisites before planning
 - `plan/teams.md` — Mixed Claude+Codex agent-team orchestration
 - `debug` — Investigate root cause before planning a fix
 - `review` — Post-implementation review of the executed plan

@@ -21,7 +21,7 @@ import {NextBestAction} from "@site/src/components/docs";
 ```mermaid
 graph TB
     subgraph Config[".claude/ Directory"]
-        Skills["skills/\n11 skills"]
+        Skills["skills/\n12 skills"]
         Rules["rules/\npath-scoped"]
         Context["context/\nper-package"]
     end
@@ -68,10 +68,11 @@ The `.claude/` directory contains all agentic configuration:
 
 ```
 .claude/
-  skills/           # 11 skills -- the filesystem + SKILL.md frontmatter is the registry
+  skills/           # 12 skills -- the filesystem + SKILL.md frontmatter is the registry
     review/         # Full change review: regressions -> gaps -> production quality -> verdict
     ship/           # Pre-merge gate (format, lint, test, build, branch safety)
     plan/           # Planning lifecycle: .plans hub + Codex lanes (passive)
+    research/       # Evidence-first grounding for planning and decision discussions (passive)
     debug/          # Debugging workflows, incl. the three-strike protocol (passive)
     clean/          # 8-subagent codebase cleanup
     audit/          # Repo-health audit + drift classifier (/audit drift)

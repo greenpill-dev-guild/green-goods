@@ -107,6 +107,46 @@
       "expect": "debug"
     },
     {
+      "id": "research-01",
+      "query": "Before we decide what to build at the hackathon, research what Commitment Pooling already defines about repeated Offers, member-funded claims, current implementation state, and open gates. Ground the discussion in the active Plan Hub and code before asking me product questions.",
+      "expect": "research"
+    },
+    {
+      "id": "research-02",
+      "query": "Research the current official Safe Protocol Kit documentation and first-party APIs for creating and executing a Safe transaction. Separate documented behavior from any implementation inference so we can choose an integration approach.",
+      "expect": "research"
+    },
+    {
+      "id": "research-neighbor-plan-01",
+      "query": "Write an implementation plan for the approved Commitment Pooling settlement slice, including package order, acceptance criteria, and validation commands.",
+      "expect": "plan"
+    },
+    {
+      "id": "research-neighbor-debug-01",
+      "query": "Commitment Pooling claims fail after the second contribution with an invalid state error. Reproduce it and find the root cause.",
+      "expect": "debug"
+    },
+    {
+      "id": "research-neighbor-review-01",
+      "query": "Review the Commitment Pooling implementation on this branch for regressions, remaining gaps, and production quality.",
+      "expect": "review"
+    },
+    {
+      "id": "research-neighbor-audit-01",
+      "query": "Audit the Commitment Pooling area for dead code, dependency drift, stale guidance, and broken invariants. Keep it read-only.",
+      "expect": "audit"
+    },
+    {
+      "id": "research-neighbor-lookup-01",
+      "query": "Which Plan Hub owns Commitment Pooling?",
+      "expect": "none"
+    },
+    {
+      "id": "research-neighbor-rationale-01",
+      "query": "Trace why Commitment Pooling chose its current Offer model by following the original commits, plan decisions, and review history.",
+      "expect": "none"
+    },
+    {
       "id": "plan-01",
       "query": "Break down the commitment pooling settlement work across contracts, shared, and admin — parallel lanes for you and codex",
       "expect": "plan"

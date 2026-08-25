@@ -31,7 +31,7 @@ This applies regardless of perceived simplicity. "Simple" projects are where une
 ## Process
 
 ```
-Explore context → Ask clarifiers one at a time → Propose 2-3 approaches
+Explore context → Research factual gaps → Ask dependency-aware frontier rounds → Propose 2-3 approaches
   → Present design in sections → User approves → Write brief → User reviews brief
   → Move to planning to create implementation plan
 ```
@@ -53,25 +53,30 @@ If the request describes multiple independent subsystems, flag it immediately. D
 
 Each sub-feature gets its own brief → plan → implementation cycle.
 
-### 3. Clarifying questions (one at a time)
+### 3. Resolve the decision frontier
 
 Focus on: purpose, constraints, success criteria.
 
-Before asking the first question, maintain an internal **decision frontier**:
+Before asking the first round, maintain an internal **decision frontier**:
 
 1. List the unresolved decisions and the dependencies between them.
-2. Resolve repository facts from code, docs, plans, or live state; do not turn research work into a
-   user question.
+2. Resolve cheap repository facts from code, docs, plans, or live state. Route bounded factual
+   prerequisites through the `research` skill when they require reconciling evidence; do not ask the
+   user to reconstruct discoverable facts.
 3. Treat the current frontier as the unresolved decisions whose prerequisites are already known.
-4. Ask the highest-impact frontier question, with a recommended answer and the tradeoff behind it.
-5. Update the frontier after each answer. Brainstorming is ready to advance only when no silent
-   assumptions remain; anything intentionally deferred must appear under `Open questions` in the brief.
+4. Ask every independent question on the current frontier together in a numbered round. Give each
+   question a recommended answer and the tradeoff behind it.
+5. If a question depends on another unsettled question, defer it to a later round. Update the
+   frontier after each response. Brainstorming is ready to advance only when no silent assumptions
+   remain; anything intentionally deferred must appear under `Open questions` in the brief.
 
 The frontier is a reasoning aid, not a second planning artifact. Do not create a separate decision
-ledger or expose a wall of questions when the one-at-a-time dialogue is sufficient.
+ledger. Keep each round to the current independent frontier; when that frontier is unusually large,
+split it into coherent rounds that preserve dependency order.
 
 **Rules:**
-- One question per message. No stacking.
+- Ask all currently independent human decisions together; do not mix in questions whose factual
+  prerequisites are still unsettled.
 - Prefer multiple choice when the option space is small. Open-ended is fine when it isn't.
 - Don't ask about things the code already answers.
 - For a human decision, state the recommended option and why it best fits the known constraints.
@@ -149,7 +154,7 @@ On approval, move the brief to `.plans/active/<slug>/brief.md`, then move to pla
 
 ## Key principles
 
-- **One question at a time** — don't overwhelm
+- **Dependency-aware rounds** — ask the current independent frontier together, then advance
 - **YAGNI ruthlessly** — remove everything the user didn't ask for
 - **Resolve intent priorities** — when approaches conflict, default to: offline > security > UX > DX > elegance (per CLAUDE.md)
 - **Scale to complexity** — a bug fix doesn't need a 10-section design; a new module does
@@ -159,7 +164,8 @@ On approval, move the brief to `.plans/active/<slug>/brief.md`, then move to pla
 
 | Don't | Why |
 |-------|-----|
-| Ask 5 questions in one message | User can't answer them linearly; context gets lost |
+| Ask a wall of dependent questions | Later answers will be invalidated by unsettled prerequisites |
+| Ask independent decisions one message at a time | It creates avoidable back-and-forth and hides their relationship |
 | Propose one approach without alternatives | Forecloses the conversation; hides tradeoffs |
 | Start writing code before the brief is approved | Violates the hard gate; wastes work |
 | Write a brief longer than the plan will be | Overplanning signals fuzzy thinking; distill |

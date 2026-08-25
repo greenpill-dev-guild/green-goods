@@ -26,7 +26,7 @@ const liveSources = loadSkillBehaviorSources();
 test("live guidance satisfies every skill behavior contract", () => {
   const report = evaluateSkillBehaviorContracts(liveSources);
   assert.deepEqual(report.failures, []);
-  assert.equal(report.results.length, 12);
+  assert.equal(report.results.length, 15);
 });
 test("architecture plan contract fails without human candidate selection", () => {
   const sources = replaceRequiredMarker(
@@ -98,6 +98,45 @@ test("audit contract fails without the explicit scope lock", () => {
 
   assert.deepEqual(failedScenarioIds(evaluateSkillBehaviorContracts(sources)), [
     "audit-read-only-scope-lock",
+  ]);
+});
+
+test("research authority contract fails when Plan Hub pointer discipline drifts", () => {
+  const sources = replaceRequiredMarker(
+    liveSources,
+    ".claude/skills/research/SKILL.md",
+    /document map/i,
+    "complete directory",
+  );
+
+  assert.deepEqual(failedScenarioIds(evaluateSkillBehaviorContracts(sources)), [
+    "research-follows-authority-and-stops-adaptive-branches",
+  ]);
+});
+
+test("research map contract fails when automatic tracker creation is allowed", () => {
+  const sources = replaceRequiredMarker(
+    liveSources,
+    ".claude/skills/research/SKILL.md",
+    /Do not create tracker records automatically/i,
+    "Create tracker records automatically",
+  );
+
+  assert.deepEqual(failedScenarioIds(evaluateSkillBehaviorContracts(sources)), [
+    "research-separates-decisions-persistence-and-map-escalation",
+  ]);
+});
+
+test("brainstorm contract fails when frontier rounds regress to serial questions", () => {
+  const sources = replaceRequiredMarker(
+    liveSources,
+    ".claude/skills/plan/brainstorm.md",
+    /Ask every independent question on the current frontier/i,
+    "Ask one question on the current frontier",
+  );
+
+  assert.deepEqual(failedScenarioIds(evaluateSkillBehaviorContracts(sources)), [
+    "brainstorm-researches-facts-and-asks-frontier-rounds",
   ]);
 });
 

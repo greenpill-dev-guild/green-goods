@@ -14,6 +14,8 @@ export const SOURCE_PATHS = [
   ".claude/skills/audit/SKILL.md",
   ".claude/skills/module-seams-review/SKILL.md",
   ".claude/skills/plan/SKILL.md",
+  ".claude/skills/plan/brainstorm.md",
+  ".claude/skills/research/SKILL.md",
   ".claude/skills/review/SKILL.md",
   ".claude/skills/ship/SKILL.md",
 ];
@@ -118,6 +120,98 @@ const contracts = [
         section: "Boundary",
         pattern: /friction but never prescribe the refactor[\s\S]{0,180}route to `plan`/i,
         marker: "friction-to-plan routing",
+      },
+    ],
+  },
+  {
+    id: "research-follows-authority-and-stops-adaptive-branches",
+    summary:
+      "Research resolves source authority, loads targeted evidence, and stops adaptive branches at explicit boundaries.",
+    requirements: [
+      {
+        file: ".claude/skills/research/SKILL.md",
+        section: "2. Resolve authority",
+        pattern: new RegExp(
+          String.raw`status\.json.*links[\s\S]{0,220}document map[\s\S]{0,300}targeted`,
+          "i",
+        ),
+        marker: "Plan Hub pointers and targeted loading",
+      },
+      {
+        file: ".claude/skills/research/SKILL.md",
+        section: "2. Resolve authority",
+        pattern:
+          /external primary sources[\s\S]{0,200}(official documentation|first-party API|source code|specification)/i,
+        marker: "external first-party authority",
+      },
+      {
+        file: ".claude/skills/research/SKILL.md",
+        section: "3. Follow the evidence",
+        pattern:
+          /could change the answer or unblock the decision[\s\S]{0,260}authoritative evidence[\s\S]{0,420}outside the research scope/i,
+        marker: "adaptive branch follow and stop rules",
+      },
+    ],
+  },
+  {
+    id: "research-separates-decisions-persistence-and-map-escalation",
+    summary:
+      "Research separates facts from decisions, stays read-only by default, and escalates unbounded work without tracker writes.",
+    requirements: [
+      {
+        file: ".claude/skills/research/SKILL.md",
+        section: "1. Frame the work",
+        pattern:
+          /decision it unblocks[\s\S]{0,180}facts[\s\S]{0,180}human decisions/i,
+        marker: "fact and human-decision separation",
+      },
+      {
+        file: ".claude/skills/research/SKILL.md",
+        section: "Persistence",
+        pattern:
+          /read-only by default[\s\S]{0,240}explicitly asks[\s\S]{0,300}canonical Plan Hub/i,
+        marker: "explicit persistence and canonical decision routing",
+      },
+      {
+        file: ".claude/skills/research/SKILL.md",
+        section: "Map escalation",
+        pattern:
+          /map-ready handoff[\s\S]{0,220}Destination[\s\S]{0,220}Settled facts and decisions[\s\S]{0,240}Sharp frontier questions[\s\S]{0,220}Remaining fog[\s\S]{0,180}Dependencies[\s\S]{0,180}Out of scope/i,
+        marker: "map-ready handoff fields",
+      },
+      {
+        file: ".claude/skills/research/SKILL.md",
+        section: "Map escalation",
+        pattern: /Do not create tracker records automatically/i,
+        marker: "no automatic tracker writes",
+      },
+    ],
+  },
+  {
+    id: "brainstorm-researches-facts-and-asks-frontier-rounds",
+    summary:
+      "Planning researches factual prerequisites and asks independent human decisions in dependency-aware rounds.",
+    requirements: [
+      {
+        file: ".claude/skills/plan/brainstorm.md",
+        section: "3. Resolve the decision frontier",
+        pattern:
+          /Route bounded factual\s+prerequisites through the `research` skill[\s\S]{0,220}do not ask the\s+user/i,
+        marker: "research-before-questioning route",
+      },
+      {
+        file: ".claude/skills/plan/brainstorm.md",
+        section: "3. Resolve the decision frontier",
+        pattern:
+          /Ask every independent question on the current frontier[\s\S]{0,220}numbered round[\s\S]{0,220}recommended answer/i,
+        marker: "recommended frontier rounds",
+      },
+      {
+        file: ".claude/skills/plan/brainstorm.md",
+        section: "3. Resolve the decision frontier",
+        pattern:
+          /depends on another unsettled question[\s\S]{0,200}later round/i,
+        marker: "deferred dependent questions",
       },
     ],
   },
