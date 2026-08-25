@@ -15,6 +15,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
+  type CommitmentDerivedState,
   type CommitmentPoolRecord,
   commitmentNeedsSeat,
   isSettledCommitmentState,
@@ -95,7 +96,7 @@ function commitment(overrides: Record<string, unknown> = {}) {
     commitmentId: 9n,
     creationSeen: true,
     onchainState: "ACCEPTED",
-    derivedState: "ACTIVE",
+    derivedState: "ACTIVE" as CommitmentDerivedState,
     state: "ACCEPTED",
     approvedUnits: 0n,
     evidenceCount: 0,
