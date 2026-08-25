@@ -26,15 +26,13 @@ export const Default: Story = {
   render: () => (
     <PublicEvidencePipeline
       kicker="§ 03: The cycle"
-      title="From plan to public proof, season after season."
+      title="From need to learning, season after season."
       titleId="story-pipeline-title"
-      intro="Each Garden moves through five stages of evidence and starts again. The cycle is what turns a place's intentions into something the public can verify."
+      intro="Each Garden moves through four stages and starts again. The cycle is what turns a place's needs into something the public can verify."
     />
   ),
 };
 
 export const NoIntro: Story = {
-  render: () => (
-    <PublicEvidencePipeline title="The evidence cycle." titleId="story-pipeline-no-intro" />
-  ),
+  render: () => <PublicEvidencePipeline title="The cycle." titleId="story-pipeline-no-intro" />,
 };
