@@ -31,7 +31,7 @@ export interface CreateGardenFormState {
   openJoining: boolean;
   domains: Domain[];
   gardeners: Address[];
-  operators: Address[];
+  stewards: Address[];
 }
 
 export interface CreateGardenStep {
@@ -50,8 +50,8 @@ export interface CreateGardenStore {
   ) => void;
   addGardener: (address: string) => { success: boolean; error?: string };
   removeGardener: (index: number) => void;
-  addOperator: (address: string) => { success: boolean; error?: string };
-  removeOperator: (index: number) => void;
+  addSteward: (address: string) => { success: boolean; error?: string };
+  removeSteward: (index: number) => void;
   nextStep: () => void;
   previousStep: () => void;
   goToStep: (index: number) => void;
@@ -66,7 +66,7 @@ export interface CreateGardenStore {
 
 const defaultSteps: CreateGardenStep[] = [
   { id: "details", title: "Garden details", description: "Name, location & media" },
-  { id: "team", title: "Community", description: "Gardeners & operators" },
+  { id: "team", title: "Community", description: "Gardeners & stewards" },
   { id: "review", title: "Review & deploy", description: "Confirm your setup" },
 ];
 
@@ -81,7 +81,7 @@ export function createEmptyGardenForm(): CreateGardenFormState {
     openJoining: false,
     domains: [],
     gardeners: [],
-    operators: [],
+    stewards: [],
   };
 }
 
@@ -134,7 +134,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
       },
       removeGardener: (index) =>
         set((state) => removeGardenMemberTransition(state, { role: "gardeners", index })),
-      addOperator: (address) => {
+      addSteward: (address) => {
         const sanitized = sanitizeAddress(address);
         if (!isValidAddress(sanitized)) {
           return { success: false, error: "Enter a valid wallet address" };
@@ -143,19 +143,19 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
         const validAddress = sanitized as Address;
         const { form } = get();
 
-        // Check if already an operator (case-insensitive via checksummed comparison)
-        if (form.operators.includes(validAddress)) {
-          return { success: false, error: "Address already added as operator" };
+        // Check if already a steward (case-insensitive via checksummed comparison)
+        if (form.stewards.includes(validAddress)) {
+          return { success: false, error: "Address already added as steward" };
         }
 
         set((state) =>
-          addGardenMemberTransition(state, { role: "operators", address: validAddress })
+          addGardenMemberTransition(state, { role: "stewards", address: validAddress })
         );
 
         return { success: true };
       },
-      removeOperator: (index) =>
-        set((state) => removeGardenMemberTransition(state, { role: "operators", index })),
+      removeSteward: (index) =>
+        set((state) => removeGardenMemberTransition(state, { role: "stewards", index })),
       nextStep: () => set((state) => moveGardenStepTransition(state, { direction: 1 })),
       previousStep: () => set((state) => moveGardenStepTransition(state, { direction: -1 })),
       goToStep: (index) => set((state) => moveGardenStepTransition(state, { index })),
@@ -209,7 +209,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           weightScheme: WeightScheme.Linear,
           domainMask: form.domains.reduce((mask, d) => mask | (1 << d), 0),
           gardeners: form.gardeners,
-          operators: form.operators,
+          stewards: form.stewards,
         } satisfies CreateGardenParams;
       },
     }),

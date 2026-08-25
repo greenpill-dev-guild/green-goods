@@ -60,7 +60,7 @@ graph TB
 <StepFlow
   steps={[
     {title: "Identify the hypercert", detail: "Select the hypercert to evaluate. Review its metadata: scope of work, time period, contributor list, and the garden that minted it."},
-    {title: "Verify attestation chains", detail: "For each piece of work included in the hypercert, confirm the attestation chain is intact: work submission UID exists, approval refUID matches, attester is an authorized operator, and no attestations are revoked."},
+    {title: "Verify attestation chains", detail: "For each piece of work included in the hypercert, confirm the attestation chain is intact: work submission UID exists, approval refUID matches, attester is an authorized steward, and no attestations are revoked."},
     {title: "Assess evidence quality", detail: "Review the underlying work submissions for evidence quality. Check photos, descriptions, and metrics against the action requirements. Evaluate whether the evidence substantiates the impact claims."},
     {title: "Map to impact framework", detail: "If the hypercert includes assessment data, evaluate how well the impact is mapped to the Eight Forms of Capital (Living, Material, Financial, Social, Intellectual, Experiential, Spiritual, Cultural)."},
   ]}
@@ -77,7 +77,7 @@ graph TB
     {
       when: "Some attestation chains are broken or evidence is weak",
       do: "Document specific gaps: which UIDs fail verification, which evidence is insufficient.",
-      next: "Report findings to the garden operator and note caveats in evaluation reports.",
+      next: "Report findings to the garden steward and note caveats in evaluation reports.",
     },
     {
       when: "Impact scope claims exceed what the evidence supports",
@@ -93,7 +93,7 @@ graph TB
 - Cross-reference contributor allowlists with the actual attestation data to confirm the right gardeners are credited
 - Document your evaluation methodology so that your results are reproducible by other evaluators
 - When impact claims span multiple forms of capital, verify that each form has supporting evidence
-- Consider the garden's review standards and operator history when assessing evidence quality — well-run gardens typically produce more reliable attestation chains
+- Consider the garden's review standards and steward history when assessing evidence quality — well-run gardens typically produce more reliable attestation chains
 
 ## What's Next
 

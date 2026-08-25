@@ -26,7 +26,7 @@ export function combinePendingWork(
 /**
  * Check if the given address is one of the reviewer garden IDs.
  */
-export function isOperatorForGarden(
+export function isStewardForGarden(
   activeAddress: Address | undefined,
   reviewerGardenIds: string[],
   gardenAddress: string
@@ -121,13 +121,13 @@ export function extractWorkGardenIds(works: Work[]): string[] {
  */
 export function resolveWorkNavigation(
   work: Work | { workUID?: string; gardenAddress?: Address },
-  operatorWorksById: Map<string, Work>
+  stewardWorksById: Map<string, Work>
 ): { workId: string; gardenId: string } | null {
   let workId = "id" in work ? work.id : (work as { workUID?: string }).workUID;
   let gardenId = work.gardenAddress;
 
   if (!gardenId && "workUID" in work && work.workUID) {
-    const found = operatorWorksById.get(work.workUID);
+    const found = stewardWorksById.get(work.workUID);
     if (found) {
       gardenId = found.gardenAddress;
       workId = found.id;

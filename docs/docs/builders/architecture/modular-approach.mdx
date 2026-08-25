@@ -100,7 +100,7 @@ graph TD
     Shared["packages/shared<br/><small>Hooks, stores, utilities</small>"]
     Indexer["packages/indexer<br/><small>Envio event handlers</small>"]
     Client["packages/client<br/><small>Gardener PWA</small>"]
-    Admin["packages/admin<br/><small>Operator dashboard</small>"]
+    Admin["packages/admin<br/><small>Steward dashboard</small>"]
     Agent["packages/agent<br/><small>Automation bots</small>"]
 
     Contracts -->|ABIs| Shared
@@ -167,7 +167,7 @@ graph TD
     subgraph GardenTree["Per-Garden Tree"]
         Admin["Garden Admin Hat<br/><small>parent of all roles</small>"]
         Owner["Owner<br/><small>Full control</small>"]
-        Operator["Operator<br/><small>Approvals, management</small>"]
+        Steward["Steward<br/><small>Approvals, management</small>"]
         Evaluator["Evaluator<br/><small>Assessments</small>"]
         Gardener["Gardener<br/><small>Work submission</small>"]
         Funder["Funder<br/><small>ERC-20 eligibility</small>"]
@@ -179,7 +179,7 @@ graph TD
     CH --> PG
     GH --> Admin
     Admin --> Owner
-    Admin --> Operator
+    Admin --> Steward
     Admin --> Evaluator
     Admin --> Gardener
     Admin --> Funder
@@ -203,7 +203,7 @@ graph TD
 | Protocol | **Protocol Gardeners** | Cross-garden membership for gardeners who participate in multiple gardens. |
 | Garden | **Garden Admin** | Per-garden root. Parent (admin) of all garden-specific roles. |
 | Garden | **Owner** | Full control over garden configuration and membership. |
-| Garden | **Operator** | Can approve/reject work submissions and manage day-to-day operations. |
+| Garden | **Steward** | Can approve/reject work submissions and manage day-to-day operations. |
 | Garden | **Evaluator** | Can create garden assessments. |
 | Garden | **Gardener** | Can submit work attestations against enabled actions. |
 | Garden | **Funder** | Eligibility for depositing into garden vaults (ERC-20 token-gated). |

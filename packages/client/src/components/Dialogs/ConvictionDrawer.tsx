@@ -352,8 +352,8 @@ export function ConvictionDrawer({
                       {WEIGHT_SCHEME_VALUES[community.weightScheme].gardener / 10_000}x
                     </span>
                     <span>
-                      {formatMessage({ id: "app.roles.operator" })}:{" "}
-                      {WEIGHT_SCHEME_VALUES[community.weightScheme].operator / 10_000}x
+                      {formatMessage({ id: "app.roles.steward" })}:{" "}
+                      {WEIGHT_SCHEME_VALUES[community.weightScheme].steward / 10_000}x
                     </span>
                   </div>
                 </div>

@@ -221,7 +221,7 @@ export function useCreateActionController() {
         const errorMessage = result.error?.message ?? "Action registration failed";
         mutationStarted = false;
         // Telemetry carries the parsed error family only — raw messages can
-        // embed operator-typed content (work/auth telemetry follow the same rule).
+        // embed steward-typed content (work/auth telemetry follow the same rule).
         const parsedFamily = parseContractError(result.error ?? errorMessage).name;
         trackAdminActionCreateFailed({
           ...telemetryBase,

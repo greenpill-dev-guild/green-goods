@@ -13,19 +13,19 @@ export { gardenCardVariants };
 export type { GardenCardVariantProps } from "@green-goods/shared/components/Cards/GardenCard/GardenCard";
 
 export type GardenCardOptions = {
-  showOperators?: boolean;
+  showStewards?: boolean;
   showStats?: boolean;
   showDescription?: boolean;
   showBanner?: boolean;
 };
 
 export interface GardenCardProps
-  extends Omit<SharedGardenCardProps, "garden" | "labels" | "renderOperatorName">,
+  extends Omit<SharedGardenCardProps, "garden" | "labels" | "renderStewardName">,
     GardenCardOptions {
   garden: Garden;
 }
 
-const OperatorName: React.FC<{ address: Address }> = ({ address }) => {
+const StewardName: React.FC<{ address: Address }> = ({ address }) => {
   const { data: greenGoodsEnsName } = useGreenGoodsEnsName(address);
   const { data: ensName } = useEnsName(address);
   return <>{formatAddress(address, { ensName: greenGoodsEnsName || ensName, variant: "card" })}</>;
@@ -46,20 +46,20 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
           description: garden.description,
           bannerImage: garden.bannerImage,
           gardeners: garden.gardeners,
-          operators: garden.operators,
+          stewards: garden.stewards,
         }}
         labels={{
           members: intl.formatMessage({
             id: "app.garden.members",
             defaultMessage: "Members",
           }),
-          operators: intl.formatMessage({
-            id: "app.garden.operators",
-            defaultMessage: "Operators",
+          stewards: intl.formatMessage({
+            id: "app.garden.stewards",
+            defaultMessage: "Stewards",
           }),
-          operatorHeading: intl.formatMessage({
-            id: "app.garden.operatorHeading",
-            defaultMessage: "Operators",
+          stewardHeading: intl.formatMessage({
+            id: "app.garden.stewardHeading",
+            defaultMessage: "Stewards",
           }),
           andOthers: intl.formatMessage(
             {
@@ -69,7 +69,7 @@ const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
             { count: "{count}" }
           ),
         }}
-        renderOperatorName={(address) => <OperatorName address={address as Address} />}
+        renderStewardName={(address) => <StewardName address={address as Address} />}
       />
     );
   }

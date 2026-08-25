@@ -4,14 +4,14 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
-  STORYBOOK_OPERATOR_ADDRESS,
+  STORYBOOK_STEWARD_ADDRESS,
 } from "../../../../shared/.storybook/adminFixtures";
 import { withAdminIdentity, withSeededQueryClient } from "../../../../shared/.storybook/decorators";
 import { AccountProfileAvatarEditor } from "./AccountProfileAvatarEditor";
 
 const PROFILE_AVATAR_URI = "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzd";
 const PROFILE_AVATAR = {
-  address: STORYBOOK_OPERATOR_ADDRESS,
+  address: STORYBOOK_STEWARD_ADDRESS,
   avatarUri: PROFILE_AVATAR_URI,
   chainId: DEFAULT_CHAIN_ID,
   updatedAt: "2026-07-29T00:00:00.000Z",
@@ -52,7 +52,7 @@ export const PublishedAvatar: Story = {
     withSeededQueryClient([
       ...STORYBOOK_ADMIN_SHELL_SEEDS,
       [
-        queryKeys.profileAvatars.record(DEFAULT_CHAIN_ID, STORYBOOK_OPERATOR_ADDRESS),
+        queryKeys.profileAvatars.record(DEFAULT_CHAIN_ID, STORYBOOK_STEWARD_ADDRESS),
         PROFILE_AVATAR,
       ],
     ]),

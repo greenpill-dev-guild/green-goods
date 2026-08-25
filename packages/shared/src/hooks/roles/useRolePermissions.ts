@@ -16,10 +16,10 @@ export interface RolePermissions {
 function computePermissions(roles: GardenRole[]): RolePermissions {
   const hasRole = (role: GardenRole) => roles.includes(role);
 
-  const canSubmitWork = hasRole("gardener") || hasRole("operator") || hasRole("owner");
-  const canApproveWork = hasRole("operator") || hasRole("owner");
-  const canCreateAssessment = hasRole("evaluator") || hasRole("operator") || hasRole("owner");
-  const canManageRoles = hasRole("operator") || hasRole("owner");
+  const canSubmitWork = hasRole("gardener") || hasRole("steward") || hasRole("owner");
+  const canApproveWork = hasRole("steward") || hasRole("owner");
+  const canCreateAssessment = hasRole("evaluator") || hasRole("steward") || hasRole("owner");
+  const canManageRoles = hasRole("steward") || hasRole("owner");
   const canManageGarden = hasRole("owner");
 
   return {
@@ -32,7 +32,7 @@ function computePermissions(roles: GardenRole[]): RolePermissions {
 }
 
 export function useRolePermissions(roleOrRoles?: GardenRole | GardenRole[]): RolePermissions {
-  // Serialize to a stable string so inline arrays (e.g., ["operator", "evaluator"])
+  // Serialize to a stable string so inline arrays (e.g., ["steward", "evaluator"])
   // don't break memoization due to new reference each render (Rule 7).
   const rolesKey = roleOrRoles
     ? Array.isArray(roleOrRoles)

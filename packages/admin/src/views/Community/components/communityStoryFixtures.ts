@@ -5,8 +5,8 @@ import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-rol
 import type { CommunityMembersTabProps } from "./CommunityMembersTab";
 
 export const STORY_GARDEN_ID = "0x1234567890123456789012345678901234567890" as Address;
-export const STORY_OWNER = "0x1111111111111111111111111111111111111111" as Address;
-export const STORY_OPERATOR = "0x2222222222222222222222222222222222222222" as Address;
+const STORY_OWNER = "0x1111111111111111111111111111111111111111" as Address;
+const STORY_STEWARD = "0x2222222222222222222222222222222222222222" as Address;
 
 export const storyGarden = {
   id: STORY_GARDEN_ID,
@@ -31,7 +31,7 @@ export const storyPools = [
 
 export const storyRoleSummary = [
   { role: "owner", count: 1, firstMember: STORY_OWNER },
-  { role: "operator", count: 1, firstMember: STORY_OPERATOR },
+  { role: "steward", count: 1, firstMember: STORY_STEWARD },
   { role: "evaluator", count: 0 },
   { role: "gardener", count: 0 },
   { role: "funder", count: 0 },
@@ -40,7 +40,7 @@ export const storyRoleSummary = [
 
 export const storyRoleMembers: Record<GardenRole, Address[]> = {
   owner: [STORY_OWNER],
-  operator: [STORY_OPERATOR],
+  steward: [STORY_STEWARD],
   evaluator: [],
   gardener: [],
   funder: [],
@@ -49,7 +49,7 @@ export const storyRoleMembers: Record<GardenRole, Address[]> = {
 
 export const storyDirectory: RoleDirectoryEntry[] = [
   { address: STORY_OWNER, roles: ["owner"] },
-  { address: STORY_OPERATOR, roles: ["operator"] },
+  { address: STORY_STEWARD, roles: ["steward"] },
 ];
 
 export const storyAllocations = [

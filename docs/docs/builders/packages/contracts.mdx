@@ -89,7 +89,7 @@ packages/contracts/
 - **GardenToken** (ERC-721) mints garden NFTs and fans out to all configured modules (Hats, Octant, CookieJar, ENS, etc.) during minting
 - **GardenAccount** (ERC-6551 Tokenbound) gives each garden a smart account that owns assets and stores metadata
 - **ActionRegistry** publishes and manages garden action definitions with domain categorization
-- **HatsModule** creates per-garden 6-role hat trees (Owner, Operator, Evaluator, Gardener, Funder, Community) for hierarchical RBAC
+- **HatsModule** creates per-garden 6-role hat trees (Owner, Steward, Evaluator, Gardener, Funder, Community) for hierarchical RBAC
 - **OctantModule + OctantVault** manage ERC-4626 yield vaults with three-way yield splitting (CookieJar, Hypercert fractions, endowment)
 - **Deploy scripts** (TypeScript CLI + Solidity) handle CREATE2 deployment, UUPS upgrades, EAS schema registration, and cross-chain ENS wiring
 

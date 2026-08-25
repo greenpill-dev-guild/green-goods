@@ -38,7 +38,7 @@ vi.mock("../../../hooks/garden/useAdminGardenWorkspaceSelection", () => ({
   useAdminGardenWorkspaceSelection: () => ({ selectedGarden: gardenOne }),
 }));
 vi.mock("../../../hooks/gardener/useRole", () => ({
-  useRole: () => ({ role: "operator" }),
+  useRole: () => ({ role: "steward" }),
 }));
 vi.mock("../../../hooks/navigation/useGardenUrlSync", () => ({
   useGardenUrlSync: () => ({ setGarden: mocks.setGarden }),
@@ -60,7 +60,7 @@ describe("useAccountProfileController", () => {
       authMethodLabel: "Wallet",
       avatarFallback: "GA",
       headline: "garden",
-      roleLabel: "operator",
+      roleLabel: "steward",
       selectedGardenChoiceId: gardenOne.id,
     });
   });

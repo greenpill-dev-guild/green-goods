@@ -26,7 +26,7 @@ const command: CreateGardenCommand = {
     weightScheme: WeightScheme.Linear,
     domainMask: 15,
     gardeners: [accountAddress],
-    operators: [],
+    stewards: [],
   },
 };
 

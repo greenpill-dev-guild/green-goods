@@ -93,7 +93,7 @@ describe("useWorkApprovals", () => {
 
   describe("query key", () => {
     it("uses queryKeys.workApprovals.byAttester directly without fallback", async () => {
-      const attesterAddress = MOCK_ADDRESSES.operator;
+      const attesterAddress = MOCK_ADDRESSES.steward;
 
       const { result } = renderHook(() => useWorkApprovals(attesterAddress), {
         wrapper: createWrapper(queryClient),
@@ -126,13 +126,13 @@ describe("useWorkApprovals", () => {
   describe("memoization", () => {
     it("returns stable computed values across re-renders when data hasn't changed", async () => {
       // Seed query data with mock approvals to avoid network calls
-      const attesterAddress = MOCK_ADDRESSES.operator;
+      const attesterAddress = MOCK_ADDRESSES.steward;
       const queryKey = queryKeys.workApprovals.byAttester(attesterAddress, TEST_CHAIN_ID);
 
       const mockApprovals = [
         {
           id: "0xApproval1",
-          operatorAddress: MOCK_ADDRESSES.operator,
+          stewardAddress: MOCK_ADDRESSES.steward,
           gardenerAddress: MOCK_ADDRESSES.gardener,
           actionUID: 1,
           workUID: "0xWork1",
@@ -144,7 +144,7 @@ describe("useWorkApprovals", () => {
         },
         {
           id: "0xApproval2",
-          operatorAddress: MOCK_ADDRESSES.operator,
+          stewardAddress: MOCK_ADDRESSES.steward,
           gardenerAddress: MOCK_ADDRESSES.gardener,
           actionUID: 2,
           workUID: "0xWork2",
@@ -188,13 +188,13 @@ describe("useWorkApprovals", () => {
     });
 
     it("computes correct counts for mixed approval states", async () => {
-      const attesterAddress = MOCK_ADDRESSES.operator;
+      const attesterAddress = MOCK_ADDRESSES.steward;
       const queryKey = queryKeys.workApprovals.byAttester(attesterAddress, TEST_CHAIN_ID);
 
       const mockApprovals = [
         {
           id: "0xApproval1",
-          operatorAddress: MOCK_ADDRESSES.operator,
+          stewardAddress: MOCK_ADDRESSES.steward,
           gardenerAddress: MOCK_ADDRESSES.gardener,
           actionUID: 1,
           workUID: "0xWork1",
@@ -206,7 +206,7 @@ describe("useWorkApprovals", () => {
         },
         {
           id: "0xApproval2",
-          operatorAddress: MOCK_ADDRESSES.operator,
+          stewardAddress: MOCK_ADDRESSES.steward,
           gardenerAddress: MOCK_ADDRESSES.gardener,
           actionUID: 2,
           workUID: "0xWork2",
@@ -218,7 +218,7 @@ describe("useWorkApprovals", () => {
         },
         {
           id: "0xApproval3",
-          operatorAddress: MOCK_ADDRESSES.operator,
+          stewardAddress: MOCK_ADDRESSES.steward,
           gardenerAddress: MOCK_ADDRESSES.gardener,
           actionUID: 3,
           workUID: "0xWork3",
@@ -248,7 +248,7 @@ describe("useWorkApprovals", () => {
     });
 
     it("sorts approvals by creation date newest first", async () => {
-      const attesterAddress = MOCK_ADDRESSES.operator;
+      const attesterAddress = MOCK_ADDRESSES.steward;
       const queryKey = queryKeys.workApprovals.byAttester(attesterAddress, TEST_CHAIN_ID);
 
       const olderTime = Date.now() - 10000;
@@ -257,7 +257,7 @@ describe("useWorkApprovals", () => {
       const mockApprovals = [
         {
           id: "0xOlder",
-          operatorAddress: MOCK_ADDRESSES.operator,
+          stewardAddress: MOCK_ADDRESSES.steward,
           gardenerAddress: MOCK_ADDRESSES.gardener,
           actionUID: 1,
           workUID: "0xWork1",
@@ -269,7 +269,7 @@ describe("useWorkApprovals", () => {
         },
         {
           id: "0xNewer",
-          operatorAddress: MOCK_ADDRESSES.operator,
+          stewardAddress: MOCK_ADDRESSES.steward,
           gardenerAddress: MOCK_ADDRESSES.gardener,
           actionUID: 2,
           workUID: "0xWork2",
@@ -304,7 +304,7 @@ describe("useWorkApprovals", () => {
     it("returns empty arrays on query error without throwing", async () => {
       mockQueryFn.mockRejectedValue(new Error("Network error"));
 
-      const { result } = renderHook(() => useWorkApprovals(MOCK_ADDRESSES.operator), {
+      const { result } = renderHook(() => useWorkApprovals(MOCK_ADDRESSES.steward), {
         wrapper: createWrapper(queryClient),
       });
 

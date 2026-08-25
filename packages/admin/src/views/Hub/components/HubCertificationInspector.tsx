@@ -79,7 +79,7 @@ export function HubCertificationInspector({
         {canMint ? (
           <p className="text-sm text-text-sub">
             {formatMessage({
-              id: "cockpit.hub.certify.operatorDescription",
+              id: "cockpit.hub.certify.stewardDescription",
               defaultMessage:
                 "This bundle is ready for the minting flow. Open the hypercert form when you are ready to finalize it.",
             })}
@@ -89,7 +89,7 @@ export function HubCertificationInspector({
             {formatMessage({
               id: "cockpit.hub.certify.readOnlyDescription",
               defaultMessage:
-                "You can review the certification handoff here, but only garden owners or operators can mint the hypercert.",
+                "You can review the certification handoff here, but only garden owners or stewards can mint the hypercert.",
             })}
           </Alert>
         )}

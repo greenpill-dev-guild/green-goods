@@ -106,7 +106,7 @@ export function useWorkSubmissionFlow(): {
     () =>
       userAddress
         ? gardensData.filter((garden) =>
-            isGardenMember(userAddress, garden.gardeners, garden.operators, garden.id)
+            isGardenMember(userAddress, garden.gardeners, garden.stewards, garden.id)
           )
         : [],
     // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster
@@ -120,7 +120,7 @@ export function useWorkSubmissionFlow(): {
     if (!communityGarden?.openJoining) return null;
     const member =
       isAddressInList(userAddress, communityGarden.gardeners) ||
-      isAddressInList(userAddress, communityGarden.operators);
+      isAddressInList(userAddress, communityGarden.stewards);
     return member ? null : communityGarden;
   }, [gardensData, rootGardenAddress, userAddress]);
 

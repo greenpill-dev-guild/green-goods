@@ -2,7 +2,7 @@
 
 Loaded when working in `packages/admin/`. Extends CLAUDE.md.
 
-**Primary persona**: David (Operator). For tone guidance and UX constraints, see `.claude/context/product.md` § Persona & Tone Quick-Reference.
+**Primary persona**: David (Steward). For tone guidance and UX constraints, see `.claude/context/product.md` § Persona & Tone Quick-Reference.
 
 **Design routing**: surface spec `packages/admin/DESIGN.md` · AI prompt contract `.claude/skills/design/prompt-contract.md` · docs page `docs/docs/builders/packages/admin.mdx`.
 
@@ -51,7 +51,7 @@ Three user roles:
 | Role | Access | Source |
 |------|--------|--------|
 | **Deployer (Admin)** | Full access, create gardens | Hardcoded allowlist |
-| **Operator** | Assigned gardens only | Indexer query |
+| **Steward** | Assigned gardens only | Indexer query |
 | **User** | Unauthorized | Default |
 
 ### useRole Hook
@@ -60,10 +60,10 @@ Three user roles:
 import { useRole } from "@green-goods/shared";
 
 const {
-  role,           // "deployer" | "operator" | "user"
+  role,           // "deployer" | "steward" | "user"
   isDeployer,     // true if deployer
-  isOperator,     // true if operator OR deployer
-  operatorGardens, // Gardens this user operates
+  isSteward,     // true if steward OR deployer
+  stewardGardens, // Gardens this user operates
   loading,
 } = useRole();
 ```
@@ -151,14 +151,14 @@ const { register, handleSubmit, formState } = useForm({
 
 ```typescript
 function GardensList() {
-  const { isDeployer, operatorGardens } = useRole();
+  const { isDeployer, stewardGardens } = useRole();
   const { data: allGardens } = useQuery({
     queryKey: ['gardens'],
     queryFn: getGardens,
     enabled: isDeployer,  // Only fetch all if admin
   });
 
-  const gardensToShow = isDeployer ? allGardens : operatorGardens;
+  const gardensToShow = isDeployer ? allGardens : stewardGardens;
 
   return (
     <div>
@@ -190,12 +190,12 @@ if (isDeployer) {
 
 ```typescript
 // ❌ Wrong — assuming user has permission
-async function removeOperator(gardenId, address) {
+async function removeSteward(gardenId, address) {
   await contract.removeOperator(address);
 }
 
 // ✅ Correct — check first
-async function removeOperator(garden, address) {
+async function removeSteward(garden, address) {
   const permissions = useGardenPermissions();
   if (!permissions.canRemoveMembers(garden)) {
     throw new Error('Unauthorized');
@@ -204,15 +204,15 @@ async function removeOperator(garden, address) {
 }
 ```
 
-### Never Expose All Data to Operators
+### Never Expose All Data to Stewards
 
 ```typescript
-// ❌ Wrong — showing all gardens to operators
+// ❌ Wrong — showing all gardens to stewards
 <GardensList gardens={allGardens} />
 
 // ✅ Correct — filter by permission
-const { isDeployer, operatorGardens } = useRole();
-<GardensList gardens={isDeployer ? allGardens : operatorGardens} />
+const { isDeployer, stewardGardens } = useRole();
+<GardensList gardens={isDeployer ? allGardens : stewardGardens} />
 ```
 
 ### Never Create Hooks in Admin
@@ -247,10 +247,10 @@ describe("Gardens View", () => {
     });
   });
 
-  it("shows only assigned gardens for operator", async () => {
+  it("shows only assigned gardens for steward", async () => {
     const { screen } = renderWithProviders(<Gardens />, {
-      userRole: "operator",
-      operatorGardens: ["garden-1"],
+      userRole: "steward",
+      stewardGardens: ["garden-1"],
     });
 
     await waitFor(() => {
@@ -269,11 +269,11 @@ describe("Gardens View", () => {
 
 ## Documentation References (on-demand)
 
-Read these docs pages when you need operator workflow context or garden management details:
+Read these docs pages when you need steward workflow context or garden management details:
 
-- Garden setup guide: `docs/docs/community/operator-guide/creating-a-garden.mdx`
-- Manage gardeners: `docs/docs/community/operator-guide/index.mdx`
-- Review work submissions: `docs/docs/community/operator-guide/reviewing-work.mdx`
-- Configure actions: `docs/docs/community/operator-guide/managing-actions.mdx`
-- Impact reporting: `docs/docs/community/operator-guide/reporting-and-gap.mdx`
-- Operator getting started: `docs/docs/community/operator-guide/index.mdx`
+- Garden setup guide: `docs/docs/community/steward-guide/creating-a-garden.mdx`
+- Manage gardeners: `docs/docs/community/steward-guide/index.mdx`
+- Review work submissions: `docs/docs/community/steward-guide/reviewing-work.mdx`
+- Configure actions: `docs/docs/community/steward-guide/managing-actions.mdx`
+- Impact reporting: `docs/docs/community/steward-guide/reporting-and-gap.mdx`
+- Steward getting started: `docs/docs/community/steward-guide/index.mdx`

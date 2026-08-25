@@ -10,7 +10,7 @@ import {
 
 export const communityRoleIcons = {
   owner: RiShieldCheckLine,
-  operator: RiUserLine,
+  steward: RiUserLine,
   evaluator: RiCheckboxCircleLine,
   gardener: RiSeedlingLine,
   funder: RiMoneyDollarCircleLine,

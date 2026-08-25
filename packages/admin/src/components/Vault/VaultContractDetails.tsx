@@ -17,7 +17,7 @@ interface VaultContractDetailsProps {
 /**
  * Expanded contract-address reference for a garden's endowment vaults. Lives in the endowment
  * right rail (and inline in the standalone `layout="page"` view). Replaces the former collapsed
- * `<details>` in GardenVaultView — the operator asked for these addresses always visible, not
+ * `<details>` in GardenVaultView — the steward asked for these addresses always visible, not
  * tucked behind a disclosure. Rows stack (label over address) so they never wrap in the narrow
  * rail. Self-fetches via `useGardenVaults`; React Query dedupes with the main view's read.
  */

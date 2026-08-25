@@ -142,7 +142,7 @@ export const GardenWork: React.FC = () => {
     ) : null;
 
   const approvalFooter =
-    viewingMode === "operator" && effectiveStatus === "pending" ? (
+    viewingMode === "steward" && effectiveStatus === "pending" ? (
       <>
         {/* Backdrop - Fades in over content */}
         <div
@@ -357,7 +357,7 @@ export const GardenWork: React.FC = () => {
   // Success footer shows when work has been approved/rejected (on-chain resolved only)
   const isResolved = effectiveStatus === "approved" || effectiveStatus === "rejected";
   const successFooter =
-    viewingMode === "operator" && isResolved ? (
+    viewingMode === "steward" && isResolved ? (
       <div className="fixed left-0 right-0 bottom-0 z-sticky">
         <div className="bg-bg-white-0 border-t border-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
           <div className="max-w-screen-sm mx-auto flex items-center justify-center gap-2">

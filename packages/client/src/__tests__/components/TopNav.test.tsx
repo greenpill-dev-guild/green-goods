@@ -1,8 +1,8 @@
 /**
  * TopNav Component Tests
  *
- * Tests for TopNav component focusing on notification visibility based on operator status.
- * Verifies BUG-012: Non-operators should not see the notification bell.
+ * Tests for TopNav component focusing on notification visibility based on steward status.
+ * Verifies BUG-012: Non-stewards should not see the notification bell.
  */
 
 import { render, screen } from "@testing-library/react";
@@ -75,7 +75,7 @@ const mockGarden = {
   location: "Test Location",
   bannerImage: "https://example.com/banner.jpg",
   gardeners: ["0xGardener1", "0xGardener2"],
-  operators: ["0xOperator1"],
+  stewards: ["0xSteward1"],
   createdAt: Date.now(),
 };
 
@@ -115,13 +115,13 @@ describe("components/Navigation/TopNav", () => {
     vi.clearAllMocks();
   });
 
-  describe("Notification visibility based on operator status (BUG-012)", () => {
-    it("shows notification bell when user is an operator", () => {
+  describe("Notification visibility based on steward status (BUG-012)", () => {
+    it("shows notification bell when user is a steward", () => {
       renderWithIntl(
         createElement(TopNav, {
           garden: mockGarden as any,
           works: mockWorks as any,
-          isOperator: true,
+          isSteward: true,
         })
       );
 
@@ -130,12 +130,12 @@ describe("components/Navigation/TopNav", () => {
       expect(notificationButton).toBeInTheDocument();
     });
 
-    it("hides notification bell when user is NOT an operator", () => {
+    it("hides notification bell when user is NOT a steward", () => {
       renderWithIntl(
         createElement(TopNav, {
           garden: mockGarden as any,
           works: mockWorks as any,
-          isOperator: false,
+          isSteward: false,
         })
       );
 
@@ -143,20 +143,20 @@ describe("components/Navigation/TopNav", () => {
       expect(screen.queryByRole("button", { name: /view notifications/i })).not.toBeInTheDocument();
     });
 
-    it("hides notification bell when isOperator is not provided (defaults to false)", () => {
+    it("hides notification bell when isSteward is not provided (defaults to false)", () => {
       renderWithIntl(
         createElement(TopNav, {
           garden: mockGarden as any,
           works: mockWorks as any,
-          // isOperator not provided
+          // isSteward not provided
         })
       );
 
-      // Notification button should NOT be visible (default isOperator = false)
+      // Notification button should NOT be visible (default isSteward = false)
       expect(screen.queryByRole("button", { name: /view notifications/i })).not.toBeInTheDocument();
     });
 
-    it("hides notification center even with pending works when not an operator", () => {
+    it("hides notification center even with pending works when not a steward", () => {
       const worksWithPending = [
         ...mockWorks,
         {
@@ -177,15 +177,15 @@ describe("components/Navigation/TopNav", () => {
         createElement(TopNav, {
           garden: mockGarden as any,
           works: worksWithPending as any,
-          isOperator: false,
+          isSteward: false,
         })
       );
 
-      // Even with pending works, non-operators should not see notifications
+      // Even with pending works, non-stewards should not see notifications
       expect(screen.queryByRole("button", { name: /view notifications/i })).not.toBeInTheDocument();
     });
 
-    it("shows notification badge with pending count for operators", () => {
+    it("shows notification badge with pending count for stewards", () => {
       const worksWithPending = [
         { ...mockWorks[0], status: "pending" },
         { ...mockWorks[1], status: "pending" },
@@ -195,7 +195,7 @@ describe("components/Navigation/TopNav", () => {
         createElement(TopNav, {
           garden: mockGarden as any,
           works: worksWithPending as any,
-          isOperator: true,
+          isSteward: true,
         })
       );
 

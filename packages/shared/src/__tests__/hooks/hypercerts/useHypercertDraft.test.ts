@@ -99,8 +99,8 @@ import { createMockHypercertDraft, MOCK_ADDRESSES } from "../../test-utils/mock-
 
 describe("useHypercertDraft", () => {
   const gardenId = MOCK_ADDRESSES.garden;
-  const operatorAddress = MOCK_ADDRESSES.operator;
-  const expectedKey = `hypercert_draft_${gardenId}_${operatorAddress}`;
+  const stewardAddress = MOCK_ADDRESSES.steward;
+  const expectedKey = `hypercert_draft_${gardenId}_${stewardAddress}`;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -115,19 +115,19 @@ describe("useHypercertDraft", () => {
   // ============================================
 
   describe("draftKey", () => {
-    it("builds key from gardenId and operatorAddress", () => {
+    it("builds key from gardenId and stewardAddress", () => {
       const { result } = renderHook(() =>
-        useHypercertDraft(gardenId, operatorAddress, { autoLoad: false })
+        useHypercertDraft(gardenId, stewardAddress, { autoLoad: false })
       );
       expect(result.current.draftKey).toBe(expectedKey);
     });
 
     it("returns null when gardenId is missing", () => {
-      const { result } = renderHook(() => useHypercertDraft(undefined, operatorAddress));
+      const { result } = renderHook(() => useHypercertDraft(undefined, stewardAddress));
       expect(result.current.draftKey).toBeNull();
     });
 
-    it("returns null when operatorAddress is missing", () => {
+    it("returns null when stewardAddress is missing", () => {
       const { result } = renderHook(() => useHypercertDraft(gardenId, undefined));
       expect(result.current.draftKey).toBeNull();
     });
@@ -143,7 +143,7 @@ describe("useHypercertDraft", () => {
       mockIdbGet.mockResolvedValue(draft);
 
       const { result } = renderHook(() =>
-        useHypercertDraft(gardenId, operatorAddress, { autoLoad: false })
+        useHypercertDraft(gardenId, stewardAddress, { autoLoad: false })
       );
 
       let peeked: unknown;
@@ -161,7 +161,7 @@ describe("useHypercertDraft", () => {
       mockIdbGet.mockResolvedValue(undefined);
 
       const { result } = renderHook(() =>
-        useHypercertDraft(gardenId, operatorAddress, { autoLoad: false })
+        useHypercertDraft(gardenId, stewardAddress, { autoLoad: false })
       );
 
       let peeked: unknown;
@@ -176,7 +176,7 @@ describe("useHypercertDraft", () => {
       mockIdbGet.mockRejectedValue(new Error("IDB read failed"));
 
       const { result } = renderHook(() =>
-        useHypercertDraft(gardenId, operatorAddress, { autoLoad: false })
+        useHypercertDraft(gardenId, stewardAddress, { autoLoad: false })
       );
 
       let peeked: unknown;
@@ -189,7 +189,7 @@ describe("useHypercertDraft", () => {
 
     it("returns null when disabled", async () => {
       const { result } = renderHook(() =>
-        useHypercertDraft(gardenId, operatorAddress, { enabled: false, autoLoad: false })
+        useHypercertDraft(gardenId, stewardAddress, { enabled: false, autoLoad: false })
       );
 
       let peeked: unknown;
@@ -212,7 +212,7 @@ describe("useHypercertDraft", () => {
       mockIdbGet.mockResolvedValue(draft);
 
       const { result } = renderHook(() =>
-        useHypercertDraft(gardenId, operatorAddress, { autoLoad: false })
+        useHypercertDraft(gardenId, stewardAddress, { autoLoad: false })
       );
 
       await act(async () => {
@@ -228,7 +228,7 @@ describe("useHypercertDraft", () => {
       mockIdbGet.mockResolvedValue(undefined);
 
       const { result } = renderHook(() =>
-        useHypercertDraft(gardenId, operatorAddress, { autoLoad: false })
+        useHypercertDraft(gardenId, stewardAddress, { autoLoad: false })
       );
 
       let loaded: unknown;
@@ -244,7 +244,7 @@ describe("useHypercertDraft", () => {
       mockIdbGet.mockRejectedValue(new Error("Quota exceeded"));
 
       const { result } = renderHook(() =>
-        useHypercertDraft(gardenId, operatorAddress, { autoLoad: false })
+        useHypercertDraft(gardenId, stewardAddress, { autoLoad: false })
       );
 
       let loaded: unknown;
@@ -269,7 +269,7 @@ describe("useHypercertDraft", () => {
       mockToDraft.mockReturnValue(draft);
 
       const { result } = renderHook(() =>
-        useHypercertDraft(gardenId, operatorAddress, { autoLoad: false })
+        useHypercertDraft(gardenId, stewardAddress, { autoLoad: false })
       );
 
       await act(async () => {
@@ -293,7 +293,7 @@ describe("useHypercertDraft", () => {
       mockToDraft.mockReturnValue(emptyDraft);
 
       const { result } = renderHook(() =>
-        useHypercertDraft(gardenId, operatorAddress, { autoLoad: false })
+        useHypercertDraft(gardenId, stewardAddress, { autoLoad: false })
       );
 
       let saved: unknown;
@@ -307,7 +307,7 @@ describe("useHypercertDraft", () => {
 
     it("returns null when disabled", async () => {
       const { result } = renderHook(() =>
-        useHypercertDraft(gardenId, operatorAddress, { enabled: false, autoLoad: false })
+        useHypercertDraft(gardenId, stewardAddress, { enabled: false, autoLoad: false })
       );
 
       let saved: unknown;
@@ -324,7 +324,7 @@ describe("useHypercertDraft", () => {
       mockIdbSet.mockRejectedValue(new Error("Write failed"));
 
       const { result } = renderHook(() =>
-        useHypercertDraft(gardenId, operatorAddress, { autoLoad: false })
+        useHypercertDraft(gardenId, stewardAddress, { autoLoad: false })
       );
 
       let saved: unknown;
@@ -343,7 +343,7 @@ describe("useHypercertDraft", () => {
   describe("clearDraft", () => {
     it("deletes from IDB and resets store", async () => {
       const { result } = renderHook(() =>
-        useHypercertDraft(gardenId, operatorAddress, { autoLoad: false })
+        useHypercertDraft(gardenId, stewardAddress, { autoLoad: false })
       );
 
       await act(async () => {
@@ -359,7 +359,7 @@ describe("useHypercertDraft", () => {
       mockIdbDel.mockRejectedValue(new Error("Delete failed"));
 
       const { result } = renderHook(() =>
-        useHypercertDraft(gardenId, operatorAddress, { autoLoad: false })
+        useHypercertDraft(gardenId, stewardAddress, { autoLoad: false })
       );
 
       // Should not throw
@@ -370,7 +370,7 @@ describe("useHypercertDraft", () => {
 
     it("no-ops when draftKey is null", async () => {
       const { result } = renderHook(() =>
-        useHypercertDraft(undefined, operatorAddress, { autoLoad: false })
+        useHypercertDraft(undefined, stewardAddress, { autoLoad: false })
       );
 
       await act(async () => {
@@ -390,7 +390,7 @@ describe("useHypercertDraft", () => {
       const draft = createMockHypercertDraft();
       mockIdbGet.mockResolvedValue(draft);
 
-      renderHook(() => useHypercertDraft(gardenId, operatorAddress));
+      renderHook(() => useHypercertDraft(gardenId, stewardAddress));
 
       await waitFor(() => {
         expect(mockIdbGet).toHaveBeenCalledWith(expectedKey);
@@ -398,14 +398,14 @@ describe("useHypercertDraft", () => {
     });
 
     it("skips auto-load when autoLoad=false", () => {
-      renderHook(() => useHypercertDraft(gardenId, operatorAddress, { autoLoad: false }));
+      renderHook(() => useHypercertDraft(gardenId, stewardAddress, { autoLoad: false }));
 
       // idbGet should not be called for auto-load (only on explicit calls)
       expect(mockIdbGet).not.toHaveBeenCalled();
     });
 
     it("skips auto-load when enabled=false", () => {
-      renderHook(() => useHypercertDraft(gardenId, operatorAddress, { enabled: false }));
+      renderHook(() => useHypercertDraft(gardenId, stewardAddress, { enabled: false }));
 
       expect(mockIdbGet).not.toHaveBeenCalled();
     });
@@ -442,7 +442,7 @@ describe("useHypercertDraft", () => {
       mockToDraft.mockReturnValue(draft);
 
       const { result } = renderHook(() =>
-        useHypercertDraft(gardenId, operatorAddress, { autoLoad: false })
+        useHypercertDraft(gardenId, stewardAddress, { autoLoad: false })
       );
 
       await act(async () => {

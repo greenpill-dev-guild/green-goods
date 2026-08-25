@@ -8,13 +8,14 @@ import { isSameAccount } from "./selectors";
 import type { CommitmentReadModel } from "./types";
 
 /**
- * The garden roles that make someone a pool steward: the operator or owner
+ * The garden roles that make someone a pool steward: the steward or owner
  * Hat of the pool's garden (`ICommitmentPoolingModule.sol` "pool steward
- * (garden operator/owner via hatsModule)"). Module ownership is a separate
- * fallback the contract grants; it is not a role this predicate sees.
+ * (garden steward/owner via hatsModule)" — `steward` is that contract's
+ * wire name for the steward Hat). Module ownership is a separate fallback
+ * the contract grants; it is not a role this predicate sees.
  */
 export function isPoolSteward(roles: readonly string[]): boolean {
-  return roles.includes("operator") || roles.includes("owner");
+  return roles.includes("steward") || roles.includes("owner");
 }
 
 /** The four states `expireCommitment` accepts (TerminalLib.sol:62-69). */

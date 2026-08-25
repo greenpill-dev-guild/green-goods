@@ -8,7 +8,7 @@
  *
  * There is no visibility flag on `Garden` in the contract or the indexer, so
  * the list is curated here. Entries are keyed by garden address, never by
- * name: names are operator-editable, and a name-matching shortcut has already
+ * name: names are steward-editable, and a name-matching shortcut has already
  * caused one bug in this codebase.
  *
  * Two tiers:

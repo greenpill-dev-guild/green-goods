@@ -56,7 +56,7 @@ vi.mock("@green-goods/shared/hooks/admin-ui/garden/useResolvedWorkDetail", () =>
       action,
       canReview: garden ? gardenPermissions.canReviewGarden(garden) : false,
       canApproveOrReject: garden
-        ? gardenPermissions.isOperatorOfGarden(garden) || gardenPermissions.isOwnerOfGarden(garden)
+        ? gardenPermissions.isStewardOfGarden(garden) || gardenPermissions.isOwnerOfGarden(garden)
         : false,
       isReviewed: work?.status === "approved" || work?.status === "rejected",
       metadata: work?.metadata ? JSON.parse(work.metadata) : null,
@@ -165,7 +165,7 @@ vi.mock("@/views/Garden/WorkDetail/ReviewForm", () => ({
     const matchedAction = actions.find((action: { slug?: string }) => action.slug === actionSlug);
     const isExpired =
       typeof matchedAction?.endTime === "number" && matchedAction.endTime < Date.now();
-    const isOperator = permissions?.isOperatorOfGarden?.() ?? false;
+    const isSteward = permissions?.isStewardOfGarden?.() ?? false;
     const isOwner = permissions?.isOwnerOfGarden?.() ?? false;
 
     if (isExpired) {
@@ -177,15 +177,15 @@ vi.mock("@/views/Garden/WorkDetail/ReviewForm", () => ({
       );
     }
 
-    if (canReview && !isOperator && !isOwner) {
+    if (canReview && !isSteward && !isOwner) {
       return React.createElement(
         React.Fragment,
         null,
-        React.createElement("div", null, "Owner or operator access required"),
+        React.createElement("div", null, "Owner or steward access required"),
         React.createElement(
           "div",
           null,
-          "Only garden owners or operators can approve or reject work"
+          "Only garden owners or stewards can approve or reject work"
         )
       );
     }
@@ -210,11 +210,11 @@ const messages = {
   "app.work.detail.notFoundDescription": "The requested work submission could not be found.",
   "app.work.detail.notFound": "Work not found",
   "app.work.detail.reviewTitle": "Review Work",
-  "app.work.detail.operatorReview": "Operator Review",
+  "app.work.detail.stewardReview": "Steward Review",
   "app.work.detail.noPermission": "You don't have permission to review work in this garden.",
-  "app.work.detail.reviewBlocked.operatorTitle": "Owner or operator access required",
-  "app.work.detail.reviewBlocked.operatorMessage":
-    "Only garden owners or operators can approve or reject work for this garden.",
+  "app.work.detail.reviewBlocked.stewardTitle": "Owner or steward access required",
+  "app.work.detail.reviewBlocked.stewardMessage":
+    "Only garden owners or stewards can approve or reject work for this garden.",
   "app.work.detail.reviewBlocked.expiredTitle": "Action expired",
   "app.work.detail.reviewBlocked.expiredMessage":
     "This action is no longer active, so new approval decisions are blocked.",
@@ -249,7 +249,7 @@ describe("WorkDetail view", () => {
         {
           id: "0xGarden",
           name: "Demo Garden",
-          operators: ["0xoperator"],
+          stewards: ["0xsteward"],
           works: [
             {
               id: "0xWork",
@@ -266,7 +266,7 @@ describe("WorkDetail view", () => {
         {
           id: "0xAltGarden",
           name: "Alt Garden",
-          operators: ["0xoperator"],
+          stewards: ["0xsteward"],
           works: [],
         },
       ],
@@ -302,7 +302,7 @@ describe("WorkDetail view", () => {
 
     mockUseGardenPermissions.mockReturnValue({
       canReviewGarden: () => true,
-      isOperatorOfGarden: () => true,
+      isStewardOfGarden: () => true,
       isOwnerOfGarden: () => false,
     });
   });
@@ -326,33 +326,33 @@ describe("WorkDetail view", () => {
     expect(screen.queryByTestId("work-review-panel")).not.toBeInTheDocument();
   });
 
-  it("blocks evaluators without operator access from submitting approvals", () => {
+  it("blocks evaluators without steward access from submitting approvals", () => {
     mockUseGardenPermissions.mockReturnValue({
       canReviewGarden: () => true,
-      isOperatorOfGarden: () => false,
+      isStewardOfGarden: () => false,
       isOwnerOfGarden: () => false,
     });
 
     renderWithIntl();
 
-    expect(screen.getByText("Owner or operator access required")).toBeInTheDocument();
+    expect(screen.getByText("Owner or steward access required")).toBeInTheDocument();
     expect(
-      screen.getByText(/only garden owners or operators can approve or reject work/i)
+      screen.getByText(/only garden owners or stewards can approve or reject work/i)
     ).toBeInTheDocument();
     expect(screen.queryByTestId("work-review-panel")).not.toBeInTheDocument();
   });
 
-  it("allows garden owners to review even when they are not listed as operators", () => {
+  it("allows garden owners to review even when they are not listed as stewards", () => {
     mockUseGardenPermissions.mockReturnValue({
       canReviewGarden: () => true,
-      isOperatorOfGarden: () => false,
+      isStewardOfGarden: () => false,
       isOwnerOfGarden: () => true,
     });
 
     renderWithIntl();
 
     expect(screen.getByTestId("work-review-panel")).toBeInTheDocument();
-    expect(screen.queryByText("Owner or operator access required")).not.toBeInTheDocument();
+    expect(screen.queryByText("Owner or steward access required")).not.toBeInTheDocument();
   });
 
   it("recovers the matched garden when the selected garden does not own the work", () => {
@@ -366,13 +366,13 @@ describe("WorkDetail view", () => {
         {
           id: "0xGarden",
           name: "Demo Garden",
-          operators: ["0xoperator"],
+          stewards: ["0xsteward"],
           works: [],
         },
         {
           id: "0xAltGarden",
           name: "Alt Garden",
-          operators: ["0xoperator"],
+          stewards: ["0xsteward"],
           works: [
             {
               id: "0xWork",

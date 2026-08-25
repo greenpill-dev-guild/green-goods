@@ -34,7 +34,7 @@ export interface FlatRecipientMember extends RecipientMember {
 
 const ROLE_ARRAY_KEYS: ReadonlyArray<{ role: GardenRole; key: keyof Garden }> = [
   { role: "owner", key: "owners" },
-  { role: "operator", key: "operators" },
+  { role: "steward", key: "stewards" },
   { role: "evaluator", key: "evaluators" },
   { role: "gardener", key: "gardeners" },
   { role: "funder", key: "funders" },

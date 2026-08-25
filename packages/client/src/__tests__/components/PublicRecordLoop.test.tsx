@@ -36,7 +36,7 @@ const messages: Record<string, string> = {
     "Evaluators create Assessments that connect approved Work to evidence and impact across the Eight Forms of Capital.",
   "public.home.loop.work": "Do the work.",
   "public.home.loop.workBody":
-    "Gardeners submit Work from the field as a signed record with media, details, and metadata. Operators record approval or rejection separately.",
+    "Gardeners submit Work from the field as a signed record with media, details, and metadata. Stewards record approval or rejection separately.",
   "public.home.loop.fieldGuideKicker": "Curious how the work gets planned?",
   "public.home.loop.fieldGuide": "Browse the field guide of regenerative Actions",
 };

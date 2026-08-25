@@ -13,7 +13,9 @@ interface IHatsModule {
     enum GardenRole {
         Gardener,
         Evaluator,
-        Operator,
+        // Position 2 is pinned — callers pass the index, never the name. The name
+        // is compile-time only: GardenRole never appears in the ABI.
+        Steward,
         Owner,
         Funder,
         Community

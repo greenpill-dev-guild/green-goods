@@ -93,7 +93,7 @@ const mocks = vi.hoisted(() => ({
     id: string;
     name: string;
     gardeners: Address[];
-    operators: Address[];
+    stewards: Address[];
   }>,
   managedGardens: new Set<string>(),
   claimRequests: [] as CommitmentClaimRequestRecord[],
@@ -182,19 +182,19 @@ beforeEach(() => {
   mocks.works = [work(), work({ id: "0xbbbb", status: "rejected" })];
   mocks.linked = new Set();
   mocks.pool = poolFixture({ poolType: "PROTOCOL" });
-  mocks.roleAnswers = new Map([[`${DEMO_GARDEN.toLowerCase()}:operator`, true]]);
+  mocks.roleAnswers = new Map([[`${DEMO_GARDEN.toLowerCase()}:steward`, true]]);
   mocks.gardens = [
     {
       id: DEMO_GARDEN,
       name: "Host Garden",
       gardeners: [TUNDE],
-      operators: [],
+      stewards: [],
     },
     {
       id: MARIA,
       name: "Provider Garden",
       gardeners: [TUNDE],
-      operators: [],
+      stewards: [],
     },
   ];
   mocks.managedGardens = new Set();

@@ -33,8 +33,8 @@ How capital enters the Green Goods system. Two parallel mechanisms — the **pri
 
 ## Personas
 
-- **D: Funder (Capital Provider)** — primary subject. Either a public supporter (Public Fund page) or an operator-funder hybrid using the admin dashboard.
-- **B: Operator** — administers vault parameters, cookie jar policies, yield split config; does not deposit on behalf of funders.
+- **D: Funder (Capital Provider)** — primary subject. Either a public supporter (Public Fund page) or a steward-funder hybrid using the admin dashboard.
+- **B: Steward** — administers vault parameters, cookie jar policies, yield split config; does not deposit on behalf of funders.
 
 ## State machine
 
@@ -73,9 +73,9 @@ stateDiagram-v2
 | Entry | Surface | Trigger |
 | --- | --- | --- |
 | Public PWA | `packages/client/src/views/Public/Fund.tsx` | Anyone visiting `/fund` (no login required to browse; AppKit modal on deposit click) |
-| Admin Garden / Vault | `packages/admin/src/views/Garden/Vault.tsx` | Operator-funder picks a garden, opens Vault tab |
-| Admin Hub / Cookie Jar | `packages/admin/src/views/Hub/components/CookieJarDepositModal.tsx`, `CookieJarManageModal.tsx`, `CookieJarPayoutPanel.tsx` | Operator opens cookie jar modals from Hub workspace |
-| Admin Garden / Strategies | `packages/admin/src/views/Garden/Strategies.tsx`, `SignalPool.tsx` | Operator configures yield split + conviction strategy |
+| Admin Garden / Vault | `packages/admin/src/views/Garden/Vault.tsx` | Steward-funder picks a garden, opens Vault tab |
+| Admin Hub / Cookie Jar | `packages/admin/src/views/Hub/components/CookieJarDepositModal.tsx`, `CookieJarManageModal.tsx`, `CookieJarPayoutPanel.tsx` | Steward opens cookie jar modals from Hub workspace |
+| Admin Garden / Strategies | `packages/admin/src/views/Garden/Strategies.tsx`, `SignalPool.tsx` | Steward configures yield split + conviction strategy |
 
 ## Steps
 
@@ -111,7 +111,7 @@ stateDiagram-v2
 
 | # | State | Persona | Surface (package + view) | Hook / Service | Side effects | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| 14 | Operator lists hypercert for yield | B | (no dedicated view yet — workflow lives in shared hook) | `useCreateListing`, `useBatchListForYield`, `useMarketplaceApprovals` | Marketplace approval + listing tx | shipped |
+| 14 | Steward lists hypercert for yield | B | (no dedicated view yet — workflow lives in shared hook) | `useCreateListing`, `useBatchListForYield`, `useMarketplaceApprovals` | Marketplace approval + listing tx | shipped |
 | 15 | Octant Vault auto-buys | D / system | n/a | aspirational | Spec § 3.3 calls for Octant Vault to use yield to purchase listed hypercerts; **automation not in codebase** | aspirational |
 | 16 | Karma GAP report | D | partial — `Garden.gapProjectUID` field on indexer | manual linkage | Spec § 3.1 calls for "automated Karma GAP report showing yield utilization" — automated reporting not built | partial |
 

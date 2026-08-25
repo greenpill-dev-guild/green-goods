@@ -30,7 +30,7 @@ graph TB
         CL["Client PWA\ngreengoods.app"]
         AD["Admin Dashboard\nadmin.greengoods.app"]
         IX["Envio Indexer\nGraphQL API"]
-        AG["Agent Bot\noperator-configured"]
+        AG["Agent Bot\nsteward-configured"]
         DC["Docs\ndocs.greengoods.app"]
     end
 
@@ -55,7 +55,7 @@ Overview of deployed Green Goods services, chain artifacts, and activation bound
 | Admin Dashboard | Production | `admin.greengoods.app` |
 | Documentation | Production | `docs.greengoods.app` |
 | Envio Indexer | Production | Hosted by Envio (GraphQL endpoint in `.env`) |
-| Agent Bot | Operator-configured | Telegram bot runtime; package README includes deployment examples and a Fly.io hostname, but no checked-in Fly config or deployment manifest verifies an active production endpoint |
+| Agent Bot | Steward-configured | Telegram bot runtime; package README includes deployment examples and a Fly.io hostname, but no checked-in Fly config or deployment manifest verifies an active production endpoint |
 
 ## Chain Deployments
 

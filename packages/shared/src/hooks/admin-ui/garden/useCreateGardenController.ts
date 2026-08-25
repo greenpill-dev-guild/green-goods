@@ -39,7 +39,7 @@ export function useCreateGardenController() {
   const hasError = state.value === "error";
   const isSuccess = state.value === "success";
   const txError = useTxErrorMessages(state.context.error);
-  const plannedMemberCount = form.gardeners.length + form.operators.length;
+  const plannedMemberCount = form.gardeners.length + form.stewards.length;
   const initializedRef = useRef(false);
 
   useEffect(() => {
@@ -62,7 +62,7 @@ export function useCreateGardenController() {
         storeForm.metadata.trim().length > 0 ||
         storeForm.openJoining ||
         storeForm.gardeners.length > 0 ||
-        storeForm.operators.length > 0;
+        storeForm.stewards.length > 0;
 
       if (hasSessionProgress) {
         const isOnReviewStep = storeState.currentStep === storeState.steps.length - 1;

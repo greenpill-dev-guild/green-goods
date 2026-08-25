@@ -37,7 +37,7 @@
 
   /* Role accents mirror shared Warm Earth semantic colors at docs volume only. */
   --docs-role-gardener: #1a7544;
-  --docs-role-operator: #335cff;
+  --docs-role-steward: #335cff;
   --docs-role-assessment: #7d52f4;
   --docs-role-funder: #e6a819;
   --docs-role-builder: #0f766e;
@@ -66,7 +66,7 @@
   --docs-accent-community: #2ebb6b;
   --docs-accent-builders: #2dd4bf;
   --docs-role-gardener: #2ebb6b;
-  --docs-role-operator: #6895ff;
+  --docs-role-steward: #6895ff;
   --docs-role-assessment: #8c71f6;
   --docs-role-funder: #ffd268;
   --docs-role-builder: #2dd4bf;

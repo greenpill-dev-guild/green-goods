@@ -32,12 +32,12 @@ import {EAS_EXPLORER_ENDPOINTS} from "@site/src/data/endpoints";
 
 ## Overview
 
-Attestation chain verification is the core evaluator skill. Every approved piece of work in Green Goods creates a linked pair of attestations: a work submission attestation and an approval attestation that references it. Verifying this chain confirms that impact claims are backed by real, operator-validated evidence.
+Attestation chain verification is the core evaluator skill. Every approved piece of work in Green Goods creates a linked pair of attestations: a work submission attestation and an approval attestation that references it. Verifying this chain confirms that impact claims are backed by real, steward-validated evidence.
 
 ```mermaid
 graph LR
     Work["Work Attestation\nUID + media"] --> Match["Match UIDs\nwork → approval"]
-    Match --> Approval["Approval Attestation\noperator signature"]
+    Match --> Approval["Approval Attestation\nsteward signature"]
     Approval --> Verified["Chain verified\nimpact backed by evidence"]
 ```
 
@@ -56,7 +56,7 @@ graph LR
 
 - Work attestation exists and is not revoked
 - Approval attestation references that work via `refUID`
-- Attester role matches expected operator context
+- Attester role matches expected steward context
 - Timestamps are logically ordered (work created before approval)
 
 **Explorer URLs:**
@@ -69,7 +69,7 @@ graph LR
 
 - Spot-check a random sample of attestation chains rather than only checking the most recent ones
 - Watch for revoked attestations — a revoked work submission with an active approval indicates a data integrity issue
-- Verify attester addresses against known operator addresses for the garden in question
+- Verify attester addresses against known steward addresses for the garden in question
 - Log any broken chains (missing refUID links, schema mismatches) for follow-up investigation
 - When working across chains, always double-check you are querying the correct EAS endpoint — Arbitrum and Celo attestations are on different contracts
 

@@ -59,7 +59,7 @@ export function CommunityMembersTab({
       roleSummary.filter(
         (entry) =>
           entry.count === 0 &&
-          (entry.role === "owner" || entry.role === "operator" || entry.role === "evaluator")
+          (entry.role === "owner" || entry.role === "steward" || entry.role === "evaluator")
       ),
     [roleSummary]
   );
@@ -212,7 +212,7 @@ export function CommunityMembersTab({
                 const isCriticalEmpty =
                   entry.count === 0 &&
                   (entry.role === "owner" ||
-                    entry.role === "operator" ||
+                    entry.role === "steward" ||
                     entry.role === "evaluator");
                 return (
                   <Link

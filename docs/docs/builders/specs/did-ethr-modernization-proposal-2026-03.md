@@ -184,13 +184,13 @@ Ship public goods beyond prose:
 Green Goods should adopt DID upgrades in a conservative, privacy-preserving way:
 
 - Keep EAS attestations as the public impact proof substrate.
-- Use DID mostly for issuer/operator/verifier identity and capability delegation.
+- Use DID mostly for issuer/steward/verifier identity and capability delegation.
 - Avoid putting gardener real-world identifiers on-chain.
 - Support wallet-linked DIDs for portable reputation while preserving pseudonymity.
 
 Suggested phased integration:
 
-1. Add optional DID references for operator/verifier identities in off-chain metadata and reporting exports.
+1. Add optional DID references for steward/verifier identities in off-chain metadata and reporting exports.
 2. Add verifier mode that accepts `did:ethr`/`did:pkh` + SIWE/SIWx proofs.
 3. Add OpenCred-compatible verification workflow for VC/OID4VP inputs, while anchoring only minimal proofs on-chain.
 

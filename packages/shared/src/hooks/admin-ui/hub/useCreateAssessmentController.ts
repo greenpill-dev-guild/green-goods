@@ -292,7 +292,7 @@ export function useCreateAssessmentController() {
   const hasError = state.matches("error");
   const isSuccess = state.matches("success");
   // The pure projection makes the close contract explicit and keeps the
-  // default placeholder outcome from counting as operator input.
+  // default placeholder outcome from counting as steward input.
   const { isDirty, isPristine } = useMemo(
     () => selectAssessmentDirtyState({ currentStep, form, isSubmitting, isSuccess }),
     [currentStep, form, isSubmitting, isSuccess]

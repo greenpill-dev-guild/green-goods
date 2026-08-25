@@ -415,7 +415,7 @@ describe("useSettlementOperationsCapabilities", () => {
     mocks.ownerRead = { data: OTHER, isLoading: false, error: null };
     mocks.dispatcherRead = { data: ACCOUNT.toUpperCase(), isLoading: false, error: null };
     mocks.roles.mockImplementation((garden: string) => ({
-      roles: garden === ACCOUNT ? ["operator"] : [],
+      roles: garden === ACCOUNT ? ["steward"] : [],
       isLoading: false,
       error: null,
     }));

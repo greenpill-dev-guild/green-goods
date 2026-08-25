@@ -125,7 +125,7 @@ describe("usePublicVolume", () => {
     mockGetGardenAssessments.mockResolvedValue([
       {
         id: "a-1",
-        authorAddress: MOCK_ADDRESSES.operator,
+        authorAddress: MOCK_ADDRESSES.steward,
         gardenAddress: inWindowGarden.id,
         title: "Q1",
         description: "",

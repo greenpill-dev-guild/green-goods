@@ -62,7 +62,7 @@ describe("GovernancePanel", () => {
     });
   });
 
-  it("renders registered proposals as a pool-scoped operator list", () => {
+  it("renders registered proposals as a pool-scoped steward list", () => {
     renderWithProviders(
       <MemoryRouter>
         <GovernancePanel

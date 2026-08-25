@@ -149,7 +149,7 @@ contract MockHatsModule is IHatsModule {
 
     function _setRole(address garden, address account, GardenRole role, bool value) internal {
         if (role == GardenRole.Owner) ownerOf[garden][account] = value;
-        else if (role == GardenRole.Operator) operatorOf[garden][account] = value;
+        else if (role == GardenRole.Steward) operatorOf[garden][account] = value;
         else if (role == GardenRole.Evaluator) evaluatorOf[garden][account] = value;
         else if (role == GardenRole.Gardener) gardenerOf[garden][account] = value;
         else if (role == GardenRole.Funder) funderOf[garden][account] = value;

@@ -10,7 +10,7 @@ export function setGardenFieldTransition<K extends keyof CreateGardenFormState>(
 
 export function addGardenMemberTransition(
   state: CreateGardenStore,
-  input: { role: "gardeners" | "operators"; address: Address }
+  input: { role: "gardeners" | "stewards"; address: Address }
 ): Partial<CreateGardenStore> {
   return {
     form: {
@@ -22,7 +22,7 @@ export function addGardenMemberTransition(
 
 export function removeGardenMemberTransition(
   state: CreateGardenStore,
-  input: { role: "gardeners" | "operators"; index: number }
+  input: { role: "gardeners" | "stewards"; index: number }
 ): Partial<CreateGardenStore> {
   return {
     form: {

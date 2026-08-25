@@ -35,7 +35,7 @@ export function CommunityMembersDialogs({
   >(
     () => ({
       gardener: operations.addGardener,
-      operator: operations.addOperator,
+      steward: operations.addSteward,
       evaluator: operations.addEvaluator,
       owner: operations.addOwner,
       funder: operations.addFunder,
@@ -48,7 +48,7 @@ export function CommunityMembersDialogs({
   >(
     () => ({
       gardener: operations.removeGardener,
-      operator: operations.removeOperator,
+      steward: operations.removeSteward,
       evaluator: operations.removeEvaluator,
       owner: operations.removeOwner,
       funder: operations.removeFunder,

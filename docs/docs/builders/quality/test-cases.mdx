@@ -40,7 +40,7 @@ flowchart LR
     IPFS --> |Encode| EAS[EAS Attestation]
     EAS --> |Validate| WR[WorkResolver]
     WR --> |Store| Chain[On-Chain]
-    Chain --> |Review| Op[Operator]
+    Chain --> |Review| Op[Steward]
     Op --> |Approve| WAR[WorkApproval Resolver]
     WAR --> |Attest| Done[Verified]
 ```
@@ -84,8 +84,8 @@ The core user journey that must never break:
 4. Work attestation is encoded and submitted to EAS
 5. WorkResolver validates: gardener role, action validity, data format
 6. Attestation is stored on-chain
-7. Operator reviews and submits WorkApproval attestation
-8. WorkApprovalResolver validates: operator role, work reference, confidence/method
+7. Steward reviews and submits WorkApproval attestation
+8. WorkApprovalResolver validates: steward role, work reference, confidence/method
 
 ### Offline Sync
 
@@ -101,7 +101,7 @@ The core user journey that must never break:
 - **Wallet connect**: MetaMask, WalletConnect, Coinbase Wallet
 - **Passkey registration**: WebAuthn credential creation, smart account deployment
 - **Session management**: auth state machine transitions (disconnected, connecting, connected, authenticated)
-- **Role verification**: hat-based role checks for gardener, operator, evaluator actions
+- **Role verification**: hat-based role checks for gardener, steward, evaluator actions
 
 ### Garden Management
 

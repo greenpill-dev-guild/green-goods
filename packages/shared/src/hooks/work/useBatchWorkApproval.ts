@@ -1,7 +1,7 @@
 /**
  * Batch Work Approval Hook
  *
- * Enables operators to approve/reject multiple works in a single transaction
+ * Enables stewards to approve/reject multiple works in a single transaction
  * using EAS multiAttest. This dramatically improves UX by:
  * - Single wallet confirmation instead of N confirmations
  * - Single gas payment

@@ -32,7 +32,7 @@ contract ArbitrumRoleRevocationForkTest is ForkTestBase {
         testGarden = _mintTestGarden("Revocation Test Garden", 0x0F);
 
         // Grant roles to test actors
-        _grantGardenRole(testGarden, forkOperator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(testGarden, forkOperator, IHatsModule.GardenRole.Steward);
         _grantGardenRole(testGarden, forkGardener, IHatsModule.GardenRole.Gardener);
         _grantGardenRole(testGarden, forkEvaluator, IHatsModule.GardenRole.Evaluator);
     }
@@ -195,7 +195,7 @@ contract ArbitrumRoleRevocationForkTest is ForkTestBase {
         assertTrue(IHats(HATS_PROTOCOL).isWearerOfHat(forkOperator, gardenerHatId), "should wear gardener hat");
 
         // Revoke ONLY the operator hat
-        _revokeGardenRole(testGarden, forkOperator, IHatsModule.GardenRole.Operator);
+        _revokeGardenRole(testGarden, forkOperator, IHatsModule.GardenRole.Steward);
 
         // Operator hat removed, but Evaluator and Gardener survive (no cascade on revoke)
         assertFalse(IHats(HATS_PROTOCOL).isWearerOfHat(forkOperator, operatorHatId), "operator hat should be removed");

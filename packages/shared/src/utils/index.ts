@@ -254,7 +254,7 @@ export type {
   CampaignCookieJarPayoutAssetId,
 } from "./cookie-jar-campaign";
 export {
-  aggregateCampaignCookieJarOperators,
+  aggregateCampaignCookieJarStewards,
   buildCampaignCookieJarCampaigns,
   buildCampaignCookieJarMetadata,
   CAMPAIGN_COOKIE_JAR_METADATA_KIND,

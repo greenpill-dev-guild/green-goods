@@ -12,7 +12,8 @@ export interface ServiceStatus {
   admin: boolean;
 }
 
-export type AdminMockRole = "deployer" | "operator" | "user" | "disconnected";
+/** `operator` is the steward role's former name; DevAuthProvider still resolves it. */
+export type AdminMockRole = "deployer" | "steward" | "operator" | "user" | "disconnected";
 
 // ============================================================================
 // CONSTANTS
@@ -539,7 +540,7 @@ export class AdminTestHelper {
     this.context = context;
   }
 
-  buildMockAuthPath(path: string, role: AdminMockRole = "operator") {
+  buildMockAuthPath(path: string, role: AdminMockRole = "steward") {
     const url = new URL(path, TEST_URLS.admin);
     url.searchParams.set("mockAuth", role);
     return `${url.pathname}${url.search}`;
@@ -551,7 +552,7 @@ export class AdminTestHelper {
    * This mirrors the app's `AuthGate` / `DevAuthProvider` path and survives
    * route changes and reloads during a browser session.
    */
-  async enableMockAuth(role: AdminMockRole = "operator") {
+  async enableMockAuth(role: AdminMockRole = "steward") {
     const initScript = ({ role, storageKey }: { role: AdminMockRole; storageKey: string }) => {
       window.sessionStorage.setItem(storageKey, role);
     };
@@ -681,7 +682,7 @@ export class AdminTestHelper {
     await this.page.waitForLoadState("domcontentloaded");
   }
 
-  async goToCockpit(path: string = "/hub", role: AdminMockRole = "operator") {
+  async goToCockpit(path: string = "/hub", role: AdminMockRole = "steward") {
     await this.page.goto(this.buildMockAuthPath(path, role));
     await this.page.waitForLoadState("domcontentloaded");
   }

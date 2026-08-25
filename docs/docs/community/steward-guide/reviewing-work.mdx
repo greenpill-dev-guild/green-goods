@@ -1,19 +1,19 @@
 ---
 title: Review and Approve Work
 sidebar_label: Review and Approve Work
-slug: /community/operator-guide/reviewing-work
+slug: /community/steward-guide/reviewing-work
 description: "Review gardener submissions, approve good evidence, or reject with useful feedback."
-audience: operator
+audience: steward
 owner: docs
 last_verified: 2026-05-01
 feature_status: Live
 image: /img/social/approving-work.webp
-goal: "Walk an operator through approving or rejecting a gardener's submission, with the exact on-screen steps."
+goal: "Walk a steward through approving or rejecting a gardener's submission, with the exact on-screen steps."
 difficulty: "standard"
 estimated_time: "2-10 minutes per submission."
-prereqs: "Garden owner/operator authority, pending work in the queue, and a signer on Arbitrum."
+prereqs: "Garden owner/steward authority, pending work in the queue, and a signer on Arbitrum."
 next_steps: "./creating-impact-certificates"
-persona_context: "Operators clearing the work queue and giving gardeners timely feedback."
+persona_context: "Stewards clearing the work queue and giving gardeners timely feedback."
 source_of_truth:
   - packages/client/src/views/Home/Garden/Work.tsx
   - packages/admin/src/views/Garden/WorkDetail/index.tsx
@@ -28,19 +28,19 @@ keywords:
   - attestation
 ---
 
-import {GuideOpener, NextBestAction, OperatorPathNav, StatusBadge} from "@site/src/components/docs";
+import {GuideOpener, NextBestAction, StewardPathNav, StatusBadge} from "@site/src/components/docs";
 
 # Review and Approve Work
 
 <StatusBadge status="Live" />
 
-<OperatorPathNav />
+<StewardPathNav />
 
 <GuideOpener
   image="/img/social/approving-work.webp"
-  alt="An operator comparing field evidence with notes before approving work"
-  label="Operator chapter"
-  roleAccent="operator"
+  alt="A steward comparing field evidence with notes before approving work"
+  label="Steward chapter"
+  roleAccent="steward"
 >
   Review the evidence, choose approve or reject, then sign.
 </GuideOpener>
@@ -49,13 +49,13 @@ import {GuideOpener, NextBestAction, OperatorPathNav, StatusBadge} from "@site/s
 
 Clear pending gardener submissions: review the action, evidence, and details, then approve good work or reject work that needs correction.
 
-Owners and operators can approve or reject work. Evaluators can make assessments, but they cannot approve work unless they are also an owner or operator.
+Owners and stewards can approve or reject work. Evaluators can make assessments, but they cannot approve work unless they are also an owner or steward.
 
 You can review from the mobile app/PWA or from admin. Use the app when you are already in the garden. Use admin when you are working through a queue.
 
 ## Before you start
 
-- You are signed in as a garden **owner** or **operator**.
+- You are signed in as a garden **owner** or **steward**.
 - There is at least one **pending** submission in the work queue.
 - You are online and ready to sign the decision.
 - If you use an external wallet, keep a little Arbitrum gas available.
@@ -125,7 +125,7 @@ Specific rejection feedback saves time. "Photo is too dark to verify tree count;
 
 ## If something goes wrong
 
-- **No Approve/Reject buttons.** You are not an owner/operator for this garden. Ask the garden owner to add the right role.
+- **No Approve/Reject buttons.** You are not an owner/steward for this garden. Ask the garden owner to add the right role.
 - **Selected garden error.** Reload and open the submission from the queue again.
 - **Transaction cancelled.** Nothing was recorded. Retry when ready.
 - **Transaction failed.** Check the wallet message, make sure you are on Arbitrum, confirm the same signer is connected, and retry when the wallet has enough gas.

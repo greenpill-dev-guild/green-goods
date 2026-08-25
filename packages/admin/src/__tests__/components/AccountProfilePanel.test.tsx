@@ -57,7 +57,7 @@ function createController(
     eligibleGardens: [gardenOne, gardenTwo],
     eoaAddress: "0x9999999999999999999999999999999999999999" as Address,
     headline: "0x9999...9999",
-    roleLabel: "operator",
+    roleLabel: "steward",
     selectedGardenChoiceId: gardenOne.id,
     selectGarden: vi.fn(),
     signOut: vi.fn(),

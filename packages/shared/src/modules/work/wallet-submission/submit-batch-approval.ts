@@ -59,8 +59,8 @@ export async function submitBatchApprovalsDirectly(
     throw new Error("Wallet not connected. Please connect your wallet and try again.");
   }
 
-  const operatorAddress = walletClient.account?.address;
-  if (!operatorAddress) {
+  const stewardAddress = walletClient.account?.address;
+  if (!stewardAddress) {
     throw new Error("Wallet account address not available");
   }
 
@@ -71,7 +71,7 @@ export async function submitBatchApprovalsDirectly(
         draft: approval.draft,
         gardenAddress: approval.gardenAddress,
         chainId,
-        accountAddress: operatorAddress as `0x${string}`,
+        accountAddress: stewardAddress as `0x${string}`,
       });
     }
 
@@ -113,7 +113,7 @@ export async function submitBatchApprovalsDirectly(
 
     const optimisticApprovals = approvals.map(({ draft, gardenerAddress }) => ({
       id: `optimistic-batch-${hash}-${draft.workUID}`,
-      operatorAddress,
+      stewardAddress,
       gardenerAddress,
       actionUID: draft.actionUID,
       workUID: draft.workUID,

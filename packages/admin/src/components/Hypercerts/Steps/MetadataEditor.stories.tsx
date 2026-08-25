@@ -12,7 +12,7 @@ import { MetadataEditor } from "./MetadataEditor";
 const EMPTY_DRAFT: HypercertDraft = {
   id: "draft-1",
   gardenId: "0x1234567890123456789012345678901234567890",
-  operatorAddress: "0x1111111111111111111111111111111111111111" as Address,
+  stewardAddress: "0x1111111111111111111111111111111111111111" as Address,
   stepNumber: 2,
   attestationIds: [],
   title: "",

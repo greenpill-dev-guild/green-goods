@@ -28,7 +28,7 @@ export function isUserAddress(
 
 /**
  * @example
- * isAddressInList(userAddress, garden.operators) // true/false
+ * isAddressInList(userAddress, garden.stewards) // true/false
  */
 export function isAddressInList(
   address: string | undefined | null,

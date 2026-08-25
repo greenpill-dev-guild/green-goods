@@ -108,7 +108,7 @@ export function useWorkSubmissionPresentationModel({
       location: "",
       bannerImage: "",
       gardeners: [],
-      operators: [],
+      stewards: [],
       evaluators: [],
       owners: [],
       funders: [],

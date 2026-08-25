@@ -11,7 +11,7 @@ import {
 } from "@green-goods/shared/utils/blockchain/abis/erc20";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import {
-  aggregateCampaignCookieJarOperators,
+  aggregateCampaignCookieJarStewards,
   type CampaignCookieJarPayoutAssetId,
   getCampaignCookieJarPayoutAssets,
   getDefaultCampaignCookieJarPayoutAsset,
@@ -150,7 +150,7 @@ export function CampaignCookieJarCreateWorkspace({
   const metadataUrlsValid = isValidCampaignCookieJarMetadataUrl(campaignImage);
   const aggregation = useMemo(
     () =>
-      aggregateCampaignCookieJarOperators({
+      aggregateCampaignCookieJarStewards({
         gardens: gardensForAggregation(gardens),
         selectedGardenIds,
         extraAddressesInput: extraAddresses,

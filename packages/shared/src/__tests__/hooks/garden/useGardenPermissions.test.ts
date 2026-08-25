@@ -2,7 +2,7 @@
  * useGardenPermissions Tests
  *
  * Tests role-based permission checks: canManageGarden, canReviewGarden,
- * isOperatorOfGarden, isOwnerOfGarden, isEvaluatorOfGarden, canAddMembers,
+ * isStewardOfGarden, isOwnerOfGarden, isEvaluatorOfGarden, canAddMembers,
  * canRemoveMembers, and canViewGarden.
  *
  * Uses dual auth (wagmi address + passkey smart account) with address normalization.
@@ -51,7 +51,7 @@ function createGarden(overrides: Partial<Garden> = {}): Garden {
     bannerImage: "",
     createdAt: Date.now(),
     gardeners: [],
-    operators: [],
+    stewards: [],
     owners: [],
     evaluators: [],
     funders: [],
@@ -76,11 +76,11 @@ describe("useGardenPermissions", () => {
   // ------------------------------------------
 
   describe("wallet mode", () => {
-    it("isOperatorOfGarden returns true when user is operator", () => {
-      const garden = createGarden({ operators: [USER_ADDRESS] as any[] });
+    it("isStewardOfGarden returns true when user is steward", () => {
+      const garden = createGarden({ stewards: [USER_ADDRESS] as any[] });
       const { result } = renderHook(() => useGardenPermissions());
 
-      expect(result.current.isOperatorOfGarden(garden)).toBe(true);
+      expect(result.current.isStewardOfGarden(garden)).toBe(true);
     });
 
     it("isOwnerOfGarden returns true when user is owner", () => {
@@ -97,11 +97,11 @@ describe("useGardenPermissions", () => {
       expect(result.current.isEvaluatorOfGarden(garden)).toBe(true);
     });
 
-    it("isOperatorOfGarden returns false when user is not operator", () => {
-      const garden = createGarden({ operators: [OTHER_ADDRESS] as any[] });
+    it("isStewardOfGarden returns false when user is not steward", () => {
+      const garden = createGarden({ stewards: [OTHER_ADDRESS] as any[] });
       const { result } = renderHook(() => useGardenPermissions());
 
-      expect(result.current.isOperatorOfGarden(garden)).toBe(false);
+      expect(result.current.isStewardOfGarden(garden)).toBe(false);
     });
   });
 
@@ -113,25 +113,25 @@ describe("useGardenPermissions", () => {
     it("uses smart account address for passkey users", () => {
       mockPrimaryAddress.mockReturnValue(SMART_ACCOUNT);
 
-      const garden = createGarden({ operators: [SMART_ACCOUNT] as any[] });
+      const garden = createGarden({ stewards: [SMART_ACCOUNT] as any[] });
       const { result } = renderHook(() => useGardenPermissions());
 
-      expect(result.current.isOperatorOfGarden(garden)).toBe(true);
+      expect(result.current.isStewardOfGarden(garden)).toBe(true);
     });
 
     it("uses primary address from usePrimaryAddress (single source of truth)", () => {
       // usePrimaryAddress resolves the correct address based on authMode
       mockPrimaryAddress.mockReturnValue(SMART_ACCOUNT);
 
-      const garden = createGarden({ operators: [SMART_ACCOUNT] as any[] });
+      const garden = createGarden({ stewards: [SMART_ACCOUNT] as any[] });
       const { result } = renderHook(() => useGardenPermissions());
 
-      expect(result.current.isOperatorOfGarden(garden)).toBe(true);
+      expect(result.current.isStewardOfGarden(garden)).toBe(true);
     });
   });
 
   // ------------------------------------------
-  // canManageGarden (owner OR operator)
+  // canManageGarden (owner OR steward)
   // ------------------------------------------
 
   describe("canManageGarden", () => {
@@ -142,8 +142,8 @@ describe("useGardenPermissions", () => {
       expect(result.current.canManageGarden(garden)).toBe(true);
     });
 
-    it("returns true for operators", () => {
-      const garden = createGarden({ operators: [USER_ADDRESS] as any[] });
+    it("returns true for stewards", () => {
+      const garden = createGarden({ stewards: [USER_ADDRESS] as any[] });
       const { result } = renderHook(() => useGardenPermissions());
 
       expect(result.current.canManageGarden(garden)).toBe(true);
@@ -176,8 +176,8 @@ describe("useGardenPermissions", () => {
       expect(result.current.canReviewGarden(garden)).toBe(true);
     });
 
-    it("returns true for operators (via canManage)", () => {
-      const garden = createGarden({ operators: [USER_ADDRESS] as any[] });
+    it("returns true for stewards (via canManage)", () => {
+      const garden = createGarden({ stewards: [USER_ADDRESS] as any[] });
       const { result } = renderHook(() => useGardenPermissions());
 
       expect(result.current.canReviewGarden(garden)).toBe(true);
@@ -225,8 +225,8 @@ describe("useGardenPermissions", () => {
       expect(result.current.canAddMembers(garden)).toBe(true);
     });
 
-    it("canRemoveMembers returns true for operators", () => {
-      const garden = createGarden({ operators: [USER_ADDRESS] as any[] });
+    it("canRemoveMembers returns true for stewards", () => {
+      const garden = createGarden({ stewards: [USER_ADDRESS] as any[] });
       const { result } = renderHook(() => useGardenPermissions());
 
       expect(result.current.canRemoveMembers(garden)).toBe(true);
@@ -249,12 +249,12 @@ describe("useGardenPermissions", () => {
       mockPrimaryAddress.mockReturnValue(null);
 
       const garden = createGarden({
-        operators: [OTHER_ADDRESS] as any[],
+        stewards: [OTHER_ADDRESS] as any[],
         owners: [OTHER_ADDRESS] as any[],
       });
       const { result } = renderHook(() => useGardenPermissions());
 
-      expect(result.current.isOperatorOfGarden(garden)).toBe(false);
+      expect(result.current.isStewardOfGarden(garden)).toBe(false);
       expect(result.current.isOwnerOfGarden(garden)).toBe(false);
       expect(result.current.isEvaluatorOfGarden(garden)).toBe(false);
       expect(result.current.canManageGarden(garden)).toBe(false);

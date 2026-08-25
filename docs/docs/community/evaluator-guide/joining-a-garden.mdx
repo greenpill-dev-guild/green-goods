@@ -42,7 +42,7 @@ Evaluators verify that impact claims are backed by real evidence. To begin evalu
 
 ```mermaid
 graph LR
-    Request["Request\nEvaluator Role"] --> Approve["Operator\nApproves"]
+    Request["Request\nEvaluator Role"] --> Approve["Steward\nApproves"]
     Approve --> Configure["Configure\nData Sources"]
     Configure --> Ready["Ready to\nMake Assessments"]
 ```
@@ -52,7 +52,7 @@ graph LR
 <StepFlow
   steps={[
     {title: "Identify your scope", detail: "Decide which gardens or impact areas you want to evaluate. You can evaluate any garden whose data is indexed — most data is public."},
-    {title: "Request evaluator role", detail: "Contact the garden operator to request the evaluator role. This grants you visibility into garden-specific context like review policies and action definitions."},
+    {title: "Request evaluator role", detail: "Contact the garden steward to request the evaluator role. This grants you visibility into garden-specific context like review policies and action definitions."},
     {title: "Set up your tools", detail: "Configure access to the Green Goods indexer (Envio GraphQL API) and the EAS GraphQL endpoints for the chains you will be evaluating."},
     {title: "Begin evaluation", detail: "Start querying garden data, reviewing attestation chains, and building your evaluation methodology."},
   ]}
@@ -63,7 +63,7 @@ graph LR
   items={[
     {
       when: "You want to evaluate a specific garden's impact claims",
-      do: "Contact the garden operator to get context on their review standards, then query their data through the indexer.",
+      do: "Contact the garden steward to get context on their review standards, then query their data through the indexer.",
       next: "Start with a small sample of attestation chains to validate your methodology.",
     },
     {
@@ -84,7 +84,7 @@ graph LR
 - Most Green Goods impact data is publicly queryable — you do not need special permissions to start evaluating
 - Having the evaluator role in a garden gives you context (review policies, action definitions) that improves evaluation quality
 - Familiarize yourself with the EAS schema definitions for work submissions, approvals, and assessments before diving into data
-- Connect with garden operators to understand their specific standards and edge cases
+- Connect with garden stewards to understand their specific standards and edge cases
 
 ## What's Next
 

@@ -81,7 +81,7 @@ export const Gallery: Story = {
         <h3 className="mb-3 text-sm font-medium text-text-sub">In Context (table row)</h3>
         <div className="rounded-lg border border-stroke-soft">
           <div className="flex items-center justify-between px-4 py-3 border-b border-stroke-soft">
-            <span className="text-sm text-text-sub">Operator</span>
+            <span className="text-sm text-text-sub">Steward</span>
             <AddressDisplay address={SAMPLE_ADDRESSES.vitalik} />
           </div>
           <div className="flex items-center justify-between px-4 py-3 border-b border-stroke-soft">

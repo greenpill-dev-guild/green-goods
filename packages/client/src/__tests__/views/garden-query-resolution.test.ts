@@ -42,7 +42,7 @@ const solar: PublicGardenSummary = {
   lastActivityAt: 0,
   actionCount: 0,
   contributorCount: 0,
-  operators: [],
+  stewards: [],
   evaluators: [],
 };
 
@@ -57,7 +57,7 @@ const compost: PublicGardenSummary = {
   lastActivityAt: 0,
   actionCount: 0,
   contributorCount: 0,
-  operators: [],
+  stewards: [],
   evaluators: [],
 };
 

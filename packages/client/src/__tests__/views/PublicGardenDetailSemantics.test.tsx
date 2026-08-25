@@ -36,7 +36,7 @@ const mockGardens = [
     contributorCount: 2,
     actionCount: 2,
     lastActivityAt: 1710000000,
-    operators: [GARDENER],
+    stewards: [GARDENER],
     evaluators: [],
   },
 ];
@@ -81,7 +81,7 @@ vi.mock("@green-goods/shared/hooks/public/usePublicGardenDetail", () => ({
         location: "Austin, TX",
         description: "A solar-powered community garden in downtown Austin",
         bannerImage: "https://example.com/banner.jpg",
-        operators: [GARDENER],
+        stewards: [GARDENER],
       },
       fieldNotes: [],
       contributors: [],
@@ -167,7 +167,7 @@ const messages: Record<string, string> = {
   "public.gardenDetail.stats.unknown": "Not available",
   "public.gardenDetail.section.notes": "§ 01: Field notes",
   "public.gardenDetail.section.certificates": "§ 03: Certificates",
-  "public.gardenDetail.section.operators": "§ 04: Operators",
+  "public.gardenDetail.section.stewards": "§ 04: Stewards",
   "public.pool.garden.kicker": "§ 02: Commitments",
   "public.pool.garden.heading.preparing": "This Garden is preparing its pool",
   "public.pool.garden.state.notReady": "Offers and requests open once the pool is ready.",
@@ -177,9 +177,9 @@ const messages: Record<string, string> = {
   "public.gardenDetail.certificates.heading": "Impact Certificates",
   "public.gardenDetail.certificates.helper": "Bundles of approved Work.",
   "public.gardenDetail.certificates.empty": "No Impact Certificates yet.",
-  "public.gardenDetail.operators.heading": "Operators",
-  "public.gardenDetail.operators.helper": "Trusted coordinators.",
-  "public.gardenDetail.operators.empty": "No operators are listed for this Garden yet.",
+  "public.gardenDetail.stewards.heading": "Stewards",
+  "public.gardenDetail.stewards.helper": "Trusted coordinators.",
+  "public.gardenDetail.stewards.empty": "No stewards are listed for this Garden yet.",
 };
 
 function renderView(route = "/gardens/solar-community-garden") {
@@ -208,7 +208,7 @@ describe("GardenDetail section semantics (P3-4)", () => {
       ["public-garden-detail-notes", "Latest field notes"],
       ["public-garden-detail-commitments", "This Garden is preparing its pool"],
       ["public-garden-detail-certificates", "Impact Certificates"],
-      ["public-garden-detail-operators", "Operators"],
+      ["public-garden-detail-stewards", "Stewards"],
     ] as const;
 
     for (const [labelId, headingText] of expected) {
@@ -226,7 +226,7 @@ describe("GardenDetail section semantics (P3-4)", () => {
       "Latest field notes",
       "This Garden is preparing its pool",
       "Impact Certificates",
-      "Operators",
+      "Stewards",
     ]);
   });
 

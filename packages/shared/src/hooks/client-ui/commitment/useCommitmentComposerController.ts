@@ -69,7 +69,7 @@ export function useCommitmentComposerController(
   const steward = useHasRole(
     pool?.garden as Address | undefined,
     viewer ?? undefined,
-    "operator",
+    "steward",
     input.chainId
   );
   const owner = useHasRole(

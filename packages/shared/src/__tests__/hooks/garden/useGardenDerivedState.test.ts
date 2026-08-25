@@ -4,7 +4,7 @@ import { useGardenDerivedState } from "../../../hooks/garden/useGardenDerivedSta
 
 const roleMembers = {
   owner: [],
-  operator: [],
+  steward: [],
   evaluator: [],
   gardener: [],
   funder: [],

@@ -115,7 +115,7 @@ export function parseDataToWorkApproval(
 
   return {
     id: workApprovalUID,
-    operatorAddress: attestation.attester,
+    stewardAddress: attestation.attester,
     gardenerAddress: attestation.recipient,
     actionUID: toNumberFromField(field("actionUID")?.value?.value as NumberConvertibleValue) ?? 0,
     workUID: (field("workUID")?.value?.value as string) || "",
@@ -151,7 +151,7 @@ export function parseWorkApprovalAttestation(
   );
   return {
     id: parsed.id,
-    operatorAddress: parsed.operatorAddress,
+    stewardAddress: parsed.stewardAddress,
     gardenerAddress: parsed.gardenerAddress,
     actionUID: parsed.actionUID,
     workUID: parsed.workUID,

@@ -198,7 +198,7 @@ export function ReviewForm({
             <h3 className="text-base font-semibold text-text-strong">
               {blockedState === "reviewed"
                 ? formatMessage({ id: "app.work.detail.reviewSummary" })
-                : formatMessage({ id: "app.work.detail.operatorReview" })}
+                : formatMessage({ id: "app.work.detail.stewardReview" })}
             </h3>
 
             {blockedState === "reviewed" ? (
@@ -215,7 +215,7 @@ export function ReviewForm({
                   {formatMessage({
                     id: "app.work.detail.reviewBlocked.selfReviewMessage",
                     defaultMessage:
-                      "You submitted this work. Another garden operator must approve or reject it.",
+                      "You submitted this work. Another garden steward must approve or reject it.",
                   })}
                 </p>
               </div>
@@ -239,15 +239,15 @@ export function ReviewForm({
               <div className="mt-4 rounded-xl border border-information-light bg-information-lighter p-4">
                 <p className="text-sm font-medium text-information-dark">
                   {formatMessage({
-                    id: "app.work.detail.reviewBlocked.operatorTitle",
-                    defaultMessage: "Owner or operator access required",
+                    id: "app.work.detail.reviewBlocked.stewardTitle",
+                    defaultMessage: "Owner or steward access required",
                   })}
                 </p>
                 <p className="mt-1 text-sm text-information-dark">
                   {formatMessage({
-                    id: "app.work.detail.reviewBlocked.operatorMessage",
+                    id: "app.work.detail.reviewBlocked.stewardMessage",
                     defaultMessage:
-                      "Only garden owners or operators can approve or reject work for this garden.",
+                      "Only garden owners or stewards can approve or reject work for this garden.",
                   })}
                 </p>
               </div>

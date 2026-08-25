@@ -37,11 +37,11 @@ Use `Address` from the declared `@green-goods/shared/types/domain` leaf, not `st
 
 ```typescript
 // Bad
-interface Garden { tokenAddress: string; operators: string[]; }
+interface Garden { tokenAddress: string; stewards: string[]; }
 
 // Good
 import type { Address } from "@green-goods/shared/types/domain";
-interface Garden { tokenAddress: Address; operators: Address[]; }
+interface Garden { tokenAddress: Address; stewards: Address[]; }
 ```
 
 ## Rule 11: Public Export Enforcement

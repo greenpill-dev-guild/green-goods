@@ -26,7 +26,7 @@ const GARDENER_B = "0x5555555555555555555555555555555555555555" as Address;
 
 const roleMembers: Record<GardenRole, Address[]> = {
   owner: [OWNER],
-  operator: [],
+  steward: [],
   evaluator: [],
   gardener: [GARDENER_A, GARDENER_B],
   funder: [],
@@ -71,7 +71,7 @@ describe("components/Garden/ManageMembersDialog", () => {
     const user = userEvent.setup();
     render(createElement(ManageMembersDialog, defaultProps));
 
-    await user.click(screen.getByRole("button", { name: /Operators · 0/ }));
+    await user.click(screen.getByRole("button", { name: /Stewards · 0/ }));
     expect(screen.getByText("No members found")).toBeInTheDocument();
   });
 

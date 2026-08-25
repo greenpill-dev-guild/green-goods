@@ -37,7 +37,7 @@ const ENS_RELEASE_ERROR_MESSAGES: Record<string, string> = {
   InsufficientSponsoredBalance:
     "The sponsored username fund needs more ETH before passkey users can release names.",
   SponsoredReleaseUnavailable:
-    "Username changes are temporarily operator-assisted while we migrate the ENS sender.",
+    "Username changes are temporarily steward-assisted while we migrate the ENS sender.",
   NotOwner: "Only the current name owner can release this name.",
 };
 

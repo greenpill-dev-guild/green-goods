@@ -133,7 +133,7 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
         _deployFullStackOnFork();
 
         address garden = _mintTestGarden("Arb Deactivate Garden", 0x0F);
-        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Steward);
 
         // Pause the module (owner only)
         hypercertsModule.setPaused(true);

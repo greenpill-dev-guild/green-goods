@@ -24,7 +24,7 @@ import {
   STORYBOOK_ADMIN_ACTIONS,
   STORYBOOK_ADMIN_GARDENS,
   STORYBOOK_ADMIN_SHELL_SEEDS,
-  STORYBOOK_OPERATOR_ADDRESS,
+  STORYBOOK_STEWARD_ADDRESS,
   STORYBOOK_PRIMARY_ADMIN_GARDEN,
 } from "../../../../shared/.storybook/adminFixtures";
 import {
@@ -37,7 +37,7 @@ import {
 } from "../../../../shared/.storybook/decorators";
 import SubmitWork, { SubmitWorkPanel } from "./SubmitWork";
 
-const STORYBOOK_OPERATOR_ADDRESS_KEY = STORYBOOK_OPERATOR_ADDRESS.toLowerCase() as Address;
+const STORYBOOK_STEWARD_ADDRESS_KEY = STORYBOOK_STEWARD_ADDRESS.toLowerCase() as Address;
 
 const STORYBOOK_SUBMIT_ACTIONS: Action[] = STORYBOOK_ADMIN_ACTIONS.map((action, index) => ({
   ...action,
@@ -126,9 +126,9 @@ const STORYBOOK_EMPTY_DOMAIN_GARDEN = {
 
 const STORYBOOK_REVIEW_ONLY_GARDEN = {
   ...STORYBOOK_PRIMARY_ADMIN_GARDEN,
-  operators: [],
+  stewards: [],
   owners: [],
-  evaluators: [STORYBOOK_OPERATOR_ADDRESS],
+  evaluators: [STORYBOOK_STEWARD_ADDRESS],
 } satisfies SharedGarden;
 
 function replaceGarden(garden: SharedGarden) {
@@ -147,7 +147,7 @@ function submitWorkSeeds({
     [queryKeys.actions.byChain(DEFAULT_CHAIN_ID), actions],
     [queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), gardens],
     [
-      queryKeys.role.operatorGardens(STORYBOOK_OPERATOR_ADDRESS_KEY, DEFAULT_CHAIN_ID),
+      queryKeys.role.stewardGardens(STORYBOOK_STEWARD_ADDRESS_KEY, DEFAULT_CHAIN_ID),
       gardens.map((garden) => ({ id: garden.id, name: garden.name })),
     ],
   ];

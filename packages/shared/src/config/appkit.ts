@@ -2,7 +2,7 @@
  * Reown AppKit Configuration
  *
  * Provides wallet connection UI with Green Goods branding.
- * Used as fallback for operators/admins who prefer traditional wallet login.
+ * Used as fallback for stewards/admins who prefer traditional wallet login.
  *
  * This is the SINGLE source of truth for Wagmi configuration.
  * The WagmiAdapter generates the wagmiConfig that should be used throughout the app.

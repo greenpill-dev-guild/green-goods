@@ -44,7 +44,7 @@ export async function handleReject(
     };
   }
 
-  if (user.role !== "operator") {
+  if (user.role !== "steward") {
     return {
       response: {
         text: agentMessage(message.locale, "reject.permission"),

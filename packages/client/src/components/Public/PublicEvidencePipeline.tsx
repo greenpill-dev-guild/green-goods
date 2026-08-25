@@ -125,7 +125,7 @@ function nodeCopy(
         description: formatMessage({
           id: "public.impact.pipeline.node.assessment.description",
           defaultMessage:
-            "Operators and evaluators document what the place needs and what counts as good. The Assessment names the conditions on the ground, the work plan, and the standard of proof.",
+            "Stewards and evaluators document what the place needs and what counts as good. The Assessment names the conditions on the ground, the work plan, and the standard of proof.",
         }),
       };
     case "commitment":

@@ -19,12 +19,12 @@ const ROLE_PATHS = [
       "Document regenerative work in the field with photos and structured evidence capture.",
   },
   {
-    title: "Operator",
-    href: "/community/operator-guide/",
+    title: "Steward",
+    href: "/community/steward-guide/",
     icon: RiShieldCheckLine,
-    roleAccent: "operator",
+    roleAccent: "steward",
     audience: "Garden managers",
-    time: "15 min operator setup",
+    time: "15 min steward setup",
     description:
       "Create and manage your garden community, approve work, and configure actions.",
   },

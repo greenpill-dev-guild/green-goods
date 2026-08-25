@@ -108,7 +108,7 @@ export async function getOperatorForGarden(
   gardenAddress: string
 ): Promise<User | undefined> {
   const row = db
-    .query("SELECT * FROM users WHERE role = 'operator' AND currentGarden = ? LIMIT 1")
+    .query("SELECT * FROM users WHERE role = 'steward' AND currentGarden = ? LIMIT 1")
     .get(gardenAddress) as UserRow | null;
 
   if (!row) return undefined;

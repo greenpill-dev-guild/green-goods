@@ -101,12 +101,12 @@ Never chain useMemo depending on another useMemo output. Combine into single use
 ```typescript
 // Bad
 const membership = useMemo(() => buildSets(data), [data]);
-const addresses = useMemo(() => Array.from(membership.operatorIds), [membership.operatorIds]);
+const addresses = useMemo(() => Array.from(membership.stewardIds), [membership.stewardIds]);
 
 // Good
 const { membership, addresses } = useMemo(() => {
   const m = buildSets(data);
-  return { membership: m, addresses: Array.from(m.operatorIds) };
+  return { membership: m, addresses: Array.from(m.stewardIds) };
 }, [data]);
 ```
 

@@ -183,7 +183,7 @@ Use the `Alert` component from `@green-goods/shared` for all error/warning/info 
 
 ## Rule 17: Don't redeclare context the chrome already declares
 
-Persistent chrome (`AppBar` GardenChip, workspace title bar, breadcrumb) is the canonical declaration of which entity the operator is in. Views, page headers, toolbars, list rows, and cards must not restate that same entity. Re-declaration steals vertical space, dilutes the chrome's authority, and trains the eye to ignore the very element that should be ground truth.
+Persistent chrome (`AppBar` GardenChip, workspace title bar, breadcrumb) is the canonical declaration of which entity the steward is in. Views, page headers, toolbars, list rows, and cards must not restate that same entity. Re-declaration steals vertical space, dilutes the chrome's authority, and trains the eye to ignore the very element that should be ground truth.
 
 ```tsx
 // Bad — AppBar GardenChip already shows "Tech and Sun Hub"

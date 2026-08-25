@@ -38,11 +38,11 @@ Full notes: [GitHub Releases](https://github.com/greenpill-dev-guild/green-goods
 
 ### v1.2.0 - July 2026
 
-**Our most polished release yet — reliability and polish across the app, website, and operator dashboard**
+**Our most polished release yet — reliability and polish across the app, website, and steward dashboard**
 
 - **Client PWA** — hardened sign-in and account recovery (recover from a dismissed or expired wallet prompt); accessible wallet and cookie jar flows (see your balance, send tokens, and claim from cookie jars); a refreshed Help section in Profile; smoother installs and updates for a more mature, robust app.
 - **Editorial website** — a new `/vaults` route to crowdfund the work happening in a Garden's Vault; more robust Donate and Endow flows for Gardens, with clearer ways to manage the support you give.
-- **Operator dashboard** — a major UI polish pass across the operator cockpit (design, look, and feel); smoother navigation and operator flows for managing Gardens; polished content throughout.
+- **Steward dashboard** — a major UI polish pass across the steward cockpit (design, look, and feel); smoother navigation and steward flows for managing Gardens; polished content throughout.
 
 Full notes: [GitHub Releases](https://github.com/greenpill-dev-guild/green-goods/releases).
 
@@ -62,13 +62,13 @@ Full notes: [GitHub Releases](https://github.com/greenpill-dev-guild/green-goods
 
 This release updates documentation IA and workflows to reflect current Green Goods capabilities:
 
-- Role-first navigation (`Gardener`, `Operator`, `Evaluator`) plus a dedicated `Developers` hub.
+- Role-first navigation (`Gardener`, `Steward`, `Evaluator`) plus a dedicated `Developers` hub.
 - New activation-state model across docs:
   - `Live`
   - `Implemented (activation pending indexing)`
   - `Implemented (activation pending deployment)`
   - `Planned`
-- Operator coverage for hypercert, vault, cookie-jar, strategy, and signal-pool surfaces with explicit activation gating.
+- Steward coverage for hypercert, vault, cookie-jar, strategy, and signal-pool surfaces with explicit activation gating.
 - Evaluator query packs for indexer + EAS with chain-aware variable patterns.
 - Developer reference consolidation under `/builders`, including deployment/indexer status and MCP alignment notes.
 - Legacy route redirects added for prior `welcome`, role, `developer`, `prd`, and `specs` paths.
@@ -127,7 +127,7 @@ This is the first official release of Green Goods — an offline-first platform 
 **Changed:**
 - `WorkDashboard` — new tabbed interface (Draft, Pending, Completed)
 - `Login` view — redesigned with passkey-first flow
-- `TopNav` — operator-specific functionality and media upload improvements
+- `TopNav` — steward-specific functionality and media upload improvements
 - `ImagePreviewDialog` — enhanced gallery with swipe gestures
 - Form components — improved accessibility with proper ARIA labels
 - All card components refactored for consistency
@@ -140,10 +140,10 @@ This is the first official release of Green Goods — an offline-first platform 
 </details>
 
 <details>
-<summary><strong>@green-goods/admin (Operator Dashboard)</strong></summary>
+<summary><strong>@green-goods/admin (Steward Dashboard)</strong></summary>
 
 **Added:**
-- `RequireOperatorOrDeployer` route guard with role-based access
+- `RequireStewardOrDeployer` route guard with role-based access
 - Work approval UI with optimistic status updates
 - Dynamic feedback indicators for pending operations
 
@@ -241,8 +241,8 @@ This is the first official release of Green Goods — an offline-first platform 
 | `client.offline-sync.spec.ts` | Offline queue, sync recovery |
 | `client.smoke.spec.ts` | Critical path validation |
 | `client.work-submission.spec.ts` | MDR workflow, drafts |
-| `client.work-approval.spec.ts` | Operator approval flow |
-| `admin.auth.spec.ts` | Operator authentication |
+| `client.work-approval.spec.ts` | Steward approval flow |
+| `admin.auth.spec.ts` | Steward authentication |
 | `admin.smoke.spec.ts` | Dashboard functionality |
 | `performance.spec.ts` | Load times, memory, FPS |
 
@@ -328,7 +328,7 @@ This is the first official release of Green Goods — an offline-first platform 
 3. Update any URQL imports to use `graphql-client`
 4. Test passkey flows on Android devices
 
-**For Operators:**
+**For Stewards:**
 - No breaking changes to attestation schemas
 - Work approval UI has new optimistic behavior
 - Dashboard requires Reown AppKit wallet connection
@@ -350,7 +350,7 @@ This is the first official release of Green Goods — an offline-first platform 
 
 **Core Platform**:
 - ✅ Client PWA with offline support
-- ✅ Admin dashboard for operators
+- ✅ Admin dashboard for stewards
 - ✅ Passkey authentication (WebAuthn + Pimlico)
 - ✅ MDR workflow (Media → Details → Review)
 - ✅ EAS attestations for work and approvals
@@ -377,7 +377,7 @@ This is the first official release of Green Goods — an offline-first platform 
 **Improvements**:
 - Performance optimizations
 - Mobile UX refinements
-- Operator workflow enhancements
+- Steward workflow enhancements
 
 ### Q3 2024 - Analytics & Tooling 📊
 

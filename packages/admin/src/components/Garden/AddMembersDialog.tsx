@@ -142,7 +142,7 @@ export function AddMembersDialog({
       // Fold a typed-but-not-yet-staged address into the batch so a single
       // entry doesn't require the extra "Add" tap. ENS submit resolution is
       // marked busy before awaiting so close paths cannot continue into a
-      // wallet write after the operator cancels.
+      // wallet write after the steward cancels.
       if (trimmed) {
         if (!isHexAddress) setSubmitResolving(true);
         const resolved = await resolveInput();
@@ -194,7 +194,7 @@ export function AddMembersDialog({
     onClose();
   };
   // Confirm-before-discard: a staged batch (or typed input) is unsaved
-  // operator input, so X/scrim/Escape confirm first. The footer Cancel still
+  // steward input, so X/scrim/Escape confirm first. The footer Cancel still
   // exits directly per the dialog contract.
   const dirtyClose = useDirtyClose({
     isDirty: pending.length > 0 || Boolean(trimmed),

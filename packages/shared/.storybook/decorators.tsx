@@ -304,7 +304,7 @@ function storybookMockTransport(chainId: number) {
  * their loading / empty states. Writes are inert. Multicall batching is off so
  * each read is its own `eth_call` and one empty response can't fail a batch.
  */
-const STORYBOOK_MOCK_ADDRESS = DEV_MOCK_AUTH_ADDRESSES.operator;
+const STORYBOOK_MOCK_ADDRESS = DEV_MOCK_AUTH_ADDRESSES.steward;
 
 function createStorybookWagmiConfig(address: `0x${string}` = STORYBOOK_MOCK_ADDRESS) {
   return createConfig({

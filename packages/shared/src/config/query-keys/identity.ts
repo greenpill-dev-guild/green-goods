@@ -32,8 +32,8 @@ export const ensKeys = {
 
 export const roleKeys = {
   all: ["greengoods", "role"] as const,
-  operatorGardens: (address?: Address, chainId?: number) =>
-    ["greengoods", "role", "operatorGardens", address, chainId] as const,
+  stewardGardens: (address?: Address, chainId?: number) =>
+    ["greengoods", "role", "stewardGardens", address, chainId] as const,
   gardenRoles: (gardenId?: string, address?: Address) =>
     ["greengoods", "role", "gardenRoles", gardenId, address] as const,
   hasRole: (gardenId?: string, address?: Address, role?: string) =>

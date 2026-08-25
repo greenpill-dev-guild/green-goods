@@ -44,8 +44,8 @@ describe("useRolePermissions", () => {
     });
   });
 
-  it("returns operator permissions", () => {
-    const { result } = renderHook(() => useRolePermissions("operator"));
+  it("returns steward permissions", () => {
+    const { result } = renderHook(() => useRolePermissions("steward"));
 
     expect(result.current).toEqual({
       canSubmitWork: true,

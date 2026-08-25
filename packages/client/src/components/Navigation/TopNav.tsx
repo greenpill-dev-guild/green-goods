@@ -19,8 +19,8 @@ type TopNavProps = {
   garden?: Garden;
   works?: Work[];
   overlay?: boolean;
-  /** Whether the current user is an operator of this garden */
-  isOperator?: boolean;
+  /** Whether the current user is a steward of this garden */
+  isSteward?: boolean;
   showEndowmentButton?: boolean;
   hasEndowmentDeposits?: boolean;
   onEndowmentClick?: () => void;
@@ -187,7 +187,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   garden,
   works,
   overlay,
-  isOperator = false,
+  isSteward = false,
   showEndowmentButton = false,
   hasEndowmentDeposits = false,
   onEndowmentClick,
@@ -238,8 +238,8 @@ export const TopNav: React.FC<TopNavProps> = ({
 
       <div className="flex grow" />
       <div className="flex flex-col items-end gap-2 z-1">
-        {/* Notifications at top — operators need quick access to pending reviews */}
-        {garden && isOperator && <NotificationCenter works={works} garden={garden} />}
+        {/* Notifications at top — stewards need quick access to pending reviews */}
+        {garden && isSteward && <NotificationCenter works={works} garden={garden} />}
         {garden && showGovernanceButton && onGovernanceClick && (
           <GovernanceButton
             onClick={onGovernanceClick}

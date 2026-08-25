@@ -50,11 +50,11 @@ export const ARRIVAL_TOASTS: Record<Exclude<ArrivalKind, "none">, ArrivalToastSp
     actionLabelId: "app.home.arrival.review.action",
     action: "openWorkDashboardNeedsReview",
   },
-  operatorClear: {
+  stewardClear: {
     status: "info",
-    titleId: "app.home.arrival.operatorClear.title",
-    messageId: "app.home.arrival.operatorClear.message",
-    actionLabelId: "app.home.arrival.operatorClear.action",
+    titleId: "app.home.arrival.stewardClear.title",
+    messageId: "app.home.arrival.stewardClear.message",
+    actionLabelId: "app.home.arrival.stewardClear.action",
     action: "startWork",
   },
   gardener: {

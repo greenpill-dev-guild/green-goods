@@ -18,7 +18,7 @@ import { useProgressiveInvalidation } from "../utils/useTimeout";
  * Hook for creating signal pools for a garden.
  *
  * Pools are auto-created during mint (onGardenMinted → attemptPoolCreation).
- * If automatic creation fails, operators can call GardensModule.createGardenPools(garden)
+ * If automatic creation fails, stewards can call GardensModule.createGardenPools(garden)
  * as a retry/fallback to create pools after the fact.
  *
  * This is idempotent on-chain: the contract reverts with PoolsAlreadyExist

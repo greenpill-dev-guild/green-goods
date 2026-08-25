@@ -29,7 +29,7 @@ const mockGardens = [
     contributorCount: 2,
     actionCount: 3,
     lastActivityAt: 1710000000,
-    operators: [],
+    stewards: [],
     evaluators: [],
   },
   {
@@ -43,7 +43,7 @@ const mockGardens = [
     contributorCount: 1,
     actionCount: 0,
     lastActivityAt: 1690000000,
-    operators: [],
+    stewards: [],
     evaluators: [],
   },
 ];

@@ -12,7 +12,7 @@ const GARDENER_B = "0x5555555555555555555555555555555555555555" as Address;
 
 const roleMembers: Record<GardenRole, Address[]> = {
   owner: [OWNER],
-  operator: [OPERATOR_A, OPERATOR_B],
+  steward: [OPERATOR_A, OPERATOR_B],
   evaluator: [],
   gardener: [GARDENER_A, GARDENER_B],
   funder: [],
@@ -21,7 +21,7 @@ const roleMembers: Record<GardenRole, Address[]> = {
 
 const emptyRoleMembers: Record<GardenRole, Address[]> = {
   owner: [],
-  operator: [],
+  steward: [],
   evaluator: [],
   gardener: [],
   funder: [],

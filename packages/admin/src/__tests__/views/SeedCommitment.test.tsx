@@ -431,7 +431,7 @@ describe("SeedCommitmentDialog (W8)", () => {
     expect(within(dialog()).getByRole("button", { name: /^add$/i })).toBeEnabled();
   });
 
-  it("says a broken reward in the operator's language, not in the schema's own words", async () => {
+  it("says a broken reward in the steward's language, not in the schema's own words", async () => {
     renderSeed();
     fillWhat();
     next();

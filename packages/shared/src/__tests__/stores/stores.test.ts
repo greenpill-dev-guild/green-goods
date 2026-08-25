@@ -387,7 +387,7 @@ describe("stores/useAdminStore", () => {
         bannerImage: "https://example.com/banner.jpg",
         createdAt: Date.now(),
         gardeners: ["0x789"],
-        operators: ["0xabc"],
+        stewards: ["0xabc"],
       };
 
       act(() => {
@@ -412,7 +412,7 @@ describe("stores/useAdminStore", () => {
           bannerImage: "",
           createdAt: 0,
           gardeners: [],
-          operators: [],
+          stewards: [],
         });
         result.current.setSelectedGarden(null);
       });

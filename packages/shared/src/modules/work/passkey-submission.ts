@@ -178,7 +178,7 @@ export interface PasskeyBatchApprovalParams {
 
 /**
  * Submit multiple work approvals in a single transaction using EAS multiAttest.
- * This dramatically improves UX when operators need to approve/reject multiple works.
+ * This dramatically improves UX when stewards need to approve/reject multiple works.
  *
  * @param params - Batch approval parameters
  * @returns Transaction hash

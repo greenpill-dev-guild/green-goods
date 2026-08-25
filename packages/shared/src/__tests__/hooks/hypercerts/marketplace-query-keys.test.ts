@@ -1,8 +1,8 @@
 /**
  * Marketplace Query-Key Tests
  *
- * Verifies query key safety when operator is undefined (C3 fix).
- * The hook uses `enabled: Boolean(operator)` to prevent execution,
+ * Verifies query key safety when steward is undefined (C3 fix).
+ * The hook uses `enabled: Boolean(steward)` to prevent execution,
  * but the query key must also be type-safe and never use non-null assertions.
  */
 
@@ -14,20 +14,20 @@ import { queryKeys } from "../../../config/query-keys";
 // ============================================
 
 describe("marketplace approvals query key safety", () => {
-  it("produces a stable key with a valid operator", () => {
+  it("produces a stable key with a valid steward", () => {
     const key = queryKeys.marketplace.approvals("0xAbC123", 11155111);
     expect(key).toEqual(["greengoods", "marketplace", "approvals", "0xAbC123", 11155111]);
   });
 
-  it("produces a key with sentinel when operator is undefined", () => {
-    // After fix: passing empty string sentinel instead of operator!
+  it("produces a key with sentinel when steward is undefined", () => {
+    // After fix: passing empty string sentinel instead of steward!
     const sentinel = "";
     const key = queryKeys.marketplace.approvals(sentinel, 11155111);
     expect(key).toEqual(["greengoods", "marketplace", "approvals", "", 11155111]);
     // The key is stable and type-safe -- no non-null assertion needed
   });
 
-  it("sentinel key differs from valid operator key", () => {
+  it("sentinel key differs from valid steward key", () => {
     const validKey = queryKeys.marketplace.approvals("0xAbC", 1);
     const sentinelKey = queryKeys.marketplace.approvals("", 1);
     expect(validKey).not.toEqual(sentinelKey);

@@ -4,8 +4,9 @@
  * Provides the same AuthStateContext / AuthActionsContext / AuthContext shape
  * as the real AuthProvider, but with hardcoded values controlled via URL param.
  *
- * Usage: add `?mockAuth=operator` to any admin URL in dev mode.
- * Values: deployer | operator | user | disconnected
+ * Usage: add `?mockAuth=steward` to any admin URL in dev mode.
+ * Values: deployer | steward | user | disconnected
+ * `?mockAuth=operator` still resolves to steward so older QA links keep working.
  *
  * Tree-shaken from production builds via the AuthGate DEV guard.
  */
@@ -19,7 +20,10 @@ import {
   type AuthStateValue,
 } from "./Auth";
 
-export type DevMockAuthRole = "deployer" | "operator" | "user" | "disconnected";
+export type DevMockAuthRole = "deployer" | "steward" | "user" | "disconnected";
+
+/** Role names this param used to accept, kept resolvable for saved QA links. */
+const LEGACY_MOCK_ROLE_ALIASES: Record<string, DevMockAuthRole> = { operator: "steward" };
 export const DEV_MOCK_AUTH_STORAGE_KEY = "greengoods_dev_mock_auth";
 
 export const DEV_MOCK_AUTH_ADDRESSES: Record<
@@ -27,17 +31,21 @@ export const DEV_MOCK_AUTH_ADDRESSES: Record<
   `0x${string}`
 > = {
   deployer: "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
-  operator: "0x04D60647836bcA09c37B379550038BdaaFD82503",
+  steward: "0x04D60647836bcA09c37B379550038BdaaFD82503",
   user: "0x1234567890123456789012345678901234567890",
 };
 
-function isMockRole(value: string | null): value is DevMockAuthRole {
-  return value === "disconnected" || (value !== null && value in DEV_MOCK_AUTH_ADDRESSES);
+function normalizeMockRole(value: string | null): DevMockAuthRole | null {
+  if (value === null) return null;
+  const resolved = LEGACY_MOCK_ROLE_ALIASES[value] ?? value;
+  if (resolved === "disconnected" || resolved in DEV_MOCK_AUTH_ADDRESSES) {
+    return resolved as DevMockAuthRole;
+  }
+  return null;
 }
 
 function readPersistedMockRole(): DevMockAuthRole | null {
-  const stored = window.sessionStorage.getItem(DEV_MOCK_AUTH_STORAGE_KEY);
-  return isMockRole(stored) ? stored : null;
+  return normalizeMockRole(window.sessionStorage.getItem(DEV_MOCK_AUTH_STORAGE_KEY));
 }
 
 function persistMockRole(role: DevMockAuthRole) {
@@ -46,8 +54,7 @@ function persistMockRole(role: DevMockAuthRole) {
 
 export function hasMockAuthOverride(): boolean {
   const params = new URLSearchParams(window.location.search);
-  const roleFromUrl = params.get("mockAuth");
-  return isMockRole(roleFromUrl) || readPersistedMockRole() !== null;
+  return normalizeMockRole(params.get("mockAuth")) !== null || readPersistedMockRole() !== null;
 }
 
 function getMockRole(forcedRole?: DevMockAuthRole): DevMockAuthRole {
@@ -56,13 +63,13 @@ function getMockRole(forcedRole?: DevMockAuthRole): DevMockAuthRole {
   }
 
   const params = new URLSearchParams(window.location.search);
-  const roleFromUrl = params.get("mockAuth");
-  if (isMockRole(roleFromUrl)) {
+  const roleFromUrl = normalizeMockRole(params.get("mockAuth"));
+  if (roleFromUrl) {
     persistMockRole(roleFromUrl);
     return roleFromUrl;
   }
 
-  return readPersistedMockRole() ?? "operator";
+  return readPersistedMockRole() ?? "steward";
 }
 
 export function DevAuthProvider({

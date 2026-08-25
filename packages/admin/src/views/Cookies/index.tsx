@@ -82,7 +82,7 @@ export default function CookiesView() {
         description={formatMessage({
           id: "cockpit.community.cookies.description",
           defaultMessage:
-            "Create one shared Cookie Jar for a campaign and allow selected garden operators to claim from it.",
+            "Create one shared Cookie Jar for a campaign and allow selected garden stewards to claim from it.",
         })}
         actions={
           isDesktop && desktopActions.length > 0 ? (

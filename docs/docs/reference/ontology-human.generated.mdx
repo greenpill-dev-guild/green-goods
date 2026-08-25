@@ -4,7 +4,7 @@ sidebar_label: "Ontology: Human Lens"
 slug: /reference/ontology-human.generated
 audience: all
 owner: docs
-last_verified: 2026-08-21
+last_verified: 2026-08-22
 feature_status: Live
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
@@ -23,7 +23,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** It gives people, roles, records, and funds one accountable home.
 
-**Who touches it:** Gardener · Operator · Evaluator · Funder · Community Member
+**Who touches it:** Gardener · Steward · Evaluator · Funder · Community Member
 
 **Example:** A neighborhood garden coordinating planting, evidence, and funding.
 
@@ -45,7 +45,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** It makes expected work and evidence clear before anyone submits it.
 
-**Who touches it:** Operator · Gardener
+**Who touches it:** Steward · Gardener
 
 **Example:** Plant native species and capture before-and-after photos.
 
@@ -65,7 +65,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** It turns local action into portable evidence without waiting for approval to exist.
 
-**Who touches it:** Gardener · Operator
+**Who touches it:** Gardener · Steward
 
 **Example:** A photo and description submitted as a Work attestation, then approved separately.
 
@@ -79,7 +79,27 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Evidence:** `packages/contracts/src/resolvers/Work.sol` — Work submission creates its EAS attestation before review.<br />`packages/client/src/views/Home/Garden/Work.tsx` — Gardeners have a product surface for Work. (verified 2026-08-15)
 
-**Public-safe wording:** Gardeners can document Work in the field and sync it when connectivity returns. Operators review Work and record an approval or rejection separately. Green Goods is building the activation path that turns approved Work into portable Impact Certificates.
+**Public-safe wording:** Gardeners can document Work in the field and sync it when connectivity returns. Stewards review Work and record an approval or rejection separately. Green Goods is building the activation path that turns approved Work into portable Impact Certificates.
+
+## Work Approval
+
+**In plain language:** A reviewer's recorded decision on submitted work
+
+**Why it matters:** It keeps what happened separate from the judgement about it, so neither can quietly rewrite the other.
+
+**Who touches it:** Steward · Gardener
+
+**Example:** A steward approves a planting submission with feedback and a confidence level.
+
+**Relationships:** reviews work · recorded-in garden · recorded-as attestation
+
+**Also called:** work review · approval attestation
+
+**Do not confuse with:** Work · Assessment
+
+**Current maturity:** available — implementation implemented; deployment deployed; activation active; integration integrated.
+
+**Evidence:** `packages/contracts/src/resolvers/WorkApproval.sol` — The approval resolver is deployed and gates every approval attestation.<br />`packages/shared/src/hooks/work/useWorkApproval.ts` — The approval mutation is shipped in the shared hook every review surface calls. (verified 2026-08-22)
 
 ## Assessment
 
@@ -87,7 +107,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** It states what a place needs and what good evidence should demonstrate.
 
-**Who touches it:** Evaluator · Operator
+**Who touches it:** Evaluator · Steward
 
 **Example:** A soil-health baseline with targets and selected Actions.
 
@@ -99,7 +119,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Current maturity:** available — implementation implemented; deployment deployed; activation active; integration integrated.
 
-**Evidence:** `packages/contracts/src/resolvers/Assessment.sol` — Assessment resolver accepts Evaluator or Operator attestations.<br />`packages/client/src/views/Home/Garden/Assessment.tsx` — The client exposes the Garden Assessment flow. (verified 2026-08-15)
+**Evidence:** `packages/contracts/src/resolvers/Assessment.sol` — Assessment resolver accepts Evaluator or Steward attestations.<br />`packages/client/src/views/Home/Garden/Assessment.tsx` — The client exposes the Garden Assessment flow. (verified 2026-08-15)
 
 **Public-safe wording:** Assessments make the baseline, plan, and evidence standard explicit.
 
@@ -109,7 +129,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** It lets approved contribution records become a fundable impact claim.
 
-**Who touches it:** Funder · Gardener · Operator
+**Who touches it:** Funder · Gardener · Steward
 
 **Example:** A certificate bundling a season of approved Work.
 
@@ -131,7 +151,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** Principal can remain deposited while yield supports ongoing work.
 
-**Who touches it:** Funder · Operator
+**Who touches it:** Funder · Steward
 
 **Example:** A funder endows a Garden and the yield supports operations.
 
@@ -153,7 +173,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** It supports smaller operational needs with explicit claim limits.
 
-**Who touches it:** Operator · Gardener · Funder
+**Who touches it:** Steward · Gardener · Funder
 
 **Example:** An allowlisted member claims a capped amount for supplies.
 
@@ -175,7 +195,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** It makes a claim portable and independently readable.
 
-**Who touches it:** Gardener · Operator · Evaluator · Community Member
+**Who touches it:** Gardener · Steward · Evaluator · Community Member
 
 **Example:** A Work submission and its later approval are two attestations.
 
@@ -195,9 +215,9 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** It makes garden authority explicit and revocable.
 
-**Who touches it:** Operator · Gardener · Evaluator · Funder · Community Member
+**Who touches it:** Steward · Gardener · Evaluator · Funder · Community Member
 
-**Example:** An Operator Hat allows its wearer to approve Work.
+**Example:** A Steward Hat allows its wearer to approve Work.
 
 **Relationships:** authority-in garden
 
@@ -217,7 +237,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** It gives planning and reflection a calm common rhythm.
 
-**Who touches it:** Gardener · Operator · Evaluator
+**Who touches it:** Gardener · Steward · Evaluator
 
 **Example:** A quarter of Actions, Work, and Assessments.
 
@@ -237,7 +257,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** It lets communities name what should change before solutions or funding are proposed.
 
-**Who touches it:** Community Member · Operator · Funder
+**Who touches it:** Community Member · Steward · Funder
 
 **Example:** Reliable shade is needed at a neighborhood gathering place.
 
@@ -259,7 +279,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** It gives a Garden rules and bounds for coordinating offers and requests.
 
-**Who touches it:** Operator · Gardener · Community Member
+**Who touches it:** Steward · Gardener · Community Member
 
 **Example:** A Garden pool coordinates transport offers under a charter.
 
@@ -281,7 +301,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** It snapshots time and recognition rules for a coherent period.
 
-**Who touches it:** Operator · Gardener
+**Who touches it:** Steward · Gardener
 
 **Example:** A Season cycle opens with a six-role allocation.
 
@@ -301,7 +321,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** It connects repeated Offer instances without merging their histories.
 
-**Who touches it:** Gardener · Operator
+**Who touches it:** Gardener · Steward
 
 **Example:** A weekly transport Offer represented by separate commitments over time.
 
@@ -321,7 +341,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** It lets a Garden apply its coordination limits without rewriting prior commitment history.
 
-**Who touches it:** Operator · Gardener
+**Who touches it:** Steward · Gardener
 
 **Example:** A lead provider currently holds two open commitments in one pool.
 
@@ -341,7 +361,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** It keeps expected, approved, fulfilled, and open quantities comparable without combining unlike units.
 
-**Who touches it:** Operator · Gardener · Community Member
+**Who touches it:** Steward · Gardener · Community Member
 
 **Example:** A cycle reports ride commitments separately from hours of work.
 
@@ -361,7 +381,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** It shows how instances of one recurring offer progressed during a bounded coordination period.
 
-**Who touches it:** Operator · Gardener
+**Who touches it:** Steward · Gardener
 
 **Example:** A weekly transport series has three fulfilled and one cancelled instance this cycle.
 
@@ -381,7 +401,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** It makes responsibility, evidence, confirmation, and unit accounting explicit.
 
-**Who touches it:** Gardener · Operator · Community Member
+**Who touches it:** Gardener · Steward · Community Member
 
 **Example:** Offer three rides, with one lead and two contributors.
 
@@ -403,7 +423,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** It separates accountable leadership from the people whose verified contribution earns recognition.
 
-**Who touches it:** Gardener · Operator
+**Who touches it:** Gardener · Steward
 
 **Example:** Two gardeners share verified contribution on one fulfilled commitment.
 
@@ -423,7 +443,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** It proves conservation and contributor amounts before any payment dispatch.
 
-**Who touches it:** Operator · Gardener
+**Who touches it:** Steward · Gardener
 
 **Example:** A Garden retains part and assigns the rest to eligible contributors.
 
@@ -443,7 +463,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** Green Goods begins with evidence captured by people caring for a place.
 
-**Who touches it:** Operator · Evaluator
+**Who touches it:** Steward · Evaluator
 
 **Example:** A gardener records planting while offline and syncs later.
 
@@ -457,25 +477,25 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Public-safe wording:** Gardeners can document Work in the field and sync it when connectivity returns.
 
-## Operator
+## Steward
 
 **In plain language:** A person stewarding Garden operations
 
-**Why it matters:** Operators turn community policy into accountable review and coordination.
+**Why it matters:** Stewards turn community policy into accountable review and coordination.
 
 **Who touches it:** Gardener · Evaluator · Funder · Community Member
 
-**Example:** An operator creates Actions and approves or rejects Work.
+**Example:** A steward creates Actions and approves or rejects Work.
 
 **Relationships:** —
 
-**Also called:** Garden Operator · steward
+**Also called:** Garden Steward · Garden Operator · operator
 
 **Do not confuse with:** Evaluator
 
 **Current maturity:** persona, not a product capability.
 
-**Public-safe wording:** Operators review Work and record an approval or rejection separately.
+**Public-safe wording:** Stewards review Work and record an approval or rejection separately.
 
 ## Evaluator
 
@@ -483,7 +503,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** Evaluators help communities frame baselines, methods, outcomes, and defensible claims.
 
-**Who touches it:** Operator · Funder
+**Who touches it:** Steward · Funder
 
 **Example:** An evaluator authors a soil-health Assessment.
 
@@ -491,7 +511,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Also called:** impact assessor
 
-**Do not confuse with:** Operator · Work approver
+**Do not confuse with:** Steward · Work approver
 
 **Current maturity:** persona, not a product capability.
 
@@ -503,7 +523,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** Funding connects credible evidence to durable community capacity.
 
-**Who touches it:** Operator · Gardener
+**Who touches it:** Steward · Gardener
 
 **Example:** A funder deposits into a Vault or supports verified impact.
 
@@ -521,7 +541,7 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Why it matters:** Community voice should shape needs and accountability, not sit outside the record.
 
-**Who touches it:** Operator · Gardener
+**Who touches it:** Steward · Gardener
 
 **Example:** A resident signals support for a Need.
 

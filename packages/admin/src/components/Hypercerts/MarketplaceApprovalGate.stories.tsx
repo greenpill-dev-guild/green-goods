@@ -5,8 +5,8 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { withAdminIdentity, withSeededQueryClient } from "../../../../shared/.storybook/decorators";
 import { MarketplaceApprovalGate } from "./MarketplaceApprovalGate";
 
-// DevAuthProvider seeds operator role → this address is both
-// `walletAddress` and `eoaAddress`. It matches the operator computed
+// DevAuthProvider seeds steward role → this address is both
+// `walletAddress` and `eoaAddress`. It matches the steward computed
 // inside `useMarketplaceApprovals`.
 const OPERATOR = "0x04D60647836bcA09c37B379550038BdaaFD82503" as Address;
 

@@ -355,7 +355,7 @@ export function useHubWorkbenchController() {
 
   // Mobile/tablet: refresh icon in the AppBar (next to notifications). Desktop
   // keeps refresh implicit — the action set in the page header is the only
-  // chrome the operator needs.
+  // chrome the steward needs.
   const mobileRefreshAction = useMemo(
     () =>
       selectedGardenId && !isDesktop

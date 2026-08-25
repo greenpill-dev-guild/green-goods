@@ -37,7 +37,7 @@ interface UseWizardDataOptions {
 export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDataOptions) {
   const { formatMessage } = useIntl();
   const { smartAccountAddress, eoaAddress } = useAuth();
-  const operatorAddress = smartAccountAddress ?? eoaAddress ?? undefined;
+  const stewardAddress = smartAccountAddress ?? eoaAddress ?? undefined;
   const [draftReady, setDraftReady] = useState(false);
   const chainId = useAdminStore((state) => state.selectedChainId) ?? DEFAULT_CHAIN_ID;
 
@@ -96,7 +96,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
 
   const isSubmitting = isHypercertMintingInProgress(mintingState.status);
 
-  // Track if the operator has made changes worth protecting.
+  // Track if the steward has made changes worth protecting.
   const { isDirty, isPristine } = useMemo(
     () =>
       selectHypercertDirtyState({
@@ -123,8 +123,8 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     onDiscard: reset,
   });
 
-  const { peekDraft, loadDraft, clearDraft } = useHypercertDraft(gardenId, operatorAddress, {
-    enabled: draftReady && Boolean(gardenId && operatorAddress),
+  const { peekDraft, loadDraft, clearDraft } = useHypercertDraft(gardenId, stewardAddress, {
+    enabled: draftReady && Boolean(gardenId && stewardAddress),
     autoLoad: false,
   });
 
@@ -138,7 +138,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
 
   useEffect(() => {
     let isActive = true;
-    if (!draftReady || !gardenId || !operatorAddress) return;
+    if (!draftReady || !gardenId || !stewardAddress) return;
 
     const checkDraft = async () => {
       const stored = await peekDraft();
@@ -150,7 +150,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     return () => {
       isActive = false;
     };
-  }, [draftReady, gardenId, operatorAddress, peekDraft]);
+  }, [draftReady, gardenId, stewardAddress, peekDraft]);
 
   const selectedAttestations = useMemo(() => {
     if (!attestations.length) return [] as HypercertAttestation[];
@@ -211,11 +211,11 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
   // Include metadata fields to ensure draft recalculates when form values change
   // This is necessary because toDraft reads from store state via get()
   const draft = useMemo(
-    () => toDraft(gardenId, (operatorAddress ?? zeroAddress) as `0x${string}`),
+    () => toDraft(gardenId, (stewardAddress ?? zeroAddress) as `0x${string}`),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Store values intentionally trigger recalc even though not passed to toDraft
     [
       gardenId,
-      operatorAddress,
+      stewardAddress,
       toDraft,
       wizardTitle,
       wizardDescription,
@@ -274,7 +274,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
 
   const handleMint = useCallback(async () => {
     if (!gardenId) return;
-    if (!operatorAddress) {
+    if (!stewardAddress) {
       toastService.error({
         title: formatMessage({ id: "app.hypercerts.mint.error.auth.title" }),
         message: formatMessage({ id: "app.hypercerts.mint.error.auth.message" }),
@@ -327,7 +327,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     gardenId,
     mint,
     mintingState.status,
-    operatorAddress,
+    stewardAddress,
     previewMetadata,
     retry,
     selectedAttestations,

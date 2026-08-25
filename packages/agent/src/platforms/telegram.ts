@@ -474,7 +474,7 @@ export function chooseHandler(
   }
 
   if (inbound.content.type === "command" || inbound.content.type === "callback") {
-    // Operator commands/callbacks can expose work IDs, addresses, tx hashes, or
+    // Steward commands/callbacks can expose work IDs, addresses, tx hashes, or
     // wallet state. In groups, the topic-capture bot is intentionally silent.
     return null;
   }

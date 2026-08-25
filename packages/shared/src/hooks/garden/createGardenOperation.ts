@@ -98,12 +98,12 @@ export const GARDEN_OPERATIONS: Record<string, GardenOperationConfigBase> = {
     memberType: "gardener",
     operationType: "remove",
   },
-  addOperator: {
-    memberType: "operator",
+  addSteward: {
+    memberType: "steward",
     operationType: "add",
   },
-  removeOperator: {
-    memberType: "operator",
+  removeSteward: {
+    memberType: "steward",
     operationType: "remove",
   },
   addEvaluator: {

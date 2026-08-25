@@ -65,8 +65,8 @@ track("sync_completed", { jobs_synced: count, duration_ms: elapsed });
 | Event | Properties | When |
 |-------|-----------|------|
 | `work_submitted` | `garden_address`, `action_uid`, `is_offline` | Work queued or submitted |
-| `work_approved` | `garden_address`, `work_id`, `approver_role` | Operator approves work |
-| `garden_created` | `garden_address`, `operator_count` | New garden deployed |
+| `work_approved` | `garden_address`, `work_id`, `approver_role` | Steward approves work |
+| `garden_created` | `garden_address`, `steward_count` | New garden deployed |
 | `sync_completed` | `jobs_synced`, `duration_ms` | Job queue flush completes |
 | `sync_failed` | `job_id`, `error_type`, `attempt` | Job fails after retries |
 | `auth_login_success` | `auth_mode`, `chain_id` | Login succeeds |

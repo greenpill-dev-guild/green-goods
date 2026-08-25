@@ -134,12 +134,12 @@ describe("useWorkDetailController", () => {
     mocks.isUserAddress.mockReturnValue(false);
   });
 
-  it("projects operator, gardener, and viewer modes with operator precedence", () => {
+  it("projects steward, gardener, and viewer modes with steward precedence", () => {
     mocks.canManageGarden.mockReturnValue(true);
     mocks.isUserAddress.mockReturnValue(true);
-    const operator = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
-    expect(operator.result.current.viewingMode).toBe("operator");
-    operator.unmount();
+    const steward = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+    expect(steward.result.current.viewingMode).toBe("steward");
+    steward.unmount();
 
     mocks.canManageGarden.mockReturnValue(false);
     const gardener = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });

@@ -48,7 +48,7 @@ interface BuildCommandPaletteResultsOptions {
  * biased toward consecutive matches and matches near the start.
  * Returns 0 when the query doesn't match.
  */
-export function fuzzyScore(query: string, text: string): number {
+function fuzzyScore(query: string, text: string): number {
   if (!query) return 1;
   const q = query.toLowerCase();
   const t = text.toLowerCase();
@@ -105,7 +105,7 @@ export function buildCommandPaletteResults({
         defaultMessage: "Go to Pending Reviews",
       }),
       href: adminRoutes.hubWork(),
-      roles: ["deployer", "operator"],
+      roles: ["deployer", "steward"],
     },
     {
       id: "quick-create-garden",
@@ -124,7 +124,7 @@ export function buildCommandPaletteResults({
       }),
       actionId: "open-profile-sheet",
       icon: RiUserLine,
-      roles: ["deployer", "operator", "user"],
+      roles: ["deployer", "steward", "user"],
     },
     {
       id: "open-settings-sheet",
@@ -134,7 +134,7 @@ export function buildCommandPaletteResults({
       }),
       actionId: "open-settings-sheet",
       icon: RiSettings3Line,
-      roles: ["deployer", "operator", "user"],
+      roles: ["deployer", "steward", "user"],
     },
   ];
 

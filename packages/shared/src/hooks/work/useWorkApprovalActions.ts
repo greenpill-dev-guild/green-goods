@@ -29,8 +29,8 @@ export interface UseWorkApprovalActionsParams {
   work: Work | undefined;
   gardenId: string | undefined;
   chainId: number;
-  /** Only "operator" viewers can submit approvals */
-  viewingMode: "operator" | "gardener" | "viewer";
+  /** Only "steward" viewers can submit approvals */
+  viewingMode: "steward" | "gardener" | "viewer";
   /** Called after a successful approval + navigation delay */
   onApprovalComplete?: (gardenId: string) => void;
 }

@@ -82,7 +82,7 @@ function buildGardenContractConfig(params: CreateGardenParams): GardenContractCo
     weightScheme: params.weightScheme,
     domainMask: params.domainMask,
     gardeners: params.gardeners,
-    operators: params.operators,
+    stewards: params.stewards,
   };
 }
 

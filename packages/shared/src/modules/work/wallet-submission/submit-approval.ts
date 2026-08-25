@@ -102,7 +102,7 @@ export async function submitApprovalDirectly(
 
     const optimisticApproval: EASWorkApproval = {
       id: `optimistic-${hash}`,
-      operatorAddress: walletClient.account?.address || "",
+      stewardAddress: walletClient.account?.address || "",
       gardenerAddress,
       actionUID: draft.actionUID,
       workUID: draft.workUID,

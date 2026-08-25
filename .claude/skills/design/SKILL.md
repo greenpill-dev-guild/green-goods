@@ -116,16 +116,16 @@ Pick a material that carries the entire surface:
 | Material | Visual Language | Best For |
 |----------|----------------|----------|
 | **Liquid Glass** | Refracted light, variable blur, chromatic edges | Command surfaces, active workspaces (**default material for client PWA**) |
-| **Obsidian** | Dark, reflective, warm accent glows on interaction | Data landscapes, operator tools |
+| **Obsidian** | Dark, reflective, warm accent glows on interaction | Data landscapes, steward tools |
 | **Vellum** | Warm, tactile, paper-like grain texture | Conversational surfaces, documentation |
 | **Holographic** | Iridescent edges, gradient shifts, spectral accents | Ritual moments, celebrations, onboarding |
-| **Carbon** | Industrial matte dark, precise grid lines, monospace | Technical/operator surfaces, config |
+| **Carbon** | Industrial matte dark, precise grid lines, monospace | Technical/steward surfaces, config |
 
 Then enforce it — every element speaks the same material language.
 
 ### Admin Cockpit Carve-Out
 
-For `packages/admin` and operator dashboards, do not treat the Warm Earth language as permission to make the cockpit theatrical. The cockpit inherits warmth and concentric geometry from the design language, but expresses them through restraint — solid surfaces, quiet workspace tint, utility copy. See [prompt-contract.md](./prompt-contract.md) for the stable admin brief.
+For `packages/admin` and steward dashboards, do not treat the Warm Earth language as permission to make the cockpit theatrical. The cockpit inherits warmth and concentric geometry from the design language, but expresses them through restraint — solid surfaces, quiet workspace tint, utility copy. See [prompt-contract.md](./prompt-contract.md) for the stable admin brief.
 
 - Default to **Command Surface** with restrained material, strong typography, and calm workspace hierarchy.
 - Use subtle atmosphere and tint, not decorative spectacle.
@@ -167,7 +167,7 @@ If a platform-specific quirk really is worth recording (e.g. a one-line tip abou
 10. **Generic AI slop** — Inter + purple gradient + white bg + predictable grid = forgettable.
 11. **Sharp corners at scale** — Squircles for panes. Sharp only for inline text elements.
 12. **Motion without meaning** — Every animation communicates state change, not decoration.
-13. **Client styling in the cockpit** — Do not import landing-page or public-brand composition rules into operator surfaces.
+13. **Client styling in the cockpit** — Do not import landing-page or public-brand composition rules into steward surfaces.
 
 ---
 

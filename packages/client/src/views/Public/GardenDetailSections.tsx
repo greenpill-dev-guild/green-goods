@@ -124,43 +124,37 @@ export function CertificatesSection({
   );
 }
 
-export function OperatorsSection({
-  operators,
-  loading,
-}: {
-  operators: Address[];
-  loading: boolean;
-}) {
+export function StewardsSection({ stewards, loading }: { stewards: Address[]; loading: boolean }) {
   const { formatMessage } = useIntl();
 
   return (
     <Section
-      id="public-garden-detail-operators"
+      id="public-garden-detail-stewards"
       kicker={formatMessage({
-        id: "public.gardenDetail.section.operators",
-        defaultMessage: "§ 04: Operators",
+        id: "public.gardenDetail.section.stewards",
+        defaultMessage: "§ 04: Stewards",
       })}
       heading={formatMessage({
-        id: "public.gardenDetail.operators.heading",
-        defaultMessage: "Operators",
+        id: "public.gardenDetail.stewards.heading",
+        defaultMessage: "Stewards",
       })}
       helper={formatMessage({
-        id: "public.gardenDetail.operators.helper",
+        id: "public.gardenDetail.stewards.helper",
         defaultMessage: "Trusted coordinators who approve Work and steward the Garden.",
       })}
     >
       {loading ? (
         <ListSkeleton rows={2} />
-      ) : operators.length === 0 ? (
+      ) : stewards.length === 0 ? (
         <SectionEmpty
           message={formatMessage({
-            id: "public.gardenDetail.operators.empty",
-            defaultMessage: "No operators are listed for this Garden yet.",
+            id: "public.gardenDetail.stewards.empty",
+            defaultMessage: "No stewards are listed for this Garden yet.",
           })}
         />
       ) : (
         <ul className="mt-8 flex flex-wrap gap-3">
-          {operators.map((address) => (
+          {stewards.map((address) => (
             <li
               key={address}
               className="border border-stroke-soft-200 bg-bg-white-0 px-4 py-2 text-sm text-text-sub-600"

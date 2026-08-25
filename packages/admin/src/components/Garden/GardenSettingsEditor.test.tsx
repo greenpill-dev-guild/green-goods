@@ -333,7 +333,7 @@ describe("GardenSettingsEditor explicit save", () => {
     const user = userEvent.setup();
     renderEditor();
 
-    // No cap field until the operator opts into limiting.
+    // No cap field until the steward opts into limiting.
     expect(screen.queryByLabelText("Maximum gardeners")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("switch", { name: "Limit gardeners" }));

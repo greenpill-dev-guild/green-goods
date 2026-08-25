@@ -183,7 +183,7 @@ export interface HypercertMetadata {
 export interface HypercertDraft {
   id: string;
   gardenId: string;
-  operatorAddress: Address;
+  stewardAddress: Address;
   stepNumber: number;
   attestationIds: string[];
   title: string;
@@ -279,7 +279,7 @@ export interface CreateListingParams {
   durationDays: number;
 }
 
-/** Recommended defaults for operator-created maker orders */
+/** Recommended defaults for steward-created maker orders */
 export const LISTING_DEFAULTS = {
   /** ~$0.00001 for stables — $1 buys 100k units */
   pricePerUnit: 1n * 10n ** 13n,

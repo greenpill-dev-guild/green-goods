@@ -55,7 +55,7 @@ export const getCommitmentCycleDetail = demoAware(
   defaultRepository.getCommitmentCycleDetail
 );
 // Activity, member history and the steward console reads have no fixtures; the
-// demo world simply has none. The console is an operator surface, not one of
+// demo world simply has none. The console is a steward surface, not one of
 // the member screens `?mockPooling=1` stands in for.
 export const getCommitmentActivity = defaultRepository.getCommitmentActivity;
 export const getPoolMemberHistory = defaultRepository.getPoolMemberHistory;

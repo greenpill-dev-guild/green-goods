@@ -28,11 +28,11 @@ import {StatusBadge} from "@site/src/components/docs";
 
 <StatusBadge status="In progress">In progress (Season-close orchestration aspirational)</StatusBadge>
 
-How a Season's accumulated impact gets converted into hypercerts, distributed yield, and a publishable record. The component primitives are shipped — hypercert mint, yield split config, vault harvest — but the **end-to-end "close the Season" orchestration is not yet a single workflow**. Today operators run the steps individually from the Hub Certify stage and the Community workspace.
+How a Season's accumulated impact gets converted into hypercerts, distributed yield, and a publishable record. The component primitives are shipped — hypercert mint, yield split config, vault harvest — but the **end-to-end "close the Season" orchestration is not yet a single workflow**. Today stewards run the steps individually from the Hub Certify stage and the Community workspace.
 
 ## Personas
 
-- **B: Operator** — primary subject. Runs hypercert mint, configures split, allocates yield.
+- **B: Steward** — primary subject. Runs hypercert mint, configures split, allocates yield.
 - **C: Evaluator** — assessment attestation must be in place before certification (see [Evaluation](./evaluation)).
 - **D: Funder** — beneficiary of vault harvest; conviction outcomes affect distribution.
 
@@ -42,7 +42,7 @@ How a Season's accumulated impact gets converted into hypercerts, distributed yi
 stateDiagram-v2
     [*] --> SeasonOpen
     SeasonOpen --> BaselineAssessed: evaluator sets the garden baseline (Hub Assess stage)
-    BaselineAssessed --> WorksAccumulating: gardeners submit + operators approve
+    BaselineAssessed --> WorksAccumulating: gardeners submit + stewards approve
     WorksAccumulating --> ReadyToCertify: Hub Certify mints a Hypercert from approved work
 
     state "Hypercert minting" as Mint {
@@ -68,10 +68,10 @@ stateDiagram-v2
 
 | Entry | Surface | Trigger |
 | --- | --- | --- |
-| Admin Hub Certify stage | `packages/admin/src/views/Hub/index.tsx` (stage `certify`) | Operator selects garden, opens FAB "Mint Hypercert" |
-| Admin Community Strategies | `packages/admin/src/views/Garden/Strategies.tsx` | Operator configures yield split + decay |
-| Admin Community Payouts | `packages/admin/src/views/Community/index.tsx` (mode `payouts`) | Operator surfaces yield allocation history |
-| Vault harvest | `packages/admin/src/components/Vault/PositionCard.tsx` (via `useVaultOperations` → `useHarvest`) | Operator triggers harvest of accrued yield |
+| Admin Hub Certify stage | `packages/admin/src/views/Hub/index.tsx` (stage `certify`) | Steward selects garden, opens FAB "Mint Hypercert" |
+| Admin Community Strategies | `packages/admin/src/views/Garden/Strategies.tsx` | Steward configures yield split + decay |
+| Admin Community Payouts | `packages/admin/src/views/Community/index.tsx` (mode `payouts`) | Steward surfaces yield allocation history |
+| Vault harvest | `packages/admin/src/components/Vault/PositionCard.tsx` (via `useVaultOperations` → `useHarvest`) | Steward triggers harvest of accrued yield |
 
 ## Steps
 
@@ -101,7 +101,7 @@ stateDiagram-v2
 | # | State | Persona | Surface (package + view) | Hook / Service | Side effects | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | 12 | Finalize Season | B | (not built) | No `useCloseSeason` orchestration hook | Spec § 1.5 "Season One" + § 6.3 reference a Season primitive but there is no admin UI to declare a Season closed and freeze the work / assessment / hypercert set | aspirational |
-| 13 | Publish Season record | B | (not built) | Public Season read shape is planned; no publish mutation exists | The write path (operator declares Season N closed → Season record materialized) is not in the codebase | aspirational |
+| 13 | Publish Season record | B | (not built) | Public Season read shape is planned; no publish mutation exists | The write path (steward declares Season N closed → Season record materialized) is not in the codebase | aspirational |
 
 ## Failure / recovery paths
 
@@ -111,7 +111,7 @@ stateDiagram-v2
 - **Marketplace listing without approval.** `useMarketplaceApprovals` runs first; UI surfaces the approval step before the listing tx.
 - **Vault harvest with no accrued yield.** `useHarvestableYield` returns zero; UI disables the harvest button. Calling `harvest` on a zero balance reverts cleanly.
 - **No assessments attested in Season.** Hub Certify queue is empty; FAB still appears but the mint workflow validates `attestationUIDs.length > 0` and rejects empty bundles.
-- **Season close attempted (aspirational).** No code path exists. Operators currently cannot mark a Season closed; works keep accumulating.
+- **Season close attempted (aspirational).** No code path exists. Stewards currently cannot mark a Season closed; works keep accumulating.
 
 ## Connections
 
@@ -125,4 +125,4 @@ stateDiagram-v2
 - The 3-way split (`cookieJarAmount` / `fractionsAmount` / `juiceboxAmount`) is per-garden and lives on the `YieldAllocation` indexer entity. Always read aggregated yield via `useGardenYieldSummary` and `useProtocolYieldSummary`, not by re-summing individual events client-side.
 - `Hypercert.attestationUIDs` is the canonical link from a hypercert back to its EAS work attestations. The hypercert is the bundle; the work attestations are the evidence. Don't deep-link from hypercerts to individual works without going through this field.
 - Octant Vault auto-buy of listed hypercerts is described in spec § 3.3 but there is no automation in this codebase. If you build it, model it as an off-chain bot that watches `useHypercertListings` and submits buy transactions when funded — not as a contract change.
-- A "Season close" primitive does not exist in the contract surface today. If you scope the orchestration: define a public Season read model and a write path (operator-callable, gated by Owner hat) that snapshots the works + assessments + hypercerts set and emits a Season event the indexer can materialize.
+- A "Season close" primitive does not exist in the contract surface today. If you scope the orchestration: define a public Season read model and a write path (steward-callable, gated by Owner hat) that snapshots the works + assessments + hypercerts set and emits a Season event the indexer can materialize.

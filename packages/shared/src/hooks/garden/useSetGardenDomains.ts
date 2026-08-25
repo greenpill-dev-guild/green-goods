@@ -17,7 +17,7 @@ export interface SetGardenDomainsParams {
  * Mutation hook to update a garden's active domains.
  *
  * Calls `setGardenDomains(address, uint8)` on the ActionRegistry contract.
- * Requires the caller to be an operator of the garden (enforced on-chain).
+ * Requires the caller to be a steward of the garden (enforced on-chain).
  *
  * Bit mapping: bit 0 = SOLAR, bit 1 = AGRO, bit 2 = EDU, bit 3 = WASTE.
  */

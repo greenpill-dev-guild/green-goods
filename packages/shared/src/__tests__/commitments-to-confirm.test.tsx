@@ -57,7 +57,7 @@ vi.mock("../hooks/blockchain/useBaseLists", () => ({
 vi.mock("../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => VIEWER }));
 
 function garden(id: string, name: string, overrides: Record<string, unknown> = {}) {
-  return { id, name, operators: [], owners: [], evaluators: [], gardeners: [], ...overrides };
+  return { id, name, stewards: [], owners: [], evaluators: [], gardeners: [], ...overrides };
 }
 
 /** One registered pool, which is what tells the queue who owns a commitment. */
@@ -124,7 +124,7 @@ describe("useCommitmentsToConfirm", () => {
 
   it("exists only for someone who stewards a garden, and asks each garden as the party", async () => {
     mocks.gardens = [
-      garden(GARDEN_A, "Rocinha", { operators: [VIEWER] }),
+      garden(GARDEN_A, "Rocinha", { stewards: [VIEWER] }),
       garden(GARDEN_B, "Awka", { owners: [OTHER] }),
     ];
     answerWith([commitment()]);
@@ -196,7 +196,7 @@ describe("useCommitmentsToConfirm", () => {
   });
 
   it("leaves out what already sits in the reader's own inbox", async () => {
-    mocks.gardens = [garden(GARDEN_A, "Rocinha", { operators: [VIEWER] })];
+    mocks.gardens = [garden(GARDEN_A, "Rocinha", { stewards: [VIEWER] })];
     answerWith(
       [
         // The steward offered this to their own garden: they are the provider
@@ -223,7 +223,7 @@ describe("useCommitmentsToConfirm", () => {
     // ConfirmLib.confirmFulfillment records the confirmer and reverts
     // AlreadyConfirmed on a repeat, while a threshold above one keeps the
     // record ready in between — so a second offer would be a doomed act.
-    mocks.gardens = [garden(GARDEN_A, "Rocinha", { operators: [VIEWER] })];
+    mocks.gardens = [garden(GARDEN_A, "Rocinha", { stewards: [VIEWER] })];
     answerWith([
       commitment({ confirmationThreshold: 2, confirmationCount: 1 }),
       commitment({ id: "42161-10", commitmentId: 10n, confirmationThreshold: 2 }),
@@ -238,7 +238,7 @@ describe("useCommitmentsToConfirm", () => {
   });
 
   it("treats the reader's own confirmations failing as the tab failing", async () => {
-    mocks.gardens = [garden(GARDEN_A, "Rocinha", { operators: [VIEWER] })];
+    mocks.gardens = [garden(GARDEN_A, "Rocinha", { stewards: [VIEWER] })];
     answerWith([commitment()]);
     mocks.getConfirmedIds.mockRejectedValue(new Error("indexer unreachable"));
 
@@ -251,7 +251,7 @@ describe("useCommitmentsToConfirm", () => {
     // The garden confirms as a party, but the commitment lives in another
     // garden's pool, and only that pool's steward may raise a dispute
     // (TerminalLib.raiseDispute via GuardLib.isPoolSteward).
-    mocks.gardens = [garden(GARDEN_A, "Rocinha", { operators: [VIEWER] })];
+    mocks.gardens = [garden(GARDEN_A, "Rocinha", { stewards: [VIEWER] })];
     mocks.getPools.mockResolvedValue([pool(4n, GARDEN_B), pool(5n, GARDEN_A)]);
     mocks.getCommitments.mockImplementation(async (input: { account?: string; state?: string }) => {
       if (input.account?.toLowerCase() === VIEWER.toLowerCase()) return [];
@@ -273,7 +273,7 @@ describe("useCommitmentsToConfirm", () => {
   it("keeps a disputed record of a pool this steward can resolve, and never another pool's", async () => {
     // resolveDispute admits the pool garden's steward only, so the queue asks
     // per stewarded pool rather than by who is a party to the commitment.
-    mocks.gardens = [garden(GARDEN_A, "Rocinha", { operators: [VIEWER] })];
+    mocks.gardens = [garden(GARDEN_A, "Rocinha", { stewards: [VIEWER] })];
     mocks.getPools.mockResolvedValue([pool(5n, GARDEN_A), pool(6n, GARDEN_B)]);
     const frozen = commitment({
       id: "42161-20",
@@ -310,7 +310,7 @@ describe("useCommitmentsToConfirm", () => {
   });
 
   it("reports a read that failed rather than an empty queue", async () => {
-    mocks.gardens = [garden(GARDEN_A, "Rocinha", { operators: [VIEWER] })];
+    mocks.gardens = [garden(GARDEN_A, "Rocinha", { stewards: [VIEWER] })];
     mocks.getCommitments.mockRejectedValue(new Error("indexer unreachable"));
 
     const result = await toConfirm();
@@ -323,7 +323,7 @@ describe("useCommitmentsToConfirm", () => {
     // Without the own set a steward on a team would be listed and offered a
     // confirmation that reverts, so its failure is the tab's failure, and its
     // retry rides the tab's retry.
-    mocks.gardens = [garden(GARDEN_A, "Rocinha", { operators: [VIEWER] })];
+    mocks.gardens = [garden(GARDEN_A, "Rocinha", { stewards: [VIEWER] })];
     mocks.getCommitments.mockImplementation(async (input: { account?: string }) => {
       if (input.account?.toLowerCase() === VIEWER.toLowerCase()) throw new Error("own read failed");
       return [commitment()];
@@ -346,7 +346,7 @@ describe("useCommitmentsToConfirm", () => {
 describe("useCommitmentsToConfirm fallback group", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.gardens = [garden(GARDEN_A, "Rocinha", { operators: [VIEWER] })];
+    mocks.gardens = [garden(GARDEN_A, "Rocinha", { stewards: [VIEWER] })];
     mocks.getPools.mockResolvedValue([]);
     mocks.getConfirmedIds.mockResolvedValue([]);
     answerWith([]);
@@ -447,8 +447,8 @@ describe("useCommitmentsToConfirm fallback group", () => {
     });
 
     mocks.gardens = [
-      garden(GARDEN_A, "Rocinha", { operators: [VIEWER] }),
-      garden(ROOT_GARDEN, "Green Goods", { operators: [VIEWER] }),
+      garden(GARDEN_A, "Rocinha", { stewards: [VIEWER] }),
+      garden(ROOT_GARDEN, "Green Goods", { stewards: [VIEWER] }),
     ];
     const protocol = await toConfirm({ includeProtocolFallback: true });
     expect(mocks.getFallbackCandidates).toHaveBeenCalledWith({

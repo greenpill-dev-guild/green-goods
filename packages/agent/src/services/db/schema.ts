@@ -122,8 +122,13 @@ export function initSchema(db: Database): void {
     `CREATE INDEX IF NOT EXISTS idx_idempotency_platform_message
        ON idempotency_keys(platform, platformId, messageId, handler)`
   );
+  // The steward role was stored as `operator` until the rename. Both statements are
+  // idempotent, and the index has to be dropped because CREATE INDEX IF NOT EXISTS
+  // will not change an existing partial index's predicate.
+  db.run(`UPDATE users SET role = 'steward' WHERE role = 'operator'`);
+  db.run(`DROP INDEX IF EXISTS idx_users_role_garden`);
   db.run(
-    `CREATE INDEX IF NOT EXISTS idx_users_role_garden ON users(role, currentGarden) WHERE role = 'operator'`
+    `CREATE INDEX IF NOT EXISTS idx_users_role_garden ON users(role, currentGarden) WHERE role = 'steward'`
   );
   db.run(
     `CREATE INDEX IF NOT EXISTS idx_chat_messages_status

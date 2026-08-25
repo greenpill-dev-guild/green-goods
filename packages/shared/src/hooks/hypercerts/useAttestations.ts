@@ -74,7 +74,7 @@ export function useAttestations(
           metrics: metadata.metrics ?? null,
           createdAt: work.createdAt,
           approvedAt: approval.createdAt,
-          approvedBy: approval.operatorAddress as Address,
+          approvedBy: approval.stewardAddress as Address,
           feedback: approval.feedback || null,
         });
       }

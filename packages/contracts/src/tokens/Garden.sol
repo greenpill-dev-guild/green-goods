@@ -128,7 +128,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         IGardensModule.WeightScheme weightScheme;
         uint8 domainMask;
         address[] gardeners;
-        address[] operators;
+        address[] stewards; // Renamed from operators: tuple names never enter the selector, calldata is unchanged.
     }
 
     /// @notice Emitted for batch operations (Gas Optimized)
@@ -389,7 +389,7 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         hatsModule.grantRole(gardenAccount, _msgSender(), IHatsModule.GardenRole.Owner);
 
         GardenHooksLib.grantRolesBestEffort(hatsModule, gardenAccount, config.gardeners, IHatsModule.GardenRole.Gardener);
-        GardenHooksLib.grantRolesBestEffort(hatsModule, gardenAccount, config.operators, IHatsModule.GardenRole.Operator);
+        GardenHooksLib.grantRolesBestEffort(hatsModule, gardenAccount, config.stewards, IHatsModule.GardenRole.Steward);
         GardenHooksLib.notifyKarma(
             karmaGAPModule,
             gardenAccount,

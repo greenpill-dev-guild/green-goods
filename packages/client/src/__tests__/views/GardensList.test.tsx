@@ -69,7 +69,7 @@ vi.mock("@green-goods/shared/utils/errors/contract-errors", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/garden/useJoinGarden", () => ({
-  isGardenMember: (address: string, gardeners: string[], _operators: string[], _id: string) =>
+  isGardenMember: (address: string, gardeners: string[], _stewards: string[], _id: string) =>
     gardeners.includes(address),
   useJoinGarden: () => mockJoinState,
   usePendingJoinsVersion: () => 0,
@@ -205,7 +205,7 @@ describe("GardensList", () => {
         location: "Berlin",
         openJoining: true,
         gardeners: [MOCK_ADDRESS],
-        operators: [],
+        stewards: [],
       },
     ];
 
@@ -228,7 +228,7 @@ describe("GardensList", () => {
         location: longLocation,
         openJoining: true,
         gardeners: [MOCK_ADDRESS],
-        operators: [],
+        stewards: [],
       },
       {
         id: "0xgarden-joinable-long",
@@ -236,7 +236,7 @@ describe("GardensList", () => {
         location: longLocation,
         openJoining: true,
         gardeners: [],
-        operators: [],
+        stewards: [],
       },
     ];
 
@@ -272,7 +272,7 @@ describe("GardensList", () => {
         location: "",
         openJoining: true,
         gardeners: [],
-        operators: [],
+        stewards: [],
       },
     ];
 
@@ -292,7 +292,7 @@ describe("GardensList", () => {
         location: "",
         openJoining: true,
         gardeners: [],
-        operators: [],
+        stewards: [],
       },
     ];
 
@@ -311,7 +311,7 @@ describe("GardensList", () => {
         location: "",
         openJoining: false,
         gardeners: [],
-        operators: [],
+        stewards: [],
       },
     ];
 
@@ -332,7 +332,7 @@ describe("GardensList", () => {
         openJoining: true,
         // User is not in any garden's gardener list, so wasFirstJoin = true
         gardeners: [],
-        operators: [],
+        stewards: [],
       },
     ];
     mockJoinState.joinGarden.mockResolvedValue(undefined);
@@ -366,7 +366,7 @@ describe("GardensList", () => {
         location: "",
         openJoining: true,
         gardeners: [MOCK_ADDRESS],
-        operators: [],
+        stewards: [],
       },
       {
         id: "0xfresh",
@@ -374,7 +374,7 @@ describe("GardensList", () => {
         location: "",
         openJoining: true,
         gardeners: [],
-        operators: [],
+        stewards: [],
       },
     ];
     mockJoinState.joinGarden.mockResolvedValue(undefined);

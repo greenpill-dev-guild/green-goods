@@ -296,6 +296,26 @@ function collectSourceMessageRefs(): SourceMessageRef[] {
     });
   };
 
+  /**
+   * `formatMessage({ id: cond ? "a" : "b" })` used to hide both ids from this scan,
+   * so a stale id in either branch rendered its English defaultMessage in every
+   * locale with nothing failing. Following the branches puts them back in scope;
+   * genuinely dynamic template ids stay covered by knownDynamicMessageIds.
+   */
+  const literalIds = (id: Node | undefined): string[] => {
+    if (!id) return [];
+    const direct = stringLiteral(id);
+    if (direct !== undefined) return [direct];
+    if (id.type === "ConditionalExpression") {
+      return [...literalIds(id.consequent), ...literalIds(id.alternate)];
+    }
+    return [];
+  };
+
+  const addAll = (id: Node | undefined, file: string, fallback: Node) => {
+    for (const value of literalIds(id)) add(value, file, id ?? fallback);
+  };
+
   for (const file of sourceRoots.flatMap((root) => walkSourceFiles(root))) {
     const contents = fs.readFileSync(file, "utf8");
     if (!containsSourceMessageTrigger(contents)) continue;
@@ -314,8 +334,7 @@ function collectSourceMessageRefs(): SourceMessageRef[] {
           (name === "formatMessage" || name === "defineMessage") &&
           firstArg?.type === "ObjectExpression"
         ) {
-          const id = getObjectProp(firstArg, "id");
-          add(stringLiteral(id), file, id ?? firstArg);
+          addAll(getObjectProp(firstArg, "id"), file, firstArg);
         }
         if (name === "defineMessages" && firstArg?.type === "ObjectExpression") {
           for (const property of firstArg.properties) {
@@ -456,7 +475,7 @@ describe("i18n locale coverage", () => {
       expect(directForms.every(containsSourceMessageTrigger)).toBe(true);
     });
 
-    it("should include every statically declared source message id in all locales", () => {
+    it("should include every source message id — including ternary branches — in all locales", () => {
       const refs = collectSourceMessageRefs();
       const catalogs: Record<string, LocaleCatalog> = { en, es, pt };
       const missing = refs.flatMap((ref) =>

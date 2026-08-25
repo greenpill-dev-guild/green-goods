@@ -121,8 +121,8 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                   {WEIGHT_SCHEME_VALUES[community.weightScheme as WeightScheme].gardener / 10_000}x
                 </span>
                 <span>
-                  {formatMessage({ id: "app.roles.operator" })}:{" "}
-                  {WEIGHT_SCHEME_VALUES[community.weightScheme as WeightScheme].operator / 10_000}x
+                  {formatMessage({ id: "app.roles.steward" })}:{" "}
+                  {WEIGHT_SCHEME_VALUES[community.weightScheme as WeightScheme].steward / 10_000}x
                 </span>
               </div>
             </div>

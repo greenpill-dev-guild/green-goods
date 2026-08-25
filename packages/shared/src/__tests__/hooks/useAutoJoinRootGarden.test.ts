@@ -159,7 +159,7 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
           id: "root-garden",
           tokenID: BigInt(0),
           gardeners: [],
-          operators: [],
+          stewards: [],
         }),
       ],
       isLoading: false,

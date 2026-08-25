@@ -284,7 +284,7 @@ describe("useCreateAssessmentWorkflow", () => {
 
   it.each([
     {
-      name: "operator address",
+      name: "steward address",
       prepare: () => {
         mocks.walletAddress = undefined;
       },

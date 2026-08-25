@@ -184,7 +184,7 @@ export function CanvasLayout() {
                 desktop, compact inset bottom sheet on mobile (where only the
                 notification bell can open it — Profile/Settings live in the
                 Profile tab there). The same orchestrator contentId drives
-                open/close. Tone is the neutral operator "hub" accent: this is
+                open/close. Tone is the neutral steward "hub" accent: this is
                 global account chrome, not workspace content, so it should not
                 inherit the active garden's tint, and the sheet portals out of
                 CanvasLayout's [data-tone] scope. */}

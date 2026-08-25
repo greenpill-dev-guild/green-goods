@@ -3,7 +3,7 @@
  *
  * Locks the page that replaced the modal at `/gardens/:id`:
  * - Slug-or-id resolution via `publicGardenHelpers.deriveSlug`.
- * - Field notes → Commitments → Certificates → Operators section order, all
+ * - Field notes → Commitments → Certificates → Stewards section order, all
  *   four always rendered so the ordinals stay stable. The commitments section
  *   has its own suite (`commitment-editorial.test.tsx`); here it is pinned to
  *   the pre-launch state so the page contract stays the subject.
@@ -38,7 +38,7 @@ const mockGardens = [
     contributorCount: 2,
     actionCount: 2,
     lastActivityAt: 1710000000,
-    operators: [GARDENER],
+    stewards: [GARDENER],
     evaluators: [],
   },
 ];
@@ -168,7 +168,7 @@ const messages: Record<string, string> = {
   "public.gardenDetail.stats.unknown": "Not available",
   "public.gardenDetail.section.notes": "§ 01: Field notes",
   "public.gardenDetail.section.certificates": "§ 03: Certificates",
-  "public.gardenDetail.section.operators": "§ 04: Operators",
+  "public.gardenDetail.section.stewards": "§ 04: Stewards",
   "public.pool.garden.kicker": "§ 02: Commitments",
   "public.pool.garden.heading.preparing": "This Garden is preparing its pool",
   "public.pool.garden.state.notReady": "Offers and requests open once the pool is ready.",
@@ -188,9 +188,9 @@ const messages: Record<string, string> = {
   "public.gardenDetail.certificates.untitled": "Untitled certificate",
   "public.gardenDetail.certificates.attestations":
     "{count, plural, one {# attestation} other {# attestations}}",
-  "public.gardenDetail.operators.heading": "Operators",
-  "public.gardenDetail.operators.helper": "Trusted coordinators.",
-  "public.gardenDetail.operators.empty": "No operators are listed for this Garden yet.",
+  "public.gardenDetail.stewards.heading": "Stewards",
+  "public.gardenDetail.stewards.helper": "Trusted coordinators.",
+  "public.gardenDetail.stewards.empty": "No stewards are listed for this Garden yet.",
   "public.source.close": "Close",
   "public.nav.installApp": "Install App",
   "public.nav.openApp": "Open App",
@@ -217,7 +217,7 @@ function detailResult(
         location: "Austin, TX",
         description: "A solar-powered community garden in downtown Austin",
         bannerImage: "https://example.com/banner.jpg",
-        operators: [GARDENER],
+        stewards: [GARDENER],
       },
       fieldNotes,
       contributors: overrides.contributors ?? [{ address: GARDENER, fieldNoteCount: 2 }],
@@ -295,7 +295,7 @@ describe("GardenDetail", () => {
     expect(screen.getAllByText(/solar-powered community garden/i).length).toBeGreaterThanOrEqual(1);
   });
 
-  it("renders field notes, commitments, certificates and operators in order, all four always present", () => {
+  it("renders field notes, commitments, certificates and stewards in order, all four always present", () => {
     mockUsePublicGardenDetail.mockReturnValue(detailResult({ fieldNotes: [] }));
     const { container } = renderView();
     // Scoped to the record ladder: PublicInstallCta is a labelled section with
@@ -307,7 +307,7 @@ describe("GardenDetail", () => {
       "Latest field notes",
       "This Garden is preparing its pool",
       "Impact Certificates",
-      "Operators",
+      "Stewards",
     ]);
     // Empty sections say so rather than disappearing.
     expect(screen.getByText("No field notes yet.")).toBeInTheDocument();

@@ -54,7 +54,7 @@ const ALLOWLIST: AllowlistEntry[] = [
   {
     address: "0x2222222222222222222222222222222222222222" as Address,
     units: 30_000_000n,
-    label: "Operator",
+    label: "Steward",
   },
   {
     address: "0x3333333333333333333333333333333333333333" as Address,

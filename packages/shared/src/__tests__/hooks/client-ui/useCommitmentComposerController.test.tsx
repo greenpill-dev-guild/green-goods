@@ -64,7 +64,7 @@ vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
 
 vi.mock("../../../hooks/roles/useHasRole", () => ({
   useHasRole: (_garden: Address | undefined, _viewer: Address | undefined, role: string) =>
-    role === "operator" ? mocks.steward : mocks.owner,
+    role === "steward" ? mocks.steward : mocks.owner,
 }));
 
 const renderController = (

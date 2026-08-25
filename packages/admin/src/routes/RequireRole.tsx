@@ -38,8 +38,8 @@ export default function RequireRole({ allowedRoles, loadingFallback }: RequireRo
                 {allowedRoles.includes("deployer") && (
                   <li>{formatMessage({ id: "app.admin.auth.requireDeployer" })}</li>
                 )}
-                {allowedRoles.includes("operator") && (
-                  <li>{formatMessage({ id: "app.admin.auth.requireOperator" })}</li>
+                {allowedRoles.includes("steward") && (
+                  <li>{formatMessage({ id: "app.admin.auth.requireSteward" })}</li>
                 )}
               </ul>
             </div>

@@ -37,6 +37,13 @@ export type OntologyAvailability =
 
 export type OntologyLayer = "solidity" | "indexer" | "shared" | "docs";
 
+/**
+ * Product surfaces a term is allowed to appear on. Mirrors the glossary's
+ "Allowed surfaces" column, which the docs-glossary guard locks to the sidecar.
+ * `community` is carried verbatim pending the community-surface-token known issue.
+ */
+export type OntologySurface = "admin" | "client" | "agent" | "community" | "public" | "docs";
+
 export type VocabularyExtract =
   | "solidity-enum"
   | "graphql-enum"
@@ -85,6 +92,7 @@ export interface OntologyEntity {
   indexer_note?: string;
   note?: string;
   relationships?: EntityRelationship[];
+  surfaces: OntologySurface[];
 }
 
 export interface OntologyPersona {
@@ -93,12 +101,20 @@ export interface OntologyPersona {
   /** GardenRole hat this persona wears, lowercase id from GARDEN_ROLE_IDS. */
   hat: string;
   definition: string;
+  surfaces: OntologySurface[];
 }
 
 export interface VocabularyCanonical {
   ordered: boolean;
   value_scheme: "index" | "explicit" | "none";
   members: string[];
+  /**
+   * Human label for a canonical member whose wire name differs from what people read.
+   * Keyed by canonical member; every key must be a member of this vocabulary.
+   */
+  display_labels?: Record<string, string>;
+  /** Why the wire name and the display label diverge. Required when display_labels is set. */
+  display_labels_note?: string;
 }
 
 export interface VocabularyRepresentation {
@@ -156,6 +172,8 @@ export interface OntologySchema {
   /** Constant name holding the registration schema string (existence-only). */
   source_symbol?: string;
   name: string;
+  /** Canonical entity this schema records. Absent when no entity covers it yet — see `note`. */
+  entity?: string;
   revocable: boolean;
   resolver?: string | null;
   /** Planned resolver contract name for spec-only schemas whose source file does not exist yet. */
@@ -225,6 +243,16 @@ export interface IntegrationMatrixRow {
 export interface OntologyIntegrationMatrix {
   protocols: string[];
   rows: IntegrationMatrixRow[];
+}
+
+/**
+ * A glossary Term Reference entry that is deliberately not a canonical entity or persona.
+ * Declaring it here is what lets the docs-term-reference guard fail on an undeclared term.
+ */
+export interface OntologySupportingTerm {
+  id: string;
+  display: string;
+  reason: string;
 }
 
 export interface OntologyPatternWatch {
@@ -306,6 +334,7 @@ export interface AgentOntologyTerm {
   canonical: string;
   definition: string;
   semantic_status: OntologySemanticStatus;
+  surfaces: OntologySurface[];
   aliases: string[];
   relationships: EntityRelationship[];
   maturity: OntologyCapability | null;
@@ -329,6 +358,8 @@ export interface GreenGoodsOntology {
   entities: OntologyEntity[];
   personas: OntologyPersona[];
   personas_note: string;
+  supporting_terms_note: string;
+  supporting_terms: OntologySupportingTerm[];
   vocabularies: OntologyVocabulary[];
   schemas: Record<string, OntologySchema>;
   constraints: OntologyConstraint[];

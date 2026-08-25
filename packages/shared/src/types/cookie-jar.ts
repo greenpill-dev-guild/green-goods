@@ -16,7 +16,7 @@ export interface CookieJar {
 
 export type CookieJarAccessType = "allowlist" | "erc721" | "erc1155" | "unknown";
 export type CookieJarWithdrawalType = "fixed" | "variable" | "unknown";
-export type CampaignCookieJarOperatorPolicy = "one-operator-per-garden";
+export type CampaignCookieJarStewardPolicy = "one-operator-per-garden";
 
 export interface CampaignCookieJarMetadata {
   kind: "green-goods.campaign-cookie-jar";
@@ -27,7 +27,7 @@ export interface CampaignCookieJarMetadata {
   image?: string;
   externalUrl?: string;
   sourceGardens: Address[];
-  operatorPolicy: CampaignCookieJarOperatorPolicy;
+  operatorPolicy: CampaignCookieJarStewardPolicy;
   extraAllowlist: Address[];
   chainId: number;
   createdAt: number;
@@ -87,19 +87,19 @@ export interface CampaignCookieJarCampaign {
   source: "indexed" | "fallback" | "direct";
 }
 
-export interface CampaignCookieJarOperatorSource {
+export interface CampaignCookieJarStewardSource {
   gardenAddress: Address;
   gardenName: string;
   gardenSlug: string;
-  selectedOperator: Address | null;
-  operators: Address[];
+  selectedSteward: Address | null;
+  stewards: Address[];
 }
 
-export interface CampaignCookieJarOperatorAggregation {
+export interface CampaignCookieJarStewardAggregation {
   allowlist: Address[];
   invalidAddresses: string[];
-  sources: CampaignCookieJarOperatorSource[];
-  missingOperatorGardens: CampaignCookieJarOperatorSource[];
+  sources: CampaignCookieJarStewardSource[];
+  missingStewardGardens: CampaignCookieJarStewardSource[];
   extraAllowlist: Address[];
 }
 

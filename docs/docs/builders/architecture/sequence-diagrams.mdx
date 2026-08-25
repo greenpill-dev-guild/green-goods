@@ -26,11 +26,11 @@ This page collects all major transaction flows in Green Goods, showing how parti
 
 ## Garden minting
 
-When an operator mints a garden, GardenToken fans out to all configured modules in two phases. Phase 1 handles role setup and governance. Phase 2 handles integration wiring. Each optional module call is wrapped in `try/catch` so failures never block the mint.
+When a steward mints a garden, GardenToken fans out to all configured modules in two phases. Phase 1 handles role setup and governance. Phase 2 handles integration wiring. Each optional module call is wrapped in `try/catch` so failures never block the mint.
 
 ```mermaid
 sequenceDiagram
-    actor Op as Operator
+    actor Op as Steward
     participant GT as GardenToken
     participant TBA as GardenAccount (TBA)
     participant HM as HatsModule
@@ -78,12 +78,12 @@ sequenceDiagram
 
 ## Work submission and approval
 
-The core user flow: a gardener submits work, an operator reviews it, and the attestation chain is anchored on EAS. The WorkResolver validates that the gardener has the correct hat and the action is active. The WorkApprovalResolver validates the operator role and optionally triggers a Karma GAP impact attestation.
+The core user flow: a gardener submits work, a steward reviews it, and the attestation chain is anchored on EAS. The WorkResolver validates that the gardener has the correct hat and the action is active. The WorkApprovalResolver validates the steward role and optionally triggers a Karma GAP impact attestation.
 
 ```mermaid
 sequenceDiagram
     actor G as Gardener
-    actor Op as Operator
+    actor Op as Steward
     participant EAS as EAS Contract
     participant WR as WorkResolver
     participant WAR as WorkApprovalResolver
@@ -100,7 +100,7 @@ sequenceDiagram
     WR-->>EAS: allow
     EAS-->>G: workUID
 
-    Note over G,Op: Later -- operator reviews
+    Note over G,Op: Later -- steward reviews
 
     Op->>EAS: attest(WorkApprovalSchema)
     EAS->>WAR: onAttest() validation
@@ -124,7 +124,7 @@ sequenceDiagram
 | --- | --- | --- |
 | Gardener role | WorkResolver | Attester must wear the Gardener hat for the target garden. |
 | Action validity | WorkResolver | The action UID must exist in the ActionRegistry and its time window must be active. |
-| Operator role | WorkApprovalResolver | Attester must wear the Operator hat for the target garden. |
+| Steward role | WorkApprovalResolver | Attester must wear the Steward hat for the target garden. |
 | Work reference | WorkApprovalResolver | The referenced work UID must belong to the same garden. |
 | Confidence range | WorkApprovalResolver | Confidence must be 0-100. |
 
@@ -132,7 +132,7 @@ sequenceDiagram
 
 ## Vault and yield flow
 
-When gardens receive deposits, the yield accrues in an ERC-4626 vault. An operator triggers harvest, and the YieldSplitter divides the yield three ways.
+When gardens receive deposits, the yield accrues in an ERC-4626 vault. A steward triggers harvest, and the YieldSplitter divides the yield three ways.
 
 ```mermaid
 graph TD
@@ -143,7 +143,7 @@ graph TD
     end
 
     subgraph Harvest["Harvest Flow"]
-        H1["Operator calls harvest()"]
+        H1["Steward calls harvest()"]
         H2["OctantModule"]
         H3["YieldSplitter"]
     end

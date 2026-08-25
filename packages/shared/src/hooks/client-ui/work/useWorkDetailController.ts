@@ -24,7 +24,7 @@ import { useWorkApprovalActions } from "../../work/useWorkApprovalActions";
 import { useWorkMetadata } from "../../work/useWorkMetadata";
 import { useWorks } from "../../work/useWorks";
 
-export type WorkViewingMode = "operator" | "gardener" | "viewer";
+export type WorkViewingMode = "steward" | "gardener" | "viewer";
 
 export function useWorkDetailController() {
   const intl = useIntl();
@@ -54,7 +54,7 @@ export function useWorkDetailController() {
 
   const viewingMode = useMemo<WorkViewingMode>(() => {
     if (!garden || !work) return "viewer";
-    if (permissions.canManageGarden(garden)) return "operator";
+    if (permissions.canManageGarden(garden)) return "steward";
     if (isUserAddress(work.gardenerAddress, user?.id)) return "gardener";
     return "viewer";
   }, [garden, permissions, user?.id, work]);

@@ -28,7 +28,7 @@ Current indexed garden state:
 Arbitrum production role totals:
 
 - Gardeners: 50
-- Operators: 26
+- Stewards: 26
 - Evaluators: 19
 
 Arbitrum production domain coverage by garden domain mask:
@@ -43,7 +43,7 @@ Important live-data takeaways:
 - Uganda does not appear in the current live garden set.
 - Education is not just a standalone domain in the live data. It is the most common cross-cutting layer across current gardens.
 - The current live set is broader than the older narrative. Beyond Nigeria, Cape Town, and Brazil, the production set also includes Kenya, Thailand, Sicily, Taiwan, Canada, and Barcelona.
-- Some domain masks do not cleanly match garden descriptions. That is not just a metadata issue. It is evidence that Green Goods still needs stronger domain calibration, operator tooling, and evaluator guidance.
+- Some domain masks do not cleanly match garden descriptions. That is not just a metadata issue. It is evidence that Green Goods still needs stronger domain calibration, steward tooling, and evaluator guidance.
 
 Selected live gardens most relevant to the Octant story:
 
@@ -59,7 +59,7 @@ Selected live gardens most relevant to the Octant story:
 Live-data caveat worth using in the pitch:
 
 - The current data shows why Green Goods should not oversell a single universal impact number.
-- Domain choice, metric maturity, and operator configuration still need hardening.
+- Domain choice, metric maturity, and steward configuration still need hardening.
 - That supports an Octant proposal centered on compliance infrastructure, evaluator networks, and bioregional calibration rather than just dashboards.
 
 ## One-Page Narrative
@@ -68,13 +68,13 @@ Live-data caveat worth using in the pitch:
 
 Green Goods should pitch Octant on a simple idea: Octant supplies the capital-preserving funding engine, and Green Goods supplies the regenerative compliance layer that makes real-world work legible, verifiable, and fundable across bioregions.
 
-This framing fits the current state of both systems. Octant is moving toward modular, institutional-grade funding infrastructure built around vaults, routing, and allocation. Green Goods is already designed as an offline-first, role-based verification system for community work, where gardeners document evidence, operators review it, evaluators certify it, and funders can trace what happened. The overlap is not abstract. It is operational.
+This framing fits the current state of both systems. Octant is moving toward modular, institutional-grade funding infrastructure built around vaults, routing, and allocation. Green Goods is already designed as an offline-first, role-based verification system for community work, where gardeners document evidence, stewards review it, evaluators certify it, and funders can trace what happened. The overlap is not abstract. It is operational.
 
 The live Green Goods garden data strengthens this pitch. As of April 1, 2026, the production indexer shows 13 live gardens on Arbitrum, with the strongest current stories clustered around Nigeria, Cape Town, Brazil, and Kenya. The most important pattern in the live set is that education appears in 12 of 13 gardens. That suggests Green Goods should not frame education only as one separate domain. Education is the connective tissue that helps communities adopt Ethereum-native tools, learn stewardship practices, and translate complex funding systems into usable local workflows.
 
 That matters for Octant because Octant needs more than projects asking for money. It needs credible pathways from capital to outcomes. Green Goods can offer that by turning domain-specific field activity into compliance-grade records. In Nigeria, that can mean solar infrastructure plus education through TAS HUB. In Cape Town, it can mean waste diversion, composting, and community food systems. In Brazil, it can mean agroforestry, biodiversity, and knowledge transfer. The same reporting structure can hold across these contexts, while the metrics and evaluator methods change by domain and bioregion.
 
-This is where the proposal should be precise. Green Goods should not claim to invent all the metrics from scratch. It should claim to operationalize existing methods into trusted workflows. The problem funders, operators, and evaluators repeatedly face is not the total absence of frameworks. It is that the reporting burden is fragmented, trust is brittle, data gets lost or manipulated, and local practitioners are forced into tools that do not match their realities. Green Goods, paired with Octant vault infrastructure, can reduce that friction.
+This is where the proposal should be precise. Green Goods should not claim to invent all the metrics from scratch. It should claim to operationalize existing methods into trusted workflows. The problem funders, stewards, and evaluators repeatedly face is not the total absence of frameworks. It is that the reporting burden is fragmented, trust is brittle, data gets lost or manipulated, and local practitioners are forced into tools that do not match their realities. Green Goods, paired with Octant vault infrastructure, can reduce that friction.
 
 The strongest proposal therefore has three layers. First, build the compliance layer: domain templates, role-based approvals, exportable reporting, and attestation-backed evidence. Second, mature the metric layer: evaluator networks, domain methods, and bioregional calibration for solar, waste, agroforestry, and education. Third, prove a funding layer: use Octant-powered vaults to route yield into selected gardens and track domain-specific yield efficiency over time. That is the real meaning of yield-to-impact here. Not a single magic ratio, but a disciplined family of domain-specific efficiency measures grounded in real work.
 
@@ -85,7 +85,7 @@ The right ask is for Octant to fund Green Goods as a regenerative compliance and
 ## Deck Outline
 
 1. Problem
-   Real-world regenerative work is hard to fund because compliance is fragmented, admin-heavy, and poorly matched to local operators.
+   Real-world regenerative work is hard to fund because compliance is fragmented, admin-heavy, and poorly matched to local stewards.
 
 2. Why Now
    Octant is evolving into modular ecosystem funding infrastructure, and Green Goods now has a live garden base that can test this in production contexts.
@@ -100,7 +100,7 @@ The right ask is for Octant to fund Green Goods as a regenerative compliance and
    Octant is the funding spine. Green Goods is the regenerative compliance layer.
 
 6. Role Architecture
-   Funder, evaluator, operator, gardener, and community member are not personas only. They are product surfaces and compliance responsibilities.
+   Funder, evaluator, steward, gardener, and community member are not personas only. They are product surfaces and compliance responsibilities.
 
 7. Bioregional Measurement
    Keep a shared reporting structure, but calibrate metrics by domain and place. Same system, different methods.
@@ -130,7 +130,7 @@ The right ask is for Octant to fund Green Goods as a regenerative compliance and
 |---|---|---|
 | Funder | Trust, efficiency, comparability, reduced admin burden | Green Goods turns local work into compliance-grade evidence that can safely unlock Octant-powered funding. |
 | Evaluator | Method rigor, defensible review, less manual reconciliation | Green Goods does not replace evaluators. It gives them better evidence, cleaner workflows, and configurable domain methods. |
-| Operator | Usable tools, manageable approval burden, clear templates | Operators get structured workflows that translate funder requirements into field-ready actions. |
+| Steward | Usable tools, manageable approval burden, clear templates | Stewards get structured workflows that translate funder requirements into field-ready actions. |
 | Gardener | Simplicity, language access, dignity of small work | Impact reporting becomes simple enough to use in real conditions, with clear recognition for work completed. |
 | Community member | Local trust, transparency, and value circulation | Green Goods helps communities see, govern, and retain more of the value they create. |
 

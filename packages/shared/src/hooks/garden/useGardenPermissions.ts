@@ -7,7 +7,7 @@ export interface GardenPermissions {
   canManageGarden: (garden: Garden) => boolean;
   canReviewGarden: (garden: Garden) => boolean;
   canViewGarden: (garden: Garden) => boolean;
-  isOperatorOfGarden: (garden: Garden) => boolean;
+  isStewardOfGarden: (garden: Garden) => boolean;
   isOwnerOfGarden: (garden: Garden) => boolean;
   isEvaluatorOfGarden: (garden: Garden) => boolean;
   canAddMembers: (garden: Garden) => boolean;
@@ -19,8 +19,8 @@ export function useGardenPermissions(): GardenPermissions {
   const address = usePrimaryAddress() as string | undefined;
 
   const permissions = useMemo(() => {
-    const isOperatorOfGarden = (garden: Garden): boolean => {
-      return isAddressInList(address, garden.operators);
+    const isStewardOfGarden = (garden: Garden): boolean => {
+      return isAddressInList(address, garden.stewards);
     };
 
     const isOwnerOfGarden = (garden: Garden): boolean => {
@@ -37,8 +37,8 @@ export function useGardenPermissions(): GardenPermissions {
     };
 
     const canManageGarden = (garden: Garden): boolean => {
-      // Owners + operators can manage the garden
-      return isOperatorOfGarden(garden) || isOwnerOfGarden(garden);
+      // Owners + stewards can manage the garden
+      return isStewardOfGarden(garden) || isOwnerOfGarden(garden);
     };
 
     const canReviewGarden = (garden: Garden): boolean => {
@@ -47,20 +47,20 @@ export function useGardenPermissions(): GardenPermissions {
     };
 
     const canAddMembers = (garden: Garden): boolean => {
-      // Owners + operators can manage roles
-      return isOperatorOfGarden(garden) || isOwnerOfGarden(garden);
+      // Owners + stewards can manage roles
+      return isStewardOfGarden(garden) || isOwnerOfGarden(garden);
     };
 
     const canRemoveMembers = (garden: Garden): boolean => {
-      // Owners + operators can manage roles
-      return isOperatorOfGarden(garden) || isOwnerOfGarden(garden);
+      // Owners + stewards can manage roles
+      return isStewardOfGarden(garden) || isOwnerOfGarden(garden);
     };
 
     return {
       canManageGarden,
       canReviewGarden,
       canViewGarden,
-      isOperatorOfGarden,
+      isStewardOfGarden,
       isOwnerOfGarden,
       isEvaluatorOfGarden,
       canAddMembers,

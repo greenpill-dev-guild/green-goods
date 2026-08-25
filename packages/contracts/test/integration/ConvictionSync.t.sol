@@ -540,7 +540,7 @@ contract ConvictionSyncTest is Test {
         adapter.setConvictionStrategies(garden1, strategies);
 
         // Grant operator to user1 (which cascades to evaluator + gardener)
-        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Operator);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Steward);
 
         // Reset strategy sync count by deploying fresh
         strategy1 = new MockStrategy();
@@ -551,7 +551,7 @@ contract ConvictionSyncTest is Test {
         vm.expectEmit(true, true, true, true);
         emit ConvictionSyncTriggered(garden1, user1, address(strategy1));
 
-        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Operator);
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Steward);
 
         // Sync should have been called exactly once (only for the operator revocation, not sub-roles)
         assertEq(strategy1.syncedCount(), 1, "Operator revocation should trigger exactly 1 sync");

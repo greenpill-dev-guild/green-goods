@@ -999,7 +999,7 @@ contract HatsModuleTest is Test {
         mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
 
         // Grant Operator to user1 — should cascade to Evaluator, Gardener
-        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Operator);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Steward);
 
         assertTrue(adapter.isOperatorOf(garden1, user1), "User1 should be operator");
         assertTrue(adapter.isEvaluatorOf(garden1, user1), "User1 should auto-get evaluator");

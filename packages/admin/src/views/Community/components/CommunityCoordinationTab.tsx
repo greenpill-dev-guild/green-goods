@@ -107,7 +107,7 @@ export function CommunityCoordinationTab({
                       {
                         community: weightSchemeValues.community / 10_000,
                         gardener: weightSchemeValues.gardener / 10_000,
-                        operator: weightSchemeValues.operator / 10_000,
+                        steward: weightSchemeValues.steward / 10_000,
                       }
                     )}
                   </p>

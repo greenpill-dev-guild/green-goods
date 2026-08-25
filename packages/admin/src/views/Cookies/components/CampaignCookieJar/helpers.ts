@@ -31,7 +31,7 @@ export function gardensForAggregation(gardens: readonly Garden[]) {
   return gardens.map((garden) => ({
     id: garden.id,
     name: garden.name,
-    operators: garden.operators,
+    stewards: garden.stewards,
   }));
 }
 

@@ -1,17 +1,17 @@
 ---
 title: "Managing Payouts"
 sidebar_label: "Managing Payouts"
-slug: /community/operator-guide/managing-payouts
-audience: operator
+slug: /community/steward-guide/managing-payouts
+audience: steward
 owner: docs
 last_verified: 2026-04-07
 feature_status: Live
-goal: "Help operators manage vault deposits, withdrawals, cookie jar payouts, and gardener compensation."
+goal: "Help stewards manage vault deposits, withdrawals, cookie jar payouts, and gardener compensation."
 difficulty: "standard"
 estimated_time: "15-25 minutes for setup."
 prereqs: "Active garden with endowment policy and role assignments."
-next_steps: "/community/operator-guide/managing-governance"
-persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
+next_steps: "/community/steward-guide/managing-governance"
+persona_context: "Stewards coordinating gardens, approvals, and governance/endowment execution."
 source_of_truth:
   - packages/admin/src/views/Garden/Vault.tsx
   - packages/admin/src/views/Hub/components/CookieJarManageModal.tsx
@@ -45,7 +45,7 @@ import {
 
 ## Overview
 
-Operators manage the financial flows within their garden — from vault deposits and harvest routing to direct gardener payouts through cookie jars. This page covers both the primary vault system and the cookie jar mechanism for recurring, low-overhead distributions.
+Stewards manage the financial flows within their garden — from vault deposits and harvest routing to direct gardener payouts through cookie jars. This page covers both the primary vault system and the cookie jar mechanism for recurring, low-overhead distributions.
 
 ```mermaid
 graph TB
@@ -63,7 +63,7 @@ graph TB
 
 ### Vault-Based Payouts
 
-Garden vaults hold deposited assets in impact-vault positions powered by Octant. Depositor claim value stays flat by design, so operators rely on harvest and split flows plus withdrawals to move funds into payout paths:
+Garden vaults hold deposited assets in impact-vault positions powered by Octant. Depositor claim value stays flat by design, so stewards rely on harvest and split flows plus withdrawals to move funds into payout paths:
 
 <StepFlow
   steps={[
@@ -103,7 +103,7 @@ Cookie jars provide a lightweight mechanism for small, recurring payouts to gard
     },
     {
       when: "You need strict control over endowment outflows",
-      do: "Start with a paused cookie jar + explicit operator approvals for each payout.",
+      do: "Start with a paused cookie jar + explicit steward approvals for each payout.",
       next: "Unpause only after policy and monitoring checks are complete.",
     },
     {
@@ -129,9 +129,9 @@ Cookie jars provide a lightweight mechanism for small, recurring payouts to gard
   title="Next best action"
   why="With payouts configured, set up governance mechanisms for community resource allocation."
   actionLabel="Managing Governance"
-  actionHref="/community/operator-guide/managing-governance"
+  actionHref="/community/steward-guide/managing-governance"
   alternatives={[
-    {label: "Managing Endowments", href: "/community/operator-guide/managing-endowments"},
-    {label: "Earning Recognition", href: "/community/operator-guide/earning-recognition"},
+    {label: "Managing Endowments", href: "/community/steward-guide/managing-endowments"},
+    {label: "Earning Recognition", href: "/community/steward-guide/earning-recognition"},
   ]}
 />

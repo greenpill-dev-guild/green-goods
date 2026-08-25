@@ -372,7 +372,7 @@ describe("handleTextSubmission", () => {
       content: { type: "text", text: "I planted 5 trees today" },
     });
     const operator = createMockUser({
-      role: "operator",
+      role: "steward",
       currentGarden: "0x" + "3".repeat(40),
     });
     const deps: SubmitDeps = {
@@ -393,7 +393,7 @@ describe("handleConfirmSubmission", () => {
       content: { type: "callback", data: "confirm_submission" },
     });
     const operator = createMockUser({
-      role: "operator",
+      role: "steward",
       currentGarden: "0x" + "3".repeat(40),
     });
     const session = createSubmissionSession();
@@ -436,7 +436,7 @@ describe("handleConfirmSubmission", () => {
         platformId: operatorPlatformId,
         address: "0x" + "7".repeat(40),
         currentGarden: gardenAddress,
-        role: "operator",
+        role: "steward",
         locale: "pt-BR",
       })
     );
@@ -585,7 +585,7 @@ describe("handleApprove", () => {
       content: { type: "command", name: "approve", args: [workId] },
     });
     const operator = createMockUser({
-      role: "operator",
+      role: "steward",
       currentGarden: pendingWork.gardenAddress,
     });
     const gardener = createMockUser({
@@ -621,7 +621,7 @@ describe("handleApprove", () => {
       content: { type: "command", name: "approve", args: [pendingWork.id] },
     });
     const operator = createMockUser({
-      role: "operator",
+      role: "steward",
       currentGarden: pendingWork.gardenAddress,
     });
     const submitWork = vi.spyOn(blockchain, "submitWork");
@@ -648,7 +648,7 @@ describe("handleApprove", () => {
       content: { type: "command", name: "approve", args: [workId] },
     });
     const operator = createMockUser({
-      role: "operator",
+      role: "steward",
       currentGarden: pendingWork.gardenAddress,
     });
     const gardener = createMockUser({
@@ -686,7 +686,7 @@ describe("handleApprove", () => {
       locale: "es-MX",
     });
     const operator = createMockUser({
-      role: "operator",
+      role: "steward",
       currentGarden: pendingWork.gardenAddress,
       locale: "es-MX",
     });
@@ -742,7 +742,7 @@ describe("handleApprove", () => {
       content: { type: "command", name: "approve", args: [workId] },
     });
     const operator = createMockUser({
-      role: "operator",
+      role: "steward",
       currentGarden: "0x" + "3".repeat(40),
     });
 
@@ -796,7 +796,7 @@ describe("handleReject", () => {
       content: { type: "command", name: "reject", args: [pendingWork.id, "not enough detail"] },
     });
     const operator = createMockUser({
-      role: "operator",
+      role: "steward",
       currentGarden: pendingWork.gardenAddress,
     });
 
@@ -826,7 +826,7 @@ describe("handleReject", () => {
       locale: "es-MX",
     });
     const operator = createMockUser({
-      role: "operator",
+      role: "steward",
       currentGarden: pendingWork.gardenAddress,
       locale: "es-MX",
     });
@@ -862,7 +862,7 @@ describe("handleReject", () => {
       content: { type: "command", name: "reject", args: [pendingWork.id, "not enough detail"] },
     });
     const operator = createMockUser({
-      role: "operator",
+      role: "steward",
       currentGarden: pendingWork.gardenAddress,
     });
     const removePendingWork = vi.spyOn(db, "removePendingWork");
@@ -911,7 +911,7 @@ describe("handleMessage rate-limit boundaries", () => {
   it("keeps status and pending commands available after command-rate exhaustion", async () => {
     const user = createMockUser({
       platformId: "operator-123",
-      role: "operator",
+      role: "steward",
       currentGarden: "0x" + "3".repeat(40),
     });
     vi.spyOn(db, "getUser").mockResolvedValue(user);

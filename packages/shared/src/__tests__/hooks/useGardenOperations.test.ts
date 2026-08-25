@@ -1,7 +1,7 @@
 /**
  * useGardenOperations Hook Tests
  *
- * Tests for garden member management (gardeners and operators).
+ * Tests for garden member management (gardeners and stewards).
  * Uses createGardenOperation factory with simulation and optimistic updates.
  *
  * NOTE: Complex integration tests are skipped due to factory pattern
@@ -67,14 +67,14 @@ vi.mock("../../hooks/garden/createGardenOperation", () => ({
       memberType: "gardener",
       operationType: "remove",
     },
-    addOperator: {
+    addSteward: {
       functionName: "addOperator",
-      memberType: "operator",
+      memberType: "steward",
       operationType: "add",
     },
-    removeOperator: {
+    removeSteward: {
       functionName: "removeOperator",
-      memberType: "operator",
+      memberType: "steward",
       operationType: "remove",
     },
     addEvaluator: {
@@ -187,8 +187,8 @@ describe("useGardenOperations", () => {
 
     expect(typeof result.current.addGardener).toBe("function");
     expect(typeof result.current.removeGardener).toBe("function");
-    expect(typeof result.current.addOperator).toBe("function");
-    expect(typeof result.current.removeOperator).toBe("function");
+    expect(typeof result.current.addSteward).toBe("function");
+    expect(typeof result.current.removeSteward).toBe("function");
     expect(typeof result.current.addEvaluator).toBe("function");
     expect(typeof result.current.removeEvaluator).toBe("function");
     expect(typeof result.current.addOwner).toBe("function");

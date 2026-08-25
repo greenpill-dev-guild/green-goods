@@ -12,7 +12,7 @@ import { LabeledField, resolveDomainLabel, Section } from "./shared";
  *
  * Parsed as local midnight, not via `new Date("YYYY-MM-DD")` (which is UTC): the
  * picker hands back local-midnight dates and renders with `toLocaleDateString`,
- * so a UTC parse echoed the previous day back to operators behind UTC.
+ * so a UTC parse echoed the previous day back to stewards behind UTC.
  */
 function dateStringToTimestamp(dateStr: string): number | null {
   const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr.trim());
@@ -26,7 +26,7 @@ function timestampToDateString(ts: number | null): string {
   if (!ts || ts <= 0) return "";
   const date = new Date(ts * 1000);
   // Local calendar parts, not toISOString() — the picker selects local midnight,
-  // which serializes to the previous day for operators ahead of UTC.
+  // which serializes to the previous day for stewards ahead of UTC.
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
   const day = `${date.getDate()}`.padStart(2, "0");
   return `${date.getFullYear()}-${month}-${day}`;

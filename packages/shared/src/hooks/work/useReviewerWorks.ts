@@ -10,7 +10,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { DEFAULT_RETRY_COUNT, STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
-import { operatorWorksKeys } from "../../config/query-keys/work";
+import { stewardWorksKeys } from "../../config/query-keys/work";
 import { logger } from "../../modules/app/logger";
 import { getWorks } from "../../modules/data/eas";
 import { jobQueue } from "../../modules/job-queue/default-instance";
@@ -62,7 +62,7 @@ export function useReviewerWorks(
   address: Address | undefined
 ): UseReviewerWorksResult {
   const { data, isLoading, isFetching, isSuccess, isError, refetch } = useQuery({
-    queryKey: operatorWorksKeys.byAddress(address, reviewerGardenIds),
+    queryKey: stewardWorksKeys.byAddress(address, reviewerGardenIds),
     queryFn: async (): Promise<ReviewerWorksResult> => {
       if (!address) return { works: [], failedGardenIds: [] };
 

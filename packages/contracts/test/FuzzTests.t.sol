@@ -113,7 +113,7 @@ contract FuzzTests is Test, ERC6551Helper {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
         address gardenAccount = gardenToken.mintGarden(config);
 
@@ -142,7 +142,7 @@ contract FuzzTests is Test, ERC6551Helper {
                 weightScheme: IGardensModule.WeightScheme.Linear,
                 domainMask: 0,
                 gardeners: new address[](0),
-                operators: new address[](0)
+                stewards: new address[](0)
             });
         }
 
@@ -166,7 +166,7 @@ contract FuzzTests is Test, ERC6551Helper {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         address gardenAccount = gardenToken.mintGarden(config);
@@ -263,7 +263,7 @@ contract FuzzTests is Test, ERC6551Helper {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         vm.prank(caller);

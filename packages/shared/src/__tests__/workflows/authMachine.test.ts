@@ -700,7 +700,7 @@ describe("workflows/authMachine", () => {
       // Connect external wallet first
       actor.send({
         type: "EXTERNAL_WALLET_CONNECTED",
-        address: MOCK_ADDRESSES.operator as `0x${string}`,
+        address: MOCK_ADDRESSES.steward as `0x${string}`,
       });
 
       // Enter embedded state
@@ -715,7 +715,7 @@ describe("workflows/authMachine", () => {
 
       const snapshot = actor.getSnapshot();
       expect(snapshot.matches({ authenticated: "wallet" })).toBe(true);
-      expect(snapshot.context.walletAddress).toBe(MOCK_ADDRESSES.operator);
+      expect(snapshot.context.walletAddress).toBe(MOCK_ADDRESSES.steward);
       expect(snapshot.context.embeddedAddress).toBeNull();
     });
 
@@ -772,13 +772,13 @@ describe("workflows/authMachine", () => {
       // Connect external wallet
       actor.send({
         type: "EXTERNAL_WALLET_CONNECTED",
-        address: MOCK_ADDRESSES.operator as `0x${string}`,
+        address: MOCK_ADDRESSES.steward as `0x${string}`,
       });
 
       const snapshot = actor.getSnapshot();
       expect(snapshot.matches({ authenticated: "embedded" })).toBe(true);
       expect(snapshot.context.externalWalletConnected).toBe(true);
-      expect(snapshot.context.externalWalletAddress).toBe(MOCK_ADDRESSES.operator);
+      expect(snapshot.context.externalWalletAddress).toBe(MOCK_ADDRESSES.steward);
     });
 
     it("tracks external wallet disconnection while in embedded state", async () => {
@@ -788,7 +788,7 @@ describe("workflows/authMachine", () => {
       // Connect external wallet, then enter embedded
       actor.send({
         type: "EXTERNAL_WALLET_CONNECTED",
-        address: MOCK_ADDRESSES.operator as `0x${string}`,
+        address: MOCK_ADDRESSES.steward as `0x${string}`,
       });
       actor.send({
         type: "LOGIN_EMBEDDED",

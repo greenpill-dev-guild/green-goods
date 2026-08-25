@@ -92,7 +92,7 @@ describe("buildCommandPaletteResults", () => {
   it("hides action records from non-deployer command palettes", () => {
     const results = buildCommandPaletteResults({
       query: "mulch",
-      role: "operator",
+      role: "steward",
       formatMessage,
       staticRoutes: [],
       eligibleGardens: [eligibleGarden],
@@ -141,9 +141,9 @@ describe("buildCommandPaletteResults", () => {
       },
     ];
 
-    const operatorResults = buildCommandPaletteResults({
+    const stewardResults = buildCommandPaletteResults({
       query: "co",
-      role: "operator",
+      role: "steward",
       formatMessage,
       staticRoutes,
       eligibleGardens: [],
@@ -160,7 +160,7 @@ describe("buildCommandPaletteResults", () => {
       assessments: [],
     });
 
-    expect(operatorResults).toEqual([expect.objectContaining({ id: "page-community" })]);
+    expect(stewardResults).toEqual([expect.objectContaining({ id: "page-community" })]);
     expect(deployerResults).toEqual([
       expect.objectContaining({ id: "page-cookies", href: "/cookies" }),
     ]);

@@ -20,12 +20,12 @@ import {
 } from "../src";
 import { daysAgo, daysFromNow, FIXTURE_IMAGE_AGROFORESTRY } from "./fixtures";
 
-export const STORYBOOK_OPERATOR_ADDRESS =
+export const STORYBOOK_STEWARD_ADDRESS =
   "0x04D60647836bcA09c37B379550038BdaaFD82503" satisfies Address;
 const STORYBOOK_DEPLOYER_ADDRESS =
   "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e" as Address;
 
-const STORYBOOK_OPERATOR_ADDRESS_KEY = STORYBOOK_OPERATOR_ADDRESS.toLowerCase() as Address;
+const STORYBOOK_STEWARD_ADDRESS_KEY = STORYBOOK_STEWARD_ADDRESS.toLowerCase() as Address;
 const STORYBOOK_DEPLOYER_ADDRESS_KEY = STORYBOOK_DEPLOYER_ADDRESS.toLowerCase() as Address;
 
 const RIO_GARDEN_ADDRESS = "0xabcd1234567890123456789012345678901234ef" as Address;
@@ -43,14 +43,14 @@ export const STORYBOOK_ADMIN_GARDENS: Garden[] = [
     tokenAddress: RIO_GARDEN_ADDRESS,
     tokenID: 1n,
     name: "Rio Rainforest Lab",
-    description: "Field operators coordinating agroforestry work.",
+    description: "Field stewards coordinating agroforestry work.",
     location: "Costa Rica",
     bannerImage: FIXTURE_IMAGE_AGROFORESTRY,
     createdAt: daysAgo(90),
-    gardeners: [STORYBOOK_OPERATOR_ADDRESS],
-    operators: [STORYBOOK_OPERATOR_ADDRESS],
-    evaluators: [STORYBOOK_OPERATOR_ADDRESS],
-    owners: [STORYBOOK_OPERATOR_ADDRESS],
+    gardeners: [STORYBOOK_STEWARD_ADDRESS],
+    stewards: [STORYBOOK_STEWARD_ADDRESS],
+    evaluators: [STORYBOOK_STEWARD_ADDRESS],
+    owners: [STORYBOOK_STEWARD_ADDRESS],
     funders: [],
     communities: [],
     assessments: [],
@@ -68,10 +68,10 @@ export const STORYBOOK_ADMIN_GARDENS: Garden[] = [
     location: "Brazil",
     bannerImage: FIXTURE_IMAGE_AGROFORESTRY,
     createdAt: daysAgo(45),
-    gardeners: [STORYBOOK_OPERATOR_ADDRESS],
-    operators: [STORYBOOK_OPERATOR_ADDRESS],
+    gardeners: [STORYBOOK_STEWARD_ADDRESS],
+    stewards: [STORYBOOK_STEWARD_ADDRESS],
     evaluators: [],
-    owners: [STORYBOOK_OPERATOR_ADDRESS],
+    owners: [STORYBOOK_STEWARD_ADDRESS],
     funders: [],
     communities: [],
     assessments: [],
@@ -86,7 +86,7 @@ export const STORYBOOK_PRIMARY_ADMIN_GARDEN = STORYBOOK_ADMIN_GARDENS[0] as Gard
 const STORYBOOK_DEPLOYER_ADMIN_GARDENS: Garden[] = STORYBOOK_ADMIN_GARDENS.map((garden) => ({
   ...garden,
   gardeners: Array.from(new Set([...garden.gardeners, STORYBOOK_DEPLOYER_ADDRESS])),
-  operators: Array.from(new Set([...garden.operators, STORYBOOK_DEPLOYER_ADDRESS])),
+  stewards: Array.from(new Set([...garden.stewards, STORYBOOK_DEPLOYER_ADDRESS])),
   owners: Array.from(new Set([...garden.owners, STORYBOOK_DEPLOYER_ADDRESS])),
   evaluators: Array.from(new Set([...garden.evaluators, STORYBOOK_DEPLOYER_ADDRESS])),
 }));
@@ -126,7 +126,7 @@ const STORYBOOK_ADMIN_ASSESSMENTS: GardenAssessment[] = [
   {
     id: "assessment-rio-canopy",
     schemaVersion: "assessment_v2",
-    authorAddress: STORYBOOK_OPERATOR_ADDRESS,
+    authorAddress: STORYBOOK_STEWARD_ADDRESS,
     gardenAddress: RIO_GARDEN_ADDRESS,
     title: "Rainforest canopy strategy",
     description: "Quarterly assessment for canopy health and field operations.",
@@ -157,7 +157,7 @@ const STORYBOOK_ADMIN_WORKS: Work[] = [
     id: "work-rio-canopy-1",
     title: "Canopy transect upload",
     actionUID: 1,
-    gardenerAddress: STORYBOOK_OPERATOR_ADDRESS,
+    gardenerAddress: STORYBOOK_STEWARD_ADDRESS,
     gardenAddress: RIO_GARDEN_ADDRESS,
     feedback: "Uploaded canopy measurements and photos from plot A.",
     metadata: JSON.stringify({
@@ -175,7 +175,7 @@ const STORYBOOK_ADMIN_WORKS: Work[] = [
     id: "work-rio-water-1",
     title: "Water quality review",
     actionUID: 2,
-    gardenerAddress: STORYBOOK_OPERATOR_ADDRESS,
+    gardenerAddress: STORYBOOK_STEWARD_ADDRESS,
     gardenAddress: RIO_GARDEN_ADDRESS,
     feedback: "Submitted pH and turbidity readings for the north stream.",
     metadata: JSON.stringify({
@@ -193,7 +193,7 @@ const STORYBOOK_ADMIN_WORKS: Work[] = [
     id: "work-rio-maintenance-1",
     title: "Trail maintenance note",
     actionUID: 1,
-    gardenerAddress: STORYBOOK_OPERATOR_ADDRESS,
+    gardenerAddress: STORYBOOK_STEWARD_ADDRESS,
     gardenAddress: RIO_GARDEN_ADDRESS,
     feedback: "Cleared access path for the next planting session.",
     metadata: JSON.stringify({
@@ -217,7 +217,7 @@ const STORYBOOK_ADMIN_HYPERCERTS: HypercertRecord[] = [
     metadataUri: "ipfs://bafy-rio-baseline",
     imageUri: FIXTURE_IMAGE_AGROFORESTRY,
     mintedAt: daysAgo(4),
-    mintedBy: STORYBOOK_OPERATOR_ADDRESS,
+    mintedBy: STORYBOOK_STEWARD_ADDRESS,
     txHash: "0x1111111111111111111111111111111111111111111111111111111111111111",
     totalUnits: 1000n,
     claimedUnits: 250n,
@@ -312,22 +312,22 @@ export const STORYBOOK_ADMIN_SHELL_SEEDS: ReadonlyArray<readonly [QueryKey, unkn
   [queryKeys.community.pools(RIO_GARDEN_ADDRESS, DEFAULT_CHAIN_ID), STORYBOOK_ADMIN_POOLS],
   [queryKeys.conviction.strategies(RIO_GARDEN_ADDRESS, DEFAULT_CHAIN_ID), []],
   [
-    queryKeys.role.operatorGardens(STORYBOOK_OPERATOR_ADDRESS_KEY, DEFAULT_CHAIN_ID),
+    queryKeys.role.stewardGardens(STORYBOOK_STEWARD_ADDRESS_KEY, DEFAULT_CHAIN_ID),
     STORYBOOK_ADMIN_GARDENS.map((garden) => ({ id: garden.id, name: garden.name })),
   ],
   [
-    queryKeys.role.deploymentPermissions(STORYBOOK_OPERATOR_ADDRESS_KEY, DEFAULT_CHAIN_ID),
+    queryKeys.role.deploymentPermissions(STORYBOOK_STEWARD_ADDRESS_KEY, DEFAULT_CHAIN_ID),
     { isOwner: false, isInAllowlist: false, canDeploy: false },
   ],
-  [queryKeys.ens.name(STORYBOOK_OPERATOR_ADDRESS_KEY), "operator.greengoods.eth"],
-  [queryKeys.ens.avatar(STORYBOOK_OPERATOR_ADDRESS_KEY), null],
+  [queryKeys.ens.name(STORYBOOK_STEWARD_ADDRESS_KEY), "steward.greengoods.eth"],
+  [queryKeys.ens.avatar(STORYBOOK_STEWARD_ADDRESS_KEY), null],
 ];
 
 export const STORYBOOK_ADMIN_DEPLOYER_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
   ...STORYBOOK_ADMIN_SHELL_SEEDS,
   [queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), STORYBOOK_DEPLOYER_ADMIN_GARDENS],
   [
-    queryKeys.role.operatorGardens(STORYBOOK_DEPLOYER_ADDRESS_KEY, DEFAULT_CHAIN_ID),
+    queryKeys.role.stewardGardens(STORYBOOK_DEPLOYER_ADDRESS_KEY, DEFAULT_CHAIN_ID),
     STORYBOOK_DEPLOYER_ADMIN_GARDENS.map((garden) => ({ id: garden.id, name: garden.name })),
   ],
   [

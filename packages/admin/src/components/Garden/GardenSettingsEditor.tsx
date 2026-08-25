@@ -32,7 +32,7 @@ export interface GardenBannerPreview {
   isDraft: boolean;
   /** True when a saved banner is staged for removal on Save. */
   isStagedRemoval: boolean;
-  /** True when there is an image the operator is allowed to remove. */
+  /** True when there is an image the steward is allowed to remove. */
   canRemove: boolean;
 }
 
@@ -47,7 +47,7 @@ export interface GardenSettingsFormState {
   hasValidationError: boolean;
   /** Count of edited fields — feeds the footer's unsaved-changes line. */
   dirtyCount: number;
-  /** Whether the operator can edit anything — hides the footer when false. */
+  /** Whether the steward can edit anything — hides the footer when false. */
   canEdit: boolean;
 }
 
@@ -202,7 +202,7 @@ export const GardenSettingsEditor = forwardRef<
   }, [draft.bannerFile]);
 
   // Adopt refreshed garden values (post-save invalidation, garden switch)
-  // whenever the operator has no pending edits — never clobber a dirty draft.
+  // whenever the steward has no pending edits — never clobber a dirty draft.
   const gardenSnapshot = JSON.stringify([
     garden.name,
     garden.description,

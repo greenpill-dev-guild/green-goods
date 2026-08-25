@@ -22,7 +22,7 @@ This ledger separates what people can use now from deployed protocol capability,
 
 **Internal claim:** Green Goods gives a real community, its roles, and its records one accountable Garden.
 
-**Audience:** community · operator · funder
+**Audience:** community · steward · funder
 
 **Evidence:** `packages/contracts/deployments/42161-latest.json` — Garden and Hats modules are deployed on Arbitrum. (verified 2026-08-15)
 
@@ -30,31 +30,31 @@ This ledger separates what people can use now from deployed protocol capability,
 
 **Internal claim:** Gardeners can submit portable Work evidence, including through the offline queue.
 
-**Audience:** gardener · operator · funder
+**Audience:** gardener · steward · funder
 
 **Evidence:** `packages/shared/src/modules/job-queue` — Offline-first submission queue is the runtime write boundary. (verified 2026-08-15)
 
-### Operators review Work and record an approval or rejection separately.
+### Stewards review Work and record an approval or rejection separately.
 
-**Internal claim:** Operators approve or reject submitted Work through a separate attestation.
+**Internal claim:** Stewards approve or reject submitted Work through a separate attestation.
 
-**Audience:** operator · funder · evaluator
+**Audience:** steward · funder · evaluator
 
-**Evidence:** `packages/contracts/src/resolvers/WorkApproval.sol` — Work Approval is Operator-only and separate from Work submission. (verified 2026-08-15)
+**Evidence:** `packages/contracts/src/resolvers/WorkApproval.sol` — Work Approval is Steward-only and separate from Work submission. (verified 2026-08-15)
 
 ### Assessments make the baseline, plan, and evidence standard explicit.
 
-**Internal claim:** Operators and Evaluators can define a baseline and strategy before Work begins.
+**Internal claim:** Stewards and Evaluators can define a baseline and strategy before Work begins.
 
-**Audience:** operator · evaluator · funder
+**Audience:** steward · evaluator · funder
 
-**Evidence:** `packages/contracts/src/resolvers/Assessment.sol` — Assessment authorizes both Evaluator and Operator roles. (verified 2026-08-15)
+**Evidence:** `packages/contracts/src/resolvers/Assessment.sol` — Assessment authorizes both Evaluator and Steward roles. (verified 2026-08-15)
 
 ### Support can meet near-term needs or remain deposited so yield supports work over time.
 
 **Internal claim:** Gardens can receive direct operational support and longer-term Vault deposits.
 
-**Audience:** funder · operator
+**Audience:** funder · steward
 
 **Evidence:** `packages/contracts/deployments/42161-latest.json` — Vault and Cookie Jar modules are deployed. (verified 2026-08-15)
 
@@ -64,7 +64,7 @@ This ledger separates what people can use now from deployed protocol capability,
 
 **Internal claim:** Green Goods has deployed onchain coordination for bounded offers, requests, cycles, contributors, and confirmation.
 
-**Audience:** operator · community · partner
+**Audience:** steward · community · partner
 
 **Evidence:** `.plans/active/commitment-pooling/status.json` — Pooling is unpaused with 18 registered pools; indexer/shared/UI remain blocked. (verified 2026-08-15)
 
@@ -74,7 +74,7 @@ This ledger separates what people can use now from deployed protocol capability,
 
 **Internal claim:** Approved Work can become portable Impact Certificates.
 
-**Audience:** funder · operator · gardener
+**Audience:** funder · steward · gardener
 
 **Evidence:** `packages/contracts/deployments/42161-latest.json` — Hypercert contracts are deployed, while activation and indexing remain environment-dependent. (verified 2026-08-15)
 
@@ -84,6 +84,6 @@ This ledger separates what people can use now from deployed protocol capability,
 
 **Internal claim:** Communities will be able to name Needs, signal support, and connect commitments and funding evidence.
 
-**Audience:** community · operator · funder
+**Audience:** community · steward · funder
 
 **Evidence:** `.plans/active/community-interface/status.json` — Community Needs remains planned with blocked implementation lanes. (verified 2026-08-15)

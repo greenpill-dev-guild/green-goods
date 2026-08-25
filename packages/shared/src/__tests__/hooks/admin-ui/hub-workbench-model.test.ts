@@ -5,7 +5,7 @@
  * that feed both the tab-rail badges and the header MetaStrip are derived from
  * the *unfiltered* works/assessments/hypercerts, independent of any active
  * search term. Reading the search-filtered queue lengths in the header made the
- * two disagree whenever an operator searched; this pins the unfiltered contract.
+ * two disagree whenever a steward searched; this pins the unfiltered contract.
  */
 
 import { describe, expect, it } from "vitest";
@@ -41,7 +41,7 @@ describe("buildHubStageModel stageCounts", () => {
   });
 
   it("reports the full pipeline regardless of which stage is requested", () => {
-    // The header summary must report every stage even when the operator is
+    // The header summary must report every stage even when the steward is
     // viewing a single one — the counts are not scoped to requestedStage.
     const { stageCounts } = buildHubStageModel({
       ...baseInput,
@@ -176,7 +176,7 @@ describe("Hub create-route stage resolution (two-click investigation)", () => {
     expect(s.routeSheetContentId).toBeNull();
   });
 
-  it("does NOT diverge stage from requestedStage when the operator can assess (no redirect)", () => {
+  it("does NOT diverge stage from requestedStage when the steward can assess (no redirect)", () => {
     const { stage } = buildHubStageModel({
       requestedStage: "assess",
       canManage: true,
@@ -188,12 +188,12 @@ describe("Hub create-route stage resolution (two-click investigation)", () => {
       hypercerts: [],
     });
     // stage === requestedStage → the effect's `requestedStage === stage` guard
-    // returns early → no redirect. So a permitted operator does NOT hit the
+    // returns early → no redirect. So a permitted steward does NOT hit the
     // stripping mechanism — the two-click cause for them lies elsewhere.
     expect(stage).toBe("assess");
   });
 
-  it("clamps stage to a visible fallback when the operator cannot assess (a legitimate permission redirect, not the two-click bug)", () => {
+  it("clamps stage to a visible fallback when the steward cannot assess (a legitimate permission redirect, not the two-click bug)", () => {
     const { stage } = buildHubStageModel({
       requestedStage: "assess",
       canManage: true,

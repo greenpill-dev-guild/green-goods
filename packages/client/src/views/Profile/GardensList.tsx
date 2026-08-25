@@ -44,14 +44,14 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
         const isMember = isGardenMember(
           primaryAddress,
           garden.gardeners,
-          garden.operators,
+          garden.stewards,
           garden.id
         );
         return isOpen || isMember;
       })
       .map((garden) => ({
         ...garden,
-        isMember: isGardenMember(primaryAddress, garden.gardeners, garden.operators, garden.id),
+        isMember: isGardenMember(primaryAddress, garden.gardeners, garden.stewards, garden.id),
       }));
     // pendingJoinsVersion retriggers when a join confirms or expires in-tab,
     // so the Member badge updates without waiting for an unrelated re-render.

@@ -91,7 +91,7 @@ describe("usePublicStats", () => {
     mockGetGardenAssessments.mockResolvedValue([
       {
         id: "a-1",
-        authorAddress: MOCK_ADDRESSES.operator,
+        authorAddress: MOCK_ADDRESSES.steward,
         gardenAddress: MOCK_ADDRESSES.garden,
         title: "",
         description: "",

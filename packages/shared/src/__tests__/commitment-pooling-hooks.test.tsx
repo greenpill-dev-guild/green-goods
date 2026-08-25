@@ -393,7 +393,7 @@ describe("commitment pooling query hooks", () => {
     await waitFor(() => expect(self.result.current.disclosure.status).toBe("visible"));
     self.unmount();
 
-    mocks.roles.mockReturnValue({ roles: ["operator"], isLoading: false, error: null });
+    mocks.roles.mockReturnValue({ roles: ["steward"], isLoading: false, error: null });
     const steward = renderHookWithProviders(() =>
       usePoolMemberHistory({
         chainId: 42161,
@@ -762,7 +762,7 @@ describe("useCommitmentDialogController", () => {
     mocks.viewer = STEWARD;
     mocks.queueState = { pendingCommitmentIds: new Set<string>() };
     mocks.protocolPool = { poolId: null, rootGarden: null, isRegistered: false };
-    mocks.roles.mockReturnValue({ roles: ["operator"], isLoading: false, error: null });
+    mocks.roles.mockReturnValue({ roles: ["steward"], isLoading: false, error: null });
     mocks.getCommitmentDetail.mockResolvedValue(detail());
     mocks.getCommitmentPools.mockResolvedValue([{ ...pool, state: "OPEN" }]);
     mocks.getCommitmentCycleDetail.mockResolvedValue({

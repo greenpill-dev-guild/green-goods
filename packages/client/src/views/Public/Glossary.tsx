@@ -47,7 +47,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Assessment",
     bodyId: "public.glossary.term.assessment.body",
     defaultBody:
-      "The diagnosis-and-plan stage of a Garden's season, written by operators and evaluators to name what the place needs and what counts as good.",
+      "The diagnosis-and-plan stage of a Garden's season, written by stewards and evaluators to name what the place needs and what counts as good.",
     docsPath: "/glossary#assessment",
   },
   {
@@ -65,7 +65,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Evaluator",
     bodyId: "public.glossary.term.evaluator.body",
     defaultBody:
-      "A person who strengthens Assessments, methods, and impact claims. Evaluators do not approve submitted Work; Operators record those decisions.",
+      "A person who strengthens Assessments, methods, and impact claims. Evaluators do not approve submitted Work; Stewards record those decisions.",
     docsPath: "/glossary#evaluator",
   },
   {
@@ -74,7 +74,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Garden",
     bodyId: "public.glossary.term.garden.body",
     defaultBody:
-      "A community of gardeners doing regenerative work in a place. Each Garden has its own Vault, operator, and gardeners, and its own public record.",
+      "A community of gardeners doing regenerative work in a place. Each Garden has its own Vault, steward, and gardeners, and its own public record.",
     docsPath: "/glossary#garden",
   },
   {
@@ -96,13 +96,13 @@ const TERMS: readonly GlossaryTerm[] = [
     docsPath: "/glossary#impact-certificate",
   },
   {
-    id: "operator",
-    labelId: "public.glossary.term.operator.label",
-    defaultLabel: "Operator",
-    bodyId: "public.glossary.term.operator.body",
+    id: "steward",
+    labelId: "public.glossary.term.steward.label",
+    defaultLabel: "Steward",
+    bodyId: "public.glossary.term.steward.body",
     defaultBody:
       "The person who runs a Garden: assembling the plan, accepting gardeners, and recording approval or rejection for submitted Work.",
-    docsPath: "/glossary#operator",
+    docsPath: "/glossary#steward",
   },
   {
     id: "vault",
@@ -136,7 +136,7 @@ const DOCS_BASE = "https://docs.greengoods.app";
  * Linked from PublicFooter and from PublicReadDeeper instances that touch
  * vocabulary-heavy surfaces.
  */
-export default function GlossaryPage() {
+export default function Glossary() {
   const { formatMessage } = useIntl();
   const { ref: termsRef, revealed: termsRevealed } = useInViewReveal<HTMLElement>();
 

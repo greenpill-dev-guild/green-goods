@@ -2,7 +2,7 @@
  * createGardenOperation Tests
  *
  * Tests the factory function that creates garden member operations
- * (add/remove gardeners, operators, etc.) with transaction simulation,
+ * (add/remove gardeners, stewards, etc.) with transaction simulation,
  * optimistic updates, error tracking, and toast notifications.
  */
 
@@ -44,7 +44,7 @@ vi.mock("../../../utils/blockchain/abis", () => ({
 vi.mock("../../../utils/blockchain/garden-roles", () => ({
   GARDEN_ROLE_IDS: {
     gardener: 1n,
-    operator: 2n,
+    steward: 2n,
     evaluator: 3n,
     owner: 4n,
     funder: 5n,
@@ -418,12 +418,12 @@ describe("GARDEN_OPERATIONS", () => {
       memberType: "gardener",
       operationType: "remove",
     });
-    expect(GARDEN_OPERATIONS.addOperator).toEqual({
-      memberType: "operator",
+    expect(GARDEN_OPERATIONS.addSteward).toEqual({
+      memberType: "steward",
       operationType: "add",
     });
-    expect(GARDEN_OPERATIONS.removeOperator).toEqual({
-      memberType: "operator",
+    expect(GARDEN_OPERATIONS.removeSteward).toEqual({
+      memberType: "steward",
       operationType: "remove",
     });
     expect(GARDEN_OPERATIONS.addEvaluator).toEqual({

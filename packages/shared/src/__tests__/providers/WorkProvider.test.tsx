@@ -189,7 +189,7 @@ describe("providers/WorkProvider", () => {
         createMockGarden({
           id: "garden-1",
           gardeners: [MOCK_ADDRESSES.smartAccount],
-          operators: [],
+          stewards: [],
         }),
       ],
       isLoading: false,
@@ -259,25 +259,25 @@ describe("providers/WorkProvider", () => {
       const memberGarden = createMockGarden({
         id: "member-garden",
         gardeners: [userAddress],
-        operators: [],
+        stewards: [],
       });
 
-      // Garden where user is an operator
-      const operatorGarden = createMockGarden({
-        id: "operator-garden",
+      // Garden where user is a steward
+      const stewardGarden = createMockGarden({
+        id: "steward-garden",
         gardeners: [],
-        operators: [userAddress],
+        stewards: [userAddress],
       });
 
       // Garden user is NOT a member of
       const otherGarden = createMockGarden({
         id: "other-garden",
         gardeners: ["0xOtherAddress123456789012345678901234567890"],
-        operators: [],
+        stewards: [],
       });
 
       mockUseGardens.mockReturnValue({
-        data: [memberGarden, operatorGarden, otherGarden],
+        data: [memberGarden, stewardGarden, otherGarden],
         isLoading: false,
       });
 
@@ -285,10 +285,10 @@ describe("providers/WorkProvider", () => {
         wrapper: createFullWrapper(),
       });
 
-      // Should only include gardens where user is member or operator
+      // Should only include gardens where user is member or steward
       expect(result.current.gardens.length).toBe(2);
       expect(result.current.gardens.map((g) => g.id)).toContain("member-garden");
-      expect(result.current.gardens.map((g) => g.id)).toContain("operator-garden");
+      expect(result.current.gardens.map((g) => g.id)).toContain("steward-garden");
       expect(result.current.gardens.map((g) => g.id)).not.toContain("other-garden");
     });
 
@@ -298,7 +298,7 @@ describe("providers/WorkProvider", () => {
           createMockGarden({
             id: "other-garden",
             gardeners: ["0xOtherAddress123456789012345678901234567890"],
-            operators: [],
+            stewards: [],
           }),
         ],
         isLoading: false,
@@ -316,14 +316,14 @@ describe("providers/WorkProvider", () => {
       const memberGarden = createMockGarden({
         id: "member-garden",
         gardeners: [userAddress],
-        operators: [],
+        stewards: [],
       });
       const communityGarden = createMockGarden({
         id: "root-garden",
         name: "Community Garden",
         openJoining: true,
         gardeners: [],
-        operators: [],
+        stewards: [],
       });
 
       mockUseGardens.mockReturnValue({
@@ -347,7 +347,7 @@ describe("providers/WorkProvider", () => {
       const garden = createMockGarden({
         id: "mixed-case-garden",
         gardeners: [userAddress.toUpperCase()],
-        operators: [],
+        stewards: [],
       });
 
       mockUseGardens.mockReturnValue({

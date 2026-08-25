@@ -116,12 +116,12 @@ export const Garden: React.FC = () => {
   const members = useMemo<GardenMember[]>(() => {
     if (!garden) return [];
 
-    const operatorSet = new Set((garden.operators ?? []).map((addr) => addr.toLowerCase()));
+    const stewardSet = new Set((garden.stewards ?? []).map((addr) => addr.toLowerCase()));
     const gardenerSet = new Set((garden.gardeners ?? []).map((addr) => addr.toLowerCase()));
     const seen = new Set<string>();
     const orderedAddresses: string[] = [];
 
-    for (const list of [garden.operators ?? [], garden.gardeners ?? []]) {
+    for (const list of [garden.stewards ?? [], garden.gardeners ?? []]) {
       for (const address of list) {
         const normalized = address.toLowerCase();
         if (seen.has(normalized)) continue;
@@ -144,7 +144,7 @@ export const Garden: React.FC = () => {
         phone: match?.phone || undefined,
         avatar: match?.avatar || undefined,
         registeredAt: match?.registeredAt ?? fallbackRegisteredAt,
-        isOperator: operatorSet.has(normalized),
+        isSteward: stewardSet.has(normalized),
         isGardener: gardenerSet.has(normalized),
       };
     });
@@ -174,21 +174,21 @@ export const Garden: React.FC = () => {
   });
   const hasGovernanceConfigured = convictionStrategies.length > 0;
 
-  // Check if current user is an operator (can approve/reject work)
-  const isOperator = useMemo(() => {
-    if (!primaryAddress || !garden?.operators) return false;
+  // Check if current user is a steward (can approve/reject work)
+  const isSteward = useMemo(() => {
+    if (!primaryAddress || !garden?.stewards) return false;
     const normalizedUserAddress = primaryAddress.toLowerCase();
-    return garden.operators.some((addr) => addr.toLowerCase() === normalizedUserAddress);
-  }, [primaryAddress, garden?.operators]);
+    return garden.stewards.some((addr) => addr.toLowerCase() === normalizedUserAddress);
+  }, [primaryAddress, garden?.stewards]);
 
   const { hasRole: canReviewOnChain } = useHasRole(
     garden?.id as Address | undefined,
     primaryAddress as Address | undefined,
     "evaluator"
   );
-  const canReview = isOperator || canReviewOnChain;
+  const canReview = isSteward || canReviewOnChain;
 
-  // Gate header drawers behind operator/funder roles. Default gardeners should not see
+  // Gate header drawers behind steward/funder roles. Default gardeners should not see
   // governance or endowment chrome — those drawers expose protocol-shaped surfaces (signal pool,
   // hypercert, vault, treasury) that don't belong on the gardener-default path.
   const hasOwnEndowmentDeposit = hasEndowmentDeposits;
@@ -204,7 +204,7 @@ export const Garden: React.FC = () => {
   const pendingJoinsVersion = usePendingJoinsVersion();
   const isMember = useMemo(() => {
     if (!garden) return false;
-    return isGardenMember(primaryAddress, garden.gardeners, garden.operators, garden.id);
+    return isGardenMember(primaryAddress, garden.gardeners, garden.stewards, garden.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
   }, [primaryAddress, garden, pendingJoinsVersion]);
 
@@ -369,7 +369,7 @@ export const Garden: React.FC = () => {
                     onBackClick={() => navigate("/home")}
                     works={mergedWorks}
                     garden={garden}
-                    isOperator={canReview}
+                    isSteward={canReview}
                     showGovernanceButton={showGovernanceButton}
                     onGovernanceClick={() => setIsGovernanceOpen(true)}
                     showEndowmentButton={showEndowmentButton}

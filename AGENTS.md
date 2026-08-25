@@ -100,7 +100,7 @@ Issue references use native `<issue>` mentions rather than markdown links. Fulle
 ## PostHog Routing
 
 Select the project before every query: **App** (`163591`) for client/PWA/public browser,
-**Admin** (`262122`) for the operator cockpit, and **Agent** (`262124`) for messaging runtimes.
+**Admin** (`262122`) for the steward cockpit, and **Agent** (`262124`) for messaging runtimes.
 The connector can start on the wrong project and return a misleading empty result. The current
 surface map, approved evidence, and privacy rules live in
 [`docs/routines/README.md`](docs/routines/README.md) and
@@ -229,7 +229,7 @@ browser or DOM evidence proves otherwise.
 
 Single design language across frontend packages, with distinct admin, installed PWA, public browser, and docs surfaces. Full detail in `.claude/skills/design/`. One-page map: `.claude/skills/design/ARCHITECTURE.md`.
 
-**Admin** (`packages/admin`) — restrained operator cockpit. M3 strict anatomy (v0.192). Plus Jakarta Sans. The admin `AppBar` root stays transparent over the workspace canvas; glass is reserved for Navigation/FAB chrome only. Dialogs, side sheets, route cards, forms, tables, lists, and dense content stay solid. Use `Admin*` wrappers from `packages/admin/src/components/Admin*.tsx` (count derives from the filesystem; 16 today). Litmus: Linear / GitHub / Stripe-appropriate?
+**Admin** (`packages/admin`) — restrained steward cockpit. M3 strict anatomy (v0.192). Plus Jakarta Sans. The admin `AppBar` root stays transparent over the workspace canvas; glass is reserved for Navigation/FAB chrome only. Dialogs, side sheets, route cards, forms, tables, lists, and dense content stay solid. Use `Admin*` wrappers from `packages/admin/src/components/Admin*.tsx` (count derives from the filesystem; 16 today). Litmus: Linear / GitHub / Stripe-appropriate?
 
 **Client** (`packages/client`) — adaptive shell. Browser = `SiteHeader` + hamburger. Installed PWA = bottom `AppBar` (Home / Garden / Profile). Never mix. Inter across PWA; editorial serif only on public browser site. Hero moments (garden creation, first submission, hypercert mint, vault deposit, seasonal transitions, assessment completion, role milestone) live here, never in admin.
 

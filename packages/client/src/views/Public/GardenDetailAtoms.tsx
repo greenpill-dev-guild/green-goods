@@ -22,7 +22,7 @@ import { EditorialLede } from "@/components/Public/atoms";
  * popover tooltip whether or not the copy affordance is on, and the field-note
  * tile is itself a button. A button inside a button is invalid, and it breaks
  * the tile's own click and focus behaviour. `AddressDisplay` is still the right
- * primitive where it is not nested — the note dialog and the operators row.
+ * primitive where it is not nested — the note dialog and the stewards row.
  */
 export function NoteAuthor({ address }: { address: Address }) {
   const { data: ensName } = useEnsName(address);

@@ -403,7 +403,7 @@ describe("PoolSetupFlow (W11)", () => {
       allocation: {
         gardeners: 6000,
         treasury: 1500,
-        operator: 1000,
+        steward: 1000,
         evaluator: 500,
         community: 500,
         funder: 500,

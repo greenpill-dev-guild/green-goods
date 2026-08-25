@@ -189,7 +189,7 @@ const makeGarden = (overrides: Partial<Garden> & { id: string }): Garden => ({
   location: "Test Location",
   bannerImage: "",
   gardeners: [],
-  operators: [],
+  stewards: [],
   evaluators: [],
   owners: [],
   funders: [],

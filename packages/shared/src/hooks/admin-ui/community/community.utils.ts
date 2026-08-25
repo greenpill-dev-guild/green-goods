@@ -126,7 +126,7 @@ export function communitySectionForMode(mode: CommunityWorkspaceMode) {
 /**
  * Community view-level actions. The set is stable across Community tabs so
  * desktop button positions and the mobile FAB speed dial do not shift while
- * operators move between Members, Coordination, Endowment, and Payouts.
+ * stewards move between Members, Coordination, Endowment, and Payouts.
  */
 export function buildCommunityViewActions(
   _mode: CommunityWorkspaceMode,

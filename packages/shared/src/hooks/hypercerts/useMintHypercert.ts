@@ -261,8 +261,8 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
         );
       }
 
-      const operatorAddress = smartAccountAddress || eoaAddressRef.current;
-      if (!operatorAddress || !isAddress(operatorAddress)) {
+      const stewardAddress = smartAccountAddress || eoaAddressRef.current;
+      if (!stewardAddress || !isAddress(stewardAddress)) {
         throw new Error("Connect a wallet or passkey to mint");
       }
 
@@ -281,15 +281,15 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
       const contracts = await resolveHypercertContracts(currentChainId);
       if (contracts.hatsModule) {
         const publicClient = createPublicClientForChain(currentChainId);
-        const isOperator = await publicClient.readContract({
+        const isSteward = await publicClient.readContract({
           address: params.draft.gardenId as Address,
           abi: GardenAccountABI,
           functionName: "isOperator",
-          args: [operatorAddress as Address],
+          args: [stewardAddress as Address],
         });
 
-        if (!isOperator) {
-          throw new Error("Only garden operators can mint hypercerts");
+        if (!isSteward) {
+          throw new Error("Only garden stewards can mint hypercerts");
         }
       }
 

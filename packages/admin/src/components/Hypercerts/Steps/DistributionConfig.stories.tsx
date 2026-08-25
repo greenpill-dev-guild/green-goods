@@ -71,7 +71,7 @@ export const CustomMode: Story = {
     initialMode: "custom",
     initialAllowlist: [
       entry("0x1111111111111111111111111111111111111111", 40_000_000n, "Lead"),
-      entry("0x2222222222222222222222222222222222222222", 35_000_000n, "Operator"),
+      entry("0x2222222222222222222222222222222222222222", 35_000_000n, "Steward"),
       entry("0x3333333333333333333333333333333333333333", 25_000_000n, "Contributor"),
     ],
   },

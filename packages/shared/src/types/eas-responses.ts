@@ -73,7 +73,7 @@ export interface EASWork {
 
 export interface EASWorkApproval {
   id: string;
-  operatorAddress: Address;
+  stewardAddress: Address;
   gardenerAddress: Address;
   actionUID: number;
   workUID: string;

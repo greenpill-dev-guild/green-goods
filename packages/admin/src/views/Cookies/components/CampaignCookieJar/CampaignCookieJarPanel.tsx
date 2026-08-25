@@ -11,7 +11,7 @@ import { useRole } from "@green-goods/shared/hooks/gardener/useRole";
 import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
 import type { Garden } from "@green-goods/shared/types/domain";
 import {
-  aggregateCampaignCookieJarOperators,
+  aggregateCampaignCookieJarStewards,
   buildCampaignCookieJarMetadata,
   diffCampaignCookieJarAllowlist,
 } from "@green-goods/shared/utils/cookie-jar-campaign";
@@ -85,7 +85,7 @@ export function CampaignCookieJarPanel() {
   const syncMetadataUrlsValid = isValidCampaignCookieJarMetadataUrl(syncCampaignImage);
   const syncAggregation = useMemo(
     () =>
-      aggregateCampaignCookieJarOperators({
+      aggregateCampaignCookieJarStewards({
         gardens: gardensForAggregation(gardens),
         selectedGardenIds: syncGardenIds,
         extraAddressesInput: syncExtraAddresses,

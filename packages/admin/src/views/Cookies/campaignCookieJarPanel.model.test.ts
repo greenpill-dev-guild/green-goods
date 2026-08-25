@@ -174,7 +174,7 @@ describe("campaign cookie jar admin model", () => {
     const payload = buildCampaignCookieJarCreatePayload({
       factoryAddress: GARDEN_A,
       campaignTitle: "Earth Week",
-      campaignDescription: "Operator rewards",
+      campaignDescription: "Steward rewards",
       campaignImage: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzd",
       campaignExternalUrl: "https://greengoods.app/cookies?campaign=earth-week",
       tokenAddress: TOKEN_A,
@@ -189,7 +189,7 @@ describe("campaign cookie jar admin model", () => {
     expect(payload).toMatchObject({
       title: "Earth Week",
       slug: "earth-week",
-      description: "Operator rewards",
+      description: "Steward rewards",
       oneTimeWithdrawal: true,
       strictPurpose: true,
       withdrawalType: "fixed",

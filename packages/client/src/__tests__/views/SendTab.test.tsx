@@ -86,7 +86,7 @@ vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", async (importOrigin
           id: "0xgarden",
           name: "Garden Alpha",
           gardeners: [MEMBER],
-          operators: [SELF],
+          stewards: [SELF],
           evaluators: [],
           owners: [],
           funders: [],

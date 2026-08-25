@@ -68,7 +68,7 @@ function InfoRow({ label, value }: { label: string; value: ReactNode }) {
 }
 
 /**
- * Settings panel — operator preferences behind the AppBar gear (desktop side
+ * Settings panel — steward preferences behind the AppBar gear (desktop side
  * sheet) and the mobile Profile tab's "Settings" tab.
  *
  * Sections (flat M3 lists, no nested cards): Appearance, Language, Network,
@@ -115,7 +115,7 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
           title={formatMessage({ id: "cockpit.settings.language", defaultMessage: "Language" })}
           description={formatMessage({
             id: "cockpit.settings.languageDescription",
-            defaultMessage: "Choose the language for the operator canvas.",
+            defaultMessage: "Choose the language for the steward canvas.",
           })}
         />
         <AdminChoiceGroup

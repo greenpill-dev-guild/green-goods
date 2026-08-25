@@ -7,7 +7,7 @@ import { useIntl } from "react-intl";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { TimeFilterControl } from "./TimeFilterControl";
 import { WorkListTab } from "./WorkListTab";
-import { isOperatorForGarden } from "./workDashboardUtils";
+import { isStewardForGarden } from "./workDashboardUtils";
 
 interface PendingTabProps {
   items: Work[];
@@ -62,10 +62,10 @@ export const PendingTab: React.FC<PendingTabProps> = ({
   const renderBadges = (item: Work): React.ReactNode[] => {
     const badges: React.ReactNode[] = [];
     const isGardener = isUserAddress(item.gardenerAddress);
-    const isOperator = isOperatorForGarden(activeAddress, reviewerGardenIds, item.gardenAddress);
+    const isSteward = isStewardForGarden(activeAddress, reviewerGardenIds, item.gardenAddress);
     const reviewed = reviewedByYou.has(item.id);
 
-    if (isOperator && !reviewed) {
+    if (isSteward && !reviewed) {
       badges.push(
         <span
           key="review"

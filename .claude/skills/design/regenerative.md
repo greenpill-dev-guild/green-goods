@@ -11,7 +11,7 @@ Full framework with sources: `docs/docs/reference/regenerative-design-framework.
 When making design decisions, evaluate against these principles:
 
 ### 1. Make the Mycelium Visible
-Show value flows end-to-end. Every screen should help participants trace the chain: gardener's work → operator verification → evaluator assessment → hypercert → funder investment → more work. Name the flows. Make the invisible visible.
+Show value flows end-to-end. Every screen should help participants trace the chain: gardener's work → steward verification → evaluator assessment → hypercert → funder investment → more work. Name the flows. Make the invisible visible.
 
 **Check**: Can the user see how their action connects to the larger system?
 
@@ -192,7 +192,7 @@ function RejectionFeedback({ work, rejection }: RejectionProps) {
         <AlertDescription>{rejection.feedback}</AlertDescription>
       </Alert>
 
-      {/* What the operator saw */}
+      {/* What the steward saw */}
       <section>
         <h4 className="text-sm font-medium">What the reviewer noted</h4>
         <ul className="text-sm text-muted-foreground list-disc pl-4">

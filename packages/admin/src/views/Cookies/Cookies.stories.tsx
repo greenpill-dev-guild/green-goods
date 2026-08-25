@@ -33,7 +33,7 @@ const STORYBOOK_COOKIE_CAMPAIGNS: CampaignCookieJarCampaign[] = [
     metadata: buildCampaignCookieJarMetadata({
       title: "Earth Week Cookie Jar",
       slug: "earth-week",
-      description: "Shared campaign rewards for selected garden operators.",
+      description: "Shared campaign rewards for selected garden stewards.",
       image: FIXTURE_IMAGE_AGROFORESTRY,
       externalUrl: "https://greengoods.app/cookies?campaign=earth-week",
       sourceGardens: [STORYBOOK_PRIMARY_ADMIN_GARDEN.id],
@@ -60,7 +60,7 @@ const EMPTY_COOKIE_CAMPAIGN_SEEDS = [
 
 const MANY_COOKIE_GARDENS: Garden[] = Array.from({ length: 24 }, (_, index) => {
   const address = `0x${(0x2000 + index).toString(16).padStart(40, "0")}` as Address;
-  const operators = index % 7 === 0 ? [] : STORYBOOK_PRIMARY_ADMIN_GARDEN.operators;
+  const stewards = index % 7 === 0 ? [] : STORYBOOK_PRIMARY_ADMIN_GARDEN.stewards;
 
   return {
     ...STORYBOOK_PRIMARY_ADMIN_GARDEN,
@@ -69,9 +69,9 @@ const MANY_COOKIE_GARDENS: Garden[] = Array.from({ length: 24 }, (_, index) => {
     tokenID: BigInt(index + 100),
     name:
       index % 7 === 0
-        ? `Campaign Garden ${index + 1} - operator missing`
+        ? `Campaign Garden ${index + 1} - steward missing`
         : `Campaign Garden ${index + 1}`,
-    operators,
+    stewards,
   };
 });
 
@@ -136,7 +136,7 @@ export const DeployRoute: Story = {
     ).toBeVisible();
     await expect(
       await canvas.findByLabelText(
-        "Claim amount per operator",
+        "Claim amount per steward",
         undefined,
         ADMIN_ROUTE_STORY_QUERY_OPTIONS
       )

@@ -40,7 +40,7 @@ Ecosystems progress through stages: pioneer (lichens on rock), intermediate (gra
 
 **Invest disproportionate design attention at stakeholder boundaries.**
 
-In ecology, ecotones (transition zones between ecosystems) produce the greatest biodiversity. In Green Goods, the richest design zones are the gardener-operator boundary (review queue), the funder-garden boundary (vault interface), and the web3/non-web3 boundary (passkey onboarding). Don't smooth these edges over — enrich them.
+In ecology, ecotones (transition zones between ecosystems) produce the greatest biodiversity. In Green Goods, the richest design zones are the gardener-steward boundary (review queue), the funder-garden boundary (vault interface), and the web3/non-web3 boundary (passkey onboarding). Don't smooth these edges over — enrich them.
 
 *Grounded in: Edge effects in ecology, May East (sociotone), innovation at boundaries*
 
@@ -50,7 +50,7 @@ In ecology, ecotones (transition zones between ecosystems) produce the greatest 
 
 **Frame all "negative" states as opportunities with context.**
 
-Ecosystems don't prevent failure — they prepare for it as a generative event. The Lodgepole Pine carries cones that open only during fire. When work is rejected, show what the operator saw and what could improve. When connectivity is lost, design for dormancy, not error. When an operator leaves, design for smooth handover. Rejection is clearing. Disconnection is dormancy. Disturbance triggers renewal.
+Ecosystems don't prevent failure — they prepare for it as a generative event. The Lodgepole Pine carries cones that open only during fire. When work is rejected, show what the steward saw and what could improve. When connectivity is lost, design for dormancy, not error. When a steward leaves, design for smooth handover. Rejection is clearing. Disconnection is dormancy. Disturbance triggers renewal.
 
 *Grounded in: Ecological resilience, Biomimicry Life's Principles, Living Building Challenge*
 

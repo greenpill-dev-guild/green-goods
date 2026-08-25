@@ -17,7 +17,7 @@ import { getPublicHeroImage } from "@/content/publicCuration";
 import { StatCell } from "./GardenDetailAtoms";
 import { CommitmentsSection } from "./GardenDetailCommitments";
 import { FieldNotesSection } from "./GardenDetailFieldNotes";
-import { CertificatesSection, OperatorsSection } from "./GardenDetailSections";
+import { CertificatesSection, StewardsSection } from "./GardenDetailSections";
 import { rememberGardenReturn } from "./gardenReturnFocus";
 
 /**
@@ -79,7 +79,7 @@ export default function GardenDetail() {
         description: garden.description,
         bannerImage: garden.bannerImage,
         slug: publicGardenHelpers.deriveSlug(garden.name ?? "", garden.id),
-        operators: (garden.operators ?? []) as Address[],
+        stewards: (garden.stewards ?? []) as Address[],
       };
     }
     if (summary) {
@@ -89,7 +89,7 @@ export default function GardenDetail() {
         description: summary.description,
         bannerImage: summary.bannerImage,
         slug: summary.slug,
-        operators: summary.operators,
+        stewards: summary.stewards,
       };
     }
     return null;
@@ -202,7 +202,7 @@ export default function GardenDetail() {
 
           <CertificatesSection certificates={hypercerts} loading={hypercertsLoading} />
 
-          <OperatorsSection operators={identity?.operators ?? []} loading={detailLoading} />
+          <StewardsSection stewards={identity?.stewards ?? []} loading={detailLoading} />
 
           <div className="flex flex-wrap items-center gap-3 border-t border-stroke-soft-200 pt-10">
             <EditorialPrimaryLink to={fundHref}>

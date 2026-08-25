@@ -184,7 +184,7 @@ Linear's API constraint that Customer Needs must link to an Issue eliminates the
 | Clear bug + named surface + suggestable fix | Main (`activity:qa`) | `Todo` | Yes, linked |
 | Bug with no repro or no clear surface | Main (`activity:qa`) | `Backlog` | Yes, linked |
 | Idea / feature request / UX polish | Attach (`activity:maintenance`) | `Backlog` | Yes, linked |
-| Operator pain — "this is awkward" | Attach (`activity:maintenance`) | `Backlog` | Yes, linked |
+| Steward pain — "this is awkward" | Attach (`activity:maintenance`) | `Backlog` | Yes, linked |
 | Strategic gap tied to architecture rework | Attach (`activity:architecture`) | `Backlog` | Yes, linked |
 | Question / "me too" / no actionable content | Skip both | — | No |
 | Duplicate of existing record | No new Issue | — | Comment on existing if user wants the verbatim preserved |

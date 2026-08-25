@@ -60,12 +60,12 @@ export function useCommitmentViewerRoles(input: {
   const who = (viewer ?? undefined) as Address | undefined;
   const route = routeGarden as Address | undefined;
 
-  const { hasRole: isOperator } = useHasRole(route, who, "operator", chainId);
+  const { hasRole: wearsStewardHat } = useHasRole(route, who, "steward", chainId);
   const { hasRole: isOwner } = useHasRole(route, who, "owner", chainId);
   const { hasRole: stewardsPoolGarden } = useHasRole(
     pool?.garden as Address | undefined,
     who,
-    "operator",
+    "steward",
     chainId
   );
 
@@ -73,7 +73,7 @@ export function useCommitmentViewerRoles(input: {
     commitment?.direction === "OFFER" && commitment.counterpartyKind === "GARDEN"
       ? (commitment.counterparty ?? undefined)
       : undefined;
-  const { hasRole: stewardsCp } = useHasRole(counterpartyGarden, who, "operator", chainId);
+  const { hasRole: stewardsCp } = useHasRole(counterpartyGarden, who, "steward", chainId);
   const { hasRole: ownsCp } = useHasRole(counterpartyGarden, who, "owner", chainId);
 
   const { data: gardens = [] } = useGardens();
@@ -92,16 +92,16 @@ export function useCommitmentViewerRoles(input: {
     });
     return {
       member: others
-        .filter((entry) => isGardenMember(viewer, entry.gardeners, entry.operators))
+        .filter((entry) => isGardenMember(viewer, entry.gardeners, entry.stewards))
         .map(asOption),
       stewarded: others.filter((entry) => canManageGarden(entry)).map(asOption),
     };
   }, [gardens, poolHost, viewer, canManageGarden]);
 
-  const isSteward = isOperator || isOwner;
+  const isSteward = wearsStewardHat || isOwner;
   return {
     isSteward,
-    isMemberHere: isSteward || isGardenMember(viewer, garden?.gardeners, garden?.operators),
+    isMemberHere: isSteward || isGardenMember(viewer, garden?.gardeners, garden?.stewards),
     stewardsPoolGarden,
     counterpartyGarden,
     stewardsCounterparty: stewardsCp || ownsCp,

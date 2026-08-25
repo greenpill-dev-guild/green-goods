@@ -55,7 +55,7 @@ export function CookieJarManageModal({
     enabled: Boolean(gardenAddress) && isOpen,
   });
 
-  // Name the garden in the emergency-withdraw confirmation so the operator
+  // Name the garden in the emergency-withdraw confirmation so the steward
   // sees exactly whose jar is being drained.
   const { data: gardens = [] } = useGardens();
   const gardenName =

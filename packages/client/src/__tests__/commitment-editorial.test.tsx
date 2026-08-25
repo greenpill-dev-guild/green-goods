@@ -340,7 +340,7 @@ const gardenSummary = {
   contributorCount: 2,
   actionCount: 2,
   lastActivityAt: 1710000000,
-  operators: [GARDENER],
+  stewards: [GARDENER],
   evaluators: [],
 };
 
@@ -353,7 +353,7 @@ function detailResult() {
         location: "Rio de Janeiro",
         description: "A hillside garden",
         bannerImage: "https://example.com/banner.jpg",
-        operators: [GARDENER],
+        stewards: [GARDENER],
       },
       fieldNotes: [],
       contributors: [],
@@ -592,12 +592,12 @@ describe("GardenDetail § 02 Commitments", () => {
       "public-garden-detail-notes",
       "public-garden-detail-commitments",
       "public-garden-detail-certificates",
-      "public-garden-detail-operators",
+      "public-garden-detail-stewards",
     ]);
     expect(screen.getByText("§ 01: Field notes")).toBeInTheDocument();
     expect(screen.getByText("§ 02: Commitments")).toBeInTheDocument();
     expect(screen.getByText("§ 03: Certificates")).toBeInTheDocument();
-    expect(screen.getByText("§ 04: Operators")).toBeInTheDocument();
+    expect(screen.getByText("§ 04: Stewards")).toBeInTheDocument();
     expect(mockUsePublicGardenPool).toHaveBeenCalledWith(GARDEN_ID, {
       chainId: CHAIN_ID,
       historyLimit: 12,

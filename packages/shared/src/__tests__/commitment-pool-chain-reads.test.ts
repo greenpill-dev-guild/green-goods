@@ -117,7 +117,7 @@ describe("createPoolChainReader", () => {
       allocation: {
         gardeners: 6000,
         treasury: 1500,
-        operator: 1000,
+        steward: 1000,
         evaluator: 500,
         community: 500,
         funder: 500,
@@ -131,7 +131,7 @@ describe("createPoolChainReader", () => {
       allocation: {
         gardeners: 6000,
         treasury: 1500,
-        operator: 1000,
+        steward: 1000,
         evaluator: 500,
         community: 500,
         funder: 500,
@@ -153,7 +153,7 @@ describe("createPoolChainReader", () => {
       allocation: {
         gardeners: 0,
         treasury: 0,
-        operator: 0,
+        steward: 0,
         evaluator: 0,
         community: 0,
         funder: 0,

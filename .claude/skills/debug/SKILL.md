@@ -1,7 +1,7 @@
 ---
 name: debug
 user-invocable: false
-description: Debugging & Troubleshooting — fires passively when the user describes a bug, pastes an error or stack trace, reports unexpected behavior, mentions failing tests or builds, or signals an incident. Routes to user_bug_triage when an external party (user / gardener / operator / customer / team member / partner) reports broken product behavior, incident_hotfix on urgency signals, tdd_bugfix on red-test signals, default on general bug reports.
+description: Debugging & Troubleshooting — fires passively when the user describes a bug, pastes an error or stack trace, reports unexpected behavior, mentions failing tests or builds, or signals an incident. Routes to user_bug_triage when an external party (user / gardener / steward / customer / team member / partner) reports broken product behavior, incident_hotfix on urgency signals, tdd_bugfix on red-test signals, default on general bug reports.
 argument-hint: "[error-description]"
 ---
 
@@ -42,7 +42,7 @@ This skill is **passive-only**. There is no `/debug` slash command. Fire automat
 
 Fires when any external party reports broken product behavior — regardless of phrasing, role, or
 channel. Pattern-match semantically, not lexically: `a gardener said`, `the Hypercert team can't`,
-`Afolabi got an error`, `operator reports`, `someone is hitting`, `a user said`, forwarded support
+`Afolabi got an error`, `steward reports`, `someone is hitting`, `a user said`, forwarded support
 message, attached user screenshot, paraphrased complaint — they all engage this mode.
 
 - Focus: reproduce locally first, identify the failing layer, probe the boundary with the user's
@@ -85,7 +85,7 @@ message, attached user screenshot, paraphrased complaint — they all engage thi
 ### User-Facing Bug Triage Protocol
 
 Fires for `user_bug_triage` mode. Use this as the gating frame whenever any external party
-(user, gardener, operator, customer, team member, partner) reports broken product behavior —
+(user, gardener, steward, customer, team member, partner) reports broken product behavior —
 regardless of phrasing or role. Apply this BEFORE choosing UI Regression or Data/API/Contract
 protocols; this decides which one fits.
 

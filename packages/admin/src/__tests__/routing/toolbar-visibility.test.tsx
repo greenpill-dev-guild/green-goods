@@ -228,7 +228,7 @@ describe("Toolbar Visibility", () => {
     expect(screen.queryByTestId("nav-actions")).not.toBeInTheDocument();
   });
 
-  it("operator sees Hub + Garden + Community", () => {
+  it("steward sees Hub + Garden + Community", () => {
     mockPermissions.current = {
       showWork: true,
       showGarden: true,
@@ -251,7 +251,7 @@ describe("Toolbar Visibility", () => {
   });
 
   it("switching garden scope updates visible slots", () => {
-    // Start with operator-level permissions
+    // Start with steward-level permissions
     mockPermissions.current = {
       showWork: true,
       showGarden: true,

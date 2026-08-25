@@ -57,13 +57,13 @@ const sidebars: SidebarsConfig = {
       label: 'Operator Guide',
       link: {
         type: 'doc',
-        id: 'community/operator-guide/index',
+        id: 'community/steward-guide/index',
       },
       items: [
-        {type: 'doc', id: 'community/operator-guide/creating-a-garden', label: 'Create a Garden'},
-        {type: 'doc', id: 'community/operator-guide/making-an-assessment', label: 'Make an Assessment'},
-        {type: 'doc', id: 'community/operator-guide/reviewing-work', label: 'Review and Approve Work'},
-        {type: 'doc', id: 'community/operator-guide/creating-impact-certificates', label: 'Mint Impact Certificate'},
+        {type: 'doc', id: 'community/steward-guide/creating-a-garden', label: 'Create a Garden'},
+        {type: 'doc', id: 'community/steward-guide/making-an-assessment', label: 'Make an Assessment'},
+        {type: 'doc', id: 'community/steward-guide/reviewing-work', label: 'Review and Approve Work'},
+        {type: 'doc', id: 'community/steward-guide/creating-impact-certificates', label: 'Mint Impact Certificate'},
       ],
     },
 

@@ -80,7 +80,7 @@ function createGarden(overrides: Partial<Garden> = {}): Garden {
     bannerImage: "ipfs://QmBanner",
     createdAt: Date.now(),
     gardeners: [],
-    operators: [],
+    stewards: [],
     owners: [],
     evaluators: [],
     funders: [],
@@ -146,10 +146,10 @@ describe("useGardenTranslation", () => {
     expect(result.current.translatedGarden!.chainId).toBe(42161);
   });
 
-  it("preserves array fields (gardeners, operators, etc.)", () => {
+  it("preserves array fields (gardeners, stewards, etc.)", () => {
     const garden = createGarden({
       gardeners: ["0xGardener1" as any],
-      operators: ["0xOperator1" as any],
+      stewards: ["0xSteward1" as any],
     });
 
     const { result } = renderHook(
@@ -160,7 +160,7 @@ describe("useGardenTranslation", () => {
     );
 
     expect(result.current.translatedGarden!.gardeners).toEqual(["0xGardener1"]);
-    expect(result.current.translatedGarden!.operators).toEqual(["0xOperator1"]);
+    expect(result.current.translatedGarden!.stewards).toEqual(["0xSteward1"]);
   });
 
   it("reports isTranslating as false when API is unsupported and locale differs", () => {

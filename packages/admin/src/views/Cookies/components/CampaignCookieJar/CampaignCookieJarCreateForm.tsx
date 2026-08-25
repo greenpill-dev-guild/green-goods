@@ -45,7 +45,7 @@ export interface CampaignCookieJarCreateFormProps {
   aggregation: {
     allowlist: readonly string[];
     sources: readonly unknown[];
-    missingOperatorGardens: readonly unknown[];
+    missingStewardGardens: readonly unknown[];
     invalidAddresses: readonly string[];
   };
   advancedOpen: boolean;

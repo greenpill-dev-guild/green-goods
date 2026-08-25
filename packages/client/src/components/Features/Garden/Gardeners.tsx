@@ -28,7 +28,7 @@ import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 export type GardenMember = GardenerCard & {
   account: Address;
-  isOperator: boolean;
+  isSteward: boolean;
   isGardener: boolean;
 };
 
@@ -77,19 +77,19 @@ const GardenMemberItem = memo(function GardenMemberItem({
       onClick={onClick}
       type="button"
     >
-      {member.isOperator ? (
+      {member.isSteward ? (
         <Badge
           variant="pill"
           tint="secondary"
           className="absolute top-2 right-2 text-xs font-semibold"
           aria-label={intl.formatMessage({
-            id: "app.garden.gardeners.operatorBadge",
-            defaultMessage: "Operator",
+            id: "app.garden.gardeners.stewardBadge",
+            defaultMessage: "Steward",
           })}
         >
           {intl.formatMessage({
-            id: "app.garden.gardeners.operatorBadge",
-            defaultMessage: "Operator",
+            id: "app.garden.gardeners.stewardBadge",
+            defaultMessage: "Steward",
           })}
         </Badge>
       ) : null}

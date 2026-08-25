@@ -44,7 +44,7 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
         gardenAccount = _mintTestGarden("EAS Test Garden", 0x0F);
 
         // Grant roles
-        _grantGardenRole(gardenAccount, forkOperator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(gardenAccount, forkOperator, IHatsModule.GardenRole.Steward);
         _grantGardenRole(gardenAccount, forkGardener, IHatsModule.GardenRole.Gardener);
         _grantGardenRole(gardenAccount, forkEvaluator, IHatsModule.GardenRole.Evaluator);
 
