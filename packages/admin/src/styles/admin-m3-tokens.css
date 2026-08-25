@@ -259,6 +259,27 @@
   .m3-state-layer:active::after {
     opacity: var(--m3-state-pressed);
   }
+
+  /* M3 expanded touch target: a ≥44px effective hit area on the 32px-visual
+   * compact controls (AdminButton sm, AdminFilterChip) without moving layout.
+   * The ::before extends hit-testing beyond the visual box, so the state
+   * layer's overlay clip is released — its rounded shape comes from
+   * border-radius: inherit, not the clip. Vertical-only: a sideways extension
+   * would overlap neighbouring targets inside chip rows. Must follow the
+   * .m3-state-layer rules in this same layer so `overflow` wins by order. */
+  .admin-hit-target {
+    overflow: visible;
+  }
+
+  .admin-hit-target::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: max(100%, 2.75rem);
+    transform: translateY(-50%);
+  }
 }
 
 /* --------------------------------------------------------------------------
