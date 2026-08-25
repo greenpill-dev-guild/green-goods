@@ -53,6 +53,11 @@ function IndexRedirect({ kind }: { kind: AdminIndexRedirectKind }) {
   return <Navigate to={resolveAdminIndexRedirect(kind, location.search)} replace />;
 }
 
+function PreserveSearchRedirect({ pathname }: { pathname: string }) {
+  const location = useLocation();
+  return <Navigate to={{ pathname, search: location.search }} replace />;
+}
+
 export const adminCanvasRoutes: RouteObject[] = [
   {
     path: "hub",
@@ -134,11 +139,11 @@ export const adminCanvasRoutes: RouteObject[] = [
         children: [
           {
             index: true,
-            element: <Navigate to="/hub" replace />,
+            element: <PreserveSearchRedirect pathname="/hub" />,
           },
           {
             path: ":historyEventId",
-            element: <Navigate to="/hub" replace />,
+            element: <PreserveSearchRedirect pathname="/hub" />,
           },
         ],
       },
@@ -272,7 +277,7 @@ export const adminCanvasRoutes: RouteObject[] = [
         // surface (protocol pool + this garden, uiux-spec §6.8) renders there
         // and saved deep links land on it.
         path: "pools",
-        element: <Navigate to="/community/coordination" replace />,
+        element: <PreserveSearchRedirect pathname="/community/coordination" />,
       },
       {
         // Legacy resources URLs alias into Endowment until external links move.

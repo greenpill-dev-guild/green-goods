@@ -144,7 +144,7 @@ export function GardenPool({ pool }: GardenPoolProps) {
         })}
         {/* The daily list holds the living; how things ended folds behind one
             quiet scope, the way the drawer splits Live from History. */}
-        {controller.settledCount > 0 ? (
+        {controller.settledCount > 0 || controller.liveness === "settled" ? (
           <button
             type="button"
             aria-pressed={controller.liveness === "settled"}

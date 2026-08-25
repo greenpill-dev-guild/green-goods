@@ -106,6 +106,7 @@ export function CommitmentFacts({
                     <AddressDisplay
                       address={commitment.leadProvider}
                       showCopyButton={false}
+                      interactive={false}
                       className="inline-flex"
                     />
                   ),
@@ -192,6 +193,7 @@ export function CommitmentFacts({
                   <AddressDisplay
                     address={commitment.fulfilledBy}
                     showCopyButton={false}
+                    interactive={false}
                     className="inline-flex"
                   />
                   <span>

@@ -76,10 +76,10 @@ describe("ConfirmSheet proof summary", () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     renderSheet(2);
 
-    expect(document.querySelector('[data-component="ConfirmSummary"]')).toBeInstanceOf(
-      HTMLDivElement
-    );
-    expect(screen.getByText("No items yet")).toBeInTheDocument();
+    const summary = document.querySelector('[data-component="ConfirmSummary"]');
+    expect(summary).toBeInstanceOf(HTMLDivElement);
+    expect(summary?.querySelector("span > div")).toBeNull();
+    expect(screen.getByText("2 items")).toBeInTheDocument();
     // The chain says 2 pieces exist; zero rows resolved. The sheet must never
     // contradict the detail's count by claiming nothing was attached (F5).
     expect(
@@ -92,7 +92,7 @@ describe("ConfirmSheet proof summary", () => {
 
   it("shows one resolved proof without empty copy", () => {
     mocks.evidence = [evidence("bafy-one")];
-    renderSheet(0);
+    renderSheet(1);
 
     expect(screen.getByText("1 item")).toBeInTheDocument();
     expect(screen.queryByText("No proof has been attached yet.")).not.toBeInTheDocument();
@@ -100,7 +100,7 @@ describe("ConfirmSheet proof summary", () => {
 
   it("shows multiple resolved proofs without empty copy", () => {
     mocks.evidence = [evidence("bafy-one"), evidence("bafy-two")];
-    renderSheet(1);
+    renderSheet(2);
 
     expect(screen.getByText("2 items")).toBeInTheDocument();
     expect(screen.queryByText("No proof has been attached yet.")).not.toBeInTheDocument();

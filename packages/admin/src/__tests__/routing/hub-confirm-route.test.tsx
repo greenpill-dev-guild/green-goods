@@ -56,3 +56,16 @@ describe("/hub/confirm", () => {
     }
   });
 });
+
+describe("retired /hub/history routes", () => {
+  it.each([
+    "/hub/history",
+    "/hub/history/event-9",
+  ])("lands %s on the Hub without losing its garden and sort context", async (path) => {
+    const router = renderAdminCanvasRoute(`${path}?gardenId=0xAAA&sort=oldest`);
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/hub/work");
+    });
+    expect(router.state.location.search).toBe("?gardenId=0xAAA&sort=oldest");
+  });
+});

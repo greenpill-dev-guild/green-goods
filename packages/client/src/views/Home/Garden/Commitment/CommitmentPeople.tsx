@@ -33,7 +33,9 @@ export function CommitmentPeople({ commitment, contributors, seat }: CommitmentP
   // and the decision "do I want to help this neighbour" deserves the name —
   // before anyone accepts, and after, when the asker is also the confirmer.
   const asker = commitment.direction === "REQUEST" ? commitment.creator : null;
-  const askerConfirms = same(asker, commitment.counterparty);
+  // For requests, the creator is the receiving side and therefore holds the
+  // confirmation seat after another person accepts as provider.
+  const askerConfirms = Boolean(asker);
 
   return (
     <dl className="mt-3 space-y-2 border-t border-stroke-soft-200 pt-3">

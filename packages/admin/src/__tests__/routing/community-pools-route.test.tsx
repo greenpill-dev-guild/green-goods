@@ -33,5 +33,6 @@ describe("/community/pools", () => {
     await waitFor(() => {
       expect(router.state.location.pathname).toBe("/community/coordination");
     });
+    expect(router.state.location.search).toBe("?gardenId=0xAAA");
   });
 });
