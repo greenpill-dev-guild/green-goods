@@ -67,14 +67,11 @@ export function buildCommitmentContractCall(
     }
     case "workLink": {
       const value = payload as CommitmentJobPayloadMap["workLink"];
+      const workUID = value.workUID ?? value.resolvedWorkUID;
+      if (!workUID) throw new Error("Deferred Work identity has not resolved");
       return {
         functionName: "linkWork",
-        args: [
-          value.commitmentId,
-          value.workUID,
-          value.requirementIndex,
-          value.operationKey,
-        ] as const,
+        args: [value.commitmentId, workUID, value.requirementIndex, value.operationKey] as const,
       };
     }
     case "confirmation": {

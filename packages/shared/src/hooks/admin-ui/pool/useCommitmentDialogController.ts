@@ -18,10 +18,10 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CommitmentDialogController, DisputeResolutionKey } from "./controller.types";
 
-import { STALE_TIME_MEDIUM } from "../../../config/query-keys/constants";
+import { INDEXER_LAG_SCHEDULE_MS, STALE_TIME_MEDIUM } from "../../../config/query-keys/constants";
 import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { selectCommitmentActKind } from "../../../modules/commitment-pooling/acts";
 import { getViewerConfirmedCommitmentIds } from "../../../modules/commitment-pooling/data";
@@ -39,12 +39,14 @@ import {
   selectOrdinaryConfirmationReachable,
 } from "../../../modules/commitment-pooling/steward-selectors";
 import type { Address } from "../../../types/domain";
+import { selectWorkDecisionReadback } from "../../../modules/commitment-pooling/work-decision-readback";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { useGardenAssessments } from "../../assessment/useGardenAssessments";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
 import { useCommitmentMetadataFor } from "../../commitment-pooling/useCommitmentMetadata";
 import { useCommitmentMutation } from "../../commitment-pooling/useCommitmentMutations";
+import { useCommitmentWorkDecisions } from "../../commitment-pooling/useCommitmentWorkDecisions";
 import {
   useCommitment,
   useCommitmentActivity,
@@ -55,9 +57,10 @@ import { useCommitmentQueueState } from "../../commitment-pooling/useCommitmentQ
 import { useCommitmentReason } from "../../commitment-pooling/useCommitmentReason";
 import { useProtocolPool } from "../../commitment-pooling/useProtocolPool";
 import { useGardenRoles } from "../../roles/useGardenRoles";
+import { useProgressiveInvalidation } from "../../utils/useTimeout";
 
 /** `ICommitmentPoolingModule.DisputeResolution`, by code. */
-export const DISPUTE_RESOLUTION_CODE = {
+const DISPUTE_RESOLUTION_CODE = {
   RESTORE_PREVIOUS: 0,
   FULFILLED: 1,
   CANCELLED: 2,
@@ -99,6 +102,16 @@ export function useCommitmentDialogController(input: {
   );
   const queue = useCommitmentQueueState(viewer);
   const mutation = useCommitmentMutation({ chainId });
+  const [submittedDecisions, setSubmittedDecisions] = useState<
+    readonly { workUID: string; decisionUID: string }[]
+  >([]);
+  const workDecisions = useCommitmentWorkDecisions({
+    chainId,
+    garden: commitment?.providerGarden ?? garden,
+    commitmentId,
+    attributions: detail?.workAttributions ?? [],
+    enabled: Boolean(detail),
+  });
   const jobs = useCommitmentJobs({ chainId });
   // What this reader already signed: `confirmFulfillment` reverts
   // `AlreadyConfirmed` on a repeat, and a threshold above one keeps the record
@@ -230,7 +243,34 @@ export function useCommitmentDialogController(input: {
     hasPendingJob,
     isDue,
     confirmation,
+    canReconcileWork:
+      isOnline &&
+      workDecisions.readAvailable &&
+      workDecisions.reconciliationCandidates.length > 0 &&
+      !mutation.isPending,
   });
+
+  const reconciliationDecisionUIDs = workDecisions.reconciliationCandidates.flatMap((row) =>
+    row.currentDecisionUID ? [row.currentDecisionUID] : []
+  );
+  const readbackStatus = selectWorkDecisionReadback({
+    submitted: submittedDecisions,
+    byWorkUID: workDecisions.byWorkUID,
+    readAvailable: workDecisions.readAvailable,
+    isError: workDecisions.isError,
+  });
+  const readbackNeedsFreshReview = readbackStatus === "needsFreshReview";
+  const unavailableReadback = readbackStatus === "unavailable";
+  const reconciliationSucceeded = readbackStatus === "succeeded";
+  const pendingReadback = readbackStatus === "pending";
+  const { start: scheduleReconciliationReadback, cancel: cancelReconciliationReadback } =
+    useProgressiveInvalidation(() => {
+      void Promise.all([detailQuery.refetch(), activity.refetch(), workDecisions.refetch()]);
+    }, INDEXER_LAG_SCHEDULE_MS);
+  useEffect(() => {
+    setSubmittedDecisions([]);
+    cancelReconciliationReadback();
+  }, [cancelReconciliationReadback, commitmentId]);
 
   const acts = useMemo(
     () => ({
@@ -277,8 +317,37 @@ export function useCommitmentDialogController(input: {
           reason,
           gardenAddress: garden,
         }),
+      syncWorkDecisions: async () => {
+        const decisionUIDs = reconciliationDecisionUIDs;
+        if (decisionUIDs.length === 0) throw new Error("No approved linked Work is ready to count");
+        const hash = await mutation.mutateAsync({
+          action: "syncWorkDecisions",
+          commitmentId,
+          decisionUIDs,
+        });
+        setSubmittedDecisions(
+          workDecisions.reconciliationCandidates.flatMap((row) =>
+            row.currentDecisionUID
+              ? [{ workUID: row.workUID, decisionUID: row.currentDecisionUID }]
+              : []
+          )
+        );
+        await Promise.all([detailQuery.refetch(), activity.refetch(), workDecisions.refetch()]);
+        scheduleReconciliationReadback();
+        return hash;
+      },
     }),
-    [mutation, jobs, commitmentId, garden]
+    [
+      mutation,
+      jobs,
+      commitmentId,
+      garden,
+      reconciliationDecisionUIDs,
+      detailQuery,
+      activity,
+      workDecisions,
+      scheduleReconciliationReadback,
+    ]
   );
 
   const refetch = useCallback(
@@ -288,8 +357,9 @@ export function useCommitmentDialogController(input: {
         activity.refetch(),
         poolsQuery.refetch(),
         cycleQuery.refetch(),
+        workDecisions.refetch(),
       ]),
-    [detailQuery, activity, poolsQuery, cycleQuery]
+    [detailQuery, activity, poolsQuery, cycleQuery, workDecisions]
   );
 
   // A query that never ran leaves no record; that is unavailable, not missing.
@@ -324,9 +394,26 @@ export function useCommitmentDialogController(input: {
     isDue,
     hasPendingJob,
     can,
+    reconciliation: {
+      candidates: workDecisions.reconciliationCandidates,
+      count: workDecisions.reconciliationCandidates.length,
+      decisionUIDs: reconciliationDecisionUIDs,
+      readAvailable: workDecisions.readAvailable,
+      isLoading: workDecisions.isLoading,
+      isError: workDecisions.isError,
+      pendingReadback,
+      succeeded: reconciliationSucceeded,
+      readbackStatus,
+      unavailableReadback,
+      needsFreshReview: readbackNeedsFreshReview,
+      error: workDecisions.error ?? mutation.error,
+      refetch: workDecisions.refetch,
+    },
     acts,
     isActing: mutation.isPending || jobs.isPending,
     isLoading: detailQuery.isLoading || activity.isLoading || poolsQuery.isLoading,
+    // Decision reads have their own bounded recovery row. They must not hide
+    // the otherwise-readable commitment behind the panel's Not Found state.
     isError,
     unavailable,
     notFound: !unavailable && !isError && !detailQuery.isLoading && commitment === null,

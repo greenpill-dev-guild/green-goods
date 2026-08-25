@@ -113,6 +113,8 @@ export function simulateWorkData(data: WorkDraft, chainId: number | string) {
  * Options for work data encoding
  */
 export interface EncodeWorkDataOptions {
+  /** Stable submission identity. New submissions always supply it. */
+  clientWorkId?: string;
   /** Garden address for tracking context */
   gardenAddress?: string;
   /** Auth mode for tracking context */
@@ -353,8 +355,8 @@ export async function encodeWorkData(
           ...(data.tags && data.tags.length > 0 ? { tags: data.tags } : {}),
           ...(audioNoteCids.length > 0 ? { audioNoteCids } : {}),
           clientWorkId:
-            ((data as unknown as Record<string, unknown>).clientWorkId as string) ||
-            crypto.randomUUID(),
+            options.clientWorkId ??
+            ((data as unknown as Record<string, unknown>).clientWorkId as string),
           submittedAt: new Date().toISOString(),
         }
       : {
@@ -363,6 +365,7 @@ export async function encodeWorkData(
           timeSpentMinutes: data.timeSpentMinutes,
           ...(data.tags && data.tags.length > 0 ? { tags: data.tags } : {}),
           ...(audioNoteCids.length > 0 ? { audioNoteCids } : {}),
+          ...(options.clientWorkId ? { clientWorkId: options.clientWorkId } : {}),
         };
 
     const metadata = await uploadJSONToIPFS(metadataPayload as Record<string, unknown>, {

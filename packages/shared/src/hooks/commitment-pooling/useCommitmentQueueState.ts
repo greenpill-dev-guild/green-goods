@@ -49,6 +49,23 @@ export interface PendingCommitmentCreation {
   createdAt: number;
 }
 
+export type CommitmentFailureReason =
+  | "mismatchedWork"
+  | "sourceWorkFailed"
+  | "membershipLost"
+  | "commitmentClosed"
+  | "identityConflict"
+  | "unavailable";
+
+export interface FailedCommitmentJob {
+  jobId: string;
+  discardable: boolean;
+  /** A terminal cause safe to explain without exposing queue internals. */
+  reason: CommitmentFailureReason | null;
+  /** Identity conflicts cannot be repaired by replaying the same payload. */
+  retryable: boolean;
+}
+
 export interface CommitmentQueueState {
   /** Commitments with an act queued and still trying. Keyed by decimal id. */
   pendingCommitmentIds: ReadonlySet<string>;
@@ -61,7 +78,7 @@ export interface CommitmentQueueState {
    * offer retry and discard rather than only an alert. A terminal record that
    * nobody can reach drives the alert forever and keeps its media with it.
    */
-  failedJobs: ReadonlyMap<string, { jobId: string; discardable: boolean }>;
+  failedJobs: ReadonlyMap<string, FailedCommitmentJob>;
   /** True while a new commitment is still waiting to be placed. */
   hasPendingCreate: boolean;
   /** Every creation still on this phone, failed ones included, newest first. */
@@ -80,6 +97,27 @@ function commitmentIdOf(job: Job): string | null {
   const payload = job.payload as { commitmentId?: bigint | string } | undefined;
   if (payload?.commitmentId === undefined) return null;
   return String(payload.commitmentId);
+}
+
+function explainTerminalFailure(
+  lastError?: string
+): Pick<FailedCommitmentJob, "reason" | "retryable"> {
+  if (!lastError) return { reason: null, retryable: true };
+  if (lastError.startsWith("unavailable:")) return { reason: "unavailable", retryable: true };
+  if (!lastError.startsWith("identity_conflict:")) return { reason: null, retryable: true };
+
+  const reason = lastError.slice("identity_conflict:".length);
+  if (reason === "work-identity-conflict" || reason === "work-link-payload-mismatch") {
+    return { reason: "mismatchedWork", retryable: false };
+  }
+  if (reason === "source-work-terminal") {
+    return { reason: "sourceWorkFailed", retryable: false };
+  }
+  if (reason === "membership-lost") return { reason: "membershipLost", retryable: false };
+  if (reason === "commitment-frozen" || reason === "commitment-terminal") {
+    return { reason: "commitmentClosed", retryable: false };
+  }
+  return { reason: "identityConflict", retryable: false };
 }
 
 /**
@@ -124,7 +162,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
     const jobs: Job[] = query.data ?? [];
     const pendingCommitmentIds = new Set<string>();
     const failedCommitmentIds = new Set<string>();
-    const failedJobs = new Map<string, { jobId: string; discardable: boolean }>();
+    const failedJobs = new Map<string, FailedCommitmentJob>();
     const pendingCreates: PendingCommitmentCreation[] = [];
     let failedCount = 0;
     let hasPendingCreate = false;
@@ -159,7 +197,11 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
         failedCount += 1;
         if (commitmentId) {
           failedCommitmentIds.add(commitmentId);
-          failedJobs.set(commitmentId, { jobId: job.id, discardable: isDiscardableJob(job) });
+          failedJobs.set(commitmentId, {
+            jobId: job.id,
+            discardable: isDiscardableJob(job),
+            ...explainTerminalFailure(job.lastError),
+          });
         }
         continue;
       }

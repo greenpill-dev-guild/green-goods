@@ -4,10 +4,11 @@ import { useJobQueue } from "@green-goods/shared/providers/JobQueue";
 import { RiDeleteBinLine, RiRefreshLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import type { FailedCommitmentJob } from "@green-goods/shared/commitment-pooling";
 
 export interface FailedActAlertProps {
   /** The terminal job behind the alert, or null when the queue cannot name it. */
-  failed: { jobId: string; discardable: boolean } | null;
+  failed: FailedCommitmentJob | null;
   /** Re-reads the queue once an act has been retried or thrown away. */
   onChanged: () => void;
 }
@@ -40,14 +41,19 @@ export function FailedActAlert({ failed, onChanged }: FailedActAlertProps) {
     await flush();
   };
   const onDiscard = (jobId: string) => jobQueue.discardJob(jobId);
+  const reasonMessage = failed?.reason
+    ? formatMessage({ id: `app.commitment.queue.failure.${failed.reason}` })
+    : formatMessage({ id: "app.commitment.queue.failed" });
 
   return (
     <Alert variant="error" className="p-3">
-      <p>{formatMessage({ id: "app.commitment.queue.failed" })}</p>
+      <p>{reasonMessage}</p>
       {failed ? (
         <div
           className={
-            failed.discardable ? "mt-3 grid grid-cols-2 gap-2" : "mt-3 grid grid-cols-1 gap-2"
+            failed.discardable && failed.retryable
+              ? "mt-3 grid grid-cols-2 gap-2"
+              : "mt-3 grid grid-cols-1 gap-2"
           }
         >
           {failed.discardable ? (
@@ -61,15 +67,17 @@ export function FailedActAlert({ failed, onChanged }: FailedActAlertProps) {
               {formatMessage({ id: "app.pool.queued.discard" })}
             </button>
           ) : null}
-          <button
-            type="button"
-            onClick={() => void run(onRetry)}
-            disabled={busy}
-            className="flex items-center justify-center gap-1 rounded-[var(--radius-lg)] bg-primary-action px-3 py-2 text-xs font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
-          >
-            <RiRefreshLine className="h-4 w-4" aria-hidden="true" />
-            {formatMessage({ id: "app.pool.queued.retry" })}
-          </button>
+          {failed.retryable ? (
+            <button
+              type="button"
+              onClick={() => void run(onRetry)}
+              disabled={busy}
+              className="flex items-center justify-center gap-1 rounded-[var(--radius-lg)] bg-primary-action px-3 py-2 text-xs font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
+            >
+              <RiRefreshLine className="h-4 w-4" aria-hidden="true" />
+              {formatMessage({ id: "app.pool.queued.retry" })}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </Alert>

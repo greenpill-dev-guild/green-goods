@@ -7,7 +7,6 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import type {
   CommitmentDialogController,
-  HubConfirmQueueController,
   PoolConsoleController,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { OntologyChainCapability } from "@green-goods/shared/ontology/types";
@@ -17,14 +16,12 @@ import type {
   CommitmentPoolRecord,
   CommitmentReadModel,
 } from "@green-goods/shared/modules/commitment-pooling/types-core";
-import { STORYBOOK_PRIMARY_ADMIN_GARDEN } from "../../../../../shared/.storybook/adminFixtures";
 import { daysAgo } from "../../../../../shared/.storybook/fixtures";
 import { STORY_GARDEN, STORY_JOAO, STORY_MARIA, STORY_NOW, STORY_STEWARD } from "./poolStoryActors";
 import {
   STORY_CLAIMS,
   STORY_COMMITMENTS,
   STORY_TITLES,
-  STORY_TO_CONFIRM,
   storyCommitment,
 } from "./poolStoryCommitments";
 import { STORY_CYCLE_NAMES, STORY_CYCLES, storyPool } from "./poolStoryPools";
@@ -128,6 +125,7 @@ export function storyCommitmentDialog(
     confirmFallback: noop,
     acceptClaim: noop,
     declineClaim: noop,
+    syncWorkDecisions: noop,
   };
   return {
     chainId: DEFAULT_CHAIN_ID,
@@ -248,6 +246,22 @@ export function storyCommitmentDialog(
       confirmFallback: false,
       acceptClaim: false,
       declineClaim: false,
+      syncWorkDecisions: false,
+    },
+    reconciliation: {
+      candidates: [],
+      count: 0,
+      decisionUIDs: [],
+      readAvailable: true,
+      isLoading: false,
+      isError: false,
+      pendingReadback: false,
+      succeeded: false,
+      readbackStatus: "idle",
+      unavailableReadback: false,
+      needsFreshReview: false,
+      error: null,
+      refetch: async () => undefined,
     },
     acts,
     isActing: false,
@@ -256,36 +270,6 @@ export function storyCommitmentDialog(
     unavailable: false,
     notFound: false,
     refetch: async () => [],
-    ...overrides,
-  };
-}
-
-export function storyConfirmQueue(
-  overrides: Partial<HubConfirmQueueController> = {}
-): HubConfirmQueueController {
-  return {
-    rows: [
-      {
-        commitment: STORY_TO_CONFIRM.groups[0]!.rows[0]!.commitment,
-        garden: STORY_GARDEN,
-        gardenName: STORYBOOK_PRIMARY_ADMIN_GARDEN.name,
-        eligibility: "ORDINARY",
-        title: "Survey the wetland edge",
-      },
-      {
-        commitment: STORY_TO_CONFIRM.fallback[0]!.commitment,
-        garden: STORY_GARDEN,
-        gardenName: STORYBOOK_PRIMARY_ADMIN_GARDEN.name,
-        eligibility: "POOL_FALLBACK",
-        title: "Prune the north beds",
-      },
-    ],
-    isOnline: true,
-    isLoading: false,
-    isError: false,
-    isConfirming: false,
-    isDisputing: false,
-    acts: { confirm: async () => "job", notYet: noop },
     ...overrides,
   };
 }

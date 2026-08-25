@@ -16,6 +16,7 @@ export type CommitmentChainReads = Pick<
   | "readCommitment"
   | "readEvidenceAttached"
   | "readWorkLinkPayloadHash"
+  | "readWorkLinkCommitmentState"
   | "hasMembership"
 >;
 
@@ -98,6 +99,16 @@ export function createCommitmentChainReads({
         args: [caller, key],
         chainId,
       })) as Hex,
+    readWorkLinkCommitmentState: async (commitmentId) => {
+      const value = (await readContract(wagmiConfig, {
+        address: moduleAddress,
+        abi: CommitmentPoolingModuleABI,
+        functionName: "getCommitment",
+        args: [commitmentId],
+        chainId,
+      })) as { state: number; contributorsFrozen: boolean };
+      return { state: value.state, contributorsFrozen: value.contributorsFrozen };
+    },
     hasMembership: async (garden, account) => {
       const results = await Promise.all(
         Object.values(GARDEN_ROLE_FUNCTIONS).map(async (functionName) => {
@@ -117,11 +128,12 @@ export function createCommitmentChainReads({
               functionName,
               errorType: error instanceof Error ? error.name : "UnknownError",
             });
-            return false;
+            return null;
           }
         })
       );
-      return results.some(Boolean);
+      if (results.some((result) => result === true)) return true;
+      return results.some((result) => result === null) ? null : false;
     },
   };
 }

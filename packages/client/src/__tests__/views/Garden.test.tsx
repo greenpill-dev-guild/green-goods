@@ -49,6 +49,27 @@ const mockWorkFlowState = {
 
 const mockSetActiveTab = vi.fn();
 const mockSetSelectedDomain = vi.fn();
+const mockSelectLinkIntent = vi.fn();
+const mockClearLinkIntent = vi.fn();
+const mockIntroProps = vi.fn();
+const mockReviewProps = vi.fn();
+let mockActiveTab = "Intro";
+interface MockWorkLinkIntent {
+  commitmentId: bigint;
+  requirementIndex: number;
+  actionUID: number;
+  garden: `0x${string}`;
+  commitmentTitle: string;
+  requirementLabel: string;
+  returnTo: string;
+}
+let mockLinkIntent: MockWorkLinkIntent | null = null;
+let mockCommitmentLinkChoices: MockWorkLinkIntent[] = [];
+let mockLinkIntentStatus: "none" | "validating" | "valid" | "invalid" = "none";
+const mockRefetchCommitmentLinkChoices = vi.fn();
+const mockRetryLinkOnly = vi.fn();
+let mockHasPendingLinkRecovery = false;
+let mockLinkSchedulingSucceeded = false;
 const mockActions = [
   {
     id: "action-1",
@@ -99,7 +120,7 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     hasJoinedGardens: true,
     joinableCommunityGarden: null,
     isLoading: false,
-    activeTab: "Intro",
+    activeTab: mockActiveTab,
     selectedDomain: null,
     setSelectedDomain: mockSetSelectedDomain,
     audioNotes: [],
@@ -121,6 +142,20 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     isRecording: false,
     isWalletRequestExpired: false,
     joinCommunityGarden: vi.fn(),
+    linkIntent: mockLinkIntent,
+    linkIntentStatus: mockLinkIntentStatus,
+    commitmentLinkChoices: mockCommitmentLinkChoices,
+    commitmentLinkChoicesLoading: false,
+    commitmentLinkChoicesError: null,
+    refetchCommitmentLinkChoices: mockRefetchCommitmentLinkChoices,
+    isSchedulingDependentLink: false,
+    linkSchedulingError: mockHasPendingLinkRecovery ? new Error("queue unavailable") : null,
+    linkSchedulingSucceeded: mockLinkSchedulingSucceeded,
+    hasPendingLinkRecovery: mockHasPendingLinkRecovery,
+    retryLinkOnly: mockRetryLinkOnly,
+    clearLinkIntent: mockClearLinkIntent,
+    selectLinkIntent: mockSelectLinkIntent,
+    submissionOutcome: null,
     markMediaPreviewFailed: vi.fn(),
     mediaClickRef: { current: null },
     mediaConfig: {},
@@ -146,7 +181,10 @@ vi.mock("@green-goods/shared/modules/app/posthog", () => ({
 
 // Mock child components to simplify
 vi.mock("../../views/Garden/Intro", () => ({
-  WorkIntro: () => createElement("div", { "data-testid": "work-intro" }, "Intro Step"),
+  WorkIntro: (props: unknown) => {
+    mockIntroProps(props);
+    return createElement("div", { "data-testid": "work-intro" }, "Intro Step");
+  },
 }));
 
 vi.mock("../../views/Garden/Media", () => ({
@@ -158,7 +196,10 @@ vi.mock("../../views/Garden/Details", () => ({
 }));
 
 vi.mock("../../views/Garden/Review", () => ({
-  WorkReview: () => createElement("div", { "data-testid": "work-review" }, "Review Step"),
+  WorkReview: (props: unknown) => {
+    mockReviewProps(props);
+    return createElement("div", { "data-testid": "work-review" }, "Review Step");
+  },
 }));
 
 // Mock UI components
@@ -218,6 +259,10 @@ const messages = {
   "app.garden.submit.tab.review.label": "Upload Work",
   "app.garden.unknown": "Unknown Garden",
   "app.action.selected": "Selected Action",
+  "app.garden.commitment.linkSchedulingError":
+    "Your work was submitted, but its commitment link could not be queued.",
+  "app.garden.commitment.linkScheduled": "Work submitted. Its commitment link is queued.",
+  "app.garden.commitment.retryLink": "Retry link",
 };
 
 const renderWithProviders = (initialRoute = "/home/garden") => {
@@ -244,6 +289,12 @@ describe("Garden (Work) View", () => {
     vi.clearAllMocks();
     mockSelection.actionUID = null;
     mockSelection.gardenAddress = null;
+    mockActiveTab = "Intro";
+    mockLinkIntent = null;
+    mockLinkIntentStatus = "none";
+    mockCommitmentLinkChoices = [];
+    mockHasPendingLinkRecovery = false;
+    mockLinkSchedulingSucceeded = false;
   });
 
   afterEach(() => {
@@ -279,5 +330,126 @@ describe("Garden (Work) View", () => {
 
     const button = screen.getByRole("button", { name: "Start Gardening" });
     expect(button).toBeDisabled();
+  });
+
+  it("keeps only a canonical eligible deep-link intent selected in the Work intro", () => {
+    const canonicalChoice = {
+      commitmentId: 9n,
+      requirementIndex: 1,
+      actionUID: 1,
+      garden: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const,
+      commitmentTitle: "Repair tool handles",
+      requirementLabel: "2",
+      returnTo: "/home/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/commitments/9",
+    };
+    mockSelection.actionUID = 1;
+    mockSelection.gardenAddress = canonicalChoice.garden;
+    mockLinkIntentStatus = "valid";
+    mockLinkIntent = canonicalChoice;
+    mockCommitmentLinkChoices = [canonicalChoice];
+
+    renderWithProviders();
+
+    const props = mockIntroProps.mock.lastCall?.[0] as {
+      selectedCommitmentKey: string;
+      commitmentChoices: Array<{ key: string; title: string; requirementIndex: number }>;
+    };
+    expect(props.selectedCommitmentKey).toBe("9:1");
+    expect(props.commitmentChoices).toEqual([
+      expect.objectContaining({ key: "9:1", title: "Repair tool handles", requirementIndex: 1 }),
+    ]);
+  });
+
+  it.each([
+    "stale",
+    "frozen",
+    "wrong-action",
+    "tampered",
+  ])("does not display a %s deep-link intent that shared rejected", () => {
+    mockSelection.actionUID = 1;
+    mockSelection.gardenAddress = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    mockLinkIntentStatus = "invalid";
+    mockLinkIntent = null;
+    mockCommitmentLinkChoices = [];
+
+    renderWithProviders();
+
+    const props = mockIntroProps.mock.lastCall?.[0] as {
+      selectedCommitmentKey: string | null;
+      commitmentChoices: unknown[];
+      commitmentIntentStatus: string;
+    };
+    expect(props.selectedCommitmentKey).toBeNull();
+    expect(props.commitmentChoices).toEqual([]);
+    expect(props.commitmentIntentStatus).toBe("invalid");
+  });
+
+  it("passes a generic commitment choice back to the shared controller", () => {
+    const choice = {
+      commitmentId: 12n,
+      requirementIndex: 0,
+      actionUID: 1,
+      garden: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const,
+      commitmentTitle: "Plant the starts",
+      requirementLabel: "1",
+      returnTo: "/home/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/commitments/12",
+    };
+    mockSelection.actionUID = 1;
+    mockSelection.gardenAddress = choice.garden;
+    mockCommitmentLinkChoices = [choice];
+    renderWithProviders();
+
+    const props = mockIntroProps.mock.lastCall?.[0] as {
+      setSelectedCommitmentKey: (key: string | null) => void;
+    };
+    props.setSelectedCommitmentKey("12:0");
+
+    expect(mockSelectLinkIntent).toHaveBeenCalledWith(choice);
+  });
+
+  it("clears the Review Fulfills context through the submission controller", () => {
+    mockActiveTab = "Review";
+    mockLinkIntent = {
+      commitmentId: 9n,
+      requirementIndex: 0,
+      actionUID: 1,
+      garden: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      commitmentTitle: "Repair tool handles",
+      requirementLabel: "1",
+      returnTo: "/home/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/commitments/9",
+    };
+    renderWithProviders();
+
+    const props = mockReviewProps.mock.lastCall?.[0] as {
+      commitmentSelection: { title: string };
+      onClearCommitment: () => void;
+    };
+    expect(props.commitmentSelection.title).toBe("Repair tool handles");
+    props.onClearCommitment();
+    expect(mockClearLinkIntent).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries only the dependent commitment link after Work submission succeeds", () => {
+    mockActiveTab = "Review";
+    mockSelection.actionUID = 1;
+    mockSelection.gardenAddress = "garden-1";
+    mockHasPendingLinkRecovery = true;
+
+    renderWithProviders();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/work was submitted/i);
+    expect(screen.getByRole("button", { name: "Upload Work" })).toBeDisabled();
+    screen.getByRole("button", { name: "Retry link" }).click();
+    expect(mockRetryLinkOnly).toHaveBeenCalledTimes(1);
+  });
+
+  it("announces when the dependent commitment link is safely queued", () => {
+    mockLinkSchedulingSucceeded = true;
+
+    renderWithProviders();
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Work submitted. Its commitment link is queued."
+    );
   });
 });

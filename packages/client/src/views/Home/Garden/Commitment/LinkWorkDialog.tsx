@@ -14,8 +14,10 @@ export interface LinkWorkDialogProps {
   actions: Action[];
   chainId: number;
   /** A row the caller already chose, from the standing not-yet-linked row. */
-  preselected?: { workUID: string; requirementIndex: number } | null;
+  preselected?: { workUID: string; requirementIndex: number | null } | null;
   isPending: boolean;
+  /** Starts a Work submission already scoped to one exact requirement row. */
+  onSubmitRequirement: (requirement: CommitmentRequirementRecord) => void;
   /**
    * The operation id is minted here, once per selection, and travels with the
    * confirm: the queue derives its dedup key from it, so a double tap before
@@ -38,6 +40,7 @@ export function LinkWorkDialog({
   chainId,
   preselected = null,
   isPending,
+  onSubmitRequirement,
   onConfirm,
 }: LinkWorkDialogProps) {
   const { formatMessage, formatDate } = useIntl();
@@ -68,7 +71,10 @@ export function LinkWorkDialog({
   // The contract pairs a work with a row of the same action and rejects any
   // other pairing with `WorkActionMismatch`, so only the rows that match the
   // chosen work are offered. With exactly one match the row needs no choice.
-  const chosenWork = works.find((work) => work.id === workUID) ?? null;
+  const eligibleWorks = works.filter((work) =>
+    requirements.some((row) => Number(row.actionUID) === Number(work.actionUID))
+  );
+  const chosenWork = eligibleWorks.find((work) => work.id === workUID) ?? null;
   const eligibleRows = chosenWork
     ? requirements.filter((row) => Number(row.actionUID) === Number(chosenWork.actionUID))
     : requirements;
@@ -90,17 +96,42 @@ export function LinkWorkDialog({
       size="md"
     >
       <div className="space-y-4">
-        {works.length === 0 ? (
-          <p className="text-sm text-text-sub-600">
-            {formatMessage({ id: "app.commitment.link.empty" })}
-          </p>
+        {eligibleWorks.length === 0 ? (
+          <div className="space-y-3">
+            <p className="text-sm text-text-sub-600">
+              {formatMessage({ id: "app.commitment.link.empty" })}
+            </p>
+            <ul
+              className="space-y-2"
+              aria-label={formatMessage({ id: "app.commitment.link.rows" })}
+            >
+              {requirements.map((row) => (
+                <li key={row.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSubmitRequirement(row)}
+                    aria-label={formatMessage(
+                      { id: "app.commitment.link.submitRequirement" },
+                      { requirement: row.requirementIndex + 1 }
+                    )}
+                    className="w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 text-left text-sm font-medium text-text-strong-950 tap-target-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-alpha-24"
+                  >
+                    {formatMessage({ id: "app.commitment.link.submitRequirementCta" })}
+                    <span className="mt-0.5 block text-xs font-normal text-text-sub-600">
+                      {actionTitle(row.actionUID)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : (
           <fieldset>
             <legend className="text-sm font-medium text-text-strong-950">
               {formatMessage({ id: "app.commitment.link.work" })}
             </legend>
             <ul className="mt-2 space-y-2">
-              {works.map((work) => {
+              {eligibleWorks.map((work) => {
                 const selected = workUID?.toLowerCase() === work.id.toLowerCase();
                 const id = `link-work-${work.id.toLowerCase()}`;
                 return (
@@ -167,8 +198,9 @@ export function LinkWorkDialog({
               {eligibleRows.map((row) => (
                 <option key={row.id} value={row.requirementIndex}>
                   {formatMessage(
-                    { id: "app.commitment.link.rowOption" },
+                    { id: "app.commitment.link.rowOptionNamed" },
                     {
+                      requirement: row.requirementIndex + 1,
                       action: actionTitle(row.actionUID),
                       done: Math.min(row.approvedCount, row.requiredCount),
                       of: row.requiredCount,

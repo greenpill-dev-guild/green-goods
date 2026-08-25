@@ -8,6 +8,7 @@ export type WalletSubmissionStage =
 export type OnProgressCallback = (stage: WalletSubmissionStage, message: string) => void;
 
 export interface WalletSubmissionOptions {
+  clientWorkId?: string;
   onProgress?: OnProgressCallback;
   txTimeout?: number;
 }

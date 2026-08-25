@@ -68,6 +68,7 @@ export async function submitWorkToQueue(
     "work",
     {
       ...draft,
+      clientWorkId,
       title: resolveWorkSubmissionTitle({ draftTitle: draft.title, actionTitle, actionUID }),
       actionUID,
       gardenAddress,

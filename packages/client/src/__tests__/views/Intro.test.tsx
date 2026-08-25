@@ -158,6 +158,18 @@ const messages: Record<string, string> = {
   "app.garden.communityOnramp.description":
     "The Community Garden is open to everyone and gives you a place to submit your first work.",
   "app.garden.communityOnramp.title": "Join the Community Garden",
+  "app.garden.commitment.label": "Commitment (optional)",
+  "app.garden.commitment.none": "No commitment",
+  "app.garden.commitment.option": "{title} · requirement {requirement}",
+  "app.garden.commitment.description":
+    "Choose the commitment and exact requirement this work fulfils.",
+  "app.garden.commitment.loading": "Checking eligible commitments…",
+  "app.garden.commitment.error":
+    "Eligible commitments could not be read. Try again or continue without one.",
+  "app.garden.commitment.invalid":
+    "That commitment link is no longer eligible. Choose another commitment or continue without one.",
+  "app.garden.commitment.retry": "Try again",
+  "app.garden.commitment.empty": "No eligible commitments match this garden and action.",
   "app.domain.tab.solar": "Solar",
   "app.domain.tab.agro": "Agroforestry",
   "app.domain.tab.waste": "Waste",
@@ -301,6 +313,104 @@ describe("WorkIntro", () => {
     fireEvent.click(gardenCard.closest("[data-testid='carousel-item']")!);
 
     expect(setGardenAddress).toHaveBeenCalledWith("0xABC");
+  });
+
+  it("shows a validated deep-linked commitment and exact requirement", () => {
+    renderIntro({
+      showCommitmentChoices: true,
+      commitmentChoices: [
+        {
+          key: "9:1",
+          commitmentId: 9n,
+          requirementIndex: 1,
+          title: "Prune the north beds",
+        },
+      ],
+      selectedCommitmentKey: "9:1",
+      setSelectedCommitmentKey: vi.fn(),
+    });
+
+    expect(screen.getByRole("combobox", { name: "Commitment (optional)" })).toHaveValue("9:1");
+    expect(
+      screen.getByRole("combobox", { name: "Commitment (optional)" })
+    ).toHaveAccessibleDescription("Choose the commitment and exact requirement this work fulfils.");
+    expect(
+      screen.getByRole("option", { name: "Prune the north beds · requirement 2" })
+    ).toBeInTheDocument();
+  });
+
+  it("lets a generic submission choose an eligible commitment requirement", () => {
+    const setSelectedCommitmentKey = vi.fn();
+    renderIntro({
+      showCommitmentChoices: true,
+      commitmentChoices: [
+        {
+          key: "9:0",
+          commitmentId: 9n,
+          requirementIndex: 0,
+          title: "Prune the north beds",
+        },
+      ],
+      selectedCommitmentKey: null,
+      setSelectedCommitmentKey,
+    });
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Commitment (optional)" }), {
+      target: { value: "9:0" },
+    });
+
+    expect(setSelectedCommitmentKey).toHaveBeenCalledWith("9:0");
+  });
+
+  it("announces commitment eligibility loading politely", () => {
+    renderIntro({ showCommitmentChoices: true, commitmentChoicesLoading: true });
+
+    expect(screen.getByRole("status")).toHaveTextContent("Checking eligible commitments…");
+  });
+
+  it("alerts a failed commitment read and retries it", () => {
+    const onRetryCommitmentChoices = vi.fn();
+    renderIntro({
+      showCommitmentChoices: true,
+      commitmentChoicesError: new Error("offline"),
+      onRetryCommitmentChoices,
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/could not be read/i);
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onRetryCommitmentChoices).toHaveBeenCalledTimes(1);
+  });
+
+  it("distinguishes an invalid deep link from an empty eligible list", () => {
+    const setSelectedCommitmentKey = vi.fn();
+    const view = renderIntro({
+      showCommitmentChoices: true,
+      commitmentIntentStatus: "invalid",
+      setSelectedCommitmentKey,
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(/no longer eligible/i);
+    fireEvent.click(screen.getByRole("button", { name: "No commitment" }));
+    expect(setSelectedCommitmentKey).toHaveBeenCalledWith(null);
+
+    view.rerender(
+      createElement(
+        IntlProvider,
+        { locale: "en", messages },
+        createElement(WorkIntro, {
+          actions: [],
+          gardens: [],
+          selectedActionUID: null,
+          selectedGardenAddress: null,
+          selectedDomain: null,
+          setActionUID: vi.fn(),
+          setGardenAddress: vi.fn(),
+          setSelectedDomain: vi.fn(),
+          showCommitmentChoices: true,
+        })
+      )
+    );
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByText("No eligible commitments match this garden and action.")).toBeVisible();
   });
 
   it("keeps actions visible and shows an inline community join CTA with no joined gardens", () => {

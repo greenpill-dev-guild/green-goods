@@ -1,4 +1,5 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { writeWorkLinkIntent } from "@green-goods/shared/commitment-pooling";
 import { useGardenCommitmentController } from "@green-goods/shared/hooks/client-ui/commitment/useGardenCommitmentController";
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import { useMemo, useState } from "react";
@@ -55,7 +56,7 @@ export function GardenCommitment() {
   const [contextOpen, setContextOpen] = useState(false);
   const [notYetFailed, setNotYetFailed] = useState(false);
   const [linkOpen, setLinkOpen] = useState<
-    { workUID: string; requirementIndex: number } | true | null
+    { workUID: string; requirementIndex: number | null } | true | null
   >(null);
   const back = () => navigate(-1);
 
@@ -84,6 +85,23 @@ export function GardenCommitment() {
     : null;
   const heading =
     controller.metadata?.title ?? units ?? formatMessage({ id: "app.commitments.row.untitled" });
+  const openWorkSubmission = (requirementIndex: number, actionUID: number | bigint) => {
+    const parsedActionUID = Number(actionUID);
+    if (!controller.routeGarden || !controller.workGarden || !Number.isSafeInteger(parsedActionUID))
+      return;
+    const returnTo = `/home/${controller.routeGarden}/commitments/${commitment.commitmentId.toString()}`;
+    const params = writeWorkLinkIntent(new URLSearchParams(), {
+      commitmentId: commitment.commitmentId,
+      requirementIndex,
+      actionUID: parsedActionUID,
+      garden: controller.workGarden,
+      commitmentTitle: heading,
+      requirementLabel: String(requirementIndex + 1),
+      returnTo,
+    });
+    setLinkOpen(null);
+    navigate(`/home/garden?${params.toString()}`);
+  };
 
   const claim = (context: ClaimContext) => {
     void controller.acts
@@ -211,6 +229,7 @@ export function GardenCommitment() {
           commitment={commitment}
           requirements={requirements}
           attributions={controller.detail.workAttributions}
+          workDecisions={controller.workDecisions}
           works={controller.works}
           actions={controller.actions}
           chainId={controller.chainId}
@@ -257,6 +276,9 @@ export function GardenCommitment() {
         chainId={controller.chainId}
         preselected={linkOpen && linkOpen !== true ? linkOpen : null}
         isPending={controller.isQueueing}
+        onSubmitRequirement={(requirement) =>
+          openWorkSubmission(requirement.requirementIndex, requirement.actionUID)
+        }
         onConfirm={(workUID, requirementIndex, clientOperationId) => {
           void controller.acts
             .linkWork(workUID, requirementIndex, clientOperationId)

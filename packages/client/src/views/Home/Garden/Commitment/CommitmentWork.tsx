@@ -7,11 +7,33 @@ import {
 } from "@green-goods/shared/commitment-pooling";
 import { RiLinkM } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { WorkLinkDecisionStatus, type WorkLinkDecisionState } from "./WorkLinkDecisionStatus";
+
+type WorkDecisionMap =
+  | ReadonlyMap<string, { state: WorkLinkDecisionState }>
+  | Readonly<Record<string, { state: WorkLinkDecisionState }>>;
+
+function hasMapLookup(
+  value: WorkDecisionMap
+): value is ReadonlyMap<string, { state: WorkLinkDecisionState }> {
+  return typeof (value as ReadonlyMap<string, { state: WorkLinkDecisionState }>).get === "function";
+}
+
+function decisionFor(map: WorkDecisionMap | undefined, workUID: string) {
+  if (!map) return undefined;
+  const key = workUID.toLowerCase();
+  return hasMapLookup(map) ? map.get(key) : map[key];
+}
 
 export interface CommitmentWorkProps {
   commitment: CommitmentReadModel;
   requirements: CommitmentRequirementRecord[];
   attributions: CommitmentWorkAttributionRecord[];
+  workDecisions?: {
+    byWorkUID: WorkDecisionMap;
+    isLoading: boolean;
+    isError: boolean;
+  };
   /** Every work in this garden the app can see, online and queued. */
   works: Work[];
   /** The garden's registered actions, to name a work by what it did. */
@@ -22,7 +44,7 @@ export interface CommitmentWorkProps {
   /** Whether this reader may link work here at all. */
   canLink: boolean;
   onOpenWork: (workUID: string) => void;
-  onLink: (workUID: string, requirementIndex: number) => void;
+  onLink: (workUID: string, requirementIndex: number | null) => void;
 }
 
 const STATUS_TONE: Record<Work["status"], "success" | "warning" | "error" | "info" | "neutral"> = {
@@ -50,6 +72,7 @@ export function CommitmentWork({
   commitment,
   requirements,
   attributions,
+  workDecisions,
   works,
   actions,
   chainId,
@@ -75,9 +98,11 @@ export function CommitmentWork({
 
   const linked = attributions.filter((entry) => entry.linked);
   const linkedUIDs = new Set(linked.map((entry) => entry.workUID.toLowerCase()));
-  const rowByAction = new Map(
-    requirements.map((requirement) => [requirement.actionUID.toString(), requirement])
-  );
+  const rowsByAction = new Map<string, CommitmentRequirementRecord[]>();
+  for (const requirement of requirements) {
+    const key = requirement.actionUID.toString();
+    rowsByAction.set(key, [...(rowsByAction.get(key) ?? []), requirement]);
+  }
   // Approved work of the reader's own, in this garden, matching a row, not
   // attributed: the thing most likely to stall a kept commitment.
   const notYetLinked = viewer
@@ -86,7 +111,7 @@ export function CommitmentWork({
           work.status === "approved" &&
           work.gardenerAddress.toLowerCase() === viewer.toLowerCase() &&
           !linkedUIDs.has(work.id.toLowerCase()) &&
-          rowByAction.has(String(work.actionUID))
+          rowsByAction.has(String(work.actionUID))
       )
     : [];
 
@@ -121,6 +146,17 @@ export function CommitmentWork({
                   { id: "app.commitment.progress.row" },
                   { index: entry.requirementIndex + 1 }
                 );
+            const decision = decisionFor(workDecisions?.byWorkUID, entry.workUID);
+            const decisionState = workDecisions
+              ? (decision?.state ?? "unavailable")
+              : entry.creditActive
+                ? "counted"
+                : work?.status === "approved"
+                  ? "readyToReconcile"
+                  : work
+                    ? "awaitingApproval"
+                    : "unavailable";
+            const statusId = `commitment-work-status-${entry.requirementIndex}-${entry.workUID.slice(2, 10)}`;
             return (
               <li key={entry.id}>
                 <button
@@ -128,8 +164,9 @@ export function CommitmentWork({
                   onClick={() => onOpenWork(entry.workUID)}
                   className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-stroke-soft-200 p-3 text-left tap-feedback"
                   aria-label={formatMessage({ id: "app.commitment.work.open" }, { title })}
+                  aria-describedby={statusId}
                 >
-                  <span className="min-w-0">
+                  <div className="min-w-0">
                     <span className="block truncate text-sm font-medium text-text-strong-950">
                       {title}
                     </span>
@@ -138,13 +175,14 @@ export function CommitmentWork({
                         ? formatDate(new Date(work.createdAt), { month: "short", day: "numeric" })
                         : formatMessage({ id: "app.commitment.work.linked" })}
                     </span>
-                  </span>
+                  </div>
                   {work ? (
                     <StatusBadge size="sm" variant={STATUS_TONE[work.status]}>
                       {statusLabel(work.status)}
                     </StatusBadge>
                   ) : null}
                 </button>
+                <WorkLinkDecisionStatus state={decisionState} id={statusId} />
               </li>
             );
           })}
@@ -157,7 +195,8 @@ export function CommitmentWork({
           aria-label={formatMessage({ id: "app.commitment.work.notLinkedList" })}
         >
           {notYetLinked.map((work) => {
-            const requirement = rowByAction.get(String(work.actionUID))!;
+            const matchingRows = rowsByAction.get(String(work.actionUID)) ?? [];
+            const requirement = matchingRows.length === 1 ? matchingRows[0] : null;
             return (
               <li
                 key={work.id}
@@ -183,7 +222,7 @@ export function CommitmentWork({
                 {canLink ? (
                   <button
                     type="button"
-                    onClick={() => onLink(work.id, requirement.requirementIndex)}
+                    onClick={() => onLink(work.id, requirement?.requirementIndex ?? null)}
                     className="flex shrink-0 items-center gap-1 rounded-full border border-stroke-soft-200 bg-bg-white-0 px-3 py-1.5 text-xs font-medium text-text-strong-950 tap-target-lg"
                   >
                     <RiLinkM className="h-4 w-4" aria-hidden="true" />

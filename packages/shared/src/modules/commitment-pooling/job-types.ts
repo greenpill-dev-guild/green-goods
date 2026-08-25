@@ -119,13 +119,25 @@ export interface EvidenceJobPayload extends MembershipGatedJobPayload {
   audioNotes?: File[];
 }
 
-export interface WorkLinkJobPayload extends MembershipGatedJobPayload {
+interface WorkLinkJobPayloadBase extends MembershipGatedJobPayload {
   clientOperationId: string;
   commitmentId: bigint;
-  workUID: Hex;
   requirementIndex: number;
   operationKey: Hex;
 }
+
+/** Legacy resolved records remain valid; new dependent links carry clientWorkId until indexed. */
+export type WorkLinkJobPayload = WorkLinkJobPayloadBase &
+  (
+    | { workUID: Hex; clientWorkId?: never; sourceWorkJobId?: never; resolvedWorkUID?: never }
+    | {
+        workUID?: never;
+        clientWorkId: string;
+        sourceWorkJobId?: string;
+        /** Cached immediately after exact resolution so retries never change identity. */
+        resolvedWorkUID?: Hex;
+      }
+  );
 
 export type ConfirmationJobPayload =
   | ({ action: "submit"; commitmentId: bigint } & MembershipGatedJobPayload)
@@ -159,14 +171,20 @@ export type CommitmentJobExecutionResult =
         | "series-not-materialized"
         | "membership-unavailable"
         | "pending-first-send"
-        | "evidence-unpublished";
+        | "evidence-unpublished"
+        | "work-not-indexed";
     }
   | {
       status: "identity-conflict";
       reason:
         | "series-payload-mismatch"
         | "commitment-payload-mismatch"
-        | "work-link-payload-mismatch";
+        | "work-link-payload-mismatch"
+        | "work-identity-conflict"
+        | "source-work-terminal"
+        | "membership-lost"
+        | "commitment-frozen"
+        | "commitment-terminal";
     };
 
 export interface CommitmentJobExecutionDependencies {
@@ -183,6 +201,10 @@ export interface CommitmentJobExecutionDependencies {
     commitmentId: bigint
   ): Promise<{ creationPayloadHash: Hex; poolId: bigint; creator: Address }>;
   readWorkLinkPayloadHash(caller: Address, key: Hex): Promise<Hex>;
+  readWorkLinkCommitmentState?(commitmentId: bigint): Promise<{
+    state: number;
+    contributorsFrozen: boolean;
+  }>;
   /** Whether this CID is already attached, so a re-send after a lost receipt recovers. */
   readEvidenceAttached?(commitmentId: bigint, cid: string): Promise<boolean>;
   resolveSeriesId?(clientSeriesId: string): Promise<bigint | null>;

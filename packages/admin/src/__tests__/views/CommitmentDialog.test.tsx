@@ -22,6 +22,7 @@ const TAKER = "0x2222222222222222222222222222222222222222" as const;
 const mocks = vi.hoisted(() => ({
   controller: null as CommitmentDialogController | null,
   navigate: vi.fn(),
+  toastError: vi.fn(),
 }));
 
 vi.mock("@green-goods/shared/hooks/admin-ui/pool/useCommitmentDialogController", () => ({
@@ -32,6 +33,10 @@ vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();
   return { ...actual, useNavigate: () => mocks.navigate };
 });
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
+  toastService: { error: mocks.toastError },
+}));
 
 // A Radix dialog opened over the inspector's own dialog flickers out in jsdom
 // (AddMembersDialog precedent): the reason dialog becomes a plain region that
@@ -116,6 +121,7 @@ function can(
     confirmFallback: false,
     acceptClaim: false,
     declineClaim: false,
+    syncWorkDecisions: false,
     ...overrides,
   };
 }
@@ -139,6 +145,7 @@ function controller(overridesWithCommitment: ControllerOverrides = {}): Commitme
     confirmFallback: vi.fn().mockResolvedValue("0x1"),
     acceptClaim: vi.fn().mockResolvedValue("0x1"),
     declineClaim: vi.fn().mockResolvedValue("0x1"),
+    syncWorkDecisions: vi.fn().mockResolvedValue("0x1"),
   };
   const record = commitmentOverrides === null ? null : commitment(commitmentOverrides ?? {});
   const detail =
@@ -218,6 +225,21 @@ function controller(overridesWithCommitment: ControllerOverrides = {}): Commitme
     isDue: false,
     hasPendingJob: false,
     can: can(),
+    reconciliation: {
+      candidates: [],
+      count: 0,
+      decisionUIDs: [],
+      readAvailable: true,
+      isLoading: false,
+      isError: false,
+      pendingReadback: false,
+      succeeded: false,
+      readbackStatus: "idle",
+      unavailableReadback: false,
+      needsFreshReview: false,
+      error: null,
+      refetch: vi.fn().mockResolvedValue(undefined),
+    },
     acts,
     isActing: false,
     isLoading: false,
@@ -444,6 +466,113 @@ describe("CommitmentDialogPanel (W10)", () => {
     );
     const acts = mocks.controller!.acts;
     await waitFor(() => expect(acts.markReady).toHaveBeenCalledWith("because"));
+  });
+
+  it("confirms steward reconciliation without exposing raw decision ids", async () => {
+    mocks.controller = controller({
+      can: can({ syncWorkDecisions: true }),
+      reconciliation: {
+        ...controller().reconciliation,
+        count: 2,
+        decisionUIDs: [`0x${"ab".repeat(32)}`, `0x${"cd".repeat(32)}`],
+      },
+    });
+    renderPanel();
+
+    expect(screen.getByText(/2 approved links are waiting to count/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /count linked work/i }));
+
+    const dialog = screen.getByRole("alertdialog", { name: /count approved linked work/i });
+    expect(dialog).toHaveTextContent(/freeze its contributor roster/i);
+    expect(dialog).not.toHaveTextContent("abababab");
+    expect(dialog).not.toHaveTextContent("cdcdcdcd");
+
+    fireEvent.click(within(dialog).getByRole("button", { name: /^count linked work$/i }));
+    await waitFor(() => expect(mocks.controller!.acts.syncWorkDecisions).toHaveBeenCalledTimes(1));
+  });
+
+  it("keeps a failed reconciliation visible and reports it through the admin toast", async () => {
+    const record = controller({
+      can: can({ syncWorkDecisions: true }),
+      reconciliation: { ...controller().reconciliation, count: 1 },
+    });
+    vi.mocked(record.acts.syncWorkDecisions).mockRejectedValue(new Error("write failed"));
+    mocks.controller = record;
+    renderPanel();
+
+    fireEvent.click(screen.getByRole("button", { name: /count linked work/i }));
+    const dialog = screen.getByRole("alertdialog", { name: /count approved linked work/i });
+    fireEvent.click(within(dialog).getByRole("button", { name: /^count linked work$/i }));
+
+    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole("alertdialog", { name: /count approved linked work/i })).toBeVisible();
+  });
+
+  it("gates reconciliation on connection and decision read availability", () => {
+    mocks.controller = controller({
+      isOnline: false,
+      can: can({ syncWorkDecisions: false }),
+      reconciliation: { ...controller().reconciliation, count: 1 },
+    });
+    const view = renderPanel();
+    expect(screen.getByRole("button", { name: /count linked work/i })).toBeDisabled();
+    expect(screen.getAllByText(/needs a connection/i)).not.toHaveLength(0);
+
+    mocks.controller = controller({
+      reconciliation: {
+        ...controller().reconciliation,
+        readAvailable: false,
+        isError: true,
+        readbackStatus: "unavailable",
+        error: new Error("read failed"),
+      },
+    });
+    view.rerender(panel("9"));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/readback is unavailable/i);
+    expect(screen.queryByRole("button", { name: /count linked work/i })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["pending", /waiting for indexed confirmation/i],
+    ["succeeded", /approved linked work counted/i],
+  ] as const)("announces the derived indexed-readback %s state", (readbackStatus, message) => {
+    mocks.controller = controller({
+      reconciliation: { ...controller().reconciliation, readbackStatus },
+    });
+    renderPanel();
+
+    expect(screen.getByText(message).closest('[role="status"]')).toBeInTheDocument();
+  });
+
+  it("keeps successful reconciliation visible after the commitment advances", () => {
+    mocks.controller = controller({
+      commitment: {
+        onchainState: "READY_FOR_CONFIRMATION",
+        state: "READY_FOR_CONFIRMATION",
+        derivedState: "READY_FOR_CONFIRMATION",
+      },
+      reconciliation: { ...controller().reconciliation, readbackStatus: "succeeded" },
+    });
+
+    renderPanel();
+
+    expect(screen.getByText(/approved linked work counted/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /mark ready/i })).not.toBeInTheDocument();
+  });
+
+  it("keeps fresh-review readback distinct from counted success", () => {
+    mocks.controller = controller({
+      reconciliation: {
+        ...controller().reconciliation,
+        readbackStatus: "needsFreshReview",
+        succeeded: true,
+      },
+    });
+    renderPanel();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/newer Work decision needs review/i);
+    expect(screen.queryByText(/approved linked work counted/i)).not.toBeInTheDocument();
   });
 
   it("shows the override disabled when the chain's own gates are not clear", () => {

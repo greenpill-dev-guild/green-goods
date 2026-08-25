@@ -58,4 +58,26 @@ describe("useCommitmentQueueState", () => {
 
     await waitFor(() => expect(result.current.pendingCreates[0]?.waitingForMembership).toBe(true));
   });
+
+  it("preserves terminal link causes and does not offer an impossible retry", async () => {
+    mocks.getJobs.mockResolvedValue([
+      creation({
+        id: "link-1",
+        kind: "workLink",
+        payload: { commitmentId: 9n },
+        attempts: 5,
+        lastError: "identity_conflict:membership-lost",
+      }),
+    ]);
+
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+
+    await waitFor(() => expect(result.current.failedCount).toBe(1));
+    expect(result.current.failedJobs.get("9")).toEqual({
+      jobId: "link-1",
+      discardable: true,
+      reason: "membershipLost",
+      retryable: false,
+    });
+  });
 });

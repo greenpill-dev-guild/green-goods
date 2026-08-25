@@ -1,8 +1,10 @@
 import type { DisputeResolutionKey } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useCommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/useCommitmentDialogController";
 import type { Address } from "@green-goods/shared/types/domain";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { CommitmentActions } from "./CommitmentActions";
 import { CommitmentAlerts } from "./CommitmentAlerts";
 import { CommitmentAssessmentDialog } from "./CommitmentAssessmentDialog";
@@ -125,11 +127,16 @@ function CommitmentRecord({
 
       <CommitmentFacts commitment={commitment} detail={detail} />
 
-      {commitment.onchainState === "ACCEPTED" && dialog.isLocalSteward ? (
+      {dialog.isLocalSteward &&
+      (commitment.onchainState === "ACCEPTED" ||
+        dialog.reconciliation.readbackStatus !== "idle") ? (
         <CommitmentRecovery
           evidenceOnly={evidenceOnly}
           can={can}
           actDisabled={actDisabled}
+          blockedReason={blockedReason}
+          showAcceptedActs={commitment.onchainState === "ACCEPTED"}
+          reconciliation={dialog.reconciliation}
           onOpenDialog={setOpen}
         />
       ) : null}
@@ -215,6 +222,47 @@ function CommitmentRecord({
         onAssessmentUIDChange={setAssessmentUID}
         actDisabled={actDisabled}
         isActing={dialog.isActing}
+      />
+      <AdminConfirmDialog
+        isOpen={open === "reconcile-work"}
+        onClose={closeDialog}
+        tone={tone}
+        variant="warning"
+        title={formatMessage({
+          id: "cockpit.garden.pool.commitment.reconciliation.title",
+          defaultMessage: "Count approved linked work",
+        })}
+        description={`${formatMessage(
+          {
+            id: "cockpit.garden.pool.commitment.reconciliation.body",
+            defaultMessage:
+              "{count, plural, one {# approved link is} other {# approved links are}} waiting to count.",
+          },
+          { count: dialog.reconciliation.count }
+        )} ${formatMessage({
+          id: "cockpit.garden.pool.commitment.reconciliation.warning",
+          defaultMessage:
+            "Counting work can make the commitment ready for confirmation and freeze its contributor roster.",
+        })}`}
+        confirmLabel={formatMessage({
+          id: "cockpit.garden.pool.commitment.reconciliation.confirm",
+          defaultMessage: "Count linked work",
+        })}
+        cancelLabel={formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
+        isLoading={dialog.isActing}
+        onError={() =>
+          toastService.error({
+            title: formatMessage({
+              id: "cockpit.garden.pool.commitment.reconciliation.unavailable",
+              defaultMessage: "Work decision readback is unavailable.",
+            }),
+            message: formatMessage({ id: "app.error.garden.tryAgain" }),
+          })
+        }
+        onConfirm={async () => {
+          await acts.syncWorkDecisions();
+          closeDialog();
+        }}
       />
     </div>
   );

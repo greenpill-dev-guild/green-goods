@@ -13,7 +13,12 @@ import {
   toCommitmentJob,
   type CommitmentCreationPayload,
   type CommitmentSeriesJobPayload,
+  type WorkLinkJobPayload,
 } from "../commitment-pooling/jobs";
+import {
+  resolveDeferredWorkIdentity,
+  type DeferredWorkIdentityResolution,
+} from "../commitment-pooling/work-identity";
 import { isDemoPoolingActive } from "../commitment-pooling/demo/demo-mode";
 import { publishPendingEvidence } from "./evidence-publisher";
 import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blockchain/contracts";
@@ -44,6 +49,7 @@ export type CommitmentExecutorStore = Pick<
   | "getSeriesIdByClientId"
   | "storeClientSeriesIdMapping"
   | "storeClientCommitmentIdMapping"
+  | "getJob"
 >;
 
 export interface CommitmentQueueExecutorDeps {
@@ -52,6 +58,12 @@ export interface CommitmentQueueExecutorDeps {
   uploadJson?: UploadJson;
   publishEvidence?: typeof publishPendingEvidence;
   demoActive?: () => boolean;
+  resolveWorkIdentity?: (input: {
+    clientWorkId: string;
+    chainId: number;
+    garden: `0x${string}`;
+    caller: `0x${string}`;
+  }) => Promise<DeferredWorkIdentityResolution>;
 }
 
 /**
@@ -115,6 +127,7 @@ export async function executeWorkJob(
     },
     chainId,
     {
+      clientWorkId: payload.clientWorkId,
       gardenAddress: payload.gardenAddress,
       authMode: sender.authMode === "embedded" ? "passkey" : sender.authMode,
     }
@@ -276,7 +289,41 @@ export async function executeCommitmentQueueJob(
       ? { status: "unavailable", reason: published.reason }
       : { status: "waiting", reason: published.reason };
   }
-  const commitmentJob = toCommitmentJob({ ...job, id: jobId }, chainId, moduleAddress);
+  let executionJob = job;
+  if (job.kind === "workLink") {
+    const payload = job.payload as WorkLinkJobPayload;
+    if (typeof payload.clientWorkId === "string" && !payload.resolvedWorkUID) {
+      if (payload.sourceWorkJobId) {
+        const source = await store.getJob(payload.sourceWorkJobId);
+        if (source && !source.synced && source.attempts >= 5) {
+          return { status: "identity-conflict", reason: "source-work-terminal" };
+        }
+      }
+      const resolution = await (deps.resolveWorkIdentity ?? resolveDeferredWorkIdentity)({
+        clientWorkId: payload.clientWorkId,
+        chainId,
+        garden: payload.gardenAddress as `0x${string}`,
+        caller: job.userAddress as `0x${string}`,
+      });
+      if (resolution.status === "waiting") {
+        return { status: "waiting", reason: "work-not-indexed" };
+      }
+      if (resolution.status === "retryable") {
+        throw new Error(resolution.reason);
+      }
+      if (resolution.status === "conflict") {
+        return { status: "identity-conflict", reason: resolution.reason };
+      }
+      // Keep the persisted payload canonical. Resolution is deterministic from
+      // clientWorkId and is repeated on retry instead of adding a mutable cache
+      // field that would make a legitimate re-enqueue look like a conflict.
+      executionJob = {
+        ...job,
+        payload: { ...payload, resolvedWorkUID: resolution.workUID },
+      };
+    }
+  }
+  const commitmentJob = toCommitmentJob({ ...executionJob, id: jobId }, chainId, moduleAddress);
 
   const chainReads = deps.reads ?? createCommitmentChainReads({ chainId, moduleAddress });
   const result = await executeCommitmentJob(commitmentJob, {

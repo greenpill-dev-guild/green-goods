@@ -466,6 +466,14 @@ describe("useCommitmentMutation", () => {
       args: [1n, "0x1234"],
     },
     {
+      input: {
+        action: "syncWorkDecisions",
+        commitmentId: 1n,
+        decisionUIDs: [`0x${"ab".repeat(32)}`],
+      },
+      args: [1n, [`0x${"ab".repeat(32)}`]],
+    },
+    {
       input: { action: "markReadyForConfirmation", commitmentId: 1n, reason: "ready" },
       args: [1n, "ready"],
     },

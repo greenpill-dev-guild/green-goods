@@ -3,13 +3,16 @@ import {
   useCommitment,
   useCommitmentMetadataFor,
   useCommitmentPool,
+  useCommitmentWorkDecisions,
   useCommitmentWorkAttributionsForWork,
 } from "@green-goods/shared/commitment-pooling";
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
+import type { Address } from "@green-goods/shared/types/domain";
 import { RiHandHeartLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
 import { FormCard } from "@/components/Cards";
+import { WorkLinkDecisionStatus } from "./Commitment/WorkLinkDecisionStatus";
 
 export interface WorkFulfillsProps {
   chainId: number;
@@ -31,6 +34,13 @@ export function WorkFulfills({ chainId, workUID, gardenId }: WorkFulfillsProps) 
   const navigateToTop = useNavigateToTop();
   const { attributions } = useCommitmentWorkAttributionsForWork({ chainId, workUID });
   const attribution = attributions.find((entry) => entry.linked) ?? null;
+  const workDecisions = useCommitmentWorkDecisions({
+    chainId,
+    garden: gardenId as Address,
+    commitmentId: attribution?.commitmentId ?? null,
+    attributions: attribution ? [attribution] : [],
+    enabled: Boolean(attribution),
+  });
   const { detail } = useCommitment(
     { chainId, commitmentId: attribution?.commitmentId ?? 0n },
     { enabled: Boolean(attribution) }
@@ -55,25 +65,35 @@ export function WorkFulfills({ chainId, workUID, gardenId }: WorkFulfillsProps) 
       : formatMessage({ id: "app.commitments.row.untitled" }));
 
   return (
-    <button
-      type="button"
-      onClick={() =>
-        navigateToTop(
-          `/home/${commitmentGarden}/commitments/${attribution.commitmentId.toString()}`
-        )
-      }
-      data-component="WorkFulfillsRow"
-      className="w-full text-left tap-feedback"
-    >
-      <FormCard
-        label={formatMessage({ id: "app.work.fulfills.label" })}
-        value={formatMessage(
-          { id: "app.work.fulfills.value" },
-          { name, row: attribution.requirementIndex + 1 }
-        )}
-        Icon={RiHandHeartLine}
-        className="border-primary-alpha-24"
-      />
-    </button>
+    <div data-component="WorkFulfillsRow">
+      <button
+        type="button"
+        onClick={() =>
+          navigateToTop(
+            `/home/${commitmentGarden}/commitments/${attribution.commitmentId.toString()}`
+          )
+        }
+        className="w-full text-left tap-feedback"
+        aria-describedby="work-fulfills-decision-status"
+      >
+        <FormCard
+          label={formatMessage({ id: "app.work.fulfills.label" })}
+          value={formatMessage(
+            { id: "app.work.fulfills.value" },
+            { name, row: attribution.requirementIndex + 1 }
+          )}
+          Icon={RiHandHeartLine}
+          className="border-primary-alpha-24"
+        />
+      </button>
+      <div className="px-3">
+        <WorkLinkDecisionStatus
+          id="work-fulfills-decision-status"
+          state={
+            workDecisions.byWorkUID.get(attribution.workUID.toLowerCase())?.state ?? "unavailable"
+          }
+        />
+      </div>
+    </div>
   );
 }

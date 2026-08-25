@@ -13,17 +13,51 @@ import { useAudioRecording } from "../../utils/useAudioRecording";
 import { useTimeout } from "../../utils/useTimeout";
 import { useDraftAutoSave } from "../../work/useDraftAutoSave";
 import { useDraftResume } from "../../work/useDraftResume";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { canProceedWithWorkSubmission } from "../../../modules/work/submission-flow";
+import {
+  hasWorkLinkIntentParams,
+  parseWorkLinkIntent,
+  workLinkReturnGarden,
+  writeWorkLinkIntent,
+  type WorkLinkIntent,
+} from "../../../modules/commitment-pooling/work-link-intent";
 import { useWorkMediaLifecycle } from "./useWorkMediaLifecycle";
 import { useWorkSubmissionPresentationModel } from "./useWorkSubmissionPresentationModel";
+import { useWorkLinkChoices } from "../../commitment-pooling/useWorkLinkChoices";
+import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
+import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 
 type MediaJourneyEvent =
   | "work_media_preview_failed"
   | "work_media_removed"
   | "work_broken_media_removed";
+
+type LinkIntentStatus = "none" | "validating" | "valid" | "invalid" | "unavailable";
+
+interface PendingLinkRecovery {
+  intent: WorkLinkIntent;
+  payload: {
+    clientOperationId: string;
+    commitmentId: bigint;
+    clientWorkId: string;
+    sourceWorkJobId?: string;
+    requirementIndex: number;
+    gardenAddress: `0x${string}`;
+  };
+  error: unknown;
+}
+
+function sameLinkIdentity(left: WorkLinkIntent, right: WorkLinkIntent): boolean {
+  return (
+    left.commitmentId === right.commitmentId &&
+    left.requirementIndex === right.requirementIndex &&
+    left.actionUID === right.actionUID &&
+    left.garden.toLowerCase() === right.garden.toLowerCase()
+  );
+}
 
 interface UseWorkSubmissionFlowControllerOptions {
   homeRoute: string;
@@ -42,7 +76,7 @@ export function useWorkSubmissionFlowController({
   const [searchParams, setSearchParams] = useSearchParams();
   const selection = useWorkSelection();
   const form = useWorkFormContext();
-  const { authMode } = useUser();
+  const { authMode, primaryAddress } = useUser();
   const join = useJoinGarden();
   const submissionCompleted = useWorkFlowStore((state) => state.submissionCompleted);
   const workSubmissionJourneyId = useWorkFlowStore((state) => state.workSubmissionJourneyId);
@@ -66,6 +100,56 @@ export function useWorkSubmissionFlowController({
     setGardenAddress,
   } = selection;
   const { workMutation, images, setImages, feedback, timeSpentMinutes } = form;
+  const commitmentJobs = useCommitmentJobs({ chainId: DEFAULT_CHAIN_ID });
+  const parsedLinkIntent = useMemo(() => parseWorkLinkIntent(searchParams), [searchParams]);
+  const hasLinkIntentParams = useMemo(() => hasWorkLinkIntentParams(searchParams), [searchParams]);
+  const [pendingLinkRecovery, setPendingLinkRecovery] = useState<PendingLinkRecovery | null>(null);
+  const [isSchedulingDependentLink, setIsSchedulingDependentLink] = useState(false);
+  const [linkSchedulingSucceeded, setLinkSchedulingSucceeded] = useState(false);
+  const linkChoices = useWorkLinkChoices({
+    chainId: DEFAULT_CHAIN_ID,
+    account: primaryAddress as `0x${string}` | null,
+    workGarden: (parsedLinkIntent?.garden ?? gardenAddress) as `0x${string}` | null,
+    returnGarden: (parsedLinkIntent ? workLinkReturnGarden(parsedLinkIntent) : gardenAddress) as
+      | `0x${string}`
+      | null,
+    actionUID: parsedLinkIntent?.actionUID ?? actionUID,
+  });
+  const linkIntent = useMemo(
+    () =>
+      parsedLinkIntent
+        ? (linkChoices.choices.find((choice) => sameLinkIdentity(choice, parsedLinkIntent)) ?? null)
+        : null,
+    [linkChoices.choices, parsedLinkIntent]
+  );
+  const linkIntentStatus: LinkIntentStatus = !hasLinkIntentParams
+    ? "none"
+    : !parsedLinkIntent
+      ? "invalid"
+      : !primaryAddress || linkChoices.isLoading
+        ? "validating"
+        : linkChoices.isError
+          ? "unavailable"
+          : linkIntent
+            ? "valid"
+            : "invalid";
+  const clearLinkIntent = useCallback(
+    () => setSearchParams(writeWorkLinkIntent(searchParams, null), { replace: true }),
+    [searchParams, setSearchParams]
+  );
+  const selectLinkIntent = useCallback(
+    (intent: WorkLinkIntent | null) => {
+      const canonical = intent
+        ? (linkChoices.choices.find((choice) => sameLinkIdentity(choice, intent)) ?? null)
+        : null;
+      setSearchParams(writeWorkLinkIntent(searchParams, canonical), { replace: true });
+      if (canonical) {
+        setGardenAddressStable(canonical.garden);
+        useWorkFlowStore.getState().setActionUID(canonical.actionUID);
+      }
+    },
+    [linkChoices.choices, searchParams, setGardenAddressStable, setSearchParams]
+  );
 
   const audio = useAudioRecording({
     onRecordingComplete: (file) => {
@@ -100,22 +184,37 @@ export function useWorkSubmissionFlowController({
     ensureWorkSubmissionJourneyId();
   }, [ensureWorkSubmissionJourneyId]);
   useEffect(() => {
+    if (!linkIntent) return;
+    setGardenAddressStable(linkIntent.garden);
+    useWorkFlowStore.getState().setActionUID(linkIntent.actionUID);
+  }, [linkIntent, setGardenAddressStable]);
+  useEffect(() => {
     const state = location.state as { gardenId?: string } | null;
     if (state?.gardenId && gardens.length > 0) setGardenAddressStable(state.gardenId);
   }, [gardens.length, location.state, setGardenAddressStable]);
   useEffect(() => {
-    if (!submissionCompleted) return;
+    if (!submissionCompleted || isSchedulingDependentLink || pendingLinkRecovery) return;
     clearActiveDraft().catch((error) => {
       logger.error("Failed to clear draft after submission", { error, source: "Garden" });
     });
     return scheduleNavigation(() => {
-      navigate(homeRoute, { replace: true, viewTransition: true });
+      navigate(linkIntent?.returnTo ?? homeRoute, { replace: true, viewTransition: true });
       requestAnimationFrame(() => {
         useWorkFlowStore.getState().reset();
         form.reset();
       });
     }, 800);
-  }, [clearActiveDraft, form, homeRoute, navigate, scheduleNavigation, submissionCompleted]);
+  }, [
+    clearActiveDraft,
+    form,
+    homeRoute,
+    linkIntent,
+    isSchedulingDependentLink,
+    pendingLinkRecovery,
+    navigate,
+    scheduleNavigation,
+    submissionCompleted,
+  ]);
 
   const { detailInputs, detailsConfig, mediaConfig, minRequired, reviewConfig, reviewData } =
     useWorkSubmissionPresentationModel({
@@ -181,13 +280,61 @@ export function useWorkSubmissionFlowController({
   };
   const submit = async () => {
     if (!gardenAddress || actionUID === null || !findActionByUID(actions, actionUID)) return false;
+    if (hasLinkIntentParams && linkIntentStatus !== "valid") return false;
+    setLinkSchedulingSucceeded(false);
+    if (linkIntent) setIsSchedulingDependentLink(true);
     try {
-      return Boolean(await form.uploadWork());
+      workMutation.clearLastSubmissionOutcome();
+      await form.uploadWork();
+      const outcome = workMutation.getLastSubmissionOutcome();
+      if (!outcome) return false;
+      if (linkIntent && outcome) {
+        const payload: PendingLinkRecovery["payload"] = {
+          clientOperationId: `work-link:${outcome.clientWorkId}:${linkIntent.commitmentId}:${linkIntent.requirementIndex}`,
+          commitmentId: linkIntent.commitmentId,
+          clientWorkId: outcome.clientWorkId,
+          ...(outcome.kind === "direct" ? {} : { sourceWorkJobId: outcome.jobId }),
+          requirementIndex: linkIntent.requirementIndex,
+          gardenAddress: linkIntent.garden as `0x${string}`,
+        };
+        try {
+          await commitmentJobs.enqueue({ act: "workLink", payload });
+          setPendingLinkRecovery(null);
+          setLinkSchedulingSucceeded(true);
+        } catch (error) {
+          setPendingLinkRecovery({ intent: linkIntent, payload, error });
+          logger.error("Work submitted but dependent commitment link could not be queued", {
+            error,
+            source: "GardenFlow",
+            clientWorkId: outcome.clientWorkId,
+          });
+        } finally {
+          setIsSchedulingDependentLink(false);
+        }
+      }
+      return true;
     } catch (error) {
+      setIsSchedulingDependentLink(false);
       logger.error("Work submission failed", { error, source: "GardenFlow" });
       return false;
     }
   };
+  const retryLinkOnly = useCallback(async () => {
+    if (!pendingLinkRecovery) return false;
+    setLinkSchedulingSucceeded(false);
+    setIsSchedulingDependentLink(true);
+    try {
+      await commitmentJobs.enqueue({ act: "workLink", payload: pendingLinkRecovery.payload });
+      setPendingLinkRecovery(null);
+      setLinkSchedulingSucceeded(true);
+      return true;
+    } catch (error) {
+      setPendingLinkRecovery((current) => (current ? { ...current, error } : current));
+      return false;
+    } finally {
+      setIsSchedulingDependentLink(false);
+    }
+  }, [commitmentJobs, pendingLinkRecovery]);
   const isWalletRequestExpired = useMemo(() => {
     if (activeTab !== WorkTab.Review || !workMutation.error) return false;
     const original =
@@ -259,6 +406,21 @@ export function useWorkSubmissionFlowController({
     isRecording: audio.isRecording,
     isWalletRequestExpired,
     joinCommunityGarden,
+    linkIntent,
+    linkGardenAddress: linkIntent?.garden ?? null,
+    linkIntentStatus,
+    commitmentLinkChoices: linkChoices.choices,
+    commitmentLinkChoicesLoading: linkChoices.isLoading,
+    commitmentLinkChoicesError: linkChoices.error,
+    refetchCommitmentLinkChoices: linkChoices.refetch,
+    clearLinkIntent,
+    selectLinkIntent,
+    isSchedulingDependentLink,
+    linkSchedulingError: pendingLinkRecovery?.error ?? null,
+    linkSchedulingSucceeded,
+    hasPendingLinkRecovery: pendingLinkRecovery !== null,
+    retryLinkOnly,
+    submissionOutcome: workMutation.lastSubmissionOutcome,
     markMediaPreviewFailed: media.markMediaPreviewFailed,
     mediaClickRef: media.mediaClickRef,
     mediaConfig,

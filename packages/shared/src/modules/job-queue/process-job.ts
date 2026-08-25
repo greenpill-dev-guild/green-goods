@@ -1,4 +1,4 @@
-import type { Job } from "../../types/job-queue";
+import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { JobMaintenance } from "./job-maintenance";
 import type {
   JobQueueAnalytics,
@@ -50,13 +50,13 @@ async function completeJob(
       : createOfflineTxHash(jobId));
   await deps.store.markJobSynced(jobId, completedTxHash);
 
-  if (job.kind === "work" && job.meta?.clientWorkId) {
+  const clientWorkId =
+    job.kind === "work"
+      ? ((job.payload as WorkJobPayload).clientWorkId ?? job.meta?.clientWorkId)
+      : undefined;
+  if (job.kind === "work" && typeof clientWorkId === "string") {
     try {
-      await deps.store.storeClientWorkIdMapping(
-        job.meta.clientWorkId as string,
-        completedTxHash,
-        jobId
-      );
+      await deps.store.storeClientWorkIdMapping(clientWorkId, completedTxHash, jobId);
     } catch (error) {
       deps.logger.warn("[JobQueue] Failed to store clientWorkId mapping", { error });
     }

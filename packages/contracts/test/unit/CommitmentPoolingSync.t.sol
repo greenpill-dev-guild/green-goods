@@ -129,6 +129,30 @@ contract CommitmentPoolingSyncTest is CommitmentPoolingFixture {
         assertTrue(module.isApprovalCounted(approvalUID));
     }
 
+    function testCommitmentPooling_syncsApprovalMadeBeforeCommitmentAndLink() public {
+        _setWorkAttestation(WORK_A, CREATOR, 0);
+        bytes32 approvalUID = _decision(WORK_A, 0, true, 1);
+        uint256 commitmentId = _acceptedSingleRequirementDomainImpact(keccak256("sync-retroactive-approval"));
+
+        vm.prank(CREATOR);
+        module.linkWork(commitmentId, WORK_A, 0, keccak256("sync-retroactive-link"));
+
+        assertEq(module.getRequirement(commitmentId, 0).approvedCount, 0);
+        assertEq(module.getContributor(commitmentId, CREATOR).uncountedLinkedWorkCount, 1);
+        assertFalse(module.isApprovalCounted(approvalUID));
+
+        vm.prank(POOL_STEWARD);
+        module.syncWorkDecisions(commitmentId, _uids(approvalUID));
+
+        assertEq(module.getRequirement(commitmentId, 0).approvedCount, 1);
+        assertEq(module.getContributor(commitmentId, CREATOR).approvedWorkCredits, 1);
+        assertEq(module.getContributor(commitmentId, CREATOR).uncountedLinkedWorkCount, 0);
+        assertTrue(module.isApprovalCounted(approvalUID));
+        ICommitmentPoolingModule.Commitment memory commitment = module.getCommitment(commitmentId);
+        assertEq(uint256(commitment.state), uint256(ICommitmentPoolingModule.CommitmentState.ReadyForConfirmation));
+        assertTrue(commitment.contributorsFrozen);
+    }
+
     function testSyncRejectsAStaleGreatestSuppliedSequence() public {
         uint256 commitmentId = _acceptedDomainImpact(keccak256("sync-stale"));
         _link(commitmentId, WORK_A, 0);
@@ -300,6 +324,16 @@ contract CommitmentPoolingSyncTest is CommitmentPoolingFixture {
         params.requirements = new ICommitmentPoolingModule.CommitmentRequirementInput[](2);
         params.requirements[0] = ICommitmentPoolingModule.CommitmentRequirementInput({ actionUID: 0, requiredCount: 1 });
         params.requirements[1] = ICommitmentPoolingModule.CommitmentRequirementInput({ actionUID: 1, requiredCount: 1 });
+        vm.prank(CREATOR);
+        commitmentId = module.createCommitment(params);
+        _acceptOffer(commitmentId);
+    }
+
+    function _acceptedSingleRequirementDomainImpact(bytes32 creationKey) private returns (uint256 commitmentId) {
+        ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(creationKey);
+        params.commitmentType = ICommitmentPoolingModule.CommitmentType.DomainImpact;
+        params.requirements = new ICommitmentPoolingModule.CommitmentRequirementInput[](1);
+        params.requirements[0] = ICommitmentPoolingModule.CommitmentRequirementInput({ actionUID: 0, requiredCount: 1 });
         vm.prank(CREATOR);
         commitmentId = module.createCommitment(params);
         _acceptOffer(commitmentId);

@@ -871,6 +871,38 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         assertEq(commitmentRegistry.committedOf(provider, commitmentId), 0);
     }
 
+    /// @notice Work approved before its commitment is later linked and counted through steward catch-up.
+    function testCommitmentPooling_syncsApprovalMadeBeforeCommitmentAndLinkOnFork() public {
+        bytes32 workUID = _submitWorkAttestation(provider, gardenAccount, actionUID);
+        bytes32 approvalUID = _submitWorkApproval(forkOperator, gardenAccount, actionUID, workUID);
+
+        assertEq(workApprovalResolver.decisionSequenceByUID(approvalUID), 1);
+        assertEq(workApprovalResolver.latestDecisionSequence(workUID), 1);
+        assertFalse(pooling.isApprovalCounted(approvalUID), "an unlinked Work decision must safely no-op");
+
+        uint256 commitmentId = _createDomainImpactOffer();
+        vm.prank(recipient);
+        pooling.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Individual, gardenAccount);
+        vm.prank(provider);
+        pooling.linkWork(commitmentId, workUID, 0, keccak256("fork-retroactive-link"));
+
+        assertEq(pooling.getRequirement(commitmentId, 0).approvedCount, 0);
+        assertEq(pooling.getContributor(commitmentId, provider).uncountedLinkedWorkCount, 1);
+
+        bytes32[] memory decisionUIDs = new bytes32[](1);
+        decisionUIDs[0] = approvalUID;
+        vm.prank(forkOperator);
+        pooling.syncWorkDecisions(commitmentId, decisionUIDs);
+
+        assertEq(pooling.getRequirement(commitmentId, 0).approvedCount, 1);
+        assertEq(pooling.getContributor(commitmentId, provider).approvedWorkCredits, 1);
+        assertEq(pooling.getContributor(commitmentId, provider).uncountedLinkedWorkCount, 0);
+        assertTrue(pooling.isApprovalCounted(approvalUID));
+        ICommitmentPoolingModule.Commitment memory commitment = pooling.getCommitment(commitmentId);
+        assertEq(uint256(commitment.state), uint256(ICommitmentPoolingModule.CommitmentState.ReadyForConfirmation));
+        assertTrue(commitment.contributorsFrozen);
+    }
+
     /// @notice Recognition over credits earned from real attestations, not seeded counters.
     function testRecognitionSnapshotOverRealCredits() public {
         uint256 commitmentId = _fulfilledCommitment();

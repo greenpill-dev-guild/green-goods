@@ -8,7 +8,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   showWalletProgress,
   toastService,
@@ -29,16 +29,16 @@ import {
   trackContractError,
   trackUploadError,
 } from "../../modules/app/error-tracking";
-import {
-  WorkSubmissionError,
-  type WalletSubmissionStage,
-} from "../../modules/work/wallet-submission/types";
+import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 import { isOfflineTxHash } from "../../modules/job-queue/queue-policy";
-import type { JobQueueHandle } from "../../modules/job-queue/ports";
-import { createDefaultSubmitWorkPorts, submitWork } from "../../modules/work/submit-work-command";
+import {
+  createDefaultSubmitWorkPorts,
+  submitWork,
+  type SubmitWorkOutcome,
+} from "../../modules/work/submit-work-command";
 import { useUIStore } from "../../stores/useUIStore";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
-import type { Action, Address, Work, WorkDraft } from "../../types/domain";
+import type { Work, WorkDraft } from "../../types/domain";
 import { getActionTitle } from "../../utils/action/parsers";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
@@ -48,32 +48,9 @@ import { worksKeys } from "../../config/query-keys/work";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation, useTimeout } from "../utils/useTimeout";
+import type { UseWorkMutationOptions } from "./useWorkMutation.types";
 
-export interface UseWorkMutationOptions {
-  authMode: "wallet" | "passkey" | "embedded" | null;
-  gardenAddress: Address | null;
-  actionUID: number | null;
-  actions: Action[];
-  /** User address (smart account or wallet) for scoping jobs */
-  userAddress: Address | null;
-  /**
-   * Client PWA completion behavior is on by default. Admin and other consumers
-   * can opt out while still using the shared submission pipeline.
-   */
-  completeClientFlow?: boolean;
-  /**
-   * Client PWA queue fallback is on by default. Admin consumers can disable it
-   * so a wallet/network failure never looks like a completed admin submission.
-   */
-  allowOfflineQueue?: boolean;
-  onProgress?: (stage: WalletSubmissionStage, message: string) => void;
-  onSuccess?: (txHash: `0x${string}` | string) => void;
-  onError?: (error: unknown) => void;
-  onSettled?: () => void;
-  dependencies?: {
-    jobQueue?: Pick<JobQueueHandle, "processJob">;
-  };
-}
+export type { UseWorkMutationOptions } from "./useWorkMutation.types";
 
 /**
  * Hook to manage work submission mutation
@@ -107,6 +84,10 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
   const queryClient = useQueryClient();
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
   const walletRequestStartedJourneyRef = useRef<string | null>(null);
+  const [lastSubmissionOutcome, setLastSubmissionOutcome] = useState<SubmitWorkOutcome | null>(
+    null
+  );
+  const lastSubmissionOutcomeRef = useRef<SubmitWorkOutcome | null>(null);
 
   // Use managed timeout for toast dismissal to ensure cleanup on unmount
   const { set: scheduleToastDismiss } = useTimeout();
@@ -205,6 +186,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           },
         })
       );
+      lastSubmissionOutcomeRef.current = outcome;
+      setLastSubmissionOutcome(outcome);
       return outcome.txHash;
     },
     onMutate: async (variables) => {
@@ -522,7 +505,15 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     },
   });
 
-  return useSafeMutation(mutation);
+  return {
+    ...useSafeMutation(mutation),
+    lastSubmissionOutcome,
+    getLastSubmissionOutcome: () => lastSubmissionOutcomeRef.current,
+    clearLastSubmissionOutcome: () => {
+      lastSubmissionOutcomeRef.current = null;
+      setLastSubmissionOutcome(null);
+    },
+  };
 }
 
 export type UseWorkMutationReturn = ReturnType<typeof useWorkMutation>;

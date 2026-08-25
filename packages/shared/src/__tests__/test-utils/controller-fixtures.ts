@@ -73,6 +73,7 @@ export function gardenCommitmentControllerFixture(
   return {
     chainId: DEMO_CHAIN_ID,
     routeGarden: DEMO_GARDEN,
+    workGarden: detail?.commitment.providerGarden ?? null,
     viewer,
     isOnline: true,
     status: detail ? "ready" : "notFound",
@@ -97,6 +98,14 @@ export function gardenCommitmentControllerFixture(
     joinable: false,
     linkable: false,
     linkableWorks: [],
+    workDecisions: {
+      decisions: [],
+      byWorkUID: new Map(),
+      isLoading: false,
+      isError: false,
+      readAvailable: true,
+      refetch: async () => undefined,
+    },
     ownRequest: null,
     pendingClaimRequests: [],
     canAskAgain: false,
@@ -326,6 +335,7 @@ const dialogActs: CommitmentDialogActs = {
   confirmFallback: successfulTransaction,
   acceptClaim: successfulTransaction,
   declineClaim: successfulTransaction,
+  syncWorkDecisions: successfulTransaction,
 };
 
 export function commitmentDialogControllerFixture(
@@ -403,6 +413,21 @@ export function commitmentDialogControllerFixture(
     isDue: false,
     hasPendingJob: false,
     can,
+    reconciliation: {
+      candidates: [],
+      count: 0,
+      decisionUIDs: [],
+      readAvailable: true,
+      isLoading: false,
+      isError: false,
+      pendingReadback: false,
+      succeeded: false,
+      readbackStatus: "idle",
+      unavailableReadback: false,
+      needsFreshReview: false,
+      error: null,
+      refetch: async () => undefined,
+    },
     acts: dialogActs,
     isActing: false,
     isLoading: false,

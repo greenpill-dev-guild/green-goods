@@ -13,6 +13,7 @@ import { GardenCard } from "@/components/Cards/Garden/GardenCard";
 import { GardenCardSkeleton } from "@/components/Cards/Garden/GardenCardSkeleton";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/Display";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
+import { type WorkCommitmentChoice, WorkCommitmentSelection } from "./WorkCommitmentSelection";
 
 /** Domain i18n label ID (stable); labels resolved via intl at render time */
 const DOMAIN_TAB_CONFIG: Record<Domain, { labelId: string; defaultLabel: string }> = {
@@ -42,6 +43,14 @@ interface WorkIntroProps {
   setActionUID: (value: number | null) => void;
   setGardenAddress: (value: string | null) => void;
   setSelectedDomain: (domain: Domain | null) => void;
+  commitmentChoices?: WorkCommitmentChoice[];
+  commitmentChoicesLoading?: boolean;
+  commitmentChoicesError?: unknown;
+  commitmentIntentStatus?: "none" | "validating" | "valid" | "invalid" | "unavailable";
+  showCommitmentChoices?: boolean;
+  onRetryCommitmentChoices?: () => void;
+  selectedCommitmentKey?: string | null;
+  setSelectedCommitmentKey?: (key: string | null) => void;
 }
 
 export const WorkIntro: React.FC<WorkIntroProps> = ({
@@ -58,6 +67,14 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
   setActionUID,
   setGardenAddress,
   setSelectedDomain,
+  commitmentChoices = [],
+  commitmentChoicesLoading = false,
+  commitmentChoicesError = null,
+  commitmentIntentStatus = "none",
+  showCommitmentChoices = false,
+  onRetryCommitmentChoices,
+  selectedCommitmentKey = null,
+  setSelectedCommitmentKey,
 }) => {
   const intl = useIntl();
 
@@ -398,6 +415,18 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
             ))}
         </CarouselContent>
       </Carousel>
+
+      {showCommitmentChoices ? (
+        <WorkCommitmentSelection
+          choices={commitmentChoices}
+          isLoading={commitmentChoicesLoading}
+          error={commitmentChoicesError}
+          intentStatus={commitmentIntentStatus}
+          onRetry={onRetryCommitmentChoices}
+          selectedKey={selectedCommitmentKey}
+          onSelectedKeyChange={setSelectedCommitmentKey}
+        />
+      ) : null}
     </>
   );
 };

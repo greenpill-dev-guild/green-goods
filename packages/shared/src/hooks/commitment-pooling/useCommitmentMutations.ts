@@ -34,6 +34,7 @@ export type CommitmentOnlineAction =
   | "setDeclaredConsideration"
   | "setDeclaredValue"
   | "setConfirmerRule"
+  | "syncWorkDecisions"
   | "updateCommitmentSeriesMetadata"
   | "restCommitmentSeries"
   | "resumeCommitmentSeries"
@@ -56,6 +57,7 @@ export type CommitmentMutationCall =
       assigned: boolean;
     }
   | { action: "attachAssessment"; commitmentId: bigint; assessmentUID: Hex }
+  | { action: "syncWorkDecisions"; commitmentId: bigint; decisionUIDs: Hex[] }
   | { action: "markReadyForConfirmation"; commitmentId: bigint; reason: string }
   | { action: "confirmFulfillmentAsFallback"; commitmentId: bigint; reason: string }
   | { action: "cancelCommitment" | "raiseDispute"; commitmentId: bigint; reasonCID: string }
@@ -169,6 +171,8 @@ function argsFor(input: CommitmentMutationCall): readonly unknown[] {
       return [input.commitmentId, input.contributor, input.requirementIndex, input.assigned];
     case "attachAssessment":
       return [input.commitmentId, input.assessmentUID];
+    case "syncWorkDecisions":
+      return [input.commitmentId, input.decisionUIDs];
     case "markReadyForConfirmation":
     case "confirmFulfillmentAsFallback":
       return [input.commitmentId, input.reason];

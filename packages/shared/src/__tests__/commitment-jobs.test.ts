@@ -417,6 +417,10 @@ describe("work-link recovery", () => {
         readWorkLinkPayloadHash: vi
           .fn()
           .mockResolvedValue(hashWorkLinkPayload(payload.commitmentId, payload.workUID, 2)),
+        readWorkLinkCommitmentState: vi.fn().mockResolvedValue({
+          state: 4,
+          contributorsFrozen: true,
+        }),
         send: vi.fn(),
       }
     );
@@ -437,12 +441,31 @@ describe("work-link recovery", () => {
         readWorkLinkPayloadHash: vi
           .fn()
           .mockResolvedValue(hashWorkLinkPayload(payload.commitmentId, payload.workUID, 3)),
+        readWorkLinkCommitmentState: vi.fn().mockResolvedValue({
+          state: 4,
+          contributorsFrozen: true,
+        }),
       })
     );
     expect(result).toEqual({
       status: "identity-conflict",
       reason: "work-link-payload-mismatch",
     });
+  });
+
+  it("waits rather than declaring membership loss when the role read is unavailable", async () => {
+    const result = await executeCommitmentJob(
+      {
+        id: "job-work",
+        kind: "workLink",
+        payload,
+        chainId: 42161,
+        moduleAddress: MODULE,
+        userAddress: HOLDER,
+      },
+      dependencies({ hasMembership: vi.fn().mockResolvedValue(null) })
+    );
+    expect(result).toEqual({ status: "waiting", reason: "membership-unavailable" });
   });
 });
 
@@ -500,7 +523,11 @@ describe("membership preflight covers every membership-gated act", () => {
     const hasMembership = vi.fn().mockResolvedValue(false);
     const result = await executeCommitmentJob(jobFor(entry), dependencies({ hasMembership, send }));
 
-    expect(result).toEqual({ status: "waiting", reason: "membership-unavailable" });
+    expect(result).toEqual(
+      entry.kind === "workLink"
+        ? { status: "identity-conflict", reason: "membership-lost" }
+        : { status: "waiting", reason: "membership-unavailable" }
+    );
     expect(hasMembership).toHaveBeenCalledWith(GARDEN, HOLDER);
     expect(send).not.toHaveBeenCalled();
   });

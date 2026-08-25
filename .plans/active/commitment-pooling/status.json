@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-08-23T02:09:00.000Z"
+    "updated_at": "2026-08-25T19:06:14.589Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -44,7 +44,8 @@
     "contracts_hardening_handoff": "handoffs/claude-contracts-hardening.md",
     "garden_safe_erc6551_owner_spike": "erc6551-garden-safe-owner-spike.md",
     "celo_garden_account_safe_ownership": "../celo-garden-account-safe-ownership/plan.todo.md",
-    "celo_zodiac_roles_pin": "evidence/celo-zodiac-roles-mastercopies-2026-08-18.json"
+    "celo_zodiac_roles_pin": "evidence/celo-zodiac-roles-mastercopies-2026-08-18.json",
+    "work_linking_closure_handoff": "handoffs/codex-work-linking.md"
   },
   "linear": {
     "parentIssue": "PRD-650",
@@ -75,7 +76,7 @@
         "milestone": "release"
       }
     },
-    "lastSyncedAt": "2026-08-04T07:53:05Z",
+    "lastSyncedAt": "2026-08-25T19:06:14.589Z",
     "lastSyncPreviewAt": "2026-07-20",
     "consolidatedTrackers": {
       "note": "Historical aggregate trackers remain for context; thin execution sub-lane issues are the current dispatch mirrors. Lane content and proof remain in this hub. linear.lastSyncedAt intentionally records the last completed external write/re-read and is not advanced by local review corrections; live convergence must update it only after verified Linear/source-document writes.",
@@ -602,6 +603,24 @@
       },
       "linear_issues": ["COM-11", "PRD-650"],
       "acceptance": "The approved pilot-evidence-spec.md structure remains fixed; every operational assignment in section 10.3 is dated; each garden has a defensible cohort/baseline, one primary measure, declared secondary measures, denominator/window, and pre-outcome thresholds; designated sources and owners are current; safeguarding/privacy blocks are cleared; a second reviewer reproduces the aggregates; and the September internal decision record plus any separately approved partner/public output stays within its claim and privacy tier before any agent label, implementation dispatch, or strengthened-capacity claim."
+    },
+    "work_linking_closure": {
+      "machine_lane": null,
+      "owner": "codex",
+      "status": "in_progress",
+      "manual_blocked": false,
+      "ready_when_dependencies_met": true,
+      "branch": "feat/editorial-record-and-cycle",
+      "depends_on": [],
+      "handoff": "handoffs/codex-work-linking.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-837",
+        "parentIssue": "PRD-650",
+        "milestone": "build"
+      },
+      "linear_issues": ["PRD-837", "PRD-650", "PRD-723", "PRD-724", "PRD-725", "PRD-729"],
+      "acceptance": "Gardeners can link historical Work or select an eligible commitment while submitting new Work; deferred links preserve one clientWorkId across direct and queued submission; approved historical Work is classified honestly and can be reconciled only by a steward through syncWorkDecisions; sequence-zero decisions require fresh review; client and admin surfaces expose awaiting-approval, awaiting-reconciliation, counted, fresh-review, and unavailable states; focused contracts/shared/client/admin tests, design and Storybook checks, and authenticated Brave proof pass. No ABI, storage, indexer-schema, hosted deployment, broadcast, or environment change is included."
     }
   },
   "follow_on": {
@@ -1226,6 +1245,14 @@
       "status": "in_progress",
       "branch": "feature/commitment-pooling-admin-console",
       "note": "Narrowed admin dispatch: Phase 0 + D1 + D2 of prompt-admin-console.md, stacked on the client-loop branch (PR #749) and built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment; settlement, Operations, and the Hypercert ceremony stay gated"
+    },
+    {
+      "timestamp": "2026-08-25T19:06:14.589Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
   ]
 }

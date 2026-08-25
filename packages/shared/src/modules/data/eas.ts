@@ -266,6 +266,54 @@ export const getWorkApprovals = async (
 };
 
 /**
+ * Loads the bounded candidate set for one exact Work UID. Recipient is
+ * deliberately not constrained: current approvals target the garden while
+ * historical bot approvals targeted the gardener.
+ */
+export const getWorkApprovalsForWork = async (
+  workUID: string,
+  chainId?: number | string,
+  reader: GraphQLReader = createEasClient(chainId)
+): Promise<EASWorkApproval[]> => {
+  const QUERY = easGraphQL(/* GraphQL */ `
+    query WorkApprovalsForWork($where: AttestationWhereInput) {
+      attestations(where: $where) {
+        id
+        attester
+        recipient
+        timeCreated
+        decodedDataJson
+      }
+    }
+  `);
+  const easConfig = getEASConfig(chainId);
+  if (isZeroBytes32(easConfig.WORK_APPROVAL.uid)) return [];
+  const { data, error } = await reader.query(
+    QUERY,
+    {
+      where: {
+        schemaId: { equals: easConfig.WORK_APPROVAL.uid },
+        decodedDataJson: { contains: workUID },
+        revoked: { equals: false },
+      },
+    },
+    "getWorkApprovalsForWork"
+  );
+  if (error) {
+    throw new EASFetchError(
+      `Failed to fetch Work approval candidates: ${error.message}`,
+      "getWorkApprovalsForWork",
+      error
+    );
+  }
+  return (data?.attestations ?? [])
+    .map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+      parseDataToWorkApproval(id, { attester, recipient, time: timeCreated }, decodedDataJson)
+    )
+    .filter((approval) => approval.workUID.toLowerCase() === workUID.toLowerCase());
+};
+
+/**
  * Fetches work approval attestations by their UIDs.
  * More efficient than getWorkApprovals when you have specific UIDs to fetch.
  *
