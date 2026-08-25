@@ -112,8 +112,12 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
           )}
 
           {/* Label — allowed to wrap to two lines at narrow widths: es/pt
-              labels ("Compromisos", "Jardineros/as") must never clip glyphs. */}
-          <span className="line-clamp-2 min-w-0 break-words text-center">{tab.label}</span>
+              labels ("Compromisos", "Jardineros/as") must never clip glyphs.
+              hyphens-auto so a single long word breaks with a hyphen, not a
+              bare mid-word split. */}
+          <span className="line-clamp-2 min-w-0 break-words text-center hyphens-auto">
+            {tab.label}
+          </span>
 
           {/* Count badge */}
           {tab.count !== undefined && tab.count > 0 && (
