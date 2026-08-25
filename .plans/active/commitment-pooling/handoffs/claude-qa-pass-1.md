@@ -261,3 +261,31 @@ by severity, the three highest-leverage changes, capture counts. Full reports li
   Learnings — drafted copy in the report); image hover-zoom removal validated at 4 components;
   "Over time" is the drawer's history surface but does not read as one.
 - Still read-only: no fixes, commits, or Linear writes.
+
+### 2026-08-25 — fix pass 1 (Groups A–C built, D proposed)
+
+- Scope-locked run on Afo's go: **24 fixed · 2 no-change-needed · 0 blocked** across the
+  audit's decided backlog. Two independent PRs off develop, Afo merges: [#770]
+  (`fix/pooling-experience-pass-1`, Groups A+B — expire confirm, Hub reordered to
+  Confirm · Work · Assess · Certify with History retired, Community ▸ Pools folded into
+  Coordination, pinned command palette, title-medium route headers, AddressDisplay + worded
+  relationships, 44 px effective targets, asker named, pool liveness scope, evidence on the
+  detail with count/row reconciliation down to the demo world, es/pt clipping, browser-QA
+  phrases → `agentic:check` green) and [#771] (`feat/editorial-record-and-cycle`, Group C —
+  § 02 on the canvas with `EditorialPanel` retired, the four-step Needs · Commitment · Work ·
+  Learnings cycle with the § 10 draft as shipping copy, hover zoom gone at six sites, held
+  empty/error space; supersessions recorded as uiux-spec Appendix G).
+- No-change-needed with evidence: backlog 20 (TopNav already carries a 48 px effective target;
+  no 40 px comparator exists) and 7a (the "Siguiente" clip was `tap-target-lg`'s ::after
+  inflating scrollWidth by exactly the reported 8 px).
+- Root causes fixed beneath findings: `AdminTextField` clobbered caller aria state (backlog
+  18's real mechanism); hours/meals missing from the unit families (F10, all surfaces); the
+  demo world hardcoded empty evidence attributions (F5's fixture half).
+- Unplanned: develop's mid-pass seam commits left both merge refs red on inherited debt
+  (banned `/i18n` barrel with no `formatCommitmentUnits` leaf; six newly-dead exports) —
+  cleared on both branches; a shared-checkout branch switch and an untracked-file cleanup by
+  concurrent sessions were absorbed (details in the fixes report § 5).
+- Group D delivered as proposals only (arrival surface, client timeline, GG-name resolution,
+  12/15/16 parked). Full record: `../reports/qa-experience-fixes-2026-08-25.md`; evidence:
+  `../reports/evidence/qa-experience-fixes/` (26 captures + 2 measurement JSONs). No ledger
+  flip, no on-chain writes, no Linear writes, no status.json edits.
