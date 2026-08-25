@@ -1,0 +1,188 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "cosmo-local-credit-interop",
+    "title": "Cosmo-Local Credit Voucher Interoperability",
+    "kind": "feature",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p2",
+    "created_at": "2026-08-25T06:09:38.829Z",
+    "updated_at": "2026-08-25T06:16:46.701Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md",
+    "tensions": "tensions.md",
+    "resources": "resources.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "protocol-readiness",
+    "tracks": ["contracts", "indexer", "shared", "client", "client-pwa", "admin", "docs"],
+    "work_types": ["research"],
+    "surfaces": [
+      "packages/contracts",
+      "packages/indexer",
+      "packages/shared",
+      "packages/client",
+      "packages/admin",
+      ".plans/active/commitment-pooling",
+      ".plans/active/celo-garden-account-safe-ownership"
+    ],
+    "depends_on_features": [
+      "commitment-pooling",
+      "celo-garden-account-safe-ownership",
+      "community-interface"
+    ]
+  },
+  "notes": [
+    "Scoping and architecture hub. No implementation, deployment, custody change, venue integration, or partner commitment is authorized here.",
+    "Slices are dependency statements, not a schedule. Each requires its own scope lock and explicit human dispatch.",
+    "PRD-651 gates are unchanged: federation is stage four of four, and every pooling-tier mainnet action still needs external audit, 3-of-5 Safe, 48h timelock, two weeks testnet, tested rollback, and human authorization.",
+    "Clean room: hand-write interfaces from cosmo-local-credit/protocol docs/SPEC.md. Never read, import, or vendor AGPL src/.",
+    "Never build a global cross-pool rate table (decision 17) — it would break the no-universal-price guardrail and foreclose federation.",
+    "External facts in resources.md were verified 2026-08-24/25; re-verify against primary sources before any transaction."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No implementation authorized. RED/GREEN is recorded when a slice is dispatched."
+      },
+      "skill_tags": ["ui", "frontend-design", "react"],
+      "manual_blocked": true
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No implementation authorized. RED/GREEN is recorded when a slice is dispatched."
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"],
+      "manual_blocked": true
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No implementation authorized. RED/GREEN is recorded when a slice is dispatched."
+      },
+      "skill_tags": ["contracts"],
+      "manual_blocked": true
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-08-25T06:09:38.832Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-08-25T06:16:30.077Z",
+      "actor": "human",
+      "lane": "contracts",
+      "status": "blocked",
+      "branch": null,
+      "note": "Scoping only — no implementation authorized. Slice 0 due diligence plus explicit human dispatch required first."
+    },
+    {
+      "timestamp": "2026-08-25T06:16:30.674Z",
+      "actor": "human",
+      "lane": "state_api",
+      "status": "blocked",
+      "branch": null,
+      "note": "Scoping only — no implementation authorized. Slice 0 due diligence plus explicit human dispatch required first."
+    },
+    {
+      "timestamp": "2026-08-25T06:16:31.242Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "blocked",
+      "branch": null,
+      "note": "Scoping only — no implementation authorized. Slice 0 due diligence plus explicit human dispatch required first."
+    },
+    {
+      "timestamp": "2026-08-25T06:16:46.701Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scoped",
+      "branch": null,
+      "note": "Captured architecture, integration tensions, resources, decision log (22), slices 0-6+, and phasing from the 2026-08-25 scoping conversation."
+    }
+  ]
+}
