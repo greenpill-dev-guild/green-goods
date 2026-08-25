@@ -526,7 +526,7 @@ describe("CommitmentDialogPanel (W10)", () => {
       },
     });
     renderPanel();
-    expect(screen.getByText(/not on this chain yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/isn't switched on in this app yet/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^retry$/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /back to pool/i })).toBeInTheDocument();
   });

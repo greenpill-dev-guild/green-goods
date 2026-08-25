@@ -118,7 +118,7 @@ export function PoolStatusCasts({
         <p className="label-md text-text-strong">
           {formatMessage({
             id: "cockpit.garden.pool.unavailable.title",
-            defaultMessage: "Commitment pooling is not on this chain yet",
+            defaultMessage: "Commitment pooling isn't switched on in this app yet",
           })}
         </p>
         <p className="text-sm text-text-soft">
