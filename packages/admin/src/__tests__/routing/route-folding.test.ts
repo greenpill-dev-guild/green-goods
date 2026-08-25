@@ -106,10 +106,12 @@ describe("route folding", () => {
     expect(hubRouteBlock).toContain('path: "assess"');
     expect(hubRouteBlock).toContain('path: "certify/create"');
     expect(hubRouteBlock).toContain('path: "certify"');
+    // The retired History stage keeps redirect stubs, never a hubView mount.
     expect(hubRouteBlock).toContain('path: "history"');
     expect(hubRouteBlock).toContain('path: ":historyEventId"');
+    expect(hubRouteBlock).toContain('<Navigate to="/hub" replace />');
     expect(routeViews).toContain('const hubView = lazyView(() => import("@/views/Hub"));');
-    expect(hubRouteBlock.match(/lazy:\s*hubView/g)?.length).toBeGreaterThanOrEqual(5);
+    expect(hubRouteBlock.match(/lazy:\s*hubView/g)?.length).toBeGreaterThanOrEqual(4);
     expect(hubRouteBlock).not.toMatch(/WorkDetail/);
     expect(hubRouteBlock).not.toMatch(/SubmitWork/);
   });
@@ -123,7 +125,10 @@ describe("route folding", () => {
     expect(hubSheetDescriptor).toContain("WorkDetailPanel");
     expect(hubSheetDescriptor).not.toContain("SubmitWorkPanel");
     expect(sheetRegistry).toContain("hub:work-detail:");
-    expect(sheetRegistry).toContain("hub:history:");
+    // The retired History stage keeps no registry entry — only the
+    // stale-state guard that refuses to restore its persisted ids.
+    expect(sheetRegistry).not.toContain("HISTORY_CONTENT_ID_PREFIX");
+    expect(sheetRegistry).toContain("RETIRED_SHEET_CONTENT_ID_PREFIXES");
     expect(sheetRegistry).toContain("ADMIN_ROUTE_SHEET_REGISTRY");
   });
 
@@ -170,24 +175,8 @@ describe("route folding", () => {
     expect(adminRoutesSource).toContain(
       'return buildAdminHref("/hub/certify/create", buildHubCreationContextSearch(context));'
     );
-    expect(adminRoutesSource).toContain("hubHistoryDetail(eventId: string");
-    expect(adminRoutesSource).toContain("`/hub/history/${encodeSegment(eventId)}`");
-  });
-
-  it("Hub history row inspectors are route-backed instead of transient sheet opens", () => {
-    const hubController = readSource(hubControllerPath);
-
-    expect(hubController).toContain("historyEventId: routedHistoryEventIdParam");
-    expect(hubController).toContain(
-      "navigate(adminRoutes.hubWorkDetail(event.itemId, hubContext));"
-    );
-    expect(hubController).toContain(
-      "navigate(adminRoutes.hubHistoryDetail(event.id, hubContext));"
-    );
-    expect(hubController).not.toContain('openSheet("left", toHistoryContentId(event.id))');
-    expect(hubController).toContain(
-      "navigate(adminRoutes.hubHistory(hubContext), { replace: true });"
-    );
+    // The retired History stage keeps no route helpers.
+    expect(adminRoutesSource).not.toContain("hubHistoryDetail");
   });
 
   it("router has no top-level /endowments path (folded into /community)", () => {

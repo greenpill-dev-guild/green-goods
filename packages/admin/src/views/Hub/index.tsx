@@ -55,11 +55,9 @@ export default function HubView() {
         routeSheetContentId={hub.routeSheetContentId}
         routeWorkId={hub.routeWorkId}
         routeCertificationId={hub.routeCertificationId}
-        routeHistoryEventId={hub.routeHistoryEventId}
         activeWorkDetailId={hub.activeWorkDetailId}
         selectedWork={hub.selectedWork}
         selectedCertification={hub.selectedCertification}
-        selectedHistoryEvent={hub.selectedHistoryEvent}
         isResolvingSelection={
           hub.worksLoading ||
           hub.fetchingAssessments ||
@@ -113,7 +111,7 @@ export default function HubView() {
                 onSearchChange={hub.setSearchTerm}
                 placeholder={hub.searchPlaceholder}
               >
-                {(hub.stage === "work" || hub.stage === "history") && (
+                {hub.stage === "work" && (
                   <AdminSortSelect
                     value={hub.sortDirection}
                     onChange={(value) => hub.updateSearch({ sort: value }, false)}
@@ -167,11 +165,9 @@ export default function HubView() {
                   pendingWorks={hub.pendingWorks}
                   assessmentQueue={hub.assessmentQueue}
                   certificationQueue={hub.certificationQueue}
-                  historyEvents={hub.historyEvents}
                   worksLoading={hub.worksLoading}
                   fetchingAssessments={hub.fetchingAssessments}
                   hypercertsLoading={hub.hypercertsLoading}
-                  allocationsLoading={hub.allocationsLoading}
                   hasDataError={hub.hasDataError}
                   normalizedSearch={hub.normalizedSearch}
                   debouncedSearch={hub.debouncedSearch}
@@ -179,7 +175,6 @@ export default function HubView() {
                   selectedGardenName={hub.selectedGarden?.name}
                   selectedWorkId={hub.selectedWork?.id}
                   selectedCertificationId={hub.selectedCertification?.id}
-                  selectedHistoryEventId={hub.selectedHistoryEvent?.id}
                   canManage={hub.canManage}
                   toConfirm={hub.toConfirm}
                   chainId={hub.chainId}
@@ -190,7 +185,6 @@ export default function HubView() {
                   onOpenWorkDetail={hub.handleOpenWorkDetail}
                   onClearSearch={hub.handleClearSearch}
                   onOpenCertification={hub.handleOpenCertification}
-                  onOpenHistoryEvent={hub.handleOpenHistoryEvent}
                 />
               </div>
             </section>

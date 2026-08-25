@@ -587,7 +587,7 @@ describe("CanvasLayout", () => {
       await router.navigate("/hub/certify");
     });
     await act(async () => {
-      await router.navigate("/hub/history");
+      await router.navigate("/hub/confirm");
     });
 
     expect(screen.getByTestId("active-path")).toHaveTextContent("/hub");

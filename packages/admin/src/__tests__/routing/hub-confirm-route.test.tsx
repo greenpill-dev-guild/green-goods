@@ -20,7 +20,7 @@ vi.mock("@/routes/RequireRole", async () => {
 });
 
 describe("/hub/confirm", () => {
-  it("is a Hub stage between Certify and History, served by the Hub view", () => {
+  it("is the leading Hub stage, served by the Hub view", () => {
     const confirm = findRoute(["hub", "confirm"]);
     expect(confirm).toBeDefined();
     expect(lazyOf(confirm)).toBe(lazyOf(findRoute(["hub", "work"])));
@@ -29,11 +29,10 @@ describe("/hub/confirm", () => {
       ":commitmentId",
     ]);
     expect(PIPELINE_STAGE_CONFIG.map((stage) => stage.id)).toEqual([
+      "confirm",
       "work",
       "assess",
       "certify",
-      "confirm",
-      "history",
     ]);
     expect(resolvePipelineStageFromPath("/hub/confirm")).toBe("confirm");
     expect(resolvePipelineStageFromPath("/hub/confirm/9")).toBe("confirm");

@@ -17,7 +17,6 @@ describe("hub.workbenchModel", () => {
       canManage: false,
       canAssess: true,
       canCertify: true,
-      canBrowseHistory: true,
       works: [{ status: "pending" }, { status: "approved" }, { status: "approved" }],
       assessments: [{ id: "assessment-1" }, { id: "assessment-2" }],
       hypercerts: [{ id: "assessment-1" }],
@@ -29,23 +28,40 @@ describe("hub.workbenchModel", () => {
       assess: 2,
       certify: 1,
     });
-    expect(model.stages.map((stage) => stage.id)).toEqual(["assess", "certify", "history"]);
+    expect(model.stages.map((stage) => stage.id)).toEqual(["assess", "certify"]);
   });
 
-  it("keeps history as the fallback when no stage is visible", () => {
+  it("keeps work as the fallback when no stage is visible", () => {
     const model = buildHubStageModel({
       requestedStage: "certify",
       canManage: false,
       canAssess: false,
       canCertify: false,
-      canBrowseHistory: false,
       works: [],
       assessments: [],
       hypercerts: [],
     });
 
-    expect(model.stage).toBe("history");
+    expect(model.stage).toBe("work");
     expect(model.stages).toEqual([]);
+  });
+
+  it("leads with the Confirm stage when the reader stewards a garden", () => {
+    const model = buildHubStageModel({
+      requestedStage: "work",
+      canManage: true,
+      canAssess: true,
+      canCertify: true,
+      canConfirm: true,
+      confirmCount: 2,
+      works: [],
+      assessments: [],
+      hypercerts: [],
+    });
+
+    expect(model.stages.map((stage) => stage.id)).toEqual(["confirm", "work", "assess", "certify"]);
+    expect(model.fallbackStage).toBe("confirm");
+    expect(model.stageCounts.confirm).toBe(2);
   });
 
   it("resolves route-backed sheet content ids", () => {
@@ -63,29 +79,23 @@ describe("hub.workbenchModel", () => {
       routeSheetContentId: "hub:certify:assessment-1",
       routeSheetSide: "left",
     });
-    expect(
-      resolveHubRouteSheet({ isSubmitRoute: false, routeHistoryEventId: "history-1" })
-    ).toEqual({
-      routeSheetContentId: "hub:history:history-1",
-      routeSheetSide: "left",
-    });
   });
 
   it("derives route state from router params and active sheet content", () => {
     expect(
       resolveHubRouteState({
-        pathname: "/hub/history/allocation%3A0xabc%2F1",
+        pathname: "/hub/certify/assessment-1",
         sortParam: "oldest",
-        routedHistoryEventIdParam: "allocation:0xabc/1",
+        routedAssessmentIdParam: "assessment-1",
         activeContentId: "hub:work-detail:work-1",
       })
     ).toMatchObject({
       activeCertificationId: null,
       activeWorkDetailId: "work-1",
       isSubmitRoute: false,
-      requestedStage: "history",
-      routeHistoryEventId: "allocation:0xabc/1",
-      routeSheetContentId: "hub:history:allocation:0xabc/1",
+      requestedStage: "certify",
+      routeCertificationId: "assessment-1",
+      routeSheetContentId: "hub:certify:assessment-1",
       routeSheetSide: "left",
       sortDirection: "oldest",
     });
@@ -112,13 +122,11 @@ describe("hub.workbenchModel", () => {
       resolveHubRouteSelection({
         routeWorkId: undefined,
         routeCertificationId: undefined,
-        routeHistoryEventId: undefined,
         activeWorkDetailId: "active-work",
         activeCertificationId: null,
         isSubmitRoute: false,
         selectedWork: undefined,
         selectedCertification: undefined,
-        selectedHistoryEvent: undefined,
       })
     ).toEqual({
       hasOpenHubInspector: false,
@@ -129,13 +137,11 @@ describe("hub.workbenchModel", () => {
       resolveHubRouteSelection({
         routeWorkId: "route-work",
         routeCertificationId: undefined,
-        routeHistoryEventId: undefined,
         activeWorkDetailId: "active-work",
         activeCertificationId: null,
         isSubmitRoute: false,
         selectedWork: { id: "route-work" },
         selectedCertification: undefined,
-        selectedHistoryEvent: undefined,
       })
     ).toEqual({
       hasOpenHubInspector: true,
@@ -149,7 +155,7 @@ describe("hub.workbenchModel", () => {
         pendingWorks: 1,
         assessmentQueue: 2,
         certificationQueue: 3,
-        historyEvents: 4,
+        confirmQueue: 4,
       })
     ).toBe(3);
   });
@@ -164,17 +170,17 @@ describe("hub.workbenchModel", () => {
   it("builds the persisted workspace payload without route or data dependencies", () => {
     expect(
       buildHubWorkspaceState({
-        stage: "history",
+        stage: "confirm",
         sortDirection: "oldest",
         searchTerm: "allocation",
-        persistedSelectedItem: "history-1",
+        persistedSelectedItem: "commitment-1",
         hasOpenHubInspector: true,
       })
     ).toEqual({
-      activeMode: "history",
+      activeMode: "confirm",
       filter: "oldest",
       search: "allocation",
-      selectedItem: "history-1",
+      selectedItem: "commitment-1",
       sheetOpen: true,
     });
   });

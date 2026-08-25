@@ -128,15 +128,17 @@ export const adminCanvasRoutes: RouteObject[] = [
         ],
       },
       {
+        // The History stage is retired (2026-08-25 AD-3); saved deep links
+        // land on the Hub's default stage instead of a 404.
         path: "history",
         children: [
           {
             index: true,
-            lazy: hubView,
+            element: <Navigate to="/hub" replace />,
           },
           {
             path: ":historyEventId",
-            lazy: hubView,
+            element: <Navigate to="/hub" replace />,
           },
         ],
       },

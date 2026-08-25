@@ -25,10 +25,7 @@ function parseHubContext(search: string) {
 
   return {
     gardenId: params.get("gardenId") ?? params.get("gardenAddress") ?? undefined,
-    view:
-      view === "work" || view === "assess" || view === "certify" || view === "history"
-        ? view
-        : undefined,
+    view: view === "work" || view === "assess" || view === "certify" ? view : undefined,
     sort: sort === "newest" || sort === "oldest" ? sort : undefined,
   } as const;
 }

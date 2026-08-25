@@ -10,7 +10,7 @@ export type AdminWorkspaceId =
   | "profile";
 
 export type AdminSignalPoolType = "hypercert" | "action";
-export type AdminHubMode = "work" | "assess" | "certify" | "confirm" | "history";
+export type AdminHubMode = "work" | "assess" | "certify" | "confirm";
 export type AdminHubView = AdminHubMode;
 export type AdminGardenMode = "health" | "activity" | "impact" | "settings" | "pool";
 export type AdminCommunityMode = "members" | "coordination" | "endowment" | "payouts" | "pools";
@@ -146,12 +146,6 @@ export const adminRoutes = {
       `/hub/confirm/${encodeSegment(commitmentId)}`,
       buildHubContextSearch(context)
     );
-  },
-  hubHistory(context?: AdminHubRouteContext) {
-    return this.hubMode("history", context);
-  },
-  hubHistoryDetail(eventId: string, context?: AdminHubRouteContext) {
-    return buildAdminHref(`/hub/history/${encodeSegment(eventId)}`, buildHubContextSearch(context));
   },
   hubWorkDetail(workId: string, context?: AdminHubRouteContext) {
     return buildAdminHref(`/hub/work/${encodeSegment(workId)}`, buildHubContextSearch(context));

@@ -49,13 +49,7 @@ export function resolveAdminWorkspaceSectionRoute(options: AdminWorkspaceSection
       return adminRoutes.hubWorkDetail(itemId, { gardenId, sort: hubSort });
     }
 
-    if (section === "decisions" && itemId) {
-      return adminRoutes.hubHistoryDetail(itemId, { gardenId, sort: hubSort });
-    }
-
-    return section === "decisions"
-      ? adminRoutes.hubHistory({ gardenId, sort: hubSort })
-      : adminRoutes.hubWork({ gardenId, sort: hubSort });
+    return adminRoutes.hubWork({ gardenId, sort: hubSort });
   }
 
   if (tab === "impact") {
