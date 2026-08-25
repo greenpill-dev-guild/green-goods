@@ -33,27 +33,9 @@
   },
   "taxonomy": {
     "initiative": "engineering-quality",
-    "tracks": [
-      "client",
-      "admin",
-      "shared",
-      "docs",
-      "ops"
-    ],
-    "work_types": [
-      "implementation",
-      "cleanup",
-      "hardening",
-      "maintenance",
-      "qa"
-    ],
-    "surfaces": [
-      "client",
-      "admin",
-      "shared",
-      "docs",
-      "tooling"
-    ],
+    "tracks": ["client", "admin", "shared", "docs", "ops"],
+    "work_types": ["implementation", "cleanup", "hardening", "maintenance", "qa"],
+    "surfaces": ["client", "admin", "shared", "docs", "tooling"],
     "depends_on_features": []
   },
   "lanes": {
