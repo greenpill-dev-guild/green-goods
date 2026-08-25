@@ -205,12 +205,6 @@ list above binds the lane before it can turn GREEN.)
 by tier, defect counts by severity, external blockers. Full reports live in
 `../reports/qa-functional-wave-1-<date>.md`.)
 
-## Experience audit runs
-
-(Append-only. Each dispatched experience audit adds a dated summary block here: finding counts
-by severity, the three highest-leverage changes, capture counts. Full reports live in
-`../reports/qa-experience-audit-<date>.md`.)
-
 ### 2026-08-24 — Mode A on `origin/develop@3bfc85432750faa7aad693fea7a85f59a00fa327`
 
 - The SHA above is the dispatch-pinned target. Another session fast-forwarded the shared checkout to `a5fe2c78b5f8ac66ec80ad68aa376ce882500cad` during the run; client fixture captures belong to the pinned target, while Storybook captures and a fresh passing shared/client/admin/indexer/vocabulary cross-check belong to that successor. The full report keeps those snapshots distinct.
@@ -219,3 +213,9 @@ by severity, the three highest-leverage changes, capture counts. Full reports li
 - External blockers: the concurrent fast-forward prevented a single-snapshot rendered pass; hosted Envio has no pooling schema; the local deployed-contract mirror could not be restarted because the OrbStack Docker daemon socket was absent and an unowned/nonresponsive OrbStack listener held port 3008; staging passkeys use the separate namespace; settlement authorization is paused; the Brave extension could not complete a media-file chooser; real-device PWA evidence belongs to Wave 2.
 - Authenticated Brave fixture interaction covered commitments 1001–1020, both composer directions, text-proof queueing, NotYours, confirmation/Not yet, withdrawal, claim queueing, drawer grouping, pooling-off, and en/es/pt presence. Protocol fixture 1021 and successful live admin routes were blocked by the mirror.
 - Full report: `../reports/qa-functional-wave-1-2026-08-24.md`. Evidence: `../reports/evidence/qa-wave-1/`. No fixes, Linear records, branch changes, on-chain writes, signatures, commit, or lane-status changes were made.
+
+## Experience audit runs
+
+(Append-only. Each dispatched experience audit adds a dated summary block here: finding counts
+by severity, the three highest-leverage changes, capture counts. Full reports live in
+`../reports/qa-experience-audit-<date>.md`.)
