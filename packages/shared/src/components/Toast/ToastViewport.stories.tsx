@@ -81,7 +81,7 @@ export const Interactive: Story = {
   render: () => <ToastTrigger />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const successBtn = canvas.getByText("Success");
+    const successBtn = canvas.getByRole("button", { name: "Success" });
     await userEvent.click(successBtn);
     await expect(successBtn).toBeVisible();
   },
