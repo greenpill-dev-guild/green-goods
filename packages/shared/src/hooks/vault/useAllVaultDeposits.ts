@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getAllVaultDeposits } from "../../modules/data/vaults";
 import type { VaultDeposit } from "../../types/vaults";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { vaultsKeys } from "../../config/query-keys/vault";
 
 /** Stable empty array to avoid referential instability in downstream hooks. */
 const EMPTY_DEPOSITS: VaultDeposit[] = [];
@@ -21,7 +22,7 @@ export function useAllVaultDeposits(options: UseAllVaultDepositsOptions = {}) {
   const enabled = options.enabled ?? true;
 
   const query = useQuery({
-    queryKey: queryKeys.vaults.allDeposits(chainId),
+    queryKey: vaultsKeys.allDeposits(chainId),
     queryFn: () => getAllVaultDeposits(chainId),
     enabled,
     staleTime: STALE_TIME_MEDIUM,

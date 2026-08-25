@@ -1,4 +1,5 @@
-import { type Action, type WorkFormData, type WorkInput } from "@green-goods/shared";
+import type { Action, WorkInput } from "@green-goods/shared/types/domain";
+import type { WorkFormData } from "@green-goods/shared/hooks/work/useWorkForm";
 import { RiFileFill, RiMapPinLine } from "@remixicon/react";
 import React, { useCallback, useState } from "react";
 import type { Control, Path, UseFormRegister, UseFormSetValue } from "react-hook-form";

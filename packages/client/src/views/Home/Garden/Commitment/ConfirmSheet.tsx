@@ -1,15 +1,15 @@
+import type { Address } from "@green-goods/shared/types/domain";
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { DialogShell } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import {
-  type Address,
-  AddressDisplay,
-  Alert,
   type CommitmentContributorRecord,
   type CommitmentReadModel,
   type CommitmentRequirementRecord,
-  DialogShell,
   useCommitmentNotYetDraft,
   type EvidenceAttributionRow,
   useCommitmentEvidence,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import {
   RiCheckboxCircleFill,
   RiCheckLine,
@@ -24,10 +24,10 @@ import { EvidencePreview } from "./EvidencePreview";
 
 import { ConfirmNotYet } from "./ConfirmNotYet";
 import { Meter, Provenance } from "./ConfirmOutcome";
-import { selectConfirmCast } from "./confirm-cast";
+import { selectConfirmCast } from "./confirmCast";
 
 export { Provenance } from "./ConfirmOutcome";
-export { type ConfirmCast, selectConfirmCast } from "./confirm-cast";
+export { type ConfirmCast, selectConfirmCast } from "./confirmCast";
 
 /** Where the sheet stands, from the record and the queue rather than a local flag. */
 export type ConfirmPhase = "ask" | "pending" | "confirmed";

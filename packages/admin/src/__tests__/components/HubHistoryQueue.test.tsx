@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { type ActivityEvent } from "@green-goods/shared";
+import type { ActivityEvent } from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
 import enMessages from "@green-goods/shared/i18n/en.json";
 import ptMessages from "@green-goods/shared/i18n/pt.json";
 import { fireEvent, render, screen } from "@testing-library/react";

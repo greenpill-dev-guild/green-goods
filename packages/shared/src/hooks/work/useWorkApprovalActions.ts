@@ -20,10 +20,10 @@ import {
 } from "../../types/domain";
 import type { ApprovalJobPayload } from "../../types/job-queue";
 import { toastService } from "../../components/toast";
-import { useJobQueueEvents } from "../../modules/job-queue";
+import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import { useTimeout } from "../utils/useTimeout";
 import { useWorkApproval } from "./useWorkApproval";
-import { queryKeys } from "../../config/query-keys";
+import { workApprovalsKeys, worksKeys } from "../../config/query-keys/work";
 
 export interface UseWorkApprovalActionsParams {
   work: Work | undefined;
@@ -169,10 +169,10 @@ export function useWorkApprovalActions({
         });
       }
 
-      queryClient.invalidateQueries({ queryKey: queryKeys.workApprovals.all });
+      queryClient.invalidateQueries({ queryKey: workApprovalsKeys.all });
       if (gardenId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.online(gardenId, chainId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.merged(gardenId, chainId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.online(gardenId, chainId) });
       }
     },
     [work?.id, gardenId]

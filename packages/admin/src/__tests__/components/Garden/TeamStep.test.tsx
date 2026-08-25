@@ -2,7 +2,9 @@
  * @vitest-environment jsdom
  */
 
-import { en as enMessages, type Address } from "@green-goods/shared";
+import { default as enMessages } from "@green-goods/shared/i18n/en.json";
+import { resetCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
+import type { Address } from "@green-goods/shared/types/domain";
 import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,28 +14,28 @@ const { mockUseAddressInput, mockUseEnsName } = vi.hoisted(() => ({
   mockUseEnsName: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: (address: Address | null | undefined) => mockUseEnsName(address),
+}));
 
-  return {
-    ...actual,
-    formatAddress: (
-      address: string,
-      options: { ensName?: string | null; variant?: "default" | "card" | "long" } = {}
-    ) => {
-      const ensName = options.ensName?.trim();
-      if (ensName?.toLowerCase().endsWith(".greengoods.eth")) {
-        return ensName.slice(0, -".greengoods.eth".length);
-      }
-      if (ensName) return ensName;
-      return address;
-    },
-    useAddressInput: mockUseAddressInput,
-    useEnsName: (address: Address | null | undefined) => mockUseEnsName(address),
-  };
-});
+vi.mock("@green-goods/shared/hooks/utils/useAddressInput", () => ({
+  useAddressInput: mockUseAddressInput,
+}));
 
-import { resetCreateGardenStore } from "@green-goods/shared";
+vi.mock("@green-goods/shared/utils/app/text", () => ({
+  formatAddress: (
+    address: string,
+    options: { ensName?: string | null; variant?: "default" | "card" | "long" } = {}
+  ) => {
+    const ensName = options.ensName?.trim();
+    if (ensName?.toLowerCase().endsWith(".greengoods.eth")) {
+      return ensName.slice(0, -".greengoods.eth".length);
+    }
+    if (ensName) return ensName;
+    return address;
+  },
+}));
+
 import { TeamStep } from "../../../components/Garden/CreateGardenSteps/TeamStep";
 
 describe("components/Garden/CreateGardenSteps/TeamStep", () => {

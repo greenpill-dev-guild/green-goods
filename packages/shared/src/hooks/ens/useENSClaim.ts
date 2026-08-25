@@ -13,9 +13,9 @@ import { type Address, decodeEventLog, encodeFunctionData, type Hex, zeroAddress
 import { useAccount, useWalletClient } from "wagmi";
 
 import { toastService } from "../../components/toast";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getChain } from "../../config/chains";
-import { queryKeys } from "../../config/query-keys";
+import { ensKeys } from "../../config/query-keys/identity";
 import { logger } from "../../modules/app/logger";
 import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import {
@@ -187,12 +187,12 @@ export function useENSClaim() {
     },
     onSuccess: (data) => {
       // Seed registration status query with initial "pending" data
-      queryClient.setQueryData(queryKeys.ens.registrationStatus(data.slug), {
+      queryClient.setQueryData(ensKeys.registrationStatus(data.slug), {
         status: "pending" as const,
         ccipMessageId: data.ccipMessageId,
         submittedAt: data.submittedAt,
       });
-      queryClient.invalidateQueries({ queryKey: queryKeys.ens.all });
+      queryClient.invalidateQueries({ queryKey: ensKeys.all });
 
       toastService.success({
         title: "Name registration started",

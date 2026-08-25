@@ -1,18 +1,23 @@
 import {
-  ACTION_CREATE_CONTENT_ID,
   ACTION_CREATE_DRAFT_PATH,
-  defaultTemplate,
-  Domain,
-  getActionsListSearch,
-  canManageActionsForRole,
-  resolveActionsRouteState,
   restoreCreateActionDraft,
   restoreEditActionDraft,
   serializeCreateActionDraft,
   serializeEditActionDraft,
+} from "@green-goods/shared/hooks/admin-ui/actions/actionDrafts";
+import { getActionsListSearch } from "@green-goods/shared/hooks/admin-ui/actions/actions.utils";
+import {
+  deriveActionDetailModel,
+  resolveActionsRouteState,
+} from "@green-goods/shared/hooks/admin-ui/actions/actions.workspaceModel";
+import { canManageActionsForRole } from "@green-goods/shared/hooks/admin-ui/actions/useActionsController";
+import {
+  ACTION_CREATE_CONTENT_ID,
   toActionDetailContentId,
   toActionEditContentId,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/admin-ui/navigation/sheetRegistry";
+import { type Action, Domain } from "@green-goods/shared/types/domain";
+import { defaultTemplate } from "@green-goods/shared/utils/action/templates";
 import { describe, expect, it } from "vitest";
 
 describe("actions workspace model", () => {
@@ -108,5 +113,27 @@ describe("actions workspace model", () => {
     expect(canManageActionsForRole("deployer")).toBe(true);
     expect(canManageActionsForRole("steward")).toBe(false);
     expect(canManageActionsForRole("user")).toBe(false);
+  });
+
+  it("derives one localized lifecycle model for action detail surfaces", () => {
+    const action: Action = {
+      id: "42161-0xaction",
+      slug: "solar.audit",
+      startTime: Date.now() - 60_000,
+      endTime: Date.now() + 60_000,
+      title: "Solar audit",
+      description: "Document the system",
+      inputs: [],
+      capitals: [],
+      media: [],
+      domain: Domain.SOLAR,
+      createdAt: Date.now() - 120_000,
+    };
+
+    expect(deriveActionDetailModel(action, "en")).toMatchObject({
+      displayAction: { id: action.id, title: "Solar audit" },
+      lifecycle: "active",
+      lifecycleVariant: "success",
+    });
   });
 });

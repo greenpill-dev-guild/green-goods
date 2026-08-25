@@ -10,6 +10,13 @@ import {
 import type { CreateGardenParams } from "../types/contracts";
 import { type Address, Domain } from "../types/domain";
 import { WeightScheme } from "../types/gardens-community";
+import {
+  addGardenMemberTransition,
+  moveGardenStepTransition,
+  removeGardenMemberTransition,
+  resetGardenTransition,
+  setGardenFieldTransition,
+} from "./transitions/create-garden";
 
 // Storage key for garden creation flow persistence
 const CREATE_GARDEN_STORAGE_KEY = "green-goods:create-garden";
@@ -104,13 +111,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
       form: createEmptyGardenForm(),
       steps: defaultSteps,
       currentStep: 0,
-      setField: (field, value) =>
-        set((state) => ({
-          form: {
-            ...state.form,
-            [field]: value,
-          },
-        })),
+      setField: (field, value) => set((state) => setGardenFieldTransition(state, { field, value })),
       addGardener: (address) => {
         const sanitized = sanitizeAddress(address);
         if (!isValidAddress(sanitized)) {
@@ -125,22 +126,14 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           return { success: false, error: "Address already added as gardener" };
         }
 
-        set((state) => ({
-          form: {
-            ...state.form,
-            gardeners: [...state.form.gardeners, validAddress],
-          },
-        }));
+        set((state) =>
+          addGardenMemberTransition(state, { role: "gardeners", address: validAddress })
+        );
 
         return { success: true };
       },
       removeGardener: (index) =>
-        set((state) => ({
-          form: {
-            ...state.form,
-            gardeners: state.form.gardeners.filter((_, i) => i !== index),
-          },
-        })),
+        set((state) => removeGardenMemberTransition(state, { role: "gardeners", index })),
       addSteward: (address) => {
         const sanitized = sanitizeAddress(address);
         if (!isValidAddress(sanitized)) {
@@ -155,48 +148,29 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           return { success: false, error: "Address already added as operator" };
         }
 
-        set((state) => ({
-          form: {
-            ...state.form,
-            stewards: [...state.form.stewards, validAddress],
-          },
-        }));
+        set((state) =>
+          addGardenMemberTransition(state, { role: "stewards", address: validAddress })
+        );
 
         return { success: true };
       },
       removeSteward: (index) =>
-        set((state) => ({
-          form: {
-            ...state.form,
-            stewards: state.form.stewards.filter((_, i) => i !== index),
-          },
-        })),
-      nextStep: () =>
-        set((state) => ({
-          currentStep: Math.min(state.currentStep + 1, state.steps.length - 1),
-        })),
-      previousStep: () =>
-        set((state) => ({
-          currentStep: Math.max(state.currentStep - 1, 0),
-        })),
-      goToStep: (index) =>
-        set((state) => ({
-          currentStep: Math.min(Math.max(index, 0), state.steps.length - 1),
-        })),
+        set((state) => removeGardenMemberTransition(state, { role: "stewards", index })),
+      nextStep: () => set((state) => moveGardenStepTransition(state, { direction: 1 })),
+      previousStep: () => set((state) => moveGardenStepTransition(state, { direction: -1 })),
+      goToStep: (index) => set((state) => moveGardenStepTransition(state, { index })),
       goToReview: () =>
-        set((state) => ({
-          currentStep: state.steps.length - 1,
-        })),
+        set((state) => moveGardenStepTransition(state, { index: state.steps.length - 1 })),
       goToFirstIncompleteStep: () => {
         const { steps } = get();
         for (let i = 0; i < steps.length - 1; i++) {
           const step = steps[i];
           if (!get().isStepValid(step.id)) {
-            set({ currentStep: i });
+            set((state) => moveGardenStepTransition(state, { index: i }));
             return;
           }
         }
-        set({ currentStep: steps.length - 2 });
+        set((state) => moveGardenStepTransition(state, { index: steps.length - 2 }));
       },
       isStepValid: (stepId) => {
         if (stepId === "review") return true;
@@ -217,11 +191,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
         const { steps } = get();
         return steps.slice(0, steps.length - 1).every((step) => get().isStepValid(step.id));
       },
-      reset: () =>
-        set({
-          form: createEmptyGardenForm(),
-          currentStep: 0,
-        }),
+      reset: () => set((state) => resetGardenTransition(state, createEmptyGardenForm())),
       getParams: () => {
         const { form } = get();
         if (!get().isReviewReady()) {

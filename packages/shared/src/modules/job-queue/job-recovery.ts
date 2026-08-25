@@ -9,8 +9,7 @@
  */
 
 import type { Job } from "../../types/job-queue";
-import { jobQueueDB } from "./db";
-import { jobQueueEventBus } from "./event-bus";
+import type { JobQueueEvents, JobQueueStore } from "./ports";
 
 /**
  * Whether a job may be thrown away.
@@ -36,33 +35,32 @@ export function isDiscardableJob(job: Pick<Job, "synced" | "meta">): boolean {
  * failure terminates the job immediately, so Retry would grant no real window
  * after the outage it exists to recover from.
  */
-export async function retryQueuedJob(jobId: string): Promise<void> {
-  const job = await jobQueueDB.getJob(jobId);
-  if (!job || job.synced) return;
-  const { lastError: _lastError, ...rest } = job;
-  const {
-    metadataAttempts: _metadataAttempts,
-    evidenceAttempts: _evidenceAttempts,
-    waitingReason: _waitingReason,
-    ...meta
-  } = job.meta ?? {};
-  const retried = { ...rest, attempts: 0, meta: { ...meta, waitingForDependency: false } };
-  await jobQueueDB.updateJob(retried);
-  jobQueueEventBus.emit("job:added", { jobId, job: retried });
-}
+export function createJobRecovery(
+  store: Pick<JobQueueStore, "getJob" | "updateJob" | "deleteJob">,
+  events: Pick<JobQueueEvents, "emit">
+) {
+  return {
+    async retryJob(jobId: string): Promise<void> {
+      const job = await store.getJob(jobId);
+      if (!job || job.synced) return;
+      const { lastError: _lastError, ...rest } = job;
+      const {
+        metadataAttempts: _metadataAttempts,
+        evidenceAttempts: _evidenceAttempts,
+        waitingReason: _waitingReason,
+        ...meta
+      } = job.meta ?? {};
+      const retried = { ...rest, attempts: 0, meta: { ...meta, waitingForDependency: false } };
+      await store.updateJob(retried);
+      events.emit("job:added", { jobId, job: retried });
+    },
 
-/**
- * Remove a job that never reached the chain, after an explicit choice. Only
- * the local record goes; nothing remote exists yet.
- *
- * Returns false without deleting anything when the job may already be on
- * chain, so a caller that offered the choice too eagerly cannot destroy the
- * receipt.
- */
-export async function discardQueuedJob(jobId: string): Promise<boolean> {
-  const job = await jobQueueDB.getJob(jobId);
-  if (!job || !isDiscardableJob(job)) return false;
-  await jobQueueDB.deleteJob(jobId);
-  jobQueueEventBus.emit("job:failed", { jobId, job, error: "discarded" });
-  return true;
+    async discardJob(jobId: string): Promise<boolean> {
+      const job = await store.getJob(jobId);
+      if (!job || !isDiscardableJob(job)) return false;
+      await store.deleteJob(jobId);
+      events.emit("job:failed", { jobId, job, error: "discarded" });
+      return true;
+    },
+  };
 }

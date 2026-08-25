@@ -1,4 +1,5 @@
 import type { Address } from "../../types/domain";
+import { greenGoodsIndexer, type GraphQLReader } from "../data/graphql-client";
 import type { CommitmentEventRecord, PoolMemberHistory } from "./types";
 import {
   EVENT_FIELDS,
@@ -14,11 +15,14 @@ import {
 export async function getPoolMemberHistory(
   chainId: number,
   poolId: bigint,
-  accountValue: Address
+  accountValue: Address,
+  reader: GraphQLReader = greenGoodsIndexer
 ): Promise<PoolMemberHistory | null> {
   const id = `${chainId}-${poolId}-${accountValue.toLowerCase()}`;
   const query = `query PoolMemberHistory($id: String!) { PoolMemberHistory(where: { id: { _eq: $id } }, limit: 1) { id chainId poolId account leadAccepted leadFulfilled leadCancelled leadExpired contributorFulfilled receivedFulfilled confirmationsGiven disputesRaised updatedAt } }`;
-  const row = (await queryRows(query, { id }, "PoolMemberHistory", "getPoolMemberHistory"))[0];
+  const row = (
+    await queryRows(query, { id }, "PoolMemberHistory", "getPoolMemberHistory", reader)
+  )[0];
   return row
     ? {
         id: String(row.id),
@@ -38,14 +42,17 @@ export async function getPoolMemberHistory(
     : null;
 }
 
-export async function getCommitmentActivity(input: {
-  chainId: number;
-  poolId?: bigint;
-  cycleId?: bigint;
-  commitmentId?: bigint;
-  limit?: number;
-  offset?: number;
-}): Promise<CommitmentEventRecord[]> {
+export async function getCommitmentActivity(
+  input: {
+    chainId: number;
+    poolId?: bigint;
+    cycleId?: bigint;
+    commitmentId?: bigint;
+    limit?: number;
+    offset?: number;
+  },
+  reader: GraphQLReader = greenGoodsIndexer
+): Promise<CommitmentEventRecord[]> {
   const declarations = ["$chainId: Int!", "$limit: Int!", "$offset: Int!"];
   const clauses = ["chainId: { _eq: $chainId }"];
   const variables: Record<string, unknown> = {
@@ -65,7 +72,9 @@ export async function getCommitmentActivity(input: {
     }
   }
   const query = `query CommitmentActivity(${declarations.join(", ")}) { CommitmentEvent(where: { ${clauses.join(", ")} }, order_by: [{ timestamp: desc }, { id: desc }], limit: $limit, offset: $offset) { ${EVENT_FIELDS} } }`;
-  return (await queryRows(query, variables, "CommitmentEvent", "getCommitmentActivity")).map(
+  return (
+    await queryRows(query, variables, "CommitmentEvent", "getCommitmentActivity", reader)
+  ).map(
     (row): CommitmentEventRecord => ({
       id: String(row.id),
       chainId: number(row.chainId),

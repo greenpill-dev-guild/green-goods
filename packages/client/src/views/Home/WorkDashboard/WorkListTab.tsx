@@ -1,4 +1,4 @@
-import type { Work } from "@green-goods/shared";
+import type { Work } from "@green-goods/shared/types/domain";
 import { RiErrorWarningLine, RiRefreshLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";

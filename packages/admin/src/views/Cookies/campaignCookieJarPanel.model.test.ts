@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Address, Garden } from "@green-goods/shared";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
 import {
   buildCampaignCookieJarCreatePayload,
   canCreateCampaignCookieJar,

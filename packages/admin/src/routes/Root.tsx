@@ -1,4 +1,7 @@
-import { ToastViewport, useAnalyticsIdentity, useApp, usePageView } from "@green-goods/shared";
+import { ToastViewport } from "@green-goods/shared/components/Toast/ToastViewport";
+import { useAnalyticsIdentity } from "@green-goods/shared/hooks/analytics/useAnalyticsIdentity";
+import { usePageView } from "@green-goods/shared/hooks/analytics/usePageView";
+import { useApp } from "@green-goods/shared/providers/App";
 import { Outlet } from "react-router-dom";
 
 /**

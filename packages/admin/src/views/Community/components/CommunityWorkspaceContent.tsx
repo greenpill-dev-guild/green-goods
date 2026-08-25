@@ -1,12 +1,6 @@
-import { type Address, type useCommunityWorkspaceController } from "@green-goods/shared";
-import {
-  RiCheckboxCircleLine,
-  RiGroupLine,
-  RiMoneyDollarCircleLine,
-  RiSeedlingLine,
-  RiShieldCheckLine,
-  RiUserLine,
-} from "@remixicon/react";
+import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
+import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
+import type { Address } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 import {
   CanvasRouteErrorState,
@@ -14,10 +8,14 @@ import {
   CanvasWorkspaceSelectionGate,
 } from "@/components/Layout/CanvasRouteState";
 import { CommunityPools } from "./CommunityPools";
-import { CommunityTab } from "./CommunityTab";
+import { CommunityCoordinationTab } from "./CommunityCoordinationTab";
+import { CommunityEndowmentTab } from "./CommunityEndowmentTab";
+import { CommunityMembersTab } from "./CommunityMembersTab";
+import { CommunityPayoutsTab } from "./CommunityPayoutsTab";
+import { CommunityTabSkeleton } from "./CommunityTabSkeleton";
 
 interface CommunityWorkspaceContentProps {
-  workspace: ReturnType<typeof useCommunityWorkspaceController>;
+  workspace: CommunityWorkspace;
 }
 
 export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceContentProps) {
@@ -68,44 +66,63 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
     );
   }
 
-  return (
-    <div className="mt-4 min-h-0 flex-1">
-      <CommunityTab
-        mode={workspace.mode}
-        garden={{ id: workspace.garden.id, name: workspace.garden.name }}
+  const isLoading =
+    workspace.mode === "members" || workspace.mode === "coordination"
+      ? workspace.communityLoading
+      : workspace.mode === "endowment"
+        ? workspace.vaultsLoading
+        : workspace.allocationsLoading;
+
+  if (isLoading) {
+    return (
+      <div className="mt-4 min-h-0 flex-1">
+        <CommunityTabSkeleton mode={workspace.mode} />
+      </div>
+    );
+  }
+
+  const tab =
+    workspace.mode === "members" ? (
+      <CommunityMembersTab
+        garden={workspace.garden}
+        canManage={workspace.canManage}
+        closeMembersModal={workspace.closeMembersModal}
+        memberSearch={workspace.memberSearch}
+        roleMembers={workspace.roleMembers}
+        roleSummary={workspace.roleSummary}
+        scheduleBackgroundRefetch={workspace.scheduleBackgroundRefetch}
+        selectedItem={workspace.selectedItem}
+        setMemberSearch={workspace.setMemberSearch}
+        visibleDirectory={workspace.visibleDirectory}
+      />
+    ) : workspace.mode === "coordination" ? (
+      <CommunityCoordinationTab
+        garden={workspace.garden}
         gardenId={workspace.gardenId}
         canManage={workspace.canManage}
-        section={workspace.section}
-        selectedItem={workspace.selectedItem}
-        showSectionStateCard={false}
-        clearSection={workspace.clearSection}
-        closeMembersModal={workspace.closeMembersModal}
         community={workspace.community}
-        communityLoading={workspace.communityLoading}
         pools={workspace.pools}
         createPools={workspace.createPools}
         isCreatingPools={workspace.isCreatingPools}
-        vaultsLoading={workspace.vaultsLoading}
-        hasVaults={workspace.derived.hasVaults}
-        vaultNetDeposited={workspace.vaultNetDeposited}
-        treasurySeverity={workspace.derived.treasurySeverity}
-        allocations={workspace.allocations}
-        allocationsLoading={workspace.allocationsLoading}
-        roleSummary={workspace.derived.roleSummary}
-        roleMembers={workspace.roleMembers}
-        visibleDirectory={workspace.visibleDirectory}
-        memberSearch={workspace.memberSearch}
-        setMemberSearch={workspace.setMemberSearch}
-        roleIcons={{
-          owner: RiShieldCheckLine,
-          steward: RiUserLine,
-          evaluator: RiCheckboxCircleLine,
-          gardener: RiSeedlingLine,
-          funder: RiMoneyDollarCircleLine,
-          community: RiGroupLine,
-        }}
-        scheduleBackgroundRefetch={workspace.scheduleBackgroundRefetch}
       />
+    ) : workspace.mode === "endowment" ? (
+      <CommunityEndowmentTab
+        garden={workspace.garden}
+        hasVaults={workspace.hasVaults}
+        treasurySeverity={workspace.treasurySeverity}
+        vaultNetDeposited={workspace.vaultNetDeposited}
+      />
+    ) : (
+      <CommunityPayoutsTab
+        garden={workspace.garden}
+        allocations={workspace.allocations}
+        selectedItem={workspace.selectedItem}
+      />
+    );
+
+  return (
+    <div className="mt-4 min-h-0 flex-1">
+      <ErrorBoundary context="GardenDetail.CommunityIA">{tab}</ErrorBoundary>
     </div>
   );
 }

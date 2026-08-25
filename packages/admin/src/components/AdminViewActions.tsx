@@ -1,4 +1,4 @@
-import type { ViewAction } from "@green-goods/shared";
+import type { ViewAction } from "@green-goods/shared/components/Canvas/viewActions.types";
 import { useIntl } from "react-intl";
 import { AdminButton } from "./AdminButton";
 

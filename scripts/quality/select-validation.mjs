@@ -9,6 +9,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDirectory, "../..");
 const defaultPolicyPath = resolve(projectRoot, "scripts/data/validation-policy.json");
+const GIT_OUTPUT_MAX_BUFFER = 16 * 1024 * 1024;
 
 export function loadPolicy(policyPath = defaultPolicyPath) {
   const policy = JSON.parse(readFileSync(policyPath, "utf8"));
@@ -41,6 +42,21 @@ function validatePolicy(policy) {
   for (const rule of [...(policy.conditionalRules ?? []), ...(policy.criticalOverrides ?? [])]) {
     for (const id of rule.checks ?? [rule.check]) {
       if (!ids.has(id)) throw new Error(`Validation rule references unknown check ${id}`);
+    }
+    if (rule.intents !== undefined) {
+      if (!Array.isArray(rule.intents) || rule.intents.length === 0) {
+        throw new Error("Validation rule intents must be a non-empty array");
+      }
+      for (const intent of rule.intents) {
+        if (!policy.intentOrder.includes(intent)) {
+          throw new Error(`Validation rule references unknown intent ${intent}`);
+        }
+      }
+    }
+    for (const flag of ["runInQa", "runInEvidence"]) {
+      if (rule[flag] !== undefined && typeof rule[flag] !== "boolean") {
+        throw new Error(`Validation rule ${flag} must be boolean`);
+      }
     }
   }
 }
@@ -459,7 +475,15 @@ export function selectValidation(input = {}, options = {}) {
       if (surfaces.has(surface)) select(id, `strict-intent:${surface}:test-types`);
     }
   }
-  for (const rule of evidenceOnly ? [] : (policy.conditionalRules ?? [])) {
+  if (
+    !evidenceOnly &&
+    changedPaths.some((path) => path.startsWith("packages/client/src/"))
+  ) {
+    select("staged-modules", "client:staged-boundary");
+  }
+  for (const rule of policy.conditionalRules ?? []) {
+    if (evidenceOnly && rule.runInEvidence !== true) continue;
+    if (rule.intents && !rule.intents.includes(intent)) continue;
     const matchingPaths = changedPaths.filter((path) => {
       if (!groupMatches(path, rule)) return false;
       if (rule.exact?.includes(path)) return true;
@@ -474,7 +498,13 @@ export function selectValidation(input = {}, options = {}) {
       return true;
     });
     if (matchingPaths.length === 0) continue;
-    if (intent === "qa" && !["browser-proof", "ontology"].includes(rule.check)) continue;
+    if (
+      intent === "qa" &&
+      rule.runInQa !== true &&
+      !["browser-proof", "ontology"].includes(rule.check)
+    ) {
+      continue;
+    }
     select(rule.check, `conditional:${rule.check}`);
   }
 
@@ -498,6 +528,7 @@ export function selectValidation(input = {}, options = {}) {
           intent,
           ci,
           changedPaths,
+          deletedPaths,
           checkpointScope: checkpointScope.effective,
         }),
         selectedBy: [...(selectionReasons.get(check.id) ?? [])],
@@ -593,6 +624,10 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
   }
   const laneCheckpoint =
     context.intent === "checkpoint" && context.checkpointScope === "lane";
+  const deletedPaths = new Set(context.deletedPaths ?? []);
+  const existingChangedPaths = context.changedPaths.filter(
+    (path) => !deletedPaths.has(path),
+  );
   if (
     check.id === "format" &&
     !context.ci &&
@@ -608,7 +643,10 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
     // Biome exits non-zero when every supplied path is one it does not handle,
     // which a Markdown-only or Solidity-only change always is. Without this the
     // scoped format check fails and fail-fast stops the rest of the plan.
-    command = `bunx @biomejs/biome format --no-errors-on-unmatched ${context.changedPaths.map(shellQuote).join(" ")}`;
+    command =
+      existingChangedPaths.length > 0
+        ? `bunx @biomejs/biome format --no-errors-on-unmatched ${existingChangedPaths.map(shellQuote).join(" ")}`
+        : `node -e "console.log('format: no existing changed paths')"`;
   }
   if (check.id === "lint" && (context.intent === "qa" || laneCheckpoint)) {
     const lintablePrefixes = [
@@ -619,7 +657,7 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
       "packages/agent/src/",
       "packages/contracts/script/",
     ];
-    const sourcePaths = context.changedPaths.filter((path) =>
+    const sourcePaths = existingChangedPaths.filter((path) =>
       [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"].some(
         (extension) => path.endsWith(extension),
       ) &&
@@ -629,7 +667,9 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
     command =
       sourcePaths.length > 0
         ? `bun --bun run oxlint ${sourcePaths.map(shellQuote).join(" ")} --deny-warnings`
-        : `bunx @biomejs/biome lint --no-errors-on-unmatched ${context.changedPaths.map(shellQuote).join(" ")}`;
+        : existingChangedPaths.length > 0
+          ? `bunx @biomejs/biome lint --no-errors-on-unmatched ${existingChangedPaths.map(shellQuote).join(" ")}`
+          : `node -e "console.log('lint: no existing changed paths')"`;
   }
   let budgetSeconds = focusedPaths.length > 0 ? Math.min(check.budgetSeconds, 60) : check.budgetSeconds;
   if (
@@ -834,11 +874,15 @@ export function parseCliArgs(argv) {
 }
 
 function gitOutput(args, cwd = projectRoot) {
-  return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+  return execFileSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    maxBuffer: GIT_OUTPUT_MAX_BUFFER,
+  }).trim();
 }
 
 function gitRawOutput(args, cwd = projectRoot) {
-  return execFileSync("git", args, { cwd });
+  return execFileSync("git", args, { cwd, maxBuffer: GIT_OUTPUT_MAX_BUFFER });
 }
 
 function lines(value) {

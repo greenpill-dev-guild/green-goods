@@ -17,9 +17,10 @@ import { type Hex, isAddress } from "viem";
 import { useWalletClient } from "wagmi";
 
 import { toastService } from "../../components/toast";
-import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { createPublicClientForChain } from "../../config/pimlico";
 import { TOTAL_UNITS, validateAllowlist as validateAllowlistEntries } from "../../lib/hypercerts";
-import { getIpfsInitStatus } from "../../modules";
+import { getIpfsInitStatus } from "../../modules/data/ipfs/client";
 import { logger } from "../../modules/app/logger";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { useHypercertWizardStore } from "../../stores/useHypercertWizardStore";

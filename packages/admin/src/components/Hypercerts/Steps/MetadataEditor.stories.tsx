@@ -3,8 +3,8 @@ import {
   CynefinPhase,
   Domain,
   type GardenAssessment,
-  type HypercertDraft,
-} from "@green-goods/shared";
+} from "@green-goods/shared/types/domain";
+import type { HypercertDraft } from "@green-goods/shared/types/hypercerts";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { MetadataEditor } from "./MetadataEditor";

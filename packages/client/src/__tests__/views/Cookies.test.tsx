@@ -62,11 +62,14 @@ vi.mock("wagmi", () => ({
   useBalance: () => ({ data: { formatted: "42", symbol: "GOOD" } }),
 }));
 
-vi.mock("@green-goods/shared", async () => {
-  const React = await vi.importActual<typeof import("react")>("react");
-
+vi.mock("@green-goods/shared/components/Alert", async () => {
   return {
     Alert: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  };
+});
+
+vi.mock("@green-goods/shared/components/Button", async () => {
+  return {
     Button: ({
       children,
       loading: _loading,
@@ -76,47 +79,98 @@ vi.mock("@green-goods/shared", async () => {
         {children}
       </button>
     ),
-    classifyTxError: (error: Error | null) => ({
-      severity: "error",
-      rawMessage: error?.message ?? "",
-      messageKey: "app.transaction.error.generic",
-      titleKey: "app.transaction.error.title",
-    }),
-    cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
-    formatTokenAmount: (value: bigint, decimals = 18) => String(Number(value) / 10 ** decimals),
+  };
+});
+
+vi.mock("@green-goods/shared/utils/errors/tx-error-classifier", () => ({
+  classifyTxError: (error: Error | null) => ({
+    severity: "error",
+    rawMessage: error?.message ?? "",
+    messageKey: "app.transaction.error.generic",
+    titleKey: "app.transaction.error.title",
+  }),
+  isMeaningfulTxErrorMessage: (message?: string) => Boolean(message),
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/vaults", () => ({
+  formatTokenAmount: (value: bigint, decimals = 18) => String(Number(value) / 10 ** decimals),
+}));
+
+vi.mock("@green-goods/shared/components/Display/ImageWithFallback", async () => {
+  return {
     ImageWithFallback: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} />,
-    isMeaningfulTxErrorMessage: (message?: string) => Boolean(message),
-    resolveIPFSUrl: (url: string) => url,
-    truncateAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
-    TxInlineFeedback: ({
-      visible,
-      title,
-      message,
-    }: {
-      visible: boolean;
-      title: string;
-      message: string;
-    }) => (visible ? <div role="alert">{`${title}: ${message}`}</div> : null),
+  };
+});
+
+vi.mock("@green-goods/shared/modules/data/ipfs/resolve", () => ({
+  resolveIPFSUrl: (url: string) => url,
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/address", () => ({
+  truncateAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
+}));
+
+vi.mock("@green-goods/shared/components/feedback/TxInlineFeedback", () => ({
+  TxInlineFeedback: ({
+    visible,
+    title,
+    message,
+  }: {
+    visible: boolean;
+    title: string;
+    message: string;
+  }) => (visible ? <div role="alert">{`${title}: ${message}`}</div> : null),
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useInViewReveal", async () => {
+  const React = await vi.importActual<typeof import("react")>("react");
+  return {
     useInViewReveal: () => ({ ref: React.createRef<HTMLElement>(), revealed: true }),
-    useAppKit: () => ({ open: mockOpenWallet }),
-    useAuth: () => ({ loginWithWallet: mockLoginWithWallet }),
-    useCampaignCookieJar: (jarAddress: string) => mockUseCampaignCookieJar(jarAddress),
-    useCampaignCookieJarCampaigns: () => mockUseCampaignCookieJarCampaigns(),
-    useCampaignCookieJarDeposit: () => ({
-      mutate: mockDepositMutate,
-      isPending: false,
-      error: depositError,
-      reset: mockDepositReset,
-    }),
-    useCampaignCookieJarWithdraw: () => ({
-      mutate: mockClaimMutate,
-      isPending: false,
-      error: claimError,
-      reset: mockClaimReset,
-    }),
-    usePublicGardens: () => mockUsePublicGardens(),
-    useUser: () => mockUseUser(),
-    validateDecimalInput: () => null,
+  };
+});
+
+vi.mock("@green-goods/shared/providers/AppKitProvider", () => ({
+  useAppKit: () => ({ open: mockOpenWallet }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuth: () => ({ loginWithWallet: mockLoginWithWallet }),
+}));
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar", () => ({
+  useCampaignCookieJar: (jarAddress: string) => mockUseCampaignCookieJar(jarAddress),
+  useCampaignCookieJarDeposit: () => ({
+    mutate: mockDepositMutate,
+    isPending: false,
+    error: depositError,
+    reset: mockDepositReset,
+  }),
+  useCampaignCookieJarWithdraw: () => ({
+    mutate: mockClaimMutate,
+    isPending: false,
+    error: claimError,
+    reset: mockClaimReset,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useCampaignCookieJarCampaigns", () => ({
+  useCampaignCookieJarCampaigns: () => mockUseCampaignCookieJarCampaigns(),
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicGardens", () => ({
+  usePublicGardens: () => mockUsePublicGardens(),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => mockUseUser(),
+}));
+
+vi.mock("@green-goods/shared/components/Form/FormattedAmountInput", async () => {
+  return {
     useFormattedAmountInput: (value: string) => {
       const trimmed = value.trim();
       let parsedAmount: bigint | null = null;
@@ -161,9 +215,12 @@ vi.mock("@green-goods/shared", async () => {
         {error ? <p role="alert">{error}</p> : null}
       </div>
     ),
-    TransactionSuccessAffordance: () => null,
   };
 });
+
+vi.mock("@green-goods/shared/components/feedback/TransactionSuccessAffordance", () => ({
+  TransactionSuccessAffordance: () => null,
+}));
 
 import CookiesPage from "../../views/Public/Cookies";
 

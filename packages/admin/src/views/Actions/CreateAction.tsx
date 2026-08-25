@@ -1,9 +1,7 @@
-import {
-  ErrorBoundary,
-  useCreateActionController,
-  useDirtyClose,
-  useStepFocus,
-} from "@green-goods/shared";
+import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
+import { useCreateActionController } from "@green-goods/shared/hooks/admin-ui/actions/useCreateActionController";
+import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
+import { useStepFocus } from "@green-goods/shared/hooks/utils/useStepFocus";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import {

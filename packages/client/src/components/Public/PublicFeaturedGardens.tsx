@@ -1,9 +1,9 @@
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
-  cn,
   type PublicGardenSummary,
-  useInViewReveal,
   usePublicGardens,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/public/usePublicGardens";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { publicCuration } from "@/content/publicCuration";

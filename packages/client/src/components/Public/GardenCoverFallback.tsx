@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 
 /**
  * GardenCoverFallback — themed cover used when a Garden has no `bannerImage`

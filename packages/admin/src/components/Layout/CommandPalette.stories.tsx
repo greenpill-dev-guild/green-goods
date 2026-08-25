@@ -1,4 +1,5 @@
-import { adminRoutes, cn } from "@green-goods/shared";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiArrowDownLine,
   RiArrowUpLine,

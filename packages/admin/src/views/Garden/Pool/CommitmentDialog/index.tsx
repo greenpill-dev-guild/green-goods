@@ -1,8 +1,6 @@
-import {
-  type Address,
-  type DisputeResolutionKey,
-  useCommitmentDialogController,
-} from "@green-goods/shared";
+import type { DisputeResolutionKey } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { useCommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/useCommitmentDialogController";
+import type { Address } from "@green-goods/shared/types/domain";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { CommitmentActions } from "./CommitmentActions";

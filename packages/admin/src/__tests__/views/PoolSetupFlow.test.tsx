@@ -2,18 +2,36 @@
  * @vitest-environment jsdom
  */
 
-import { type PoolConsoleController, selectPoolConsoleModel } from "@green-goods/shared";
+import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import {
+  cycleFixture,
+  poolFixture,
+} from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
+import { poolConsoleControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
+import type { PoolSetupSequenceState } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPoolSetupSequence";
+import { PoolDocumentPinError } from "@green-goods/shared/modules/commitment-pooling/pool-charter";
+import { selectPoolConsoleModel } from "@green-goods/shared/modules/commitment-pooling/pool-console";
+import type { PoolSetupStep } from "@green-goods/shared/modules/commitment-pooling/pool-setup";
+import type {
+  CommitmentCycleRecord,
+  CommitmentPoolRecord,
+} from "@green-goods/shared/modules/commitment-pooling/types-core";
+
 import { useState } from "react";
-import { createMemoryRouter, RouterProvider } from "react-router-dom";
+import { createMemoryRouter, RouterProvider, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { STEPS_BY_INTENT, type StepId } from "@/views/Garden/Pool/SetupFlow/setupFlowModel";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 
+type PoolingModule = typeof import("@green-goods/shared/commitment-pooling");
+type SetupSequence = ReturnType<PoolingModule["useCommitmentPoolSetupSequence"]>;
+
 const mocks = vi.hoisted(() => ({
-  run: vi.fn(),
-  retry: vi.fn(),
-  reset: vi.fn(),
+  run: vi.fn<SetupSequence["run"]>(),
+  retry: vi.fn<SetupSequence["retry"]>(),
+  reset: vi.fn<SetupSequence["reset"]>(),
   state: {
     status: "idle",
     steps: [],
@@ -22,30 +40,59 @@ const mocks = vi.hoisted(() => ({
     failure: null,
     error: null,
     cycleId: null,
-  } as Record<string, unknown>,
+  } as PoolSetupSequenceState,
   pinPoolCharter: vi.fn(),
   pinCycleMetadata: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
+  useMediaQuery: () => true,
+}));
+
+vi.mock(
+  "@green-goods/shared/hooks/commitment-pooling/useCommitmentPoolSetupSequence",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("@green-goods/shared/hooks/commitment-pooling/useCommitmentPoolSetupSequence")
+      >();
+    return {
+      ...actual,
+      useCommitmentPoolSetupSequence: () => ({
+        state: mocks.state,
+        run: mocks.run,
+        retry: mocks.retry,
+        reset: mocks.reset,
+      }),
+    };
+  }
+);
+
+vi.mock("@green-goods/shared/modules/commitment-pooling/cycle-metadata", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("@green-goods/shared/modules/commitment-pooling/cycle-metadata")
+    >();
   return {
     ...actual,
-    useCommitmentPoolSetupSequence: () => ({
-      state: mocks.state,
-      run: mocks.run,
-      retry: mocks.retry,
-      reset: mocks.reset,
-    }),
-    pinPoolCharter: mocks.pinPoolCharter,
     pinCycleMetadata: mocks.pinCycleMetadata,
-    useMediaQuery: () => true,
+  };
+});
+
+vi.mock("@green-goods/shared/modules/commitment-pooling/pool-charter", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("@green-goods/shared/modules/commitment-pooling/pool-charter")
+    >();
+  return {
+    ...actual,
+    pinPoolCharter: mocks.pinPoolCharter,
   };
 });
 
 const { PoolSetupFlow } = await import("@/views/Garden/Pool/SetupFlow");
 
-const BASE_POOL = {
+const BASE_POOL: CommitmentPoolRecord = poolFixture({
   id: "42161-7",
   chainId: 42161,
   poolId: 7n,
@@ -79,48 +126,45 @@ const BASE_POOL = {
   commitmentsDue: 0n,
   createdAt: 1_700_000_000,
   updatedAt: 1_700_000_100,
+});
+
+type ControllerOverrides = Omit<Partial<PoolConsoleController>, "pool" | "poolId"> & {
+  pool?: CommitmentPoolRecord | null;
+  poolId?: bigint;
 };
 
-function controller(overrides: Partial<Record<keyof PoolConsoleController, unknown>> = {}) {
-  const pool = BASE_POOL;
-  const base = {
+function controller(overrides: ControllerOverrides = {}): PoolConsoleController {
+  const pool = overrides.pool === undefined ? BASE_POOL : overrides.pool;
+  const cycles = overrides.cycles ?? [];
+  const commitments = overrides.commitments ?? [];
+  return poolConsoleControllerFixture({
     chainId: 42161,
     garden: GARDEN,
     viewer: "0x1111111111111111111111111111111111111111",
-    isOnline: true,
-    availability: { status: "available" },
     pool,
-    poolId: 7n,
-    cycles: [],
-    cycleNames: new Map(),
-    commitments: [],
-    titles: new Map(),
-    claims: [],
-    charter: { charter: null, isLoading: false, isUnavailable: false },
-    pauseReason: { reason: null, isLoading: false, isUnavailable: false },
-    pendingCreates: [],
-    queueUnavailable: false,
-    acts: {},
-    isActing: false,
-    isLoading: false,
-    isError: false,
+    poolId: pool?.poolId,
+    cycles,
+    commitments,
     refetch: vi.fn().mockResolvedValue([]),
-  };
-  const merged = { ...base, ...overrides };
-  return {
-    ...merged,
-    model: selectPoolConsoleModel({
-      pool: merged.pool as never,
-      cycles: merged.cycles as never,
-      commitments: merged.commitments as never,
-      pendingClaimCount: 0,
-      now: 1_756_000_000n,
-    }),
-  };
+    ...overrides,
+    model:
+      overrides.model ??
+      selectPoolConsoleModel({
+        pool,
+        cycles,
+        commitments,
+        pendingClaimCount: overrides.claims?.length ?? 0,
+        now: 1_756_000_000n,
+      }),
+  });
 }
 
 function renderFlow(
-  props: { intent?: "first-run" | "season" | "campaign"; console?: unknown } = {}
+  props: {
+    intent?: keyof typeof STEPS_BY_INTENT;
+    console?: PoolConsoleController;
+    cycle?: CommitmentCycleRecord;
+  } = {}
 ) {
   const onClose = vi.fn();
   const router = createMemoryRouter(
@@ -131,7 +175,8 @@ function renderFlow(
           <PoolSetupFlow
             open
             intent={props.intent ?? "first-run"}
-            console={(props.console ?? controller()) as PoolConsoleController}
+            cycle={props.cycle}
+            console={props.console ?? controller()}
             onClose={onClose}
           />
         ),
@@ -139,8 +184,32 @@ function renderFlow(
     ],
     { initialEntries: ["/garden/pool"] }
   );
+  const rendered = renderWithProviders(<RouterProvider router={router} />);
+  return { onClose, ...rendered };
+}
+
+function renderRoutedFlow() {
+  function RoutedFlow() {
+    const navigate = useNavigate();
+    return (
+      <PoolSetupFlow
+        open
+        intent="first-run"
+        console={controller()}
+        onClose={() => navigate("/hub")}
+      />
+    );
+  }
+
+  const router = createMemoryRouter(
+    [
+      { path: "/garden/pool", element: <RoutedFlow /> },
+      { path: "/hub", element: <p>Hub workspace</p> },
+    ],
+    { initialEntries: ["/garden/pool"] }
+  );
   renderWithProviders(<RouterProvider router={router} />);
-  return { onClose };
+  return router;
 }
 
 function dialog() {
@@ -157,6 +226,31 @@ async function fillHow() {
   });
   const capField = within(dialog()).getByLabelText(/how many commitments/i);
   fireEvent.change(capField, { target: { value: "24" } });
+}
+
+function assertStep(step: StepId) {
+  if (step === "how") {
+    expect(within(dialog()).getByLabelText(/what this pool is for/i)).toBeInTheDocument();
+  } else if (step === "cycle") {
+    expect(within(dialog()).getByLabelText(/^name/i)).toBeInTheDocument();
+  } else if (step === "split") {
+    expect(within(dialog()).getByText(/total: 100 %/i)).toBeInTheDocument();
+  } else {
+    expect(within(dialog()).getByRole("button", { name: /^open/i })).toBeInTheDocument();
+  }
+}
+
+function makePreparedCycle(type: "SEASON" | "CAMPAIGN") {
+  return cycleFixture({
+    id: `42161-${type.toLowerCase()}`,
+    cycleId: type === "SEASON" ? 50n : 51n,
+    poolId: 7n,
+    cycleType: type,
+    state: "SEEDED",
+    startTime: 1n,
+    endTime: 2n,
+    metadataCID: `bafy-${type.toLowerCase()}`,
+  });
 }
 
 function fillCycle() {
@@ -195,6 +289,66 @@ describe("PoolSetupFlow (W11)", () => {
     });
   });
 
+  it.each(
+    Object.entries(STEPS_BY_INTENT)
+  )("composes the declared %s steps in order", async (intent, steps) => {
+    const cycle =
+      intent === "open-season"
+        ? makePreparedCycle("SEASON")
+        : intent === "open-campaign"
+          ? makePreparedCycle("CAMPAIGN")
+          : undefined;
+    renderFlow({ intent: intent as keyof typeof STEPS_BY_INTENT, cycle });
+
+    for (const [index, step] of steps.entries()) {
+      assertStep(step as StepId);
+      if (step === "how") await fillHow();
+      if (step === "cycle") fillCycle();
+      if (index < steps.length - 1) next();
+    }
+  });
+
+  it.each([
+    ["cycle", "The name could not be stored", mocks.pinCycleMetadata],
+    ["charter", "The agreement could not be stored", mocks.pinPoolCharter],
+  ] as const)("keeps the form open when the %s pin fails", async (document, message, pin) => {
+    pin.mockRejectedValueOnce(new PoolDocumentPinError(document, new Error("offline")));
+    renderFlow();
+    await fillHow();
+    next();
+    fillCycle();
+    next();
+    next();
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^open season$/i }));
+
+    expect(await within(dialog()).findByText(new RegExp(message, "i"))).toBeInTheDocument();
+    expect(mocks.run).not.toHaveBeenCalled();
+    expect(dialog()).toBeInTheDocument();
+  });
+
+  it("closes pristine state without a discard prompt", async () => {
+    const router = renderRoutedFlow();
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^cancel$/i }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/hub"));
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
+  it("keeps editing or discards after a dirty close request", async () => {
+    const router = renderRoutedFlow();
+    await fillHow();
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^cancel$/i }));
+    const discardDialog = await screen.findByRole("alertdialog");
+    expect(router.state.location.pathname).toBe("/garden/pool");
+    fireEvent.click(within(discardDialog).getByRole("button", { name: /keep editing/i }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^cancel$/i }));
+    fireEvent.click(
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: /discard/i })
+    );
+    await waitFor(() => expect(router.state.location.pathname).toBe("/hub"));
+  });
+
   it("keeps Continue disabled while the split does not total 100 %", async () => {
     renderFlow();
     await fillHow();
@@ -229,7 +383,7 @@ describe("PoolSetupFlow (W11)", () => {
       name: "Season of First Rains",
       gardenAddress: GARDEN,
     });
-    const steps = mocks.run.mock.calls[0]?.[0] as Array<Record<string, unknown>>;
+    const steps = mocks.run.mock.calls[0]?.[0] as PoolSetupStep[];
     expect(steps.map((step) => step.action)).toEqual([
       "setPoolCharter",
       "setProviderOpenCommitmentCap",
@@ -332,7 +486,7 @@ describe("PoolSetupFlow (W11)", () => {
           <PoolSetupFlow
             open={open}
             intent="campaign"
-            console={pool as unknown as PoolConsoleController}
+            console={pool}
             onClose={() => setOpen(false)}
           />
         </>
@@ -374,40 +528,16 @@ describe("PoolSetupFlow (W11)", () => {
         nonTerminalCycleCount: 1n,
       },
       cycles: [
-        {
+        cycleFixture({
           id: "42161-12",
-          chainId: 42161,
           cycleId: 12n,
-          seedSeen: true,
           poolId: 7n,
-          poolEntityId: "42161-7",
-          garden: null,
-          gardenId: null,
           cycleType: "SEASON",
           state: "OPEN",
           startTime: 1n,
           endTime: 2n,
           metadataCID: "bafy-season",
-          gardenersBps: 6000,
-          treasuryBps: 1500,
-          operatorBps: 1000,
-          evaluatorBps: 500,
-          communityBps: 500,
-          funderBps: 500,
-          equalParticipationBps: 2000,
-          verifiedContributionBps: 8000,
-          liveCommitmentCount: 0n,
-          commitmentsAccepted: 0n,
-          commitmentsReadyForConfirmation: 0n,
-          commitmentsFulfilled: 0n,
-          commitmentsCancelled: 0n,
-          commitmentsExpired: 0n,
-          commitmentsDisputed: 0n,
-          commitmentsDue: 0n,
-          openCommitmentCount: 0n,
-          createdAt: 1,
-          updatedAt: 2,
-        },
+        }),
       ],
       cycleNames: new Map([["12", { status: "resolved", name: "Season of First Rains" }]]),
     });
@@ -432,7 +562,7 @@ describe("PoolSetupFlow (W11)", () => {
     next();
     fireEvent.click(within(dialog()).getByRole("button", { name: /^open campaign$/i }));
     await waitFor(() => expect(mocks.run).toHaveBeenCalledTimes(1));
-    const steps = mocks.run.mock.calls[0]?.[0] as Array<Record<string, unknown>>;
+    const steps = mocks.run.mock.calls[0]?.[0] as PoolSetupStep[];
     expect(steps.map((step) => step.action)).toEqual(["seedCycle", "openCycle"]);
     expect(steps[0]).toMatchObject({ cycle: { cycleType: "CAMPAIGN" } });
     expect(mocks.pinPoolCharter).not.toHaveBeenCalled();

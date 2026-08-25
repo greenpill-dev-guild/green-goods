@@ -91,20 +91,41 @@ function toConfirm(overrides: Record<string, unknown> = {}) {
   };
 }
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+vi.mock("@green-goods/shared/config/default-chain", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal()),
     DEFAULT_CHAIN_ID: 42161,
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     usePrimaryAddress: () => VIEWER,
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useGardens: () => ({ data: [{ id: GARDEN, name: "Rocinha Community Garden" }] }),
-    useCommitmentPools: () => ({ pools: [{ poolId: 7n, garden: GARDEN }] }),
-    useCommitmentSeries: () => ({ series: [] }),
-    useCommitmentsInbox: () => mockUseCommitmentsInbox(),
-    useCommitmentsToConfirm: () => mockUseCommitmentsToConfirm(),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/app/useOffline", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOffline: () => mockUseOffline(),
   };
 });
+
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  useCommitmentPools: () => ({ pools: [{ poolId: 7n, garden: GARDEN }] }),
+  useCommitmentSeries: () => ({ series: [] }),
+  useCommitmentsInbox: () => mockUseCommitmentsInbox(),
+  useCommitmentsToConfirm: () => mockUseCommitmentsToConfirm(),
+}));
 
 const { CommitmentsDrawer } = await import("../../views/Home/CommitmentsDrawer");
 

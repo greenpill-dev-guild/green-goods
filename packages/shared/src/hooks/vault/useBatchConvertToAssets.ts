@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useReadContracts } from "wagmi";
 import type { Address } from "../../types/domain";
-import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis";
+import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis/octant";
 
 interface ConvertEntry {
   vaultAddress: Address;

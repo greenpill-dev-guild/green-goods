@@ -40,6 +40,7 @@ import { useAccount, useConfig } from "wagmi";
 
 import { getAppKit } from "../config/appkit";
 import { queryClient } from "../config/react-query";
+import { useAuthActor } from "../hooks/auth/useAuthActor";
 import { useWalletModalOpen } from "../hooks/auth/useWalletModalOpen";
 import { logger } from "../modules/app/logger";
 import { serviceWorkerManager } from "../modules/app/service-worker";
@@ -57,7 +58,8 @@ import {
   setEmbeddedAddress,
   setSignedOutSentinel,
 } from "../modules/auth/session";
-import { type AuthActor, getAuthActor } from "../workflows/authActor";
+import type { PasskeyAdapters } from "../workflows/auth-passkey-adapters";
+import type { AuthActor } from "../workflows/authActor";
 
 // ============================================================================
 // CONTEXT TYPES
@@ -167,21 +169,19 @@ export function useOptionalAuthContext(): AuthContextType | undefined {
 // PROVIDER
 // ============================================================================
 
-interface AuthProviderProps {
+export interface AuthProviderProps {
   children: React.ReactNode;
+  adapters?: PasskeyAdapters;
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
+export function AuthProvider({ children, adapters }: AuthProviderProps) {
   const wagmiConfig = useConfig();
   const { address: wagmiWalletAddress, isConnected, isConnecting, connector } = useAccount();
 
-  // Get the singleton auth actor (safe for SSR)
-  const actor = typeof window !== "undefined" ? getAuthActor() : null;
+  const actor = useAuthActor(adapters);
 
-  // Use XState selectors for state
   const snapshot = useSelector(actor as AuthActor, (s) => s);
 
-  // Track previous wallet state to detect changes
   const prevWalletState = useRef<{ isConnected: boolean; address: Hex | undefined }>({
     isConnected: false,
     address: undefined,

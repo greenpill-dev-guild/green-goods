@@ -1,7 +1,7 @@
 # @green-goods/shared -- Module Map
 
 > Canonical architecture contract for the shared package.
-> Last verified against the source tree: 2026-08-21
+> Last verified against the source tree: 2026-08-23
 
 ## Package Contract
 
@@ -79,6 +79,7 @@ The folder inventory is checked against the source tree; avoid hand-maintained f
 | `assessment/` | Assessment drafts, forms, and workflow orchestration |
 | `auth/` | Auth context, primary address, and user profile |
 | `blockchain/` | Chain config, base lists, ENS, deployment registry, and transaction sender |
+| `client-ui/` | Client view controllers that compose shared readers, selectors, and mutations |
 | `commitment-pooling/` | Pooling, credit, settlement, and contributor hooks |
 | `conviction/` | Conviction strategies, pools, signals, and member power |
 | `cookie-jar/` | Cookie jar reads and admin/user mutations |

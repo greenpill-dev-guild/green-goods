@@ -1,15 +1,11 @@
-import {
-  type Address,
-  cn,
-  copyToClipboard,
-  formatAddress,
-  type Garden,
-  type GardenerCard,
-  toastService,
-  useEnsAvatar,
-  useEnsName,
-  useGreenGoodsEnsName,
-} from "@green-goods/shared";
+import type { Address, Garden, GardenerCard } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useEnsAvatar } from "@green-goods/shared/hooks/blockchain/useEnsAvatar";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   RiCalendarEventFill,
@@ -27,8 +23,8 @@ import { Button } from "@/components/Actions";
 import { Badge, EmptyState } from "@/components/Communication";
 import { Avatar, AvatarFallback, AvatarImage, AvatarSkeleton } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
-import { pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaDrawerStyles } from "@/components/Pwa/drawerStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 export type GardenMember = GardenerCard & {
   account: Address;

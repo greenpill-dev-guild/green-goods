@@ -1,7 +1,6 @@
 export type * from "./ontology/types";
 export * from "./ontology/query";
-export * from "./modules/commitment-pooling";
-export * from "./hooks/commitment-pooling";
+export * from "./hooks/client-ui";
 // COMPONENTS
 // ============================================================================
 export type {
@@ -251,19 +250,13 @@ export {
 // ============================================================================
 // HOOKS
 // ============================================================================
-export * from "./hooks/admin-ui/actions/actionDrafts";
-export * from "./hooks/admin-ui/actions/actions.utils";
-export * from "./hooks/admin-ui/actions/actions.workspaceModel";
-export * from "./hooks/admin-ui/actions/createAction.utils";
-export * from "./hooks/admin-ui/actions/useActionsController";
-export * from "./hooks/admin-ui/actions/useCreateActionController";
+export * from "./hooks/admin-ui/actions";
 export * from "./hooks/admin-ui/community/community.utils";
 export * from "./hooks/admin-ui/community/useCommunityWorkspaceController";
-export * from "./hooks/admin-ui/garden/garden.utils";
-export * from "./hooks/admin-ui/garden/useCreateGardenController";
-export * from "./hooks/admin-ui/garden/useGardenWorkspaceController";
-export * from "./hooks/admin-ui/garden/useManageMembersController";
-export * from "./hooks/admin-ui/garden/useResolvedWorkDetail";
+export * from "./hooks/admin-ui/garden";
+export * from "./modules/wallet/barcode-scanner";
+export * from "./modules/wallet/send-flow";
+export * from "./modules/work/submission-flow";
 export * from "./hooks/admin-ui/hub/hub.filters";
 export * from "./hooks/admin-ui/hub/hub.utils";
 export * from "./hooks/admin-ui/hub/hub.workbenchModel";
@@ -272,12 +265,7 @@ export * from "./hooks/admin-ui/hub/useCreateHypercertController";
 export * from "./hooks/admin-ui/hub/useHubWorkbenchController";
 export * from "./hooks/admin-ui/pool";
 export * from "./hooks/admin-ui/hypercerts";
-export * from "./hooks/admin-ui/layout/accountSheet.events";
-export * from "./hooks/admin-ui/layout/commandPalette.results";
-export * from "./hooks/admin-ui/layout/useAdminRightSheetDescriptor";
-export * from "./hooks/admin-ui/layout/useCommandPaletteController";
-export * from "./hooks/admin-ui/layout/useCommandPaletteData";
-export * from "./hooks/admin-ui/layout/useCommandPaletteShortcuts";
+export * from "./hooks/admin-ui/layout";
 export * from "./hooks/admin-ui/navigation/sheetRegistry";
 export * from "./hooks/admin-ui/navigation/workspaceNavigation";
 export * from "./hooks/admin-ui/navigation/workspaceViews";

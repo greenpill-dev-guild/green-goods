@@ -1,4 +1,5 @@
-import { StatusBadge, type InboxCommitment } from "@green-goods/shared";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
+import { type InboxCommitment } from "@green-goods/shared/commitment-pooling";
 import { RiSeedlingLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 

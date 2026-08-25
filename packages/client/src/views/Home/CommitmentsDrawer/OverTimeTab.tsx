@@ -1,17 +1,17 @@
+import type { Garden } from "@green-goods/shared/types/domain";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import {
   type CommitmentPoolRecord,
   type CommitmentSeriesRecord,
   type CommitmentsInbox,
-  type Garden,
-  StatusBadge,
   useCommitmentMetadata,
-  useOffline,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 
 import { CommitmentRow, CommitmentStateLadder } from "@/components/Features/Commitments";
-import { COMMITMENTS_DRAWER_SCROLL_CLASSNAME } from "./classnames";
+import { PWA_DRAWER_SCROLL_CLASSNAME } from "@/components/Pwa/drawerScrollStyles";
 import { gardenAddressFor, groupByGarden } from "./grouping";
 
 export interface OverTimeTabProps {
@@ -73,7 +73,7 @@ export function OverTimeTab({ inbox, pools, gardens, series, onOpenCommitment }:
       isOnline={isOnline}
       isEmpty={inbox.settled.length === 0 && series.length === 0}
       onRetry={() => void inbox.refetch()}
-      regionClassName={COMMITMENTS_DRAWER_SCROLL_CLASSNAME}
+      regionClassName={PWA_DRAWER_SCROLL_CLASSNAME}
       copy={{
         loadingId: "app.commitments.overTime.loading",
         errorId: "app.commitments.overTime.error",

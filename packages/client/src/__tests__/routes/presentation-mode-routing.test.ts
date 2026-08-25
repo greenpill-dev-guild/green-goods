@@ -4,11 +4,11 @@
 
 import { matchRoutes, type LoaderFunctionArgs, type RouteObject } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
-import { appRoutes, CLIENT_ROUTE_IDS } from "../../router.config";
+import { appRoutes, CLIENT_ROUTE_IDS } from "../../config/routes";
 import {
   requirePwaPresentationLoader,
   requireWebsitePresentationLoader,
-} from "../../routes/presentation-mode";
+} from "../../routes/presentationMode";
 
 const originalNavigator = global.navigator;
 const originalWindow = global.window;

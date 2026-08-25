@@ -5,7 +5,7 @@
 
 import { within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CookieJar } from "@green-goods/shared";
+import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
 import { renderWithProviders as render, screen } from "../test-utils";
 
 const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as const;
@@ -51,18 +51,46 @@ function jarsState(jars: CookieJar[]) {
   };
 }
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
-
+vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal()),
     ConfirmDialog: () => null,
+  };
+});
+
+vi.mock("@green-goods/shared/utils/blockchain/vaults", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     getVaultAssetSymbol: () => "USDC",
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useCookieJarWithdraw: () => ({ mutate: vi.fn(), isPending: false }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useGardens: () => ({
       data: [{ id: TEST_GARDEN, tokenAddress: TEST_GARDEN_TOKEN, name: "Garden Alpha" }],
     }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/app/useOffline", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOffline: () => ({ isOnline: true }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useAccessibleCookieJars", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useAccessibleCookieJars: () => mockUseAccessibleCookieJars(),
   };
 });

@@ -1,4 +1,6 @@
-import { type Action, type Garden, type UserRole, adminRoutes } from "@green-goods/shared";
+import type { Action, Garden } from "../../../types/domain";
+import { adminRoutes } from "../../../utils/navigation/admin-routes";
+import type { UserRole } from "../../gardener/useRole";
 import { RiSettings3Line, RiUserLine } from "@remixicon/react";
 import type { ComponentType } from "react";
 import type { IntlShape } from "react-intl";

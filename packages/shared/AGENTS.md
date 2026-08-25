@@ -25,7 +25,7 @@ types, i18n, and Storybook-backed shared UI building blocks.
 
 - All reusable hooks live here. Do not create parallel hooks in `client`, `admin`, or `agent`.
 - Shared UI primitives should be consumed through `@green-goods/shared`, not recreated in app packages.
-- Export public APIs through package barrels. Do not teach consumers deep import paths.
+- Declared subpaths in `package.json#exports` are public API; deep `src/**` paths are not. Prefer the narrowest declared public subpath when it avoids unrelated runtime coupling.
 - Use centralized query keys from `queryKeys`; do not invent ad-hoc query arrays.
 - Use `useCurrentChain()` or `DEFAULT_CHAIN_ID`, not wallet chain state, for application defaults.
 - Prefer event-driven invalidation over polling.
@@ -41,14 +41,13 @@ types, i18n, and Storybook-backed shared UI building blocks.
   signatures, provider contracts, shared data shapes, or mutation flows can affect consumers.
 - When changing test helpers or hook contracts, keep tests aligned before downstream package fixes.
 - Storybook is the source of truth for shared UI foundations; keep stories aligned when primitives change.
-- Follow root `AGENTS.md` section “Agentic Modern Web Standard” for browser proof. Consumer QA that
-  depends on a session, wallet, passkey, installed app, or profile must use authenticated Brave; if
-  that path is unavailable, report browser QA as blocked.
+- Visible consumer changes follow root `AGENTS.md` section “Agentic Modern Web Standard”; if its
+  authenticated Brave path is unavailable, report browser QA as `BLOCKED`.
 - **Tailwind v4 gotcha**: utility classes authored in shared JSX (`mx-4`, `w-max`, `self-center`, etc.) are not in admin/client content scans and silently fail to generate in consuming apps. They will look correct in Storybook and broken in the running app. Use inline styles or CSS custom properties for layout in shared components, or apply the utility class in the consumer's JSX. Full detail and commit references in root `AGENTS.md` → "Known Gotchas".
 
 ## Validation
 
-- QA Speed Mode: targeted `bun run test -- src/...`; add `bun run typecheck` when shared types/contracts move
-- Package loop: `bun run test && bun run typecheck`
-- UI/stories touched: `bun run check:stories`
-- Cross-package impact: from repo root run `node scripts/dev/ci-local.js --quick`
+- QA Speed Mode: targeted `bun run test -- src/...`; add `bun run typecheck` when shared types or contracts move.
+- Package loop: `bun run test && bun run typecheck`.
+- Conditional proof: run `bun run check:stories` for shared UI or story changes.
+- Broader impact: run the root Repo Quick Gate when public exports, hooks, providers, data shapes, or mutation flows affect consumers.

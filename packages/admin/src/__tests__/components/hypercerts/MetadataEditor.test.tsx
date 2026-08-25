@@ -5,7 +5,7 @@
  * Covers form inputs, validation, suggested values, and accessibility.
  */
 
-import type { HypercertDraft } from "@green-goods/shared";
+import type { HypercertDraft } from "@green-goods/shared/types/hypercerts";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, useState } from "react";
@@ -13,12 +13,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders as render } from "../../test-utils";
 
 // Mock dependencies
-vi.mock("@green-goods/shared/utils", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
-vi.mock("@green-goods/shared", () => ({
-  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+vi.mock("@green-goods/shared/components/DatePicker/DatePicker", () => ({
   // Mock DatePicker as a simple input for testing
   DatePicker: ({
     id,
@@ -54,6 +53,9 @@ vi.mock("@green-goods/shared", () => ({
       }),
       error && createElement("span", { key: "error", className: "error" }, error),
     ]),
+}));
+
+vi.mock("@green-goods/shared/components/Form/FormInput", () => ({
   FormInput: ({
     id,
     label,
@@ -87,6 +89,9 @@ vi.mock("@green-goods/shared", () => ({
         "aria-required": ariaRequired,
       }),
     ]),
+}));
+
+vi.mock("@green-goods/shared/components/Form/FormTextarea", () => ({
   FormTextarea: ({
     id,
     label,
@@ -113,6 +118,10 @@ vi.mock("@green-goods/shared", () => ({
         rows,
       }),
     ]),
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
 import { MetadataEditor } from "../../../components/Hypercerts/Steps/MetadataEditor";

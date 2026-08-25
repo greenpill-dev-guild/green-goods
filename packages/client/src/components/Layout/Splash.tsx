@@ -1,11 +1,12 @@
-import { APP_NAME, cn } from "@green-goods/shared";
+import { APP_NAME } from "@green-goods/shared/config/app";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import type React from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 
 import { Button } from "../Actions";
 import { SplashScaffold } from "./SplashScaffold";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 export type LoadingState = "welcome" | "joining-garden" | "default";
 

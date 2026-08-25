@@ -5,7 +5,7 @@
  * Covers rendering, filtering, selection, and accessibility.
  */
 
-import type { HypercertAttestation } from "@green-goods/shared";
+import type { HypercertAttestation } from "@green-goods/shared/types/hypercerts";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
@@ -13,32 +13,74 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders as render } from "../../test-utils";
 
 // Mock dependencies
-vi.mock("@green-goods/shared", () => ({
-  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-  formatAddress: (
-    address: string,
-    options: { ensName?: string | null; variant?: "default" | "card" | "long" } = {}
-  ) => {
-    const ensName = options.ensName?.trim();
-    if (ensName?.toLowerCase().endsWith(".greengoods.eth")) {
-      return ensName.slice(0, -".greengoods.eth".length);
-    }
-    if (ensName) return ensName;
-
-    const start = options.variant === "default" ? 6 : options.variant === "long" ? 8 : 4;
-    const end = options.variant === "default" ? 4 : options.variant === "long" ? 6 : 3;
-    return `${address.slice(0, start)}...${address.slice(-end)}`;
-  },
-  formatDateTime: (timestamp: number) => new Date(timestamp).toLocaleDateString(),
-  useEnsName: (address: string | null | undefined) => ({
-    data: address ? "river.greengoods.eth" : null,
-  }),
-  ACTION_DOMAINS: ["agroforestry", "waste", "solar", "education"],
-  filterAttestationsByAssessment: (attestations: any[]) => attestations,
+vi.mock("@green-goods/shared/components/Alert", () => ({
   Alert: ({ children }: { children?: React.ReactNode }) => {
     const React = require("react");
     return React.createElement("div", { role: "alert" }, children);
   },
+}));
+
+vi.mock("@green-goods/shared/components/Button", () => ({
+  Button: ({
+    children,
+    disabled,
+    onClick,
+    type = "button",
+    ...props
+  }: {
+    children?: React.ReactNode;
+    disabled?: boolean;
+    onClick?: React.MouseEventHandler<HTMLButtonElement>;
+    type?: "button" | "submit" | "reset";
+    [key: string]: unknown;
+  }) => {
+    const React = require("react");
+    return React.createElement(
+      "button",
+      {
+        ...props,
+        type,
+        disabled,
+        onClick,
+      },
+      children
+    );
+  },
+}));
+
+vi.mock("@green-goods/shared/components/Form/ControlPrimitives", () => ({
+  NativeSelect: ({
+    id,
+    value,
+    onChange,
+    disabled,
+    children,
+    ...props
+  }: {
+    id?: string;
+    value?: string;
+    onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+    disabled?: boolean;
+    children?: React.ReactNode;
+    [key: string]: unknown;
+  }) => {
+    const React = require("react");
+    return React.createElement(
+      "select",
+      {
+        id,
+        value: value ?? "",
+        onChange,
+        disabled,
+        "aria-label": props["aria-label"],
+        "data-testid": props["data-testid"] ?? "native-select",
+      },
+      children
+    );
+  },
+}));
+
+vi.mock("@green-goods/shared/components/Form/FormInput", () => ({
   // Minimal FormInput mock for search functionality with accessible label
   FormInput: ({
     id,
@@ -69,60 +111,45 @@ vi.mock("@green-goods/shared", () => ({
       }),
     ]);
   },
-  NativeSelect: ({
-    id,
-    value,
-    onChange,
-    disabled,
-    children,
-    ...props
-  }: {
-    id?: string;
-    value?: string;
-    onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-    disabled?: boolean;
-    children?: React.ReactNode;
-    [key: string]: unknown;
-  }) => {
-    const React = require("react");
-    return React.createElement(
-      "select",
-      {
-        id,
-        value: value ?? "",
-        onChange,
-        disabled,
-        "aria-label": props["aria-label"],
-        "data-testid": props["data-testid"] ?? "native-select",
-      },
-      children
-    );
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: (address: string | null | undefined) => ({
+    data: address ? "river.greengoods.eth" : null,
+  }),
+}));
+
+vi.mock("@green-goods/shared/modules/data/hypercerts-filters", () => ({
+  filterAttestationsByAssessment: (attestations: any[]) => attestations,
+}));
+
+vi.mock("@green-goods/shared/types/hypercerts", () => ({
+  ACTION_DOMAINS: ["agroforestry", "waste", "solar", "education"],
+}));
+
+vi.mock("@green-goods/shared/utils/app/text", () => ({
+  formatAddress: (
+    address: string,
+    options: { ensName?: string | null; variant?: "default" | "card" | "long" } = {}
+  ) => {
+    const ensName = options.ensName?.trim();
+    if (ensName?.toLowerCase().endsWith(".greengoods.eth")) {
+      return ensName.slice(0, -".greengoods.eth".length);
+    }
+    if (ensName) return ensName;
+
+    const start = options.variant === "default" ? 6 : options.variant === "long" ? 8 : 4;
+    const end = options.variant === "default" ? 4 : options.variant === "long" ? 6 : 3;
+    return `${address.slice(0, start)}...${address.slice(-end)}`;
   },
-  Button: ({
-    children,
-    disabled,
-    onClick,
-    type = "button",
-    ...props
-  }: {
-    children?: React.ReactNode;
-    disabled?: boolean;
-    onClick?: React.MouseEventHandler<HTMLButtonElement>;
-    type?: "button" | "submit" | "reset";
-    [key: string]: unknown;
-  }) => {
-    const React = require("react");
-    return React.createElement(
-      "button",
-      {
-        ...props,
-        type,
-        disabled,
-        onClick,
-      },
-      children
-    );
-  },
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/utils/time", () => ({
+  formatDateTime: (timestamp: number) => new Date(timestamp).toLocaleDateString(),
 }));
 
 import { AttestationSelector } from "../../../components/Hypercerts/Steps/AttestationSelector";

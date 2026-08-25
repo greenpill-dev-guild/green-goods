@@ -1,8 +1,8 @@
+import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type {
   CommitmentClaimRequestRecord,
   CommitmentContributorRecord,
-  CommitmentDialogController,
-} from "@green-goods/shared";
+} from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { shortAddress } from "../poolPresentation";

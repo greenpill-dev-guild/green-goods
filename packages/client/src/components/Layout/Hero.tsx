@@ -4,14 +4,12 @@ import { type FC, useCallback, useEffect, useState } from "react";
 import { DeviceFrameset } from "react-device-frameset";
 import "react-device-frameset/styles/marvel-devices.min.css";
 
-import {
-  copyToClipboard,
-  useApp,
-  useInstallGuidance,
-  useIsDarkMode,
-  useTimeout,
-  useTunnelUrl,
-} from "@green-goods/shared";
+import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
+import { useApp } from "@green-goods/shared/providers/App";
+import { useInstallGuidance } from "@green-goods/shared/hooks/app/useInstallGuidance";
+import { useIsDarkMode } from "@green-goods/shared/hooks/ui/useIsDarkMode";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
+import { useTunnelUrl } from "@green-goods/shared/hooks/app/useTunnelUrl";
 import {
   RiAddBoxLine,
   RiAlertLine,
@@ -25,7 +23,7 @@ import {
   RiUploadLine,
 } from "@remixicon/react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { createPwaLaunchUrl } from "@/config/pwa-routing";
+import { createPwaLaunchUrl } from "@/config/pwaRouting";
 
 interface HeroProps {
   handleSubscribe: (e: React.FormEvent<HTMLFormElement>) => void;

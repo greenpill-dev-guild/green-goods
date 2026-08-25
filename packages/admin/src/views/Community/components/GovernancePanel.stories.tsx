@@ -1,4 +1,4 @@
-import { type GardenSignalPool, PoolType } from "@green-goods/shared";
+import { type GardenSignalPool, PoolType } from "@green-goods/shared/types/gardens-community";
 import type { Meta, StoryObj } from "@storybook/react";
 import {
   withAdminIdentity,

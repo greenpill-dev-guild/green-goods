@@ -1,21 +1,21 @@
+import { Card } from "@green-goods/shared/components/Cards/CardBase";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
+import { useEmergencyPause } from "@green-goods/shared/hooks/vault/useEmergencyPause";
+import { useEnableAutoAllocate } from "@green-goods/shared/hooks/vault/useEnableAutoAllocate";
+import { useHarvest } from "@green-goods/shared/hooks/vault/useHarvest";
+import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { GardenVault } from "@green-goods/shared/types/vaults";
+import { OCTANT_VAULT_ABI } from "@green-goods/shared/utils/blockchain/abis/octant";
+import { ZERO_ADDRESS } from "@green-goods/shared/utils/blockchain/address";
 import {
-  type Address,
-  Card,
   formatTokenAmount,
-  type GardenVault,
-  getBlockExplorerAddressUrl,
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
-  OCTANT_VAULT_ABI,
-  useCurrentChain,
-  useEmergencyPause,
-  useEnableAutoAllocate,
-  useHarvest,
-  useUser,
-  useVaultPreview,
-  ZERO_ADDRESS,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/blockchain/vaults";
+import { getBlockExplorerAddressUrl } from "@green-goods/shared/utils/eas/explorers";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";

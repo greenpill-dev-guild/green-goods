@@ -7,7 +7,7 @@ import {
   resolveHubRouteSelection,
   resolveHubRouteSheet,
   resolveHubRouteState,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
 import { describe, expect, it } from "vitest";
 
 describe("hub.workbenchModel", () => {

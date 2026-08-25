@@ -1,4 +1,6 @@
-import { AppProvider, initGlobalErrorHandlers, initTheme } from "@green-goods/shared";
+import { AppProvider } from "@green-goods/shared/providers/App";
+import { initGlobalErrorHandlers } from "@green-goods/shared/modules/app/error-events";
+import { initTheme } from "@green-goods/shared/utils/styles/theme";
 import { initBrowserSentry } from "@green-goods/shared/sentry";
 import { registerServiceWorkerFromEnv } from "@green-goods/shared/service-worker";
 import { StrictMode } from "react";
@@ -10,8 +12,8 @@ import {
   createPwaRoutingConfig,
   PWA_APP_SCOPE,
   PWA_DEV_SERVICE_WORKER_SCRIPT,
-} from "@/config/pwa-routing";
-import { registerPublicWebMcpTools } from "@/modules/webmcp/public-tools";
+} from "@/config/pwaRouting";
+import { registerPublicWebMcpTools } from "@/webmcp";
 
 import "@/index.css";
 import "@/config";

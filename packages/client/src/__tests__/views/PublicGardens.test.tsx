@@ -50,10 +50,9 @@ const mockGardens = [
 
 const mockUsePublicGardens = vi.fn();
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+vi.mock("@green-goods/shared/hooks/public/usePublicGardens", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal()),
     usePublicGardens: (...args: unknown[]) => mockUsePublicGardens(...args),
   };
 });

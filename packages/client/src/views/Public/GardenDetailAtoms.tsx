@@ -1,7 +1,9 @@
-import { type Address, formatAddress, useEnsName } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 // `getRelativeTimeParts` is not on the root barrel — only the declared
 // `./utils` subpath exports it (shared rule 11: narrowest declared path).
-import { getRelativeTimeParts } from "@green-goods/shared/utils";
+import { getRelativeTimeParts } from "@green-goods/shared/utils/relativeTime";
 import { RiImageLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { type IntlShape, useIntl } from "react-intl";

@@ -3,7 +3,7 @@ import { getStorageQuota } from "../../utils/storage/quota";
 import { addBreadcrumb } from "../app/error-tracking";
 import { logger } from "../app/logger";
 import { track } from "../app/posthog";
-import { getIpfsInitStatus } from "../data/ipfs";
+import { getIpfsInitStatus } from "../data/ipfs/client";
 
 const PRIVATE_QUEUE_EVENT_OPTIONS = { includeSessionId: false } as const;
 

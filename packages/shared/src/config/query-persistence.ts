@@ -1,6 +1,6 @@
 import type { DehydratedState, Query } from "@tanstack/react-query";
 import { createStore, del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
-import { debugWarn } from "../utils";
+import { debugWarn } from "../utils/debug";
 
 export const PERSIST_MAX_AGE = 24 * 60 * 60 * 1000;
 

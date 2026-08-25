@@ -1,4 +1,8 @@
-import { type Address, AppBar, DEFAULT_CHAIN_ID, MainSheet, queryKeys } from "@green-goods/shared";
+import { AppBar } from "@green-goods/shared/components/Canvas/AppBar";
+import { MainSheet } from "@green-goods/shared/components/Canvas/MainSheet";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import type { Address } from "@green-goods/shared/types/domain";
 import {
   AuthActionsContext,
   type AuthActionsValue,
@@ -6,7 +10,7 @@ import {
   type AuthContextType,
   AuthStateContext,
   type AuthStateValue,
-} from "@green-goods/shared/providers";
+} from "@green-goods/shared/providers/Auth";
 import type { Meta, StoryObj } from "@storybook/react";
 import type { QueryKey } from "@tanstack/react-query";
 import type { ReactNode } from "react";

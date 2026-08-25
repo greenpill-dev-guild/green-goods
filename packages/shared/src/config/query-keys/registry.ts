@@ -13,13 +13,14 @@ import {
 } from "./identity";
 import { draftsKeys, mediaKeys, offlineKeys, queueKeys } from "./misc";
 import { publicKeys } from "./public";
+import { QUERY_KEY_ROOT } from "./root";
 import { savedOffersKeys } from "./saved-offers";
 import { tokensKeys } from "./tokens";
 import { cookieJarKeys, vaultsKeys, yieldKeys } from "./vault";
 import { approvalsKeys, stewardWorksKeys, workApprovalsKeys, worksKeys } from "./work";
 
 export const queryKeys = {
-  all: ["greengoods"] as const,
+  all: QUERY_KEY_ROOT,
   queue: queueKeys,
   works: worksKeys,
   workApprovals: workApprovalsKeys,

@@ -53,7 +53,8 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { selectCommitmentActKind } from "../../modules/commitment-pooling/acts";
 import {
   getCommitments,
@@ -195,7 +196,7 @@ export function useCommitmentsToConfirm({
   // list-scope read that the steward is on a commitment's team.
   const ownInput = useMemo(() => ({ chainId, account: viewer as Address }), [chainId, viewer]);
   const own = useQuery({
-    queryKey: queryKeys.commitmentPooling.commitments(chainId, ownInput),
+    queryKey: commitmentPoolingKeys.commitments(chainId, ownInput),
     queryFn: () => getCommitments(ownInput),
     // Only a steward has a tab to fill, so a plain member never asks at all.
     enabled: availability.status === "available" && Boolean(viewer) && stewarded.length > 0,
@@ -211,7 +212,7 @@ export function useCommitmentsToConfirm({
   // above one keeps the record ready in between, so without this the same row
   // would be offered again with a transaction the chain refuses.
   const confirmed = useQuery({
-    queryKey: queryKeys.commitmentPooling.activity(chainId, {
+    queryKey: commitmentPoolingKeys.activity(chainId, {
       actor: viewer,
       eventType: "CONFIRMATION_RECORDED",
     }),
@@ -247,7 +248,7 @@ export function useCommitmentsToConfirm({
         state: "READY_FOR_CONFIRMATION",
       };
       return {
-        queryKey: queryKeys.commitmentPooling.commitments(chainId, input),
+        queryKey: commitmentPoolingKeys.commitments(chainId, input),
         queryFn: () => getCommitments(input),
         enabled: availability.status === "available",
         staleTime: STALE_TIME_MEDIUM,
@@ -263,7 +264,7 @@ export function useCommitmentsToConfirm({
       ...stewarded.map((garden) => {
         const input = { chainId, garden: garden.id as Address };
         return {
-          queryKey: queryKeys.commitmentPooling.fallbackCandidates(chainId, input),
+          queryKey: commitmentPoolingKeys.fallbackCandidates(chainId, input),
           queryFn: () => getFallbackConfirmationCandidates(input),
           enabled: availability.status === "available",
           staleTime: STALE_TIME_MEDIUM,
@@ -272,7 +273,7 @@ export function useCommitmentsToConfirm({
       ...(readProtocol
         ? [
             {
-              queryKey: queryKeys.commitmentPooling.fallbackCandidates(chainId, {
+              queryKey: commitmentPoolingKeys.fallbackCandidates(chainId, {
                 protocolFallbackEnabled: true,
               }),
               queryFn: () =>
@@ -303,7 +304,7 @@ export function useCommitmentsToConfirm({
     queries: disputedScopes.map((scope) => {
       const input = { chainId, poolId: scope.poolId, state: "DISPUTED" };
       return {
-        queryKey: queryKeys.commitmentPooling.commitments(chainId, input),
+        queryKey: commitmentPoolingKeys.commitments(chainId, input),
         queryFn: () => getCommitments(input),
         enabled: availability.status === "available",
         staleTime: STALE_TIME_MEDIUM,

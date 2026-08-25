@@ -1,17 +1,15 @@
-import {
-  type Address,
-  adminRoutes,
-  formatTokenAmount,
-  parseGardenRange,
-  useAdminGardenWorkspaceSelection,
-  useCanvasSearchParams,
-  useGardenDerivedState,
-  useGardenDetailData,
-  useGardenStateStore,
-  useMediaQuery,
-  useSheetWidth,
-  useViewActions,
-} from "@green-goods/shared";
+import { useViewActions } from "../../../components/Canvas/useViewActions";
+import { useGardenStateStore } from "../../../stores/useGardenStateStore";
+import type { Address } from "../../../types/domain";
+import { formatTokenAmount } from "../../../utils/blockchain/vaults";
+import { parseGardenRange } from "../../../utils/garden-detail";
+import { adminRoutes } from "../../../utils/navigation/admin-routes";
+import { useAdminGardenWorkspaceSelection } from "../../garden/useAdminGardenWorkspaceSelection";
+import { useGardenDerivedState } from "../../garden/useGardenDerivedState";
+import { useGardenDetailData } from "../../garden/useGardenDetailData";
+import { useCanvasSearchParams } from "../../navigation/useCanvasSearchParams";
+import { useMediaQuery } from "../../ui/useMediaQuery";
+import { useSheetWidth } from "../../useSheetWidth";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";

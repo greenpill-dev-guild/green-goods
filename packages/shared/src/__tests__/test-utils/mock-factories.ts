@@ -7,8 +7,8 @@
 
 import { vi } from "vitest";
 import { TOTAL_UNITS } from "../../lib/hypercerts/constants";
-import type { Action, Garden, Work, WorkApprovalDraft, WorkDraft } from "../../types";
-import { Confidence, Domain, VerificationMethod } from "../../types";
+import type { Action, Garden, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
+import { Confidence, Domain, VerificationMethod } from "../../types/domain";
 import type { CookieJar } from "../../types/cookie-jar";
 import type {
   AllowlistEntry,

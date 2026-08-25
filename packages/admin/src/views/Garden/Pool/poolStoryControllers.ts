@@ -4,16 +4,19 @@
  * real hook hands its view. Acts resolve without sending anything.
  */
 
-import {
-  type CommitmentDialogController,
-  type CommitmentPoolRecord,
-  type CommitmentReadModel,
-  DEFAULT_CHAIN_ID,
-  type HubConfirmQueueController,
-  type PoolConsoleController,
-  selectPoolConsoleModel,
-  selectPromiseKeptRate,
-} from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import type {
+  CommitmentDialogController,
+  HubConfirmQueueController,
+  PoolConsoleController,
+} from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type { OntologyChainCapability } from "@green-goods/shared/ontology/types";
+import { selectPromiseKeptRate } from "@green-goods/shared/modules/commitment-pooling/disclosure";
+import { selectPoolConsoleModel } from "@green-goods/shared/modules/commitment-pooling/pool-console";
+import type {
+  CommitmentPoolRecord,
+  CommitmentReadModel,
+} from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { STORYBOOK_PRIMARY_ADMIN_GARDEN } from "../../../../../shared/.storybook/adminFixtures";
 import { daysAgo } from "../../../../../shared/.storybook/fixtures";
 import { STORY_GARDEN, STORY_JOAO, STORY_MARIA, STORY_NOW, STORY_STEWARD } from "./poolStoryActors";
@@ -26,7 +29,15 @@ import {
 } from "./poolStoryCommitments";
 import { STORY_CYCLE_NAMES, STORY_CYCLES, storyPool } from "./poolStoryPools";
 
-const noop = async () => "0x0" as never;
+const noop = async (): Promise<`0x${string}`> => "0x0";
+const availableCapability: OntologyChainCapability = {
+  deployment: "deployed",
+  activation: "active",
+  integration: "integrated",
+  availability: "available",
+  evidence: [],
+  verified_at: "2026-08-23",
+};
 
 /** The real controller's shape over the fixtures above; acts resolve without sending. */
 export function storyPoolConsole(
@@ -57,7 +68,7 @@ export function storyPoolConsole(
     garden: STORY_GARDEN,
     viewer: STORY_STEWARD,
     isOnline: true,
-    availability: { status: "available", capability: {} as never },
+    availability: { status: "available", capability: availableCapability },
     model: selectPoolConsoleModel({
       pool,
       cycles,
@@ -86,7 +97,7 @@ export function storyPoolConsole(
     isActing: false,
     isLoading: false,
     isError: false,
-    refetch: async () => [] as never,
+    refetch: async () => [],
     ...overrides,
     ...(overrides.model ? { model: overrides.model } : {}),
     // After the spread on purpose: `pool` already folds in `overrides.pool`,
@@ -108,12 +119,12 @@ export function storyCommitmentDialog(
   const acts: CommitmentDialogController["acts"] = {
     cancel: noop,
     markReady: noop,
-    sendForConfirmation: async () => "job" as never,
+    sendForConfirmation: async () => "job",
     attachAssessment: noop,
     raiseDispute: noop,
     resolveDispute: noop,
     expire: noop,
-    confirmOrdinary: async () => "job" as never,
+    confirmOrdinary: async () => "job",
     confirmFallback: noop,
     acceptClaim: noop,
     declineClaim: noop,
@@ -123,7 +134,7 @@ export function storyCommitmentDialog(
     garden: STORY_GARDEN,
     viewer: STORY_STEWARD,
     isOnline: true,
-    availability: { status: "available", capability: {} as never },
+    availability: { status: "available", capability: availableCapability },
     commitment,
     detail: commitment
       ? {
@@ -244,7 +255,7 @@ export function storyCommitmentDialog(
     isError: false,
     unavailable: false,
     notFound: false,
-    refetch: async () => [] as never,
+    refetch: async () => [],
     ...overrides,
   };
 }
@@ -274,7 +285,7 @@ export function storyConfirmQueue(
     isError: false,
     isConfirming: false,
     isDisputing: false,
-    acts: { confirm: async () => "job" as never, notYet: noop },
+    acts: { confirm: async () => "job", notYet: noop },
     ...overrides,
   };
 }

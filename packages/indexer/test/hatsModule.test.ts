@@ -1,29 +1,9 @@
 import assert from "assert";
-import { Addresses, createTestIndexer, HatsModule, processEvents } from "./v3";
+import { addr, CHAINS, mockEvent } from "./helpers/events";
+import { assertRoleArrays } from "./helpers/projections";
+import { createTestIndexer, HatsModule, processEvents } from "./v3";
 
-const CHAIN_ID = 42161;
-
-function addr(index: number): string {
-  return Addresses.mockAddresses[index] || `0x${index.toString().padStart(40, "0")}`;
-}
-
-function txHash(index: number): string {
-  return `0x${index.toString(16).padStart(64, "0")}`;
-}
-
-function mockEvent(
-  chainId: number,
-  timestamp: number,
-  opts: { srcAddress?: string; txHash?: string; logIndex?: number; blockNumber?: number } = {}
-) {
-  return {
-    chainId,
-    block: { timestamp, number: opts.blockNumber ?? 0 },
-    srcAddress: opts.srcAddress,
-    transaction: { hash: opts.txHash ?? txHash(timestamp) },
-    logIndex: opts.logIndex,
-  };
-}
+const CHAIN_ID = CHAINS.arbitrum;
 
 function seedGarden(mockDb: any, gardenAddress: string) {
   mockDb.Garden.set({
@@ -68,9 +48,10 @@ describe("HatsModule.RoleGranted", () => {
     mockDb = await HatsModule.RoleGranted.processEvent({ event, mockDb });
     const garden = await mockDb.Garden.get(addr(10));
 
-    assert.ok(garden);
-    assert.ok(garden.gardeners.includes(account.toLowerCase()));
-    assert.deepEqual(garden.operators, []);
+    assertRoleArrays(garden, {
+      gardeners: [account.toLowerCase()],
+      operators: [],
+    });
   });
 
   it("grants Evaluator role (role=1)", async () => {

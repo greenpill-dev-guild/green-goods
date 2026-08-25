@@ -4,7 +4,7 @@ import {
   PWA_DRAWER_CLOSE_DURATION_VAR,
   pwaDrawerStyles,
   type PwaDrawerStyle,
-} from "../../styles/pwaDrawerStyles";
+} from "../../components/Pwa/drawerStyles";
 
 const requiredSlots: (keyof PwaDrawerStyle)[] = [
   "overlay",

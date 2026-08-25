@@ -1,9 +1,11 @@
-import { cn, type DraftWithImages, formatRelativeTime } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import type { DraftWithImages } from "@green-goods/shared/hooks/work/useDrafts";
+import { formatRelativeTime } from "@green-goods/shared/utils/relativeTime";
 import { RiDeleteBinLine, RiDraftLine, RiImageLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 export interface DraftCardProps {
   draft: DraftWithImages;

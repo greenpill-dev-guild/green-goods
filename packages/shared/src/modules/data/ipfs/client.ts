@@ -1,5 +1,5 @@
 import { logger } from "../../app/logger";
-import { PUBLIC_AGENT_ROUTES } from "../../../public-contracts";
+import { PUBLIC_AGENT_ROUTES } from "../../../public-contracts/routes";
 
 // ============================================================================
 // TYPES

@@ -1,11 +1,9 @@
-import {
-  type CynefinPhase,
-  DEFAULT_CHAIN_ID,
-  DOMAIN_LABEL_IDS,
-  formatDateRange,
-  resolveIPFSUrl,
-  useGardens,
-} from "@green-goods/shared";
+import type { CynefinPhase } from "@green-goods/shared/types/domain";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { DOMAIN_LABEL_IDS } from "@green-goods/shared/utils/garden-detail";
+import { formatDateRange } from "@green-goods/shared/utils/time";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import type { FC } from "react";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";

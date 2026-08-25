@@ -1,13 +1,13 @@
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import type { Address } from "@green-goods/shared/types/domain";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
 import {
-  type Address,
-  AddressDisplay,
-  Alert,
-  EmptyState,
-  formatAddress,
   GARDEN_ROLE_ORDER,
   type GardenRole,
   getRoleColorClasses,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/blockchain/garden-roles";
 import { RiDeleteBinLine, RiLoader4Line, RiUserAddLine, RiUserLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";

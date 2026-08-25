@@ -1,7 +1,8 @@
-import { cn, type AccountSheetTab } from "@green-goods/shared";
+import type { AccountSheetTab } from "@green-goods/shared/hooks/admin-ui/layout/accountSheet.events";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { useIntl } from "react-intl";
-import { AccountProfilePanel } from "./AccountProfilePanel";
+import { AccountProfilePanelContainer } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
 
 interface AccountSurfaceProps {
@@ -59,7 +60,7 @@ export function AccountTabPanels({ activeTab, className }: AccountTabPanelsProps
       aria-labelledby={`account-tab-${activeTab}`}
       className={cn("flex flex-col gap-4", className)}
     >
-      {activeTab === "settings" ? <AccountSettingsPanel /> : <AccountProfilePanel />}
+      {activeTab === "settings" ? <AccountSettingsPanel /> : <AccountProfilePanelContainer />}
     </div>
   );
 }

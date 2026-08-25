@@ -1,4 +1,5 @@
-import { SheetBody, SheetFooter } from "@green-goods/shared";
+import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
+import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState, type ReactNode } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";

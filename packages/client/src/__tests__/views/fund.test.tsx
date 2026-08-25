@@ -54,19 +54,29 @@ const {
   mockUseInViewReveal,
   mockUsePublicGardens,
   mockUsePublicVaultSummary,
-  mockOpenWalletModal,
   mockPrimaryAddress,
   mockLastEndowmentExitComplete,
 } = vi.hoisted(() => ({
   mockUseInViewReveal: vi.fn(),
   mockUsePublicGardens: vi.fn(),
   mockUsePublicVaultSummary: vi.fn(),
-  mockOpenWalletModal: vi.fn(),
   mockPrimaryAddress: { current: null as Address | null },
   mockLastEndowmentExitComplete: { current: null as (() => void) | null },
 }));
 
-vi.mock("@green-goods/shared", () => {
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/aave", () => ({
+  formatApy: (value: number) => `${value.toFixed(2)}%`,
+}));
+
+vi.mock("@green-goods/shared/utils/relativeTime", () => ({
+  formatRelativeTime: () => "recently",
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/vaults", () => {
   const formatMockTokenAmount = (value: bigint, decimals = 18, maximumFractionDigits = 4) => {
     const scale = 10n ** BigInt(decimals);
     const whole = value / scale;
@@ -76,45 +86,55 @@ vi.mock("@green-goods/shared", () => {
       maximumFractionDigits,
     }).format(normalized);
   };
-
   return {
-    cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
-    formatApy: (value: number) => `${value.toFixed(2)}%`,
-    formatRelativeTime: () => "recently",
     formatTokenAmount: formatMockTokenAmount,
-    ImageWithFallback: ({
-      alt = "",
-      className,
-      backgroundFallback,
-      src,
-    }: {
-      alt?: string;
-      className?: string;
-      backgroundFallback?: ReactNode;
-      src?: string;
-    }) =>
-      src ? (
-        <img alt={alt} className={className} src={src} />
-      ) : backgroundFallback ? (
-        <>{backgroundFallback}</>
-      ) : (
-        <div aria-hidden="true" className={className} />
-      ),
-    publicGardenHelpers: {
-      deriveSlug: (name: string, id: string) =>
-        name
-          .trim()
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "") || id.toLowerCase(),
-    },
-    useAppKit: () => ({ open: mockOpenWalletModal }),
-    useInViewReveal: (...args: unknown[]) => mockUseInViewReveal(...args),
-    usePublicGardens: (...args: unknown[]) => mockUsePublicGardens(...args),
-    usePublicVaultSummary: (...args: unknown[]) => mockUsePublicVaultSummary(...args),
-    useUser: () => ({ primaryAddress: mockPrimaryAddress.current }),
   };
 });
+
+vi.mock("@green-goods/shared/components/Display/ImageWithFallback", () => ({
+  ImageWithFallback: ({
+    alt = "",
+    className,
+    backgroundFallback,
+    src,
+  }: {
+    alt?: string;
+    className?: string;
+    backgroundFallback?: ReactNode;
+    src?: string;
+  }) =>
+    src ? (
+      <img alt={alt} className={className} src={src} />
+    ) : backgroundFallback ? (
+      <>{backgroundFallback}</>
+    ) : (
+      <div aria-hidden="true" className={className} />
+    ),
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicGardens", () => ({
+  publicGardenHelpers: {
+    deriveSlug: (name: string, id: string) =>
+      name
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || id.toLowerCase(),
+  },
+  usePublicGardens: (...args: unknown[]) => mockUsePublicGardens(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useInViewReveal", () => ({
+  useInViewReveal: (...args: unknown[]) => mockUseInViewReveal(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicVaultSummary", () => ({
+  usePublicVaultSummary: (...args: unknown[]) => mockUsePublicVaultSummary(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: mockPrimaryAddress.current }),
+}));
 
 vi.mock("@/components/Public/PublicFundingCard", () => ({
   PublicFundingCard: ({

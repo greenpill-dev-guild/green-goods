@@ -9,7 +9,7 @@
  */
 
 import { useState } from "react";
-import { getFileByHash } from "../../modules/data/ipfs";
+import { getFileByHash } from "../../modules/data/ipfs/resolve";
 import { logger } from "../../modules/app/logger";
 import type { WorkMetadata } from "../../types/domain";
 import { useAsyncEffect } from "../utils/useAsyncEffect";

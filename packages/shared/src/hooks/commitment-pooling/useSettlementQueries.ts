@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import {
   getCommitmentPayoutPlan,
   getSettlementAccount,
@@ -17,7 +18,7 @@ import { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailabi
 export function useSettlementConfigurations(input: { chainId: number }) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.settlementConfiguration(input.chainId),
+    queryKey: commitmentPoolingKeys.settlementConfiguration(input.chainId),
     queryFn: () => getSettlementConfigurations(input.chainId),
     enabled: availability.status === "available",
     staleTime: STALE_TIME_MEDIUM,
@@ -28,7 +29,7 @@ export function useSettlementConfigurations(input: { chainId: number }) {
 export function useSettlementAccount(input: { chainId: number; garden: Address }) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.settlementAccount(input.chainId, input.garden),
+    queryKey: commitmentPoolingKeys.settlementAccount(input.chainId, input.garden),
     queryFn: () => getSettlementAccount(input.chainId, input.garden),
     enabled: availability.status === "available",
     staleTime: STALE_TIME_MEDIUM,
@@ -46,7 +47,7 @@ export function useSettlementSubject(input: {
 }) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.settlementSubject(
+    queryKey: commitmentPoolingKeys.settlementSubject(
       input.chainId,
       input.isBatch,
       input.subjectId
@@ -86,7 +87,7 @@ export function useSettlementSubject(input: {
 export function useCommitmentPayoutPlan(input: { chainId: number; payoutPlanId: bigint }) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.payoutPlan(input.chainId, input.payoutPlanId),
+    queryKey: commitmentPoolingKeys.payoutPlan(input.chainId, input.payoutPlanId),
     queryFn: () => getCommitmentPayoutPlan(input.chainId, input.payoutPlanId),
     enabled: availability.status === "available",
     staleTime: STALE_TIME_MEDIUM,

@@ -54,6 +54,11 @@ export interface JsonUploadContext {
   metadataType?: string;
 }
 
+export interface IpfsPinner {
+  pinFile(file: File, context?: FileUploadContext): Promise<{ cid: string }>;
+  pinJson(json: Record<string, unknown>, context?: JsonUploadContext): Promise<{ cid: string }>;
+}
+
 // ============================================================================
 // SHARED UPLOAD HANDLER
 // ============================================================================
@@ -236,3 +241,8 @@ export async function uploadJSONToIPFS(
     }
   );
 }
+
+export const ipfsPinner: IpfsPinner = {
+  pinFile: uploadFileToIPFS,
+  pinJson: uploadJSONToIPFS,
+};

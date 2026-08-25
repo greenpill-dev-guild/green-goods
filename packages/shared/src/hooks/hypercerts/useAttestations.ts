@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 
 import type { Address } from "viem";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { logger } from "../../modules/app/logger";
 import { getWorkApprovals, getWorks } from "../../modules/data/eas";
 import { applyAttestationFilters, extractWorkMetadata } from "../../modules/data/hypercerts";
 import type { AttestationFilters, HypercertAttestation } from "../../types/hypercerts";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { hypercertsKeys } from "../../config/query-keys/hypercert";
 
 export interface UseAttestationsResult {
   attestations: HypercertAttestation[];
@@ -32,7 +33,7 @@ export function useAttestations(
   const chainId = DEFAULT_CHAIN_ID;
 
   const query = useQuery({
-    queryKey: queryKeys.hypercerts.attestations(gardenId, filters),
+    queryKey: hypercertsKeys.attestations(gardenId, filters),
     queryFn: async (): Promise<HypercertAttestation[]> => {
       if (!gardenId) return [];
 

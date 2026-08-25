@@ -1,10 +1,8 @@
+import type { Address } from "@green-goods/shared/types/domain";
 import {
-  type Address,
   type CommitmentClaimRequestRecord,
   type CommitmentReadModel,
-  useCommitmentMutation,
-} from "@green-goods/shared";
-import { useNavigate } from "react-router-dom";
+} from "@green-goods/shared/commitment-pooling";
 
 import { type ClaimContext, ClaimContextSheet, type ClaimGardenOption } from "./ClaimContextSheet";
 import { ClaimDecisionPanel } from "./ClaimDecisionPanel";
@@ -12,10 +10,11 @@ import { CommitmentClaimPanel } from "./CommitmentClaimPanel";
 
 export interface CommitmentClaimsProps {
   commitment: CommitmentReadModel;
-  claimRequests: CommitmentClaimRequestRecord[];
   viewer: Address | null;
   /** The reader's own most recent request, if any. */
   ownRequest: CommitmentClaimRequestRecord | null;
+  /** Requests still waiting for the pool garden's steward. */
+  pendingRequests: CommitmentClaimRequestRecord[];
   /** Whether asking again is an open act right now. */
   canAskAgain: boolean;
   /** Steward of the garden that owns the pool: decides pending requests. */
@@ -23,12 +22,13 @@ export interface CommitmentClaimsProps {
   claimGardens: { member: ClaimGardenOption[]; stewarded: ClaimGardenOption[] };
   contextOpen: boolean;
   onContextOpenChange: (open: boolean) => void;
-  isPending: boolean;
-  chainId: number;
-  /** The route garden, for upload tracking on a decline's pinned reason. */
-  gardenAddress: Address;
+  isClaiming: boolean;
+  isDeciding: boolean;
   onAskAgain: () => void;
   onContinue: (context: ClaimContext) => void;
+  onBackToBrowse: () => void;
+  onAccept: (claimant: Address) => void;
+  onDecline: (claimant: Address, reason: string) => void;
 }
 
 /**
@@ -38,22 +38,22 @@ export interface CommitmentClaimsProps {
  */
 export function CommitmentClaims({
   commitment,
-  claimRequests,
   viewer,
   ownRequest,
+  pendingRequests,
   canAskAgain,
   stewardsPoolGarden,
   claimGardens,
   contextOpen,
   onContextOpenChange,
-  isPending,
-  chainId,
-  gardenAddress,
+  isClaiming,
+  isDeciding,
   onAskAgain,
   onContinue,
+  onBackToBrowse,
+  onAccept,
+  onDecline,
 }: CommitmentClaimsProps) {
-  const navigate = useNavigate();
-  const onlineMutation = useCommitmentMutation({ chainId });
   return (
     <>
       {ownRequest && viewer ? (
@@ -62,32 +62,18 @@ export function CommitmentClaims({
           request={ownRequest}
           viewer={viewer}
           canAskAgain={canAskAgain}
-          isPending={isPending}
+          isPending={isClaiming}
           onAskAgain={onAskAgain}
-          onBackToBrowse={() => navigate("../..", { relative: "path" })}
+          onBackToBrowse={onBackToBrowse}
         />
       ) : null}
 
       {stewardsPoolGarden ? (
         <ClaimDecisionPanel
-          requests={claimRequests.filter((request) => request.state === "PENDING")}
-          isPending={onlineMutation.isPending}
-          onAccept={(claimant) =>
-            onlineMutation.mutate({
-              action: "acceptClaim",
-              commitmentId: commitment.commitmentId,
-              claimant,
-            })
-          }
-          onDecline={(claimant, reason) =>
-            onlineMutation.mutate({
-              action: "declineClaim",
-              commitmentId: commitment.commitmentId,
-              claimant,
-              reason,
-              gardenAddress,
-            })
-          }
+          requests={pendingRequests}
+          isPending={isDeciding}
+          onAccept={onAccept}
+          onDecline={onDecline}
         />
       ) : null}
 
@@ -97,7 +83,7 @@ export function CommitmentClaims({
         memberGardens={claimGardens.member}
         stewardedGardens={claimGardens.stewarded}
         approvalGated={commitment.claimMode === "APPROVAL_GATED"}
-        isPending={isPending}
+        isPending={isClaiming}
         onContinue={onContinue}
       />
     </>

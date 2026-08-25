@@ -1,14 +1,17 @@
 /**
- * ProofComposer — adding proof to a commitment.
- *
- * The rules: only the people doing the work reach the form; credit is chosen
- * in full view and travels exactly as chosen; the photos, the words and the
- * credited people leave as one queued job with no CID, because the phone may
- * have no signal; and a failed enqueue never reads as success.
+ * ProofComposer renders the shared controller contract. Draft persistence,
+ * commitment authority, payload shaping, and queue failure behavior are
+ * covered by the controller suite; this file owns the client journey and copy.
  *
  * @vitest-environment jsdom
  */
 
+import type { ProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/proof-controller.types";
+import {
+  commitmentDetailFixture,
+  commitmentFixture,
+} from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
+import { proofComposerControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -16,97 +19,35 @@ import { renderWithProviders, screen } from "../test-utils";
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const OTHER = "0x2222222222222222222222222222222222222222" as const;
-const HELPER = "0x3333333333333333333333333333333333333333" as const;
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 
-const mockUseCommitment = vi.fn();
-const mockUseOffline = vi.fn();
-const mockEnqueue = vi.fn();
+const mockUseController = vi.fn();
+let controller: ProofComposerController;
 
-const AVAILABLE = { status: "available", capability: {} } as const;
-
-function commitment(overrides: Record<string, unknown> = {}) {
+vi.mock("@green-goods/shared/config/default-chain", async (importOriginal) => {
   return {
-    id: "42161-9",
-    chainId: 42161,
-    commitmentId: 9n,
-    creationSeen: true,
-    onchainState: "ACCEPTED",
-    derivedState: "ACTIVE",
-    state: "ACCEPTED",
-    approvedUnits: 0n,
-    evidenceCount: 0,
-    cycleId: null,
-    declaredUnitValue: null,
-    declaredValueBasis: null,
-    targetUnits: 3n,
-    poolId: 7n,
-    unitLabel: "hours",
-    creator: VIEWER,
-    leadProvider: VIEWER,
-    counterparty: OTHER,
-    direction: "OFFER",
-    commitmentType: "DOMAIN_IMPACT",
-    confirmers: [],
-    contributorCount: 2,
-    contributorsFrozen: false,
-    metadataCID: null,
-    ...overrides,
-  };
-}
-
-function detail(overrides: Record<string, unknown> = {}) {
-  return {
-    detail: {
-      commitment: commitment(overrides.commitment as Record<string, unknown>),
-      contributors: (overrides.contributors as unknown[]) ?? [
-        { contributor: VIEWER, active: true, isLead: true },
-        { contributor: HELPER, active: true, isLead: false },
-      ],
-      requirements: [],
-    },
-    availability: AVAILABLE,
-    isLoading: false,
-    isError: false,
-    refetch: vi.fn(),
-  };
-}
-
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
-  return {
-    ...actual,
+    ...(await importOriginal()),
     DEFAULT_CHAIN_ID: 42161,
-    usePrimaryAddress: () => VIEWER,
-    useCommitment: () => mockUseCommitment(),
-    useCommitmentMetadataFor: () => ({ version: 1, title: "Prune the north beds" }),
-    useCommitmentJobs: () => ({
-      enqueue: mockEnqueue,
-      isPending: false,
-      error: null,
-      viewer: VIEWER,
-    }),
-    useOffline: () => mockUseOffline(),
-    useAudioRecording: () => ({
-      isRecording: false,
-      isRequesting: false,
-      elapsed: 0,
-      toggle: vi.fn(),
-      start: vi.fn(),
-      stop: vi.fn(),
-    }),
-    // The real pipeline converts HEIC and compresses through a worker; the
-    // composition rules under test do not depend on either.
-    normalizeWorkMediaFiles: async (files: File[]) => ({
-      accepted: files.map((file) => ({ file })),
-      rejected: [],
-      converted: [],
-    }),
-    imageCompressor: { ...actual.imageCompressor, shouldCompress: () => false },
   };
 });
 
-const { useCommitmentProofDraftStore } = await import("@green-goods/shared/stores");
+vi.mock(
+  "@green-goods/shared/hooks/client-ui/commitment/useProofComposerController",
+  async (importOriginal) => {
+    return {
+      ...(await importOriginal()),
+      useProofComposerController: (...args: unknown[]) => mockUseController(...args),
+    };
+  }
+);
+
+vi.mock("@green-goods/shared/hooks/app/useOffline", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useOffline: () => ({ isOnline: true, pendingCount: 0, syncStatus: "idle" }),
+  };
+});
+
 const { ProofComposer } = await import("../../views/Home/Garden/Proof");
 
 const render = () =>
@@ -120,81 +61,82 @@ const render = () =>
   );
 
 const next = () => screen.getByRole("button", { name: "Next" });
-const photo = () => new File(["jpeg-bytes"], "beds.jpg", { type: "image/jpeg" });
+const reachReview = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(next());
+  await user.click(next());
+};
 
 describe("ProofComposer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // The composer keeps a draft on the device now; one test's words must
-    // not be the next test's starting point.
-    // Order matters: the persisted store writes through to storage, so the
-    // store is emptied first and storage cleared after, or the next hydration
-    // brings the previous test's words straight back.
-    useCommitmentProofDraftStore.setState({ drafts: {} });
-    useCommitmentProofDraftStore.persist.clearStorage();
-    window.localStorage.clear();
-    mockUseOffline.mockReturnValue({ isOnline: true });
-    mockUseCommitment.mockReturnValue(detail());
-    mockEnqueue.mockResolvedValue("job-1");
+    controller = proofComposerControllerFixture({
+      viewer: VIEWER,
+      note: "Beds cleared",
+      credited: [VIEWER],
+      roster: [
+        { address: VIEWER, isLead: true },
+        { address: OTHER, isLead: false },
+      ],
+      metadata: { version: 1, title: "Prune the north beds" },
+      removeMedia: vi.fn(),
+      removeAudio: vi.fn(),
+      toggleCredit: vi.fn(),
+      pick: vi.fn(async () => ({ rejectedCount: 0 })),
+      submit: vi.fn(async () => true),
+      refetch: vi.fn(async () => undefined),
+    });
+    mockUseController.mockImplementation(() => controller);
   });
 
-  it("turns away anyone who is not doing the work", () => {
-    mockUseCommitment.mockReturnValue(
-      detail({
-        commitment: { creator: OTHER, leadProvider: OTHER, counterparty: VIEWER },
-        contributors: [{ contributor: OTHER, active: true, isLead: true }],
-      })
-    );
+  it("passes the parsed route identity to the controller", () => {
+    render();
+
+    expect(mockUseController).toHaveBeenCalledWith({
+      chainId: 42161,
+      commitmentId: 9n,
+      routeGarden: GARDEN,
+    });
+  });
+
+  it("renders controller states without exposing the form", () => {
+    controller = proofComposerControllerFixture({ status: "notYours", commitment: null });
     render();
 
     expect(screen.getByText("Nothing for you to add here")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
   });
 
-  it("lets someone on the team add proof, not only the lead", () => {
-    mockUseCommitment.mockReturnValue(
-      detail({
-        commitment: { creator: OTHER, leadProvider: OTHER, counterparty: null },
-        contributors: [
-          { contributor: OTHER, active: true, isLead: true },
-          { contributor: VIEWER, active: true, isLead: false },
-        ],
-      })
-    );
-    render();
-
-    expect(screen.getByText("Show what was done")).toBeInTheDocument();
-  });
-
-  it("shows an attached photo as the picture, and lets it be removed", async () => {
+  it("renders attached media and delegates removal", async () => {
     const user = userEvent.setup();
+    const file = new File(["jpeg-bytes"], "beds.jpg", { type: "image/jpeg" });
+    controller = proofComposerControllerFixture({
+      note: "Beds cleared",
+      media: [file],
+      imageUrls: ["blob:beds.jpg"],
+      removeMedia: vi.fn(),
+    });
     render();
-
-    await user.upload(document.getElementById("proof-media-upload") as HTMLInputElement, photo());
 
     expect(screen.getByRole("button", { name: "Open beds.jpg" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Remove beds.jpg" }));
-    expect(screen.queryByRole("button", { name: "Open beds.jpg" })).not.toBeInTheDocument();
+    expect(controller.removeMedia).toHaveBeenCalledWith(0);
   });
 
-  it("credits the signed-in member visibly by default, and refuses proof that credits nobody", async () => {
+  it("shows visible credit choices and delegates selection", async () => {
     const user = userEvent.setup();
     render();
     await user.click(next());
 
     const me = screen.getByRole("checkbox", { name: "Credit 0x1111...1111" });
     expect(me).toBeChecked();
-    expect(screen.getByRole("checkbox", { name: "Credit 0x3333...3333" })).not.toBeChecked();
-
-    await user.type(screen.getByLabelText("A few words (optional)"), "Beds cleared");
-    expect(next()).toBeEnabled();
-    await user.click(me);
-    expect(next()).toBeDisabled();
-    expect(screen.getByText("Name at least one person who did this.")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Credit 0x2222...2222" })).not.toBeChecked();
+    await user.click(screen.getByRole("checkbox", { name: "Credit 0x2222...2222" }));
+    expect(controller.toggleCredit).toHaveBeenCalledWith(OTHER);
   });
 
-  it("refuses proof with nothing in it", async () => {
+  it("explains why an empty proof cannot advance", async () => {
     const user = userEvent.setup();
+    controller = proofComposerControllerFixture({ note: "", credited: [VIEWER] });
     render();
     await user.click(next());
 
@@ -204,101 +146,64 @@ describe("ProofComposer", () => {
     ).toBeInTheDocument();
   });
 
-  it("keeps the words and the credited people when the screen is put away and reopened", async () => {
-    // Proof is composed in the field across three beats. An evicted PWA or a
-    // wrong tap used to lose all of it; the draft brings it back, with the
-    // same job identity so a retry is still one job.
+  it("keeps beat stepping and renders the commitment consequence", async () => {
     const user = userEvent.setup();
-    const first = render();
-    await user.click(next());
-    await user.click(screen.getByRole("checkbox", { name: "Credit 0x3333...3333" }));
-    await user.type(screen.getByLabelText("A few words (optional)"), "Beds cleared");
-    first.unmount();
-
+    const detail = commitmentDetailFixture({
+      commitment: commitmentFixture({
+        direction: "REQUEST",
+        creator: OTHER,
+        leadProvider: VIEWER,
+        counterparty: VIEWER,
+        commitmentType: "SUPPORT_SERVICE",
+      }),
+    });
+    controller = proofComposerControllerFixture({
+      detail,
+      commitment: detail.commitment,
+      viewer: VIEWER,
+      note: "Done",
+      credited: [VIEWER],
+    });
     render();
-    await user.click(next());
-    expect(screen.getByLabelText("A few words (optional)")).toHaveValue("Beds cleared");
-    expect(screen.getByRole("checkbox", { name: "Credit 0x3333...3333" })).toBeChecked();
-  });
-
-  it("queues the photo, the words, the links and the credited people as one job with no CID", async () => {
-    const user = userEvent.setup();
-    render();
-
-    const file = photo();
-    await user.upload(document.getElementById("proof-media-upload") as HTMLInputElement, file);
-    await user.click(next());
-    await user.click(screen.getByRole("checkbox", { name: "Credit 0x3333...3333" }));
-    await user.type(screen.getByLabelText("A few words (optional)"), "Beds cleared");
-    await user.type(screen.getByLabelText("Add a link"), "https://example.org/before");
-    await user.click(screen.getByRole("button", { name: "Add" }));
-    await user.click(next());
+    await reachReview(user);
 
     expect(screen.getByText("Before you add this")).toBeInTheDocument();
-    expect(screen.getByText("1 photo or video · no voice note · 1 link")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Add this proof" }));
-
-    expect(mockEnqueue).toHaveBeenCalledTimes(1);
-    const call = mockEnqueue.mock.calls[0]?.[0] as {
-      act: string;
-      payload: Record<string, unknown>;
-    };
-    expect(call.act).toBe("evidence");
-    expect(call.payload.commitmentId).toBe(9n);
-    expect(call.payload.gardenAddress).toBe(GARDEN);
-    expect(call.payload.creditedContributors).toEqual([VIEWER, HELPER]);
-    expect(call.payload.note).toBe("Beds cleared");
-    expect(call.payload.links).toEqual(["https://example.org/before"]);
-    expect(call.payload.media).toEqual([file]);
-    expect(typeof call.payload.clientEvidenceId).toBe("string");
-    expect(call.payload).not.toHaveProperty("cid");
-    expect(await screen.findByText("Proof added")).toBeInTheDocument();
-  });
-
-  it("says the consequence from the commitment's cast, not the form", async () => {
-    const user = userEvent.setup();
-    mockUseCommitment.mockReturnValue(
-      detail({
-        commitment: {
-          direction: "REQUEST",
-          creator: OTHER,
-          leadProvider: VIEWER,
-          counterparty: VIEWER,
-          commitmentType: "SUPPORT_SERVICE",
-        },
-      })
-    );
-    render();
-    await user.click(next());
-    await user.type(screen.getByLabelText("A few words (optional)"), "Done");
-    await user.click(next());
-
     expect(screen.getByText(/goes to the person who asked for the help/i)).toBeInTheDocument();
   });
 
-  it("tells a member on a dead connection that it is saved, photos and all", async () => {
+  it("shows offline queue copy and delegates submission", async () => {
     const user = userEvent.setup();
-    mockUseOffline.mockReturnValue({ isOnline: false });
+    controller = proofComposerControllerFixture({
+      isOnline: false,
+      note: "Done",
+      submit: vi.fn(async () => true),
+    });
     render();
-    await user.click(next());
-    await user.type(screen.getByLabelText("A few words (optional)"), "Done");
-    await user.click(next());
+    await reachReview(user);
 
     expect(screen.getByText(/will wait on your phone, photos and all/i)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Add this proof" }));
-    expect(await screen.findByText("Saved on this phone")).toBeInTheDocument();
+    expect(controller.submit).toHaveBeenCalledTimes(1);
   });
 
-  it("stays on the review when the proof could not be queued", async () => {
+  it("stays on review when the controller cannot queue the proof", async () => {
     const user = userEvent.setup();
-    mockEnqueue.mockRejectedValue(new Error("no sender"));
+    controller = proofComposerControllerFixture({
+      note: "Done",
+      submit: vi.fn(async () => false),
+    });
     render();
-    await user.click(next());
-    await user.type(screen.getByLabelText("A few words (optional)"), "Done");
-    await user.click(next());
+    await reachReview(user);
     await user.click(screen.getByRole("button", { name: "Add this proof" }));
 
-    expect(screen.queryByText("Proof added")).not.toBeInTheDocument();
+    expect(controller.submit).toHaveBeenCalledTimes(1);
     expect(screen.getByText("Before you add this")).toBeInTheDocument();
+  });
+
+  it("renders the queued outcome from the controller", () => {
+    controller = proofComposerControllerFixture({ status: "queued" });
+    render();
+
+    expect(screen.getByText("Proof added")).toBeInTheDocument();
   });
 });

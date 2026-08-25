@@ -1,4 +1,5 @@
-import { type Address, useCurrentChain } from "@green-goods/shared";
+import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
+import type { Address } from "@green-goods/shared/types/domain";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";

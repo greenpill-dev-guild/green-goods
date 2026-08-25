@@ -1,14 +1,14 @@
+import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
+import { useStepFocus } from "@green-goods/shared/hooks/utils/useStepFocus";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import { useCommitmentPoolSetupSequence } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPoolSetupSequence";
+import { isValidCycleSplit } from "@green-goods/shared/modules/commitment-pooling/pool-lifecycle";
 import {
-  type CommitmentCycleRecord,
   isRetriablePoolSetupFailure,
-  isValidCycleSplit,
-  logger,
-  type PoolConsoleController,
   type PoolSetupStep,
-  useCommitmentPoolSetupSequence,
-  useDirtyClose,
-  useStepFocus,
-} from "@green-goods/shared";
+} from "@green-goods/shared/modules/commitment-pooling/pool-setup";
+import type { CommitmentCycleRecord } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { type ReactNode, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { ADMIN_FLOW_DIALOG_CLASS, AdminDialog } from "@/components/AdminDialog";

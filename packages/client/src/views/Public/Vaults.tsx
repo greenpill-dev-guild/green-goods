@@ -1,16 +1,17 @@
+import { formatApy } from "@green-goods/shared/utils/blockchain/aave";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { formatUsdCents } from "@green-goods/shared/utils/blockchain/price-feeds";
 import {
-  formatApy,
-  formatTokenAmount,
-  formatUsdCents,
   getOctantVaultAssetDisplayPolicy,
   getOctantVaultCampaignCopy,
   getOctantVaultCampaigns,
-  getOctantVaultCampaignTransactionState,
-  useOctantVaultHarvestableYield,
-  useOctantVaultStats,
-  useOctantVaultStrategyApy,
-  type OctantVaultCampaignManifest,
-} from "@green-goods/shared";
+} from "@green-goods/shared/modules/vault-crowdfunding/copy";
+import { getOctantVaultCampaignTransactionState } from "@green-goods/shared/modules/vault-crowdfunding/route-manage";
+import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
+import { useOctantVaultHarvestableYield } from "@green-goods/shared/hooks/vault/useOctantVaultHarvestableYield";
+import { useOctantVaultStats } from "@green-goods/shared/hooks/vault/useOctantVaultStats";
+import { useOctantVaultStrategyApy } from "@green-goods/shared/hooks/vault/useOctantVaultStrategyApy";
+import { selectPublicSurfaceState } from "@green-goods/shared/public";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { Link, Navigate, useLocation, useSearchParams } from "react-router-dom";
@@ -22,12 +23,10 @@ import {
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
-import { VaultCheckoutDialog } from "@/components/Public/VaultCheckoutDialog";
-import { VaultManagePositionsPanel } from "@/components/Public/VaultManagePositionsPanel";
+import { PublicSurfaceState } from "@/components/Public/PublicSurfaceState";
+import { VaultCheckoutDialog } from "@/components/Public/Vault/VaultCheckoutDialog";
+import { VaultManagePositionsPanel } from "@/components/Public/Vault/VaultManagePositionsPanel";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
-
-const MANAGE_POSITIONS_PARAM = "manage";
-const MANAGE_POSITIONS_VALUE = "positions";
 
 const copyFieldMessageIds = {
   headline: "headline",
@@ -152,13 +151,6 @@ function CampaignPreviewNote() {
   );
 }
 
-/**
- * On-chain crowdfunding signal for a campaign card: how much the dedicated Octant
- * vault currently holds. Reads through a public client without requiring a wallet
- * runtime) and degrades gracefully; it renders nothing on error or when no vault
- * route exists. Supporter/donor counts are a follow-up (not indexed for these
- * mainnet vaults yet).
- */
 function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifest }) {
   const { formatMessage } = useIntl();
   const decimals = campaign.vault?.asset?.decimals ?? 18;
@@ -173,6 +165,11 @@ function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifes
 
   const tokenAmount = formatTokenAmount(stats.totalAssets, decimals, 4, undefined, true);
   const usd = stats.usdCents !== null ? formatUsdCents(stats.usdCents) : null;
+  const surfaceState = selectPublicSurfaceState({
+    isLoading: stats.isLoading,
+    isError: false,
+    itemCount: stats.totalAssets > 0n ? 1 : 0,
+  });
 
   return (
     <dl
@@ -185,9 +182,22 @@ function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifes
           defaultMessage: "Backed so far",
         })}
       </dt>
-      {stats.isLoading ? (
-        <dd className="mt-1 font-serif text-2xl leading-none text-text-soft-400">…</dd>
-      ) : stats.totalAssets > 0n ? (
+      <PublicSurfaceState
+        state={surfaceState}
+        container="dd"
+        loading={
+          <span className="mt-1 block font-serif text-2xl leading-none text-text-soft-400">…</span>
+        }
+        error={null}
+        empty={
+          <span className="mt-1 block font-serif text-xl leading-none text-text-soft-400">
+            {formatMessage({
+              id: "public.vaults.card.justLaunched",
+              defaultMessage: "Just launched. Be the first to endow.",
+            })}
+          </span>
+        }
+      >
         <dd className="mt-1 flex items-baseline gap-2">
           <span className="font-serif text-3xl leading-none text-text-strong-950">
             {usd ?? `${tokenAmount} ${donorSymbol}`}
@@ -198,14 +208,7 @@ function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifes
             </span>
           ) : null}
         </dd>
-      ) : (
-        <dd className="mt-1 font-serif text-xl leading-none text-text-soft-400">
-          {formatMessage({
-            id: "public.vaults.card.justLaunched",
-            defaultMessage: "Just launched. Be the first to endow.",
-          })}
-        </dd>
-      )}
+      </PublicSurfaceState>
     </dl>
   );
 }
@@ -470,7 +473,7 @@ export function VaultsPageContent({
   const { formatMessage } = useIntl();
   const campaigns = useMemo(() => campaignItems ?? getOctantVaultCampaigns(), [campaignItems]);
   const [searchParams, setSearchParams] = useSearchParams();
-  const managing = searchParams.get(MANAGE_POSITIONS_PARAM) === MANAGE_POSITIONS_VALUE;
+  const managing = searchParams.get("manage") === "positions";
   const [isManagePanelOpen, setManagePanelOpen] = useState(managing);
   const isManagePanelClosePendingRef = useRef(false);
   const [selectedCampaign, setSelectedCampaign] = useState<OctantVaultCampaignManifest | null>(
@@ -495,8 +498,6 @@ export function VaultsPageContent({
   const handleClose = useCallback(() => {
     setSelectedCampaign(null);
   }, []);
-  // Open the route-local management surface. Only `?manage=positions` enters the URL
-  // Never an address, email, or any owner identifier.
   const openManage = useCallback(() => {
     setSelectedCampaign(null);
     isManagePanelClosePendingRef.current = false;
@@ -504,7 +505,7 @@ export function VaultsPageContent({
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
-        next.set(MANAGE_POSITIONS_PARAM, MANAGE_POSITIONS_VALUE);
+        next.set("manage", "positions");
         return next;
       },
       { replace: false }
@@ -519,7 +520,7 @@ export function VaultsPageContent({
       }
 
       setManagePanelOpen(false);
-      if (searchParams.get(MANAGE_POSITIONS_PARAM) === MANAGE_POSITIONS_VALUE) {
+      if (searchParams.get("manage") === "positions") {
         isManagePanelClosePendingRef.current = true;
       }
     },
@@ -529,9 +530,9 @@ export function VaultsPageContent({
     if (!isManagePanelClosePendingRef.current) return;
 
     isManagePanelClosePendingRef.current = false;
-    if (searchParams.get(MANAGE_POSITIONS_PARAM) === MANAGE_POSITIONS_VALUE) {
+    if (searchParams.get("manage") === "positions") {
       const next = new URLSearchParams(searchParams);
-      next.delete(MANAGE_POSITIONS_PARAM);
+      next.delete("manage");
       setSearchParams(next, { replace: true, preventScrollReset: true });
     }
   }, [searchParams, setSearchParams]);
@@ -654,8 +655,6 @@ export function VaultsPageContent({
 
       <PublicFooter variant="soil" />
 
-      {/* Management and checkout each mount their own wallet runtime, so render at
-          most one at a time to avoid nesting two AppKit providers. */}
       {shouldRenderManagePanel ? (
         <VaultManagePositionsPanel
           open={isManagePanelOpen}

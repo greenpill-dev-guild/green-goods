@@ -1,4 +1,5 @@
-import type { Address, PoolConsoleController } from "@green-goods/shared";
+import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type { Address } from "@green-goods/shared/types/domain";
 import type { Dispatch, SetStateAction } from "react";
 import { useIntl } from "react-intl";
 import { AdminConfirmDialog, AdminDialog } from "@/components/AdminDialog";

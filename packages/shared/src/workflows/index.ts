@@ -17,9 +17,17 @@ export { authMachine } from "./authMachine";
 export {
   authenticatePasskeyService,
   authServices,
+  createAuthServices,
   registerPasskeyService,
   restoreSessionService,
 } from "./authServices";
+export {
+  type AuthTelemetryAdapter,
+  defaultPasskeyAdapters,
+  type PasskeyAdapters,
+  type PasskeyServerClientAdapter,
+  type PasskeySessionAdapter,
+} from "./auth-passkey-adapters";
 // Assessment Workflow
 export type {
   CreateAssessmentContext as AssessmentContext,

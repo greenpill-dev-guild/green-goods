@@ -1,10 +1,10 @@
+import type { Address } from "@green-goods/shared/types/domain";
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { Alert } from "@green-goods/shared/components/Alert";
 import {
-  type Address,
-  AddressDisplay,
-  Alert,
   type CommitmentReadModel,
   isCapturedCommitment,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { useIntl } from "react-intl";
 
 export interface ProofReviewProps {

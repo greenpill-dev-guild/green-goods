@@ -1,6 +1,6 @@
 import { RiCheckLine } from "@remixicon/react";
 import { type KeyboardEvent, type ReactNode, useCallback, useMemo, useRef } from "react";
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 
 export interface AdminChoiceOption {
   value: string;

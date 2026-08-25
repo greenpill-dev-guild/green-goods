@@ -4,7 +4,7 @@
  */
 
 import { render, screen, fireEvent } from "@testing-library/react";
-import { Domain, type Work } from "@green-goods/shared";
+import { Domain, type Work } from "@green-goods/shared/types/domain";
 import { describe, expect, it, vi } from "vitest";
 import { HubWorkCard } from "@/views/Hub/components/HubWorkCard";
 

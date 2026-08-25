@@ -1,5 +1,5 @@
 import { getAddress, isAddress } from "viem";
-import { derivePublicGardenSlug } from "../public-contracts";
+import { derivePublicGardenSlug } from "../public-contracts/garden-slug";
 import type { Address } from "../types/domain";
 import type {
   CampaignCookieJarCampaign,

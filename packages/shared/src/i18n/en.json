@@ -4893,6 +4893,7 @@
   "public.readDeeper.kicker": "Read deeper",
   "public.source.close": "Close",
   "public.source.viewSource": "View source",
+  "public.surface.error": "This public record is temporarily unavailable. Please try again.",
   "public.vaults.boundary.body": "This page is for Octant-backed campaigns. For the wider Green Goods network, explore Gardens.",
   "public.vaults.boundary.cta": "Explore Gardens",
   "public.vaults.boundary.kicker": "Beyond these campaigns",

@@ -1,4 +1,6 @@
-import { type Action, COMMITMENT_COMPOSER_DEFAULTS, DEFAULT_CHAIN_ID } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import type { Action } from "@green-goods/shared/types/domain";
+import { COMMITMENT_COMPOSER_DEFAULTS } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import type { Meta, StoryObj } from "@storybook/react";
 import { STORYBOOK_ADMIN_ACTIONS } from "../../../../../../shared/.storybook/adminFixtures";
 import { STORY_JOAO, STORY_MARIA } from "../poolStoryFixtures";

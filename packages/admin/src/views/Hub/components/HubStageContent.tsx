@@ -1,11 +1,13 @@
 import type {
   ActivityEvent,
-  Address,
-  CommitmentsToConfirm,
-  HubActionSummary,
   HubPipelineStage,
-  Work,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
+import {
+  type HubActionSummary,
+  selectHubStageContent,
+} from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
+import type { Address, Work } from "@green-goods/shared/types/domain";
+import type { CommitmentsToConfirm } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
 import { HubAssessmentQueue } from "./HubAssessmentQueue";
 import { HubCertificationQueue } from "./HubCertificationQueue";
 import { HubConfirmQueue } from "./HubConfirmQueue";
@@ -82,7 +84,9 @@ export function HubStageContent({
   onOpenCertification,
   onOpenHistoryEvent,
 }: HubStageContentProps) {
-  if (stage === "work") {
+  const content = selectHubStageContent(stage);
+
+  if (content === "work") {
     return (
       <HubWorkQueue
         items={pendingWorks}
@@ -99,7 +103,7 @@ export function HubStageContent({
     );
   }
 
-  if (stage === "assess") {
+  if (content === "assess") {
     return (
       <HubAssessmentQueue
         items={assessmentQueue}
@@ -113,7 +117,7 @@ export function HubStageContent({
     );
   }
 
-  if (stage === "confirm") {
+  if (content === "confirm") {
     return (
       <HubConfirmQueue
         toConfirm={toConfirm}
@@ -127,7 +131,7 @@ export function HubStageContent({
     );
   }
 
-  if (stage === "certify") {
+  if (content === "certify") {
     return (
       <HubCertificationQueue
         items={certificationQueue}

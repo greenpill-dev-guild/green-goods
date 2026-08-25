@@ -23,7 +23,7 @@ const OTHER = "0x2222222222222222222222222222222222222222";
 const TOKEN = "0x3333333333333333333333333333333333333333";
 const SETTLEMENT = "0x15c8f6cf25aba2161cc04719b4c4a93c4146935d";
 
-const mocks = vi.hoisted(() => ({
+const mocks = await vi.hoisted(async () => ({
   capability: {
     deployment: "deployed",
     activation: "active",
@@ -34,7 +34,7 @@ const mocks = vi.hoisted(() => ({
   } as unknown,
   settlementAddress: "0x15c8f6cf25aba2161cc04719b4c4a93c4146935d",
   senderAvailable: true,
-  sender: { sendContractCall: vi.fn() },
+  sender: (await import("@green-goods/shared/testing")).createMockTransactionSender(),
   mutationErrorHandler: vi.fn(),
   roles: vi.fn(),
   useReadContract: vi.fn(),
@@ -236,7 +236,7 @@ describe("useSettlementMutation", () => {
     setAvailable();
     mocks.senderAvailable = true;
     mocks.settlementAddress = SETTLEMENT;
-    mocks.sender.sendContractCall.mockResolvedValue({ hash: "0xabc" });
+    mocks.sender.sendContractCall.mockResolvedValue({ hash: "0xabc", sponsored: true });
   });
 
   const actions: Array<{ input: SettlementMutationInput; args: readonly unknown[] }> = [
@@ -496,7 +496,7 @@ describe("useSettlementWalletTransfer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.senderAvailable = true;
-    mocks.sender.sendContractCall.mockResolvedValue({ hash: "0xabc" });
+    mocks.sender.sendContractCall.mockResolvedValue({ hash: "0xabc", sponsored: true });
   });
 
   function renderTransfer(

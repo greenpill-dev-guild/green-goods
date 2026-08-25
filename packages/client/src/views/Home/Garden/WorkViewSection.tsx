@@ -1,11 +1,11 @@
-import {
-  formatTimeSpent,
-  type Garden,
-  type Work,
-  type WorkDisplayStatus,
-  type WorkMetadata,
-  type WorkMetadataV1,
-} from "@green-goods/shared";
+import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
+import type {
+  Garden,
+  Work,
+  WorkDisplayStatus,
+  WorkMetadata,
+  WorkMetadataV1,
+} from "@green-goods/shared/types/domain";
 import {
   RiCheckDoubleFill,
   RiDownloadLine,

@@ -1,4 +1,4 @@
-import type { Action } from "@green-goods/shared";
+import type { Action } from "@green-goods/shared/types/domain";
 import esMessages from "@green-goods/shared/i18n/es.json";
 import ptMessages from "@green-goods/shared/i18n/pt.json";
 import type { IntlShape } from "react-intl";

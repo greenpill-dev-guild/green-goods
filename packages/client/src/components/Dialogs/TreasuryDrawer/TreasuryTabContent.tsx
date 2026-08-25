@@ -1,14 +1,13 @@
+import type { Address } from "@green-goods/shared/types/domain";
+import { AssetSelector } from "@green-goods/shared/components/Vault/AssetSelector";
 import {
-  type Address,
-  AssetSelector,
   formatTokenAmount,
-  type GardenVault,
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
-  type VaultDeposit,
   validateDecimalInput,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/blockchain/vaults";
+import type { GardenVault, VaultDeposit } from "@green-goods/shared/types/vaults";
 import { RiBankLine, RiErrorWarningLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";

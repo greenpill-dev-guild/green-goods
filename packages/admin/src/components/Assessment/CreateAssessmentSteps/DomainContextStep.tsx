@@ -1,11 +1,8 @@
-import {
-  cn,
-  Domain,
-  expandDomainMask,
-  Textarea,
-  TextInput,
-  useCreateAssessmentStore,
-} from "@green-goods/shared";
+import { Textarea, TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
+import { Domain } from "@green-goods/shared/types/domain";
+import { expandDomainMask } from "@green-goods/shared/utils/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import {

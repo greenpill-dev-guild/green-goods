@@ -1,10 +1,10 @@
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import {
   type CommitmentContributorRecord,
   type CommitmentMetadataV1,
   type CommitmentReadModel,
   type CommitmentSeat,
-  StatusBadge,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { RiGroupLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 

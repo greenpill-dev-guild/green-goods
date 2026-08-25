@@ -2,12 +2,12 @@
  * @vitest-environment jsdom
  */
 
+import { default as enMessages } from "@green-goods/shared/i18n/en.json";
 import {
-  en as enMessages,
   resetCreateGardenStore,
   useCreateGardenStore,
-  type Address,
-} from "@green-goods/shared";
+} from "@green-goods/shared/stores/useCreateGardenStore";
+import type { Address } from "@green-goods/shared/types/domain";
 import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -16,13 +16,9 @@ const { mockUseEnsName } = vi.hoisted(() => ({
   mockUseEnsName: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    useEnsName: (address: Address | null | undefined) => mockUseEnsName(address),
-  };
-});
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: (address: Address | null | undefined) => mockUseEnsName(address),
+}));
 
 import { ReviewStep } from "../../../components/Garden/CreateGardenSteps/ReviewStep";
 
@@ -36,7 +32,7 @@ describe("components/Garden/CreateGardenSteps/ReviewStep", () => {
       data:
         address === OPERATOR_AND_GARDENER
           ? "river.greengoods.eth"
-          : address === GARDENER
+          : address?.toLowerCase() === GARDENER
             ? "meadow.greengoods.eth"
             : null,
     }));

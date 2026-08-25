@@ -28,6 +28,10 @@ vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 42161,
 }));
 
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 42161,
+}));
+
 vi.mock("../../../modules/data/greenwill", () => ({
   getGreenWillBadgeDefinitions: (...args: unknown[]) => mockGetGreenWillBadgeDefinitions(...args),
   getGreenWillBadgesByOwner: (...args: unknown[]) => mockGetGreenWillBadgesByOwner(...args),

@@ -135,6 +135,89 @@ function normalizeForDocs(command) {
     .trim();
 }
 
+function policyBlocks(markdown, minWords) {
+  const blocks = [];
+  const lines = markdown.split(/\r?\n/);
+  let buffer = [];
+  let startLine = 0;
+  let inFence = false;
+
+  function flush() {
+    if (buffer.length === 0) return;
+    const raw = buffer.join(" ").trim();
+    const normalized = raw
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/[`*_>#~-]/g, " ")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const words = normalized.split(" ").filter(Boolean);
+    if (words.length >= minWords) {
+      blocks.push({
+        line: startLine,
+        raw,
+        words,
+        wordSet: new Set(words),
+      });
+    }
+    buffer = [];
+    startLine = 0;
+  }
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const trimmed = line.trim();
+    if (trimmed.startsWith("```")) {
+      flush();
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    if (!trimmed || /^#{1,6}\s/.test(trimmed) || trimmed.startsWith("|")) {
+      flush();
+      continue;
+    }
+    if (buffer.length === 0) startLine = index + 1;
+    buffer.push(trimmed);
+  }
+  flush();
+  return blocks;
+}
+
+export function findNearDuplicatePolicyBlocks(leftMarkdown, rightMarkdown, options = {}) {
+  const minWords = options.minWords ?? 30;
+  const minimumSimilarity = options.minimumSimilarity ?? 0.82;
+  const leftBlocks = policyBlocks(leftMarkdown, minWords);
+  const rightBlocks = policyBlocks(rightMarkdown, minWords);
+  const matches = [];
+
+  for (const left of leftBlocks) {
+    for (const right of rightBlocks) {
+      const lengthRatio = Math.min(left.words.length, right.words.length) /
+        Math.max(left.words.length, right.words.length);
+      if (lengthRatio < 0.65) continue;
+      const smallerSet = left.wordSet.size <= right.wordSet.size ? left.wordSet : right.wordSet;
+      const largerSet = smallerSet === left.wordSet ? right.wordSet : left.wordSet;
+      let sharedWords = 0;
+      for (const word of smallerSet) {
+        if (largerSet.has(word)) sharedWords += 1;
+      }
+      const similarity = sharedWords / smallerSet.size;
+      if (similarity < minimumSimilarity) continue;
+      matches.push({
+        leftLine: left.line,
+        rightLine: right.line,
+        similarity,
+        leftExcerpt: left.raw.slice(0, 120),
+        rightExcerpt: right.raw.slice(0, 120),
+      });
+    }
+  }
+
+  return matches;
+}
+
 function validateActions() {
   const envActions = parseEnvironmentActions(read(".codex/environments/environment.toml"));
   const docActions = parseDocActions(read("docs/docs/builders/agentic/codex.mdx"));
@@ -200,8 +283,32 @@ function validateRootGuide() {
     }
   }
 
-  for (const command of extractCodeLiterals(getSection(rootGuide, "Validation Ladder"))) {
+  for (const command of extractBulletCommands(rootGuide, "Common Commands")) {
     validateCommand(command, rootScripts, ".", "AGENTS.md");
+  }
+
+  const validationHeadings = Array.from(rootGuide.matchAll(/^## Validation(?:\s|$)/gm));
+  if (validationHeadings.length !== 1) {
+    fail(`AGENTS.md: expected one canonical Validation section, found ${validationHeadings.length}`);
+  }
+
+  for (const reference of [
+    ".claude/context/validation-pipeline.md",
+    ".claude/context/codebase-architecture.md",
+  ]) {
+    if (!rootGuide.includes(reference)) {
+      fail(`AGENTS.md: missing canonical guidance reference ${reference}`);
+    }
+  }
+}
+
+function validateGuideDuplication() {
+  const duplicates = findNearDuplicatePolicyBlocks(read("AGENTS.md"), read("CLAUDE.md"));
+  for (const duplicate of duplicates) {
+    fail(
+      `AGENTS.md:${duplicate.leftLine} and CLAUDE.md:${duplicate.rightLine}: near-verbatim policy block ` +
+        `(${Math.round(duplicate.similarity * 100)}% shared vocabulary); keep one canonical source`,
+    );
   }
 }
 
@@ -248,7 +355,7 @@ function validatePackageGuides() {
 
 function validateCodexImplementationAgent() {
   // Committed agent definitions were retired with the lean-skills consolidation;
-  // the Implementation Quality Contract obligation now lives in AGENTS.md § Codex Workflow.
+  // the Implementation Quality Contract obligation now lives in AGENTS.md § Agent Workflow.
   const guide = read("AGENTS.md");
   for (const marker of [
     "Implementation Quality Contract",
@@ -500,20 +607,27 @@ function validateRepoDerivedGuidanceFacts() {
   }
 }
 
-validateActions();
-validateRootGuide();
-validatePackageGuides();
-validateGuideReferences();
-validateSkillMirrorSymlink();
-validateCodexImplementationAgent();
-validateRepoDerivedGuidanceFacts();
+function run() {
+  validateActions();
+  validateRootGuide();
+  validateGuideDuplication();
+  validatePackageGuides();
+  validateGuideReferences();
+  validateSkillMirrorSymlink();
+  validateCodexImplementationAgent();
+  validateRepoDerivedGuidanceFacts();
 
-if (failures.length > 0) {
-  console.error("Codex consistency check failed:");
-  for (const failure of failures) {
-    console.error(`- ${failure}`);
+  if (failures.length > 0) {
+    console.error("Codex consistency check failed:");
+    for (const failure of failures) {
+      console.error(`- ${failure}`);
+    }
+    process.exit(1);
   }
-  process.exit(1);
+
+  console.log("Codex consistency check passed.");
 }
 
-console.log("Codex consistency check passed.");
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+  run();
+}

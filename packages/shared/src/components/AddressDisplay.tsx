@@ -3,9 +3,11 @@ import { useId, useState } from "react";
 import { useIntl } from "react-intl";
 import { useEnsName } from "../hooks/blockchain/useEnsName";
 import { useTimeout } from "../hooks/utils/useTimeout";
-import { logger } from "../modules";
-import type { Address } from "../types";
-import { cn, copyToClipboard, formatAddress } from "../utils";
+import { logger } from "../modules/app/logger";
+import type { Address } from "../types/domain";
+import { copyToClipboard } from "../utils/app/clipboard";
+import { formatAddress } from "../utils/app/text";
+import { cn } from "../utils/styles/cn";
 
 export interface AddressDisplayProps {
   address: Address;

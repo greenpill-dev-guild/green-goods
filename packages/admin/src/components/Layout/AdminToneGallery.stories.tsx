@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { fn } from "storybook/test";
-import { GardenChip } from "@green-goods/shared";
+import { GardenChip } from "@green-goods/shared/components/Canvas/GardenChip";
 import { withAdminPrimitiveFrame } from "../../../../shared/.storybook/decorators";
 import { AdminButton } from "../AdminButton";
 import { AdminCard } from "../AdminCard";

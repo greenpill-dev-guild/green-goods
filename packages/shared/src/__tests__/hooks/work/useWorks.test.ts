@@ -29,16 +29,23 @@ vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: TEST_CHAIN_ID,
 }));
 
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: TEST_CHAIN_ID,
+}));
+
 vi.mock("../../../modules/data/eas", () => ({
   getWorks: (...args: unknown[]) => mockGetWorks(...args),
   getWorkApprovals: (...args: unknown[]) => mockGetWorkApprovals(...args),
 }));
 
-vi.mock("../../../modules/job-queue", () => ({
+vi.mock("../../../modules/job-queue/default-instance", () => ({
   jobQueue: {
     getJobs: (...args: unknown[]) => mockGetJobs(...args),
     getStats: vi.fn().mockResolvedValue({ total: 0, pending: 0, failed: 0, synced: 0 }),
   },
+}));
+
+vi.mock("../../../modules/job-queue/db", () => ({
   jobQueueDB: {
     getImagesForJob: (...args: unknown[]) => mockGetImagesForJob(...args),
   },
@@ -79,17 +86,18 @@ vi.mock("../../../modules/app/logger", () => ({
   logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
 
-vi.mock("../../../config/query-keys", () => ({
-  queryKeys: {
-    works: {
-      online: (gardenId: string, chainId: number) => ["works", "online", gardenId, chainId],
-      offline: (gardenId: string) => ["works", "offline", gardenId],
-      merged: (gardenId: string, chainId: number) => ["works", "merged", gardenId, chainId],
-    },
-    queue: {
-      pendingCount: () => ["queue", "pendingCount"],
-      stats: () => ["queue", "stats"],
-    },
+vi.mock("../../../config/query-keys/work", () => ({
+  worksKeys: {
+    online: (gardenId: string, chainId: number) => ["works", "online", gardenId, chainId],
+    offline: (gardenId: string) => ["works", "offline", gardenId],
+    merged: (gardenId: string, chainId: number) => ["works", "merged", gardenId, chainId],
+  },
+}));
+
+vi.mock("../../../config/query-keys/misc", () => ({
+  queueKeys: {
+    pendingCount: () => ["queue", "pendingCount"],
+    stats: () => ["queue", "stats"],
   },
 }));
 

@@ -52,6 +52,10 @@ vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 let mockUser: { id: string; address: string } | null = {
   id: MOCK_ADDRESSES.user,
   address: MOCK_ADDRESSES.user,

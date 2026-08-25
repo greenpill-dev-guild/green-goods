@@ -12,13 +12,10 @@ import {
   reconcileCommitmentHypercerts,
 } from "../src/handlers/hypercert-allocations";
 import { createDefaultHypercert } from "../src/handlers/shared";
-import { Addresses, CommitmentPoolingModule, createTestIndexer } from "./v3";
+import { CommitmentPoolingModule, createTestIndexer } from "./v3";
+import { addr, CHAINS, mockEvent } from "./helpers/events";
 
-const CHAIN_ID = 42161;
-
-function address(index: number): string {
-  return Addresses.mockAddresses[index] ?? `0x${index.toString(16).padStart(40, "0")}`;
-}
+const CHAIN_ID = CHAINS.arbitrum;
 
 describe("commitment hypercert allocation reconciliation", () => {
   it("defers cycle recognition until CycleOpened supplies its policy", async () => {
@@ -34,12 +31,12 @@ describe("commitment hypercert allocation reconciliation", () => {
       frozenContributorCount: 2,
     };
     const first = {
-      ...createContributor(CHAIN_ID, 39n, address(4), 1),
+      ...createContributor(CHAIN_ID, 39n, addr(4), 1),
       active: true,
       approvedWorkCredits: 1,
     };
     const second = {
-      ...createContributor(CHAIN_ID, 39n, address(5), 1),
+      ...createContributor(CHAIN_ID, 39n, addr(5), 1),
       active: true,
       approvedWorkCredits: 3,
     };
@@ -81,13 +78,7 @@ describe("commitment hypercert allocation reconciliation", () => {
         funderBps: 1_000n,
         equalParticipationBps: 6_000n,
         verifiedContributionBps: 4_000n,
-        mockEventData: {
-          chainId: CHAIN_ID,
-          block: { timestamp: 3, number: 3 },
-          srcAddress: undefined,
-          transaction: { hash: `0x${"3".padStart(64, "0")}` },
-          logIndex: 0,
-        },
+        mockEventData: mockEvent(CHAIN_ID, 3, { blockNumber: 3, logIndex: 0 }),
       }),
       mockDb: db,
     });
@@ -103,13 +94,13 @@ describe("commitment hypercert allocation reconciliation", () => {
       frozenContributorCount: 2,
     };
     const eligible = {
-      ...createContributor(CHAIN_ID, 40n, address(4), 1),
+      ...createContributor(CHAIN_ID, 40n, addr(4), 1),
       active: true,
       approvedWorkCredits: 1,
       recognitionWeightBps: 6_000,
     };
     const ineligible = {
-      ...createContributor(CHAIN_ID, 40n, address(5), 1),
+      ...createContributor(CHAIN_ID, 40n, addr(5), 1),
       active: true,
       recognitionWeightBps: 4_000,
     };
@@ -162,7 +153,7 @@ describe("commitment hypercert allocation reconciliation", () => {
     }
 
     const firstContributor = {
-      ...createContributor(CHAIN_ID, 41n, address(4), 2),
+      ...createContributor(CHAIN_ID, 41n, addr(4), 2),
       additionSeen: true,
       active: true,
       approvedWorkCredits: 1,
@@ -194,7 +185,7 @@ describe("commitment hypercert allocation reconciliation", () => {
     );
 
     const secondContributor = {
-      ...createContributor(CHAIN_ID, 42n, address(5), 4),
+      ...createContributor(CHAIN_ID, 42n, addr(5), 4),
       additionSeen: true,
       active: true,
       approvedWorkCredits: 1,
@@ -240,12 +231,12 @@ describe("commitment hypercert allocation reconciliation", () => {
       frozenContributorCount: 2,
     };
     const first = {
-      ...createContributor(CHAIN_ID, 43n, address(4), 1),
+      ...createContributor(CHAIN_ID, 43n, addr(4), 1),
       active: true,
       approvedWorkCredits: 1,
     };
     const second = {
-      ...createContributor(CHAIN_ID, 43n, address(5), 1),
+      ...createContributor(CHAIN_ID, 43n, addr(5), 1),
       active: true,
       approvedWorkCredits: 1,
     };

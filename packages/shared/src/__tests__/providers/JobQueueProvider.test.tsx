@@ -18,23 +18,6 @@ const { mockSharedQueryClient } = vi.hoisted(() => ({
   },
 }));
 
-// Mock job queue module - inline factory to avoid hoisting issues
-vi.mock("../../modules/job-queue", () => ({
-  jobQueue: {
-    getStats: vi.fn().mockResolvedValue({ total: 0, pending: 0, failed: 0, synced: 0 }),
-    flush: vi.fn().mockResolvedValue({ processed: 0, failed: 0, skipped: 0 }),
-    subscribe: vi.fn(() => vi.fn()),
-    hasPendingJobs: vi.fn().mockResolvedValue(false),
-    getPendingCount: vi.fn().mockResolvedValue(0),
-  },
-  jobQueueEventBus: {
-    on: vi.fn(() => vi.fn()),
-    off: vi.fn(),
-    emit: vi.fn(),
-    onMultiple: vi.fn(() => vi.fn()),
-  },
-}));
-
 // Mock auth hooks - these will be configured in beforeEach
 vi.mock("../../hooks/auth/useAuth", () => ({
   useAuth: vi.fn(() => ({ authMode: "passkey", walletAddress: null })),
@@ -82,7 +65,12 @@ vi.mock("../../config/react-query", () => ({
   queryClient: mockSharedQueryClient,
 }));
 
-vi.mock("../../config/blockchain", () => ({
+vi.mock("../../config/blockchain", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../config/blockchain")>()),
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
@@ -92,7 +80,8 @@ import { useAuth } from "../../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../../hooks/auth/usePrimaryAddress";
 import { useUser } from "../../hooks/auth/useUser";
 import { useTransactionSender } from "../../hooks/blockchain/useTransactionSender";
-import { jobQueue } from "../../modules/job-queue";
+import { createFakeJobQueueHandle } from "../test-utils/job-queue-fakes";
+import type { JobQueueHandle } from "../../modules/job-queue";
 import type { QueueEvent } from "@green-goods/shared/types";
 import {
   JobQueueProvider,
@@ -102,7 +91,7 @@ import {
 } from "../../providers/JobQueue";
 
 // Type helpers for mocked functions
-const mockJobQueue = vi.mocked(jobQueue);
+const mockJobQueue = vi.mocked(createFakeJobQueueHandle());
 const mockUseAuth = useAuth as ReturnType<typeof vi.fn>;
 const mockUseUser = useUser as ReturnType<typeof vi.fn>;
 const mockUsePrimaryAddress = usePrimaryAddress as ReturnType<typeof vi.fn>;
@@ -111,12 +100,12 @@ const mockUseTransactionSender = useTransactionSender as ReturnType<typeof vi.fn
 describe("providers/JobQueueProvider", () => {
   let queryClient: QueryClient;
 
-  const createWrapper = () => {
+  const createWrapper = (queue: JobQueueHandle = mockJobQueue) => {
     return ({ children }: { children: ReactNode }) =>
       createElement(
         QueryClientProvider,
         { client: queryClient },
-        createElement(JobQueueProvider, null, children)
+        createElement(JobQueueProvider, { queue, children })
       );
   };
 
@@ -142,6 +131,22 @@ describe("providers/JobQueueProvider", () => {
   });
 
   describe("useJobQueue", () => {
+    it("uses an injected queue handle", async () => {
+      const injectedQueue = {
+        ...mockJobQueue,
+        getStats: vi.fn().mockResolvedValue({ total: 4, pending: 3, failed: 1, synced: 0 }),
+      };
+
+      const { result } = renderHook(() => useJobQueue(), {
+        wrapper: createWrapper(injectedQueue),
+      });
+
+      await waitFor(() => {
+        expect(result.current.stats).toEqual({ total: 4, pending: 3, failed: 1, synced: 0 });
+      });
+      expect(injectedQueue.getStats).toHaveBeenCalledWith("0xSmartAccount");
+    });
+
     it("provides initial stats", async () => {
       const { result } = renderHook(() => useJobQueue(), {
         wrapper: createWrapper(),

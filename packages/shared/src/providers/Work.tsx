@@ -1,119 +1,27 @@
 /**
  * Work Provider
  *
- * Orchestrates work submission functionality by composing hooks.
- * Split into two contexts for performance optimization:
- * - WorkSelectionContext: Low-frequency updates (gardens, actions, tabs, domain)
- * - WorkFormContext: High-frequency updates (form state, images)
+ * Composes the work submission flow into split selection and form contexts.
  *
  * @module providers/work
  */
 
-import React, { useCallback, useContext, useMemo, useState } from "react";
-import type { Control, FormState, UseFormRegister, UseFormSetValue } from "react-hook-form";
-import { useShallow } from "zustand/react/shallow";
-import { validationToasts } from "../components/toast";
-import { DEFAULT_CHAIN_ID, getDefaultChain } from "../config/blockchain";
-import { useUser } from "../hooks/auth/useUser";
-import { useActions, useGardens } from "../hooks/blockchain/useBaseLists";
-import { isGardenMember, usePendingJoinsVersion } from "../hooks/garden/useJoinGarden";
-import { useWorkForm, type WorkFormData } from "../hooks/work/useWorkForm";
-import { useWorkImages } from "../hooks/work/useWorkImages";
-import { useWorkMutation } from "../hooks/work/useWorkMutation";
-import { validateWorkSubmissionContext } from "../modules/work/work-submission";
-import { useWorkFlowStore } from "../stores/useWorkFlowStore";
+import React, { useContext } from "react";
+import type { Control, UseFormRegister, UseFormSetValue } from "react-hook-form";
+import type { WorkFormData } from "../hooks/work/useWorkForm";
+import {
+  useWorkSubmissionFlow,
+  type WorkDataProps,
+  type WorkFormValue,
+  type WorkSelectionValue,
+} from "../hooks/work/useWorkSubmissionFlow";
 import { WorkTab } from "../stores/workFlowTypes";
-import type { Action, Domain, Garden, WorkDraft } from "../types/domain";
-import { findActionByUID } from "../utils/action/parsers";
-import { compareAddresses, isAddressInList, normalizeAddress } from "../utils/blockchain/address";
-import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "../utils/debug";
 
-// Re-export WorkTab for backward compatibility
 export { WorkTab };
-
-// ============================================================================
-// Types
-// ============================================================================
-
-/**
- * Low-frequency selection data (gardens, actions, navigation, domain)
- */
-export interface WorkSelectionValue {
-  gardens: Garden[];
-  hasJoinedGardens: boolean;
-  joinableCommunityGarden: Garden | null;
-  actions: Action[];
-  isLoading: boolean;
-  activeTab: WorkTab;
-  setActiveTab: (value: WorkTab) => void;
-  gardenAddress: string | null;
-  setGardenAddress: (value: string | null) => void;
-  actionUID: number | null;
-  setActionUID: (value: number | null) => void;
-  /** Selected domain for domain-centric filtering */
-  selectedDomain: Domain | null;
-  setSelectedDomain: (domain: Domain | null) => void;
-}
-
-/**
- * High-frequency form data (form state, images, mutation)
- */
-export interface WorkFormValue {
-  state: FormState<WorkFormData>;
-  control: Control<WorkFormData>;
-  register: UseFormRegister<WorkFormData>;
-  setValue: UseFormSetValue<WorkFormData>;
-  images: File[];
-  setImages: React.Dispatch<React.SetStateAction<File[]>>;
-  feedback: string;
-  timeSpentMinutes: number | undefined;
-  values: Record<string, unknown>;
-  reset: () => void;
-  uploadWork: (e?: React.BaseSyntheticEvent) => Promise<void>;
-  workMutation: ReturnType<typeof useWorkMutation>;
-  validationErrors: string[];
-}
-
-/**
- * Combined interface for backward compatibility
- */
-export interface WorkDataProps {
-  gardens: Garden[];
-  hasJoinedGardens: boolean;
-  joinableCommunityGarden: Garden | null;
-  actions: Action[];
-  isLoading?: boolean;
-  workMutation: ReturnType<typeof useWorkMutation>;
-  form: {
-    state: FormState<WorkFormData>;
-    actionUID: number | null;
-    images: File[];
-    setImages: React.Dispatch<React.SetStateAction<File[]>>;
-    setActionUID: (value: number | null) => void;
-    register: UseFormRegister<WorkFormData>;
-    setValue: UseFormSetValue<WorkFormData>;
-    control: Control<WorkFormData>;
-    uploadWork: (e?: React.BaseSyntheticEvent) => Promise<void>;
-    gardenAddress: string | null;
-    setGardenAddress: (value: string | null) => void;
-    feedback: string;
-    timeSpentMinutes: number | undefined;
-    values: Record<string, unknown>;
-    reset: () => void;
-    validationErrors: string[];
-  };
-  activeTab: WorkTab;
-  setActiveTab: (value: WorkTab) => void;
-}
-
-// ============================================================================
-// Contexts
-// ============================================================================
+export type { WorkDataProps, WorkFormValue, WorkSelectionValue };
 
 const WorkSelectionContext = React.createContext<WorkSelectionValue | null>(null);
 const WorkFormContext = React.createContext<WorkFormValue | null>(null);
-
-// Combined context retained for consumers of useWork().
 const WorkContext = React.createContext<WorkDataProps>({
   form: {
     register: () => ({}) as ReturnType<UseFormRegister<WorkFormData>>,
@@ -129,326 +37,23 @@ const WorkContext = React.createContext<WorkDataProps>({
   },
 } as unknown as WorkDataProps);
 
-// ============================================================================
-// Hooks
-// ============================================================================
-
-/**
- * Access low-frequency selection data (gardens, actions, tabs, domain).
- * Use this when you only need selection state to avoid re-renders on form changes.
- */
 export function useWorkSelection(): WorkSelectionValue {
   const context = useContext(WorkSelectionContext);
-  if (!context) {
-    throw new Error("useWorkSelection must be used within a WorkProvider");
-  }
+  if (!context) throw new Error("useWorkSelection must be used within a WorkProvider");
   return context;
 }
 
-/**
- * Access high-frequency form data (form state, images, mutation).
- * Use this when you need form state to avoid re-renders on selection changes.
- */
 export function useWorkFormContext(): WorkFormValue {
   const context = useContext(WorkFormContext);
-  if (!context) {
-    throw new Error("useWorkFormContext must be used within a WorkProvider");
-  }
+  if (!context) throw new Error("useWorkFormContext must be used within a WorkProvider");
   return context;
 }
 
-/**
- * Access all work data (backward compatible hook).
- * Combines selection and form contexts.
- *
- * @deprecated Consider using useWorkSelection or useWorkFormContext for better performance
- */
-export const useWork = () => {
-  return useContext(WorkContext);
-};
-
-// ============================================================================
-// Provider
-// ============================================================================
+/** @deprecated Prefer useWorkSelection or useWorkFormContext to limit re-renders. */
+export const useWork = () => useContext(WorkContext);
 
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
-  const { authMode, primaryAddress } = useUser();
-  const chainId = DEFAULT_CHAIN_ID;
-  const rootGardenAddress = getDefaultChain().rootGarden?.address;
-
-  // Base lists via React Query
-  const { data: actionsData = [], isLoading: actionsLoading } = useActions(chainId);
-  const { data: gardensData = [], isLoading: gardensLoading } = useGardens(chainId);
-
-  // Normalize user address for comparisons
-  const userAddress = normalizeAddress(primaryAddress);
-
-  // Filter gardens to only show ones user is a member of.
-  // Use isGardenMember (not raw isAddressInList) so a fresh join is reflected
-  // immediately via pending-joins localStorage, before the indexer catches up
-  // — matches the membership view in /home/profile so the wizard and profile agree.
-  // pendingJoinsVersion subscribes to in-tab pending-join changes so this
-  // memo retriggers when a join confirms or expires.
-  const pendingJoinsVersion = usePendingJoinsVersion();
-  const userGardens = useMemo(
-    () =>
-      userAddress && gardensData
-        ? gardensData.filter((garden: Garden) =>
-            isGardenMember(userAddress, garden.gardeners, garden.stewards, garden.id)
-          )
-        : [],
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
-    [userAddress, gardensData, pendingJoinsVersion]
-  );
-
-  const hasJoinedGardens = userGardens.length > 0;
-
-  const joinableCommunityGarden = useMemo(() => {
-    if (!userAddress || !rootGardenAddress) return null;
-
-    const communityGarden = gardensData.find((garden) =>
-      compareAddresses(garden.id, rootGardenAddress)
-    );
-    if (!communityGarden?.openJoining) return null;
-
-    const isMember =
-      isAddressInList(userAddress, communityGarden.gardeners) ||
-      isAddressInList(userAddress, communityGarden.stewards);
-
-    return isMember ? null : communityGarden;
-  }, [gardensData, rootGardenAddress, userAddress]);
-
-  // UI state via Zustand with useShallow for multi-select optimization
-  const {
-    actionUID,
-    gardenAddress,
-    activeTab,
-    selectedDomain,
-    setActionUID,
-    setGardenAddress,
-    setActiveTab,
-    setSelectedDomain,
-  } = useWorkFlowStore(
-    useShallow((s) => ({
-      actionUID: s.actionUID,
-      gardenAddress: s.gardenAddress,
-      activeTab: s.activeTab,
-      selectedDomain: s.selectedDomain,
-      setActionUID: s.setActionUID,
-      setGardenAddress: s.setGardenAddress,
-      setActiveTab: s.setActiveTab,
-      setSelectedDomain: s.setSelectedDomain,
-    }))
-  );
-
-  const selectedAction = useMemo(
-    () => findActionByUID(actionsData, actionUID),
-    [actionsData, actionUID]
-  );
-
-  // Use extracted hooks
-  const { images, setImages } = useWorkImages();
-  const workForm = useWorkForm(selectedAction?.inputs ?? []);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
-
-  // Work mutation with proper auth branching
-  const workMutation = useWorkMutation({
-    authMode,
-    gardenAddress,
-    actionUID,
-    actions: actionsData,
-    userAddress,
-  });
-
-  // Compute minimum required images from selected action
-  const getMinRequiredImages = () => {
-    if (!selectedAction?.mediaInfo?.required) return 0;
-    return selectedAction.mediaInfo.minImageCount ?? 1;
-  };
-  const minRequiredImages = getMinRequiredImages();
-
-  // Upload work handler
-  const handleUploadWork = useCallback(
-    async (data: WorkFormData) => {
-      // Build generic details from form data (exclude fixed fields)
-      const { feedback: _feedback, timeSpentMinutes: _time, ...dynamicFields } = data;
-
-      const audioNotesSnapshot = useWorkFlowStore.getState().audioNotes.slice();
-      const draft = {
-        feedback: data.feedback ?? "",
-        details: dynamicFields as Record<string, unknown>,
-        ...(typeof data.timeSpentMinutes === "number"
-          ? { timeSpentMinutes: data.timeSpentMinutes }
-          : {}),
-        ...(audioNotesSnapshot.length > 0 ? { audioNotes: audioNotesSnapshot } : {}),
-      };
-
-      const errors = validateWorkSubmissionContext(gardenAddress, actionUID, images, {
-        minRequired: minRequiredImages,
-      });
-      if (errors.length > 0) {
-        setValidationErrors(errors);
-        validationToasts.formError(errors[0]);
-        if (DEBUG_ENABLED) {
-          debugWarn("[WorkProvider] Work submission context validation failed", { errors });
-        }
-        return;
-      }
-      setValidationErrors([]);
-
-      const imagesSnapshot = images.slice();
-      if (DEBUG_ENABLED) {
-        debugLog("[WorkProvider] Submitting work with validated draft", {
-          gardenAddress,
-          actionUID,
-          imageCount: imagesSnapshot.length,
-        });
-      }
-
-      try {
-        await workMutation.mutateAsync({ draft: draft as WorkDraft, images: imagesSnapshot });
-      } catch (error) {
-        if (DEBUG_ENABLED) {
-          debugError("[WorkProvider] mutateAsync threw", error, {
-            gardenAddress,
-            actionUID,
-          });
-        }
-        throw error;
-      }
-    },
-    [gardenAddress, actionUID, images, workMutation, minRequiredImages]
-  );
-
-  const uploadWork = workForm.handleSubmit(handleUploadWork);
-
-  const isLoading = actionsLoading || gardensLoading;
-
-  // Selection context value (low-frequency updates)
-  const selectionValue: WorkSelectionValue = useMemo(
-    () => ({
-      gardens: userGardens,
-      hasJoinedGardens,
-      joinableCommunityGarden,
-      actions: actionsData,
-      isLoading,
-      activeTab,
-      setActiveTab,
-      gardenAddress,
-      setGardenAddress,
-      actionUID,
-      setActionUID,
-      selectedDomain,
-      setSelectedDomain,
-    }),
-    [
-      userGardens,
-      hasJoinedGardens,
-      joinableCommunityGarden,
-      actionsData,
-      isLoading,
-      activeTab,
-      setActiveTab,
-      gardenAddress,
-      setGardenAddress,
-      actionUID,
-      setActionUID,
-      selectedDomain,
-      setSelectedDomain,
-    ]
-  );
-
-  // Form context value (high-frequency updates)
-  const formValue: WorkFormValue = useMemo(
-    () => ({
-      state: workForm.formState,
-      control: workForm.control,
-      register: workForm.register,
-      setValue: workForm.setValue,
-      images,
-      setImages,
-      feedback: workForm.feedback as string,
-      timeSpentMinutes: workForm.timeSpentMinutes,
-      values: workForm.values,
-      reset: workForm.reset,
-      uploadWork,
-      workMutation,
-      validationErrors,
-    }),
-    [
-      workForm.formState,
-      workForm.control,
-      workForm.register,
-      workForm.setValue,
-      images,
-      setImages,
-      workForm.feedback,
-      workForm.timeSpentMinutes,
-      workForm.values,
-      workForm.reset,
-      uploadWork,
-      workMutation,
-      validationErrors,
-    ]
-  );
-
-  // Combined value for consumers using useWork() (selection + form merged).
-  const legacyValue: WorkDataProps = useMemo(
-    () => ({
-      gardens: userGardens,
-      hasJoinedGardens,
-      joinableCommunityGarden,
-      actions: actionsData,
-      isLoading,
-      workMutation,
-      form: {
-        state: workForm.formState,
-        control: workForm.control,
-        register: workForm.register,
-        setValue: workForm.setValue,
-        actionUID,
-        images,
-        setImages,
-        setActionUID,
-        uploadWork,
-        gardenAddress,
-        setGardenAddress,
-        feedback: workForm.feedback as string,
-        timeSpentMinutes: workForm.timeSpentMinutes,
-        values: workForm.values,
-        reset: workForm.reset,
-        validationErrors,
-      },
-      activeTab,
-      setActiveTab,
-    }),
-    [
-      userGardens,
-      hasJoinedGardens,
-      joinableCommunityGarden,
-      actionsData,
-      isLoading,
-      workMutation,
-      workForm.formState,
-      workForm.control,
-      workForm.register,
-      workForm.setValue,
-      actionUID,
-      images,
-      setImages,
-      setActionUID,
-      uploadWork,
-      gardenAddress,
-      setGardenAddress,
-      workForm.feedback,
-      workForm.timeSpentMinutes,
-      workForm.values,
-      workForm.reset,
-      validationErrors,
-      activeTab,
-      setActiveTab,
-    ]
-  );
+  const { selectionValue, formValue, legacyValue } = useWorkSubmissionFlow();
 
   return (
     <WorkSelectionContext.Provider value={selectionValue}>

@@ -11,14 +11,11 @@ import {
   type RouteObject,
 } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
-import {
-  buildHubViewActions,
-  FabProvider,
-  getAdminWorkspaceForPath,
-  NavigationBar,
-  useFabConfigValue,
-  useViewActions,
-} from "@green-goods/shared";
+import { FabProvider, useFabConfigValue } from "@green-goods/shared/components/Canvas/FabContext";
+import { NavigationBar } from "@green-goods/shared/components/Canvas/NavigationBar";
+import { useViewActions } from "@green-goods/shared/components/Canvas/useViewActions";
+import { buildHubViewActions } from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
+import { getAdminWorkspaceForPath } from "@green-goods/shared/utils/navigation/admin-routes";
 import { adminCanvasRoutes } from "@/routes/views";
 import { act, cleanup, renderWithProviders, screen, userEvent, waitFor } from "../test-utils";
 

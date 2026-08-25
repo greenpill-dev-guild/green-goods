@@ -6,11 +6,12 @@ import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import type { Address } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { GARDEN_ROLE_FUNCTIONS, type GardenRole } from "../../utils/blockchain/garden-roles";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { roleKeys } from "../../config/query-keys/identity";
 
 export interface UseHasRoleResult {
   hasRole: boolean;
@@ -49,7 +50,7 @@ export function useHasRole(
   const enabled = Boolean(gardenAddress && userAddress && role && !isZeroAddress(gardenAddress));
 
   const query = useQuery({
-    queryKey: queryKeys.role.hasRole(gardenAddress ?? undefined, userAddress ?? undefined, role),
+    queryKey: roleKeys.hasRole(gardenAddress ?? undefined, userAddress ?? undefined, role),
     queryFn: () =>
       fetchHasRole(gardenAddress as Address, userAddress as Address, role as GardenRole, chainId),
     enabled,

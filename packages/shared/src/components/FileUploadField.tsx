@@ -1,8 +1,10 @@
 import { RiCloseLine, RiLoader4Line, RiUploadCloudLine } from "@remixicon/react";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { logger } from "../modules";
-import { cn, extractErrorMessage, imageCompressor } from "../utils";
+import { logger } from "../modules/app/logger";
+import { extractErrorMessage } from "../utils/errors/extract-message";
+import { cn } from "../utils/styles/cn";
+import { imageCompressor } from "../utils/work/image-compression";
 import { toastService } from "./Toast/toast.service";
 
 const PREVIEWABLE_IMAGE_TYPES = new Set([

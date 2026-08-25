@@ -1,9 +1,7 @@
-import {
-  cn,
-  getEASExplorerUrl,
-  ImagePreviewDialog,
-  type PublicFieldNote,
-} from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { getEASExplorerUrl } from "@green-goods/shared/utils/eas/explorers";
+import { ImagePreviewDialog } from "@green-goods/shared/components/Dialog/ImagePreviewDialog";
+import type { PublicFieldNote } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display";

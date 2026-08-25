@@ -11,13 +11,22 @@ import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock shared barrel (TopNav imports cn, useOffline, Garden, Work from @green-goods/shared)
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/hooks/app/useOffline", () => ({
   useOffline: vi.fn(() => ({
     syncStatus: "idle",
     isOnline: true,
   })),
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useFocusTrap", () => ({
   useFocusTrap: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useTimeout", () => ({
   useTimeout: vi.fn(() => ({
     set: vi.fn(),
     clear: vi.fn(),
@@ -46,7 +55,7 @@ vi.mock("@/components/Actions", async () => {
   };
 });
 
-import type { Work } from "@green-goods/shared";
+import type { Work } from "@green-goods/shared/types/domain";
 import { TopNav } from "../../components/Navigation/TopNav";
 
 const renderWithIntl = (element: React.ReactElement) =>

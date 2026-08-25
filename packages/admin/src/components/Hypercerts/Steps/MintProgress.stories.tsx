@@ -1,4 +1,4 @@
-import type { MintingState } from "@green-goods/shared";
+import type { MintingState } from "@green-goods/shared/stores/useHypercertWizardStore";
 import type { Meta, StoryObj } from "@storybook/react";
 import { MintProgress } from "./MintProgress";
 

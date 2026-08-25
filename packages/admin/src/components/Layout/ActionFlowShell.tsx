@@ -1,6 +1,8 @@
 // Paradigm: Command Surface — solid surfaces only (no glass), pinned chrome,
 // scroll body only. The single chrome for admin action flows.
-import { cn, SheetBody, SheetFooter } from "@green-goods/shared";
+import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
+import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiArrowLeftLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { ActionFlowStepper, type ActionFlowStep } from "./ActionFlowStepper";

@@ -1,9 +1,9 @@
+import { Alert } from "@green-goods/shared/components/Alert";
 import {
-  Alert,
   type CommitmentPoolRecord,
   isResolvableMetadataCID,
   useCommitmentReason,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import {
   RiCheckboxBlankCircleLine,
   RiCheckboxCircleFill,

@@ -7,7 +7,7 @@ import { useAuthContext } from "../../providers/Auth";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
-import { queryKeys } from "../../config/query-keys";
+import { roleKeys } from "../../config/query-keys/identity";
 
 const GET_STEWARD_GARDENS = greenGoodsGraphQL(/* GraphQL */ `
   query GetStewardGardens($steward: [String!]!, $chainId: Int!) {
@@ -93,7 +93,7 @@ export function useRole(): RoleInfo {
     isLoading: isFetching,
     isError: gardensError,
   } = useQuery({
-    queryKey: queryKeys.role.stewardGardens(normalizedAddress ?? undefined, chainId),
+    queryKey: roleKeys.stewardGardens(normalizedAddress ?? undefined, chainId),
     queryFn: () => fetchStewardGardens(normalizedAddress!, chainId),
     enabled: !!normalizedAddress && ready,
     staleTime: STALE_TIMES.baseLists,

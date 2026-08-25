@@ -1,5 +1,11 @@
 import { create } from "zustand";
 import type { Address, Domain } from "../types/domain";
+import {
+  registerWorkImageUrlTransition,
+  resetWorkFlowTransition,
+  revokeWorkImageUrlTransition,
+  setWorkFlowFieldTransition,
+} from "./transitions/work-flow";
 import { WorkTab } from "./workFlowTypes";
 
 export type WorkDraftState = {
@@ -72,38 +78,54 @@ export const useWorkFlowStore = create<WorkFlowState>((set, get) => ({
   selectedDomain: null,
   imageObjectUrls: [],
 
-  setActiveTab: (tab) => set({ activeTab: tab }),
-  setSubmissionCompleted: (completed) => set({ submissionCompleted: completed }),
+  setActiveTab: (tab) =>
+    set((state) => setWorkFlowFieldTransition(state, { field: "activeTab", value: tab })),
+  setSubmissionCompleted: (completed) =>
+    set((state) =>
+      setWorkFlowFieldTransition(state, { field: "submissionCompleted", value: completed })
+    ),
   ensureWorkSubmissionJourneyId: () => {
     const existing = get().workSubmissionJourneyId;
     if (existing) return existing;
 
     const workSubmissionJourneyId = createWorkSubmissionJourneyId();
-    set({ workSubmissionJourneyId });
+    set((state) =>
+      setWorkFlowFieldTransition(state, {
+        field: "workSubmissionJourneyId",
+        value: workSubmissionJourneyId,
+      })
+    );
     return workSubmissionJourneyId;
   },
-  clearWorkSubmissionJourneyId: () => set({ workSubmissionJourneyId: null }),
-  setGardenAddress: (id) => set({ gardenAddress: id }),
-  setActionUID: (uid) => set({ actionUID: uid }),
-  setFeedback: (text) => set({ feedback: text }),
-  setDetails: (details) => set({ details }),
-  setTags: (tags) => set({ tags }),
-  setTimeSpentMinutes: (n) => set({ timeSpentMinutes: n }),
-  setImages: (files) => set({ images: files }),
-  setAudioNotes: (files) => set({ audioNotes: files }),
-  setSelectedDomain: (domain) => set({ selectedDomain: domain }),
+  clearWorkSubmissionJourneyId: () =>
+    set((state) =>
+      setWorkFlowFieldTransition(state, { field: "workSubmissionJourneyId", value: null })
+    ),
+  setGardenAddress: (value) =>
+    set((state) => setWorkFlowFieldTransition(state, { field: "gardenAddress", value })),
+  setActionUID: (value) =>
+    set((state) => setWorkFlowFieldTransition(state, { field: "actionUID", value })),
+  setFeedback: (value) =>
+    set((state) => setWorkFlowFieldTransition(state, { field: "feedback", value })),
+  setDetails: (value) =>
+    set((state) => setWorkFlowFieldTransition(state, { field: "details", value })),
+  setTags: (value) => set((state) => setWorkFlowFieldTransition(state, { field: "tags", value })),
+  setTimeSpentMinutes: (value) =>
+    set((state) => setWorkFlowFieldTransition(state, { field: "timeSpentMinutes", value })),
+  setImages: (value) =>
+    set((state) => setWorkFlowFieldTransition(state, { field: "images", value })),
+  setAudioNotes: (value) =>
+    set((state) => setWorkFlowFieldTransition(state, { field: "audioNotes", value })),
+  setSelectedDomain: (value) =>
+    set((state) => setWorkFlowFieldTransition(state, { field: "selectedDomain", value })),
 
   registerImageUrl: (url) => {
-    set((state) => ({
-      imageObjectUrls: [...state.imageObjectUrls, url],
-    }));
+    set((state) => registerWorkImageUrlTransition(state, url));
   },
 
   revokeImageUrl: (url) => {
     URL.revokeObjectURL(url);
-    set((state) => ({
-      imageObjectUrls: state.imageObjectUrls.filter((u) => u !== url),
-    }));
+    set((state) => revokeWorkImageUrlTransition(state, url));
   },
 
   reset: () => {
@@ -113,13 +135,6 @@ export const useWorkFlowStore = create<WorkFlowState>((set, get) => ({
       URL.revokeObjectURL(url);
     });
 
-    set({
-      ...initial,
-      activeTab: WorkTab.Intro,
-      submissionCompleted: false,
-      workSubmissionJourneyId: null,
-      selectedDomain: null,
-      imageObjectUrls: [],
-    });
+    set((state) => resetWorkFlowTransition(state, initial));
   },
 }));

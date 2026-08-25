@@ -1,9 +1,9 @@
+import type { Address } from "@green-goods/shared/types/domain";
 import type {
-  Address,
   CommitmentContributorRecord,
   CommitmentReadModel,
   CommitmentRequirementRecord,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, screen, userEvent, waitFor } from "storybook/test";
 import { ConfirmSheet } from "./ConfirmSheet";

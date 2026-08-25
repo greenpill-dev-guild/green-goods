@@ -1,11 +1,9 @@
-import {
-  Alert,
-  EmptyState,
-  EmptyStateShell,
-  type HubActionSummary,
-  type Work,
-  useEnsName,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import type { HubActionSummary } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import type { Work } from "@green-goods/shared/types/domain";
 import { RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { formatEnsAddressName } from "@/components/EnsAddressText";

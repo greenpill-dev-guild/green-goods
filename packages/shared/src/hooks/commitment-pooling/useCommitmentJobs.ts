@@ -16,8 +16,8 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { queryKeys } from "../../config/query-keys";
-import { jobQueue } from "../../modules/job-queue";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
+import { jobQueue } from "../../modules/job-queue/default-instance";
 import type {
   ClaimJobPayload,
   CommitmentCreationPayload,
@@ -120,11 +120,11 @@ export function useCommitmentJobs(options: { chainId?: number } = {}) {
       }
     },
     onSuccess: async (_jobId, input) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.commitmentPooling.all(chainId) });
+      await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });
       const commitmentId = subjectCommitmentId(input);
       if (commitmentId !== null) {
         await queryClient.invalidateQueries({
-          queryKey: queryKeys.commitmentPooling.commitment(chainId, commitmentId),
+          queryKey: commitmentPoolingKeys.commitment(chainId, commitmentId),
         });
       }
     },

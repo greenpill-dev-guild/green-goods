@@ -9,23 +9,22 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-const mocks = vi.hoisted(() => ({
-  uploadJSONToIPFS: vi.fn(),
-}));
-
-vi.mock("../modules/data/ipfs/upload", () => ({ uploadJSONToIPFS: mocks.uploadJSONToIPFS }));
-
-const {
+import type { CommitmentDocumentStore } from "../modules/commitment-pooling/document-store";
+import {
   buildCommitmentReason,
   COMMITMENT_REASON_VERSION,
   CommitmentReasonPinError,
   isCommitmentReasonPinError,
   parseCommitmentReason,
   pinCommitmentReason,
-} = await import("../modules/commitment-pooling/reasons");
+} from "../modules/commitment-pooling/reasons";
 
 const GARDEN = "0x2222222222222222222222222222222222222222" as const;
+const pinJson = vi.fn();
+const documents: CommitmentDocumentStore = {
+  pinJson,
+  readJson: vi.fn(),
+};
 
 describe("buildCommitmentReason", () => {
   it("shapes a versioned document from the member's words", () => {
@@ -52,32 +51,38 @@ describe("buildCommitmentReason", () => {
 
 describe("pinCommitmentReason", () => {
   beforeEach(() => {
-    mocks.uploadJSONToIPFS.mockReset();
+    pinJson.mockReset();
   });
 
   it("pins the versioned document and returns its CID", async () => {
-    mocks.uploadJSONToIPFS.mockResolvedValue({ cid: "bafy-reason" });
+    pinJson.mockResolvedValue("bafy-reason");
 
-    const cid = await pinCommitmentReason({
-      reason: "Plans changed",
-      gardenAddress: GARDEN,
-      source: "withdraw",
-    });
+    const cid = await pinCommitmentReason(
+      {
+        reason: "Plans changed",
+        gardenAddress: GARDEN,
+        source: "withdraw",
+      },
+      documents
+    );
 
     expect(cid).toBe("bafy-reason");
-    expect(mocks.uploadJSONToIPFS).toHaveBeenCalledWith(
+    expect(pinJson).toHaveBeenCalledWith(
       { version: COMMITMENT_REASON_VERSION, reason: "Plans changed" },
       expect.objectContaining({ gardenAddress: GARDEN, metadataType: "commitment-reason" })
     );
   });
 
   it("surfaces a pin failure as its own error so a surface can offer a retry", async () => {
-    mocks.uploadJSONToIPFS.mockRejectedValue(new Error("gateway down"));
+    pinJson.mockRejectedValue(new Error("gateway down"));
 
-    const failure = await pinCommitmentReason({
-      reason: "Plans changed",
-      source: "withdraw",
-    }).catch((error: unknown) => error);
+    const failure = await pinCommitmentReason(
+      {
+        reason: "Plans changed",
+        source: "withdraw",
+      },
+      documents
+    ).catch((error: unknown) => error);
 
     expect(failure).toBeInstanceOf(CommitmentReasonPinError);
     expect(isCommitmentReasonPinError(failure)).toBe(true);
@@ -85,7 +90,9 @@ describe("pinCommitmentReason", () => {
   });
 
   it("never pins an empty reason", async () => {
-    await expect(pinCommitmentReason({ reason: " ", source: "withdraw" })).rejects.toThrow();
-    expect(mocks.uploadJSONToIPFS).not.toHaveBeenCalled();
+    await expect(
+      pinCommitmentReason({ reason: " ", source: "withdraw" }, documents)
+    ).rejects.toThrow();
+    expect(pinJson).not.toHaveBeenCalled();
   });
 });

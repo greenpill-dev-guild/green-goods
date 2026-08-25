@@ -33,7 +33,7 @@ const ACCOUNT = "0x1111111111111111111111111111111111111111";
 const VIEWER = "0x2222222222222222222222222222222222222222";
 const MODULE = "0x6bb5b0fd70b6771b0e955fef37f8bd2ce911470a";
 
-const mocks = vi.hoisted(() => ({
+const mocks = await vi.hoisted(async () => ({
   capability: {
     deployment: "deployed",
     activation: "active",
@@ -44,7 +44,7 @@ const mocks = vi.hoisted(() => ({
   } as unknown,
   moduleAddress: "0x6bb5b0fd70b6771b0e955fef37f8bd2ce911470a",
   senderAvailable: true,
-  sender: { sendContractCall: vi.fn() },
+  sender: (await import("@green-goods/shared/testing")).createMockTransactionSender(),
   mutationErrorHandler: vi.fn(),
   pinCommitmentReason: vi.fn(),
   roles: vi.fn(),
@@ -427,7 +427,7 @@ describe("useCommitmentMutation", () => {
     setAvailable();
     mocks.senderAvailable = true;
     mocks.moduleAddress = MODULE;
-    mocks.sender.sendContractCall.mockResolvedValue({ hash: "0xabc" });
+    mocks.sender.sendContractCall.mockResolvedValue({ hash: "0xabc", sponsored: true });
   });
 
   const actions: Array<{

@@ -15,7 +15,7 @@
     "typecheck:source": "node ../../scripts/dev/node-cli.js tsc --noEmit -p tsconfig.app.json",
     "typecheck:tests": "node ../../scripts/dev/node-cli.js tsc --noEmit -p tsconfig.test.json",
     "typecheck:full": "node ../../scripts/dev/node-cli.js tsc -b",
-    "build": "APP_ENV=production node ../../scripts/dev/node-cli.js tsc --noEmit && node ../../scripts/dev/node-cli.js vite build && bun run check:pwa-precache && node ../../scripts/dev/remove-public-sourcemaps.js dist",
+    "build": "APP_ENV=production node ../../scripts/dev/node-cli.js tsc -b && node ../../scripts/dev/node-cli.js vite build && bun run check:pwa-precache && node ../../scripts/dev/remove-public-sourcemaps.js dist",
     "check:pwa-precache": "node scripts/check-pwa-precache-budget.mjs",
     "preview": "APP_ENV=production bun --bun vite preview"
   },

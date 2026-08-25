@@ -21,11 +21,16 @@
  *   - the raw error message stays hidden behind a "Show technical details" toggle
  *   - a Copy button assembles a markdown bug report ready to paste into chat
  *
- * Mount as `errorElement` on the root route in router.config.tsx so every loader,
+ * Mount as `errorElement` on the root route in `config/routes.tsx` so every loader,
  * `lazy:` import, and route component throws into here instead of into Router's
  * default UI.
  */
-import { Alert, en, es, logger, pt, trackErrorBoundary } from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import en from "@green-goods/shared/i18n/en";
+import es from "@green-goods/shared/i18n/es";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import pt from "@green-goods/shared/i18n/pt";
+import { trackErrorBoundary } from "@green-goods/shared/modules/app/error-events";
 import {
   RiBugLine,
   RiCheckLine,
@@ -38,12 +43,9 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isRouteErrorResponse, useRouteError } from "react-router-dom";
 import { Button } from "../Actions";
-
 type Messages = typeof en;
 type Locale = "en" | "es" | "pt";
-
 const messages: Record<Locale, Messages> = { en, es, pt };
-
 const CHUNK_ERROR_PATTERNS: RegExp[] = [
   /chunkloaderror/i,
   /loading chunk\s+\S+\s+failed/i,
@@ -51,7 +53,6 @@ const CHUNK_ERROR_PATTERNS: RegExp[] = [
   /importing a module script failed/i,
   /unable to preload css/i,
 ];
-
 const LOOP_ERROR_PATTERNS: RegExp[] = [
   /maximum update depth exceeded/i,
   /minified react error #301/i,
@@ -59,7 +60,6 @@ const LOOP_ERROR_PATTERNS: RegExp[] = [
   /rendered more hooks than during the previous render/i,
   /rendered fewer hooks than expected/i,
 ];
-
 const CHUNK_RELOAD_SESSION_KEY = "gg-route-eb-chunk-reload";
 
 type ErrorCategory = "chunk" | "loop" | "network" | "offline" | "unknown";

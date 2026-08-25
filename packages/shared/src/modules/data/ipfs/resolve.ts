@@ -5,6 +5,7 @@ import {
   IPFS_FALLBACK_GATEWAYS,
   trimTrailingSlashes,
 } from "./client";
+import { createGatewayChain, type IpfsGateway, type IpfsReadOptions } from "./gateway";
 
 // ============================================================================
 // HELPERS
@@ -142,13 +143,37 @@ export function tryParseJson<T = unknown>(value: string): T | null {
   }
 }
 
-async function readFetchedDataAsText(data: Blob | string): Promise<string> {
-  return typeof data === "string" ? data : data.text();
+export type GetFileByHashOptions = IpfsReadOptions;
+
+function fetchGateway(targetUrl: string): IpfsGateway {
+  const fetchResponse = async (signal?: AbortSignal): Promise<Response> => {
+    const response = await fetch(targetUrl, { signal });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch file from IPFS: ${response.status} ${response.statusText}`);
+    }
+    return response;
+  };
+
+  return {
+    readFile: async (_identifier, options = {}) => {
+      const response = await fetchResponse(options.signal);
+      const contentType = response.headers.get("content-type");
+      if (contentType?.includes("application/json") || contentType?.includes("text/")) {
+        return { data: await response.text() };
+      }
+      return { data: await response.blob() };
+    },
+    readJson: async <T>(_identifier: string, options: IpfsReadOptions = {}) => {
+      const response = await fetchResponse(options.signal);
+      const parsed = tryParseJson<T>(await response.text());
+      if (parsed === null) throw new Error("Failed to parse JSON from IPFS response");
+      return parsed;
+    },
+  };
 }
 
-export interface GetFileByHashOptions {
-  signal?: AbortSignal;
-  timeoutMs?: number;
+function gatewayChainFor(identifier: string): IpfsGateway {
+  return createGatewayChain(getIPFSGatewayCandidates(identifier).map(fetchGateway));
 }
 
 /**
@@ -158,89 +183,14 @@ export async function getFileByHash(
   hash: string,
   options: GetFileByHashOptions = {}
 ): Promise<{ data: Blob | string }> {
-  const { signal, timeoutMs = 30_000 } = options;
-  const abortController = new AbortController();
-  const timeoutId =
-    timeoutMs > 0
-      ? setTimeout(() => {
-          abortController.abort();
-        }, timeoutMs)
-      : null;
-
-  const abortFromUpstream = () => abortController.abort();
-  if (signal) {
-    if (signal.aborted) {
-      abortController.abort();
-    } else {
-      signal.addEventListener("abort", abortFromUpstream, { once: true });
-    }
-  }
-
-  let response: Response | null = null;
-  const candidateUrls = getIPFSGatewayCandidates(hash);
-  let lastError: Error | null = null;
-  try {
-    for (const url of candidateUrls) {
-      try {
-        response = await fetch(url, { signal: abortController.signal });
-      } catch (error) {
-        if (abortController.signal.aborted) {
-          throw error;
-        }
-        lastError = error instanceof Error ? error : new Error(String(error));
-        continue;
-      }
-
-      if (response.ok) {
-        break;
-      }
-
-      lastError = new Error(
-        `Failed to fetch file from IPFS: ${response.status} ${response.statusText}`
-      );
-      response = null;
-    }
-  } catch (error) {
-    if (abortController.signal.aborted) {
-      throw new Error(`IPFS request timed out after ${timeoutMs}ms`);
-    }
-    throw error;
-  } finally {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-    signal?.removeEventListener("abort", abortFromUpstream);
-  }
-
-  if (!response) {
-    throw lastError ?? new Error("Failed to fetch file from IPFS");
-  }
-
-  const contentType = response.headers.get("content-type");
-
-  // Return as blob for binary data, text for JSON/text
-  if (contentType?.includes("application/json") || contentType?.includes("text/")) {
-    const text = await response.text();
-    return { data: text };
-  }
-
-  const blob = await response.blob();
-  return { data: blob };
+  return gatewayChainFor(hash).readFile(hash, options);
 }
 
 export async function getJsonByHash<T = unknown>(
   hash: string,
   options: GetFileByHashOptions = {}
 ): Promise<T> {
-  const { data } = await getFileByHash(hash, options);
-  const text = await readFetchedDataAsText(data);
-  const parsed = tryParseJson<T>(text);
-
-  if (parsed === null) {
-    throw new Error("Failed to parse JSON from IPFS response");
-  }
-
-  return parsed;
+  return gatewayChainFor(hash).readJson<T>(hash, options);
 }
 
 // ============================================================================

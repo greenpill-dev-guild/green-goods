@@ -1,11 +1,10 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
 import {
   buildCampaignCookieJarMetadata,
-  DEFAULT_CHAIN_ID,
   getCampaignCookieJarPayoutAssets,
-  type Address,
-  type CampaignCookieJarCampaign,
-  type Garden,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/cookie-jar-campaign";
 import type { IntlShape } from "react-intl";
 import {
   STORYBOOK_ADMIN_DEPLOYER_SEEDS,

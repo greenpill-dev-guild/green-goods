@@ -1,4 +1,4 @@
-import type { Address } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { withAdminIdentity } from "../../../../shared/.storybook/decorators";
 import { FIXTURE_IMAGE_BANNER } from "../../../../shared/.storybook/fixtures";

@@ -1,4 +1,4 @@
-import type { CommitmentComposerValues } from "@green-goods/shared";
+import type { CommitmentComposerValues } from "@green-goods/shared/commitment-pooling";
 import { RiAddLine, RiCloseLine, RiShieldCheckLine } from "@remixicon/react";
 import { useState } from "react";
 import { type UseFormReturn, useWatch } from "react-hook-form";

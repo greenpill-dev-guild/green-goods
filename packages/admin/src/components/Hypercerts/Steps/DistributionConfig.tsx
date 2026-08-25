@@ -1,13 +1,10 @@
-import {
-  Alert,
-  type AllowlistEntry,
-  cn,
-  type DistributionMode,
-  sumUnits,
-  TextInput,
-  TOTAL_UNITS,
-  useEnsName,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { TOTAL_UNITS } from "@green-goods/shared/lib/hypercerts/constants";
+import { type DistributionMode, sumUnits } from "@green-goods/shared/lib/hypercerts/distribution";
+import type { AllowlistEntry } from "@green-goods/shared/types/hypercerts";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCloseLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { isAddress, zeroAddress } from "viem";

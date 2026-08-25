@@ -61,12 +61,17 @@ scripts/
 | `drift-check.test.mjs` | `bun run test:review-guardrails` | Fixture tests for drift checker warning normalization, routing, and dirty-tree context |
 | `check-guidance-links.mjs` | `bun run check:guidance-links`, Supply Chain Guardrails | Guidance drift guard: links/scripts resolve, deleted commands and guides have no live consumers, changed fences have language tags, and the command banner remains aligned |
 | `check-guidance-links.test.mjs` | `bun run test:review-guardrails` | Fixture tests for deleted command/guide consumers, retirement notices, renames, and fenced-language checks |
-| `check-skill-behavior-contracts.mjs` | `bun run check:skill-behavior`, `bun run agentic:check`, Supply Chain Guardrails | Deterministic scenarios for critical audit, contract-review, browser-proof, evidence, plan-lifecycle, and Ship-activation guidance contracts |
+| `check-skill-behavior-contracts.mjs` | `bun run check:skill-behavior`, `bun run agentic:check`, Supply Chain Guardrails | Deterministic scenarios for architecture routing, candidate selection, registry freshness, critical audit, module-seams review, contract-review, browser-proof, evidence, plan-lifecycle, and Ship-activation guidance contracts |
 | `check-skill-behavior-contracts.test.mjs` | `bun run test:review-guardrails`, Supply Chain Guardrails | Positive live-source coverage and negative mutations proving each critical guidance scenario fails closed |
 | `check-immutable-plan-reports.mjs` | `bun run check:immutable-plan-reports`, Supply Chain Guardrails | Reject edits, deletions, and renames of existing dated Plan Hub reports while allowing new correction artifacts |
 | `check-immutable-plan-reports.test.mjs` | `bun run test:review-guardrails` | Fixture tests for immutable dated report diff classification |
-| `check-source-structure.js` | `bun run check:source-structure` | File-size limits + frozen-allowlist policy |
-| `check-test-quality.sh` | `bun run check:test-quality` | Detect tautological assertions, ungoverned skips, `@ts-nocheck`, and newly malformed Solidity test names |
+| `check-source-structure.js` | `bun run check:source-structure` | Source placement, client naming, hook/shared-import layering, changed-file dead exports, file-size limits, and shrinking baseline policy |
+| `check-source-structure.test.mjs` | `bun run test:validation-system` | Fixture coverage for placement, naming, layering, dead-export exclusions, staged modules, and exact baseline shrinkage |
+| `check-staged-modules.mjs` | `bun run check:staged-modules`, validation selector | Keep deferred Card Endow modules marked and isolated from live Client imports |
+| `check-staged-modules.test.mjs` | `bun run test:validation-system` | Positive and fail-closed fixtures for the staged-module boundary |
+| `check-test-quality.sh` | `bun run check:test-quality` | Detect tautological assertions, ungoverned skips, `@ts-nocheck`, malformed new Solidity test names, and direct-test seam drift |
+| `check-direct-tested-seams.mjs` | `bun run check:test-quality` | Resolve real package exports, require direct non-self-mocking subject proof, and validate selected/certified seam registry paths, composition, consumers, proof categories, and evidence fingerprints |
+| `check-direct-tested-seams.test.mjs` | `bun run test:validation-system` | Fixture proof for export-map resolution, self-mocking rejection, missing/duplicate registry evidence, lifecycle gates, fingerprint freshness, and exact-baseline shrinkage |
 | `check-story-coverage.ts` | `design.yml` (via `packages/shared` script) | Storybook coverage policy per package |
 | `check-story-quality.ts` | `design.yml` (via `packages/shared` script) | Storybook story-quality lints |
 | `check-docs-design-parity.mjs` | `bun run check:docs-design-parity` | `docs/DESIGN.md` ↔ `docs/src/css/custom.css` role-accent + section-accent parity (light + dark) |
@@ -77,7 +82,7 @@ scripts/
 | `select-validation.test.mjs` | `bun run test:validation-system`, CI Gate | Fixture matrix for validation intent, risk overrides, dirty-tree freshness, toolchain blocking, budgets, and workflow routing |
 | `ci-gate.mjs` | `.github/workflows/ci-gate.yml` | Fail-closed PR aggregate that consumes the shared selector, fails immediately on terminal non-success, and keeps strict missing-workflow protection |
 | `ci-gate.test.mjs` | `bun run test:validation-system`, `.github/workflows/ci-gate.yml` | Fixture coverage for selector parity, immediate failure, missing registration, terminal conclusions, and stale reruns |
-| `workflow-performance-parity.test.mjs` | `bun run test:validation-system`, Supply Chain Guardrails | Static guard for exact JS pins, cache scope, workflow routing, CI-only coverage reporters, and Contracts Realism setup equivalence |
+| `workflow-performance-parity.test.mjs` | `bun run test:validation-system`, Supply Chain Guardrails | Static guard for exact JS pins, cache scope, workflow routing, production import seams, CI-only coverage reporters, and Contracts Realism setup equivalence |
 | `check-ontology.mjs` | `bun run check:ontology` / `ontology:generate`, `ontology.yml`, `drift-check.mjs` (ontology scope), `agentic:check` | Ontology drift gate: cross-checks the sidecar (`packages/shared/src/ontology/`) against Solidity enums, indexer GraphQL, shared TS vocabularies, EAS schema config, and glossary tables, with a burn-down baseline; `--generate` renders the two docs artifacts |
 | `ontology-render.mjs` | `check-ontology.mjs` | Pure MDX renderers for the generated ontology reference page and entity matrix |
 | `check-ontology.test.mjs` | `node --test scripts/quality/check-ontology.test.mjs`, `ontology.yml` | Fixture tests for ontology extractors, baseline reconciliation, and renderers |
@@ -152,6 +157,8 @@ scripts/
 - `design-token-usage-baseline.tsv` — audited baseline of legacy token references; consumed by `design/check-tokens.sh`.
 - `css-custom-property-baseline.tsv` — audited baseline of unresolved legacy CSS custom properties; consumed by `design/check-css-custom-properties.mjs`.
 - `ontology-drift-baseline.json` — audited burn-down baseline of known ontology drift (owner/expires/note per entry); consumed by `quality/check-ontology.mjs`.
+- `direct-tested-seam-baseline.json` — exact burn-down baseline for legacy tests that do not yet prove their named module seam; consumed by `quality/check-direct-tested-seams.mjs`.
+- `module-seam-registry.json` — selected hotspots and certified critical TypeScript/JavaScript seams with export, production composition, consumer, proof, review-date, and deterministic fingerprint evidence; consumed by `quality/check-direct-tested-seams.mjs`.
 
 ## Companion locations
 

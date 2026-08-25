@@ -9,8 +9,9 @@
  * Pattern: readFileSync + string assertions (same as surface-classes.test.ts).
  */
 
-import { readFileSync, existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { resolveAdminIndexRedirect } from "@green-goods/shared/hooks/admin-ui/navigation/workspaceNavigation";
 import { describe, expect, it } from "vitest";
 
 const srcDir = resolve(__dirname, "../../");
@@ -29,6 +30,10 @@ const sheetRegistryPath = resolve(
 const communityViewPath = resolve(srcDir, "views/Community/index.tsx");
 const profileViewPath = resolve(srcDir, "views/Profile/index.tsx");
 const canvasLayoutPath = resolve(srcDir, "components/Layout/CanvasLayout.tsx");
+const canvasControllerPath = resolve(
+  srcDir,
+  "../../shared/src/hooks/admin-ui/layout/useCanvasShellController.ts"
+);
 const rightSheetDescriptorPath = resolve(
   srcDir,
   "../../shared/src/hooks/admin-ui/layout/useAdminRightSheetDescriptor.tsx"
@@ -40,6 +45,25 @@ function readSource(path: string): string {
 }
 
 describe("route folding", () => {
+  it.each([
+    ["hub", "?garden=0x1&view=queue", "/hub/work?garden=0x1"],
+    ["garden", "?garden=0x1&view=overview", "/garden/health?garden=0x1"],
+    ["garden-overview", "?view=overview", "/garden/health"],
+    ["community", "?garden=0x1&card=c1&pool=p1", "/community/members?garden=0x1"],
+    ["garden-members", "?garden=0x1&card=c1", "/community/members?garden=0x1&card=c1"],
+  ] as const)("resolves the %s index redirect through one policy", (kind, search, expected) => {
+    expect(resolveAdminIndexRedirect(kind, search)).toBe(expected);
+  });
+
+  it("uses one index redirect component without route string concatenation", () => {
+    const routeViews = readSource(routeViewsPath);
+
+    expect(routeViews.match(/function IndexRedirect/g)).toHaveLength(1);
+    expect(routeViews.match(/<IndexRedirect kind=/g)).toHaveLength(5);
+    expect(routeViews).not.toContain("preserveSearch");
+    expect(routeViews).not.toMatch(/to=\{`\$\{adminRoutes\./);
+  });
+
   it("router has no top-level /assessments path (folded into /hub)", () => {
     const router = readSource(routerPath);
 
@@ -103,14 +127,16 @@ describe("route folding", () => {
     expect(sheetRegistry).toContain("ADMIN_ROUTE_SHEET_REGISTRY");
   });
 
-  it("global right sheet content is resolved through the admin sheet registry", () => {
+  it("global right sheet content is resolved through the canvas controller and registry", () => {
     const sheetRegistry = readSource(sheetRegistryPath);
     const canvasLayout = readSource(canvasLayoutPath);
+    const canvasController = readSource(canvasControllerPath);
     const rightSheetDescriptor = readSource(rightSheetDescriptorPath);
 
     expect(sheetRegistry).toContain("ADMIN_RIGHT_SHEET_REGISTRY");
     expect(sheetRegistry).toContain("notifications");
-    expect(canvasLayout).toContain("useAdminRightSheetDescriptor");
+    expect(canvasLayout).toContain("useCanvasShellController");
+    expect(canvasController).toContain("useAdminRightSheetDescriptor");
     expect(canvasLayout).not.toContain("RIGHT_SHEET_TITLES");
     expect(canvasLayout).toContain("AccountProfilePanel");
     expect(canvasLayout).toContain("AccountSettingsPanel");

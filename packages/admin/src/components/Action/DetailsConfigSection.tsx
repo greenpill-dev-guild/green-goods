@@ -1,11 +1,10 @@
 import {
-  type ActionInstructionConfig,
-  FormField,
   NativeSelect,
   Textarea,
   TextInput,
-  type WorkInput,
-} from "@green-goods/shared";
+} from "@green-goods/shared/components/Form/ControlPrimitives";
+import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
+import type { ActionInstructionConfig, WorkInput } from "@green-goods/shared/types/domain";
 import {
   RiAddLine,
   RiArrowDownLine,

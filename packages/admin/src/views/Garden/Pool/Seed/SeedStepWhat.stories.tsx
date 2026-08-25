@@ -1,4 +1,7 @@
-import { COMMITMENT_COMPOSER_DEFAULTS, useCommitmentComposerForm } from "@green-goods/shared";
+import {
+  COMMITMENT_COMPOSER_DEFAULTS,
+  useCommitmentComposerForm,
+} from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import type { Meta, StoryObj } from "@storybook/react";
 import { SeedStepWhat, type SeedStepWhatProps } from "./SeedStepWhat";
 import type { SeedCycleOption } from "./seedStepModel";

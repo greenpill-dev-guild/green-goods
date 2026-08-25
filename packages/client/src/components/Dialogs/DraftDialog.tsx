@@ -1,11 +1,11 @@
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiArrowRightLine, RiCloseLine, RiDeleteBinLine, RiDraftLine } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
-import { pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaDrawerStyles } from "@/components/Pwa/drawerStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 interface DraftDialogProps {
   isOpen: boolean;

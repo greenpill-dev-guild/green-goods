@@ -1,4 +1,4 @@
-import { Card } from "@green-goods/shared";
+import { Card } from "@green-goods/shared/components/Cards/CardBase";
 import { RiExternalLinkLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 

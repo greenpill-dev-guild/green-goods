@@ -1,20 +1,22 @@
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
+import { useCreateCampaignCookieJar } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar";
+import { useCookieJarFactoryAddress } from "@green-goods/shared/hooks/cookie-jar/useCookieJarFactoryAddress";
+import { useRole } from "@green-goods/shared/hooks/gardener/useRole";
+import type { Address } from "@green-goods/shared/types/domain";
 import {
-  aggregateCampaignCookieJarStewards,
   ERC20_DECIMALS_ABI,
   ERC20_SYMBOL_ABI,
-  formatTokenAmount,
+} from "@green-goods/shared/utils/blockchain/abis/erc20";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import {
+  aggregateCampaignCookieJarStewards,
+  type CampaignCookieJarPayoutAssetId,
   getCampaignCookieJarPayoutAssets,
   getDefaultCampaignCookieJarPayoutAsset,
   normalizeCampaignAddress,
-  type Address,
-  type CampaignCookieJarPayoutAssetId,
-  useCookieJarFactoryAddress,
-  useCreateCampaignCookieJar,
-  useCurrentChain,
-  useGardens,
-  useRole,
-  useUser,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/cookie-jar-campaign";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useReadContracts } from "wagmi";

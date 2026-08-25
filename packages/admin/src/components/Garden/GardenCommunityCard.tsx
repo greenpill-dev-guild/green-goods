@@ -1,15 +1,15 @@
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { Card } from "@green-goods/shared/components/Cards/CardBase";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useGardenYieldWiringState } from "@green-goods/shared/hooks/yield/useGardenYieldWiringState";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import type { Address } from "@green-goods/shared/types/domain";
 import {
-  type Address,
-  AddressDisplay,
-  Card,
-  logger,
   PoolType,
-  toastService,
-  useGardenYieldWiringState,
   WEIGHT_SCHEME_VALUES,
   WeightScheme,
-  adminRoutes,
-} from "@green-goods/shared";
+} from "@green-goods/shared/types/gardens-community";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiAddLine, RiAlertLine, RiCheckLine, RiGroupLine, RiQuestionLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";

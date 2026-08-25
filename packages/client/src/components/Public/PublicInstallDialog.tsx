@@ -1,5 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { type InstallGuidance, cn } from "@green-goods/shared";
+import type { InstallGuidance } from "@green-goods/shared/hooks/app/useInstallGuidance";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCloseLine } from "@remixicon/react";
 import { QRCodeSVG } from "qrcode.react";
 import type { MouseEventHandler } from "react";

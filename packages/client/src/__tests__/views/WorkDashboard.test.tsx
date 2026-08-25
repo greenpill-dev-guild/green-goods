@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Work } from "@green-goods/shared";
+import type { Work } from "@green-goods/shared/types/domain";
 
 const mockNavigate = vi.hoisted(() => vi.fn());
 const mockUseMyWorks = vi.fn();
@@ -75,16 +75,22 @@ vi.mock("react-router-dom", async (importOriginal) => {
   };
 });
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/blockchain/address", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/utils/blockchain/address")>()),
   compareAddresses: (left?: string, right?: string) =>
     Boolean(left && right && left.toLowerCase() === right.toLowerCase()),
+  isUserAddress: (address?: string, activeAddress?: string) =>
+    Boolean(address && activeAddress && address.toLowerCase() === activeAddress.toLowerCase()),
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/utils/work/pending-review", () => ({
   collectApprovalRecipientsForWorks: (gardenIds: string[]) => gardenIds,
   collectApprovedWorkUIDs: (approvals: Array<{ workUID: string }>) =>
     new Set(approvals.map((approval) => approval.workUID)),
-  DEFAULT_RETRY_COUNT: 0,
-  fetchApprovalsByRecipients: vi.fn(async () => []),
-  filterByTimeRange: (items: unknown[]) => items,
   filterPendingNeedsReview: (
     works: Array<{ id: string; gardenerAddress?: string }>,
     approvedWorkUIDs: Set<string>,
@@ -99,29 +105,93 @@ vi.mock("@green-goods/shared", () => ({
           work.gardenerAddress.toLowerCase() === viewerAddress.toLowerCase()
         )
     ),
-  hapticLight: vi.fn(),
-  isUserAddress: (address?: string, activeAddress?: string) =>
-    Boolean(address && activeAddress && address.toLowerCase() === activeAddress.toLowerCase()),
-  logger: { error: vi.fn() },
-  queryKeys: {
-    approvals: {
-      byMyWorkGardens: (...args: unknown[]) => ["approvals", "mine", ...args],
-      forWorkReview: (...args: unknown[]) => ["approvals", "forWorkReview", ...args],
-    },
-  },
-  Spinner: ({ label }: { label?: string }) => createElement("div", { role: "status" }, label),
+}));
+
+vi.mock("@green-goods/shared/config/query-keys/constants", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/config/query-keys/constants")>()),
+  DEFAULT_RETRY_COUNT: 0,
   STALE_TIME_MEDIUM: 30_000,
-  toastService: { error: vi.fn() },
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useAggregatedApprovals", () => ({
+  fetchApprovalsByRecipients: vi.fn(async () => []),
+}));
+
+vi.mock("@green-goods/shared/utils/time", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/utils/time")>()),
+  filterByTimeRange: (items: unknown[]) => items,
+}));
+
+vi.mock("@green-goods/shared/utils/app/haptics", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/utils/app/haptics")>()),
+  hapticLight: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/modules/app/logger", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared/modules/app/logger")>();
+  return { ...actual, logger: { ...actual.logger, error: vi.fn() } };
+});
+
+vi.mock("@green-goods/shared/config/query-keys/registry", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@green-goods/shared/config/query-keys/registry")>();
+  return {
+    ...actual,
+    queryKeys: {
+      ...actual.queryKeys,
+      approvals: {
+        ...actual.queryKeys.approvals,
+        byMyWorkGardens: (...args: unknown[]) => ["approvals", "mine", ...args],
+        forWorkReview: (...args: unknown[]) => ["approvals", "forWorkReview", ...args],
+      },
+    },
+  };
+});
+
+vi.mock("@green-goods/shared/components/Spinner", () => ({
+  Spinner: ({ label }: { label?: string }) => createElement("div", { role: "status" }, label),
+}));
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@green-goods/shared/components/Toast/toast.service")>();
+  return { ...actual, toastService: { ...actual.toastService, error: vi.fn() } };
+});
+
+vi.mock("@green-goods/shared/hooks/work/useDrafts", () => ({
   useDrafts: () => ({ draftCount: 0 }),
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useFocusTrap", () => ({
   useFocusTrap: vi.fn(),
-  useMyOnlineWorks: (...args: unknown[]) => mockUseMyOnlineWorks(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useMyWorks", () => ({
   useMyWorks: (...args: unknown[]) => mockUseMyWorks(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useReviewerGardenIds", () => ({
   useReviewerGardenIds: () => ({ reviewerGardenIds: mockReviewerGardenIds }),
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useReviewerWorks", () => ({
   useReviewerWorks: () => mockReviewerWorksState,
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useTimeout", () => ({
   useTimeout: () => ({ set: vi.fn((fn: () => void) => fn()) }),
+}));
+
+vi.mock("@green-goods/shared/stores/useUIStore", () => ({
   useUIStore: (selector: (s: { workDashboardInitialTab?: string }) => unknown) =>
     selector({ workDashboardInitialTab: undefined }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
   useUser: () => ({ user: { id: "0xabc" } }),
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useWorkApprovals", () => ({
   useWorkApprovals: () => mockWorkApprovalsState,
 }));
 

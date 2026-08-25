@@ -1,10 +1,8 @@
-import {
-  type Address,
-  AddressDisplay,
-  cn,
-  formatAddress,
-  MAX_EVIDENCE_LINKS,
-} from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
+import { MAX_EVIDENCE_LINKS } from "@green-goods/shared/commitment-pooling";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";

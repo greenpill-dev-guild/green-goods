@@ -1,9 +1,9 @@
-import {
-  getActionSourceHash,
-  type ActionInstructionConfig,
-  type ActionInstructionTranslationData,
-  type ActionTranslationMap,
-} from "@green-goods/shared";
+import type {
+  ActionInstructionConfig,
+  ActionInstructionTranslationData,
+  ActionTranslationMap,
+} from "@green-goods/shared/types/domain";
+import { getActionSourceHash } from "@green-goods/shared/utils/action/translations";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { ActionTranslationEditor } from "./ActionTranslationEditor";

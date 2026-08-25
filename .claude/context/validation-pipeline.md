@@ -1,9 +1,19 @@
 # Validation Pipeline (shared core)
 
-Single definition of the repo's validation commands. Skills reference this file
-instead of restating the pipeline, so a change to the gate (adding a step,
-renaming a script) happens in exactly one place. The intent ladder that decides
-*which* rung to run lives in `CLAUDE.md § Validation Intent Ladder`.
+Single definition of the repo's validation intent ladder and commands. Skills and agent guides
+reference this file instead of restating the pipeline, so routing or command changes happen in
+exactly one place.
+
+## Fast honest development loop
+
+1. Run the targeted test or observable proof for the behavior being changed.
+2. Add package typecheck or build only when types, routing, rendering, generated output, or a
+   runtime contract moved.
+3. Run the Repo Quick Gate after a coherent cross-package batch or shared public-interface change.
+4. Run the full Ship Gate once, when the work reaches explicit readiness intent.
+
+Coverage stays an outer-loop regression floor. It does not replace direct behavior, consumer
+wiring, production composition, or a fresh readiness gate.
 
 ## Select before executing
 
@@ -38,6 +48,12 @@ Receipt reuse is opt-in and off by default. Pass `--reuse-passing-receipts` to
 lives in `.cache/validation`, holds passes only, and any change to the command, policy, toolchain,
 validated paths, or environment profile invalidates the fingerprint. A tampered store is rejected
 rather than trusted.
+
+`node scripts/dev/ci-local.js` renders and executes Ship intent by default. When Git identifies a
+non-empty change set, Ship is path-scoped to the affected package surfaces and their strict extras.
+An empty change set falls back to the full repository. Critical overrides remain mandatory, and
+merge, readiness, and release keep their selector-defined scope. Use `bun run test:fast` for a
+cache-aware full-scope iteration loop; keep the exact uncached `bun run test` for gates that name it.
 
 Never reuse failures. User cancellation is terminal: stop active validation, schedule nothing else,
 and report only evidence already collected. An unavailable browser, RPC, secret, service, or other

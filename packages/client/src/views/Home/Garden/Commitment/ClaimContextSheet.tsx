@@ -1,4 +1,5 @@
-import { type Address, DialogShell } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { DialogShell } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import { RiGroupLine } from "@remixicon/react";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";

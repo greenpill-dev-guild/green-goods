@@ -1,8 +1,8 @@
+import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import {
   type CommitmentReadModel,
   type CommitmentRequirementRecord,
-  useActions,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 

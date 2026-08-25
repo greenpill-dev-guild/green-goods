@@ -1,9 +1,7 @@
-import {
-  type Address,
-  TextInput,
-  useAddressInput,
-  useCreateGardenStore,
-} from "@green-goods/shared";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { useAddressInput } from "@green-goods/shared/hooks/utils/useAddressInput";
+import { useCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
+import type { Address } from "@green-goods/shared/types/domain";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";

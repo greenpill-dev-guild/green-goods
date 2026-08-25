@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { queryKeys } from "../../config/query-keys";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
 import {
@@ -69,7 +69,7 @@ export function usePublicGardenPool(
   // read; the garden slug prefix is what lets a bigger window inherit the
   // smaller one's data below without ever inheriting another garden's.
   const gardenSlug = `commitment-pool:${lookup ?? "none"}`;
-  const queryKey = queryKeys.public.gardenDetail(`${gardenSlug}:${historyLimit}`, chainId);
+  const queryKey = publicKeys.gardenDetail(`${gardenSlug}:${historyLimit}`, chainId);
 
   return useQuery({
     queryKey,

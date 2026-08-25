@@ -3,7 +3,10 @@ import {
   persistQueryClientRestore,
 } from "@tanstack/react-query-persist-client";
 import { dehydrate, QueryClient } from "@tanstack/react-query";
-import { createQueryPersister, PERSIST_MAX_AGE } from "@green-goods/shared";
+import {
+  createQueryPersister,
+  PERSIST_MAX_AGE,
+} from "@green-goods/shared/config/query-persistence";
 import { afterEach, describe, expect, it } from "vitest";
 
 describe("query persistence compatibility", () => {

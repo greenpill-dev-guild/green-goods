@@ -1,8 +1,10 @@
-import { cn, useOffline, useUIStore } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { RiCloudOffLine, RiLoader4Line, RiTaskLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import { pwaStatusStyles, type PwaStatusTone } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles, type PwaStatusTone } from "@/components/Pwa/statusStyles";
 import { WorkDashboard } from ".";
 
 interface WorkDashboardIconProps {

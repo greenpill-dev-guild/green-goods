@@ -1,4 +1,6 @@
-import { type ActionInstructionConfig, FormField, Textarea, TextInput } from "@green-goods/shared";
+import { Textarea, TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
+import type { ActionInstructionConfig } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 
 interface ReviewConfigSectionProps {

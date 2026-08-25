@@ -1,4 +1,6 @@
-import { cn, type Garden, useOffline, type Work } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import type { Garden, Work } from "@green-goods/shared/types/domain";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import {
   RiArrowLeftFill,
   RiBankLine,
@@ -9,7 +11,7 @@ import {
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { ModalDrawer } from "@/components/Dialogs";
-import { pwaStatusStyles, type PwaStatusTone } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles, type PwaStatusTone } from "@/components/Pwa/statusStyles";
 import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 
 type TopNavProps = {

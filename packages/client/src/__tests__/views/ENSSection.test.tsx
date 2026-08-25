@@ -24,11 +24,23 @@ let mockSlugValue = "";
 let mockExistingGreenGoodsEnsName: string | null = null;
 let mockSponsoredReleaseUnavailable = false;
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...inputs: Array<string | undefined | null | false>) => inputs.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/ens", () => ({
   validateSlug: (slug: string) => mockValidateSlug(slug),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useOffline", () => ({
   useOffline: () => ({ isOnline: true }),
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useProtocolMemberStatus", () => ({
   useProtocolMemberStatus: () => ({ data: mockProtocolMember }),
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useSlugForm", () => ({
   useSlugForm: () => ({
     watch: (field: string) => (field === "slug" ? mockSlugValue : ""),
     register: () => ({}),
@@ -37,23 +49,44 @@ vi.mock("@green-goods/shared", () => ({
     reset: mockReset,
     formState: { errors: {} },
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useSlugAvailability", () => ({
   useSlugAvailability: () => ({ data: true, isFetching: false }),
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useENSClaim", () => ({
   useENSClaim: () => ({
     mutateAsync: mockMutateAsync,
     isPending: false,
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useENSReleaseName", () => ({
   useENSReleaseName: () => ({
     mutateAsync: mockReleaseMutateAsync,
     isPending: false,
     isSponsoredReleaseUnavailable: mockSponsoredReleaseUnavailable,
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useENSRegistrationStatus", () => ({
   useENSRegistrationStatus: (slug?: string) => {
     mockUseENSRegistrationStatus(slug);
     return { data: slug ? mockRegistrationData : undefined };
   },
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
   useGreenGoodsEnsName: () => ({ data: mockExistingGreenGoodsEnsName }),
+}));
+
+vi.mock("@green-goods/shared/components/Progress/ENSProgressTimeline", () => ({
   ENSProgressTimeline: ({ slug }: { slug: string; data: unknown }) =>
     createElement("div", { "data-testid": "ens-progress" }, slug),
+}));
+
+vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", () => ({
   ConfirmDialog: ({
     isOpen,
     onConfirm,

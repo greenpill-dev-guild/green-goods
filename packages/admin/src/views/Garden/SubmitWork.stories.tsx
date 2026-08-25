@@ -1,22 +1,22 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import type { QueryKey } from "@tanstack/react-query";
+import { ToastViewport } from "@green-goods/shared/components/Toast/ToastViewport";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import {
-  DEFAULT_CHAIN_ID,
-  Domain,
-  queryKeys,
-  ToastViewport,
   type Action,
   type Address,
+  Domain,
   type Garden as SharedGarden,
-} from "@green-goods/shared";
+} from "@green-goods/shared/types/domain";
 import {
   AuthActionsContext,
-  AuthContext,
-  AuthStateContext,
   type AuthActionsValue,
+  AuthContext,
   type AuthContextType,
+  AuthStateContext,
   type AuthStateValue,
-} from "@green-goods/shared/providers";
+} from "@green-goods/shared/providers/Auth";
 import type { ComponentType, ReactNode } from "react";
 import { Route, Routes } from "react-router-dom";
 import { expect, fn, userEvent, within } from "storybook/test";

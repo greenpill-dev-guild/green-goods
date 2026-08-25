@@ -10,17 +10,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { type Abi } from "viem";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { createPublicClientForChain } from "../../config/pimlico";
 import type { Address } from "../../types/domain";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { getGardens } from "../../modules/data/greengoods";
 import {
-  queryKeys,
+  DEFAULT_RETRY_COUNT,
   STALE_TIME_MEDIUM,
   STALE_TIME_SLOW,
-  DEFAULT_RETRY_COUNT,
-} from "../../config/query-keys";
+} from "../../config/query-keys/constants";
+import { gardensKeys } from "../../config/query-keys/garden";
+import { roleKeys } from "../../config/query-keys/identity";
 
 interface UseReviewerGardenIdsResult {
   /** All garden IDs the user can review (steward + evaluator union) */
@@ -40,8 +41,8 @@ interface UseReviewerGardenIdsResult {
  */
 export function useReviewerGardenIds(address: Address | undefined): UseReviewerGardenIdsResult {
   const { data: gardens = [] } = useQuery({
-    queryKey: queryKeys.gardens.byChain(DEFAULT_CHAIN_ID),
-    queryFn: getGardens,
+    queryKey: gardensKeys.byChain(DEFAULT_CHAIN_ID),
+    queryFn: () => getGardens(),
     staleTime: STALE_TIME_SLOW,
     retry: DEFAULT_RETRY_COUNT,
   });
@@ -59,7 +60,7 @@ export function useReviewerGardenIds(address: Address | undefined): UseReviewerG
   );
 
   const { data: evaluatorGardenIds = [], isLoading: isLoadingEvaluator } = useQuery({
-    queryKey: queryKeys.role.evaluatorGardens(
+    queryKey: roleKeys.evaluatorGardens(
       address || undefined,
       (gardens || []).map((g) => g.id)
     ),

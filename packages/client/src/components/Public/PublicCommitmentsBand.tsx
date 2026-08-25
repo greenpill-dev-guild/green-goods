@@ -1,11 +1,11 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { getCampaignCookieJarPayoutAssets } from "@green-goods/shared/utils/cookie-jar-campaign";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import {
-  DEFAULT_CHAIN_ID,
-  formatTokenAmount,
-  getCampaignCookieJarPayoutAssets,
   selectPublicPromiseKeptRate,
-  useInViewReveal,
   usePublicCommitmentImpact,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { useIntl } from "react-intl";
 import {
   EditorialHeading,

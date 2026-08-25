@@ -9,6 +9,18 @@ import type {
   HypercertDraft,
   OutcomeMetrics,
 } from "../types/hypercerts";
+import {
+  loadHypercertDraftTransition,
+  nextHypercertStepTransition,
+  previousHypercertStepTransition,
+  resetHypercertWizardTransition,
+  setHypercertDraftMetaTransition,
+  setHypercertStepTransition,
+  setMintingStateTransition,
+  setSelectedAttestationsTransition,
+  toggleAttestationTransition,
+  updateHypercertMetadataTransition,
+} from "./transitions/hypercert-wizard";
 
 /**
  * Session storage key for minting state persistence.
@@ -333,39 +345,33 @@ const initialState = {
 export const useHypercertWizardStore = create<HypercertWizardStore>()(
   subscribeWithSelector((set, get) => ({
     ...initialState,
-    setStep: (step) => set({ currentStep: Math.min(Math.max(step, MIN_STEP), MAX_STEP) }),
-    nextStep: () => set((state) => ({ currentStep: Math.min(state.currentStep + 1, MAX_STEP) })),
-    previousStep: () =>
-      set((state) => ({ currentStep: Math.max(state.currentStep - 1, MIN_STEP) })),
-    setSelectedAttestations: (ids) => set({ selectedAttestationIds: ids }),
-    toggleAttestation: (id) =>
-      set((state) => {
-        const exists = state.selectedAttestationIds.includes(id);
-        return {
-          selectedAttestationIds: exists
-            ? state.selectedAttestationIds.filter((item) => item !== id)
-            : [...state.selectedAttestationIds, id],
-        };
-      }),
-    updateMetadata: (updates) => set((state) => ({ ...state, ...updates })),
+    setStep: (step) => set((state) => setHypercertStepTransition(state, step)),
+    nextStep: () => set((state) => nextHypercertStepTransition(state)),
+    previousStep: () => set((state) => previousHypercertStepTransition(state)),
+    setSelectedAttestations: (ids) => set((state) => setSelectedAttestationsTransition(state, ids)),
+    toggleAttestation: (id) => set((state) => toggleAttestationTransition(state, id)),
+    updateMetadata: (updates) => set((state) => updateHypercertMetadataTransition(state, updates)),
     setDistributionMode: (mode) => set({ distributionMode: mode }),
     setAllowlist: (entries) => set({ allowlist: entries }),
     setMintingState: (state) =>
       set((current) => {
-        const newMintingState = {
-          ...current.mintingState,
-          ...state,
-        };
+        const transition = setMintingStateTransition(current, state);
+        const newMintingState = transition.mintingState as MintingState;
         // Persist to sessionStorage for recovery after page refresh
         persistMintingState(newMintingState);
-        return { mintingState: newMintingState };
+        return transition;
       }),
     // When savedAt is not provided, default to current timestamp.
     // If explicitly passed null, store null (allowing clearing of lastSavedAt).
     setDraftMeta: (draftId, savedAt) =>
-      set({ draftId, lastSavedAt: savedAt === undefined ? Date.now() : savedAt }),
+      set((state) =>
+        setHypercertDraftMetaTransition(state, {
+          draftId,
+          savedAt: savedAt === undefined ? Date.now() : savedAt,
+        })
+      ),
     // Reset to initial state completely - initialState already includes outcomes and mintingState
-    reset: () => set(initialState),
+    reset: () => set((state) => resetHypercertWizardTransition(state, initialState)),
     /**
      * Loads a draft from persistent storage (IndexedDB).
      * Validates the draft structure before applying to prevent corrupted data
@@ -382,25 +388,7 @@ export const useHypercertWizardStore = create<HypercertWizardStore>()(
         return false;
       }
 
-      set({
-        currentStep: validated.stepNumber,
-        selectedAttestationIds: validated.attestationIds,
-        title: validated.title ?? "",
-        description: validated.description ?? "",
-        workScopes: validated.workScopes ?? [],
-        impactScopes: validated.impactScopes ?? [],
-        workTimeframeStart: validated.workTimeframeStart ?? 0,
-        workTimeframeEnd: validated.workTimeframeEnd ?? 0,
-        impactTimeframeStart: validated.impactTimeframeStart ?? 0,
-        impactTimeframeEnd: validated.impactTimeframeEnd,
-        sdgs: validated.sdgs ?? [],
-        capitals: validated.capitals ?? [],
-        outcomes: validated.outcomes ?? emptyOutcomes,
-        allowlist: validated.allowlist ?? [],
-        externalUrl: validated.externalUrl ?? "",
-        draftId: validated.id,
-        lastSavedAt: validated.updatedAt,
-      });
+      set((state) => loadHypercertDraftTransition(state, validated));
       return true;
     },
     /**

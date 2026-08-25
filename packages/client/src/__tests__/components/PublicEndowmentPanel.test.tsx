@@ -21,7 +21,6 @@ const TEST_DAI = "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1" as Address;
 const TEST_VAULT = "0x4444444444444444444444444444444444444444" as Address;
 
 const {
-  mockOpenWallet,
   mockLoginWithWallet,
   mockPrimaryAddress,
   mockUsePublicEndowmentPositions,
@@ -33,7 +32,6 @@ const {
   mockRefetchPreview,
   mockBlockDismiss,
 } = vi.hoisted(() => ({
-  mockOpenWallet: vi.fn(),
   mockLoginWithWallet: vi.fn(),
   mockPrimaryAddress: { current: null as Address | null },
   mockUsePublicEndowmentPositions: vi.fn(),
@@ -54,11 +52,16 @@ function formatSimpleTokenAmount(value: bigint, decimals = 18): string {
   return `${whole}.${fraction.toString().padStart(decimals, "0").replace(/0+$/, "")}`;
 }
 
-vi.mock("@green-goods/shared", async () => {
-  const React = await import("react");
+vi.mock("@green-goods/shared/utils/blockchain/vaults", () => ({
+  DEFAULT_WITHDRAW_MAX_LOSS_BPS: 100n,
+  formatTokenAmount: (value: bigint, decimals = 18) => formatSimpleTokenAmount(value, decimals),
+  validateDecimalInput: (input: string) =>
+    input.trim() && !/^\d+(?:\.\d*)?$/.test(input.trim()) ? "app.treasury.invalidAmount" : null,
+}));
 
+vi.mock("@green-goods/shared/components/Alert", async () => {
+  const React = await import("react");
   return {
-    DEFAULT_WITHDRAW_MAX_LOSS_BPS: 100n,
     Alert: ({
       children,
       title,
@@ -75,29 +78,55 @@ vi.mock("@green-goods/shared", async () => {
         title ? React.createElement("strong", { key: "title" }, title) : null,
         children
       ),
-    cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-    formatTokenAmount: (value: bigint, decimals = 18) => formatSimpleTokenAmount(value, decimals),
-    truncateAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
-    useAppKit: () => ({ open: mockOpenWallet }),
-    useAuth: () => ({ loginWithWallet: mockLoginWithWallet }),
-    useWalletConnectDismissGuard: () => ({
-      markConnecting: () => {},
-      shouldBlockDismiss: () => mockBlockDismiss.current,
-    }),
-    useDebouncedValue: (value: unknown) => value,
-    usePublicEndowmentPositions: (...args: unknown[]) => mockUsePublicEndowmentPositions(...args),
-    useTxErrorMessages: (error: unknown) => ({
-      view: { severity: "error" },
-      title: error ? "Transaction failed" : "",
-      message: error instanceof Error ? error.message : "Something went wrong.",
-    }),
-    useUser: () => ({ primaryAddress: mockPrimaryAddress.current }),
-    useVaultPreview: (...args: unknown[]) => mockUseVaultPreview(...args),
-    useVaultWithdraw: (...args: unknown[]) => mockUseVaultWithdraw(...args),
-    validateDecimalInput: (input: string) =>
-      input.trim() && !/^\d+(?:\.\d*)?$/.test(input.trim()) ? "app.treasury.invalidAmount" : null,
   };
 });
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/address", () => ({
+  truncateAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuth: () => ({ loginWithWallet: mockLoginWithWallet }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useWalletModalOpen", () => ({
+  useWalletConnectDismissGuard: () => ({
+    markConnecting: () => {},
+    shouldBlockDismiss: () => mockBlockDismiss.current,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useDebouncedValue", () => ({
+  useDebouncedValue: (value: unknown) => value,
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicEndowmentPositions", () => ({
+  usePublicEndowmentPositions: (...args: unknown[]) => mockUsePublicEndowmentPositions(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useTxErrorMessages", () => ({
+  useTxErrorMessages: (error: unknown) => ({
+    view: { severity: "error" },
+    title: error ? "Transaction failed" : "",
+    message: error instanceof Error ? error.message : "Something went wrong.",
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: mockPrimaryAddress.current }),
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useVaultPreview", () => ({
+  useVaultPreview: (...args: unknown[]) => mockUseVaultPreview(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useVaultWithdraw", () => ({
+  useVaultWithdraw: (...args: unknown[]) => mockUseVaultWithdraw(...args),
+}));
 
 import { PublicEndowmentPanel } from "../../components/Public/PublicEndowmentPanel";
 

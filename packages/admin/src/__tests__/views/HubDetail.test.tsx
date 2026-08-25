@@ -14,40 +14,15 @@ let mockSelectedGarden: { id: string; name: string } | null = {
   name: "Demo Garden",
 };
 
-vi.mock("@green-goods/shared", () => ({
-  adminRoutes: {
-    hub: (search?: Record<string, string>) => {
-      const query = search ? new URLSearchParams(search).toString() : "";
-      return query ? `/hub?${query}` : "/hub";
-    },
-  },
-  Confidence: {
-    LOW: "LOW",
-    MEDIUM: "MEDIUM",
-    HIGH: "HIGH",
-  },
-  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+vi.mock("@green-goods/shared/config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
-  getReviewedActionTranslation: () => null,
-  instructionTemplates: {
-    "solar.install_milestone": {
-      description:
-        "Record installation progress milestones for solar panels, batteries, internet equipment, or retrofits.",
-    },
-  },
-  localizeAction: (action: unknown) => action,
-  useAdminStore: (selector: (state: any) => any) =>
-    selector({
-      selectedGarden: mockSelectedGarden,
-      setSelectedGarden: mockSetSelectedGarden,
-    }),
-  useAdminGardenWorkspaceSelection: () => ({
-    selectedGarden: mockSelectedGarden,
-    setSelectedGarden: mockSetSelectedGarden,
-  }),
-  useActions: () => mockUseActions(),
-  useGardenPermissions: () => mockUseGardenPermissions(),
-  useGardens: () => mockUseGardens(),
+}));
+
+vi.mock("@green-goods/shared/config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/garden/useResolvedWorkDetail", () => ({
   useResolvedWorkDetail: (workId: string | undefined) => {
     const gardenPermissions = mockUseGardenPermissions();
     const { data: gardens = [], isLoading: gardensLoading = false } = mockUseGardens();
@@ -89,7 +64,69 @@ vi.mock("@green-goods/shared", () => ({
       isLoading: gardensLoading || (gardenId ? worksLoading : false),
     };
   },
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
+  useActions: () => mockUseActions(),
+  useGardens: () => mockUseGardens(),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
+  useAdminGardenWorkspaceSelection: () => ({
+    selectedGarden: mockSelectedGarden,
+    setSelectedGarden: mockSetSelectedGarden,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useGardenPermissions", () => ({
+  useGardenPermissions: () => mockUseGardenPermissions(),
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useWorks", () => ({
   useWorks: () => mockUseWorks(),
+}));
+
+vi.mock("@green-goods/shared/stores/useAdminStore", () => ({
+  useAdminStore: (selector: (state: any) => any) =>
+    selector({
+      selectedGarden: mockSelectedGarden,
+      setSelectedGarden: mockSetSelectedGarden,
+    }),
+}));
+
+vi.mock("@green-goods/shared/types/domain", () => ({
+  Confidence: {
+    LOW: "LOW",
+    MEDIUM: "MEDIUM",
+    HIGH: "HIGH",
+  },
+}));
+
+vi.mock("@green-goods/shared/utils/action/templates", () => ({
+  instructionTemplates: {
+    "solar.install_milestone": {
+      description:
+        "Record installation progress milestones for solar panels, batteries, internet equipment, or retrofits.",
+    },
+  },
+}));
+
+vi.mock("@green-goods/shared/utils/action/translations", () => ({
+  getReviewedActionTranslation: () => null,
+  localizeAction: (action: unknown) => action,
+}));
+
+vi.mock("@green-goods/shared/utils/navigation/admin-routes", () => ({
+  adminRoutes: {
+    hub: (search?: Record<string, string>) => {
+      const query = search ? new URLSearchParams(search).toString() : "";
+      return query ? `/hub?${query}` : "/hub";
+    },
+  },
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
 vi.mock("react-router-dom", () => ({

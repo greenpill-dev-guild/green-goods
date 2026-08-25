@@ -11,21 +11,22 @@
 import { useQuery } from "@tanstack/react-query";
 import { type Address, zeroAddress } from "viem";
 
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import {
   createClients,
   GreenGoodsENSABI,
   getNetworkContracts,
   HatsABI,
 } from "../../utils/blockchain/contracts";
-import { queryKeys, STALE_TIME_RARE } from "../../config/query-keys";
+import { STALE_TIME_RARE } from "../../config/query-keys/constants";
+import { ensKeys } from "../../config/query-keys/identity";
 
 export function useProtocolMemberStatus(address: Address | undefined) {
   const contracts = getNetworkContracts(DEFAULT_CHAIN_ID);
   const ensAddress = contracts.greenGoodsENS;
 
   return useQuery<boolean>({
-    queryKey: queryKeys.ens.protocolMembership(address ?? ""),
+    queryKey: ensKeys.protocolMembership(address ?? ""),
     queryFn: async () => {
       if (!address || !ensAddress || ensAddress === zeroAddress) return false;
 

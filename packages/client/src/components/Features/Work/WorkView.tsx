@@ -1,4 +1,6 @@
-import { AudioPlayer, resolveIPFSUrl, type Garden } from "@green-goods/shared";
+import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import type { Garden } from "@green-goods/shared/types/domain";
 import { RiDownloadLine, RiExternalLinkLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";

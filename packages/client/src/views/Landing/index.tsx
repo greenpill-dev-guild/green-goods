@@ -1,4 +1,4 @@
-import { toastService } from "@green-goods/shared";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import React from "react";
 import { useIntl } from "react-intl";
 import { Hero } from "@/components/Layout/Hero";

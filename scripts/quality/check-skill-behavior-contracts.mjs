@@ -9,8 +9,10 @@ const REPO_ROOT = path.resolve(path.dirname(SCRIPT_PATH), "../..");
 
 export const SOURCE_PATHS = [
   "AGENTS.md",
+  ".claude/context/codebase-architecture.md",
   ".claude/context/values.md",
   ".claude/skills/audit/SKILL.md",
+  ".claude/skills/module-seams-review/SKILL.md",
   ".claude/skills/plan/SKILL.md",
   ".claude/skills/review/SKILL.md",
   ".claude/skills/ship/SKILL.md",
@@ -44,6 +46,138 @@ export function extractMarkdownSection(markdown, heading) {
 }
 
 const contracts = [
+  {
+    id: "canonical-architecture-model-separates-depth-seams-and-boundaries",
+    summary:
+      "The shared architecture model defines depth and keeps ownership boundaries distinct from substitution seams.",
+    requirements: [
+      {
+        file: ".claude/context/codebase-architecture.md",
+        section: "Vocabulary",
+        pattern: /Depth[\s\S]{0,180}small, stable interface/i,
+        marker: "depth as interface leverage",
+      },
+      {
+        file: ".claude/context/codebase-architecture.md",
+        section: "Boundary and seam are different",
+        pattern: /boundary[\s\S]{0,180}seam[\s\S]{0,220}does not automatically/i,
+        marker: "boundary and seam distinction",
+      },
+    ],
+  },
+  {
+    id: "plan-architecture-mode-requires-deletion-test-and-human-selection",
+    summary:
+      "Architecture planning ranks bounded candidates, applies the deletion test, and stops for human selection.",
+    requirements: [
+      {
+        file: ".claude/skills/plan/SKILL.md",
+        section: "Architecture Opportunity Mode",
+        pattern: /three to six candidate cards[\s\S]{0,220}deletion-test result/i,
+        marker: "ranked candidate cards with deletion test",
+      },
+      {
+        file: ".claude/skills/plan/SKILL.md",
+        section: "Architecture Opportunity Mode",
+        pattern: /Stop for human selection[\s\S]{0,180}Do not[\s\S]{0,120}machine registry/i,
+        marker: "human selection before registry",
+      },
+    ],
+  },
+  {
+    id: "review-architecture-needs-concrete-harm-and-deletion-story",
+    summary:
+      "Structural review requires concrete harm and a deletion story rather than recommending speculative abstraction.",
+    requirements: [
+      {
+        file: ".claude/skills/review/SKILL.md",
+        section: "Pass 1 — Regressions",
+        pattern: /Require a concrete failure or repeated maintenance cost[\s\S]{0,180}deletion test/i,
+        marker: "concrete harm and deletion-test rule",
+      },
+      {
+        file: ".claude/skills/review/SKILL.md",
+        pattern: /repository-wide architecture opportunity discovery to `plan`/i,
+        marker: "architecture discovery routing",
+      },
+    ],
+  },
+  {
+    id: "audit-observes-friction-without-prescribing-refactors",
+    summary:
+      "Audit may measure architecture friction but routes selection and never prescribes the replacement.",
+    requirements: [
+      {
+        file: ".claude/skills/audit/SKILL.md",
+        section: "False-Positive Guardrails",
+        pattern: /do not recommend new abstractions, patterns, or layers/i,
+        marker: "no architecture prescription",
+      },
+      {
+        file: ".claude/skills/audit/SKILL.md",
+        section: "Boundary",
+        pattern: /friction but never prescribe the refactor[\s\S]{0,180}route to `plan`/i,
+        marker: "friction-to-plan routing",
+      },
+    ],
+  },
+  {
+    id: "module-seams-review-reconciles-registry-freshness-and-proof-types",
+    summary:
+      "Specialist seam certification reconciles registry freshness and keeps direct, conformance, wiring, composition, and coverage proof distinct.",
+    requirements: [
+      {
+        file: ".claude/skills/module-seams-review/SKILL.md",
+        section: "1. Build the boundary graph",
+        pattern: /module-seam-registry\.json[\s\S]{0,220}evidence fingerprint/i,
+        marker: "registry fingerprint reconciliation",
+      },
+      {
+        file: ".claude/skills/module-seams-review/SKILL.md",
+        section: "3. Review direct-test and mock fidelity",
+        pattern: /direct subject behavior[\s\S]{0,180}adapter conformance[\s\S]{0,180}coverage/i,
+        marker: "distinct seam proof categories",
+      },
+      {
+        file: ".claude/skills/module-seams-review/SKILL.md",
+        section: "6. Reconcile intent and recurrence",
+        pattern: /static import\/path checks do\s+not prove module depth/i,
+        marker: "checker-limit disclosure",
+      },
+    ],
+  },
+  {
+    id: "module-seams-review-is-pinned-read-only-and-direct",
+    summary:
+      "Module-seams review pins the candidate, stays read-only, and rejects mock-only subject proof.",
+    requirements: [
+      {
+        file: ".claude/skills/module-seams-review/SKILL.md",
+        section: "Read-only boundary",
+        pattern: /Do not edit files[\s\S]{0,220}explicit human scope lock/i,
+        marker: "read-only scope-lock boundary",
+      },
+      {
+        file: ".claude/skills/module-seams-review/SKILL.md",
+        section: "Scope and candidate",
+        pattern: /Pin the exact `base\.\.head` range[\s\S]{0,220}Never replace it/i,
+        marker: "pinned candidate range",
+      },
+      {
+        file: ".claude/skills/module-seams-review/SKILL.md",
+        section: "3. Review direct-test and mock fidelity",
+        pattern:
+          /own specifier[\s\S]{0,180}must\s+not mock that same specifier/i,
+        marker: "direct subject proof rule",
+      },
+      {
+        file: ".claude/skills/module-seams-review/SKILL.md",
+        section: "Validation",
+        pattern: /An unavailable[\s\S]{0,220}is\s+`BLOCKED`[\s\S]{0,120}do not retry/i,
+        marker: "blocked environment evidence rule",
+      },
+    ],
+  },
   {
     id: "audit-read-only-scope-lock",
     summary: "Audit stays read-only until a human locks numbered findings.",

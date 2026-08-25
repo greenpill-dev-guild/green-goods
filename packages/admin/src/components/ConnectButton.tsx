@@ -1,4 +1,4 @@
-import { useAuthActions } from "@green-goods/shared";
+import { useAuthActions } from "@green-goods/shared/providers/Auth";
 import { RiWallet3Line } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";

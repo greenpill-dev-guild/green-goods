@@ -3,13 +3,15 @@ import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import type { Address } from "../../types/domain";
-import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis";
+import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis/conviction";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { fetchGardensModuleAddress } from "../../utils/blockchain/garden-modules";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { INDEXER_LAG_SCHEDULE_MS, queryKeys } from "../../config/query-keys";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { communityKeys } from "../../config/query-keys/identity";
+import { yieldKeys } from "../../config/query-keys/vault";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 /**
@@ -40,10 +42,10 @@ export function useCreateGardenPools(gardenAddress?: Address) {
       const garden = lastGardenRef.current;
       if (garden) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.community.pools(garden, chainId),
+          queryKey: communityKeys.pools(garden, chainId),
         });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.yield.wiring(garden, chainId),
+          queryKey: yieldKeys.wiring(garden, chainId),
         });
       }
     }, [queryClient, chainId]),
@@ -83,10 +85,10 @@ export function useCreateGardenPools(gardenAddress?: Address) {
       if (normalizedGarden) {
         lastGardenRef.current = normalizedGarden;
         queryClient.invalidateQueries({
-          queryKey: queryKeys.community.pools(normalizedGarden, chainId),
+          queryKey: communityKeys.pools(normalizedGarden, chainId),
         });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.yield.wiring(normalizedGarden, chainId),
+          queryKey: yieldKeys.wiring(normalizedGarden, chainId),
         });
       }
       schedulePoolSync();

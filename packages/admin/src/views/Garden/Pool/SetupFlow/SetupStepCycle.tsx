@@ -1,4 +1,5 @@
-import { Alert, type PoolConsoleController } from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useIntl } from "react-intl";
 import { AdminTextField } from "@/components/AdminTextField";
 import { cycleName } from "../poolPresentation";

@@ -1,11 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import type { QueryKey } from "@tanstack/react-query";
-import {
-  DEFAULT_CHAIN_ID,
-  queryKeys,
-  type Address,
-  type Garden as SharedGarden,
-} from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import type { Address, Garden as SharedGarden } from "@green-goods/shared/types/domain";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_GARDENS,

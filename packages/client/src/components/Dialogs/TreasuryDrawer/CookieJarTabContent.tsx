@@ -1,4 +1,5 @@
-import { type Address, type CookieJar } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
 import { RiErrorWarningLine, RiInboxLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { EmptyState } from "@/components/Communication";

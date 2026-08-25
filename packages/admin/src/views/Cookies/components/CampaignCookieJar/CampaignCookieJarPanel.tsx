@@ -1,18 +1,20 @@
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
+import {
+  useCampaignCookieJar,
+  useSyncCampaignCookieJarAllowlist,
+  useUpdateCampaignCookieJarMetadata,
+} from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar";
+import { useCampaignCookieJarCampaigns } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJarCampaigns";
+import { useCookieJarFactoryAddress } from "@green-goods/shared/hooks/cookie-jar/useCookieJarFactoryAddress";
+import { useRole } from "@green-goods/shared/hooks/gardener/useRole";
+import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
+import type { Garden } from "@green-goods/shared/types/domain";
 import {
   aggregateCampaignCookieJarStewards,
   buildCampaignCookieJarMetadata,
   diffCampaignCookieJarAllowlist,
-  type CampaignCookieJarCampaign,
-  type Garden,
-  useCampaignCookieJar,
-  useCampaignCookieJarCampaigns,
-  useCookieJarFactoryAddress,
-  useCurrentChain,
-  useGardens,
-  useRole,
-  useSyncCampaignCookieJarAllowlist,
-  useUpdateCampaignCookieJarMetadata,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/cookie-jar-campaign";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import {

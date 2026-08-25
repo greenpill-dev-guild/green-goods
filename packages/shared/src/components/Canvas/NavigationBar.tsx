@@ -2,6 +2,7 @@ import { RiAddLine } from "@remixicon/react";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils/styles/cn";
+import { selectNavigationBarModel } from "./NavigationBar.model";
 import { useCanvasMobileChromeHidden } from "./useCanvasMobileChromeHidden";
 
 // ----------------------------------------------------------------------------
@@ -409,16 +410,18 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
   const [isLargeDesktop, setIsLargeDesktop] = useState(
     () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches
   );
-  const visibleSlots = useMemo(() => slots.filter((s) => s.visible), [slots]);
-  const desktopSlots = useMemo(
-    () => visibleSlots.filter((slot) => !slot.mobileOnly),
-    [visibleSlots]
-  );
-  const mobileSlots = useMemo(
-    () => visibleSlots.filter((slot) => !slot.desktopOnly),
-    [visibleSlots]
-  );
   const hideMobileChrome = useCanvasMobileChromeHidden();
+  const { desktopSlots, mobileSlots, shouldRender, showMobileFab, showDesktopNav, showMobileNav } =
+    useMemo(
+      () =>
+        selectNavigationBarModel(slots, {
+          isDesktop,
+          isLargeDesktop,
+          hideMobileChrome,
+          hasFab: Boolean(fab),
+        }),
+      [slots, isDesktop, isLargeDesktop, hideMobileChrome, fab]
+    );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -446,11 +449,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
     return () => mediaQuery.removeEventListener("change", syncLargeDesktop);
   }, []);
 
-  // Role-based visibility: no nav bar if ≤1 tab and no FAB
-  if (visibleSlots.length === 0 && !fab) return null;
-  if (desktopSlots.length <= 1 && mobileSlots.length <= 1 && !fab) {
-    return null;
-  }
+  if (!shouldRender) return null;
 
   const navLabel = formatMessage({ id: "cockpit.nav.mainNavigation" });
   const desktopNavStyle = {
@@ -465,7 +464,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
 
   return (
     <>
-      {!isLargeDesktop && fab && !hideMobileChrome ? (
+      {showMobileFab && fab ? (
         // Tier 2e: Floating FAB layer for tablet (600–1023px) and mobile (<600px).
         // Hidden at >=1024px per audit §5.4.4 — desktop puts inline header actions
         // in the page header instead.
@@ -503,7 +502,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
         </div>
       ) : null}
 
-      {isDesktop && desktopSlots.length > 1 && (
+      {showDesktopNav && (
         <nav
           aria-label={navLabel}
           data-component="NavigationBar"
@@ -540,7 +539,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
           flows; no FAB on desktop. The mobile-floating FAB block above now
           covers tablet (600–1023px) too. */}
 
-      {!isDesktop && mobileSlots.length > 1 && !hideMobileChrome && (
+      {showMobileNav && (
         <nav
           aria-label={navLabel}
           data-component="NavigationBar"

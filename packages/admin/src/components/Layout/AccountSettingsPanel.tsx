@@ -1,14 +1,11 @@
-import {
-  cn,
-  DEFAULT_CHAIN_ID,
-  getBlockExplorer,
-  getChainName,
-  SheetBody,
-  SheetDivider,
-  type Locale,
-  useApp,
-  useTheme,
-} from "@green-goods/shared";
+import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
+import { SheetDivider } from "@green-goods/shared/components/Canvas/SheetDivider";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { getChainName } from "@green-goods/shared/config/chains";
+import { useTheme } from "@green-goods/shared/hooks/app/useTheme";
+import { type Locale, useApp } from "@green-goods/shared/providers/App";
+import { getBlockExplorer } from "@green-goods/shared/utils/blockchain/chain-registry";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiComputerLine, RiExternalLinkLine, RiMoonLine, RiSunLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";

@@ -1,22 +1,22 @@
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useArrivalState } from "@green-goods/shared/hooks/app/useArrivalState";
+import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
+import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNavigation";
+import { useFilteredGardens } from "@green-goods/shared/hooks/garden/useFilteredGardens";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useLoadingWithMinDuration } from "@green-goods/shared/hooks/app/useLoadingWithMinDuration";
+import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import {
-  cn,
-  DEFAULT_CHAIN_ID,
-  queryKeys,
-  toastService,
-  useArrivalState,
-  useAuthState,
   useCommitmentsInbox,
   useCommitmentsToConfirm,
-  useBrowserNavigation,
-  useFilteredGardens,
-  useGardens,
-  useLoadingWithMinDuration,
-  useNavigateToTop,
-  useOffline,
-  usePrimaryAddress,
-  useTimeout,
-  useUIStore,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { RiFilterLine } from "@remixicon/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -24,9 +24,9 @@ import { useIntl } from "react-intl";
 import { Outlet, useLocation, useMatch } from "react-router-dom";
 
 import { PullToRefresh } from "@/components/Inputs";
-import { APP_ROUTES } from "@/config/pwa-routing";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
-import { ARRIVAL_TOASTS, type ArrivalActionKind } from "./arrival-toast";
+import { APP_ROUTES } from "@/config/pwaRouting";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import { ARRIVAL_TOASTS, type ArrivalActionKind } from "./arrivalToast";
 import { CommitmentsDrawer } from "./CommitmentsDrawer";
 import { CommitmentsDrawerIcon } from "./CommitmentsDrawer/Icon";
 import { type GardenFiltersState, GardensFilterDrawer } from "./GardenFilters";

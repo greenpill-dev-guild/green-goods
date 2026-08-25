@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { ARRIVAL_TOASTS } from "../../views/Home/arrival-toast";
+import { ARRIVAL_TOASTS } from "../../views/Home/arrivalToast";
 
 const KINDS = ["queue", "draft", "review", "stewardClear", "gardener", "signedIn"] as const;
 

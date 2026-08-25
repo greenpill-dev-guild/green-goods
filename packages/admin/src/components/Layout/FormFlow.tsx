@@ -1,4 +1,8 @@
-import { cn, SheetBody, SheetFooter, Surface, type Step } from "@green-goods/shared";
+import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
+import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
+import type { Step } from "@green-goods/shared/components/Form/StepIndicator";
+import { Surface } from "@green-goods/shared/components/Surface/Surface";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { ReactNode } from "react";
 
 export interface FormFlowSection {

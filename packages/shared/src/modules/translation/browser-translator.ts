@@ -1,200 +1,147 @@
 import { logger } from "../app/logger";
-import { translationCache } from "./db";
+import { translationCache, type TranslationCache } from "./db";
 
-// Old API shape (window.translation)
-type LegacyTranslatorAPI = {
-  createTranslator: (config: {
+interface TranslationSession {
+  translate(text: string): Promise<string>;
+}
+
+export interface Translator {
+  readonly isSupported: boolean;
+  translate(text: string, targetLang: string, sourceLang?: string): Promise<string | null>;
+  translateBatch(
+    texts: string[],
+    targetLang: string,
+    sourceLang?: string
+  ): Promise<(string | null)[]>;
+}
+
+export interface LegacyTranslatorApi {
+  createTranslator(config: {
     sourceLanguage: string;
     targetLanguage: string;
-  }) => Promise<{ translate: (text: string) => Promise<string> }>;
-  canTranslate?: (config: { sourceLanguage: string; targetLanguage: string }) => Promise<string>;
-};
+  }): Promise<TranslationSession>;
+  canTranslate?(config: { sourceLanguage: string; targetLanguage: string }): Promise<string>;
+}
 
-// New API shape (window.ai.translator)
-type AITranslatorAPI = {
-  create: (config: {
-    sourceLanguage: string;
-    targetLanguage: string;
-  }) => Promise<{ translate: (text: string) => Promise<string> }>;
-  capabilities?: () => Promise<{
+export interface AiTranslatorApi {
+  create(config: { sourceLanguage: string; targetLanguage: string }): Promise<TranslationSession>;
+  capabilities?(): Promise<{
     available: "readily" | "after-download" | "no";
-    languagePairAvailable: (source: string, target: string) => "readily" | "after-download" | "no";
+    languagePairAvailable(source: string, target: string): "readily" | "after-download" | "no";
   }>;
-};
+}
 
-type StableTranslatorAPI = {
-  availability?: (config: {
+export interface StableTranslatorApi {
+  availability?(config: {
     sourceLanguage: string;
     targetLanguage: string;
-  }) => Promise<"available" | "downloadable" | "downloading" | "unavailable">;
-  create: (config: {
+  }): Promise<"available" | "downloadable" | "downloading" | "unavailable">;
+  create(config: {
     sourceLanguage: string;
     targetLanguage: string;
     monitor?: (monitor: EventTarget) => void;
-  }) => Promise<{ translate: (text: string) => Promise<string> }>;
-};
-
-/** Chrome experimental AI API surface (self.ai) */
-interface ExperimentalAI {
-  ai: { translator: AITranslatorAPI };
+  }): Promise<TranslationSession>;
 }
 
-/** Chrome stable built-in AI Translator API surface (self.Translator). */
-interface StableTranslatorGlobal {
-  Translator: StableTranslatorAPI;
+export type DetectedTranslatorApi =
+  | { kind: "stable"; api: StableTranslatorApi }
+  | { kind: "ai"; api: AiTranslatorApi }
+  | { kind: "legacy"; api: LegacyTranslatorApi }
+  | { kind: "unsupported" };
+
+interface TranslationGlobal {
+  Translator?: StableTranslatorApi;
+  ai?: { translator?: AiTranslatorApi };
+  translation?: LegacyTranslatorApi;
 }
 
-/** Chrome experimental translation API surface (self.translation) */
-interface ExperimentalTranslation {
-  translation: LegacyTranslatorAPI;
+export function detectTranslatorApi(root: unknown): DetectedTranslatorApi {
+  if (!root || (typeof root !== "object" && typeof root !== "function")) {
+    return { kind: "unsupported" };
+  }
+  const candidate = root as TranslationGlobal;
+  if (candidate.Translator && typeof candidate.Translator.create === "function") {
+    return { kind: "stable", api: candidate.Translator };
+  }
+  if (candidate.ai?.translator && typeof candidate.ai.translator.create === "function") {
+    return { kind: "ai", api: candidate.ai.translator };
+  }
+  if (candidate.translation && typeof candidate.translation.createTranslator === "function") {
+    return { kind: "legacy", api: candidate.translation };
+  }
+  return { kind: "unsupported" };
 }
 
-class BrowserTranslator {
-  private stableApi: StableTranslatorAPI | null = null;
-  private legacyApi: LegacyTranslatorAPI | null = null;
-  private aiApi: AITranslatorAPI | null = null;
-  private translators: Map<string, { translate: (text: string) => Promise<string> }> = new Map();
-
-  constructor() {
-    // Check for the stable Translator API (Chrome 138+)
-    if (typeof self !== "undefined" && "Translator" in self) {
-      this.stableApi = (self as unknown as StableTranslatorGlobal).Translator;
-    }
-    // Check for new AI Translation API (Chrome 127+)
-    else if (
-      typeof self !== "undefined" &&
-      "ai" in self &&
-      "translator" in (self as ExperimentalAI).ai
-    ) {
-      this.aiApi = (self as unknown as ExperimentalAI).ai.translator;
-    }
-    // Check for Legacy Translation API (Chrome 125-126)
-    else if (typeof self !== "undefined" && "translation" in self) {
-      this.legacyApi = (self as unknown as ExperimentalTranslation).translation;
-    } else {
-      // Browser Translation API not available - silently fall back to English
-      // Only log in debug mode to reduce console noise
-      if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_MODE === "true") {
-        logger.warn(
-          "[Translation] Browser Translation API not available. " +
-            "Auto-translation requires Chrome 125+ or Edge 125+. " +
-            "Content will display in English."
-        );
-      }
-    }
+async function createSession(
+  detected: DetectedTranslatorApi,
+  sourceLanguage: string,
+  targetLanguage: string
+): Promise<TranslationSession | null> {
+  const config = { sourceLanguage, targetLanguage };
+  if (detected.kind === "stable") {
+    const availability = await detected.api.availability?.(config);
+    if (availability === "unavailable") return null;
+    return detected.api.create(config);
   }
-
-  get isSupported(): boolean {
-    return this.stableApi !== null || this.aiApi !== null || this.legacyApi !== null;
+  if (detected.kind === "ai") {
+    const capabilities = await detected.api.capabilities?.();
+    if (capabilities?.languagePairAvailable(sourceLanguage, targetLanguage) === "no") return null;
+    return detected.api.create(config);
   }
-
-  private translatorKey(source: string, target: string): string {
-    return `${source}_${target}`;
+  if (detected.kind === "legacy") {
+    const availability = await detected.api.canTranslate?.(config);
+    if (availability === "no") return null;
+    return detected.api.createTranslator(config);
   }
+  return null;
+}
 
-  async translate(text: string, targetLang: string, sourceLang = "en"): Promise<string | null> {
-    if (!this.isSupported) return null;
+export function createBrowserTranslator({
+  api = detectTranslatorApi(globalThis),
+  cache = translationCache,
+}: {
+  api?: DetectedTranslatorApi;
+  cache?: TranslationCache;
+} = {}): Translator {
+  const sessions = new Map<string, Promise<TranslationSession | null>>();
 
-    // Skip empty strings
+  const translate = async (
+    text: string,
+    targetLang: string,
+    sourceLang = "en"
+  ): Promise<string | null> => {
+    if (api.kind === "unsupported") return null;
     if (!text || text.trim() === "") return text;
-
-    // Check cache first
-    const cached = await translationCache.get(text, sourceLang, targetLang);
+    const cached = await cache.get(text, sourceLang, targetLang);
     if (cached) return cached;
 
     try {
-      // Get or create translator for this language pair
-      const key = this.translatorKey(sourceLang, targetLang);
-      let translator = this.translators.get(key);
-
-      if (!translator) {
-        // 1. Try stable Translator API
-        if (this.stableApi) {
-          if (this.stableApi.availability) {
-            const availability = await this.stableApi.availability({
-              sourceLanguage: sourceLang,
-              targetLanguage: targetLang,
-            });
-
-            if (availability === "unavailable") {
-              logger.warn(`[Translation] ${sourceLang} → ${targetLang} not supported by browser`);
-              return null;
-            }
-          }
-
-          translator = await this.stableApi.create({
-            sourceLanguage: sourceLang,
-            targetLanguage: targetLang,
-          });
-        }
-        // 2. Try experimental AI API
-        else if (this.aiApi) {
-          // Check capabilities if available
-          if (this.aiApi.capabilities) {
-            const caps = await this.aiApi.capabilities();
-            const availability = caps.languagePairAvailable(sourceLang, targetLang);
-
-            if (availability === "no") {
-              logger.warn(`[Translation] ${sourceLang} → ${targetLang} not supported by browser`);
-              return null;
-            }
-          }
-
-          translator = await this.aiApi.create({
-            sourceLanguage: sourceLang,
-            targetLanguage: targetLang,
-          });
-        }
-        // 3. Try Legacy API
-        else if (this.legacyApi) {
-          // Check if translation is available
-          if (this.legacyApi.canTranslate) {
-            const availability = await this.legacyApi.canTranslate({
-              sourceLanguage: sourceLang,
-              targetLanguage: targetLang,
-            });
-
-            if (availability === "no") {
-              logger.warn(`[Translation] ${sourceLang} → ${targetLang} not supported by browser`);
-              return null;
-            }
-          }
-
-          translator = await this.legacyApi.createTranslator({
-            sourceLanguage: sourceLang,
-            targetLanguage: targetLang,
-          });
-        }
-
-        if (translator) {
-          this.translators.set(key, translator);
-        }
+      const key = `${sourceLang}_${targetLang}`;
+      let sessionPromise = sessions.get(key);
+      if (!sessionPromise) {
+        sessionPromise = createSession(api, sourceLang, targetLang);
+        sessions.set(key, sessionPromise);
       }
-
-      if (!translator) return null;
-
-      const translated = await translator.translate(text);
-
-      // Cache the result
-      await translationCache.set(text, translated, sourceLang, targetLang);
-
+      const session = await sessionPromise;
+      if (!session) {
+        logger.warn(`[Translation] ${sourceLang} → ${targetLang} not supported by browser`);
+        return null;
+      }
+      const translated = await session.translate(text);
+      await cache.set(text, translated, sourceLang, targetLang);
       return translated;
     } catch (error) {
       logger.warn("[BrowserTranslator] Translation failed", { error });
       return null;
     }
-  }
+  };
 
-  /**
-   * Batch translate (processes in parallel)
-   */
-  async translateBatch(
-    texts: string[],
-    targetLang: string,
-    sourceLang = "en"
-  ): Promise<(string | null)[]> {
-    return Promise.all(texts.map((text) => this.translate(text, targetLang, sourceLang)));
-  }
+  return {
+    isSupported: api.kind !== "unsupported",
+    translate,
+    translateBatch: (texts, targetLang, sourceLang = "en") =>
+      Promise.all(texts.map((text) => translate(text, targetLang, sourceLang))),
+  };
 }
 
-export const browserTranslator = new BrowserTranslator();
+export const browserTranslator = createBrowserTranslator();

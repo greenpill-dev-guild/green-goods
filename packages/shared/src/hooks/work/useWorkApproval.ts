@@ -16,28 +16,31 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import {
   trackWorkApprovalFailed,
   trackWorkApprovalStarted,
   trackWorkApprovalSuccess,
   trackWorkRejectionSuccess,
 } from "../../modules/app/analytics-events";
-import { jobQueue } from "../../modules/job-queue";
 import {
   LOCAL_OVERLAY_GRACE_MS,
   type OverlayWork,
   overlayDeadline,
 } from "../../modules/work/local-status-overlay";
-import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
-import { submitApprovalToQueue } from "../../modules/work/work-submission";
+import {
+  createDefaultSubmitApprovalPorts,
+  submitApproval,
+} from "../../modules/work/submit-approval-command";
+import type { JobQueueHandle } from "../../modules/job-queue/ports";
 import type { Work, WorkApprovalDraft } from "../../types/domain";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
-import { DEBUG_ENABLED, debugLog, debugWarn } from "../../utils/debug";
+import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
-import { INDEXER_LAG_SCHEDULE_MS, queryKeys } from "../../config/query-keys";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { approvalsKeys, workApprovalsKeys, worksKeys } from "../../config/query-keys/work";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation, useTimeout } from "../utils/useTimeout";
 
@@ -55,7 +58,9 @@ interface ApprovalMutationResult {
 const PENDING_AUTO_CLEAR_MS = LOCAL_OVERLAY_GRACE_MS;
 type PendingWork = OverlayWork;
 
-export function useWorkApproval() {
+export function useWorkApproval(
+  dependencies: { jobQueue?: Pick<JobQueueHandle, "processJob"> } = {}
+) {
   const { formatMessage } = useIntl();
   const { authMode, primaryAddress } = useUser();
   const sender = useTransactionSender();
@@ -69,30 +74,19 @@ export function useWorkApproval() {
     useCallback(() => {
       if (lastGardenRef.current) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.works.online(lastGardenRef.current, chainId),
+          queryKey: worksKeys.online(lastGardenRef.current, chainId),
         });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.works.merged(lastGardenRef.current, chainId),
+          queryKey: worksKeys.merged(lastGardenRef.current, chainId),
         });
       }
-      queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all });
+      queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
     }, [queryClient, chainId]),
     INDEXER_LAG_SCHEDULE_MS
   );
 
   const mutation = useMutation({
     mutationFn: async ({ draft, work }: UseWorkApprovalParams): Promise<ApprovalMutationResult> => {
-      // Pre-flight validation — catch invalid states before hitting the chain
-      if (!draft.workUID) {
-        throw new Error("Work UID is required for approval");
-      }
-      if (!work.gardenAddress) {
-        throw new Error("Garden address is missing from work data");
-      }
-      if (work.status === "approved" || work.status === "rejected") {
-        throw new Error(`This work has already been ${work.status}`);
-      }
-
       if (DEBUG_ENABLED) {
         debugLog("[useWorkApproval] Starting approval submission", {
           authMode,
@@ -102,85 +96,11 @@ export function useWorkApproval() {
         });
       }
 
-      if (authMode === "wallet") {
-        // Direct wallet submission
-        if (DEBUG_ENABLED) {
-          debugLog("[useWorkApproval] Using direct wallet submission", {
-            chainId,
-            workUID: draft.workUID,
-          });
-        }
-        const { hash, confirmed } = await submitApprovalDirectly(
-          draft,
-          work.gardenAddress,
-          work.gardenerAddress,
-          chainId
-        );
-        return { hash, confirmed };
-      }
-
-      // Non-wallet path: queue + inline processing via TransactionSender
-      const userAddress = primaryAddress;
-
-      if (DEBUG_ENABLED) {
-        debugLog("[useWorkApproval] Queuing approval for sponsored flow", {
-          chainId,
-          workUID: draft.workUID,
-          approved: draft.approved,
-          userAddress,
-          authMode,
-        });
-      }
-
-      // Validate user address for queue operations
-      if (!userAddress) {
-        throw new Error("User address is required for approval submission");
-      }
-
-      const { txHash: offlineTxHash, jobId } = await submitApprovalToQueue(
-        draft,
-        work,
-        chainId,
-        userAddress
+      const result = await submitApproval(
+        { authMode, draft, work, chainId, userAddress: primaryAddress },
+        createDefaultSubmitApprovalPorts(sender, dependencies)
       );
-
-      if (DEBUG_ENABLED) {
-        debugLog("[useWorkApproval] Approval queued", {
-          jobId,
-          workUID: draft.workUID,
-          isOnline: navigator.onLine,
-        });
-      }
-
-      if (navigator.onLine && sender) {
-        try {
-          const result = await jobQueue.processJob(jobId, { transactionSender: sender });
-          if (DEBUG_ENABLED) {
-            debugLog("[useWorkApproval] Inline processing attempt finished", {
-              jobId,
-              success: result.success,
-              skipped: result.skipped,
-              error: result.error,
-            });
-          }
-          if (result.success && result.txHash) {
-            return { hash: result.txHash as `0x${string}` };
-          }
-          // If processing failed (not skipped), propagate the error
-          if (!result.success && result.error && !result.skipped) {
-            throw new Error(result.error);
-          }
-          // If skipped (e.g., already processed), return offline hash as pending
-        } catch (error) {
-          if (DEBUG_ENABLED) {
-            debugWarn("[useWorkApproval] Inline approval processing threw", { jobId, error });
-          }
-          // Re-throw to trigger onError handler and show user feedback
-          throw error;
-        }
-      }
-
-      return { hash: offlineTxHash };
+      return { hash: result.hash, confirmed: result.confirmed };
     },
     onMutate: async (variables) => {
       if (!variables) return;
@@ -206,18 +126,18 @@ export function useWorkApproval() {
 
       // Cancel any outgoing refetches to avoid overwriting optimistic update
       await queryClient.cancelQueries({
-        queryKey: queryKeys.works.merged(work.gardenAddress, chainId),
+        queryKey: worksKeys.merged(work.gardenAddress, chainId),
       });
       await queryClient.cancelQueries({
-        queryKey: queryKeys.works.online(work.gardenAddress, chainId),
+        queryKey: worksKeys.online(work.gardenAddress, chainId),
       });
 
       // Snapshot previous state for rollback on error
       const previousMerged = queryClient.getQueryData<Work[]>(
-        queryKeys.works.merged(work.gardenAddress, chainId)
+        worksKeys.merged(work.gardenAddress, chainId)
       );
       const previousOnline = queryClient.getQueryData<Work[]>(
-        queryKeys.works.online(work.gardenAddress, chainId)
+        worksKeys.online(work.gardenAddress, chainId)
       );
 
       // Wallet mode leaves indexed work untouched while the signature is pending.
@@ -231,7 +151,7 @@ export function useWorkApproval() {
         const pendingUntilMs = Date.now() + PENDING_AUTO_CLEAR_MS;
 
         queryClient.setQueryData(
-          queryKeys.works.merged(work.gardenAddress, chainId),
+          worksKeys.merged(work.gardenAddress, chainId),
           (old: Work[] = []) =>
             old.map((w) =>
               w.id === draft.workUID
@@ -246,7 +166,7 @@ export function useWorkApproval() {
         );
 
         queryClient.setQueryData(
-          queryKeys.works.online(work.gardenAddress, chainId),
+          worksKeys.online(work.gardenAddress, chainId),
           (old: Work[] = []) =>
             old.map((w) =>
               w.id === draft.workUID
@@ -264,7 +184,7 @@ export function useWorkApproval() {
         // Uses dedicated timer so it isn't cancelled by the indexer lag follow-up.
         scheduleAutoClear(() => {
           queryClient.setQueryData(
-            queryKeys.works.merged(work.gardenAddress, chainId),
+            worksKeys.merged(work.gardenAddress, chainId),
             (old: PendingWork[] = []) =>
               old.map((w) =>
                 w.id === draft.workUID && w._isPending && (w._pendingUntilMs ?? 0) <= Date.now()
@@ -273,7 +193,7 @@ export function useWorkApproval() {
               )
           );
           queryClient.setQueryData(
-            queryKeys.works.online(work.gardenAddress, chainId),
+            worksKeys.online(work.gardenAddress, chainId),
             (old: PendingWork[] = []) =>
               old.map((w) =>
                 w.id === draft.workUID && w._isPending && (w._pendingUntilMs ?? 0) <= Date.now()
@@ -371,14 +291,8 @@ export function useWorkApproval() {
               : w
           );
 
-        queryClient.setQueryData(
-          queryKeys.works.merged(work.gardenAddress, chainId),
-          recordDecision
-        );
-        queryClient.setQueryData(
-          queryKeys.works.online(work.gardenAddress, chainId),
-          recordDecision
-        );
+        queryClient.setQueryData(worksKeys.merged(work.gardenAddress, chainId), recordDecision);
+        queryClient.setQueryData(worksKeys.online(work.gardenAddress, chainId), recordDecision);
 
         if (DEBUG_ENABLED) {
           debugLog("[useWorkApproval] Recorded decision", {
@@ -434,16 +348,16 @@ export function useWorkApproval() {
       if (variables) {
         // Immediate invalidation for responsive UX
         queryClient.invalidateQueries({
-          queryKey: queryKeys.works.online(variables.work.gardenAddress, chainId),
+          queryKey: worksKeys.online(variables.work.gardenAddress, chainId),
         });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.works.merged(variables.work.gardenAddress, chainId),
+          queryKey: worksKeys.merged(variables.work.gardenAddress, chainId),
         });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.workApprovals.all,
+          queryKey: workApprovalsKeys.all,
         });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.approvals.all,
+          queryKey: approvalsKeys.all,
         });
 
         // Schedule progressive follow-up invalidations for indexer lag (non-blocking)
@@ -468,13 +382,13 @@ export function useWorkApproval() {
       // Rollback optimistic updates using context from onMutate
       if (context?.previousMerged && variables) {
         queryClient.setQueryData(
-          queryKeys.works.merged(variables.work.gardenAddress, chainId),
+          worksKeys.merged(variables.work.gardenAddress, chainId),
           context.previousMerged
         );
       }
       if (context?.previousOnline && variables) {
         queryClient.setQueryData(
-          queryKeys.works.online(variables.work.gardenAddress, chainId),
+          worksKeys.online(variables.work.gardenAddress, chainId),
           context.previousOnline
         );
       }

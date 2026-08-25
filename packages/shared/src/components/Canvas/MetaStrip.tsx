@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from "react";
-import { cn } from "../../utils";
+import { cn } from "../../utils/styles/cn";
 
 export interface MetaStripItem {
   id?: string;

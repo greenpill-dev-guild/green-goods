@@ -1,18 +1,16 @@
-import {
-  type Address,
-  cn,
-  ConfirmDialog,
-  ENSProgressTimeline,
-  validateSlug,
-  useENSClaim,
-  useENSReleaseName,
-  useGreenGoodsEnsName,
-  useENSRegistrationStatus,
-  useOffline,
-  useProtocolMemberStatus,
-  useSlugAvailability,
-  useSlugForm,
-} from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { ENSProgressTimeline } from "@green-goods/shared/components/Progress/ENSProgressTimeline";
+import { validateSlug } from "@green-goods/shared/utils/blockchain/ens";
+import { useENSClaim } from "@green-goods/shared/hooks/ens/useENSClaim";
+import { useENSReleaseName } from "@green-goods/shared/hooks/ens/useENSReleaseName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { useENSRegistrationStatus } from "@green-goods/shared/hooks/ens/useENSRegistrationStatus";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useProtocolMemberStatus } from "@green-goods/shared/hooks/ens/useProtocolMemberStatus";
+import { useSlugAvailability } from "@green-goods/shared/hooks/ens/useSlugAvailability";
+import { useSlugForm } from "@green-goods/shared/hooks/ens/useSlugForm";
 import {
   RiAlertLine,
   RiCheckLine,
@@ -26,7 +24,7 @@ import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 interface ENSSectionProps {
   primaryAddress: Address | undefined;

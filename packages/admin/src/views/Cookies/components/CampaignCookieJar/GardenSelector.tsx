@@ -1,4 +1,7 @@
-import { type Address, type Garden, FormField, TextInput, useEnsName } from "@green-goods/shared";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";

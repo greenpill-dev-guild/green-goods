@@ -1,22 +1,22 @@
+import { Alert } from "@green-goods/shared/components/Alert";
+import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
+import { AssetSelector } from "@green-goods/shared/components/Vault/AssetSelector";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useDebouncedValue } from "@green-goods/shared/hooks/utils/useDebouncedValue";
+import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
+import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposits";
+import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
+import { useVaultWithdraw } from "@green-goods/shared/hooks/vault/useVaultWithdraw";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { GardenVault } from "@green-goods/shared/types/vaults";
 import {
-  type Address,
-  Alert,
-  AssetSelector,
-  FormField,
   formatTokenAmount,
-  type GardenVault,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
-  TextInput,
-  TxInlineFeedback,
-  useDebouncedValue,
-  useTxErrorMessages,
-  useUser,
-  useVaultDeposits,
-  useVaultPreview,
-  useVaultWithdraw,
   validateDecimalInput,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/blockchain/vaults";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";

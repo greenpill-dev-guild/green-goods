@@ -1,4 +1,8 @@
-import { type Action, cn, useActions, useInViewReveal } from "@green-goods/shared";
+import type { Action } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
+import { selectPublicSurfaceState } from "@green-goods/shared/public";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import {
@@ -15,6 +19,7 @@ import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicInstallAction } from "@/components/Public/PublicInstallAction";
 import { PublicSourceDialog } from "@/components/Public/PublicSourceDialog";
+import { PublicSurfaceState } from "@/components/Public/PublicSurfaceState";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 
 interface DomainEntry {
@@ -66,13 +71,6 @@ interface CapitalEntry {
   defaultBody: string;
 }
 
-/**
- * Eight forms of value. Surfaced on /actions so visitors know the work is
- * measured across a wider lens than dollars or carbon. Order chosen so the
- * grid reads outward from the most material (Living, Material) toward the
- * most felt (Cultural, Spiritual). Mirrors the Capital enum in
- * `packages/shared/src/types/domain.ts`.
- */
 const CAPITALS: readonly CapitalEntry[] = [
   {
     id: "living",
@@ -191,7 +189,7 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
  */
 export default function ActionsGallery() {
   const { formatMessage } = useIntl();
-  const { data: actions = [], isLoading } = useActions();
+  const { data: actions = [], isLoading, isError } = useActions();
   const [domain, setDomain] = useState<EditorialDomain>("all");
   const [activeAction, setActiveAction] = useState<Action | null>(null);
   const { ref: domainsRef, revealed: domainsRevealed } = useInViewReveal<HTMLElement>();
@@ -213,6 +211,11 @@ export default function ActionsGallery() {
     }
     return byDomain;
   }, [actions]);
+  const surfaceState = selectPublicSurfaceState({
+    isLoading,
+    isError,
+    itemCount: filtered.length,
+  });
 
   return (
     <>
@@ -387,24 +390,37 @@ export default function ActionsGallery() {
             </ul>
           </nav>
 
-          {isLoading ? (
-            <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
-              {[0, 1, 2, 3, 4, 5].map((i) => (
-                <div
-                  key={i}
-                  className="aspect-[4/3] w-full animate-pulse bg-editorial-warm"
-                  aria-hidden="true"
-                />
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <p className="mt-12 max-w-md font-serif text-xl italic text-text-soft-400">
-              {formatMessage({
-                id: "public.actions.empty",
-                defaultMessage: "Action templates will appear here as they are published.",
-              })}
-            </p>
-          ) : (
+          <PublicSurfaceState
+            state={surfaceState}
+            loading={
+              <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <div
+                    key={i}
+                    className="aspect-[4/3] w-full animate-pulse bg-editorial-warm"
+                    aria-hidden="true"
+                  />
+                ))}
+              </div>
+            }
+            error={
+              <p className="mt-12 max-w-md font-serif text-xl italic text-text-soft-400">
+                {formatMessage({
+                  id: "public.surface.error",
+                  defaultMessage:
+                    "This public record is temporarily unavailable. Please try again.",
+                })}
+              </p>
+            }
+            empty={
+              <p className="mt-12 max-w-md font-serif text-xl italic text-text-soft-400">
+                {formatMessage({
+                  id: "public.actions.empty",
+                  defaultMessage: "Action templates will appear here as they are published.",
+                })}
+              </p>
+            }
+          >
             <ul className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((action) => (
                 <li key={action.id}>
@@ -412,7 +428,7 @@ export default function ActionsGallery() {
                 </li>
               ))}
             </ul>
-          )}
+          </PublicSurfaceState>
         </div>
       </section>
 

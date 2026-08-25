@@ -1,4 +1,6 @@
-import { type Address, formatTokenAmount, useFunderLeaderboard } from "@green-goods/shared";
+import { useFunderLeaderboard } from "@green-goods/shared/hooks/vault/useFunderLeaderboard";
+import type { Address } from "@green-goods/shared/types/domain";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { useIntl } from "react-intl";
 import { FunderRow } from "./FunderRow";
 

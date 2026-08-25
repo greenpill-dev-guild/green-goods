@@ -1,17 +1,17 @@
+import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import {
-  AppKitProvider,
-  AppProvider,
-  AuthGate,
   createQueryPersister,
   createShouldDehydrateQuery,
-  DEFAULT_CHAIN_ID,
-  ErrorBoundary,
-  initGlobalErrorHandlers,
-  initializeIpfsFromEnv,
-  initTheme,
   PERSIST_MAX_AGE,
-  queryClient,
-} from "@green-goods/shared";
+} from "@green-goods/shared/config/query-persistence";
+import { queryClient } from "@green-goods/shared/config/react-query";
+import { initGlobalErrorHandlers } from "@green-goods/shared/modules/app/error-events";
+import { initializeIpfsFromEnv } from "@green-goods/shared/modules/data/ipfs/client";
+import { AppProvider } from "@green-goods/shared/providers/App";
+import { AppKitProvider } from "@green-goods/shared/providers/AppKitProvider";
+import { AuthGate } from "@green-goods/shared/providers/AuthGate";
+import { initTheme } from "@green-goods/shared/utils/styles/theme";
 import { initBrowserSentry } from "@green-goods/shared/sentry";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { StrictMode } from "react";

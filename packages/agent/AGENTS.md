@@ -41,6 +41,7 @@ hashes, but never raw `privateKey` values or decrypted key material.
 
 ## Validation
 
-- Package loop: `bun run test && bun run typecheck`
-- Security-sensitive or handler-heavy changes: `bun run test:coverage`
-- Shared impact: from repo root run `node scripts/dev/ci-local.js --quick`
+- QA Speed Mode: targeted `bun run test -- src/...`; add `bun run typecheck` when handler, adapter, response, or service contracts move.
+- Package loop: `bun run test && bun run typecheck`.
+- Conditional proof: run `bun run test:coverage` for security-sensitive or handler-heavy changes.
+- Broader impact: run the root Repo Quick Gate when shared types or public APIs affect other packages.

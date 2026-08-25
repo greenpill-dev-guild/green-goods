@@ -1,9 +1,11 @@
-import { cn, useApp, useOffline } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { useApp } from "@green-goods/shared/providers/App";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import { RiCheckLine, RiCloudOffLine, RiDownloadLine, RiUserLine } from "@remixicon/react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { APP_ROUTES } from "@/config/pwa-routing";
+import { APP_ROUTES } from "@/config/pwaRouting";
 
 interface OfflineIndicatorProps {
   className?: string;

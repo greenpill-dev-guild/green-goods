@@ -1,28 +1,24 @@
+import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
+import { Switch, Textarea, TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { GARDEN_NAME_MAX_LENGTH } from "@green-goods/shared/hooks/garden/useCreateGardenForm";
+import { useSetGardenDomains } from "@green-goods/shared/hooks/garden/useSetGardenDomains";
 import {
-  type Address,
-  cn,
-  DOMAIN_COLORS,
-  Domain,
-  expandDomainMask,
-  FileUploadField,
-  FormField,
-  GARDEN_NAME_MAX_LENGTH,
-  imageCompressor,
-  logger,
-  resolveIPFSUrl,
-  Switch,
-  Textarea,
-  TextInput,
-  toastService,
-  uploadFileToIPFS,
-  useSetGardenDomains,
   useSetMaxGardeners,
   useSetOpenJoining,
   useUpdateGardenBannerImage,
   useUpdateGardenDescription,
   useUpdateGardenLocation,
   useUpdateGardenName,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/garden/useUpdateGarden";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { uploadFileToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
+import { type Address, Domain, DOMAIN_COLORS } from "@green-goods/shared/types/domain";
+import { expandDomainMask } from "@green-goods/shared/utils/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminSelectableCard } from "@/components/AdminSelectableCard";

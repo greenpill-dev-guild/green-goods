@@ -1,4 +1,5 @@
-import type { Address, CommitmentCycleRecord } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { CommitmentCycleRecord } from "@green-goods/shared/commitment-pooling";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, within } from "storybook/test";
 import { withSeededQueryClient } from "../../../../../../shared/.storybook/decorators";

@@ -1,15 +1,11 @@
-import {
-  type Address,
-  type AllowlistEntry,
-  adminRoutes,
-  cn,
-  type EASGardenAssessment,
-  type GardenAssessment,
-  getSDGLabel,
-  type HypercertMetadata,
-  ImageWithFallback,
-  type MintingState,
-} from "@green-goods/shared";
+import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
+import { getSDGLabel } from "@green-goods/shared/config/sdg";
+import type { MintingState } from "@green-goods/shared/stores/useHypercertWizardStore";
+import type { Address, GardenAssessment } from "@green-goods/shared/types/domain";
+import type { EASGardenAssessment } from "@green-goods/shared/types/eas-responses";
+import type { AllowlistEntry, HypercertMetadata } from "@green-goods/shared/types/hypercerts";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiFileTextLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";

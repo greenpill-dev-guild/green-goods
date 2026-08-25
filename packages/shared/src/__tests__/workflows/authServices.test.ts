@@ -1,1146 +1,378 @@
-/**
- * Auth Services Integration Tests
- *
- * Tests the async services that power the auth machine with Pimlico server:
- * - restoreSessionService: Restore session from Pimlico server using stored username
- * - registerPasskeyService: Create new passkey and store on Pimlico server
- * - authenticatePasskeyService: Login with passkey from Pimlico server
- * (claimENSService was removed — ENS claiming is now a standalone mutation hook)
- *
- * Note: These services are XState 5 `fromPromise` actors. To test them,
- * we create a minimal test machine and verify the service behavior.
- */
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { SmartAccountClient } from "permissionless";
+import type { Hex } from "viem";
+import type { P256Credential } from "viem/account-abstraction";
+import { createActor, type AnyActorLogic } from "xstate";
+import type {
+  AuthTelemetryAdapter,
+  PasskeyAdapters,
+  PasskeyServerClientAdapter,
+  PasskeySessionAdapter,
+} from "../../workflows/auth-passkey-adapters";
+import { createAuthServices } from "../../workflows/authServices";
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createActor, fromPromise } from "xstate";
-
-import { trackAuthPasskeyLoginFailed } from "../../modules/app/analytics-events";
-
-// ============================================================================
-// GLOBAL SETUP (before tests)
-// ============================================================================
-
-// Mock localStorage
-const createMockLocalStorage = () => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: vi.fn((key: string) => store[key] ?? null),
-    setItem: vi.fn((key: string, value: string) => {
-      store[key] = value;
-    }),
-    removeItem: vi.fn((key: string) => {
-      delete store[key];
-    }),
-    clear: vi.fn(() => {
-      store = {};
-    }),
-    key: vi.fn((i: number) => Object.keys(store)[i] ?? null),
-    get length() {
-      return Object.keys(store).length;
-    },
-    _setStore: (newStore: Record<string, string>) => {
-      store = newStore;
-    },
-  };
+const CHAIN_ID = 11155111;
+const USER = "testuser";
+const ADDRESS = "0x1111111111111111111111111111111111111111" as Hex;
+const OTHER_ADDRESS = "0x9999999999999999999999999999999999999999" as Hex;
+const CREDENTIAL: P256Credential = {
+  id: "dGVzdC1jcmVkZW50aWFsLWlk",
+  publicKey: "0x1234",
+  raw: undefined as unknown as PublicKeyCredential,
 };
+const SERVER_CREDENTIAL = { id: "deadbeef", publicKey: "0xabcd" as Hex };
+const AUTH_RESPONSE = { id: "deadbeef", type: "public-key" } as PublicKeyCredential;
 
-// Setup global mocks immediately
-const globalMockLocalStorage = createMockLocalStorage();
-Object.defineProperty(global, "localStorage", {
-  value: globalMockLocalStorage,
-  writable: true,
-  configurable: true,
-});
-
-// Mock window
-if (typeof global.window === "undefined") {
-  (global as any).window = {};
-}
-Object.defineProperty(global.window, "location", {
-  value: { hostname: "localhost" },
-  writable: true,
-  configurable: true,
-});
-
-// Mock navigator
-if (typeof global.navigator === "undefined") {
-  (global as any).navigator = {};
-}
-// Ensure window.navigator points to global.navigator
-(global as any).window.navigator = global.navigator;
-
-// ============================================================================
-// MOCKS
-// ============================================================================
-
-// Mock viem/account-abstraction
-vi.mock("viem/account-abstraction", () => ({
-  createWebAuthnCredential: vi.fn(),
-  toWebAuthnAccount: vi.fn(() => ({ address: "0xWebAuthnAccount" })),
-  entryPoint07Address: "0x0000000000000000000000000000000000000007",
-}));
-
-// Mock permissionless
-vi.mock("permissionless", () => ({
-  createSmartAccountClient: vi.fn(() => ({
-    account: { address: "0xSmartAccount123456789012345678901234567890" },
-    sendTransaction: vi.fn().mockResolvedValue("0xtxhash"),
-  })),
-}));
-
-// Mock permissionless/accounts
-vi.mock("permissionless/accounts", () => ({
-  toKernelSmartAccount: vi.fn(() =>
-    Promise.resolve({ address: "0xSmartAccount123456789012345678901234567890" })
-  ),
-}));
-
-// Mock config modules
-vi.mock("../../config/chains", () => ({
-  getChain: vi.fn(() => ({ id: 11155111, name: "Sepolia" })),
-}));
-
-vi.mock("../../config/pimlico", () => ({
-  createPimlicoClientForChain: vi.fn(() => ({
-    getUserOperationGasPrice: vi.fn(() =>
-      Promise.resolve({
-        fast: { maxFeePerGas: BigInt(1000000), maxPriorityFeePerGas: BigInt(100000) },
-      })
-    ),
-  })),
-  createPublicClientForChain: vi.fn(() => ({})),
-  getPimlicoBundlerUrl: vi.fn(() => "https://bundler.test"),
-}));
-
-// Mock Pimlico passkey server client
-const mockPasskeyServerClient = {
-  chain: { id: 11155111, name: "Sepolia" },
-  baseUrl: "https://api.pimlico.io/v2/11155111/rpc",
-  startRegistration: vi.fn(),
-  verifyRegistration: vi.fn(),
-  startAuthentication: vi.fn(),
-  verifyAuthentication: vi.fn(),
-  getCredentials: vi.fn(),
-};
-
-let mockPasskeyServerEnabled = false;
-
-// Spy on auth telemetry while keeping every other tracker real, so tests can
-// assert which path a failure was attributed to (server vs local fallback).
-vi.mock("../../modules/app/analytics-events", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../modules/app/analytics-events")>();
-  return {
-    ...actual,
-    trackAuthPasskeyLoginStarted: vi.fn(),
-    trackAuthPasskeyLoginSuccess: vi.fn(),
-    trackAuthPasskeyLoginFailed: vi.fn(),
-  };
-});
-
-vi.mock("../../config/passkeyServer", () => ({
-  createPasskeyServerClient: vi.fn(() => mockPasskeyServerClient),
-  createPasskey: vi.fn(),
-  buildPasskeyRecoveryContext: vi.fn((userName: string) => ({
-    userName: userName.trim().replace(/^@/, "").toLowerCase(),
-  })),
-  getPasskeyRpId: vi.fn(() => "localhost"),
-  isPasskeyServerEnabled: vi.fn(() => mockPasskeyServerEnabled),
-  PASSKEY_RP_ID: "greengoods.app",
-  PASSKEY_RP_NAME: "Green Goods",
-}));
-
-// Mocked session functions
-let mockStoredUsername: string | null = null;
-let mockStoredCredential: unknown = null;
-let mockAuthMode: "passkey" | "wallet" | "embedded" | null = null;
-let mockStoredSmartAccountAddress: string | null = null;
-let mockSignedOut = false;
-vi.mock("../../modules/auth/session", () => ({
-  hasSignedOutSentinel: vi.fn(() => mockSignedOut),
-  setSignedOutSentinel: vi.fn(() => {
-    mockSignedOut = true;
-  }),
-  clearSignedOutSentinel: vi.fn(() => {
-    mockSignedOut = false;
-  }),
-  getAuthMode: vi.fn(() => mockAuthMode),
-  setAuthMode: vi.fn((mode: "passkey" | "wallet" | "embedded") => {
-    mockAuthMode = mode;
-  }),
-  clearAuthMode: vi.fn(() => {
-    mockAuthMode = null;
-  }),
-  getStoredUsername: vi.fn(() => mockStoredUsername),
-  setStoredUsername: vi.fn((u: string) => {
-    mockStoredUsername = u;
-  }),
-  clearStoredUsername: vi.fn(() => {
-    mockStoredUsername = null;
-  }),
-  getStoredCredential: vi.fn(() => mockStoredCredential),
-  setStoredCredential: vi.fn((c: unknown) => {
-    mockStoredCredential = c;
-  }),
-  clearStoredCredential: vi.fn(() => {
-    mockStoredCredential = null;
-  }),
-  getStoredSmartAccountAddress: vi.fn(() => mockStoredSmartAccountAddress),
-  setStoredSmartAccountAddress: vi.fn((address: string) => {
-    mockStoredSmartAccountAddress = address;
-  }),
-  clearStoredSmartAccountAddress: vi.fn(() => {
-    mockStoredSmartAccountAddress = null;
-  }),
-  setStoredRpId: vi.fn(),
-  USERNAME_STORAGE_KEY: "greengoods_username",
-}));
-
-// Import after mocks
-import { createWebAuthnCredential } from "viem/account-abstraction";
-import { createPasskey } from "../../config/passkeyServer";
-import {
-  clearAuthMode,
-  clearSignedOutSentinel,
-  clearStoredCredential,
-  clearStoredSmartAccountAddress,
-  clearStoredUsername,
-  setStoredSmartAccountAddress,
-  setStoredUsername,
-} from "../../modules/auth/session";
-import {
-  authenticatePasskeyService,
-  registerPasskeyService,
-  restoreSessionService,
-} from "../../workflows/authServices";
-
-// ============================================================================
-// TEST HELPERS
-// ============================================================================
-
-const MOCK_CHAIN_ID = 11155111;
-const MOCK_USERNAME = "testuser";
-const MOCK_SMART_ACCOUNT_ADDRESS = "0xSmartAccount123456789012345678901234567890";
-const MOCK_OTHER_SMART_ACCOUNT_ADDRESS = "0x9999999999999999999999999999999999999999";
-
-const MOCK_CREDENTIAL = {
-  id: "dGVzdC1jcmVkZW50aWFsLWlk", // Base64URL encoded "test-credential-id"
-  publicKey: "0xTestPublicKey1234567890" as `0x${string}`,
-  raw: {
-    id: "dGVzdC1jcmVkZW50aWFsLWlk",
-    type: "public-key",
-    rawId: new Uint8Array([1, 2, 3, 4]),
-  } as unknown as PublicKeyCredential,
-};
-
-const MOCK_SERVER_CREDENTIAL = {
-  id: "c2VydmVyLWNyZWRlbnRpYWwtaWQ",
-  publicKey: "0xServerPublicKey1234567890" as `0x${string}`,
-};
-
-const MOCK_SERVER_CONTEXT = { userName: MOCK_USERNAME };
-
-/**
- * Helper to invoke a fromPromise actor and get the result
- */
-async function invokeService<TOutput, TInput>(
-  service: ReturnType<typeof fromPromise<TOutput, TInput>>,
-  input: TInput
-): Promise<TOutput> {
+async function invoke<T>(logic: AnyActorLogic, input: unknown): Promise<T> {
   return new Promise((resolve, reject) => {
-    const actor = createActor(service, { input });
-
+    const actor = createActor(logic, { input });
     actor.subscribe({
       next: (snapshot) => {
-        if (snapshot.status === "done") resolve(snapshot.output);
+        if (snapshot.status === "done") resolve(snapshot.output as T);
         if (snapshot.status === "error") reject(snapshot.error);
       },
       error: reject,
     });
-
     actor.start();
   });
 }
 
-// ============================================================================
-// TESTS
-// ============================================================================
-
-describe("workflows/authServices (Pimlico Server Flow)", () => {
-  let mockCredentials: {
-    create: ReturnType<typeof vi.fn>;
-    get: ReturnType<typeof vi.fn>;
+function createHarness() {
+  const state: {
+    signedOut: boolean;
+    authMode: "passkey" | "wallet" | "embedded" | null;
+    credential: P256Credential | null;
+    userName: string | null;
+    expectedAddress: Hex | null;
+    serverEnabled: boolean;
+  } = {
+    signedOut: false,
+    authMode: null,
+    credential: null,
+    userName: null,
+    expectedAddress: null,
+    serverEnabled: false,
   };
 
+  const sessionSpies = {
+    clearSignedOut: vi.fn(() => {
+      state.signedOut = false;
+    }),
+    setCredential: vi.fn((credential: P256Credential) => {
+      state.credential = credential;
+    }),
+    setUserName: vi.fn((userName: string) => {
+      state.userName = userName;
+    }),
+    setAddress: vi.fn((address: Hex) => {
+      state.expectedAddress = address;
+    }),
+  };
+  const session: PasskeySessionAdapter = {
+    hasSignedOutSentinel: () => state.signedOut,
+    clearSignedOutSentinel: sessionSpies.clearSignedOut,
+    getAuthMode: () => state.authMode,
+    getStoredCredential: () => state.credential,
+    setStoredCredential: sessionSpies.setCredential,
+    getStoredUsername: () => state.userName,
+    setStoredUsername: sessionSpies.setUserName,
+    getStoredSmartAccountAddress: () => state.expectedAddress,
+    setStoredSmartAccountAddress: sessionSpies.setAddress,
+  };
+
+  const telemetry: AuthTelemetryAdapter = {
+    restore: vi.fn(),
+    registerStarted: vi.fn(),
+    registerSucceeded: vi.fn(),
+    registerFailed: vi.fn(),
+    loginStarted: vi.fn(),
+    loginSucceeded: vi.fn(),
+    loginFailed: vi.fn(),
+  };
+  const server = {
+    getCredentials: vi.fn().mockResolvedValue([]),
+    startRegistration: vi.fn().mockResolvedValue({ challenge: new Uint8Array([1]) }),
+    verifyRegistration: vi.fn().mockResolvedValue({
+      success: true,
+      id: SERVER_CREDENTIAL.id,
+      publicKey: SERVER_CREDENTIAL.publicKey,
+      userName: USER,
+    }),
+    startAuthentication: vi.fn().mockResolvedValue({
+      challenge: "0x010203",
+      rpId: "localhost",
+      userVerification: "required",
+      uuid: "auth-uuid",
+    }),
+    verifyAuthentication: vi.fn().mockResolvedValue({
+      success: true,
+      id: SERVER_CREDENTIAL.id,
+      publicKey: SERVER_CREDENTIAL.publicKey,
+      userName: USER,
+    }),
+  };
+  const calls = {
+    buildRecoveryContext: vi.fn((userName: string) => ({
+      userName: userName.trim().replace(/^@/, "").toLowerCase(),
+    })),
+    createLocalPasskey: vi.fn().mockResolvedValue(CREDENTIAL),
+    createWebAuthnCredential: vi.fn().mockResolvedValue(CREDENTIAL),
+    getWebAuthnCredential: vi.fn().mockResolvedValue(AUTH_RESPONSE),
+    buildSmartAccount: vi.fn().mockResolvedValue({
+      client: { account: { address: ADDRESS } } as unknown as SmartAccountClient,
+      address: ADDRESS,
+    }),
+  };
+  const adapters: PasskeyAdapters = {
+    session,
+    telemetry,
+    isServerEnabled: () => state.serverEnabled,
+    buildRecoveryContext: calls.buildRecoveryContext,
+    createServerClient: () => server as unknown as PasskeyServerClientAdapter,
+    createLocalPasskey: (userName) => calls.createLocalPasskey(userName),
+    createWebAuthnCredential: (options) => calls.createWebAuthnCredential(options),
+    getWebAuthnCredential: (options) => calls.getWebAuthnCredential(options),
+    getRpId: () => "localhost",
+    randomChallenge: () => new Uint8Array([1, 2, 3]),
+    buildSmartAccount: (credential, chainId) => calls.buildSmartAccount(credential, chainId),
+  };
+  return {
+    state,
+    sessionSpies,
+    telemetry,
+    server,
+    calls,
+    services: createAuthServices(adapters),
+  };
+}
+
+describe("createAuthServices", () => {
+  let harness: ReturnType<typeof createHarness>;
+
   beforeEach(() => {
-    vi.clearAllMocks();
-    mockStoredUsername = null;
-    mockStoredCredential = null;
-    mockAuthMode = null;
-    mockStoredSmartAccountAddress = null;
-    mockSignedOut = false;
-    mockPasskeyServerEnabled = false;
-    globalMockLocalStorage.clear();
-    globalMockLocalStorage._setStore({});
-
-    // Reset Pimlico server mock
-    mockPasskeyServerClient.startRegistration.mockReset();
-    mockPasskeyServerClient.verifyRegistration.mockReset();
-    mockPasskeyServerClient.startAuthentication.mockReset();
-    mockPasskeyServerClient.verifyAuthentication.mockReset();
-    mockPasskeyServerClient.getCredentials.mockReset();
-
-    // Setup navigator.credentials mock
-    mockCredentials = {
-      create: vi.fn(),
-      get: vi.fn(),
-    };
-    Object.defineProperty(global.navigator, "credentials", {
-      value: mockCredentials,
-      writable: true,
-      configurable: true,
-    });
-    (global as any).window.navigator = global.navigator;
-
-    // Setup window.location
-    Object.defineProperty(global.window, "location", {
-      value: { hostname: "localhost" },
-      writable: true,
-      configurable: true,
-    });
-
-    // Reset crypto mock
-    Object.defineProperty(global, "crypto", {
-      value: {
-        getRandomValues: vi.fn((arr: Uint8Array) => {
-          for (let i = 0; i < arr.length; i++) {
-            arr[i] = Math.floor(Math.random() * 256);
-          }
-          return arr;
-        }),
-      },
-      writable: true,
-      configurable: true,
-    });
+    harness = createHarness();
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  // ==========================================================================
-  // RESTORE SESSION SERVICE (Client-Only Storage)
-  // ==========================================================================
-
-  describe("restoreSessionService (Client-Only Storage)", () => {
-    it("returns null when no stored credential", async () => {
-      mockStoredCredential = null;
-
-      const result = await invokeService(restoreSessionService, {
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result).toBeNull();
-    });
-
-    it("restores session from stored credential", async () => {
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockStoredUsername = MOCK_USERNAME;
-
-      const result = await invokeService(restoreSessionService, {
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result).not.toBeNull();
-      expect(result?.credential).toEqual(MOCK_CREDENTIAL);
-      expect(result?.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
-      expect(result?.userName).toBe(MOCK_USERNAME);
-    });
-
-    it("returns result with empty username when no stored username", async () => {
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockStoredUsername = null;
-
-      const result = await invokeService(restoreSessionService, {
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result).not.toBeNull();
-      expect(result?.userName).toBe("");
-    });
-
-    // Bug fix: Prevent passkey from hijacking wallet sessions
-    it("returns null when authMode is wallet even if credential exists", async () => {
-      // This is the key bug scenario:
-      // 1. User has stored credential (from previous passkey login)
-      // 2. User signed out and logged in with wallet (authMode = "wallet")
-      // 3. On refresh, restoreSession should NOT restore passkey session
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockStoredUsername = MOCK_USERNAME;
-      mockAuthMode = "wallet";
-
-      const result = await invokeService(restoreSessionService, {
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result).toBeNull();
-    });
-
-    it("does not restore a passkey session after explicit sign-out", async () => {
-      // Sign-out keeps the recovery cache but must stay durable across
-      // refresh — restore may only resume after an explicit sign-in.
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockStoredUsername = MOCK_USERNAME;
-      mockSignedOut = true;
-
-      const result = await invokeService(restoreSessionService, {
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result).toBeNull();
-      expect(clearStoredCredential).not.toHaveBeenCalled();
-      expect(clearStoredUsername).not.toHaveBeenCalled();
-    });
-
-    it("fails closed without clearing storage when the stored credential rebuilds a different address", async () => {
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockStoredUsername = MOCK_USERNAME;
-      mockStoredSmartAccountAddress = MOCK_OTHER_SMART_ACCOUNT_ADDRESS;
-
-      const result = await invokeService(restoreSessionService, {
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result).toBeNull();
-      // No silent adoption of the drifted address, and nothing destroyed.
-      expect(setStoredSmartAccountAddress).not.toHaveBeenCalled();
-      expect(clearStoredCredential).not.toHaveBeenCalled();
-      expect(clearStoredUsername).not.toHaveBeenCalled();
-      expect(clearStoredSmartAccountAddress).not.toHaveBeenCalled();
-    });
-
-    it("restores session when authMode is passkey", async () => {
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockStoredUsername = MOCK_USERNAME;
-      mockAuthMode = "passkey";
-
-      const result = await invokeService(restoreSessionService, {
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result).not.toBeNull();
-      expect(result?.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
-    });
-
-    it("restores session when authMode is null (legacy or fresh state)", async () => {
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockStoredUsername = MOCK_USERNAME;
-      mockAuthMode = null;
-
-      const result = await invokeService(restoreSessionService, {
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result).not.toBeNull();
-      expect(result?.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
-    });
-  });
-
-  // ==========================================================================
-  // REGISTER PASSKEY SERVICE (Client-Only)
-  // ==========================================================================
-
-  describe("registerPasskeyService (Client-Only)", () => {
-    it("throws when username is missing", async () => {
+  describe("restoreSession", () => {
+    it("does not restore after explicit sign-out or over a wallet session", async () => {
+      harness.state.credential = CREDENTIAL;
+      harness.state.signedOut = true;
       await expect(
-        invokeService(registerPasskeyService, {
-          userName: null,
-          chainId: MOCK_CHAIN_ID,
-        })
-      ).rejects.toThrow("Username is required for registration");
+        invoke(harness.services.restoreSession, { chainId: CHAIN_ID })
+      ).resolves.toBeNull();
+
+      harness.state.signedOut = false;
+      harness.state.authMode = "wallet";
+      await expect(
+        invoke(harness.services.restoreSession, { chainId: CHAIN_ID })
+      ).resolves.toBeNull();
+      expect(harness.calls.buildSmartAccount).not.toHaveBeenCalled();
     });
 
-    it("creates credential and stores username", async () => {
-      (createPasskey as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
+    it("restores a cached passkey session and refreshes the expected address", async () => {
+      harness.state.credential = CREDENTIAL;
+      harness.state.userName = USER;
 
-      const result = await invokeService(registerPasskeyService, {
-        userName: MOCK_USERNAME,
-        chainId: MOCK_CHAIN_ID,
+      await expect(
+        invoke(harness.services.restoreSession, { chainId: CHAIN_ID })
+      ).resolves.toMatchObject({
+        credential: CREDENTIAL,
+        smartAccountAddress: ADDRESS,
+        userName: USER,
       });
-
-      expect(createPasskey).toHaveBeenCalledWith(MOCK_USERNAME);
-      expect(setStoredUsername).toHaveBeenCalledWith(MOCK_USERNAME);
-      expect(result.credential).toEqual(MOCK_CREDENTIAL);
-      expect(result.userName).toBe(MOCK_USERNAME);
-      expect(result.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
-    });
-
-    it("stores username locally after successful registration", async () => {
-      (createPasskey as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
-
-      await invokeService(registerPasskeyService, {
-        userName: "alice",
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(setStoredUsername).toHaveBeenCalledWith("alice");
-    });
-
-    it("registers a separate account even when a stale expected address remains", async () => {
-      // A confirmed separate account is a new address by definition; stale
-      // continuity state (e.g. after a corrupted-credential cache clear) must
-      // not dead-end registration.
-      mockStoredSmartAccountAddress = MOCK_OTHER_SMART_ACCOUNT_ADDRESS;
-      (createPasskey as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
-
-      const result = await invokeService(registerPasskeyService, {
-        userName: MOCK_USERNAME,
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
-      expect(setStoredSmartAccountAddress).toHaveBeenCalledWith(MOCK_SMART_ACCOUNT_ADDRESS);
-    });
-
-    it("builds smart account from registered credential", async () => {
-      (createPasskey as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
-
-      const result = await invokeService(registerPasskeyService, {
-        userName: MOCK_USERNAME,
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result.smartAccountClient).toBeDefined();
-      expect(result.smartAccountClient.account?.address).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
-    });
-  });
-
-  // ==========================================================================
-  // REGISTER PASSKEY SERVICE (Pimlico Hosted Passkey Server)
-  // ==========================================================================
-
-  describe("registerPasskeyService (Passkey Server Enabled)", () => {
-    beforeEach(() => {
-      mockPasskeyServerEnabled = true;
-      mockPasskeyServerClient.startRegistration.mockResolvedValue({
-        rp: { id: "localhost", name: "Green Goods" },
-        user: {
-          id: new Uint8Array([1, 2, 3]),
-          name: MOCK_USERNAME,
-          displayName: MOCK_USERNAME,
-        },
-        challenge: new Uint8Array([4, 5, 6]),
-      });
-      mockPasskeyServerClient.verifyRegistration.mockResolvedValue({
-        success: true,
-        id: MOCK_SERVER_CREDENTIAL.id,
-        publicKey: MOCK_SERVER_CREDENTIAL.publicKey,
-        userName: MOCK_USERNAME,
-      });
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([]);
-      (createWebAuthnCredential as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
-    });
-
-    it("registers with the normalized recovery context and caches the verified credential", async () => {
-      const result = await invokeService(registerPasskeyService, {
-        userName: " @TestUser ",
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(mockPasskeyServerClient.startRegistration).toHaveBeenCalledWith({
-        context: MOCK_SERVER_CONTEXT,
-      });
-      expect(createWebAuthnCredential).toHaveBeenCalledWith(
-        expect.objectContaining({
-          rp: { id: "localhost", name: "Green Goods" },
-          user: expect.objectContaining({ name: MOCK_USERNAME }),
-        })
+      expect(harness.sessionSpies.setAddress).toHaveBeenCalledWith(ADDRESS);
+      expect(harness.telemetry.restore).toHaveBeenCalledWith(
+        expect.objectContaining({ outcome: "success" })
       );
-      expect(mockPasskeyServerClient.verifyRegistration).toHaveBeenCalledWith({
-        credential: MOCK_CREDENTIAL,
-        context: MOCK_SERVER_CONTEXT,
-      });
-      expect(createPasskey).not.toHaveBeenCalled();
-      expect(setStoredUsername).toHaveBeenCalledWith(MOCK_USERNAME);
-      expect(setStoredSmartAccountAddress).toHaveBeenCalledWith(MOCK_SMART_ACCOUNT_ADDRESS);
-      expect(result.credential).toEqual({
-        id: MOCK_SERVER_CREDENTIAL.id,
-        publicKey: MOCK_SERVER_CREDENTIAL.publicKey,
-        raw: MOCK_CREDENTIAL.raw,
-      });
-      expect(result.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
-      expect(result.userName).toBe(MOCK_USERNAME);
     });
 
-    it("fails before registration when the recovery context is already registered", async () => {
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_SERVER_CREDENTIAL]);
+    it("fails closed on expected-address drift without changing cached identity", async () => {
+      harness.state.credential = CREDENTIAL;
+      harness.state.expectedAddress = OTHER_ADDRESS;
 
       await expect(
-        invokeService(registerPasskeyService, {
-          userName: MOCK_USERNAME,
-          chainId: MOCK_CHAIN_ID,
-        })
-      ).rejects.toThrow("That recovery name is already registered");
-
-      expect(mockPasskeyServerClient.startRegistration).not.toHaveBeenCalled();
-      expect(createWebAuthnCredential).not.toHaveBeenCalled();
-      expect(setStoredUsername).not.toHaveBeenCalled();
-      expect(setStoredSmartAccountAddress).not.toHaveBeenCalled();
-    });
-
-    it("registers through the server even when a stale expected address remains", async () => {
-      mockStoredSmartAccountAddress = MOCK_OTHER_SMART_ACCOUNT_ADDRESS;
-
-      const result = await invokeService(registerPasskeyService, {
-        userName: MOCK_USERNAME,
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
-      expect(setStoredSmartAccountAddress).toHaveBeenCalledWith(MOCK_SMART_ACCOUNT_ADDRESS);
-    });
-
-    it("fails closed when the passkey server does not verify registration", async () => {
-      mockPasskeyServerClient.verifyRegistration.mockResolvedValue({
-        success: false,
-        id: MOCK_SERVER_CREDENTIAL.id,
-        publicKey: MOCK_SERVER_CREDENTIAL.publicKey,
-        userName: MOCK_USERNAME,
-      });
-
-      await expect(
-        invokeService(registerPasskeyService, {
-          userName: MOCK_USERNAME,
-          chainId: MOCK_CHAIN_ID,
-        })
-      ).rejects.toThrow("Passkey server registration failed");
-
-      expect(setStoredUsername).not.toHaveBeenCalled();
-      expect(setStoredSmartAccountAddress).not.toHaveBeenCalled();
-    });
-  });
-
-  // ==========================================================================
-  // AUTHENTICATE PASSKEY SERVICE (Client-Only)
-  // ==========================================================================
-
-  describe("authenticatePasskeyService (Client-Only)", () => {
-    it("throws when no stored credential", async () => {
-      mockStoredCredential = null;
-
-      await expect(
-        invokeService(authenticatePasskeyService, {
-          userName: MOCK_USERNAME,
-          chainId: MOCK_CHAIN_ID,
-        })
-      ).rejects.toThrow("No passkey found. Please create a new account.");
-    });
-
-    it("reads credential from localStorage and prompts biometric", async () => {
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockCredentials.get.mockResolvedValue({
-        id: MOCK_CREDENTIAL.id,
-        type: "public-key",
-      });
-
-      const result = await invokeService(authenticatePasskeyService, {
-        userName: MOCK_USERNAME,
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(mockCredentials.get).toHaveBeenCalled();
-      expect(result.credential).toBeDefined();
-      expect(result.smartAccountClient).toBeDefined();
-      expect(result.userName).toBe(MOCK_USERNAME);
-    });
-
-    it("stores username after successful authentication", async () => {
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockCredentials.get.mockResolvedValue({
-        id: MOCK_CREDENTIAL.id,
-        type: "public-key",
-      });
-
-      await invokeService(authenticatePasskeyService, {
-        userName: MOCK_USERNAME,
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(setStoredUsername).toHaveBeenCalledWith(MOCK_USERNAME);
-    });
-
-    it("throws when biometric authentication is cancelled", async () => {
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockCredentials.get.mockResolvedValue(null); // User cancelled
-
-      await expect(
-        invokeService(authenticatePasskeyService, {
-          userName: MOCK_USERNAME,
-          chainId: MOCK_CHAIN_ID,
-        })
-      ).rejects.toThrow("Passkey authentication was cancelled");
-    });
-
-    it("clears the signed-out sentinel only after a successful passkey login", async () => {
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockSignedOut = true;
-      mockCredentials.get.mockResolvedValue({
-        id: MOCK_CREDENTIAL.id,
-        type: "public-key",
-      });
-
-      const result = await invokeService(authenticatePasskeyService, {
-        userName: MOCK_USERNAME,
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
-      expect(clearSignedOutSentinel).toHaveBeenCalled();
-      expect(mockSignedOut).toBe(false);
-    });
-
-    it("keeps the signed-out sentinel when the ceremony is dismissed", async () => {
-      // Shared-device guard: sign-in intent alone must not re-enable
-      // automatic restore — a dismissed prompt leaves the device signed out.
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockSignedOut = true;
-      mockCredentials.get.mockResolvedValue(null);
-
-      await expect(
-        invokeService(authenticatePasskeyService, {
-          userName: MOCK_USERNAME,
-          chainId: MOCK_CHAIN_ID,
-        })
-      ).rejects.toThrow("Passkey authentication was cancelled");
-
-      expect(clearSignedOutSentinel).not.toHaveBeenCalled();
-      expect(mockSignedOut).toBe(true);
-    });
-
-    it("prompts WebAuthn with correct credential ID from storage", async () => {
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockCredentials.get.mockResolvedValue({
-        id: MOCK_CREDENTIAL.id,
-        type: "public-key",
-      });
-
-      await invokeService(authenticatePasskeyService, {
-        userName: MOCK_USERNAME,
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(mockCredentials.get).toHaveBeenCalledWith({
-        publicKey: expect.objectContaining({
-          rpId: "localhost",
-          userVerification: "required",
-          timeout: 60000,
-          allowCredentials: expect.arrayContaining([
-            expect.objectContaining({ type: "public-key" }),
-          ]),
-        }),
-      });
-    });
-  });
-
-  // ==========================================================================
-  // AUTHENTICATE PASSKEY SERVICE (Pimlico Hosted Passkey Server)
-  // ==========================================================================
-
-  describe("authenticatePasskeyService (Passkey Server Enabled)", () => {
-    beforeEach(() => {
-      mockPasskeyServerEnabled = true;
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_SERVER_CREDENTIAL]);
-      mockPasskeyServerClient.startAuthentication.mockResolvedValue({
-        challenge: "0x010203",
-        rpId: "localhost",
-        userVerification: "required",
-        uuid: "server-auth-uuid",
-      });
-      mockPasskeyServerClient.verifyAuthentication.mockResolvedValue({
-        success: true,
-        id: MOCK_SERVER_CREDENTIAL.id,
-        publicKey: MOCK_SERVER_CREDENTIAL.publicKey,
-        userName: MOCK_USERNAME,
-      });
-      mockCredentials.get.mockResolvedValue({
-        id: MOCK_SERVER_CREDENTIAL.id,
-        rawId: new Uint8Array([7, 8, 9]),
-        type: "public-key",
-        response: {
-          clientDataJSON: new Uint8Array([1]),
-          authenticatorData: new Uint8Array([2]),
-          signature: new Uint8Array([3]),
-          userHandle: new Uint8Array([4]),
-        },
-        authenticatorAttachment: "platform",
-        getClientExtensionResults: () => ({}),
-      });
-    });
-
-    it("recovers without a local credential by looking up the normalized username", async () => {
-      mockStoredCredential = null;
-
-      const result = await invokeService(authenticatePasskeyService, {
-        userName: " TestUser ",
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(mockPasskeyServerClient.getCredentials).toHaveBeenCalledWith({
-        context: MOCK_SERVER_CONTEXT,
-      });
-      expect(mockPasskeyServerClient.startAuthentication).toHaveBeenCalled();
-      expect(mockCredentials.get).toHaveBeenCalledWith({
-        publicKey: expect.objectContaining({
-          rpId: "localhost",
-          userVerification: "required",
-          timeout: 60000,
-          allowCredentials: [
-            expect.objectContaining({
-              type: "public-key",
-              transports: ["internal", "hybrid"],
-            }),
-          ],
-        }),
-      });
-      expect(mockPasskeyServerClient.verifyAuthentication).toHaveBeenCalledWith(
-        expect.objectContaining({
-          raw: expect.objectContaining({ id: MOCK_SERVER_CREDENTIAL.id }),
-          uuid: "server-auth-uuid",
-        })
+        invoke(harness.services.restoreSession, { chainId: CHAIN_ID })
+      ).resolves.toBeNull();
+      expect(harness.sessionSpies.setAddress).not.toHaveBeenCalled();
+      expect(harness.telemetry.restore).toHaveBeenCalledWith(
+        expect.objectContaining({ outcome: "failed", reason: "address_mismatch" })
       );
-      expect(setStoredUsername).toHaveBeenCalledWith(MOCK_USERNAME);
-      expect(setStoredSmartAccountAddress).toHaveBeenCalledWith(MOCK_SMART_ACCOUNT_ADDRESS);
-      expect(result.credential).toEqual({
-        id: MOCK_SERVER_CREDENTIAL.id,
-        publicKey: MOCK_SERVER_CREDENTIAL.publicKey,
-        raw: expect.objectContaining({ id: MOCK_SERVER_CREDENTIAL.id }),
-      });
-      expect(result.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
-      expect(result.userName).toBe(MOCK_USERNAME);
+    });
+  });
+
+  describe("registerPasskey", () => {
+    it("requires a username before invoking any passkey adapter", async () => {
+      await expect(
+        invoke(harness.services.registerPasskey, { userName: null, chainId: CHAIN_ID })
+      ).rejects.toThrow("Username is required");
+      expect(harness.calls.createLocalPasskey).not.toHaveBeenCalled();
     });
 
-    it("decodes hex credential IDs from the passkey server before WebAuthn lookup", async () => {
-      mockStoredCredential = null;
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([
-        {
-          id: "deadbeef",
-          publicKey: MOCK_SERVER_CREDENTIAL.publicKey,
-        },
-      ]);
-      mockPasskeyServerClient.verifyAuthentication.mockResolvedValue({
-        success: true,
-        id: "deadbeef",
-        publicKey: MOCK_SERVER_CREDENTIAL.publicKey,
-        userName: MOCK_USERNAME,
-      });
-      mockCredentials.get.mockResolvedValue({
-        id: "deadbeef",
-        rawId: new Uint8Array([0xde, 0xad, 0xbe, 0xef]),
-        type: "public-key",
-        response: {
-          clientDataJSON: new Uint8Array([1]),
-          authenticatorData: new Uint8Array([2]),
-          signature: new Uint8Array([3]),
-          userHandle: new Uint8Array([4]),
-        },
-        authenticatorAttachment: "platform",
-        getClientExtensionResults: () => ({}),
-      });
+    it("registers locally, caches identity, and clears sign-out only after success", async () => {
+      harness.state.signedOut = true;
 
-      await invokeService(authenticatePasskeyService, {
-        userName: MOCK_USERNAME,
-        chainId: MOCK_CHAIN_ID,
-      });
+      await expect(
+        invoke(harness.services.registerPasskey, { userName: USER, chainId: CHAIN_ID })
+      ).resolves.toMatchObject({ smartAccountAddress: ADDRESS, userName: USER });
+      expect(harness.calls.createLocalPasskey).toHaveBeenCalledWith(USER);
+      expect(harness.sessionSpies.setCredential).toHaveBeenCalledWith(CREDENTIAL);
+      expect(harness.sessionSpies.clearSignedOut).toHaveBeenCalledTimes(1);
+    });
 
-      const webAuthnRequest = mockCredentials.get.mock.calls[0]?.[0] as {
-        publicKey?: {
-          allowCredentials?: Array<{ id: ArrayBuffer }>;
-        };
+    it("uses the normalized server recovery context and verified credential", async () => {
+      harness.state.serverEnabled = true;
+
+      await expect(
+        invoke(harness.services.registerPasskey, {
+          userName: " @TestUser ",
+          chainId: CHAIN_ID,
+        })
+      ).resolves.toMatchObject({
+        credential: expect.objectContaining(SERVER_CREDENTIAL),
+        userName: USER,
+      });
+      expect(harness.server.getCredentials).toHaveBeenCalledWith({ context: { userName: USER } });
+      expect(harness.calls.createLocalPasskey).not.toHaveBeenCalled();
+    });
+
+    it("fails before ceremony when the recovery context is already registered", async () => {
+      harness.state.serverEnabled = true;
+      harness.server.getCredentials.mockResolvedValue([SERVER_CREDENTIAL]);
+
+      await expect(
+        invoke(harness.services.registerPasskey, { userName: USER, chainId: CHAIN_ID })
+      ).rejects.toThrow("already registered");
+      expect(harness.server.startRegistration).not.toHaveBeenCalled();
+      expect(harness.sessionSpies.setCredential).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("authenticatePasskey", () => {
+    it("authenticates through the local cache and preserves the stored username", async () => {
+      harness.state.credential = CREDENTIAL;
+      harness.state.userName = "stored-user";
+
+      await expect(
+        invoke(harness.services.authenticatePasskey, {
+          userName: "mistyped-name",
+          chainId: CHAIN_ID,
+        })
+      ).resolves.toMatchObject({ userName: "stored-user", smartAccountAddress: ADDRESS });
+      expect(harness.calls.getWebAuthnCredential).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps sign-out durable when the local ceremony is dismissed", async () => {
+      harness.state.credential = CREDENTIAL;
+      harness.state.signedOut = true;
+      harness.calls.getWebAuthnCredential.mockResolvedValue(null);
+
+      await expect(
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+      ).rejects.toThrow("cancelled");
+      expect(harness.sessionSpies.clearSignedOut).not.toHaveBeenCalled();
+      expect(harness.state.signedOut).toBe(true);
+    });
+
+    it("recovers through the hosted server without a local credential", async () => {
+      harness.state.serverEnabled = true;
+      harness.server.getCredentials.mockResolvedValue([SERVER_CREDENTIAL]);
+
+      await expect(
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+      ).resolves.toMatchObject({
+        credential: expect.objectContaining(SERVER_CREDENTIAL),
+        smartAccountAddress: ADDRESS,
+      });
+      expect(harness.server.verifyAuthentication).toHaveBeenCalledWith(
+        expect.objectContaining({ uuid: "auth-uuid" })
+      );
+    });
+
+    it("decodes hex credential IDs before the WebAuthn lookup", async () => {
+      harness.state.serverEnabled = true;
+      harness.server.getCredentials.mockResolvedValue([SERVER_CREDENTIAL]);
+
+      await invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID });
+
+      const request = harness.calls.getWebAuthnCredential.mock.calls[0]?.[0] as {
+        publicKey?: { allowCredentials?: Array<{ id: ArrayBuffer }> };
       };
-      const credentialId = webAuthnRequest.publicKey?.allowCredentials?.[0]?.id;
-      expect(credentialId).toBeInstanceOf(ArrayBuffer);
-      if (!credentialId) throw new Error("Expected a WebAuthn credential ID");
-      expect(Array.from(new Uint8Array(credentialId))).toEqual([0xde, 0xad, 0xbe, 0xef]);
+      expect(
+        Array.from(new Uint8Array(request.publicKey?.allowCredentials?.[0]?.id ?? []))
+      ).toEqual([0xde, 0xad, 0xbe, 0xef]);
     });
 
-    it("uses legacy same-device fallback when the server has no credential but named local cache exists", async () => {
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockStoredUsername = MOCK_USERNAME;
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([]);
-      mockCredentials.get.mockResolvedValue({
-        id: MOCK_CREDENTIAL.id,
-        type: "public-key",
-      });
-
-      const result = await invokeService(authenticatePasskeyService, {
-        userName: MOCK_USERNAME,
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(mockPasskeyServerClient.getCredentials).toHaveBeenCalledWith({
-        context: MOCK_SERVER_CONTEXT,
-      });
-      expect(mockPasskeyServerClient.startAuthentication).not.toHaveBeenCalled();
-      expect(result.credential).toEqual(MOCK_CREDENTIAL);
-      expect(result.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
-    });
-
-    it("does not adopt a recovery username when local fallback has no stored username", async () => {
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockStoredUsername = null;
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([]);
+    it("falls back once to a named local credential when the server has no match", async () => {
+      harness.state.serverEnabled = true;
+      harness.state.credential = CREDENTIAL;
+      harness.state.userName = USER;
 
       await expect(
-        invokeService(authenticatePasskeyService, {
-          userName: "mistyped-recovery-name",
-          chainId: MOCK_CHAIN_ID,
-        })
-      ).rejects.toThrow("No passkey credential found for that username.");
-
-      expect(mockCredentials.get).not.toHaveBeenCalled();
-      expect(setStoredUsername).not.toHaveBeenCalledWith("mistyped-recovery-name");
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+      ).resolves.toMatchObject({ credential: CREDENTIAL, userName: USER });
+      expect(harness.calls.getWebAuthnCredential).toHaveBeenCalledTimes(1);
+      expect(harness.telemetry.loginSucceeded).toHaveBeenCalledWith(
+        expect.objectContaining({ source: "local_cache", reason: "legacy_fallback" })
+      );
     });
 
-    it("does not overwrite the cached username when local fallback handles a recovery lookup", async () => {
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockStoredUsername = "stored-local-user";
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([]);
-      mockCredentials.get.mockResolvedValue({
-        id: MOCK_CREDENTIAL.id,
-        type: "public-key",
-      });
-
-      const result = await invokeService(authenticatePasskeyService, {
-        userName: "mistyped-recovery-name",
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result.userName).toBe("stored-local-user");
-      expect(setStoredUsername).toHaveBeenCalledWith("stored-local-user");
-      expect(setStoredUsername).not.toHaveBeenCalledWith("mistyped-recovery-name");
-    });
-
-    it("preserves local auth data and falls back when the server is unavailable", async () => {
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockStoredUsername = MOCK_USERNAME;
-      mockAuthMode = "passkey";
-      mockStoredSmartAccountAddress = MOCK_SMART_ACCOUNT_ADDRESS;
-      mockPasskeyServerClient.getCredentials.mockRejectedValue(new Error("fetch failed"));
-      mockCredentials.get.mockResolvedValue({
-        id: MOCK_CREDENTIAL.id,
-        type: "public-key",
-      });
-
-      const result = await invokeService(authenticatePasskeyService, {
-        userName: MOCK_USERNAME,
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result.credential).toEqual(MOCK_CREDENTIAL);
-      expect(clearStoredCredential).not.toHaveBeenCalled();
-      expect(clearStoredUsername).not.toHaveBeenCalled();
-      expect(clearAuthMode).not.toHaveBeenCalled();
-      expect(clearStoredSmartAccountAddress).not.toHaveBeenCalled();
-    });
-
-    it("falls back to the local credential when the lookup fails with a viem HTTP transport error", async () => {
-      // Real viem transport failures carry no fallback keywords in their
-      // message text; the lookup phase must still degrade to local fallback.
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockStoredUsername = MOCK_USERNAME;
-      const transportError = new Error("HTTP request failed.\nStatus: 500\nURL: https://b.test");
-      transportError.name = "HttpRequestError";
-      mockPasskeyServerClient.getCredentials.mockRejectedValue(transportError);
-      mockCredentials.get.mockResolvedValue({
-        id: MOCK_CREDENTIAL.id,
-        type: "public-key",
-      });
-
-      const result = await invokeService(authenticatePasskeyService, {
-        userName: MOCK_USERNAME,
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result.credential).toEqual(MOCK_CREDENTIAL);
-      expect(clearStoredCredential).not.toHaveBeenCalled();
-      expect(clearStoredUsername).not.toHaveBeenCalled();
-    });
-
-    it("falls back to the local credential when challenge issuance times out", async () => {
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockStoredUsername = MOCK_USERNAME;
-      const timeoutError = new Error("The request took too long to respond.");
-      timeoutError.name = "TimeoutError";
-      mockPasskeyServerClient.startAuthentication.mockRejectedValue(timeoutError);
-      mockCredentials.get.mockResolvedValue({
-        id: MOCK_CREDENTIAL.id,
-        type: "public-key",
-      });
-
-      const result = await invokeService(authenticatePasskeyService, {
-        userName: MOCK_USERNAME,
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result.credential).toEqual(MOCK_CREDENTIAL);
-    });
-
-    it("does not fall back when the user cancels the WebAuthn ceremony", async () => {
-      mockStoredCredential = MOCK_CREDENTIAL;
-      const cancelError = new Error("The operation either timed out or was not allowed.");
-      cancelError.name = "NotAllowedError";
-      mockCredentials.get.mockRejectedValue(cancelError);
+    it("falls back to local cache after a server lookup transport failure", async () => {
+      harness.state.serverEnabled = true;
+      harness.state.credential = CREDENTIAL;
+      harness.state.userName = USER;
+      const failure = new Error("HTTP request failed");
+      failure.name = "HttpRequestError";
+      harness.server.getCredentials.mockRejectedValue(failure);
 
       await expect(
-        invokeService(authenticatePasskeyService, {
-          userName: MOCK_USERNAME,
-          chainId: MOCK_CHAIN_ID,
-        })
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+      ).resolves.toMatchObject({ credential: CREDENTIAL });
+      expect(harness.calls.getWebAuthnCredential).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not retry locally after a user cancels the server ceremony", async () => {
+      harness.state.serverEnabled = true;
+      harness.state.credential = CREDENTIAL;
+      harness.server.getCredentials.mockResolvedValue([SERVER_CREDENTIAL]);
+      const cancellation = new Error("The operation was not allowed");
+      cancellation.name = "NotAllowedError";
+      harness.calls.getWebAuthnCredential.mockRejectedValue(cancellation);
+
+      await expect(
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
       ).rejects.toThrow("not allowed");
-
-      // One ceremony only — cancellation must not re-prompt via local fallback.
-      expect(mockCredentials.get).toHaveBeenCalledTimes(1);
+      expect(harness.calls.getWebAuthnCredential).toHaveBeenCalledTimes(1);
+      expect(harness.telemetry.loginFailed).toHaveBeenCalledWith(
+        expect.objectContaining({ source: "server", reason: "cancelled" })
+      );
     });
 
-    it("attributes a failed local-fallback ceremony to local_cache, not server", async () => {
-      // Server lookup finds no credential, so the flow degrades to the local
-      // fallback; the user then dismisses that ceremony. The failure happened
-      // on the local path and telemetry must say so.
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockStoredUsername = MOCK_USERNAME;
-      mockPasskeyServerClient.getCredentials.mockResolvedValue([]);
-      const cancelError = new Error("The operation either timed out or was not allowed.");
-      cancelError.name = "NotAllowedError";
-      mockCredentials.get.mockRejectedValue(cancelError);
+    it("attributes a dismissed local fallback to local_cache without a second ceremony", async () => {
+      harness.state.serverEnabled = true;
+      harness.state.credential = CREDENTIAL;
+      harness.state.userName = USER;
+      const cancellation = new Error("The operation was not allowed");
+      cancellation.name = "NotAllowedError";
+      harness.calls.getWebAuthnCredential.mockRejectedValue(cancellation);
 
       await expect(
-        invokeService(authenticatePasskeyService, {
-          userName: MOCK_USERNAME,
-          chainId: MOCK_CHAIN_ID,
-        })
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
       ).rejects.toThrow("not allowed");
-
-      expect(vi.mocked(trackAuthPasskeyLoginFailed)).toHaveBeenCalledWith(
+      expect(harness.calls.getWebAuthnCredential).toHaveBeenCalledTimes(1);
+      expect(harness.telemetry.loginFailed).toHaveBeenCalledWith(
         expect.objectContaining({ source: "local_cache", reason: "cancelled" })
       );
-      // A failure inside the local fallback must not chain into a second
-      // fallback attempt: one local ceremony only.
-      expect(mockCredentials.get).toHaveBeenCalledTimes(1);
     });
 
-    it("fails closed when a recovered credential rebuilds a different stored address", async () => {
-      mockStoredSmartAccountAddress = MOCK_OTHER_SMART_ACCOUNT_ADDRESS;
+    it("fails closed when a recovered credential rebuilds a different expected address", async () => {
+      harness.state.serverEnabled = true;
+      harness.state.expectedAddress = OTHER_ADDRESS;
+      harness.server.getCredentials.mockResolvedValue([SERVER_CREDENTIAL]);
 
       await expect(
-        invokeService(authenticatePasskeyService, {
-          userName: MOCK_USERNAME,
-          chainId: MOCK_CHAIN_ID,
-        })
-      ).rejects.toThrow("Recovered passkey did not match the expected account address");
-
-      expect(clearStoredCredential).not.toHaveBeenCalled();
-      expect(clearStoredUsername).not.toHaveBeenCalled();
-      expect(clearAuthMode).not.toHaveBeenCalled();
-      expect(clearStoredSmartAccountAddress).not.toHaveBeenCalled();
-    });
-  });
-
-  // ==========================================================================
-  // INTEGRATION: Username Flow
-  // ==========================================================================
-
-  describe("username flow integration", () => {
-    it("new user: register stores username, enables restore", async () => {
-      (createPasskey as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
-
-      // Register new user
-      const registerResult = await invokeService(registerPasskeyService, {
-        userName: "newuser",
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(registerResult.userName).toBe("newuser");
-      expect(setStoredUsername).toHaveBeenCalledWith("newuser");
-    });
-
-    it("existing user: authenticate uses stored credential", async () => {
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockCredentials.get.mockResolvedValue({
-        id: MOCK_CREDENTIAL.id,
-        type: "public-key",
-      });
-
-      const result = await invokeService(authenticatePasskeyService, {
-        userName: "existinguser",
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result.userName).toBe("existinguser");
-    });
-
-    it("restore: restores session from stored credential and username", async () => {
-      mockStoredUsername = "restoreduser";
-      mockStoredCredential = MOCK_CREDENTIAL;
-
-      const result = await invokeService(restoreSessionService, {
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result?.userName).toBe("restoreduser");
-    });
-  });
-
-  // ==========================================================================
-  // SERVICE RESULT TYPES
-  // ==========================================================================
-
-  describe("service result types", () => {
-    it("registerPasskeyService returns complete PasskeySessionResult", async () => {
-      (createPasskey as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
-
-      const result = await invokeService(registerPasskeyService, {
-        userName: MOCK_USERNAME,
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result).toHaveProperty("credential");
-      expect(result).toHaveProperty("smartAccountClient");
-      expect(result).toHaveProperty("smartAccountAddress");
-      expect(result).toHaveProperty("userName");
-      expect(typeof result.smartAccountAddress).toBe("string");
-      expect(result.smartAccountAddress).toMatch(/^0x/);
-    });
-
-    it("authenticatePasskeyService returns complete PasskeySessionResult", async () => {
-      mockStoredCredential = MOCK_CREDENTIAL;
-      mockCredentials.get.mockResolvedValue({
-        id: MOCK_CREDENTIAL.id,
-        type: "public-key",
-      });
-
-      const result = await invokeService(authenticatePasskeyService, {
-        userName: MOCK_USERNAME,
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result).toHaveProperty("credential");
-      expect(result).toHaveProperty("smartAccountClient");
-      expect(result).toHaveProperty("smartAccountAddress");
-      expect(result).toHaveProperty("userName");
-    });
-
-    it("restoreSessionService returns RestoreSessionResult or null", async () => {
-      mockStoredUsername = MOCK_USERNAME;
-      mockStoredCredential = MOCK_CREDENTIAL;
-
-      const result = await invokeService(restoreSessionService, {
-        chainId: MOCK_CHAIN_ID,
-      });
-
-      expect(result).not.toBeNull();
-      expect(result).toHaveProperty("credential");
-      expect(result).toHaveProperty("smartAccountClient");
-      expect(result).toHaveProperty("smartAccountAddress");
-      expect(result).toHaveProperty("userName");
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+      ).rejects.toThrow("did not match the expected account address");
+      expect(harness.sessionSpies.setAddress).not.toHaveBeenCalled();
     });
   });
 });

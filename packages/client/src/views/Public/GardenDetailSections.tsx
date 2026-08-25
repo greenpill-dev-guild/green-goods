@@ -1,4 +1,7 @@
-import { type Address, AddressDisplay, useHypercerts, useInViewReveal } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { useHypercerts } from "@green-goods/shared/hooks/hypercerts/useHypercerts";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { EditorialHeading, EditorialKicker } from "@/components/Public/atoms";

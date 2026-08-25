@@ -1,4 +1,6 @@
-import { cn, type PublicGardenSummary, type PublicImpactEvidenceRecord } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
+import type { PublicImpactEvidenceRecord } from "@green-goods/shared/public-contracts/public-impact";
 import { useId } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { EditorialKicker } from "./atoms";

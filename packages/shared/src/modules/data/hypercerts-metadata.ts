@@ -9,7 +9,7 @@ import {
   type MetricValue,
 } from "../../types/hypercerts";
 import { logger } from "../app/logger";
-import { resolveIPFSUrl } from "./ipfs";
+import { resolveIPFSUrl } from "./ipfs/resolve";
 import { domainToActionDomain } from "./hypercerts-filters";
 
 // =============================================================================

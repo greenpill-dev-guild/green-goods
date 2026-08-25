@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { Address } from "../../types/domain";
 import { WeightScheme } from "../../types/gardens-community";
 import { compareAddresses } from "../../utils/blockchain/address";
@@ -13,7 +13,7 @@ import { useCreateGardenPools } from "../conviction/useCreateGardenPools";
 import { useGardenCommunity } from "../conviction/useGardenCommunity";
 import { useGardenPools } from "../conviction/useGardenPools";
 import { useHypercerts } from "../hypercerts/useHypercerts";
-import { queryInvalidation } from "../../config/query-keys";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 import { useGardenVaults } from "../vault/useGardenVaults";
 import { useWorks } from "../work/useWorks";

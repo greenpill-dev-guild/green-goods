@@ -1,4 +1,4 @@
-import { type ActionInstructionConfig } from "@green-goods/shared";
+import type { ActionInstructionConfig } from "@green-goods/shared/types/domain";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "../AdminButton";

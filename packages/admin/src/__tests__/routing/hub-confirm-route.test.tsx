@@ -3,11 +3,13 @@
  */
 
 import {
-  adminRoutes,
-  getAdminWorkspaceForPath,
   PIPELINE_STAGE_CONFIG,
   resolvePipelineStageFromPath,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
+import {
+  adminRoutes,
+  getAdminWorkspaceForPath,
+} from "@green-goods/shared/utils/navigation/admin-routes";
 import { describe, expect, it, vi } from "vitest";
 import { waitFor } from "../test-utils";
 import { findRoute, lazyOf, renderAdminCanvasRoute } from "./pooling-route-harness";

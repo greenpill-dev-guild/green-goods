@@ -53,11 +53,14 @@ const mockEnsureAppKitWalletChain = vi.fn();
 const mockInvalidateQueries = vi.fn();
 const mockSendTransaction = vi.fn();
 
-vi.mock("../../../modules/marketplace", () => ({
+vi.mock("../../../modules/marketplace/signing", () => ({
   buildMakerAsk: (...args: unknown[]) => mockBuildMakerAsk(...args),
-  getOrderNonces: (...args: unknown[]) => mockGetOrderNonces(...args),
   signMakerAsk: (...args: unknown[]) => mockSignMakerAsk(...args),
   validateOrder: (...args: unknown[]) => mockValidateOrder(...args),
+}));
+
+vi.mock("../../../modules/marketplace/client", () => ({
+  getOrderNonces: (...args: unknown[]) => mockGetOrderNonces(...args),
 }));
 
 vi.mock("../../../utils/blockchain/hypercert-abis", () => ({
@@ -75,8 +78,11 @@ vi.mock("../../../modules/transactions/chain-guard", () => ({
   ensureAppKitWalletChain: (...args: unknown[]) => mockEnsureAppKitWalletChain(...args),
 }));
 
-vi.mock("../../../config", () => ({
+vi.mock("../../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("../../../config/pimlico", () => ({
   createPublicClientForChain: () => ({
     waitForTransactionReceipt: vi.fn().mockResolvedValue({}),
   }),
@@ -103,7 +109,7 @@ vi.mock("../../../stores/useAdminStore", () => ({
     selector({ selectedChainId: 11155111 }),
 }));
 
-vi.mock("../../../config/query-keys", () => ({
+vi.mock("../../../config/query-keys/invalidation", () => ({
   queryInvalidation: {
     onMarketplaceListingChanged: () => [
       ["greengoods", "marketplace", "orders"],

@@ -3,9 +3,15 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/garden-detail", () => ({
   DOMAIN_LABEL_IDS: { 1: "app.domain.tab.agro" },
+}));
+
+vi.mock("@green-goods/shared/utils/time", () => ({
   formatDateRange: () => "Nov 14, 2023 – Mar 9, 2024",
+}));
+
+vi.mock("@green-goods/shared/modules/data/ipfs/resolve", () => ({
   resolveIPFSUrl: (cid: string) => `https://gateway.test/ipfs/${cid}`,
 }));
 

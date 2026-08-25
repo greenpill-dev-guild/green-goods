@@ -1,12 +1,12 @@
+import type { Address } from "@green-goods/shared/types/domain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import {
-  type Address,
   type CommitmentUnitSummaryRecord,
   PUBLIC_HISTORY_PAGE_SIZE,
   type PublicCommitmentCycleRecord,
   type PublicCommitmentPoolRecord,
   type PublicGardenPoolData,
-  queryKeys,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import type { Meta, StoryObj } from "@storybook/react";
 import { withSeededQueryClient } from "../../../../shared/.storybook/decorators";
 import { CommitmentsSection } from "./GardenDetailCommitments";

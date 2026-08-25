@@ -1,6 +1,6 @@
 import { RiArrowRightLine } from "@remixicon/react";
 import { type ComponentType } from "react";
-import { cn } from "../../utils";
+import { cn } from "../../utils/styles/cn";
 
 export type WorkbenchTone = "pending" | "approved" | "certify" | "history";
 

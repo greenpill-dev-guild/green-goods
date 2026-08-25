@@ -7,12 +7,14 @@ import { getWagmiConfig } from "../../config/appkit";
 import { logger } from "../../modules/app/logger";
 import type { CookieJarDepositParams } from "../../types/cookie-jar";
 import type { Address } from "../../types/domain";
-import { COOKIE_JAR_ABI, ERC20_ALLOWANCE_ABI } from "../../utils/blockchain/abis";
+import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis/cookie-jar";
+import { ERC20_ALLOWANCE_ABI } from "../../utils/blockchain/abis/erc20";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 

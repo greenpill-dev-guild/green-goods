@@ -4,7 +4,7 @@
  * Storybook timestamp the read models are evaluated against.
  */
 
-import type { Address } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
 import { STORYBOOK_PRIMARY_ADMIN_GARDEN } from "../../../../../shared/.storybook/adminFixtures";
 import { STORYBOOK_NOW_SECONDS } from "../../../../../shared/.storybook/fixtures";
 

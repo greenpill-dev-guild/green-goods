@@ -1,11 +1,9 @@
-import {
-  type Address,
-  Card,
-  EmptyState,
-  adminRoutes,
-  type GardenDetailTab,
-  type HypercertRecord,
-} from "@green-goods/shared";
+import { Card } from "@green-goods/shared/components/Cards/CardBase";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { GardenDetailTab } from "@green-goods/shared/types/garden-detail";
+import type { HypercertRecord } from "@green-goods/shared/types/hypercerts";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiArrowRightSLine, RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";

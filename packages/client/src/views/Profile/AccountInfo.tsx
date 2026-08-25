@@ -1,13 +1,10 @@
-import {
-  type Address,
-  debugError,
-  hapticLight,
-  toastService,
-  useAuthActions,
-  useAuthState,
-  useEnsName,
-  usePrimaryAddress,
-} from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { debugError } from "@green-goods/shared/utils/debug";
+import { hapticLight } from "@green-goods/shared/utils/app/haptics";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useAuthActions, useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import {
   RiAlertLine,
   RiKeyLine,
@@ -21,7 +18,7 @@ import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
-import { APP_ROUTES } from "@/config/pwa-routing";
+import { APP_ROUTES } from "@/config/pwaRouting";
 
 export const AccountInfo: React.FC = () => {
   const { authMode, credential, walletAddress, embeddedAddress } = useAuthState();

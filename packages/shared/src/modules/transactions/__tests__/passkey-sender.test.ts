@@ -7,23 +7,12 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Abi } from "viem";
-import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
+import {
+  createFakeSmartAccountClient,
+  createMockContractCall,
+  MOCK_TX_HASH,
+} from "@green-goods/shared/testing";
 import type { ContractCall } from "../types";
-
-// ============================================
-// Mocks
-// ============================================
-
-const mockSendTransaction = vi.fn();
-
-function createMockSmartAccountClient() {
-  return {
-    account: { address: MOCK_ADDRESSES.smartAccount },
-    chain: { id: 11155111, name: "Sepolia" },
-    sendTransaction: mockSendTransaction,
-  };
-}
 
 // ============================================
 // Import after mocks
@@ -35,27 +24,8 @@ import { PasskeySender } from "../passkey-sender";
 // Test fixtures
 // ============================================
 
-const TEST_ABI: Abi = [
-  {
-    type: "function",
-    name: "transfer",
-    inputs: [
-      { name: "to", type: "address", internalType: "address" },
-      { name: "amount", type: "uint256", internalType: "uint256" },
-    ],
-    outputs: [{ name: "", type: "bool", internalType: "bool" }],
-    stateMutability: "nonpayable",
-  },
-];
-
 const VALID_RECIPIENT = "0x1111111111111111111111111111111111111111" as const;
-
-const TEST_CALL: ContractCall = {
-  address: "0x3333333333333333333333333333333333333333",
-  abi: TEST_ABI,
-  functionName: "transfer",
-  args: [VALID_RECIPIENT, 1000n],
-};
+const TEST_CALL = createMockContractCall({ chainId: undefined });
 
 // ============================================
 // Tests
@@ -63,12 +33,13 @@ const TEST_CALL: ContractCall = {
 
 describe("PasskeySender", () => {
   let sender: PasskeySender;
+  let mockSendTransaction: ReturnType<typeof createFakeSmartAccountClient>["sendTransaction"];
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSendTransaction.mockResolvedValue(MOCK_TX_HASH);
-    const client = createMockSmartAccountClient();
-    sender = new PasskeySender(client as any);
+    const client = createFakeSmartAccountClient();
+    mockSendTransaction = client.sendTransaction;
+    sender = new PasskeySender(client);
   });
 
   describe("properties", () => {
@@ -97,7 +68,11 @@ describe("PasskeySender", () => {
     it("encodes function data and passes correct parameters", async () => {
       await sender.sendContractCall(TEST_CALL);
 
-      const sendTxArgs = mockSendTransaction.mock.calls[0][0];
+      const sendTxArgs = mockSendTransaction.mock.calls[0][0] as {
+        to: string;
+        value: bigint;
+        data: string;
+      };
       expect(sendTxArgs.to).toBe(TEST_CALL.address);
       expect(sendTxArgs.value).toBe(0n);
       // data should be hex-encoded calldata
@@ -111,7 +86,7 @@ describe("PasskeySender", () => {
       };
       await sender.sendContractCall(callWithValue);
 
-      const sendTxArgs = mockSendTransaction.mock.calls[0][0];
+      const sendTxArgs = mockSendTransaction.mock.calls[0][0] as { value: bigint };
       expect(sendTxArgs.value).toBe(1000000n);
     });
 

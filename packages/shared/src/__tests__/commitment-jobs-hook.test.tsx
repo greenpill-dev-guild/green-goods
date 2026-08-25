@@ -26,7 +26,9 @@ const mocks = vi.hoisted(() => ({
   viewer: "0x1111111111111111111111111111111111111111" as string | null,
 }));
 
-vi.mock("../modules/job-queue", () => ({ jobQueue: { addJob: mocks.addJob } }));
+vi.mock("../modules/job-queue/default-instance", () => ({
+  jobQueue: { addJob: mocks.addJob },
+}));
 vi.mock("../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => mocks.viewer }));
 vi.mock("../hooks/blockchain/useChainConfig", () => ({ useCurrentChain: () => 42161 }));
 

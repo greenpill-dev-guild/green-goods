@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getVaultEvents } from "../../modules/data/vaults";
 import type { Address } from "../../types/domain";
 import type { VaultEvent } from "../../types/vaults";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { vaultsKeys } from "../../config/query-keys/vault";
 
 interface UseVaultEventsOptions {
   chainId?: number;
@@ -18,7 +19,7 @@ export function useVaultEvents(gardenAddress?: Address, options: UseVaultEventsO
   const normalizedGarden = gardenAddress?.toLowerCase();
 
   const query = useQuery({
-    queryKey: queryKeys.vaults.events(normalizedGarden ?? "", chainId, limit),
+    queryKey: vaultsKeys.events(normalizedGarden ?? "", chainId, limit),
     queryFn: () => getVaultEvents(normalizedGarden ?? "", chainId, limit),
     enabled: enabled && Boolean(normalizedGarden),
     staleTime: STALE_TIME_MEDIUM,

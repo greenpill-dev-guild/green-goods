@@ -1,13 +1,13 @@
+import type { Address } from "@green-goods/shared/types/domain";
+import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
 import {
-  type Address,
-  ConfirmDialog,
-  type CookieJar,
   formatTokenAmount,
   getVaultAssetSymbol,
-  useCookieJarWithdraw,
-  useOffline,
   validateDecimalInput,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/blockchain/vaults";
+import { useCookieJarWithdraw } from "@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import { RiLoader4Line } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";

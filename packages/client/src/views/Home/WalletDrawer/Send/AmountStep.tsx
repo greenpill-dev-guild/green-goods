@@ -1,9 +1,7 @@
-import {
-  cn,
-  formatTokenAmount,
-  FormattedAmountInput,
-  type SendableTokenBalance,
-} from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { FormattedAmountInput } from "@green-goods/shared/components/Form/FormattedAmountInput";
+import type { SendableTokenBalance } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
 import { RiCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import type { AmountValidation } from "./validation";

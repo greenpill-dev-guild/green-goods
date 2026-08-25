@@ -11,7 +11,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderWithProviders, screen, fireEvent, waitFor } from "../test-utils";
 import userEvent from "@testing-library/user-event";
-import { OPEN_ACCOUNT_SHEET_EVENT } from "@green-goods/shared";
+import { OPEN_ACCOUNT_SHEET_EVENT } from "@green-goods/shared/hooks/admin-ui/layout/accountSheet.events";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -33,43 +33,64 @@ vi.mock("react-router-dom", async (importOriginal) => {
   };
 });
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<Record<string, unknown>>();
-  return {
-    ...actual,
-    cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-    DEFAULT_CHAIN_ID: 11155111,
-    useAdminStore: (
-      selector: (state: {
-        selectedGarden: null;
-        setSelectedGarden: typeof mockSetSelectedGarden;
-      }) => unknown
-    ) => selector({ selectedGarden: null, setSelectedGarden: mockSetSelectedGarden }),
-    useActions: () => ({ data: [] }),
-    useAllAssessments: () => ({ data: [] }),
-    useEligibleAdminGardens: () => ({
-      eligibleGardens: mockEligibleGardens.current,
-      resolvedDefaultGarden: mockEligibleGardens.current[0] ?? null,
-      persistedGardenId: null,
-      scopeKey: "0x123:11155111",
-      canCreateGarden: true,
-      isLoaded: true,
-    }),
-    useAdminGardenContext: () => ({
-      activeGarden: mockEligibleGardens.current[0] ?? null,
-      activeGardenId: mockEligibleGardens.current[0]?.id ?? null,
-      requestedGardenId: mockEligibleGardens.current[0]?.id ?? null,
-      eligibleGardens: mockEligibleGardens.current,
-      isLoaded: true,
-      isError: false,
-      hasExplicitGarden: true,
-      status: "ready",
-      selectGarden: mockSelectGarden,
-      clearGarden: vi.fn(),
-    }),
-    useRole: () => ({ role: "deployer" as const }),
-  };
-});
+vi.mock("@green-goods/shared/config/blockchain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("@green-goods/shared/config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("@green-goods/shared/hooks/assessment/useAllAssessments", () => ({
+  useAllAssessments: () => ({ data: [] }),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
+  useActions: () => ({ data: [] }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useAdminGardenContext", () => ({
+  useAdminGardenContext: () => ({
+    activeGarden: mockEligibleGardens.current[0] ?? null,
+    activeGardenId: mockEligibleGardens.current[0]?.id ?? null,
+    requestedGardenId: mockEligibleGardens.current[0]?.id ?? null,
+    eligibleGardens: mockEligibleGardens.current,
+    isLoaded: true,
+    isError: false,
+    hasExplicitGarden: true,
+    status: "ready",
+    selectGarden: mockSelectGarden,
+    clearGarden: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useEligibleAdminGardens", () => ({
+  useEligibleAdminGardens: () => ({
+    eligibleGardens: mockEligibleGardens.current,
+    resolvedDefaultGarden: mockEligibleGardens.current[0] ?? null,
+    persistedGardenId: null,
+    scopeKey: "0x123:11155111",
+    canCreateGarden: true,
+    isLoaded: true,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/gardener/useRole", () => ({
+  useRole: () => ({ role: "deployer" as const }),
+}));
+
+vi.mock("@green-goods/shared/stores/useAdminStore", () => ({
+  useAdminStore: (
+    selector: (state: {
+      selectedGarden: null;
+      setSelectedGarden: typeof mockSetSelectedGarden;
+    }) => unknown
+  ) => selector({ selectedGarden: null, setSelectedGarden: mockSetSelectedGarden }),
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
 
 import { CommandPalette } from "@/components/Layout/CommandPalette";
 

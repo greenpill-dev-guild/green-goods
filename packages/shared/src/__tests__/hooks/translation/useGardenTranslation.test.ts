@@ -17,15 +17,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // Mocks
 // ============================================
 
-vi.mock("../../../modules/translation/browser-translator", () => ({
-  browserTranslator: {
-    get isSupported() {
-      return false;
-    },
-    translate: vi.fn(),
-  },
-}));
-
 vi.mock("../../../modules/app/logger", () => ({
   logger: {
     error: vi.fn(),
@@ -40,8 +31,15 @@ vi.mock("../../../modules/app/logger", () => ({
 // ============================================
 
 import { useGardenTranslation } from "../../../hooks/translation/useGardenTranslation";
+import type { Translator } from "../../../modules/translation/browser-translator";
 import { AppContext } from "../../../providers/App";
 import type { Garden } from "../../../types/domain";
+
+const unsupportedTranslator: Translator = {
+  isSupported: false,
+  translate: vi.fn(),
+  translateBatch: vi.fn(),
+};
 
 // ============================================
 // Test Helpers
@@ -102,9 +100,12 @@ describe("useGardenTranslation", () => {
   });
 
   it("returns null translatedGarden when garden is null", () => {
-    const { result } = renderHook(() => useGardenTranslation(null), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => useGardenTranslation(null, { translator: unsupportedTranslator }),
+      {
+        wrapper: createWrapper(),
+      }
+    );
 
     expect(result.current.translatedGarden).toBeNull();
     expect(result.current.isTranslating).toBe(false);
@@ -112,9 +113,12 @@ describe("useGardenTranslation", () => {
 
   it("returns garden fields unchanged when locale matches source (en)", () => {
     const garden = createGarden();
-    const { result } = renderHook(() => useGardenTranslation(garden), {
-      wrapper: createWrapper("en"),
-    });
+    const { result } = renderHook(
+      () => useGardenTranslation(garden, { translator: unsupportedTranslator }),
+      {
+        wrapper: createWrapper("en"),
+      }
+    );
 
     expect(result.current.translatedGarden).not.toBeNull();
     expect(result.current.translatedGarden!.name).toBe("Urban Garden Portland");
@@ -130,9 +134,12 @@ describe("useGardenTranslation", () => {
       chainId: 42161,
     });
 
-    const { result } = renderHook(() => useGardenTranslation(garden), {
-      wrapper: createWrapper("en"),
-    });
+    const { result } = renderHook(
+      () => useGardenTranslation(garden, { translator: unsupportedTranslator }),
+      {
+        wrapper: createWrapper("en"),
+      }
+    );
 
     expect(result.current.translatedGarden!.id).toBe("special-garden");
     expect(result.current.translatedGarden!.tokenID).toBe(BigInt(42));
@@ -145,9 +152,12 @@ describe("useGardenTranslation", () => {
       stewards: ["0xSteward1" as any],
     });
 
-    const { result } = renderHook(() => useGardenTranslation(garden), {
-      wrapper: createWrapper("en"),
-    });
+    const { result } = renderHook(
+      () => useGardenTranslation(garden, { translator: unsupportedTranslator }),
+      {
+        wrapper: createWrapper("en"),
+      }
+    );
 
     expect(result.current.translatedGarden!.gardeners).toEqual(["0xGardener1"]);
     expect(result.current.translatedGarden!.stewards).toEqual(["0xSteward1"]);
@@ -155,9 +165,12 @@ describe("useGardenTranslation", () => {
 
   it("reports isTranslating as false when API is unsupported and locale differs", () => {
     const garden = createGarden();
-    const { result } = renderHook(() => useGardenTranslation(garden), {
-      wrapper: createWrapper("es"),
-    });
+    const { result } = renderHook(
+      () => useGardenTranslation(garden, { translator: unsupportedTranslator }),
+      {
+        wrapper: createWrapper("es"),
+      }
+    );
 
     // API unsupported => falls back immediately without translating
     expect(result.current.isTranslating).toBe(false);
@@ -172,9 +185,12 @@ describe("useGardenTranslation", () => {
       location: "",
     });
 
-    const { result } = renderHook(() => useGardenTranslation(garden), {
-      wrapper: createWrapper("en"),
-    });
+    const { result } = renderHook(
+      () => useGardenTranslation(garden, { translator: unsupportedTranslator }),
+      {
+        wrapper: createWrapper("en"),
+      }
+    );
 
     expect(result.current.translatedGarden!.name).toBe("");
     expect(result.current.translatedGarden!.description).toBe("");

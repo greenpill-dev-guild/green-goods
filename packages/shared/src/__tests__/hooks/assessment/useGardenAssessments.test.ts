@@ -32,6 +32,10 @@ vi.mock("../../../config/blockchain", () => ({
   getEASConfig: (chainId?: number) => mockGetEASConfig(chainId),
 }));
 
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 vi.mock("../../../utils/blockchain/vaults", () => ({
   isZeroBytes32: (value: string) => /^0x0*$/.test(value),
 }));
@@ -41,19 +45,20 @@ vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: any) => mockUseQuery(options),
 }));
 
-vi.mock("../../../config/query-keys", () => ({
-  queryKeys: {
-    assessments: {
-      byGardenBase: (addr: string, chainId: number) => [
-        "greengoods",
-        "assessments",
-        "byGarden",
-        addr,
-        chainId,
-      ],
-    },
-  },
+vi.mock("../../../config/query-keys/constants", () => ({
   STALE_TIME_MEDIUM: 300000,
+}));
+
+vi.mock("../../../config/query-keys/garden", () => ({
+  assessmentsKeys: {
+    byGardenBase: (addr: string, chainId: number) => [
+      "greengoods",
+      "assessments",
+      "byGarden",
+      addr,
+      chainId,
+    ],
+  },
 }));
 
 // ============================================

@@ -1,4 +1,4 @@
-import type { PoolConsoleController } from "@green-goods/shared";
+import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { Dispatch, SetStateAction } from "react";
 import { useIntl } from "react-intl";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";

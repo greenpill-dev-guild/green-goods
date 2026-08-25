@@ -1,4 +1,4 @@
-import type { CommitmentDialogController } from "@green-goods/shared";
+import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { Meta, StoryObj } from "@storybook/react";
 import { type ComponentProps, useState } from "react";
 import { daysAgo } from "../../../../../../shared/.storybook/fixtures";

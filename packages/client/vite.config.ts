@@ -15,8 +15,8 @@ import {
   createPwaManifestBranding,
   type PwaManifestBranding,
   resolvePwaManifestFlavor,
-} from "./src/config/pwa-manifest";
-import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwa-routing";
+} from "./src/config/pwaManifest";
+import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwaRouting";
 import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
 
 const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
@@ -499,6 +499,14 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "@green-goods/shared/service-worker": resolve(
           __dirname,
           "../shared/src/modules/app/service-worker-registration.ts"
+        ),
+        "@green-goods/shared/commitment-pooling": resolve(
+          __dirname,
+          "../shared/src/commitment-pooling"
+        ),
+        "@green-goods/shared/public": resolve(
+          __dirname,
+          "../shared/src/hooks/public/publicSurfaceState.ts"
         ),
         "@green-goods/shared": resolve(__dirname, "../shared/src"),
         "@green-goods/shared/components": resolve(__dirname, "../shared/src/components"),

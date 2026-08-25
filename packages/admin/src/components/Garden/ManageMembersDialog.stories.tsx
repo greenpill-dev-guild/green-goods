@@ -1,4 +1,5 @@
-import type { Address, GardenRole } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { ManageMembersDialog } from "./ManageMembersDialog";

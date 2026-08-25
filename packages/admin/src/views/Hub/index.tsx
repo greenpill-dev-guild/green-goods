@@ -1,10 +1,10 @@
+import { MetaStrip } from "@green-goods/shared/components/Canvas/MetaStrip";
 import {
   buildHubHeaderStats,
   HUB_STAGE_RAIL_ID,
-  MetaStrip,
-  useHubWorkbenchController,
-  useMediaQuery,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
+import { useHubWorkbenchController } from "@green-goods/shared/hooks/admin-ui/hub/useHubWorkbenchController";
+import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminSortSelect } from "@/components/AdminSortSelect";
 import { AdminTabRail } from "@/components/AdminTabRail";

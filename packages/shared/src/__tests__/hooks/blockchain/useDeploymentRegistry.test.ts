@@ -65,6 +65,10 @@ vi.mock("../../../config/blockchain", () => ({
   }),
 }));
 
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 // Mock network contracts
 const mockDeploymentRegistryAddress = "0xDeploymentRegistry1234567890123456789012";
 

@@ -56,6 +56,10 @@ vi.mock("../../config/blockchain", () => ({
   }),
 }));
 
+vi.mock("../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 // Mock utilities
 vi.mock("../../utils/blockchain/contracts", () => ({
   GardenAccountABI: [

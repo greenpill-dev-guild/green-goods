@@ -1,12 +1,12 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import {
-  DEFAULT_CHAIN_ID,
   useCommitmentPools,
   useCommitmentSeries,
   useCommitmentsInbox,
   useCommitmentsToConfirm,
-  useGardens,
-  usePrimaryAddress,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { RiArchiveLine, RiPulseLine, RiShieldCheckLine } from "@remixicon/react";
 import React, { useCallback, useState } from "react";
 import { useIntl } from "react-intl";

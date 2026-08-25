@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { create } from "zustand";
 import { createJSONStorage, persist, subscribeWithSelector } from "zustand/middleware";
-import { DEFAULT_CHAIN_ID } from "../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 import { useGardens } from "../hooks/blockchain/useBaseLists";
 import { useRole } from "../hooks/gardener/useRole";
 import type { Garden as DomainGarden } from "../types/domain";

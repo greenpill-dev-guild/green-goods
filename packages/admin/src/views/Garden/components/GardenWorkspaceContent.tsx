@@ -1,9 +1,7 @@
-import {
-  type Address,
-  cn,
-  useDirtyClose,
-  type useGardenWorkspaceController,
-} from "@green-goods/shared";
+import type { useGardenWorkspaceController } from "@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController";
+import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
+import type { Address } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { AdminCard } from "@/components/AdminCard";
 import { RiArrowGoBackLine, RiCloseLine, RiImageLine } from "@remixicon/react";
 import { useRef, useState } from "react";

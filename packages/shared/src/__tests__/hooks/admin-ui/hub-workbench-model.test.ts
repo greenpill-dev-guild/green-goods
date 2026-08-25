@@ -13,6 +13,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildHubStageModel,
   resolveHubRouteState,
+  resolveHubSheetSelection,
+  selectHubStageContent,
 } from "../../../hooks/admin-ui/hub/hub.workbenchModel";
 
 const baseInput = {
@@ -86,6 +88,66 @@ describe("buildHubStageModel stageCounts", () => {
     expect(evaluator.stageVisibility.confirm).toBe(false);
     // A stage the reader cannot see clamps to a visible one, never to an empty Confirm.
     expect(evaluator.stage).not.toBe("confirm");
+  });
+});
+
+describe("Hub workbench routing policy", () => {
+  it.each([
+    "work",
+    "assess",
+    "confirm",
+    "certify",
+    "history",
+  ] as const)("routes the %s stage to its matching queue", (stage) => {
+    expect(selectHubStageContent(stage)).toBe(stage);
+  });
+
+  it("prioritizes a route-backed work inspector over persisted selection", () => {
+    expect(
+      resolveHubSheetSelection({
+        routeWorkId: "route-work",
+        routeCertificationId: "certification",
+        activeWorkDetailId: "active-work",
+        hasSelectedCertification: true,
+        hasSelectedHistoryEvent: true,
+      })
+    ).toEqual({ kind: "work", id: "route-work" });
+  });
+
+  it("falls back from route work to the active work detail", () => {
+    expect(
+      resolveHubSheetSelection({
+        activeWorkDetailId: "active-work",
+        hasSelectedCertification: true,
+        hasSelectedHistoryEvent: true,
+      })
+    ).toEqual({ kind: "work", id: "active-work" });
+  });
+
+  it.each([
+    ["certification route", { routeCertificationId: "certification" }, "certification"],
+    ["selected certification", { hasSelectedCertification: true }, "certification"],
+    ["history route", { routeHistoryEventId: "history" }, "history"],
+    ["selected history", { hasSelectedHistoryEvent: true }, "history"],
+  ] as const)("resolves a %s inspector", (_label, overrides, kind) => {
+    expect(
+      resolveHubSheetSelection({
+        activeWorkDetailId: null,
+        hasSelectedCertification: false,
+        hasSelectedHistoryEvent: false,
+        ...overrides,
+      })
+    ).toEqual({ kind });
+  });
+
+  it("returns no inspector without route or selection state", () => {
+    expect(
+      resolveHubSheetSelection({
+        activeWorkDetailId: null,
+        hasSelectedCertification: false,
+        hasSelectedHistoryEvent: false,
+      })
+    ).toBeNull();
   });
 });
 

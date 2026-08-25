@@ -17,7 +17,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type Address, createPublicClient, http, keccak256, toBytes, zeroAddress } from "viem";
 import { mainnet, sepolia } from "viem/chains";
 
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { logger } from "../../modules/app/logger";
 import type { ENSRegistrationData } from "../../types/domain";
 import { getRpcUrl } from "../../utils/blockchain/chain-registry";
@@ -26,7 +26,8 @@ import {
   GreenGoodsENSABI,
   getNetworkContracts,
 } from "../../utils/blockchain/contracts";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { ensKeys } from "../../config/query-keys/identity";
 
 /**
  * Minimal ABI for querying the L1 ENSReceiver's getRegistration view.
@@ -89,7 +90,7 @@ export function useENSRegistrationStatus(slug: string | undefined) {
   const queryClient = useQueryClient();
 
   return useQuery<ENSRegistrationData>({
-    queryKey: queryKeys.ens.registrationStatus(slug ?? ""),
+    queryKey: ensKeys.registrationStatus(slug ?? ""),
     queryFn: async (): Promise<ENSRegistrationData> => {
       if (!slug) return { status: "available" };
 
@@ -116,7 +117,7 @@ export function useENSRegistrationStatus(slug: string | undefined) {
 
       // Preserve submittedAt and ccipMessageId from cache-seeded data (set by useENSClaim)
       const previousData = queryClient.getQueryData<ENSRegistrationData>(
-        queryKeys.ens.registrationStatus(slug)
+        ensKeys.registrationStatus(slug)
       );
       const submittedAt = previousData?.submittedAt;
       const ccipMessageId = previousData?.ccipMessageId;

@@ -1,9 +1,11 @@
 import {
-  type CreateGardenFormStatus,
-  createGardenMachine,
   resetCreateGardenStore,
   useCreateGardenStore,
-} from "@green-goods/shared";
+} from "@green-goods/shared/stores/useCreateGardenStore";
+import {
+  type CreateGardenFormStatus,
+  createGardenMachine,
+} from "@green-goods/shared/workflows/createGarden";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createActor, fromPromise, waitFor } from "xstate";
 

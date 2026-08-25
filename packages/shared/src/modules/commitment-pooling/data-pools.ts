@@ -1,5 +1,5 @@
 import type { Address } from "../../types/domain";
-import { greenGoodsIndexer } from "../data/graphql-client";
+import { greenGoodsIndexer, type GraphQLReader } from "../data/graphql-client";
 import { getCommitmentCycleId, getCommitmentPoolId } from "./ids";
 import type {
   CommitmentCycleDetail,
@@ -25,7 +25,8 @@ import { mapSeriesCycleSummary } from "./data-series";
 
 export async function getCommitmentPools(
   chainId: number,
-  garden?: Address
+  garden?: Address,
+  reader: GraphQLReader = greenGoodsIndexer
 ): Promise<CommitmentPoolRecord[]> {
   const gardenClause = garden ? ", garden: { _eq: $garden }" : "";
   const query = `query CommitmentPools($chainId: Int!${garden ? ", $garden: String!" : ""}) {
@@ -35,14 +36,16 @@ export async function getCommitmentPools(
     query,
     { chainId, ...(garden ? { garden: garden.toLowerCase() } : {}) },
     "CommitmentPool",
-    "getCommitmentPools"
+    "getCommitmentPools",
+    reader
   );
   return rows.map(mapPool);
 }
 
 export async function getCommitmentPoolDetail(
   chainId: number,
-  poolId: bigint
+  poolId: bigint,
+  reader: GraphQLReader = greenGoodsIndexer
 ): Promise<CommitmentPoolDetail | null> {
   const id = getCommitmentPoolId(chainId, poolId);
   const query = `query CommitmentPoolDetail($chainId: Int!, $id: String!, $poolId: numeric!) {
@@ -50,7 +53,7 @@ export async function getCommitmentPoolDetail(
     CommitmentUnitSummary(where: { chainId: { _eq: $chainId }, scope: { _eq: POOL }, scopeId: { _eq: $poolId } }, order_by: { unitLabelHash: asc }) { ${UNIT_SUMMARY_FIELDS} }
     CommitmentProviderExposure(where: { chainId: { _eq: $chainId }, poolId: { _eq: $poolId } }, order_by: { provider: asc }) { id chainId poolId provider openCommitmentCount updatedAt }
   }`;
-  const result = await greenGoodsIndexer.query<Record<string, RawRow[]>>(
+  const result = await reader.query<Record<string, RawRow[]>>(
     query,
     { chainId, id, poolId: poolId.toString() },
     "getCommitmentPoolDetail"
@@ -74,12 +77,15 @@ export async function getCommitmentPoolDetail(
   };
 }
 
-export async function getCommitmentCycles(input: {
-  chainId: number;
-  poolId: bigint;
-  cycleType?: string;
-  state?: string;
-}): Promise<CommitmentCycleRecord[]> {
+export async function getCommitmentCycles(
+  input: {
+    chainId: number;
+    poolId: bigint;
+    cycleType?: string;
+    state?: string;
+  },
+  reader: GraphQLReader = greenGoodsIndexer
+): Promise<CommitmentCycleRecord[]> {
   const clauses = [
     "chainId: { _eq: $chainId }",
     "poolId: { _eq: $poolId }",
@@ -101,14 +107,15 @@ export async function getCommitmentCycles(input: {
     variables.state = input.state;
   }
   const query = `query CommitmentCycles(${declarations.join(", ")}) { CommitmentCycle(where: { ${clauses.join(", ")} }, order_by: { cycleId: desc }) { ${CYCLE_FIELDS} } }`;
-  return (await queryRows(query, variables, "CommitmentCycle", "getCommitmentCycles")).map(
+  return (await queryRows(query, variables, "CommitmentCycle", "getCommitmentCycles", reader)).map(
     mapCycle
   );
 }
 
 export async function getCommitmentCycleDetail(
   chainId: number,
-  cycleId: bigint
+  cycleId: bigint,
+  reader: GraphQLReader = greenGoodsIndexer
 ): Promise<CommitmentCycleDetail | null> {
   const id = getCommitmentCycleId(chainId, cycleId);
   const query = `query CommitmentCycleDetail($id: String!, $chainId: Int!, $cycleId: numeric!) {
@@ -119,7 +126,7 @@ export async function getCommitmentCycleDetail(
       offeredCount acceptedCount readyCount fulfilledCount cancelledCount expiredCount disputedCount updatedAt
     }
   }`;
-  const result = await greenGoodsIndexer.query<Record<string, RawRow[]>>(
+  const result = await reader.query<Record<string, RawRow[]>>(
     query,
     { id, chainId, cycleId: cycleId.toString() },
     "getCommitmentCycleDetail"

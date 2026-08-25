@@ -1,4 +1,4 @@
-import { getEASConfig } from "../../config/blockchain";
+import { getEASConfig, type EASConfig } from "../../config/blockchain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 import {
   buildApprovalAttestContractCall,
@@ -7,27 +7,52 @@ import {
 import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import type { TransactionSender } from "../transactions/types";
 import { jobQueueDB } from "./db";
-import { readContract } from "@wagmi/core";
-import { type Hex, keccak256, toBytes } from "viem";
-import { getWagmiConfig } from "../../config/appkit";
+import { type Hex } from "viem";
 import {
   executeCommitmentJob,
+  toCommitmentJob,
   type CommitmentCreationPayload,
-  type CommitmentJob,
-  type CommitmentJobKind,
-  type CommitmentJobPayloadMap,
   type CommitmentSeriesJobPayload,
 } from "../commitment-pooling/jobs";
 import { isDemoPoolingActive } from "../commitment-pooling/demo/demo-mode";
 import { publishPendingEvidence } from "./evidence-publisher";
-import type { Address } from "../../types/domain";
-import {
-  CommitmentPoolingModuleABI,
-  GardenAccountABI,
-  getNetworkContracts,
-} from "../../utils/blockchain/contracts";
-import { GARDEN_ROLE_FUNCTIONS } from "../../utils/blockchain/garden-roles";
+import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { logger } from "../app/logger";
+import { createCommitmentChainReads, type CommitmentChainReads } from "./commitment-chain-reads";
+import { buildCommitmentContractCall } from "./commitment-call-builder";
+
+type EncodeWork = typeof import("../../utils/eas/encoders").encodeWorkData;
+type EncodeApproval = typeof import("../../utils/eas/encoders").encodeWorkApprovalData;
+type SimulateWork = typeof import("../work/simulate").simulateWorkSubmission;
+type UploadJson = typeof import("../data/ipfs/upload").uploadJSONToIPFS;
+
+export interface WorkJobExecutorDeps {
+  images?: (jobId: string) => ReturnType<typeof jobQueueDB.getImagesForJob>;
+  simulate?: SimulateWork;
+  encodeWork?: EncodeWork;
+  easConfig?: EASConfig;
+}
+
+export interface ApprovalJobExecutorDeps {
+  encodeApproval?: EncodeApproval;
+  easConfig?: EASConfig;
+}
+
+export type CommitmentExecutorStore = Pick<
+  typeof jobQueueDB,
+  | "updateJob"
+  | "getSeriesIdByClientId"
+  | "storeClientSeriesIdMapping"
+  | "storeClientCommitmentIdMapping"
+>;
+
+export interface CommitmentQueueExecutorDeps {
+  reads?: CommitmentChainReads;
+  store?: CommitmentExecutorStore;
+  uploadJson?: UploadJson;
+  publishEvidence?: typeof publishPendingEvidence;
+  demoActive?: () => boolean;
+}
 
 /**
  * Execute a work attestation job: simulate, encode (includes IPFS upload), and send.
@@ -36,9 +61,11 @@ export async function executeWorkJob(
   jobId: string,
   job: Job<WorkJobPayload>,
   chainId: number,
-  sender: TransactionSender
+  sender: TransactionSender,
+  deps: WorkJobExecutorDeps = {}
 ): Promise<string> {
-  const images = await jobQueueDB.getImagesForJob(jobId);
+  const getImages = deps.images ?? ((id: string) => jobQueueDB.getImagesForJob(id));
+  const images = await getImages(jobId);
   const allFiles = images.map((img) => img.file);
   const payload = job.payload as WorkJobPayload;
   const actionTitle = resolveWorkSubmissionTitle({
@@ -53,8 +80,8 @@ export async function executeWorkJob(
   const accountAddress = job.userAddress as `0x${string}`;
 
   // Simulate before uploading to IPFS
-  const { simulateWorkSubmission } = await import("../work/simulate");
-  await simulateWorkSubmission({
+  const simulate = deps.simulate ?? (await import("../work/simulate")).simulateWorkSubmission;
+  await simulate({
     draft: {
       actionUID: payload.actionUID,
       title: actionTitle,
@@ -74,8 +101,8 @@ export async function executeWorkJob(
   });
 
   // Encode attestation data (includes IPFS upload)
-  const { encodeWorkData } = await import("../../utils/eas/encoders");
-  const attestationData = await encodeWorkData(
+  const encodeWork = deps.encodeWork ?? (await import("../../utils/eas/encoders")).encodeWorkData;
+  const attestationData = await encodeWork(
     {
       actionUID: payload.actionUID,
       title: actionTitle,
@@ -94,7 +121,7 @@ export async function executeWorkJob(
   );
 
   // Build and send attestation via TransactionSender
-  const easConfig = getEASConfig(chainId);
+  const easConfig = deps.easConfig ?? getEASConfig(chainId);
   const contractCall = buildWorkAttestContractCall(
     easConfig,
     payload.gardenAddress as `0x${string}`,
@@ -110,13 +137,15 @@ export async function executeWorkJob(
 export async function executeApprovalJob(
   job: Job<ApprovalJobPayload>,
   chainId: number,
-  sender: TransactionSender
+  sender: TransactionSender,
+  deps: ApprovalJobExecutorDeps = {}
 ): Promise<string> {
   const payload = job.payload as ApprovalJobPayload;
 
   // Encode approval attestation data (no IPFS upload needed)
-  const { encodeWorkApprovalData } = await import("../../utils/eas/encoders");
-  const attestationData = encodeWorkApprovalData(
+  const encodeApproval =
+    deps.encodeApproval ?? (await import("../../utils/eas/encoders")).encodeWorkApprovalData;
+  const attestationData = encodeApproval(
     {
       actionUID: payload.actionUID,
       workUID: payload.workUID,
@@ -130,7 +159,7 @@ export async function executeApprovalJob(
   );
 
   // Build and send attestation via TransactionSender
-  const easConfig = getEASConfig(chainId);
+  const easConfig = deps.easConfig ?? getEASConfig(chainId);
   const contractCall = buildApprovalAttestContractCall(
     easConfig,
     payload.gardenAddress as `0x${string}`,
@@ -147,119 +176,6 @@ export type CommitmentQueueExecution =
   | { status: "identity-conflict"; reason: string }
   /** Gave up on something outside the queue. Terminal, but not a data conflict. */
   | { status: "unavailable"; reason: string };
-
-function contractPayload(payload: CommitmentCreationPayload) {
-  return {
-    poolId: payload.poolId,
-    cycleId: payload.cycleId,
-    creationRequestKey: payload.creationRequestKey,
-    commitmentSeriesId: payload.commitmentSeriesId,
-    direction: payload.direction,
-    commitmentType: payload.commitmentType,
-    claimType: payload.claimType,
-    claimMode: payload.claimMode,
-    contributorPolicy: payload.contributorPolicy,
-    onBehalfOf: payload.onBehalfOf,
-    domainTags: payload.domainTags,
-    requirements: payload.requirements,
-    unitLabel: payload.unitLabel,
-    targetUnits: payload.targetUnits,
-    requiresAssessment: payload.requiresAssessment,
-    dueDate: payload.dueDate,
-    metadataCID: payload.metadataCID,
-    needUID: payload.needUID,
-    counterCommitmentId: payload.counterCommitmentId,
-    confirmers: payload.confirmers,
-    confirmationThreshold: payload.confirmationThreshold,
-    protocolFallbackEnabled: payload.protocolFallbackEnabled,
-    consideration: payload.consideration,
-    declaredUnitValue: payload.declaredUnitValue,
-    declaredValueBasis: payload.declaredValueBasis,
-  };
-}
-
-function contractCallFor(
-  kind: CommitmentJobKind,
-  payload: CommitmentJobPayloadMap[CommitmentJobKind]
-) {
-  switch (kind) {
-    case "commitmentSeries": {
-      const value = payload as CommitmentJobPayloadMap["commitmentSeries"];
-      return {
-        functionName: "createCommitmentSeries",
-        args: [value.poolId, value.creationRequestKey, value.metadataCID] as const,
-      };
-    }
-    case "commitment":
-      return {
-        functionName: "createCommitment",
-        args: [contractPayload(payload as CommitmentCreationPayload)] as const,
-      };
-    case "claim": {
-      const value = payload as CommitmentJobPayloadMap["claim"];
-      return {
-        functionName: "claimCommitment",
-        args: [value.commitmentId, value.kind, value.gardenContext] as const,
-      };
-    }
-    case "evidence": {
-      const value = payload as CommitmentJobPayloadMap["evidence"];
-      return {
-        functionName: "attachEvidence",
-        args: [value.commitmentId, value.cid, value.creditedContributors] as const,
-      };
-    }
-    case "workLink": {
-      const value = payload as CommitmentJobPayloadMap["workLink"];
-      return {
-        functionName: "linkWork",
-        args: [
-          value.commitmentId,
-          value.workUID,
-          value.requirementIndex,
-          value.operationKey,
-        ] as const,
-      };
-    }
-    case "confirmation": {
-      const value = payload as CommitmentJobPayloadMap["confirmation"];
-      return {
-        functionName: value.action === "submit" ? "submitForConfirmation" : "confirmFulfillment",
-        args: [value.commitmentId] as const,
-      };
-    }
-  }
-}
-
-async function currentGardenMember(
-  garden: Address,
-  account: Address,
-  chainId: number
-): Promise<boolean> {
-  const results = await Promise.all(
-    Object.values(GARDEN_ROLE_FUNCTIONS).map(async (functionName) => {
-      try {
-        return Boolean(
-          await readContract(getWagmiConfig(), {
-            address: garden,
-            abi: GardenAccountABI,
-            functionName,
-            args: [account],
-            chainId,
-          })
-        );
-      } catch (error) {
-        logger.warn("Garden membership probe failed closed", {
-          chainId,
-          functionName,
-          errorType: error instanceof Error ? error.name : "UnknownError",
-        });
-        return false;
-      }
-    })
-  );
-  return results.some(Boolean);
-}
 
 /** As many tries as any other job gets, so a dead gateway cannot queue forever. */
 const MAX_METADATA_ATTEMPTS = 5;
@@ -292,21 +208,23 @@ const MAX_METADATA_ATTEMPTS = 5;
  * thing to avoid: dying invisibly after five attempts, and never dying at all.
  */
 async function publishPendingCommitmentMetadata(
-  job: Job
+  job: Job,
+  store: CommitmentExecutorStore,
+  uploadJson?: UploadJson
 ): Promise<{ published: true } | { published: false; reason: string; terminal?: boolean }> {
   if (job.kind !== "commitment") return { published: true };
   const payload = job.payload as CommitmentCreationPayload;
   if (!payload.metadata || payload.metadataCID) return { published: true };
 
   try {
-    const { uploadJSONToIPFS } = await import("../data/ipfs/upload");
-    const { cid } = await uploadJSONToIPFS(payload.metadata as unknown as Record<string, unknown>, {
+    const upload = uploadJson ?? (await import("../data/ipfs/upload")).uploadJSONToIPFS;
+    const { cid } = await upload(payload.metadata as unknown as Record<string, unknown>, {
       source: "commitment-creation",
       gardenAddress: payload.gardenAddress,
       metadataType: "commitment",
     });
     payload.metadataCID = cid;
-    await jobQueueDB.updateJob({ ...job, payload });
+    await store.updateJob({ ...job, payload });
     return { published: true };
   } catch (error) {
     const attempts = Number(job.meta?.metadataAttempts ?? 0) + 1;
@@ -315,7 +233,7 @@ async function publishPendingCommitmentMetadata(
     // storage is erased on the same attempt and the ceiling never arrives.
     // The success path above mutates `payload` for exactly this reason.
     job.meta = { ...(job.meta ?? {}), metadataAttempts: attempts };
-    await jobQueueDB.updateJob({ ...job });
+    await store.updateJob({ ...job });
     logger.warn("[JobQueue] Commitment metadata upload failed", {
       jobId: job.id,
       attempts,
@@ -332,18 +250,23 @@ export async function executeCommitmentQueueJob(
   jobId: string,
   job: Job,
   chainId: number,
-  sender: TransactionSender
+  sender: TransactionSender,
+  deps: CommitmentQueueExecutorDeps = {}
 ): Promise<CommitmentQueueExecution> {
   // Demo mode answers reads from fixtures, but the sender is real: dev mock
   // auth reports `wallet`, so a connected wallet would sign a call built from
   // fixture ids against the deployed module. The act waits instead, which is
   // also the state the demo walk wants to show.
-  if (isDemoPoolingActive()) return { status: "waiting", reason: "demo-mode" };
+  if ((deps.demoActive ?? isDemoPoolingActive)()) {
+    return { status: "waiting", reason: "demo-mode" };
+  }
+  const store = deps.store ?? jobQueueDB;
   const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
+  const publishEvidence = deps.publishEvidence ?? publishPendingEvidence;
   const published =
     job.kind === "evidence"
-      ? await publishPendingEvidence(jobId, job)
-      : await publishPendingCommitmentMetadata(job);
+      ? await publishEvidence(jobId, job)
+      : await publishPendingCommitmentMetadata(job, store, deps.uploadJson);
   if (!published.published) {
     // Not an identity conflict: nothing about this commitment disagrees with
     // the chain, a gateway was simply unreachable. Reporting it as one puts a
@@ -353,90 +276,14 @@ export async function executeCommitmentQueueJob(
       ? { status: "unavailable", reason: published.reason }
       : { status: "waiting", reason: published.reason };
   }
-  const commitmentJob: CommitmentJob = {
-    id: jobId,
-    kind: job.kind as CommitmentJobKind,
-    payload: job.payload as CommitmentJobPayloadMap[CommitmentJobKind],
-    chainId,
-    moduleAddress,
-    userAddress: job.userAddress,
-    ...(typeof job.meta?.submittedTxHash === "string"
-      ? { submittedTxHash: job.meta.submittedTxHash as Hex }
-      : {}),
-  };
+  const commitmentJob = toCommitmentJob({ ...job, id: jobId }, chainId, moduleAddress);
 
+  const chainReads = deps.reads ?? createCommitmentChainReads({ chainId, moduleAddress });
   const result = await executeCommitmentJob(commitmentJob, {
-    readSeriesId: async (holder, key) =>
-      (await readContract(getWagmiConfig(), {
-        address: moduleAddress,
-        abi: CommitmentPoolingModuleABI,
-        functionName: "getCommitmentSeriesIdByCreationRequest",
-        args: [holder, key],
-        chainId,
-      })) as bigint,
-    readSeries: async (seriesId) => {
-      const value = (await readContract(getWagmiConfig(), {
-        address: moduleAddress,
-        abi: CommitmentPoolingModuleABI,
-        functionName: "getCommitmentSeries",
-        args: [seriesId],
-        chainId,
-      })) as {
-        poolId: bigint;
-        createdBy: Address;
-        metadataCID: string;
-        creationPayloadHash: Hex;
-      };
-      return value;
-    },
-    readPoolGarden: async (poolId) => {
-      const value = (await readContract(getWagmiConfig(), {
-        address: moduleAddress,
-        abi: CommitmentPoolingModuleABI,
-        functionName: "getPool",
-        args: [poolId],
-        chainId,
-      })) as { garden: Address };
-      return value.garden;
-    },
-    readCommitmentId: async (creator, key) =>
-      (await readContract(getWagmiConfig(), {
-        address: moduleAddress,
-        abi: CommitmentPoolingModuleABI,
-        functionName: "getCommitmentIdByCreationRequest",
-        args: [creator, key],
-        chainId,
-      })) as bigint,
-    readCommitment: async (commitmentId) => {
-      const value = (await readContract(getWagmiConfig(), {
-        address: moduleAddress,
-        abi: CommitmentPoolingModuleABI,
-        functionName: "getCommitment",
-        args: [commitmentId],
-        chainId,
-      })) as { creationPayloadHash: Hex; poolId: bigint; creator: Address };
-      return value;
-    },
-    readEvidenceAttached: async (commitmentId, cid) =>
-      (await readContract(getWagmiConfig(), {
-        address: moduleAddress,
-        abi: CommitmentPoolingModuleABI,
-        functionName: "isEvidenceAttached",
-        args: [commitmentId, keccak256(toBytes(cid))],
-        chainId,
-      })) as boolean,
-    readWorkLinkPayloadHash: async (caller, key) =>
-      (await readContract(getWagmiConfig(), {
-        address: moduleAddress,
-        abi: CommitmentPoolingModuleABI,
-        functionName: "getWorkLinkOperationPayloadHash",
-        args: [caller, key],
-        chainId,
-      })) as Hex,
-    resolveSeriesId: (clientSeriesId) => jobQueueDB.getSeriesIdByClientId(clientSeriesId),
-    hasMembership: (garden, account) => currentGardenMember(garden, account, chainId),
+    ...chainReads,
+    resolveSeriesId: (clientSeriesId) => store.getSeriesIdByClientId(clientSeriesId),
     send: async ({ kind, payload, moduleAddress: target, chainId: targetChain }) => {
-      const call = contractCallFor(kind, payload);
+      const call = buildCommitmentContractCall(kind, payload);
       const sent = await sender.sendContractCall({
         address: target,
         abi: CommitmentPoolingModuleABI,
@@ -450,7 +297,7 @@ export async function executeCommitmentQueueJob(
 
   if (result.status === "recovered") {
     if (result.entityId !== undefined && job.kind === "commitmentSeries") {
-      await jobQueueDB.storeClientSeriesIdMapping(
+      await store.storeClientSeriesIdMapping(
         (job.payload as CommitmentSeriesJobPayload).clientSeriesId,
         result.entityId,
         jobId,
@@ -458,7 +305,7 @@ export async function executeCommitmentQueueJob(
       );
     }
     if (result.entityId !== undefined && job.kind === "commitment") {
-      await jobQueueDB.storeClientCommitmentIdMapping(
+      await store.storeClientCommitmentIdMapping(
         (job.payload as CommitmentCreationPayload).clientCommitmentId,
         result.entityId,
         jobId,

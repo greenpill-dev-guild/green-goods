@@ -12,7 +12,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import type { PublicGardenSummary } from "@green-goods/shared";
+import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
 
 // Stubbed `deriveSlug` mirrors the shared helper without pulling the wallet
 // runtime barrel into this test (the worktree environment cannot resolve
@@ -25,11 +25,11 @@ function fakeDeriveSlug(name: string, id: string) {
   return `${slug}-${id.slice(2, 8)}`;
 }
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/hooks/public/usePublicGardens", () => ({
   publicGardenHelpers: { deriveSlug: fakeDeriveSlug },
 }));
 
-import { resolveGardenQuery } from "../../views/Public/garden-query-resolution";
+import { resolveGardenQuery } from "../../views/Public/gardenQueryResolution";
 
 const solar: PublicGardenSummary = {
   id: "0x1111111111111111111111111111111111111111",

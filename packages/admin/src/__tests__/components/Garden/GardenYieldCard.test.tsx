@@ -2,33 +2,26 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { renderWithProviders, screen } from "@/__tests__/test-utils";
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+vi.mock("@green-goods/shared/hooks/blockchain/useChainConfig", () => ({
+  useCurrentChain: () => 42161,
+}));
 
-  return {
-    ...actual,
-    formatDate: (timestamp: number) => `date-${timestamp}`,
-    formatTokenAmount: (value: bigint) => value.toString(),
-    getVaultAssetSymbol: (asset: string) =>
-      asset.toLowerCase() === "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" ? "WETH" : "DAI",
-    summarizeYieldAllocations: (allocations: Array<any>) => ({
-      assets: allocations.map((allocation) => ({
-        assetAddress: allocation.assetAddress,
-        totalYield: allocation.totalAmount,
-        totalCookieJar: allocation.cookieJarAmount,
-        totalFractions: allocation.fractionsAmount,
-        totalJuicebox: allocation.juiceboxAmount,
-        allocationCount: 1,
-      })),
-      allocationCount: allocations.length,
-    }),
-    useCurrentChain: () => 42161,
-    useGardenYieldWiringState: vi.fn(),
-  };
-});
+vi.mock("@green-goods/shared/hooks/yield/useGardenYieldWiringState", () => ({
+  useGardenYieldWiringState: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/vaults", () => ({
+  formatTokenAmount: (value: bigint) => value.toString(),
+  getVaultAssetSymbol: (asset: string) =>
+    asset.toLowerCase() === "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" ? "WETH" : "DAI",
+}));
+
+vi.mock("@green-goods/shared/utils/time", () => ({
+  formatDate: (timestamp: number) => `date-${timestamp}`,
+}));
 
 import { GardenYieldCard } from "../../../components/Garden/GardenYieldCard";
-import { useGardenYieldWiringState } from "@green-goods/shared";
+import { useGardenYieldWiringState } from "@green-goods/shared/hooks/yield/useGardenYieldWiringState";
 
 const GARDEN_ID = "0x1111111111111111111111111111111111111111";
 const HYPERCERT_POOL = "0x2222222222222222222222222222222222222222";

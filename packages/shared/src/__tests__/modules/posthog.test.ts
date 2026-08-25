@@ -24,6 +24,7 @@ import {
   getDistinctId,
   identify,
   identifyWithProperties,
+  registerTelemetrySink,
   reset,
   track,
   trackAppLifecycle,
@@ -39,6 +40,25 @@ describe("modules/posthog", () => {
   });
 
   describe("track", () => {
+    it("routes enriched events through an injectable telemetry sink", () => {
+      const sink = { capture: vi.fn() };
+      const unregister = registerTelemetrySink(sink);
+
+      track("work_submitted", { garden: "garden-1" }, { includeSessionId: false });
+
+      expect(sink.capture).toHaveBeenCalledWith(
+        "work_submitted",
+        expect.objectContaining({
+          garden: "garden-1",
+          is_online: expect.any(Boolean),
+          connection_type: expect.any(String),
+          timestamp: expect.any(Number),
+        })
+      );
+      expect(sink.capture.mock.calls[0]?.[1]).not.toHaveProperty("session_id");
+      unregister();
+    });
+
     it("does not log to console outside debug mode", () => {
       track("test_event", { foo: "bar" });
       expect(console.log).not.toHaveBeenCalled();

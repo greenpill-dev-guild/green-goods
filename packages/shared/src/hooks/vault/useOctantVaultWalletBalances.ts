@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { createPublicClientForChain } from "../../config/pimlico";
-import { queryKeys } from "../../config/query-keys";
+import { vaultsKeys } from "../../config/query-keys/vault";
 import { STALE_TIME_FAST } from "../../config/query-keys/constants";
 import type { Address } from "../../types/domain";
-import { ERC20_BALANCE_ABI } from "../../utils/blockchain/abis";
+import { ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
 
 export interface UseOctantVaultWalletBalancesOptions {
   owner?: Address | null;
@@ -37,7 +37,7 @@ export function useOctantVaultWalletBalances({
   const queryEnabled = enabled && Boolean(owner && chainId && assetAddress);
 
   const query = useQuery({
-    queryKey: queryKeys.vaults.octantWalletBalances(ownerKey, chainId ?? 0, assetKey),
+    queryKey: vaultsKeys.octantWalletBalances(ownerKey, chainId ?? 0, assetKey),
     enabled: queryEnabled,
     staleTime: STALE_TIME_FAST,
     queryFn: async () => {

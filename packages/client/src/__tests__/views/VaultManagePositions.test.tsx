@@ -11,7 +11,8 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { OctantVaultCampaignManifest, OctantVaultPosition } from "@green-goods/shared";
+import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
+import type { OctantVaultPosition } from "@green-goods/shared/hooks/vault/useOctantVaultPositions";
 import VaultsPage, { VaultsPageContent } from "../../views/Public/Vaults";
 
 // Hoisted so vi.mock factories and the hoisted mock state can reference them.
@@ -74,23 +75,52 @@ function makePosition(over: Partial<OctantVaultPosition> = {}): OctantVaultPosit
   };
 }
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+vi.mock("@green-goods/shared/hooks/auth/useAuth", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal()),
     useAuth: () => ({ loginWithWallet: mocks.loginWithWallet }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/auth/useUser", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useUser: () => ({ authMode: mocks.authMode, primaryAddress: mocks.primaryAddress }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/auth/useWalletModalOpen", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useWalletConnectDismissGuard: () => ({
       markConnecting: () => {},
       shouldBlockDismiss: () => false,
     }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useEnsName: () => ({
       data: mocks.ensName,
       isLoading: false,
       isError: false,
     }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultPositions", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOctantVaultPositions: (owner?: string | null) =>
       owner ? (mocks.positionsByOwner[owner.toLowerCase()] ?? emptyPositions()) : emptyPositions(),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWithdraw", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOctantVaultRedeem: () => ({
       mutateAsync: mocks.redeemMutateAsync,
       mutate: vi.fn(),
@@ -98,18 +128,36 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       isPending: false,
       error: null,
     }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWalletEndow", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOctantVaultWalletEndow: () => ({
       mutate: mocks.walletEndowMutate,
       reset: mocks.walletEndowReset,
       error: null,
       isPending: false,
     }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/vault/useWrapEthToWeth", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useWrapEthToWeth: () => ({
       mutate: mocks.wrapEthToWethMutate,
       reset: mocks.wrapEthToWethReset,
       error: null,
       isPending: false,
     }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWalletBalances", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOctantVaultWalletBalances: () => ({
       nativeBalance: null,
       assetBalance: null,
@@ -118,6 +166,12 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       isFetching: false,
       refetch: mocks.walletBalancesRefetch,
     }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEthUsdPrice", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useEthUsdPrice: () => ({
       hasFeed: false,
       priceAnswer: 0n,
@@ -126,31 +180,43 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       isStale: false,
       updatedAt: 0n,
     }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultStats", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOctantVaultStats: () => ({
       totalAssets: 0n,
       usdCents: null,
       isLoading: false,
       isError: false,
     }),
-    useOctantVaultHarvestableYield: () => ({
-      status: "unavailable",
-      strategyAddress: null,
-      strategyAssets: 0n,
-      vaultDebt: 0n,
-      harvestableAssets: 0n,
-      isLoading: false,
-      isError: false,
-      unavailableReason: "missing_strategy",
-    }),
-    useOctantVaultProjectSupportMetric: () => ({
-      status: "unavailable",
-      sourceAddress: null,
-      shareBalance: 0n,
-      assetValue: 0n,
-      isLoading: false,
-      isError: false,
-      unavailableReason: "missing_source",
-    }),
+  };
+});
+
+vi.mock(
+  "@green-goods/shared/hooks/vault/useOctantVaultHarvestableYield",
+  async (importOriginal) => {
+    return {
+      ...(await importOriginal()),
+      useOctantVaultHarvestableYield: () => ({
+        status: "unavailable",
+        strategyAddress: null,
+        strategyAssets: 0n,
+        vaultDebt: 0n,
+        harvestableAssets: 0n,
+        isLoading: false,
+        isError: false,
+        unavailableReason: "missing_strategy",
+      }),
+    };
+  }
+);
+
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultStrategyApy", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOctantVaultStrategyApy: () => ({
       status: "unavailable",
       apy: null,

@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getAllGardenVaults, getGardenVaults } from "../../modules/data/vaults";
 import type { Address } from "../../types/domain";
 import type { GardenVault } from "../../types/vaults";
-import { queryKeys, STALE_TIME_FAST } from "../../config/query-keys";
+import { STALE_TIME_FAST } from "../../config/query-keys/constants";
+import { vaultsKeys } from "../../config/query-keys/vault";
 
 interface UseGardenVaultsOptions {
   chainId?: number;
@@ -17,8 +18,8 @@ export function useGardenVaults(gardenAddress?: Address, options: UseGardenVault
 
   const query = useQuery({
     queryKey: normalizedGarden
-      ? queryKeys.vaults.byGarden(normalizedGarden, chainId)
-      : queryKeys.vaults.byChain(chainId),
+      ? vaultsKeys.byGarden(normalizedGarden, chainId)
+      : vaultsKeys.byChain(chainId),
     queryFn: () =>
       normalizedGarden ? getGardenVaults(normalizedGarden, chainId) : getAllGardenVaults(chainId),
     enabled: enabled && (normalizedGarden ? normalizedGarden.length > 0 : true),

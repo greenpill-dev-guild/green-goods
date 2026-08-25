@@ -1,11 +1,11 @@
+import type { Address } from "@green-goods/shared/types/domain";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import {
-  type Address,
-  DEFAULT_CHAIN_ID,
   publicGardenHelpers,
-  useHypercerts,
-  usePublicGardenDetail,
   usePublicGardens,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/public/usePublicGardens";
+import { useHypercerts } from "@green-goods/shared/hooks/hypercerts/useHypercerts";
+import { usePublicGardenDetail } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
 import { useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
@@ -18,7 +18,7 @@ import { StatCell } from "./GardenDetailAtoms";
 import { CommitmentsSection } from "./GardenDetailCommitments";
 import { FieldNotesSection } from "./GardenDetailFieldNotes";
 import { CertificatesSection, StewardsSection } from "./GardenDetailSections";
-import { rememberGardenReturn } from "./garden-return-focus";
+import { rememberGardenReturn } from "./gardenReturnFocus";
 
 /**
  * GardenDetail — the public Garden page at `/gardens/:id`.

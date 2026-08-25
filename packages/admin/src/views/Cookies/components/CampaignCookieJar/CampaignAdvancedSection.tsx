@@ -1,4 +1,5 @@
-import { FormField, Textarea, TextInput } from "@green-goods/shared";
+import { Textarea, TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
 import { AdminButton } from "@/components/AdminButton";
 import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm";
 

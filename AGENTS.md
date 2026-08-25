@@ -13,6 +13,31 @@ their subtree.
 - `packages/agent` — Bot/webhook service
 - `packages/indexer` — Envio indexer
 
+## Package Guides
+
+Read the nearest guide before editing a package. It narrows this root contract for that subtree.
+
+- `packages/contracts/AGENTS.md`
+- `packages/shared/AGENTS.md`
+- `packages/client/AGENTS.md`
+- `packages/admin/AGENTS.md`
+- `packages/agent/AGENTS.md`
+- `packages/indexer/AGENTS.md`
+
+## Common Commands
+
+- `bun run validation:plan -- --intent <intent>` — select evidence from intent, paths, dependencies, and criticality
+- `bun run test:fast` — cache-aware full-scope iteration after targeted proof is green
+- `bun run test:fast:force` — repeat the same full scope without cache reuse
+- `node scripts/dev/ci-local.js --quick` — cross-package checkpoint
+- `bun run test` — exact uncached full test gate
+- `VITE_CHAIN_ID=11155111 bun run build` — deterministic root application build
+- `bun run build:agent` / `bun run build:docs` — Agent and Docs builds, which the root build does not include
+
+The command definitions, conditional checks, receipt rules, and stop conditions live in
+[`.claude/context/validation-pipeline.md`](.claude/context/validation-pipeline.md). Development and
+service entrypoints live in [`scripts/README.md`](scripts/README.md).
+
 ## Global Invariants
 
 - Use `bun` for repo scripts and package operations. The only npm exception is `npm run setup`
@@ -27,6 +52,19 @@ their subtree.
 - Use Remixicon (`Ri*Line`), never lucide.
 - Any new user-facing string must be added to `en`, `es`, and `pt`.
 - Respect build dependency order: contracts -> shared -> indexer -> client/admin/agent.
+
+## Key Patterns
+
+- Keep package source inside the package-specific root files and top-level directories declared by
+  `scripts/quality/check-source-structure.js`.
+- In `packages/client/src`, component files use PascalCase, other TypeScript files use camelCase,
+  and filenames do not use hyphens. Framework entry files are declared by the structure checker.
+- Define `useX` hooks in `packages/shared`. Consume Shared through specifiers declared in
+  `packages/shared/package.json#exports`, never through `@green-goods/shared/src/**`.
+- Remove unused named exports when touching an implementation file. Barrels, tests, stories, and
+  the exact staged-module manifest are excluded from this check.
+- `scripts/data/source-structure-baseline.json` records pre-enforcement debt. It may only shrink;
+  new work never earns a baseline entry.
 
 ## Linear Workspace
 
@@ -59,6 +97,15 @@ Issue references use native `<issue>` mentions rather than markdown links. Fulle
 
 **Privacy boundary** (PostHog evidence in Linear bodies): error message + hash + counts OK; replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers stay out.
 
+## PostHog Routing
+
+Select the project before every query: **App** (`163591`) for client/PWA/public browser,
+**Admin** (`262122`) for the steward cockpit, and **Agent** (`262124`) for messaging runtimes.
+The connector can start on the wrong project and return a misleading empty result. The current
+surface map, approved evidence, and privacy rules live in
+[`docs/routines/README.md`](docs/routines/README.md) and
+[`docs/routines/posthog-questions.md`](docs/routines/posthog-questions.md).
+
 ## Linear-Spawned Issue Contract
 
 When you are dispatched from a Linear issue (delegated/assigned, labeled `ai:codex`), **that issue is your spec.** Read it in full, plus this file and — if the issue references a `.plans/<feature>/` lane — that lane's `status.json` and todo.
@@ -66,7 +113,7 @@ When you are dispatched from a Linear issue (delegated/assigned, labeled `ai:cod
 - **Codex-ready gate.** Start implementing only if the issue gives all of: clear **acceptance criteria**, a named **surface / `package:*`**, and **validation** (explicit commands, or inferable from the Validation Ladder below). If any is missing, the scope is ambiguous, or it asks for a cross-lane or architecture decision — **stop and comment on the issue with what's missing; do not guess.** A vague issue is a no-op, not a green light. This is the Linear entry to the same two-phase scope-lock rhythm in `## Codex Workflow`.
 - **Executor, not orchestrator.** Implement only the issue's scoped unit. Cross-lane order and coupling live in `.plans/<feature>/status.json` + the human — do not reorder lanes, pull in sibling lanes, or expand past the acceptance criteria. Coupled-feature order: shared/types + contracts → state/API → UI.
 - **Branch + PR.** Branch names describe the work, never the worker, tool, Linear issue, or orchestration lane: `<type>/<work-description>`, where type is `feature`, `fix`, `refactor`, `docs`, `chore`, `test`, `perf`, `ci`, `release`, or `research`. Use a concrete kebab-case outcome such as `feature/commitment-pooling-indexer`; never use `codex/`, `claude/`, `<user>/PRD-NNN-...`, or generic lane prefixes. When an issue or plan supplies a branch, it must follow this contract, and so does a branch you inherit: sessions frequently begin on an auto-created branch that predates this rule, so check the name before your first push or PR and, if it does not conform, ask the user before renaming. Never rename unprompted — concurrent sessions share this checkout, and `git branch -m` moves the branch under all of them. With approval, rename while the branch is still local; renaming after a PR exists closes that PR and forces a new one. The PR body is the issue↔PR source of truth: use `Fixes PRD-NNN` when merge completes the issue, `Refs PRD-NNN` for partial or stacked work, or `Relates to PRD-NNN` for context. One issue per PR; keep unattended-maintenance PRs as drafts with the right labels (see `## Scope Constraints For Automated Maintenance`); never self-merge. `critical` and `packages/contracts` surfaces get extra human/Claude review.
-- **Before the PR**, run the Ship Gate from `## Validation Intent Ladder` and produce evidence per `## Verify Before Claiming Success`. Honor the privacy boundary above and `## Multi-Agent Repo Safety`.
+- **Before the PR**, run the Ship Gate from `## Validation` and produce evidence per `## Verify Before Claiming Success`. Honor the privacy boundary above and `## Multi-Agent Repo Safety`.
 
 ## Agent Workflow
 
@@ -78,6 +125,22 @@ When you are dispatched from a Linear issue (delegated/assigned, labeled `ai:cod
 5. Escalate to cross-package verification when shared contracts, shared types, or public APIs move.
 
 **Two-phase rhythm for ambiguous or multi-issue work**: investigate (read-only) → present numbered findings → wait for explicit scope lock from the human → fix only locked items → run the validation ladder. This paragraph is the canonical spec (the former `audit-then-ship` skill folded into it; Claude gets the same gate from plan mode + CLAUDE.md § Scope Discipline). Do not invent a parallel Codex-specific protocol.
+
+For architecture opportunity discovery or structural review, load
+[`.claude/context/codebase-architecture.md`](.claude/context/codebase-architecture.md). Keep
+candidate selection in the owning Plan Hub; do not turn an unselected idea into implementation or
+registry state.
+
+## Change Criticality
+
+- **Critical**: contract source and release tooling; shared Auth, JobQueue, Work providers and
+  modules; auth/work/vault/blockchain mutation hooks. Read every touched line and retain the
+  selector's critical override.
+- **Sensitive**: Agent runtime, indexer retry/lifecycle behavior, Plan Hub evidence, validation or
+  migration tooling, admin workflow state, and client journey views. Inspect failure and recovery
+  behavior and keep the diff bounded.
+- **Routine**: docs, stories, cleanup, and test-only refactors without runtime changes. Use the
+  lightest honest proof unless a changed command, guide, or skill creates a sensitive consumer risk.
 
 ## Research, Plan, Implement
 
@@ -113,43 +176,24 @@ This repo runs multiple concurrent Codex/Claude sessions on the same tree and `d
 
 Before reporting that a fix works, a setting takes effect, or a behavior holds, produce evidence in the same turn — the command output, the passing test, the rendered DOM, the re-read file showing the change. "Should work", "probably fixed", and unrun commands are not evidence. If a CLI flag is unfamiliar, read `--help` or the source before invoking it; do not invent flags. If you cannot verify (no test, no live DOM, no observable signal), say "I can't verify this without X" and stop rather than declaring success. Untested fixes and hallucinated commands have produced more reverts in this repo than any other failure mode.
 
-## Validation Selection Contract
+## Validation
 
-Before executing validation, render the repository-owned plan with
-`bun run validation:plan -- --intent <intent>`. The selector combines user intent, changed paths,
-dependency impact, and criticality. Execute the returned plan instead of inventing a broader command
-set. If the selector command is unavailable or fails, use the Validation Intent Ladder below
-directly and report the selector problem; selector failure is never permission to omit a required
-check or critical override.
+Render `bun run validation:plan -- --intent <intent>` before executing validation. Follow its
+selected checks and inspect `selectedBy`; do not invent a broader suite or omit a direct acceptance
+check. Use these rungs:
 
-For QA and checkpoint plans, inspect `selectedBy`. If routine test, story, or workspace-importer
-changes select an unrelated package suite or omit their direct acceptance check, run the targeted
-acceptance proof and report the selector defect instead of starting the unrelated suite. Never use
-this guard to downgrade a critical override or readiness, push, ship, merge, or release intent.
+- **Diagnosis/review**: non-mutating evidence needed to prove or disprove the finding.
+- **QA Speed Mode**: targeted behavior proof; add package typecheck/build only for the runtime or
+  interface risk that needs it.
+- **Repo Quick Gate**: cross-package checkpoints and shared public-contract changes.
+- **Ship Gate**: full uncached readiness proof for ship, PR, commit, merge, release, or critical
+  surfaces.
 
-Every check you execute must have a named **risk**, **expected signal**, **freshness rule**, and
-**stopping condition**. A passing receipt is reusable only when its source inputs, validation
-entrypoint, policy, toolchain, environment profile, and validated paths still match. Never reuse a
-failure. Stop dependent work on the first deterministic failure. Independent diagnostics continue
-only when the rendered plan explicitly keeps them independent.
-
-User cancellation is terminal: stop running validation, schedule no further checks, and report only
-the evidence already collected. An environment-blocked check is `BLOCKED`, not passing; do not retry
-the same command until the named environment capability changes. Time budgets warn and profile but
-never skip contracts, deployment/release tooling, authentication, JobQueue, Work providers, mutation
-hooks, security, ontology, supply-chain guidance, or release gates. Contracts always use Bun wrappers, never
-raw Forge.
-
-## Validation Intent Ladder
-
-Use the lightest honest proof for the current intent. Do not collapse QA fixes,
-checkpoint validation, and merge readiness into one default command.
-
-- **Diagnosis / evidence review** — inspect existing evidence first and run only the checks needed to prove or disprove a finding. Keep commands non-mutating. Do not turn a diagnosis request into readiness certification; an explicit production-readiness review uses the full non-mutating Production Review Readiness Gate in `.claude/context/validation-pipeline.md`.
-- **QA Speed Mode** — default when the user says "QA mode", "quick fix", "get this to staging", or asks for a small visible/content/control fix. Run the targeted test file(s) or package-local command that covers the touched behavior. Add package-local typecheck/build only when the change affects route wiring, render/build output, exported types, or runtime contracts. Style-only proof is path-scoped and non-mutating; never run workspace-mutating `bun format` for it. For visible UI, capture rendered proof through authenticated Brave when available; if the required Brave path is unavailable, report browser QA as blocked instead of substituting isolated Playwright. Do not run full `bun run test`, full `bun run build`, or `ci-local --quick` just to finish an isolated QA fix.
-- **Repo Quick Gate** — use `node scripts/dev/ci-local.js --quick` for cross-package/shared-impact changes, checkpoint validation after several QA fixes, or when touched shared exports, hook signatures, provider contracts, data shapes, or mutation flows can affect multiple apps. This is broader than QA Speed Mode and is not the default for every small fix.
-- **Ship Gate** — use the full ship pipeline (`bun format && bun lint && bun run test && bun run build`) plus every conditional check that the touched surface requires. `.claude/context/validation-pipeline.md` is the canonical list of those conditional gates; consult it rather than relying on this summary, which is deliberately not exhaustive. Use it only for explicit ship/PR/commit/merge/release readiness, critical surfaces, or when the user asks to prove the branch is ready. Keep this gate strict; do not use QA Speed Mode to claim merge or release readiness.
-- **Multiple agents in QA mode** — each agent runs targeted proof for its own lane and reports blockers. A coordinator or final checkpoint runs Repo Quick Gate or Ship Gate before merge/release instead of every agent duplicating broad validation.
+Each selected check names its risk, expected signal, freshness rule, and stopping condition. Never
+reuse a failure. User cancellation is terminal, unavailable capabilities remain `BLOCKED`, and no
+speed budget may suppress a critical override. Multiple agents prove their own lanes; one
+coordinator runs the broader checkpoint. The canonical commands and conditional gates are in
+[`.claude/context/validation-pipeline.md`](.claude/context/validation-pipeline.md).
 
 ## User-Observed UI Regression Debugging
 
@@ -219,35 +263,6 @@ Proven workarounds in this repo (do **not** chase a Vite/Tailwind config fix —
 - Apply utility classes in the consumer's JSX, not in shared.
 
 When you see a layout bug that "looks like" a missing class, first check: was the class authored in `packages/shared/src/`? If yes, this gotcha is the likely cause.
-
-## Validation Ladder
-
-- Codex drift check: `node scripts/quality/check-codex-docs.js`
-- QA Speed Mode: targeted package/file tests plus package-local typecheck/build only when the touched behavior needs it
-- Quick repo verification: `node scripts/dev/ci-local.js --quick`
-- Full-local dev proof: `bun run dev` followed by `bun run dev:smoke:full` proves browser surfaces, local agent, local indexer/Hasura/Postgres, Anvil fork chain id 42161, deployed bytecode, and funded Anvil accounts without submitting transactions.
-- Production-backed local proof: `bun run dev:prod` followed by `bun run dev:prod:smoke` if you need local browser apps against Arbitrum One, hosted production indexer, and the production agent at https://agent.greengoods.app. Use `bun run dev:prod:mirror:health` before mirror mode; set the Envio API token env var for reliable live-indexer catch-up. The smoke is read-only; wallet-confirmed writes in this mode are real Arbitrum transactions.
-- Test-quality guardrail: `bash scripts/quality/check-test-quality.sh`
-- Lint check: `bun run format:check && bun lint`
-- Lint fix: `bun format && bun lint`
-- Full tests: `bun run test`
-- Root application build: `VITE_CHAIN_ID=11155111 bun run build` _(contracts, shared, indexer, client, and admin; Agent and Docs use `bun run build:agent` / `bun run build:docs`. Sepolia is the deterministic validation chain — overrides local environment files so the build is reproducible across machines without requiring Arbitrum-specific deployment artifacts)_
-
-## Test Suite Speed Follow-Up
-
-Do not refactor or delete tests as part of QA-speed guidance updates. Track a
-separate test-suite speed audit when needed: measure the slowest package tests,
-identify large multi-scenario files, and propose focused splits or lighter
-default runners with evidence.
-
-## Package Guides
-
-- `packages/contracts/AGENTS.md`
-- `packages/shared/AGENTS.md`
-- `packages/client/AGENTS.md`
-- `packages/admin/AGENTS.md`
-- `packages/agent/AGENTS.md`
-- `packages/indexer/AGENTS.md`
 
 ## Scope Constraints For Automated Maintenance
 

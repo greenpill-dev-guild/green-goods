@@ -25,14 +25,14 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { isGardenPubliclyVisible } from "../../config/garden-visibility";
-import { queryKeys } from "../../config/query-keys";
+import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
 import { getWorks } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
-import { derivePublicGardenSlug } from "../../public-contracts";
+import { derivePublicGardenSlug } from "../../public-contracts/garden-slug";
 import type { Address } from "../../types/domain";
 
 export interface PublicGardenSummary {
@@ -70,7 +70,7 @@ export function usePublicGardens(
   options: { enabled?: boolean } = {}
 ) {
   return useQuery({
-    queryKey: queryKeys.public.gardens(chainId),
+    queryKey: publicKeys.gardens(chainId),
     enabled: options.enabled ?? true,
     queryFn: async (): Promise<PublicGardenSummary[]> => {
       const gardens = await getGardens();

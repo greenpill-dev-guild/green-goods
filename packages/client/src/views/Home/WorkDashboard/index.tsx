@@ -1,39 +1,41 @@
+import type { Address, Work } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
-  type Address,
-  cn,
   collectApprovalRecipientsForWorks,
   collectApprovedWorkUIDs,
-  DEFAULT_RETRY_COUNT,
-  fetchApprovalsByRecipients,
-  filterByTimeRange,
   filterPendingNeedsReview,
-  hapticLight,
-  logger,
-  queryKeys,
+} from "@green-goods/shared/utils/work/pending-review";
+import {
+  DEFAULT_RETRY_COUNT,
   STALE_TIME_MEDIUM,
-  isUserAddress as sharedIsUserAddress,
-  type TimeFilter,
-  toastService,
-  useDrafts,
-  useFocusTrap,
-  useMyWorks,
-  useReviewerGardenIds,
-  useReviewerWorks,
-  useTimeout,
+} from "@green-goods/shared/config/query-keys/constants";
+import { fetchApprovalsByRecipients } from "@green-goods/shared/hooks/work/useAggregatedApprovals";
+import { filterByTimeRange, type TimeFilter } from "@green-goods/shared/utils/time";
+import { hapticLight } from "@green-goods/shared/utils/app/haptics";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import { isUserAddress as sharedIsUserAddress } from "@green-goods/shared/utils/blockchain/address";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useDrafts } from "@green-goods/shared/hooks/work/useDrafts";
+import { useFocusTrap } from "@green-goods/shared/hooks/utils/useFocusTrap";
+import { useMyWorks } from "@green-goods/shared/hooks/work/useMyWorks";
+import { useReviewerGardenIds } from "@green-goods/shared/hooks/work/useReviewerGardenIds";
+import { useReviewerWorks } from "@green-goods/shared/hooks/work/useReviewerWorks";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
+import {
   useUIStore,
-  useUser,
-  useWorkApprovals,
-  type Work,
   type WorkDashboardPendingFilter,
   type WorkDashboardTab,
-} from "@green-goods/shared";
+} from "@green-goods/shared/stores/useUIStore";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useWorkApprovals } from "@green-goods/shared/hooks/work/useWorkApprovals";
 import { RiCheckLine, RiCloseLine, RiDraftLine, RiTaskLine } from "@remixicon/react";
 import { useQuery } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
-import { getPwaDrawerCloseDelayMs, pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
+import { getPwaDrawerCloseDelayMs, pwaDrawerStyles } from "@/components/Pwa/drawerStyles";
 import { CompletedTab } from "./CompletedTab";
 import { DraftsTab } from "./Drafts";
 import { PendingTab } from "./PendingTab";
@@ -44,7 +46,7 @@ import {
   extractWorkGardenIds,
   receivedApprovalsToWorks,
   resolveWorkNavigation,
-} from "./work-dashboard-utils";
+} from "./workDashboardUtils";
 
 // Component-specific props (not a domain type)
 export interface WorkDashboardProps {

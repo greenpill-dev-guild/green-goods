@@ -1,6 +1,9 @@
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminDialog } from "@/components/AdminDialog";
-import { Button, formatTokenAmount, TextInput, TxInlineFeedback } from "@green-goods/shared";
+import { Button } from "@green-goods/shared/components/Button";
+import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { fn } from "storybook/test";

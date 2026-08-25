@@ -52,6 +52,7 @@ const config: KnipConfig = {
       ],
       entry: [
         "src/index.ts",
+        "src/commitment-pooling/index.ts",
         "src/components/index.ts",
         "src/ontology/index.ts",
         "src/hooks/index.ts",
@@ -78,6 +79,7 @@ const config: KnipConfig = {
         // Listed here so dead-code sweeps stop re-reporting a deliberate park.
         "src/components/Public/VaultCardEndowFlow.tsx",
         "src/components/Public/VaultCardPaymentPanel.tsx",
+        "src/components/Public/VaultCardWalletManage.calls.ts",
         "src/components/Public/VaultCardWalletManage.tsx",
       ],
       ignoreDependencies: [

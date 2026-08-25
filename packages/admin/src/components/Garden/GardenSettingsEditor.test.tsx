@@ -4,8 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import { IntlProvider, useIntl } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Domain } from "../../../../shared/src/types/domain";
-import { resolveIPFSUrl } from "../../../../shared/src/modules/data/ipfs/resolve";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { Domain } from "@green-goods/shared/types/domain";
 import {
   GardenSettingsEditor,
   type GardenSettingsEditorHandle,
@@ -34,24 +34,42 @@ const {
   mockUploadFileToIPFS: vi.fn().mockResolvedValue({ cid: "bafysettingsbanner" }),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-
+vi.mock("@green-goods/shared/hooks/garden/useSetGardenDomains", async () => {
   const asMutation = (mutateAsync: (params: unknown) => Promise<unknown>) => () => ({
     mutateAsync,
     isPending: false,
   });
-
   return {
-    ...actual,
+    useSetGardenDomains: asMutation(mockSetGardenDomains),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/garden/useUpdateGarden", async () => {
+  const asMutation = (mutateAsync: (params: unknown) => Promise<unknown>) => () => ({
+    mutateAsync,
+    isPending: false,
+  });
+  return {
     useUpdateGardenName: asMutation(mockUpdateName),
     useUpdateGardenDescription: asMutation(mockUpdateDescription),
     useUpdateGardenLocation: asMutation(mockUpdateLocation),
     useUpdateGardenBannerImage: asMutation(mockUpdateBannerImage),
     useSetOpenJoining: asMutation(mockSetOpenJoining),
     useSetMaxGardeners: asMutation(mockSetMaxGardeners),
-    useSetGardenDomains: asMutation(mockSetGardenDomains),
-    uploadFileToIPFS: mockUploadFileToIPFS,
+  };
+});
+
+vi.mock("@green-goods/shared/modules/data/ipfs/upload", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@green-goods/shared/modules/data/ipfs/upload")>();
+  return { ...actual, uploadFileToIPFS: mockUploadFileToIPFS };
+});
+
+vi.mock("@green-goods/shared/utils/work/image-compression", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@green-goods/shared/utils/work/image-compression")>();
+  return {
+    ...actual,
     imageCompressor: {
       ...actual.imageCompressor,
       shouldCompress: () => false,

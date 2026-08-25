@@ -1,8 +1,8 @@
+import type { Garden } from "@green-goods/shared/types/domain";
 import type {
   CampaignCookieJarPayoutAsset,
   CampaignCookieJarPayoutAssetId,
-  Garden,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/cookie-jar-campaign";
 import type { IntlShape } from "react-intl";
 import { CampaignAdvancedSection } from "./CampaignAdvancedSection";
 import { CampaignCreateReview } from "./CampaignCreateReview";

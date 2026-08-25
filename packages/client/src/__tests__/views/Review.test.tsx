@@ -13,16 +13,25 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Track calls to mediaResourceManager and AudioPlayer
 const mockGetOrCreateUrl = vi.fn((file: File, _trackingId: string) => `blob:mock-${file.name}`);
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/components/Audio/AudioPlayer", () => ({
   AudioPlayer: ({ file }: { file: File }) =>
     createElement("div", { "data-testid": `audio-player-${file.name}` }, file.name),
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/types/domain", () => ({
   Domain: {
     SOLAR: 0,
     AGRO: 1,
     EDU: 2,
     WASTE: 3,
   },
+}));
+
+vi.mock("@green-goods/shared/utils/form/normalizers", () => ({
   formatTimeSpent: (minutes?: number) => {
     if (!minutes) return "";
     const hours = Math.floor(minutes / 60);
@@ -31,8 +40,14 @@ vi.mock("@green-goods/shared", () => ({
     if (hours > 0) return `${hours}h`;
     return `${remainingMinutes}m`;
   },
+}));
+
+vi.mock("@green-goods/shared/modules/work/media-processing", () => ({
   getWorkMediaId: (file: File) => `media-${file.name}-${file.size}-${file.lastModified}`,
   isVideoFile: (file: File) => file.type.startsWith("video/"),
+}));
+
+vi.mock("@green-goods/shared/modules/job-queue/media-resource-manager", () => ({
   mediaResourceManager: {
     getOrCreateUrl: (...args: unknown[]) => mockGetOrCreateUrl(...(args as [File, string])),
     cleanupUrls: vi.fn(),
@@ -93,8 +108,9 @@ vi.mock("@/components/Features/Work", () => ({
 }));
 
 // Import after mocks
-import type { Action, Address, Garden } from "@green-goods/shared";
-import { Domain, getWorkMediaId } from "@green-goods/shared";
+import type { Action, Address, Garden } from "@green-goods/shared/types/domain";
+import { Domain } from "@green-goods/shared/types/domain";
+import { getWorkMediaId } from "@green-goods/shared/modules/work/media-processing";
 import { WorkReview } from "../../views/Garden/Review";
 
 const messages: Record<string, string> = {

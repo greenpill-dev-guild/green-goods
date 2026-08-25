@@ -38,9 +38,12 @@ vi.mock("@/components/Cards", () => ({
   GardenCardSkeleton: () => createElement("div", { "data-testid": "garden-card-skeleton" }),
 }));
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/components/Audio/AudioPlayer", () => ({
   AudioPlayer: ({ src }: { src: string }) =>
     createElement("div", { "data-testid": "audio-player", "data-src": src }, "Audio"),
+}));
+
+vi.mock("@green-goods/shared/modules/data/ipfs/resolve", () => ({
   resolveIPFSUrl: (cid: string) => `https://gateway.test/ipfs/${cid}`,
 }));
 

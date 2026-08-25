@@ -1,13 +1,10 @@
-import {
-  type Domain,
-  DOMAIN_CONFIG,
-  cn,
-  formatDateTime,
-  resolveIPFSUrl,
-  stripGeneratedWorkTitleTimestamp,
-  type Work,
-} from "@green-goods/shared";
-import { getRelativeTimeParts, normalizeTimestamp } from "@green-goods/shared/utils";
+import { DOMAIN_CONFIG } from "@green-goods/shared/config/domain";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import type { Domain, Work } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { formatDateTime, normalizeTimestamp } from "@green-goods/shared/utils/time";
+import { stripGeneratedWorkTitleTimestamp } from "@green-goods/shared/utils/work/workTitles";
+import { getRelativeTimeParts } from "@green-goods/shared/utils/relativeTime";
 import { useState, type CSSProperties } from "react";
 import { useIntl } from "react-intl";
 import { adminCardVariants } from "@/components/AdminCard";

@@ -1,4 +1,5 @@
-import { CynefinPhase, cn, Domain } from "@green-goods/shared";
+import { CynefinPhase, Domain } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type ReactNode } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 

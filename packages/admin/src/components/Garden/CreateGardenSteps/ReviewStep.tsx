@@ -1,4 +1,5 @@
-import { type Address, DOMAIN_COLORS, Domain, useCreateGardenStore } from "@green-goods/shared";
+import { useCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
+import { type Address, Domain, DOMAIN_COLORS } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 import { EnsAddressText } from "@/components/EnsAddressText";
 

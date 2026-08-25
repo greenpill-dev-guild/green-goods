@@ -1,4 +1,6 @@
-import { Button, Card, formatTokenAmount } from "@green-goods/shared";
+import { Button } from "@green-goods/shared/components/Button";
+import { Card } from "@green-goods/shared/components/Cards/CardBase";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 

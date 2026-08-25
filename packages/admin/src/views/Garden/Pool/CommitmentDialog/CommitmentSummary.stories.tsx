@@ -1,4 +1,4 @@
-import type { CommitmentReadModel } from "@green-goods/shared";
+import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { Meta, StoryObj } from "@storybook/react";
 import { storyCommitment } from "../poolStoryFixtures";
 import { CommitmentSummary } from "./CommitmentSummary";

@@ -16,7 +16,7 @@ import type { DraftStep, WorkDraftRecord } from "../../types/job-queue";
 import { createDraftErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { queryKeys } from "../../config/query-keys";
+import { draftsKeys } from "../../config/query-keys/misc";
 
 /**
  * Map DraftStep to WorkTab enum
@@ -72,7 +72,7 @@ export function useDrafts() {
     isLoading,
     refetch: refetchDrafts,
   } = useQuery({
-    queryKey: queryKeys.drafts.list(userAddress || "", chainId),
+    queryKey: draftsKeys.list(userAddress || "", chainId),
     queryFn: async (): Promise<DraftWithImages[]> => {
       if (!userAddress) return [];
 
@@ -110,7 +110,7 @@ export function useDrafts() {
     onSuccess: (draftId) => {
       setActiveDraftId(draftId);
       queryClient.invalidateQueries({
-        queryKey: queryKeys.drafts.list(userAddress || "", chainId),
+        queryKey: draftsKeys.list(userAddress || "", chainId),
       });
     },
     onError: createDraftErrorHandler("create"),
@@ -129,7 +129,7 @@ export function useDrafts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.drafts.list(userAddress || "", chainId),
+        queryKey: draftsKeys.list(userAddress || "", chainId),
       });
     },
     onError: createDraftErrorHandler("save"),
@@ -145,7 +145,7 @@ export function useDrafts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.drafts.list(userAddress || "", chainId),
+        queryKey: draftsKeys.list(userAddress || "", chainId),
       });
     },
     onError: createDraftErrorHandler("delete"),
@@ -158,7 +158,7 @@ export function useDrafts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.drafts.list(userAddress || "", chainId),
+        queryKey: draftsKeys.list(userAddress || "", chainId),
       });
     },
     onError: createDraftErrorHandler("add image to"),
@@ -171,7 +171,7 @@ export function useDrafts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.drafts.list(userAddress || "", chainId),
+        queryKey: draftsKeys.list(userAddress || "", chainId),
       });
     },
     onError: createDraftErrorHandler("remove image from"),
@@ -184,7 +184,7 @@ export function useDrafts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.drafts.list(userAddress || "", chainId),
+        queryKey: draftsKeys.list(userAddress || "", chainId),
       });
     },
     onError: createDraftErrorHandler("save images for"),

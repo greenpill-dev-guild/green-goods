@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 
 // ----------------------------------------------------------------------------
 // Admin fork of the shared Canvas MainSheet (Cockpit M3, finished — 1a).

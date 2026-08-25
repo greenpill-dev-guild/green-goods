@@ -1,36 +1,37 @@
+import type { Address } from "@green-goods/shared/types/domain";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
 import {
-  type Address,
-  Alert,
-  Button,
-  type CampaignCookieJarCampaign,
   classifyTxError,
-  cn,
-  formatTokenAmount,
-  FormattedAmountInput,
-  ImageWithFallback,
   isMeaningfulTxErrorMessage,
-  type PublicGardenSummary,
-  resolveIPFSUrl,
-  TransactionSuccessAffordance,
-  TxInlineFeedback,
-  useAuth,
+} from "@green-goods/shared/utils/errors/tx-error-classifier";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import {
+  FormattedAmountInput,
+  useFormattedAmountInput,
+} from "@green-goods/shared/components/Form/FormattedAmountInput";
+import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
+import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { TransactionSuccessAffordance } from "@green-goods/shared/components/feedback/TransactionSuccessAffordance";
+import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
+import {
   useCampaignCookieJar,
   useCampaignCookieJarDeposit,
   useCampaignCookieJarWithdraw,
-  useFormattedAmountInput,
-  useUser,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
 import { useBalance } from "wagmi";
-import { WalletConnectButton } from "@/components/WalletConnectButton";
-
+import { WalletConnectButton } from "@/components/Actions/WalletConnectButton";
 export type CookieJarBucket = "for-you" | "active" | "unresolved";
-
 const STRICT_PURPOSE_MIN_LENGTH = 27;
 const FALLBACK_CAMPAIGN_COOKIE_JAR_CLAIM_PURPOSE = "Green Goods campaign cookie claim";
-
 export type CookieJarStatus =
   | { kind: "for-you-claimable"; bucket: "for-you" }
   | { kind: "for-you-cooldown"; bucket: "for-you"; nextClaimAt: number }
@@ -41,7 +42,6 @@ export type CookieJarStatus =
   | { kind: "active-not-eligible"; bucket: "active" }
   | { kind: "loading"; bucket: "unresolved" }
   | { kind: "error"; bucket: "unresolved" };
-
 interface JarLikeForStatus {
   isPaused: boolean;
   balance: bigint;

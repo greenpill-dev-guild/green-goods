@@ -8,11 +8,12 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { DEFAULT_RETRY_COUNT, queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { DEFAULT_RETRY_COUNT, STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { stewardWorksKeys } from "../../config/query-keys/work";
 import { logger } from "../../modules/app/logger";
 import { getWorks } from "../../modules/data/eas";
-import { jobQueue } from "../../modules/job-queue";
+import { jobQueue } from "../../modules/job-queue/default-instance";
 import type { Address, Work } from "../../types/domain";
 import type { EASWork } from "../../types/eas-responses";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
@@ -61,7 +62,7 @@ export function useReviewerWorks(
   address: Address | undefined
 ): UseReviewerWorksResult {
   const { data, isLoading, isFetching, isSuccess, isError, refetch } = useQuery({
-    queryKey: queryKeys.stewardWorks.byAddress(address, reviewerGardenIds),
+    queryKey: stewardWorksKeys.byAddress(address, reviewerGardenIds),
     queryFn: async (): Promise<ReviewerWorksResult> => {
       if (!address) return { works: [], failedGardenIds: [] };
 
