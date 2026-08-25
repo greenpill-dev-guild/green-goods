@@ -219,3 +219,45 @@ by tier, defect counts by severity, external blockers. Full reports live in
 (Append-only. Each dispatched experience audit adds a dated summary block here: finding counts
 by severity, the three highest-leverage changes, capture counts. Full reports live in
 `../reports/qa-experience-audit-<date>.md`.)
+
+### 2026-08-25 — full pass on `origin/develop@fc27a5b000fd8ab8674ac5a6dea159a0a602234b`
+
+- Both halves audited across the scope grid: Phase 0 gates (all green except the pre-existing
+  `check:browser-verification-policy` red inside `agentic:check`), 777 Storybook + 65 fixture +
+  25 live captures across light/dark × 320/465/768/1280 × en/es/pt, a mechanical measurement
+  pass (touch targets, radii, shadows, error association, tab-rail overflow, dark-token probes,
+  locale clipping), and an interactive walk of the client fixture world, live steward console
+  (light + dark), and editorial pages (en + es).
+- Findings: **0 breaks-identity · 13 erodes-quality · 8 polish** (21-row ranked backlog), plus
+  10 functional observations routed to their lanes (notable: the CommitmentDialogPanel Detail
+  story crashes outside a Router; composer review still says "1 hours"; demo-gate gaps hide
+  garden actions and the charter under fixtures).
+- All 9 seeded leads dispositioned: tab-rail scroll and `aria-describedby` fixed at head
+  (`1e34e39e2`); admin dark mode renders with correctly flipped tokens (blessing → Wave 2);
+  32 px admin act targets confirmed and quantified; es/pt clip the composer's Next label and the
+  garden tab labels at 320; every prototype flow-audit lead re-verified fixed in shipped code
+  (seat model, single-act bar, no machine words, labeled steps, both doors gated).
+- The three changes: (1) give pooling an arrival surface — no notification exists for taken-up /
+  confirmed / resolved, so the product's highest moment lands silently; (2) name the people —
+  requests never name the asker and hex strings sign the payoff; (3) scope the pool list to live
+  rows. Wave 2 shortlist (8 questions) covers the es/pt "pool" noun, kept-moment ceremony,
+  admin-dark blessing, casing-contract side, count-card grammar, pinned hero, NEEDS YOU
+  intensity, and unnamed-confirmer fallback copy.
+- Full report: `../reports/qa-experience-audit-2026-08-25.md`. Evidence:
+  `../reports/evidence/qa-experience-audit/` (59 files; live captures with real fork records
+  stay outside the repo per the privacy rule). No fixes, commits, Linear writes, signatures, or
+  lane-status changes were made.
+
+### 2026-08-25 — Wave 2 intake addendum (same run, same target SHA)
+
+- Afo's first-read observations (11 items) were validated the same day and appended to the
+  report as § 10 (AD-1…AD-11, backlog rows 22–31). All validated; notable measurements: the
+  admin command palette resizes 362→158 px and drifts its input 100 px down while typing; the
+  Hub stage config is Work→Assess→Certify→Confirm→History (decided: Confirm first, History
+  gone); Community carries a fifth Pools tab (decided: fold into Coordination); the
+  availability cast's "not on this chain yet" copy misattributes the deliberate ledger gate to
+  the chain (18 pools are registered); the editorial § 02 panel and the five-stage cycle are
+  superseded by decided directions (on-canvas grammar; four steps Needs · Commitment · Work ·
+  Learnings — drafted copy in the report); image hover-zoom removal validated at 4 components;
+  "Over time" is the drawer's history surface but does not read as one.
+- Still read-only: no fixes, commits, or Linear writes.
