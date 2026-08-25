@@ -2,6 +2,7 @@ import { Alert } from "@green-goods/shared/components/Alert";
 import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import { Controller, type UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
+import { AdminCheckbox } from "@/components/AdminCheckbox";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminSettingRow } from "@/components/AdminSettingRow";
 import { SeedConfirmerList } from "./SeedConfirmerList";
@@ -75,8 +76,7 @@ export function SeedStepProof({
               })
         }
       >
-        <input
-          type="checkbox"
+        <AdminCheckbox
           aria-labelledby={`${noteId}-fallback`}
           checked={protocolRegistered && values.protocolFallbackEnabled}
           disabled={busy || !protocolRegistered}
@@ -85,7 +85,6 @@ export function SeedStepProof({
               shouldDirty: true,
             })
           }
-          className="h-5 w-5 accent-[rgb(var(--tone-action))]"
         />
       </AdminSettingRow>
       {!protocolRegistered ? (

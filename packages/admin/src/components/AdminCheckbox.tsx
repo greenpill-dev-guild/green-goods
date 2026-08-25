@@ -17,6 +17,8 @@ export interface AdminCheckboxProps {
   name?: string;
   id?: string;
   className?: string;
+  /** External label reference for label-less use inside AdminSettingRow. */
+  "aria-labelledby"?: string;
 }
 
 // ============================================================================
@@ -53,6 +55,7 @@ export const AdminCheckbox = React.forwardRef<HTMLInputElement, AdminCheckboxPro
       name,
       id: idProp,
       className,
+      "aria-labelledby": ariaLabelledBy,
     },
     ref
   ) => {
@@ -117,6 +120,7 @@ export const AdminCheckbox = React.forwardRef<HTMLInputElement, AdminCheckboxPro
             disabled={disabled}
             onChange={onChange}
             aria-checked={indeterminate ? "mixed" : undefined}
+            aria-labelledby={ariaLabelledBy}
             aria-describedby={descriptionId}
             aria-invalid={error || undefined}
             className={cn(
