@@ -3492,7 +3492,6 @@
   "cockpit.community.pools.readError.body": "Não foi possível contactar o módulo. Nada do fundo comum do protocolo mudou.",
   "cockpit.community.pools.readError.title": "Não foi possível ler o fundo comum do protocolo",
   "cockpit.community.pools.stewardOnly": "A consola do fundo comum é para os responsáveis deste jardim.",
-  "cockpit.community.pools.tab": "Fundos comuns",
   "cockpit.community.pools.unregistered.body": "Registá-lo é uma operação de implementação da equipa Green Goods. Até lá, a equipa não pode intervir como confirmadora de recurso em lado nenhum.",
   "cockpit.community.pools.unregistered.title": "Ainda não há um fundo comum do protocolo registado",
   "cockpit.community.poolsHint": "Abra um pool de sinal específico para gerenciar registros e pesos de convicção.",

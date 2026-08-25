@@ -268,10 +268,11 @@ export const adminCanvasRoutes: RouteObject[] = [
         lazy: communityView,
       },
       {
-        // Protocol pool plus this garden's pool (uiux-spec §6.8): a Community
-        // mode, never a fifth workspace or a top-level Pools route.
+        // The Pools tab retired into Coordination (2026-08-25 AD-5); the W12
+        // surface (protocol pool + this garden, uiux-spec §6.8) renders there
+        // and saved deep links land on it.
         path: "pools",
-        lazy: communityView,
+        element: <Navigate to="/community/coordination" replace />,
       },
       {
         // Legacy resources URLs alias into Endowment until external links move.

@@ -13,7 +13,7 @@ export type AdminSignalPoolType = "hypercert" | "action";
 export type AdminHubMode = "work" | "assess" | "certify" | "confirm";
 export type AdminHubView = AdminHubMode;
 export type AdminGardenMode = "health" | "activity" | "impact" | "settings" | "pool";
-export type AdminCommunityMode = "members" | "coordination" | "endowment" | "payouts" | "pools";
+export type AdminCommunityMode = "members" | "coordination" | "endowment" | "payouts";
 export type AdminHubSort = "newest" | "oldest";
 
 export type AdminSearchValue = string | number | boolean | null | undefined;
@@ -234,9 +234,6 @@ export const adminRoutes = {
     return this.communityMode("payouts", context);
   },
   /** Protocol pool plus this garden's pool (uiux-spec §6.8). */
-  communityPools(context?: AdminCommunityRouteContext) {
-    return this.communityMode("pools", context);
-  },
   /** @deprecated Use communityEndowment. */
   communityTreasury(context?: AdminCommunityRouteContext) {
     return this.communityEndowment(context);
