@@ -1,20 +1,16 @@
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { RiArrowRightSLine, RiSeedlingLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { CommitmentExpireDialog } from "./CommitmentExpireDialog";
-import {
-  commitmentStateChip,
-  directionLabel,
-  formatUnixDate,
-  shortAddress,
-} from "./poolPresentation";
+import { commitmentStateChip, directionLabel, formatUnixDate } from "./poolPresentation";
 
 export type PoolCommitmentScope = "open" | "confirmed" | "past";
 
@@ -246,9 +242,15 @@ export function PoolCommitmentsCard({
               const chip = commitmentStateChip(commitment, formatMessage);
               const title = titleOf(commitment);
               const isDue = dueIds.has(commitment.id);
-              const who = commitment.counterparty
-                ? `${shortAddress(commitment.creator)} → ${shortAddress(commitment.counterparty)}`
-                : shortAddress(commitment.creator);
+              // The "who" leg reads as people, not infrastructure: resolved
+              // names via AddressDisplay and a worded relationship. The
+              // provider does the thing for the receiver, whichever side
+              // created the record; the direction chip tells the rest.
+              const provider =
+                commitment.direction === "REQUEST" ? commitment.counterparty : commitment.creator;
+              const receiver =
+                commitment.direction === "REQUEST" ? commitment.creator : commitment.counterparty;
+              const whoAlone = provider ?? receiver;
               const amount =
                 `${commitment.targetUnits.toString()} ${commitment.unitLabel ?? ""}`.trim();
               const due = commitment.dueDate
@@ -288,8 +290,37 @@ export function PoolCommitmentsCard({
                           </StatusBadge>
                         ) : null}
                       </span>
-                      <span className="block text-xs text-text-soft">
-                        {[who, amount, due].filter(Boolean).join(" · ")}
+                      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-text-soft">
+                        {provider && receiver && provider !== receiver ? (
+                          <FormattedMessage
+                            id="cockpit.garden.pool.row.people"
+                            defaultMessage="{provider} for {receiver}"
+                            values={{
+                              provider: (
+                                <AddressDisplay
+                                  address={provider}
+                                  interactive={false}
+                                  className="text-xs"
+                                />
+                              ),
+                              receiver: (
+                                <AddressDisplay
+                                  address={receiver}
+                                  interactive={false}
+                                  className="text-xs"
+                                />
+                              ),
+                            }}
+                          />
+                        ) : whoAlone ? (
+                          <AddressDisplay
+                            address={whoAlone}
+                            interactive={false}
+                            className="text-xs"
+                          />
+                        ) : null}
+                        <span>· {amount}</span>
+                        {due ? <span>· {due}</span> : null}
                       </span>
                     </span>
                     <RiArrowRightSLine className="h-4 w-4 shrink-0 text-text-soft" aria-hidden />

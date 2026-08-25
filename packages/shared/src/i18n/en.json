@@ -3783,6 +3783,7 @@
   "cockpit.garden.pool.row.due": "due {date}",
   "cockpit.garden.pool.row.offer": "Offer",
   "cockpit.garden.pool.row.pastDue": "Past due",
+  "cockpit.garden.pool.row.people": "{provider} for {receiver}",
   "cockpit.garden.pool.row.request": "Request",
   "cockpit.garden.pool.row.state.accepted": "Accepted",
   "cockpit.garden.pool.row.state.cancelled": "Cancelled",

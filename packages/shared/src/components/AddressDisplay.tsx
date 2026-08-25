@@ -13,9 +13,20 @@ export interface AddressDisplayProps {
   address: Address;
   className?: string;
   showCopyButton?: boolean;
+  /**
+   * false renders a plain resolved-name span — no popover trigger, no copy
+   * button — for use inside another interactive element (a row that is itself
+   * a button), where nested buttons would be invalid HTML.
+   */
+  interactive?: boolean;
 }
 
-export function AddressDisplay({ address, className, showCopyButton = true }: AddressDisplayProps) {
+export function AddressDisplay({
+  address,
+  className,
+  showCopyButton = true,
+  interactive = true,
+}: AddressDisplayProps) {
   const intl = useIntl();
   const [copied, setCopied] = useState(false);
   const tooltipId = useId();
@@ -38,6 +49,17 @@ export function AddressDisplay({ address, className, showCopyButton = true }: Ad
       logger.error("Failed to copy address", { error: err });
     }
   };
+
+  if (!interactive) {
+    return (
+      <span
+        className={cn("font-mono text-sm text-text-strong", className)}
+        title={ensName ? `${ensName} · ${address}` : address}
+      >
+        {display}
+      </span>
+    );
+  }
 
   return (
     <div className={cn("flex items-center space-x-2", className)}>
