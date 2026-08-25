@@ -233,7 +233,11 @@ export function ConfirmSheet({
             <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
               {formatMessage({ id: "app.confirm.evidence.title" })}
             </p>
-            <EvidencePreview evidence={evidence} isLoading={evidenceLoading} />
+            <EvidencePreview
+              evidence={evidence}
+              isLoading={evidenceLoading}
+              recordedCount={commitment.evidenceCount}
+            />
           </div>
 
           <Meter done={count} of={threshold} />

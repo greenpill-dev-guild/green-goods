@@ -6,6 +6,12 @@ import { useIntl } from "react-intl";
 export interface EvidencePreviewProps {
   evidence: ResolvedEvidence[];
   isLoading: boolean;
+  /**
+   * The chain's own count of attached proof. When the readable rows fall
+   * short of it, the gap is said out loud instead of claiming nothing was
+   * attached — the two numbers must never contradict each other.
+   */
+  recordedCount?: number;
 }
 
 /**
@@ -15,12 +21,15 @@ export interface EvidencePreviewProps {
  * on chain should see the words, the photos and the voice notes that were
  * attached, or know that a document could not be read.
  */
-export function EvidencePreview({ evidence, isLoading }: EvidencePreviewProps) {
+export function EvidencePreview({ evidence, isLoading, recordedCount = 0 }: EvidencePreviewProps) {
   const { formatMessage, formatDate } = useIntl();
+  const unreadable = Math.max(0, recordedCount - evidence.length);
   if (evidence.length === 0) {
     return (
       <p className="text-xs text-text-sub-600">
-        {formatMessage({ id: "app.confirm.evidence.none" })}
+        {unreadable > 0
+          ? formatMessage({ id: "app.confirm.evidence.missing" }, { count: unreadable })
+          : formatMessage({ id: "app.confirm.evidence.none" })}
       </p>
     );
   }
@@ -110,6 +119,11 @@ export function EvidencePreview({ evidence, isLoading }: EvidencePreviewProps) {
           )}
         </li>
       ))}
+      {unreadable > 0 ? (
+        <li className="text-xs text-text-sub-600">
+          {formatMessage({ id: "app.confirm.evidence.missing" }, { count: unreadable })}
+        </li>
+      ) : null}
     </ul>
   );
 }

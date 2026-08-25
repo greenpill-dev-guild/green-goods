@@ -47,6 +47,19 @@ export function isTerminalCommitmentState(state: CommitmentDerivedState): boolea
   return TERMINAL.has(state);
 }
 
+/** Settled: nothing further happens on its own. Narrower than terminal — a
+ * disputed record is held, not settled, so it stays in every live list. */
+const SETTLED = new Set<CommitmentDerivedState>([
+  "FULFILLED",
+  "RECONCILED",
+  "CANCELLED",
+  "EXPIRED",
+]);
+
+export function isSettledCommitmentState(state: CommitmentDerivedState): boolean {
+  return SETTLED.has(state);
+}
+
 const PRE_ACCEPTANCE = new Set<CommitmentDerivedState>(["OFFERED", "REQUESTED"]);
 
 /**

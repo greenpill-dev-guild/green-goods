@@ -10,6 +10,7 @@ import { CommitmentActionBar } from "./CommitmentActionBar";
 import { commitmentActForKind } from "./commitmentActions";
 import { CommitmentClaims } from "./CommitmentClaims";
 import { CommitmentDetailShell, CommitmentDetailState } from "./CommitmentDetailShell";
+import { CommitmentEvidence } from "./CommitmentEvidence";
 import { CommitmentIdentity } from "./CommitmentIdentity";
 import { CommitmentProgress } from "./CommitmentProgress";
 import { CommitmentTeam } from "./CommitmentTeam";
@@ -201,6 +202,10 @@ export function GardenCommitment() {
           chainId={controller.chainId}
           commitment={commitment}
           requirements={requirements}
+        />
+        <CommitmentEvidence
+          attributions={controller.detail.evidenceAttributions}
+          recordedCount={commitment.evidenceCount}
         />
         <CommitmentWork
           commitment={commitment}

@@ -110,33 +110,49 @@ export function ComposeWhat({ form, openCycles, cycleNames }: ComposeWhatProps) 
       {openCycles.length > 0 ? (
         // The contract takes cycleId 0 whenever it likes, so a commitment may
         // always run on its own. The chooser therefore appears as soon as one
-        // cycle is open: the choice is between that cycle and none.
-        <div>
-          <label className="block text-sm font-medium text-text-strong-950" htmlFor="compose-cycle">
+        // cycle is open: the choice is between that cycle and none. It draws
+        // as the composer's own choice cards, not a native select, because a
+        // closed select truncates its value mid-phrase at 320 (es/pt) while a
+        // card row simply wraps.
+        <fieldset>
+          <legend className="text-sm font-medium text-text-strong-950">
             {formatMessage({ id: "app.compose.what.whereLabel" })}
-          </label>
-          <select
-            id="compose-cycle"
-            value={cycleId}
-            onChange={(event) =>
-              form.setValue("cycleId", event.target.value, {
-                shouldValidate: true,
-                shouldDirty: true,
-              })
-            }
-            className="mt-1.5 w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
-          >
-            {openCycles.map((cycle) => (
-              <option key={cycle.id} value={cycle.cycleId.toString()}>
-                {cycleLabel(cycle)}
-              </option>
-            ))}
-            <option value="0">{formatMessage({ id: "app.compose.what.whereOwn" })}</option>
-          </select>
+          </legend>
+          <div className="mt-1.5 space-y-2">
+            {[
+              ...openCycles.map((cycle) => ({
+                value: cycle.cycleId.toString(),
+                label: cycleLabel(cycle),
+              })),
+              { value: "0", label: formatMessage({ id: "app.compose.what.whereOwn" }) },
+            ].map((option) => {
+              const selected = cycleId === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() =>
+                    form.setValue("cycleId", option.value, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                  className={
+                    selected
+                      ? "block w-full rounded-[var(--radius-lg)] border border-primary-alpha-24 bg-primary-alpha-10 p-3 text-left text-sm font-medium text-text-strong-950 tap-target-lg"
+                      : "block w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-3 text-left text-sm text-text-strong-950 tap-target-lg"
+                  }
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
           <p className="mt-1.5 text-xs text-text-soft-400">
             {formatMessage({ id: "app.compose.what.whereHelp" })}
           </p>
-        </div>
+        </fieldset>
       ) : (
         <p className="text-sm text-text-sub-600">
           {formatMessage({ id: "app.compose.what.whereNone" })}

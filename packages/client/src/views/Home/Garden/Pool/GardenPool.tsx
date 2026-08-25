@@ -120,7 +120,7 @@ export function GardenPool({ pool }: GardenPoolProps) {
       </p>
 
       <div
-        className="flex gap-2"
+        className="flex flex-wrap gap-2"
         role="group"
         aria-label={formatMessage({ id: "app.commitments.filter.label" })}
       >
@@ -142,6 +142,27 @@ export function GardenPool({ pool }: GardenPoolProps) {
             </button>
           );
         })}
+        {/* The daily list holds the living; how things ended folds behind one
+            quiet scope, the way the drawer splits Live from History. */}
+        {controller.settledCount > 0 ? (
+          <button
+            type="button"
+            aria-pressed={controller.liveness === "settled"}
+            onClick={() =>
+              controller.setLiveness(controller.liveness === "settled" ? "live" : "settled")
+            }
+            className={
+              controller.liveness === "settled"
+                ? "ml-auto rounded-full border border-primary-alpha-24 bg-primary-alpha-10 px-3 py-1.5 text-xs font-medium text-primary tap-target-lg"
+                : "ml-auto rounded-full border border-stroke-soft-200 px-3 py-1.5 text-xs font-medium text-text-sub-600 tap-target-lg"
+            }
+          >
+            {formatMessage(
+              { id: "app.commitments.filter.settled" },
+              { count: controller.settledCount }
+            )}
+          </button>
+        ) : null}
       </div>
 
       {controller.ownCreations.length > 0 ? (
