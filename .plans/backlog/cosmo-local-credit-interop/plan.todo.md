@@ -1,6 +1,9 @@
 # Cosmo-Local Credit Voucher Interoperability Plan
 
 **Feature Slug**: `cosmo-local-credit-interop`
+**Linear Issue**: [RESR-73](https://linear.app/greenpill-dev-guild/issue/RESR-73) (parent-only mirror)
+**Linear Project**: Commitment Pooling
+**Linear Source**: source:plans
 **Status**: BLOCKED — scoping and architecture only. **No implementation is authorized.**
 **Created**: 2026-08-25
 **Last Updated**: 2026-08-25

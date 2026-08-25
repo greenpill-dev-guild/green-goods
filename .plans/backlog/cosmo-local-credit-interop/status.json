@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-08-25T06:09:38.829Z",
-    "updated_at": "2026-08-25T06:16:46.701Z"
+    "updated_at": "2026-08-25T06:39:35.972Z"
   },
   "links": {
     "brief": "brief.md",
@@ -21,12 +21,13 @@
     "resources": "resources.md"
   },
   "linear": {
-    "parentIssue": null,
-    "project": null,
+    "parentIssue": "RESR-73",
+    "project": "Commitment Pooling",
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": null,
-    "lanes": {}
+    "lastSyncedAt": "2026-08-25T06:39:35.972Z",
+    "lanes": {},
+    "laneSyncMode": "parent_only"
   },
   "taxonomy": {
     "initiative": "protocol-readiness",
@@ -183,6 +184,14 @@
       "status": "scoped",
       "branch": null,
       "note": "Captured architecture, integration tensions, resources, decision log (22), slices 0-6+, and phasing from the 2026-08-25 scoping conversation."
+    },
+    {
+      "timestamp": "2026-08-25T06:39:35.972Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
   ]
 }

@@ -5,6 +5,9 @@
 **Priority**: `p2`
 **Created**: `2026-08-25`
 **Posture**: scoping and architecture only. **No implementation is authorized by this hub.**
+**Linear**: [RESR-73](https://linear.app/greenpill-dev-guild/issue/RESR-73) design record ·
+[RESR-74](https://linear.app/greenpill-dev-guild/issue/RESR-74) Slice 0 due diligence ·
+[GROW-43](https://linear.app/greenpill-dev-guild/issue/GROW-43) hackathon entry
 **Related hubs**: [`commitment-pooling`](../../active/commitment-pooling/),
 [`commitment-credit-follow-on`](../../active/commitment-credit-follow-on/),
 [`community-interface`](../../active/community-interface/),
