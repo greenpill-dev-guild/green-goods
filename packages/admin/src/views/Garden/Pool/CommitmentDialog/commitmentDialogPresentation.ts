@@ -17,6 +17,7 @@ export type OpenDialog =
   | "resolve-dispute"
   | "fallback-confirm"
   | "attach-assessment"
+  | "reconcile-work"
   | { kind: "decline-claim"; claimant: Address }
   | null;
 

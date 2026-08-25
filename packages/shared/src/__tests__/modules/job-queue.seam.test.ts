@@ -206,6 +206,32 @@ describe("createJobQueue", () => {
     expect(detach).toHaveBeenCalledOnce();
     expect(store.cleanup).toHaveBeenCalledOnce();
   });
+
+  it("terminates a deferred link when its source Work is discarded", async () => {
+    const source = queuedJob({ id: "source-work", kind: "work" });
+    const dependent = queuedJob({
+      id: "dependent-link",
+      kind: "workLink",
+      payload: {
+        clientOperationId: "operation",
+        commitmentId: 1n,
+        clientWorkId: "client-work-1",
+        sourceWorkJobId: "source-work",
+        requirementIndex: 0,
+        operationKey: `0x${"11".repeat(32)}`,
+        gardenAddress: "0x2222222222222222222222222222222222222222",
+      },
+    });
+    const store = createInMemoryJobQueueStore([source, dependent]);
+    const { queue } = setup({ store });
+
+    await expect(queue.discardJob("source-work")).resolves.toBe(true);
+    expect(await store.getJob("source-work")).toBeUndefined();
+    expect(await store.getJob("dependent-link")).toMatchObject({
+      attempts: 5,
+      lastError: "identity_conflict:source-work-terminal",
+    });
+  });
 });
 
 describe("processJob", () => {
@@ -252,6 +278,27 @@ describe("processJob", () => {
       error: "Max retries (5) exceeded",
     });
     expect(deps.analytics.jobPermanentlyFailed).toHaveBeenCalledOnce();
+  });
+
+  it("uses the ordinary retry ceiling for repeated Work metadata failures", async () => {
+    const store = createInMemoryJobQueueStore([queuedJob({ kind: "workLink", attempts: 4 })]);
+    const executors = {
+      execute: vi.fn().mockRejectedValue(new Error("work-metadata-unavailable")),
+    };
+    const { queue } = setup({ store, executors });
+
+    await expect(queue.processJob("job-1", { transactionSender: {} as never })).resolves.toEqual({
+      success: false,
+      error: "work-metadata-unavailable",
+    });
+    expect(await store.getJob("job-1")).toMatchObject({
+      attempts: 5,
+      lastError: "work-metadata-unavailable",
+    });
+    await expect(queue.processJob("job-1", { transactionSender: {} as never })).resolves.toEqual({
+      success: false,
+      error: "Max retries (5) exceeded",
+    });
   });
 
   it.each([

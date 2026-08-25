@@ -222,7 +222,12 @@ describe("submitWork", () => {
       kind: "queued",
       txHash: QUEUED_HASH,
     });
-    expect(onQueueFallback).toHaveBeenCalledWith(buildOptimisticWork(baseCommand, ports.clock));
+    expect(onQueueFallback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...buildOptimisticWork({ ...baseCommand, clientWorkId: "ignored" }, ports.clock),
+        metadata: expect.stringContaining('"clientWorkId"'),
+      })
+    );
     expect(onQueueFallback.mock.invocationCallOrder[0]).toBeLessThan(
       vi.mocked(enqueue).mock.invocationCallOrder[0]!
     );
@@ -341,6 +346,7 @@ describe("submitWork", () => {
       gardenAddress: MOCK_ADDRESSES.garden,
       actionUID: 1,
       userAddress: MOCK_ADDRESSES.user,
+      clientWorkId: "client-default",
     };
 
     expect(ports.connectivity.isOnline()).toBe(false);
@@ -375,7 +381,8 @@ describe("submitWork", () => {
       resolved.actions,
       resolved.chainId,
       resolved.images,
-      resolved.userAddress
+      resolved.userAddress,
+      expect.objectContaining({ newClientWorkId: expect.any(Function) })
     );
     expect(defaultAdapters.process).toHaveBeenCalledWith("job-default", {
       transactionSender: sender,
@@ -387,7 +394,29 @@ describe("submitWork", () => {
       "Repair paths",
       resolved.chainId,
       resolved.images,
-      { onProgress: onWalletStage }
+      { onProgress: onWalletStage, clientWorkId: "client-default" }
     );
+  });
+
+  it("generates one clientWorkId before transport selection and preserves it on fallback", async () => {
+    const direct = vi
+      .fn<SubmitWorkPorts["direct"]["submitWork"]>()
+      .mockRejectedValue(new Error("network connection failed"));
+    const enqueue = vi.fn<SubmitWorkPorts["queue"]["enqueue"]>(async (input) => ({
+      txHash: QUEUED_HASH,
+      jobId: "job-1",
+      clientWorkId: input.clientWorkId,
+    }));
+    const { ports, onQueueFallback } = createPorts({ direct, enqueue });
+    ports.newClientWorkId = () => "stable-work-id";
+
+    const outcome = await submitWork(baseCommand, ports);
+
+    expect(enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({ clientWorkId: "stable-work-id" })
+    );
+    expect(outcome).toMatchObject({ clientWorkId: "stable-work-id" });
+    const optimistic = onQueueFallback.mock.calls[0]?.[0];
+    expect(optimistic?.metadata).toContain('"clientWorkId":"stable-work-id"');
   });
 });

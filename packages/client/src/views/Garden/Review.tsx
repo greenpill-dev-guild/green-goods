@@ -4,11 +4,18 @@ import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
 import { getWorkMediaId, isVideoFile } from "@green-goods/shared/modules/work/media-processing";
 import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiFileFill, RiPencilFill, RiTimeFill } from "@remixicon/react";
+import {
+  RiCloseLine,
+  RiFileFill,
+  RiHandHeartLine,
+  RiPencilFill,
+  RiTimeFill,
+} from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { WorkView } from "@/components/Features/Work";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import type { WorkCommitmentChoice } from "./WorkCommitmentSelection";
 
 /** Stable tracking ID for work draft media URLs (shared with Media.tsx) */
 const WORK_DRAFT_TRACKING_ID = "work-draft";
@@ -43,6 +50,8 @@ interface WorkReviewProps {
   brokenMediaIds?: ReadonlySet<string>;
   onPreviewFailed?: (file: File, surface: "review") => void;
   onRemoveBrokenMedia?: (surface: "review") => void;
+  commitmentSelection?: WorkCommitmentChoice | null;
+  onClearCommitment?: () => void;
 }
 
 export const WorkReview: React.FC<WorkReviewProps> = ({
@@ -57,6 +66,8 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
   brokenMediaIds,
   onPreviewFailed,
   onRemoveBrokenMedia,
+  commitmentSelection = null,
+  onClearCommitment,
 }) => {
   const intl = useIntl();
   const reviewTitle =
@@ -194,6 +205,54 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
         details={details}
         headerIcon={RiFileFill}
         primaryActions={[]}
+        fulfills={
+          commitmentSelection ? (
+            <section
+              className="rounded-[var(--radius-lg)] border border-primary-alpha-24 bg-primary-alpha-10 p-3"
+              aria-label={intl.formatMessage({
+                id: "app.garden.commitment.fulfills",
+                defaultMessage: "Fulfills",
+              })}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-start gap-2">
+                  <RiHandHeartLine className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-text-sub-600">
+                      {intl.formatMessage({
+                        id: "app.garden.commitment.fulfills",
+                        defaultMessage: "Fulfills",
+                      })}
+                    </p>
+                    <p className="text-sm font-medium text-text-strong-950">
+                      {intl.formatMessage(
+                        {
+                          id: "app.garden.commitment.fulfillsValue",
+                          defaultMessage: "{title} · requirement {requirement}",
+                        },
+                        {
+                          commitment: commitmentSelection.title,
+                          requirement: commitmentSelection.requirementIndex + 1,
+                        }
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={onClearCommitment}
+                  className="flex min-h-11 shrink-0 items-center gap-1 rounded-[var(--radius-md)] px-2 text-xs font-medium text-text-sub-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-alpha-24"
+                >
+                  <RiCloseLine className="h-4 w-4" aria-hidden />
+                  {intl.formatMessage({
+                    id: "app.garden.commitment.none",
+                    defaultMessage: "Not for a Commitment",
+                  })}
+                </button>
+              </div>
+            </section>
+          ) : null
+        }
         onMediaError={(_mediaUrl, index) => {
           const file = photoFiles[index];
           if (file) onPreviewFailed?.(file, "review");

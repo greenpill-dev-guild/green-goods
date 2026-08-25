@@ -1898,6 +1898,7 @@ The **Lane** column below names execution sub-lanes for planning clarity. The ha
 | September: Need intake into the commitment-seeding gate | `ui_admin` | [PRD-691](https://linear.app/greenpill-dev-guild/issue/PRD-691) + Community admin handoff (historical label: canceled PRD-683) | ⏳ |
 | September: settlement-capacity evidence definition and signed pilot packet | `settlement_evidence` | [COM-11](https://linear.app/greenpill-dev-guild/issue/COM-11) (historical label: PRD-735) | 🚧 operational-assignment-gated |
 | August companion: borrow-and-repay `CreditRegistry` + credit indexer/shared/admin/PWA surfaces | `credit_follow_on` | PRD-697 (Todo; unblocked into the August wave by register #73) | 🚧 dispatch-gated on in-code interface freeze, spec revalidation, and human legal/operations review |
+| Complete historical and submission-time Work-to-commitment linking, including steward reconciliation | `work_linking_closure` | [PRD-837](https://linear.app/greenpill-dev-guild/issue/PRD-837) (child of PRD-650; blocks PRD-729) | 🚧 in progress |
 
 Spine records (not work items): [PRD-649](https://linear.app/greenpill-dev-guild/issue/PRD-649) architecture record (reopened for one additive exchange function and re-closed by register #75), [PRD-650](https://linear.app/greenpill-dev-guild/issue/PRD-650) proof capability (parent of the August workstreams), [PRD-796](https://linear.app/greenpill-dev-guild/issue/PRD-796) final pre-code full-pool compatibility review, [PRD-651](https://linear.app/greenpill-dev-guild/issue/PRD-651) design-only exchange, redemption, and federation architecture at `exchange-architecture-brief.md` with implementation and `settlementAdapter`/`settlementEnabled` activation still gated, [RESR-57](https://linear.app/greenpill-dev-guild/issue/RESR-57)/[RESR-58](https://linear.app/greenpill-dev-guild/issue/RESR-58) research framing. Linked research: RESR-15, RESR-4, PRD-275.
 
@@ -2125,6 +2126,20 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 - [ ] Canceled PRD-683 is not part of this executable lane; Community seeding intake is owned by PRD-691 and `.plans/active/community-interface/handoffs/claude-ui-admin.md`
 - [ ] Record RED/GREEN proof or a proof-limit note
 - [ ] Write `handoffs/claude-ui-admin.md`
+
+### Work Linking Closure (`feat/editorial-record-and-cycle`): PRD-837
+
+- [ ] Add unit and real-EAS fork proof for approval-first, link-later, steward reconciliation.
+- [ ] Add the bounded decision selector, steward sync mutation, stable `clientWorkId`, and deferred
+  `workLink` materialization without adding a seventh queue job kind.
+- [ ] Add commitment selection to Work Intro, the Review Fulfills card and clear action, the
+  requirement-specific empty-state CTA, duplicate-action handling, and honest link/credit states.
+- [ ] Add the steward-only admin reconciliation row, confirmation, indexed read-back, and explicit
+  permission/offline/read-error states.
+- [ ] Add en/es/pt copy, stories, focused tests, validation receipts, and authenticated Brave proof.
+- [ ] Keep hosted Envio deployment/full sync/live read-back, ABI/storage/schema changes, broadcast,
+  and environment changes outside this lane.
+- [x] Write `handoffs/codex-work-linking.md`.
 
 ### Editorial (`feature/commitment-pooling-editorial`): PRD-726 (historical label PRD-678)
 

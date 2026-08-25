@@ -31,6 +31,7 @@ import {
 } from "../../commitment-pooling/useCommitmentPooling";
 import { useCommitmentQueueState } from "../../commitment-pooling/useCommitmentQueueState";
 import { useCommitmentViewerRoles } from "../../commitment-pooling/useCommitmentViewerRoles";
+import { useCommitmentWorkDecisions } from "../../commitment-pooling/useCommitmentWorkDecisions";
 import { useWorks } from "../../work/useWorks";
 import type {
   GardenCommitmentActs,
@@ -62,7 +63,8 @@ export function useGardenCommitmentController(input: {
   const queueState = useCommitmentQueueState(viewer);
   const metadata = useCommitmentMetadataFor(commitmentQuery.detail?.commitment);
   const mutation = useCommitmentMutation({ chainId });
-  const { works } = useWorks(routeGardenInput ?? "", { offline: true });
+  const workGarden = commitmentQuery.detail?.commitment.providerGarden ?? null;
+  const { works } = useWorks(workGarden ?? "", { offline: true });
   const poolQuery = useCommitmentPool(
     { chainId, poolId: commitmentQuery.detail?.commitment.poolId ?? 0n },
     { enabled: Boolean(commitmentQuery.detail?.commitment.poolId) }
@@ -82,6 +84,13 @@ export function useGardenCommitmentController(input: {
 
   const detail = commitmentQuery.detail;
   const commitment = detail?.commitment;
+  const workDecisions = useCommitmentWorkDecisions({
+    chainId,
+    garden: commitment?.providerGarden ?? routeGarden,
+    commitmentId,
+    attributions: detail?.workAttributions ?? [],
+    enabled: Boolean(detail),
+  });
   const ownWorkUIDs = works
     .filter((work) => viewer && work.gardenerAddress.toLowerCase() === viewer.toLowerCase())
     .map((work) => work.id);
@@ -121,9 +130,7 @@ export function useGardenCommitmentController(input: {
         hasPendingJob: pending || hasPendingClaimRequest || queueState.isUnavailable,
       })
     : null;
-  const actGarden = commitment
-    ? ((commitment.providerGarden ?? routeGarden) as Address | null)
-    : routeGarden;
+  const actGarden = commitment ? (commitment.providerGarden as Address | null) : null;
   const joinable = commitment
     ? canJoinTeam({ commitment, seat, isGardenMember: roles.isMemberHere })
     : false;
@@ -166,6 +173,7 @@ export function useGardenCommitmentController(input: {
   const requireCommitment = () => commitment ?? missingRecord();
   const requireRouteGarden = () => routeGarden ?? missingRecord();
   const requireActGarden = () => actGarden ?? missingRecord();
+  const requireWorkGarden = () => workGarden ?? missingRecord();
   const requireConfirmationGarden = () => confirmationGarden ?? missingRecord();
   const acts: GardenCommitmentActs = {
     claim: (context) =>
@@ -198,7 +206,7 @@ export function useGardenCommitmentController(input: {
           commitmentId: requireCommitment().commitmentId,
           workUID: workUID as Hex,
           requirementIndex,
-          gardenAddress: requireActGarden(),
+          gardenAddress: requireWorkGarden(),
         },
       }),
     sendForConfirmation: () =>
@@ -252,6 +260,7 @@ export function useGardenCommitmentController(input: {
   return {
     chainId,
     routeGarden,
+    workGarden,
     viewer,
     isOnline,
     status,
@@ -268,6 +277,14 @@ export function useGardenCommitmentController(input: {
     joinable,
     linkable,
     linkableWorks,
+    workDecisions: {
+      decisions: workDecisions.decisions,
+      byWorkUID: workDecisions.byWorkUID,
+      isLoading: workDecisions.isLoading,
+      isError: workDecisions.isError,
+      readAvailable: workDecisions.readAvailable,
+      refetch: workDecisions.refetch,
+    },
     ownRequest,
     pendingClaimRequests,
     canAskAgain: Boolean(

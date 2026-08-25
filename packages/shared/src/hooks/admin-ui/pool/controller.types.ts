@@ -22,6 +22,7 @@ import type {
 } from "../../../modules/commitment-pooling/types";
 import type { Address } from "../../../types/domain";
 import type { EASGardenAssessment } from "../../../types/eas-responses";
+import type { CommitmentWorkDecision } from "../../../modules/commitment-pooling/work-decisions";
 
 export interface PoolConsoleActs {
   pause: (reason: string) => Promise<HexString>;
@@ -113,6 +114,23 @@ export interface CommitmentDialogActs {
   confirmFallback: (reason: string) => Promise<HexString>;
   acceptClaim: (claimant: Address) => Promise<HexString>;
   declineClaim: (claimant: Address, reason: string) => Promise<HexString>;
+  syncWorkDecisions: () => Promise<HexString>;
+}
+
+export interface CommitmentWorkReconciliation {
+  candidates: CommitmentWorkDecision[];
+  count: number;
+  decisionUIDs: HexString[];
+  readAvailable: boolean;
+  isLoading: boolean;
+  isError: boolean;
+  pendingReadback: boolean;
+  succeeded: boolean;
+  readbackStatus: "idle" | "pending" | "succeeded" | "unavailable" | "needsFreshReview";
+  unavailableReadback: boolean;
+  needsFreshReview: boolean;
+  error: unknown;
+  refetch: () => Promise<unknown>;
 }
 
 export interface CommitmentDialogController {
@@ -142,6 +160,7 @@ export interface CommitmentDialogController {
   isDue: boolean;
   hasPendingJob: boolean;
   can: ReturnType<typeof selectCommitmentActPermissions>;
+  reconciliation: CommitmentWorkReconciliation;
   acts: CommitmentDialogActs;
   isActing: boolean;
   isLoading: boolean;

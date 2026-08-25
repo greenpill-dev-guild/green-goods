@@ -70,15 +70,28 @@ export async function executeCommitmentJob<K extends CommitmentJobKind>(
 
   if (job.kind === "workLink") {
     const payload = job.payload as WorkLinkJobPayload;
+    const workUID = payload.workUID ?? payload.resolvedWorkUID;
+    if (!workUID) return { status: "waiting", reason: "work-not-indexed" };
+    // Recovery must precede live commitment preflights. A successful first send
+    // can itself advance/freeze the commitment before the local receipt lands.
     const stored = await dependencies.readWorkLinkPayloadHash(
       job.userAddress,
       payload.operationKey
     );
     if (stored !== ZERO_HASH) {
-      return stored ===
-        hashWorkLinkPayload(payload.commitmentId, payload.workUID, payload.requirementIndex)
+      return stored === hashWorkLinkPayload(payload.commitmentId, workUID, payload.requirementIndex)
         ? { status: "recovered" }
         : { status: "identity-conflict", reason: "work-link-payload-mismatch" };
+    }
+    if (dependencies.readWorkLinkCommitmentState) {
+      const commitment = await dependencies.readWorkLinkCommitmentState(payload.commitmentId);
+      if (commitment.contributorsFrozen) {
+        return { status: "identity-conflict", reason: "commitment-frozen" };
+      }
+      // ICommitmentPoolingModule.CommitmentState.Accepted
+      if (commitment.state !== 3) {
+        return { status: "identity-conflict", reason: "commitment-terminal" };
+      }
     }
   }
 
@@ -107,8 +120,14 @@ export async function executeCommitmentJob<K extends CommitmentJobKind>(
     "membershipNotRequired" in job.payload && job.payload.membershipNotRequired === true;
   if (dependencies.hasMembership && !byIdentity) {
     const garden = "gardenAddress" in job.payload ? job.payload.gardenAddress : undefined;
-    if (garden && (await dependencies.hasMembership(garden, job.userAddress)) !== true) {
-      return { status: "waiting", reason: "membership-unavailable" };
+    if (garden) {
+      const membership = await dependencies.hasMembership(garden, job.userAddress);
+      if (membership === null) return { status: "waiting", reason: "membership-unavailable" };
+      if (membership === false) {
+        return job.kind === "workLink"
+          ? { status: "identity-conflict", reason: "membership-lost" }
+          : { status: "waiting", reason: "membership-unavailable" };
+      }
     }
   }
 

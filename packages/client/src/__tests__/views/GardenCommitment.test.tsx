@@ -27,7 +27,7 @@ import {
 } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
 import { gardenCommitmentControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen, within } from "../test-utils";
 
@@ -35,6 +35,7 @@ const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const OTHER = "0x2222222222222222222222222222222222222222" as const;
 const HELPER = "0x3333333333333333333333333333333333333333" as const;
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
+const PROVIDER_GARDEN = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as const;
 const WORK = `0x${"ab".repeat(32)}` as `0x${string}`;
 
 const mockUseController = vi.fn();
@@ -262,8 +263,19 @@ function render(commitmentId = "9") {
         <Route path="/home/:id/commitments/:commitmentId" element={<GardenCommitment />} />
         <Route path="/home/:id/commitments/:commitmentId/proof" element={<p>Proof composer</p>} />
         <Route path="/home/:id/work/:workId" element={<p>Work detail</p>} />
+        <Route path="/home/garden" element={<WorkSubmissionRoute />} />
       </Routes>
     </MemoryRouter>
+  );
+}
+
+function WorkSubmissionRoute() {
+  const location = useLocation();
+  return (
+    <>
+      <p>Work submission</p>
+      <output data-testid="work-submission-query">{location.search}</output>
+    </>
   );
 }
 
@@ -462,7 +474,12 @@ describe("GardenCommitment", () => {
         queue: {
           ...controller().queue,
           sendFailed: true,
-          failedJob: { jobId: "job-9", discardable: true },
+          failedJob: {
+            jobId: "job-9",
+            discardable: true,
+            reason: null,
+            retryable: true,
+          },
         },
       })
     );
@@ -541,12 +558,16 @@ describe("GardenCommitment", () => {
     expect(mockActs.withdraw).toHaveBeenCalledWith("Plans changed");
   });
 
-  it("links an eligible work with one stable operation id", async () => {
-    const eligible = work();
+  it("links eligible provider-garden work from a different route garden", async () => {
+    const eligible = work({ gardenAddress: PROVIDER_GARDEN });
     mockActs.linkWork.mockReturnValue(new Promise(() => {}));
     mockUseController.mockReturnValue(
       controller({
-        detail: detail({ requirements: [requirement(0, 44n, 2, 0)] }),
+        detail: detail({
+          commitment: { providerGarden: PROVIDER_GARDEN },
+          requirements: [requirement(0, 44n, 2, 0)],
+        }),
+        workGarden: PROVIDER_GARDEN,
         works: [eligible],
         linkableWorks: [eligible],
       })
@@ -561,6 +582,100 @@ describe("GardenCommitment", () => {
     expect(mockActs.linkWork).toHaveBeenCalledTimes(2);
     const ids = mockActs.linkWork.mock.calls.map((call) => call[2]);
     expect(new Set(ids)).toHaveLength(1);
+  });
+
+  it("launches provider-garden Work and preserves the route garden for return", async () => {
+    mockUseController.mockReturnValue(
+      controller({
+        detail: detail({
+          commitment: { providerGarden: PROVIDER_GARDEN },
+          requirements: [requirement(0, 44n, 2, 0)],
+        }),
+        workGarden: PROVIDER_GARDEN,
+        linkableWorks: [],
+      })
+    );
+    render();
+
+    await userEvent.click(screen.getByRole("button", { name: "Link work" }));
+    await userEvent.click(screen.getByRole("button", { name: "Submit work for requirement 1" }));
+
+    expect(screen.getByText("Work submission")).toBeInTheDocument();
+    const params = new URLSearchParams(
+      screen.getByTestId("work-submission-query").textContent ?? ""
+    );
+    expect(params.get("linkCommitmentId")).toBe("9");
+    expect(params.get("linkRequirementIndex")).toBe("0");
+    expect(params.get("linkActionUID")).toBe("44");
+    expect(params.get("linkGarden")).toBe(PROVIDER_GARDEN);
+    expect(params.get("linkCommitmentTitle")).toBe("3 hours");
+    expect(params.get("linkRequirementLabel")).toBe("1");
+    expect(params.get("returnTo")).toBe(`/home/${GARDEN}/commitments/9`);
+  });
+
+  it("offers Work submission when existing Work cannot fulfil any requirement", async () => {
+    mockUseController.mockReturnValue(
+      controller({
+        detail: detail({ requirements: [requirement(0, 44n, 2, 0)] }),
+        linkableWorks: [work({ actionUID: 99 })],
+      })
+    );
+    render();
+
+    await userEvent.click(screen.getByRole("button", { name: "Link work" }));
+
+    expect(
+      screen.getByRole("button", { name: "Submit work for requirement 1" })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+  });
+
+  it("explains terminal membership loss without offering a futile retry", () => {
+    mockUseController.mockReturnValue(
+      controller({
+        queue: {
+          ...controller().queue,
+          sendFailed: true,
+          failedJob: {
+            jobId: "link-1",
+            discardable: true,
+            reason: "membershipLost",
+            retryable: false,
+          },
+        },
+      })
+    );
+    render();
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent(/no longer have the garden role/i);
+    expect(within(alert).queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+    expect(within(alert).getByRole("button", { name: "Discard" })).toBeInTheDocument();
+  });
+
+  it("names duplicate-action requirement rows uniquely", async () => {
+    const eligible = work();
+    mockUseController.mockReturnValue(
+      controller({
+        detail: detail({
+          requirements: [requirement(0, 44n, 2, 0), requirement(1, 44n, 3, 1)],
+        }),
+        works: [eligible],
+        linkableWorks: [eligible],
+      })
+    );
+    render();
+
+    await userEvent.click(screen.getByRole("button", { name: "Link work" }));
+    await userEvent.click(screen.getByRole("radio", { name: /Prune the north beds/ }));
+
+    const row = screen.getByRole("combobox", { name: "Which row it fulfils" });
+    expect(
+      within(row).getByRole("option", { name: /Requirement 1.*Prune the north beds/ })
+    ).toBeInTheDocument();
+    expect(
+      within(row).getByRole("option", { name: /Requirement 2.*Prune the north beds/ })
+    ).toBeInTheDocument();
   });
 
   it("shows linked work, opens it, and names requirement progress", async () => {
@@ -579,5 +694,41 @@ describe("GardenCommitment", () => {
     expect(screen.getByText("Requirement 2")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Open Prune the north beds" }));
     expect(screen.getByText("Work detail")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["awaitingApproval", "Linked · waiting for approval"],
+    ["readyToReconcile", "Approved · waiting for a steward to count it"],
+    ["needsFreshReview", "Approved again · needs a fresh review"],
+    ["counted", "Counted toward this commitment"],
+    ["unavailable", "Counting status unavailable"],
+  ] as const)("shows the %s Work-link state honestly", (state, label) => {
+    mockUseController.mockReturnValue(
+      controller({
+        detail: detail({
+          requirements: [requirement(0, 44n, 2, state === "counted" ? 1 : 0)],
+          workAttributions: [attribution({ creditActive: state === "counted" })],
+        }),
+        works: [work({ status: state === "awaitingApproval" ? "pending" : "approved" })],
+        ...({
+          workDecisions: {
+            byWorkUID: { [WORK.toLowerCase()]: { state } },
+            isLoading: false,
+            isError: false,
+            refetch: vi.fn(),
+          },
+        } as unknown as Partial<GardenCommitmentController>),
+      })
+    );
+
+    render();
+
+    const status = screen.getByText(label).closest('[role="status"]');
+    expect(status).toBeInTheDocument();
+    expect(status?.closest("button")).toBeNull();
+    expect(screen.getByRole("button", { name: "Open Prune the north beds" })).toHaveAttribute(
+      "aria-describedby",
+      status?.id
+    );
   });
 });

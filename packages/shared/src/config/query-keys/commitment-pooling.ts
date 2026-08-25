@@ -60,6 +60,32 @@ export const commitmentPoolingKeys = {
     ["greengoods", "commitment-pooling", "pool-charter", cid] as const,
   workAttributions: (chainId: number, workUID: string | null) =>
     [...commitmentPoolingKeys.all(chainId), "work-attributions", workUID] as const,
+  workDecisions: (
+    chainId: number,
+    commitmentId: bigint | string | number | null,
+    workUIDs: readonly string[]
+  ) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "work-decisions",
+      commitmentId === null ? null : String(commitmentId),
+      workUIDs.join(","),
+    ] as const,
+  workLinkChoices: (
+    chainId: number,
+    account: Address | string | undefined,
+    workGarden: Address | string | undefined,
+    returnGarden: Address | string | undefined,
+    actionUID: number | null
+  ) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "work-link-choices",
+      normalizeAddress(account),
+      normalizeAddress(workGarden),
+      normalizeAddress(returnGarden),
+      actionUID,
+    ] as const,
   linkedWorks: (chainId: number, workUIDs: readonly string[]) =>
     [...commitmentPoolingKeys.all(chainId), "linked-works", workUIDs.join(",")] as const,
   /** The device's own queue, read per account rather than per chain. */

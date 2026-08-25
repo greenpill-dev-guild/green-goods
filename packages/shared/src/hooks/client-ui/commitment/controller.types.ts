@@ -9,6 +9,8 @@ import type {
 import type { CommitmentPoolingAvailability } from "../../../modules/commitment-pooling/types-core";
 import type { Action, Address, Work } from "../../../types/domain";
 import type { CommitmentViewerRoles } from "../../commitment-pooling/useCommitmentViewerRoles";
+import type { CommitmentWorkDecision } from "../../../modules/commitment-pooling/work-decisions";
+import type { FailedCommitmentJob } from "../../commitment-pooling/useCommitmentQueueState";
 
 export type GardenCommitmentStatus = "unavailable" | "notFound" | "loading" | "error" | "ready";
 
@@ -37,6 +39,8 @@ export interface GardenCommitmentActs {
 export interface GardenCommitmentController {
   chainId: number;
   routeGarden: Address | null;
+  /** Provider garden where candidate Work is submitted and WorkLink executes. */
+  workGarden: Address | null;
   viewer: Address | null;
   isOnline: boolean;
   status: GardenCommitmentStatus;
@@ -53,6 +57,14 @@ export interface GardenCommitmentController {
   joinable: boolean;
   linkable: boolean;
   linkableWorks: Work[];
+  workDecisions: {
+    decisions: CommitmentWorkDecision[];
+    byWorkUID: Map<string, CommitmentWorkDecision>;
+    isLoading: boolean;
+    isError: boolean;
+    readAvailable: boolean;
+    refetch: () => Promise<unknown>;
+  };
   ownRequest: CommitmentClaimRequestRecord | null;
   pendingClaimRequests: CommitmentClaimRequestRecord[];
   canAskAgain: boolean;
@@ -60,7 +72,7 @@ export interface GardenCommitmentController {
   queue: {
     hasPendingJob: boolean;
     sendFailed: boolean;
-    failedJob: { jobId: string; discardable: boolean } | null;
+    failedJob: FailedCommitmentJob | null;
     isUnavailable: boolean;
     refresh: () => void;
   };

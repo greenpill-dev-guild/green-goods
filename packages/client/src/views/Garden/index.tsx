@@ -3,10 +3,12 @@ import { WorkTab } from "@green-goods/shared/stores/workFlowTypes";
 import {
   RiArrowRightSLine,
   RiCameraFill,
+  RiErrorWarningLine,
   RiHammerFill,
   RiImageFill,
   RiMicLine,
   RiPlantFill,
+  RiRefreshLine,
   RiStopFill,
 } from "@remixicon/react";
 import React from "react";
@@ -109,6 +111,19 @@ const Work: React.FC = () => {
     isWalletRequestExpired,
     joinableCommunityGarden,
     joinCommunityGarden,
+    linkIntent,
+    linkIntentStatus,
+    commitmentLinkChoices,
+    commitmentLinkChoicesLoading,
+    commitmentLinkChoicesError,
+    refetchCommitmentLinkChoices,
+    isSchedulingDependentLink,
+    linkSchedulingError,
+    linkSchedulingSucceeded,
+    hasPendingLinkRecovery,
+    retryLinkOnly,
+    clearLinkIntent,
+    selectLinkIntent,
     markMediaPreviewFailed,
     mediaClickRef,
     mediaConfig,
@@ -135,6 +150,27 @@ const Work: React.FC = () => {
     values,
     workSubmissionJourneyId,
   } = controller;
+
+  const linkChoiceKey = (choice: { commitmentId: bigint; requirementIndex: number }) =>
+    `${choice.commitmentId.toString()}:${choice.requirementIndex}`;
+  // Shared returns a link intent only after matching it to this live, eligible
+  // choice set. Never reconstruct a choice from URL copy in the view.
+  const availableLinkChoices = commitmentLinkChoices;
+  const selectedCommitmentKey = linkIntent ? linkChoiceKey(linkIntent) : null;
+  const commitmentChoices = availableLinkChoices.map((choice) => ({
+    key: linkChoiceKey(choice),
+    commitmentId: choice.commitmentId,
+    requirementIndex: choice.requirementIndex,
+    title: choice.commitmentTitle,
+  }));
+  const commitmentSelection = linkIntent
+    ? {
+        key: linkChoiceKey(linkIntent),
+        commitmentId: linkIntent.commitmentId,
+        requirementIndex: linkIntent.requirementIndex,
+        title: linkIntent.commitmentTitle,
+      }
+    : null;
 
   const currentTab = {
     [WorkTab.Intro]: {
@@ -242,9 +278,35 @@ const Work: React.FC = () => {
             selectedActionUID={actionUID}
             selectedGardenAddress={gardenAddress}
             selectedDomain={selectedDomain}
-            setActionUID={setActionUID}
-            setGardenAddress={setGardenAddress}
+            setActionUID={(value) => {
+              setActionUID(value);
+              if (linkIntent && value !== linkIntent.actionUID) clearLinkIntent();
+            }}
+            setGardenAddress={(value) => {
+              setGardenAddress(value);
+              if (linkIntent && value?.toLowerCase() !== linkIntent.garden.toLowerCase()) {
+                clearLinkIntent();
+              }
+            }}
             setSelectedDomain={setSelectedDomain}
+            commitmentChoices={commitmentChoices}
+            commitmentChoicesLoading={commitmentLinkChoicesLoading}
+            commitmentChoicesError={commitmentLinkChoicesError}
+            commitmentIntentStatus={linkIntentStatus}
+            showCommitmentChoices={
+              linkIntentStatus !== "none" || Boolean(gardenAddress && actionUID !== null)
+            }
+            onRetryCommitmentChoices={() => void refetchCommitmentLinkChoices()}
+            selectedCommitmentKey={selectedCommitmentKey}
+            setSelectedCommitmentKey={(key) => {
+              if (!key) {
+                clearLinkIntent();
+                return;
+              }
+              selectLinkIntent(
+                availableLinkChoices.find((choice) => linkChoiceKey(choice) === key) ?? null
+              );
+            }}
           />
         );
       case WorkTab.Media:
@@ -298,6 +360,8 @@ const Work: React.FC = () => {
             brokenMediaIds={brokenMediaIds}
             onPreviewFailed={markMediaPreviewFailed}
             onRemoveBrokenMedia={removeBrokenMedia}
+            commitmentSelection={commitmentSelection}
+            onClearCommitment={clearLinkIntent}
           />
         );
     }
@@ -321,7 +385,13 @@ const Work: React.FC = () => {
         id="work-form"
         className="relative py-6 pt-20 flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
       >
-        <div className="padded relative flex flex-col gap-4 flex-1 pb-[calc(7rem+env(safe-area-inset-bottom))]">
+        <div
+          className={
+            isSchedulingDependentLink || hasPendingLinkRecovery
+              ? "padded relative flex flex-col gap-4 flex-1 pb-[calc(14rem+env(safe-area-inset-bottom))]"
+              : "padded relative flex flex-col gap-4 flex-1 pb-[calc(7rem+env(safe-area-inset-bottom))]"
+          }
+        >
           {renderTabContent()}
         </div>
         <div className="flex fixed left-0 bottom-0 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] w-full z-modal bg-bg-white-0 border-t border-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden">
@@ -331,12 +401,56 @@ const Work: React.FC = () => {
                 {queueStatusMessage}
               </p>
             ) : null}
+            {isSchedulingDependentLink ? (
+              <p className="text-xs text-text-sub-600 px-1" role="status" aria-live="polite">
+                {intl.formatMessage({
+                  id: "app.garden.commitment.linkScheduling",
+                  defaultMessage: "Work submitted. Queueing its commitment link…",
+                })}
+              </p>
+            ) : null}
+            {linkSchedulingSucceeded ? (
+              <p className="text-xs text-success-dark px-1" role="status" aria-live="polite">
+                {intl.formatMessage({
+                  id: "app.garden.commitment.linkScheduled",
+                  defaultMessage: "Work submitted. Its commitment link is queued.",
+                })}
+              </p>
+            ) : null}
+            {hasPendingLinkRecovery && linkSchedulingError ? (
+              <div
+                className="flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter p-3 text-sm text-warning-dark"
+                role="alert"
+              >
+                <span className="flex items-center gap-2">
+                  <RiErrorWarningLine className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  {intl.formatMessage({
+                    id: "app.garden.commitment.linkSchedulingError",
+                    defaultMessage:
+                      "Your work was submitted, but its commitment link could not be queued.",
+                  })}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void retryLinkOnly()}
+                  disabled={isSchedulingDependentLink}
+                  aria-busy={isSchedulingDependentLink}
+                  className="flex min-h-11 shrink-0 items-center gap-1 rounded-[var(--radius-md)] px-2 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-alpha-24 disabled:opacity-60"
+                >
+                  <RiRefreshLine className="h-4 w-4" aria-hidden="true" />
+                  {intl.formatMessage({
+                    id: "app.garden.commitment.retryLink",
+                    defaultMessage: "Retry link",
+                  })}
+                </button>
+              </div>
+            ) : null}
             <div className="flex flex-row gap-4 w-full">
               {currentTab.customSecondary}
               <Button
                 onClick={currentTab.primary}
                 label={currentTab.primaryLabel}
-                disabled={!canProceed}
+                disabled={!canProceed || isSchedulingDependentLink || hasPendingLinkRecovery}
                 className="w-full"
                 variant="primary"
                 mode="filled"

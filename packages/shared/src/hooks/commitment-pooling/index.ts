@@ -19,6 +19,8 @@ export {
   usePoolParticipationSummary,
 } from "./useCommitmentPooling";
 export { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailability";
+export { useCommitmentWorkDecisions } from "./useCommitmentWorkDecisions";
+export { useWorkLinkChoices } from "./useWorkLinkChoices";
 export type {
   CommitmentComposerRequirement,
   CommitmentComposerValues,
@@ -54,7 +56,9 @@ export type { ProtocolPool } from "./useProtocolPool";
 export { useProtocolPool } from "./useProtocolPool";
 export { useCommitmentJobs } from "./useCommitmentJobs";
 export type {
+  CommitmentFailureReason,
   CommitmentQueueState,
+  FailedCommitmentJob,
   PendingCommitmentCreation,
 } from "./useCommitmentQueueState";
 export { useCommitmentQueueState } from "./useCommitmentQueueState";

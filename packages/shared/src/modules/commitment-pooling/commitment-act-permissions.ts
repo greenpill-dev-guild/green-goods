@@ -135,6 +135,7 @@ export interface CommitmentActPermissions {
   confirmFallback: boolean;
   acceptClaim: boolean;
   declineClaim: boolean;
+  syncWorkDecisions: boolean;
 }
 
 const NO_ACTS: CommitmentActPermissions = {
@@ -150,6 +151,7 @@ const NO_ACTS: CommitmentActPermissions = {
   confirmFallback: false,
   acceptClaim: false,
   declineClaim: false,
+  syncWorkDecisions: false,
 };
 
 /**
@@ -190,6 +192,8 @@ export function selectCommitmentActPermissions(input: {
   hasPendingJob: boolean;
   isDue: boolean;
   confirmation: { allowed: boolean; path: string | null };
+  /** At least one exact current approved decision is ready and all reads succeeded. */
+  canReconcileWork?: boolean;
 }): CommitmentActPermissions {
   const { commitment } = input;
   if (!commitment || !input.viewer) return NO_ACTS;
@@ -244,5 +248,7 @@ export function selectCommitmentActPermissions(input: {
       poolOpen,
     acceptClaim: steward && (state === "OFFERED" || state === "REQUESTED") && poolOpen,
     declineClaim: steward && (state === "OFFERED" || state === "REQUESTED") && poolOpen,
+    syncWorkDecisions:
+      steward && accepted && !commitment.contributorsFrozen && input.canReconcileWork === true,
   };
 }

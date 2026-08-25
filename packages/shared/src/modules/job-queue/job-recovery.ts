@@ -9,6 +9,7 @@
  */
 
 import type { Job } from "../../types/job-queue";
+import type { WorkLinkJobPayload } from "../commitment-pooling/jobs";
 import type { JobQueueEvents, JobQueueStore } from "./ports";
 
 /**
@@ -36,7 +37,8 @@ export function isDiscardableJob(job: Pick<Job, "synced" | "meta">): boolean {
  * after the outage it exists to recover from.
  */
 export function createJobRecovery(
-  store: Pick<JobQueueStore, "getJob" | "updateJob" | "deleteJob">,
+  store: Pick<JobQueueStore, "getJob" | "updateJob" | "deleteJob"> &
+    Partial<Pick<JobQueueStore, "getJobs" | "markJobTerminalFailed">>,
   events: Pick<JobQueueEvents, "emit">
 ) {
   return {
@@ -58,6 +60,21 @@ export function createJobRecovery(
     async discardJob(jobId: string): Promise<boolean> {
       const job = await store.getJob(jobId);
       if (!job || !isDiscardableJob(job)) return false;
+      if (job.kind === "work" && store.getJobs && store.markJobTerminalFailed) {
+        const dependents = await store.getJobs({
+          userAddress: job.userAddress,
+          kind: "workLink",
+          synced: false,
+        });
+        for (const dependent of dependents) {
+          const payload = dependent.payload as WorkLinkJobPayload;
+          if ("sourceWorkJobId" in payload && payload.sourceWorkJobId === jobId) {
+            const error = "identity_conflict:source-work-terminal";
+            await store.markJobTerminalFailed(dependent.id, error);
+            events.emit("job:failed", { jobId: dependent.id, job: dependent, error });
+          }
+        }
+      }
       await store.deleteJob(jobId);
       events.emit("job:failed", { jobId, job, error: "discarded" });
       return true;

@@ -76,7 +76,7 @@ const mocks = vi.hoisted(() => ({
     pendingCommitmentIds: new Set<string>(),
     failedCount: 0,
     failedCommitmentIds: new Set<string>(),
-    failedJobs: new Map<string, { jobId: string; discardable: boolean }>(),
+    failedJobs: new Map(),
     hasPendingCreate: false,
     pendingCreates: [],
     isUnavailable: false,
@@ -99,6 +99,7 @@ const mocks = vi.hoisted(() => ({
   claimRequests: [] as CommitmentClaimRequestRecord[],
   actions: [] as Action[],
   linked: new Set<string>(),
+  worksGarden: null as string | null,
 }));
 
 vi.mock("../../../hooks/app/useOffline", () => ({
@@ -128,7 +129,10 @@ vi.mock("../../../hooks/garden/useGardenPermissions", () => ({
 }));
 
 vi.mock("../../../hooks/work/useWorks", () => ({
-  useWorks: () => ({ works: mocks.works }),
+  useWorks: (garden: string) => {
+    mocks.worksGarden = garden;
+    return { works: mocks.works };
+  },
 }));
 
 vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
@@ -136,6 +140,18 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
   useCommitmentPool: () => ({ pool: mocks.pool }),
   useCommitmentClaimRequests: () => ({ claimRequests: mocks.claimRequests }),
   useLinkedWorkUIDs: () => ({ linked: mocks.linked }),
+}));
+
+vi.mock("../../../hooks/commitment-pooling/useCommitmentWorkDecisions", () => ({
+  useCommitmentWorkDecisions: () => ({
+    decisions: [],
+    byWorkUID: new Map(),
+    reconciliationCandidates: [],
+    readAvailable: true,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(async () => undefined),
+  }),
 }));
 
 vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", () => ({
@@ -176,6 +192,7 @@ beforeEach(() => {
   mocks.queue.failedCommitmentIds = new Set();
   mocks.queue.failedJobs = new Map();
   mocks.queue.isUnavailable = false;
+  mocks.worksGarden = null;
   mocks.mutationPending = false;
   mocks.mutationError = null;
   mocks.metadata = { version: 1, title: "Restore the tool shed" };
@@ -268,11 +285,51 @@ describe("useGardenCommitmentController", () => {
     });
   });
 
+  it("loads and links Work in the provider garden while preserving the route garden", async () => {
+    const routeGarden = MARIA;
+    const { result } = renderHook(() =>
+      useGardenCommitmentController({
+        chainId: DEMO_CHAIN_ID,
+        commitmentId: 1001n,
+        routeGarden,
+      })
+    );
+
+    expect(result.current.routeGarden).toBe(routeGarden);
+    expect(result.current.workGarden).toBe(DEMO_GARDEN);
+    expect(result.current.actGarden).toBe(DEMO_GARDEN);
+    expect(mocks.worksGarden).toBe(DEMO_GARDEN);
+
+    await act(async () => {
+      await result.current.acts.linkWork("0xaaaa", 0, "cross-garden-operation");
+    });
+    expect(mocks.enqueue).toHaveBeenLastCalledWith({
+      act: "workLink",
+      payload: {
+        clientOperationId: "cross-garden-operation",
+        commitmentId: 1001n,
+        workUID: "0xaaaa",
+        requirementIndex: 0,
+        gardenAddress: DEMO_GARDEN,
+      },
+    });
+  });
+
   it("suppresses duplicate acts when the queue is pending or unreadable and exposes failures", () => {
     const key = detail.commitment.commitmentId.toString();
     mocks.queue.pendingCommitmentIds = new Set([key]);
     mocks.queue.failedCommitmentIds = new Set([key]);
-    mocks.queue.failedJobs = new Map([[key, { jobId: "failed-1", discardable: true }]]);
+    mocks.queue.failedJobs = new Map([
+      [
+        key,
+        {
+          jobId: "failed-1",
+          discardable: true,
+          reason: "membershipLost" as const,
+          retryable: false,
+        },
+      ],
+    ]);
     mocks.queue.isUnavailable = true;
 
     const { result } = renderHook(() =>
@@ -287,7 +344,12 @@ describe("useGardenCommitmentController", () => {
     expect(result.current.queue).toEqual({
       hasPendingJob: true,
       sendFailed: true,
-      failedJob: { jobId: "failed-1", discardable: true },
+      failedJob: {
+        jobId: "failed-1",
+        discardable: true,
+        reason: "membershipLost",
+        retryable: false,
+      },
       isUnavailable: true,
       refresh: mocks.queue.refresh,
     });

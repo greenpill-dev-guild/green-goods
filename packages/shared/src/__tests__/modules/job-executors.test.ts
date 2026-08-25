@@ -55,6 +55,7 @@ function job<T>(kind: string, payload: T, overrides: Partial<Job<T>> = {}): Job<
 function store() {
   return {
     updateJob: vi.fn().mockResolvedValue(undefined),
+    getJob: vi.fn().mockResolvedValue(undefined),
     getSeriesIdByClientId: vi.fn().mockResolvedValue(null),
     storeClientSeriesIdMapping: vi.fn().mockResolvedValue(undefined),
     storeClientCommitmentIdMapping: vi.fn().mockResolvedValue(undefined),
@@ -535,6 +536,103 @@ describe("commitment queue executor", () => {
     ).resolves.toEqual({ status: "complete", entityId: undefined });
   });
 
+  it("waits for deferred Work indexing without sending or consuming identity", async () => {
+    const sender = createMockTransactionSender();
+    const queued = job("workLink", {
+      clientOperationId: "operation",
+      commitmentId: 1n,
+      clientWorkId: "client-work-1",
+      sourceWorkJobId: "job-work",
+      requirementIndex: 0,
+      operationKey: HASH,
+      gardenAddress: GARDEN,
+    });
+
+    await expect(
+      executeCommitmentQueueJob("job-work-link", queued, 42161, sender, {
+        demoActive: () => false,
+        reads: reads(),
+        store: store(),
+        resolveWorkIdentity: vi.fn().mockResolvedValue({ status: "waiting" }),
+      })
+    ).resolves.toEqual({ status: "waiting", reason: "work-not-indexed" });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(queued.attempts).toBe(0);
+  });
+
+  it("uses one exact deferred UID without mutating the canonical queued payload", async () => {
+    const queueStore = store();
+    const sender = createMockTransactionSender();
+    const queued = job("workLink", {
+      clientOperationId: "operation",
+      commitmentId: 1n,
+      clientWorkId: "client-work-1",
+      sourceWorkJobId: "job-work",
+      requirementIndex: 0,
+      operationKey: HASH,
+      gardenAddress: GARDEN,
+    });
+
+    await expect(
+      executeCommitmentQueueJob("job-work-link", queued, 42161, sender, {
+        demoActive: () => false,
+        reads: reads(),
+        store: queueStore,
+        resolveWorkIdentity: vi.fn().mockResolvedValue({ status: "resolved", workUID: HASH }),
+      })
+    ).resolves.toEqual({ status: "complete", txHash: MOCK_TX_HASH });
+    expect((queued.payload as { resolvedWorkUID?: string }).resolvedWorkUID).toBeUndefined();
+    expect(queueStore.updateJob).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).toHaveBeenCalledWith(
+      expect.objectContaining({ functionName: "linkWork", args: [1n, HASH, 0, HASH] })
+    );
+  });
+
+  it("throws retryable metadata failures so the ordinary retry budget applies", async () => {
+    const queued = job("workLink", {
+      clientOperationId: "operation",
+      commitmentId: 1n,
+      clientWorkId: "client-work-1",
+      requirementIndex: 0,
+      operationKey: HASH,
+      gardenAddress: GARDEN,
+    });
+    await expect(
+      executeCommitmentQueueJob("job-work-link", queued, 42161, createMockTransactionSender(), {
+        demoActive: () => false,
+        reads: reads(),
+        store: store(),
+        resolveWorkIdentity: vi.fn().mockResolvedValue({
+          status: "retryable",
+          reason: "work-metadata-unavailable",
+        }),
+      })
+    ).rejects.toThrow("work-metadata-unavailable");
+  });
+
+  it("fails deferred links explicitly when the source Work is terminal", async () => {
+    const queueStore = store();
+    queueStore.getJob.mockResolvedValue(job("work", {}, { attempts: 5, lastError: "failed" }));
+    const queued = job("workLink", {
+      clientOperationId: "operation",
+      commitmentId: 1n,
+      clientWorkId: "client-work-1",
+      sourceWorkJobId: "job-work",
+      requirementIndex: 0,
+      operationKey: HASH,
+      gardenAddress: GARDEN,
+    });
+
+    await expect(
+      executeCommitmentQueueJob("job-work-link", queued, 42161, createMockTransactionSender(), {
+        demoActive: () => false,
+        reads: reads(),
+        store: queueStore,
+        resolveWorkIdentity: vi.fn(),
+      })
+    ).resolves.toEqual({ status: "identity-conflict", reason: "source-work-terminal" });
+  });
+
   it("returns identity conflicts without sending or mapping", async () => {
     const payload = {
       clientSeriesId: "series",
@@ -615,7 +713,7 @@ describe("commitment chain reads", () => {
     );
   });
 
-  it("fails membership probes closed when every role read rejects", async () => {
+  it("reports membership as unavailable when every role read rejects", async () => {
     let attempt = 0;
     const chainReads = createCommitmentChainReads({
       chainId: 42161,
@@ -626,7 +724,7 @@ describe("commitment chain reads", () => {
       config: {} as Config,
     });
 
-    await expect(chainReads.hasMembership?.(GARDEN, USER)).resolves.toBe(false);
+    await expect(chainReads.hasMembership?.(GARDEN, USER)).resolves.toBeNull();
   });
 });
 

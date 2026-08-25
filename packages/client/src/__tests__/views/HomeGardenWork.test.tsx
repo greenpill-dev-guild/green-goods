@@ -14,6 +14,7 @@ const mockUseWorkApprovalActions = vi.fn();
 const mockUseWorkDetailController = vi.fn();
 const mockUseAttributions = vi.fn();
 const mockUseCommitment = vi.fn();
+const mockUseWorkDecisions = vi.fn();
 const mockWorkViewSectionProps: { current: Record<string, unknown> | null } = { current: null };
 
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
@@ -46,6 +47,7 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
   useCommitment: (...args: unknown[]) => mockUseCommitment(...args),
   useCommitmentMetadataFor: () => ({ version: 1, title: "Prune the north beds" }),
+  useCommitmentWorkDecisions: (...args: unknown[]) => mockUseWorkDecisions(...args),
   useCommitmentWorkAttributionsForWork: (...args: unknown[]) => mockUseAttributions(...args),
   useCommitmentPool: () => ({ pool: null }),
 }));
@@ -92,6 +94,7 @@ describe("Home garden work detail", () => {
     mockUseWorks.mockReturnValue({ works: [] });
     mockUseAttributions.mockReturnValue({ attributions: [] });
     mockUseCommitment.mockReturnValue({ detail: null });
+    mockUseWorkDecisions.mockReturnValue({ byWorkUID: new Map(), readAvailable: true });
     mockUseUser.mockReturnValue({ user: null, smartAccountClient: null });
     mockCanManageGarden.mockReturnValue(false);
     mockIsUserAddress.mockReturnValue(false);
@@ -276,7 +279,13 @@ describe("Home garden work detail", () => {
     expect(screen.getByTestId("work-view-mode")).toHaveTextContent("steward");
   });
 
-  it("names the commitment a work fulfils, read-only, with a way to it", () => {
+  it.each([
+    ["awaitingApproval", "Linked · waiting for approval"],
+    ["readyToReconcile", "Approved · waiting for a steward to count it"],
+    ["needsFreshReview", "Approved again · needs a fresh review"],
+    ["counted", "Counted toward this commitment"],
+    ["unavailable", "Counting status unavailable"],
+  ] as const)("shows the %s state on the Work detail with a way to its commitment", (state, label) => {
     mockUseWorks.mockReturnValue({
       works: [
         {
@@ -290,10 +299,21 @@ describe("Home garden work detail", () => {
       ],
     });
     mockUseAttributions.mockReturnValue({
-      attributions: [{ commitmentId: 9n, requirementIndex: 1, linked: true }],
+      attributions: [
+        {
+          workUID: "0x" + "ab".repeat(32),
+          commitmentId: 9n,
+          requirementIndex: 1,
+          linked: true,
+        },
+      ],
     });
     mockUseCommitment.mockReturnValue({
       detail: { commitment: { commitmentId: 9n, unitLabel: "hours", targetUnits: 6n } },
+    });
+    mockUseWorkDecisions.mockReturnValue({
+      byWorkUID: new Map([["0x" + "ab".repeat(32), { state }]]),
+      readAvailable: true,
     });
     mockUseWorkDetailController.mockReturnValue({
       ...mockUseWorkDetailController(),
@@ -313,6 +333,12 @@ describe("Home garden work detail", () => {
             messages: {
               "app.work.fulfills.label": "Fulfills",
               "app.work.fulfills.value": "{name} · row {row}",
+              "app.commitment.work.awaitingApproval": "Linked · waiting for approval",
+              "app.commitment.work.readyToReconcile":
+                "Approved · waiting for a steward to count it",
+              "app.commitment.work.needsFreshReview": "Approved again · needs a fresh review",
+              "app.commitment.work.counted": "Counted toward this commitment",
+              "app.commitment.work.unavailable": "Counting status unavailable",
             },
           },
           createElement(
@@ -333,6 +359,10 @@ describe("Home garden work detail", () => {
     );
     const row = screen.getByRole("button", { name: /Prune the north beds · row 2/ });
     expect(row).toHaveTextContent("Fulfills");
+    expect(row).toHaveAccessibleDescription(label);
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent(label);
+    expect(status.closest("button")).toBeNull();
     fireEvent.click(row);
     expect(mockNavigate).toHaveBeenCalledWith("/home/garden-1/commitments/9");
   });

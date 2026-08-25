@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
@@ -12,6 +12,10 @@ const mocks = vi.hoisted(() => ({
   setActiveTab: vi.fn(),
   ensureJourney: vi.fn(() => "journey-1"),
   reset: vi.fn(),
+  enqueue: vi.fn(),
+  uploadWork: vi.fn(),
+  outcome: null as null | Record<string, unknown>,
+  choices: [] as Array<Record<string, unknown>>,
 }));
 
 vi.mock("../../../stores/workFlowTypes", () => ({
@@ -19,11 +23,31 @@ vi.mock("../../../stores/workFlowTypes", () => ({
 }));
 
 vi.mock("../../../utils/action/parsers", () => ({
-  findActionByUID: () => null,
+  findActionByUID: () => ({}),
 }));
 
 vi.mock("../../../modules/app/logger", () => ({
   logger: { error: vi.fn() },
+  createLogger: () => ({ error: vi.fn(), warn: vi.fn(), debug: vi.fn(), info: vi.fn() }),
+}));
+
+vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", () => ({
+  useCommitmentJobs: () => ({
+    enqueue: mocks.enqueue,
+    isPending: false,
+    error: null,
+    viewer: null,
+  }),
+}));
+
+vi.mock("../../../hooks/commitment-pooling/useWorkLinkChoices", () => ({
+  useWorkLinkChoices: () => ({
+    choices: mocks.choices,
+    isLoading: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
 }));
 
 vi.mock("../../../utils/errors/contract-errors", () => ({
@@ -68,7 +92,10 @@ vi.mock("../../../hooks/utils/useTimeout", () => ({
 }));
 
 vi.mock("../../../hooks/auth/useUser", () => ({
-  useUser: () => ({ authMode: "wallet" }),
+  useUser: () => ({
+    authMode: "wallet",
+    primaryAddress: "0x9999999999999999999999999999999999999999",
+  }),
 }));
 
 vi.mock("../../../stores/useWorkFlowStore", () => ({
@@ -82,7 +109,7 @@ vi.mock("../../../stores/useWorkFlowStore", () => ({
         audioNotes: [],
         setAudioNotes: vi.fn(),
       }),
-    { getState: () => ({ audioNotes: [], reset: mocks.reset }) }
+    { getState: () => ({ audioNotes: [], reset: mocks.reset, setActionUID: vi.fn() }) }
   ),
 }));
 
@@ -94,12 +121,18 @@ vi.mock("../../../providers/Work", () => ({
     register: vi.fn(),
     control: {},
     setValue: vi.fn(),
-    uploadWork: vi.fn(),
+    uploadWork: mocks.uploadWork,
     feedback: "",
     timeSpentMinutes: undefined,
     values: {},
     reset: vi.fn(),
-    workMutation: { isPending: false, error: null },
+    workMutation: {
+      isPending: false,
+      error: null,
+      lastSubmissionOutcome: mocks.outcome,
+      getLastSubmissionOutcome: () => mocks.outcome,
+      clearLastSubmissionOutcome: vi.fn(),
+    },
   }),
   useWorkSelection: () => ({
     actions: [],
@@ -156,6 +189,9 @@ describe("useWorkSubmissionFlowController", () => {
     vi.clearAllMocks();
     mocks.actionUID = null;
     mocks.gardenAddress = null;
+    mocks.outcome = null;
+    mocks.choices = [];
+    mocks.enqueue.mockResolvedValue("link-job");
   });
 
   it("projects selection and owns the intro progress gate", () => {
@@ -189,5 +225,67 @@ describe("useWorkSubmissionFlowController", () => {
 
     result.current.changeTab("Media" as never);
     expect(mocks.setActiveTab).toHaveBeenCalledWith("Media");
+  });
+
+  it.each([
+    ["direct", { kind: "direct", clientWorkId: "client-1", txHash: "0x1", sponsored: false }],
+    [
+      "queued",
+      {
+        kind: "queued",
+        clientWorkId: "client-1",
+        jobId: "work-job-1",
+        txHash: "0x2",
+        sponsored: false,
+      },
+    ],
+  ] as const)("recovers a failed %s dependent link without resubmitting Work", async (_kind, outcome) => {
+    const intent = {
+      commitmentId: 9n,
+      requirementIndex: 0,
+      actionUID: 1,
+      garden: "0x1111111111111111111111111111111111111111" as const,
+      commitmentTitle: "Trees",
+      requirementLabel: "1",
+      returnTo: "/home/0x1111111111111111111111111111111111111111/commitments/9",
+    };
+    mocks.actionUID = 1;
+    mocks.gardenAddress = intent.garden;
+    mocks.choices = [intent];
+    mocks.outcome = outcome;
+    mocks.enqueue.mockRejectedValueOnce(new Error("storage unavailable"));
+    const view = renderHook(
+      () =>
+        useWorkSubmissionFlowController({
+          homeRoute: "/home",
+          profileRoute: "/home/profile",
+          trackMediaJourneyEvent: vi.fn(),
+        }),
+      { wrapper: Wrapper }
+    );
+
+    act(() => view.result.current.selectLinkIntent(intent));
+    await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+    let submitted = false;
+    await act(async () => {
+      submitted = await view.result.current.submit();
+    });
+    expect(submitted).toBe(true);
+    await waitFor(() => expect(view.result.current.hasPendingLinkRecovery).toBe(true));
+    const firstPayload = mocks.enqueue.mock.calls[0][0].payload;
+
+    mocks.enqueue.mockResolvedValueOnce("link-job");
+    let retried = false;
+    await act(async () => {
+      retried = await view.result.current.retryLinkOnly();
+    });
+    expect(retried).toBe(true);
+    expect(view.result.current.linkSchedulingSucceeded).toBe(true);
+    expect(mocks.uploadWork).toHaveBeenCalledTimes(1);
+    expect(mocks.enqueue.mock.calls[1][0].payload).toEqual(firstPayload);
+    expect(firstPayload.clientWorkId).toBe("client-1");
+    expect(firstPayload.clientOperationId).toBe("work-link:client-1:9:0");
+    if (_kind === "queued") expect(firstPayload.sourceWorkJobId).toBe("work-job-1");
+    else expect(firstPayload).not.toHaveProperty("sourceWorkJobId");
   });
 });

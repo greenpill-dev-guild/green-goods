@@ -78,6 +78,8 @@ export interface JobProcessor<TPayload = unknown, TEncoded = unknown> {
 // ============================================
 
 export interface WorkJobPayload {
+  /** Stable identity encoded into metadata; optional only for persisted legacy jobs. */
+  clientWorkId?: string;
   title?: string;
   feedback: string;
   metadata?: Record<string, unknown>;

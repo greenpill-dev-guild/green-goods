@@ -20,6 +20,7 @@ const meta: Meta<typeof CommitmentRecovery> = {
     evidenceOnly: true,
     can: dialog.can,
     actDisabled: false,
+    reconciliation: dialog.reconciliation,
     onOpenDialog: () => undefined,
   },
   decorators: [
@@ -52,5 +53,50 @@ export const WorkBacked: Story = {
 };
 
 export const Offline: Story = {
-  args: { actDisabled: true },
+  args: {
+    actDisabled: true,
+    can: { ...dialog.can, syncWorkDecisions: true },
+    reconciliation: { ...dialog.reconciliation, count: 1 },
+  },
+};
+
+export const ApprovedWorkWaiting: Story = {
+  args: {
+    can: { ...dialog.can, syncWorkDecisions: true },
+    reconciliation: {
+      ...dialog.reconciliation,
+      count: 2,
+      decisionUIDs: [`0x${"ab".repeat(32)}`, `0x${"cd".repeat(32)}`],
+    },
+  },
+};
+
+export const WaitingForIndexedReadback: Story = {
+  args: {
+    reconciliation: { ...dialog.reconciliation, readbackStatus: "pending", pendingReadback: true },
+  },
+};
+
+export const Reconciled: Story = {
+  args: {
+    reconciliation: { ...dialog.reconciliation, readbackStatus: "succeeded", succeeded: true },
+  },
+};
+
+export const NeedsFreshReview: Story = {
+  args: {
+    reconciliation: { ...dialog.reconciliation, readbackStatus: "needsFreshReview" },
+  },
+};
+
+export const DecisionReadUnavailable: Story = {
+  args: {
+    reconciliation: {
+      ...dialog.reconciliation,
+      readAvailable: false,
+      isError: true,
+      readbackStatus: "unavailable",
+      error: new Error("Story decision read unavailable"),
+    },
+  },
 };

@@ -446,6 +446,7 @@ export interface WorkMetadata {
  * Kept for backward compatibility with existing attestations.
  */
 export interface WorkMetadataV1 {
+  clientWorkId?: string;
   plantCount: number;
   plantSelection: string[];
   timeSpentMinutes?: number;

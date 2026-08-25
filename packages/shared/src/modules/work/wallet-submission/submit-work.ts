@@ -96,6 +96,7 @@ export async function submitWorkDirectly(
       },
       chainId,
       {
+        clientWorkId: options.clientWorkId,
         gardenAddress,
         authMode: "wallet",
         uploadBatchId,
@@ -159,7 +160,7 @@ export async function submitWorkDirectly(
     actionUID,
     title: workTitle,
     feedback: draft.feedback || "",
-    metadata: "{}",
+    metadata: JSON.stringify({ clientWorkId: options.clientWorkId }),
     media: [],
     createdAt: Math.floor(Date.now() / 1000),
   };

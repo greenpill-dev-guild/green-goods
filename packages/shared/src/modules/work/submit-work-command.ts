@@ -7,6 +7,8 @@ import type { SimulateWorkSubmissionParams, SimulationDeps } from "./simulate";
 import { WorkSubmissionError, type WalletSubmissionStage } from "./wallet-submission/types";
 
 export interface SubmitWorkCommand {
+  /** Supplied by a resumed journey; otherwise generated once before choosing a transport. */
+  clientWorkId?: string;
   authMode: "wallet" | "passkey" | "embedded" | null;
   gardenAddress: Address | null;
   actionUID: number | null;
@@ -19,6 +21,7 @@ export interface SubmitWorkCommand {
 }
 
 interface ResolvedSubmitWorkCommand extends SubmitWorkCommand {
+  clientWorkId: string;
   gardenAddress: Address;
   actionUID: number;
   userAddress: Address;
@@ -31,6 +34,7 @@ interface QueuedWorkSubmission {
 }
 
 export interface SubmitWorkPorts {
+  newClientWorkId?: () => string;
   connectivity: { isOnline: () => boolean };
   clock: { now: () => number };
   simulate: (input: SimulateWorkSubmissionParams) => Promise<void>;
@@ -50,7 +54,7 @@ export interface SubmitWorkPorts {
 }
 
 export type SubmitWorkOutcome =
-  | { kind: "direct"; txHash: `0x${string}`; sponsored: false }
+  | { kind: "direct"; txHash: `0x${string}`; sponsored: false; clientWorkId: string }
   | {
       kind: "queued";
       txHash: `0x${string}`;
@@ -126,6 +130,7 @@ export function buildOptimisticWork(
     gardenerAddress: resolved.userAddress,
     feedback: resolved.draft.feedback || "",
     metadata: JSON.stringify({
+      clientWorkId: resolved.clientWorkId,
       details: resolved.draft.details ?? {},
       timeSpentMinutes: resolved.draft.timeSpentMinutes,
     }),
@@ -152,7 +157,10 @@ export async function submitWork(
   command: SubmitWorkCommand,
   ports: SubmitWorkPorts
 ): Promise<SubmitWorkOutcome> {
-  const resolved = resolveCommand(command);
+  const resolved = resolveCommand({
+    ...command,
+    clientWorkId: command.clientWorkId ?? ports.newClientWorkId?.() ?? crypto.randomUUID(),
+  });
   const online = ports.connectivity.isOnline();
 
   if (resolved.authMode === "wallet") {
@@ -165,7 +173,7 @@ export async function submitWork(
 
     try {
       const txHash = await ports.direct.submitWork(resolved, ports.onWalletStage);
-      return { kind: "direct", txHash, sponsored: false };
+      return { kind: "direct", txHash, sponsored: false, clientWorkId: resolved.clientWorkId };
     } catch (error) {
       if (!isNetworkError(error)) throw error;
       if (!resolved.allowOfflineQueue) throw error;
@@ -215,6 +223,7 @@ export function createDefaultSubmitWorkPorts(
   options: DefaultSubmitWorkPortOptions
 ): SubmitWorkPorts {
   return {
+    newClientWorkId: () => crypto.randomUUID(),
     connectivity: { isOnline: () => navigator.onLine },
     clock: { now: () => Date.now() },
     simulate: async (input) => {
@@ -231,7 +240,8 @@ export function createDefaultSubmitWorkPorts(
           input.actions,
           input.chainId,
           input.images,
-          input.userAddress
+          input.userAddress,
+          { newClientWorkId: () => input.clientWorkId }
         );
       },
       process: async (jobId, sender) => {
@@ -249,7 +259,7 @@ export function createDefaultSubmitWorkPorts(
           getActionTitle(input.actions, input.actionUID),
           input.chainId,
           input.images,
-          { onProgress }
+          { onProgress, clientWorkId: input.clientWorkId }
         );
       },
     },

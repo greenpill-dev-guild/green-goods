@@ -39,7 +39,12 @@ vi.mock("../../modules/data/graphql", () => ({
   easGraphQL: vi.fn((query) => query),
 }));
 
-import { getGardenAssessments, getWorkApprovals, getWorks } from "../../modules/data/eas";
+import {
+  getGardenAssessments,
+  getWorkApprovals,
+  getWorkApprovalsForWork,
+  getWorks,
+} from "../../modules/data/eas";
 import type { GraphQLReader } from "../../modules/data/graphql-client";
 import {
   gardenAssessmentAttestation,
@@ -131,6 +136,45 @@ describe("modules/data/eas", () => {
       const result = await getWorkApprovals("0xGarden", 11155111, reader);
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe("getWorkApprovalsForWork", () => {
+    it("bounds the production query by exact Work content without a recipient filter", async () => {
+      mockQuery.mockResolvedValue({ data: { attestations: [workApprovalAttestation] } });
+
+      const result = await getWorkApprovalsForWork("0xWork1", 11155111, reader);
+
+      expect(result).toHaveLength(1);
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.anything(),
+        {
+          where: {
+            schemaId: { equals: mockEASConfig.WORK_APPROVAL.uid },
+            decodedDataJson: { contains: "0xWork1" },
+            revoked: { equals: false },
+          },
+        },
+        "getWorkApprovalsForWork"
+      );
+      expect(mockQuery.mock.calls[0][1].where).not.toHaveProperty("recipient");
+    });
+
+    it("exact-filters false-positive decoded-content candidates", async () => {
+      mockQuery.mockResolvedValue({ data: { attestations: [workApprovalAttestation] } });
+      await expect(getWorkApprovalsForWork("0xWork", 11155111, reader)).resolves.toEqual([]);
+    });
+
+    it("preserves a mismatched historical recipient for the classifier to reject", async () => {
+      const historical = {
+        ...workApprovalAttestation,
+        recipient: "0xHistoricalGardener",
+      };
+      mockQuery.mockResolvedValue({ data: { attestations: [historical] } });
+
+      const [approval] = await getWorkApprovalsForWork("0xWork1", 11155111, reader);
+
+      expect(approval.gardenerAddress).toBe("0xHistoricalGardener");
     });
   });
 });
