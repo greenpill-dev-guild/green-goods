@@ -58,17 +58,17 @@ This is the delivery-facing companion to the account recovery design work and sh
 ### Validated against current Green Goods code
 
 - Green Goods currently fixes production RP ID to `greengoods.app` and explicitly notes Android strictness around RP continuity.  
-  Source: `packages/shared/src/config/passkeyServer.ts:18`
+  Source: `packages/shared/src/config/passkeyServer.ts:32`
 - Green Goods currently stores passkey credential metadata locally and reconstructs the smart account from the stored credential.  
   Sources:  
-  `packages/shared/src/modules/auth/session.ts:220`  
-  `packages/shared/src/workflows/authServices.ts:107`
+  `packages/shared/src/modules/auth/session.ts:300`  
+  `packages/shared/src/workflows/auth-passkey-adapters.ts:88`
 - Green Goods currently fails login if the stored credential is gone.  
-  Source: `packages/shared/src/workflows/authServices.ts:298`
+  Source: `packages/shared/src/workflows/authServices.ts:253`
 - Green Goods already detects unsupported browser contexts and prompts users to move to Chrome or Safari.  
-  Source: `packages/client/src/views/Login/index.tsx:20`
+  Source: `packages/shared/src/hooks/client-ui/auth/useLoginScreenController.ts:80`
 - Green Goods already warns users that current passkey access is device-local and can be lost if browser data is cleared.  
-  Source: `packages/client/src/views/Profile/AccountInfo.tsx:126`
+  Source: `packages/client/src/views/Profile/AccountInfo.tsx:154`
 
 ### Inference
 
@@ -114,13 +114,13 @@ Today, account continuity depends too heavily on local browser state. That creat
 ## What exists today
 
 - Passkey creation uses `createWebAuthnCredential(...)` with a fixed production RP ID.  
-  Source: `packages/shared/src/config/passkeyServer.ts:72`
+  Source: `packages/shared/src/config/passkeyServer.ts:206`
 - The app stores credential metadata in localStorage.  
-  Source: `packages/shared/src/modules/auth/session.ts:227`
+  Source: `packages/shared/src/modules/auth/session.ts:308`
 - The app builds the Kernel smart account from the stored credential at login and session restore time.  
-  Source: `packages/shared/src/workflows/authServices.ts:107`
+  Source: `packages/shared/src/workflows/auth-passkey-adapters.ts:88`
 - The passkey login path assumes the credential already exists locally.  
-  Source: `packages/shared/src/workflows/authServices.ts:298`
+  Source: `packages/shared/src/workflows/authServices.ts:253`
 
 ## Why it is insufficient
 
@@ -167,8 +167,8 @@ gardener registers a new credential, and the new public key produces a new accou
 distinction matters for future recovery and signer-rotation work, which turns on what actually
 determines the address.
 
-The authoritative path is `buildSmartAccountFromCredential` in
-`packages/shared/src/workflows/authServices.ts`:
+The authoritative path is `buildSmartAccount` in
+`packages/shared/src/workflows/auth-passkey-adapters.ts`:
 `toWebAuthnAccount({ credential, rpId })` becomes the owner passed to `toKernelSmartAccount`, and it
 is the credential's public key and authenticator id that land in Kernel's validator data and so in
 the counterfactual address. `account-profiles.ts` is a useful cross-check for what is *not* an input
@@ -207,7 +207,7 @@ before the namespace is shared, not after:
    comes first because it is the only step that can destroy something. Any passkey a gardener
    registered on staging today lives under `rp.id = staging.greengoods.app`, and staging runs against
    mainnet, so that credential may control a real smart account holding real hats and commitments.
-   Deleting the override strands it in both directions at once: `authenticatePasskeyFromLocalCache`
+   Deleting the override strands it in both directions at once: `authenticateFromCache`
    re-requests
    the stored credential with the freshly resolved apex RP, which the authenticator will not match,
    and moving Pimlico projects removes the server-side lookup for it. Enumerate those accounts first,
@@ -528,6 +528,8 @@ The following may simplify Green Goods auth over time:
 - [passkeys.dev Related Origin Requests](https://passkeys.dev/docs/advanced/related-origins/)
 - `packages/shared/src/config/passkeyServer.ts`
 - `packages/shared/src/workflows/authServices.ts`
+- `packages/shared/src/workflows/auth-passkey-adapters.ts`
 - `packages/shared/src/modules/auth/session.ts`
+- `packages/shared/src/hooks/client-ui/auth/useLoginScreenController.ts`
 - `packages/client/src/views/Login/index.tsx`
 - `packages/client/src/views/Profile/AccountInfo.tsx`
