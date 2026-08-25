@@ -1,6 +1,6 @@
 import type { CaptureResult } from "posthog-js";
 import { describe, expect, it } from "vitest";
-import { restoreExceptionTopLevelProps } from "../../modules/app/posthog";
+import { dropExtensionExceptions, restoreExceptionTopLevelProps } from "../../modules/app/posthog";
 
 /**
  * Regression coverage for the "M1 finding" (2026-05-13): posthog-js >= 1.3xx emits
@@ -63,5 +63,71 @@ describe("restoreExceptionTopLevelProps", () => {
 
     expect(out?.properties.$exception_type).toBe("RangeError");
     expect(out?.properties.$exception_message).toBe("kept");
+  });
+});
+
+describe("dropExtensionExceptions", () => {
+  it("drops a bare window.onerror exception that has no stack frames", () => {
+    const out = dropExtensionExceptions(
+      makeEvent({
+        $exception_list: [
+          {
+            type: "Error",
+            value: "No tab with id: 1980836477.",
+            mechanism: { handled: false, synthetic: true },
+          },
+        ],
+      })
+    );
+
+    expect(out).toBeNull();
+  });
+
+  it("drops an exception whose frame filename contains extension://", () => {
+    const out = dropExtensionExceptions(
+      makeEvent({
+        $exception_list: [
+          {
+            type: "TypeError",
+            value: "undefined is not an object",
+            stacktrace: {
+              frames: [{ filename: "chrome-extension://abc/content.js" }],
+            },
+          },
+        ],
+      })
+    );
+
+    expect(out).toBeNull();
+  });
+
+  it("keeps an exception raised by Green Goods code", () => {
+    const event = makeEvent({
+      $exception_list: [
+        {
+          type: "TypeError",
+          value: "Cannot read properties of null",
+          stacktrace: {
+            frames: [{ filename: "https://www.greengoods.app/assets/index.js" }],
+          },
+        },
+      ],
+    });
+
+    expect(dropExtensionExceptions(event)).toBe(event);
+  });
+
+  it("passes non-exception events through untouched", () => {
+    const event = makeEvent({ $current_url: "/gardens" }, "$pageview");
+    expect(dropExtensionExceptions(event)).toBe(event);
+  });
+
+  it("leaves the event untouched when there is no $exception_list", () => {
+    const event = makeEvent({});
+    expect(dropExtensionExceptions(event)).toBe(event);
+  });
+
+  it("handles a null event safely", () => {
+    expect(dropExtensionExceptions(null)).toBeNull();
   });
 });

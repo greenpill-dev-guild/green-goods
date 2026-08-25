@@ -64,6 +64,46 @@ export function restoreExceptionTopLevelProps(event: CaptureResult | null): Capt
   return event;
 }
 
+/**
+ * Drop `$exception` events that a browser extension raised, not Green Goods code.
+ *
+ * A visitor's third-party extension can crash on our pages, and posthog-js
+ * exception autocapture reports the crash as our error. The `window.onerror`
+ * handler in `error-events.ts` already ignores these, but `capture_exceptions`
+ * installs a second autocapture path that does not.
+ *
+ * Two signatures mark an extension error, and they match the test in
+ * `error-events.ts`:
+ * - a frame filename that contains `extension://`
+ * - no stack frames at all — the posthog-js shape for a bare `window.onerror`
+ *   string, which only a cross-origin or extension script produces
+ *
+ * This `before_send` step returns `null` for those events to drop them. It
+ * passes every other event through, and it is a no-op for non-exception events.
+ * It leaves the event untouched when `$exception_list` is absent, because then
+ * the frame signatures cannot be read.
+ */
+export function dropExtensionExceptions(event: CaptureResult | null): CaptureResult | null {
+  if (!event || event.event !== "$exception" || !event.properties) return event;
+
+  const list = event.properties.$exception_list;
+  if (!Array.isArray(list)) return event;
+
+  const frames = list.flatMap((entry) => {
+    const stack = (entry as { stacktrace?: { frames?: unknown } } | null)?.stacktrace;
+    return Array.isArray(stack?.frames) ? stack.frames : [];
+  });
+
+  if (frames.length === 0) return null;
+
+  const fromExtension = frames.some((frame) => {
+    const filename = (frame as { filename?: unknown } | null)?.filename;
+    return typeof filename === "string" && filename.includes("extension://");
+  });
+
+  return fromExtension ? null : event;
+}
+
 // ============================================================================
 // APP VERSION AND ENVIRONMENT
 // ============================================================================

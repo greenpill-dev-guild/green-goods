@@ -6,7 +6,11 @@ import enMessages from "../i18n/en.json";
 import esMessages from "../i18n/es.json";
 import ptMessages from "../i18n/pt.json";
 import { toastService } from "../components/toast";
-import { restoreExceptionTopLevelProps, track } from "../modules/app/posthog";
+import {
+  dropExtensionExceptions,
+  restoreExceptionTopLevelProps,
+  track,
+} from "../modules/app/posthog";
 import { useAppLifecycle } from "../hooks/app/useAppLifecycle";
 import { queryClient } from "../config/react-query";
 import { logger } from "../modules/app/logger";
@@ -388,9 +392,9 @@ export const AppProvider = ({
           api_host: POSTHOG_API_HOST,
           capture_exceptions: true,
           // Restore legacy top-level $exception_type/$exception_message that
-          // posthog-js >= 1.3xx moved into $exception_list — downstream routines
-          // and the posthog-questions HogQL still query the top-level fields.
-          before_send: restoreExceptionTopLevelProps,
+          // posthog-js >= 1.3xx moved into $exception_list, then drop exceptions
+          // that a visitor's browser extension raised on our pages.
+          before_send: [restoreExceptionTopLevelProps, dropExtensionExceptions],
           debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
         }}
       >
