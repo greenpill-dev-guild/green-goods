@@ -187,7 +187,7 @@ export function ConfirmSheet({
         />
       ) : (
         <div className="space-y-4" data-component="ConfirmSheetAsk">
-          <p className="text-sm text-text-sub-600">
+          <div className="text-sm text-text-sub-600" data-component="ConfirmSummary">
             {provider ? (
               <span className="flex flex-wrap items-center gap-1">
                 {formatMessage({ id: `app.confirm.summary.${cast}.before` })}
@@ -197,7 +197,7 @@ export function ConfirmSheet({
             ) : (
               formatMessage({ id: `app.confirm.summary.${cast}.after` })
             )}
-          </p>
+          </div>
 
           <ul className="space-y-2">
             {cast === "request-work" || cast === "offer" ? (
@@ -223,10 +223,7 @@ export function ConfirmSheet({
                   {formatMessage({ id: "app.confirm.row.proof" })}
                 </span>
                 <span className="block text-xs text-text-sub-600">
-                  {formatMessage(
-                    { id: "app.confirm.row.proofMeta" },
-                    { count: commitment.evidenceCount }
-                  )}
+                  {formatMessage({ id: "app.confirm.row.proofMeta" }, { count: evidence.length })}
                 </span>
               </span>
             </li>

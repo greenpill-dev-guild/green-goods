@@ -236,7 +236,11 @@ export async function registerServiceWorkerFromEnv(
 ): Promise<boolean> {
   if (typeof window === "undefined") return false;
 
-  const version = getVersion(env.VITE_APP_VERSION);
+  // vite-plugin-pwa serves its development worker only at the exact
+  // `/dev-sw.js?dev-sw` URL. A release cache-bust suffix makes that request
+  // miss the plugin middleware and fall through to Vite's HTML app shell.
+  // Production workers keep their versioned registration URL.
+  const version = env.DEV ? "" : getVersion(env.VITE_APP_VERSION);
   const enableDevServiceWorker = env.VITE_ENABLE_SW_DEV === "true";
   const isStorybook = Boolean(env.STORYBOOK);
   if (isStorybook) return false;

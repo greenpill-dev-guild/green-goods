@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../../shared/.storybook/adminFixtures";
 import {
   withAdminIdentity,
@@ -12,7 +12,7 @@ import { PoolSetupFlow } from "./index";
 const meta: Meta<typeof PoolSetupFlow> = {
   title: "Admin/Pool/PoolSetupFlow",
   component: PoolSetupFlow,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   parameters: {
     layout: "fullscreen",
     docs: {
@@ -40,6 +40,13 @@ const meta: Meta<typeof PoolSetupFlow> = {
 export default meta;
 type Story = StoryObj<typeof PoolSetupFlow>;
 
+async function expectFirstStep(name: string) {
+  const dialog = within(document.body);
+  const heading = await dialog.findByRole("heading", { name });
+  await waitFor(() => expect(heading).toBeVisible());
+  return dialog;
+}
+
 export const FirstRun: Story = {
   args: {
     intent: "first-run",
@@ -52,10 +59,12 @@ export const FirstRun: Story = {
     }),
   },
   play: async () => {
-    const dialog = within(document.body);
-    await expect(await dialog.findByRole("heading", { name: "How it works" })).toBeVisible();
+    const dialog = await expectFirstStep("How it works");
     await expect(dialog.getByRole("button", { name: "Next" })).toBeDisabled();
-    await userEvent.type(dialog.getByLabelText("What this pool is for"), "Neighbourly help in Rio");
+    await userEvent.type(
+      await dialog.findByRole("textbox", { name: "What this pool is for" }),
+      "Neighbourly help in Rio"
+    );
     await expect(dialog.getByRole("button", { name: "Next" })).toBeEnabled();
   },
 };
@@ -75,10 +84,16 @@ export const NewSeason: Story = {
       claims: [],
     }),
   },
+  play: async () => {
+    await expectFirstStep("The season");
+  },
 };
 
 export const Campaign: Story = {
   args: { intent: "campaign", console: storyPoolConsole() },
+  play: async () => {
+    await expectFirstStep("The campaign");
+  },
 };
 
 export const OpenPreparedSeason: Story = {
@@ -91,5 +106,8 @@ export const OpenPreparedSeason: Story = {
       commitments: [],
       claims: [],
     }),
+  },
+  play: async () => {
+    await expectFirstStep("The split");
   },
 };

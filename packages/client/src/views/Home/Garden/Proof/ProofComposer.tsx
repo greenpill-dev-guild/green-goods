@@ -3,6 +3,7 @@ import { isVideoFile } from "@green-goods/shared/modules/work/media-processing";
 import type { ProofBeat } from "@green-goods/shared/hooks/client-ui/commitment/proofReadiness";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/useProofComposerController";
+import { formatCommitmentUnits } from "@green-goods/shared/i18n";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
@@ -24,7 +25,8 @@ const BLOCKED_REASON_IDS = {
 
 /** The three-beat proof journey; domain state and queue effects live in its shared controller. */
 export function ProofComposer() {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const navigate = useNavigate();
   const { commitmentId: commitmentIdParam, id: gardenAddress } = useParams<{
     commitmentId: string;
@@ -68,12 +70,10 @@ export function ProofComposer() {
   const title =
     controller.metadata?.title ??
     (controller.commitment.unitLabel
-      ? formatMessage(
-          { id: "app.commitments.row.units" },
-          {
-            count: controller.commitment.targetUnits.toString(),
-            unit: controller.commitment.unitLabel,
-          }
+      ? formatCommitmentUnits(
+          intl,
+          controller.commitment.targetUnits,
+          controller.commitment.unitLabel
         )
       : formatMessage({ id: "app.commitments.row.untitled" }));
 

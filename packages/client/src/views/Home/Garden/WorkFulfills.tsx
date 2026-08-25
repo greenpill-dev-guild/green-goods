@@ -5,6 +5,7 @@ import {
   useCommitmentPool,
   useCommitmentWorkAttributionsForWork,
 } from "@green-goods/shared/commitment-pooling";
+import { formatCommitmentUnits } from "@green-goods/shared/i18n";
 import { RiHandHeartLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
@@ -25,7 +26,8 @@ export interface WorkFulfillsProps {
  * that fulfils nothing draws nothing.
  */
 export function WorkFulfills({ chainId, workUID, gardenId }: WorkFulfillsProps) {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const navigateToTop = useNavigateToTop();
   const { attributions } = useCommitmentWorkAttributionsForWork({ chainId, workUID });
   const attribution = attributions.find((entry) => entry.linked) ?? null;
@@ -49,10 +51,7 @@ export function WorkFulfills({ chainId, workUID, gardenId }: WorkFulfillsProps) 
   const name =
     metadata?.title ??
     (commitment?.unitLabel
-      ? formatMessage(
-          { id: "app.commitments.row.units" },
-          { count: commitment.targetUnits.toString(), unit: commitment.unitLabel }
-        )
+      ? formatCommitmentUnits(intl, commitment.targetUnits, commitment.unitLabel)
       : formatMessage({ id: "app.commitments.row.untitled" }));
 
   return (

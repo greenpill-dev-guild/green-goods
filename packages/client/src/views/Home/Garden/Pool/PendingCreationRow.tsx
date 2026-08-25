@@ -1,6 +1,7 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { type PendingCommitmentCreation } from "@green-goods/shared/commitment-pooling";
+import { formatCommitmentUnits } from "@green-goods/shared/i18n";
 import { RiDeleteBinLine, RiRefreshLine, RiSeedlingLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
@@ -29,13 +30,11 @@ export function PendingCreationRow({
   onDiscard,
   discardOnly = false,
 }: PendingCreationRowProps) {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const units =
     creation.unitLabel && creation.targetUnits
-      ? formatMessage(
-          { id: "app.commitments.row.units" },
-          { count: creation.targetUnits, unit: creation.unitLabel }
-        )
+      ? formatCommitmentUnits(intl, creation.targetUnits, creation.unitLabel)
       : null;
   const primary = creation.title ?? units ?? formatMessage({ id: "app.commitments.row.untitled" });
   const chipId = creation.failed

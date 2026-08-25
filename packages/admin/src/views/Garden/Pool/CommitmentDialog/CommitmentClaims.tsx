@@ -61,6 +61,7 @@ export function CommitmentClaims({
                   type="button"
                   variant="outlined"
                   size="sm"
+                  className="min-h-12"
                   onClick={() => onOpenDialog({ kind: "decline-claim", claimant: claim.claimant })}
                   disabled={actDisabled}
                 >
@@ -73,6 +74,7 @@ export function CommitmentClaims({
                   type="button"
                   variant="filled"
                   size="sm"
+                  className="min-h-12"
                   onClick={() => void acts.acceptClaim(claim.claimant)}
                   disabled={actDisabled}
                 >

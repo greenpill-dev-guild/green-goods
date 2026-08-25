@@ -114,6 +114,21 @@ export const AskSupport: Story = {
   play: async () => {
     await expect(await screen.findByRole("button", { name: "Confirm it was kept" })).toBeVisible();
     await expect(screen.getByRole("button", { name: "Not yet" })).toBeVisible();
+    await expect(screen.getByText("No items yet")).toBeVisible();
+    await expect(screen.getByText("No proof has been attached yet.")).toBeVisible();
+  },
+};
+
+export const MultipleProofs: Story = {
+  args: {
+    evidenceAttributions: [
+      { cid: "bafy-proof-one", contributor: PROVIDER, createdAt: 1_700_000_001 },
+      { cid: "bafy-proof-two", contributor: PROVIDER, createdAt: 1_700_000_002 },
+    ],
+  },
+  play: async () => {
+    await expect(await screen.findByText("2 items")).toBeVisible();
+    await expect(screen.queryByText("No proof has been attached yet.")).not.toBeInTheDocument();
   },
 };
 

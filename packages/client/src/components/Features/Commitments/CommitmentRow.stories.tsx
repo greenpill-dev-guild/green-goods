@@ -1,6 +1,10 @@
 import type { Address } from "@green-goods/shared/types/domain";
 import type { CommitmentReadModel, InboxCommitment } from "@green-goods/shared/commitment-pooling";
+import enMessages from "@green-goods/shared/i18n/en";
+import esMessages from "@green-goods/shared/i18n/es";
+import ptMessages from "@green-goods/shared/i18n/pt";
 import type { Meta, StoryObj } from "@storybook/react";
+import { IntlProvider } from "react-intl";
 import { expect, fn, within } from "storybook/test";
 import { CommitmentRow } from "./CommitmentRow";
 
@@ -132,5 +136,60 @@ export const RecordOnly: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.queryByRole("button")).not.toBeInTheDocument();
+  },
+};
+
+const quantityLocales = [
+  { locale: "en", messages: enMessages },
+  { locale: "es", messages: esMessages },
+  { locale: "pt", messages: ptMessages },
+] as const;
+
+const quantityUnits = ["sessions", "repairs", "rides"] as const;
+
+/** The composer units use each locale's own singular and plural nouns. */
+export const QuantityGrammar: Story = {
+  render: () => (
+    <div className="space-y-6">
+      {quantityLocales.map(({ locale, messages }) => (
+        <IntlProvider key={locale} locale={locale} messages={messages}>
+          <section lang={locale} className="space-y-2" aria-label={`${locale} quantities`}>
+            <p className="text-xs font-semibold uppercase">{locale}</p>
+            {quantityUnits.flatMap((unit, unitIndex) =>
+              ([1n, 2n] as const).map((count) => (
+                <CommitmentRow
+                  key={`${unit}-${count}`}
+                  row={row({
+                    commitment: commitment({
+                      id: `42161-${unitIndex}-${count}`,
+                      commitmentId: BigInt(unitIndex * 2) + count,
+                      targetUnits: count,
+                      unitLabel: unit,
+                    }),
+                    needsYou: false,
+                  })}
+                />
+              ))
+            )}
+          </section>
+        </IntlProvider>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const expected = {
+      en: ["1 session", "2 sessions", "1 repair", "2 repairs", "1 ride", "2 rides"],
+      es: ["1 sesión", "2 sesiones", "1 reparación", "2 reparaciones", "1 viaje", "2 viajes"],
+      pt: ["1 sessão", "2 sessões", "1 conserto", "2 consertos", "1 carona", "2 caronas"],
+    } as const;
+
+    for (const locale of quantityLocales) {
+      const section = canvasElement.querySelector(`section[lang="${locale.locale}"]`);
+      await expect(section).toBeInTheDocument();
+      const localized = within(section as HTMLElement);
+      for (const quantity of expected[locale.locale]) {
+        await expect(localized.getByText(quantity)).toBeVisible();
+      }
+    }
   },
 };

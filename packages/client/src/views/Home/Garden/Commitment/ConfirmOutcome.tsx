@@ -45,7 +45,7 @@ export function Provenance({ commitment }: { commitment: CommitmentReadModel }) 
   if (!commitment.fulfilledBy) return null;
   const path = commitment.confirmationPath ?? "ORDINARY";
   return (
-    <p
+    <div
       className="flex flex-wrap items-center gap-1 text-xs text-text-sub-600"
       data-component="ConfirmProvenance"
       data-path={path}
@@ -60,6 +60,6 @@ export function Provenance({ commitment }: { commitment: CommitmentReadModel }) 
           )}
         </span>
       ) : null}
-    </p>
+    </div>
   );
 }

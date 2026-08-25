@@ -1028,7 +1028,7 @@
   "app.commitments.row.needsYou": "Needs you",
   "app.commitments.row.sendFailed": "Didn't send",
   "app.commitments.row.team": "{count, plural, one {# person on the team} other {# people on the team}}",
-  "app.commitments.row.units": "{count} {unit}",
+  "app.commitments.row.units": "{unitKey, select, sessions {{pluralCount, plural, one {{count} session} other {{count} sessions}}} repairs {{pluralCount, plural, one {{count} repair} other {{count} repairs}}} rides {{pluralCount, plural, one {{count} ride} other {{count} rides}}} other {{count} {unit}}}",
   "app.commitments.row.untitled": "A commitment",
   "app.commitments.sendFailed": "{count, plural, one {# commitment could not be sent after several tries. Nothing else is affected.} other {# commitments could not be sent after several tries. Nothing else is affected.}}",
   "app.commitments.series.active": "Active",

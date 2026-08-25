@@ -4,6 +4,7 @@ import {
   type CommitmentCycleRecord,
   type CycleMetadataNameResolution,
 } from "@green-goods/shared/commitment-pooling";
+import { formatCommitmentUnits } from "@green-goods/shared/i18n";
 import { type RefObject, useEffect } from "react";
 import { useIntl } from "react-intl";
 
@@ -43,7 +44,8 @@ export function ComposeReview({
   onReadToEnd,
   endRef,
 }: ComposeReviewProps) {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const isRequest = values.direction === "REQUEST";
   const isGardenWork = values.kind === "GARDEN_WORK";
   // The act unlocks once the end of the review has been on screen. Where the
@@ -93,10 +95,7 @@ export function ComposeReview({
     },
     {
       label: formatMessage({ id: "app.compose.review.howMuch" }),
-      value: formatMessage(
-        { id: "app.commitments.row.units" },
-        { count: String(values.targetUnits), unit: values.unitLabel.trim() }
-      ),
+      value: formatCommitmentUnits(intl, values.targetUnits, values.unitLabel),
     },
     {
       label: formatMessage({ id: "app.compose.terms.byWhen" }),

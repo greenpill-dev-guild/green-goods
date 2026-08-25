@@ -1,5 +1,6 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useGardenCommitmentController } from "@green-goods/shared/hooks/client-ui/commitment/useGardenCommitmentController";
+import { formatCommitmentUnits } from "@green-goods/shared/i18n";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
@@ -35,7 +36,8 @@ function keepSurfaceOnFailure(promise: Promise<unknown>): void {
 
 /** One commitment rendered from the shared reader, selector, queue, and mutation contract. */
 export function GardenCommitment() {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const navigate = useNavigate();
   const { commitmentId: commitmentIdParam, id: gardenAddress } = useParams<{
     commitmentId: string;
@@ -77,10 +79,7 @@ export function GardenCommitment() {
   const band = selectStatusBand({ commitment, seat: controller.seat });
   const isPending = controller.isQueueing || controller.isSending;
   const units = commitment.unitLabel
-    ? formatMessage(
-        { id: "app.commitments.row.units" },
-        { count: commitment.targetUnits.toString(), unit: commitment.unitLabel }
-      )
+    ? formatCommitmentUnits(intl, commitment.targetUnits, commitment.unitLabel)
     : null;
   const heading =
     controller.metadata?.title ?? units ?? formatMessage({ id: "app.commitments.row.untitled" });

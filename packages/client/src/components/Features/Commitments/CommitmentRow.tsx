@@ -1,5 +1,6 @@
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { type InboxCommitment } from "@green-goods/shared/commitment-pooling";
+import { formatCommitmentUnits } from "@green-goods/shared/i18n";
 import { RiSeedlingLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
@@ -24,16 +25,14 @@ export interface CommitmentRowProps {
  * added across unlike units.
  */
 export function CommitmentRow({ row, title, sendFailed, onOpen }: CommitmentRowProps) {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const { commitment, seat, needsYou } = row;
   const state = presentState(commitment.derivedState);
   const relationshipId = relationshipLabelId(seat, commitment.direction);
 
   const units = commitment.unitLabel
-    ? formatMessage(
-        { id: "app.commitments.row.units" },
-        { count: commitment.targetUnits.toString(), unit: commitment.unitLabel }
-      )
+    ? formatCommitmentUnits(intl, commitment.targetUnits, commitment.unitLabel)
     : null;
   // A commitment is named by its member, counted by its units. Until the name
   // resolves the units stand in, because they are the substance either way.

@@ -1,5 +1,12 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { type ComponentType, type KeyboardEvent, type ReactNode, useCallback, useRef } from "react";
+import {
+  type ComponentType,
+  type KeyboardEvent,
+  type ReactNode,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+} from "react";
 import { useIntl } from "react-intl";
 
 // ============================================================================
@@ -48,8 +55,23 @@ export function AdminTabRail({
   className,
 }: AdminTabRailProps) {
   const { formatMessage } = useIntl();
+  const railRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const enabledTabs = tabs.filter((tab) => !tab.disabled);
+
+  useLayoutEffect(() => {
+    const rail = railRef.current;
+    const activeTab = tabRefs.current.get(activeId);
+    if (!rail || !activeTab) return;
+
+    const railRect = rail.getBoundingClientRect();
+    const activeRect = activeTab.getBoundingClientRect();
+    if (activeRect.left < railRect.left) {
+      rail.scrollLeft -= railRect.left - activeRect.left;
+    } else if (activeRect.right > railRect.right) {
+      rail.scrollLeft += activeRect.right - railRect.right;
+    }
+  }, [activeId, tabs.length]);
 
   // Roving tabindex + WAI-ARIA tabs keyboard pattern
   // (https://www.w3.org/WAI/ARIA/apg/patterns/tabs/). Activation follows focus
@@ -91,6 +113,7 @@ export function AdminTabRail({
 
   return (
     <div
+      ref={railRef}
       data-component="AdminTabRail"
       role="tablist"
       aria-label={ariaLabel}

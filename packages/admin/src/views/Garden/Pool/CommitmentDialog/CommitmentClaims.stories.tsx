@@ -1,8 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { STORY_ANA, STORY_CLAIMS, STORY_JOAO, storyCommitmentDialog } from "../poolStoryFixtures";
 import { CommitmentClaims, CommitmentRoster } from "./CommitmentClaims";
 
 const dialog = storyCommitmentDialog();
+const acceptClaim = fn(async (_claimant: string) => "0x123" as const);
+const openDialog = fn();
 const PENDING_CLAIMS = STORY_CLAIMS.map((row) => row.claim);
 const TEAM = dialog.detail?.contributors ?? [];
 const ROSTER =
@@ -17,7 +20,7 @@ const ROSTER =
 const meta: Meta<typeof CommitmentClaims> = {
   title: "Admin/Pool/CommitmentClaims",
   component: CommitmentClaims,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   parameters: {
     docs: {
       description: {
@@ -29,9 +32,9 @@ const meta: Meta<typeof CommitmentClaims> = {
   args: {
     claims: PENDING_CLAIMS,
     can: { ...dialog.can, acceptClaim: true },
-    acts: dialog.acts,
+    acts: { ...dialog.acts, acceptClaim },
     actDisabled: false,
-    onOpenDialog: () => undefined,
+    onOpenDialog: openDialog,
   },
   decorators: [
     (Story) => (
@@ -45,7 +48,18 @@ const meta: Meta<typeof CommitmentClaims> = {
 export default meta;
 type Story = StoryObj<typeof CommitmentClaims>;
 
-export const StewardCanAnswer: Story = {};
+export const StewardCanAnswer: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getAllByRole("button", { name: "Accept" })[0]!);
+    const decline = canvas.getAllByRole("button", { name: /Decline/ })[0]!;
+    decline.focus();
+    await userEvent.keyboard("{Enter}");
+
+    await expect(acceptClaim).toHaveBeenCalled();
+    await expect(openDialog).toHaveBeenCalled();
+  },
+};
 
 export const ReadOnly: Story = {
   args: { can: { ...dialog.can, acceptClaim: false } },
