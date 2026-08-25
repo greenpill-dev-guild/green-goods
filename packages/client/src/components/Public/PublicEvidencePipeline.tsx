@@ -9,69 +9,61 @@ import {
 } from "./atoms";
 
 /**
- * The Impact page's anchor figure. Five nodes — **Assessment → Commitment →
- * Work → Confirmation → Impact Certificate** — set on a single horizontal
- * rule with italic numerals and a return arrow back to the next Assessment
- * so the cycle is visible at a glance.
+ * The Impact page's anchor figure. Four steps — **Needs → Commitment →
+ * Work → Learnings** — set on a single horizontal rule with italic numerals,
+ * and the loop-line as a full-width footer under all four columns so the
+ * cycle closes for the whole figure, never inside the last column.
  *
- * The cycle order was a design correction (chat with the user, 2026-04-30):
- * Assessment first (you're planning what to do), then Work (you do it),
- * then Impact Certificate (the certified outcome), and a new Assessment
- * begins the next loop. Commitment pooling added the two relational stages
- * around Work (uiux-spec §7.3): work begins as a commitment to someone, and
- * an eligible confirmer, usually that person, records that it was kept.
+ * The four-step shape is the 2026-08-25 redesign (experience audit AD-9,
+ * superseding the five-node figure): confirmation fuses into Work — the
+ * person a commitment was for records that it was kept — and the certificate
+ * step becomes Learnings, with "Impact Certificate" surviving inside the
+ * step's body rather than as a stage name. Needs-first stays truthful to the
+ * protocol: baseline Assessments gate pool readiness.
  *
- * These node kinds are the figure's own vocabulary. They are not the public
+ * Layout contract from the same decision: four equal columns, level at every
+ * width; descriptions held to one length band; number chips aligned with
+ * their titles; the rule never cuts through a heading.
+ *
+ * These step kinds are the figure's own vocabulary. They are not the public
  * evidence ledger's record kinds (`PublicImpactEvidenceKind`, labelled in
- * `./evidenceKinds`): Commitment and Confirmation are narrative stages, never
- * ledger records or filters.
+ * `./evidenceKinds`): Commitment is a narrative stage, never a ledger record
+ * or filter.
  */
 
-type EvidenceNodeKind = "assessment" | "commitment" | "work" | "confirmation" | "certificate";
+type CycleStepKind = "needs" | "commitment" | "work" | "learnings";
 
 type ToneClasses = { surface: string; ink: string };
 
 /**
- * One tone per node, all drawn from tokens the editorial dialect already
- * owns. The four domain pastels carry the documentary stages; Confirmation
- * takes the dialect's walnut-on-linen tone (`editorial-deep`, mode-aware), so
- * the stage where a person seals the record reads as ink rather than as a
- * fifth work domain.
+ * One tone per step, all drawn from tokens the editorial dialect already
+ * owns: the four domain pastels carry the four stages of the cycle.
  */
-const NODE_TONES: Record<EvidenceNodeKind, ToneClasses> = {
-  assessment: { surface: "bg-domain-education-soft", ink: "text-domain-education" },
+const STEP_TONES: Record<CycleStepKind, ToneClasses> = {
+  needs: { surface: "bg-domain-education-soft", ink: "text-domain-education" },
   commitment: { surface: "bg-domain-waste-soft", ink: "text-domain-waste" },
   work: { surface: "bg-domain-agro-soft", ink: "text-domain-agro" },
-  confirmation: { surface: "bg-editorial-deep", ink: "text-editorial-deep-fg" },
-  certificate: { surface: "bg-domain-solar-soft", ink: "text-domain-solar" },
+  learnings: { surface: "bg-domain-solar-soft", ink: "text-domain-solar" },
 };
 
 /** Display order of the figure. The array is the single source of the order. */
-const PIPELINE_NODES: readonly EvidenceNodeKind[] = [
-  "assessment",
-  "commitment",
-  "work",
-  "confirmation",
-  "certificate",
-];
+const CYCLE_STEPS: readonly CycleStepKind[] = ["needs", "commitment", "work", "learnings"];
 
-interface PipelineNodeProps {
-  kind: EvidenceNodeKind;
+interface CycleStepProps {
+  kind: CycleStepKind;
   numeral: string;
   title: ReactNode;
   description: ReactNode;
-  /** When true, renders a return-arrow caption ("→ next Assessment"). */
-  closesCycle?: boolean;
 }
 
-function PipelineNode({ kind, numeral, title, description, closesCycle }: PipelineNodeProps) {
-  const { formatMessage } = useIntl();
-  const tones = NODE_TONES[kind];
+function CycleStep({ kind, numeral, title, description }: CycleStepProps) {
+  const tones = STEP_TONES[kind];
   return (
     <li className="flex flex-col gap-3">
-      {/* Top-aligned so a title that wraps (five-up "Impact Certificate") keeps
-          its numeral badge on the shared rule instead of sliding below it. */}
-      <div className="flex items-start gap-3">
+      {/* Chip and title share one centered row: at four-up the titles are
+          single words, so nothing wraps below the shared rule and the numeral
+          reads aligned with its title at every width. */}
+      <div className="flex items-center gap-3">
         <span
           aria-hidden="true"
           className={cn(
@@ -89,43 +81,35 @@ function PipelineNode({ kind, numeral, title, description, closesCycle }: Pipeli
       <p className="max-w-prose text-sm leading-relaxed text-text-sub-600 md:text-base">
         {description}
       </p>
-      {closesCycle ? (
-        <p className="font-serif text-xs italic text-text-soft-400">
-          {formatMessage({
-            id: "public.impact.pipeline.closesCycle",
-            defaultMessage: "→ and a new Assessment begins the next loop.",
-          })}
-        </p>
-      ) : null}
     </li>
   );
 }
 
 /**
- * Localized title and description per node. The three vocabulary terms a
- * first-time reader may not know (Commitment, Confirmation, Impact
- * Certificate) wrap in `EditorialTermTooltip`; the commitment terms come from
- * the shared `public.pool.terms.*` family so every public surface gives the
- * same first-exposure meaning.
+ * Localized title and description per step (experience audit AD-9 draft).
+ * The two vocabulary terms a first-time reader may not know — Commitment and
+ * Impact Certificate — wrap in `EditorialTermTooltip`; the commitment term
+ * comes from the shared `public.pool.terms.*` family so every public surface
+ * gives the same first-exposure meaning.
  *
  * A plain formatter rather than a hook: custom hooks belong in
  * `@green-goods/shared`, and this is component-local copy selection.
  */
-function nodeCopy(
-  kind: EvidenceNodeKind,
+function stepCopy(
+  kind: CycleStepKind,
   formatMessage: IntlShape["formatMessage"]
-): { title: ReactNode; description: string } {
+): { title: ReactNode; description: ReactNode } {
   switch (kind) {
-    case "assessment":
+    case "needs":
       return {
         title: formatMessage({
-          id: "public.impact.pipeline.node.assessment.title",
-          defaultMessage: "Assessment",
+          id: "public.impact.pipeline.step.needs.title",
+          defaultMessage: "Needs",
         }),
         description: formatMessage({
-          id: "public.impact.pipeline.node.assessment.description",
+          id: "public.impact.pipeline.step.needs.description",
           defaultMessage:
-            "Stewards and evaluators document what the place needs and what counts as good. The Assessment names the conditions on the ground, the work plan, and the standard of proof.",
+            "Every season starts from what the place and its people need. A baseline Assessment records the starting conditions and what counts as good, so change can be seen against them.",
         }),
       };
     case "commitment":
@@ -133,7 +117,7 @@ function nodeCopy(
         title: (
           <EditorialTermTooltip
             term={formatMessage({
-              id: "public.impact.pipeline.node.commitment.title",
+              id: "public.impact.pipeline.step.commitment.title",
               defaultMessage: "Commitment",
             })}
             definition={formatMessage({
@@ -144,7 +128,7 @@ function nodeCopy(
           />
         ),
         description: formatMessage({
-          id: "public.impact.pipeline.node.commitment.description",
+          id: "public.impact.pipeline.step.commitment.description",
           defaultMessage:
             "Work begins as a commitment to someone. A neighbour offers help or asks for it, another takes it up, and the Garden's pool records who will carry it out and by when.",
         }),
@@ -152,70 +136,55 @@ function nodeCopy(
     case "work":
       return {
         title: formatMessage({
-          id: "public.impact.pipeline.node.work.title",
+          id: "public.impact.pipeline.step.work.title",
           defaultMessage: "Work",
         }),
         description: formatMessage({
-          id: "public.impact.pipeline.node.work.description",
+          id: "public.impact.pipeline.step.work.description",
           defaultMessage:
-            "Gardeners do the regenerative work and document it as it happens, capturing photos, measurements, and notes across the four domains, each timestamped and attached to the Garden.",
+            "Gardeners do the work and document it as it happens — photos, measurements, notes. The person it was for, or another eligible confirmer, records that it was kept.",
         }),
       };
-    case "confirmation":
+    case "learnings":
       return {
-        title: (
-          <EditorialTermTooltip
-            term={formatMessage({
-              id: "public.impact.pipeline.node.confirmation.title",
-              defaultMessage: "Confirmation",
-            })}
-            definition={formatMessage({
-              id: "public.pool.terms.confirmation",
-              defaultMessage:
-                "The moment an eligible confirmer, usually the person a commitment was made to, records that it was kept.",
-            })}
-          />
-        ),
-        description: formatMessage({
-          id: "public.impact.pipeline.node.confirmation.description",
-          defaultMessage:
-            "An eligible confirmer, usually the person the commitment was made to, records that it was kept. Evidence, or approved Work where the commitment calls for it, stands behind the confirmation, and the commitment records the outcome.",
+        title: formatMessage({
+          id: "public.impact.pipeline.step.learnings.title",
+          defaultMessage: "Learnings",
         }),
-      };
-    case "certificate":
-      return {
-        title: (
-          <EditorialTermTooltip
-            term={formatMessage({
-              id: "public.impact.pipeline.node.certificate.title",
-              defaultMessage: "Impact Certificate",
-            })}
-            definition={formatMessage({
-              id: "public.impact.pipeline.node.certificate.definition",
-              defaultMessage:
-                "A bundle of approved Work grounded in an Assessment and anchored to a public blockchain so the record stays readable beyond any one platform.",
-            })}
-          />
+        // One translatable sentence; the <certificate> tag lets each locale
+        // place the term where its own word order wants it.
+        description: formatMessage(
+          {
+            id: "public.impact.pipeline.step.learnings.description",
+            defaultMessage:
+              "Assessments return to measure what changed against the baseline. What was learned, and the approved Work behind it, anchors into an <certificate>Impact Certificate</certificate> — a portable public record built to outlast any one platform.",
+          },
+          {
+            certificate: (chunks) => (
+              <EditorialTermTooltip
+                term={chunks}
+                definition={formatMessage({
+                  id: "public.pool.terms.certificate",
+                  defaultMessage:
+                    "A bundle of approved Work grounded in an Assessment and anchored to a public blockchain so the record stays readable beyond any one platform.",
+                })}
+              />
+            ),
+          }
         ),
-        description: formatMessage({
-          id: "public.impact.pipeline.node.certificate.description",
-          defaultMessage:
-            "When the evidence meets the Assessment standard, approved Work can bundle into an Impact Certificate, a portable record designed to outlast any one platform.",
-        }),
       };
   }
 }
 
-function LocalizedPipelineNode({ kind, index }: { kind: EvidenceNodeKind; index: number }) {
+function LocalizedCycleStep({ kind, index }: { kind: CycleStepKind; index: number }) {
   const { formatMessage } = useIntl();
-  const copy = nodeCopy(kind, formatMessage);
+  const copy = stepCopy(kind, formatMessage);
   return (
-    <PipelineNode
+    <CycleStep
       kind={kind}
       numeral={`${index + 1}.`}
       title={copy.title}
       description={copy.description}
-      closesCycle={index === PIPELINE_NODES.length - 1}
     />
   );
 }
@@ -261,28 +230,37 @@ export function PublicEvidencePipeline({
         ) : null}
 
         <div className="relative mt-12 border-t border-stroke-soft-200 pt-10">
-          {/* The rule runs behind the numeral badges once all five nodes share
-              a row. Below `lg` the list stacks and the rule is withdrawn, so it
-              never cuts through a wrapped row. */}
+          {/* The rule runs behind the numeral chips once all four steps share
+              a row. Below `lg` the list stacks and the rule is withdrawn, so
+              it never cuts through a heading. */}
           <div
             aria-hidden="true"
             className="absolute top-[calc(2.5rem+18px)] right-6 left-6 hidden h-px bg-stroke-soft-200 lg:block"
           />
           <ol
-            className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-5 lg:gap-6"
+            className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8"
             aria-label={formatMessage({
               id: "public.impact.pipeline.figureLabel",
-              defaultMessage: "The stages of evidence, in order",
+              defaultMessage: "The four stages of the cycle, in order",
             })}
           >
-            {PIPELINE_NODES.map((kind, index) => (
-              <LocalizedPipelineNode key={kind} kind={kind} index={index} />
+            {CYCLE_STEPS.map((kind, index) => (
+              <LocalizedCycleStep key={kind} kind={kind} index={index} />
             ))}
           </ol>
+
+          {/* The loop closes for the whole figure: a full-width footer under
+              all four columns, never a caption inside the last one (AD-9). */}
+          <p className="mt-10 border-t border-stroke-soft-200 pt-6 font-serif text-base italic leading-[1.55] text-text-sub-600 md:text-lg">
+            {formatMessage({
+              id: "public.impact.pipeline.loop",
+              defaultMessage: "→ and what was learned shapes the next season's needs.",
+            })}
+          </p>
         </div>
 
         {footnote ? (
-          <p className="mt-10 max-w-3xl border-t border-stroke-soft-200 pt-6 font-serif text-base italic leading-[1.55] text-text-sub-600 md:text-lg">
+          <p className="mt-8 max-w-3xl font-serif text-base italic leading-[1.55] text-text-sub-600 md:text-lg">
             {footnote}
           </p>
         ) : null}

@@ -340,13 +340,13 @@ export default function ImpactPage() {
         })}
         title={formatMessage({
           id: "public.impact.pipeline.title",
-          defaultMessage: "From plan to public proof, season after season.",
+          defaultMessage: "From need to learning, season after season.",
         })}
         titleId="public-impact-pipeline-title"
         intro={formatMessage({
           id: "public.impact.pipeline.intro",
           defaultMessage:
-            "Each Garden moves through five stages of evidence and starts again. The cycle is what turns a place's intentions into something the public can verify.",
+            "Each Garden moves through four stages and starts again. The cycle is what turns a place's needs into something the public can verify.",
         })}
       />
 
@@ -470,7 +470,9 @@ export default function ImpactPage() {
               </div>
             }
             error={
-              <p className="mt-12 max-w-2xl border-l-2 border-text-soft-400 bg-bg-white-0 px-4 py-3 text-sm text-text-sub-600">
+              // The failed ledger holds its space (AD-11) instead of collapsing
+              // the section to one bordered line.
+              <p className="mt-12 flex min-h-40 max-w-2xl items-center border-l-2 border-text-soft-400 bg-bg-white-0 px-4 py-3 text-sm text-text-sub-600">
                 {formatMessage({
                   id: "public.impact.evidence.error",
                   defaultMessage:
@@ -479,7 +481,8 @@ export default function ImpactPage() {
               </p>
             }
             empty={
-              <div className="mt-12 max-w-2xl border-t border-stroke-soft-200 pt-6">
+              // Absence holds the ledger's place in the record (AD-11).
+              <div className="mt-12 min-h-40 max-w-2xl border-t border-stroke-soft-200 pt-6">
                 <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
                   {formatMessage({
                     id: "public.impact.evidence.emptyKicker",

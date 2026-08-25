@@ -444,7 +444,7 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("PublicEvidencePipeline", () => {
-  it("renders the five stages as an ordered list in the required order", () => {
+  it("renders the four steps as an ordered list with the loop as a full-width footer", () => {
     withProviders(
       createElement(PublicEvidencePipeline, { title: "The cycle", titleId: "pipeline-title" })
     );
@@ -453,20 +453,17 @@ describe("PublicEvidencePipeline", () => {
     const titles = within(list)
       .getAllByRole("listitem")
       .map((item) => within(item).getByRole("heading", { level: 3 }).textContent?.trim());
-    expect(titles).toEqual([
-      "Assessment",
-      "Commitment",
-      "Work",
-      "Confirmation",
-      "Impact Certificate",
-    ]);
-    // The loop closes on the last node, not somewhere in the middle.
-    const items = within(list).getAllByRole("listitem");
-    expect(items[4]).toHaveTextContent(en["public.impact.pipeline.closesCycle"]);
-    expect(items[1]).not.toHaveTextContent(en["public.impact.pipeline.closesCycle"]);
+    expect(titles).toEqual(["Needs", "Commitment", "Work", "Learnings"]);
+    // The loop closes the whole figure, never inside a column (AD-9).
+    for (const item of within(list).getAllByRole("listitem")) {
+      expect(item).not.toHaveTextContent(en["public.impact.pipeline.loop"]);
+    }
+    expect(screen.getByText(en["public.impact.pipeline.loop"])).toBeInTheDocument();
+    // Impact Certificate survives inside step 4's body, not as a stage name.
+    expect(within(list).getAllByRole("listitem")[3]).toHaveTextContent("Impact Certificate");
   });
 
-  it("localizes every node title, description, and definition rather than hardcoding English", () => {
+  it("localizes every step title and description rather than hardcoding English", () => {
     withProviders(
       createElement(PublicEvidencePipeline, { title: "El ciclo", titleId: "pipeline-title" }),
       { locale: "es", messages: es as Record<string, string> }
@@ -475,17 +472,11 @@ describe("PublicEvidencePipeline", () => {
     const titles = within(list)
       .getAllByRole("listitem")
       .map((item) => within(item).getByRole("heading", { level: 3 }).textContent?.trim());
-    expect(titles).toEqual([
-      "Evaluación",
-      "Compromiso",
-      "Trabajo",
-      "Confirmación",
-      "Certificado de Impacto",
-    ]);
-    expect(list).toHaveTextContent(es["public.impact.pipeline.node.commitment.description"]);
-    expect(list).toHaveTextContent(es["public.impact.pipeline.node.confirmation.description"]);
+    expect(titles).toEqual(["Necesidades", "Compromiso", "Trabajo", "Aprendizajes"]);
+    expect(list).toHaveTextContent(es["public.impact.pipeline.step.commitment.description"]);
+    expect(list).toHaveTextContent(es["public.impact.pipeline.step.work.description"]);
     expect(list).not.toHaveTextContent("Work begins as a commitment to someone");
-    expect(list).toHaveTextContent(es["public.impact.pipeline.closesCycle"]);
+    expect(screen.getByText(es["public.impact.pipeline.loop"])).toBeInTheDocument();
 
     // Tooltip definitions come from the shared first-exposure family.
     fireEvent.click(within(list).getByRole("button", { name: "Compromiso" }));
