@@ -123,6 +123,7 @@ function pwaHtmlMetadataPlugin(branding: PwaManifestBranding): Plugin {
 
   const replacements = {
     "%PWA_APP_NAME%": branding.name,
+    "%PWA_APP_SHORT_NAME%": branding.shortName,
     "%PWA_APPLE_ICON_57%": appleIcon("57x57"),
     "%PWA_APPLE_ICON_60%": appleIcon("60x60"),
     "%PWA_APPLE_ICON_72%": appleIcon("72x72"),
