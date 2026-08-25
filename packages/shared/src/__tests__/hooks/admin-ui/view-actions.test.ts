@@ -28,7 +28,7 @@ import { buildHubViewActions, type HubPipelineStage } from "../../../hooks/admin
 
 const GARDEN = "0xabcabcabcabcabcabcabcabcabcabcabcabcabca";
 
-const HUB_STAGES: HubPipelineStage[] = ["work", "assess", "certify", "history"];
+const HUB_STAGES: HubPipelineStage[] = ["confirm", "work", "assess", "certify"];
 const GARDEN_VIEWS: GardenWorkspaceView[] = ["health", "impact", "activity"];
 
 function visibleIds(actions: Array<{ id: string; visible?: boolean }>): string[] {
@@ -58,10 +58,10 @@ describe("buildHubViewActions — fixed primary", () => {
     }
   });
 
-  it("keeps the full action trio on the history (audit) stage", () => {
-    const history = buildFor("history");
-    expect(visibleIds(history)).toHaveLength(3);
-    expect(primaryIds(history)).toEqual(["submit-work"]);
+  it("keeps the full action trio on the confirmation stage", () => {
+    const confirm = buildFor("confirm");
+    expect(visibleIds(confirm)).toHaveLength(3);
+    expect(primaryIds(confirm)).toEqual(["submit-work"]);
   });
 
   it("blanks role-gated actions for read-only stewards", () => {
