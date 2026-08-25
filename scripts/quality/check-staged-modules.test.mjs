@@ -42,7 +42,7 @@ test("rejects a live source importer outside the staged set", () => {
   try {
     const live = join(root, "packages/client/src/live.ts");
     mkdirSync(dirname(live), { recursive: true });
-    writeFileSync(live, 'import "./components/Public/VaultCardEndowFlow";\n');
+    writeFileSync(live, 'import "./components/Public/Vault/VaultCardEndowFlow";\n');
     assert.match(auditStagedModules(root).join("\n"), /live\.ts imports staged module/);
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -54,7 +54,7 @@ test("rejects a live source importer that reaches a staged module through the cl
   try {
     const live = join(root, "packages/client/src/live.ts");
     mkdirSync(dirname(live), { recursive: true });
-    writeFileSync(live, 'import "@/components/Public/VaultCardEndowFlow";\n');
+    writeFileSync(live, 'import "@/components/Public/Vault/VaultCardEndowFlow";\n');
     assert.match(auditStagedModules(root).join("\n"), /live\.ts imports staged module/);
   } finally {
     rmSync(root, { recursive: true, force: true });

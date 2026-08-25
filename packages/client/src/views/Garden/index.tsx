@@ -17,13 +17,13 @@ import { FormProgress } from "@/components/Communication";
 import { DraftDialog } from "@/components/Dialogs";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
-import { APP_ROUTES } from "@/config/pwa-routing";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { APP_ROUTES } from "@/config/pwaRouting";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { WorkDetails } from "./Details";
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
 import { WorkReview } from "./Review";
-import { trackWorkMediaJourneyEvent } from "./mediaAnalytics";
+import { trackWorkMediaJourneyEvent } from "@/config/mediaAnalytics";
 
 const trackControllerMediaEvent = (
   event: "work_media_preview_failed" | "work_media_removed" | "work_broken_media_removed",

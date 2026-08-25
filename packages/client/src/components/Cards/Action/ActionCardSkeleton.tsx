@@ -1,6 +1,6 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as React from "react";
-import { Card } from "../Base/Card";
+import { Card } from "../Card";
 import { type ActionCardVariantProps, cardVariants as actionCardVariants } from "./ActionCard";
 
 type ActionCardSkeletonProps = ActionCardVariantProps;

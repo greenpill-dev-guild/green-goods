@@ -58,7 +58,7 @@ import {
   getTxExplorerUrl,
   getVaultCheckoutTransactionLabel,
   type CheckoutSummaryItem,
-} from "./vaultCheckoutShell";
+} from "./VaultCheckoutShell";
 
 const VAULT_CARD_SETTLEMENT_SLOW_WARNING_MS = 90_000;
 

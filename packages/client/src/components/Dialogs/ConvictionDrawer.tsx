@@ -20,7 +20,7 @@ import { useYieldAllocations } from "@green-goods/shared/hooks/yield/useYieldAll
 import { RiLoader4Line } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { ModalDrawer } from "./ModalDrawer";
 
 function SectionSkeleton({ rows = 3 }: { rows?: number }) {

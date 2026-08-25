@@ -7,7 +7,7 @@ import type {
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { ModalDrawer } from "@/components/Dialogs/ModalDrawer";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 // Re-export types from shared for convenience
 export type { GardenFilterScope, GardenFiltersState, GardenSortOrder };

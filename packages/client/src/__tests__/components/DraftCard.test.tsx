@@ -24,7 +24,7 @@ vi.mock("@/components/Display", () => ({
     createElement("img", { src, alt, "data-testid": "thumb" }),
 }));
 
-vi.mock("@/styles/pwaStatusStyles", () => ({
+vi.mock("@/components/Pwa/statusStyles", () => ({
   pwaStatusStyles: {
     warning: { surface: "bg-warning", border: "border-warning" },
   },

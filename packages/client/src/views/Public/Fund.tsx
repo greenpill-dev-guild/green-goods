@@ -31,7 +31,7 @@ import { PublicGardenRow } from "@/components/Public/PublicGardenRow";
 import { PublicSurfaceState } from "@/components/Public/PublicSurfaceState";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
-import { resolveGardenQuery } from "@/views/Public/garden-query-resolution";
+import { resolveGardenQuery } from "@/views/Public/gardenQueryResolution";
 const PublicFundingCard = lazy(() =>
   import("@/components/Public/PublicFundingCard").then((module) => ({
     default: module.PublicFundingCard,

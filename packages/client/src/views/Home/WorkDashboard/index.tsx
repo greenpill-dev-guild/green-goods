@@ -35,7 +35,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
-import { getPwaDrawerCloseDelayMs, pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
+import { getPwaDrawerCloseDelayMs, pwaDrawerStyles } from "@/components/Pwa/drawerStyles";
 import { CompletedTab } from "./CompletedTab";
 import { DraftsTab } from "./Drafts";
 import { PendingTab } from "./PendingTab";
@@ -46,7 +46,7 @@ import {
   extractWorkGardenIds,
   receivedApprovalsToWorks,
   resolveWorkNavigation,
-} from "./work-dashboard-utils";
+} from "./workDashboardUtils";
 
 // Component-specific props (not a domain type)
 export interface WorkDashboardProps {

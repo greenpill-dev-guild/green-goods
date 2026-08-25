@@ -4,10 +4,10 @@ import type { TimeFilter } from "@green-goods/shared/utils/time";
 import { RiCheckLine, RiTimeLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { TimeFilterControl } from "./TimeFilterControl";
 import { WorkListTab } from "./WorkListTab";
-import { isOperatorForGarden } from "./work-dashboard-utils";
+import { isOperatorForGarden } from "./workDashboardUtils";
 
 interface PendingTabProps {
   items: Work[];

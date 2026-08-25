@@ -14,7 +14,7 @@ import {
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
-import { APP_ROUTES, LEGACY_APP_ROUTES } from "@/config/pwa-routing";
+import { APP_ROUTES, LEGACY_APP_ROUTES } from "@/config/pwaRouting";
 
 export const AppBar = () => {
   const { pathname } = useLocation();

@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { Navigate, Outlet } from "react-router-dom";
 
 import { Splash } from "@/components/Layout";
-import { APP_ROUTES } from "@/config/pwa-routing";
+import { APP_ROUTES } from "@/config/pwaRouting";
 import { LoadingSplash } from "@/views/Login/components/LoadingSplash";
 
 export function Login() {

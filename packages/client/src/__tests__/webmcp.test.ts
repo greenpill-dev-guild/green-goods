@@ -5,7 +5,7 @@ import {
   createPublicWebMcpTools,
   greenGoodsPublicWebMcpRoutes,
   registerPublicWebMcpTools,
-} from "./public-tools";
+} from "../webmcp";
 
 type PublicWebMcpTool = ReturnType<typeof createPublicWebMcpTools>[number];
 

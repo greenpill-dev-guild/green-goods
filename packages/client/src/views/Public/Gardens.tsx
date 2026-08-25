@@ -18,7 +18,7 @@ import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicGardenCard } from "@/components/Public/PublicGardenCard";
 import { PublicSurfaceState } from "@/components/Public/PublicSurfaceState";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
-import { focusRememberedGardenCard } from "./garden-return-focus";
+import { focusRememberedGardenCard } from "./gardenReturnFocus";
 
 /**
  * Gardens — public discovery and browsing view.

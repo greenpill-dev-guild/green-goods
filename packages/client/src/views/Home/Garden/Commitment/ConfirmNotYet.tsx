@@ -3,7 +3,7 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiRefreshLine, RiWifiOffLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
-import { type ConfirmCast, REASON_CHIPS } from "./confirm-cast";
+import { type ConfirmCast, REASON_CHIPS } from "./confirmCast";
 
 export interface ConfirmNotYetProps {
   cast: ConfirmCast;

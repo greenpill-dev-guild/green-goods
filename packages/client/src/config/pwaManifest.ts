@@ -1,4 +1,4 @@
-import { PWA_MANIFEST_ID } from "./pwa-routing";
+import { PWA_MANIFEST_ID } from "./pwaRouting";
 
 export type PwaManifestFlavor = "production" | "staging";
 

@@ -46,6 +46,16 @@ test("rejects misplaced package-root source", () => {
   }
 });
 
+test("allows the selected client WebMCP root module", () => {
+  const path = "packages/client/src/webmcp.ts";
+  const root = fixture({ [path]: "export const webmcp = true;\n" });
+  try {
+    assert(!ids(audit(root, [path])).some((id) => id.startsWith(`placement:${path}`)));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("rejects a component whose client filename is not PascalCase", () => {
   const path = "packages/client/src/components/goodCard.tsx";
   const root = fixture({ [path]: "export function GoodCard() { return null; }\n" });
@@ -92,6 +102,26 @@ test("rejects an unused named export in a changed implementation file", () => {
   const root = fixture({ [path]: "export const unusedHelper = true;\n" });
   try {
     assert(ids(audit(root, [path])).includes(`dead-export:${path}:unusedHelper`));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("accepts a value export consumed only by a direct test", () => {
+  const implementation = "packages/client/src/components/helper.ts";
+  const directTest = "packages/client/src/__tests__/helper.test.ts";
+  const files = {
+    [implementation]: "export const testedHelper = true;\n",
+    [directTest]: 'import { testedHelper } from "../components/helper";\nvoid testedHelper;\n',
+  };
+  const root = fixture(files);
+  try {
+    assert.deepEqual(
+      audit(root, Object.keys(files), { changedFilePaths: [implementation] }).filter(
+        (finding) => finding.rule === "dead-export"
+      ),
+      []
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

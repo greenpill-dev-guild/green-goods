@@ -8,8 +8,8 @@ import type React from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { EmptyState } from "@/components/Communication";
-import { APP_ROUTES } from "@/config/pwa-routing";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { APP_ROUTES } from "@/config/pwaRouting";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 interface GardenNotificationsProps {
   garden: Garden;

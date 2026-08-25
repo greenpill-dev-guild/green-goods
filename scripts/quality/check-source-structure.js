@@ -64,7 +64,7 @@ const ALLOWED_TOP_LEVEL_DIRECTORIES = {
 const ALLOWED_ROOT_SOURCE_FILES = {
   admin: new Set(["App.tsx", "main.tsx", "router.tsx"]),
   agent: new Set(["config.ts", "i18n.ts", "index.ts", "types.ts"]),
-  client: new Set(["App.tsx", "main.tsx", "router.tsx"]),
+  client: new Set(["App.tsx", "main.tsx", "router.tsx", "webmcp.ts"]),
   contracts: new Set(["CommonErrors.sol", "Schemas.sol"]),
   indexer: new Set(["EventHandlers.ts"]),
   shared: new Set(["index.ts"]),
@@ -114,11 +114,12 @@ const FROZEN_ALLOWLIST = {
   "packages/client/src/components/Public/PublicCookieJarCard.tsx": 797,
   "packages/client/src/components/Public/PublicEndowmentPanel.tsx": 726,
   "packages/client/src/components/Public/PublicFundingCard.tsx": 1015,
-  "packages/client/src/components/Public/VaultCardEndowFlow.tsx": 1509,
-  "packages/client/src/components/Public/VaultCardPaymentPanel.tsx": 709,
-  "packages/client/src/components/Public/VaultCardWalletManage.tsx": 695,
-  "packages/client/src/components/Public/VaultCheckoutDialog.tsx": 1174,
-  "packages/client/src/components/Public/VaultManagePositionsPanel.tsx": 928,
+  "packages/client/src/components/Public/Vault/VaultCardEndowFlow.tsx": 1507,
+  "packages/client/src/components/Public/Vault/VaultCardPaymentPanel.tsx": 709,
+  "packages/client/src/components/Public/Vault/VaultCardWalletManage.tsx": 695,
+  "packages/client/src/components/Public/Vault/VaultCheckoutDialog.tsx": 1174,
+  "packages/client/src/components/Public/Vault/VaultCheckoutShell.tsx": 493,
+  "packages/client/src/components/Public/Vault/VaultManagePositionsPanel.tsx": 928,
   "packages/client/src/components/Public/atoms/EditorialAtoms.tsx": 565,
   "packages/client/src/views/Garden/Media.tsx": 828,
   "packages/client/src/views/Profile/ENSSection.tsx": 651,
@@ -304,13 +305,6 @@ function exportedValueNames(source) {
   return [...names];
 }
 
-function exportedNames(source) {
-  const matches = source.matchAll(
-    /\bexport\s+(?:declare\s+)?(?:async\s+)?(?:const|let|var|function|class|type|interface|enum)\s+([A-Za-z_$][\w$]*)/g,
-  );
-  return [...matches].map((match) => match[1]);
-}
-
 function hookDefinitions(source) {
   const names = new Set();
   for (const match of source.matchAll(
@@ -450,7 +444,7 @@ export function collectStructureViolations({
 
   const consumers = consumerFilePaths
     .filter((filePath) => /\.(js|jsx|ts|tsx)$/.test(filePath))
-    .filter((filePath) => !isGeneratedOrVendoredPath(filePath) && !isTestOrStoryPath(filePath))
+    .filter((filePath) => !isGeneratedOrVendoredPath(filePath))
     .filter((filePath) => existsSync(resolve(root, filePath)))
     .map((filePath) => ({ filePath, source: readSource(root, filePath) }));
 
@@ -459,7 +453,7 @@ export function collectStructureViolations({
     if (basename(filePath).startsWith("index.")) continue;
     if (isMarkedStagedModule(root, filePath, staged)) continue;
     const source = readSource(root, filePath);
-    for (const exportName of exportedNames(source)) {
+    for (const exportName of exportedValueNames(source)) {
       const word = new RegExp(`\\b${exportName.replace(/[$]/g, "\\$")}\\b`);
       const hasConsumer = consumers.some(
         (consumer) => consumer.filePath !== filePath && word.test(consumer.source),

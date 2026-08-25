@@ -187,6 +187,23 @@ test("owning workflows enforce strict test and story typechecks", () => {
   }
 });
 
+test("client and admin production builds follow their full consumer project graphs", () => {
+  for (const packageName of ["client", "admin"]) {
+    const packageJson = JSON.parse(read(`packages/${packageName}/package.json`));
+    const solution = JSON.parse(read(`packages/${packageName}/tsconfig.json`));
+    const references = solution.references.map(({ path }) => path);
+
+    assert.deepEqual(references, [
+      "./tsconfig.app.json",
+      "./tsconfig.node.json",
+      "./tsconfig.test.json",
+    ]);
+    assert.match(packageJson.scripts["typecheck:full"], /tsc -b(?:\s|$)/);
+    assert.match(packageJson.scripts.build, /tsc -b(?:\s|$)/);
+    assert.doesNotMatch(packageJson.scripts.build, /tsc --noEmit/);
+  }
+});
+
 test("consumer workflows exclude Shared tests and stories", () => {
   for (const file of ["admin.yml", "agent.yml", "client.yml"]) {
     const outer = read(`.github/workflows/${file}`).split("permissions:", 1)[0];

@@ -6,7 +6,7 @@ import { RiCloseLine, RiImageAddLine, RiLoader4Line, RiPlayFill } from "@remixic
 import { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 export interface ProofMediaProps {
   media: File[];

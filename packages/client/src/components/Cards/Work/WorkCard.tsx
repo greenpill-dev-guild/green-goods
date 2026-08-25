@@ -1,39 +1,10 @@
 import { formatAddress, formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
-import { formatFileSize } from "@green-goods/shared/utils/work/image-compression";
-import { truncateAddress } from "@green-goods/shared/utils/blockchain/address";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import type { Work } from "@green-goods/shared/types/domain";
 import { WorkCard as SharedWorkCard } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
 import React from "react";
 import { useIntl } from "react-intl";
-
-export interface WorkCardItem {
-  id: string;
-  type: "work" | "work_approval";
-  title: string;
-  description?: string;
-  gardenId: string;
-  gardenName?: string;
-  status: "approved" | "rejected" | "pending" | "syncing" | "uploading" | "sync_failed" | "offline";
-  createdAt: number;
-  lastAttempt?: number;
-  retryCount: number;
-  error?: string;
-  size: number;
-  images?: {
-    count: number;
-    totalSize: number;
-  };
-  mediaPreview?: string[];
-}
-
-export interface WorkCardProps {
-  work: WorkCardItem;
-  className?: string;
-  variant?: "full" | "minimal";
-  onClick?: () => void;
-}
 
 export interface MinimalWorkCardProps {
   work: Work;
@@ -66,48 +37,6 @@ function getWorkCardLabels(formatMessage: ReturnType<typeof useIntl>["formatMess
     },
   };
 }
-
-export const WorkCard: React.FC<WorkCardProps> = ({
-  work,
-  className,
-  variant = "full",
-  onClick,
-}) => {
-  const { formatMessage } = useIntl();
-  const labels = getWorkCardLabels(formatMessage);
-  const badges =
-    variant === "full" && work.size > 0
-      ? [
-          <span key="size" className="text-text-sub-600">
-            {formatFileSize(work.size)}
-          </span>,
-        ]
-      : undefined;
-
-  return (
-    <SharedWorkCard
-      className={className}
-      onClick={onClick}
-      variant={variant === "full" ? "auto" : "compact"}
-      work={{
-        id: work.id,
-        title: work.title,
-        status: work.status,
-        createdAt: work.createdAt,
-        mediaPreview: work.mediaPreview,
-        gardenName: work.gardenName || truncateAddress(work.gardenId),
-        error: work.error,
-        retryCount: work.retryCount,
-        imageCount: work.images?.count,
-      }}
-      showMediaCount={Boolean(work.images?.count)}
-      showErrorBadge={Boolean(work.error)}
-      showRetryBadge={work.retryCount > 0}
-      badges={badges}
-      labels={labels}
-    />
-  );
-};
 
 // Compact work card for list views
 export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({

@@ -24,9 +24,9 @@ import { useIntl } from "react-intl";
 import { Outlet, useLocation, useMatch } from "react-router-dom";
 
 import { PullToRefresh } from "@/components/Inputs";
-import { APP_ROUTES } from "@/config/pwa-routing";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
-import { ARRIVAL_TOASTS, type ArrivalActionKind } from "./arrival-toast";
+import { APP_ROUTES } from "@/config/pwaRouting";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import { ARRIVAL_TOASTS, type ArrivalActionKind } from "./arrivalToast";
 import { CommitmentsDrawer } from "./CommitmentsDrawer";
 import { CommitmentsDrawerIcon } from "./CommitmentsDrawer/Icon";
 import { type GardenFiltersState, GardensFilterDrawer } from "./GardenFilters";

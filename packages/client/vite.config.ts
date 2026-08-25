@@ -15,8 +15,8 @@ import {
   createPwaManifestBranding,
   type PwaManifestBranding,
   resolvePwaManifestFlavor,
-} from "./src/config/pwa-manifest";
-import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwa-routing";
+} from "./src/config/pwaManifest";
+import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwaRouting";
 import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
 
 const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";

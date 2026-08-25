@@ -7,21 +7,6 @@
     "hook-location:packages/client/src/routes/PublicShell.tsx:useLatestPublicScrollPositionRef",
     "hook-location:packages/client/src/routes/PublicShell.tsx:usePublicRouteScrollReset",
     "hook-location:packages/client/src/routes/PublicShell.tsx:useWarmPublicHeroImages",
-    "hook-location:packages/client/src/routes/Root.tsx:useReceiptTokenFragmentScrub",
-    "naming:packages/client/src/components/Public/vaultCheckoutShell.tsx:PascalCase",
-    "naming:packages/client/src/config/pwa-manifest.ts:no-hyphens",
-    "naming:packages/client/src/config/pwa-routing.ts:no-hyphens",
-    "naming:packages/client/src/modules/webmcp/public-tools.ts:no-hyphens",
-    "naming:packages/client/src/routes/presentation-mode.ts:no-hyphens",
-    "naming:packages/client/src/routes/receipt-token.ts:no-hyphens",
-    "naming:packages/client/src/routes/toast-variant.ts:no-hyphens",
-    "naming:packages/client/src/views/Home/arrival-toast.ts:no-hyphens",
-    "naming:packages/client/src/views/Home/Garden/Commitment/confirm-cast.ts:no-hyphens",
-    "naming:packages/client/src/views/Home/WorkDashboard/work-dashboard-utils.ts:no-hyphens",
-    "naming:packages/client/src/views/Public/garden-query-resolution.ts:no-hyphens",
-    "naming:packages/client/src/views/Public/garden-return-focus.ts:no-hyphens",
-    "placement:packages/client/src/config.ts:root-file",
-    "placement:packages/client/src/modules/webmcp/public-tools.ts:top-level-directory",
-    "placement:packages/client/src/router.config.tsx:root-file"
+    "hook-location:packages/client/src/routes/Root.tsx:useReceiptTokenFragmentScrub"
   ]
 }

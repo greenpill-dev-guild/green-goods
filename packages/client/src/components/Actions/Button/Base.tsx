@@ -9,7 +9,7 @@ import { tv, type VariantProps } from "tailwind-variants";
 const BUTTON_ROOT_NAME = "ButtonRoot";
 const BUTTON_ICON_NAME = "ButtonIcon";
 
-export const buttonVariants = tv({
+const clientButtonVariants = tv({
   slots: {
     root: "gg-button group relative overflow-hidden",
     icon: "gg-button-icon",
@@ -53,9 +53,9 @@ export const buttonVariants = tv({
   },
 });
 
-type ButtonSharedProps = VariantProps<typeof buttonVariants>;
+type ButtonSharedProps = VariantProps<typeof clientButtonVariants>;
 
-export type ButtonRootProps = VariantProps<typeof buttonVariants> &
+export type ButtonRootProps = VariantProps<typeof clientButtonVariants> &
   React.ButtonHTMLAttributes<HTMLButtonElement> & {
     asChild?: boolean;
   };
@@ -64,7 +64,7 @@ const ButtonRoot = React.forwardRef<HTMLButtonElement, ButtonRootProps>(
   ({ children, variant, mode, size, asChild, className, shape, ...rest }, forwardedRef) => {
     const uniqueId = React.useId();
     const Component = asChild ? Slot : "button";
-    const { root } = buttonVariants({ variant, mode, size, shape });
+    const { root } = clientButtonVariants({ variant, mode, size, shape });
 
     const sharedProps: ButtonSharedProps = {
       variant,
@@ -99,7 +99,7 @@ function ButtonIcon<T extends React.ElementType>({
   ...rest
 }: PolymorphicComponentProps<T, ButtonSharedProps>) {
   const Component = as || "div";
-  const { icon } = buttonVariants({ mode, variant, size });
+  const { icon } = clientButtonVariants({ mode, variant, size });
 
   return <Component className={icon({ class: className })} {...rest} />;
 }

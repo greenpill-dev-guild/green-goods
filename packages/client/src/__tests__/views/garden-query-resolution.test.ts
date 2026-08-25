@@ -29,7 +29,7 @@ vi.mock("@green-goods/shared/hooks/public/usePublicGardens", () => ({
   publicGardenHelpers: { deriveSlug: fakeDeriveSlug },
 }));
 
-import { resolveGardenQuery } from "../../views/Public/garden-query-resolution";
+import { resolveGardenQuery } from "../../views/Public/gardenQueryResolution";
 
 const solar: PublicGardenSummary = {
   id: "0x1111111111111111111111111111111111111111",

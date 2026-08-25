@@ -1,5 +1,7 @@
 # Client Structure Cleanup + Agent Guide Consolidation Spec
 
+> **Archived record:** implementation is closed. Operational handoffs, artifacts, and lane files were removed; preserved reports and any references below describe historical execution, not live work.
+
 ## Summary
 
 Restore real type-checking to the client and admin builds, fix the 132 type errors that the

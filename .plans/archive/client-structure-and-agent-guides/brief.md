@@ -1,5 +1,7 @@
 # Client Structure Cleanup + Agent Guide Consolidation
 
+> **Archived record:** implementation is closed. Operational handoffs, artifacts, and lane files were removed; preserved reports and any references below describe historical execution, not live work.
+
 **Slug**: `client-structure-and-agent-guides`
 **Stage**: `active`
 **Priority**: `p1`

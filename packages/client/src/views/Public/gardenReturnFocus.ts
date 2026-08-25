@@ -20,7 +20,7 @@ export function rememberGardenReturn(slug: string | null | undefined): void {
 }
 
 /** Read and clear the remembered slug. Exported for tests. */
-export function consumeGardenReturn(): string | null {
+function consumeGardenReturn(): string | null {
   const slug = rememberedSlug;
   rememberedSlug = null;
   return slug;

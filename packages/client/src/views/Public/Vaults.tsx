@@ -24,8 +24,8 @@ import {
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicSurfaceState } from "@/components/Public/PublicSurfaceState";
-import { VaultCheckoutDialog } from "@/components/Public/VaultCheckoutDialog";
-import { VaultManagePositionsPanel } from "@/components/Public/VaultManagePositionsPanel";
+import { VaultCheckoutDialog } from "@/components/Public/Vault/VaultCheckoutDialog";
+import { VaultManagePositionsPanel } from "@/components/Public/Vault/VaultManagePositionsPanel";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 
 const copyFieldMessageIds = {

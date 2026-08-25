@@ -23,8 +23,8 @@ import { Button } from "@/components/Actions";
 import { Badge, EmptyState } from "@/components/Communication";
 import { Avatar, AvatarFallback, AvatarImage, AvatarSkeleton } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
-import { pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaDrawerStyles } from "@/components/Pwa/drawerStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 export type GardenMember = GardenerCard & {
   account: Address;

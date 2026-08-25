@@ -2,8 +2,8 @@ import { ToastViewport } from "@green-goods/shared/components/Toast/ToastViewpor
 import { usePageView } from "@green-goods/shared/hooks/analytics/usePageView";
 import { useLayoutEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { scrubReceiptTokenFragmentFromLocation } from "./receipt-token";
-import { getClientToastViewportVariant } from "./toast-variant";
+import { scrubReceiptTokenFragmentFromLocation } from "./receiptToken";
+import { getClientToastViewportVariant } from "./toastVariant";
 
 function useReceiptTokenFragmentScrub() {
   useLayoutEffect(() => {

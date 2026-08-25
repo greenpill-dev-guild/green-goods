@@ -23,7 +23,7 @@ import {
   RiUploadLine,
 } from "@remixicon/react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { createPwaLaunchUrl } from "@/config/pwa-routing";
+import { createPwaLaunchUrl } from "@/config/pwaRouting";
 
 interface HeroProps {
   handleSubscribe: (e: React.FormEvent<HTMLFormElement>) => void;

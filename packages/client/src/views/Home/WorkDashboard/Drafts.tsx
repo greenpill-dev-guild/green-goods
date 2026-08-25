@@ -13,8 +13,8 @@ import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { DraftCard } from "@/components/Cards";
 import { EmptyState } from "@/components/Communication";
-import { APP_ROUTES } from "@/config/pwa-routing";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { APP_ROUTES } from "@/config/pwaRouting";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 export interface DraftsTabProps {
   className?: string;

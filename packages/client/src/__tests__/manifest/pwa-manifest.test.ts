@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createPwaManifestBranding, resolvePwaManifestFlavor } from "../../config/pwa-manifest";
-import { PWA_MANIFEST_ID } from "../../config/pwa-routing";
+import { createPwaManifestBranding, resolvePwaManifestFlavor } from "../../config/pwaManifest";
+import { PWA_MANIFEST_ID } from "../../config/pwaRouting";
 
 describe("PWA manifest branding", () => {
   it("keeps production on the existing Green Goods install identity", () => {

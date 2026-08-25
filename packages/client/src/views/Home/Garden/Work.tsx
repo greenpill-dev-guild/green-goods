@@ -15,7 +15,7 @@ import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
-import { pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
+import { pwaDrawerStyles } from "@/components/Pwa/drawerStyles";
 import { WorkFulfills } from "./WorkFulfills";
 import { WorkViewSection } from "./WorkViewSection";
 

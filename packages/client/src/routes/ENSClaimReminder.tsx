@@ -8,7 +8,7 @@ import { useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { isAddress } from "viem";
-import { APP_ROUTES } from "@/config/pwa-routing";
+import { APP_ROUTES } from "@/config/pwaRouting";
 
 const ENS_CLAIM_REMINDER_KEY_PREFIX = "greengoods_ens_claim_reminder_shown";
 

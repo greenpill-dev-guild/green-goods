@@ -1,5 +1,7 @@
 # Client Structure Cleanup + Agent Guide Consolidation Plan
 
+> **Archived record:** implementation is closed. Operational handoffs, artifacts, and lane files were removed; preserved reports and any references below describe historical execution, not live work.
+
 **Feature Slug**: `client-structure-and-agent-guides`
 **Stage**: `active`
 **Status**: `ACTIVE`
@@ -39,10 +41,10 @@
 | # | Question | Blocks |
 |---|---|---|
 | A | **Resolved:** the client stops reading the dropped legacy fields and migrates both assessment screens to canonical v2 semantics. | Step 1.5 unblocked |
-| B | Why is `"resolvePackageJsonExports": false` set? If removable, 57 errors go with it; if not, those paths need excluding. | Step 1.3 |
+| B | **Resolved:** remove the override and use TypeScript's package-export resolution. The app, node, and test projects now type-check with `resolvePackageJsonExports: true`. | Step 1.3 complete |
 | C | `views/Garden/` (work capture) vs `views/Home/Garden/` (garden detail) — rename one? | Step 2.9 (optional) |
 | D | **Resolved:** use the exact `STAGED_MODULES` manifest plus the existing machine-checked marker | `check-staged-modules.mjs` already owns the canonical staged set and marker; Phase 4 reuses it instead of creating another convention. |
-| E | `tsc -b` (app + node + test + shared, but adds 79 client test errors) vs `tsc --noEmit -p tsconfig.app.json` (app only, 234 files, much smaller change)? Plan assumes `-b`. | Steps 1.4, 1.9 — sets the size of Phase 1 |
+| E | **Resolved:** use `tsc -b` for each consumer's app, node, and test projects. Keep Shared's typecheck as its own package gate instead of a consumer project reference; importing Shared source through declared aliases still type-checks the code each consumer reaches without forcing declaration-portability errors across the entire Shared package. | Steps 1.4 and 1.9 complete |
 
 ---
 
@@ -50,38 +52,38 @@
 
 Config first, then errors by cluster, then flip the command last.
 
-- [ ] **1.0** Record the baseline before touching anything: current `bun run test` and `bun run build` result for client and admin, and a re-measured error count per project (see the freshness caveat in `spec.md` — a wagmi v2→v3 upgrade landed mid-review). Without this, "still green" in AC-6 is unprovable.
-- [ ] **1.1** `packages/client/tsconfig.node.json`: drop the non-existent `"api"` include, fix `../../indexer/schema.graphql` → `../indexer/schema.graphql`, add `vite/**/*` so `social-preview.ts` is checked.
-- [ ] **1.2** `packages/client/tsconfig.test.json`: narrow `include` to test + story globs only (currently claims all of `src`, overlapping `tsconfig.app.json`), add the `@green-goods/shared*` path aliases, remove `baseUrl` **first** — TS 7.0.2 rejects it with `TS5102` before type-checking starts, so the test project cannot be measured until it is gone. Add Storybook types per decision 2. Expect ~79 previously-unchecked errors in `src/__tests__/**` to appear at this point.
-- [ ] **1.3** `packages/client/tsconfig.app.json`: exclude `**/*.stories.tsx`, raise `target`/`lib` to ES2022, resolve open decision B.
-- [ ] **1.4** `packages/shared/tsconfig.json`: add `composite: true` (required for `tsc -b` to reference it). Add `packages/admin/tsconfig.test.json` mirroring 1.2, **and add it to `packages/admin/tsconfig.json` references** (that file currently lists only app + node, so a new project is invisible to `tsc -b` without the entry). Admin's test error surface is unmeasured — expect it to appear here.
+- [x] **1.0** Record the baseline before touching anything: current `bun run test` and `bun run build` result for client and admin, and a re-measured error count per project (see the freshness caveat in `spec.md` — a wagmi v2→v3 upgrade landed mid-review). Without this, "still green" in AC-6 is unprovable.
+- [x] **1.1** `packages/client/tsconfig.node.json`: drop the non-existent `"api"` include, fix `../../indexer/schema.graphql` → `../indexer/schema.graphql`, add `vite/**/*` so `social-preview.ts` is checked.
+- [x] **1.2** `packages/client/tsconfig.test.json`: narrow `include` to test + story globs only (currently claims all of `src`, overlapping `tsconfig.app.json`), add the `@green-goods/shared*` path aliases, remove `baseUrl` **first** — TS 7.0.2 rejects it with `TS5102` before type-checking starts, so the test project cannot be measured until it is gone. Add Storybook types per decision 2. Expect ~79 previously-unchecked errors in `src/__tests__/**` to appear at this point.
+- [x] **1.3** `packages/client/tsconfig.app.json`: exclude `**/*.stories.tsx`, raise `target`/`lib` to ES2022, resolve open decision B.
+- [x] **1.4** `packages/shared/tsconfig.json`: add `composite: true` (required for build mode). Add `packages/admin/tsconfig.test.json` mirroring 1.2, **and add it to `packages/admin/tsconfig.json` references**. Shared remains an independently checked package rather than a consumer project reference, per decision E.
 - [x] **1.5** Fix the `GardenAssessment` cluster — 46 of client's 80 errors, in `views/Home/Garden/Assessment.tsx` (27) and `components/Features/Garden/Assessments.tsx` (19). Resolve open decision A first, then enumerate the shared type's consumers across admin and indexer before editing.
-- [ ] **1.6** Fix the `Address` cluster — ~30 sites using `string` where `` `0x${string}` `` is required. This is the root `AGENTS.md` `Address` invariant.
-- [ ] **1.7** Fix the remaining client errors (~4 files, single-digit counts each).
-- [ ] **1.8** Fix admin's 52 real errors.
-- [ ] **1.8b** Fix the test-project errors surfaced by 1.2 and 1.4 — ~79 in client `src/__tests__/**`, admin count unknown. These have never been type-checked. Gated on decision E: this step disappears entirely if `-p tsconfig.app.json` is chosen.
-- [ ] **1.9** Flip both build scripts: `tsc --noEmit` → `tsc -b` in `packages/client/package.json` and `packages/admin/package.json`.
-- [ ] **1.10** Re-run the probe: append a deliberate type error to a client source file, confirm `bun run build` **fails**, remove it. This is the acceptance proof for the whole phase.
+- [x] **1.6** Fix the `Address` cluster — ~30 sites using `string` where `` `0x${string}` `` is required. This is the root `AGENTS.md` `Address` invariant.
+- [x] **1.7** Fix the remaining client errors (~4 files, single-digit counts each).
+- [x] **1.8** Fix admin's 52 real errors.
+- [x] **1.8b** Fix the test-project errors surfaced by 1.2 and 1.4. Client and admin app, node, and test projects now report zero errors.
+- [x] **1.9** Flip both build scripts: `tsc --noEmit` → `tsc -b` in `packages/client/package.json` and `packages/admin/package.json`.
+- [x] **1.10** Re-run the probe: append a deliberate type error to a client and admin source file, confirm each package build **fails**, then remove both probes. This is the acceptance proof for the whole phase.
 
 ## Phase 2 — Client layout (lane: `ui`, after Phase 1)
 
 Lands after Phase 1 so the restored typecheck catches every broken import.
 
-- [ ] **2.1** Move `src/modules/webmcp/public-tools.ts` → `src/webmcp.ts`; move its test → `src/__tests__/webmcp.test.ts`; update `main.tsx:14`; delete `src/modules/`.
-- [ ] **2.2** Resolve the `config.ts` / `config/` ambiguity: move `src/config.ts` → `src/config/ipfs.ts`, add `src/config/index.ts` that re-exports and runs the side effect, update `main.tsx:17`.
-- [ ] **2.2b** Finish the original "all configs in the config folder" ask: `src/router.config.tsx` is a 9 KB file literally named `.config` sitting at `src/` root, with `src/router.tsx` (384 bytes) as a thin wrapper that only does `import { appRoutes } from "./router.config"`. Either move it to `src/config/routes.tsx`, or fold the 384-byte wrapper into it and keep one file. Consumers to update: `router.tsx`, `views/PublicBrowserSurfaces.stories.tsx`, and a doc reference in `components/Errors/RouteErrorBoundary.tsx`.
-- [ ] **2.3** Rename 8 kebab-case modules to camelCase: `config/pwa-routing` → `pwaRouting`, `config/pwa-manifest` → `pwaManifest`, `routes/presentation-mode` → `presentationMode`, `routes/receipt-token` → `receiptToken`, `routes/toast-variant` → `toastVariant`, `views/Home/arrival-toast` → `arrivalToast`, `views/Home/WorkDashboard/work-dashboard-utils` → `workDashboardUtils`, `views/Public/garden-query-resolution` → `gardenQueryResolution`. Use `git mv` so history follows.
-- [ ] **2.4** Dedupe the identical scroll constant: `views/Home/CommitmentsDrawer/classnames.ts` and `views/Home/WalletDrawer/classnames.ts` both export `"min-h-0 flex-1 overflow-y-auto"`. Collapse to one constant — **client-local** (e.g. `src/styles/`), *not* `@green-goods/shared`. Tailwind v4 does not scan `packages/shared/src/` from the client build, so a class string moved there may not generate (see the gotcha in root `AGENTS.md`). Low risk in this specific case — `min-h-0`, `flex-1`, and `overflow-y-auto` each appear in 12 / 50 / 26 other client files — but the rule holds regardless.
-- [ ] **2.5** Placement fixes (documented per maintainer request):
+- [x] **2.1** Move `src/modules/webmcp/public-tools.ts` → `src/webmcp.ts`; move its test → `src/__tests__/webmcp.test.ts`; update `main.tsx:14`; delete `src/modules/`.
+- [x] **2.2** Resolve the `config.ts` / `config/` ambiguity: move `src/config.ts` → `src/config/ipfs.ts`, add `src/config/index.ts` that re-exports and runs the side effect, update `main.tsx:17`.
+- [x] **2.2b** Move the root router config to `src/config/routes.tsx` and update its consumers and documentation reference.
+- [x] **2.3** Rename the selected kebab-case modules to camelCase. `garden-return-focus.ts` was also renamed to `gardenReturnFocus.ts` so the enforced naming rule and neighboring modules agree.
+- [x] **2.4** Dedupe the identical scroll constant into client-local `components/Pwa/drawerScrollStyles.ts`; no class string moved into Shared.
+- [x] **2.5** Placement fixes (documented per maintainer request):
   - `styles/pwaDrawerStyles.ts` + `styles/pwaStatusStyles.ts` — TS modules in an otherwise-CSS folder.
   - `views/Garden/mediaAnalytics.ts` — analytics in a view folder; all other analytics lives in `shared/src/modules/app/analytics-events.ts`.
   - `components/Public/vaultCheckoutShell.tsx` — camelCase `.tsx` among PascalCase siblings, exporting both constants and components.
   - `components/WalletConnectButton.tsx` — the only loose component at `components/` root.
   - `components/Public/` — 33 flat files while every other category is grouped; the six `Vault*` files are the obvious first subfolder.
   - `components/Cards/Base/Card.tsx` — three directory levels for one file.
-- [ ] **2.6** Remove dead exports: `WorkCard`, `WorkCardProps`, `WorkCardItem` from `components/Cards/Work/WorkCard.tsx` (keep `MinimalWorkCard`, which is live), plus the `Cards` barrel entries and the dead half of `__tests__/components/WorkCard.test.tsx`. Remove `AvatarRootProps` and `AvatarVariantProps`.
-- [ ] **2.7** Rename client's `buttonVariants` in `components/Actions/Button/Base.tsx` to end the name collision with shared's exported `buttonVariants`.
-- [ ] **2.8** Staged-code marker: apply the decision-D syntax to `VaultCardEndowFlow.tsx`, `VaultCardPaymentPanel.tsx`, `VaultCardWalletManage.tsx`; add a Storybook story per component so decay is visible; keep all three inside the typecheck.
+- [x] **2.6** Remove dead exports: `WorkCard`, `WorkCardProps`, `WorkCardItem` from `components/Cards/Work/WorkCard.tsx` (keep `MinimalWorkCard`, which is live), plus the `Cards` barrel entries and the dead half of `__tests__/components/WorkCard.test.tsx`. Remove `AvatarRootProps` and `AvatarVariantProps`.
+- [x] **2.7** Rename client's `buttonVariants` in `components/Actions/Button/Base.tsx` to end the name collision with shared's exported `buttonVariants`.
+- [x] **2.8** Apply the canonical staged marker and manifest to the three staged Vault components and their helper; add one real-render Storybook story per component; keep the full staged set inside the test project typecheck.
 - [ ] **2.9** *(optional, gated on open decision C)* Rename `views/Garden/` to reflect that it is the work-capture flow, distinct from `views/Home/Garden/`.
 
 ## Phase 3 — Agent guide (lane: `docs`)
@@ -126,39 +128,39 @@ grandfathering heuristic false positives across untouched code.
 
 | Requirement | Lane | Planned Step | Status |
 |---|---|---|---|
-| `tsc -b` replaces `tsc --noEmit`, projects correctly scoped | `state_api` | 1.1–1.4, 1.9 | ⏳ |
-| All 132 real type errors fixed, not suppressed | `state_api` | 1.5–1.8 | ⏳ |
-| No `modules/` dir, no kebab-case filenames in client | `ui` | 2.1, 2.3 | ⏳ |
-| Staged components carry a marker and a story | `ui` | 2.8 | ⏳ |
-| Dead exports removed; `buttonVariants` collision resolved | `ui` | 2.6, 2.7 | ⏳ |
+| `tsc -b` replaces `tsc --noEmit`, projects correctly scoped | `state_api` | 1.1–1.4, 1.9 | ✅ Phase 1 |
+| All 132 real type errors fixed, not suppressed | `state_api` | 1.5–1.8 | ✅ Phase 1 |
+| No `modules/` dir, no kebab-case filenames in client | `ui` | 2.1, 2.3 | ✅ Phase 2 |
+| Staged components carry a marker and a story | `ui` | 2.8 | ✅ Phase 2 |
+| Dead exports removed; `buttonVariants` collision resolved | `ui` | 2.6, 2.7 | ✅ Phase 2 |
 | `AGENTS.md` agent-neutral, deduped, complete | `docs` | 3.1–3.7 | ✅ Phase 3 |
 | Structure gate enforces placement, naming, layering | `docs` | 4.1–4.6 | ✅ Phase 4 |
 
 ## TDD / Proof Order
 
-- [ ] Phase 1's behavior boundary is the build gate itself. RED = the probe passing today (already captured in `spec.md`); GREEN = step 1.10, the same probe failing the build.
-- [ ] Phase 2 is a refactor with no behavior change — proof is the restored typecheck plus the existing client suite staying green. Record lane TDD mode as `not_applicable` with that note.
+- [x] Phase 1's behavior boundary is the build gate itself. RED = the probe passing under the former no-op build; GREEN = step 1.10, the same probe failing both package builds with `TS2322` and `TS6133`.
+- [x] Phase 2 is a refactor with no behavior change — proof is the restored typecheck plus the existing client suite staying green. The lane retains machine-readable `not_applicable` mode with that note.
 - [x] Phase 3 prose is documentation; the new duplicate-policy guard used RED/GREEN fixture proof recorded in the docs handoff.
 - [x] Phase 4 adds a gate; RED = the fixture import failing before the checker exported the policy API, GREEN = nine policy fixtures plus the whole-tree gate passing with the exact shrinking baseline.
-- [ ] Record machine-readable proof with `node scripts/harness/plan-hub.mjs record-tdd`
+- [x] Record machine-readable Phase 1 proof with `node scripts/harness/plan-hub.mjs record-tdd`
 
 ## Lane Checklists
 
 ### State / API (Phase 1)
 
-- [ ] Resolve open decisions A and B before editing types (A resolved; B remains open)
+- [x] Resolve open decisions A and B before editing types
 - [x] Enumerate `GardenAssessment` consumers across admin and indexer before changing the shared type
-- [ ] Keep hooks in shared
-- [ ] Record RED/GREEN proof (the probe) before marking the lane complete
-- [ ] Write `handoffs/codex-state-api.md`
+- [x] Keep hooks in shared
+- [x] Record RED/GREEN proof (the probe) before marking the lane complete
+- [x] Write `handoffs/codex-state-api.md`
 
 ### UI (Phase 2)
 
-- [ ] Use `git mv` for every rename so history follows
-- [ ] No user-facing strings change — confirm `lint:vocab` is untouched
-- [ ] Confirm Tailwind class-scanning is unaffected by any file move (see the shared-scan gotcha in root `AGENTS.md`)
-- [ ] Record `not_applicable` TDD mode with a concrete note
-- [ ] Write `handoffs/claude-ui.md`
+- [x] Preserve rename identity for every move. This environment denied `.git/index.lock`, so files were moved in the working tree and are presented as delete/add until the maintainer stages them; Git can detect the renames at commit time.
+- [x] No live user-facing string changed; the only added copy is Storybook fixture metadata, and `lint:vocab` passes.
+- [x] Tailwind class-scanning is unaffected: the shared drawer class stays under `packages/client/src/`.
+- [x] Retain `not_applicable` TDD mode with a concrete refactor note.
+- [x] Write `handoffs/claude-ui.md`
 
 ### Docs (Phases 3–4)
 
@@ -168,18 +170,18 @@ grandfathering heuristic false positives across untouched code.
 
 ### QA Pass 1
 
-- [ ] Verify acceptance criteria from `eval.md`
-- [ ] Write `handoffs/claude-qa-pass-1.md`
+- [x] Verify acceptance criteria from `eval.md`
+- [x] Write `handoffs/claude-qa-pass-1.md`
 
 ### QA Pass 2
 
-- [ ] Review regressions and implementation edges
-- [ ] Write `handoffs/codex-qa-pass-2.md`
+- [x] Review regressions and implementation edges
+- [x] Write `handoffs/codex-qa-pass-2.md`
 
 ## Validation
 
-- [ ] `bun format && bun lint`
-- [ ] `bun run test`
-- [ ] `VITE_CHAIN_ID=11155111 bun run build`
+- [x] `bun format && bun lint`
+- [x] `bun run test`
+- [x] `VITE_CHAIN_ID=11155111 bun run build`
 - [x] `bun run check:source-structure`
-- [ ] `node scripts/quality/check-codex-docs.js`
+- [x] `node scripts/quality/check-codex-docs.js`

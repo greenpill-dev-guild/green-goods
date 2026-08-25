@@ -1,6 +1,6 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { RemixiconComponentType } from "@remixicon/react";
-import { Card, type CardRootProps } from "../Base/Card";
+import { Card, type CardRootProps } from "../Card";
 
 interface FormCardProps {
   label: string;
