@@ -7,25 +7,20 @@ import {
   usePublicCommitmentImpact,
 } from "@green-goods/shared/commitment-pooling";
 import { useIntl } from "react-intl";
-import {
-  EditorialHeading,
-  EditorialKicker,
-  EditorialLede,
-  EditorialLinkArrow,
-  EditorialPanel,
-} from "./atoms";
+import { EditorialHeading, EditorialKicker, EditorialLede, EditorialLinkArrow } from "./atoms";
 import { formatKeptRate } from "./keptRate";
 import { type PublicProofMarker, PublicProofMarkers } from "./PublicProofMarkers";
 
 /**
  * `/impact` § 02 — protocol-wide commitment aggregates (uiux-spec §7.3).
  *
- * The section header sits on the linen like § 01 and § 04; the record is one
- * `EditorialPanel` holding four markers in the § 01 proof-marker grammar —
+ * Header and record both sit on the linen like § 01 and § 04 — the
+ * 2026-08-25 supersession of the PR-748 `EditorialPanel` choice; nothing on the
+ * band is card-wrapped. Four markers in the § 01 proof-marker grammar —
  * Gardens with open pools, lifetime commitments fulfilled across every
  * registered pool, the share of taken-up commitments kept, and CCIP-confirmed G$
  * support — then one lifecycle sentence and a way into `/gardens` as the
- * panel's footer line. No per-garden table, comparison, or ordering of any
+ * record's footer line. No per-garden table, comparison, or ordering of any
  * kind: public comparison drifts toward ranking (§7.4).
  *
  * Honesty rules this band enforces:
@@ -192,7 +187,10 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
           </EditorialHeading>
         </header>
 
-        <EditorialPanel className="mt-10">
+        {/* Markers sit directly on the linen (AD-8): the header's hairline
+            opens the record, the footer line's hairline closes it. min-h keeps
+            an unavailable or empty record holding its place (AD-11). */}
+        <div className="mt-10 min-h-40">
           <PublicProofMarkers layout="panel" markers={[openPools, fulfilled, kept, support]} />
           {data?.partialData || failed ? (
             <p role="status" className="mt-6 max-w-xl text-sm leading-relaxed text-text-sub-600">
@@ -203,7 +201,7 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
               })}
             </p>
           ) : null}
-          <div className="mt-8 flex flex-col gap-5 border-t border-stroke-soft-200 pt-6 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
+          <div className="mt-10 flex flex-col gap-5 border-t border-stroke-soft-200 pt-6 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
             <EditorialLede className="max-w-2xl">
               {formatMessage({
                 id: "public.pool.impact.lifecycle",
@@ -218,7 +216,7 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
               })}
             </EditorialLinkArrow>
           </div>
-        </EditorialPanel>
+        </div>
       </div>
     </section>
   );

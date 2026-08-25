@@ -27,9 +27,10 @@ export interface PublicProofMarker {
 
 /**
  * `strip` is the § 01 proof-marker strip on the canvas: four across, the
- * page's largest numerals. `panel` is the same four markers inside an
- * `EditorialPanel`, at the panel numeral scale so the figures read as a
- * record beside prose rather than as a dashboard.
+ * page's largest numerals. `panel` is the same four markers at the smaller
+ * record scale, used where the figures read as a record beside prose rather
+ * than as a dashboard (§ 02 composes them directly on the linen since the
+ * 2026-08-25 panel supersession — the name keeps the scale, not a surface).
  */
 const LAYOUT_CLASS = {
   strip: {
