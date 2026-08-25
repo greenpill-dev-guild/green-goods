@@ -82,7 +82,7 @@ function cycleCarriesPlannedTerms(
   return (
     stored.gardeners === planned.gardeners &&
     stored.treasury === planned.treasury &&
-    stored.steward === planned.steward &&
+    stored.operator === planned.operator &&
     stored.evaluator === planned.evaluator &&
     stored.community === planned.community &&
     stored.funder === planned.funder &&
