@@ -234,8 +234,19 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
               required={required}
               placeholder={placeholder}
               aria-required={required}
-              aria-invalid={hasError}
-              aria-describedby={supportingText ? supportingId : undefined}
+              // Merged, not clobbered: a caller may mark the field against a
+              // group-level error (AllocationEditor's sum) through inputProps,
+              // and both describedby ids stay attached.
+              aria-invalid={
+                hasError || inputProps?.["aria-invalid"] === true
+                  ? true
+                  : (inputProps?.["aria-invalid"] ?? undefined)
+              }
+              aria-describedby={
+                [supportingText ? supportingId : null, inputProps?.["aria-describedby"]]
+                  .filter(Boolean)
+                  .join(" ") || undefined
+              }
               onChange={handleChange}
               onFocus={handleFocus}
               onBlur={handleBlur}
