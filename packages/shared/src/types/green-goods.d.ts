@@ -546,8 +546,8 @@ export type introspection_types = {
           ofType: { kind: "SCALAR"; name: "String"; ofType: null };
         };
       };
-      stewards: {
-        name: "stewards";
+      operators: {
+        name: "operators";
         type: {
           kind: "NON_NULL";
           name: never;
@@ -687,7 +687,7 @@ export type introspection_types = {
         defaultValue: null;
       },
       {
-        name: "stewards";
+        name: "operators";
         type: { kind: "INPUT_OBJECT"; name: "String_array_comparison_exp"; ofType: null };
         defaultValue: null;
       },
@@ -771,7 +771,7 @@ export type introspection_types = {
       },
       { name: "name"; type: { kind: "ENUM"; name: "order_by"; ofType: null }; defaultValue: null },
       {
-        name: "stewards";
+        name: "operators";
         type: { kind: "ENUM"; name: "order_by"; ofType: null };
         defaultValue: null;
       },
@@ -804,7 +804,7 @@ export type introspection_types = {
       | "id"
       | "location"
       | "name"
-      | "stewards"
+      | "operators"
       | "tokenAddress"
       | "tokenID";
   };
@@ -933,7 +933,7 @@ export type introspection_types = {
       },
       { name: "name"; type: { kind: "SCALAR"; name: "String"; ofType: null }; defaultValue: null },
       {
-        name: "stewards";
+        name: "operators";
         type: {
           kind: "LIST";
           name: never;

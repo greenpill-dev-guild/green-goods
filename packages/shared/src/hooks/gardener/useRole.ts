@@ -14,7 +14,7 @@ const GET_STEWARD_GARDENS = greenGoodsGraphQL(/* GraphQL */ `
     Garden(
       where: {
         chainId: { _eq: $chainId }
-        _or: [{stewards: {_contains: $steward}}, {owners: {_contains: $steward}}]
+        _or: [{operators: {_contains: $steward}}, {owners: {_contains: $steward}}]
       }
     ) {
       id

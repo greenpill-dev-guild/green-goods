@@ -143,9 +143,9 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
         const validAddress = sanitized as Address;
         const { form } = get();
 
-        // Check if already an operator (case-insensitive via checksummed comparison)
+        // Check if already a steward (case-insensitive via checksummed comparison)
         if (form.stewards.includes(validAddress)) {
-          return { success: false, error: "Address already added as operator" };
+          return { success: false, error: "Address already added as steward" };
         }
 
         set((state) =>
