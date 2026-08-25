@@ -1,0 +1,138 @@
+{
+  "targetSha": "fc27a5b000fd8ab8674ac5a6dea159a0a602234b",
+  "browser": "authenticated Brave via Codex browser extension",
+  "query": "mockAuth=user&presentation=pwa&mockPooling=1",
+  "garden": "0xf401f34378384713222d1d21f63359cc4E8a858a",
+  "result": "PASS",
+  "console": {
+    "invalidNestingHydrationUncaughtGardenNotFoundMatches": 0
+  },
+  "fixtures": [
+    {
+      "id": 1001,
+      "title": "Compost delivery to the beds",
+      "state": "Open for someone to take up",
+      "result": "PASS"
+    },
+    {
+      "id": 1002,
+      "title": "Prune the north beds",
+      "state": "Your offer is live",
+      "result": "PASS"
+    },
+    {
+      "id": 1003,
+      "title": "Two seed-saving sessions",
+      "state": "Someone is asking for help",
+      "result": "PASS"
+    },
+    {
+      "id": 1004,
+      "title": "Meals for the work day",
+      "state": "Someone is asking for help; waiting for steward review",
+      "result": "PASS"
+    },
+    {
+      "id": 1005,
+      "title": "Fix the rain barrel tap",
+      "state": "Claim declined with reason and Ask again exit",
+      "result": "PASS"
+    },
+    {
+      "id": 1006,
+      "title": "Ride to the nursery",
+      "state": "Taken by another provider; Back to the pool exit",
+      "result": "PASS"
+    },
+    {
+      "id": 1007,
+      "title": "Plant the agroforestry strip",
+      "state": "Partly approved; team, Work, and proof actions",
+      "result": "PASS"
+    },
+    {
+      "id": 1008,
+      "title": "Tool sharpening sessions",
+      "state": "Proof added; Send for confirmation",
+      "result": "PASS"
+    },
+    {
+      "id": 1009,
+      "title": "Ride to the market",
+      "state": "Ready for the recipient to confirm",
+      "result": "PASS"
+    },
+    {
+      "id": 1010,
+      "title": "Clear the south path",
+      "state": "Request ready for the requester to confirm",
+      "result": "PASS"
+    },
+    {
+      "id": 1011,
+      "title": "Meals for the spring planting",
+      "state": "Kept by ordinary confirmation",
+      "result": "PASS"
+    },
+    {
+      "id": 1012,
+      "title": "Mulch the orchard rows",
+      "state": "Kept by garden-steward fallback with actor, path, and reason",
+      "result": "PASS"
+    },
+    {
+      "id": 1013,
+      "title": "Repair the compost bay",
+      "state": "Lapsed; Offer it again exit",
+      "result": "PASS"
+    },
+    {
+      "id": 1014,
+      "title": "Ride to the seed swap",
+      "state": "Withdrawn terminal state",
+      "result": "PASS"
+    },
+    {
+      "id": 1015,
+      "title": "Irrigation walkthrough",
+      "state": "Under review by stewards",
+      "result": "PASS"
+    },
+    {
+      "id": 1016,
+      "title": "Plant the hedge line",
+      "state": "Open team in progress",
+      "result": "PASS"
+    },
+    {
+      "id": 1017,
+      "title": "Clear and mulch the entrance beds",
+      "state": "Contributor view with Add proof",
+      "result": "PASS"
+    },
+    {
+      "id": 1018,
+      "title": "Field day recorded for Edu",
+      "state": "Recorded-for-person confirmer view",
+      "result": "PASS"
+    },
+    {
+      "id": 1019,
+      "title": "Fix the greenhouse door",
+      "state": "Named confirmer view",
+      "result": "PASS"
+    },
+    {
+      "id": 1020,
+      "title": "Compost delivery, taken up by the garden",
+      "state": "Garden counterparty view",
+      "result": "PASS"
+    },
+    {
+      "id": 1021,
+      "title": "Facilitation for a neighbouring garden",
+      "state": "Protocol-pool offer; claim available and member creation controls absent",
+      "result": "PASS"
+    }
+  ]
+}
