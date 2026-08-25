@@ -29,10 +29,10 @@
 | 9 | The voucher's unit is a **weighted contribution unit, not an hour** | Follows from #8. Hours stay unconverted in layer 1 forever |
 | 10 | Three valuation layers: record (native units) / commensuration (declared) / exchange — and a layer-2 change **never** rewrites layer 1 | The difference between a group revising its values and a group retroactively revaluing people's past contributions |
 | 11 | Basis is **time**, for v1 | Education is unusually time-legible. Prove the basis where it works before stressing it |
-| 12 | `ValuationPolicy` is a cycle snapshot frozen at `CycleOpened`, keyed to action UIDs or domains, never identities | Follows the proven `AllocationBps` / `RecognitionPolicy` pattern exactly. Freeze-at-open is the consent mechanism |
+| 12 | `ValuationPolicy` is a cycle snapshot frozen at `CycleOpened`, keyed to action UIDs or domains, never identities, and carrying `version` + `authority` + `rationaleCID` as mandatory fields | Follows the `AllocationBps` / `RecognitionPolicy` freeze-at-open pattern, which is the consent mechanism. The three identity fields are additional to that pattern and required by §2.2–§2.3: without them nothing can prove the table a mint was weighted by is the table the steward froze |
 | 13 | Stewards hold the pen; gardeners get **see-before-commit** plus a **two-sided align/dissent signal** | Afo's call. Consultation and ratification deferred — but see #14 |
-| 14 | The two-sided signal reuses the `NeedSignal` primitive | Same shape, different object. One mechanism, not two |
-| 15 | Add `PoolType.GardenToGarden` and `PoolType.Community`, inert, now | Precedent: `DisbursementKind.LoanPrincipal` shipped as an unqueueable enum member. Avoids a later upgrade |
+| 14 | The two-sided signal follows the `NeedSignal` **pattern** as a sibling schema and resolver branch — it does not reuse that schema UID | Corrected 2026-08-25. The NeedSignal resolver branch fails closed: `refUID` must resolve to an attestation with the exact Need schema and the same recipient, so a valuation-policy UID is rejected and nothing is recorded. One pattern and one UI, two schemas. See `spec.md` §2.3 |
+| 15 | `PoolType` gains `GardenToGarden` and `Community` — but **only together with guards and consumer updates**, never appended bare | Corrected 2026-08-25. The `LoanPrincipal` precedent relies on a fail-closed consumer, which `PoolType` does not have: `PoolsLib.sol:43` sends every non-`Protocol` value down the `Garden` path, so a bare append silently grants garden-steward semantics. `ConsiderationRail` *is* fail-closed (`CreationChecksLib.sol:286` reverts on an unhandled rail) and may be appended ahead of use. See `spec.md` §3 |
 | 16 | Spin up a pool when **membership differs from the garden**; otherwise use a cycle | A cohort including non-members is a pool; the same people doing focused work is a cycle. Keeps the common case simple |
 | 17 | **Never build a global cross-pool rate table** | Each pool decides what it accepts and at what rate *to itself*. A shared index would break the no-universal-price guardrail and foreclose federation simultaneously |
 | 18 | Federation starts hub-and-spoke through the Protocol pool, not mesh | N rates instead of N². The Protocol pool already exists and is already cross-garden |
@@ -45,6 +45,7 @@
 
 | Question | Blocks |
 |---|---|
+| **Where does a per-contributor quantity come from?** Work-record field, per-contributor units on the commitment, or single-contributor-only for v1 | **Everything.** `spec.md` §2.0 — layer 1 does not exist on chain today, so weighted minting cannot be specified until this is chosen. Only the third option fits the hackathon window |
 | Does learning count, and at what weight relative to facilitating? | The whole education weights table. Values decision, not technical |
 | Do concurrent campaigns need a bound? | Slice 2. The exit check ("a campaign nobody joins is inert") may suffice at hub scale |
 | Does `GiftableToken.burn` survive expiry? | Slice 0 fork verification. Determines whether a redemption path survives an expired class |
@@ -93,8 +94,12 @@ bilateral, the finding is that the token was not needed, and that is a valid res
 - `networks.json` Gnosis (100) entry: RPC, explorer, CCIP router and selector `465200170687744372`.
 - Read-only CLC client in `shared`: resolve registry, read listing state, limit, quoted rate, fee
   configuration and pool inventory for a given token.
-- `PoolType.GardenToGarden` and `PoolType.Community` appended inert; `ConsiderationRail` Gnosis
-  member appended inert.
+- `ConsiderationRail` Gnosis member appended ahead of use — safe, because the rail dispatch is
+  fail-closed.
+- **`PoolType` stays two-valued in this slice.** Adding `GardenToGarden` or `Community` requires a
+  per-value contract guard replacing the `else` fallthrough, plus indexer, GraphQL-schema,
+  shared-type and client mappings and round-trip coverage, all in one change. That belongs to
+  Slice 6+, not here. See decision 15.
 
 **Exit**: Green Goods can read the live CLC pool's state and render it. Nothing is written anywhere.
 
@@ -102,18 +107,28 @@ bilateral, the finding is that the token was not needed, and that is a valid res
 
 **Arbitrum + app layer. Green Goods-native — no CLC dependency. Valuable standalone.**
 
-Two implementation shapes, and the cheap one is genuinely viable for a pilot:
+**Blocking prerequisite**: `spec.md` §2.0. There is no per-contributor quantity anywhere on chain,
+so layer 1 as the architecture describes it does not yet exist. Slice 2 must pick one of the three
+resolutions there before Slice 4 is dispatchable.
+
+`spec.md` §2.1 defines the **contract** — the five mandatory fields and freeze-at-open semantics.
+2a and 2b are two **carriers** of that same contract, not competing architectures; decision 12
+governs the contract, the slice governs the carrier. Phase B selects 2a. Whichever carrier ships,
+the fields and their immutability are identical.
 
 - **2a — `metadataCID`-carried.** The weights table is published in the cycle's existing
   `metadataCID`, frozen at open by convention and enforced by the indexer. No contract change, no
-  upgrade, no gate. Preserves the semantics that matter: published, versioned, frozen at open,
-  authority named.
+  upgrade, no gate. Requires a **mandatory, versioned schema** carrying `version`, `authority`,
+  `rationaleCID`, `basis` and `weights` — see `spec.md` §2.1. A table missing any of those cannot be
+  proven to be the one the steward froze, and the indexer must reject it rather than project a
+  partial policy.
 - **2b — on-chain struct.** `ValuationPolicy` as a third `Cycle` snapshot emitted in `CycleOpened`,
-  alongside `AllocationBps` and `RecognitionPolicy`. A UUPS upgrade to a deployed, unpaused module,
-  with every gate that implies.
+  alongside `AllocationBps` and `RecognitionPolicy`, carrying the same five fields. A UUPS upgrade
+  to a deployed, unpaused module, with every gate that implies.
 
 Plus, in either shape: steward authoring UI in admin; see-before-commit surface in client; the
-two-sided align/dissent signal reusing `NeedSignal`; indexer entities; i18n with en/es/pt mirrors.
+two-sided align/dissent signal as a `NeedSignal`-pattern sibling schema and resolver branch
+(decision 14); indexer entities; i18n with en/es/pt mirrors.
 
 **Exit**: a garden can declare, publish and freeze a weighted valuation for a cycle, gardeners can
 see it before committing and register alignment or dissent, and the signal aggregate is readable.
@@ -142,15 +157,33 @@ fulfilment figures trace to counterparty confirmations on Arbitrum.
 
 - Gnosis `GiftableToken` class per campaign, `expiresAt = 0`, Green Goods as owner, mint adapter as
   `writer`.
-- Mint adapter: reads eligible fulfilment facts, applies the frozen cycle weights, prevents double
-  consumption of the same facts.
+- Mint adapter: reads eligible fulfilment facts, applies the frozen cycle weights, and enforces the
+  replay invariant below.
+- **Replay invariant.** Each authorization carries a stable `authorizationId` derived from the facts
+  it consumes — pool, cycle, commitment set, policy version — not from the message that carried it.
+  The Gnosis receiver records the consumed `authorizationId` **and** the CCIP `messageId` atomically
+  with the mint, and rejects both a repeated `messageId` and a distinct message reusing a consumed
+  `authorizationId`. This is the `CeloGardenAccountRelay` shape:
+  [`processedMessages[messageId]`](../../../packages/contracts/src/accounts/CeloGardenAccountRelay.sol)
+  plus `actionStatus[actionId]`, `nextActionNonce`, and a stored action digest, guarded by
+  `CcipMessageReplay`, `InvalidActionNonce` and `ActionHashMismatch`. Message-level dedup alone is
+  insufficient — CCIP can deliver the same authorization under a new `messageId` after a retry.
 - CCIP Arbitrum → Gnosis lane: executor deployment, published and verified lane, reviewed UUPS
   upgrade — following `SettlementMessageCodec` and `CeloGardenAccountRelay` patterns.
-- Gnosis GardenAccount deployment: sibling of `CeloGardenAccountDeploymentCoordinator`, same
-  exact-address CREATE2 technique; Pimlico Gnosis bundler and paymaster configuration.
+- **Two distinct account paths — do not conflate them.**
+  - *Garden* accounts: sibling of `CeloGardenAccountDeploymentCoordinator`, same exact-address
+    CREATE2 technique. That coordinator deploys exactly `GARDEN_COUNT = 18` ERC-6551 accounts keyed
+    by `GardenToken` token IDs. It produces **garden organisation accounts and nothing else.**
+  - *Gardener* accounts: individual contributors authenticate with per-person Pimlico Kernel
+    accounts ([`auth-passkey-adapters.ts`](../../../packages/shared/src/workflows/auth-passkey-adapters.ts)),
+    a completely different derivation. Vouchers minted to individuals land here, not in a garden
+    account, so the Kernel-account Gnosis derivation and deployment path must be specified and
+    proven on its own. Reusing the coordinator would reproduce garden accounts and silently mint to
+    the wrong recipients.
+- Pimlico Gnosis bundler and paymaster configuration and funding, for the gardener path.
 
 **Exit**: a confirmed contribution on Arbitrum produces a weighted, Gnosis-native voucher held by
-the contributor at their same-address account.
+the contributor in their own Gnosis Kernel account.
 
 ### Slice 5 — Listing, exchange, redemption
 
@@ -165,6 +198,25 @@ the contributor at their same-address account.
 - Outstanding-obligation figure published.
 
 **Exit**: a voucher moves through a third party and is redeemed, with the whole path traceable.
+
+**Venue availability constrains where this slice can run.** Cosmo-Local Credit publishes a Gnosis
+**mainnet** deployment only (`resources.md`); no Chiado addresses exist, and pool proxy instances
+require separate discovery even on mainnet. So Slice 5 splits:
+
+- **5a, testnet-provable** — the exchange *mechanics* against a Chiado venue we stand up ourselves.
+  A repo-wide search finds no CLC Chiado address, config, artifact, or deploy command, so this is
+  not a matter of looking one up. The path has to be built, and Slice 1 must produce it:
+  deploy the published implementations to Chiado with their `ge-publish` tool run **externally**
+  (never vendored — `docs/DEPLOY.md` gives the exact command sequence and requires
+  `--admin != --owner`), record the resulting addresses in `networks.json` and a deployment
+  artifact, and pin them here. Interface-conformant mocks are the fallback if that proves
+  impractical inside the window. Either way the venue is ours, not CLC's.
+- **5b, mainnet-only** — real CLC venue *behaviour*: their quoter's rates, their limiter's caps,
+  their fee policy, and de-listing with a held balance. None of it is observable on a venue we
+  control, so none of it can be proven in Phase C.
+
+Decision 4 commits to transacting against their live deployment. That deployment is mainnet, and
+mainnet is gated. 5b therefore lands in Phase D or later, never in the hackathon.
 
 ### Slice 6+ — Later, each separately gated
 
@@ -183,15 +235,16 @@ the contributor at their same-address account.
 |---|---|---|
 | **A — Understand and decide** | now → mid Sept | Slice 0 |
 | **B — Foundations** | Sept → 15 Oct | Slice 1, Slice 2a |
-| **C — Hackathon** | 16–27 Oct | Slice 4 + minimal Slice 5 on **Gnosis Chiado testnet** with fixture data; Slice 3 as the pitch surface |
+| **C — Hackathon** | 16–27 Oct | Slice 4 + Slice **5a** on **Gnosis Chiado**, against our own deployment of the published CPP implementations or interface-conformant mocks; Slice 3 as the pitch surface. Slice 5b is excluded — see Slice 5 |
 | **D — Pilot readiness** | Nov → Q1 | Legal (jurisdiction, transferable instrument, KYC tier), external audit, custody model, repair and insurance design, pilot-garden consent and governance, CLC partnership terms, mainnet gates |
 | **E — Later** | beyond | Slice 6+ |
 
 ### Explicitly **not** in the hackathon
 
 Mainnet anything. Real value. Custody. Slice 2b's contract upgrade. Credit and negative balances.
-Cross-garden routing. `GardenToGarden` or `Community` pools in use. Multi-steward authority.
-Community-app pool integration.
+Cross-garden routing. `GardenToGarden` or `Community` pool types — added at all, let alone in use.
+Multi-steward authority. Community-app pool integration. **Slice 5b — any claim about the live CLC
+venue's rates, limits, fees, or de-listing behaviour**, since that venue exists only on mainnet.
 
 The hackathon deliverable the organisers actually ask for is *"MVPs, platform concepts, and customer
 journeys"* — not a deployed protocol. An honest testnet loop plus the funder surface is a stronger
@@ -205,7 +258,8 @@ submission than a rushed mainnet claim, and it does not spend gates that cannot 
   encode/decode against `docs/SPEC.md` shapes; `ValuationPolicy` freeze semantics.
 - **Integration**: cycle open → weighted mint authorization → CCIP command → Gnosis mint, on forked
   Arbitrum and Chiado; MCC profile assembly from indexer output.
-- **Fork**: exact-address GardenAccount derivation on Gnosis; `GiftableToken` expiry and burn
+- **Fork**: exact-address GardenAccount derivation on Gnosis; gardener Kernel-account derivation and
+  deployment on Gnosis, proven separately; `GiftableToken` expiry and burn
   behavior; bounded-swap slippage and deadline paths; de-listing behavior with a held balance.
 - **E2E**: steward authors and freezes a valuation policy → gardener sees it → gardener commits →
   contribution confirmed → voucher appears → transfers to a third party → third party redeems.
@@ -227,7 +281,8 @@ submission than a rushed mainnet claim, and it does not spend gates that cannot 
 
 - `packages/contracts/src/interfaces/I{SwapPool,Limiter,Quoter,GiftableToken,TokenIndex}.sol`
 - Gnosis executor and mint-authorization adapter under `packages/contracts/src/modules/`
-- A Gnosis GardenAccount deployment coordinator, sibling of the Celo one
+- A Gnosis GardenAccount deployment coordinator, sibling of the Celo one, plus a separate gardener
+  Kernel-account derivation and deployment path
 - `shared` CLC read client and MCC profile assembler
 - Admin valuation-policy authoring views; client see-before-commit and signal surfaces
 - Public funder view

@@ -42,7 +42,11 @@ fit.
 - A gardener's confirmed contribution mints a Gnosis-native voucher they can transfer to someone
   else, who can use it.
 - A garden gets an effective credit line — how much of its voucher a pool will absorb — set by its
-  delivery record rather than by collateral it does not have.
+  delivery record rather than by collateral it does not have. **The evidence link is the promise, so
+  it needs a gate**: the limit request must cite named delivery figures (kept rate, distinct
+  providers, confirmed volume over a stated window) drawn from the pool passport, and that citation
+  must be recorded. Without it an arbitrary manually chosen cap satisfies every check while the
+  core outcome goes undemonstrated. See `eval.md` AC-13.
 - Value moves between gardens without converting to cash.
 - A funder inspects a garden's pool from outside Green Goods, with their own tools, against a
   machine-readable profile.

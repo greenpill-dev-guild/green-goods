@@ -175,7 +175,7 @@ someone else sets — the way a credit union sets one.
 
 ---
 
-## 7. Identity — resolved, with two caveats
+## 7. Identity — solved for gardens, open for gardeners
 
 `CeloGardenAccountDeploymentCoordinator` reconstructs the frozen CREATE2 dependency closure and
 deploys all 18 foreign-tuple GardenAccounts at their **exact Arbitrum addresses** on Celo in one
@@ -184,11 +184,26 @@ checks. `ACCOUNT_SALT` is constant; source chain pinned to 42161. Verified on pi
 PRD-821, with a target 2-of-3 Safe of GardenAccount + protocol recovery Safe + Dev Guild recovery
 Safe.
 
-Gnosis is a sibling deployment of proven tooling.
+For **garden organisation accounts**, Gnosis is a sibling deployment of proven tooling.
 
-**Caveat 1**: the coordinator is one-shot and chain-pinned by constant, so this is a new instance, not
-a reuse.
-**Caveat 2**: same *address* is not same *account*. The gardener's smart account still has to be
+**But that coordinator does not solve gardener identity, and vouchers for individuals go to
+gardeners.** It deploys exactly `GARDEN_COUNT = 18` ERC-6551 accounts keyed by `GardenToken` token
+IDs — garden organisation accounts and nothing else. Individual contributors authenticate with
+per-person Pimlico Kernel accounts
+([`auth-passkey-adapters.ts`](../../../packages/shared/src/workflows/auth-passkey-adapters.ts)), an
+entirely different derivation with its own cross-chain determinism question. Pointing the coordinator
+at the gardener path would reproduce garden accounts and mint to the wrong recipients.
+
+So the honest state is:
+
+| | Status |
+|---|---|
+| Garden accounts, same address across chains | **Proven** on pinned forks under PRD-821 |
+| Gardener Kernel accounts, same address across chains | **Unproven.** Plausible for a deterministic factory with a fixed salt, but not verified, and it is the path vouchers actually take |
+
+**Caveat 1**: the coordinator is one-shot and chain-pinned by constant, so Gnosis is a new instance,
+not a reuse.
+**Caveat 2**: same *address* is not same *account* on either path. The account still has to be
 deployed on Gnosis, and Pimlico needs its own Gnosis bundler and paymaster configuration and funding.
 Passkey userOps spend sponsorship per transaction.
 

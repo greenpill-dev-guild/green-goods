@@ -14,8 +14,9 @@ schedule milestones.
 | 1 — Interfaces + read bridgehead | Green Goods renders live CLC pool state. Zero writes, zero custody. No AGPL source in the tree |
 | 2 — `ValuationPolicy` + voice | A garden declares, publishes and freezes a weighted valuation; gardeners see it before committing and register alignment or dissent; layer-1 hour records provably unchanged by any layer-2 revision |
 | 3 — Pool passport | An external party inspects a Green Goods pool with their own tools; every fulfilment figure traces to counterparty confirmations on Arbitrum; no address enumeration on public surfaces |
-| 4 — Mint authorization | A confirmed Arbitrum contribution produces a weighted Gnosis-native voucher at the contributor's same-address account; the same facts cannot authorize a second mint |
-| 5 — Listing + exchange | A voucher moves through a third party and is redeemed, with the full path traceable and every failure mode (de-list, rate change, limit change, insolvency) handled explicitly |
+| 4 — Mint authorization | A confirmed Arbitrum contribution produces a weighted Gnosis-native voucher in the contributor's own Gnosis Kernel account; the same facts cannot authorize a second mint |
+| 5a — Exchange mechanics | A voucher moves through a third party and is redeemed, with the full path traceable, against our own Chiado deployment of the published CPP implementations or interface-conformant mocks |
+| 5b — CLC venue behaviour | Against the live mainnet venue: de-listing with a held balance, rate change mid-flight, limit exhaustion and pool insolvency each produce a defined, surfaced outcome. **Mainnet-only and gate-bound — not provable on a venue we control** |
 
 ## Release Gates
 
@@ -42,12 +43,15 @@ schedule milestones.
 | AC-4 | Layer separation | A revised equivalence table produces a new version; prior hour records byte-identical | `state_api` | |
 | AC-5 | CLC read client | Listing, limit, rate, fee and inventory read correctly from live Gnosis state | `state_api` | |
 | AC-6 | MCC profile | Profile validates against the MCC field set; freshness bounds present; no address enumeration | `state_api` | |
-| AC-7 | Mint authorization | Confirmed contribution → bounded weighted mint; replay of the same facts rejected | `contracts` | |
-| AC-8 | Cross-chain identity | Gardener's Gnosis account derives to the exact Arbitrum address on a pinned fork | `contracts` | |
+| AC-7 | Mint authorization | Confirmed contribution → bounded weighted mint; a repeated `messageId` **and** a distinct message reusing a consumed `authorizationId` are both rejected | `contracts` | |
+| AC-8 | Cross-chain **garden** identity | On a pinned fork, the Gnosis garden account matches the Arbitrum address **and** its bound `(chainId, tokenContract, tokenId)` tuple, deployed runtime code hash, and owner/Safe topology all match the expected values. Covers garden accounts only — gardener accounts are AC-15 | `contracts` | |
 | AC-9 | Non-transferability preserved | `CommitmentRegistry` exposes no transfer or approval function after all changes | `contracts` | |
 | AC-10 | Bounded swap only | Every exchange path uses the `minAmountOut` + `deadline` form | `contracts` | |
-| AC-11 | Failure modes | De-listing with a held balance, rate change mid-flight, limit exhaustion and pool insolvency each produce a defined, surfaced outcome | `qa_pass_1` | |
+| AC-11 | Failure modes | De-listing with a held balance, rate change mid-flight, limit exhaustion and pool insolvency each produce a defined, surfaced outcome. Adapter-side handling is provable on a controlled venue; the venue's own behaviour is Slice 5b, mainnet-only | `qa_pass_1` | |
 | AC-12 | Regression review | Existing pooling, settlement and credit behavior unchanged | `qa_pass_2` | |
+| AC-13 | Credit line traces to evidence | The limit request cites named delivery figures from the pool passport over a stated window, and the citation is recorded. A cap with no evidence input fails this check even if the limit reads back correctly | `state_api` | |
+| AC-14 | Per-contributor quantity | Every mint amount traces to a recorded per-contributor quantity. No allocation is inferred by splitting `targetUnits` across contributors | `contracts` | |
+| AC-15 | Gardener recipient path | Vouchers for individuals land in the contributor's own Kernel account, never a garden account. Proven on a fork with a multi-contributor commitment | `contracts` | |
 
 ## Test Strategy
 
@@ -55,7 +59,8 @@ schedule milestones.
   semantics; interface encode/decode against documented shapes.
 - **Integration**: cycle open → weighted authorization → CCIP command → Gnosis mint on forked
   Arbitrum + Chiado; MCC profile assembly from indexer output.
-- **Fork**: exact-address GardenAccount derivation on Gnosis; `GiftableToken` expiry and burn;
+- **Fork**: exact-address GardenAccount derivation on Gnosis; gardener Kernel-account derivation,
+  proven separately; `GiftableToken` expiry and burn;
   bounded-swap slippage and deadline; de-listing with a held balance.
 - **E2E**: steward authors and freezes → gardener sees → commits → confirmed → voucher appears →
   transfers to a third party → third party redeems.

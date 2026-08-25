@@ -109,6 +109,11 @@ solc 0.8.36, EVM fork osaka, optimizer 200 runs (Calibur 1000). Deployer
 These are **implementation** addresses as published in the README. Proxy instances for a specific
 pool are separate and must be resolved through `ContractRegistry` / discovery before use.
 
+**No testnet deployment is published.** The README and `docs/DEPLOY.md` cover Gnosis mainnet only;
+there are no Chiado addresses. Any testnet work runs against our own deployment of the published
+implementations or against interface-conformant mocks, and cannot observe the live venue's rates,
+limits, fees, or de-listing behaviour. See `plan.todo.md` Slice 5 for the 5a/5b split this forces.
+
 ### Writing from Will Ruddick
 
 - *What Makes a Pool a Pool?* (2026-08-01) — the five-rung ladder (tracking → verification →
