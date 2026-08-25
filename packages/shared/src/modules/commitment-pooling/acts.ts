@@ -39,6 +39,14 @@ const TERMINAL = new Set<CommitmentDerivedState>([
   "DISPUTED",
 ]);
 
+/**
+ * Whether the record has stopped moving (kept, withdrawn, lapsed, or held
+ * under review). Copy that urges the next step must not render on these.
+ */
+export function isTerminalCommitmentState(state: CommitmentDerivedState): boolean {
+  return TERMINAL.has(state);
+}
+
 const PRE_ACCEPTANCE = new Set<CommitmentDerivedState>(["OFFERED", "REQUESTED"]);
 
 /**

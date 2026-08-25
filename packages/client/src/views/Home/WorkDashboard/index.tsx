@@ -454,6 +454,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           tabs={tabs}
           activeTab={activeTab}
           onTabChange={(tabId: string) => setActiveTab(tabId as WorkDashboardTab)}
+          ariaLabel={intl.formatMessage({
+            id: "app.work.tabs.label",
+            defaultMessage: "Work sections",
+          })}
           triggerClassName="text-xs"
         />
 

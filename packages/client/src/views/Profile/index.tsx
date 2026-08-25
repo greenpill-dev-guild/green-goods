@@ -100,6 +100,10 @@ const Profile: React.FC = () => {
           tabs={tabs}
           activeTab={activeTab}
           onTabChange={(tabId) => setActiveTab(tabId as "account" | "badges" | "help")}
+          ariaLabel={intl.formatMessage({
+            id: "app.profile.tabs.label",
+            defaultMessage: "Profile sections",
+          })}
           variant="compact"
           scrollTargetSelector="#profile-scroll"
         />

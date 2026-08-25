@@ -484,7 +484,7 @@ describe("ComposeCommitment", () => {
     await walkServiceToReview(user);
     await place(user, "Make this offer");
 
-    expect(await screen.findByText("Saved on this phone")).toBeInTheDocument();
+    expect(await screen.findByText(/is saved on this phone/)).toBeInTheDocument();
   });
 
   it("stays on the review when the commitment could not be queued", async () => {
@@ -495,7 +495,7 @@ describe("ComposeCommitment", () => {
     await place(user, "Make this offer");
 
     // A failed enqueue must not read as success; the member keeps their draft.
-    expect(screen.queryByText("It is on its way")).not.toBeInTheDocument();
+    expect(screen.queryByText(/is on its way/)).not.toBeInTheDocument();
     expect(screen.getByText("Before you place this")).toBeInTheDocument();
   });
 
@@ -537,7 +537,7 @@ describe("ComposeCommitment", () => {
     render("offer");
     await walkServiceToReview(user);
     await place(user, "Make this offer");
-    expect(await screen.findByText("It is on its way")).toBeInTheDocument();
+    expect(await screen.findByText(/is on its way/)).toBeInTheDocument();
 
     expect(Object.keys(useCommitmentComposerDraftStore.getState().drafts)).toHaveLength(0);
   });
