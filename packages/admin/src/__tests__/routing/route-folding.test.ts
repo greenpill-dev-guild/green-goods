@@ -18,10 +18,6 @@ const srcDir = resolve(__dirname, "../../");
 const routerPath = resolve(srcDir, "router.tsx");
 const routeViewsPath = resolve(srcDir, "routes/views.tsx");
 const workViewPath = resolve(srcDir, "views/Hub/index.tsx");
-const hubControllerPath = resolve(
-  srcDir,
-  "../../shared/src/hooks/admin-ui/hub/useHubWorkbenchController.ts"
-);
 const hubSheetDescriptorPath = resolve(srcDir, "views/Hub/components/HubSheetDescriptor.tsx");
 const sheetRegistryPath = resolve(
   srcDir,

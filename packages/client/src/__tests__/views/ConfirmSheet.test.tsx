@@ -67,7 +67,12 @@ describe("ConfirmSheet proof summary", () => {
 
   afterEach(() => vi.restoreAllMocks());
 
-  it("shows an empty count and sentence for zero resolved proofs", () => {
+  it("shows the plain empty sentence when nothing is recorded at all", () => {
+    renderSheet(0);
+    expect(screen.getByText("No proof has been attached yet.")).toBeInTheDocument();
+  });
+
+  it("says recorded proof cannot be shown rather than claiming none was attached", () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     renderSheet(2);
 
@@ -75,7 +80,11 @@ describe("ConfirmSheet proof summary", () => {
       HTMLDivElement
     );
     expect(screen.getByText("No items yet")).toBeInTheDocument();
-    expect(screen.getByText("No proof has been attached yet.")).toBeInTheDocument();
+    // The chain says 2 pieces exist; zero rows resolved. The sheet must never
+    // contradict the detail's count by claiming nothing was attached (F5).
+    expect(
+      screen.getByText("2 pieces of proof are recorded but cannot be shown right now.")
+    ).toBeInTheDocument();
     expect(consoleError.mock.calls.flat().join(" ")).not.toMatch(
       /cannot be a descendant|validateDOMNesting|hydration/i
     );
