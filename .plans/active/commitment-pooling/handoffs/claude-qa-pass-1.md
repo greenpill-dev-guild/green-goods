@@ -28,9 +28,17 @@ functional defects are already found and dispositioned.
   (LIVE / FIXTURE / STORYBOOK / SUITE / BLOCKED), with defects routed to owning lanes, never
   fixed in the QA lane. Output: `../reports/qa-functional-wave-1-<date>.md` plus an append-only
   summary under § Wave 1 runs below.
+- **Experience audit — agent design pass feeding Wave 2.** Dispatched via
+  `../prompt-qa-experience-audit.md` (added 2026-08-24): a read-only, no-signature audit of
+  design-system conformance (review-checklist Lenses 1–5, interaction-patterns, token/anatomy
+  rules) and experience quality (the `flow-audit-prompt.md` six-qualities method applied to the
+  shipped surfaces). Runs unattended, before or alongside Wave 1. Output: ranked improvement
+  backlog + a Wave 2 shortlist of judgment calls, in
+  `../reports/qa-experience-audit-<date>.md`; summary appended under § Experience audit runs.
 - **Wave 2 — human experience QA.** Afo, after Wave 1's defect list is dispositioned (fixed or
   explicitly accepted). Covers design patterns, user flows, UX judgment, locale tone, dark-mode
-  and motion feel, and every real-device requirement. Checklist in § Wave 2 walkthrough below.
+  and motion feel, and every real-device requirement — starting from the experience audit's
+  backlog and shortlist rather than a blank page. Checklist in § Wave 2 walkthrough below.
 - Wave outputs merge into one QA Pass 1 disposition (passes / visible defects / external
   blockers) that feeds PRD-727 docs polish and then QA Pass 2.
 
@@ -97,7 +105,8 @@ Wave 2 proves (human judgment and device-bound):
 
 ## Wave 2 walkthrough (Afo)
 
-Entry: Wave 1 report read; release-blockers and defects dispositioned; its Wave 2 notes in hand.
+Entry: Wave 1 report read; release-blockers and defects dispositioned; its Wave 2 notes plus the
+experience audit's improvement backlog and shortlist in hand.
 
 1. **Real-device pass (functional residue only a human can do).** Install the PWA through the
    tunnel QR (`bun run dev:tunnel`); airplane-mode capture of a commitment act + proof with
@@ -195,6 +204,12 @@ list above binds the lane before it can turn GREEN.)
 (Append-only. Each dispatched Wave 1 run adds a dated summary block here: mode, coverage counts
 by tier, defect counts by severity, external blockers. Full reports live in
 `../reports/qa-functional-wave-1-<date>.md`.)
+
+## Experience audit runs
+
+(Append-only. Each dispatched experience audit adds a dated summary block here: finding counts
+by severity, the three highest-leverage changes, capture counts. Full reports live in
+`../reports/qa-experience-audit-<date>.md`.)
 
 ### 2026-08-24 — Mode A on `origin/develop@3bfc85432750faa7aad693fea7a85f59a00fa327`
 
