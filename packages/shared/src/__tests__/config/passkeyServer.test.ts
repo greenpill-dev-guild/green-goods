@@ -116,6 +116,71 @@ describe("config/passkeyServer", () => {
       });
     });
 
+    // Pins the property the pending staging rollout depends on: with no RP
+    // override, a subdomain resolves the apex RP rather than its own hostname.
+    // Staging still sets an override today, so this describes the code, not the
+    // deployment. A narrower RP would not change the address formula (`rpId` is
+    // a signing-ceremony parameter and never enters Kernel's validator data);
+    // it would keep the browser from offering the existing credential at all,
+    // so the gardener registers a new one and that new public key gives them a
+    // second account. Tightening `matchesRpId` to an exact hostname comparison
+    // is what this case is here to catch.
+    it("resolves the apex RP ID for subdomains of the production origin", () => {
+      for (const origin of [
+        "https://greengoods.app",
+        "https://www.greengoods.app",
+        "https://staging.greengoods.app",
+      ]) {
+        expect(
+          classifyPasskeyCeremonyContext({
+            env: { PROD: true },
+            location: locationFor(origin),
+          })
+        ).toMatchObject({
+          supported: true,
+          rpId: "greengoods.app",
+          origin,
+        });
+      }
+    });
+
+    // Characterization, not endorsement. The check trusts every subdomain, so
+    // hosts the spec does not approve pass it too. `staging-admin` is the live
+    // example: it is deliberately outside the rollout because `packages/admin`
+    // has no passkey entrypoint, yet the check still admits it. Closing that
+    // gap is an open decision (see the spec's "Approved origins versus enforced
+    // origins"), and these are the cases that will fail if it is closed.
+    it("currently trusts any production subdomain, approved or not", () => {
+      for (const origin of [
+        "https://unapproved.greengoods.app",
+        "https://staging-admin.greengoods.app",
+      ]) {
+        expect(
+          classifyPasskeyCeremonyContext({
+            env: { PROD: true },
+            location: locationFor(origin),
+          })
+        ).toMatchObject({
+          supported: true,
+          rpId: "greengoods.app",
+        });
+      }
+    });
+
+    // Sharing the RP with the named staging alias must not extend to the
+    // per-deployment preview URLs, which are unbounded and publicly guessable.
+    it("still blocks preview deployment origins in production", () => {
+      expect(
+        classifyPasskeyCeremonyContext({
+          env: { PROD: true },
+          location: locationFor("https://green-goods-abc123-greenpilldevguild.vercel.app"),
+        })
+      ).toMatchObject({
+        supported: false,
+        reason: "preview_or_localhost_production",
+      });
+    });
+
     it("enforces custom staging RP IDs", () => {
       const env = { VITE_PASSKEY_RP_ID: "staging.greengoods.app" };
 
