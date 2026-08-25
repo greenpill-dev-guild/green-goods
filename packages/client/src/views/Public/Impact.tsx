@@ -470,8 +470,6 @@ export default function ImpactPage() {
               </div>
             }
             error={
-              // The failed ledger holds its space (AD-11) instead of collapsing
-              // the section to one bordered line.
               <p className="mt-12 flex min-h-40 max-w-2xl items-center border-l-2 border-text-soft-400 bg-bg-white-0 px-4 py-3 text-sm text-text-sub-600">
                 {formatMessage({
                   id: "public.impact.evidence.error",
@@ -481,7 +479,6 @@ export default function ImpactPage() {
               </p>
             }
             empty={
-              // Absence holds the ledger's place in the record (AD-11).
               <div className="mt-12 min-h-40 max-w-2xl border-t border-stroke-soft-200 pt-6">
                 <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
                   {formatMessage({
