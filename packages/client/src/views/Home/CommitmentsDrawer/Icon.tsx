@@ -3,7 +3,7 @@ import { RiHandHeartLine } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
 
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 export interface CommitmentsDrawerIconProps {
   onClick: () => void;

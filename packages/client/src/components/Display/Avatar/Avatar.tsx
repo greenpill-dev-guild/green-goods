@@ -27,15 +27,13 @@ const avatarVariants = tv({
   },
 });
 
-export type AvatarVariantProps = VariantProps<typeof avatarVariants>;
-
-export type AvatarRootProps = React.HTMLAttributes<HTMLDivElement> &
+type AvatarProps = React.HTMLAttributes<HTMLDivElement> &
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root> &
-  AvatarVariantProps & {
+  VariantProps<typeof avatarVariants> & {
     asChild?: boolean;
   };
 
-const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.Root>, AvatarRootProps>(
+const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.Root>, AvatarProps>(
   ({ className, variant, mode, shadow, ...props }, ref) => {
     const avatar = avatarVariants({ variant, mode, shadow, class: className });
     return <AvatarPrimitive.Root ref={ref} className={cn(avatar)} {...props} />;

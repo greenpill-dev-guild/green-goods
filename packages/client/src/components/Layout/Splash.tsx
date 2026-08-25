@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 
 import { Button } from "../Actions";
 import { SplashScaffold } from "./SplashScaffold";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 export type LoadingState = "welcome" | "joining-garden" | "default";
 

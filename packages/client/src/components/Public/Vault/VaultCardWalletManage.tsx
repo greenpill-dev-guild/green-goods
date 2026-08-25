@@ -37,11 +37,8 @@ import {
   useSendAndConfirmTransaction,
 } from "thirdweb/react";
 import { inAppWallet, preAuthenticate } from "thirdweb/wallets/in-app";
-import { EditorialGhostButton } from "./atoms";
-import {
-  prepareCardWalletRedeem,
-  readCardWalletMaxRedeemable,
-} from "./VaultCardWalletManage.calls";
+import { EditorialGhostButton } from "../atoms";
+import { prepareCardWalletRedeem, readCardWalletMaxRedeemable } from "./vaultCardWalletManageCalls";
 import { PositionsList, VaultPositionRowView } from "./VaultManagePositionsPanel";
 function getThirdwebClientId(): string {
   return import.meta.env.VITE_THIRDWEB_CLIENT_ID?.trim() ?? "";

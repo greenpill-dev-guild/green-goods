@@ -11,7 +11,7 @@ import { useMemo } from "react";
 import { useIntl } from "react-intl";
 
 import { CommitmentRow, CommitmentStateLadder } from "@/components/Features/Commitments";
-import { COMMITMENTS_DRAWER_SCROLL_CLASSNAME } from "./classnames";
+import { PWA_DRAWER_SCROLL_CLASSNAME } from "@/components/Pwa/drawerScrollStyles";
 
 export interface ToConfirmTabProps {
   toConfirm: CommitmentsToConfirm;
@@ -63,7 +63,7 @@ export function ToConfirmTab({ toConfirm, onOpenCommitment }: ToConfirmTabProps)
       isOnline={isOnline}
       isEmpty={toConfirm.count === 0}
       onRetry={() => void toConfirm.refetch()}
-      regionClassName={COMMITMENTS_DRAWER_SCROLL_CLASSNAME}
+      regionClassName={PWA_DRAWER_SCROLL_CLASSNAME}
       copy={{
         loadingId: "app.commitments.toConfirm.loading",
         errorId: "app.commitments.toConfirm.error",

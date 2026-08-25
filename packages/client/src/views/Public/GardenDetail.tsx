@@ -18,7 +18,7 @@ import { StatCell } from "./GardenDetailAtoms";
 import { CommitmentsSection } from "./GardenDetailCommitments";
 import { FieldNotesSection } from "./GardenDetailFieldNotes";
 import { CertificatesSection, OperatorsSection } from "./GardenDetailSections";
-import { rememberGardenReturn } from "./garden-return-focus";
+import { rememberGardenReturn } from "./gardenReturnFocus";
 
 /**
  * GardenDetail — the public Garden page at `/gardens/:id`.

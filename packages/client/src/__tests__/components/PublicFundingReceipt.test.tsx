@@ -32,7 +32,7 @@ vi.mock("@green-goods/shared/modules/app/logger", async (importOriginal) => {
   };
 });
 
-vi.mock("@/routes/receipt-token", () => ({
+vi.mock("@/routes/receiptToken", () => ({
   RECEIPT_TOKEN_SESSION_KEY: "gg.receiptToken",
   scrubReceiptTokenFragmentFromLocation: vi.fn(),
 }));

@@ -5,13 +5,16 @@ import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const STAGED_MODULES = [
-  "packages/client/src/components/Public/VaultCardEndowFlow.tsx",
-  "packages/client/src/components/Public/VaultCardPaymentPanel.tsx",
-  "packages/client/src/components/Public/VaultCardWalletManage.calls.ts",
-  "packages/client/src/components/Public/VaultCardWalletManage.tsx",
+  "packages/client/src/components/Public/Vault/VaultCardEndowFlow.stories.tsx",
+  "packages/client/src/components/Public/Vault/VaultCardEndowFlow.tsx",
+  "packages/client/src/components/Public/Vault/VaultCardPaymentPanel.stories.tsx",
+  "packages/client/src/components/Public/Vault/VaultCardPaymentPanel.tsx",
+  "packages/client/src/components/Public/Vault/VaultCardWalletManage.stories.tsx",
+  "packages/client/src/components/Public/Vault/VaultCardWalletManage.tsx",
+  "packages/client/src/components/Public/Vault/vaultCardWalletManageCalls.ts",
 ];
 
-const STAGED_MARKER = "Staged — not yet wired into the live checkout.";
+export const STAGED_MARKER = "Staged — not yet wired into the live checkout.";
 const SOURCE_EXTENSIONS = [".ts", ".tsx"];
 
 function sourceFiles(directory) {

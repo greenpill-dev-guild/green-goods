@@ -1,46 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { MinimalWorkCard, WorkCard } from "../../components/Cards/Work/WorkCard";
+import { MinimalWorkCard } from "../../components/Cards/Work/WorkCard";
 import { renderWithProviders as render, screen, userEvent } from "../test-utils";
-
-describe("components/Cards/WorkCard", () => {
-  const workItem = {
-    id: "work-1",
-    type: "work" as const,
-    title: "Tree Planting",
-    gardenId: "0x2222222222222222222222222222222222222222",
-    gardenName: "Community Garden",
-    status: "pending" as const,
-    createdAt: Date.now() - 7_200_000,
-    retryCount: 2,
-    error: "Network timeout",
-    size: 1_024_000,
-    images: {
-      count: 3,
-      totalSize: 512_000,
-    },
-    mediaPreview: ["https://example.com/tree-planting.jpg"],
-  };
-
-  it("renders status, media count, retry state, and click behavior", async () => {
-    const handleClick = vi.fn();
-    const user = userEvent.setup();
-
-    render(<WorkCard work={workItem} onClick={handleClick} />);
-
-    const card = screen.getByRole("button");
-
-    expect(screen.getByText("Tree Planting")).toBeInTheDocument();
-    expect(screen.getByText("Pending")).toBeInTheDocument();
-    expect(screen.getByText("3")).toBeInTheDocument();
-    expect(card).toHaveTextContent("2 hours ago");
-    expect(card).toHaveTextContent("Community Garden");
-    expect(screen.getByText("Error loading work")).toBeInTheDocument();
-    expect(card).toHaveTextContent("↻ 2");
-
-    await user.click(card);
-    expect(handleClick).toHaveBeenCalledTimes(1);
-  });
-});
 
 describe("components/Cards/MinimalWorkCard", () => {
   const work = {

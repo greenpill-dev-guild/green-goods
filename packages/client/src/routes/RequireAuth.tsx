@@ -1,7 +1,7 @@
 import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { APP_ROUTES } from "@/config/pwa-routing";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { APP_ROUTES } from "@/config/pwaRouting";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 export default function RequireAuth() {
   const { isReady, isAuthenticated } = useAuthState();

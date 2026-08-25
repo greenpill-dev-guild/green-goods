@@ -12,8 +12,8 @@ import {
   createPwaRoutingConfig,
   PWA_APP_SCOPE,
   PWA_DEV_SERVICE_WORKER_SCRIPT,
-} from "@/config/pwa-routing";
-import { registerPublicWebMcpTools } from "@/modules/webmcp/public-tools";
+} from "@/config/pwaRouting";
+import { registerPublicWebMcpTools } from "@/webmcp";
 
 import "@/index.css";
 import "@/config";

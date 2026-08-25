@@ -1,4 +1,4 @@
-import { pwaStatusStyles } from "./pwaStatusStyles";
+import { pwaStatusStyles } from "./statusStyles";
 
 export const PWA_DRAWER_CLOSE_DURATION_VAR = "--spring-spatial-duration";
 

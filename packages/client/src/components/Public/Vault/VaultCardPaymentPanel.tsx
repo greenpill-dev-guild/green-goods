@@ -32,7 +32,7 @@ import {
   CheckoutSummary,
   CheckoutTransactionDetails,
   type CheckoutSummaryItem,
-} from "./vaultCheckoutShell";
+} from "./VaultCheckoutShell";
 
 /**
  * Onramp providers tried in order. Coinbase is the primary card route because it

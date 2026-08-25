@@ -11,7 +11,7 @@ import { useMemo } from "react";
 import { useIntl } from "react-intl";
 
 import { CommitmentRow, CommitmentStateLadder } from "@/components/Features/Commitments";
-import { COMMITMENTS_DRAWER_SCROLL_CLASSNAME } from "./classnames";
+import { PWA_DRAWER_SCROLL_CLASSNAME } from "@/components/Pwa/drawerScrollStyles";
 import { gardenAddressFor, groupByGarden } from "./grouping";
 
 export interface OverTimeTabProps {
@@ -73,7 +73,7 @@ export function OverTimeTab({ inbox, pools, gardens, series, onOpenCommitment }:
       isOnline={isOnline}
       isEmpty={inbox.settled.length === 0 && series.length === 0}
       onRetry={() => void inbox.refetch()}
-      regionClassName={COMMITMENTS_DRAWER_SCROLL_CLASSNAME}
+      regionClassName={PWA_DRAWER_SCROLL_CLASSNAME}
       copy={{
         loadingId: "app.commitments.overTime.loading",
         errorId: "app.commitments.overTime.error",

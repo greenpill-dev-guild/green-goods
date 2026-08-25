@@ -4,7 +4,7 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 import { ImageWithFallback } from "../../Display/Image/ImageWithFallback";
-import { Card, type CardRootProps } from "../Base/Card";
+import { Card, type CardRootProps } from "../Card";
 
 export const cardVariants = tv({
   base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0",

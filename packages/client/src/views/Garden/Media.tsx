@@ -25,8 +25,8 @@ import { FormInfo } from "@/components/Cards";
 import { Badge } from "@/components/Communication";
 import { ImagePreviewDialog } from "@/components/Dialogs";
 import { Books } from "@/components/Features";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
-import { trackWorkMediaJourneyEvent } from "./mediaAnalytics";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import { trackWorkMediaJourneyEvent } from "@/config/mediaAnalytics";
 
 const WORK_DRAFT_TRACKING_ID = "work-draft";
 const VIDEO_TRACKING_ID = "work-draft-video";

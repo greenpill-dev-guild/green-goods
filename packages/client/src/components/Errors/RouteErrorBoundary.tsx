@@ -21,7 +21,7 @@
  *   - the raw error message stays hidden behind a "Show technical details" toggle
  *   - a Copy button assembles a markdown bug report ready to paste into chat
  *
- * Mount as `errorElement` on the root route in router.config.tsx so every loader,
+ * Mount as `errorElement` on the root route in `config/routes.tsx` so every loader,
  * `lazy:` import, and route component throws into here instead of into Router's
  * default UI.
  */

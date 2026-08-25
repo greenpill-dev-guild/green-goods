@@ -5,7 +5,7 @@ import { RiCheckLine, RiCloudOffLine, RiDownloadLine, RiUserLine } from "@remixi
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { APP_ROUTES } from "@/config/pwa-routing";
+import { APP_ROUTES } from "@/config/pwaRouting";
 
 interface OfflineIndicatorProps {
   className?: string;

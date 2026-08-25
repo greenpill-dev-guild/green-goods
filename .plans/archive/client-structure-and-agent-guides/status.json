@@ -1,0 +1,95 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "client-structure-and-agent-guides",
+    "title": "Client Structure Cleanup + Agent Guide Consolidation",
+    "kind": "feature",
+    "stage": "archive"
+  },
+  "workflow": {
+    "overall_status": "done",
+    "priority": "p1",
+    "created_at": "2026-08-19T19:13:54.605Z",
+    "updated_at": "2026-08-24T23:55:00.228Z",
+    "target_date": null,
+    "archived_at": "2026-08-24T23:55:00.228Z",
+    "archive_reason": "Phases 1-4 and both QA passes complete; all acceptance checks, full tests, deterministic app build, Docs build, and Plan Hub validation pass. Final changes remain in the dirty develop checkout for maintainer commit attribution.",
+    "resolution": "completed"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-826",
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-08-21T23:11:51.912Z",
+    "lanes": {},
+    "laneSyncMode": "parent_only"
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": [
+      "client",
+      "admin",
+      "shared",
+      "docs",
+      "ops"
+    ],
+    "work_types": [
+      "implementation",
+      "cleanup",
+      "hardening",
+      "maintenance",
+      "qa"
+    ],
+    "surfaces": [
+      "client",
+      "admin",
+      "shared",
+      "docs",
+      "tooling"
+    ],
+    "depends_on_features": []
+  },
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "completed"
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "completed"
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a"
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "completed"
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "completed"
+    },
+    "docs": {
+      "owner": "claude",
+      "status": "completed"
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-08-24T23:55:00.229Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "branch": null,
+      "note": "Moved feature hub from active to archive"
+    }
+  ]
+}

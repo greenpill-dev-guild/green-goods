@@ -46,7 +46,7 @@ import {
   getEthereumNetworkLabel,
   getTxExplorerUrl,
   getVaultCheckoutTransactionLabel,
-} from "./vaultCheckoutShell";
+} from "./VaultCheckoutShell";
 const ETH_SYMBOL = "ETH";
 /**
  * Conservative combined gas units for the wrap + ERC20 approve + vault deposit

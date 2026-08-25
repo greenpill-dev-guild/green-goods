@@ -12,8 +12,8 @@ import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { CommitmentRow, CommitmentStateLadder } from "@/components/Features/Commitments";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
-import { COMMITMENTS_DRAWER_SCROLL_CLASSNAME } from "./classnames";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import { PWA_DRAWER_SCROLL_CLASSNAME } from "@/components/Pwa/drawerScrollStyles";
 import { gardenAddressFor, groupByGarden } from "./grouping";
 
 type DirectionFilter = "all" | "OFFER" | "REQUEST";
@@ -80,7 +80,7 @@ export function LiveTab({ inbox, pools, gardens, onOpenCommitment }: LiveTabProp
         !inbox.queueUnavailable
       }
       onRetry={() => void inbox.refetch()}
-      regionClassName={COMMITMENTS_DRAWER_SCROLL_CLASSNAME}
+      regionClassName={PWA_DRAWER_SCROLL_CLASSNAME}
       copy={{
         loadingId: "app.commitments.live.loading",
         errorId: "app.commitments.live.error",

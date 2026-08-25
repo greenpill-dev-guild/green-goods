@@ -2,11 +2,11 @@ import { ensureBaseLists } from "@green-goods/shared/hooks/blockchain/prefetch";
 import { HydrationFallback } from "@green-goods/shared/components/HydrationFallback";
 import { type LoaderFunctionArgs, type RouteObject, redirect } from "react-router-dom";
 import { RouteErrorBoundary } from "@/components/Errors";
-import { APP_ROUTES, LEGACY_APP_ROUTES } from "./config/pwa-routing";
+import { APP_ROUTES, LEGACY_APP_ROUTES } from "./pwaRouting";
 import {
   requirePwaPresentationLoader,
   requireWebsitePresentationLoader,
-} from "./routes/presentation-mode";
+} from "@/routes/presentationMode";
 
 export const CLIENT_ROUTE_IDS = {
   root: "root",

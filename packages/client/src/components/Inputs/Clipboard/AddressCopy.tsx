@@ -7,7 +7,7 @@ import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
 import React, { useId, useState } from "react";
 import { useIntl } from "react-intl";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 interface AddressCopyProps {
   address?: Address | null;

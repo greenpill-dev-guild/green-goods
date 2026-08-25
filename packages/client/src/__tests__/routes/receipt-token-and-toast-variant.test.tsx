@@ -6,8 +6,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   RECEIPT_TOKEN_SESSION_KEY,
   scrubReceiptTokenFragmentFromLocation,
-} from "../../routes/receipt-token";
-import { getClientToastViewportVariant } from "../../routes/toast-variant";
+} from "../../routes/receiptToken";
+import { getClientToastViewportVariant } from "../../routes/toastVariant";
 
 function createWindowLike(pathname: string, search: string, hash: string): Window {
   const storage = new Map<string, string>();

@@ -23,12 +23,12 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
 import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
-import { EditorialGhostButton } from "./atoms";
+import { EditorialGhostButton } from "../atoms";
 import {
   CheckoutTransactionDetails,
   getAddressExplorerUrl,
   getEthereumNetworkLabel,
-} from "./vaultCheckoutShell";
+} from "./VaultCheckoutShell";
 export interface VaultManagePositionsPanelProps {
   open: boolean;
   onExitComplete?: () => void;

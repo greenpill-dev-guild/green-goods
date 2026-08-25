@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { createMemoryRouter, RouterProvider, type RouteObject } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import { withClientAppRuntime } from "../../../shared/.storybook/decorators";
-import { CLIENT_ROUTE_IDS, appRoutes } from "../router.config";
+import { CLIENT_ROUTE_IDS, appRoutes } from "../config/routes";
 import PublicShell from "../routes/PublicShell";
 import Root from "../routes/Root";
 import CookiesPage from "./Public/Cookies";

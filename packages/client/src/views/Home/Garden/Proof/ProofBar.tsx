@@ -1,7 +1,7 @@
 import { RiCameraFill, RiImageFill, RiMicLine, RiStopFill } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 const TOOL_BUTTON =
   "flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-lg)] border tap-target-lg";

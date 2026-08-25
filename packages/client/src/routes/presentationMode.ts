@@ -1,6 +1,6 @@
 import { getClientPresentationMode } from "@green-goods/shared/utils/app/pwa";
 import { redirect, type LoaderFunctionArgs } from "react-router-dom";
-import { APP_ROUTES, LEGACY_APP_ROUTES } from "@/config/pwa-routing";
+import { APP_ROUTES, LEGACY_APP_ROUTES } from "@/config/pwaRouting";
 
 const PWA_ENTRY_ROUTE = APP_ROUTES.home;
 const WEBSITE_ENTRY_ROUTE = "/";

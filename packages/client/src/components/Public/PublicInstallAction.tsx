@@ -9,7 +9,7 @@ import { usePublicInstallHandler } from "@green-goods/shared/hooks/app/usePublic
 import { useTunnelUrl } from "@green-goods/shared/hooks/app/useTunnelUrl";
 import { type MouseEventHandler, type ReactNode, useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { PUBLIC_PWA_ORIGIN, createPwaLaunchUrl } from "@/config/pwa-routing";
+import { PUBLIC_PWA_ORIGIN, createPwaLaunchUrl } from "@/config/pwaRouting";
 import { PublicInstallDialog, type PublicInstallDialogMode } from "./PublicInstallDialog";
 
 export interface PublicInstallActionRenderProps {

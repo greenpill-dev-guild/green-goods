@@ -4,7 +4,7 @@ import { useIntl } from "react-intl";
 
 import type { LoadingState } from "@/components/Layout";
 import { SplashScaffold } from "@/components/Layout/SplashScaffold";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 interface LoadingSplashProps {
   loadingState: LoadingState;

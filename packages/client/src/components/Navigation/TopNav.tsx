@@ -11,7 +11,7 @@ import {
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { ModalDrawer } from "@/components/Dialogs";
-import { pwaStatusStyles, type PwaStatusTone } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles, type PwaStatusTone } from "@/components/Pwa/statusStyles";
 import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 
 type TopNavProps = {

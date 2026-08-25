@@ -24,10 +24,10 @@ import { EvidencePreview } from "./EvidencePreview";
 
 import { ConfirmNotYet } from "./ConfirmNotYet";
 import { Meter, Provenance } from "./ConfirmOutcome";
-import { selectConfirmCast } from "./confirm-cast";
+import { selectConfirmCast } from "./confirmCast";
 
 export { Provenance } from "./ConfirmOutcome";
-export { type ConfirmCast, selectConfirmCast } from "./confirm-cast";
+export { type ConfirmCast, selectConfirmCast } from "./confirmCast";
 
 /** Where the sheet stands, from the record and the queue rather than a local flag. */
 export type ConfirmPhase = "ask" | "pending" | "confirmed";

@@ -1,6 +1,6 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiArrowRightSLine, RiCheckFill } from "@remixicon/react";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 interface FormProgressProps {
   currentStep: number;

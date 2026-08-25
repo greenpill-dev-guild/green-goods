@@ -4,7 +4,7 @@ import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { RiCloseLine } from "@remixicon/react";
 import React, { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { getPwaDrawerCloseDelayMs, pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
+import { getPwaDrawerCloseDelayMs, pwaDrawerStyles } from "@/components/Pwa/drawerStyles";
 
 export interface ModalDrawerTab {
   id: string;

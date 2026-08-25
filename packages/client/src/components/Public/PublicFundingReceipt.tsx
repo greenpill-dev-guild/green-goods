@@ -9,7 +9,7 @@ import { Link } from "react-router-dom";
 import {
   RECEIPT_TOKEN_SESSION_KEY,
   scrubReceiptTokenFragmentFromLocation,
-} from "@/routes/receipt-token";
+} from "@/routes/receiptToken";
 import { EditorialGhostLink, EditorialLinkArrow } from "./atoms";
 import { PublicInstallAction } from "./PublicInstallAction";
 
