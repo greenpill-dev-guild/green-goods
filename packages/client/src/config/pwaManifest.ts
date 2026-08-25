@@ -1,15 +1,15 @@
 import { PWA_MANIFEST_ID } from "./pwaRouting";
 
-export type PwaManifestFlavor = "production" | "staging";
+type PwaManifestFlavor = "production" | "staging";
 
-export interface PwaManifestIcon {
+interface PwaManifestIcon {
   src: string;
   sizes: string;
   type: "image/png";
   purpose?: "any" | "maskable";
 }
 
-export interface PwaAppleTouchIcon {
+interface PwaAppleTouchIcon {
   sizes: string;
   src: string;
 }
@@ -150,10 +150,20 @@ export function createPwaManifestBranding(flavor: PwaManifestFlavor): PwaManifes
   if (flavor === "staging") {
     return {
       flavor,
+      // The staging build is what we hand to beta users, so it reads as the
+      // product rather than announcing itself as a QA surface. The full name
+      // carries the Beta label wherever there is room for it; `shortName` is
+      // the home-screen label and stays plain, with the dark green below doing
+      // the distinguishing in the one place the text is truncated anyway.
+      //
+      // `manifestId` deliberately still says staging. It is the identity the
+      // OS keys an installed app on, is never shown to anyone, and changing it
+      // orphans every phone that already has this app: the rename would arrive
+      // as a second icon beside the old one instead of updating in place.
       manifestId: STAGING_MANIFEST_ID,
-      name: "Green Goods Staging",
-      shortName: "GG Staging",
-      description: "Staging PWA for Green Goods QA.",
+      name: "Green Goods Beta",
+      shortName: "Green Goods",
+      description: "Green Goods Beta: Try and test new features before release",
       themeColor: STAGING_DARK_SURFACE,
       backgroundColor: STAGING_DARK_SURFACE,
       htmlThemeColorLight: STAGING_DARK_SURFACE,
