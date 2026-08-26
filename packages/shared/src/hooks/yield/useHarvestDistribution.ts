@@ -10,6 +10,7 @@ import {
   trackHarvestDistributionOutcome,
   trackHarvestDistributionStarted,
 } from "../../modules/app/harvestDistributionAnalytics";
+import { logger } from "../../modules/app/logger";
 import type { Address } from "../../types/domain";
 import { OCTANT_MODULE_ABI } from "../../utils/blockchain/abis/octant";
 import { YIELD_SPLITTER_ABI } from "../../utils/blockchain/abis/yield";
@@ -20,9 +21,11 @@ import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import type { YieldDistributionAmounts } from "./useYieldStatus";
 import {
+  type HarvestReceiptFailure,
   isCanonicalTransactionHash,
+  readDistributionOutcome,
   readDistributionSnapshot,
-  readExactDistributionAmounts,
+  readHarvestReceiptFailure,
 } from "./harvestDistributionHelpers";
 
 export type HarvestDistributionStage =
@@ -32,7 +35,9 @@ export type HarvestDistributionStage =
   | "distributing"
   | "submitted"
   | "waiting"
+  | "harvest_incomplete"
   | "distribution_pending"
+  | "split_unverified"
   | "complete"
   | "error";
 
@@ -49,6 +54,7 @@ export interface HarvestDistributionParams {
 export type HarvestDistributionResult =
   | { status: "harvest_submitted"; hash: Hex }
   | { status: "distribution_submitted"; hash: Hex }
+  | { status: "harvest_incomplete"; hash: Hex; failure: HarvestReceiptFailure }
   | { status: "waiting"; availableAmount: bigint; threshold: bigint; harvested: boolean }
   | {
       status: "distribution_pending";
@@ -56,9 +62,17 @@ export type HarvestDistributionResult =
       errorCategory: string;
     }
   | {
+      // The split transaction confirmed but its receipt could not be verified,
+      // so the actual outcome (distributed vs accumulated) is unknown. Unlike
+      // distribution_pending, the split must NOT be retried from this state.
+      status: "split_unverified";
+      hash: Hex;
+      harvested: boolean;
+    }
+  | {
       status: "distributed";
       hash: Hex;
-      amounts: YieldDistributionAmounts | null;
+      amounts: YieldDistributionAmounts;
     };
 
 export function useHarvestDistribution() {
@@ -94,12 +108,11 @@ export function useHarvestDistribution() {
       params.assetAddress,
       chainId
     );
-    await Promise.all([
-      ...invalidations.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
-      queryClient.invalidateQueries({ queryKey: ["readContract"] }),
-      queryClient.invalidateQueries({ queryKey: ["readContracts"] }),
-      queryClient.invalidateQueries({ queryKey: ["balance"] }),
-    ]);
+    await Promise.all(
+      [...invalidations, ...queryInvalidation.onchainReads()].map((queryKey) =>
+        queryClient.invalidateQueries({ queryKey })
+      )
+    );
   };
 
   const mutation = useMutation({
@@ -134,6 +147,32 @@ export function useHarvestDistribution() {
               durationMs: Date.now() - startedAt,
             });
             return { status: "harvest_submitted", hash: harvestResult.hash };
+          }
+          // Octant.harvest() swallows report/registration reverts into events,
+          // so a confirmed receipt must be inspected before trusting the stage.
+          const harvestFailure = await readHarvestReceiptFailure(
+            config,
+            chainId,
+            octantModule,
+            harvestResult.hash,
+            params.gardenAddress,
+            params.assetAddress
+          );
+          if (harvestFailure) {
+            trackHarvestDistributionHarvest({
+              ...telemetry,
+              outcome: "failed",
+              durationMs: Date.now() - startedAt,
+              errorCategory:
+                harvestFailure === "report_failed"
+                  ? "harvest_report_failed"
+                  : "shares_registration_failed",
+            });
+            return {
+              status: "harvest_incomplete",
+              hash: harvestResult.hash,
+              failure: harvestFailure,
+            };
           }
           harvested = true;
           trackHarvestDistributionHarvest({
@@ -187,7 +226,9 @@ export function useHarvestDistribution() {
           return { status: "distribution_submitted", hash: splitResult.hash };
         }
 
-        const amounts = await readExactDistributionAmounts(
+        // splitYield() succeeds without distributing when the redeemed yield
+        // lands below the threshold, so the receipt decides the real outcome.
+        const outcome = await readDistributionOutcome(
           config,
           chainId,
           yieldSplitter,
@@ -195,12 +236,35 @@ export function useHarvestDistribution() {
           params.gardenAddress,
           params.assetAddress
         );
+        if (outcome.kind === "accumulated") {
+          trackHarvestDistributionOutcome({
+            ...telemetry,
+            outcome: "waiting",
+            durationMs: Date.now() - startedAt,
+          });
+          return {
+            status: "waiting",
+            availableAmount: outcome.totalPending,
+            threshold: snapshot.threshold,
+            harvested,
+          };
+        }
+        if (outcome.kind === "unknown") {
+          // The split confirmed on-chain; only the read back failed. Preserve
+          // the confirmed submission instead of reporting a retryable failure.
+          trackHarvestDistributionOutcome({
+            ...telemetry,
+            outcome: "unverified",
+            durationMs: Date.now() - startedAt,
+          });
+          return { status: "split_unverified", hash: splitResult.hash, harvested };
+        }
         trackHarvestDistributionOutcome({
           ...telemetry,
           outcome: "distributed",
           durationMs: Date.now() - startedAt,
         });
-        return { status: "distributed", hash: splitResult.hash, amounts };
+        return { status: "distributed", hash: splitResult.hash, amounts: outcome.amounts };
       } catch (error) {
         const errorCategory = categorizeError(error).category;
         trackHarvestDistributionOutcome({
@@ -210,6 +274,7 @@ export function useHarvestDistribution() {
           errorCategory,
         });
         if (!harvested) throw error;
+        logger.error("Distribution failed after a confirmed harvest", { error, errorCategory });
         return { status: "distribution_pending", harvested, errorCategory };
       }
     },
@@ -242,6 +307,18 @@ export function useHarvestDistribution() {
             title: formatMessage({ id: "app.yield.harvestDistribution.submitted" }),
           });
           break;
+        case "harvest_incomplete":
+          setStageIfMounted("harvest_incomplete");
+          toastService.error({
+            title: formatMessage({ id: "app.yield.harvestDistribution.harvestIncomplete" }),
+          });
+          break;
+        case "split_unverified":
+          setStageIfMounted("split_unverified");
+          toastService.info({
+            title: formatMessage({ id: "app.yield.harvestDistribution.unverified" }),
+          });
+          break;
         case "distribution_pending":
           setStageIfMounted("distribution_pending");
           toastService.error({
@@ -250,15 +327,12 @@ export function useHarvestDistribution() {
           break;
       }
     },
-    onError: (error, params, context) => {
+    onError: (error, _params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
       setStageIfMounted("error");
-      handleError(error, {
-        metadata: {
-          gardenAddress: params?.gardenAddress,
-          assetAddress: params?.assetAddress,
-        },
-      });
+      // Workflow telemetry must stay address-free (spec requirement 6): pass
+      // only non-identifying context to error tracking.
+      handleError(error, { metadata: { chainId } });
     },
   });
 

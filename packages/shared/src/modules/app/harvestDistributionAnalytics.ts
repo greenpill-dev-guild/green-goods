@@ -26,7 +26,7 @@ export const trackHarvestDistributionHarvest = createTracker<
 
 export const trackHarvestDistributionOutcome = createTracker<
   HarvestDistributionSafeMetadata & {
-    outcome: "distributed" | "submitted" | "waiting" | "pending" | "failed";
+    outcome: "distributed" | "submitted" | "waiting" | "pending" | "unverified" | "failed";
     durationMs: number;
     errorCategory?: string;
   }

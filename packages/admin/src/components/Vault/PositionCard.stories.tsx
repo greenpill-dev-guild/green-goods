@@ -99,8 +99,8 @@ function PositionCardHarness({
       </div>
 
       <p className="mt-3 text-xs text-text-sub">
-        Depositor share value is expected to stay near flat by design. Harvested yield is routed
-        to garden impact, not compounded into depositor returns.
+        Depositor share value is expected to stay near flat by design. Harvested yield is routed to
+        garden impact, not compounded into depositor returns.
       </p>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
@@ -156,8 +156,8 @@ function PositionCardHarness({
           )}
           {distributionState === "complete" && (
             <Alert variant="success" className="p-3">
-              4 {symbol} reached the Cookie Jar. 4 {symbol} went to hypercert funding. 2 {symbol}
-              {" "}went to the protocol treasury.
+              4 {symbol} reached the Cookie Jar. 4 {symbol} went to hypercert funding. 2 {symbol}{" "}
+              went to the protocol treasury.
             </Alert>
           )}
           {(unharvestedYield > 0n || distributionState === "ready") &&

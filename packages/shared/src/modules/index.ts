@@ -54,7 +54,7 @@ export {
   trackWorkWalletRequestFailed,
   trackWorkWalletRequestStarted,
 } from "./app/analytics-events";
-export * from "./app/harvestDistributionAnalytics";
+// harvestDistributionAnalytics is not re-exported: its only consumer imports it directly.
 // ============================================================================
 // APP / ERROR TRACKING
 // ============================================================================

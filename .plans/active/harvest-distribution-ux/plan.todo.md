@@ -46,7 +46,7 @@
 - [x] Implement the smallest change that can satisfy the proof
 - [x] Run the GREEN command and record evidence in the lane handoff
 - [x] Record machine-readable proof with `node scripts/harness/plan-hub.mjs record-tdd`
-- [ ] If TDD cannot honestly apply, record `not_applicable` or `proof_limit` with a concrete note in `status.json`
+- [x] If TDD cannot honestly apply, record `not_applicable` or `proof_limit` with a concrete note in `status.json`
 
 ## Lane Checklists
 

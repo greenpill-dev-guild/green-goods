@@ -6,6 +6,25 @@
 
 export const OCTANT_MODULE_ABI = [
   {
+    type: "event",
+    name: "HarvestReportFailed",
+    inputs: [
+      { name: "garden", type: "address", indexed: true },
+      { name: "asset", type: "address", indexed: true },
+      { name: "strategy", type: "address", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "SharesRegistrationFailed",
+    inputs: [
+      { name: "garden", type: "address", indexed: true },
+      { name: "vault", type: "address", indexed: true },
+      { name: "resolver", type: "address", indexed: true },
+      { name: "shares", type: "uint256", indexed: false },
+    ],
+  },
+  {
     type: "function",
     name: "harvest",
     stateMutability: "nonpayable",

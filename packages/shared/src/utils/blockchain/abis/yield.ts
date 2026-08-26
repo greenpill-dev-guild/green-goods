@@ -19,6 +19,16 @@ export const YIELD_SPLITTER_ABI = [
     ],
   },
   {
+    type: "event",
+    name: "YieldAccumulated",
+    inputs: [
+      { name: "garden", type: "address", indexed: true },
+      { name: "asset", type: "address", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
+      { name: "totalPending", type: "uint256", indexed: false },
+    ],
+  },
+  {
     type: "function",
     name: "splitYield",
     stateMutability: "nonpayable",

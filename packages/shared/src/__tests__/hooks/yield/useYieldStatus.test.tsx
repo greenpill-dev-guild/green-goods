@@ -154,6 +154,34 @@ describe("useYieldStatus", () => {
     expect(result.current.isError).toBe(true);
   });
 
+  it("does not hide distribution when only fallback-covered reads fail", () => {
+    // assetYieldThresholds (3), escrowed fractions (4), gardenCookieJars (6),
+    // and gardenTreasuries (7) all have fallbacks and must not gate isError.
+    const failedBase = baseResults();
+    for (const index of [3, 4, 6, 7]) {
+      failedBase[index] = { status: "failure", result: undefined };
+    }
+    configureReads({ base: failedBase });
+
+    const { result } = renderHook(() => useYieldStatus(GARDEN, ASSET, VAULT));
+
+    expect(result.current.isError).toBe(false);
+    expect(result.current.status).toBe("ready");
+    expect(result.current.threshold).toBe(7n);
+    expect(result.current.destination).toEqual({ address: JAR, kind: "cookie_jar" });
+  });
+
+  it("still errors when a status-required read fails", () => {
+    const failedBase = baseResults();
+    failedBase[0] = { status: "failure", result: undefined };
+    configureReads({ base: failedBase });
+
+    const { result } = renderHook(() => useYieldStatus(GARDEN, ASSET, VAULT));
+
+    expect(result.current.status).toBe("error");
+    expect(result.current.isError).toBe(true);
+  });
+
   it("refetches resolver, share conversion, destination, and split reads", async () => {
     const { result } = renderHook(() => useYieldStatus(GARDEN, ASSET, VAULT));
 

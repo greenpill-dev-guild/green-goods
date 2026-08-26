@@ -8,6 +8,7 @@ import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { encodeAbiParameters, encodeEventTopics } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { OCTANT_MODULE_ABI } from "../../../utils/blockchain/abis/octant";
 import { YIELD_SPLITTER_ABI } from "../../../utils/blockchain/abis/yield";
 
 const GARDEN = "0x1111111111111111111111111111111111111111" as const;
@@ -127,6 +128,45 @@ function yieldSplitLog() {
   };
 }
 
+function yieldAccumulatedLog(totalPending: bigint) {
+  return {
+    address: SPLITTER,
+    topics: encodeEventTopics({
+      abi: YIELD_SPLITTER_ABI,
+      eventName: "YieldAccumulated",
+      args: { garden: GARDEN, asset: ASSET },
+    }),
+    data: encodeAbiParameters(
+      [{ type: "uint256" }, { type: "uint256" }],
+      [totalPending, totalPending]
+    ),
+  };
+}
+
+function harvestReportFailedLog() {
+  return {
+    address: OCTANT,
+    topics: encodeEventTopics({
+      abi: OCTANT_MODULE_ABI,
+      eventName: "HarvestReportFailed",
+      args: { garden: GARDEN, asset: ASSET },
+    }),
+    data: encodeAbiParameters([{ type: "address" }], [VAULT]),
+  };
+}
+
+function sharesRegistrationFailedLog() {
+  return {
+    address: OCTANT,
+    topics: encodeEventTopics({
+      abi: OCTANT_MODULE_ABI,
+      eventName: "SharesRegistrationFailed",
+      args: { garden: GARDEN, vault: VAULT, resolver: SPLITTER },
+    }),
+    data: encodeAbiParameters([{ type: "uint256" }], [10n]),
+  };
+}
+
 const { useHarvestDistribution } = await import("../../../hooks/yield/useHarvestDistribution");
 
 describe("useHarvestDistribution", () => {
@@ -134,6 +174,10 @@ describe("useHarvestDistribution", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // clearAllMocks keeps queued once-values; reset the queue so no test
+    // depends on how many queued sends the previous test consumed.
+    mockSendContractCall.mockReset();
+    mockGetReceipt.mockReset();
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     });
@@ -141,7 +185,9 @@ describe("useHarvestDistribution", () => {
     mockSendContractCall
       .mockResolvedValueOnce({ hash: HARVEST_HASH, sponsored: false })
       .mockResolvedValueOnce({ hash: SPLIT_HASH, sponsored: false });
-    mockGetReceipt.mockResolvedValue({ logs: [yieldSplitLog()] });
+    mockGetReceipt.mockImplementation((_config: unknown, { hash }: { hash: string }) =>
+      Promise.resolve(hash === HARVEST_HASH ? { logs: [] } : { logs: [yieldSplitLog()] })
+    );
   });
 
   it("confirms harvest before sending splitYield and returns exact event amounts", async () => {
@@ -215,6 +261,9 @@ describe("useHarvestDistribution", () => {
 
     expect(mockSendContractCall).toHaveBeenCalledTimes(1);
     expect(mockErrorHandler).toHaveBeenCalled();
+    // Workflow telemetry and error tracking must stay address-free.
+    expect(JSON.stringify(mockErrorHandler.mock.calls)).not.toContain(GARDEN);
+    expect(JSON.stringify(mockErrorHandler.mock.calls)).not.toContain(ASSET);
   });
 
   it("stops after a non-canonical Safe harvest submission", async () => {
@@ -349,6 +398,164 @@ describe("useHarvestDistribution", () => {
       expect.objectContaining({ functionName: "splitYield" })
     );
     await waitFor(() => expect(result.current.data?.status).toBe("distributed"));
+  });
+
+  it("reports waiting when the split accumulates below the threshold instead of splitting", async () => {
+    // splitYield() emits YieldAccumulated (no YieldSplit) when redemption
+    // limits leave the total below the threshold; that is not a distribution.
+    mockGetReceipt.mockImplementation((_config: unknown, { hash }: { hash: string }) =>
+      Promise.resolve(hash === HARVEST_HASH ? { logs: [] } : { logs: [yieldAccumulatedLog(5n)] })
+    );
+    const { result } = renderHook(() => useHarvestDistribution(), {
+      wrapper: wrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        gardenAddress: GARDEN,
+        assetAddress: ASSET,
+        vaultAddress: VAULT,
+        assetSymbol: "DAI",
+        harvestFirst: true,
+        hadPendingYield: false,
+        thresholdMetBefore: false,
+      });
+    });
+
+    expect(result.current.data).toEqual(
+      expect.objectContaining({
+        status: "waiting",
+        availableAmount: 5n,
+        threshold: 7n,
+        harvested: true,
+      })
+    );
+    expect(mockTrackDistribution).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: "waiting" })
+    );
+  });
+
+  it("preserves a confirmed split when the receipt cannot be read after harvesting", async () => {
+    mockGetReceipt.mockImplementation((_config: unknown, { hash }: { hash: string }) =>
+      hash === HARVEST_HASH
+        ? Promise.resolve({ logs: [] })
+        : Promise.reject(new Error("rpc unavailable"))
+    );
+    const { result } = renderHook(() => useHarvestDistribution(), {
+      wrapper: wrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        gardenAddress: GARDEN,
+        assetAddress: ASSET,
+        vaultAddress: VAULT,
+        assetSymbol: "DAI",
+        harvestFirst: true,
+        hadPendingYield: false,
+        thresholdMetBefore: false,
+      });
+    });
+
+    expect(result.current.data).toEqual({
+      status: "split_unverified",
+      hash: SPLIT_HASH,
+      harvested: true,
+    });
+  });
+
+  it("preserves a confirmed standalone split when the receipt cannot be read", async () => {
+    mockSendContractCall.mockReset();
+    mockSendContractCall.mockResolvedValueOnce({ hash: SPLIT_HASH, sponsored: false });
+    mockGetReceipt.mockRejectedValue(new Error("rpc unavailable"));
+    const { result } = renderHook(() => useHarvestDistribution(), {
+      wrapper: wrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        gardenAddress: GARDEN,
+        assetAddress: ASSET,
+        vaultAddress: VAULT,
+        assetSymbol: "DAI",
+        harvestFirst: false,
+        hadPendingYield: true,
+        thresholdMetBefore: true,
+      });
+    });
+
+    // The split confirmed on-chain, so this must not become a retryable
+    // distribution_pending (a retry could double-submit the split).
+    expect(result.current.data).toEqual({
+      status: "split_unverified",
+      hash: SPLIT_HASH,
+      harvested: false,
+    });
+  });
+
+  it("surfaces a swallowed harvest report failure instead of distributing", async () => {
+    mockGetReceipt.mockImplementation((_config: unknown, { hash }: { hash: string }) =>
+      Promise.resolve(
+        hash === HARVEST_HASH ? { logs: [harvestReportFailedLog()] } : { logs: [yieldSplitLog()] }
+      )
+    );
+    const { result } = renderHook(() => useHarvestDistribution(), {
+      wrapper: wrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        gardenAddress: GARDEN,
+        assetAddress: ASSET,
+        vaultAddress: VAULT,
+        assetSymbol: "DAI",
+        harvestFirst: true,
+        hadPendingYield: false,
+        thresholdMetBefore: false,
+      });
+    });
+
+    expect(mockSendContractCall).toHaveBeenCalledTimes(1);
+    expect(result.current.data).toEqual({
+      status: "harvest_incomplete",
+      hash: HARVEST_HASH,
+      failure: "report_failed",
+    });
+    expect(mockTrackHarvest).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: "failed", errorCategory: "harvest_report_failed" })
+    );
+  });
+
+  it("surfaces a swallowed shares registration failure instead of distributing", async () => {
+    mockGetReceipt.mockImplementation((_config: unknown, { hash }: { hash: string }) =>
+      Promise.resolve(
+        hash === HARVEST_HASH
+          ? { logs: [sharesRegistrationFailedLog()] }
+          : { logs: [yieldSplitLog()] }
+      )
+    );
+    const { result } = renderHook(() => useHarvestDistribution(), {
+      wrapper: wrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        gardenAddress: GARDEN,
+        assetAddress: ASSET,
+        vaultAddress: VAULT,
+        assetSymbol: "DAI",
+        harvestFirst: true,
+        hadPendingYield: false,
+        thresholdMetBefore: false,
+      });
+    });
+
+    expect(mockSendContractCall).toHaveBeenCalledTimes(1);
+    expect(result.current.data).toEqual({
+      status: "harvest_incomplete",
+      hash: HARVEST_HASH,
+      failure: "registration_failed",
+    });
   });
 
   it("invalidates direct reads plus vault, yield, and Cookie Jar state", async () => {

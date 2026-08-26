@@ -1,10 +1,10 @@
 import { Card } from "@green-goods/shared/components/Cards/CardBase";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { useHarvestDistribution } from "@green-goods/shared/hooks/yield/useHarvestDistribution";
 import {
   estimateYieldDistribution,
-  useHarvestDistribution,
   useYieldStatus,
-} from "@green-goods/shared/hooks";
+} from "@green-goods/shared/hooks/yield/useYieldStatus";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import { useEmergencyPause } from "@green-goods/shared/hooks/vault/useEmergencyPause";
@@ -57,6 +57,7 @@ export function PositionCard({
   const enableAutoAllocate = useEnableAutoAllocate();
   const [confirmPauseOpen, setConfirmPauseOpen] = useState(false);
   const [confirmDistributionOpen, setConfirmDistributionOpen] = useState(false);
+  const [confirmRefreshing, setConfirmRefreshing] = useState(false);
 
   const assetDecimals = getVaultAssetDecimals(vault.asset, vault.chainId);
   const netDeposited = getNetDeposited(vault.totalDeposited, vault.totalWithdrawn);
@@ -72,8 +73,15 @@ export function PositionCard({
   const yieldStatus = useYieldStatus(gardenAddress, vault.asset, vault.vaultAddress, {
     enabled: canManage,
   });
-  const shouldHarvestFirst = unharvestedImpactYield > 0n;
-  const estimatedTotal = yieldStatus.totalAvailable + unharvestedImpactYield;
+  // The vault-wide delta (totalAssets - netDeposited) still contains the
+  // assets backing already-registered resolver shares, which totalAvailable
+  // counts too. Only the unregistered remainder is genuinely unharvested.
+  const unregisteredVaultYield =
+    unharvestedImpactYield > yieldStatus.registeredShareAssets
+      ? unharvestedImpactYield - yieldStatus.registeredShareAssets
+      : 0n;
+  const shouldHarvestFirst = unregisteredVaultYield > 0n;
+  const estimatedTotal = yieldStatus.totalAvailable + unregisteredVaultYield;
   const estimatedDistribution = estimateYieldDistribution(estimatedTotal, yieldStatus.splitConfig);
 
   // On-chain health check: does this vault accept deposits?
@@ -110,6 +118,17 @@ export function PositionCard({
   // Only show auto-allocation CTA when this is specifically the legacy misconfiguration:
   // not shutdown, and deposit limit is zero (the hallmark of missing auto-allocation wiring)
   const isLegacyMisconfiguration = !vaultAcceptingDeposits && !isShutdown && depositLimitRaw === 0n;
+
+  // Split ratios and destinations can change on-chain while the card stays
+  // mounted; refresh the execution-relevant reads whenever the confirmation
+  // opens so the operator approves current values, not cached ones.
+  const openDistributionConfirm = () => {
+    setConfirmDistributionOpen(true);
+    setConfirmRefreshing(true);
+    void yieldStatus.refetch().finally(() => setConfirmRefreshing(false));
+  };
+
+  const dismissWorkflowOutcome = () => harvestDistribution.reset();
 
   const runHarvestDistribution = (harvestFirst: boolean) => {
     harvestDistribution.mutate(
@@ -156,11 +175,12 @@ export function PositionCard({
   const distributionResult = harvestDistribution.data;
   const hasWorkflowOutcome = Boolean(distributionResult);
   const canOpenDistribution =
-    !yieldStatus.isLoading &&
-    !yieldStatus.isError &&
-    yieldStatus.isVaultRegistered &&
-    (shouldHarvestFirst || yieldStatus.status === "ready");
-  const actionLabelId = shouldHarvestFirst
+    !yieldStatus.isLoading && !yieldStatus.isError && yieldStatus.isVaultRegistered;
+  // Vault totalAssets only reflects strategy gains after process_report(), so
+  // an empty yield status must not remove the harvest path: harvest stays
+  // available whenever registered yield alone is not already distributable.
+  const needsHarvestFirst = shouldHarvestFirst || yieldStatus.status !== "ready";
+  const actionLabelId = needsHarvestFirst
     ? "app.yield.harvestDistribution.action.harvest"
     : "app.yield.harvestDistribution.action.distribute";
   const confirmationDescription = formatMessage(
@@ -175,7 +195,7 @@ export function PositionCard({
       treasuryAmount: formatAmount(estimatedDistribution.treasuryAmount),
       treasuryPercent: formatPercent(yieldStatus.splitConfig.juiceboxBps),
       promptNote: formatMessage({
-        id: shouldHarvestFirst
+        id: needsHarvestFirst
           ? "app.yield.harvestDistribution.twoPrompts"
           : "app.yield.harvestDistribution.onePrompt",
       }),
@@ -307,19 +327,45 @@ export function PositionCard({
             )}
 
           {distributionResult?.status === "harvest_submitted" && (
-            <Alert variant="info" className="p-3">
+            <Alert variant="info" className="p-3" onDismiss={dismissWorkflowOutcome}>
               {formatMessage({ id: "app.yield.harvestDistribution.harvestSubmittedDetails" })}
             </Alert>
           )}
 
           {distributionResult?.status === "distribution_submitted" && (
-            <Alert variant="info" className="p-3">
+            <Alert variant="info" className="p-3" onDismiss={dismissWorkflowOutcome}>
               {formatMessage({ id: "app.yield.harvestDistribution.distributionSubmittedDetails" })}
             </Alert>
           )}
 
+          {distributionResult?.status === "harvest_incomplete" && (
+            <Alert
+              variant="warning"
+              className="p-3"
+              onDismiss={dismissWorkflowOutcome}
+              action={
+                <AdminButton
+                  variant="outlined"
+                  size="sm"
+                  onClick={() => runHarvestDistribution(true)}
+                  disabled={harvestDistribution.isPending}
+                  loading={harvestDistribution.isPending}
+                >
+                  {formatMessage({ id: "app.yield.harvestDistribution.action.retryHarvest" })}
+                </AdminButton>
+              }
+            >
+              {formatMessage({
+                id:
+                  distributionResult.failure === "report_failed"
+                    ? "app.yield.harvestDistribution.harvestIncompleteReportDetails"
+                    : "app.yield.harvestDistribution.harvestIncompleteRegistrationDetails",
+              })}
+            </Alert>
+          )}
+
           {distributionResult?.status === "waiting" && (
-            <Alert variant="info" className="p-3">
+            <Alert variant="info" className="p-3" onDismiss={dismissWorkflowOutcome}>
               {formatMessage(
                 { id: "app.yield.harvestDistribution.waitingDetails" },
                 {
@@ -334,6 +380,7 @@ export function PositionCard({
             <Alert
               variant="warning"
               className="p-3"
+              onDismiss={dismissWorkflowOutcome}
               action={
                 <AdminButton
                   variant="outlined"
@@ -350,29 +397,33 @@ export function PositionCard({
             </Alert>
           )}
 
-          {distributionResult?.status === "distributed" && (
-            <Alert variant="success" className="p-3">
-              {distributionResult.amounts
-                ? formatMessage(
-                    { id: "app.yield.harvestDistribution.successDetails" },
-                    {
-                      cookieJarAmount: formatAmount(distributionResult.amounts.cookieJarAmount),
-                      destination: formatAddress(yieldStatus.destination.address),
-                      fractionsAmount: formatAmount(distributionResult.amounts.fractionsAmount),
-                      treasuryAmount: formatAmount(distributionResult.amounts.treasuryAmount),
-                    }
-                  )
-                : formatMessage({ id: "app.yield.harvestDistribution.successNoAmounts" })}
+          {distributionResult?.status === "split_unverified" && (
+            <Alert variant="info" className="p-3" onDismiss={dismissWorkflowOutcome}>
+              {formatMessage({ id: "app.yield.harvestDistribution.unverifiedDetails" })}
             </Alert>
           )}
 
-          {!hasWorkflowOutcome && (shouldHarvestFirst || yieldStatus.status === "ready") && (
+          {distributionResult?.status === "distributed" && (
+            <Alert variant="success" className="p-3" onDismiss={dismissWorkflowOutcome}>
+              {formatMessage(
+                { id: "app.yield.harvestDistribution.successDetails" },
+                {
+                  cookieJarAmount: formatAmount(distributionResult.amounts.cookieJarAmount),
+                  destination: formatAddress(yieldStatus.destination.address),
+                  fractionsAmount: formatAmount(distributionResult.amounts.fractionsAmount),
+                  treasuryAmount: formatAmount(distributionResult.amounts.treasuryAmount),
+                }
+              )}
+            </Alert>
+          )}
+
+          {!hasWorkflowOutcome && canOpenDistribution && (
             <div className="flex justify-end">
               <AdminButton
                 variant="filled"
                 size="sm"
-                onClick={() => setConfirmDistributionOpen(true)}
-                disabled={!canOpenDistribution || harvestDistribution.isPending}
+                onClick={openDistributionConfirm}
+                disabled={harvestDistribution.isPending}
                 loading={harvestDistribution.isPending}
               >
                 {formatMessage({ id: actionLabelId })}
@@ -397,13 +448,14 @@ export function PositionCard({
       <AdminConfirmDialog
         isOpen={confirmDistributionOpen}
         onClose={() => setConfirmDistributionOpen(false)}
-        onConfirm={() => runHarvestDistribution(shouldHarvestFirst)}
+        onConfirm={() => runHarvestDistribution(needsHarvestFirst)}
         title={formatMessage({ id: "app.yield.harvestDistribution.confirmTitle" })}
         description={confirmationDescription}
         confirmLabel={formatMessage({ id: actionLabelId })}
         cancelLabel={formatMessage({ id: "app.wizard.cancel" })}
         tone="community"
         isLoading={harvestDistribution.isPending}
+        confirmDisabled={confirmRefreshing}
       />
 
       <AdminConfirmDialog

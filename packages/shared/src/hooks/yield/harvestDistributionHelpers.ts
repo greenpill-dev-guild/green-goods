@@ -1,7 +1,8 @@
 import { getTransactionReceipt, readContract, type Config } from "@wagmi/core";
 import { parseEventLogs, type Hex } from "viem";
+import { logger } from "../../modules/app/logger";
 import type { Address } from "../../types/domain";
-import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis/octant";
+import { OCTANT_MODULE_ABI, OCTANT_VAULT_ABI } from "../../utils/blockchain/abis/octant";
 import { YIELD_SPLITTER_ABI } from "../../utils/blockchain/abis/yield";
 import type { HarvestDistributionParams } from "./useHarvestDistribution";
 import type { YieldDistributionAmounts } from "./useYieldStatus";
@@ -10,6 +11,20 @@ interface DistributionSnapshot {
   availableAmount: bigint;
   threshold: bigint;
 }
+
+export type HarvestReceiptFailure = "report_failed" | "registration_failed";
+
+/**
+ * The verified on-chain outcome of a confirmed `splitYield()` transaction.
+ *
+ * `splitYield()` succeeds without distributing when the redeemed yield lands
+ * below the threshold — it emits `YieldAccumulated` instead of `YieldSplit` —
+ * so a confirmed transaction alone never proves a distribution happened.
+ */
+export type DistributionOutcome =
+  | { kind: "split"; amounts: YieldDistributionAmounts }
+  | { kind: "accumulated"; totalPending: bigint }
+  | { kind: "unknown" };
 
 export function isCanonicalTransactionHash(hash: string): hash is Hex {
   return /^0x[a-fA-F0-9]{64}$/.test(hash);
@@ -71,35 +86,107 @@ export async function readDistributionSnapshot(
   };
 }
 
-export async function readExactDistributionAmounts(
+export async function readDistributionOutcome(
   config: Config,
   chainId: number,
   yieldSplitter: Address,
   hash: Hex,
   gardenAddress: Address,
   assetAddress: Address
-): Promise<YieldDistributionAmounts | null> {
+): Promise<DistributionOutcome> {
   try {
     const receipt = await getTransactionReceipt(config, { hash, chainId });
-    const events = parseEventLogs({
+    const splitEvents = parseEventLogs({
       abi: YIELD_SPLITTER_ABI,
       logs: receipt.logs,
       eventName: "YieldSplit",
     });
-    const event = events.find(
+    const splitEvent = splitEvents.find(
       (candidate) =>
         candidate.address.toLowerCase() === yieldSplitter.toLowerCase() &&
         candidate.args.garden.toLowerCase() === gardenAddress.toLowerCase() &&
         candidate.args.asset.toLowerCase() === assetAddress.toLowerCase()
     );
-    if (!event) return null;
-    return {
-      cookieJarAmount: event.args.cookieJarAmount,
-      fractionsAmount: event.args.fractionsAmount,
-      treasuryAmount: event.args.juiceboxAmount,
-      totalAmount: event.args.totalYield,
-    };
-  } catch {
+    if (splitEvent) {
+      return {
+        kind: "split",
+        amounts: {
+          cookieJarAmount: splitEvent.args.cookieJarAmount,
+          fractionsAmount: splitEvent.args.fractionsAmount,
+          treasuryAmount: splitEvent.args.juiceboxAmount,
+          totalAmount: splitEvent.args.totalYield,
+        },
+      };
+    }
+    const accumulatedEvents = parseEventLogs({
+      abi: YIELD_SPLITTER_ABI,
+      logs: receipt.logs,
+      eventName: "YieldAccumulated",
+    });
+    const accumulatedEvent = accumulatedEvents.find(
+      (candidate) =>
+        candidate.address.toLowerCase() === yieldSplitter.toLowerCase() &&
+        candidate.args.garden.toLowerCase() === gardenAddress.toLowerCase() &&
+        candidate.args.asset.toLowerCase() === assetAddress.toLowerCase()
+    );
+    if (accumulatedEvent) {
+      return { kind: "accumulated", totalPending: accumulatedEvent.args.totalPending };
+    }
+    return { kind: "unknown" };
+  } catch (error) {
+    logger.warn("Could not verify splitYield outcome from the transaction receipt", {
+      error,
+      hash,
+    });
+    return { kind: "unknown" };
+  }
+}
+
+/**
+ * Inspect a confirmed `Octant.harvest()` receipt for failure events.
+ *
+ * The module deliberately catches `process_report()` and `registerShares()`
+ * reverts and emits `HarvestReportFailed` / `SharesRegistrationFailed` while
+ * the transaction itself still succeeds, so a confirmed receipt alone does not
+ * prove the yield was reported or registered. Returns `null` when no failure
+ * event is present, or when the receipt cannot be read (the workflow proceeds
+ * on its pre-split snapshot in that case).
+ */
+export async function readHarvestReceiptFailure(
+  config: Config,
+  chainId: number,
+  octantModule: Address,
+  hash: Hex,
+  gardenAddress: Address,
+  assetAddress: Address
+): Promise<HarvestReceiptFailure | null> {
+  try {
+    const receipt = await getTransactionReceipt(config, { hash, chainId });
+    const events = parseEventLogs({
+      abi: OCTANT_MODULE_ABI,
+      logs: receipt.logs,
+      eventName: ["HarvestReportFailed", "SharesRegistrationFailed"],
+    });
+    const moduleEvents = events.filter(
+      (candidate) =>
+        candidate.address.toLowerCase() === octantModule.toLowerCase() &&
+        candidate.args.garden.toLowerCase() === gardenAddress.toLowerCase()
+    );
+    if (
+      moduleEvents.some(
+        (candidate) =>
+          candidate.eventName === "HarvestReportFailed" &&
+          candidate.args.asset.toLowerCase() === assetAddress.toLowerCase()
+      )
+    ) {
+      return "report_failed";
+    }
+    if (moduleEvents.some((candidate) => candidate.eventName === "SharesRegistrationFailed")) {
+      return "registration_failed";
+    }
+    return null;
+  } catch (error) {
+    logger.warn("Could not inspect the harvest receipt for failure events", { error, hash });
     return null;
   }
 }

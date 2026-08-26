@@ -23,10 +23,10 @@
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending
-- Run at (UTC): pending
-- Exact command(s): `bun run lint`
-- Result: zero errors; no contract source changed
+- Tested implementation commit SHA: 2bb7f89bd0ca853f10990a1c2d526a7d3105ad19 (PR head; re-validated during the 2026-08-26 review-fix pass on `polish/harvest-funds` before the follow-up commit)
+- Run at (UTC): 2026-08-26T20:14:49Z
+- Exact command(s): `bun run format:check && bun lint`
+- Result: format check clean; lint zero errors (oxlint `--deny-warnings` clean; Solhint reported only the pre-existing contract warnings)
 - Validated paths: `packages/shared/src/utils/blockchain/abis/yield.ts`
 - Worktree identity command and result: not applicable to a non-implementation lane
 - Evidence-only diff command and result (if applicable): not applicable

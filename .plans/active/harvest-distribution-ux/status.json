@@ -30,13 +30,8 @@
   "taxonomy": {
     "initiative": "engineering-quality",
     "tracks": [],
-    "work_types": [
-      "implementation"
-    ],
-    "surfaces": [
-      "shared",
-      "admin"
-    ],
+    "work_types": ["implementation"],
+    "surfaces": ["shared", "admin"],
     "depends_on_features": []
   },
   "notes": [
@@ -65,11 +60,7 @@
         },
         "note": ""
       },
-      "skill_tags": [
-        "ui",
-        "frontend-design",
-        "react"
-      ]
+      "skill_tags": ["ui", "frontend-design", "react"]
     },
     "state_api": {
       "owner": "codex",
@@ -90,11 +81,7 @@
         },
         "note": ""
       },
-      "skill_tags": [
-        "react",
-        "tanstack-query",
-        "data-layer"
-      ]
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
     },
     "contracts": {
       "owner": "codex",
@@ -115,9 +102,7 @@
         },
         "note": "Locked scope preserves the deployed contract behavior; only existing ABI view/event entries are consumed."
       },
-      "skill_tags": [
-        "contracts"
-      ]
+      "skill_tags": ["contracts"]
     },
     "qa_pass_1": {
       "owner": "claude",
@@ -125,16 +110,9 @@
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": null,
-      "depends_on": [
-        "ui",
-        "state_api",
-        "contracts"
-      ],
+      "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "skill_tags": [
-        "testing",
-        "review"
-      ]
+      "skill_tags": ["testing", "review"]
     },
     "qa_pass_2": {
       "owner": "codex",
@@ -142,14 +120,9 @@
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": null,
-      "depends_on": [
-        "qa_pass_1"
-      ],
+      "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "skill_tags": [
-        "testing",
-        "review"
-      ]
+      "skill_tags": ["testing", "review"]
     }
   },
   "history": [

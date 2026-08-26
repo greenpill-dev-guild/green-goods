@@ -593,7 +593,8 @@ export {
   useGardenYieldSummary,
 } from "./yield/useGardenYieldSummary";
 export { useGardenYieldWiringState } from "./yield/useGardenYieldWiringState";
-export * from "./yield/useHarvestDistribution";
+// useHarvestDistribution and useYieldStatus are deliberately not re-exported
+// here: consumers import their declared leaf subpaths (package.json#exports).
 export { usePendingYield } from "./yield/usePendingYield";
 export {
   type ProtocolYieldSummary,
@@ -601,4 +602,3 @@ export {
 } from "./yield/useProtocolYieldSummary";
 export { useSplitConfig } from "./yield/useSplitConfig";
 export { useYieldAllocations } from "./yield/useYieldAllocations";
-export * from "./yield/useYieldStatus";

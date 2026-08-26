@@ -182,7 +182,17 @@ export function useYieldStatus(
     return { address: gardenAddress ?? (ZERO_ADDRESS as Address), kind: "garden_fallback" };
   }, [gardenAddress, legacyCookieJar, moduleJar, treasury]);
 
-  const hasBaseReadFailure = Boolean(baseQuery.data?.some((result) => result.status === "failure"));
+  // Only the reads that status derivation depends on may flip the hook into
+  // "error": gardenShares (0), pendingYield (1), minYieldThreshold (2), and
+  // gardenVaults (5). assetYieldThresholds, getEscrowedFractions,
+  // gardenCookieJars, and gardenTreasuries all have fallbacks (global
+  // threshold / zero / destination chain), so their failures must not hide an
+  // otherwise ready distribution.
+  const requiredBaseReadIndexes = [0, 1, 2, 5];
+  const hasBaseReadFailure = Boolean(
+    baseQuery.data &&
+      requiredBaseReadIndexes.some((index) => baseQuery.data?.[index]?.status === "failure")
+  );
   const isLoading =
     enabled &&
     (baseQuery.isLoading ||
@@ -197,7 +207,7 @@ export function useYieldStatus(
       moduleJarQuery.isError ||
       (registeredShares > 0n && conversionQuery.isError));
 
-  let status: YieldStatus = "empty";
+  let status: YieldStatus;
   if (isLoading) status = "loading";
   else if (isError) status = "error";
   else if (!isVaultRegistered) status = "unavailable";

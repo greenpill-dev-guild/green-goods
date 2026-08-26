@@ -12,6 +12,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders as render } from "../test-utils";
 
 const mockHarvestDistributionMutate = vi.fn();
+const mockHarvestDistributionReset = vi.fn();
 const mockPauseMutate = vi.fn();
 const mockEnableAutoAllocateMutate = vi.fn();
 const mockUseVaultPreview = vi.fn().mockReturnValue({ preview: null });
@@ -36,9 +37,12 @@ vi.mock("@green-goods/shared/hooks/vault/useEnableAutoAllocate", () => ({
   useEnableAutoAllocate: () => ({ mutate: mockEnableAutoAllocateMutate, isPending: false }),
 }));
 
-vi.mock("@green-goods/shared/hooks", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@green-goods/shared/hooks")>()),
+vi.mock("@green-goods/shared/hooks/yield/useHarvestDistribution", () => ({
   useHarvestDistribution: () => mockHarvestDistribution,
+}));
+
+vi.mock("@green-goods/shared/hooks/yield/useYieldStatus", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/hooks/yield/useYieldStatus")>()),
   useYieldStatus: () => mockYieldStatus,
 }));
 
@@ -97,6 +101,7 @@ describe("PositionCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseVaultPreview.mockReturnValue({ preview: null });
+    mockYieldRefetch.mockResolvedValue(undefined);
     mockYieldStatus = {
       status: "empty",
       registeredShares: 0n,
@@ -123,6 +128,7 @@ describe("PositionCard", () => {
     };
     mockHarvestDistribution = {
       mutate: mockHarvestDistributionMutate,
+      reset: mockHarvestDistributionReset,
       isPending: false,
       data: undefined,
       stage: "idle",
@@ -353,9 +359,99 @@ describe("PositionCard", () => {
 
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
-      expect(screen.getByText(/4 USDC reached the Cookie Jar/i)).toBeInTheDocument();
-      expect(screen.getByText(/4 USDC went to hypercert funding/i)).toBeInTheDocument();
-      expect(screen.getByText(/2 USDC went to the protocol treasury/i)).toBeInTheDocument();
+      expect(screen.getByText(/4 USDC was allocated to the Cookie Jar/i)).toBeInTheDocument();
+      expect(screen.getByText(/4 USDC to hypercert funding/i)).toBeInTheDocument();
+      expect(screen.getByText(/2 USDC to the protocol treasury/i)).toBeInTheDocument();
+    });
+
+    it("refreshes yield state when the confirmation opens", async () => {
+      mockUseVaultPreview.mockReturnValue({
+        preview: { maxDeposit: 1000n, totalAssets: 2_000_000_000_000_000_000n },
+      });
+      const user = userEvent.setup();
+
+      render(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      await user.click(screen.getByText("Harvest & distribute"));
+
+      expect(mockYieldRefetch).toHaveBeenCalled();
+    });
+
+    it("keeps the harvest action available when vault gains are not yet reported", async () => {
+      // No preview delta and empty registered yield: strategy appreciation is
+      // invisible until process_report(), so the harvest path must remain.
+      const user = userEvent.setup();
+
+      render(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      const action = screen.getByText("Harvest & distribute");
+      await user.click(action);
+      const confirmButtons = screen.getAllByText("Harvest & distribute");
+      await user.click(confirmButtons[confirmButtons.length - 1]);
+
+      expect(mockHarvestDistributionMutate).toHaveBeenCalledWith(
+        expect.objectContaining({ harvestFirst: true }),
+        expect.objectContaining({ onSettled: expect.any(Function) })
+      );
+    });
+
+    it("lets the admin dismiss a terminal outcome to start another distribution", async () => {
+      mockHarvestDistribution = {
+        ...mockHarvestDistribution,
+        data: {
+          status: "distributed",
+          hash: `0x${"a".repeat(64)}`,
+          amounts: {
+            cookieJarAmount: 4n * 10n ** 18n,
+            fractionsAmount: 4n * 10n ** 18n,
+            treasuryAmount: 2n * 10n ** 18n,
+            totalAmount: 10n * 10n ** 18n,
+          },
+        },
+        stage: "complete",
+      };
+      const user = userEvent.setup();
+
+      render(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      await user.click(screen.getByRole("button", { name: "Close" }));
+
+      expect(mockHarvestDistributionReset).toHaveBeenCalled();
+    });
+
+    it("explains an incomplete harvest and offers a harvest retry", async () => {
+      mockHarvestDistribution = {
+        ...mockHarvestDistribution,
+        data: {
+          status: "harvest_incomplete",
+          hash: `0x${"c".repeat(64)}`,
+          failure: "report_failed",
+        },
+        stage: "harvest_incomplete",
+      };
+      const user = userEvent.setup();
+
+      render(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      expect(screen.getByText(/the vault could not report new yield/i)).toBeInTheDocument();
+      await user.click(screen.getByText("Retry harvest"));
+      expect(mockHarvestDistributionMutate).toHaveBeenCalledWith(
+        expect.objectContaining({ harvestFirst: true }),
+        expect.objectContaining({ onSettled: expect.any(Function) })
+      );
+    });
+
+    it("reports an unverified split without offering a distribution retry", () => {
+      mockHarvestDistribution = {
+        ...mockHarvestDistribution,
+        data: { status: "split_unverified", hash: `0x${"d".repeat(64)}`, harvested: true },
+        stage: "split_unverified",
+      };
+
+      render(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      expect(screen.getByText(/its result could not be read back yet/i)).toBeInTheDocument();
+      expect(screen.queryByText("Retry distribution")).not.toBeInTheDocument();
     });
   });
 
