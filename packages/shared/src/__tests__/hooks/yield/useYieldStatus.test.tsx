@@ -73,13 +73,33 @@ function configureReads({
   });
   mockUseReadContract.mockImplementation((options: { functionName: string }) => {
     if (options.functionName === "convertToAssets") {
-      return { data: converted, isLoading: false, isError: false, refetch: mockConvertRefetch };
+      return {
+        data: converted,
+        isLoading: false,
+        isError: false,
+        isSuccess: true,
+        refetch: mockConvertRefetch,
+      };
     }
     if (options.functionName === "getGardenJar") {
-      return { data: moduleJar, isLoading: false, isError: false, refetch: mockJarRefetch };
+      // Mirror wagmi: a disabled query never produces data.
+      const enabled = (options as { query?: { enabled?: boolean } }).query?.enabled !== false;
+      return {
+        data: enabled ? moduleJar : undefined,
+        isLoading: false,
+        isError: false,
+        isSuccess: enabled,
+        refetch: mockJarRefetch,
+      };
     }
     if (options.functionName === "getSplitConfig") {
-      return { data: split, isLoading: false, isError: false, refetch: mockSplitRefetch };
+      return {
+        data: split,
+        isLoading: false,
+        isError: false,
+        isSuccess: true,
+        refetch: mockSplitRefetch,
+      };
     }
     throw new Error(`Unexpected read: ${options.functionName}`);
   });
@@ -187,10 +207,11 @@ describe("useYieldStatus", () => {
   });
 
   it("does not hide distribution when only fallback-covered reads fail", () => {
-    // assetYieldThresholds (3), escrowed fractions (4), gardenCookieJars (6),
-    // and gardenTreasuries (7) all have fallbacks and must not gate isError.
+    // escrowed fractions (4), gardenCookieJars (6), gardenTreasuries (7), and
+    // cookieJarModule (8) all have display fallbacks and must not gate
+    // isError; destination trust is downgraded instead.
     const failedBase = baseResults();
-    for (const index of [3, 4, 6, 7]) {
+    for (const index of [4, 6, 7, 8]) {
       failedBase[index] = { status: "failure", result: undefined };
     }
     configureReads({ base: failedBase });
@@ -201,15 +222,62 @@ describe("useYieldStatus", () => {
     expect(result.current.status).toBe("ready");
     expect(result.current.threshold).toBe(7n);
     expect(result.current.destination).toEqual({ address: JAR, kind: "cookie_jar" });
-    // The status stays usable, but the destination chain lost reads (6, 7),
-    // so confirmation-level surfaces must treat it as unverified.
+    // The status stays usable, but the destination chain lost reads, so
+    // confirmation-level surfaces must treat it as unverified.
     expect(result.current.destinationVerified).toBe(false);
+  });
+
+  it("blocks the status when the asset threshold override read fails", () => {
+    // A failed assetYieldThresholds read would substitute the lower global
+    // threshold and could present a waiting position as ready.
+    const failedBase = baseResults();
+    failedBase[3] = { status: "failure", result: undefined };
+    configureReads({ base: failedBase });
+
+    const { result } = renderHook(() => useYieldStatus(GARDEN, ASSET, VAULT));
+
+    expect(result.current.status).toBe("error");
+    expect(result.current.isError).toBe(true);
+  });
+
+  it("honors a deliberately disabled cookie jar module", () => {
+    // A successful zero-address cookieJarModule() read means routing skips
+    // the jar entirely; the artifact module must not be consulted.
+    configureReads({
+      base: baseResults({ 8: "0x0000000000000000000000000000000000000000" }),
+    });
+
+    const { result } = renderHook(() => useYieldStatus(GARDEN, ASSET, VAULT));
+
+    expect(result.current.destination).toEqual({ address: TREASURY, kind: "treasury" });
+    expect(result.current.destinationVerified).toBe(true);
   });
 
   it("verifies the destination when every routing read succeeds", () => {
     const { result } = renderHook(() => useYieldStatus(GARDEN, ASSET, VAULT));
 
     expect(result.current.destinationVerified).toBe(true);
+  });
+
+  it("keeps the destination unverified while the module jar read is pending", () => {
+    configureReads();
+    const standard = mockUseReadContract.getMockImplementation()!;
+    mockUseReadContract.mockImplementation((options: { functionName: string }) => {
+      if (options.functionName === "getGardenJar") {
+        return {
+          data: undefined,
+          isLoading: true,
+          isError: false,
+          isSuccess: false,
+          refetch: mockJarRefetch,
+        };
+      }
+      return standard(options);
+    });
+
+    const { result } = renderHook(() => useYieldStatus(GARDEN, ASSET, VAULT));
+
+    expect(result.current.destinationVerified).toBe(false);
   });
 
   it("still errors when a status-required read fails", () => {

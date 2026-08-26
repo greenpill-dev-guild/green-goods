@@ -24,7 +24,14 @@ interface HarvestOutcomeAlertsProps {
   formatAmount: (amount: bigint) => string;
   /** Retries reopen the fresh destination-aware confirmation, never the mutation directly. */
   onRetry: (mode: "split_only" | "harvest_first") => void;
+  /** Dismisses a terminal outcome so the workflow can start over. */
   onDismiss: () => void;
+  /**
+   * Refetches on-chain state and only then clears the outcome. Unresolved
+   * outcomes (submitted, split_unverified) must never be plainly dismissed —
+   * that would re-expose the action while the transaction status is unknown.
+   */
+  onReconcile: () => void;
 }
 
 /** Terminal-outcome alerts for the harvest & distribute workflow. */
@@ -35,20 +42,33 @@ export function HarvestOutcomeAlerts({
   formatAmount,
   onRetry,
   onDismiss,
+  onReconcile,
 }: HarvestOutcomeAlertsProps) {
   const { formatMessage } = useIntl();
   if (!result) return null;
 
+  const reconcileAction = (
+    <AdminButton
+      variant="outlined"
+      size="sm"
+      onClick={onReconcile}
+      disabled={isRetryPending}
+      loading={isRetryPending}
+    >
+      {formatMessage({ id: "app.yield.harvestDistribution.action.checkStatus" })}
+    </AdminButton>
+  );
+
   return (
     <>
       {result.status === "harvest_submitted" && (
-        <Alert variant="info" className="p-3" onDismiss={onDismiss}>
+        <Alert variant="info" className="p-3" action={reconcileAction}>
           {formatMessage({ id: "app.yield.harvestDistribution.harvestSubmittedDetails" })}
         </Alert>
       )}
 
       {result.status === "distribution_submitted" && (
-        <Alert variant="info" className="p-3" onDismiss={onDismiss}>
+        <Alert variant="info" className="p-3" action={reconcileAction}>
           {formatMessage({ id: "app.yield.harvestDistribution.distributionSubmittedDetails" })}
         </Alert>
       )}
@@ -113,7 +133,7 @@ export function HarvestOutcomeAlerts({
       )}
 
       {result.status === "split_unverified" && (
-        <Alert variant="info" className="p-3" onDismiss={onDismiss}>
+        <Alert variant="info" className="p-3" action={reconcileAction}>
           {formatMessage({ id: "app.yield.harvestDistribution.unverifiedDetails" })}
         </Alert>
       )}

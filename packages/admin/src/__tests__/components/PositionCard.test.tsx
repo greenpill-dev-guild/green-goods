@@ -5,7 +5,7 @@
  * yield info, and steward management actions (harvest/distribute, emergency pause).
  */
 
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -453,6 +453,26 @@ describe("PositionCard", () => {
         expect.objectContaining({ harvestFirst: true }),
         expect.objectContaining({ onSettled: expect.any(Function) })
       );
+    });
+
+    it("reconciles unresolved outcomes instead of offering a plain dismissal", async () => {
+      // Safe submissions and unverified splits must not be clearable without
+      // refetching state — a bare dismiss would re-expose the action while
+      // the transaction outcome is unknown.
+      mockHarvestDistribution = {
+        ...mockHarvestDistribution,
+        data: { status: "split_unverified", hash: `0x${"d".repeat(64)}`, harvested: true },
+        stage: "split_unverified",
+      };
+      const user = userEvent.setup();
+
+      render(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+      await user.click(screen.getByText("Check status"));
+
+      expect(mockYieldRefetch).toHaveBeenCalled();
+      await waitFor(() => expect(mockHarvestDistributionReset).toHaveBeenCalled());
     });
 
     it("explains a reverted harvest and keeps the retry available", () => {

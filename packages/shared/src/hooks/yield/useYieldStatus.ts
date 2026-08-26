@@ -147,10 +147,7 @@ export function useYieldStatus(
   const registeredVault = successfulResult<Address | undefined>(baseQuery.data?.[5], undefined);
   const legacyCookieJar = successfulResult<Address | undefined>(baseQuery.data?.[6], undefined);
   const treasury = successfulResult<Address | undefined>(baseQuery.data?.[7], undefined);
-  const splitterCookieJarModule = successfulResult<Address | undefined>(
-    baseQuery.data?.[8],
-    undefined
-  );
+  const splitterCookieJarModuleRead = baseQuery.data?.[8];
 
   const conversionQuery = useReadContract({
     address: vaultAddress,
@@ -165,11 +162,13 @@ export function useYieldStatus(
   });
 
   // _routeToCookieJar() resolves the jar through the splitter's mutable
-  // cookieJarModule, which the owner can rotate via setCookieJarModule(); the
-  // deployment artifact is only the fallback when that read is unavailable.
+  // cookieJarModule, which the owner can rotate via setCookieJarModule(). A
+  // successful zero-address read means the module is deliberately disabled
+  // (routing skips to the legacy jar or treasury), so the deployment artifact
+  // substitutes only when the live read itself failed.
   const resolvedCookieJarModule =
-    splitterCookieJarModule && !isZeroAddress(splitterCookieJarModule)
-      ? splitterCookieJarModule
+    splitterCookieJarModuleRead?.status === "success"
+      ? (splitterCookieJarModuleRead.result as Address)
       : cookieJarModule;
   const moduleConfigured =
     Boolean(resolvedCookieJarModule) && !isZeroAddress(resolvedCookieJarModule);
@@ -205,26 +204,30 @@ export function useYieldStatus(
   }, [gardenAddress, legacyCookieJar, moduleJar, treasury]);
 
   // Only the reads that status derivation depends on may flip the hook into
-  // "error": gardenShares (0), pendingYield (1), minYieldThreshold (2), and
-  // gardenVaults (5). assetYieldThresholds, getEscrowedFractions,
-  // gardenCookieJars, gardenTreasuries, and cookieJarModule all have fallbacks
-  // (global threshold / zero / destination chain / deployment artifact), so
-  // their failures must not hide an otherwise ready distribution.
-  const requiredBaseReadIndexes = [0, 1, 2, 5];
+  // "error": gardenShares (0), pendingYield (1), minYieldThreshold (2),
+  // assetYieldThresholds (3), and gardenVaults (5). The threshold override is
+  // execution-relevant — substituting the (lower) global threshold on failure
+  // could present a waiting position as ready. getEscrowedFractions,
+  // gardenCookieJars, gardenTreasuries, and cookieJarModule have display
+  // fallbacks (zero / destination chain / deployment artifact), so their
+  // failures must not hide an otherwise ready distribution; the destination
+  // ones gate `destinationVerified` below instead.
+  const requiredBaseReadIndexes = [0, 1, 2, 3, 5];
   const hasBaseReadFailure = Boolean(
     baseQuery.data &&
       requiredBaseReadIndexes.some((index) => baseQuery.data?.[index]?.status === "failure")
   );
   // The displayed destination is only trustworthy when every read in its
-  // resolution chain succeeded — gardenCookieJars (6), gardenTreasuries (7),
-  // the live cookieJarModule (8), and the module jar lookup. Their failures
-  // fall back silently, so approving a distribution against a fallback
-  // address could name a destination on-chain routing will not use.
-  // Consumers must gate confirmation on this instead of on status/isError.
+  // resolution chain has actually succeeded — gardenCookieJars (6),
+  // gardenTreasuries (7), the live cookieJarModule (8), and the module jar
+  // lookup. Failures fall back silently, so approving a distribution against
+  // a fallback address could name a destination on-chain routing will not
+  // use; pending reads are just as unverified as failed ones. Consumers must
+  // gate confirmation on this instead of on status/isError.
   const destinationReadIndexes = [6, 7, 8];
   const destinationVerified =
-    !destinationReadIndexes.some((index) => baseQuery.data?.[index]?.status === "failure") &&
-    !moduleJarQuery.isError;
+    destinationReadIndexes.every((index) => baseQuery.data?.[index]?.status === "success") &&
+    (!moduleConfigured || moduleJarQuery.isSuccess);
   const isLoading =
     enabled &&
     (baseQuery.isLoading ||

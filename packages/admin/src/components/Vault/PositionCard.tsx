@@ -137,6 +137,13 @@ export function PositionCard({
 
   const dismissWorkflowOutcome = () => harvestDistribution.reset();
 
+  // For unresolved outcomes (Safe submissions, unverified splits) the outcome
+  // clears only through reconciliation: refetch on-chain state first, then
+  // reset, so the next render reflects what actually happened.
+  const reconcileWorkflowOutcome = () => {
+    void yieldStatus.refetch().finally(() => harvestDistribution.reset());
+  };
+
   const runHarvestDistribution = (harvestFirst: boolean) => {
     harvestDistribution.mutate(
       {
@@ -346,6 +353,7 @@ export function PositionCard({
             formatAmount={formatAmount}
             onRetry={openDistributionConfirm}
             onDismiss={dismissWorkflowOutcome}
+            onReconcile={reconcileWorkflowOutcome}
           />
 
           {!hasWorkflowOutcome && canOpenDistribution && (

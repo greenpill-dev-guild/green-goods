@@ -2,6 +2,7 @@ import { Alert } from "@green-goods/shared/components/Alert";
 import { Card } from "@green-goods/shared/components/Cards/CardBase";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { Meta, StoryObj } from "@storybook/react";
+import { useIntl } from "react-intl";
 import { fn } from "storybook/test";
 import { AdminButton } from "@/components/AdminButton";
 
@@ -50,6 +51,7 @@ function PositionCardHarness({
   isEnablingAutoAllocate = false,
   distributionState = "empty",
 }: PositionCardHarnessProps) {
+  const { formatMessage } = useIntl();
   return (
     <Card padding="compact" className="sm:p-5">
       <div className="mb-4">
@@ -174,9 +176,12 @@ function PositionCardHarness({
                   disabled={isHarvesting}
                   loading={isHarvesting}
                 >
-                  {unharvestedYield > 0n || distributionState !== "ready"
-                    ? "Harvest & distribute"
-                    : "Distribute yield"}
+                  {formatMessage({
+                    id:
+                      unharvestedYield > 0n || distributionState !== "ready"
+                        ? "app.yield.harvestDistribution.action.harvest"
+                        : "app.yield.harvestDistribution.action.distribute",
+                  })}
                 </AdminButton>
               </div>
             )}

@@ -695,6 +695,33 @@ describe("useHarvestDistribution", () => {
     });
   });
 
+  it("never splits a zero-available position, even under a zero threshold", async () => {
+    // With a configured zero minimum threshold, an empty position would pass
+    // the < comparison and reach splitYield(), which reverts NoVaultShares.
+    configureSnapshot({ shares: 0n, pending: 0n, converted: 0n, threshold: 0n });
+    mockSendContractCall.mockReset();
+    const { result } = renderHook(() => useHarvestDistribution(), {
+      wrapper: wrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        gardenAddress: GARDEN,
+        assetAddress: ASSET,
+        vaultAddress: VAULT,
+        assetSymbol: "DAI",
+        harvestFirst: false,
+        hadPendingYield: false,
+        thresholdMetBefore: false,
+      });
+    });
+
+    expect(mockSendContractCall).not.toHaveBeenCalled();
+    expect(result.current.data).toEqual(
+      expect.objectContaining({ status: "waiting", availableAmount: 0n, threshold: 0n })
+    );
+  });
+
   it("invalidates direct reads plus vault, yield, and Cookie Jar state", async () => {
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
     const { result } = renderHook(() => useHarvestDistribution(), {

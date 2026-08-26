@@ -91,6 +91,8 @@ export function useHarvestDistribution() {
   const handleError = createMutationErrorHandler({
     source: "useHarvestDistribution",
     toastContext: "harvest distribution",
+    getFallbackTitle: () => formatMessage({ id: "app.yield.harvestDistribution.errorTitle" }),
+    getFallbackMessage: () => formatMessage({ id: "app.yield.harvestDistribution.errorMessage" }),
   });
 
   useEffect(() => {
@@ -194,7 +196,9 @@ export function useHarvestDistribution() {
       try {
         setStageIfMounted("checking");
         const snapshot = await readDistributionSnapshot(config, chainId, yieldSplitter, params);
-        if (snapshot.availableAmount < snapshot.threshold) {
+        // Zero available must never reach splitYield() even under a zero
+        // threshold — the resolver reverts with NoVaultShares.
+        if (snapshot.availableAmount === 0n || snapshot.availableAmount < snapshot.threshold) {
           trackHarvestDistributionOutcome({
             ...telemetry,
             outcome: "waiting",
@@ -248,10 +252,8 @@ export function useHarvestDistribution() {
           return { status: "waiting", ...fresh, harvested };
         }
         if (outcome.kind === "reverted") {
-          // A readable receipt with neither resolver event means the inner
-          // splitYield() never executed (e.g. a reverted UserOperation inside
-          // a successful EntryPoint transaction). This is a real failure and
-          // must stay retryable.
+          // Eventless readable receipt = the inner splitYield() never executed
+          // (e.g. a reverted UserOperation); a real, retryable failure.
           throw new Error(
             "Distribution transaction confirmed but splitYield did not execute; the inner call reverted"
           );
