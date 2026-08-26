@@ -36,6 +36,7 @@ const INTERACTIVE_ARTIFACT_MUTATIONS = new Set([
 
 export const RELEASE_OPERATOR_COMMANDS = new Map<string, string>([
   ["release:ownership:arbitrum", "one protocol ownership-transfer boundary"],
+  ["release:ownership:celo", "one protocol ownership-transfer boundary"],
   ["settlement:garden-accounts:deploy:celo", "one exact GardenAccount coordinator boundary"],
   ["settlement:garden-safes:deploy:celo", "one final native/G$-clear 2-of-3 Garden Safe boundary"],
   ["settlement:garden-relay:deploy", "one zero-value Garden-bound relay boundary"],
@@ -57,6 +58,7 @@ const FORBIDDEN_ARGUMENTS = new Set([
 
 const RELEASE_OPERATOR_ARGUMENTS = new Map<string, ReadonlySet<string>>([
   ["release:ownership:arbitrum", new Set(["--step", "--expected-nonce"])],
+  ["release:ownership:celo", new Set(["--step", "--expected-nonce"])],
   ["settlement:garden-accounts:deploy:celo", new Set(["--plan", "--step", "--receipt"])],
   ["settlement:garden-safes:deploy:celo", new Set(["--plan", "--inventory", "--step", "--receipt"])],
   ["settlement:garden-relay:deploy", new Set(["--plan", "--safe-plan", "--step", "--receipt"])],
@@ -73,6 +75,7 @@ const RELEASE_OPERATOR_ARGUMENTS = new Map<string, ReadonlySet<string>>([
  */
 export type CeremonyStage =
   | "ownership-arbitrum"
+  | "ownership-celo"
   | "garden-accounts"
   | "garden-safes"
   | "relay"
@@ -87,6 +90,14 @@ export const CEREMONY_STAGES = new Map<CeremonyStage, { script: string; boundari
       script: "release:ownership:arbitrum",
       boundaries: 8,
       label: "Arbitrum protocol ownership handover",
+    },
+  ],
+  [
+    "ownership-celo",
+    {
+      script: "release:ownership:celo",
+      boundaries: 1,
+      label: "Celo protocol ownership handover",
     },
   ],
   [
@@ -309,6 +320,7 @@ if step 1 already broadcast, recover through the interactive mode with an explic
 
 Ceremony stages:
   ownership-arbitrum                       8 boundaries
+  ownership-celo                           1 boundary
   garden-accounts                          2 boundaries
   garden-safes                             18 boundaries
   relay                                    4 boundaries
@@ -749,6 +761,10 @@ const STAGE_PLAN_PATHS: Readonly<Partial<Record<CeremonyStage, string>>> = {
     CONTRACTS_ROOT,
     ".generated/release/commitment-pooling-settlement-credit-v1/arbitrum/ownership-transfer-transaction-plan.json",
   ),
+  "ownership-celo": path.join(
+    CONTRACTS_ROOT,
+    ".generated/release/commitment-pooling-settlement-credit-v1/celo/ownership-transfer-transaction-plan.json",
+  ),
   "garden-safes": GARDEN_SAFE_PLAN_PATH,
   "garden-roles": ROLES_PLAN_PATH,
   "garden-roles-enable": path.join(CONTRACTS_ROOT, ".generated/runtime/42220-garden-roles-enable.json"),
@@ -759,6 +775,10 @@ const STAGE_CHECKPOINT_PATHS: Readonly<Partial<Record<CeremonyStage, string>>> =
   "ownership-arbitrum": path.join(
     CONTRACTS_ROOT,
     ".generated/release/commitment-pooling-settlement-credit-v1/arbitrum/ownership-transfer-checkpoint.json",
+  ),
+  "ownership-celo": path.join(
+    CONTRACTS_ROOT,
+    ".generated/release/commitment-pooling-settlement-credit-v1/celo/ownership-transfer-checkpoint.json",
   ),
 };
 
@@ -911,7 +931,7 @@ async function runCeremonyStage(
     return;
   }
 
-  if (stage === "ownership-arbitrum") {
+  if (stage === "ownership-arbitrum" || stage === "ownership-celo") {
     const planPath = STAGE_PLAN_PATHS[stage];
     if (!planPath) throw new Error(`Stage ${stage} has no reviewed plan to resume from`);
     const completed = completedBoundaries(planPath, STAGE_CHECKPOINT_PATHS[stage]);
@@ -922,7 +942,9 @@ async function runCeremonyStage(
     }
     if (completed > 0) console.log(`Resuming stage ${stage} after ${completed} checkpointed boundaries.`);
     const manifest = loadReleaseManifest();
-    const provider = new JsonRpcProvider(new NetworkManager().getRpcUrl("arbitrum"), 42161, {
+    const network = stage === "ownership-arbitrum" ? "arbitrum" : "celo";
+    const chainId = stage === "ownership-arbitrum" ? 42161 : 42220;
+    const provider = new JsonRpcProvider(new NetworkManager().getRpcUrl(network), chainId, {
       staticNetwork: true,
     });
     try {

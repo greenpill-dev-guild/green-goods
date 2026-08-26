@@ -86,6 +86,13 @@ describe("release operator session", () => {
       label: "Arbitrum protocol ownership handover",
     });
     expect(plannedStageBoundaries("ownership-arbitrum", 5)).toEqual([6, 7, 8]);
+    expect(parseSessionOptions(["--commit", candidate, "--stage", "ownership-celo"]).stage).toBe("ownership-celo");
+    expect(CEREMONY_STAGES.get("ownership-celo")).toEqual({
+      script: "release:ownership:celo",
+      boundaries: 1,
+      label: "Celo protocol ownership handover",
+    });
+    expect(plannedStageBoundaries("ownership-celo", 0)).toEqual([1]);
     // The relay lane spans both chains, so its four boundaries are one reviewed stage.
     expect(parseSessionOptions(["--commit", candidate, "--stage", "relay"]).stage).toBe("relay");
     expect(CEREMONY_STAGES.get("relay")?.boundaries).toBe(4);
@@ -247,6 +254,7 @@ describe("release operator session", () => {
     const receipt = `0x${"cd".repeat(32)}`;
     expect([...RELEASE_OPERATOR_COMMANDS.keys()]).toEqual([
       "release:ownership:arbitrum",
+      "release:ownership:celo",
       "settlement:garden-accounts:deploy:celo",
       "settlement:garden-safes:deploy:celo",
       "settlement:garden-relay:deploy",
@@ -254,6 +262,12 @@ describe("release operator session", () => {
       "settlement:garden-roles:enable",
       "settlement:garden-routes:configure",
     ]);
+    expect(
+      assertAllowedOperatorCommand(tokenizeOperatorCommand("run release:ownership:celo --step 1 --expected-nonce 42")),
+    ).toEqual({
+      script: "release:ownership:celo",
+      args: ["--step", "1", "--expected-nonce", "42"],
+    });
     expect(
       assertAllowedOperatorCommand(
         tokenizeOperatorCommand(

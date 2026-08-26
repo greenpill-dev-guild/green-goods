@@ -193,7 +193,7 @@
     "contracts:release:ownership:arbitrum": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer bun run --cwd packages/contracts release:ownership:release:arbitrum",
     "contracts:release:ownership:plan:celo": "APP_ENV=development bun run --cwd packages/contracts release:ownership:plan:celo",
     "contracts:release:ownership:dry:celo": "APP_ENV=development bun run --cwd packages/contracts release:ownership:dry:celo",
-    "contracts:release:ownership:celo": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer bun run --cwd packages/contracts release:ownership:celo",
+    "contracts:release:ownership:celo": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer bun run --cwd packages/contracts release:ownership:release:celo",
     "contracts:settlement:module:plan:arbitrum": "APP_ENV=development bun run --cwd packages/contracts settlement:module:plan:arbitrum",
     "contracts:settlement:module:dry:arbitrum": "APP_ENV=development bun run --cwd packages/contracts settlement:module:dry:arbitrum",
     "contracts:settlement:module:deploy:arbitrum": "APP_ENV=development bun run --cwd packages/contracts settlement:module:deploy:arbitrum",

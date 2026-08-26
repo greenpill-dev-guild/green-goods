@@ -119,6 +119,7 @@
     "release:ownership:plan:celo": "bun script/deploy.ts ownership-transfer --network celo --pure-simulation",
     "release:ownership:dry:celo": "bun script/deploy.ts ownership-transfer --network celo --dry-run",
     "release:ownership:celo": "bun script/deploy.ts ownership-transfer --network celo --broadcast",
+    "release:ownership:release:celo": "bun script/release-operator.ts --stage ownership-celo --commit \"$(git rev-parse HEAD)\"",
     "settlement:module:dry:arbitrum": "bun script/deploy.ts settlement-module --network arbitrum --dry-run",
     "settlement:module:plan:arbitrum": "bun script/deploy.ts settlement-module --network arbitrum --pure-simulation",
     "settlement:module:deploy:arbitrum": "bun script/deploy.ts settlement-module --network arbitrum --broadcast",
