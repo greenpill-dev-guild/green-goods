@@ -260,14 +260,16 @@
     opacity: var(--m3-state-pressed);
   }
 
-  /* M3 expanded touch target: a ≥44px effective hit area on the 32px-visual
-   * compact controls (AdminButton sm, AdminFilterChip) without moving layout.
-   * The ::before extends hit-testing beyond the visual box, so the state
-   * layer's overlay clip is released — its rounded shape comes from
-   * border-radius: inherit, not the clip. Vertical-only: a sideways extension
-   * would overlap neighbouring targets inside chip rows. Must follow the
-   * .m3-state-layer rules in this same layer so `overflow` wins by order. */
+  /* M3 expanded touch target: a ≥44px effective hit area around the 32px-visual
+   * compact controls (AdminButton sm, AdminFilterChip). The block margin
+   * reserves the pseudo-element's 6px reach above and below, so wrapped rows
+   * cannot paint overlapping hit regions. The state layer's overlay clip is
+   * released — its rounded shape comes from border-radius: inherit, not the
+   * clip. Vertical-only: a sideways extension would overlap neighbouring
+   * targets inside chip rows. Must follow the .m3-state-layer rules in this
+   * same layer so `overflow` wins by order. */
   .admin-hit-target {
+    margin-block: 0.375rem;
     overflow: visible;
   }
 
@@ -539,4 +541,3 @@
 [data-tone] {
   transition: --tone-surface-tint-color var(--spring-effects-slow-duration) var(--spring-effects-slow-easing);
 }
-
