@@ -1,7 +1,4 @@
-import type {
-  ActivityEvent,
-  HubPipelineStage,
-} from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
+import type { HubPipelineStage } from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
 import {
   type HubActionSummary,
   selectHubStageContent,
@@ -11,7 +8,6 @@ import type { CommitmentsToConfirm } from "@green-goods/shared/hooks/commitment-
 import { HubAssessmentQueue } from "./HubAssessmentQueue";
 import { HubCertificationQueue } from "./HubCertificationQueue";
 import { HubConfirmQueue } from "./HubConfirmQueue";
-import { HubHistoryQueue } from "./HubHistoryQueue";
 import { HubWorkQueue } from "./HubWorkQueue";
 
 interface CertificationItem {
@@ -27,11 +23,9 @@ interface HubStageContentProps {
   pendingWorks: Work[];
   assessmentQueue: Work[];
   certificationQueue: CertificationItem[];
-  historyEvents: ActivityEvent[];
   worksLoading: boolean;
   fetchingAssessments: boolean;
   hypercertsLoading: boolean;
-  allocationsLoading: boolean;
   hasDataError: boolean;
   normalizedSearch: string;
   debouncedSearch: string;
@@ -39,7 +33,6 @@ interface HubStageContentProps {
   selectedGardenName?: string;
   selectedWorkId: string | undefined;
   selectedCertificationId: string | undefined;
-  selectedHistoryEventId: string | undefined;
   canManage: boolean;
   /** The Confirm stage's queue (uiux-spec §6.9), read by the Hub controller. */
   toConfirm: CommitmentsToConfirm;
@@ -51,7 +44,6 @@ interface HubStageContentProps {
   onOpenWorkDetail: (workId: string) => void;
   onClearSearch: () => void;
   onOpenCertification: (assessmentId: string) => void;
-  onOpenHistoryEvent: (event: ActivityEvent) => void;
 }
 
 export function HubStageContent({
@@ -59,11 +51,9 @@ export function HubStageContent({
   pendingWorks,
   assessmentQueue,
   certificationQueue,
-  historyEvents,
   worksLoading,
   fetchingAssessments,
   hypercertsLoading,
-  allocationsLoading,
   hasDataError,
   normalizedSearch,
   debouncedSearch,
@@ -71,7 +61,6 @@ export function HubStageContent({
   selectedGardenName,
   selectedWorkId,
   selectedCertificationId,
-  selectedHistoryEventId,
   canManage,
   toConfirm,
   chainId,
@@ -82,7 +71,6 @@ export function HubStageContent({
   onOpenWorkDetail,
   onClearSearch,
   onOpenCertification,
-  onOpenHistoryEvent,
 }: HubStageContentProps) {
   const content = selectHubStageContent(stage);
 
@@ -131,31 +119,15 @@ export function HubStageContent({
     );
   }
 
-  if (content === "certify") {
-    return (
-      <HubCertificationQueue
-        items={certificationQueue}
-        fetchingAssessments={fetchingAssessments}
-        hypercertsLoading={hypercertsLoading}
-        hasDataError={hasDataError}
-        canManage={canManage}
-        selectedCertificationId={selectedCertificationId}
-        onOpenCertification={onOpenCertification}
-      />
-    );
-  }
-
   return (
-    <HubHistoryQueue
-      items={historyEvents}
-      worksLoading={worksLoading}
+    <HubCertificationQueue
+      items={certificationQueue}
       fetchingAssessments={fetchingAssessments}
       hypercertsLoading={hypercertsLoading}
-      allocationsLoading={allocationsLoading}
       hasDataError={hasDataError}
-      selectedHistoryEventId={selectedHistoryEventId}
-      selectedWorkId={selectedWorkId}
-      onOpenHistoryEvent={onOpenHistoryEvent}
+      canManage={canManage}
+      selectedCertificationId={selectedCertificationId}
+      onOpenCertification={onOpenCertification}
     />
   );
 }

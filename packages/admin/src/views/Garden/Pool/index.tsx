@@ -241,6 +241,7 @@ export function GardenPoolTab({
             onOpenCommitment={openCommitment}
             onSeed={openSeed}
             canSeed={canSeed}
+            tone={tone}
           />
         ) : null}
       </div>

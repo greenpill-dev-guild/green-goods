@@ -295,9 +295,12 @@ describe("ComposeCommitment", () => {
     });
     render("offer");
 
-    const where = screen.getByLabelText("Where it runs");
-    expect(where).toHaveValue("0");
-    await user.selectOptions(where, "8");
+    // Running on its own stays the default; the season card is one tap.
+    expect(screen.getByRole("button", { name: /On its own/ })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    await user.click(screen.getByRole("button", { name: "Season" }));
 
     await user.type(screen.getByLabelText("Name it"), "Prune the north beds");
     await user.click(next());
@@ -340,13 +343,18 @@ describe("ComposeCommitment", () => {
     });
     render("offer");
 
-    const where = screen.getByLabelText("Where it runs") as HTMLSelectElement;
+    const where = screen.getByRole("group", { name: "Where it runs" });
     // Nothing is bound for the member: running on its own stays the default.
     // The season leads the list, the campaign follows, and none comes last.
-    expect(where).toHaveValue("0");
-    expect(Array.from(where.options).map((option) => option.value)).toEqual(["8", "9", "0"]);
-    await user.selectOptions(where, "9");
-    expect(where).toHaveValue("9");
+    const cards = within(where).getAllByRole("button");
+    expect(cards.map((card) => card.textContent)).toEqual([
+      "Season",
+      "Campaign",
+      "On its own, outside any season or campaign",
+    ]);
+    expect(cards[2]).toHaveAttribute("aria-pressed", "true");
+    await user.click(cards[1]!);
+    expect(cards[1]).toHaveAttribute("aria-pressed", "true");
   });
 
   it("keeps the note and links as the commitment's own words, under the schema's names", async () => {
@@ -484,7 +492,7 @@ describe("ComposeCommitment", () => {
     await walkServiceToReview(user);
     await place(user, "Make this offer");
 
-    expect(await screen.findByText("Saved on this phone")).toBeInTheDocument();
+    expect(await screen.findByText(/is saved on this phone/)).toBeInTheDocument();
   });
 
   it("stays on the review when the commitment could not be queued", async () => {
@@ -495,7 +503,7 @@ describe("ComposeCommitment", () => {
     await place(user, "Make this offer");
 
     // A failed enqueue must not read as success; the member keeps their draft.
-    expect(screen.queryByText("It is on its way")).not.toBeInTheDocument();
+    expect(screen.queryByText(/is on its way/)).not.toBeInTheDocument();
     expect(screen.getByText("Before you place this")).toBeInTheDocument();
   });
 
@@ -537,7 +545,7 @@ describe("ComposeCommitment", () => {
     render("offer");
     await walkServiceToReview(user);
     await place(user, "Make this offer");
-    expect(await screen.findByText("It is on its way")).toBeInTheDocument();
+    expect(await screen.findByText(/is on its way/)).toBeInTheDocument();
 
     expect(Object.keys(useCommitmentComposerDraftStore.getState().drafts)).toHaveLength(0);
   });

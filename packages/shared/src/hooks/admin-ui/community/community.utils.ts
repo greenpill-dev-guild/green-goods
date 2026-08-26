@@ -100,7 +100,7 @@ export function selectAllocationSplits(
   };
 }
 
-export type CommunityWorkspaceMode = "members" | "coordination" | "endowment" | "payouts" | "pools";
+export type CommunityWorkspaceMode = "members" | "coordination" | "endowment" | "payouts";
 
 export function resolveCommunityMode(pathname: string): CommunityWorkspaceMode {
   if (pathname.startsWith("/community/members")) return "members";
@@ -111,7 +111,6 @@ export function resolveCommunityMode(pathname: string): CommunityWorkspaceMode {
     return "coordination";
   }
   if (pathname.startsWith("/community/payouts")) return "payouts";
-  if (pathname.startsWith("/community/pools")) return "pools";
   return "endowment";
 }
 
@@ -119,7 +118,6 @@ export function communitySectionForMode(mode: CommunityWorkspaceMode) {
   if (mode === "members") return "members";
   if (mode === "coordination") return "coordination";
   if (mode === "payouts") return "payouts";
-  if (mode === "pools") return "pools";
   return "endowment";
 }
 

@@ -37,8 +37,12 @@ const CYCLE_TYPE_CODE: Record<CommitmentCycleTypeInput, number> = { SEASON: 0, C
 export interface CommitmentAllocationBps {
   gardeners: number;
   treasury: number;
-  /** The on-chain name of the steward class; UI copy renders it as "steward". */
-  steward: number;
+  /**
+   * The steward class. The deployed `AllocationBps` struct names this member
+   * `operator`, and viem encodes named tuples by property, so this key must
+   * keep the on-chain spelling. UI copy renders it as "Steward".
+   */
+  operator: number;
   evaluator: number;
   community: number;
   funder: number;
@@ -57,7 +61,7 @@ export const ALLOCATION_BPS_TOTAL = 10_000;
 export const DEFAULT_ALLOCATION_BPS: CommitmentAllocationBps = {
   gardeners: 6000,
   treasury: 1500,
-  steward: 1000,
+  operator: 1000,
   evaluator: 500,
   community: 500,
   funder: 500,
@@ -135,7 +139,7 @@ export function isValidCycleSplit(input: {
     allocation: sumsToTotal([
       allocation.gardeners,
       allocation.treasury,
-      allocation.steward,
+      allocation.operator,
       allocation.evaluator,
       allocation.community,
       allocation.funder,

@@ -9,6 +9,7 @@ import { useHasRole } from "../../roles/useHasRole";
 import {
   type CommitmentPoolRecord,
   commitmentNeedsSeat,
+  isSettledCommitmentState,
   selectCommitmentSeat,
   useCommitmentCycles,
   useCommitmentMetadata,
@@ -17,6 +18,7 @@ import {
 } from "../../../commitment-pooling";
 
 export type GardenPoolDirection = "all" | "OFFER" | "REQUEST";
+export type GardenPoolLiveness = "live" | "settled";
 
 const NON_PARTICIPATING_STATES = new Set(["NOT_READY", "READY", "CLOSED", "COMPOSTED"]);
 
@@ -26,6 +28,9 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
   const { isOnline } = useOffline();
   const [selectedCycleId, setSelectedCycleId] = useState<bigint | null>(null);
   const [direction, setDirection] = useState<GardenPoolDirection>("all");
+  // The daily list defaults to the living; the settled fold behind a scope
+  // chip so kept/withdrawn/lapsed rows never interleave open offers.
+  const [liveness, setLiveness] = useState<GardenPoolLiveness>("live");
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
 
   const { cycles } = useCommitmentCycles({ chainId, poolId: pool.poolId });
@@ -54,20 +59,30 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
     () => pendingCreates.filter((entry) => entry.poolId === pool.poolId.toString()),
     [pendingCreates, pool.poolId]
   );
-  const rows = useMemo(() => {
-    const filtered =
+  const { rows, settledCount } = useMemo(() => {
+    const inDirection =
       direction === "all"
         ? commitments.commitments
         : commitments.commitments.filter((commitment) => commitment.direction === direction);
-    return filtered.map((commitment) => {
-      const seat = selectCommitmentSeat({
-        commitment,
-        contributors: [],
-        viewer: (viewer ?? undefined) as Address | undefined,
-      });
-      return { commitment, seat, needsYou: commitmentNeedsSeat({ commitment, seat }) };
-    });
-  }, [commitments.commitments, direction, viewer]);
+    const settledInDirection = inDirection.filter((commitment) =>
+      isSettledCommitmentState(commitment.derivedState)
+    );
+    const scoped =
+      liveness === "settled"
+        ? settledInDirection
+        : inDirection.filter((commitment) => !isSettledCommitmentState(commitment.derivedState));
+    return {
+      settledCount: settledInDirection.length,
+      rows: scoped.map((commitment) => {
+        const seat = selectCommitmentSeat({
+          commitment,
+          contributors: [],
+          viewer: (viewer ?? undefined) as Address | undefined,
+        });
+        return { commitment, seat, needsYou: commitmentNeedsSeat({ commitment, seat }) };
+      }),
+    };
+  }, [commitments.commitments, direction, liveness, viewer]);
   const { byCID } = useCommitmentMetadata(commitments.commitments);
 
   const retry = useCallback(
@@ -105,6 +120,9 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
     setSelectedCycleId,
     direction,
     setDirection,
+    liveness,
+    setLiveness,
+    settledCount,
     busyJobId,
     ownCreations,
     rows,

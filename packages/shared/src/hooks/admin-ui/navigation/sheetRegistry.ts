@@ -17,7 +17,6 @@ export const NOTIFICATIONS_SHEET_CONTENT_ID = "notifications";
 
 export const WORK_DETAIL_CONTENT_ID_PREFIX = "hub:work-detail:";
 export const CERTIFICATION_CONTENT_ID_PREFIX = "hub:certify:";
-export const HISTORY_CONTENT_ID_PREFIX = "hub:history:";
 export const SUBMIT_WORK_CONTENT_ID = "hub:submit-work";
 export const ACTION_CREATE_CONTENT_ID = "actions:create";
 const ACTION_DETAIL_CONTENT_ID_PREFIX = "actions:detail:";
@@ -78,15 +77,6 @@ export function parseCertificationContentId(contentId: string | null) {
   return contentId.slice(CERTIFICATION_CONTENT_ID_PREFIX.length) || null;
 }
 
-export function toHistoryContentId(eventId: string) {
-  return `${HISTORY_CONTENT_ID_PREFIX}${eventId}`;
-}
-
-export function parseHistoryContentId(contentId: string | null) {
-  if (!contentId?.startsWith(HISTORY_CONTENT_ID_PREFIX)) return null;
-  return contentId.slice(HISTORY_CONTENT_ID_PREFIX.length) || null;
-}
-
 export function toActionDetailContentId(actionId: string) {
   return `${ACTION_DETAIL_CONTENT_ID_PREFIX}${actionId}`;
 }
@@ -127,14 +117,6 @@ const ADMIN_ROUTE_SHEET_REGISTRY: RouteSheetRegistryEntry[] = [
     parse: parseCertificationContentId,
     isRestorable: (assessmentId, pathname) =>
       pathname.startsWith("/hub/certify/") && getLastPathSegment(pathname) === assessmentId,
-  },
-  {
-    kind: "prefix",
-    prefix: HISTORY_CONTENT_ID_PREFIX,
-    side: "left",
-    parse: parseHistoryContentId,
-    isRestorable: (historyId, pathname) =>
-      pathname.startsWith("/hub/history/") && getLastPathSegment(pathname) === historyId,
   },
   {
     kind: "exact",
@@ -183,7 +165,15 @@ export function isActionsRouteSheetContentId(contentId: string | null) {
   );
 }
 
+// Sheets of retired surfaces: persisted workspace state can outlive a release,
+// so ids under these prefixes must never restore (the Hub History stage
+// retired 2026-08-25; its routes redirect and its inspector is gone).
+const RETIRED_SHEET_CONTENT_ID_PREFIXES = ["hub:history:"];
+
 export function isRouteSheetRestorable(contentId: string | null, pathname: string) {
+  if (contentId && RETIRED_SHEET_CONTENT_ID_PREFIXES.some((p) => contentId.startsWith(p))) {
+    return false;
+  }
   const resolved = getRouteSheetRegistryEntry(contentId);
   if (!resolved) return true;
 

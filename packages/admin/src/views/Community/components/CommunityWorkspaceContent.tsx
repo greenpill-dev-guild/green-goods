@@ -52,20 +52,6 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
     );
   }
 
-  // Pools is its own composition (an inner rail over two pool consoles), not
-  // a column in the members/coordination/endowment layout.
-  if (workspace.mode === "pools") {
-    return (
-      <div className="mt-4 min-h-0 flex-1">
-        <CommunityPools
-          chainId={workspace.garden.chainId}
-          garden={{ id: workspace.garden.id as Address, name: workspace.garden.name }}
-          canManage={workspace.canManage}
-        />
-      </div>
-    );
-  }
-
   const isLoading =
     workspace.mode === "members" || workspace.mode === "coordination"
       ? workspace.communityLoading
@@ -96,15 +82,26 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
         visibleDirectory={workspace.visibleDirectory}
       />
     ) : workspace.mode === "coordination" ? (
-      <CommunityCoordinationTab
-        garden={workspace.garden}
-        gardenId={workspace.gardenId}
-        canManage={workspace.canManage}
-        community={workspace.community}
-        pools={workspace.pools}
-        createPools={workspace.createPools}
-        isCreatingPools={workspace.isCreatingPools}
-      />
+      // Coordination carries the pooling elements too (2026-08-25 AD-5): the
+      // governance grid first, then the W12 commitment-pooling surface —
+      // exactly the protocol pool and this garden, never another garden's,
+      // with its privacy banner — as a full-width section beneath.
+      <div className="space-y-6">
+        <CommunityCoordinationTab
+          garden={workspace.garden}
+          gardenId={workspace.gardenId}
+          canManage={workspace.canManage}
+          community={workspace.community}
+          pools={workspace.pools}
+          createPools={workspace.createPools}
+          isCreatingPools={workspace.isCreatingPools}
+        />
+        <CommunityPools
+          chainId={workspace.garden.chainId}
+          garden={{ id: workspace.garden.id as Address, name: workspace.garden.name }}
+          canManage={workspace.canManage}
+        />
+      </div>
     ) : workspace.mode === "endowment" ? (
       <CommunityEndowmentTab
         garden={workspace.garden}

@@ -84,15 +84,25 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
     return (
       <ComposeShell onBack={back} title={actTitle}>
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+          {/* The ending echoes the thing made and names who acts next —
+              never a generic "it is on its way". */}
           <h1 className="text-lg font-medium text-text-strong-950">
-            {formatMessage({
-              id: controller.isOnline ? "app.compose.done.title" : "app.compose.done.offlineTitle",
-            })}
+            {formatMessage(
+              {
+                id: controller.isOnline
+                  ? "app.compose.done.title"
+                  : "app.compose.done.offlineTitle",
+              },
+              { title: controller.values.title }
+            )}
           </h1>
           <p className="max-w-sm text-sm text-text-sub-600">
-            {formatMessage({
-              id: controller.isOnline ? "app.compose.done.body" : "app.compose.done.offlineBody",
-            })}
+            {formatMessage(
+              {
+                id: controller.isOnline ? "app.compose.done.body" : "app.compose.done.offlineBody",
+              },
+              { direction }
+            )}
           </p>
           <button
             type="button"

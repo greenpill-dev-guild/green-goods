@@ -84,7 +84,7 @@ function failureMessage(
       return formatMessage({
         id: "cockpit.garden.pool.setup.failure.unavailable",
         defaultMessage:
-          "Commitment pooling is not available on this chain yet, so nothing was written.",
+          "Commitment pooling isn't switched on in this app yet, so nothing was written.",
       });
     case "no-sender":
       return formatMessage({

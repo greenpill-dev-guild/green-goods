@@ -3,7 +3,6 @@ import { type AdminHubRouteContext, adminRoutes } from "../../../utils/navigatio
 import type { useGardenDerivedState } from "../../garden/useGardenDerivedState";
 import {
   RiAddLine,
-  RiCheckboxCircleLine,
   RiCheckLine,
   RiFileList3Line,
   RiMedalLine,
@@ -16,19 +15,16 @@ import { resolveAdminWorkspaceSectionRoute } from "../navigation/workspaceNaviga
 // Types
 // ============================================================================
 
-export type HubPipelineStage = "work" | "assess" | "certify" | "confirm" | "history";
+export type HubPipelineStage = "work" | "assess" | "certify" | "confirm";
 export type SortDirection = "newest" | "oldest";
 export type ActivityEvent = ReturnType<typeof useGardenDerivedState>["activityEvents"][number];
 export {
   CERTIFICATION_CONTENT_ID_PREFIX,
-  HISTORY_CONTENT_ID_PREFIX,
   isRouteSheetContentId,
   parseCertificationContentId,
-  parseHistoryContentId,
   parseWorkDetailContentId,
   SUBMIT_WORK_CONTENT_ID,
   toCertificationContentId,
-  toHistoryContentId,
   toWorkDetailContentId,
   WORK_DETAIL_CONTENT_ID_PREFIX,
 } from "../navigation/sheetRegistry";
@@ -43,8 +39,6 @@ export const HUB_META_PILL_CLASSNAME =
   "inline-flex items-center rounded-full bg-bg-white/80 px-2.5 py-1 text-label-sm font-semibold text-text-sub shadow-[var(--edge-rest)]";
 export const HUB_CERTIFY_STATUS_CLASSNAME =
   "inline-flex items-center rounded-full bg-primary-alpha-10 px-2.5 py-1 text-label-sm font-bold text-text-strong";
-export const HUB_HISTORY_STATUS_CLASSNAME =
-  "inline-flex items-center rounded-full bg-bg-white/85 px-2.5 py-1 text-label-sm font-bold text-text-sub shadow-[var(--edge-rest)]";
 
 // ============================================================================
 // Header Stats — Hub
@@ -108,7 +102,6 @@ export function resolvePipelineStageFromPath(pathname: string): HubPipelineStage
   if (pathname.startsWith("/hub/assess")) return "assess";
   if (pathname.startsWith("/hub/certify")) return "certify";
   if (pathname.startsWith("/hub/confirm")) return "confirm";
-  if (pathname.startsWith("/hub/history")) return "history";
   return "work";
 }
 
@@ -120,7 +113,17 @@ export function parseSortDirection(value: string | null): SortDirection {
 // Stage Config
 // ============================================================================
 
+// Confirm leads: commitments waiting on the steward are the most person-facing
+// queue, then the work pipeline in flow order (2026-08-25 AD-3/AD-4 — the
+// History stage is retired; each record carries its own timeline instead).
 export const PIPELINE_STAGE_CONFIG = [
+  {
+    // Commitments waiting on the steward's confirmation (uiux-spec §6.9).
+    id: "confirm" as const,
+    labelId: "cockpit.hub.tab.confirm",
+    defaultMessage: "Confirm",
+    icon: RiShakeHandsLine,
+  },
   {
     id: "work" as const,
     labelId: "cockpit.hub.tab.work",
@@ -139,19 +142,6 @@ export const PIPELINE_STAGE_CONFIG = [
     defaultMessage: "Certify",
     icon: RiMedalLine,
   },
-  {
-    // Commitments waiting on the steward's confirmation (uiux-spec §6.9).
-    id: "confirm" as const,
-    labelId: "cockpit.hub.tab.confirm",
-    defaultMessage: "Confirm",
-    icon: RiShakeHandsLine,
-  },
-  {
-    id: "history" as const,
-    labelId: "cockpit.hub.tab.history",
-    defaultMessage: "History",
-    icon: RiCheckboxCircleLine,
-  },
 ] as const;
 
 // ============================================================================
@@ -168,7 +158,6 @@ const STAGE_LABELS: Record<HubPipelineStage, { id: string; defaultMessage: strin
   assess: { id: "cockpit.hub.tab.assess", defaultMessage: "Assess" },
   certify: { id: "cockpit.hub.tab.certify", defaultMessage: "Certify" },
   confirm: { id: "cockpit.hub.tab.confirm", defaultMessage: "Confirm" },
-  history: { id: "cockpit.hub.tab.history", defaultMessage: "History" },
 };
 
 // Stage descriptions never name the garden — the AppBar's GardenChip already
@@ -191,10 +180,6 @@ const STAGE_DESCRIPTIONS: Record<HubPipelineStage, { id: string; defaultMessage:
     id: "cockpit.hub.confirm.description",
     defaultMessage: "Commitments kept and waiting for this garden to confirm them.",
   },
-  history: {
-    id: "cockpit.hub.history.description",
-    defaultMessage: "Audit the recent work, impact, and community decisions in this pipeline.",
-  },
 };
 
 const SEARCH_PLACEHOLDERS: Record<HubPipelineStage, { id: string; defaultMessage: string }> = {
@@ -208,7 +193,6 @@ const SEARCH_PLACEHOLDERS: Record<HubPipelineStage, { id: string; defaultMessage
     id: "cockpit.hub.search.confirmPlaceholder",
     defaultMessage: "Search commitments to confirm",
   },
-  history: { id: "cockpit.hub.search.historyPlaceholder", defaultMessage: "Search audit trail" },
 };
 
 export function getStageTitle(stage: HubPipelineStage, formatMessage: FormatMessage): string {
@@ -252,7 +236,7 @@ export function resolveOpenSectionRoute(
 //
 // Stable trio: the same creation actions render on every stage, in the same
 // order, so button positions never shift as the steward moves between tabs.
-// Submit work is the fixed primary across Work, Assess, Certify, and History;
+// Submit work is the fixed primary across Confirm, Work, Assess, and Certify;
 // the assessment and hypercert actions stay secondary so emphasis no longer
 // follows the active stage.
 

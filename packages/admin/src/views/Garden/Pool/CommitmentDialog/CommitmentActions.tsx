@@ -46,12 +46,12 @@ export function CommitmentActions({
             type="button"
             variant="danger"
             size="sm"
-            onClick={() => void acts.expire()}
+            onClick={() => onOpenDialog("expire")}
             disabled={actDisabled}
           >
             {formatMessage({
               id: "cockpit.garden.pool.row.act.expire",
-              defaultMessage: "Expire now",
+              defaultMessage: "Expire now…",
             })}
           </AdminButton>
         ) : null}

@@ -5,8 +5,6 @@ export { CookieJarWithdrawModal } from "./CookieJarWithdrawModal";
 export { HubAssessmentQueue } from "./HubAssessmentQueue";
 export { HubCertificationInspector } from "./HubCertificationInspector";
 export { HubCertificationQueue } from "./HubCertificationQueue";
-export { HubHistoryInspector } from "./HubHistoryInspector";
-export { HubHistoryQueue } from "./HubHistoryQueue";
 export { HubSheetDescriptor } from "./HubSheetDescriptor";
 export { HubStageContent } from "./HubStageContent";
 export { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";

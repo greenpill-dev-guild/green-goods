@@ -78,7 +78,7 @@ const adminButtonVariants = tv({
     size: {
       // Compact dense action — 32dp. Used in list rows, table actions, and
       // inline text-variant buttons where 40dp would feel oversized.
-      sm: "h-8 px-3 text-label-sm",
+      sm: "admin-hit-target h-8 px-3 text-label-sm",
       // Standard M3 common-button height (40dp).
       md: "h-10 px-6 text-label-lg",
       // Prominent first-action button (48dp).

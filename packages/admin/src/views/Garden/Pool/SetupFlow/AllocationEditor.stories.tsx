@@ -59,10 +59,22 @@ export const InvalidSum: Story = {
   args: { preset: "custom", allocation: { ...ALLOCATION_PRESETS.model1, gardeners: "64" } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("alert")).toHaveTextContent(/exactly 100 %/);
-    await userEvent.clear(canvas.getByLabelText(/^Gardeners/));
-    await userEvent.type(canvas.getByLabelText(/^Gardeners/), "60");
+    const alert = await canvas.findByRole("alert");
+    await expect(alert).toHaveTextContent(/exactly 100 %/);
+    // The group-level error is programmatically associated: every share field
+    // is marked invalid and described by the container that holds the alert.
+    const gardeners = canvas.getByLabelText(/^Gardeners/);
+    await expect(gardeners).toHaveAttribute("aria-invalid", "true");
+    const describedBy = gardeners.getAttribute("aria-describedby") ?? "";
+    await expect(
+      describedBy
+        .split(/\s+/)
+        .some((id) => id && canvasElement.ownerDocument.getElementById(id)?.contains(alert))
+    ).toBe(true);
+    await userEvent.clear(gardeners);
+    await userEvent.type(gardeners, "60");
     await expect(await canvas.findByText("Total: 100 %")).toBeVisible();
+    await expect(canvas.getByLabelText(/^Gardeners/)).not.toHaveAttribute("aria-invalid");
   },
 };
 

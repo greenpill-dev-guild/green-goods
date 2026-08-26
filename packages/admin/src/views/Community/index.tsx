@@ -126,13 +126,6 @@ export default function CommunityView() {
               }),
               count: community.allocations.length || undefined,
             },
-            {
-              id: "pools",
-              label: formatMessage({
-                id: "cockpit.community.pools.tab",
-                defaultMessage: "Pools",
-              }),
-            },
           ]}
         />
       </CanvasRouteHeader>

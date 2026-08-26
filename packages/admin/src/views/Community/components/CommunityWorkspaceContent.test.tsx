@@ -119,8 +119,8 @@ describe("CommunityWorkspaceContent", () => {
     expect(screen.getByTestId(mode)).toBeInTheDocument();
   });
 
-  it("keeps pools on its dedicated composition", () => {
-    renderWorkspace({ mode: "pools" });
+  it("renders the pooling surface inside Coordination (AD-5)", () => {
+    renderWorkspace({ mode: "coordination" });
     expect(screen.getByTestId("pools")).toHaveTextContent("canManage,chainId,garden");
   });
 });

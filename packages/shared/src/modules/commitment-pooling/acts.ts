@@ -39,6 +39,27 @@ const TERMINAL = new Set<CommitmentDerivedState>([
   "DISPUTED",
 ]);
 
+/**
+ * Whether the record has stopped moving (kept, withdrawn, lapsed, or held
+ * under review). Copy that urges the next step must not render on these.
+ */
+export function isTerminalCommitmentState(state: CommitmentDerivedState): boolean {
+  return TERMINAL.has(state);
+}
+
+/** Settled: nothing further happens on its own. Narrower than terminal — a
+ * disputed record is held, not settled, so it stays in every live list. */
+const SETTLED = new Set<CommitmentDerivedState>([
+  "FULFILLED",
+  "RECONCILED",
+  "CANCELLED",
+  "EXPIRED",
+]);
+
+export function isSettledCommitmentState(state: CommitmentDerivedState): boolean {
+  return SETTLED.has(state);
+}
+
 const PRE_ACCEPTANCE = new Set<CommitmentDerivedState>(["OFFERED", "REQUESTED"]);
 
 /**

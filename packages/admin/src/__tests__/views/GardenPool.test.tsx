@@ -439,7 +439,7 @@ describe("GardenPoolTab (W7)", () => {
     );
   });
 
-  it("offers Expire now on a live past-due row and nothing else until the index says Expired", async () => {
+  it("offers Expire now on a live past-due row, confirms the blast radius first, and nothing else until the index says Expired", async () => {
     mocks.controller = controller({
       commitments: [commitment({ dueDate: NOW - 10n })],
     });
@@ -447,6 +447,11 @@ describe("GardenPoolTab (W7)", () => {
     const row = screen.getByTestId("pool-commitment-1");
     expect(within(row).getByText(/past due/i)).toBeInTheDocument();
     fireEvent.click(within(row).getByRole("button", { name: /expire now/i }));
+    // A governing act never fires from a bare row act: the confirm names the
+    // blast radius before anything reaches the chain.
+    const dialog = await screen.findByRole("alertdialog");
+    expect(mocks.controller!.acts.expire).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole("button", { name: /^expire now$/i }));
     await waitFor(() => expect(mocks.controller!.acts.expire).toHaveBeenCalledWith(1n));
     // Still listed as live: past due alone never renders Expired.
     expect(within(row).queryByText(/^expired$/i)).not.toBeInTheDocument();

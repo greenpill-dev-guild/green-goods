@@ -298,7 +298,10 @@ describe("PageTransition", () => {
     });
   });
 
-  it("restores Hub history sheets when the target URL owns the sheet", async () => {
+  it("never restores retired Hub history sheets from stale persisted state", async () => {
+    // The History stage retired 2026-08-25: its routes redirect and the
+    // inspector is gone, but workspace state persisted before the release can
+    // still carry hub:history:* ids. Restoring one would open an empty sheet.
     mockOrchestrator.onNavigateArrive.mockReturnValue({
       sheetOpen: "left",
       sheetContentId: "hub:history:allocation-1",
@@ -312,25 +315,7 @@ describe("PageTransition", () => {
     await user.click(screen.getByTestId("nav-/hub/history/allocation-1"));
 
     await waitFor(() => {
-      expect(mockOrchestrator.openSheet).toHaveBeenCalledWith("left", "hub:history:allocation-1");
-    });
-  });
-
-  it("does not restore Hub history sheets from legacy item query state", async () => {
-    mockOrchestrator.onNavigateArrive.mockReturnValue({
-      sheetOpen: "left",
-      sheetContentId: "hub:history:allocation-1",
-      formState: {},
-      scrollPosition: 0,
-    });
-
-    renderPageTransition("/page-a", ["/page-a", "/hub/history?item=allocation-1"]);
-    const user = userEvent.setup();
-
-    await user.click(screen.getByTestId("nav-/hub/history?item=allocation-1"));
-
-    await waitFor(() => {
-      expect(mockOrchestrator.onNavigateArrive).toHaveBeenCalledWith("/hub/history");
+      expect(mockOrchestrator.onNavigateArrive).toHaveBeenCalled();
     });
     expect(mockOrchestrator.openSheet).not.toHaveBeenCalled();
   });

@@ -71,7 +71,7 @@ const CYCLE = { SEEDED: 1, OPEN: 2 } as const;
 const MODEL_ONE = {
   gardeners: 6000,
   treasury: 1500,
-  steward: 1000,
+  operator: 1000,
   evaluator: 500,
   community: 500,
   funder: 500,
@@ -99,7 +99,7 @@ type FakeCycle = {
 const NO_ALLOCATION = {
   gardeners: 0,
   treasury: 0,
-  steward: 0,
+  operator: 0,
   evaluator: 0,
   community: 0,
   funder: 0,

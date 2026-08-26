@@ -220,7 +220,7 @@ export function HubConfirmQueue({
                       >
                         {formatMessage({
                           id: "cockpit.hub.confirm.act.confirm",
-                          defaultMessage: "Confirm",
+                          defaultMessage: "Confirm kept",
                         })}
                       </AdminButton>
                     ) : (
@@ -232,7 +232,7 @@ export function HubConfirmQueue({
                       >
                         {formatMessage({
                           id: "cockpit.hub.confirm.act.confirmFallback",
-                          defaultMessage: "Confirm…",
+                          defaultMessage: "Confirm kept…",
                         })}
                       </AdminButton>
                     )}

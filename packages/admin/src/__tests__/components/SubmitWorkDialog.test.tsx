@@ -366,7 +366,7 @@ describe("SubmitWork dialog", () => {
     await user.type(noteInput, "Mulched the west bed");
 
     await act(async () => {
-      void router?.navigate("/hub/history?gardenId=0x2222222222222222222222222222222222222222");
+      void router?.navigate("/hub/certify?gardenId=0x2222222222222222222222222222222222222222");
       await Promise.resolve();
     });
 
@@ -378,7 +378,7 @@ describe("SubmitWork dialog", () => {
     });
 
     await waitFor(() => {
-      expect(router?.state.location.pathname).toBe("/hub/history");
+      expect(router?.state.location.pathname).toBe("/hub/certify");
       expect(router?.state.location.search).toBe(
         "?gardenId=0x2222222222222222222222222222222222222222"
       );

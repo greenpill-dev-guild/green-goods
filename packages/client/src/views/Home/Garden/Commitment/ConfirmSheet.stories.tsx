@@ -114,8 +114,10 @@ export const AskSupport: Story = {
   play: async () => {
     await expect(await screen.findByRole("button", { name: "Confirm it was kept" })).toBeVisible();
     await expect(screen.getByRole("button", { name: "Not yet" })).toBeVisible();
-    await expect(screen.getByText("No items yet")).toBeVisible();
-    await expect(screen.getByText("No proof has been attached yet.")).toBeVisible();
+    await expect(screen.getByText("2 items")).toBeVisible();
+    await expect(
+      screen.getByText("2 pieces of proof are recorded but cannot be shown right now.")
+    ).toBeVisible();
   },
 };
 

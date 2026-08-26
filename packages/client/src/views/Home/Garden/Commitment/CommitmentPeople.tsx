@@ -25,6 +25,19 @@ export function CommitmentPeople({ commitment, contributors, seat }: CommitmentP
   const active = contributors.filter((entry) => entry.active);
   const lead = active.find((entry) => entry.isLead);
   const helpers = active.filter((entry) => !entry.isLead);
+  // Addresses reach this card in mixed case (checksummed lists, lowercase
+  // indexer rows), so identity is always compared case-blind.
+  const same = (a?: string | null, b?: string | null) =>
+    Boolean(a && b && a.toLowerCase() === b.toLowerCase());
+  // A request is never anonymous: the record knows who asked (the creator),
+  // and the decision "do I want to help this neighbour" deserves the name —
+  // before anyone accepts, and after, when the asker is also the confirmer.
+  const asker = commitment.direction === "REQUEST" ? commitment.creator : null;
+  // For requests without named confirmers, the creator is the receiving side
+  // and therefore holds the fallback confirmation seat. A named confirmer
+  // group replaces that fallback; the creator must not be labelled as someone
+  // whose confirmation the contract accepts in that case.
+  const askerConfirms = Boolean(asker && commitment.confirmers.length === 0);
 
   return (
     <dl className="mt-3 space-y-2 border-t border-stroke-soft-200 pt-3">
@@ -37,7 +50,22 @@ export function CommitmentPeople({ commitment, contributors, seat }: CommitmentP
         />
       ) : null}
 
-      {commitment.counterparty && commitment.counterparty !== commitment.leadProvider ? (
+      {asker && !same(asker, commitment.leadProvider) ? (
+        <Row
+          label={formatMessage({
+            id: askerConfirms
+              ? "app.commitment.people.askedByConfirms"
+              : "app.commitment.people.askedBy",
+          })}
+          value={<AddressDisplay address={asker} />}
+          you={seat === "confirmer" && (askerConfirms || !commitment.counterparty)}
+          youLabel={formatMessage({ id: "app.commitment.people.you" })}
+        />
+      ) : null}
+
+      {commitment.counterparty &&
+      !same(commitment.counterparty, commitment.leadProvider) &&
+      !same(commitment.counterparty, asker) ? (
         <Row
           label={formatMessage({ id: "app.commitment.people.confirmer" })}
           value={<AddressDisplay address={commitment.counterparty} />}

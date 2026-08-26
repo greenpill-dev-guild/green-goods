@@ -53,6 +53,11 @@ function IndexRedirect({ kind }: { kind: AdminIndexRedirectKind }) {
   return <Navigate to={resolveAdminIndexRedirect(kind, location.search)} replace />;
 }
 
+function PreserveSearchRedirect({ pathname }: { pathname: string }) {
+  const location = useLocation();
+  return <Navigate to={{ pathname, search: location.search }} replace />;
+}
+
 export const adminCanvasRoutes: RouteObject[] = [
   {
     path: "hub",
@@ -128,15 +133,17 @@ export const adminCanvasRoutes: RouteObject[] = [
         ],
       },
       {
+        // The History stage is retired (2026-08-25 AD-3); saved deep links
+        // land on the Hub's default stage instead of a 404.
         path: "history",
         children: [
           {
             index: true,
-            lazy: hubView,
+            element: <PreserveSearchRedirect pathname="/hub" />,
           },
           {
             path: ":historyEventId",
-            lazy: hubView,
+            element: <PreserveSearchRedirect pathname="/hub" />,
           },
         ],
       },
@@ -266,10 +273,11 @@ export const adminCanvasRoutes: RouteObject[] = [
         lazy: communityView,
       },
       {
-        // Protocol pool plus this garden's pool (uiux-spec §6.8): a Community
-        // mode, never a fifth workspace or a top-level Pools route.
+        // The Pools tab retired into Coordination (2026-08-25 AD-5); the W12
+        // surface (protocol pool + this garden, uiux-spec §6.8) renders there
+        // and saved deep links land on it.
         path: "pools",
-        lazy: communityView,
+        element: <PreserveSearchRedirect pathname="/community/coordination" />,
       },
       {
         // Legacy resources URLs alias into Endowment until external links move.
