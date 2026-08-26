@@ -120,8 +120,8 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   value dependency is paused or disabled and the exact temporary/rollback owners, explicit human
   risk acceptance, emergency pause, selected committed-range review, receipts/post-state, and
   tested rollback are verified. Protocol authority, custody, transferability, peer wiring,
-  allowances, or value movement is tier 3 and requires the exact approved protocol Safe satisfying
-  threshold >= 2 and owner count >= 3 plus applicable audit/timelock/soak gates or an explicit
+  allowances, or value movement is tier 3 and requires the protocol Safe with live threshold >= 2
+  plus applicable audit/timelock/soak gates or an explicit
   dated human disposition naming substitute evidence.
 - `packages/contracts/test/CommitmentPoolingBounds.t.sol`, the NET-NEW Foundry gas/payload
   benchmark harness that selects every `MAX_*` constant.

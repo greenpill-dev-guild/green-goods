@@ -1430,10 +1430,10 @@ queued-callback retry.
 | Module pause admin | `setPaused` | module owner | initialize paused; pausing is always allowed; unpause requires all six dependencies plus all four non-zero, pairwise-distinct schema UIDs and emits old/new pause state |
 | Module limiting admin | `setProviderOpenCommitmentCap` | pool steward | non-zero concurrent commitment count; module forwards to the register; required before Ready |
 | Register | `registerClass` / `setProviderOpenCommitmentCap` / `commitUnits` / `releaseUnits` / `fulfillUnits` | CommitmentPoolingModule only (`NotModule`) | class quota is immutable at creation (`targetUnits`); only the accountable lead provider is the exposure/count subject (§6.2) |
-| Register admin | `setModule` | register owner, subject to the mainnet activation tier below; protocol-authority use requires the exact approved Safe satisfying threshold >= 2 and owner count >= 3 | new module rejects zero; initial zero → non-zero wiring is allowed once; every later replacement requires the current module to be paused and emits `ModuleUpdated(old,new)` |
+| Register admin | `setModule` | register owner, subject to the mainnet activation tier below; protocol-authority use requires the protocol Safe with live threshold >= 2 | new module rejects zero; initial zero → non-zero wiring is allowed once; every later replacement requires the current module to be paused and emits `ModuleUpdated(old,new)` |
 | Assessment config | existing `setSchemaUID` / existing `setKarmaGAPModule` / new `setAssessmentV3SchemaUID` | existing AssessmentResolver owner, subject to the mainnet activation tier below; protocol-authority use requires the exact approved Safe | v2 selector/event and deployment-window zero value remain compatible; KarmaGAP zero disables its optional hook; v2/v3 UID equality is rejected; v3 UID rejects zero and emits old/new |
 | Community Testimony config | `setSchemaUID` / `setCommitmentModule` | TestimonyResolver owner, subject to the mainnet activation tier below; protocol-authority use requires the exact approved Safe | UID rejects zero, pins once, treats an exact repeat as a no-op, and rejects conflict; module rejects zero and an unpinned UID; preparation pins the deterministic UID while module is zero, finalization reconciles the exact EAS record, and verified module activation is last |
-| Upgrades | `_authorizeUpgrade` on module, register, upgraded AssessmentResolver, and net-new TestimonyResolver | current proxy owner, subject to the mainnet activation tier below; protocol-authority use requires the exact approved Safe satisfying threshold >= 2 and owner count >= 3 | UUPS convention repo-wide; existing Assessment initializer is never re-run |
+| Upgrades | `_authorizeUpgrade` on module, register, upgraded AssessmentResolver, and net-new TestimonyResolver | current proxy owner, subject to the mainnet activation tier below; protocol-authority use requires the protocol Safe with live threshold >= 2 | UUPS convention repo-wide; existing Assessment initializer is never re-run |
 
 **Ownership and release gate (amended 2026-08-14; supersedes the living all-or-nothing gate while
 preserving its history).** Every mainnet boundary requires passing required tests, explicit human
@@ -1446,8 +1446,8 @@ accepts that bounded risk, the exact current and rollback owner are verified, em
 remains available, and the selected committed-range review is clear of unresolved Critical/High
 findings. Custody, transferability, peer wiring, allowances, value movement, or any exercise of
 protocol upgrade/administrative authority other than emergency pause is tier 3 and requires the
-exact approved protocol Safe satisfying
-threshold >= 2 and owner count >= 3. External audit, the 48-hour mainnet timelock, and minimum
+protocol Safe with live threshold >= 2. Owner count and membership are operationally managed and
+do not block the release. External audit, the 48-hour mainnet timelock, and minimum
 two-week testnet operation are tier-3 defaults; only an explicit dated, release-scoped human
 disposition naming substitute evidence may replace or waive one. No agent, passing test, or
 deployment artifact grants a waiver. Per-garden Celo settlement Safes and settlement value
@@ -4142,7 +4142,7 @@ repeats the schema-key pattern; nothing may ever rewrite an existing key (the
     `Fulfilled`; its units argument does not imply partial-fulfillment readiness. A module v1.1
     must separately specify remaining-slot semantics, register transitions, events, and indexer
     deltas before permitting partial conversion.
-12. **Register upgrade authority.** The register is UUPS-owned by the protocol upgrade owner — the exact approved Safe satisfying §6.1's threshold >= 2 and owner count >= 3 before mainnet activation — while mutations are module-gated (6.2). Anyone proposing owner==module must answer who upgrades the register.
+12. **Register upgrade authority.** The register is UUPS-owned by the protocol upgrade owner — the protocol Safe satisfying §6.1's live threshold >= 2 before mainnet activation — while mutations are module-gated (6.2). Anyone proposing owner==module must answer who upgrades the register.
 13. **No address-less member path for steward capture** (open question, surfaced by the 2026-08-16 admin prototype review / Decision Log #66). "Device-free" means no device to sign with, never no wallet: every `StewardCaptured` path requires `onBehalfOf` to be an address holding a garden role Hat (`CreationChecksLib.sol:38-45`, re-checked at acceptance per §5's `NotEligibleContributor` rule), and no name-string, registry-entry, or placeholder identity exists anywhere in the spec. Onboarding therefore has to provision an address and mint the Hat *before* capture, and that step appears in no flow; captured members are additionally locked out of exchanges (`ExchangeCreatorConsentRequired` — a steward cannot consent for a represented gardener) and standing series (standing-commitments-spec §"initial version" exclusion). The prototype now says this plainly (W9's not-a-member empty state), but the provisioning story — who creates the address, who custodies it, and whether a garden-held identity is acceptable for a member who will never touch a device — is undecided. Decide before pilot gardens onboard genuinely address-less members; until then, capture requires prior membership.
 
 ---

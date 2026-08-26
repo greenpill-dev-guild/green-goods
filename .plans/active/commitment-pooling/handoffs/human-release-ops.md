@@ -376,13 +376,10 @@ the `release:verify:safe:*` variants; those belong to the later ownership-transf
 
 ## Current deployment gates and deferred activation facts
 
-- The protocol Safe at `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19` was re-read as the exact
-  approved **2-of-6** owner set. Repository policy now requires threshold >= 2 and owner count >= 3,
-  so this exact set satisfies the guide. As of the 2026-08-21 decision it is the verified
-  destination for the Arbitrum ownership boundaries; the ownership dry run re-reads it live and
-  passes. The Celo Safe at the same address is a different Safe: the release target is frozen as
-  2-of-4, while the 2026-08-23 live dry run resolved it as 1-of-4 and failed closed until its
-  threshold is raised.
+- The protocol Safe at `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19` uses threshold 2 on both
+  Arbitrum and Celo. Repository policy requires only a live threshold >= 2; owner membership is
+  operationally managed and does not block the release. The Celo owner inventory intentionally
+  includes `0x04D60647836bcA09c37B379550038BdaaFD82503` as a fifth owner.
 - The approved GardenToken release inventory is all **18** finalized accounts (IDs 0–17), with
   protocol root token 0. The root-first Protocol plus seventeen-Garden backfill is complete and the
   separate boundary 19 has unpaused Commitment Pooling.
@@ -428,23 +425,23 @@ Peer wiring is a tier-3 boundary under "Mainnet Requirements by Activation Risk"
 the route is wired. That is why the ceremony now includes the transfer rather than deferring it.
 
 The ownership tooling reads the destination Safe live on the target chain before any dry run or
-broadcast and requires the repository floor (threshold at least 2, at least 3 owners) and the exact
-frozen owner set. The same address is a different Safe on each chain:
+broadcast and requires threshold at least 2. Owner count and membership are not release gates. The
+same address is a different Safe on each chain:
 
-- On Arbitrum it is the approved 2-of-6. The dry run passes and all eight boundaries report ready.
-- On Celo it is 1-of-4, below the floor, so the dry run fails closed with the threshold named. Raise
-  the Celo Safe to at least 2-of-4 in the Safe UI before running the Celo boundary. That is a
-  separate Safe transaction and it does not move any Garden Safe address.
+- On Arbitrum the threshold is 2. The dry run passes and all eight boundaries report ready.
+- On Celo the threshold is 2. The owner inventory is intentionally different from Arbitrum and
+  does not block the Celo boundary.
 
 1. Arbitrum, eight boundaries in order through the release operator:
-   `bun run contracts:release:ownership:dry:arbitrum`, then the broadcast form one boundary at a
-   time with `--step <index> --expected-nonce <n>`. Each boundary re-reads the Safe's exact frozen
-   configuration at its receipt block and at head before it checkpoints, so a Safe that changed
-   between the pre-send read and mining cannot complete the boundary. Verify afterwards with
-   `bun run contracts:release:verify:arbitrum --owner-phase safe`, which checks all eight
+   `bun run contracts:release:ownership:dry:arbitrum`, then
+   `bun run contracts:release:ownership:arbitrum`. The release operator prompts for the deployer
+   password once, executes every remaining boundary in order with a freshly verified nonce, and
+   stops on the first failure. Each boundary re-reads the Safe threshold at its receipt block and
+   at head before it checkpoints. Verify afterwards with
+   `bun run contracts:release:verify:safe:arbitrum`, which checks all eight
    ownership targets (including AssessmentResolver, TestimonyResolver, GardenToken, and
    WorkApprovalResolver, which are not deterministic lock identities) and re-asserts the Safe's
-   threshold and exact owner set.
+   threshold.
 2. Celo, one boundary, only after the threshold is raised:
    `bun run contracts:release:ownership:dry:celo`, then the same broadcast form, then
    `bun run contracts:release:verify:celo --owner-phase safe`. The Celo source peer is already

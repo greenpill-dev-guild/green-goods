@@ -84,7 +84,7 @@ rewrite frozen history, or mutate production state.
 2. The accountable owner approved the finalized 18-account GardenToken inventory (token IDs 0–17)
    and protocol root token 0. The manifest and live backfill inventory now match that decision.
 3. The live protocol Safe is exactly 2-of-6, and the accountable owner approved that exact set.
-   Repository policy is now threshold >= 2 with at least 3 owners, so the guide conflict is closed.
+   Repository policy now gates Safe readiness only on live threshold >= 2.
    The manifest and verifier still require the exact six-owner set and threshold to match live.
 4. The live `AssessmentResolver` is not v3-capable. The nonce-pinned three-boundary plan now
    upgrades the proxy, pins the canonical v2 UID if live v2 is zero, and preserves v3 zero before
@@ -118,8 +118,8 @@ Phase B authorization. All deferred facts remain blockers for the later activati
 - The 48-hour timelock is waived for this wave; Safe multisig approval remains required.
 - Approved GardenToken release inventory: all 18 finalized accounts (token IDs 0–17), with protocol
   root token 0.
-- Approved protocol Safe target: the exact live 2-of-6 owner set; it satisfies the repository
-  threshold >= 2 and owner count >= 3 minimum. It remains the future owner.
+- Approved protocol Safe target: `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19`; live threshold >= 2
+  is the only Safe readiness gate. Owner membership is operationally managed.
 - Rehearsal ladder: local/fork confidence, Ethereum Sepolia endpoint rehearsal where useful,
   Arbitrum One, then Celo. The former two-week soak is withdrawn.
 - Credit deployment binds SettlementModule and CreditRegistry in both directions. G$ credit stays

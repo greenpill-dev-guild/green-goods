@@ -12,6 +12,8 @@ import {
   changedPromotionLeafPaths,
   completedBoundaries,
   createPasswordLease,
+  executeOwnershipBoundaries,
+  ownershipBoundaryArguments,
   parseSessionOptions,
   plannedStageBoundaries,
   RELEASE_OPERATOR_COMMANDS,
@@ -75,6 +77,15 @@ describe("release operator session", () => {
     }
     expect(CEREMONY_STAGES.get("garden-accounts")?.boundaries).toBe(2);
     expect(CEREMONY_STAGES.get("garden-safes")?.boundaries).toBe(18);
+    expect(parseSessionOptions(["--commit", candidate, "--stage", "ownership-arbitrum"]).stage).toBe(
+      "ownership-arbitrum",
+    );
+    expect(CEREMONY_STAGES.get("ownership-arbitrum")).toEqual({
+      script: "release:ownership:arbitrum",
+      boundaries: 8,
+      label: "Arbitrum protocol ownership handover",
+    });
+    expect(plannedStageBoundaries("ownership-arbitrum", 5)).toEqual([6, 7, 8]);
     // The relay lane spans both chains, so its four boundaries are one reviewed stage.
     expect(parseSessionOptions(["--commit", candidate, "--stage", "relay"]).stage).toBe("relay");
     expect(CEREMONY_STAGES.get("relay")?.boundaries).toBe(4);
@@ -111,6 +122,30 @@ describe("release operator session", () => {
     expect(() => plannedStageBoundaries("garden-safes", 19)).toThrow(/but its plan defines 18/);
     expect(() => plannedStageBoundaries("garden-safes", -1)).toThrow(/non-negative integer/);
     expect(() => plannedStageBoundaries("garden-safes", 1.5)).toThrow(/non-negative integer/);
+  });
+
+  it("binds each ownership boundary to the freshly observed pending nonce", () => {
+    expect(ownershipBoundaryArguments(1, 978)).toEqual(["--step", "1", "--expected-nonce", "978"]);
+    expect(ownershipBoundaryArguments(8, 985)).toEqual(["--step", "8", "--expected-nonce", "985"]);
+    expect(() => ownershipBoundaryArguments(0, 978)).toThrow(/positive boundary/);
+    expect(() => ownershipBoundaryArguments(1, -1)).toThrow(/non-negative nonce/);
+  });
+
+  it("refreshes the pending nonce before every remaining ownership boundary", async () => {
+    const pendingNonces = [978, 979, 981];
+    const executions: Array<{ boundary: number; args: string[] }> = [];
+
+    await executeOwnershipBoundaries(
+      [6, 7, 8],
+      async () => pendingNonces.shift() ?? -1,
+      (boundary, args) => void executions.push({ boundary, args }),
+    );
+
+    expect(executions).toEqual([
+      { boundary: 6, args: ["--step", "6", "--expected-nonce", "978"] },
+      { boundary: 7, args: ["--step", "7", "--expected-nonce", "979"] },
+      { boundary: 8, args: ["--step", "8", "--expected-nonce", "981"] },
+    ]);
   });
 
   it("binds a staged step 2 to the transaction hash its step 1 actually verified", () => {
@@ -191,6 +226,7 @@ describe("release operator session", () => {
   it("allowlists only one explicit GardenAccount or Garden Safe boundary per command", () => {
     const receipt = `0x${"cd".repeat(32)}`;
     expect([...RELEASE_OPERATOR_COMMANDS.keys()]).toEqual([
+      "release:ownership:arbitrum",
       "settlement:garden-accounts:deploy:celo",
       "settlement:garden-safes:deploy:celo",
       "settlement:garden-relay:deploy",
