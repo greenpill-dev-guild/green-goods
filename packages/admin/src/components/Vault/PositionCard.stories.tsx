@@ -160,8 +160,10 @@ function PositionCardHarness({
               went to the protocol treasury.
             </Alert>
           )}
-          {(unharvestedYield > 0n || distributionState === "ready") &&
-            distributionState !== "pending" &&
+          {/* Mirrors the shipping component: for a registered vault the action
+              stays available in empty/waiting states too (harvest-first), and
+              split-only appears only when registered yield is ready. */}
+          {distributionState !== "pending" &&
             distributionState !== "complete" &&
             distributionState !== "submitted" && (
               <div className="flex justify-end">
@@ -172,7 +174,9 @@ function PositionCardHarness({
                   disabled={isHarvesting}
                   loading={isHarvesting}
                 >
-                  {unharvestedYield > 0n ? "Harvest & distribute" : "Distribute yield"}
+                  {unharvestedYield > 0n || distributionState !== "ready"
+                    ? "Harvest & distribute"
+                    : "Distribute yield"}
                 </AdminButton>
               </div>
             )}

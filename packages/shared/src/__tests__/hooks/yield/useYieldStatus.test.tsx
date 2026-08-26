@@ -159,6 +159,9 @@ describe("useYieldStatus", () => {
     );
     expect((jarCall?.[0] as { address: string }).address).toBe(COOKIE_MODULE);
     expect(result.current.isError).toBe(false);
+    // The artifact fallback keeps the workflow visible, but the live module
+    // could be rotated, so the destination is not verified for confirmation.
+    expect(result.current.destinationVerified).toBe(false);
   });
 
   it("marks a mismatched registered vault unavailable", () => {
@@ -198,6 +201,15 @@ describe("useYieldStatus", () => {
     expect(result.current.status).toBe("ready");
     expect(result.current.threshold).toBe(7n);
     expect(result.current.destination).toEqual({ address: JAR, kind: "cookie_jar" });
+    // The status stays usable, but the destination chain lost reads (6, 7),
+    // so confirmation-level surfaces must treat it as unverified.
+    expect(result.current.destinationVerified).toBe(false);
+  });
+
+  it("verifies the destination when every routing read succeeds", () => {
+    const { result } = renderHook(() => useYieldStatus(GARDEN, ASSET, VAULT));
+
+    expect(result.current.destinationVerified).toBe(true);
   });
 
   it("still errors when a status-required read fails", () => {

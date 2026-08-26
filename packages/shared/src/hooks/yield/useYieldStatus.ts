@@ -215,6 +215,16 @@ export function useYieldStatus(
     baseQuery.data &&
       requiredBaseReadIndexes.some((index) => baseQuery.data?.[index]?.status === "failure")
   );
+  // The displayed destination is only trustworthy when every read in its
+  // resolution chain succeeded — gardenCookieJars (6), gardenTreasuries (7),
+  // the live cookieJarModule (8), and the module jar lookup. Their failures
+  // fall back silently, so approving a distribution against a fallback
+  // address could name a destination on-chain routing will not use.
+  // Consumers must gate confirmation on this instead of on status/isError.
+  const destinationReadIndexes = [6, 7, 8];
+  const destinationVerified =
+    !destinationReadIndexes.some((index) => baseQuery.data?.[index]?.status === "failure") &&
+    !moduleJarQuery.isError;
   const isLoading =
     enabled &&
     (baseQuery.isLoading ||
@@ -249,6 +259,7 @@ export function useYieldStatus(
     isVaultRegistered,
     splitConfig: splitConfigQuery.config,
     destination,
+    destinationVerified,
     estimatedDistribution: estimateYieldDistribution(totalAvailable, splitConfigQuery.config),
     isLoading,
     isError,

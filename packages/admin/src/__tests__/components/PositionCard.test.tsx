@@ -116,6 +116,7 @@ describe("PositionCard", () => {
         address: "0x4444444444444444444444444444444444444444",
         kind: "cookie_jar",
       },
+      destinationVerified: true,
       estimatedDistribution: {
         cookieJarAmount: 0n,
         fractionsAmount: 0n,
@@ -488,6 +489,50 @@ describe("PositionCard", () => {
 
       expect(screen.getByText(/resolver owner needs to register or recover/i)).toBeInTheDocument();
       expect(screen.queryByText("Retry harvest")).not.toBeInTheDocument();
+    });
+
+    it("follows refreshed yield state when choosing harvest vs split-only", async () => {
+      // Opened in an empty state (harvest-first); the refresh reveals the
+      // registered yield is now ready, so confirming must send split-only.
+      const user = userEvent.setup();
+
+      const { rerender } = render(
+        createElement(PositionCard, { ...defaultProps, canManage: true })
+      );
+      await user.click(screen.getByText("Harvest & distribute"));
+
+      mockYieldStatus = {
+        ...mockYieldStatus,
+        status: "ready",
+        totalAvailable: 10n * 10n ** 18n,
+      };
+      rerender(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      const confirmButtons = screen.getAllByText("Distribute yield");
+      await user.click(confirmButtons[confirmButtons.length - 1]);
+      expect(mockHarvestDistributionMutate).toHaveBeenCalledWith(
+        expect.objectContaining({ harvestFirst: false }),
+        expect.objectContaining({ onSettled: expect.any(Function) })
+      );
+    });
+
+    it("keeps confirmation locked while the destination cannot be verified", async () => {
+      mockUseVaultPreview.mockReturnValue({
+        preview: { maxDeposit: 1000n, totalAssets: 2_000_000_000_000_000_000n },
+      });
+      const user = userEvent.setup();
+
+      const { rerender } = render(
+        createElement(PositionCard, { ...defaultProps, canManage: true })
+      );
+      await user.click(screen.getByText("Harvest & distribute"));
+
+      mockYieldStatus = { ...mockYieldStatus, destinationVerified: false };
+      rerender(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      const confirmButtons = screen.getAllByText("Harvest & distribute");
+      const confirmButton = confirmButtons[confirmButtons.length - 1].closest("button");
+      expect(confirmButton).toBeDisabled();
     });
 
     it("keeps confirmation disabled when refreshed yield state turns erroneous", async () => {
