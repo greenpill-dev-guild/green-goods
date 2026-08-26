@@ -103,7 +103,9 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
             <div className="flex flex-col gap-4">
               <div>
                 <p className="text-label-md text-text-soft">Dense route surface</p>
-                <h1 className="text-title-lg text-text-strong">Controlled Chrome Boundary</h1>
+                <h1 className="text-title-md font-semibold text-text-strong">
+                  Controlled Chrome Boundary
+                </h1>
                 <p className="mt-2 max-w-2xl text-body-md text-text-sub">
                   Route cards, form panels, records, and tables stay solid while persistent chrome
                   carries the subtle liquid material.

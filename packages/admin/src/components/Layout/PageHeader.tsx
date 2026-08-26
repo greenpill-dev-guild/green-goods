@@ -105,10 +105,12 @@ export function PageHeader({
               {eyebrow}
             </div>
           ) : null}
-          {/* Title sits on the M3 scale: title-large (22/28) at weight 600 —
-              no responsive display ramp (Cockpit M3 1a route header). */}
+          {/* Title sits on the M3 scale: title-medium (16/24) at weight 600 —
+              the chrome already carries the workspace identity, so the route
+              header stays a waypoint, not a headline (2026-08-25 AD-2; dialog
+              titles keep title-large). No responsive display ramp. */}
           <h1
-            className="truncate text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong"
+            className="truncate text-title-md font-semibold leading-[var(--type-title-md-lh)] text-text-strong"
             title={typeof title === "string" ? title : undefined}
           >
             {title}
