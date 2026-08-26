@@ -38,7 +38,7 @@ function allocationOf(value: unknown): CommitmentAllocationBps {
   return {
     gardeners: bps(raw.gardeners),
     treasury: bps(raw.treasury),
-    steward: bps(raw.steward),
+    operator: bps(raw.operator),
     evaluator: bps(raw.evaluator),
     community: bps(raw.community),
     funder: bps(raw.funder),

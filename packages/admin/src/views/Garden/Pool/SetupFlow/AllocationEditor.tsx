@@ -69,7 +69,7 @@ export function toAllocationBps(values: AllocationPercent): CommitmentAllocation
   return {
     gardeners: percentToBps(values.gardeners),
     treasury: percentToBps(values.treasury),
-    steward: percentToBps(values.steward),
+    operator: percentToBps(values.steward),
     evaluator: percentToBps(values.evaluator),
     community: percentToBps(values.community),
     funder: percentToBps(values.funder),
@@ -86,7 +86,7 @@ export function toRecognitionBps(values: RecognitionPercent): CommitmentRecognit
 function allocationSumPercent(values: AllocationPercent): number {
   const bps = toAllocationBps(values);
   const total =
-    bps.gardeners + bps.treasury + bps.steward + bps.evaluator + bps.community + bps.funder;
+    bps.gardeners + bps.treasury + bps.operator + bps.evaluator + bps.community + bps.funder;
   return Number.isFinite(total) ? total / 100 : Number.NaN;
 }
 
@@ -145,7 +145,8 @@ export function AllocationEditor({
         defaultMessage: "Treasury",
       }),
     },
-    // The on-chain class is named `steward`; stewards read it as their own role.
+    // The on-chain class is named `operator`; this form key and the label stay
+    // `steward`, the word stewards read for their own role.
     {
       key: "steward",
       label: formatMessage({ id: "cockpit.garden.pool.split.steward", defaultMessage: "Steward" }),
