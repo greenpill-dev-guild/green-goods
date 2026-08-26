@@ -141,15 +141,19 @@ These decisions should be treated as settled unless explicitly revised.
 4. In-app browsers and unsupported webviews are not passkey-capable environments for Green Goods.
 5. The smart-account address is first-class stored account state.
 6. Passkey-server credential discovery replaces local-only credential lookup.
-7. Localhost is isolated from production passkey credentials. Staging is isolated today, but is
-   decided to join the production namespace pending rollout — see the revision below.
+7. Localhost is isolated from production passkey credentials. The Vercel Staging environment at
+   `beta.greengoods.app` shares the production passkey namespace; controlled sign-in verification
+   is still pending — see the revision below.
 
-### Revision 2026-08-23 — staging shares the production passkey namespace (PENDING ROLLOUT)
+### Revision 2026-08-23 — staging shares the production passkey namespace
 
-**Status: decided, not yet applied.** Staging still sets `VITE_PASSKEY_RP_ID=staging.greengoods.app`
-and still uses a separate Pimlico project. Until the rollout steps below are executed and verified,
-production credential lookup on staging returns nothing and a gardener who tries is led into
-creating a second account. Do not read the rest of this section as a description of live behaviour.
+**Status updated 2026-08-26: configuration applied; controlled sign-in verification deferred.**
+The existing Vercel Staging environment now serves `beta.greengoods.app`, omits
+`VITE_PASSKEY_RP_ID`, uses the production Pimlico project, and includes the beta origin in the
+passkey server allowlist. This makes the client resolve the apex RP ID `greengoods.app`. The release
+operator accepted retiring the legacy staging-RP credentials because they all belong to the
+operator. A production-passkey sign-in on beta has not yet been observed, so this configuration is
+not yet live end-to-end proof.
 
 Decision 7 originally isolated staging as well. That is revised for the commitment pooling pilot,
 which runs on staging against Arbitrum mainnet with real gardens and real gardeners.
@@ -162,7 +166,7 @@ The mechanism is credential replacement, not an address formula. `rpId` is a cer
 viem's `toWebAuthnAccount` uses when requesting a signature; it does not enter Kernel's validator
 data, so it is not an input to the counterfactual address. The address follows the credential's
 public key and authenticator id. A narrower RP ID causes a second address indirectly: the browser
-will not surface a `greengoods.app` credential to a `staging.greengoods.app` ceremony, so the
+will not surface a `greengoods.app` credential to a narrower staging-RP ceremony, so the
 gardener registers a new credential, and the new public key produces a new account. This
 distinction matters for future recovery and signer-rotation work, which turns on what actually
 determines the address.
@@ -176,15 +180,15 @@ the counterfactual address. `account-profiles.ts` is a useful cross-check for wh
 compatibility labels for the factory, implementation, initializer, passkey profile and salt, and two
 different credentials under identical profiles still produce different accounts.
 
-What this changes once applied:
+What this configuration changes:
 
-- `staging.greengoods.app` becomes an approved passkey origin. `staging-admin.greengoods.app` does
+- `beta.greengoods.app` is an approved passkey origin. `beta-admin.greengoods.app` does
   **not**: `packages/admin` has no passkey entrypoint, no registration and no ceremony
   classification, and authenticates through wallet connection only. Approving an origin that has no
   ceremony to run would let unreleased admin code mint production credentials and draw production
   sponsorship for nothing. Add it only if an admin passkey entrypoint is deliberately built.
-- Staging will set no `VITE_PASSKEY_RP_ID`, so it resolves the apex `greengoods.app` like production.
-- Staging and production will share one Pimlico project, because the passkey server's credential
+- Staging sets no `VITE_PASSKEY_RP_ID`, so it resolves the apex `greengoods.app` like production.
+- Staging and production share one Pimlico project, because the passkey server's credential
   namespace is the project. A separate project makes username recovery return zero credentials on
   staging and pushes the gardener into creating a new account.
 
@@ -205,8 +209,9 @@ before the namespace is shared, not after:
 
 1. **Inventory and disposition of credentials already registered under the staging RP.** This one
    comes first because it is the only step that can destroy something. Any passkey a gardener
-   registered on staging today lives under `rp.id = staging.greengoods.app`, and staging runs against
-   mainnet, so that credential may control a real smart account holding real hats and commitments.
+   previously registered under the narrower staging RP is not available to the apex-RP ceremony,
+   and staging runs against mainnet, so that credential may control a real smart account holding
+   real hats and commitments.
    Deleting the override strands it in both directions at once: `authenticateFromCache`
    re-requests
    the stored credential with the freshly resolved apex RP, which the authenticator will not match,
@@ -214,10 +219,10 @@ before the namespace is shared, not after:
    and for each either confirm it holds nothing worth keeping, migrate what it holds, or keep a
    bounded legacy authentication path until it is drained. Verifying that the *new* configuration
    works proves nothing about this.
-2. Vercel deployment access protection on `staging.greengoods.app`. `robots.txt` is a crawl hint, not
+2. Vercel deployment access protection on `beta.greengoods.app`. `robots.txt` is a crawl hint, not
    access control, and must not be counted as one. Staging-specific `Disallow: /` is still worth
    setting, as a second layer rather than the first.
-3. `staging.greengoods.app` added to the passkey server's `expectedOrigin` allowlist. A ceremony run
+3. `beta.greengoods.app` added to the passkey server's `expectedOrigin` allowlist. A ceremony run
    from staging sends that staging URL as the response origin, and this spec requires an explicit
    server-side allowlist with no wildcard, so the server rejects the verification until it is listed.
    Sharing the RP ID and the Pimlico project is not sufficient on its own, and the client-side
@@ -225,14 +230,14 @@ before the namespace is shared, not after:
 4. Confirmation that the staging client build omits `VITE_PASSKEY_RP_ID` and resolves the apex RP.
 5. Confirmation that the staging client build uses the production Pimlico project.
 
-Only after all five hold, and after a real end-to-end sign-in on `staging.greengoods.app` with a
+Only after all five hold, and after a real end-to-end sign-in on `beta.greengoods.app` with a
 production passkey has been observed, may this section be restated as live behaviour.
 
 #### Approved origins versus enforced origins
 
 This spec approves exactly three origins: `https://greengoods.app`, `https://www.greengoods.app`,
-and — after the rollout above — `https://staging.greengoods.app`. That is the list to use when
-configuring `expectedOrigin`; `staging-admin.greengoods.app` is deliberately not on it. They are not
+and `https://beta.greengoods.app`. That is the list to use when configuring `expectedOrigin`;
+`beta-admin.greengoods.app` is deliberately not on it. They are not
 what the code enforces:
 `classifyPasskeyCeremonyContext` accepts any HTTPS host ending in `.greengoods.app`, so
 `unapproved.greengoods.app` would pass the same check. That gap is defense-in-depth rather than a
@@ -265,13 +270,12 @@ surface and is deliberately not settled by this revision.
 
 ## Environment separation
 
-- one passkey server project shared by production and staging, once the 2026-08-23 revision above is
-  rolled out; separate projects until then
+- one passkey server project shared by production and staging
 - localhost development passkey server project or local mock
 
-Production credentials must never be created from preview URLs or localhost. Once that rollout
-completes, they may be created from `https://staging.greengoods.app`, which becomes an approved
-origin in the production namespace. No other staging or preview host joins it.
+Production credentials must never be created from preview URLs or localhost. They may be created
+from `https://beta.greengoods.app`, which is an approved origin in the production namespace. No
+other staging or preview host joins it. Controlled sign-in verification on beta remains pending.
 
 ---
 
@@ -382,7 +386,7 @@ Green Goods should add explicit account identity records.
 - server `expectedOrigin` must be an explicit allowlist
 - no wildcard production origin handling
 - no production passkey operations from non-production hosts, with one bounded exception:
-  `https://staging.greengoods.app` once the 2026-08-23 revision is rolled out. It is named
+  `https://beta.greengoods.app`. It is named
   individually, is access-protected, and is not a licence for other non-production hosts
 - all passkey server requests must be HTTPS
 - auth logs must exclude private credential material
