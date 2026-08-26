@@ -48,6 +48,7 @@ function baseResults(overrides: Partial<Record<number, unknown>> = {}) {
     VAULT, // registered vault
     "0x0000000000000000000000000000000000000000", // legacy jar
     TREASURY,
+    COOKIE_MODULE, // splitter's live cookieJarModule
   ];
   for (const [index, value] of Object.entries(overrides)) values[Number(index)] = value;
   return values.map(success);
@@ -130,6 +131,34 @@ describe("useYieldStatus", () => {
     const { result } = renderHook(() => useYieldStatus(GARDEN, ASSET, VAULT));
 
     expect(result.current.destination).toEqual({ address: TREASURY, kind: "treasury" });
+  });
+
+  it("queries the garden jar through the splitter's live cookieJarModule", () => {
+    // The resolver owner can rotate cookieJarModule; routing follows the
+    // splitter's stored address, so destination display must read it too.
+    const rotatedModule = "0x9999999999999999999999999999999999999999";
+    configureReads({ base: baseResults({ 8: rotatedModule }) });
+
+    renderHook(() => useYieldStatus(GARDEN, ASSET, VAULT));
+
+    const jarCall = mockUseReadContract.mock.calls.find(
+      ([options]) => (options as { functionName: string }).functionName === "getGardenJar"
+    );
+    expect((jarCall?.[0] as { address: string }).address).toBe(rotatedModule);
+  });
+
+  it("falls back to the deployment artifact module when the splitter read fails", () => {
+    const failedBase = baseResults();
+    failedBase[8] = { status: "failure", result: undefined };
+    configureReads({ base: failedBase });
+
+    const { result } = renderHook(() => useYieldStatus(GARDEN, ASSET, VAULT));
+
+    const jarCall = mockUseReadContract.mock.calls.find(
+      ([options]) => (options as { functionName: string }).functionName === "getGardenJar"
+    );
+    expect((jarCall?.[0] as { address: string }).address).toBe(COOKIE_MODULE);
+    expect(result.current.isError).toBe(false);
   });
 
   it("marks a mismatched registered vault unavailable", () => {

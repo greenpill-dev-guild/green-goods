@@ -12,7 +12,13 @@ interface DistributionSnapshot {
   threshold: bigint;
 }
 
-export type HarvestReceiptFailure = "report_failed" | "registration_failed";
+export type HarvestReceiptFailure = "report_failed" | "registration_failed" | "unverifiable";
+
+export const HARVEST_FAILURE_ERROR_CATEGORY: Record<HarvestReceiptFailure, string> = {
+  report_failed: "harvest_report_failed",
+  registration_failed: "shares_registration_failed",
+  unverifiable: "harvest_unverifiable",
+};
 
 /**
  * The verified on-chain outcome of a confirmed `splitYield()` transaction.
@@ -20,10 +26,18 @@ export type HarvestReceiptFailure = "report_failed" | "registration_failed";
  * `splitYield()` succeeds without distributing when the redeemed yield lands
  * below the threshold — it emits `YieldAccumulated` instead of `YieldSplit` —
  * so a confirmed transaction alone never proves a distribution happened.
+ *
+ * A readable receipt with neither event means the inner call did not execute:
+ * an executed split always emits exactly one of the two, but a smart-account
+ * UserOperation (and some wallet paths) can produce a successful transaction
+ * receipt around a reverted inner call. That is `reverted` — a real, retryable
+ * failure. `unknown` is reserved for an unreadable receipt, where the split
+ * may well have succeeded and must not be blindly retried.
  */
 export type DistributionOutcome =
   | { kind: "split"; amounts: YieldDistributionAmounts }
   | { kind: "accumulated"; totalPending: bigint }
+  | { kind: "reverted" }
   | { kind: "unknown" };
 
 export function isCanonicalTransactionHash(hash: string): hash is Hex {
@@ -132,7 +146,7 @@ export async function readDistributionOutcome(
     if (accumulatedEvent) {
       return { kind: "accumulated", totalPending: accumulatedEvent.args.totalPending };
     }
-    return { kind: "unknown" };
+    return { kind: "reverted" };
   } catch (error) {
     logger.warn("Could not verify splitYield outcome from the transaction receipt", {
       error,
@@ -148,9 +162,10 @@ export async function readDistributionOutcome(
  * The module deliberately catches `process_report()` and `registerShares()`
  * reverts and emits `HarvestReportFailed` / `SharesRegistrationFailed` while
  * the transaction itself still succeeds, so a confirmed receipt alone does not
- * prove the yield was reported or registered. Returns `null` when no failure
- * event is present, or when the receipt cannot be read (the workflow proceeds
- * on its pre-split snapshot in that case).
+ * prove the yield was reported or registered. Returns `null` only when the
+ * receipt was read and carries no failure event. An unreadable receipt returns
+ * `"unverifiable"` — the failure events are the only signal that a harvest
+ * silently failed, so the workflow must stop rather than proceed fail-open.
  */
 export async function readHarvestReceiptFailure(
   config: Config,
@@ -187,6 +202,6 @@ export async function readHarvestReceiptFailure(
     return null;
   } catch (error) {
     logger.warn("Could not inspect the harvest receipt for failure events", { error, hash });
-    return null;
+    return "unverifiable";
   }
 }

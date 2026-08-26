@@ -126,6 +126,13 @@ export function useYieldStatus(
             args: [gardenAddress!],
             chainId,
           },
+          {
+            address: yieldSplitter,
+            abi: YIELD_SPLITTER_ABI,
+            functionName: "cookieJarModule",
+            args: [],
+            chainId,
+          },
         ]
       : [],
     allowFailure: true,
@@ -140,6 +147,10 @@ export function useYieldStatus(
   const registeredVault = successfulResult<Address | undefined>(baseQuery.data?.[5], undefined);
   const legacyCookieJar = successfulResult<Address | undefined>(baseQuery.data?.[6], undefined);
   const treasury = successfulResult<Address | undefined>(baseQuery.data?.[7], undefined);
+  const splitterCookieJarModule = successfulResult<Address | undefined>(
+    baseQuery.data?.[8],
+    undefined
+  );
 
   const conversionQuery = useReadContract({
     address: vaultAddress,
@@ -153,14 +164,25 @@ export function useYieldStatus(
     },
   });
 
-  const moduleConfigured = Boolean(cookieJarModule) && !isZeroAddress(cookieJarModule);
+  // _routeToCookieJar() resolves the jar through the splitter's mutable
+  // cookieJarModule, which the owner can rotate via setCookieJarModule(); the
+  // deployment artifact is only the fallback when that read is unavailable.
+  const resolvedCookieJarModule =
+    splitterCookieJarModule && !isZeroAddress(splitterCookieJarModule)
+      ? splitterCookieJarModule
+      : cookieJarModule;
+  const moduleConfigured =
+    Boolean(resolvedCookieJarModule) && !isZeroAddress(resolvedCookieJarModule);
   const moduleJarQuery = useReadContract({
-    address: cookieJarModule,
+    address: resolvedCookieJarModule,
     abi: COOKIE_JAR_MODULE_ABI,
     functionName: "getGardenJar",
     args: gardenAddress && assetAddress ? [gardenAddress, assetAddress] : undefined,
     chainId,
-    query: { enabled: enabled && moduleConfigured, staleTime: STALE_TIME_MEDIUM },
+    query: {
+      enabled: enabled && !baseQuery.isLoading && moduleConfigured,
+      staleTime: STALE_TIME_MEDIUM,
+    },
   });
   const splitConfigQuery = useSplitConfig(gardenAddress, { enabled });
 
@@ -185,9 +207,9 @@ export function useYieldStatus(
   // Only the reads that status derivation depends on may flip the hook into
   // "error": gardenShares (0), pendingYield (1), minYieldThreshold (2), and
   // gardenVaults (5). assetYieldThresholds, getEscrowedFractions,
-  // gardenCookieJars, and gardenTreasuries all have fallbacks (global
-  // threshold / zero / destination chain), so their failures must not hide an
-  // otherwise ready distribution.
+  // gardenCookieJars, gardenTreasuries, and cookieJarModule all have fallbacks
+  // (global threshold / zero / destination chain / deployment artifact), so
+  // their failures must not hide an otherwise ready distribution.
   const requiredBaseReadIndexes = [0, 1, 2, 5];
   const hasBaseReadFailure = Boolean(
     baseQuery.data &&

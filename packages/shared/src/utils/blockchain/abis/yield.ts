@@ -30,6 +30,13 @@ export const YIELD_SPLITTER_ABI = [
   },
   {
     type: "function",
+    name: "cookieJarModule",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
     name: "splitYield",
     stateMutability: "nonpayable",
     inputs: [

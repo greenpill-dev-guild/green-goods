@@ -21,6 +21,7 @@ import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import type { YieldDistributionAmounts } from "./useYieldStatus";
 import {
+  HARVEST_FAILURE_ERROR_CATEGORY,
   type HarvestReceiptFailure,
   isCanonicalTransactionHash,
   readDistributionOutcome,
@@ -163,10 +164,7 @@ export function useHarvestDistribution() {
               ...telemetry,
               outcome: "failed",
               durationMs: Date.now() - startedAt,
-              errorCategory:
-                harvestFailure === "report_failed"
-                  ? "harvest_report_failed"
-                  : "shares_registration_failed",
+              errorCategory: HARVEST_FAILURE_ERROR_CATEGORY[harvestFailure],
             });
             return {
               status: "harvest_incomplete",
@@ -248,6 +246,15 @@ export function useHarvestDistribution() {
             threshold: snapshot.threshold,
             harvested,
           };
+        }
+        if (outcome.kind === "reverted") {
+          // A readable receipt with neither resolver event means the inner
+          // splitYield() never executed (e.g. a reverted UserOperation inside
+          // a successful EntryPoint transaction). This is a real failure and
+          // must stay retryable.
+          throw new Error(
+            "Distribution transaction confirmed but splitYield did not execute; the inner call reverted"
+          );
         }
         if (outcome.kind === "unknown") {
           // The split confirmed on-chain; only the read back failed. Preserve

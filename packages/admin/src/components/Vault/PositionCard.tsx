@@ -58,6 +58,7 @@ export function PositionCard({
   const [confirmPauseOpen, setConfirmPauseOpen] = useState(false);
   const [confirmDistributionOpen, setConfirmDistributionOpen] = useState(false);
   const [confirmRefreshing, setConfirmRefreshing] = useState(false);
+  const [confirmHarvestFirst, setConfirmHarvestFirst] = useState(false);
 
   const assetDecimals = getVaultAssetDecimals(vault.asset, vault.chainId);
   const netDeposited = getNetDeposited(vault.totalDeposited, vault.totalWithdrawn);
@@ -121,8 +122,10 @@ export function PositionCard({
 
   // Split ratios and destinations can change on-chain while the card stays
   // mounted; refresh the execution-relevant reads whenever the confirmation
-  // opens so the operator approves current values, not cached ones.
-  const openDistributionConfirm = () => {
+  // opens so the operator approves current values, not cached ones. Every
+  // workflow entry point — first run and retries alike — goes through here.
+  const openDistributionConfirm = (harvestFirst: boolean) => {
+    setConfirmHarvestFirst(harvestFirst);
     setConfirmDistributionOpen(true);
     setConfirmRefreshing(true);
     void yieldStatus.refetch().finally(() => setConfirmRefreshing(false));
@@ -195,12 +198,15 @@ export function PositionCard({
       treasuryAmount: formatAmount(estimatedDistribution.treasuryAmount),
       treasuryPercent: formatPercent(yieldStatus.splitConfig.juiceboxBps),
       promptNote: formatMessage({
-        id: needsHarvestFirst
+        id: confirmHarvestFirst
           ? "app.yield.harvestDistribution.twoPrompts"
           : "app.yield.harvestDistribution.onePrompt",
       }),
     }
   );
+  const confirmActionLabelId = confirmHarvestFirst
+    ? "app.yield.harvestDistribution.action.harvest"
+    : "app.yield.harvestDistribution.action.distribute";
 
   return (
     <Card padding="compact" className="sm:p-5">
@@ -344,22 +350,29 @@ export function PositionCard({
               className="p-3"
               onDismiss={dismissWorkflowOutcome}
               action={
-                <AdminButton
-                  variant="outlined"
-                  size="sm"
-                  onClick={() => runHarvestDistribution(true)}
-                  disabled={harvestDistribution.isPending}
-                  loading={harvestDistribution.isPending}
-                >
-                  {formatMessage({ id: "app.yield.harvestDistribution.action.retryHarvest" })}
-                </AdminButton>
+                // Re-harvesting cannot recover a failed registration: the next
+                // harvest snapshots the resolver balance including the stuck
+                // shares, so only the resolver owner can register them.
+                distributionResult.failure !== "registration_failed" ? (
+                  <AdminButton
+                    variant="outlined"
+                    size="sm"
+                    onClick={() => openDistributionConfirm(true)}
+                    disabled={harvestDistribution.isPending}
+                    loading={harvestDistribution.isPending}
+                  >
+                    {formatMessage({ id: "app.yield.harvestDistribution.action.retryHarvest" })}
+                  </AdminButton>
+                ) : undefined
               }
             >
               {formatMessage({
                 id:
                   distributionResult.failure === "report_failed"
                     ? "app.yield.harvestDistribution.harvestIncompleteReportDetails"
-                    : "app.yield.harvestDistribution.harvestIncompleteRegistrationDetails",
+                    : distributionResult.failure === "registration_failed"
+                      ? "app.yield.harvestDistribution.harvestIncompleteRegistrationDetails"
+                      : "app.yield.harvestDistribution.harvestIncompleteUnverifiedDetails",
               })}
             </Alert>
           )}
@@ -385,7 +398,7 @@ export function PositionCard({
                 <AdminButton
                   variant="outlined"
                   size="sm"
-                  onClick={() => runHarvestDistribution(false)}
+                  onClick={() => openDistributionConfirm(false)}
                   disabled={harvestDistribution.isPending}
                   loading={harvestDistribution.isPending}
                 >
@@ -422,7 +435,7 @@ export function PositionCard({
               <AdminButton
                 variant="filled"
                 size="sm"
-                onClick={openDistributionConfirm}
+                onClick={() => openDistributionConfirm(needsHarvestFirst)}
                 disabled={harvestDistribution.isPending}
                 loading={harvestDistribution.isPending}
               >
@@ -448,14 +461,14 @@ export function PositionCard({
       <AdminConfirmDialog
         isOpen={confirmDistributionOpen}
         onClose={() => setConfirmDistributionOpen(false)}
-        onConfirm={() => runHarvestDistribution(needsHarvestFirst)}
+        onConfirm={() => runHarvestDistribution(confirmHarvestFirst)}
         title={formatMessage({ id: "app.yield.harvestDistribution.confirmTitle" })}
         description={confirmationDescription}
-        confirmLabel={formatMessage({ id: actionLabelId })}
+        confirmLabel={formatMessage({ id: confirmActionLabelId })}
         cancelLabel={formatMessage({ id: "app.wizard.cancel" })}
         tone="community"
         isLoading={harvestDistribution.isPending}
-        confirmDisabled={confirmRefreshing}
+        confirmDisabled={confirmRefreshing || yieldStatus.isLoading || yieldStatus.isError}
       />
 
       <AdminConfirmDialog

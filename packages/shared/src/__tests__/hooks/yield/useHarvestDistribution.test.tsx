@@ -526,6 +526,91 @@ describe("useHarvestDistribution", () => {
     );
   });
 
+  it("stops as harvest_incomplete when the harvest receipt cannot be inspected", async () => {
+    // Failure events are the only signal a harvest silently failed, so an
+    // unreadable receipt must stop the workflow rather than proceed fail-open.
+    mockGetReceipt.mockImplementation((_config: unknown, { hash }: { hash: string }) =>
+      hash === HARVEST_HASH
+        ? Promise.reject(new Error("rpc unavailable"))
+        : Promise.resolve({ logs: [yieldSplitLog()] })
+    );
+    const { result } = renderHook(() => useHarvestDistribution(), {
+      wrapper: wrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        gardenAddress: GARDEN,
+        assetAddress: ASSET,
+        vaultAddress: VAULT,
+        assetSymbol: "DAI",
+        harvestFirst: true,
+        hadPendingYield: false,
+        thresholdMetBefore: false,
+      });
+    });
+
+    expect(mockSendContractCall).toHaveBeenCalledTimes(1);
+    expect(result.current.data).toEqual({
+      status: "harvest_incomplete",
+      hash: HARVEST_HASH,
+      failure: "unverifiable",
+    });
+  });
+
+  it("keeps an eventless confirmed split retryable after a confirmed harvest", async () => {
+    // A readable receipt with neither YieldSplit nor YieldAccumulated means
+    // the inner call reverted (e.g. inside a successful UserOperation). The
+    // empty harvest receipt carries no failure events, so the harvest stage
+    // still confirms.
+    mockGetReceipt.mockResolvedValue({ logs: [] });
+    const { result } = renderHook(() => useHarvestDistribution(), {
+      wrapper: wrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        gardenAddress: GARDEN,
+        assetAddress: ASSET,
+        vaultAddress: VAULT,
+        assetSymbol: "DAI",
+        harvestFirst: true,
+        hadPendingYield: false,
+        thresholdMetBefore: false,
+      });
+    });
+
+    expect(result.current.data).toEqual(
+      expect.objectContaining({ status: "distribution_pending", harvested: true })
+    );
+  });
+
+  it("treats an eventless standalone split as a failure, not an unverified success", async () => {
+    mockSendContractCall.mockReset();
+    mockSendContractCall.mockResolvedValueOnce({ hash: SPLIT_HASH, sponsored: false });
+    mockGetReceipt.mockResolvedValue({ logs: [] });
+    const { result } = renderHook(() => useHarvestDistribution(), {
+      wrapper: wrapper(queryClient),
+    });
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          gardenAddress: GARDEN,
+          assetAddress: ASSET,
+          vaultAddress: VAULT,
+          assetSymbol: "DAI",
+          harvestFirst: false,
+          hadPendingYield: true,
+          thresholdMetBefore: true,
+        })
+      ).rejects.toThrow(/splitYield did not execute/);
+    });
+
+    expect(result.current.data).toBeUndefined();
+    expect(mockErrorHandler).toHaveBeenCalled();
+  });
+
   it("surfaces a swallowed shares registration failure instead of distributing", async () => {
     mockGetReceipt.mockImplementation((_config: unknown, { hash }: { hash: string }) =>
       Promise.resolve(

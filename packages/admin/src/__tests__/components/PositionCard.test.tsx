@@ -308,7 +308,7 @@ describe("PositionCard", () => {
       expect(screen.queryByText("Distribute yield")).not.toBeInTheDocument();
     });
 
-    it("shows partial success with a split-only retry", async () => {
+    it("routes the split-only retry through a fresh destination-aware confirmation", async () => {
       mockHarvestDistribution = {
         ...mockHarvestDistribution,
         data: { status: "distribution_pending", harvested: true, errorCategory: "blockchain" },
@@ -322,6 +322,14 @@ describe("PositionCard", () => {
         screen.getByText(/Harvest confirmed, but distribution is still pending/i)
       ).toBeInTheDocument();
       await user.click(screen.getByText("Retry distribution"));
+
+      // The retry must not fire the mutation directly: routing can change
+      // while the alert is visible, so it reopens the confirmation instead.
+      expect(mockHarvestDistributionMutate).not.toHaveBeenCalled();
+      expect(screen.getByText("Harvest and distribute yield")).toBeInTheDocument();
+      expect(mockYieldRefetch).toHaveBeenCalled();
+
+      await user.click(screen.getByText("Distribute yield"));
       expect(mockHarvestDistributionMutate).toHaveBeenCalledWith(
         expect.objectContaining({ harvestFirst: false }),
         expect.objectContaining({ onSettled: expect.any(Function) })
@@ -419,7 +427,7 @@ describe("PositionCard", () => {
       expect(mockHarvestDistributionReset).toHaveBeenCalled();
     });
 
-    it("explains an incomplete harvest and offers a harvest retry", async () => {
+    it("explains an incomplete harvest and routes the retry through confirmation", async () => {
       mockHarvestDistribution = {
         ...mockHarvestDistribution,
         data: {
@@ -435,10 +443,54 @@ describe("PositionCard", () => {
 
       expect(screen.getByText(/the vault could not report new yield/i)).toBeInTheDocument();
       await user.click(screen.getByText("Retry harvest"));
+
+      expect(mockHarvestDistributionMutate).not.toHaveBeenCalled();
+      expect(screen.getByText("Harvest and distribute yield")).toBeInTheDocument();
+
+      await user.click(screen.getByText("Harvest & distribute"));
       expect(mockHarvestDistributionMutate).toHaveBeenCalledWith(
         expect.objectContaining({ harvestFirst: true }),
         expect.objectContaining({ onSettled: expect.any(Function) })
       );
+    });
+
+    it("offers no harvest retry for a failed shares registration", () => {
+      // Re-harvesting snapshots the resolver balance including the stuck
+      // shares, so it cannot recover a failed registration.
+      mockHarvestDistribution = {
+        ...mockHarvestDistribution,
+        data: {
+          status: "harvest_incomplete",
+          hash: `0x${"c".repeat(64)}`,
+          failure: "registration_failed",
+        },
+        stage: "harvest_incomplete",
+      };
+
+      render(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      expect(screen.getByText(/resolver owner needs to register or recover/i)).toBeInTheDocument();
+      expect(screen.queryByText("Retry harvest")).not.toBeInTheDocument();
+    });
+
+    it("keeps confirmation disabled when refreshed yield state turns erroneous", async () => {
+      mockUseVaultPreview.mockReturnValue({
+        preview: { maxDeposit: 1000n, totalAssets: 2_000_000_000_000_000_000n },
+      });
+      const user = userEvent.setup();
+
+      const { rerender } = render(
+        createElement(PositionCard, { ...defaultProps, canManage: true })
+      );
+      await user.click(screen.getByText("Harvest & distribute"));
+
+      // The refresh triggered by opening surfaces an error: confirm must lock.
+      mockYieldStatus = { ...mockYieldStatus, isError: true, status: "error" };
+      rerender(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      const confirmButtons = screen.getAllByText("Harvest & distribute");
+      const confirmButton = confirmButtons[confirmButtons.length - 1].closest("button");
+      expect(confirmButton).toBeDisabled();
     });
 
     it("reports an unverified split without offering a distribution retry", () => {
