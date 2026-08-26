@@ -78,12 +78,48 @@
       }
     ],
     "fixtureRoles": [
-      { "garden": "protocol", "actor": "user", "source": "chain", "isSteward": false, "isOwner": false },
-      { "garden": "protocol", "actor": "deployer", "source": "chain", "isSteward": true, "isOwner": false },
-      { "garden": "protocol", "actor": "steward", "source": "chain", "isSteward": false, "isOwner": false },
-      { "garden": "garden-pool-2", "actor": "user", "source": "chain", "isSteward": false, "isOwner": false },
-      { "garden": "garden-pool-2", "actor": "deployer", "source": "chain", "isSteward": false, "isOwner": false },
-      { "garden": "garden-pool-2", "actor": "steward", "source": "chain", "isSteward": false, "isOwner": false }
+      {
+        "garden": "protocol",
+        "actor": "user",
+        "source": "chain",
+        "isSteward": false,
+        "isOwner": false
+      },
+      {
+        "garden": "protocol",
+        "actor": "deployer",
+        "source": "chain",
+        "isSteward": true,
+        "isOwner": false
+      },
+      {
+        "garden": "protocol",
+        "actor": "steward",
+        "source": "chain",
+        "isSteward": false,
+        "isOwner": false
+      },
+      {
+        "garden": "garden-pool-2",
+        "actor": "user",
+        "source": "chain",
+        "isSteward": false,
+        "isOwner": false
+      },
+      {
+        "garden": "garden-pool-2",
+        "actor": "deployer",
+        "source": "chain",
+        "isSteward": false,
+        "isOwner": false
+      },
+      {
+        "garden": "garden-pool-2",
+        "actor": "steward",
+        "source": "chain",
+        "isSteward": false,
+        "isOwner": false
+      }
     ]
   },
   "indexer": {
