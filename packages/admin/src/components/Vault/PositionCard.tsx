@@ -137,37 +137,50 @@ export function PositionCard({
 
   const dismissWorkflowOutcome = () => harvestDistribution.reset();
 
-  // For unresolved outcomes the outcome clears only through reconciliation.
-  // An unverified split reconciles by refetching and then resetting: the
-  // refreshed reads reflect whatever the confirmed split actually did. A
-  // pending Safe submission has no on-chain signal until it executes, so its
-  // outcome clears only once the refetched yield state actually changes —
-  // never on an unchanged (or failed) refetch, which would invite a
-  // duplicate proposal.
+  // Unresolved outcomes clear only through reconciliation, and only once the
+  // refetched reads prove something. A pending Safe submission has no
+  // on-chain signal until it executes, so it clears when the refetched yield
+  // state actually changes — never on an unchanged refetch, which would
+  // invite a duplicate proposal. Unverified outcomes (split_unverified, an
+  // uninspectable harvest receipt) clear once a reconciliation refetch
+  // SUCCEEDS: the refreshed reads then reflect the real post-state, while a
+  // failed refetch keeps the warning up.
   const yieldFingerprint = [
     yieldStatus.status,
     yieldStatus.totalAvailable,
     yieldStatus.registeredShares,
     yieldStatus.pendingYield,
   ].join("|");
-  const [reconcileBaseline, setReconcileBaseline] = useState<string | null>(null);
+  const [reconcileBaseline, setReconcileBaseline] = useState<{
+    mode: "submitted" | "unverified";
+    fingerprint: string;
+  } | null>(null);
   const reconcileWorkflowOutcome = () => {
-    const submitted =
-      harvestDistribution.data?.status === "harvest_submitted" ||
-      harvestDistribution.data?.status === "distribution_submitted";
-    if (!submitted) {
-      void yieldStatus.refetch().finally(() => harvestDistribution.reset());
-      return;
-    }
-    const baseline = yieldFingerprint;
+    const status = harvestDistribution.data?.status;
+    const mode =
+      status === "harvest_submitted" || status === "distribution_submitted"
+        ? ("submitted" as const)
+        : ("unverified" as const);
+    const baseline = { mode, fingerprint: yieldFingerprint };
     void yieldStatus.refetch().finally(() => setReconcileBaseline(baseline));
   };
   const { reset: resetHarvestDistribution } = harvestDistribution;
   useEffect(() => {
-    if (reconcileBaseline === null || yieldFingerprint === reconcileBaseline) return;
+    if (!reconcileBaseline || yieldStatus.isLoading) return;
+    const reconciled =
+      reconcileBaseline.mode === "unverified"
+        ? !yieldStatus.isError
+        : yieldFingerprint !== reconcileBaseline.fingerprint;
+    if (!reconciled) return;
     resetHarvestDistribution();
     setReconcileBaseline(null);
-  }, [reconcileBaseline, yieldFingerprint, resetHarvestDistribution]);
+  }, [
+    reconcileBaseline,
+    yieldFingerprint,
+    yieldStatus.isLoading,
+    yieldStatus.isError,
+    resetHarvestDistribution,
+  ]);
 
   const runHarvestDistribution = (harvestFirst: boolean) => {
     setReconcileBaseline(null);
@@ -365,12 +378,27 @@ export function PositionCard({
             </Alert>
           )}
 
-          {!hasWorkflowOutcome &&
-            (yieldStatus.status === "error" || yieldStatus.status === "unavailable") && (
-              <Alert variant="error" className="p-3">
-                {formatMessage({ id: "app.yield.harvestDistribution.statusUnavailable" })}
-              </Alert>
-            )}
+          {!hasWorkflowOutcome && yieldStatus.status === "error" && (
+            <Alert variant="error" className="p-3">
+              {formatMessage({ id: "app.yield.harvestDistribution.statusUnavailable" })}
+            </Alert>
+          )}
+
+          {/* Unavailable = no registered splitter vault on this network; a
+              refresh cannot change that, unlike a transient read error. */}
+          {!hasWorkflowOutcome && yieldStatus.status === "unavailable" && (
+            <Alert variant="info" className="p-3">
+              {formatMessage({ id: "app.yield.harvestDistribution.notAvailableOnNetwork" })}
+            </Alert>
+          )}
+
+          {!hasWorkflowOutcome && yieldStatus.status === "loading" && (
+            <div className="flex justify-end">
+              <AdminButton variant="filled" size="sm" disabled loading>
+                {formatMessage({ id: "app.yield.harvestDistribution.action.harvest" })}
+              </AdminButton>
+            </div>
+          )}
 
           <HarvestOutcomeAlerts
             result={distributionResult}

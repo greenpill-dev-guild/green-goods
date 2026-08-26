@@ -500,6 +500,70 @@ describe("PositionCard", () => {
       await waitFor(() => expect(mockHarvestDistributionReset).toHaveBeenCalled());
     });
 
+    it("keeps an unverified split when the reconciliation refetch fails", async () => {
+      mockHarvestDistribution = {
+        ...mockHarvestDistribution,
+        data: { status: "split_unverified", hash: `0x${"d".repeat(64)}`, harvested: true },
+        stage: "split_unverified",
+      };
+      // The reconciliation refetch fails: refreshed reads are errored, so the
+      // only warning about the unknown split outcome must stay up.
+      mockYieldRefetch.mockImplementation(() => {
+        mockYieldStatus = { ...mockYieldStatus, isError: true, status: "error" };
+        return Promise.resolve(undefined);
+      });
+      const user = userEvent.setup();
+
+      render(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      await user.click(screen.getByText("Check status"));
+
+      expect(mockYieldRefetch).toHaveBeenCalled();
+      expect(mockHarvestDistributionReset).not.toHaveBeenCalled();
+      expect(screen.getByText(/its result could not be read back yet/i)).toBeInTheDocument();
+    });
+
+    it("routes an unverifiable harvest through reconciliation, not retry", () => {
+      mockHarvestDistribution = {
+        ...mockHarvestDistribution,
+        data: {
+          status: "harvest_incomplete",
+          hash: `0x${"c".repeat(64)}`,
+          failure: "unverifiable",
+        },
+        stage: "harvest_incomplete",
+      };
+
+      render(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      expect(screen.getByText(/outcome could not be verified yet/i)).toBeInTheDocument();
+      expect(screen.queryByText("Retry harvest")).not.toBeInTheDocument();
+      expect(screen.getByText("Check status")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+    });
+
+    it("shows an accessible loading placeholder while yield status loads", () => {
+      mockYieldStatus = { ...mockYieldStatus, status: "loading", isLoading: true };
+
+      render(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      const action = screen.getByRole("button", { name: /Harvest & distribute/i });
+      expect(action).toBeDisabled();
+    });
+
+    it("explains an unavailable network without a refresh instruction", () => {
+      mockYieldStatus = {
+        ...mockYieldStatus,
+        status: "unavailable",
+        isVaultRegistered: false,
+      };
+
+      render(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      expect(screen.getByText(/not available for this vault on this network/i)).toBeInTheDocument();
+      expect(screen.queryByText(/Refresh the page/i)).not.toBeInTheDocument();
+    });
+
     it("explains a reverted harvest and keeps the retry available", () => {
       mockHarvestDistribution = {
         ...mockHarvestDistribution,

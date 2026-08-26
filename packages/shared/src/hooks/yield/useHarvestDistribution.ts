@@ -282,9 +282,9 @@ export function useHarvestDistribution() {
       });
       return { toastId };
     },
-    onSuccess: async (result, params, context) => {
+    onSuccess: (result, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
-      await invalidateFinancialState(params);
+      invalidateFinancialState(params);
       switch (result.status) {
         case "distributed":
           setStageIfMounted("complete");

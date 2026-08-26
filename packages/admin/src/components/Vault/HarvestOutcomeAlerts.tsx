@@ -77,12 +77,14 @@ export function HarvestOutcomeAlerts({
         <Alert
           variant="warning"
           className="p-3"
-          onDismiss={onDismiss}
+          onDismiss={result.failure === "unverifiable" ? undefined : onDismiss}
           action={
-            // Re-harvesting cannot recover a failed registration: the next
+            // Re-harvesting cannot recover a failed registration (the next
             // harvest snapshots the resolver balance including the stuck
-            // shares, so only the resolver owner can register them.
-            result.failure !== "registration_failed" ? (
+            // shares), and an unverifiable receipt may hide exactly that
+            // case — so only proven report/revert failures offer a direct
+            // retry; unverifiable routes through reconciliation.
+            result.failure === "report_failed" || result.failure === "reverted" ? (
               <AdminButton
                 variant="outlined"
                 size="sm"
@@ -92,6 +94,8 @@ export function HarvestOutcomeAlerts({
               >
                 {formatMessage({ id: "app.yield.harvestDistribution.action.retryHarvest" })}
               </AdminButton>
+            ) : result.failure === "unverifiable" ? (
+              reconcileAction
             ) : undefined
           }
         >
