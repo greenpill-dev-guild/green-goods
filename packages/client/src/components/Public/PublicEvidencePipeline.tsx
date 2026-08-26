@@ -74,7 +74,7 @@ function CycleStep({ kind, numeral, title, description }: CycleStepProps) {
         >
           <EditorialNumeral className={tones.ink}>{numeral}</EditorialNumeral>
         </span>
-        <h3 className="font-serif text-2xl font-normal leading-9 tracking-[-0.012em] text-text-strong-950">
+        <h3 className="relative z-10 bg-bg-weak-50 font-serif text-2xl font-normal leading-9 tracking-[-0.012em] text-text-strong-950 lg:pr-2">
           {title}
         </h3>
       </div>
@@ -130,7 +130,7 @@ function stepCopy(
         description: formatMessage({
           id: "public.impact.pipeline.step.commitment.description",
           defaultMessage:
-            "Work begins as a commitment to someone. A neighbour offers help or asks for it, another takes it up, and the Garden's pool records who will carry it out and by when.",
+            "Work begins as a commitment to someone. A neighbour offers or requests help, another accepts, and the Garden's pool records who will carry it out and by when.",
         }),
       };
     case "work":
@@ -157,7 +157,7 @@ function stepCopy(
           {
             id: "public.impact.pipeline.step.learnings.description",
             defaultMessage:
-              "Assessments return to measure what changed against the baseline. What was learned, and the approved Work behind it, anchors into an <certificate>Impact Certificate</certificate> — a portable public record built to outlast any one platform.",
+              "Assessments measure what changed from the baseline. What was learned, and the approved Work behind it, anchors into an <certificate>Impact Certificate</certificate> — a portable public record.",
           },
           {
             certificate: (chunks) => (

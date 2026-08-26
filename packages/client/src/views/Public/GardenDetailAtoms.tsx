@@ -114,7 +114,7 @@ export function SectionNotice({
   onRetry = () => window.location.reload(),
   // Section-level failures hold the section's space (AD-11); an inline aside
   // passes its own className and opts out of the held height.
-  className = "mt-8 flex min-h-40 items-center text-sm text-text-sub-600",
+  className = "mt-8 min-h-40 text-sm text-text-sub-600",
 }: {
   message: string;
   onRetry?: () => void;
