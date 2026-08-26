@@ -476,7 +476,8 @@ describe("PublicEvidencePipeline", () => {
       for (const step of steps) {
         const description = catalog[`public.impact.pipeline.step.${step}.description`];
         const wordCount = description
-          .replace(/<[^>]+>/g, "")
+          .replaceAll("<certificate>", "")
+          .replaceAll("</certificate>", "")
           .trim()
           .split(/\s+/).length;
         expect(wordCount).toBeGreaterThanOrEqual(25);
