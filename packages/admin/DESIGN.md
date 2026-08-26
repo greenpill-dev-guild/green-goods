@@ -90,7 +90,7 @@ CSS Grid with named areas:
 ## Typography
 
 - **Plus Jakarta Sans** across everything — titles (600), body (400), labels (500)
-- Compressed cockpit scale: 22px/28px title-large for page and dialog titles · 14px body and labels · 12px meta · 11px inside chips only. No display or headline ramp — the route header title is title-large, never a display size.
+- Compressed cockpit scale: 22px/28px title-large for dialog and flow titles and the app bar · 16px/24px title-medium (weight 600) for the route header title — the chrome already declares the workspace, so the header is a waypoint, not a headline (2026-08-25) · 14px body and labels · 12px meta · 11px inside chips only. No display or headline ramp — nothing in the cockpit takes a display size.
 - Utility copy, status language, task framing — not marketing copy
 - Labels and timestamps are the most important typographic element (stewards scan metadata)
 
