@@ -3,7 +3,7 @@ import { isVideoFile } from "@green-goods/shared/modules/work/media-processing";
 import type { ProofBeat } from "@green-goods/shared/hooks/client-ui/commitment/proofReadiness";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/useProofComposerController";
-import { formatCommitmentUnits } from "@green-goods/shared/i18n";
+import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";

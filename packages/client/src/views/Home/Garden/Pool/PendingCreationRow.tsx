@@ -1,7 +1,7 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { type PendingCommitmentCreation } from "@green-goods/shared/commitment-pooling";
-import { formatCommitmentUnits } from "@green-goods/shared/i18n";
+import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import { RiDeleteBinLine, RiRefreshLine, RiSeedlingLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 

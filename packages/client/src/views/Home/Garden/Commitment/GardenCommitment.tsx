@@ -1,7 +1,7 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { writeWorkLinkIntent } from "@green-goods/shared/commitment-pooling";
 import { useGardenCommitmentController } from "@green-goods/shared/hooks/client-ui/commitment/useGardenCommitmentController";
-import { formatCommitmentUnits } from "@green-goods/shared/i18n";
+import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
