@@ -148,6 +148,26 @@ describe("release operator session", () => {
     ]);
   });
 
+  it("waits for the pending nonce to advance after a verified ownership boundary", async () => {
+    const pendingNonces = [978, 979, 979, 980];
+    const executions: Array<{ boundary: number; args: string[] }> = [];
+    let waits = 0;
+
+    await executeOwnershipBoundaries(
+      [1, 2, 3],
+      async () => pendingNonces.shift() ?? -1,
+      (boundary, args) => void executions.push({ boundary, args }),
+      { wait: async () => void (waits += 1) },
+    );
+
+    expect(waits).toBe(1);
+    expect(executions).toEqual([
+      { boundary: 1, args: ["--step", "1", "--expected-nonce", "978"] },
+      { boundary: 2, args: ["--step", "2", "--expected-nonce", "979"] },
+      { boundary: 3, args: ["--step", "3", "--expected-nonce", "980"] },
+    ]);
+  });
+
   it("binds a staged step 2 to the transaction hash its step 1 actually verified", () => {
     const output = `DEPLOY_COORDINATOR verified as 0x${"1".repeat(64)}; close the credential session.\n`;
 

@@ -15,6 +15,7 @@ import {
 } from "./deploy/garden-safe-owners";
 import { buildReleaseLock, loadReleaseManifest, type ReleaseLock, type ReleaseStage } from "./utils/release-manifest";
 import { NetworkManager } from "./utils/network";
+import { retryRpcAvailability } from "./utils/rpc-retry";
 
 const CONTRACTS_ROOT = path.join(__dirname, "..");
 const REPOSITORY_ROOT = path.join(CONTRACTS_ROOT, "../..");
@@ -773,10 +774,39 @@ export async function executeOwnershipBoundaries(
   boundaries: readonly number[],
   readPendingNonce: () => Promise<number>,
   executeBoundary: (boundary: number, args: string[]) => void | Promise<void>,
+  options: {
+    attempts?: number;
+    wait?: (milliseconds: number) => Promise<void>;
+    onStaleNonce?: (lastSubmittedNonce: number, attempt: number) => void;
+  } = {},
 ): Promise<void> {
+  let lastSubmittedNonce: number | undefined;
   for (const boundary of boundaries) {
-    const pendingNonce = await readPendingNonce();
+    const pendingNonce = await retryRpcAvailability(
+      async () => {
+        const observed = await readPendingNonce();
+        return lastSubmittedNonce === undefined || observed > lastSubmittedNonce ? observed : undefined;
+      },
+      {
+        attempts: options.attempts,
+        wait: options.wait,
+        onRetry: (attempt) => {
+          if (lastSubmittedNonce === undefined) return;
+          if (options.onStaleNonce) options.onStaleNonce(lastSubmittedNonce, attempt);
+          else {
+            console.log(
+              `Pending nonce has not advanced beyond ${lastSubmittedNonce}; waiting for RPC propagation (attempt ${attempt}).`,
+            );
+          }
+        },
+        unavailableMessage:
+          lastSubmittedNonce === undefined
+            ? "Pending nonce remained unavailable after the bounded retry window"
+            : `Pending nonce did not advance beyond ${lastSubmittedNonce} after the bounded retry window`,
+      },
+    );
     await executeBoundary(boundary, ownershipBoundaryArguments(boundary, pendingNonce));
+    lastSubmittedNonce = pendingNonce;
   }
 }
 
