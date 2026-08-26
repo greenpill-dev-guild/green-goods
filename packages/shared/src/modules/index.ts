@@ -37,7 +37,6 @@ export {
   trackAuthWalletConnectSuccess,
   trackGardenJoinAlreadyMember,
   trackGardenJoinFailed,
-  // Garden join events
   trackGardenJoinStarted,
   trackGardenJoinSuccess,
   trackWorkApprovalFailed,
@@ -55,6 +54,7 @@ export {
   trackWorkWalletRequestFailed,
   trackWorkWalletRequestStarted,
 } from "./app/analytics-events";
+export * from "./app/harvestDistributionAnalytics";
 // ============================================================================
 // APP / ERROR TRACKING
 // ============================================================================

@@ -2,7 +2,7 @@
  * PositionCard Vault Component Tests
  *
  * Tests the vault position card that displays deposit stats,
- * yield info, and steward management actions (harvest, emergency pause).
+ * yield info, and steward management actions (harvest/distribute, emergency pause).
  */
 
 import { screen } from "@testing-library/react";
@@ -11,11 +11,14 @@ import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders as render } from "../test-utils";
 
-const mockHarvestMutate = vi.fn();
+const mockHarvestDistributionMutate = vi.fn();
 const mockPauseMutate = vi.fn();
 const mockEnableAutoAllocateMutate = vi.fn();
 const mockUseVaultPreview = vi.fn().mockReturnValue({ preview: null });
 const mockUseReadContracts = vi.fn().mockReturnValue({ data: undefined, refetch: vi.fn() });
+const mockYieldRefetch = vi.fn();
+let mockYieldStatus: Record<string, unknown>;
+let mockHarvestDistribution: Record<string, unknown>;
 
 vi.mock("wagmi", () => ({
   useReadContracts: (...args: unknown[]) => mockUseReadContracts(...args),
@@ -33,8 +36,10 @@ vi.mock("@green-goods/shared/hooks/vault/useEnableAutoAllocate", () => ({
   useEnableAutoAllocate: () => ({ mutate: mockEnableAutoAllocateMutate, isPending: false }),
 }));
 
-vi.mock("@green-goods/shared/hooks/vault/useHarvest", () => ({
-  useHarvest: () => ({ mutate: mockHarvestMutate, isPending: false }),
+vi.mock("@green-goods/shared/hooks", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/hooks")>()),
+  useHarvestDistribution: () => mockHarvestDistribution,
+  useYieldStatus: () => mockYieldStatus,
 }));
 
 vi.mock("@green-goods/shared/hooks/vault/useVaultPreview", () => ({
@@ -92,6 +97,36 @@ describe("PositionCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseVaultPreview.mockReturnValue({ preview: null });
+    mockYieldStatus = {
+      status: "empty",
+      registeredShares: 0n,
+      registeredShareAssets: 0n,
+      pendingYield: 0n,
+      totalAvailable: 0n,
+      threshold: 7n * 10n ** 18n,
+      escrowedFractions: 0n,
+      isVaultRegistered: true,
+      splitConfig: { cookieJarBps: 4865, fractionsBps: 4865, juiceboxBps: 270 },
+      destination: {
+        address: "0x4444444444444444444444444444444444444444",
+        kind: "cookie_jar",
+      },
+      estimatedDistribution: {
+        cookieJarAmount: 0n,
+        fractionsAmount: 0n,
+        treasuryAmount: 0n,
+        totalAmount: 0n,
+      },
+      isLoading: false,
+      isError: false,
+      refetch: mockYieldRefetch,
+    };
+    mockHarvestDistribution = {
+      mutate: mockHarvestDistributionMutate,
+      isPending: false,
+      data: undefined,
+      stage: "idle",
+    };
   });
 
   describe("rendering", () => {
@@ -169,18 +204,25 @@ describe("PositionCard", () => {
     it("does not show management buttons when canManage is false", () => {
       render(createElement(PositionCard, defaultProps));
 
-      expect(screen.queryByText("Harvest")).not.toBeInTheDocument();
+      expect(screen.queryByText("Harvest & distribute")).not.toBeInTheDocument();
+      expect(screen.queryByText("Distribute yield")).not.toBeInTheDocument();
       expect(screen.queryByText("Emergency pause")).not.toBeInTheDocument();
     });
 
-    it("shows harvest and emergency pause buttons when canManage is true", () => {
+    it("shows harvest-and-distribute and emergency pause actions for current yield", () => {
+      mockUseVaultPreview.mockReturnValue({
+        preview: { maxDeposit: 1000n, totalAssets: 2_000_000_000_000_000_000n },
+      });
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
-      expect(screen.getByText("Harvest")).toBeInTheDocument();
+      expect(screen.getByText("Harvest & distribute")).toBeInTheDocument();
       expect(screen.getByText("Emergency pause")).toBeInTheDocument();
     });
 
-    it("calls harvest mutation when harvest clicked", async () => {
+    it("opens a destination-aware confirmation before starting the workflow", async () => {
+      mockUseVaultPreview.mockReturnValue({
+        preview: { maxDeposit: 1000n, totalAssets: 2_000_000_000_000_000_000n },
+      });
       const user = userEvent.setup();
 
       render(
@@ -190,11 +232,130 @@ describe("PositionCard", () => {
         })
       );
 
-      await user.click(screen.getByText("Harvest"));
-      expect(mockHarvestMutate).toHaveBeenCalledWith({
-        gardenAddress: defaultProps.gardenAddress,
-        assetAddress: mockVault.asset,
+      await user.click(screen.getByText("Harvest & distribute"));
+
+      expect(screen.getByText("Harvest and distribute yield")).toBeInTheDocument();
+      expect(screen.getByText(/Cookie Jar.*0x4444/i)).toBeInTheDocument();
+      expect(screen.getByText(/two wallet confirmations/i)).toBeInTheDocument();
+      expect(mockHarvestDistributionMutate).not.toHaveBeenCalled();
+
+      const confirmButtons = screen.getAllByText("Harvest & distribute");
+      await user.click(confirmButtons[confirmButtons.length - 1]);
+      expect(mockHarvestDistributionMutate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          gardenAddress: defaultProps.gardenAddress,
+          assetAddress: mockVault.asset,
+          vaultAddress: mockVault.vaultAddress,
+          assetSymbol: "USDC",
+          harvestFirst: true,
+        }),
+        expect.objectContaining({ onSettled: expect.any(Function) })
+      );
+    });
+
+    it("opens the harvest confirmation from the keyboard", async () => {
+      mockUseVaultPreview.mockReturnValue({
+        preview: { maxDeposit: 1000n, totalAssets: 2_000_000_000_000_000_000n },
       });
+      const user = userEvent.setup();
+
+      render(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      const action = screen.getByRole("button", { name: "Harvest & distribute" });
+      action.focus();
+      await user.keyboard("{Enter}");
+
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      expect(screen.getByText("Harvest and distribute yield")).toBeInTheDocument();
+    });
+
+    it("offers distribution without harvesting when registered yield is ready", () => {
+      mockYieldStatus = {
+        ...mockYieldStatus,
+        status: "ready",
+        totalAvailable: 10n * 10n ** 18n,
+        estimatedDistribution: {
+          cookieJarAmount: 4_865_000_000_000_000_000n,
+          fractionsAmount: 4_865_000_000_000_000_000n,
+          treasuryAmount: 270_000_000_000_000_000n,
+          totalAmount: 10n * 10n ** 18n,
+        },
+      };
+
+      render(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      expect(screen.getByText("Distribute yield")).toBeInTheDocument();
+      expect(screen.queryByText("Harvest & distribute")).not.toBeInTheDocument();
+    });
+
+    it("shows below-threshold yield as waiting without an enabled distribution action", () => {
+      mockYieldStatus = {
+        ...mockYieldStatus,
+        status: "waiting",
+        totalAvailable: 2n * 10n ** 18n,
+      };
+
+      render(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      expect(screen.getByText(/2 USDC is waiting/i)).toBeInTheDocument();
+      expect(screen.getByText(/7 USDC minimum/i)).toBeInTheDocument();
+      expect(screen.queryByText("Distribute yield")).not.toBeInTheDocument();
+    });
+
+    it("shows partial success with a split-only retry", async () => {
+      mockHarvestDistribution = {
+        ...mockHarvestDistribution,
+        data: { status: "distribution_pending", harvested: true, errorCategory: "blockchain" },
+        stage: "distribution_pending",
+      };
+      const user = userEvent.setup();
+
+      render(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      expect(
+        screen.getByText(/Harvest confirmed, but distribution is still pending/i)
+      ).toBeInTheDocument();
+      await user.click(screen.getByText("Retry distribution"));
+      expect(mockHarvestDistributionMutate).toHaveBeenCalledWith(
+        expect.objectContaining({ harvestFirst: false }),
+        expect.objectContaining({ onSettled: expect.any(Function) })
+      );
+    });
+
+    it("explains when a Safe harvest is submitted but not yet confirmed", () => {
+      mockHarvestDistribution = {
+        ...mockHarvestDistribution,
+        data: { status: "harvest_submitted", hash: "safe-proposal-123" },
+        stage: "submitted",
+      };
+
+      render(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      expect(screen.getByText(/Harvest was submitted for execution/i)).toBeInTheDocument();
+      expect(screen.queryByText("Retry distribution")).not.toBeInTheDocument();
+    });
+
+    it("reports exact confirmed amounts from the distribution event", () => {
+      mockHarvestDistribution = {
+        ...mockHarvestDistribution,
+        data: {
+          status: "distributed",
+          hash: `0x${"a".repeat(64)}`,
+          amounts: {
+            cookieJarAmount: 4n * 10n ** 18n,
+            fractionsAmount: 4n * 10n ** 18n,
+            treasuryAmount: 2n * 10n ** 18n,
+            totalAmount: 10n * 10n ** 18n,
+          },
+        },
+        stage: "complete",
+      };
+
+      render(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      expect(screen.getByText(/4 USDC reached the Cookie Jar/i)).toBeInTheDocument();
+      expect(screen.getByText(/4 USDC went to hypercert funding/i)).toBeInTheDocument();
+      expect(screen.getByText(/2 USDC went to the protocol treasury/i)).toBeInTheDocument();
     });
   });
 

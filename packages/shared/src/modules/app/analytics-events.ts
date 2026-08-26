@@ -19,7 +19,7 @@ import { track } from "./posthog";
 // TRACKER FACTORY
 // ============================================================================
 
-type AuthMode = "passkey" | "wallet" | "embedded" | null;
+export type AuthMode = "passkey" | "wallet" | "embedded" | null;
 type MemberType = GardenRole;
 export type AuthPasskeySource = "server" | "local_cache" | "restore" | "unknown";
 export type AuthPasskeyOutcome = "started" | "success" | "failed";
@@ -50,7 +50,7 @@ function toSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
 /**
  * Creates a typed tracking function that automatically converts keys to snake_case
  */
-function createTracker<T extends Record<string, unknown>>(
+export function createTracker<T extends Record<string, unknown>>(
   eventName: string,
   options?: { includeSessionId?: boolean }
 ) {
@@ -128,6 +128,11 @@ export const ANALYTICS_EVENTS = {
   ADMIN_ACTION_CREATE_SUCCESS: "admin_action_create_success",
   ADMIN_ACTION_CREATE_FAILED: "admin_action_create_failed",
   ADMIN_ACTION_UPDATE_SUCCESS: "admin_action_update_success",
+
+  // Admin: Harvest distribution
+  ADMIN_HARVEST_DISTRIBUTION_STARTED: "admin_harvest_distribution_started",
+  ADMIN_HARVEST_DISTRIBUTION_HARVEST: "admin_harvest_distribution_harvest",
+  ADMIN_HARVEST_DISTRIBUTION_OUTCOME: "admin_harvest_distribution_outcome",
 } as const;
 
 // ============================================================================
