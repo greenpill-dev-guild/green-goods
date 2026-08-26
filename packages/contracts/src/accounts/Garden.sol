@@ -11,7 +11,9 @@ import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
 import { IGardensModule } from "../interfaces/IGardensModule.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
+import { IKarmaSyncObserver } from "../interfaces/IKarmaSyncObserver.sol";
 import { IRegistryCommunity } from "../interfaces/IGardensV2.sol";
+import { GardenKarmaLib } from "../lib/GardenKarma.sol";
 import { NotGardenOperator } from "../CommonErrors.sol";
 
 error NotGardenOwner();
@@ -21,6 +23,7 @@ error AlreadyGardener();
 error GardenFull();
 error NameTooLong();
 error HatsModuleNotAvailable();
+error NotKarmaGAPModule(address caller);
 
 /// @notice Minimal interface to fetch module addresses from GardenToken
 interface IGardenTokenModules {
@@ -32,7 +35,7 @@ interface IGardenTokenModules {
 /// @title GardenAccount Contract
 /// @notice Manages garden metadata and role checks for Garden accounts
 /// @dev Delegates access control to HatsModule.
-contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessControl, IGardenAccount {
+contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessControl, IGardenAccount, IKarmaSyncObserver {
     using SafeERC20 for IERC20;
     /// @notice Emitted when the garden name is updated.
     /// @param updater The address of the entity that updated the name.
@@ -183,24 +186,28 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
         if (bytes(_name).length > MAX_NAME_LENGTH) revert NameTooLong();
         name = _name;
         emit NameUpdated(_msgSender(), _name);
+        _syncKarmaDetailsBestEffort();
     }
 
     /// @notice Updates the description of the garden
     function updateDescription(string memory _description) external onlyOperator {
         description = _description;
         emit DescriptionUpdated(_msgSender(), _description);
+        _syncKarmaDetailsBestEffort();
     }
 
     /// @notice Updates the location of the garden
     function updateLocation(string memory _location) external onlyOperator {
         location = _location;
         emit LocationUpdated(_msgSender(), _location);
+        _syncKarmaDetailsBestEffort();
     }
 
     /// @notice Updates the banner image CID of the garden
     function updateBannerImage(string memory _bannerImage) external onlyOperator {
         bannerImage = _bannerImage;
         emit BannerImageUpdated(_msgSender(), _bannerImage);
+        _syncKarmaDetailsBestEffort();
     }
 
     /// @notice Updates the metadata IPFS CID of the garden
@@ -299,6 +306,18 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
         return _getGAPProjectUID();
     }
 
+    /// @inheritdoc IGardenAccount
+    function karmaSyncVersion() external pure returns (uint32) {
+        return 1;
+    }
+
+    /// @inheritdoc IGardenAccount
+    function syncKarmaProjectAccess(address account) external returns (bool roleActive, bool changed) {
+        IKarmaGAPModule module = _getKarmaGAPModule();
+        if (msg.sender != address(module) || address(module) == address(0)) revert NotKarmaGAPModule(msg.sender);
+        return GardenKarmaLib.syncProjectAccess(module, _getHatsModule(), account);
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Internal Helpers
     // ═══════════════════════════════════════════════════════════════════════════
@@ -327,6 +346,15 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
             return module;
         } catch {
             return IKarmaGAPModule(address(0));
+        }
+    }
+
+    function _syncKarmaDetailsBestEffort() internal {
+        IKarmaGAPModule module = _getKarmaGAPModule();
+        if (!GardenKarmaLib.reconcileDetails(module)) {
+            emit KarmaHookFailed(
+                address(this), address(0), IKarmaGAPModule.KarmaSyncOperation.Details, "module_call_reverted"
+            );
         }
     }
 

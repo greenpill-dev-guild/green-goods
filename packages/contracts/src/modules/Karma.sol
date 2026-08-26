@@ -3,12 +3,17 @@ pragma solidity ^0.8.25;
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
 
 import { KarmaLib } from "../lib/Karma.sol";
-import { JsonBuilder } from "../lib/JsonBuilder.sol";
-import { IGap } from "../interfaces/IKarma.sol";
+import { KarmaAccessLib } from "../lib/KarmaAccess.sol";
+import { KarmaProjectsLib } from "../lib/KarmaProjects.sol";
+import { KarmaUpdatesLib } from "../lib/KarmaUpdates.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
+import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
+
+interface IGardenTokenKarmaView {
+    function isGardenAccount(address garden) external view returns (bool);
+}
 
 /// @title KarmaGAPModule
 /// @notice Manages Karma GAP projects for Green Goods gardens
@@ -45,8 +50,23 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
     /// @notice Garden address → GAP Project UID
     mapping(address garden => bytes32 projectUID) public gardenProjects;
 
+    /// @notice Last successfully attested canonical ProjectDetails payload hash.
+    mapping(address garden => bytes32 detailsHash) public gardenDetailsHashes;
+
+    /// @notice Historical MemberOf UID created for each Garden/account pair.
+    mapping(address garden => mapping(address account => bytes32 memberUID)) public gardenMemberOfUIDs;
+
+    /// @notice Project Update UID for each original Work attestation.
+    mapping(bytes32 workUID => bytes32 updateUID) public projectUpdateUIDs;
+
+    /// @notice Project generation associated with each historical MemberOf UID.
+    mapping(address garden => mapping(address account => bytes32 projectUID)) public gardenMemberOfProjectUIDs;
+
+    /// @notice Per-operation guard for external Karma and ProjectResolver calls.
+    mapping(bytes32 key => bool active) private _syncInFlight;
+
     /// @notice Storage gap for future upgrades
-    uint256[45] private __gap;
+    uint256[40] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constructor & Initializer
@@ -149,7 +169,7 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
     /// @inheritdoc IKarmaGAPModule
     function createProject(
         address garden,
-        address operator,
+        address, /*operator*/
         string calldata name,
         string calldata description,
         string calldata location,
@@ -159,111 +179,71 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         onlyGardenToken
         returns (bytes32 projectUID)
     {
-        // Skip if GAP not supported on this chain
-        if (!KarmaLib.isSupported()) {
-            emit GAPOperationFailed(garden, "createProject", "Chain not supported");
-            return bytes32(0);
-        }
-
-        // Check if project already exists
-        if (gardenProjects[garden] != bytes32(0)) {
-            revert ProjectAlreadyExists(garden);
-        }
-
-        IGap gap = IGap(KarmaLib.getGapContract());
-
-        // 1. Create Project attestation
-        {
-            AttestationRequestData memory reqData = AttestationRequestData({
-                recipient: garden, expirationTime: 0, revocable: true, refUID: bytes32(0), data: abi.encode(true), value: 0
-            });
-
-            AttestationRequest memory req = AttestationRequest({ schema: KarmaLib.getProjectSchemaUID(), data: reqData });
-
-            try gap.attest(req) returns (bytes32 uid) {
-                projectUID = uid;
-            } catch {
-                emit GAPOperationFailed(garden, "createProject", "Project attestation failed");
-                return bytes32(0);
-            }
-        }
-
-        // 2. Create MemberOf attestation for operator
-        {
-            AttestationRequestData memory reqData = AttestationRequestData({
-                recipient: operator,
-                expirationTime: 0,
-                revocable: true,
-                refUID: projectUID,
-                data: abi.encode(true),
-                value: 0
-            });
-
-            AttestationRequest memory req = AttestationRequest({ schema: KarmaLib.getMemberOfSchemaUID(), data: reqData });
-
-            try gap.attest(req) {
-            // Success - continue to details
-            }
-            catch {
-                emit GAPOperationFailed(garden, "createProject", "MemberOf attestation failed");
-                return bytes32(0);
-            }
-        }
-
-        // 3. Create Details attestation
-        {
-            string memory detailsJson = JsonBuilder.buildProjectDetails(name, description, location, bannerImage);
-
-            AttestationRequestData memory reqData = AttestationRequestData({
-                recipient: garden,
-                expirationTime: 0,
-                revocable: true,
-                refUID: projectUID,
-                data: abi.encode(detailsJson),
-                value: 0
-            });
-
-            AttestationRequest memory req = AttestationRequest({ schema: KarmaLib.getDetailsSchemaUID(), data: reqData });
-
-            try gap.attest(req) {
-            // Success - finalize below
-            }
-            catch {
-                emit GAPOperationFailed(garden, "createProject", "Details attestation failed");
-                return bytes32(0);
-            }
-        }
-
-        gardenProjects[garden] = projectUID;
-        emit GAPProjectCreated(projectUID, garden, name);
-
-        return projectUID;
+        projectUID = _reconcileProject(garden, name, "", description, location, bannerImage);
     }
 
     /// @inheritdoc IKarmaGAPModule
     function addProjectAdmin(address garden, address admin) external onlyAuthorized {
-        bytes32 projectUID = gardenProjects[garden];
-        if (projectUID == bytes32(0)) return; // No project, skip silently
-        if (!KarmaLib.isSupported()) return;
-
-        try IGap(KarmaLib.getGapContract()).addProjectAdmin(projectUID, admin) {
-            emit GAPProjectAdminAdded(projectUID, admin);
-        } catch {
-            emit GAPOperationFailed(garden, "addProjectAdmin", "Failed to add admin");
-        }
+        _reconcileProjectAccess(garden, admin);
     }
 
     /// @inheritdoc IKarmaGAPModule
     function removeProjectAdmin(address garden, address admin) external onlyAuthorized {
-        bytes32 projectUID = gardenProjects[garden];
-        if (projectUID == bytes32(0)) return; // No project, skip silently
-        if (!KarmaLib.isSupported()) return;
+        _reconcileProjectAccess(garden, admin);
+    }
 
-        try IGap(KarmaLib.getGapContract()).removeProjectAdmin(projectUID, admin) {
-            emit GAPProjectAdminRemoved(projectUID, admin);
-        } catch {
-            emit GAPOperationFailed(garden, "removeProjectAdmin", "Failed to remove admin");
+    /// @inheritdoc IKarmaGAPModule
+    function reconcileProject(address garden) external returns (bytes32 projectUID) {
+        if (!_isGarden(garden)) {
+            emit GAPOperationFailed(garden, "reconcileProject", "Invalid garden");
+            _record(
+                garden,
+                bytes32(0),
+                address(0),
+                KarmaSyncOperation.Project,
+                KarmaSyncOutcome.Failed,
+                bytes32(0),
+                bytes32(0),
+                "invalid_garden"
+            );
+            return bytes32(0);
         }
+        IGardenAccount account = IGardenAccount(garden);
+        projectUID = _reconcileProject(
+            garden, account.name(), account.slug(), account.description(), account.location(), account.bannerImage()
+        );
+    }
+
+    /// @inheritdoc IKarmaGAPModule
+    function reconcileProjectAccess(address garden, address account) external returns (bool roleActive, bool changed) {
+        if (!_isGarden(garden)) {
+            emit GAPOperationFailed(garden, "reconcileProjectAccess", "Invalid garden");
+            KarmaAccessLib.recordPrerequisiteFailure(garden, gardenProjects[garden], account, "invalid_garden");
+            return (false, false);
+        }
+        return _reconcileProjectAccess(garden, account);
+    }
+
+    function _reconcileProject(
+        address garden,
+        string memory name,
+        string memory slug,
+        string memory description,
+        string memory location,
+        string memory bannerImage
+    )
+        internal
+        returns (bytes32 projectUID)
+    {
+        return KarmaProjectsLib.reconcile(
+            gardenProjects, gardenDetailsHashes, _syncInFlight, garden, name, slug, description, location, bannerImage
+        );
+    }
+
+    function _reconcileProjectAccess(address garden, address account) internal returns (bool roleActive, bool changed) {
+        return KarmaAccessLib.reconcile(
+            gardenProjects, gardenMemberOfUIDs, gardenMemberOfProjectUIDs, _syncInFlight, garden, account
+        );
     }
 
     /// @notice Emitted when a GAP project mapping is reset
@@ -276,6 +256,7 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         bytes32 prev = gardenProjects[garden];
         if (prev == bytes32(0)) return; // No-op if no project
         delete gardenProjects[garden];
+        delete gardenDetailsHashes[garden];
         emit GAPProjectReset(garden, prev);
     }
 
@@ -297,37 +278,47 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         onlyWorkApprovalResolver
         returns (bytes32 impactUID)
     {
-        bytes32 projectUID = gardenProjects[garden];
-        if (projectUID == bytes32(0)) {
-            emit GAPOperationFailed(garden, "createImpact", "No project");
-            return bytes32(0);
-        }
-        if (!KarmaLib.isSupported()) {
-            emit GAPOperationFailed(garden, "createImpact", "Chain not supported");
-            return bytes32(0);
-        }
+        return _createProjectUpdate(garden, workTitle, impactDescription, proofIPFS, workUID, metadataCID);
+    }
 
-        string memory impactJson =
-            JsonBuilder.buildImpact(workTitle, impactDescription, proofIPFS, workUID, garden, block.timestamp, metadataCID);
+    /// @inheritdoc IKarmaGAPModule
+    function createProjectUpdate(
+        address garden,
+        string calldata workTitle,
+        string calldata updateText,
+        string calldata proofReference,
+        bytes32 workUID,
+        string calldata metadataReference
+    )
+        external
+        onlyWorkApprovalResolver
+        returns (bytes32 updateUID)
+    {
+        return _createProjectUpdate(garden, workTitle, updateText, proofReference, workUID, metadataReference);
+    }
 
-        AttestationRequestData memory reqData = AttestationRequestData({
-            recipient: garden,
-            expirationTime: 0,
-            revocable: false,
-            refUID: projectUID,
-            data: abi.encode(impactJson),
-            value: 0
-        });
-
-        AttestationRequest memory req = AttestationRequest({ schema: KarmaLib.getDetailsSchemaUID(), data: reqData });
-
-        try IGap(KarmaLib.getGapContract()).attest(req) returns (bytes32 uid) {
-            impactUID = uid;
-            emit GAPImpactCreated(projectUID, impactUID, workUID);
-        } catch {
-            emit GAPOperationFailed(garden, "createImpact", "Attestation failed");
-            return bytes32(0);
-        }
+    function _createProjectUpdate(
+        address garden,
+        string calldata workTitle,
+        string calldata updateText,
+        string calldata proofReference,
+        bytes32 workUID,
+        string calldata metadataReference
+    )
+        internal
+        returns (bytes32 updateUID)
+    {
+        return KarmaUpdatesLib.createProjectUpdate(
+            gardenProjects,
+            projectUpdateUIDs,
+            _syncInFlight,
+            garden,
+            workTitle,
+            updateText,
+            proofReference,
+            workUID,
+            metadataReference
+        );
     }
 
     /// @inheritdoc IKarmaGAPModule
@@ -345,38 +336,18 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         onlyAssessmentResolver
         returns (bytes32 milestoneUID)
     {
-        bytes32 projectUID = gardenProjects[garden];
-        if (projectUID == bytes32(0)) {
-            emit GAPOperationFailed(garden, "createMilestone", "No project");
-            return bytes32(0);
-        }
-        if (!KarmaLib.isSupported()) {
-            emit GAPOperationFailed(garden, "createMilestone", "Chain not supported");
-            return bytes32(0);
-        }
-
-        string memory milestoneJson = JsonBuilder.buildMilestone(
-            milestoneTitle, milestoneDescription, startDate, endDate, domain, location, assessmentConfigCID
+        return KarmaUpdatesLib.createMilestone(
+            gardenProjects,
+            _syncInFlight,
+            garden,
+            milestoneTitle,
+            milestoneDescription,
+            startDate,
+            endDate,
+            domain,
+            location,
+            assessmentConfigCID
         );
-
-        AttestationRequestData memory reqData = AttestationRequestData({
-            recipient: garden,
-            expirationTime: 0,
-            revocable: false,
-            refUID: projectUID,
-            data: abi.encode(milestoneJson),
-            value: 0
-        });
-
-        AttestationRequest memory req = AttestationRequest({ schema: KarmaLib.getDetailsSchemaUID(), data: reqData });
-
-        try IGap(KarmaLib.getGapContract()).attest(req) returns (bytes32 uid) {
-            milestoneUID = uid;
-            emit GAPMilestoneCreated(projectUID, milestoneUID, milestoneTitle);
-        } catch {
-            emit GAPOperationFailed(garden, "createMilestone", "Attestation failed");
-            return bytes32(0);
-        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -391,6 +362,30 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
     /// @inheritdoc IKarmaGAPModule
     function isSupported() external view returns (bool) {
         return KarmaLib.isSupported();
+    }
+
+    function _isGarden(address garden) internal view returns (bool) {
+        if (gardenToken.code.length == 0 || garden.code.length == 0) return false;
+        try IGardenTokenKarmaView(gardenToken).isGardenAccount(garden) returns (bool valid) {
+            return valid;
+        } catch {
+            return false;
+        }
+    }
+
+    function _record(
+        address garden,
+        bytes32 projectUID,
+        address account,
+        KarmaSyncOperation operation,
+        KarmaSyncOutcome outcome,
+        bytes32 sourceUID,
+        bytes32 resultUID,
+        string memory reason
+    )
+        internal
+    {
+        emit KarmaSyncRecorded(garden, projectUID, account, operation, outcome, sourceUID, resultUID, reason);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

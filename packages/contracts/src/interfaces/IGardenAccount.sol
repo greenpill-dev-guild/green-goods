@@ -38,4 +38,16 @@ interface IGardenAccount {
     /// @notice Returns the Karma GAP project UID for this garden
     /// @dev Alias for getGAPProjectUID() - storage variable direct access
     function gapProjectUID() external view returns (bytes32);
+
+    /// @notice Returns the Karma access-sync implementation version.
+    function karmaSyncVersion() external pure returns (uint32);
+
+    /// @notice Reconciles one account's Karma project admin state from live Hats roles.
+    /// @dev Callable only by the Karma module configured on the bound GardenToken.
+    function syncKarmaProjectAccess(address account) external returns (bool roleActive, bool changed);
+
+    function slug() external view returns (string memory);
+    function description() external view returns (string memory);
+    function location() external view returns (string memory);
+    function bannerImage() external view returns (string memory);
 }

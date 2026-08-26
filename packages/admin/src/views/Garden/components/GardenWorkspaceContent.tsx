@@ -119,6 +119,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           assessmentCount30d={workspace.assessments.length}
           gardenerCount={workspace.garden.gardeners.length}
           treasuryBalance={workspace.treasuryBalance}
+          karmaIntegration={workspace.karmaIntegration}
         />
       ) : null}
 

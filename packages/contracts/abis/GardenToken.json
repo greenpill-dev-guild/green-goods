@@ -316,6 +316,25 @@
   },
   {
     "type": "function",
+    "name": "isGardenAccount",
+    "inputs": [
+      {
+        "name": "gardenAccount",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "karmaGAPModule",
     "inputs": [],
     "outputs": [
@@ -1224,6 +1243,37 @@
         "type": "address",
         "indexed": true,
         "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "KarmaHookFailed",
+    "inputs": [
+      {
+        "name": "garden",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "operation",
+        "type": "uint8",
+        "indexed": true,
+        "internalType": "enum IKarmaGAPModule.KarmaSyncOperation"
+      },
+      {
+        "name": "reason",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
       }
     ],
     "anonymous": false

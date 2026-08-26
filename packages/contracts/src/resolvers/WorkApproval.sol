@@ -8,8 +8,8 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 
 import { WorkApprovalSchema, WorkSchema } from "../Schemas.sol";
 import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
-import { IERC6551Account } from "../interfaces/IERC6551Account.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
+import { IKarmaSyncObserver } from "../interfaces/IKarmaSyncObserver.sol";
 import { ICommitmentPoolingModule } from "../interfaces/ICommitmentPoolingModule.sol";
 import { ActionRegistry } from "../registries/Action.sol";
 import { NotInActionRegistry } from "./Work.sol";
@@ -27,7 +27,7 @@ error SelfAttestation();
 /// @title WorkApprovalResolver
 /// @notice A schema resolver for the Actions event schema
 /// @dev This contract is upgradable using the UUPS pattern and requires initialization.
-contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
+contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable, IKarmaSyncObserver {
     address public immutable ACTION_REGISTRY;
 
     /// @notice The Karma GAP module for impact creation
@@ -203,9 +203,17 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
             revert InvalidVerificationMethod();
         }
 
-        // GAP INTEGRATION: Create project impact if approved
-        if (schema.approved && address(karmaGAPModule) != address(0)) {
-            _createGAPProjectImpact(schema, workAttestation, workSchema, action.title);
+        if (schema.approved) {
+            if (address(karmaGAPModule) == address(0)) {
+                emit KarmaHookFailed(
+                    workAttestation.recipient,
+                    address(0),
+                    IKarmaGAPModule.KarmaSyncOperation.ProjectUpdate,
+                    "module_unavailable"
+                );
+            } else {
+                _createGAPProjectImpact(schema, workAttestation, workSchema, action.title);
+            }
         }
 
         if (address(commitmentModule) != address(0)) {
@@ -260,17 +268,16 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         string memory impactDesc = bytes(workSchema.feedback).length > 0 ? workSchema.feedback : schema.feedback;
         string memory proof = workSchema.media.length > 0 ? workSchema.media[0] : "";
 
-        (,, uint256 tokenId) = IERC6551Account(workAttestation.recipient).token();
-
-        // SECURITY: Use try/catch to prevent GAP failures from reverting approval
-        // solhint-disable-next-line no-empty-blocks
-        try karmaGAPModule.createImpact(
-            workAttestation.recipient, tokenId, workTitle, impactDesc, proof, schema.workUID, workSchema.metadata
-        ) {
-        // Success - event emitted by module, no additional action needed
-        }
-            catch {
-            // Intentionally ignore failures - approval succeeds even if GAP integration fails
+        try karmaGAPModule.createProjectUpdate(
+            workAttestation.recipient, workTitle, impactDesc, proof, schema.workUID, workSchema.metadata
+        ) { }
+        catch {
+            emit KarmaHookFailed(
+                workAttestation.recipient,
+                address(0),
+                IKarmaGAPModule.KarmaSyncOperation.ProjectUpdate,
+                "module_call_reverted"
+            );
         }
     }
 

@@ -12,7 +12,7 @@ error InvalidDomainValue(uint8 domain);
 ///
 ///      JSON Schemas:
 ///      - Project Details: { title, description, locationOfImpact, imageURL, slug, type }
-///      - Impact Update:   { title, text, startDate, endDate, deliverables[], links[], type }
+///      - Project Update:  { title, text, startsAt, endsAt, deliverables[], type }
 ///      - Milestone:       { title, text, startDate, endDate, domain, location, assessmentConfigCID, type }
 library JsonBuilder {
     /// @notice Builds project details JSON for Karma GAP
@@ -22,16 +22,18 @@ library JsonBuilder {
     /// @param bannerImage IPFS CID for banner image (empty string if none)
     /// @return JSON string conforming to GAP project-details schema
     function buildProjectDetails(
-        string calldata name,
-        string calldata description,
-        string calldata location,
-        string calldata bannerImage
+        string memory name,
+        string memory slug,
+        string memory description,
+        string memory location,
+        string memory bannerImage
     )
         internal
         pure
         returns (string memory)
     {
-        string memory imageURL = StringUtils.normalizeIPFSUrl(bannerImage);
+        string memory imageURL = StringUtils.toHTTPURL(bannerImage);
+        string memory canonicalSlug = bytes(slug).length == 0 ? StringUtils.generateSlug(name) : slug;
 
         return string(
             abi.encodePacked(
@@ -44,13 +46,27 @@ library JsonBuilder {
                 "\",\"imageURL\":\"",
                 StringUtils.escapeJSON(imageURL),
                 "\",\"slug\":\"",
-                StringUtils.escapeJSON(StringUtils.generateSlug(name)),
+                StringUtils.escapeJSON(canonicalSlug),
                 "\",\"type\":\"project-details\"}"
             )
         );
     }
 
-    /// @notice Builds impact JSON for work approval attestations
+    /// @notice Backward-compatible project-details builder that derives the slug from the name.
+    function buildProjectDetails(
+        string memory name,
+        string memory description,
+        string memory location,
+        string memory bannerImage
+    )
+        internal
+        pure
+        returns (string memory)
+    {
+        return buildProjectDetails(name, "", description, location, bannerImage);
+    }
+
+    /// @notice Backward-compatible wrapper for Project Update JSON.
     /// @param workTitle Title of the approved work
     /// @param impactDescription Description of the impact
     /// @param proofIPFS IPFS CID for proof media
@@ -60,56 +76,111 @@ library JsonBuilder {
     /// @param metadataCID IPFS CID for structured work metadata (domain-specific indicators)
     /// @return JSON string conforming to GAP project-update schema
     function buildImpact(
-        string calldata workTitle,
-        string calldata impactDescription,
-        string calldata proofIPFS,
+        string memory workTitle,
+        string memory impactDescription,
+        string memory proofIPFS,
         bytes32 workUID,
         address garden,
         uint256 timestamp,
-        string calldata metadataCID
+        string memory metadataCID
+    )
+        internal
+        view
+        returns (string memory)
+    {
+        return buildProjectUpdate(
+            workTitle, impactDescription, proofIPFS, workUID, garden, timestamp, metadataCID, block.chainid
+        );
+    }
+
+    /// @notice Builds a Karma-supported Project Update with browser-safe evidence links.
+    function buildProjectUpdate(
+        string memory workTitle,
+        string memory updateText,
+        string memory proofReference,
+        bytes32 workUID,
+        address garden,
+        uint256 timestamp,
+        string memory metadataReference,
+        uint256 chainId
     )
         internal
         pure
         returns (string memory)
     {
-        string memory isoDate = StringUtils.timestampToISO(timestamp);
-
-        // Part 1: title, text, dates
-        bytes memory part1 = abi.encodePacked(
-            "{\"title\":\"",
-            StringUtils.escapeJSON(workTitle),
-            "\",\"text\":\"",
-            StringUtils.escapeJSON(impactDescription),
-            "\",\"startDate\":\"",
-            isoDate,
-            "\",\"endDate\":\"",
-            isoDate
+        string memory greenGoodsURL = string(
+            abi.encodePacked(
+                "https://www.greengoods.app/home/0x",
+                StringUtils.addressToHexString(garden),
+                "/work/0x",
+                StringUtils.bytes32ToHexString(workUID)
+            )
+        );
+        string memory easURL = string(
+            abi.encodePacked(_easScanBaseURL(chainId), "/attestation/view/0x", StringUtils.bytes32ToHexString(workUID))
+        );
+        string memory text = string(
+            abi.encodePacked(
+                updateText,
+                "\n\n[View in Green Goods](",
+                greenGoodsURL,
+                ")\n\n[View original attestation on EAS Scan](",
+                easURL,
+                ")"
+            )
         );
 
-        // Part 2: deliverables
-        bytes memory part2 = abi.encodePacked(
-            "\",\"deliverables\":[{\"name\":\"Work Evidence\",\"proof\":\"ipfs://",
-            StringUtils.escapeJSON(proofIPFS),
-            "\",\"description\":\"",
-            StringUtils.escapeJSON(impactDescription),
-            "\"}]"
+        return string(
+            abi.encodePacked(
+                "{\"title\":\"",
+                StringUtils.escapeJSON(workTitle),
+                "\",\"text\":\"",
+                StringUtils.escapeJSON(text),
+                "\",\"startsAt\":",
+                StringUtils.uint2str(timestamp),
+                ",\"endsAt\":",
+                StringUtils.uint2str(timestamp),
+                ",\"deliverables\":[",
+                _buildDeliverables(updateText, proofReference, metadataReference),
+                "],\"type\":\"project-update\"}"
+            )
         );
+    }
 
-        // Part 3: metadataCID (conditional)
-        bytes memory metadataPart = bytes(metadataCID).length > 0
-            ? abi.encodePacked(",\"metadataCID\":\"ipfs://", StringUtils.escapeJSON(metadataCID), "\"")
-            : bytes("");
+    function _buildDeliverables(
+        string memory updateText,
+        string memory proofReference,
+        string memory metadataReference
+    )
+        private
+        pure
+        returns (bytes memory)
+    {
+        bytes memory evidence = bytes(proofReference).length == 0
+            ? bytes("")
+            : abi.encodePacked(
+                "{\"name\":\"Work Evidence\",\"proof\":\"",
+                StringUtils.escapeJSON(StringUtils.toHTTPURL(proofReference)),
+                "\",\"description\":\"",
+                StringUtils.escapeJSON(updateText),
+                "\"}"
+            );
+        bytes memory metadata = bytes(metadataReference).length == 0
+            ? bytes("")
+            : abi.encodePacked(
+                evidence.length == 0 ? "" : ",",
+                "{\"name\":\"Work Metadata\",\"proof\":\"",
+                StringUtils.escapeJSON(StringUtils.toHTTPURL(metadataReference)),
+                "\",\"description\":\"Structured Green Goods Work metadata\"}"
+            );
+        return abi.encodePacked(evidence, metadata);
+    }
 
-        // Part 4: links
-        bytes memory part4 = abi.encodePacked(
-            ",\"links\":[{\"type\":\"other\",\"url\":\"https://www.greengoods.app/home/0x",
-            StringUtils.addressToHexString(garden),
-            "/work/0x",
-            StringUtils.bytes32ToHexString(workUID),
-            "\",\"label\":\"View in Green Goods\"}],\"type\":\"project-update\"}"
-        );
-
-        return string(abi.encodePacked(part1, part2, metadataPart, part4));
+    function _easScanBaseURL(uint256 chainId) private pure returns (string memory) {
+        if (chainId == 42_161) return "https://arbitrum.easscan.org";
+        if (chainId == 42_220) return "https://celo.easscan.org";
+        if (chainId == 11_155_111) return "https://sepolia.easscan.org";
+        return "https://easscan.org";
     }
 
     /// @notice Builds milestone JSON for assessment attestations

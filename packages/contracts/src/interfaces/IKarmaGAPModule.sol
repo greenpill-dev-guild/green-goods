@@ -5,6 +5,19 @@ pragma solidity ^0.8.25;
 /// @notice Interface for the Karma GAP Module that manages GAP projects for gardens
 /// @dev This module extracts GAP attestation logic from GardenAccount for modularity
 interface IKarmaGAPModule {
+    enum KarmaSyncOperation {
+        Project,
+        Details,
+        Membership,
+        Access,
+        ProjectUpdate
+    }
+
+    enum KarmaSyncOutcome {
+        Noop,
+        Succeeded,
+        Failed
+    }
     // ═══════════════════════════════════════════════════════════════════════════
     // Events
     // ═══════════════════════════════════════════════════════════════════════════
@@ -43,6 +56,18 @@ interface IKarmaGAPModule {
     /// @param reason The failure reason
     event GAPOperationFailed(address indexed garden, string operation, string reason);
 
+    /// @notice Records the final result of one Karma synchronization attempt.
+    event KarmaSyncRecorded(
+        address indexed garden,
+        bytes32 indexed projectUID,
+        address indexed account,
+        KarmaSyncOperation operation,
+        KarmaSyncOutcome outcome,
+        bytes32 sourceUID,
+        bytes32 resultUID,
+        string reason
+    );
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Errors
     // ═══════════════════════════════════════════════════════════════════════════
@@ -55,6 +80,7 @@ interface IKarmaGAPModule {
     error ProjectAlreadyExists(address garden);
     error ProjectNotFound(address garden);
     error GAPNotSupported();
+    error InvalidGarden(address garden);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Project Management
@@ -92,6 +118,12 @@ interface IKarmaGAPModule {
     /// @param admin The admin address to remove
     function removeProjectAdmin(address garden, address admin) external;
 
+    /// @notice Creates a missing project and reconciles changed public details.
+    function reconcileProject(address garden) external returns (bytes32 projectUID);
+
+    /// @notice Reconciles historical membership and current admin access for one account.
+    function reconcileProjectAccess(address garden, address account) external returns (bool roleActive, bool changed);
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Impact & Milestone Creation
     // ═══════════════════════════════════════════════════════════════════════════
@@ -117,6 +149,18 @@ interface IKarmaGAPModule {
     )
         external
         returns (bytes32 impactUID);
+
+    /// @notice Creates an idempotent Project Update for approved Work.
+    function createProjectUpdate(
+        address garden,
+        string calldata workTitle,
+        string calldata updateText,
+        string calldata proofReference,
+        bytes32 workUID,
+        string calldata metadataReference
+    )
+        external
+        returns (bytes32 updateUID);
 
     /// @notice Creates a GAP milestone for an assessment
     /// @dev Called by AssessmentResolver when assessment is created

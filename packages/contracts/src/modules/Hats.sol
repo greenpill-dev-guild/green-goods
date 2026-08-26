@@ -11,18 +11,20 @@ import { ICVSyncPowerFacet } from "../interfaces/ICVSyncPowerFacet.sol";
 import { IHats } from "../interfaces/IHats.sol";
 import { IHatsModuleFactory } from "../interfaces/IHatsModuleFactory.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
+import { IKarmaSyncObserver } from "../interfaces/IKarmaSyncObserver.sol";
 import { HatsLib } from "../lib/Hats.sol";
 import { ZeroAddress, ArrayLengthMismatch } from "../CommonErrors.sol";
 
 /// @title HatsModule
 /// @notice Adapts Hats Protocol for Green Goods access control
-/// @dev Implements IGardenAccessControl + IHatsModule
-///
-/// **Architecture:**
-/// - Each garden configures six hat IDs: owner, operator, evaluator, gardener, funder, community
-/// - Hat tree creation and role management are centralized here
-/// - Resolvers and UI call into this module for Hats-based permissions
-contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
+contract HatsModule is
+    IGardenAccessControl,
+    IHatsModule,
+    IKarmaSyncObserver,
+    OwnableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    UUPSUpgradeable
+{
     // ═══════════════════════════════════════════════════════════════════════════
     // Types
     // ═══════════════════════════════════════════════════════════════════════════
@@ -663,7 +665,6 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, Re
         }
 
         if (role == GardenRole.Steward) {
-            _syncProjectAdmin(garden, account, true);
             _grantSubRole(garden, account, GardenRole.Evaluator, "evaluator");
             _grantSubRole(garden, account, GardenRole.Gardener, "gardener");
         } else if (role == GardenRole.Owner) {
@@ -671,6 +672,7 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, Re
             // (Evaluator + Gardener) are handled recursively by _grantSubRole
             _grantSubRole(garden, account, GardenRole.Steward, "operator");
         }
+        if (role == GardenRole.Owner || role == GardenRole.Steward) _syncProjectAdmin(garden, account, true);
 
         // Best-effort conviction power sync on role grant
         // Sync fires post-mint so strategies see updated hat state
@@ -685,9 +687,7 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, Re
 
         try hats.mintHat(hatId, account) {
             emit RoleGranted(garden, account, role);
-            // Recursively grant sub-roles for Operator (Evaluator + Gardener + GAP sync)
             if (role == GardenRole.Steward) {
-                _syncProjectAdmin(garden, account, true);
                 _grantSubRole(garden, account, GardenRole.Gardener, "gardener");
             }
         } catch Error(string memory errorMsg) {
@@ -702,17 +702,12 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, Re
         if (!gardenHats[garden].configured) revert GardenNotConfigured(garden);
 
         uint256 hatId = _getHatId(garden, role);
-        // Only transfer if the account currently wears the hat.
-        // Hats Protocol reverts with AlreadyWearingHat if the recipient address already
-        // wears the hat (e.g., 0xdead from a previous revocation of the same hat type).
-        // We use a monotonic nonce to generate a unique burn address per revocation,
-        // ensuring each transfer targets a fresh address that never wears the hat.
         if (hats.isWearerOfHat(account, hatId)) {
             address burnAddr = address(uint160(uint256(keccak256(abi.encodePacked("burn", _revokeNonce++)))));
             hats.transferHat(hatId, account, burnAddr);
         }
         emit RoleRevoked(garden, account, role);
-        if (role == GardenRole.Steward) {
+        if (role == GardenRole.Owner || role == GardenRole.Steward) {
             _syncProjectAdmin(garden, account, false);
         }
         // Best-effort conviction power sync -- sync failure MUST NOT revert role revocation.
@@ -724,25 +719,23 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, Re
     }
 
     function _syncProjectAdmin(address garden, address account, bool add) internal {
-        if (address(karmaGAPModule) == address(0)) return;
+        if (address(karmaGAPModule) == address(0)) {
+            emit KarmaHookFailed(garden, account, IKarmaGAPModule.KarmaSyncOperation.Access, "module_unavailable");
+            return;
+        }
         if (add) {
-            // solhint-disable-next-line no-empty-blocks
-            try karmaGAPModule.addProjectAdmin(garden, account) { } catch { }
+            try karmaGAPModule.addProjectAdmin(garden, account) { }
+            catch {
+                emit KarmaHookFailed(garden, account, IKarmaGAPModule.KarmaSyncOperation.Access, "module_call_reverted");
+            }
         } else {
-            // solhint-disable-next-line no-empty-blocks
-            try karmaGAPModule.removeProjectAdmin(garden, account) { } catch { }
+            try karmaGAPModule.removeProjectAdmin(garden, account) { }
+            catch {
+                emit KarmaHookFailed(garden, account, IKarmaGAPModule.KarmaSyncOperation.Access, "module_call_reverted");
+            }
         }
     }
 
-    /// @notice Best-effort conviction power sync on role revocation
-    /// @dev Iterates configured strategies and calls syncPower via ICVSyncPowerFacet.
-    ///      Failures emit events but do NOT revert.
-    ///
-    ///      Architecture note: ICVSyncPowerFacet targets Gardens V2 diamond facets that
-    ///      maintain per-member voting power. HypercertSignalPool does NOT implement this
-    ///      interface — it uses lazy eligibility evaluation (isEligibleVoter checks Hats
-    ///      at read time). The sync infrastructure is built for future Gardens V2 integration
-    ///      where power registries require explicit sync on role changes.
     function _syncConvictionPower(address garden, address account) internal {
         address[] storage strategies = gardenConvictionStrategies[garden];
         uint256 len = strategies.length;
