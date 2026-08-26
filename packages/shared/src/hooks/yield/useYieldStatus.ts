@@ -267,10 +267,13 @@ export function useYieldStatus(
     isLoading,
     isError,
     refetch: async () => {
+      // Manually refetching a disabled wagmi query still executes it (e.g.
+      // getGardenJar against a deliberately zero cookieJarModule), so only
+      // the currently enabled queries participate.
       await Promise.all([
         baseQuery.refetch(),
-        conversionQuery.refetch(),
-        moduleJarQuery.refetch(),
+        ...(enabled && registeredShares > 0n ? [conversionQuery.refetch()] : []),
+        ...(enabled && moduleConfigured ? [moduleJarQuery.refetch()] : []),
         splitConfigQuery.refetch(),
       ]);
     },

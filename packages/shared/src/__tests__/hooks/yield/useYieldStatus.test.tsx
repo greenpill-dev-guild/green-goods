@@ -301,4 +301,18 @@ describe("useYieldStatus", () => {
     expect(mockJarRefetch).toHaveBeenCalledOnce();
     expect(mockSplitRefetch).toHaveBeenCalledOnce();
   });
+
+  it("does not refetch the jar query when the module is deliberately disabled", async () => {
+    // Manually refetching a disabled wagmi query executes it against the
+    // zero address and would poison isError for a supported configuration.
+    configureReads({
+      base: baseResults({ 8: "0x0000000000000000000000000000000000000000" }),
+    });
+    const { result } = renderHook(() => useYieldStatus(GARDEN, ASSET, VAULT));
+
+    await result.current.refetch();
+
+    expect(mockBaseRefetch).toHaveBeenCalledOnce();
+    expect(mockJarRefetch).not.toHaveBeenCalled();
+  });
 });

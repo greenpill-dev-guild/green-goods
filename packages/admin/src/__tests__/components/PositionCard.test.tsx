@@ -475,6 +475,31 @@ describe("PositionCard", () => {
       await waitFor(() => expect(mockHarvestDistributionReset).toHaveBeenCalled());
     });
 
+    it("keeps a pending Safe submission until refetched state actually changes", async () => {
+      // A pending proposal has no on-chain signal: an unchanged refetch must
+      // not clear the outcome, or the operator could file a duplicate.
+      mockHarvestDistribution = {
+        ...mockHarvestDistribution,
+        data: { status: "harvest_submitted", hash: "safe-proposal-123" },
+        stage: "submitted",
+      };
+      const user = userEvent.setup();
+
+      const { rerender } = render(
+        createElement(PositionCard, { ...defaultProps, canManage: true })
+      );
+
+      await user.click(screen.getByText("Check status"));
+      expect(mockYieldRefetch).toHaveBeenCalled();
+      expect(mockHarvestDistributionReset).not.toHaveBeenCalled();
+
+      // The Safe proposal executes: refreshed yield state now differs.
+      mockYieldStatus = { ...mockYieldStatus, totalAvailable: 9n * 10n ** 18n };
+      rerender(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      await waitFor(() => expect(mockHarvestDistributionReset).toHaveBeenCalled());
+    });
+
     it("explains a reverted harvest and keeps the retry available", () => {
       mockHarvestDistribution = {
         ...mockHarvestDistribution,

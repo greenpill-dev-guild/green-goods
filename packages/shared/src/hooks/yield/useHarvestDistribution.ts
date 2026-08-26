@@ -1,10 +1,9 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import type { Hex } from "viem";
 import { useConfig } from "wagmi";
 import { toastService } from "../../components/toast";
-import { queryInvalidation } from "../../config/query-keys/invalidation";
 import {
   trackHarvestDistributionHarvest,
   trackHarvestDistributionOutcome,
@@ -19,6 +18,8 @@ import { categorizeError } from "../../utils/errors/categorize-error";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
+import { useSafeMutation } from "../utils/useSafeMutation";
+import { useHarvestDistributionInvalidation } from "./useHarvestDistributionInvalidation";
 import type { YieldDistributionAmounts } from "./useYieldStatus";
 import {
   HARVEST_FAILURE_ERROR_CATEGORY,
@@ -79,7 +80,6 @@ export type HarvestDistributionResult =
 
 export function useHarvestDistribution() {
   const { formatMessage } = useIntl();
-  const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const config = useConfig();
   const sender = useTransactionSender();
@@ -106,18 +106,7 @@ export function useHarvestDistribution() {
     if (isMountedRef.current) setStage(nextStage);
   };
 
-  const invalidateFinancialState = async (params: HarvestDistributionParams) => {
-    const invalidations = queryInvalidation.onHarvestDistribution(
-      params.gardenAddress,
-      params.assetAddress,
-      chainId
-    );
-    await Promise.all(
-      [...invalidations, ...queryInvalidation.onchainReads()].map((queryKey) =>
-        queryClient.invalidateQueries({ queryKey })
-      )
-    );
-  };
+  const invalidateFinancialState = useHarvestDistributionInvalidation();
 
   const mutation = useMutation({
     mutationFn: async (params: HarvestDistributionParams): Promise<HarvestDistributionResult> => {
@@ -345,5 +334,7 @@ export function useHarvestDistribution() {
     },
   });
 
-  return { ...mutation, stage };
+  // Lock-guarded like the other vault write hooks: prevents double-submitting
+  // the two-transaction workflow and warns before unload while pending.
+  return { ...useSafeMutation(mutation), stage };
 }

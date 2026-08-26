@@ -23,7 +23,7 @@ import {
 } from "@green-goods/shared/utils/blockchain/vaults";
 import { getBlockExplorerAddressUrl } from "@green-goods/shared/utils/eas/explorers";
 import { RiExternalLinkLine } from "@remixicon/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { useReadContracts } from "wagmi";
 import { AdminButton } from "@/components/AdminButton";
@@ -137,14 +137,40 @@ export function PositionCard({
 
   const dismissWorkflowOutcome = () => harvestDistribution.reset();
 
-  // For unresolved outcomes (Safe submissions, unverified splits) the outcome
-  // clears only through reconciliation: refetch on-chain state first, then
-  // reset, so the next render reflects what actually happened.
+  // For unresolved outcomes the outcome clears only through reconciliation.
+  // An unverified split reconciles by refetching and then resetting: the
+  // refreshed reads reflect whatever the confirmed split actually did. A
+  // pending Safe submission has no on-chain signal until it executes, so its
+  // outcome clears only once the refetched yield state actually changes —
+  // never on an unchanged (or failed) refetch, which would invite a
+  // duplicate proposal.
+  const yieldFingerprint = [
+    yieldStatus.status,
+    yieldStatus.totalAvailable,
+    yieldStatus.registeredShares,
+    yieldStatus.pendingYield,
+  ].join("|");
+  const [reconcileBaseline, setReconcileBaseline] = useState<string | null>(null);
   const reconcileWorkflowOutcome = () => {
-    void yieldStatus.refetch().finally(() => harvestDistribution.reset());
+    const submitted =
+      harvestDistribution.data?.status === "harvest_submitted" ||
+      harvestDistribution.data?.status === "distribution_submitted";
+    if (!submitted) {
+      void yieldStatus.refetch().finally(() => harvestDistribution.reset());
+      return;
+    }
+    const baseline = yieldFingerprint;
+    void yieldStatus.refetch().finally(() => setReconcileBaseline(baseline));
   };
+  const { reset: resetHarvestDistribution } = harvestDistribution;
+  useEffect(() => {
+    if (reconcileBaseline === null || yieldFingerprint === reconcileBaseline) return;
+    resetHarvestDistribution();
+    setReconcileBaseline(null);
+  }, [reconcileBaseline, yieldFingerprint, resetHarvestDistribution]);
 
   const runHarvestDistribution = (harvestFirst: boolean) => {
+    setReconcileBaseline(null);
     harvestDistribution.mutate(
       {
         gardenAddress,
