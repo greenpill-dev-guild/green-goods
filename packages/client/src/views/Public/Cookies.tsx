@@ -12,7 +12,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
 import { getAddress, isAddress } from "viem";
-import { EditorialHeading, EditorialKicker, EditorialTitleAccent } from "@/components/Public/atoms";
+import {
+  EditorialHeading,
+  EditorialKicker,
+  EditorialMediaCardSkeleton,
+  EditorialSkeleton,
+  EditorialTitleAccent,
+} from "@/components/Public/atoms";
 import {
   classifyCookieJarStatus,
   type CookieJarStatus,
@@ -115,11 +121,9 @@ function CookiesSectionSkeleton() {
     <div className="grid grid-cols-1 gap-10 md:grid-cols-2 xl:grid-cols-3">
       {[0, 1, 2].map((i) => (
         <div key={i} className="flex flex-col gap-4 border-t border-stroke-soft-200 pt-5">
-          <div className="h-4 w-20 animate-pulse rounded-full bg-bg-weak-50" />
-          <div className="aspect-[4/3] w-full animate-pulse bg-bg-weak-50" />
-          <div className="h-6 w-3/4 animate-pulse bg-stroke-soft-200/60" />
-          <div className="h-4 w-1/2 animate-pulse bg-stroke-soft-200/60" />
-          <div className="mt-2 h-24 w-full animate-pulse bg-stroke-soft-200/60" />
+          <EditorialSkeleton className="h-4 w-20 rounded-full" />
+          <EditorialMediaCardSkeleton mediaClassName="aspect-[4/3]" />
+          <EditorialSkeleton className="mt-2 h-24 w-full" />
         </div>
       ))}
     </div>

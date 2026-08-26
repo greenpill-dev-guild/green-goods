@@ -2,6 +2,8 @@
  * @vitest-environment jsdom
  */
 
+import { render } from "@testing-library/react";
+import { createElement } from "react";
 import { matchRoutes, type LoaderFunctionArgs, type RouteObject } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
 import { appRoutes, CLIENT_ROUTE_IDS } from "../../config/routes";
@@ -111,7 +113,13 @@ function setWebsiteMode() {
     maxTouchPoints: 0,
     platform: "MacIntel",
   });
-  mockWindow({ location: { hostname: "www.greengoods.app" } });
+  mockWindow({
+    location: {
+      href: "https://www.greengoods.app/",
+      hostname: "www.greengoods.app",
+      pathname: "/",
+    },
+  });
 }
 
 function setLocalDesktopMode() {
@@ -143,7 +151,11 @@ function setStandaloneMode() {
     platform: "MacIntel",
   });
   mockWindow({
-    location: { hostname: "www.greengoods.app" },
+    location: {
+      href: "https://www.greengoods.app/home",
+      hostname: "www.greengoods.app",
+      pathname: "/home",
+    },
     matchMedia: createMatchMedia((query) => query === "(display-mode: standalone)"),
   });
 }
@@ -166,6 +178,24 @@ describe("presentation-mode route guards", () => {
     setWebsiteMode();
 
     expect(requireWebsitePresentationLoader(loaderArgs("https://www.greengoods.app/"))).toBeNull();
+  });
+
+  it("leaves website hydration to the static editorial fallback", () => {
+    setWebsiteMode();
+    const rootRoute = findRouteById(appRoutes as RouteObject[], CLIENT_ROUTE_IDS.root);
+
+    const { container } = render(createElement(() => rootRoute?.hydrateFallbackElement ?? null));
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("keeps the branded hydration fallback for installed app routes", () => {
+    setStandaloneMode();
+    const rootRoute = findRouteById(appRoutes as RouteObject[], CLIENT_ROUTE_IDS.root);
+
+    const { container } = render(createElement(() => rootRoute?.hydrateFallbackElement ?? null));
+
+    expect(container.querySelector("[aria-label='Loading Green Goods']")).toBeInTheDocument();
   });
 
   it("keeps production public routes on the website shell even in standalone mode", () => {

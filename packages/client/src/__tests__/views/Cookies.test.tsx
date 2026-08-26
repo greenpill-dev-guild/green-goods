@@ -291,6 +291,24 @@ describe("CookiesPage", () => {
     expect(mockOpenWallet).not.toHaveBeenCalled();
   });
 
+  it("uses editorial record skeletons while the campaign list loads", () => {
+    mockUseCampaignCookieJarCampaigns.mockReturnValue({
+      campaigns: [],
+      indexedCampaigns: [],
+      fallbackCampaigns: [],
+      isLoading: true,
+      isFallback: false,
+      error: null,
+    });
+
+    const { container } = renderPage("/cookies");
+
+    expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
+      3
+    );
+    expect(container.querySelector(".animate-pulse")).toBeNull();
+  });
+
   it("claims a fixed cookie amount for an eligible wallet", async () => {
     const user = userEvent.setup();
 

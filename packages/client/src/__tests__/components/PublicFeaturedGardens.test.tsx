@@ -268,5 +268,7 @@ describe("PublicFeaturedGardens", () => {
 
     const skeleton = screen.getByTestId("public-featured-loading");
     expect(skeleton.children.length).toBe(4);
+    expect(skeleton.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(4);
+    expect(skeleton.querySelector(".animate-pulse")).toBeNull();
   });
 });

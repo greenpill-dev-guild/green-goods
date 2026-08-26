@@ -19,8 +19,10 @@ import { useSearchParams } from "react-router-dom";
 import {
   EditorialHeading,
   EditorialKicker,
+  EditorialListRowSkeleton,
   EditorialLinkArrow,
   EditorialNumeral,
+  EditorialSkeleton,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
@@ -156,13 +158,13 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
                 key={index}
                 className="border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-[var(--shadow-editorial-card)]"
               >
-                <div className="h-3 w-28 animate-pulse bg-stroke-soft-200/60" />
-                <div className="mt-4 h-8 w-36 animate-pulse bg-stroke-soft-200/60" />
+                <EditorialSkeleton className="h-3 w-28" />
+                <EditorialSkeleton className="mt-4 h-8 w-36" />
                 <div className="mt-5 grid grid-cols-2 gap-3">
-                  <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
-                  <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
-                  <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
-                  <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
+                  <EditorialSkeleton className="h-4" />
+                  <EditorialSkeleton className="h-4" />
+                  <EditorialSkeleton className="h-4" />
+                  <EditorialSkeleton className="h-4" />
                 </div>
               </div>
             ))}
@@ -648,17 +650,7 @@ function FundPageContent() {
                 aria-hidden="true"
               >
                 {[0, 1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-stretch gap-4 py-4 sm:gap-5">
-                    <div className="h-20 w-28 shrink-0 animate-pulse bg-editorial-warm sm:h-24 sm:w-36" />
-                    <div className="flex flex-1 flex-col justify-center gap-2">
-                      <div className="h-3 w-24 animate-pulse bg-stroke-soft-200/60" />
-                      <div className="h-5 w-3/4 animate-pulse bg-stroke-soft-200/60" />
-                      <div className="h-3 w-1/2 animate-pulse bg-stroke-soft-200/40" />
-                    </div>
-                    <div className="flex shrink-0 flex-col justify-center gap-2">
-                      <div className="h-9 w-20 animate-pulse rounded-full bg-stroke-soft-200/60" />
-                    </div>
-                  </div>
+                  <EditorialListRowSkeleton key={i} />
                 ))}
               </div>
             }

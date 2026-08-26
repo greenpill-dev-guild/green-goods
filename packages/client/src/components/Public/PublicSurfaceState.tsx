@@ -22,12 +22,7 @@ export function PublicSurfaceState({
   if (state === "ready") return <>{children}</>;
   if (state === "loading") {
     return (
-      <Container
-        role="status"
-        aria-live="polite"
-        aria-busy="true"
-        data-public-surface-state={state}
-      >
+      <Container aria-busy="true" data-public-surface-state={state}>
         {loading}
       </Container>
     );

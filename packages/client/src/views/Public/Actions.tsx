@@ -11,6 +11,7 @@ import {
   EditorialHeading,
   EditorialKicker,
   EditorialLede,
+  EditorialMediaCardSkeleton,
   EditorialNumeral,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
@@ -395,11 +396,7 @@ export default function ActionsGallery() {
             loading={
               <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
                 {[0, 1, 2, 3, 4, 5].map((i) => (
-                  <div
-                    key={i}
-                    className="aspect-[4/3] w-full animate-pulse bg-editorial-warm"
-                    aria-hidden="true"
-                  />
+                  <EditorialMediaCardSkeleton key={i} mediaClassName="aspect-[4/3]" />
                 ))}
               </div>
             }

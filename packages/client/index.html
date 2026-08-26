@@ -94,82 +94,530 @@
         document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
       })();
     </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <div
-      id="boot-fallback"
-      role="status"
-      aria-live="polite"
-      style="
+    <script id="boot-presentation-detector">
+      (function () {
+        var LOCAL_QUERY_PARAM = "presentation";
+        var LOCAL_STORAGE_KEY = "gg-local-presentation-mode";
+        var PUBLIC_PATHS = [
+          "/",
+          "/actions",
+          "/cookies",
+          "/fund",
+          "/gardens",
+          "/glossary",
+          "/impact",
+          "/landing",
+          "/vaults",
+        ];
+
+        function isLocalHostname(hostname) {
+          var normalized = String(hostname || "").toLowerCase();
+          return (
+            normalized === "localhost" ||
+            normalized.slice(-10) === ".localhost" ||
+            normalized === "127.0.0.1" ||
+            normalized === "0.0.0.0" ||
+            normalized === "::1" ||
+            normalized === "[::1]"
+          );
+        }
+
+        function normalizePathname(pathname) {
+          var normalized = String(pathname || "/").replace(/\/+$/, "");
+          return normalized || "/";
+        }
+
+        function effectivePathname(url) {
+          if (url.hash && url.hash.indexOf("#/") === 0) {
+            try {
+              return new URL(url.hash.slice(1), url.origin).pathname;
+            } catch (_) {
+              return url.pathname;
+            }
+          }
+          return url.pathname;
+        }
+
+        function isProductionPublicWebsiteUrl(url) {
+          if (isLocalHostname(url.hostname)) return false;
+          var pathname = normalizePathname(effectivePathname(url));
+          return PUBLIC_PATHS.indexOf(pathname) !== -1 || pathname.indexOf("/gardens/") === 0;
+        }
+
+        function readLocalOverride(url) {
+          if (!isLocalHostname(url.hostname)) return null;
+
+          var storage = null;
+          try {
+            storage = window.sessionStorage;
+          } catch (_) {
+            storage = null;
+          }
+
+          var queryValue = url.searchParams.get(LOCAL_QUERY_PARAM);
+          if (queryValue === "auto") {
+            if (storage) storage.removeItem(LOCAL_STORAGE_KEY);
+            return null;
+          }
+          if (queryValue === "website" || queryValue === "pwa") {
+            if (storage) storage.setItem(LOCAL_STORAGE_KEY, queryValue);
+            return queryValue;
+          }
+
+          var storedValue = storage ? storage.getItem(LOCAL_STORAGE_KEY) : null;
+          return storedValue === "website" || storedValue === "pwa" ? storedValue : null;
+        }
+
+        function matchesDisplayMode(query) {
+          return typeof window.matchMedia === "function" && window.matchMedia(query).matches;
+        }
+
+        function isStandalone() {
+          return (
+            matchesDisplayMode("(display-mode: window-controls-overlay)") ||
+            matchesDisplayMode("(display-mode: standalone)") ||
+            matchesDisplayMode("(display-mode: fullscreen)") ||
+            navigator.standalone === true
+          );
+        }
+
+        function hasMobileDeviceSignals() {
+          if (navigator.userAgentData && navigator.userAgentData.mobile === true) return true;
+          var platform =
+            (navigator.userAgentData && navigator.userAgentData.platform) ||
+            navigator.platform ||
+            "";
+          if (/android|iphone|ipad|ipod/i.test(platform)) return true;
+
+          var userAgent = navigator.userAgent || "";
+          if (/windows phone|android|iPad|iPhone|iPod/i.test(userAgent)) return true;
+          return /Macintosh/.test(userAgent) && navigator.maxTouchPoints > 1;
+        }
+
+        var mode = "website";
+        try {
+          var url = new URL(window.location.href);
+          var localOverride = readLocalOverride(url);
+          if (isProductionPublicWebsiteUrl(url)) {
+            mode = "website";
+          } else if (localOverride) {
+            mode = localOverride;
+          } else if (isStandalone() || (isLocalHostname(url.hostname) && hasMobileDeviceSignals())) {
+            mode = "pwa";
+          }
+        } catch (_) {
+          mode = isStandalone() ? "pwa" : "website";
+        }
+
+        document.documentElement.dataset.bootPresentation = mode;
+      })();
+    </script>
+    <style id="boot-fallback-styles">
+      #boot-fallback[hidden],
+      #boot-fallback [hidden] {
+        display: none !important;
+      }
+
+      #boot-fallback {
+        --boot-canvas: var(--color-bg-weak-50, #f7f3e9);
+        --boot-ink: var(--color-text-strong-950, #1f2a24);
+        --boot-muted: var(--color-text-sub-600, #6f756f);
+        --boot-line: var(--color-stroke-soft-200, #d7d2c7);
+        --boot-warm: var(--color-editorial-warm, #f1ece2);
+        --boot-deep: var(--color-editorial-deep, #2d2118);
+        --boot-deep-fg: var(--color-editorial-deep-fg, #f5f0e8);
+        --boot-action: var(--color-primary-action, #173f2a);
+        --boot-action-fg: var(--color-primary-action-foreground, #ffffff);
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        min-height: 100vh;
+        box-sizing: border-box;
+        background: var(--boot-canvas);
+        color: var(--boot-ink);
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      [data-theme="dark"] #boot-fallback {
+        --boot-canvas: var(--color-bg-weak-50, #161412);
+        --boot-ink: var(--color-text-strong-950, #f5f0e8);
+        --boot-muted: var(--color-text-sub-600, #c5beb4);
+        --boot-line: var(--color-stroke-soft-200, #453d35);
+        --boot-warm: var(--color-editorial-warm, #1e1610);
+        --boot-deep: var(--color-editorial-deep, #120d09);
+      }
+
+      .boot-editorial-shell {
+        position: relative;
+        min-height: 100vh;
+        overflow: hidden;
+        background: var(--boot-deep);
+      }
+
+      .boot-editorial-header {
+        position: absolute;
+        inset: 0 0 auto;
+        z-index: 2;
+        display: flex;
+        height: 64px;
+        align-items: center;
+        justify-content: space-between;
+        box-sizing: border-box;
+        padding: 0 40px;
+      }
+
+      .boot-editorial-logo {
+        display: block;
+        width: auto;
+        height: 32px;
+      }
+
+      .boot-editorial-nav,
+      .boot-editorial-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .boot-editorial-menu {
+        display: none;
+        width: 40px;
+        height: 40px;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .boot-editorial-menu::before,
+      .boot-editorial-menu::after {
+        position: absolute;
+        width: 22px;
+        height: 2px;
+        content: "";
+        background: rgb(245 240 232 / 0.78);
+      }
+
+      .boot-editorial-menu::before {
+        transform: translateY(-4px);
+      }
+
+      .boot-editorial-menu::after {
+        transform: translateY(4px);
+      }
+
+      .boot-editorial-hero {
+        position: relative;
+        min-height: 100vh;
+        box-sizing: border-box;
+        background:
+          radial-gradient(circle at 72% 22%, rgb(245 240 232 / 0.08), transparent 34%),
+          linear-gradient(145deg, var(--boot-deep), #18291f 62%, #23382b);
+      }
+
+      .boot-editorial-card {
+        position: absolute;
+        right: 40px;
+        bottom: 40px;
+        left: 40px;
+        width: min(640px, calc(100% - 80px));
+        box-sizing: border-box;
+        padding: 32px;
+        background: var(--boot-warm);
+        box-shadow: 0 30px 80px -30px rgb(18 13 9 / 0.35);
+      }
+
+      .boot-skeleton {
+        display: block;
+        overflow: hidden;
+        background:
+          linear-gradient(
+            100deg,
+            transparent 20%,
+            rgb(245 240 232 / 0.16) 42%,
+            transparent 64%
+          ),
+          rgb(245 240 232 / 0.14);
+        background-position: 120% 0, 0 0;
+        background-size: 220% 100%, 100% 100%;
+      }
+
+      .boot-editorial-card .boot-skeleton {
+        background:
+          linear-gradient(
+            100deg,
+            transparent 20%,
+            rgb(255 255 255 / 0.42) 42%,
+            transparent 64%
+          ),
+          color-mix(in srgb, var(--boot-line) 72%, transparent);
+        background-position: 120% 0, 0 0;
+        background-size: 220% 100%, 100% 100%;
+      }
+
+      .boot-skeleton-kicker {
+        width: 128px;
+        height: 10px;
+      }
+
+      .boot-skeleton-title {
+        width: min(100%, 520px);
+        height: 44px;
+        margin-top: 24px;
+      }
+
+      .boot-skeleton-title-short {
+        width: min(72%, 380px);
+        height: 44px;
+        margin-top: 10px;
+      }
+
+      .boot-skeleton-lede {
+        width: min(88%, 470px);
+        height: 16px;
+        margin-top: 24px;
+      }
+
+      .boot-skeleton-lede-short {
+        width: min(66%, 330px);
+        height: 16px;
+        margin-top: 9px;
+      }
+
+      .boot-skeleton-action {
+        width: 148px;
+        height: 44px;
+        margin-top: 28px;
+        border-radius: 999px;
+      }
+
+      .boot-skeleton-nav {
+        width: 62px;
+        height: 12px;
+      }
+
+      .boot-skeleton-cta {
+        width: 96px;
+        height: 40px;
+        border-radius: 999px;
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        .boot-skeleton {
+          animation: boot-skeleton-sweep
+            calc(
+              var(--spring-effects-slow-duration, 500ms) +
+              var(--spring-effects-slow-duration, 500ms) +
+              var(--spring-effects-slow-duration, 500ms) +
+              var(--spring-effects-slow-duration, 500ms)
+            )
+            var(--spring-effects-easing, ease-in-out) infinite;
+        }
+      }
+
+      @keyframes boot-skeleton-sweep {
+        to {
+          background-position: -120% 0, 0 0;
+        }
+      }
+
+      .boot-editorial-recovery {
+        color: var(--boot-ink);
+      }
+
+      .boot-editorial-recovery h1 {
+        margin: 0;
+        max-width: 520px;
+        font-family: Fraunces, Georgia, serif;
+        font-size: clamp(2rem, 5vw, 3.5rem);
+        font-weight: 500;
+        line-height: 1.04;
+        letter-spacing: -0.02em;
+      }
+
+      .boot-editorial-recovery p {
+        margin: 18px 0 0;
+        max-width: 480px;
+        color: var(--boot-muted);
+        font-size: 1rem;
+        line-height: 1.6;
+      }
+
+      .boot-reload-button {
+        min-height: 44px;
+        margin-top: 24px;
+        border: 0;
+        border-radius: 999px;
+        padding: 0 20px;
+        background: var(--boot-action);
+        color: var(--boot-action-fg);
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .boot-reload-button:focus-visible {
+        outline: 3px solid var(--boot-action);
+        outline-offset: 3px;
+      }
+
+      .boot-pwa-shell {
         min-height: 100vh;
         box-sizing: border-box;
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 24px;
-        background: #fffdf7;
-        color: #1f2a24;
-        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         text-align: center;
-      "
-    >
-      <div style="width: min(100%, 320px);">
+      }
+
+      .boot-pwa-content {
+        width: min(100%, 320px);
+      }
+
+      .boot-pwa-content img {
+        display: block;
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 20px;
+      }
+
+      .boot-pwa-content p {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 650;
+        line-height: 1.5;
+      }
+
+      @media (max-width: 767px) {
+        .boot-editorial-header {
+          padding: 0 24px;
+        }
+
+        .boot-editorial-nav,
+        .boot-editorial-actions {
+          display: none;
+        }
+
+        .boot-editorial-menu {
+          position: relative;
+          display: flex;
+        }
+
+        .boot-editorial-card {
+          right: 20px;
+          bottom: 20px;
+          left: 20px;
+          width: calc(100% - 40px);
+          padding: 24px;
+        }
+
+        .boot-skeleton-title,
+        .boot-skeleton-title-short {
+          height: 32px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="boot-fallback" data-state="idle" hidden>
+      <div id="boot-fallback-website" hidden aria-hidden="true">
+        <div class="boot-editorial-shell">
+          <div id="boot-website-skeleton" aria-hidden="true">
+            <div class="boot-editorial-header">
+              <img
+                class="boot-editorial-logo"
+                alt=""
+                src="%BASE_URL%icon.png"
+                width="56"
+                height="32"
+              />
+              <div class="boot-editorial-nav">
+                <span class="boot-skeleton boot-skeleton-nav"></span>
+                <span class="boot-skeleton boot-skeleton-nav"></span>
+                <span class="boot-skeleton boot-skeleton-nav"></span>
+                <span class="boot-skeleton boot-skeleton-nav"></span>
+              </div>
+              <div class="boot-editorial-actions">
+                <span class="boot-skeleton boot-skeleton-cta"></span>
+              </div>
+              <span class="boot-editorial-menu"></span>
+            </div>
+            <div class="boot-editorial-hero">
+              <div class="boot-editorial-card">
+                <span class="boot-skeleton boot-skeleton-kicker"></span>
+                <span class="boot-skeleton boot-skeleton-title"></span>
+                <span class="boot-skeleton boot-skeleton-title-short"></span>
+                <span class="boot-skeleton boot-skeleton-lede"></span>
+                <span class="boot-skeleton boot-skeleton-lede-short"></span>
+                <span class="boot-skeleton boot-skeleton-action"></span>
+              </div>
+            </div>
+          </div>
+          <div class="boot-editorial-card boot-editorial-recovery" id="boot-website-recovery" hidden>
+            <h1 id="boot-website-recovery-title">This page is taking longer than expected.</h1>
+            <p id="boot-website-recovery-body">Reload to try again.</p>
+            <button class="boot-reload-button" id="boot-website-reload" type="button">Reload</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="boot-fallback-pwa" class="boot-pwa-shell" hidden>
+        <div class="boot-pwa-content">
         <img
           alt=""
           src="%BASE_URL%%PWA_BROWSER_ICON%"
           width="72"
           height="72"
-          style="width: 72px; height: 72px; margin: 0 auto 20px; display: block;"
         />
-        <p
-          id="boot-fallback-message"
-          style="margin: 0 0 16px; font-size: 16px; line-height: 1.5; font-weight: 650;"
-        >
-          Green Goods is loading.
-        </p>
+          <p id="boot-pwa-message">Green Goods is loading.</p>
         <button
-          id="boot-fallback-reload"
+            class="boot-reload-button"
+            id="boot-pwa-reload"
           type="button"
           hidden
-          style="
-            min-height: 44px;
-            border: 0;
-            border-radius: 999px;
-            padding: 0 20px;
-            background: #173f2a;
-            color: #ffffff;
-            font: inherit;
-            font-weight: 700;
-          "
         >
           Reload
         </button>
+        </div>
       </div>
     </div>
-    <script>
+    <script id="boot-fallback-controller">
       (function () {
         var root = document.getElementById("root");
         var fallback = document.getElementById("boot-fallback");
-        var message = document.getElementById("boot-fallback-message");
-        var reload = document.getElementById("boot-fallback-reload");
-        var language = (document.documentElement.lang || navigator.language || "en")
+        var website = document.getElementById("boot-fallback-website");
+        var websiteSkeleton = document.getElementById("boot-website-skeleton");
+        var websiteRecovery = document.getElementById("boot-website-recovery");
+        var websiteRecoveryTitle = document.getElementById("boot-website-recovery-title");
+        var websiteRecoveryBody = document.getElementById("boot-website-recovery-body");
+        var websiteReload = document.getElementById("boot-website-reload");
+        var pwa = document.getElementById("boot-fallback-pwa");
+        var pwaMessage = document.getElementById("boot-pwa-message");
+        var pwaReload = document.getElementById("boot-pwa-reload");
+        var presentation = document.documentElement.dataset.bootPresentation || "website";
+        var language = (navigator.language || document.documentElement.lang || "en")
           .toLowerCase()
           .slice(0, 2);
         var copy = {
           en: {
             loading: "Green Goods is loading.",
             update: "Green Goods needs the latest app files.",
+            websiteRecoveryTitle: "This page is taking longer than expected.",
+            websiteRecoveryBody: "Reload to try again.",
             reload: "Reload",
           },
           es: {
-            loading: "Green Goods se esta cargando.",
-            update: "Green Goods necesita los archivos mas recientes.",
+            loading: "Green Goods se está cargando.",
+            update: "Green Goods necesita los archivos más recientes.",
+            websiteRecoveryTitle: "Esta página está tardando más de lo esperado.",
+            websiteRecoveryBody: "Recarga para intentarlo de nuevo.",
             reload: "Recargar",
           },
           pt: {
-            loading: "Green Goods esta carregando.",
+            loading: "Green Goods está carregando.",
             update: "Green Goods precisa dos arquivos mais recentes.",
+            websiteRecoveryTitle: "Esta página está demorando mais do que o esperado.",
+            websiteRecoveryBody: "Recarregue para tentar novamente.",
             reload: "Recarregar",
           },
         };
@@ -184,13 +632,47 @@
 
         function showFallback(kind) {
           if (!fallback || hasAppContent()) return;
-          var isUpdate = kind === "update";
+          var isRecovery = kind === "recovery";
           fallback.hidden = false;
-          fallback.style.display = "flex";
-          if (message) message.textContent = isUpdate ? labels.update : labels.loading;
-          if (reload) {
-            reload.hidden = !isUpdate;
-            reload.textContent = labels.reload;
+          fallback.dataset.presentation = presentation;
+          fallback.dataset.state = isRecovery ? "recovery" : "loading";
+
+          if (presentation === "pwa") {
+            if (pwa) {
+              pwa.hidden = false;
+              pwa.setAttribute("role", isRecovery ? "alert" : "status");
+              pwa.setAttribute("aria-live", isRecovery ? "assertive" : "polite");
+              pwa.setAttribute("aria-busy", isRecovery ? "false" : "true");
+            }
+            if (website) website.hidden = true;
+            if (pwaMessage) pwaMessage.textContent = isRecovery ? labels.update : labels.loading;
+            if (pwaReload) {
+              pwaReload.hidden = !isRecovery;
+              pwaReload.textContent = labels.reload;
+            }
+            return;
+          }
+
+          if (website) {
+            website.hidden = false;
+            if (isRecovery) website.removeAttribute("aria-hidden");
+            else website.setAttribute("aria-hidden", "true");
+          }
+          if (pwa) pwa.hidden = true;
+          if (websiteSkeleton) websiteSkeleton.hidden = isRecovery;
+          if (websiteRecovery) {
+            websiteRecovery.hidden = !isRecovery;
+            if (isRecovery) websiteRecovery.setAttribute("role", "alert");
+          }
+          if (websiteRecoveryTitle) {
+            websiteRecoveryTitle.textContent = labels.websiteRecoveryTitle;
+          }
+          if (websiteRecoveryBody) {
+            websiteRecoveryBody.textContent = labels.websiteRecoveryBody;
+          }
+          if (websiteReload) {
+            websiteReload.hidden = !isRecovery;
+            websiteReload.textContent = labels.reload;
           }
         }
 
@@ -201,7 +683,7 @@
           if (observer) observer.disconnect();
           if (fallback) {
             fallback.hidden = true;
-            fallback.style.display = "none";
+            fallback.dataset.state = "cleared";
           }
         }
 
@@ -217,21 +699,22 @@
 
         window.__GG_CLEAR_BOOT_FALLBACK = clearFallback;
 
-        if (reload) reload.addEventListener("click", reloadWithCacheBust);
+        if (websiteReload) websiteReload.addEventListener("click", reloadWithCacheBust);
+        if (pwaReload) pwaReload.addEventListener("click", reloadWithCacheBust);
 
         window.addEventListener(
           "error",
           function (event) {
             var target = event && event.target;
             if (target && target.tagName === "SCRIPT" && target.type === "module") {
-              showFallback("update");
+              showFallback("recovery");
             }
           },
           true
         );
 
         document.addEventListener("gg-module-load-failed", function () {
-          showFallback("update");
+          showFallback("recovery");
         });
 
         if (root && "MutationObserver" in window) {
@@ -241,12 +724,16 @@
           observer.observe(root, { childList: true });
         }
 
-        timer = window.setTimeout(function () {
+        if (presentation === "pwa") {
           showFallback("loading");
-        }, 1200);
+        } else {
+          timer = window.setTimeout(function () {
+            showFallback("loading");
+          }, 200);
+        }
 
         updateTimer = window.setTimeout(function () {
-          showFallback("update");
+          showFallback("recovery");
         }, 4500);
       })();
     </script>

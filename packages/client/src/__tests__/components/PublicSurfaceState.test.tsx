@@ -12,13 +12,22 @@ const slots = {
 
 describe("PublicSurfaceState", () => {
   it.each([
-    ["loading", "Loading", "status"],
     ["error", "Unavailable", "alert"],
     ["empty", "Nothing yet", "status"],
   ] as const)("renders the %s slot with its semantic role", (state, copy, role) => {
     render(<PublicSurfaceState state={state} {...slots} />);
     expect(screen.getByRole(role)).toHaveTextContent(copy);
     expect(screen.queryByText("Ready records")).not.toBeInTheDocument();
+  });
+
+  it("reserves the loading layout without announcing an interstitial status", () => {
+    const { container } = render(<PublicSurfaceState state="loading" {...slots} />);
+    const loading = container.querySelector("[data-public-surface-state='loading']");
+
+    expect(loading).toHaveTextContent("Loading");
+    expect(loading).toHaveAttribute("aria-busy", "true");
+    expect(loading).not.toHaveAttribute("role");
+    expect(loading).not.toHaveAttribute("aria-live");
   });
 
   it("renders ready children without an extra landmark", () => {
@@ -35,6 +44,7 @@ describe("PublicSurfaceState", () => {
       </dl>
     );
 
-    expect(container.querySelector("dl > dd[role='status']")).toHaveTextContent("Loading");
+    expect(container.querySelector("dl > dd[aria-busy='true']")).toHaveTextContent("Loading");
+    expect(container.querySelector("dl > dd")).not.toHaveAttribute("role");
   });
 });
