@@ -61,7 +61,7 @@ function NoteMediaMosaic({
         loading="lazy"
         backgroundFallback={<NotePlaceholderTile />}
         onErrorCallback={() => handleError(src)}
-        className="h-full w-full object-cover transition-transform duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)] group-hover:scale-[1.03]"
+        className="h-full w-full object-cover"
       />
       {overflow > 0 && index === shown.length - 1 ? (
         <span className="absolute inset-0 flex items-center justify-center bg-static-black/50 font-mono text-sm text-static-white">

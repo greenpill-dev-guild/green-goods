@@ -3394,3 +3394,46 @@ recommendation). A steward needs to see who is over-committing; the caption argu
 Build: 44 screens / 519 states / 736 hotspots / 56 flows / 329 scenes, 0 warnings; closure validator
 green. (Receipt as taken. The state count is 517 from 2026-08-19: `WFLOW@details-linked` and
 `WFLOW@fulfills-pick` retired, both of which this section had already ordered retired.)
+
+## Appendix G: editorial record and cycle supersessions (2026-08-25, experience audit AD-8…AD-11)
+
+Afo's Wave-2 decisions from the 2026-08-25 experience audit, built in
+`feat/editorial-record-and-cycle`. Each entry supersedes the cited earlier text;
+nothing above this appendix was edited in place.
+
+**§7 editorial § 02 leaves the panel (AD-8, supersedes the PR-748 `EditorialPanel`
+body and §7.1/§7.3's "one `EditorialPanel`" sentences).** On `/gardens/:id` and the
+`/impact` band the commitments record composes directly on the canvas in the page's
+own grammar — headers on linen, hairline dividers, § 01-style stat rows. § 02 had
+been the only card-wrapped section on either page. Every §1/§3 copy rule and honest
+state survives unchanged: em-dash-not-zero, the kept-rate threshold and its
+definitional sentence, absence copy, no providers/addresses/rankings. The
+`EditorialPanel` atom is retired (no consumers remain); with the panel gone, the
+dark-mode panel-darker-than-canvas deviation retires with it — the record renders
+on the canvas tokens in both modes.
+
+**§7.3 the cycle becomes four steps (AD-9, supersedes the five-node
+`PublicEvidencePipeline`).** Needs · Commitment · Work · Learnings, heading "From
+need to learning, season after season.", using the audit § 10 draft as the
+shipping copy. Confirmation fuses into Work ("The person it was for, or another
+eligible confirmer, records that it was kept."); the certificate step becomes
+Learnings with "Impact Certificate" surviving inside the step's body (term-tooltip,
+shared `public.pool.terms.certificate` definition), never as a stage name. The
+loop-line is a full-width footer under all four columns. Four equal columns level
+at every width; descriptions in one length band; number chips aligned with their
+titles. New `public.impact.pipeline.step.*` key family en/es/pt; the fresh es/pt
+translations use "el fondo común del Jardín" / "o fundo comum do Jardim" (no new
+"el pool"/"o pool" instances — that noun stays an open Wave-2 call). "Learnings"
+and the loop-line wording are Afo's naming to confirm at PR review.
+
+**§7 imagery loses the hover zoom (AD-10).** `group-hover:scale-[1.03]` and its
+now-dead `transition-transform` classes are removed at all six sites — the four
+the audit recorded (`PublicGardenCard`, `PublicActionCard`, `PublicEvidenceCard`,
+`PublicGardenRow`) plus `GardenDetailNoteRecord` and `GardenDetailFieldNotes`,
+honoring the decision's "across the editorial site" scope.
+
+**§7 empty and error sections hold their space (AD-11).** `SectionEmpty`, the
+section-level `SectionNotice` default, the § 02 record bodies, and `/impact`'s
+evidence-ledger empty and error casts carry a minimum body height (`min-h-40`),
+so absence reads as a kept place in the record rather than a footnote under the
+header. Inline asides that pass their own className opt out.

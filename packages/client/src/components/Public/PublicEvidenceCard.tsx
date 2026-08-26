@@ -129,7 +129,7 @@ function EvidenceImageSlot({
         loading="lazy"
         onErrorCallback={onError}
         backgroundFallback={<></>}
-        className="h-full w-full object-cover transition-transform duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)] group-hover:scale-[1.03]"
+        className="h-full w-full object-cover"
       />
     </div>
   );
