@@ -1,15 +1,19 @@
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
-import { useIntl } from "react-intl";
-import { shortAddress } from "../poolPresentation";
+import type { ReactNode } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
 import { railLabel } from "./commitmentDialogPresentation";
 
 /** One label/value line of the record's facts. */
-function fact(label: string, value: string) {
+function fact(label: string, value: ReactNode) {
   return (
     <div key={label} className="flex justify-between gap-3 text-body-md">
       <dt className="shrink-0 text-text-soft">{label}</dt>
-      <dd className="truncate text-right text-text-strong" title={value}>
+      <dd
+        className="truncate text-right text-text-strong"
+        title={typeof value === "string" ? value : undefined}
+      >
         {value}
       </dd>
     </div>
@@ -92,18 +96,29 @@ export function CommitmentFacts({
             id: "cockpit.garden.pool.commitment.fact.provider",
             defaultMessage: "Provider",
           }),
-          commitment.leadProvider
-            ? formatMessage(
-                {
-                  id: "cockpit.garden.pool.commitment.fact.providerCannotConfirm",
-                  defaultMessage: "{who}, cannot confirm",
-                },
-                { who: shortAddress(commitment.leadProvider) }
-              )
-            : formatMessage({
-                id: "cockpit.garden.pool.commitment.fact.providerNone",
-                defaultMessage: "Nobody yet",
-              })
+          commitment.leadProvider ? (
+            <span className="inline-flex max-w-full items-center gap-1">
+              <FormattedMessage
+                id="cockpit.garden.pool.commitment.fact.providerCannotConfirm"
+                defaultMessage="{who}, cannot confirm"
+                values={{
+                  who: (
+                    <AddressDisplay
+                      address={commitment.leadProvider}
+                      showCopyButton={false}
+                      interactive={false}
+                      className="inline-flex"
+                    />
+                  ),
+                }}
+              />
+            </span>
+          ) : (
+            formatMessage({
+              id: "cockpit.garden.pool.commitment.fact.providerNone",
+              defaultMessage: "Nobody yet",
+            })
+          )
         )}
         {fact(
           formatMessage({
@@ -163,17 +178,38 @@ export function CommitmentFacts({
                 id: "cockpit.garden.pool.commitment.fact.confirmedBy",
                 defaultMessage: "Confirmed by",
               }),
-              commitment.confirmationPath === "POOL_FALLBACK"
-                ? formatMessage({
-                    id: "cockpit.garden.pool.commitment.path.garden",
-                    defaultMessage: "your garden steward — fallback",
-                  })
-                : commitment.confirmationPath === "PROTOCOL_FALLBACK"
-                  ? formatMessage({
-                      id: "cockpit.garden.pool.commitment.path.protocol",
-                      defaultMessage: "Green Goods team — fallback",
-                    })
-                  : `${shortAddress(commitment.fulfilledBy)} · ${formatMessage({ id: "cockpit.garden.pool.commitment.path.ordinary", defaultMessage: "ordinary" })}`
+              commitment.confirmationPath === "POOL_FALLBACK" ? (
+                formatMessage({
+                  id: "cockpit.garden.pool.commitment.path.garden",
+                  defaultMessage: "your garden steward — fallback",
+                })
+              ) : commitment.confirmationPath === "PROTOCOL_FALLBACK" ? (
+                formatMessage({
+                  id: "cockpit.garden.pool.commitment.path.protocol",
+                  defaultMessage: "Green Goods team — fallback",
+                })
+              ) : commitment.fulfilledBy ? (
+                <span className="inline-flex max-w-full items-center gap-1">
+                  <AddressDisplay
+                    address={commitment.fulfilledBy}
+                    showCopyButton={false}
+                    interactive={false}
+                    className="inline-flex"
+                  />
+                  <span>
+                    ·{" "}
+                    {formatMessage({
+                      id: "cockpit.garden.pool.commitment.path.ordinary",
+                      defaultMessage: "ordinary",
+                    })}
+                  </span>
+                </span>
+              ) : (
+                formatMessage({
+                  id: "cockpit.garden.pool.commitment.path.ordinary",
+                  defaultMessage: "ordinary",
+                })
+              )
             )
           : null}
         {commitment.fallbackReason

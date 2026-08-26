@@ -171,7 +171,7 @@ describe("HubConfirmQueue (W13)", () => {
     expect(within(item).getByText(/rocinha/i)).toBeInTheDocument();
     expect(within(item).getByText(/1 of 2 confirmed/i)).toBeInTheDocument();
     expect(within(item).getByText(/^ordinary$/i)).toBeInTheDocument();
-    fireEvent.click(within(item).getByRole("button", { name: /^confirm$/i }));
+    fireEvent.click(within(item).getByRole("button", { name: /^confirm kept$/i }));
     const acts = mocks.queue!.acts;
     await waitFor(() =>
       expect(acts.confirm).toHaveBeenCalledWith(expect.objectContaining({ garden: GARDEN_A }))
@@ -203,10 +203,10 @@ describe("HubConfirmQueue (W13)", () => {
       within(screen.getByTestId("hub-confirm-11")).getByText(/green goods team fallback/i)
     ).toBeInTheDocument();
     fireEvent.click(
-      within(screen.getByTestId("hub-confirm-9")).getByRole("button", { name: /^confirm…$/i })
+      within(screen.getByTestId("hub-confirm-9")).getByRole("button", { name: /^confirm kept…$/i })
     );
     expect(onOpen).toHaveBeenCalledWith("9");
-    expect(screen.queryByRole("button", { name: /^confirm$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^confirm kept$/i })).not.toBeInTheDocument();
   });
 
   it("raises a reasoned dispute from Not yet", async () => {

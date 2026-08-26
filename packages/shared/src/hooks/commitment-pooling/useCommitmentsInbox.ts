@@ -19,23 +19,15 @@
 import { useMemo } from "react";
 
 import {
-  type CommitmentDerivedState,
   type CommitmentReadModel,
   type CommitmentSeat,
   commitmentNeedsSeat,
+  isSettledCommitmentState,
   selectCommitmentSeat,
 } from "../../modules/commitment-pooling";
 import type { Address } from "../../types/domain";
 import { useCommitments } from "./useCommitmentPooling";
 import { useCommitmentQueueState } from "./useCommitmentQueueState";
-
-/** A commitment has settled when nothing further will happen to it on its own. */
-const SETTLED_STATES = new Set<CommitmentDerivedState>([
-  "FULFILLED",
-  "RECONCILED",
-  "CANCELLED",
-  "EXPIRED",
-]);
 
 export interface InboxCommitment {
   commitment: CommitmentReadModel;
@@ -129,7 +121,7 @@ export function useCommitmentsInbox({
 
     for (const commitment of viewer ? commitments : []) {
       const seat = seatOnOwnList(commitment, viewer);
-      const isSettled = SETTLED_STATES.has(commitment.derivedState);
+      const isSettled = isSettledCommitmentState(commitment.derivedState);
       // Asked of the one act table, so this count and the detail screen's
       // action bar can never disagree about whether somebody is waiting.
       const needsYou = !isSettled && commitmentNeedsSeat({ commitment, seat });

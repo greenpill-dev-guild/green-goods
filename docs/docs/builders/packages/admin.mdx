@@ -35,7 +35,7 @@ The admin package is the Green Goods steward canvas. This page is the single UI 
 ## Canonical Routes
 
 - Primary canvas surfaces: `/hub`, `/garden`, `/community`, `/actions`
-- Hub canonical deep links: `/hub/work/:workId`, `/hub/work/submit`, `/hub/assess/create`, `/hub/certify/:assessmentId`, `/hub/certify/create`, `/hub/history/:historyEventId`
+- Hub canonical deep links: `/hub/work/:workId`, `/hub/work/submit`, `/hub/assess/create`, `/hub/certify/:assessmentId`, `/hub/certify/create`, `/hub/confirm/:commitmentId`
 - Secondary garden flows: `/garden/create`, `/garden/impact/hypercerts/:hypercertId`, `/community/treasury/vault`, `/community/governance/strategies`, `/community/governance/signal-pool/:poolType`
 - Team campaign flows: `/cookies`, `/cookies/deploy`
 - Removed admin top-level routes intentionally fall through to the admin 404 unless they are listed in the redirect policy below.
@@ -45,6 +45,7 @@ The admin package is the Green Goods steward canvas. This page is the single UI 
 - Canonical admin bookmarks stay inside the admin app: `/hub`, `/garden`, `/community`, `/actions`, and their documented nested routes.
 - Public garden URLs redirect to the client app: `/gardens`, `/gardens/:gardenId`, and `/gardens/:gardenId/*` map to the same path on `greengoods.app`.
 - The admin SPA keeps a client-side fallback for public garden URLs so local and static preview environments match production redirects.
+- Retired `/hub/history` bookmarks return to the Hub's default Work mode, and retired `/community/pools` bookmarks open Community Coordination. Both redirects preserve the existing query string.
 - Removed admin route families are not blanket-redirected. Add a specific destination here before preserving any legacy admin bookmark.
 
 ## Shell Contract
@@ -194,13 +195,13 @@ Use this as the default assembly order for a new or refreshed primary admin rout
 
 ## Route Roles
 
-- `/hub` is the primary canvas workspace. Its primary object is the Hub workbench with Work, Assess, Certify, and History modes.
+- `/hub` is the primary canvas workspace. Its primary object is the Hub workbench with Work, Assess, and Certify modes, plus the route-backed commitment confirmation flow.
 - `/hub` is the gold-standard canvas route for composition, depth, responsive adaptation, and tactile state behavior.
 - `/hub` defaults to one dominant workbench surface under the stage rail. Detail, review, and read-only handoff flows open as `AdminDialog` inspectors (`size="lg"`, workspace tone). Full-surface creation/commit flows (Submit Work, Create Assessment, Create Hypercert) open as an `AdminDialog` (`variant="flow"` + `ADMIN_FLOW_DIALOG_CLASS`) with a scrim — centered on desktop, full-width bottom sheet on mobile — hosting the shared `ActionFlowShell` grammar (pinned header + scrolling body + pinned footer). They are never fullscreen takeovers or non-modal routes.
-- Read-only Hub deep links (`/hub/work/:workId`, `/hub/certify/:assessmentId`, `/hub/history/:historyEventId`) are `AdminDialog` inspectors that render through the Hub controller and preserve shareable `gardenAddress` and `sort` query state. Full-surface creation/commit deep links (`/hub/work/submit`, `/hub/assess/create`, `/hub/certify/create`) open the action-flow dialog (full-width bottom sheet on mobile), not inspector sheets. Hub mode belongs to the path, not a `view` query parameter.
+- Read-only Hub deep links (`/hub/work/:workId`, `/hub/certify/:assessmentId`) are `AdminDialog` inspectors that render through the Hub controller and preserve shareable `gardenAddress` and `sort` query state. Full-surface creation/commit deep links (`/hub/work/submit`, `/hub/assess/create`, `/hub/certify/create`, `/hub/confirm/:commitmentId`) open the action-flow dialog (full-width bottom sheet on mobile), not inspector sheets. Hub mode belongs to the path, not a `view` query parameter.
 - `Certify` stays visible for evaluator-only users as a read-only handoff state. Owner or steward authority unlocks mint actions.
 - `/garden` is the situational overview of a single garden. Its primary object is health, activity, and impact state.
-- `/community` is the operations workspace for membership, treasury, pools, and yield. Only one of those modes should dominate the canvas at a time.
+- `/community` is the operations workspace for members, coordination, endowment, and payouts. Governance and commitment pools share the Coordination mode; only one mode should dominate the canvas at a time.
 - `/actions` is the action registry and lifecycle workspace. It should feel like a managed catalog, not a marketing gallery.
 
 ## Route Smells To Reject
@@ -210,7 +211,7 @@ Use this as the default assembly order for a new or refreshed primary admin rout
 - `/garden`: large summary card grids before the steward reaches the actual overview or impact workspace.
 - `/garden`: mixing overview, impact, and settings as visually equivalent tabs without clearly changing page mode.
 - `/community`: a stat strip plus tab switcher plus contextual CTA banner plus card stack before the user reaches the active mode.
-- `/community`: treating treasury, members, pools, and yield as one blended page instead of four focused operational modes.
+- `/community`: treating members, coordination, endowment, and payouts as one blended page instead of four focused operational modes, or splitting commitment pools out of Coordination into a fifth mode.
 - `/actions`: image-led card galleries that make the route read like a promotional browse surface instead of an admin registry.
 - `/actions`: filters that change presentation but never establish a clear “default management view” for scanning and editing records.
 

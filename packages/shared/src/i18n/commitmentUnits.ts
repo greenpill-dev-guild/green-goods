@@ -1,8 +1,20 @@
 import type { IntlShape } from "react-intl";
 
-type CommitmentUnitKey = "sessions" | "repairs" | "rides" | "other";
+type CommitmentUnitKey = "hours" | "meals" | "sessions" | "repairs" | "rides" | "other";
 
+// Every first-class composer unit (ComposeHowMuch UNIT_CHOICES) needs a family
+// here — a missing entry falls through to the raw label and prints "1 hours".
 const UNIT_KEY_BY_LABEL: Record<string, Exclude<CommitmentUnitKey, "other">> = {
+  hour: "hours",
+  hours: "hours",
+  hora: "hours",
+  horas: "hours",
+  meal: "meals",
+  meals: "meals",
+  comida: "meals",
+  comidas: "meals",
+  refeição: "meals",
+  refeições: "meals",
   session: "sessions",
   sessions: "sessions",
   sesión: "sessions",

@@ -148,7 +148,7 @@ function StorybookRouteContent({ title }: { title: string }) {
     <section className="space-y-4 p-6" data-testid="storybook-route-content">
       <div>
         <p className="text-label-sm text-text-soft">Storybook route</p>
-        <h1 className="text-title-lg text-text-strong">{title}</h1>
+        <h1 className="text-title-md font-semibold text-text-strong">{title}</h1>
       </div>
       <div className="surface-section p-4">
         <p className="text-body-md text-text-sub">

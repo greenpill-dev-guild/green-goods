@@ -1,6 +1,6 @@
 import type { Work } from "../../../types/domain";
 import { formatAddress } from "../../../utils/app/text";
-import type { ActivityEvent, SortDirection } from "./hub.utils";
+import type { SortDirection } from "./hub.utils";
 import type { HubActionSummary } from "./hub.workbenchModel";
 
 type ActionsMap = Map<number, HubActionSummary>;
@@ -73,21 +73,4 @@ export function filterCertificationQueue(
       );
     })
     .sort((a, b) => b.createdAt - a.createdAt);
-}
-
-export function filterHistoryEvents(
-  events: ActivityEvent[],
-  search: string,
-  sortDirection: SortDirection
-): ActivityEvent[] {
-  const filtered = events.filter((event) => {
-    if (!search) return true;
-    return (
-      event.title.toLowerCase().includes(search) || event.description.toLowerCase().includes(search)
-    );
-  });
-
-  return [...filtered].sort((a, b) =>
-    sortDirection === "oldest" ? a.timestamp - b.timestamp : b.timestamp - a.timestamp
-  );
 }

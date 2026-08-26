@@ -2,12 +2,6 @@ import { describe, expect, it } from "vitest";
 import { adminRoutes } from "../../utils/navigation/admin-routes";
 
 describe("adminRoutes", () => {
-  it("builds route-backed Hub history detail links with sort context", () => {
-    expect(adminRoutes.hubHistoryDetail("event-id", { sort: "oldest" })).toBe(
-      "/hub/history/event-id?sort=oldest"
-    );
-  });
-
   it("builds route-backed Hub work detail links with garden and sort context", () => {
     expect(
       adminRoutes.hubWorkDetail("work-123", {
@@ -25,9 +19,9 @@ describe("adminRoutes", () => {
     expect(adminRoutes.hubWork(legacyContext)).toBe("/hub/work?sort=newest");
   });
 
-  it("encodes Hub history event ids as path segments", () => {
-    expect(adminRoutes.hubHistoryDetail("allocation:0xabc/1")).toBe(
-      "/hub/history/allocation%3A0xabc%2F1"
+  it("encodes Hub confirm commitment ids as path segments", () => {
+    expect(adminRoutes.hubConfirmDetail("allocation:0xabc/1")).toBe(
+      "/hub/confirm/allocation%3A0xabc%2F1"
     );
   });
 

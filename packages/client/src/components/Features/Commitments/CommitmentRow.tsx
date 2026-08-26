@@ -65,7 +65,11 @@ export function CommitmentRow({ row, title, sendFailed, onOpen }: CommitmentRowP
         {secondary ? (
           <p className="mt-0.5 truncate text-xs text-text-sub-600">{secondary}</p>
         ) : null}
-        {commitment.direction === "OFFER" || commitment.direction === "REQUEST" ? (
+        {/* The direction line earns its place only while the chip says
+            something else: an "Offered" chip on a fresh offer already tells
+            the direction, and saying it twice is stutter. */}
+        {(commitment.direction === "OFFER" && commitment.derivedState !== "OFFERED") ||
+        (commitment.direction === "REQUEST" && commitment.derivedState !== "REQUESTED") ? (
           <p className="mt-0.5 text-xs text-text-soft-400">
             {formatMessage({
               id:
@@ -92,7 +96,9 @@ export function CommitmentRow({ row, title, sendFailed, onOpen }: CommitmentRowP
           a phone a chip the width of "Waiting to be confirmed" beside the
           title leaves the title three letters. */}
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <StatusBadge size="sm" variant={state.tone}>
+          {/* Text carries the state; the generic variant glyphs (ℹ, clock)
+              added no meaning per family, so the chip goes icon-free. */}
+          <StatusBadge size="sm" variant={state.tone} showIcon={false}>
             {formatMessage({ id: state.labelId })}
           </StatusBadge>
           {sendFailed ? (

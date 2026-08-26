@@ -82,7 +82,10 @@ const sizeClasses: Record<NonNullable<AdminDialogProps["size"]>, string> = {
 const variantClasses: Record<NonNullable<AdminDialogProps["variant"]>, string> = {
   standard: "",
   confirm: "sm:max-w-md",
-  palette: "admin-dialog--palette sm:max-w-2xl p-0",
+  // Palette is top-anchored on desktop (not centered): with a fixed-height
+  // results list the input must never move while typing, and a centered,
+  // content-sized panel drifts its top edge as results narrow (AD-6).
+  palette: "admin-dialog--palette sm:max-w-2xl p-0 sm:top-24 sm:translate-y-0",
   // Full-surface action flow (Submit Work, Create Assessment, Create Hypercert):
   // the consumer (ActionFlowShell / wizard) owns the visible header + scrolling
   // body + pinned footer, so the structured header and inner padding are

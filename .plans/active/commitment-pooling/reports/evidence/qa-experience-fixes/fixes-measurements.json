@@ -96,42 +96,42 @@
   },
   "allocationEditor": [
     {
-      "invalid": "false",
+      "invalid": null,
+      "describedResolves": true,
+      "containsAlert": false
+    },
+    {
+      "invalid": null,
+      "describedResolves": true,
+      "containsAlert": false
+    },
+    {
+      "invalid": null,
+      "describedResolves": true,
+      "containsAlert": false
+    },
+    {
+      "invalid": null,
+      "describedResolves": true,
+      "containsAlert": false
+    },
+    {
+      "invalid": null,
+      "describedResolves": true,
+      "containsAlert": false
+    },
+    {
+      "invalid": null,
+      "describedResolves": true,
+      "containsAlert": false
+    },
+    {
+      "invalid": null,
       "describedResolves": false,
       "containsAlert": false
     },
     {
-      "invalid": "false",
-      "describedResolves": false,
-      "containsAlert": false
-    },
-    {
-      "invalid": "false",
-      "describedResolves": false,
-      "containsAlert": false
-    },
-    {
-      "invalid": "false",
-      "describedResolves": false,
-      "containsAlert": false
-    },
-    {
-      "invalid": "false",
-      "describedResolves": false,
-      "containsAlert": false
-    },
-    {
-      "invalid": "false",
-      "describedResolves": false,
-      "containsAlert": false
-    },
-    {
-      "invalid": "false",
-      "describedResolves": false,
-      "containsAlert": false
-    },
-    {
-      "invalid": "false",
+      "invalid": null,
       "describedResolves": false,
       "containsAlert": false
     }

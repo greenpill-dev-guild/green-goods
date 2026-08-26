@@ -13,6 +13,7 @@ type FormatMessage = (
 export type OpenDialog =
   | "cancel"
   | "mark-ready"
+  | "expire"
   | "raise-dispute"
   | "resolve-dispute"
   | "fallback-confirm"

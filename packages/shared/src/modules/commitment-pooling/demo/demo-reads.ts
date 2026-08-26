@@ -89,7 +89,14 @@ export async function getCommitmentDetail(
     contributors: w.contributors.filter((row) => row.commitmentId === commitmentId),
     assignments: [],
     workAttributions: w.workAttributions.filter((row) => row.commitmentId === commitmentId),
-    evidenceAttributions: [],
+    evidenceAttributions: w.evidenceAttributions
+      .filter((row) => row.commitmentId === commitmentId)
+      .map(({ cid, contributor, attacher, createdAt }) => ({
+        cid,
+        contributor,
+        attacher,
+        createdAt,
+      })),
     claimRequests: w.claimRequests.filter((row) => row.commitmentId === commitmentId),
     counterpartCommitments: [],
   };

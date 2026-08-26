@@ -36,7 +36,7 @@ const meta: Meta<typeof HubCanvasStory> = {
     docs: {
       description: {
         component:
-          "Seeded Hub workspace coverage through the real CanvasLayout shell, including work queue, assess, certify, history, and route-backed detail entry points.",
+          "Seeded Hub workspace coverage through the real CanvasLayout shell, including the confirm, work, assess, and certify stages and route-backed detail entry points.",
       },
     },
   },
@@ -145,14 +145,6 @@ export const CreateHypercertRoute: Story = {
   },
 };
 
-export const History: Story = {
-  tags: ["visual-harness"],
-  args: { initialPath: "/hub/history?sort=newest" },
-  decorators: hubDecorators(),
-};
-
-export const HistoryDetail: Story = {
-  tags: ["visual-harness"],
-  args: { initialPath: "/hub/history/assessment-assessment-rio-canopy?sort=newest" },
-  decorators: hubDecorators(),
-};
+// The History stage is retired (2026-08-25 AD-3): /hub/history and its
+// detail deep links redirect to the Hub's default stage, so the retired
+// stage keeps no stories.

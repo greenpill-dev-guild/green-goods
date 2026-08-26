@@ -424,6 +424,10 @@ export const Garden: React.FC = () => {
                   tabs={tabs}
                   activeTab={activeTab}
                   onTabChange={(tabId) => setActiveTab(tabId as GardenTab)}
+                  ariaLabel={intl.formatMessage({
+                    id: "app.garden.tabs.label",
+                    defaultMessage: "Garden sections",
+                  })}
                   variant="compact"
                   isLoading={gardensLoading || worksFetching}
                 />

@@ -1,10 +1,5 @@
 import { useMemo } from "react";
-import {
-  filterAssessmentQueue,
-  filterCertificationQueue,
-  filterHistoryEvents,
-  filterPendingWorks,
-} from "./hub.filters";
+import { filterAssessmentQueue, filterCertificationQueue, filterPendingWorks } from "./hub.filters";
 
 /**
  * The Hub's per-stage queues and the row a route currently selects. Pure
@@ -19,12 +14,10 @@ export function useHubStageQueues(input: {
   sortDirection: Parameters<typeof filterPendingWorks>[3];
   assessments: Parameters<typeof filterCertificationQueue>[0];
   hypercerts: Parameters<typeof filterCertificationQueue>[1];
-  activityEvents: Parameters<typeof filterHistoryEvents>[0];
   routeWorkId?: string | null;
   activeWorkDetailId?: string | null;
   routeCertificationId?: string | null;
   activeCertificationId?: string | null;
-  routeHistoryEventId?: string | null;
 }) {
   const {
     works,
@@ -33,12 +26,10 @@ export function useHubStageQueues(input: {
     sortDirection,
     assessments,
     hypercerts,
-    activityEvents,
     routeWorkId,
     activeWorkDetailId,
     routeCertificationId,
     activeCertificationId,
-    routeHistoryEventId,
   } = input;
 
   const pendingWorks = useMemo(
@@ -56,16 +47,6 @@ export function useHubStageQueues(input: {
     [assessments, hypercerts, normalizedSearch]
   );
 
-  const historyEvents = useMemo(
-    () => filterHistoryEvents(activityEvents, normalizedSearch, sortDirection),
-    [activityEvents, normalizedSearch, sortDirection]
-  );
-
-  const historyEventMap = useMemo(
-    () => new Map(historyEvents.map((event) => [event.id, event])),
-    [historyEvents]
-  );
-
   const selectedWork = useMemo(() => {
     const resolvedId = routeWorkId ?? activeWorkDetailId;
     return resolvedId ? works.find((work) => work.id === resolvedId) : undefined;
@@ -78,19 +59,11 @@ export function useHubStageQueues(input: {
       : undefined;
   }, [activeCertificationId, certificationQueue, routeCertificationId]);
 
-  const selectedHistoryEvent = useMemo(
-    () => (routeHistoryEventId ? historyEventMap.get(routeHistoryEventId) : undefined),
-    [historyEventMap, routeHistoryEventId]
-  );
-
   return {
     pendingWorks,
     assessmentQueue,
     certificationQueue,
-    historyEvents,
-    historyEventMap,
     selectedWork,
     selectedCertification,
-    selectedHistoryEvent,
   };
 }

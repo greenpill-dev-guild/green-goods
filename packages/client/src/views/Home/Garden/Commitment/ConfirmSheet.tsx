@@ -191,7 +191,7 @@ export function ConfirmSheet({
             {provider ? (
               <span className="flex flex-wrap items-center gap-1">
                 {formatMessage({ id: `app.confirm.summary.${cast}.before` })}
-                <AddressDisplay address={provider} showCopyButton={false} />
+                <AddressDisplay address={provider} showCopyButton={false} interactive={false} />
                 {formatMessage({ id: `app.confirm.summary.${cast}.after` })}
               </span>
             ) : (
@@ -223,7 +223,10 @@ export function ConfirmSheet({
                   {formatMessage({ id: "app.confirm.row.proof" })}
                 </span>
                 <span className="block text-xs text-text-sub-600">
-                  {formatMessage({ id: "app.confirm.row.proofMeta" }, { count: evidence.length })}
+                  {formatMessage(
+                    { id: "app.confirm.row.proofMeta" },
+                    { count: commitment.evidenceCount }
+                  )}
                 </span>
               </span>
             </li>
@@ -233,7 +236,11 @@ export function ConfirmSheet({
             <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
               {formatMessage({ id: "app.confirm.evidence.title" })}
             </p>
-            <EvidencePreview evidence={evidence} isLoading={evidenceLoading} />
+            <EvidencePreview
+              evidence={evidence}
+              isLoading={evidenceLoading}
+              recordedCount={commitment.evidenceCount}
+            />
           </div>
 
           <Meter done={count} of={threshold} />

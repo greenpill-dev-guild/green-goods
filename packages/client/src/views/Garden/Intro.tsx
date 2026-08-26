@@ -180,6 +180,10 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
             setActionUID(null);
             setGardenAddress(null);
           }}
+          ariaLabel={intl.formatMessage({
+            id: "app.gardenIntro.domains.label",
+            defaultMessage: "Domains",
+          })}
           variant="compact"
           className="mb-2"
           triggerClassName="px-1 text-[10px] leading-4 sm:px-3 sm:text-label-sm"

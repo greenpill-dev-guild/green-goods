@@ -51,6 +51,15 @@ export interface DemoDocument {
   [key: string]: unknown;
 }
 
+export interface DemoEvidenceAttribution {
+  chainId: number;
+  commitmentId: bigint;
+  cid: string;
+  contributor: Address;
+  attacher: Address;
+  createdAt: number;
+}
+
 export interface DemoWorld {
   viewer: Address;
   pools: CommitmentPoolRecord[];
@@ -60,6 +69,9 @@ export interface DemoWorld {
   contributors: CommitmentContributorRecord[];
   claimRequests: CommitmentClaimRequestRecord[];
   workAttributions: CommitmentWorkAttributionRecord[];
+  /** The proof behind every non-zero evidenceCount, so the demo detail and
+   * confirm sheet can never disagree about what was attached. */
+  evidenceAttributions: DemoEvidenceAttribution[];
   /** Documents behind every fixture CID: titles, reasons, cycle names. */
   documents: Record<string, DemoDocument>;
 }
@@ -201,7 +213,67 @@ export function buildDemoWorld(viewer: Address): DemoWorld {
     },
   ];
 
+  // One attribution row per counted piece of proof, each with a readable
+  // note document — the fixture world never says "2 proofs" and shows none.
+  const evidence = (
+    commitmentId: bigint,
+    who: Address,
+    notes: string[]
+  ): DemoEvidenceAttribution[] =>
+    notes.map((_, index) => ({
+      chainId: DEMO_CHAIN_ID,
+      commitmentId,
+      cid: `bafy-demo-e${commitmentId.toString()}-${index + 1}`,
+      contributor: who,
+      attacher: who,
+      createdAt: NOW - 86_400 * (notes.length - index) - 3_600 * index,
+    }));
+
+  const evidenceNotes: Array<[bigint, Address, string[]]> = [
+    [1007n, V, ["First planting event done — 40 saplings in on the north strip."]],
+    [
+      1008n,
+      V,
+      [
+        "Sharpened the hand tools before the work day.",
+        "Second session done — the loppers and both spades.",
+      ],
+    ],
+    [
+      1009n,
+      MARIA,
+      ["Saturday ride done, four crates delivered.", "Second trip done — brought back the crates."],
+    ],
+    [
+      1010n,
+      TUNDE,
+      [
+        "Cleared the brambles up to the gate.",
+        "Gravel down on the worst stretch.",
+        "Path swept and the edges trimmed.",
+      ],
+    ],
+    [1011n, V, ["Six portions delivered warm at noon."]],
+    [1012n, V, ["Three rows mulched before the rain.", "Finished the last two rows."]],
+    [1015n, V, ["Walked the lines with Rosa; two drippers replaced."]],
+    [1018n, EDU, ["Field day held — photos with the group at the end."]],
+    [1019n, TUNDE, ["New hinge fitted.", "Door closes flush now; latch adjusted."]],
+    [1020n, TUNDE, ["Delivery made to the garden gate."]],
+  ];
+  const evidenceAttributions = evidenceNotes.flatMap(([commitmentId, who, notes]) =>
+    evidence(commitmentId, who, notes)
+  );
+  const evidenceDocuments = Object.fromEntries(
+    evidenceNotes.flatMap(([commitmentId, , notes]) =>
+      notes.map((note, index) => [
+        `bafy-demo-e${commitmentId.toString()}-${index + 1}`,
+        { version: 1, note } satisfies DemoDocument,
+      ])
+    )
+  );
+
   const documents: Record<string, DemoDocument> = {
+    ...evidenceDocuments,
     "bafy-demo-charter": { version: 1, title: "Green Goods Community Garden pool charter" },
     "bafy-demo-pause-102": {
       version: 1,
@@ -261,6 +333,7 @@ export function buildDemoWorld(viewer: Address): DemoWorld {
     contributors,
     claimRequests,
     workAttributions,
+    evidenceAttributions,
     documents,
   };
 }

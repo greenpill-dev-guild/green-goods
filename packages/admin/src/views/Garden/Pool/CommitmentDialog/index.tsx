@@ -20,6 +20,7 @@ import {
   CommitmentFallbackDialog,
   CommitmentReasonDialogs,
 } from "./CommitmentReasonDialogs";
+import { CommitmentExpireDialog } from "../CommitmentExpireDialog";
 import { CommitmentRecovery } from "./CommitmentRecovery";
 import { CommitmentResolveDialog } from "./CommitmentResolveDialog";
 import { CommitmentSummary } from "./CommitmentSummary";
@@ -173,6 +174,17 @@ function CommitmentRecord({
         tone={tone}
         acts={acts}
         blockedReason={blockedReason}
+      />
+      <CommitmentExpireDialog
+        isOpen={open === "expire"}
+        onClose={closeDialog}
+        tone={tone}
+        title={title}
+        isLoading={dialog.isActing}
+        onConfirm={async () => {
+          await acts.expire();
+          closeDialog();
+        }}
       />
       <CommitmentResolveDialog
         open={open}

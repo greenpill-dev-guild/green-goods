@@ -123,10 +123,11 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           />
         </div>
 
-        {/* Results */}
-        <div ref={listRef} className="max-h-72 overflow-y-auto p-2" role="listbox">
+        {/* Results — fixed height, scrolling inside: the panel must not resize
+            (and the input must not move) as the result set narrows. */}
+        <div ref={listRef} className="h-72 overflow-y-auto p-2" role="listbox">
           {results.length === 0 ? (
-            <p className="py-6 text-center text-sm text-text-soft">
+            <p className="flex h-full items-center justify-center text-sm text-text-soft">
               {formatMessage({
                 id: "app.admin.nav.searchNoResults",
                 defaultMessage: "No results found",
