@@ -27,6 +27,7 @@ import {
   readDistributionOutcome,
   readDistributionSnapshot,
   readHarvestReceiptFailure,
+  readWaitingBalance,
 } from "./harvestDistributionHelpers";
 
 export type HarvestDistributionStage =
@@ -240,12 +241,11 @@ export function useHarvestDistribution() {
             outcome: "waiting",
             durationMs: Date.now() - startedAt,
           });
-          return {
-            status: "waiting",
+          const fresh = await readWaitingBalance(config, chainId, yieldSplitter, params, {
             availableAmount: outcome.totalPending,
             threshold: snapshot.threshold,
-            harvested,
-          };
+          });
+          return { status: "waiting", ...fresh, harvested };
         }
         if (outcome.kind === "reverted") {
           // A readable receipt with neither resolver event means the inner

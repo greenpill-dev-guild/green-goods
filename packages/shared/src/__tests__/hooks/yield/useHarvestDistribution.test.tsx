@@ -143,6 +143,18 @@ function yieldAccumulatedLog(totalPending: bigint) {
   };
 }
 
+function harvestTriggeredLog() {
+  return {
+    address: OCTANT,
+    topics: encodeEventTopics({
+      abi: OCTANT_MODULE_ABI,
+      eventName: "HarvestTriggered",
+      args: { garden: GARDEN, asset: ASSET, caller: GARDEN },
+    }),
+    data: "0x" as const,
+  };
+}
+
 function harvestReportFailedLog() {
   return {
     address: OCTANT,
@@ -186,7 +198,9 @@ describe("useHarvestDistribution", () => {
       .mockResolvedValueOnce({ hash: HARVEST_HASH, sponsored: false })
       .mockResolvedValueOnce({ hash: SPLIT_HASH, sponsored: false });
     mockGetReceipt.mockImplementation((_config: unknown, { hash }: { hash: string }) =>
-      Promise.resolve(hash === HARVEST_HASH ? { logs: [] } : { logs: [yieldSplitLog()] })
+      Promise.resolve(
+        hash === HARVEST_HASH ? { logs: [harvestTriggeredLog()] } : { logs: [yieldSplitLog()] }
+      )
     );
   });
 
@@ -403,8 +417,15 @@ describe("useHarvestDistribution", () => {
   it("reports waiting when the split accumulates below the threshold instead of splitting", async () => {
     // splitYield() emits YieldAccumulated (no YieldSplit) when redemption
     // limits leave the total below the threshold; that is not a distribution.
+    // The waiting balance comes from a fresh post-transaction snapshot (10n
+    // here), not the event's pending total (5n), because a liquidity-capped
+    // split can leave unredeemed registered shares out of the event amount.
     mockGetReceipt.mockImplementation((_config: unknown, { hash }: { hash: string }) =>
-      Promise.resolve(hash === HARVEST_HASH ? { logs: [] } : { logs: [yieldAccumulatedLog(5n)] })
+      Promise.resolve(
+        hash === HARVEST_HASH
+          ? { logs: [harvestTriggeredLog()] }
+          : { logs: [yieldAccumulatedLog(5n)] }
+      )
     );
     const { result } = renderHook(() => useHarvestDistribution(), {
       wrapper: wrapper(queryClient),
@@ -425,7 +446,7 @@ describe("useHarvestDistribution", () => {
     expect(result.current.data).toEqual(
       expect.objectContaining({
         status: "waiting",
-        availableAmount: 5n,
+        availableAmount: 10n,
         threshold: 7n,
         harvested: true,
       })
@@ -438,7 +459,7 @@ describe("useHarvestDistribution", () => {
   it("preserves a confirmed split when the receipt cannot be read after harvesting", async () => {
     mockGetReceipt.mockImplementation((_config: unknown, { hash }: { hash: string }) =>
       hash === HARVEST_HASH
-        ? Promise.resolve({ logs: [] })
+        ? Promise.resolve({ logs: [harvestTriggeredLog()] })
         : Promise.reject(new Error("rpc unavailable"))
     );
     const { result } = renderHook(() => useHarvestDistribution(), {
@@ -526,6 +547,37 @@ describe("useHarvestDistribution", () => {
     );
   });
 
+  it("treats a harvest receipt without any module event as a reverted harvest", async () => {
+    // A reverted inner Octant.harvest() inside a successful UserOperation
+    // yields a readable receipt with no HarvestTriggered and no failure
+    // events; that must not count as a confirmed harvest.
+    mockGetReceipt.mockImplementation((_config: unknown, { hash }: { hash: string }) =>
+      Promise.resolve({ logs: hash === HARVEST_HASH ? [] : [yieldSplitLog()] })
+    );
+    const { result } = renderHook(() => useHarvestDistribution(), {
+      wrapper: wrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        gardenAddress: GARDEN,
+        assetAddress: ASSET,
+        vaultAddress: VAULT,
+        assetSymbol: "DAI",
+        harvestFirst: true,
+        hadPendingYield: false,
+        thresholdMetBefore: false,
+      });
+    });
+
+    expect(mockSendContractCall).toHaveBeenCalledTimes(1);
+    expect(result.current.data).toEqual({
+      status: "harvest_incomplete",
+      hash: HARVEST_HASH,
+      failure: "reverted",
+    });
+  });
+
   it("stops as harvest_incomplete when the harvest receipt cannot be inspected", async () => {
     // Failure events are the only signal a harvest silently failed, so an
     // unreadable receipt must stop the workflow rather than proceed fail-open.
@@ -559,11 +611,11 @@ describe("useHarvestDistribution", () => {
   });
 
   it("keeps an eventless confirmed split retryable after a confirmed harvest", async () => {
-    // A readable receipt with neither YieldSplit nor YieldAccumulated means
-    // the inner call reverted (e.g. inside a successful UserOperation). The
-    // empty harvest receipt carries no failure events, so the harvest stage
-    // still confirms.
-    mockGetReceipt.mockResolvedValue({ logs: [] });
+    // A readable split receipt with neither YieldSplit nor YieldAccumulated
+    // means the inner call reverted (e.g. inside a successful UserOperation).
+    mockGetReceipt.mockImplementation((_config: unknown, { hash }: { hash: string }) =>
+      Promise.resolve({ logs: hash === HARVEST_HASH ? [harvestTriggeredLog()] : [] })
+    );
     const { result } = renderHook(() => useHarvestDistribution(), {
       wrapper: wrapper(queryClient),
     });

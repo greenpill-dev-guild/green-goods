@@ -25,6 +25,15 @@ export const OCTANT_MODULE_ABI = [
     ],
   },
   {
+    type: "event",
+    name: "HarvestTriggered",
+    inputs: [
+      { name: "garden", type: "address", indexed: true },
+      { name: "asset", type: "address", indexed: true },
+      { name: "caller", type: "address", indexed: true },
+    ],
+  },
+  {
     type: "function",
     name: "harvest",
     stateMutability: "nonpayable",

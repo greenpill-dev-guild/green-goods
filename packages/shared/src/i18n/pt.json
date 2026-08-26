@@ -3292,6 +3292,7 @@
   "app.yield.harvestDistribution.harvestIncomplete": "A colheita não foi concluída",
   "app.yield.harvestDistribution.harvestIncompleteRegistrationDetails": "A transação de colheita foi confirmada, mas as novas participações de rendimento não puderam ser registradas para distribuição. Elas permanecem no Yield Resolver e tentar a colheita novamente não pode recuperá-las: a pessoa proprietária do resolver precisa registrá-las ou recuperá-las.",
   "app.yield.harvestDistribution.harvestIncompleteReportDetails": "A transação de colheita foi confirmada, mas o cofre não conseguiu reportar novo rendimento. Nenhum novo rendimento foi registrado para distribuição. Tente a colheita novamente; se isso persistir, contate a pessoa proprietária do módulo.",
+  "app.yield.harvestDistribution.harvestIncompleteRevertedDetails": "A transação de colheita foi confirmada, mas a colheita em si não foi executada na cadeia. Tente a colheita novamente.",
   "app.yield.harvestDistribution.harvestIncompleteUnverifiedDetails": "A transação de colheita foi confirmada, mas o resultado ainda não pôde ser verificado. Tente a colheita novamente quando a rede se estabilizar.",
   "app.yield.harvestDistribution.harvestSubmittedDetails": "A colheita foi enviada para execução. A distribuição ficará disponível após a confirmação da colheita.",
   "app.yield.harvestDistribution.inProgress": "Concluindo a distribuição do rendimento",

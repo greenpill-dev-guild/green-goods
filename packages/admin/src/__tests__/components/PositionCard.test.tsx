@@ -454,6 +454,23 @@ describe("PositionCard", () => {
       );
     });
 
+    it("explains a reverted harvest and keeps the retry available", () => {
+      mockHarvestDistribution = {
+        ...mockHarvestDistribution,
+        data: {
+          status: "harvest_incomplete",
+          hash: `0x${"c".repeat(64)}`,
+          failure: "reverted",
+        },
+        stage: "harvest_incomplete",
+      };
+
+      render(createElement(PositionCard, { ...defaultProps, canManage: true }));
+
+      expect(screen.getByText(/the harvest itself did not execute/i)).toBeInTheDocument();
+      expect(screen.getByText("Retry harvest")).toBeInTheDocument();
+    });
+
     it("offers no harvest retry for a failed shares registration", () => {
       // Re-harvesting snapshots the resolver balance including the stuck
       // shares, so it cannot recover a failed registration.

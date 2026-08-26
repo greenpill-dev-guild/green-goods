@@ -1,6 +1,9 @@
 import { Card } from "@green-goods/shared/components/Cards/CardBase";
 import { Alert } from "@green-goods/shared/components/Alert";
-import { useHarvestDistribution } from "@green-goods/shared/hooks/yield/useHarvestDistribution";
+import {
+  type HarvestDistributionResult,
+  useHarvestDistribution,
+} from "@green-goods/shared/hooks/yield/useHarvestDistribution";
 import {
   estimateYieldDistribution,
   useYieldStatus,
@@ -39,6 +42,18 @@ interface PositionCardProps {
   onDeposit: (assetAddress: Address) => void;
   onWithdraw: (assetAddress: Address) => void;
 }
+
+type HarvestIncompleteFailure = Extract<
+  HarvestDistributionResult,
+  { status: "harvest_incomplete" }
+>["failure"];
+
+const HARVEST_INCOMPLETE_MESSAGE_ID: Record<HarvestIncompleteFailure, string> = {
+  report_failed: "app.yield.harvestDistribution.harvestIncompleteReportDetails",
+  registration_failed: "app.yield.harvestDistribution.harvestIncompleteRegistrationDetails",
+  reverted: "app.yield.harvestDistribution.harvestIncompleteRevertedDetails",
+  unverifiable: "app.yield.harvestDistribution.harvestIncompleteUnverifiedDetails",
+};
 
 export function PositionCard({
   gardenAddress,
@@ -366,14 +381,7 @@ export function PositionCard({
                 ) : undefined
               }
             >
-              {formatMessage({
-                id:
-                  distributionResult.failure === "report_failed"
-                    ? "app.yield.harvestDistribution.harvestIncompleteReportDetails"
-                    : distributionResult.failure === "registration_failed"
-                      ? "app.yield.harvestDistribution.harvestIncompleteRegistrationDetails"
-                      : "app.yield.harvestDistribution.harvestIncompleteUnverifiedDetails",
-              })}
+              {formatMessage({ id: HARVEST_INCOMPLETE_MESSAGE_ID[distributionResult.failure] })}
             </Alert>
           )}
 
