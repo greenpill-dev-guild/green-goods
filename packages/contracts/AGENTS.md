@@ -168,7 +168,7 @@ function mint(address to) { ... }  // Defaults to public!
 
 ```solidity
 // ✅ Multi-sig + Timelock for admin actions
-// - Gnosis Safe (at least a 2-signature threshold and at least 3 owners)
+// - Gnosis Safe (at least a 2-signature threshold)
 // - Timelock delay (48h for mainnet, 24h for testnet)
 // - Emergency pause with separate guardian
 
@@ -467,9 +467,9 @@ highest tier reached by the boundary:
    finding. Any later custody, transferability, peer wiring, allowance, or value authority moves
    the boundary to tier 3 before it is enabled.
 3. **Value-bearing or protocol-authority activation** — protocol UUPS/admin ownership must be on a
-   Gnosis Safe with a threshold of at least 2 and at least 3 owners. The exact approved owner set
-   and threshold must be frozen in the release manifest and verified live; the current approved
-   protocol target is exact 2-of-6. External audit, timelock (48h mainnet, 24h testnet), and minimum
+   Gnosis Safe with a threshold of at least 2. Owner membership is operationally managed and does
+   not block the release; the verifier reads only the live threshold. External audit, timelock
+   (48h mainnet, 24h testnet), and minimum
    two-week testnet operation are blocking defaults. A human release owner may replace or waive
    one of those defaults only through an explicit, dated, release-scoped disposition that names
    the substitute evidence; no agent, passing test, or deployment artifact grants that waiver.

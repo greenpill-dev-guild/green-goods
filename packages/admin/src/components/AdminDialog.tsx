@@ -4,6 +4,7 @@ import {
   type ComponentType,
   type KeyboardEventHandler,
   type ReactNode,
+  type RefObject,
   isValidElement,
   useEffect,
   useState,
@@ -33,6 +34,8 @@ export interface AdminDialogProps {
   preventClose?: boolean;
   role?: "dialog" | "alertdialog";
   onKeyDown?: KeyboardEventHandler<HTMLDivElement>;
+  /** Optional focus target for controlled dialogs opened without Dialog.Trigger. */
+  finalFocusRef?: RefObject<HTMLElement | null>;
   className?: string;
   /**
    * Workspace tone for the portaled surface. The dialog portals to <body>,
@@ -58,6 +61,9 @@ export interface AdminConfirmDialogProps {
   cancelLabel?: string;
   variant?: "default" | "warning" | "danger";
   isLoading?: boolean;
+  /** Disables only the confirm action (cancel/close stay usable), e.g. while
+   * the data the confirmation describes is still being refreshed. */
+  confirmDisabled?: boolean;
   icon?: ReactNode;
   /** Workspace tone, forwarded to the portaled surface (see AdminDialogProps.tone). */
   tone?: AdminDialogProps["tone"];
@@ -162,6 +168,7 @@ export function AdminDialog({
   preventClose = false,
   role = "dialog",
   onKeyDown,
+  finalFocusRef,
   className,
   // Default to the neutral "home" tone so a dialog that omits `tone` still
   // renders a deliberate accent in-portal instead of falling back to green
@@ -264,6 +271,11 @@ export function AdminDialog({
             if (preventClose) event.preventDefault();
           }}
           onKeyDown={onKeyDown}
+          onCloseAutoFocus={(event) => {
+            if (!finalFocusRef?.current) return;
+            event.preventDefault();
+            finalFocusRef.current.focus();
+          }}
         >
           {/* Close button - absolute top-right */}
           {!hideCloseButton ? (
@@ -366,6 +378,7 @@ export function AdminConfirmDialog({
   cancelLabel,
   variant = "default",
   isLoading = false,
+  confirmDisabled = false,
   icon,
   tone,
 }: AdminConfirmDialogProps) {
@@ -432,7 +445,7 @@ export function AdminConfirmDialog({
             type="button"
             variant={isDanger ? "danger" : "filled"}
             onClick={handleConfirm}
-            disabled={isLoading}
+            disabled={isLoading || confirmDisabled}
             loading={isLoading}
           >
             {resolvedConfirmLabel}

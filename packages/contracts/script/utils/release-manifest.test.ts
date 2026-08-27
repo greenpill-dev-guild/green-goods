@@ -18,7 +18,6 @@ describe("combined commitment release manifest", () => {
     expect(manifest.ownership.protocolSafeConfiguration).toMatchObject({
       threshold: "2",
       contractsGuideMinimumThreshold: "2",
-      contractsGuideMinimumOwnerCount: "3",
       guidePolicyStatus: "satisfied",
     });
     expect(manifest.ownership.protocolSafeConfiguration.owners).toHaveLength(6);
@@ -116,27 +115,22 @@ describe("combined commitment release manifest", () => {
     );
   });
 
-  it("freezes the Celo protocol Safe separately from Arbitrum's owner set", () => {
+  it("records the Celo protocol Safe while gating only on threshold", () => {
     const manifest = loadReleaseManifest();
     const celo = manifest.ownership.celoProtocolSafeConfiguration;
-    const approved = new Set(manifest.ownership.protocolSafeConfiguration.owners.map((owner) => owner.toLowerCase()));
     expect(celo.threshold).toBe("2");
-    expect(celo.owners).toHaveLength(4);
-    // No new identity: every Celo signer is already an approved protocol Safe signer.
-    expect(celo.owners.every((owner) => approved.has(owner.toLowerCase()))).toBe(true);
-    expect(celo.guidePolicyStatus).toBe("pending-live-threshold-raise");
+    expect(celo.owners).toHaveLength(5);
+    expect(celo.owners).toContain("0x04D60647836bcA09c37B379550038BdaaFD82503");
+    expect(celo.liveThresholdAtFreeze).toBe("2");
+    expect(celo.guidePolicyStatus).toBe("satisfied");
 
-    const strangerSigner = structuredClone(manifest);
-    strangerSigner.ownership.celoProtocolSafeConfiguration.owners[0] = "0x000000000000000000000000000000000000dEaD";
-    expect(() => validateReleaseManifest(strangerSigner)).toThrow(/not an approved protocol Safe signer/);
+    const independentSigner = structuredClone(manifest);
+    independentSigner.ownership.celoProtocolSafeConfiguration.owners[0] = "0x000000000000000000000000000000000000dEaD";
+    expect(() => validateReleaseManifest(independentSigner)).not.toThrow();
 
     const belowFloor = structuredClone(manifest);
     belowFloor.ownership.celoProtocolSafeConfiguration.threshold = "1";
     expect(() => validateReleaseManifest(belowFloor)).toThrow(/Celo protocol Safe must have threshold >= 2/);
-
-    const impossible = structuredClone(manifest);
-    impossible.ownership.celoProtocolSafeConfiguration.threshold = "5";
-    expect(() => validateReleaseManifest(impossible)).toThrow(/may not exceed its owner count/);
   });
 
   it("rejects numeric selectors, duplicate schemas, and half-configured authority", () => {
@@ -209,11 +203,6 @@ describe("combined commitment release manifest", () => {
     const belowMinimumThreshold = structuredClone(manifest);
     belowMinimumThreshold.ownership.protocolSafeConfiguration.threshold = "1";
     expect(() => validateReleaseManifest(belowMinimumThreshold)).toThrow(/threshold >= 2/);
-
-    const belowMinimumOwners = structuredClone(manifest);
-    belowMinimumOwners.ownership.protocolSafeConfiguration.owners =
-      belowMinimumOwners.ownership.protocolSafeConfiguration.owners.slice(0, 2);
-    expect(() => validateReleaseManifest(belowMinimumOwners)).toThrow(/owner count >= 3/);
 
     const statusMismatch = structuredClone(manifest);
     const statusMismatchMeasurement = statusMismatch.chains.arbitrum.destinationGasMeasurement;

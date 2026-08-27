@@ -18,6 +18,7 @@ import {
   EditorialDomainChip,
   EditorialHeading,
   EditorialKicker,
+  EditorialMediaCardSkeleton,
   EditorialSelect,
   type EditorialSelectOption,
   EditorialTitleAccent,
@@ -460,12 +461,7 @@ export default function ImpactPage() {
                 aria-hidden="true"
               >
                 {[0, 1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex flex-col gap-4">
-                    <div className="aspect-[3/2] w-full animate-pulse bg-bg-weak-50" />
-                    <div className="h-3 w-24 animate-pulse bg-stroke-soft-200/60" />
-                    <div className="h-5 w-3/4 animate-pulse bg-stroke-soft-200/60" />
-                    <div className="h-3 w-1/2 animate-pulse bg-stroke-soft-200/40" />
-                  </div>
+                  <EditorialMediaCardSkeleton key={i} />
                 ))}
               </div>
             }

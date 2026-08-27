@@ -34,14 +34,51 @@ function normalizePathname(pathname: string): string {
   return normalized || "/";
 }
 
+function effectivePathname(url: URL): string {
+  if (url.hash.startsWith("#/")) {
+    try {
+      return new URL(url.hash.slice(1), url.origin).pathname;
+    } catch {
+      return url.pathname;
+    }
+  }
+  return url.pathname;
+}
+
 function isProductionPublicWebsiteUrl(url: URL): boolean {
   if (isLocalHostname(url.hostname)) return false;
 
-  const pathname = normalizePathname(url.pathname);
+  const pathname = normalizePathname(effectivePathname(url));
   return (
     PUBLIC_WEBSITE_PATHS.has(pathname) ||
     PUBLIC_WEBSITE_PREFIXES.some((prefix) => pathname.startsWith(prefix))
   );
+}
+
+function getPresentationUrl(source?: string | URL): URL | null {
+  if (source instanceof URL) return source;
+
+  try {
+    if (source) return new URL(source, "https://greengoods.local/");
+    if (typeof window !== "undefined" && window.location.href) {
+      return new URL(window.location.href);
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+/**
+ * Resolves the shell that owns a URL. Public production routes remain website
+ * pages even when opened from a standalone window; every other route follows
+ * the shared installed/local-preview presentation contract.
+ */
+export function getClientRoutePresentationMode(source?: string | URL): "website" | "pwa" {
+  const url = getPresentationUrl(source);
+  if (url && isProductionPublicWebsiteUrl(url)) return "website";
+  return getClientPresentationMode(source);
 }
 
 function getSafeInternalRedirect(value: string | null): string | null {
@@ -73,13 +110,11 @@ function getPwaEntryRoute(request: Request): string {
 
 export function requireWebsitePresentationLoader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
-  if (isProductionPublicWebsiteUrl(url)) return null;
-
-  if (getClientPresentationMode(request.url) === "website") return null;
+  if (getClientRoutePresentationMode(url) === "website") return null;
   return redirect(getPwaEntryRoute(request));
 }
 
 export function requirePwaPresentationLoader(args?: LoaderFunctionArgs) {
-  if (getClientPresentationMode(args?.request.url) === "pwa") return null;
+  if (getClientRoutePresentationMode(args?.request.url) === "pwa") return null;
   return redirect(WEBSITE_ENTRY_ROUTE);
 }

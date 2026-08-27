@@ -1,5 +1,6 @@
 import type { PublicSurfaceState as PublicSurfaceStateValue } from "@green-goods/shared/public";
 import type { ReactNode } from "react";
+import { FormattedMessage } from "react-intl";
 
 export interface PublicSurfaceStateProps {
   state: PublicSurfaceStateValue;
@@ -22,12 +23,10 @@ export function PublicSurfaceState({
   if (state === "ready") return <>{children}</>;
   if (state === "loading") {
     return (
-      <Container
-        role="status"
-        aria-live="polite"
-        aria-busy="true"
-        data-public-surface-state={state}
-      >
+      <Container aria-busy="true" data-public-surface-state={state}>
+        <span className="sr-only">
+          <FormattedMessage id="app.common.loading" defaultMessage="Loading..." />
+        </span>
         {loading}
       </Container>
     );

@@ -586,15 +586,15 @@ export {
   useQueueStatistics,
   useWorks,
 } from "./work/useWorks";
-// ============================================================================
 // YIELD
-// ============================================================================
 export { useAllocateYield } from "./yield/useAllocateYield";
 export {
   type GardenYieldSummary,
   useGardenYieldSummary,
 } from "./yield/useGardenYieldSummary";
 export { useGardenYieldWiringState } from "./yield/useGardenYieldWiringState";
+// useHarvestDistribution and useYieldStatus are deliberately not re-exported
+// here: consumers import their declared leaf subpaths (package.json#exports).
 export { usePendingYield } from "./yield/usePendingYield";
 export {
   type ProtocolYieldSummary,

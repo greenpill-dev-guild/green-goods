@@ -147,6 +147,9 @@ describe("GardensGallery", () => {
   it("shows skeletons during loading", () => {
     mockUsePublicGardens.mockReturnValue({ data: [], isLoading: true });
     const { container } = renderView();
-    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThanOrEqual(3);
+    expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
+      6
+    );
+    expect(container.querySelector(".animate-pulse")).toBeNull();
   });
 });

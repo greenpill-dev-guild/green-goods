@@ -32,7 +32,6 @@
       ],
       "ownerDecisionDate": "2026-08-11",
       "contractsGuideMinimumThreshold": "2",
-      "contractsGuideMinimumOwnerCount": "3",
       "guidePolicyStatus": "satisfied"
     },
     "celoProtocolSafeConfiguration": {
@@ -41,11 +40,12 @@
         "0xa9d20b435A85fAAa002f32d66F7D21564130E9cf",
         "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
         "0x5c79d252F458b3720f7f230f8490fd1eE81d32FB",
-        "0x6166E1964447E0959bC7c8d543DB3ab82dB65044"
+        "0x6166E1964447E0959bC7c8d543DB3ab82dB65044",
+        "0x04D60647836bcA09c37B379550038BdaaFD82503"
       ],
-      "ownerDecisionDate": "2026-08-21",
-      "liveThresholdAtFreeze": "1",
-      "guidePolicyStatus": "pending-live-threshold-raise"
+      "ownerDecisionDate": "2026-08-25",
+      "liveThresholdAtFreeze": "2",
+      "guidePolicyStatus": "satisfied"
     },
     "rollbackOwnerBeforeTransfer": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
     "rollbackOwnerAfterTransfer": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",

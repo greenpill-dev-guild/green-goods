@@ -20,6 +20,7 @@ export {
 export * from "./data-credit";
 export * from "./data-lineage";
 export * from "./data-public-pools";
+export * from "./data-pool-funding";
 export * from "./data-series";
 export * from "./data-settlement";
 

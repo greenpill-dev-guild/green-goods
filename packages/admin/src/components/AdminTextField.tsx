@@ -1,6 +1,6 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as React from "react";
-import { type ComponentType, useId, useRef, useState } from "react";
+import { type ComponentType, useCallback, useId, useRef, useState } from "react";
 
 // ============================================================================
 // Types
@@ -72,23 +72,33 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
     const supportingId = `${inputId}-supporting`;
 
     const [focused, setFocused] = useState(false);
+    const [uncontrolledHasValue, setUncontrolledHasValue] = useState(Boolean(defaultValue));
 
     // Internal ref to read uncontrolled input value for isFloating detection
     const internalRef = useRef<HTMLInputElement | null>(null);
 
-    // Merge the forwarded ref and our internal ref via callback ref
-    const mergeRef = (node: HTMLInputElement | null) => {
-      internalRef.current = node;
-      if (typeof ref === "function") {
-        ref(node);
-      } else if (ref) {
-        (ref as React.MutableRefObject<HTMLInputElement | null>).current = node;
-      }
-    };
+    // Merge the forwarded ref and our internal ref via callback ref. React Hook
+    // Form restores uncontrolled values in its ref callback, so read the DOM
+    // value after forwarding and update the label state before the next paint.
+    const mergeRef = useCallback(
+      (node: HTMLInputElement | null) => {
+        internalRef.current = node;
+        if (typeof ref === "function") {
+          ref(node);
+        } else if (ref) {
+          (ref as React.MutableRefObject<HTMLInputElement | null>).current = node;
+        }
+
+        if (node && value === undefined) {
+          const nextHasValue = node.value.length > 0;
+          setUncontrolledHasValue((current) => (current === nextHasValue ? current : nextHasValue));
+        }
+      },
+      [ref, value]
+    );
 
     // Determine if the label should be in floating position
-    const hasValue =
-      value !== undefined ? value.length > 0 : (internalRef.current?.value?.length ?? 0) > 0;
+    const hasValue = value !== undefined ? value.length > 0 : uncontrolledHasValue;
 
     const isFloating = focused || hasValue || Boolean(defaultValue);
 
@@ -107,10 +117,8 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setUncontrolledHasValue(e.currentTarget.value.length > 0);
       onChange?.(e);
-      // Force re-evaluation of isFloating for uncontrolled usage
-      // The ref update is synchronous so we just trigger a re-render via setState
-      setFocused((prev) => prev);
     };
 
     // -------------------------------------------------------------------------

@@ -52,6 +52,7 @@ export type { CommitmentProofDraftHandle, ProofDraftFiles } from "./useCommitmen
 export { useCommitmentReason } from "./useCommitmentReason";
 export { usePoolCharter } from "./usePoolCharter";
 export { usePoolClaimRequests } from "./usePoolClaimRequests";
+export { usePoolFunding } from "./usePoolFunding";
 export type { ProtocolPool } from "./useProtocolPool";
 export { useProtocolPool } from "./useProtocolPool";
 export { useCommitmentJobs } from "./useCommitmentJobs";

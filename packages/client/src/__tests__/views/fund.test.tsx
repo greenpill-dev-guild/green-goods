@@ -623,6 +623,27 @@ describe("FundPage", () => {
     expect(screen.getAllByText(/No endowment activity on this network yet/i)).toHaveLength(2);
   });
 
+  it("uses editorial skeletons while endowment metrics load", () => {
+    mockUsePublicVaultSummary.mockReturnValue({
+      hasVaults: false,
+      isLoading: true,
+      isError: false,
+      isYieldLoading: true,
+      isYieldError: false,
+      isAllocationLoading: true,
+      isAllocationError: false,
+      gardensByAddress: {},
+      assets: [],
+    });
+
+    const { container } = renderView();
+
+    expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
+      2
+    );
+    expect(container.querySelector(".animate-pulse")).toBeNull();
+  });
+
   it("keeps the asset cards visible with an error message when the metrics fetch fails", () => {
     mockUsePublicVaultSummary.mockReturnValue({
       hasVaults: false,

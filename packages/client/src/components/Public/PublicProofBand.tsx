@@ -1,6 +1,12 @@
 import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { useIntl } from "react-intl";
-import { EditorialHeading, EditorialKicker, EditorialLede, EditorialLinkArrow } from "./atoms";
+import {
+  EditorialHeading,
+  EditorialKicker,
+  EditorialLede,
+  EditorialLinkArrow,
+  EditorialStatSkeleton,
+} from "./atoms";
 
 export interface PublicProofBandProps {
   gardens: number;
@@ -28,11 +34,11 @@ function ProofMarker({
   defaultNote,
 }: ProofMarkerProps) {
   const { formatMessage } = useIntl();
-  const formatted = isLoading ? "..." : new Intl.NumberFormat().format(value);
+  const formatted = new Intl.NumberFormat().format(value);
   return (
     <div>
       <p className="font-serif text-5xl font-normal leading-none tracking-[-0.025em] text-text-strong-950 md:text-6xl">
-        {formatted}
+        {isLoading ? <EditorialStatSkeleton className="h-12 w-24 md:h-14 md:w-28" /> : formatted}
       </p>
       <p className="mt-3 font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-text-soft-400">
         {formatMessage({ id: labelId, defaultMessage: defaultLabel })}

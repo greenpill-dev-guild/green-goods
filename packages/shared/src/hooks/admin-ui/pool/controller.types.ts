@@ -23,6 +23,19 @@ import type {
 import type { Address } from "../../../types/domain";
 import type { EASGardenAssessment } from "../../../types/eas-responses";
 import type { CommitmentWorkDecision } from "../../../modules/commitment-pooling/work-decisions";
+import type { PoolFundingSnapshot } from "../../../modules/commitment-pooling/pool-funding";
+
+export interface PoolFundingControllerView {
+  snapshot: PoolFundingSnapshot | null;
+  isLoading: boolean;
+  isFetching: boolean;
+  isRefetching: boolean;
+  isError: boolean;
+  hasStaleBalance: boolean;
+  lastReadAt: number | null;
+  ledgerReadAt: number | null;
+  refetch: () => Promise<unknown>;
+}
 
 export interface PoolConsoleActs {
   pause: (reason: string) => Promise<HexString>;
@@ -61,6 +74,7 @@ export interface PoolConsoleController {
   pauseReason: CommitmentReasonResolution;
   pendingCreates: CommitmentQueueState["pendingCreates"];
   queueUnavailable: boolean;
+  funding: PoolFundingControllerView;
   acts: PoolConsoleActs;
   isActing: boolean;
   isLoading: boolean;

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "releaseId": "commitment-pooling-settlement-credit-v1",
   "sourceCommit": "fab5daef2eebbe83c1d444f6c148c682e122f1c3",
-  "manifestHash": "0x0c442d179ff865a484c5c2bd2a03501950a982fe03177cbab9dcbd1fd731cca9",
+  "manifestHash": "0x210b0c919dc42bebf0495a2188b918d728df36aeffa9832582a0daea7b8b526a",
   "build": {
     "profile": "production",
     "solc": "0.8.28",

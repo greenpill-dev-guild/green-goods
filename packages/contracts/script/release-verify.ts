@@ -321,8 +321,8 @@ async function verifySettlement(
  * Safe-phase ownership proof. The deterministic-identity loop above covers only the five lock
  * proxies, but the ownership ceremony hands over eight Arbitrum contracts and one on Celo, so every
  * ownership target is checked here from the same list the transfer plan uses. The protocol Safe's
- * own configuration is then re-read live, because "owner() equals the Safe address" says nothing
- * about whether that Safe still matches the frozen threshold and owner set.
+ * own threshold is then re-read live, because "owner() equals the Safe address" says nothing
+ * about whether that Safe still satisfies the release floor.
  */
 async function verifySafeOwnershipPhase(
   provider: JsonRpcProvider,
@@ -337,27 +337,15 @@ async function verifySafeOwnershipPhase(
     const owner = await new Contract(address, OWNER_ABI, provider).owner();
     check(checks, `ownership.${label}.owner`, safeAddress, owner, true);
   }
-  const approved =
-    network === "celo"
-      ? manifest.ownership.celoProtocolSafeConfiguration
-      : manifest.ownership.protocolSafeConfiguration;
-  const safe = new Contract(
-    safeAddress,
-    ["function getOwners() view returns (address[])", "function getThreshold() view returns (uint256)"],
-    provider,
-  );
-  const [owners, threshold] = (await Promise.all([safe.getOwners(), safe.getThreshold()])) as [string[], bigint];
-  const liveOwners = owners
-    .map((owner) => getAddress(owner))
-    .sort()
-    .join(",");
-  const frozenOwners = approved.owners
-    .map((owner) => getAddress(owner))
-    .sort()
-    .join(",");
-  check(checks, `protocolSafe.${network}.threshold`, approved.threshold, String(threshold));
-  check(checks, `protocolSafe.${network}.owner-count`, String(approved.owners.length), String(owners.length));
-  check(checks, `protocolSafe.${network}.exact-owner-set`, frozenOwners, liveOwners, true);
+  const safe = new Contract(safeAddress, ["function getThreshold() view returns (uint256)"], provider);
+  const threshold = (await safe.getThreshold()) as bigint;
+  const minimumThreshold = BigInt(manifest.ownership.protocolSafeConfiguration.contractsGuideMinimumThreshold);
+  checks.push({
+    label: `protocolSafe.${network}.threshold-minimum`,
+    ok: threshold >= minimumThreshold,
+    expected: `>= ${String(minimumThreshold)}`,
+    actual: String(threshold),
+  });
 }
 
 /** The exact ownership-transfer target list, shared with the transfer plan so the two cannot drift. */

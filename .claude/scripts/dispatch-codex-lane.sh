@@ -89,7 +89,7 @@ node "$REPO_ROOT/scripts/quality/branch-name-policy.mjs" "$BRANCH" >/dev/null ||
 SCHEMA="${SCHEMA:-$REPO_ROOT/.codex/output-schema.json}"
 [ -f "$SCHEMA" ] || { echo "Schema not found: $SCHEMA" >&2; exit 1; }
 
-# Full-auto lanes do not need the parent process's credentials. Keep the child usable for local
+# Delegated lanes do not need the parent process's credentials. Keep the child usable for local
 # tooling while refusing implicit RPC, wallet, provider, and API secrets from either `.env` or the
 # parent environment.
 CODEX_ENV=(
@@ -138,14 +138,14 @@ git worktree add "$WORKTREE" -b "$BRANCH" "$BASE" >&2 || {
   exit 1
 }
 
-echo "Dispatching codex (full-auto) in $WORKTREE..." >&2
+echo "Dispatching codex (workspace-write + automatic approval) in $WORKTREE..." >&2
 EXIT=0
 env -i "${CODEX_ENV[@]}" "$CODEX" exec \
-  --full-auto \
+  --approve-for-me \
   -C "$WORKTREE" \
   -o "$RESULT" \
   --output-schema "$SCHEMA" \
-  "$PROMPT" >&2 || EXIT=2
+  "$PROMPT" < /dev/null >&2 || EXIT=2
 
 cat <<EOF
 {
