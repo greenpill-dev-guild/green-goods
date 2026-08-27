@@ -34,6 +34,7 @@ import { useCommitmentQueueState } from "../../commitment-pooling/useCommitmentQ
 import { useCommitmentReason } from "../../commitment-pooling/useCommitmentReason";
 import { usePoolCharter } from "../../commitment-pooling/usePoolCharter";
 import { usePoolClaimRequests } from "../../commitment-pooling/usePoolClaimRequests";
+import { usePoolFunding } from "../../commitment-pooling/usePoolFunding";
 import { useTimeout } from "../../utils/useTimeout";
 
 export function usePoolConsoleController(input: {
@@ -61,6 +62,31 @@ export function usePoolConsoleController(input: {
   const cycleNames = useCommitmentCycleNames(cyclesQuery.cycles);
   const metadata = useCommitmentMetadata(commitmentsQuery.commitments);
   const queue = useCommitmentQueueState(viewer);
+  const funding = usePoolFunding({ chainId, garden });
+  const fundingView = useMemo(
+    () => ({
+      snapshot: funding.snapshot,
+      isLoading: funding.isLoading,
+      isFetching: funding.isFetching,
+      isRefetching: funding.isRefetching,
+      isError: funding.isError,
+      hasStaleBalance: funding.hasStaleBalance,
+      lastReadAt: funding.lastReadAt,
+      ledgerReadAt: funding.ledgerReadAt,
+      refetch: funding.refetch,
+    }),
+    [
+      funding.snapshot,
+      funding.isLoading,
+      funding.isFetching,
+      funding.isRefetching,
+      funding.isError,
+      funding.hasStaleBalance,
+      funding.lastReadAt,
+      funding.ledgerReadAt,
+      funding.refetch,
+    ]
+  );
 
   // A console can sit open across a due moment. Rather than polling, the tick
   // is scheduled for the next boundary the loaded rows actually have, so a row
@@ -179,8 +205,9 @@ export function usePoolConsoleController(input: {
         cyclesQuery.refetch(),
         commitmentsQuery.refetch(),
         claimsQuery.refetch(),
+        fundingView.refetch(),
       ]),
-    [poolsQuery, cyclesQuery, commitmentsQuery, claimsQuery]
+    [poolsQuery, cyclesQuery, commitmentsQuery, claimsQuery, fundingView]
   );
 
   const isLoading =
@@ -208,6 +235,7 @@ export function usePoolConsoleController(input: {
     pauseReason,
     pendingCreates,
     queueUnavailable: queue.isUnavailable,
+    funding: fundingView,
     acts,
     isActing: poolMutation.isPending || commitmentMutation.isPending,
     isLoading,

@@ -2,9 +2,11 @@ import { Alert } from "@green-goods/shared/components/Alert";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
+import type { RefObject } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
+import { PoolFundingSection } from "./PoolFundingSection";
 import { poolStatusChip } from "./poolPresentation";
 
 export interface PoolStatusCardProps {
@@ -15,6 +17,9 @@ export interface PoolStatusCardProps {
   onCompostPool: () => void;
   onReopenPool: () => void;
   onReviewLive: () => void;
+  onOpenFundingDetails: () => void;
+  fundingDetailsButtonRef?: RefObject<HTMLButtonElement | null>;
+  protocolContext?: boolean;
 }
 
 function Checkline({ done, label }: { done: boolean; label: string }) {
@@ -48,6 +53,9 @@ export function PoolStatusCard({
   onCompostPool,
   onReopenPool,
   onReviewLive,
+  onOpenFundingDetails,
+  fundingDetailsButtonRef,
+  protocolContext = false,
 }: PoolStatusCardProps) {
   const { formatMessage } = useIntl();
   const { model, isOnline, isActing, acts } = pool;
@@ -204,6 +212,13 @@ export function PoolStatusCard({
               })}
         </Alert>
       ) : null}
+
+      <PoolFundingSection
+        funding={pool.funding}
+        protocolContext={protocolContext}
+        onOpenDetails={onOpenFundingDetails}
+        detailsButtonRef={fundingDetailsButtonRef}
+      />
 
       {running && !model.closure.allowed ? (
         <p className="text-xs text-text-soft" data-slot="close-blocked">

@@ -340,6 +340,30 @@ describe("useSettlementMutation", () => {
     );
   });
 
+  it("reconciles pool funding after the 2, 5, and 15 second indexer windows", async () => {
+    vi.useFakeTimers();
+    try {
+      const queryClient = createTestQueryClient();
+      const invalidate = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
+      const { result } = renderHookWithProviders(() => useSettlementMutation({ chainId: 42161 }), {
+        queryClient,
+      });
+      await act(async () => {
+        await result.current.mutateAsync({ action: "setGardenerDeliveryEnabled", enabled: true });
+      });
+      expect(invalidate).toHaveBeenCalledTimes(1);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15_000);
+      });
+      expect(invalidate).toHaveBeenCalledTimes(4);
+      expect(invalidate).toHaveBeenLastCalledWith({
+        queryKey: queryKeys.commitmentPooling.all(42161),
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it.each([
     {
       name: "missing sender",

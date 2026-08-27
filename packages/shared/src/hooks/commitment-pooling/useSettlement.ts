@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Hex } from "viem";
 import { useReadContract } from "wagmi";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
 import { selectCommitmentPoolingAvailability } from "../../modules/commitment-pooling/selectors";
 import { selectOperationsCapabilities } from "../../modules/commitment-pooling/settlement";
 import { isPoolSteward } from "../../modules/commitment-pooling/steward-selectors";
@@ -14,6 +15,7 @@ import { createMutationErrorHandler } from "../../utils/errors/mutation-error-ha
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useGardenRoles } from "../roles/useGardenRoles";
+import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 const OWNER_ABI = [
   {
@@ -112,6 +114,9 @@ export function useSettlementMutation(options: { chainId?: number } = {}) {
     source: "useSettlementMutation",
     toastContext: "settlement update",
   });
+  const { start: scheduleReadback } = useProgressiveInvalidation(() => {
+    void queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });
+  }, INDEXER_LAG_SCHEDULE_MS);
   return useMutation({
     mutationFn: async (input: SettlementMutationInput) => {
       if (!sender) throw new Error("Transaction sender is unavailable");
@@ -135,6 +140,7 @@ export function useSettlementMutation(options: { chainId?: number } = {}) {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });
+      scheduleReadback();
     },
     onError: (error, input) => {
       const parsed = parseContractError(error);

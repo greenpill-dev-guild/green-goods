@@ -4,6 +4,7 @@ import {
   type ComponentType,
   type KeyboardEventHandler,
   type ReactNode,
+  type RefObject,
   isValidElement,
   useEffect,
   useState,
@@ -33,6 +34,8 @@ export interface AdminDialogProps {
   preventClose?: boolean;
   role?: "dialog" | "alertdialog";
   onKeyDown?: KeyboardEventHandler<HTMLDivElement>;
+  /** Optional focus target for controlled dialogs opened without Dialog.Trigger. */
+  finalFocusRef?: RefObject<HTMLElement | null>;
   className?: string;
   /**
    * Workspace tone for the portaled surface. The dialog portals to <body>,
@@ -165,6 +168,7 @@ export function AdminDialog({
   preventClose = false,
   role = "dialog",
   onKeyDown,
+  finalFocusRef,
   className,
   // Default to the neutral "home" tone so a dialog that omits `tone` still
   // renders a deliberate accent in-portal instead of falling back to green
@@ -267,6 +271,11 @@ export function AdminDialog({
             if (preventClose) event.preventDefault();
           }}
           onKeyDown={onKeyDown}
+          onCloseAutoFocus={(event) => {
+            if (!finalFocusRef?.current) return;
+            event.preventDefault();
+            finalFocusRef.current.focus();
+          }}
         >
           {/* Close button - absolute top-right */}
           {!hideCloseButton ? (

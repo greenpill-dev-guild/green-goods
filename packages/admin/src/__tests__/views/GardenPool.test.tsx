@@ -608,12 +608,13 @@ describe("Garden workspace Pool tab visibility", () => {
     expect(screen.queryByRole("tab", { name: /pool/i })).not.toBeInTheDocument();
   });
 
-  it("keeps the whole console from a member who reaches the route directly", () => {
+  it("keeps management controls from a reader who reaches the route directly while retaining funding facts", () => {
     // The rail hides the tab, but a deep link is the other way in: every write
     // control here would otherwise invite a call the contract refuses.
     renderTab({ canManage: false });
 
     expect(screen.getByText(/pool console is for this garden.s stewards/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /pool funding/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /pause/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /close pool/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /set up commitments/i })).not.toBeInTheDocument();
