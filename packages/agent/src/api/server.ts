@@ -29,6 +29,7 @@ import { registerProfileAvatarRoutes } from "./routes/profile-avatars";
 import { createSqliteProfileAvatarStore } from "../services/profile-avatars";
 import { registerSavedOfferRoutes } from "./routes/saved-offers";
 import { bindPublicRequestPeerIp } from "./public-protection";
+import { registerGardenJoinRequestRoutes } from "./routes/garden-join-requests";
 
 const log = loggers.api;
 
@@ -103,6 +104,26 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     }
   }
 
+  const joinRequestSweepIntervalMs =
+    deps.gardenJoinRequestSweepIntervalMs === undefined
+      ? 24 * 60 * 60 * 1000
+      : deps.gardenJoinRequestSweepIntervalMs;
+  let joinRequestSweepTimer: ReturnType<typeof setInterval> | null = null;
+  if (deps.gardenJoinRequestStore && joinRequestSweepIntervalMs > 0) {
+    joinRequestSweepTimer = setInterval(() => {
+      void deps
+        .gardenJoinRequestStore!.sweep(new Date(deps.now?.() ?? Date.now()).toISOString())
+        .catch((err) => log.warn({ err }, "Garden join-request retention sweep failed"));
+    }, joinRequestSweepIntervalMs);
+    if (
+      typeof joinRequestSweepTimer === "object" &&
+      joinRequestSweepTimer &&
+      "unref" in joinRequestSweepTimer
+    ) {
+      (joinRequestSweepTimer as { unref?: () => void }).unref?.();
+    }
+  }
+
   app.close = async () => {
     if (sweepTimer) {
       clearInterval(sweepTimer);
@@ -111,6 +132,10 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     if (chatSweepTimer) {
       clearInterval(chatSweepTimer);
       chatSweepTimer = null;
+    }
+    if (joinRequestSweepTimer) {
+      clearInterval(joinRequestSweepTimer);
+      joinRequestSweepTimer = null;
     }
     const server = runningServers.get(app);
     if (server) {
@@ -132,6 +157,10 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     ...routeContext,
     savedOfferStore: deps.savedOfferStore,
     savedOffersSessionStore: deps.savedOffersSessionStore,
+  });
+  registerGardenJoinRequestRoutes(app, {
+    ...routeContext,
+    store: deps.gardenJoinRequestStore,
   });
 
   const fundingRouteContext: FundingRouteContext = {

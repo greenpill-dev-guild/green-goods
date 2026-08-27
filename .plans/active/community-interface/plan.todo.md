@@ -121,7 +121,8 @@ Agent eligibility mirrors the CP convention: contracts / indexer / shared-founda
 
 ### UI Admin (`claude/ui-admin/community-interface`): PRD-691 (canceled PRD-683 is historical only)
 - [ ] Admin tasks only; fifth `/community/needs` route mode owns triage, moderation, selected-Need inspector, gathering, seed-from-Need, and Need lineage/export; `/community/coordination` retains pool/cycle operations; separate support/non-support counts, no net score, AdminDialog anatomy, Storybook, `cockpit.community.*` i18n
-- [ ] Do not implement join-request storage or the membership queue until RESR-64 accepts the research plan's operating-record criteria
+- [x] Local join-request implementation authorized on 2026-08-27 with controller, processor, key owner, incident owner, and 30-day lifecycle defaults recorded
+- [ ] Do not activate production join-request collection until the encryption secret is installed, a backup operator is named, recovery is rehearsed, and authenticated Brave proof is recorded
 - [ ] Write `handoffs/claude-ui-admin.md`
 
 ### Funder Lens (`claude/funder-lens/community-interface`): PRD-691 (historical label PRD-692)

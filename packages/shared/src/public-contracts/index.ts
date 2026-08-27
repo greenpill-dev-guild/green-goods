@@ -32,6 +32,7 @@ export type {
 
 export * from "./core";
 export * from "./saved-offers";
+export * from "./join-requests";
 
 export function validateProviderProofEntry(entry: ProviderProofEntry): string[] {
   const errors: string[] = [];

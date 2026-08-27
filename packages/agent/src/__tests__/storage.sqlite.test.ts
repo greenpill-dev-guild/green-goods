@@ -7,6 +7,10 @@ import { closeDB, getDB, initDB } from "../services/db";
 import { createSavedOfferCipher } from "../services/saved-offers";
 import type { SavedOfferCipher } from "../services/saved-offers";
 import {
+  createGardenJoinRequestCipher,
+  createSqliteGardenJoinRequestStore,
+} from "../services/garden-join-requests";
+import {
   canonicalSavedOfferPayload,
   type SavedOfferPayloadV1,
 } from "@green-goods/shared/public-contracts";
@@ -41,13 +45,15 @@ describe("agent storage with real bun:sqlite", () => {
       expect.arrayContaining([
         "chat_message_attachments",
         "chat_messages",
+        "garden_join_request_proofs",
+        "garden_join_requests",
         "pending_works",
         "saved_offers",
         "sessions",
         "users",
       ])
     );
-    expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 5 });
+    expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 7 });
     expect(sqlite.query("PRAGMA foreign_keys").get()).toEqual({ foreign_keys: 1 });
 
     expect(() =>
@@ -59,6 +65,38 @@ describe("agent storage with real bun:sqlite", () => {
         )
         .run("orphan", "missing-message", 0, "photo", "file-id", Date.now())
     ).toThrow(/FOREIGN KEY constraint failed/i);
+  });
+
+  it("persists join-request personal fields only as ciphertext", async () => {
+    const cipher = createGardenJoinRequestCipher("cd".repeat(32));
+    const store = createSqliteGardenJoinRequestStore(cipher, {
+      id: () => "0198f665-9a00-7000-8000-000000000002",
+    });
+    const garden = `0x${"5".repeat(40)}` as const;
+    const account = `0x${"6".repeat(40)}` as const;
+    await store.create({
+      gardenAddress: garden,
+      accountAddress: account,
+      displayName: "Private gardener",
+      note: "Private joining note",
+      requestedVia: "garden_detail",
+      requestedAt: "2026-08-27T12:00:00.000Z",
+      expiresAt: "2026-09-26T12:00:00.000Z",
+    });
+
+    const raw = rawDatabase()
+      .query("SELECT accountAddressKey, ciphertext FROM garden_join_requests")
+      .get() as { accountAddressKey: string; ciphertext: string };
+    expect(raw.accountAddressKey).not.toContain(account);
+    expect(raw.ciphertext).not.toContain("Private gardener");
+    expect(raw.ciphertext).not.toContain("Private joining note");
+
+    await closeDB();
+    initDB(databasePath);
+    await expect(store.getMine(garden, account)).resolves.toMatchObject({
+      displayName: "Private gardener",
+      note: "Private joining note",
+    });
   });
 
   it("persists encrypted users and retrieves them after reopening the database", async () => {

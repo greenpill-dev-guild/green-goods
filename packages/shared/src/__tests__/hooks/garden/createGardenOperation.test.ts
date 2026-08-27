@@ -22,16 +22,6 @@ vi.mock("../../../utils/blockchain/simulation", () => ({
   simulateTransaction: (...args: unknown[]) => mockSimulateTransaction(...args),
 }));
 
-const mockEnsureAppKitWalletChain = vi.fn();
-vi.mock("../../../modules/transactions/chain-guard", () => ({
-  ensureAppKitWalletChain: (...args: unknown[]) => mockEnsureAppKitWalletChain(...args),
-}));
-
-const mockAssertLocalArbitrumForkWallet = vi.fn();
-vi.mock("../../../modules/transactions/local-fork-safety", () => ({
-  assertLocalArbitrumForkWallet: () => mockAssertLocalArbitrumForkWallet(),
-}));
-
 const mockParseContractError = vi.fn();
 vi.mock("../../../utils/errors/contract-errors", () => ({
   parseContractError: (error: unknown) => mockParseContractError(error),
@@ -102,10 +92,12 @@ function createConfig(overrides: Partial<GardenOperationConfig> = {}): GardenOpe
   };
 }
 
-function createMockWalletClient() {
+function createMockSender() {
   return {
-    writeContract: vi.fn().mockResolvedValue(TX_HASH),
-    chain: { id: 11155111, name: "Sepolia" },
+    sendContractCall: vi.fn().mockResolvedValue({ hash: TX_HASH, sponsored: true }),
+    supportsSponsorship: true,
+    supportsBatching: false,
+    authMode: "passkey",
   } as any;
 }
 
@@ -126,8 +118,6 @@ describe("createGardenOperation", () => {
     vi.clearAllMocks();
     mockFetchHatsModuleAddress.mockResolvedValue(HATS_MODULE);
     mockSimulateTransaction.mockResolvedValue({ success: true });
-    mockEnsureAppKitWalletChain.mockResolvedValue(undefined);
-    mockAssertLocalArbitrumForkWallet.mockResolvedValue(undefined);
     mockParseContractError.mockReturnValue({
       name: "ContractError",
       message: "Something went wrong",
@@ -141,14 +131,14 @@ describe("createGardenOperation", () => {
 
   describe("successful operation", () => {
     it("returns success with tx hash", async () => {
-      const walletClient = createMockWalletClient();
+      const sender = createMockSender();
       const executeWithToast = createMockExecuteWithToast();
       const config = createConfig();
 
       const operation = createGardenOperation(
         GARDEN_ID,
         config,
-        walletClient,
+        sender,
         USER_ADDRESS,
         CHAIN_ID,
         executeWithToast,
@@ -162,13 +152,13 @@ describe("createGardenOperation", () => {
     });
 
     it("calls simulation before transaction", async () => {
-      const walletClient = createMockWalletClient();
+      const sender = createMockSender();
       const executeWithToast = createMockExecuteWithToast();
 
       const operation = createGardenOperation(
         GARDEN_ID,
         createConfig(),
-        walletClient,
+        sender,
         USER_ADDRESS,
         CHAIN_ID,
         executeWithToast,
@@ -187,14 +177,14 @@ describe("createGardenOperation", () => {
       );
     });
 
-    it("switches to the target chain before writing", async () => {
-      const walletClient = createMockWalletClient();
+    it("sends the call through the auth-mode-aware transaction sender", async () => {
+      const sender = createMockSender();
       const executeWithToast = createMockExecuteWithToast();
 
       const operation = createGardenOperation(
         GARDEN_ID,
         createConfig(),
-        walletClient,
+        sender,
         USER_ADDRESS,
         CHAIN_ID,
         executeWithToast,
@@ -203,22 +193,22 @@ describe("createGardenOperation", () => {
 
       await operation(TARGET_ADDRESS);
 
-      expect(mockEnsureAppKitWalletChain).toHaveBeenCalledWith(CHAIN_ID);
-      expect(walletClient.writeContract).toHaveBeenCalledWith(
+      expect(sender.sendContractCall).toHaveBeenCalledWith(
         expect.objectContaining({
-          chain: expect.objectContaining({ id: CHAIN_ID }),
+          chainId: CHAIN_ID,
+          functionName: "grantRole",
         })
       );
     });
 
     it("manages loading state", async () => {
-      const walletClient = createMockWalletClient();
+      const sender = createMockSender();
       const executeWithToast = createMockExecuteWithToast();
 
       const operation = createGardenOperation(
         GARDEN_ID,
         createConfig(),
-        walletClient,
+        sender,
         USER_ADDRESS,
         CHAIN_ID,
         executeWithToast,
@@ -233,14 +223,14 @@ describe("createGardenOperation", () => {
     });
 
     it("calls optimistic update callback", async () => {
-      const walletClient = createMockWalletClient();
+      const sender = createMockSender();
       const executeWithToast = createMockExecuteWithToast();
       const onOptimisticUpdate = vi.fn();
 
       const operation = createGardenOperation(
         GARDEN_ID,
         createConfig(),
-        walletClient,
+        sender,
         USER_ADDRESS,
         CHAIN_ID,
         executeWithToast,
@@ -258,13 +248,13 @@ describe("createGardenOperation", () => {
     });
 
     it("uses revokeRole for remove operations", async () => {
-      const walletClient = createMockWalletClient();
+      const sender = createMockSender();
       const executeWithToast = createMockExecuteWithToast();
 
       const operation = createGardenOperation(
         GARDEN_ID,
         createConfig({ operationType: "remove" }),
-        walletClient,
+        sender,
         USER_ADDRESS,
         CHAIN_ID,
         executeWithToast,
@@ -312,7 +302,7 @@ describe("createGardenOperation", () => {
       const operation = createGardenOperation(
         GARDEN_ID,
         createConfig(),
-        createMockWalletClient(),
+        createMockSender(),
         USER_ADDRESS,
         CHAIN_ID,
         createMockExecuteWithToast(),
@@ -334,7 +324,7 @@ describe("createGardenOperation", () => {
       const operation = createGardenOperation(
         GARDEN_ID,
         createConfig(),
-        createMockWalletClient(),
+        createMockSender(),
         USER_ADDRESS,
         CHAIN_ID,
         createMockExecuteWithToast(),
@@ -348,8 +338,8 @@ describe("createGardenOperation", () => {
     });
 
     it("returns parsed error when transaction throws", async () => {
-      const walletClient = createMockWalletClient();
-      walletClient.writeContract.mockRejectedValue(new Error("Tx reverted"));
+      const sender = createMockSender();
+      sender.sendContractCall.mockRejectedValue(new Error("Tx reverted"));
 
       const executeWithToast = vi.fn(async (action: () => Promise<any>) => {
         return await action();
@@ -358,7 +348,7 @@ describe("createGardenOperation", () => {
       const operation = createGardenOperation(
         GARDEN_ID,
         createConfig(),
-        walletClient,
+        sender,
         USER_ADDRESS,
         CHAIN_ID,
         executeWithToast,
@@ -372,14 +362,14 @@ describe("createGardenOperation", () => {
     });
 
     it("returns optimistic update metadata when a transaction throws after optimistic apply", async () => {
-      const walletClient = createMockWalletClient();
-      walletClient.writeContract.mockRejectedValue(new Error("Tx reverted"));
+      const sender = createMockSender();
+      sender.sendContractCall.mockRejectedValue(new Error("Tx reverted"));
       const onOptimisticUpdate = vi.fn();
 
       const operation = createGardenOperation(
         GARDEN_ID,
         createConfig({ operationType: "remove" }),
-        walletClient,
+        sender,
         USER_ADDRESS,
         CHAIN_ID,
         createMockExecuteWithToast(),

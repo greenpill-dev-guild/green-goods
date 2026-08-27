@@ -44,6 +44,7 @@ export interface Config {
   encryptionSecret?: string;
   savedOffersEncryptionKey?: string;
   savedOffersAudience?: string;
+  joinRequestsEncryptionKey?: string;
 
   // API
   botApiToken?: string;
@@ -167,6 +168,7 @@ export function loadConfig(): Config {
     encryptionSecret: process.env.ENCRYPTION_SECRET,
     savedOffersEncryptionKey: process.env.SAVED_OFFERS_ENCRYPTION_KEY,
     savedOffersAudience: process.env.SAVED_OFFERS_AUDIENCE,
+    joinRequestsEncryptionKey: process.env.JOIN_REQUESTS_ENCRYPTION_KEY,
 
     // Analytics
     posthogApiKey,
@@ -334,6 +336,10 @@ export function validateConfig(config: Config): void {
 
   if (config.isProduction && !config.savedOffersAudience?.trim()) {
     errors.push("SAVED_OFFERS_AUDIENCE is required in production.");
+  }
+
+  if (config.isProduction && !config.joinRequestsEncryptionKey?.trim()) {
+    errors.push("JOIN_REQUESTS_ENCRYPTION_KEY is required in production.");
   }
 
   if (config.isProduction && !config.trustedProxyHops) {

@@ -6,9 +6,8 @@
  * and optimistic update support.
  */
 
-import type { Abi, WalletClient } from "viem";
+import type { Abi } from "viem";
 import { toastService } from "../../components/toast";
-import { getChain } from "../../config/chains";
 import {
   trackAdminMemberAddFailed,
   trackAdminMemberAddStarted,
@@ -17,8 +16,7 @@ import {
   trackAdminMemberRemoveStarted,
   trackAdminMemberRemoveSuccess,
 } from "../../modules/app/analytics-events";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
-import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
+import type { TransactionSender } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import { HATS_MODULE_ABI } from "../../utils/blockchain/abis/hats";
 import { fetchHatsModuleAddress } from "../../utils/blockchain/garden-hats";
@@ -183,7 +181,7 @@ export type OptimisticUpdateCallback = (update: {
  *
  * @param gardenId - The garden contract address
  * @param config - Operation configuration (function name and messages)
- * @param walletClient - The wallet client for signing transactions
+ * @param sender - Auth-mode-aware transaction sender
  * @param address - The user's wallet address
  * @param executeWithToast - Toast action executor from useToastAction
  * @param setIsLoading - Loading state setter
@@ -193,8 +191,8 @@ export type OptimisticUpdateCallback = (update: {
 export function createGardenOperation(
   gardenId: Address,
   config: GardenOperationConfig,
-  walletClient: WalletClient,
-  address: `0x${string}`,
+  sender: TransactionSender,
+  address: Address,
   chainId: number,
   executeWithToast: ExecuteWithToast,
   setIsLoading: (loading: boolean) => void,
@@ -203,7 +201,7 @@ export function createGardenOperation(
   return async (targetAddress: Address): Promise<GardenOperationResult> => {
     let optimisticUpdate: GardenOperationResult["optimisticUpdate"];
 
-    if (!walletClient || !address) {
+    if (!sender || !address) {
       return {
         success: false,
         error: {
@@ -284,26 +282,22 @@ export function createGardenOperation(
       }
 
       // Step 3: Execute the actual transaction
-      const hash = await executeWithToast(
-        async () => {
-          await ensureAppKitWalletChain(chainId);
-          await assertLocalArbitrumForkWallet();
-
-          return await walletClient.writeContract({
+      const transaction = await executeWithToast(
+        () =>
+          sender.sendContractCall({
             address: targetContract,
             abi: targetAbi,
             functionName: targetFunctionName,
-            account: address,
             args: targetArgs,
-            chain: getChain(chainId),
-          });
-        },
+            chainId,
+          }),
         {
           loadingMessage: config.messages.loading,
           successMessage: config.messages.success,
           errorMessage: config.messages.error,
         }
       );
+      const hash = transaction.hash;
 
       // Track operation success
       trackOperationSuccess(gardenId, config.memberType, config.operationType, targetAddress, hash);

@@ -15,6 +15,7 @@ import { EnsAddressText } from "@/components/EnsAddressText";
 import { getRoleLabel } from "@/components/Garden/gardenUtils";
 import { CommunityMembersDialogs } from "./CommunityMembersDialogs";
 import { communityRoleIcons } from "./communityRoleIcons";
+import { CommunityJoinRequests } from "./CommunityJoinRequests";
 
 export type CommunityMembersTabProps = Pick<
   CommunityWorkspace,
@@ -68,6 +69,7 @@ export function CommunityMembersTab({
     <div className="garden-tab-shell">
       <div className="garden-tab-layout">
         <div className="garden-tab-main">
+          {canManage ? <CommunityJoinRequests gardenAddress={garden.id as `0x${string}`} /> : null}
           <AdminCard variant="elevated" className="space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>

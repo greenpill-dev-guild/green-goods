@@ -42,6 +42,7 @@ import { GardenErrorBoundary } from "@/components/Errors";
 import {
   GardenAssessments,
   GardenGardeners,
+  GardenJoinRequestDialog,
   type GardenMember,
   GardenWork,
 } from "@/components/Features";
@@ -187,6 +188,13 @@ export const Garden: React.FC = () => {
     "evaluator"
   );
   const canReview = isSteward || canReviewOnChain;
+  const canManageRequests = useMemo(() => {
+    if (!primaryAddress || !garden) return false;
+    const account = primaryAddress.toLowerCase();
+    return [...(garden.stewards ?? []), ...(garden.owners ?? [])].some(
+      (address) => address.toLowerCase() === account
+    );
+  }, [garden, primaryAddress]);
 
   // Gate header drawers behind steward/funder roles. Default gardeners should not see
   // governance or endowment chrome — those drawers expose protocol-shaped surfaces (signal pool,
@@ -248,6 +256,7 @@ export const Garden: React.FC = () => {
     if (!garden?.openJoining) return false;
     return true;
   }, [primaryAddress, isMember, garden?.openJoining]);
+  const showJoinRequestButton = Boolean(primaryAddress && !isMember && !garden?.openJoining);
 
   if (!garden) {
     if (gardensInitialLoading) {
@@ -338,7 +347,13 @@ export const Garden: React.FC = () => {
           />
         );
       case GardenTab.Gardeners:
-        return <GardenGardeners members={members} garden={garden} />;
+        return (
+          <GardenGardeners
+            members={members}
+            garden={garden}
+            canManageRequests={canManageRequests}
+          />
+        );
     }
   };
 
@@ -415,6 +430,9 @@ export const Garden: React.FC = () => {
                       disabled={isJoining}
                     />
                   )}
+                  {showJoinRequestButton ? (
+                    <GardenJoinRequestDialog gardenAddress={garden.id as Address} />
+                  ) : null}
                 </div>
               </div>
 

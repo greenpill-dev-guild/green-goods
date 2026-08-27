@@ -13,6 +13,11 @@ export type PublicRouteClass =
   | "saved_offers_session"
   | "saved_offers_read"
   | "saved_offers_mutation"
+  | "join_request_create"
+  | "join_request_create_account"
+  | "join_request_create_garden"
+  | "join_request_read"
+  | "join_request_resolve"
   | "webhook_pre"
   | "webhook_post";
 
@@ -52,6 +57,11 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   saved_offers_session: { limit: 10, windowMs: 10 * 60 * 1000 },
   saved_offers_read: { limit: 120, windowMs: 10 * 60 * 1000 },
   saved_offers_mutation: { limit: 30, windowMs: 10 * 60 * 1000 },
+  join_request_create: { limit: 10, windowMs: 10 * 60 * 1000 },
+  join_request_create_account: { limit: 3, windowMs: 24 * 60 * 60 * 1000 },
+  join_request_create_garden: { limit: 50, windowMs: 24 * 60 * 60 * 1000 },
+  join_request_read: { limit: 120, windowMs: 10 * 60 * 1000 },
+  join_request_resolve: { limit: 30, windowMs: 10 * 60 * 1000 },
   webhook_pre: { limit: 300, windowMs: 60 * 1000 },
   webhook_post: { limit: 300, windowMs: 60 * 1000 },
 } as const satisfies Record<PublicRouteClass, RateLimitPolicy>;
@@ -156,6 +166,20 @@ export function publicIpRateLimitKey(input: Omit<PublicRateLimitKeyInput, "mater
   const origin = normalizePublicOrigin(input.request.headers.get("origin"));
   const ip = derivePublicClientIp(input.request, input.trustedProxy);
   return [input.route, origin, ip, "ip"].join(":");
+}
+
+/**
+ * Build a rate-limit key for an authenticated resource identity.
+ *
+ * Unlike publicRateLimitKey, this intentionally excludes the request IP and
+ * origin. Account and garden limits must follow the signed identity across
+ * networks without also imposing the same low ceiling on everyone sharing an
+ * IP address.
+ */
+export function publicMaterialRateLimitKey(
+  input: Pick<PublicRateLimitKeyInput, "route" | "material">
+): string {
+  return [input.route, "material", hashPublicRateLimitMaterial(input.material ?? "")].join(":");
 }
 
 export class InMemoryPublicRateLimiter {

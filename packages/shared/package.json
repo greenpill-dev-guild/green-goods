@@ -187,6 +187,8 @@
     "./hooks/garden/useGardenDetailData": "./src/hooks/garden/useGardenDetailData.ts",
     "./hooks/garden/useGardenDomains": "./src/hooks/garden/useGardenDomains.ts",
     "./hooks/garden/useGardenOperations": "./src/hooks/garden/useGardenOperations.ts",
+    "./hooks/garden/useGardenJoinRequests": "./src/hooks/garden/useGardenJoinRequests.ts",
+    "./modules/garden-join-requests": "./src/modules/garden-join-requests/index.ts",
     "./hooks/garden/useGardenPermissions": "./src/hooks/garden/useGardenPermissions.ts",
     "./hooks/garden/useSetGardenDomains": "./src/hooks/garden/useSetGardenDomains.ts",
     "./hooks/garden/useUpdateGarden": "./src/hooks/garden/useUpdateGarden.ts",

@@ -1,12 +1,22 @@
 # Community Needs & Signals: Garden Join-Request Queue
 
 **Feature Slug**: `community-interface`
-**Stage**: `active` — architecture selected; RESR-64 operating gate remains
+**Stage**: `active` — local implementation in progress; production activation gate remains
 **Created**: 2026-07-12
 **Companions**: `spec.md` §§7 and 9 (member and Garden-admin placement); `research-plan.md` (RESR-64 operating gate); `status.json` (manual blocker); `../commitment-pooling/plan.todo.md` decision #35 (pool-job consumer).
 **Grounding rule**: Every statement about present code names a `repo/path:line`; all proposed work is marked **NET-NEW**. This is the only canonical join-request design.
 
 ---
+
+## 2026-08-27 implementation lock
+
+Afo explicitly authorized the selected service queue with these operating defaults: Green Goods is the controller, Fly.io is the processor, Afo owns the initial encryption key and incident response, pending and resolved rows each have a 30-day retention window, and a backup operator must be named before production activation. That authorization clears local implementation work; it does not authorize collecting production requests yet.
+
+The implementation reuses the repository's existing personal-sign signature verifier instead of adding a second EIP-712 verifier. The canonical message binds chain, garden, account, action, nonce, issue/expiry times, request/cursor/revision fields, and the normalized request content. The verifier still supports EOAs, deployed ERC-1271 accounts, and counterfactual EIP-6492 accounts. Personal fields are encrypted together in one authenticated AES-256-GCM payload; the database stores only a keyed account digest outside that payload. These are implementation refinements to the earlier draft below, with the same trust boundaries and privacy outcome.
+
+The first shipped source is `garden_detail`, matching the requested PWA garden-detail placement. Create replay guards are durable and the active-row constraint makes a newly signed retry converge on the existing pending request. Same-proof automatic retry and the draft `Idempotency-Key` response cache are deferred; the UI reports an unknown outcome and asks for an explicit status check or newly signed retry instead of persisting a browser credential.
+
+Production activation remains blocked until the Fly.io secret is installed, the backup operator is named, and the operator recovery path is rehearsed. No contract or indexer change is part of this slice.
 
 ## 1. Decision and ownership
 

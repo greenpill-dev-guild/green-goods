@@ -5,6 +5,7 @@ import {
   isOriginAllowed,
   PUBLIC_RATE_LIMIT_POLICIES,
   publicIpRateLimitKey,
+  publicMaterialRateLimitKey,
   publicRateLimitKey,
   resolveAllowedOrigins,
 } from "../public-protection";
@@ -75,6 +76,25 @@ export function checkRateLimitWithPolicy(
     trustedProxy: deps.trustedProxy,
   });
   const result = limiter.check(key, policy, now);
+  if (result.allowed) return undefined;
+  return safeError("rate_limited", "Too many requests. Please try again later.", {
+    params: { retryAfterSeconds: result.retryAfterSeconds ?? 60 },
+  });
+}
+
+/** Apply a post-authentication limit without adding a second shared-IP bucket. */
+export function checkMaterialRateLimit(
+  deps: ServerDeps,
+  route: Parameters<typeof publicMaterialRateLimitKey>[0]["route"],
+  material: string
+): PublicApiError | undefined {
+  const limiter = deps.publicRateLimiter ?? defaultPublicRateLimiter;
+  const now = deps.now?.() ?? Date.now();
+  const result = limiter.check(
+    publicMaterialRateLimitKey({ route, material }),
+    PUBLIC_RATE_LIMIT_POLICIES[route],
+    now
+  );
   if (result.allowed) return undefined;
   return safeError("rate_limited", "Too many requests. Please try again later.", {
     params: { retryAfterSeconds: result.retryAfterSeconds ?? 60 },
