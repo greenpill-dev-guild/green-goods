@@ -58,6 +58,9 @@ export interface AdminConfirmDialogProps {
   cancelLabel?: string;
   variant?: "default" | "warning" | "danger";
   isLoading?: boolean;
+  /** Disables only the confirm action (cancel/close stay usable), e.g. while
+   * the data the confirmation describes is still being refreshed. */
+  confirmDisabled?: boolean;
   icon?: ReactNode;
   /** Workspace tone, forwarded to the portaled surface (see AdminDialogProps.tone). */
   tone?: AdminDialogProps["tone"];
@@ -366,6 +369,7 @@ export function AdminConfirmDialog({
   cancelLabel,
   variant = "default",
   isLoading = false,
+  confirmDisabled = false,
   icon,
   tone,
 }: AdminConfirmDialogProps) {
@@ -432,7 +436,7 @@ export function AdminConfirmDialog({
             type="button"
             variant={isDanger ? "danger" : "filled"}
             onClick={handleConfirm}
-            disabled={isLoading}
+            disabled={isLoading || confirmDisabled}
             loading={isLoading}
           >
             {resolvedConfirmLabel}

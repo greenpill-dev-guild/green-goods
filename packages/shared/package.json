@@ -229,6 +229,8 @@
     "./hooks/work/useWorkMutation": "./src/hooks/work/useWorkMutation.ts",
     "./hooks/work/useWorks": "./src/hooks/work/useWorks.ts",
     "./hooks/yield/useGardenYieldWiringState": "./src/hooks/yield/useGardenYieldWiringState.ts",
+    "./hooks/yield/useHarvestDistribution": "./src/hooks/yield/useHarvestDistribution.ts",
+    "./hooks/yield/useYieldStatus": "./src/hooks/yield/useYieldStatus.ts",
     "./i18n/en.json": "./src/i18n/en.json",
     "./i18n/es.json": "./src/i18n/es.json",
     "./i18n/pt.json": "./src/i18n/pt.json",

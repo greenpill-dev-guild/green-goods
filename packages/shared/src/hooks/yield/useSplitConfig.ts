@@ -61,5 +61,6 @@ export function useSplitConfig(gardenAddress?: Address, options: UseSplitConfigO
     config,
     isLoading: enabled ? query.isLoading : false,
     isError: enabled ? query.isError : false,
+    refetch: query.refetch,
   };
 }
