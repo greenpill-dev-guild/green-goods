@@ -632,6 +632,7 @@
 
         function showFallback(kind) {
           if (!fallback || hasAppContent()) return;
+          if (kind === "loading" && fallback.dataset.state === "recovery") return;
           var isRecovery = kind === "recovery";
           fallback.hidden = false;
           fallback.dataset.presentation = presentation;

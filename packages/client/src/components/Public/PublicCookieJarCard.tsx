@@ -30,54 +30,10 @@ import { formatUnits } from "viem";
 import { useBalance } from "wagmi";
 import { WalletConnectButton } from "@/components/Actions/WalletConnectButton";
 import { EditorialSkeleton, EditorialStatSkeleton } from "@/components/Public/atoms";
+import { classifyCookieJarStatus, type CookieJarStatus } from "@/components/Public/cookieJarStatus";
 export type CookieJarBucket = "for-you" | "active" | "unresolved";
 const STRICT_PURPOSE_MIN_LENGTH = 27;
 const FALLBACK_CAMPAIGN_COOKIE_JAR_CLAIM_PURPOSE = "Green Goods campaign cookie claim";
-export type CookieJarStatus =
-  | { kind: "for-you-claimable"; bucket: "for-you" }
-  | { kind: "for-you-cooldown"; bucket: "for-you"; nextClaimAt: number }
-  | { kind: "for-you-claimed"; bucket: "for-you" }
-  | { kind: "needs-funding"; bucket: "active" }
-  | { kind: "claims-paused"; bucket: "active" }
-  | { kind: "active-open"; bucket: "active" }
-  | { kind: "active-not-eligible"; bucket: "active" }
-  | { kind: "loading"; bucket: "unresolved" }
-  | { kind: "error"; bucket: "unresolved" };
-interface JarLikeForStatus {
-  isPaused: boolean;
-  balance: bigint;
-  isEligible: boolean;
-  canClaimNow: boolean;
-  nextClaimAt: number | null;
-  oneTimeWithdrawal: boolean;
-  totalWithdrawn: bigint;
-}
-
-export function classifyCookieJarStatus(
-  jar: JarLikeForStatus | null | undefined,
-  options: { hasError: boolean; isConnected: boolean }
-): CookieJarStatus {
-  if (options.hasError) return { kind: "error", bucket: "unresolved" };
-  if (!jar) return { kind: "loading", bucket: "unresolved" };
-
-  if (jar.isPaused) return { kind: "claims-paused", bucket: "active" };
-  if (jar.balance === 0n) return { kind: "needs-funding", bucket: "active" };
-
-  if (options.isConnected && jar.isEligible) {
-    if (jar.canClaimNow) return { kind: "for-you-claimable", bucket: "for-you" };
-    if (jar.oneTimeWithdrawal && jar.totalWithdrawn > 0n) {
-      return { kind: "for-you-claimed", bucket: "for-you" };
-    }
-    if (jar.nextClaimAt && jar.nextClaimAt * 1000 > Date.now()) {
-      return { kind: "for-you-cooldown", bucket: "for-you", nextClaimAt: jar.nextClaimAt };
-    }
-  }
-
-  if (options.isConnected && !jar.isEligible) {
-    return { kind: "active-not-eligible", bucket: "active" };
-  }
-  return { kind: "active-open", bucket: "active" };
-}
 
 function formatDisplayAmount(value: bigint, decimals: number, symbol: string): string {
   return `${formatTokenAmount(value, decimals, 4)} ${symbol}`;
@@ -167,7 +123,11 @@ export function PublicCookieJarCard({
   const intl = useIntl();
   const rootRef = useRef<HTMLElement>(null);
   const { jar, isLoading, error, hasDetailReadFailure } = useCampaignCookieJar(campaign.address);
-  const status = classifyCookieJarStatus(jar, { hasError: Boolean(error), isConnected });
+  const status = classifyCookieJarStatus(jar, {
+    hasError: Boolean(error),
+    isConnected,
+    isLoading,
+  });
 
   const metadata = jar?.metadata ?? campaign.metadata;
   const title = metadata?.title ?? campaign.title ?? campaign.label;

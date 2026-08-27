@@ -19,11 +19,8 @@ import {
   EditorialSkeleton,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
-import {
-  classifyCookieJarStatus,
-  type CookieJarStatus,
-  PublicCookieJarCard,
-} from "@/components/Public/PublicCookieJarCard";
+import { PublicCookieJarCard } from "@/components/Public/PublicCookieJarCard";
+import { classifyCookieJarStatus, type CookieJarStatus } from "@/components/Public/cookieJarStatus";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
@@ -221,6 +218,7 @@ function CookiesCampaignSurface() {
       const status = classifyCookieJarStatus(state?.jar ?? null, {
         hasError: Boolean(state?.hasError),
         isConnected,
+        isLoading: state?.isLoading ?? true,
       });
       if (status.kind === "for-you-claimable") claimable += 1;
       if (status.bucket === "unresolved") unresolved += 1;

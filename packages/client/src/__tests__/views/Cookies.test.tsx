@@ -451,6 +451,20 @@ describe("CookiesPage", () => {
     expect(screen.queryByText(/Closed drops/i)).not.toBeInTheDocument();
   });
 
+  it("labels a completed cookie-jar read failure", async () => {
+    mockUseCampaignCookieJar.mockReturnValue({
+      jar: null,
+      isLoading: false,
+      error: null,
+      hasDetailReadFailure: true,
+    });
+
+    renderPage("/cookies");
+
+    const card = await screen.findByRole("article", { name: "Earth Week" });
+    expect(within(card).getByText("Needs link check")).toBeInTheDocument();
+  });
+
   it("keeps paused jars in the main grid as claims paused", async () => {
     mockUseCampaignCookieJar.mockReturnValue({
       jar: { ...eligibleJar, isPaused: true, canClaimNow: false },

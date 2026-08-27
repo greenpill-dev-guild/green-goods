@@ -218,6 +218,7 @@ describe("presentation-specific boot fallback", () => {
     const { fallback, websiteRecovery } = runController("website");
 
     document.dispatchEvent(new Event("gg-module-load-failed"));
+    vi.advanceTimersByTime(200);
 
     expect(fallback).not.toHaveAttribute("hidden");
     expect(fallback).toHaveAttribute("data-state", "recovery");
