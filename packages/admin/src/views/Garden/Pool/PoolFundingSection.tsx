@@ -125,6 +125,8 @@ export function PoolFundingSection({
                       })}
                     </span>
                   </a>
+                ) : funding.isError && !snapshot ? (
+                  fundingStateMessage("unavailable", intl)
                 ) : (
                   formatMessage({
                     id: "cockpit.garden.pool.funding.noSafe",

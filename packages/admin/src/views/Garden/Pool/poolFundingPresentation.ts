@@ -2,6 +2,7 @@ import type {
   PoolFundingState,
   SettlementUnavailableReason,
 } from "@green-goods/shared/modules/commitment-pooling/pool-funding";
+import type { Address } from "@green-goods/shared/types/domain";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { IntlShape } from "react-intl";
 
@@ -11,7 +12,7 @@ export function formatGdollar(value: bigint | null, locale: string, detailed = f
     : `${formatTokenAmount(value, 18, detailed ? 18 : 2, locale, true)} G$`;
 }
 
-export function shortAddress(address: string): string {
+export function shortAddress(address: Address): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 

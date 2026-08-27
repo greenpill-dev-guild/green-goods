@@ -1,4 +1,5 @@
 import type { PoolFundingControllerView } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type { Address } from "@green-goods/shared/types/domain";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiFundsLine } from "@remixicon/react";
 import type { RefObject } from "react";
@@ -35,8 +36,11 @@ export function PoolFundingDialog({
   const intl = useIntl();
   const { formatMessage, locale } = intl;
   const snapshot = funding.snapshot;
+  const stale = (funding.isError || funding.hasStaleBalance) && snapshot !== null;
+  const settlementReady = snapshot?.settlementReadiness === "ready" && !stale;
+  const settlementUnavailableReasons = snapshot?.settlementUnavailableReasons ?? [];
   const amount = (value: bigint | null) => formatGdollar(value, locale, true);
-  const address = (value: string | null) => (value ? `${shortAddress(value)} · ${value}` : "—");
+  const address = (value: Address | null) => (value ? `${shortAddress(value)} · ${value}` : "—");
 
   return (
     <AdminDialog
@@ -365,17 +369,24 @@ export function PoolFundingDialog({
             value={address(snapshot?.routeAddresses.live ?? null)}
           />
         </dl>
-        {snapshot?.settlementUnavailableReasons.length ? (
+        {settlementReady ? (
+          <p className="text-sm text-text-sub">
+            {formatMessage({
+              id: "cockpit.garden.pool.funding.ready",
+              defaultMessage: "Account, route, token, fees, and limits are ready.",
+            })}
+          </p>
+        ) : settlementUnavailableReasons.length ? (
           <ul className="list-disc space-y-1 pl-5 text-sm text-text-sub">
-            {snapshot.settlementUnavailableReasons.map((reason) => (
+            {settlementUnavailableReasons.map((reason) => (
               <li key={reason}>{readinessReasonMessage(reason, intl)}</li>
             ))}
           </ul>
         ) : (
           <p className="text-sm text-text-sub">
             {formatMessage({
-              id: "cockpit.garden.pool.funding.ready",
-              defaultMessage: "Account, route, token, fees, and limits are ready.",
+              id: "cockpit.garden.pool.funding.settlementUnavailable",
+              defaultMessage: "Settlement unavailable",
             })}
           </p>
         )}

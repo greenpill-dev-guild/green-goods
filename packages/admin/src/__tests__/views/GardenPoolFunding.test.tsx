@@ -140,6 +140,12 @@ describe("PoolFundingSection", () => {
     expect(screen.queryByText("0 G$")).not.toBeInTheDocument();
   });
 
+  it("reports an initial read failure as unavailable instead of a missing Safe", () => {
+    renderSection(fundingView({ snapshot: null, isError: true }));
+    expect(screen.getAllByText("Funding unavailable").length).toBeGreaterThan(0);
+    expect(screen.queryByText("No settlement Safe configured")).not.toBeInTheDocument();
+  });
+
   it("retains a failed prior balance only as a last read and removes health classification", () => {
     renderSection(fundingView({ isError: true }));
     expect(screen.getByText(/last read/i)).toBeInTheDocument();
@@ -228,5 +234,18 @@ describe("PoolFundingDialog", () => {
     expect(screen.getByText(new RegExp(SAFE, "i"))).toBeInTheDocument();
     expect(screen.getByText(new RegExp(OTHER, "i"))).toBeInTheDocument();
     expect(screen.getByText(/do not agree/i)).toBeInTheDocument();
+  });
+
+  it.each([
+    ["missing", fundingView({ snapshot: null })],
+    ["stale", fundingView({ isError: true })],
+  ])("does not report %s funding data as settlement ready", (_state, funding) => {
+    renderWithProviders(
+      <PoolFundingDialog open onOpenChange={() => undefined} funding={funding} tone="garden" />
+    );
+    expect(screen.getByText("Settlement unavailable")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Account, route, token, fees, and limits are ready.")
+    ).not.toBeInTheDocument();
   });
 });
