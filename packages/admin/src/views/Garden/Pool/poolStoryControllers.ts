@@ -7,6 +7,7 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import type {
   CommitmentDialogController,
+  PoolFundingControllerView,
   PoolConsoleController,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { OntologyChainCapability } from "@green-goods/shared/ontology/types";
@@ -35,6 +36,61 @@ const availableCapability: OntologyChainCapability = {
   evidence: [],
   verified_at: "2026-08-23",
 };
+const G = 10n ** 18n;
+const STORY_SAFE = "0x1111111111111111111111111111111111111111" as const;
+const STORY_GDOLLAR = "0x62b8b11039fcfe5ab0c56e502b1c372a3d2a9c7a" as const;
+
+export function storyPoolFunding(
+  overrides: Partial<PoolFundingControllerView> = {}
+): PoolFundingControllerView {
+  return {
+    snapshot: {
+      safe: STORY_SAFE,
+      routeAddresses: { account: STORY_SAFE, indexed: STORY_SAFE, live: STORY_SAFE },
+      token: STORY_GDOLLAR,
+      balance: {
+        value: 4_120n * G,
+        blockNumber: 1n,
+        blockTimestamp: 1_756_000_000,
+        readAt: 1_756_000_001,
+      },
+      ledgerReadAt: 1_756_000_000,
+      committed: 1_200n * G,
+      expected: 600n * G,
+      authorizedFeeBuffer: 12n * G,
+      expectedFeeBuffer: 6n * G,
+      feeBuffer: 18n * G,
+      quotedFees: 10n * G,
+      feeQuotes: [],
+      available: 2_302n * G,
+      shortfall: 0n,
+      suggestedTopUp: 0n,
+      fundingState: "healthy",
+      fundingUnavailableReasons: [],
+      settlementReadiness: "ready",
+      settlementUnavailableReasons: [],
+      obligations: [],
+      transit: { dispatched: 0n, executedAwaitingConfirmation: 0n, incoming: 0n },
+      limits: {
+        rolesAllowanceRemaining: 5_000n * G,
+        periodAllowanceRemaining: 10_000n * G,
+        maxTransferAmount: 7_000_000n * G,
+        maxBatchAmount: 10_000_000n * G,
+        batchSizeLimit: 2,
+      },
+      nativeFeeBalance: 50n * G,
+    },
+    isLoading: false,
+    isFetching: false,
+    isRefetching: false,
+    isError: false,
+    hasStaleBalance: false,
+    lastReadAt: 1_756_000_001,
+    ledgerReadAt: 1_756_000_000,
+    refetch: async () => undefined,
+    ...overrides,
+  };
+}
 
 /** The real controller's shape over the fixtures above; acts resolve without sending. */
 export function storyPoolConsole(
@@ -96,6 +152,7 @@ export function storyPoolConsole(
     isError: false,
     refetch: async () => [],
     ...overrides,
+    funding: overrides.funding ?? storyPoolFunding(),
     ...(overrides.model ? { model: overrides.model } : {}),
     // After the spread on purpose: `pool` already folds in `overrides.pool`,
     // and the real hook hands the console a record with `promiseKeptRate`

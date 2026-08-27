@@ -33,8 +33,8 @@ type PoolsTab = "protocol" | "current";
  * protocol stewards' home: the root garden's pool console (cross-garden
  * claims, seeding in protocol context) plus the protocol confirmations queue
  * in the Hub Confirm grammar. This garden is one tap into the pool console,
- * with no duplicated grammar. The funding view and the delivery-gate row are
- * out of scope here and say nothing.
+ * with no duplicated grammar. Protocol and Garden funding use the same pool
+ * funding presentation; the Protocol copy adds only its treasury context.
  */
 export function CommunityPools({ chainId, garden, canManage }: CommunityPoolsProps) {
   const { formatMessage } = useIntl();

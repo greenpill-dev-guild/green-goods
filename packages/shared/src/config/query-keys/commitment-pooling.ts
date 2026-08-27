@@ -142,6 +142,8 @@ export const commitmentPoolingKeys = {
       "settlement-account",
       normalizeAddress(garden),
     ] as const,
+  poolFunding: (chainId: number, garden: Address | string) =>
+    [...commitmentPoolingKeys.all(chainId), "pool-funding", normalizeAddress(garden)] as const,
   settlementSubject: (chainId: number, isBatch: boolean, subjectId: bigint | string | number) =>
     [
       ...commitmentPoolingKeys.all(chainId),
