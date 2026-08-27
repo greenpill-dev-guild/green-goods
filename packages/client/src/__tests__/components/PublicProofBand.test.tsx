@@ -89,8 +89,16 @@ describe("PublicProofBand", () => {
   });
 
   it("shows the four markers while loading even when counts are zero", () => {
-    renderBand({ gardens: 0, contributors: 0, works: 0, assessments: 0, isLoading: true });
+    const { container } = renderBand({
+      gardens: 0,
+      contributors: 0,
+      works: 0,
+      assessments: 0,
+      isLoading: true,
+    });
     expect(screen.getByText("Gardens tended")).toBeInTheDocument();
     expect(screen.queryByText(/first records will appear here/)).toBeNull();
+    expect(container.querySelectorAll("[data-editorial-skeleton]")).toHaveLength(4);
+    expect(screen.queryByText("...")).not.toBeInTheDocument();
   });
 });

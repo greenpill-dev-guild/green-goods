@@ -7,7 +7,12 @@ import { getRelativeTimeParts } from "@green-goods/shared/utils/relativeTime";
 import { RiImageLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { type IntlShape, useIntl } from "react-intl";
-import { EditorialLede } from "@/components/Public/atoms";
+import {
+  EditorialLede,
+  EditorialMediaCardSkeleton,
+  EditorialSkeleton,
+  EditorialStatSkeleton,
+} from "@/components/Public/atoms";
 
 /**
  * Small pieces of the public Garden page. Split out of `GardenDetail.tsx` to
@@ -44,9 +49,9 @@ const STAT_VALUE_CLASS = {
     "mt-2 font-serif text-3xl font-normal leading-none tracking-[-0.018em] tabular-nums text-text-strong-950 md:text-4xl",
 } as const;
 
-const STAT_PULSE_CLASS = {
-  strip: "inline-block h-7 w-10 animate-pulse rounded-sm bg-stroke-soft-200",
-  panel: "inline-block h-9 w-14 animate-pulse rounded-sm bg-stroke-soft-200",
+const STAT_SKELETON_CLASS = {
+  strip: "h-7 w-10",
+  panel: "h-9 w-14",
 } as const;
 
 export function StatCell({
@@ -81,7 +86,7 @@ export function StatCell({
             <span className="sr-only">{unknownLabel}</span>
           </>
         ) : loading || value === undefined ? (
-          <span className={STAT_PULSE_CLASS[size]} />
+          <EditorialStatSkeleton className={STAT_SKELETON_CLASS[size]} />
         ) : (
           value
         )}
@@ -156,11 +161,7 @@ export function TileSkeletonGrid() {
   return (
     <div aria-hidden="true" className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
       {[0, 1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="flex flex-col gap-4">
-          <div className="aspect-[3/2] w-full animate-pulse bg-editorial-warm" />
-          <div className="h-5 w-3/4 animate-pulse rounded-sm bg-stroke-soft-200" />
-          <div className="h-3 w-1/2 animate-pulse rounded-sm bg-stroke-soft-200" />
-        </div>
+        <EditorialMediaCardSkeleton key={i} />
       ))}
     </div>
   );
@@ -176,7 +177,7 @@ export function ListSkeleton({
   return (
     <div aria-hidden="true" className={className}>
       {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="h-5 w-2/3 animate-pulse rounded-sm bg-stroke-soft-200" />
+        <EditorialSkeleton key={i} className="h-5 w-2/3" />
       ))}
     </div>
   );

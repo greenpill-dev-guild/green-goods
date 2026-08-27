@@ -12,13 +12,14 @@ import { useOctantVaultHarvestableYield } from "@green-goods/shared/hooks/vault/
 import { useOctantVaultStats } from "@green-goods/shared/hooks/vault/useOctantVaultStats";
 import { useOctantVaultStrategyApy } from "@green-goods/shared/hooks/vault/useOctantVaultStrategyApy";
 import { selectPublicSurfaceState } from "@green-goods/shared/public";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { Link, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import {
   EditorialHeading,
   EditorialKicker,
   EditorialLede,
+  EditorialStatSkeleton,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
@@ -185,9 +186,7 @@ function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifes
       <PublicSurfaceState
         state={surfaceState}
         container="dd"
-        loading={
-          <span className="mt-1 block font-serif text-2xl leading-none text-text-soft-400">…</span>
-        }
+        loading={<EditorialStatSkeleton className="mt-1 h-8 w-28" />}
         error={null}
         empty={
           <span className="mt-1 block font-serif text-xl leading-none text-text-soft-400">
@@ -230,12 +229,9 @@ function CampaignYieldRow({ campaign }: { campaign: OctantVaultCampaignManifest 
     yieldSource: campaign.vault?.yieldSource,
   });
 
-  let generatedYieldValue: string;
+  let generatedYieldValue: ReactNode;
   if (metric.isLoading) {
-    generatedYieldValue = formatMessage({
-      id: "public.vaults.card.metricReading",
-      defaultMessage: "Reading",
-    });
+    generatedYieldValue = <EditorialStatSkeleton className="h-5 w-24" />;
   } else if (metric.status === "unavailable") {
     generatedYieldValue = formatMessage({
       id: "public.vaults.card.generatedYieldUnavailable",
@@ -256,12 +252,9 @@ function CampaignYieldRow({ campaign }: { campaign: OctantVaultCampaignManifest 
     )} ${assetSymbol}`;
   }
 
-  let fundingRateValue: string;
+  let fundingRateValue: ReactNode;
   if (apy.isLoading) {
-    fundingRateValue = formatMessage({
-      id: "public.vaults.card.metricReading",
-      defaultMessage: "Reading",
-    });
+    fundingRateValue = <EditorialStatSkeleton className="h-5 w-16" />;
   } else if (apy.status === "unavailable") {
     fundingRateValue = formatMessage({
       id: "public.vaults.card.fundingRateUnavailable",

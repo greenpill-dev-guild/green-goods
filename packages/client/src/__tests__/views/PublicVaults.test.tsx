@@ -825,7 +825,8 @@ describe("VaultsPage", () => {
     renderView();
 
     const yieldRow = screen.getByTestId("vault-campaign-yield-row-greenpill-nyc");
-    expect(within(yieldRow).getAllByText("Reading")).toHaveLength(2);
+    expect(yieldRow.querySelectorAll("[data-editorial-skeleton]")).toHaveLength(2);
+    expect(within(yieldRow).queryByText("Reading")).toBeNull();
   });
 
   it("renders a desktop dialog and a mobile bottom sheet for checkout setup", async () => {

@@ -291,6 +291,24 @@ describe("CookiesPage", () => {
     expect(mockOpenWallet).not.toHaveBeenCalled();
   });
 
+  it("uses editorial record skeletons while the campaign list loads", () => {
+    mockUseCampaignCookieJarCampaigns.mockReturnValue({
+      campaigns: [],
+      indexedCampaigns: [],
+      fallbackCampaigns: [],
+      isLoading: true,
+      isFallback: false,
+      error: null,
+    });
+
+    const { container } = renderPage("/cookies");
+
+    expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
+      3
+    );
+    expect(container.querySelector(".animate-pulse")).toBeNull();
+  });
+
   it("claims a fixed cookie amount for an eligible wallet", async () => {
     const user = userEvent.setup();
 
@@ -431,6 +449,20 @@ describe("CookiesPage", () => {
     expect(within(card).getByText("Needs funding")).toBeInTheDocument();
     expect(within(card).getByRole("button", { name: "Deposit" })).toBeInTheDocument();
     expect(screen.queryByText(/Closed drops/i)).not.toBeInTheDocument();
+  });
+
+  it("labels a completed cookie-jar read failure", async () => {
+    mockUseCampaignCookieJar.mockReturnValue({
+      jar: null,
+      isLoading: false,
+      error: null,
+      hasDetailReadFailure: true,
+    });
+
+    renderPage("/cookies");
+
+    const card = await screen.findByRole("article", { name: "Earth Week" });
+    expect(within(card).getByText("Needs link check")).toBeInTheDocument();
   });
 
   it("keeps paused jars in the main grid as claims paused", async () => {

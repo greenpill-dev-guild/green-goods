@@ -388,6 +388,8 @@ describe("GardenDetail", () => {
 
     const certificates = screen.getByText("Certificates").closest("div") as HTMLElement;
     expect(within(certificates).queryByText("0")).not.toBeInTheDocument();
+    expect(certificates.querySelector("[data-editorial-skeleton]")).toBeInTheDocument();
+    expect(certificates.querySelector(".animate-pulse")).toBeNull();
   });
 
   it("renders the note dialog outside the transformed section", () => {

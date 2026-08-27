@@ -24,59 +24,16 @@ import {
   useCampaignCookieJarWithdraw,
 } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
 import { useBalance } from "wagmi";
 import { WalletConnectButton } from "@/components/Actions/WalletConnectButton";
+import { EditorialSkeleton, EditorialStatSkeleton } from "@/components/Public/atoms";
+import { classifyCookieJarStatus, type CookieJarStatus } from "@/components/Public/cookieJarStatus";
 export type CookieJarBucket = "for-you" | "active" | "unresolved";
 const STRICT_PURPOSE_MIN_LENGTH = 27;
 const FALLBACK_CAMPAIGN_COOKIE_JAR_CLAIM_PURPOSE = "Green Goods campaign cookie claim";
-export type CookieJarStatus =
-  | { kind: "for-you-claimable"; bucket: "for-you" }
-  | { kind: "for-you-cooldown"; bucket: "for-you"; nextClaimAt: number }
-  | { kind: "for-you-claimed"; bucket: "for-you" }
-  | { kind: "needs-funding"; bucket: "active" }
-  | { kind: "claims-paused"; bucket: "active" }
-  | { kind: "active-open"; bucket: "active" }
-  | { kind: "active-not-eligible"; bucket: "active" }
-  | { kind: "loading"; bucket: "unresolved" }
-  | { kind: "error"; bucket: "unresolved" };
-interface JarLikeForStatus {
-  isPaused: boolean;
-  balance: bigint;
-  isEligible: boolean;
-  canClaimNow: boolean;
-  nextClaimAt: number | null;
-  oneTimeWithdrawal: boolean;
-  totalWithdrawn: bigint;
-}
-
-export function classifyCookieJarStatus(
-  jar: JarLikeForStatus | null | undefined,
-  options: { hasError: boolean; isConnected: boolean }
-): CookieJarStatus {
-  if (options.hasError) return { kind: "error", bucket: "unresolved" };
-  if (!jar) return { kind: "loading", bucket: "unresolved" };
-
-  if (jar.isPaused) return { kind: "claims-paused", bucket: "active" };
-  if (jar.balance === 0n) return { kind: "needs-funding", bucket: "active" };
-
-  if (options.isConnected && jar.isEligible) {
-    if (jar.canClaimNow) return { kind: "for-you-claimable", bucket: "for-you" };
-    if (jar.oneTimeWithdrawal && jar.totalWithdrawn > 0n) {
-      return { kind: "for-you-claimed", bucket: "for-you" };
-    }
-    if (jar.nextClaimAt && jar.nextClaimAt * 1000 > Date.now()) {
-      return { kind: "for-you-cooldown", bucket: "for-you", nextClaimAt: jar.nextClaimAt };
-    }
-  }
-
-  if (options.isConnected && !jar.isEligible) {
-    return { kind: "active-not-eligible", bucket: "active" };
-  }
-  return { kind: "active-open", bucket: "active" };
-}
 
 function formatDisplayAmount(value: bigint, decimals: number, symbol: string): string {
   return `${formatTokenAmount(value, decimals, 4)} ${symbol}`;
@@ -166,7 +123,11 @@ export function PublicCookieJarCard({
   const intl = useIntl();
   const rootRef = useRef<HTMLElement>(null);
   const { jar, isLoading, error, hasDetailReadFailure } = useCampaignCookieJar(campaign.address);
-  const status = classifyCookieJarStatus(jar, { hasError: Boolean(error), isConnected });
+  const status = classifyCookieJarStatus(jar, {
+    hasError: Boolean(error),
+    isConnected,
+    isLoading,
+  });
 
   const metadata = jar?.metadata ?? campaign.metadata;
   const title = metadata?.title ?? campaign.title ?? campaign.label;
@@ -222,10 +183,7 @@ export function PublicCookieJarCard({
           defaultMessage: "Not on this list",
         });
       case "loading":
-        return intl.formatMessage({
-          id: "public.cookies.status.loading",
-          defaultMessage: "Reading...",
-        });
+        return null;
       case "error":
         return intl.formatMessage({
           id: "public.cookies.status.error",
@@ -234,7 +192,7 @@ export function PublicCookieJarCard({
     }
   })();
 
-  const heroAmount: { value: string; label: string } = (() => {
+  const heroAmount: { value: ReactNode; label: ReactNode } = (() => {
     if (status.kind === "for-you-claimable" && jar) {
       return {
         value: formatTokenAmount(getClaimableAmount(jar), decimals, 4),
@@ -272,11 +230,15 @@ export function PublicCookieJarCard({
       };
     }
     return {
-      value: isLoading ? "..." : "?",
-      label: intl.formatMessage({
-        id: "public.cookies.metric.unknown",
-        defaultMessage: "balance unavailable",
-      }),
+      value: isLoading ? <EditorialStatSkeleton className="h-9 w-24" /> : "?",
+      label: isLoading ? (
+        <EditorialSkeleton className="h-3 w-32" />
+      ) : (
+        intl.formatMessage({
+          id: "public.cookies.metric.unknown",
+          defaultMessage: "balance unavailable",
+        })
+      ),
     };
   })();
 
@@ -322,7 +284,7 @@ export function PublicCookieJarCard({
             STATUS_PILL_CLASSES[status.kind]
           )}
         >
-          {statusLabel}
+          {isLoading ? <EditorialSkeleton className="h-3 w-20 rounded-full" /> : statusLabel}
         </span>
         {campaign.createdAt ? (
           <span className="text-xs text-text-soft-400">
@@ -418,16 +380,17 @@ export function PublicCookieJarCard({
         <CampaignCookieJarInlineActions jar={jar} />
       ) : (
         <div className="mt-auto rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-4 text-sm text-text-sub-600">
-          {isLoading
-            ? intl.formatMessage({
-                id: "public.cookies.status.loading",
-                defaultMessage: "Reading...",
-              })
-            : intl.formatMessage({
-                id: "public.cookies.loadFailed",
-                defaultMessage:
-                  "This cookie jar could not be loaded. Check the link and try again.",
-              })}
+          {isLoading ? (
+            <div aria-hidden="true" className="space-y-2">
+              <EditorialSkeleton className="h-4 w-4/5" />
+              <EditorialSkeleton className="h-4 w-3/5" />
+            </div>
+          ) : (
+            intl.formatMessage({
+              id: "public.cookies.loadFailed",
+              defaultMessage: "This cookie jar could not be loaded. Check the link and try again.",
+            })
+          )}
         </div>
       )}
     </article>

@@ -43,6 +43,50 @@
   --color-editorial-deep-fg: rgb(var(--editorial-deep-fg-rgb));
 }
 
+/* Quiet editorial placeholders: structure without app-like activity chrome. */
+@keyframes editorial-skeleton-sweep {
+  to {
+    transform: translateX(420%);
+  }
+}
+
+.editorial-skeleton {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: rgb(var(--stroke-soft-200) / 0.52);
+}
+
+.editorial-skeleton::after {
+  position: absolute;
+  inset-block: 0;
+  left: -52%;
+  width: 42%;
+  background: rgb(var(--text-strong-950) / 0.08);
+  content: "";
+  filter: blur(var(--blur-material-regular));
+  transform: translateX(0);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .editorial-skeleton::after {
+    animation: editorial-skeleton-sweep
+      calc(
+        var(--spring-effects-slow-duration) + var(--spring-effects-slow-duration) +
+          var(--spring-effects-slow-duration) + var(--spring-effects-slow-duration)
+      )
+      var(--spring-effects-easing) infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editorial-skeleton::after {
+    animation: none;
+    left: 28%;
+    opacity: 0.4;
+  }
+}
+
 /* ============================================================================
  * Hero overlap reveal animation
  * Used by PublicEditorialHero. Composes a quiet cinematic settle: the linen
