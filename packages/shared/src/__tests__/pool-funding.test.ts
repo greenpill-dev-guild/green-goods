@@ -4,9 +4,9 @@ import {
   calculateEffectiveZodiacAllowance,
   calculateKnownTransferFeeBuffer,
   calculateUnknownSplitFeeBuffer,
-  selectPoolFundingSnapshot,
   type PoolFundingCalculationInput,
   type PoolFundingDisbursement,
+  selectPoolFundingSnapshot,
 } from "../modules/commitment-pooling/pool-funding";
 
 const SAFE = "0x1111111111111111111111111111111111111111" as const;
@@ -63,6 +63,7 @@ function input(overrides: Partial<PoolFundingCalculationInput> = {}): PoolFundin
       batchSizeLimit: 20,
     },
     nativeFeeBalance: 2n,
+    acknowledgmentFeeReserveLow: false,
     ...overrides,
   };
 }
@@ -224,6 +225,35 @@ describe("selectPoolFundingSnapshot", () => {
       })
     );
     expect(snapshot.committed).toBe(100n);
+  });
+
+  it("does not count an accepted member-funded commitment as expected demand twice", () => {
+    const snapshot = selectPoolFundingSnapshot(
+      input({
+        commitments: [
+          {
+            id: "commitment-10",
+            commitmentId: 10n,
+            state: "ACCEPTED",
+            considerationRail: "CELO_SETTLEMENT",
+            considerationAmount: 100n,
+            considerationPaid: false,
+          },
+        ],
+        fundings: [
+          {
+            id: "funding-4",
+            fundingId: 4n,
+            commitmentId: 10n,
+            depositedAmount: 100n,
+            state: "DEPOSIT_RECORDED",
+          },
+        ],
+      })
+    );
+    expect(snapshot.committed).toBe(100n);
+    expect(snapshot.expected).toBe(0n);
+    expect(snapshot.obligations).toHaveLength(1);
   });
 
   it("releases consumed member funding after its linked payout is reflected in the Safe balance", () => {
@@ -408,6 +438,79 @@ describe("selectPoolFundingSnapshot", () => {
     expect(snapshot.available).toBe(394n);
   });
 
+  it("checks transfer caps per payout instead of against the aggregate plan", () => {
+    const snapshot = selectPoolFundingSnapshot(
+      input({
+        payoutPlans: [
+          {
+            id: "plan-3",
+            payoutPlanId: 3n,
+            commitmentId: 10n,
+            finalized: true,
+            rows: [
+              { id: "row-1", amount: 300n, recipient: OTHER, disbursementId: null },
+              { id: "row-2", amount: 300n, recipient: OTHER, disbursementId: null },
+            ],
+          },
+        ],
+        feeQuotes: [
+          { id: "row-1", amount: 300n, fee: 0n, senderPays: true, recipient: OTHER },
+          { id: "row-2", amount: 300n, fee: 0n, senderPays: true, recipient: OTHER },
+        ],
+        limits: { ...input().limits, maxTransferAmount: 500n },
+      })
+    );
+    expect(snapshot.settlementUnavailableReasons).not.toContain("transfer_cap_exceeded");
+  });
+
+  it("checks pending commands against remaining Roles and period allowances", () => {
+    const pending = disbursement({ commitmentId: null, payoutPlanId: null });
+    const snapshot = selectPoolFundingSnapshot(
+      input({
+        disbursements: [pending],
+        feeQuotes: [{ id: pending.id, amount: 100n, fee: 1n, senderPays: true, recipient: OTHER }],
+        limits: {
+          ...input().limits,
+          rolesAllowanceRemaining: 50n,
+          periodAllowanceRemaining: 100n,
+        },
+      })
+    );
+    expect(snapshot.settlementUnavailableReasons).toEqual(
+      expect.arrayContaining(["roles_allowance_insufficient", "period_allowance_insufficient"])
+    );
+  });
+
+  it("checks the live batch-size limit", () => {
+    const first = disbursement({
+      disbursementId: 1n,
+      commitmentId: null,
+      payoutPlanId: null,
+      batchId: 9n,
+    });
+    const second = disbursement({
+      id: "42161-2",
+      disbursementId: 2n,
+      commitmentId: null,
+      payoutPlanId: null,
+      batchId: 9n,
+    });
+    const snapshot = selectPoolFundingSnapshot(
+      input({
+        disbursements: [first, second],
+        feeQuotes: [first, second].map((row) => ({
+          id: row.id,
+          amount: row.amount,
+          fee: 0n,
+          senderPays: true,
+          recipient: row.recipient,
+        })),
+        limits: { ...input().limits, batchSizeLimit: 1 },
+      })
+    );
+    expect(snapshot.settlementUnavailableReasons).toContain("batch_size_exceeded");
+  });
+
   it("rejects receiver-paid, failed, and above-policy GoodDollar fee quotes", () => {
     const snapshot = selectPoolFundingSnapshot(
       input({
@@ -421,6 +524,43 @@ describe("selectPoolFundingSnapshot", () => {
     expect(snapshot.settlementUnavailableReasons).toEqual(
       expect.arrayContaining(["receiver_paid_fee", "fee_quote_unavailable", "fee_policy_breach"])
     );
+  });
+
+  it("allows a zero-fee receiver-paid quote", () => {
+    const pending = disbursement({ commitmentId: null, payoutPlanId: null });
+    const snapshot = selectPoolFundingSnapshot(
+      input({
+        disbursements: [pending],
+        feeQuotes: [
+          { id: pending.id, amount: pending.amount, fee: 0n, senderPays: false, recipient: OTHER },
+        ],
+      })
+    );
+    expect(snapshot.settlementUnavailableReasons).not.toContain("receiver_paid_fee");
+  });
+
+  it("marks authorized underfunding as financially and operationally unavailable", () => {
+    const pending = disbursement({ commitmentId: null, payoutPlanId: null });
+    const snapshot = selectPoolFundingSnapshot(
+      input({
+        balance: { value: 50n, blockNumber: 50n, blockTimestamp: 2_000, readAt: 2_001 },
+        disbursements: [pending],
+        feeQuotes: [
+          { id: pending.id, amount: pending.amount, fee: 0n, senderPays: true, recipient: OTHER },
+        ],
+      })
+    );
+    expect(snapshot.fundingState).toBe("insufficient");
+    expect(snapshot.settlementReadiness).toBe("unavailable");
+    expect(snapshot.settlementUnavailableReasons).toContain("insufficient_authorized_balance");
+  });
+
+  it.each([
+    [true, "acknowledgment_reserve_low"],
+    [null, "acknowledgment_reserve_unreadable"],
+  ] as const)("reports acknowledgment reserve readiness when the live probe is %s", (low, reason) => {
+    const snapshot = selectPoolFundingSnapshot(input({ acknowledgmentFeeReserveLow: low }));
+    expect(snapshot.settlementUnavailableReasons).toContain(reason);
   });
 
   it("marks a confirmed row without a successful Celo execution as an inconsistent ledger", () => {

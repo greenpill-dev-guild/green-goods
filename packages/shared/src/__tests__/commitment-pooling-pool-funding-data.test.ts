@@ -1,8 +1,8 @@
 import type { PublicClient } from "viem";
 import { describe, expect, it, vi } from "vitest";
-
-import type { GraphQLReader } from "../modules/data/graphql-client";
+import type { RawRow } from "../modules/commitment-pooling/data-core";
 import { getPoolFundingSnapshot } from "../modules/commitment-pooling/data-pool-funding";
+import type { GraphQLReader } from "../modules/data/graphql-client";
 
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 const SAFE = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as const;
@@ -52,7 +52,18 @@ function configuration(chainId: number, role: "SOURCE" | "EXECUTOR") {
 
 function reader(
   now: number,
-  overrides: { pageError?: boolean; metadataError?: boolean; paginated?: boolean } = {}
+  overrides: {
+    pageError?: boolean;
+    metadataError?: boolean;
+    paginated?: boolean;
+    metadataRows?: RawRow[];
+    commitments?: RawRow[];
+    payoutPlans?: RawRow[];
+    fundings?: RawRow[];
+    disbursements?: RawRow[];
+    payoutRows?: RawRow[];
+    executions?: RawRow[];
+  } = {}
 ): GraphQLReader {
   return {
     query: vi.fn(
@@ -98,7 +109,6 @@ function reader(
                 },
               ],
               SettlementConfiguration: [configuration(42161, "SOURCE")],
-              chain_metadata: [{ chain_id: 42161, block_timestamp: now }],
             },
           };
         }
@@ -107,7 +117,16 @@ function reader(
         }
         if (operation === "getPoolFundingFreshness") {
           if (overrides.metadataError) return { error: new Error("freshness unavailable") };
-          return { data: { chain_metadata: [{ chain_id: 42161, block_timestamp: now }] } };
+          return {
+            data: {
+              chain_metadata:
+                overrides.metadataRows ??
+                [42161, 42220].map((chainId) => ({
+                  chain_id: chainId,
+                  timestamp_caught_up_to_head_or_endblock: new Date(now * 1_000).toISOString(),
+                })),
+            },
+          };
         }
         if (operation === "getPoolFundingLedgerPage") {
           if (overrides.pageError) return { error: new Error("indexer unavailable") };
@@ -144,28 +163,30 @@ function reader(
           }
           return {
             data: {
-              Commitment: overrides.paginated
-                ? Array.from({ length: 200 }, (_, index) => ({
-                    id: `42161-${index + 1}`,
-                    commitmentId: `${index + 1}`,
-                    state: "ACCEPTED",
-                    considerationRail: "CELO_SETTLEMENT",
-                    considerationAmount: "100",
-                    considerationPaid: false,
-                  }))
-                : [
-                    {
-                      id: "42161-1",
-                      commitmentId: "1",
+              Commitment:
+                overrides.commitments ??
+                (overrides.paginated
+                  ? Array.from({ length: 200 }, (_, index) => ({
+                      id: `42161-${index + 1}`,
+                      commitmentId: `${index + 1}`,
                       state: "ACCEPTED",
                       considerationRail: "CELO_SETTLEMENT",
                       considerationAmount: "100",
                       considerationPaid: false,
-                    },
-                  ],
-              CommitmentPayoutPlan: [],
-              CommitmentFunding: [],
-              Disbursement: [
+                    }))
+                  : [
+                      {
+                        id: "42161-1",
+                        commitmentId: "1",
+                        state: "ACCEPTED",
+                        considerationRail: "CELO_SETTLEMENT",
+                        considerationAmount: "100",
+                        considerationPaid: false,
+                      },
+                    ]),
+              CommitmentPayoutPlan: overrides.payoutPlans ?? [],
+              CommitmentFunding: overrides.fundings ?? [],
+              Disbursement: overrides.disbursements ?? [
                 {
                   id: "42161-5",
                   disbursementId: "5",
@@ -180,12 +201,14 @@ function reader(
                   executionKey: null,
                 },
               ],
-              SettlementExecution: [],
             },
           };
         }
         if (operation === "getPoolFundingPayoutRows") {
-          return { data: { ContributorPayout: [] } };
+          return { data: { ContributorPayout: overrides.payoutRows ?? [] } };
+        }
+        if (operation === "getPoolFundingExecutions") {
+          return { data: { SettlementExecution: overrides.executions ?? [] } };
         }
         throw new Error(`Unexpected operation ${operation}`);
       }
@@ -217,6 +240,7 @@ function clientFactory(options: { failBalance?: boolean } = {}) {
           if (functionName === "maxPeriodAmount") return 15_000_000n;
           if (functionName === "gardenPeriodSpend") return [1_900n, 1_000n] as const;
           if (functionName === "nativeFeeBalance") return 123n;
+          if (functionName === "isAcknowledgmentFeeReserveLow") return false;
           if (functionName === "allowances") return [100n, 1_000n, 100n, 2_000n, 500n] as const;
           if (functionName === "getFees") return [1n, true] as const;
           throw new Error(`Unexpected ${functionName} on ${address}`);
@@ -231,8 +255,9 @@ describe("pool funding hybrid reader", () => {
   it("reads Celo directly while the pool and obligations are keyed by Arbitrum", async () => {
     const now = 2_050;
     const clients = clientFactory();
+    const indexer = reader(now);
     const snapshot = await getPoolFundingSnapshot(42161, GARDEN, {
-      reader: reader(now),
+      reader: indexer,
       createClient: clients.createClient,
       now,
     });
@@ -244,6 +269,11 @@ describe("pool funding hybrid reader", () => {
     expect(snapshot.expected).toBe(100n);
     expect(snapshot.available).toBe(849n);
     expect(snapshot.nativeFeeBalance).toBe(123n);
+    expect(indexer.query).toHaveBeenCalledWith(
+      expect.stringContaining("timestamp_caught_up_to_head_or_endblock"),
+      { chainIds: [42161, 42220] },
+      "getPoolFundingFreshness"
+    );
   });
 
   it("turns an RPC balance failure into unavailable data, never zero", async () => {
@@ -282,6 +312,156 @@ describe("pool funding hybrid reader", () => {
     expect(snapshot.committed).toBeNull();
     expect(snapshot.available).toBeNull();
     expect(snapshot.fundingUnavailableReasons).toContain("ledger_unavailable");
+  });
+
+  it("requires caught-up metadata for both the source and executor chains", async () => {
+    const now = 2_050;
+    const snapshot = await getPoolFundingSnapshot(42161, GARDEN, {
+      reader: reader(now, {
+        metadataRows: [
+          {
+            chain_id: 42161,
+            timestamp_caught_up_to_head_or_endblock: new Date(now * 1_000).toISOString(),
+          },
+        ],
+      }),
+      createClient: clientFactory().createClient,
+      now,
+    });
+    expect(snapshot.balance?.value).toBe(1_000n);
+    expect(snapshot.available).toBeNull();
+    expect(snapshot.fundingUnavailableReasons).toContain("ledger_unavailable");
+  });
+
+  it("keeps finalized plans coherent when contributor snapshots include zero allocations", async () => {
+    const now = 2_050;
+    const snapshot = await getPoolFundingSnapshot(42161, GARDEN, {
+      reader: reader(now, {
+        commitments: [],
+        disbursements: [],
+        payoutPlans: [
+          {
+            id: "42161-plan-9",
+            payoutPlanId: "9",
+            commitmentId: "10",
+            finalized: true,
+            declaredAmount: "100",
+            gardenRetainedAmount: "0",
+            contributorPayoutTotal: "100",
+            beneficiaryRecipient: null,
+            beneficiaryAmount: "0",
+            beneficiaryDisbursementId: null,
+            payablePayoutCount: 1,
+          },
+        ],
+        payoutRows: [
+          {
+            id: "payout-positive",
+            payoutPlanId: "9",
+            commitmentId: "10",
+            recipient: RECIPIENT,
+            amount: "100",
+            disbursementId: null,
+          },
+          {
+            id: "payout-zero",
+            payoutPlanId: "9",
+            commitmentId: "10",
+            recipient: GARDEN,
+            amount: "0",
+            disbursementId: null,
+          },
+        ],
+      }),
+      createClient: clientFactory().createClient,
+      now,
+    });
+    expect(snapshot.available).not.toBeNull();
+    expect(snapshot.fundingUnavailableReasons).not.toContain("ledger_inconsistent");
+  });
+
+  it("uses execution keys to reconcile incoming Protocol funding", async () => {
+    const now = 2_050;
+    const indexer = reader(now, {
+      commitments: [],
+      disbursements: [
+        {
+          id: "42161-8",
+          disbursementId: "8",
+          commitmentId: null,
+          payoutPlanId: null,
+          fundingId: null,
+          batchId: null,
+          kind: "FUNDING",
+          source: RECIPIENT,
+          recipient: SAFE,
+          amount: "50",
+          state: "DISPATCHED",
+          executionKey: KEY,
+        },
+      ],
+      executions: [
+        {
+          id: "42220-execution-8",
+          executionKey: KEY,
+          status: "SUCCESS",
+          createdAt: 2_000,
+          acknowledgmentSent: false,
+        },
+      ],
+    });
+    const snapshot = await getPoolFundingSnapshot(42161, GARDEN, {
+      reader: indexer,
+      createClient: clientFactory().createClient,
+      now,
+    });
+    expect(snapshot.transit.incoming).toBe(0n);
+    expect(indexer.query).toHaveBeenCalledWith(
+      expect.stringContaining("executionKey: { _in: $executionKeys }"),
+      expect.objectContaining({ executorChainId: 42220, executionKeys: [KEY] }),
+      "getPoolFundingExecutions"
+    );
+  });
+
+  it("quotes a payout whose referenced child is absent from the indexed snapshot", async () => {
+    const now = 2_050;
+    const snapshot = await getPoolFundingSnapshot(42161, GARDEN, {
+      reader: reader(now, {
+        commitments: [],
+        disbursements: [],
+        payoutPlans: [
+          {
+            id: "42161-plan-9",
+            payoutPlanId: "9",
+            commitmentId: "10",
+            finalized: true,
+            declaredAmount: "100",
+            gardenRetainedAmount: "0",
+            contributorPayoutTotal: "100",
+            beneficiaryRecipient: null,
+            beneficiaryAmount: "0",
+            beneficiaryDisbursementId: null,
+            payablePayoutCount: 1,
+          },
+        ],
+        payoutRows: [
+          {
+            id: "payout-1",
+            payoutPlanId: "9",
+            commitmentId: "10",
+            recipient: RECIPIENT,
+            amount: "100",
+            disbursementId: "88",
+          },
+        ],
+      }),
+      createClient: clientFactory().createClient,
+      now,
+    });
+    expect(snapshot.feeQuotes).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "payout-1", fee: 1n })])
+    );
+    expect(snapshot.settlementUnavailableReasons).not.toContain("fee_quote_unavailable");
   });
 
   it("pages indexed obligations in deterministic 200-row batches", async () => {

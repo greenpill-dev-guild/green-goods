@@ -5,11 +5,11 @@ import type {
   PoolFundingSnapshot,
   PoolFundingState,
 } from "@green-goods/shared/modules/commitment-pooling/pool-funding";
-import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
-import { describe, expect, it, vi } from "vitest";
 import { useRef, useState } from "react";
+import { describe, expect, it, vi } from "vitest";
 import { PoolFundingDialog } from "@/views/Garden/Pool/PoolFundingDialog";
 import { PoolFundingSection } from "@/views/Garden/Pool/PoolFundingSection";
+import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
 const SAFE = "0x1111111111111111111111111111111111111111" as const;
 const OTHER = "0x2222222222222222222222222222222222222222" as const;
@@ -234,6 +234,23 @@ describe("PoolFundingDialog", () => {
     expect(screen.getByText(new RegExp(SAFE, "i"))).toBeInTheDocument();
     expect(screen.getByText(new RegExp(OTHER, "i"))).toBeInTheDocument();
     expect(screen.getByText(/do not agree/i)).toBeInTheDocument();
+  });
+
+  it("explains when the Celo acknowledgment reserve needs replenishment", () => {
+    renderWithProviders(
+      <PoolFundingDialog
+        open
+        onOpenChange={() => undefined}
+        funding={fundingView({
+          snapshot: snapshot({
+            settlementReadiness: "unavailable",
+            settlementUnavailableReasons: ["acknowledgment_reserve_low"],
+          }),
+        })}
+        tone="garden"
+      />
+    );
+    expect(screen.getByText(/acknowledgment reserve needs replenishment/i)).toBeInTheDocument();
   });
 
   it.each([

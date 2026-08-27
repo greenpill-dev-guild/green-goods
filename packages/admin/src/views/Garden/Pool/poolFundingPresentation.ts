@@ -129,9 +129,17 @@ export function readinessReasonMessage(
       id: "cockpit.garden.pool.funding.reason.rolesAllowanceExhausted",
       defaultMessage: "The Safe allowance is exhausted.",
     },
+    roles_allowance_insufficient: {
+      id: "cockpit.garden.pool.funding.reason.rolesAllowanceInsufficient",
+      defaultMessage: "The Safe allowance is below a pending settlement command.",
+    },
     period_allowance_exhausted: {
       id: "cockpit.garden.pool.funding.reason.periodAllowanceExhausted",
       defaultMessage: "The settlement-period allowance is exhausted.",
+    },
+    period_allowance_insufficient: {
+      id: "cockpit.garden.pool.funding.reason.periodAllowanceInsufficient",
+      defaultMessage: "The remaining period allowance is below a pending settlement command.",
     },
     transfer_cap_exceeded: {
       id: "cockpit.garden.pool.funding.reason.transferCapExceeded",
@@ -140,6 +148,22 @@ export function readinessReasonMessage(
     batch_cap_exceeded: {
       id: "cockpit.garden.pool.funding.reason.batchCapExceeded",
       defaultMessage: "A settlement batch exceeds the batch cap.",
+    },
+    batch_size_exceeded: {
+      id: "cockpit.garden.pool.funding.reason.batchSizeExceeded",
+      defaultMessage: "A settlement batch exceeds the live batch-size limit.",
+    },
+    insufficient_authorized_balance: {
+      id: "cockpit.garden.pool.funding.reason.insufficientAuthorizedBalance",
+      defaultMessage: "The Safe balance cannot cover its authorized settlement obligations.",
+    },
+    acknowledgment_reserve_low: {
+      id: "cockpit.garden.pool.funding.reason.acknowledgmentReserveLow",
+      defaultMessage: "The Celo acknowledgment reserve needs replenishment.",
+    },
+    acknowledgment_reserve_unreadable: {
+      id: "cockpit.garden.pool.funding.reason.acknowledgmentReserveUnreadable",
+      defaultMessage: "The Celo acknowledgment reserve status could not be read.",
     },
   };
   return intl.formatMessage(messages[reason]);

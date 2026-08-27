@@ -133,6 +133,13 @@ export const EXECUTOR_ABI = [
     inputs: [],
     outputs: [{ name: "", type: "uint256" }],
   },
+  {
+    type: "function",
+    name: "isAcknowledgmentFeeReserveLow",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "bool" }],
+  },
 ] as const;
 
 export const ROLES_ALLOWANCE_ABI = [

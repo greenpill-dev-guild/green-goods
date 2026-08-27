@@ -2,23 +2,20 @@ import type { PublicClient } from "viem";
 
 import { createPublicClientForChain } from "../../config/pimlico";
 import type { Address } from "../../types/domain";
-import type { PoolFundingLedger } from "./data-pool-funding";
 import {
+  allowanceTuple,
   BOOLEAN_PAUSED_ABI,
   EXECUTOR_ABI,
   GOOD_DOLLAR_ABI,
-  ROLES_ALLOWANCE_ABI,
-  allowanceTuple,
+  type PoolFundingLiveRoute,
   periodSpendTuple,
+  ROLES_ALLOWANCE_ABI,
   routeTuple,
   settledRead,
-  type PoolFundingLiveRoute,
 } from "./data-pool-funding-chain-support";
-import {
-  calculateEffectiveZodiacAllowance,
-  type PoolFundingBalanceRead,
-  type PoolFundingFeeQuote,
-} from "./pool-funding";
+import type { PoolFundingLedger } from "./data-pool-funding-indexed";
+import { type PoolFundingBalanceRead, type PoolFundingFeeQuote } from "./pool-funding";
+import { calculateEffectiveZodiacAllowance } from "./pool-funding-calculations";
 
 interface DirectReadResult {
   balance: PoolFundingBalanceRead | null;
@@ -34,6 +31,7 @@ interface DirectReadResult {
   maxBatchAmount: bigint | null;
   batchSizeLimit: number | null;
   nativeFeeBalance: bigint | null;
+  acknowledgmentFeeReserveLow: boolean | null;
 }
 
 export async function readPoolFundingChain(
@@ -62,6 +60,7 @@ export async function readPoolFundingChain(
       maxBatchAmount: null,
       batchSizeLimit: null,
       nativeFeeBalance: null,
+      acknowledgmentFeeReserveLow: null,
     };
   }
   const sourceClient = createClient(source.chainId);
@@ -84,6 +83,7 @@ export async function readPoolFundingChain(
     maxPeriod,
     periodSpendValue,
     nativeFeeBalance,
+    acknowledgmentFeeReserveLow,
   ] = await Promise.all([
     blockNumber === null
       ? Promise.resolve(null)
@@ -189,6 +189,13 @@ export async function readPoolFundingChain(
         functionName: "nativeFeeBalance",
       })
     ),
+    settledRead(
+      celoClient.readContract({
+        address: executor.localContract,
+        abi: EXECUTOR_ABI,
+        functionName: "isAcknowledgmentFeeReserveLow",
+      })
+    ),
   ]);
   const liveRoute = routeTuple(routeValue);
   const allowanceValue = liveRoute
@@ -231,6 +238,9 @@ export async function readPoolFundingChain(
       )
       .map((row) => row.disbursementId.toString())
   );
+  const indexedDisbursementIds = new Set(
+    ledger.disbursements.map((row) => row.disbursementId.toString())
+  );
   const knownTransfers = [
     ...ledger.disbursements
       .filter((row) => openDisbursementIds.has(row.disbursementId.toString()))
@@ -238,7 +248,10 @@ export async function readPoolFundingChain(
     ...ledger.payoutPlans
       .filter((plan) => plan.finalized)
       .flatMap((plan) => plan.rows)
-      .filter((row) => row.disbursementId === null)
+      .filter(
+        (row) =>
+          row.disbursementId === null || !indexedDisbursementIds.has(row.disbursementId.toString())
+      )
       .map((row) => ({ id: row.id, amount: row.amount, recipient: row.recipient })),
   ];
   const feeQuotes = await Promise.all(
@@ -289,5 +302,7 @@ export async function readPoolFundingChain(
         ? Number(maxBatchSize)
         : null,
     nativeFeeBalance: typeof nativeFeeBalance === "bigint" ? nativeFeeBalance : null,
+    acknowledgmentFeeReserveLow:
+      typeof acknowledgmentFeeReserveLow === "boolean" ? acknowledgmentFeeReserveLow : null,
   };
 }
