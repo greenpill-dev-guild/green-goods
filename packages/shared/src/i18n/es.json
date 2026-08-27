@@ -4118,6 +4118,7 @@
   "cockpit.garden.pool.funding.reason.balanceUnreadable": "No se pudo leer el saldo actual de G$.",
   "cockpit.garden.pool.funding.reason.batchCapExceeded": "Un lote de liquidación supera el límite permitido.",
   "cockpit.garden.pool.funding.reason.batchSizeExceeded": "Un lote de liquidación supera el límite activo de operaciones por lote.",
+  "cockpit.garden.pool.funding.reason.capsUnreadable": "No se pudieron consultar los límites de liquidación actuales.",
   "cockpit.garden.pool.funding.reason.executorPaused": "El ejecutor de liquidación de Celo está en pausa.",
   "cockpit.garden.pool.funding.reason.executorUnreadable": "No se pudo leer el estado del ejecutor de Celo.",
   "cockpit.garden.pool.funding.reason.feePolicyBreach": "Una comisión actual de G$ supera la política de liquidación.",

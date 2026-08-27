@@ -128,6 +128,14 @@ export function deriveSettlementUnavailableReasons(
     reasons.push("period_allowance_insufficient");
   }
   if (routeReady && periodRemaining === null) reasons.push("period_unreadable");
+  if (
+    routeReady &&
+    (input.limits.maxTransferAmount === null ||
+      input.limits.maxBatchAmount === null ||
+      input.limits.batchSizeLimit === null)
+  ) {
+    reasons.push("caps_unreadable");
+  }
 
   if (
     input.limits.maxTransferAmount !== null &&

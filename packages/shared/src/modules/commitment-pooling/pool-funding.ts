@@ -29,6 +29,7 @@ export type SettlementUnavailableReason =
   | "token_unreadable"
   | "allowance_unreadable"
   | "period_unreadable"
+  | "caps_unreadable"
   | "roles_allowance_exhausted"
   | "roles_allowance_insufficient"
   | "period_allowance_exhausted"

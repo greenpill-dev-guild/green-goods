@@ -125,6 +125,10 @@ export function readinessReasonMessage(
       id: "cockpit.garden.pool.funding.reason.periodUnreadable",
       defaultMessage: "The settlement-period allowance could not be read.",
     },
+    caps_unreadable: {
+      id: "cockpit.garden.pool.funding.reason.capsUnreadable",
+      defaultMessage: "The live settlement caps could not be read.",
+    },
     roles_allowance_exhausted: {
       id: "cockpit.garden.pool.funding.reason.rolesAllowanceExhausted",
       defaultMessage: "The Safe allowance is exhausted.",

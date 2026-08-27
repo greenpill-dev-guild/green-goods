@@ -209,7 +209,7 @@ export function PoolFundingDialogFinancialSections({
                   {quote.recipient ? shortAddress(quote.recipient) : "—"} · {amount(quote.amount)}
                 </span>
                 <span className="font-medium text-text-strong">
-                  {quote.fee === null
+                  {quote.fee === null || quote.senderPays === null
                     ? formatMessage({
                         id: "cockpit.garden.pool.funding.fees.quoteUnavailable",
                         defaultMessage: "Quote unavailable",

@@ -89,6 +89,28 @@ describe("usePoolFunding", () => {
     expect(result.current.lastReadAt).toBe(2_000);
   });
 
+  it("retains the last successful snapshot when a later header read rejects", async () => {
+    mocks.getPoolFundingSnapshot
+      .mockResolvedValueOnce({
+        safe: GARDEN,
+        balance: { value: 25n, readAt: 2_000 },
+        ledgerReadAt: 1_999,
+        available: 20n,
+        fundingUnavailableReasons: [],
+      })
+      .mockRejectedValueOnce(new Error("header unavailable"));
+    const { result } = renderHookWithProviders(() =>
+      usePoolFunding({ chainId: 42161, garden: GARDEN })
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    await result.current.refetch();
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.snapshot?.balance?.value).toBe(25n);
+    expect(result.current.snapshot?.available).toBe(20n);
+  });
+
   it("does not reuse a prior pool's placeholder or retained balance", async () => {
     let resolveOtherGarden: ((value: unknown) => void) | undefined;
     mocks.getPoolFundingSnapshot

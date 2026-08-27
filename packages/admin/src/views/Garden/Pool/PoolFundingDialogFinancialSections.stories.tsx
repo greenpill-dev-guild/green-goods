@@ -46,3 +46,23 @@ export const Insufficient: Story = {
     },
   },
 };
+
+export const UnavailableFeeQuote: Story = {
+  args: {
+    snapshot: {
+      ...baseSnapshot,
+      quotedFees: null,
+      feeQuotes: [
+        {
+          id: "unavailable-quote",
+          amount: 100n * 10n ** 18n,
+          fee: 1n * 10n ** 18n,
+          senderPays: null,
+          recipient: "0x2222222222222222222222222222222222222222",
+        },
+      ],
+      settlementReadiness: "unavailable",
+      settlementUnavailableReasons: ["fee_quote_unavailable"],
+    },
+  },
+};

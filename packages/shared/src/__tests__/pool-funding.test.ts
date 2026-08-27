@@ -511,6 +511,18 @@ describe("selectPoolFundingSnapshot", () => {
     expect(snapshot.settlementUnavailableReasons).toContain("batch_size_exceeded");
   });
 
+  it.each([
+    "maxTransferAmount",
+    "maxBatchAmount",
+    "batchSizeLimit",
+  ] as const)("fails settlement readiness when %s is unreadable", (limit) => {
+    const snapshot = selectPoolFundingSnapshot(
+      input({ limits: { ...input().limits, [limit]: null } })
+    );
+    expect(snapshot.settlementReadiness).toBe("unavailable");
+    expect(snapshot.settlementUnavailableReasons).toContain("caps_unreadable");
+  });
+
   it("rejects receiver-paid, failed, and above-policy GoodDollar fee quotes", () => {
     const snapshot = selectPoolFundingSnapshot(
       input({

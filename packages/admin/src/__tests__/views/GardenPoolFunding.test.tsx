@@ -253,6 +253,33 @@ describe("PoolFundingDialog", () => {
     expect(screen.getByText(/acknowledgment reserve needs replenishment/i)).toBeInTheDocument();
   });
 
+  it("does not identify a fee payer when the quote payer is unreadable", () => {
+    renderWithProviders(
+      <PoolFundingDialog
+        open
+        onOpenChange={() => undefined}
+        funding={fundingView({
+          snapshot: snapshot({
+            feeQuotes: [
+              {
+                id: "quote-1",
+                amount: 100n * G,
+                fee: 1n * G,
+                senderPays: null,
+                recipient: OTHER,
+              },
+            ],
+            settlementReadiness: "unavailable",
+            settlementUnavailableReasons: ["fee_quote_unavailable"],
+          }),
+        })}
+        tone="garden"
+      />
+    );
+    expect(screen.getByText("Quote unavailable")).toBeInTheDocument();
+    expect(screen.queryByText(/recipient pays/i)).not.toBeInTheDocument();
+  });
+
   it.each([
     ["missing", fundingView({ snapshot: null })],
     ["stale", fundingView({ isError: true })],

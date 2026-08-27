@@ -53,6 +53,7 @@ function configuration(chainId: number, role: "SOURCE" | "EXECUTOR") {
 function reader(
   now: number,
   overrides: {
+    headerError?: boolean;
     pageError?: boolean;
     metadataError?: boolean;
     paginated?: boolean;
@@ -69,6 +70,7 @@ function reader(
     query: vi.fn(
       async (_document: unknown, variables?: Record<string, unknown>, operation?: string) => {
         if (operation === "getPoolFundingHeader") {
+          if (overrides.headerError) return { error: new Error("header unavailable") };
           return {
             data: {
               SettlementAccount: [
@@ -216,15 +218,27 @@ function reader(
   };
 }
 
-function clientFactory(options: { failBalance?: boolean } = {}) {
+function clientFactory(
+  options: {
+    failBalance?: boolean;
+    failFunctions?: Set<string>;
+    blockTimestamp?: bigint;
+    periodDuration?: bigint;
+    maxPeriodAmount?: bigint;
+    periodSpend?: readonly [bigint, bigint];
+    allowance?: readonly [bigint, bigint, bigint, bigint, bigint];
+    feeProbe?: { active: number; max: number };
+  } = {}
+) {
   const chainIds: number[] = [];
   const createClient = (chainId: number) => {
     chainIds.push(chainId);
     return {
       getBlockNumber: vi.fn().mockResolvedValue(50n),
-      getBlock: vi.fn().mockResolvedValue({ timestamp: 2_100n }),
+      getBlock: vi.fn().mockResolvedValue({ timestamp: options.blockTimestamp ?? 2_100n }),
       readContract: vi.fn(
         async ({ address, functionName }: { address: string; functionName: string }) => {
+          if (options.failFunctions?.has(functionName)) throw new Error(`${functionName} failed`);
           if (functionName === "balanceOf") {
             if (options.failBalance) throw new Error("RPC failed");
             return 1_000n;
@@ -236,13 +250,25 @@ function clientFactory(options: { failBalance?: boolean } = {}) {
           if (functionName === "maxTransferAmount") return 7_000_000n;
           if (functionName === "maxBatchAmount") return 10_000_000n;
           if (functionName === "maxBatchSize") return 2;
-          if (functionName === "periodDuration") return 2_592_000n;
-          if (functionName === "maxPeriodAmount") return 15_000_000n;
-          if (functionName === "gardenPeriodSpend") return [1_900n, 1_000n] as const;
+          if (functionName === "periodDuration") return options.periodDuration ?? 2_592_000n;
+          if (functionName === "maxPeriodAmount") return options.maxPeriodAmount ?? 15_000_000n;
+          if (functionName === "gardenPeriodSpend") {
+            return options.periodSpend ?? ([1_900n, 1_000n] as const);
+          }
           if (functionName === "nativeFeeBalance") return 123n;
           if (functionName === "isAcknowledgmentFeeReserveLow") return false;
-          if (functionName === "allowances") return [100n, 1_000n, 100n, 2_000n, 500n] as const;
-          if (functionName === "getFees") return [1n, true] as const;
+          if (functionName === "allowances") {
+            return options.allowance ?? ([100n, 1_000n, 100n, 2_000n, 500n] as const);
+          }
+          if (functionName === "getFees") {
+            if (options.feeProbe) {
+              options.feeProbe.active += 1;
+              options.feeProbe.max = Math.max(options.feeProbe.max, options.feeProbe.active);
+              await new Promise<void>((resolve) => setTimeout(resolve, 1));
+              options.feeProbe.active -= 1;
+            }
+            return [1n, true] as const;
+          }
           throw new Error(`Unexpected ${functionName} on ${address}`);
         }
       ),
@@ -252,6 +278,16 @@ function clientFactory(options: { failBalance?: boolean } = {}) {
 }
 
 describe("pool funding hybrid reader", () => {
+  it("propagates a settlement-header read failure", async () => {
+    await expect(
+      getPoolFundingSnapshot(42161, GARDEN, {
+        reader: reader(2_050, { headerError: true }),
+        createClient: clientFactory().createClient,
+        now: 2_050,
+      })
+    ).rejects.toThrow("header unavailable");
+  });
+
   it("reads Celo directly while the pool and obligations are keyed by Arbitrum", async () => {
     const now = 2_050;
     const clients = clientFactory();
@@ -287,6 +323,18 @@ describe("pool funding hybrid reader", () => {
     expect(snapshot.balance).toBeNull();
     expect(snapshot.available).toBeNull();
     expect(snapshot.fundingUnavailableReasons).toContain("balance_unreadable");
+  });
+
+  it("fails settlement readiness when any live execution cap cannot be read", async () => {
+    for (const functionName of ["maxTransferAmount", "maxBatchAmount", "maxBatchSize"]) {
+      const snapshot = await getPoolFundingSnapshot(42161, GARDEN, {
+        reader: reader(2_050),
+        createClient: clientFactory({ failFunctions: new Set([functionName]) }).createClient,
+        now: 2_050,
+      });
+      expect(snapshot.settlementReadiness).toBe("unavailable");
+      expect(snapshot.settlementUnavailableReasons).toContain("caps_unreadable");
+    }
   });
 
   it("fails the ledger conservatively when a paged obligation read fails", async () => {
@@ -462,6 +510,50 @@ describe("pool funding hybrid reader", () => {
       expect.arrayContaining([expect.objectContaining({ id: "payout-1", fee: 1n })])
     );
     expect(snapshot.settlementUnavailableReasons).not.toContain("fee_quote_unavailable");
+  });
+
+  it("uses the sampled Celo block time for period and Roles allowance resets", async () => {
+    const snapshot = await getPoolFundingSnapshot(42161, GARDEN, {
+      reader: reader(2_101),
+      createClient: clientFactory({
+        blockTimestamp: 2_099n,
+        periodDuration: 100n,
+        maxPeriodAmount: 10_000n,
+        periodSpend: [2_000n, 1_000n],
+        allowance: [100n, 1_000n, 100n, 2_000n, 500n],
+      }).createClient,
+      now: 2_101,
+    });
+
+    expect(snapshot.limits.rolesAllowanceRemaining).toBe(500n);
+    expect(snapshot.limits.periodAllowanceRemaining).toBe(9_000n);
+  });
+
+  it("bounds concurrent GoodDollar fee quotes for large ledgers", async () => {
+    const feeProbe = { active: 0, max: 0 };
+    const disbursements = Array.from({ length: 20 }, (_, index) => ({
+      id: `42161-${index + 1}`,
+      disbursementId: `${index + 1}`,
+      commitmentId: null,
+      payoutPlanId: null,
+      fundingId: null,
+      batchId: null,
+      kind: "LOAN_PRINCIPAL",
+      source: SAFE,
+      recipient: RECIPIENT,
+      amount: "1",
+      state: "QUEUED",
+      executionKey: null,
+    }));
+    const snapshot = await getPoolFundingSnapshot(42161, GARDEN, {
+      reader: reader(2_050, { disbursements }),
+      createClient: clientFactory({ feeProbe }).createClient,
+      now: 2_050,
+    });
+
+    expect(snapshot.feeQuotes).toHaveLength(20);
+    expect(feeProbe.max).toBeGreaterThan(1);
+    expect(feeProbe.max).toBeLessThanOrEqual(8);
   });
 
   it("pages indexed obligations in deterministic 200-row batches", async () => {

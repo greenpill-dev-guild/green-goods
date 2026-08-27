@@ -4,50 +4,9 @@ import type { Address } from "../../types/domain";
 import type { GraphQLReader } from "../data/graphql-client";
 import { readPoolFundingChain } from "./data-pool-funding-chain";
 import { getPoolFundingLedger, type PoolFundingLedger } from "./data-pool-funding-indexed";
-import {
-  type PoolFundingCalculationInput,
-  type PoolFundingSnapshot,
-  selectPoolFundingSnapshot,
-} from "./pool-funding";
+import { type PoolFundingSnapshot, selectPoolFundingSnapshot } from "./pool-funding";
 
 const LEDGER_MAX_AGE_SECONDS = 120;
-
-function unavailableInput(): PoolFundingCalculationInput {
-  return {
-    safe: null,
-    token: null,
-    balance: null,
-    ledgerReadAt: null,
-    ledgerFresh: false,
-    ledgerAvailable: false,
-    feePolicy: null,
-    feeQuotes: [],
-    commitments: [],
-    payoutPlans: [],
-    fundings: [],
-    disbursements: [],
-    executions: [],
-    readiness: {
-      accountConfigured: false,
-      accountActive: false,
-      routeConfigured: false,
-      routeActive: false,
-      routeMatches: false,
-      sourcePaused: null,
-      executorPaused: null,
-      tokenPaused: null,
-    },
-    limits: {
-      rolesAllowanceRemaining: null,
-      periodAllowanceRemaining: null,
-      maxTransferAmount: null,
-      maxBatchAmount: null,
-      batchSizeLimit: null,
-    },
-    nativeFeeBalance: null,
-    acknowledgmentFeeReserveLow: null,
-  };
-}
 
 export async function getPoolFundingSnapshot(
   sourceChainId: number,
@@ -59,12 +18,12 @@ export async function getPoolFundingSnapshot(
   } = {}
 ): Promise<PoolFundingSnapshot> {
   const now = options.now ?? Math.floor(Date.now() / 1_000);
-  let ledger: PoolFundingLedger;
-  try {
-    ledger = await getPoolFundingLedger(sourceChainId, garden, options.reader, now);
-  } catch {
-    return selectPoolFundingSnapshot(unavailableInput());
-  }
+  const ledger: PoolFundingLedger = await getPoolFundingLedger(
+    sourceChainId,
+    garden,
+    options.reader,
+    now
+  );
   const direct = await readPoolFundingChain(ledger, garden, options.createClient, now);
   const indexedSafe = ledger.account?.account ?? null;
   const indexedRouteSafe = ledger.route?.safe ?? null;

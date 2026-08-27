@@ -4118,6 +4118,7 @@
   "cockpit.garden.pool.funding.reason.balanceUnreadable": "The current G$ balance could not be read.",
   "cockpit.garden.pool.funding.reason.batchCapExceeded": "A settlement batch exceeds the batch cap.",
   "cockpit.garden.pool.funding.reason.batchSizeExceeded": "A settlement batch exceeds the live batch-size limit.",
+  "cockpit.garden.pool.funding.reason.capsUnreadable": "The live settlement caps could not be read.",
   "cockpit.garden.pool.funding.reason.executorPaused": "The Celo settlement executor is paused.",
   "cockpit.garden.pool.funding.reason.executorUnreadable": "The Celo executor status could not be read.",
   "cockpit.garden.pool.funding.reason.feePolicyBreach": "A current G$ fee quote exceeds the settlement policy.",

@@ -17,6 +17,8 @@ import type { PoolFundingLedger } from "./data-pool-funding-indexed";
 import { type PoolFundingBalanceRead, type PoolFundingFeeQuote } from "./pool-funding";
 import { calculateEffectiveZodiacAllowance } from "./pool-funding-calculations";
 
+const FEE_QUOTE_CONCURRENCY = 8;
+
 interface DirectReadResult {
   balance: PoolFundingBalanceRead | null;
   sourcePaused: boolean | null;
@@ -210,13 +212,17 @@ export async function readPoolFundingChain(
     : null;
   const allowance = allowanceTuple(allowanceValue);
   const spend = periodSpendTuple(periodSpendValue);
+  const chainTimestamp = block ? BigInt(block.timestamp) : null;
   const maxPeriodAmount = typeof maxPeriod === "bigint" ? maxPeriod : null;
   const duration = typeof periodDuration === "bigint" ? periodDuration : null;
   const spendExpired = Boolean(
-    spend && duration !== null && BigInt(now) >= spend.periodStartedAt + duration
+    spend &&
+      duration !== null &&
+      chainTimestamp !== null &&
+      chainTimestamp >= spend.periodStartedAt + duration
   );
   const periodAllowanceRemaining =
-    maxPeriodAmount === null || !spend
+    maxPeriodAmount === null || !spend || chainTimestamp === null
       ? null
       : spendExpired
         ? maxPeriodAmount
@@ -254,26 +260,32 @@ export async function readPoolFundingChain(
       )
       .map((row) => ({ id: row.id, amount: row.amount, recipient: row.recipient })),
   ];
-  const feeQuotes = await Promise.all(
-    knownTransfers.map(async (row): Promise<PoolFundingFeeQuote> => {
-      const value = await settledRead(
-        celoClient.readContract({
-          address: executor.gDollarToken,
-          abi: GOOD_DOLLAR_ABI,
-          functionName: "getFees",
-          args: [row.amount, safe, row.recipient],
+  const feeQuotes: PoolFundingFeeQuote[] = [];
+  for (let start = 0; start < knownTransfers.length; start += FEE_QUOTE_CONCURRENCY) {
+    const batch = await Promise.all(
+      knownTransfers
+        .slice(start, start + FEE_QUOTE_CONCURRENCY)
+        .map(async (row): Promise<PoolFundingFeeQuote> => {
+          const value = await settledRead(
+            celoClient.readContract({
+              address: executor.gDollarToken,
+              abi: GOOD_DOLLAR_ABI,
+              functionName: "getFees",
+              args: [row.amount, safe, row.recipient],
+            })
+          );
+          const tuple = value as readonly [bigint, boolean] | null;
+          return {
+            id: row.id,
+            amount: row.amount,
+            fee: tuple ? tuple[0] : null,
+            senderPays: tuple ? tuple[1] : null,
+            recipient: row.recipient,
+          };
         })
-      );
-      const tuple = value as readonly [bigint, boolean] | null;
-      return {
-        id: row.id,
-        amount: row.amount,
-        fee: tuple ? tuple[0] : null,
-        senderPays: tuple ? tuple[1] : null,
-        recipient: row.recipient,
-      };
-    })
-  );
+    );
+    feeQuotes.push(...batch);
+  }
 
   return {
     balance:
@@ -291,9 +303,10 @@ export async function readPoolFundingChain(
     liveRoute,
     feePolicy,
     feeQuotes,
-    rolesAllowanceRemaining: allowance
-      ? calculateEffectiveZodiacAllowance(allowance, BigInt(now))
-      : null,
+    rolesAllowanceRemaining:
+      allowance && chainTimestamp !== null
+        ? calculateEffectiveZodiacAllowance(allowance, chainTimestamp)
+        : null,
     periodAllowanceRemaining,
     maxTransferAmount: typeof maxTransfer === "bigint" ? maxTransfer : null,
     maxBatchAmount: typeof maxBatch === "bigint" ? maxBatch : null,
