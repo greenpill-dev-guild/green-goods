@@ -197,11 +197,29 @@ fi
 # example are not four headings, and blocking that valid body is the expensive
 # kind of mistake. Banned-token checks deliberately still read the fence, since
 # citing plan internals inside one is still citing them.
+# Tracks the opening delimiter rather than toggling on any fence marker: a
+# four-backtick fence demonstrating a three-backtick example stays open in
+# Markdown, and closing early would count the inner example's `##` lines as
+# headings and reject a valid body.
 strip_fenced_code() {
   printf '%s\n' "$1" | awk '
-    /^[[:space:]]*(```|~~~)/ { fenced = !fenced; print ""; next }
-    fenced { print ""; next }
-    { print }
+    {
+      line = $0
+      sub(/^[[:space:]]*/, "", line)
+      marker = ""
+      if (line ~ /^`{3,}/) marker = "`"
+      else if (line ~ /^~{3,}/) marker = "~"
+
+      if (marker != "") {
+        run = 0
+        while (substr(line, run + 1, 1) == marker) run++
+        if (open_marker == "") { open_marker = marker; open_run = run; print ""; next }
+        if (marker == open_marker && run >= open_run) { open_marker = ""; print ""; next }
+      }
+
+      if (open_marker != "") { print ""; next }
+      print
+    }
   '
 }
 
@@ -266,9 +284,18 @@ if [ -n "$description" ]; then
   # accepts) or in the namespaced display form (`source:plans`, what plan-hub
   # writes into its manifest). Accept both so the exemption cannot depend on
   # which spelling a given writer happens to use.
+  # `plans` alone is not enough: plan-hub stamps it on every mirror it emits,
+  # lane issues included, so exempting on it would lift the ceiling for ordinary
+  # build and QA work merely because it originated in `.plans`. The roadmap
+  # parent is the one that legitimately runs long, and it is the only mirror
+  # carrying the architecture activity label.
   is_umbrella=no
   case ",$labels," in
-    *,plans,* | *,source:plans,*) is_umbrella=yes ;;
+    *,plans,* | *,source:plans,*)
+      case ",$labels," in
+        *,architecture,* | *,activity:architecture,*) is_umbrella=yes ;;
+      esac
+      ;;
   esac
 
   if [ "$headings" -gt 3 ]; then

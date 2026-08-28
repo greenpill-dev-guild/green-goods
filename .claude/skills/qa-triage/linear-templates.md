@@ -95,7 +95,7 @@ the 2026-08-27 board audit made the issue worse:
 **Labels (Issue)** — Linear enforces single-value-per-group on `ai:*` and `package:*`; the rules below assume one value per family:
 
 - `protocol:green-goods` — always.
-- `package:*` (one only) — one of `package:client`, `package:admin`, `package:shared`, `package:contracts`, `package:indexer`, `package:agent`, `package:docs`. The **primary surface** wins as the label; secondary packages are named in the body's `## Surface` block. Omit only when the surface is genuinely unknown.
+- `package:*` (one only) — one of `package:client`, `package:admin`, `package:shared`, `package:contracts`, `package:indexer`, `package:agent`, `package:docs`. The **primary surface** wins as the label; secondary packages are named in the problem sentence (the `## Surface` block is retired). Omit only when the surface is genuinely unknown.
 - `activity:qa` — confirmed bug or behavioral defect.
 - `activity:maintenance` — cleanup or polish that isn't a user-visible defect.
 - `activity:architecture` — strategic / architectural work (e.g., cross-device account recovery, auth-flow rework).

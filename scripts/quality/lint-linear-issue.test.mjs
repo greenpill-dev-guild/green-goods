@@ -63,11 +63,14 @@ const accepts = [
     },
   },
   {
-    name: "long umbrella tracker carrying the plans label",
+    // The exemption needs `plans` AND `architecture`: plan-hub stamps `plans`
+    // on every mirror, so the roadmap parent's architecture label is what
+    // separates it from an ordinary lane issue.
+    name: "long roadmap parent carrying plans and architecture",
     input: {
       title: "Commitment Pooling roadmap",
       description: `${"Where the work stands and what needs a person. ".repeat(60)}`,
-      labels: ["plans"],
+      labels: ["plans", "architecture"],
     },
   },
   {
@@ -85,11 +88,21 @@ const accepts = [
     },
   },
   {
-    name: "namespaced source:plans label also earns the length exemption",
+    name: "namespaced label forms also earn the length exemption",
     input: {
       title: "Commitment Pooling roadmap",
       description: "Where the work stands and what needs a person. ".repeat(60),
-      labels: ["source:plans"],
+      labels: ["source:plans", "activity:architecture"],
+    },
+  },
+  {
+    // Nested fences: a four-backtick block demonstrating a three-backtick
+    // example stays open in Markdown, so the inner `##` lines are still code.
+    name: "nested fenced example",
+    input: {
+      title: "Document the runbook template for stewards",
+      description:
+        "Stewards have no copy-pasteable template for the deploy runbook.\n\n````markdown\n```bash\n## one\n## two\n## three\n## four\n```\n````",
     },
   },
   {
@@ -328,6 +341,17 @@ const rejects = [
     name: "lowercase empty placeholder",
     input: { title: "Fix the stuck cancel button", description: "## Reproduction\ntbd\n\n## Expected\nn/a" },
     expect: /empty section placeholder/,
+  },
+  {
+    // plan-hub stamps `plans` on lane mirrors too, so the exemption must not
+    // key off it alone — a build lane is ordinary work and obeys the ceiling.
+    name: "long lane mirror does not inherit the roadmap exemption",
+    input: {
+      title: "Build the contracts for Commitment Pooling",
+      description: "Where the work stands and what needs a person. ".repeat(60),
+      labels: ["plans", "build"],
+    },
+    expect: /words \(cap 300/,
   },
 ];
 
