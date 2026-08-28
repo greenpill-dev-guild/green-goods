@@ -133,6 +133,12 @@ leads_with_emoji_sequence() {
 }
 
 # --- Title -----------------------------------------------------------------
+# Trim before matching: every prefix rule below is anchored, so a title that
+# merely opens with a space would slip all of them and reach Linear looking
+# exactly as prefixed as one that did not.
+title="${title#"${title%%[![:space:]]*}"}"
+title="${title%"${title##*[![:space:]]}"}"
+
 if [ -n "$title" ]; then
   # Retired 2026-08-27: prefixes are carried by labels and state, not the title.
   if printf '%s' "$title" | grep -qiE '^\[tracking\]'; then

@@ -140,6 +140,18 @@ const rejects = [
     expect: /priority field/,
   },
   {
+    // Every prefix rule is anchored, so an untrimmed title would slip all of
+    // them while reaching Linear looking just as prefixed.
+    name: "prefix hidden behind leading whitespace",
+    input: { title: "  [tracking] Fix the stuck cancel button", description: BODY_OK },
+    expect: /\[tracking\]/,
+  },
+  {
+    name: "lane prefix hidden behind a leading tab",
+    input: { title: "\tQA Pass 2: Commitment Pooling", description: BODY_OK },
+    expect: /lane or record-type prefix/,
+  },
+  {
     // Named in AGENTS.md's prohibited-shorthand list alongside §-citations.
     name: "register-number shorthand in the body",
     input: { title: "Freeze the roster on confirmation", description: "Per register #90 the roster freezes." },
