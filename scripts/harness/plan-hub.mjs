@@ -915,12 +915,18 @@ function buildLinearParentDescription(status, laneSyncMode = DEFAULT_LINEAR_LANE
   ].join("\n");
 }
 
-function buildLinearLaneDescription(lane) {
+// `lane.handoff` is stored plan-relative (`handoffs/codex-ui.md`), so the plan
+// directory has to be prefixed here. Emitting the bare value would leave a
+// Linear-dispatched agent unable to tell which of the many plan hubs owns the
+// handoff — the old body only got away with it because it carried a separate
+// `Source plan:` line.
+function buildLinearLaneDescription(status, lane) {
+  const source = planRelativeDir(status);
   return [
     "The scope, acceptance criteria, and validation for this lane live in its handoff. " +
       "This issue tracks its status and dependencies.",
     "",
-    `Handoff: \`${lane.handoff}\``,
+    `Handoff: \`${source}${lane.handoff}\``,
   ].join("\n");
 }
 
@@ -1107,7 +1113,7 @@ function buildLinearSyncManifest(status) {
             lane,
           ),
           project,
-          description: buildLinearLaneDescription(lane),
+          description: buildLinearLaneDescription(normalized, lane),
           handoff: lane.handoff,
           dependsOn: Array.isArray(lane.depends_on) ? lane.depends_on : [],
           blockedByIssues: resolveBlockedByIssues(normalized, lane.depends_on),

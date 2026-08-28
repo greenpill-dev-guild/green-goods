@@ -84,6 +84,22 @@ const accepts = [
       description: `${BODY_OK}\n\n- First concrete outcome\n- Second concrete outcome`,
     },
   },
+  {
+    name: "namespaced source:plans label also earns the length exemption",
+    input: {
+      title: "Commitment Pooling roadmap",
+      description: "Where the work stands and what needs a person. ".repeat(60),
+      labels: ["source:plans"],
+    },
+  },
+  {
+    name: "non-ASCII title that is not an emoji (pt locale)",
+    input: { title: "Área de jardim não carrega no Portugues", description: BODY_OK },
+  },
+  {
+    name: "update may carry no description at all",
+    input: { id: "PRD-800", title: "Allow cancelling garden edits after changing the image" },
+  },
 ];
 
 for (const { name, input } of accepts) {
@@ -172,6 +188,31 @@ const rejects = [
     name: "empty placeholder section",
     input: { title: "Fix the stuck cancel button", description: "## Reproduction\nneeds repro\n\n## Expected\n—" },
     expect: /empty section placeholder/,
+  },
+  {
+    name: "Recurring: routine title prefix",
+    input: { title: "Recurring: Failed to request credential", description: BODY_OK },
+    expect: /lane or record-type prefix/,
+  },
+  {
+    name: "lowercase lane prefix (the check is case-insensitive)",
+    input: { title: "docs: Commitment Pooling", description: BODY_OK },
+    expect: /lane or record-type prefix/,
+  },
+  {
+    name: "emoji-led title",
+    input: { title: "🔴 Client errors spiked", description: BODY_OK },
+    expect: /Title starts with an emoji/,
+  },
+  {
+    name: "emoji-led heading",
+    input: { title: "Client errors spiked overnight", description: "## 🔴 Counts\n99 in 24h." },
+    expect: /emoji heading/,
+  },
+  {
+    name: "create with a title and no body at all",
+    input: { title: "Fix the stuck cancel button" },
+    expect: /no body/,
   },
 ];
 

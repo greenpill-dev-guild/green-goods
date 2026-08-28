@@ -27,14 +27,39 @@ esac
 title="$(printf '%s' "$payload" | jq -r '.tool_input.title // empty')"
 description="$(printf '%s' "$payload" | jq -r '.tool_input.description // empty')"
 labels="$(printf '%s' "$payload" | jq -r '(.tool_input.labels // []) | join(",")')"
-has_patch="$(printf '%s' "$payload" | jq -r 'if (.tool_input.patch // empty) | length > 0 then "yes" else "no" end')"
+# Guard against `// empty` here: on a missing key it collapses the whole
+# expression to no output, so the variable silently becomes "" and the check it
+# guards never runs. Use a concrete fallback value instead.
+has_patch="$(printf '%s' "$payload" | jq -r 'if ((.tool_input.patch // []) | length) > 0 then "yes" else "no" end')"
+# `id` distinguishes an update from a create. Only a create can be required to
+# carry a body: an update may legitimately touch state, labels, or relations
+# alone, and blocking those would wedge routine triage.
+is_update="$(printf '%s' "$payload" | jq -r 'if (.tool_input.id // "") != "" then "yes" else "no" end')"
 
 # Nothing to judge: property-only update, or a patch edit that carries no full body.
 if [ -z "$title" ] && [ -z "$description" ]; then exit 0; fi
 if [ "$has_patch" = "yes" ] && [ -z "$description" ]; then exit 0; fi
+if [ "$is_update" = "yes" ] && [ -z "$description" ]; then exit 0; fi
 
 violations=""
 add() { violations="${violations}  - $1"$'\n'; }
+
+# Emoji detection without `grep -P`: BSD grep (macOS, where humans run this) has
+# no PCRE support, while the routines run on Linux — a -P-only check would fire
+# on one platform and silently pass on the other. Inspect the first byte
+# instead, which behaves the same everywhere.
+#
+# UTF-8 lead byte E2 covers U+2000-U+2FFF (✅ ⚡ ➡ and the dingbats/symbols) and
+# F0 covers U+10000 and up (the emoji planes). Accented Latin leads with C3 and
+# ASCII is single-byte, so neither is caught.
+starts_with_emoji() {
+  stripped="${1#"${1%%[![:space:]]*}"}"
+  [ -n "$stripped" ] || return 1
+  case "$(printf '%s' "$stripped" | od -An -tx1 -N1 | tr -d ' \n')" in
+    e2 | f0) return 0 ;;
+    *) return 1 ;;
+  esac
+}
 
 # --- Title -----------------------------------------------------------------
 if [ -n "$title" ]; then
@@ -42,15 +67,21 @@ if [ -n "$title" ]; then
   if printf '%s' "$title" | grep -qiE '^\[tracking\]'; then
     add "Title starts with [tracking]. That prefix is retired — the 'maintenance' label plus Backlog state already say this is uncommitted signal."
   fi
-  if printf '%s' "$title" | grep -qE '^(plan|backlog|idea|UI|State/API|Contracts|Docs|Community|Editorial|Release Ops|QA Pass [0-9]+|QA|Chore|Spike):'; then
+  if printf '%s' "$title" | grep -qiE '^(plan|backlog|idea|ui|state/api|contracts|docs|community|editorial|release ops|qa pass [0-9]+|qa|chore|spike|recurring|epic):'; then
     add "Title starts with a lane or record-type prefix. Write what a person would say broke or should exist; labels carry the rest."
   fi
   if printf '%s' "$title" | grep -qE '^P[0-9][: ]'; then
     add "Title carries a priority prefix. Linear's priority field owns that."
   fi
-  if printf '%s' "$title" | grep -qP '^\s*[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]' 2>/dev/null; then
+  if starts_with_emoji "$title"; then
     add "Title starts with an emoji. Plain text only."
   fi
+fi
+
+# A create must carry the problem/outcome block; the contract calls it the one
+# section that is never optional. Updates are exempt above.
+if [ "$is_update" = "no" ] && [ -z "$description" ]; then
+  add "New issue has no body. Say what breaks and for whom, or what should exist and why — that block is never optional."
 fi
 
 # --- Body ------------------------------------------------------------------
@@ -59,8 +90,14 @@ if [ -n "$description" ]; then
   words=$(printf '%s' "$description" | wc -w | tr -d ' ')
   # Umbrella trackers and roadmaps legitimately run long; they still obey the
   # heading cap and the banned-token rules below.
+  # Callers pass labels either as bare child names (`plans`, what save_issue
+  # accepts) or in the namespaced display form (`source:plans`, what plan-hub
+  # writes into its manifest). Accept both so the exemption cannot depend on
+  # which spelling a given writer happens to use.
   is_umbrella=no
-  case ",$labels," in *,plans,*) is_umbrella=yes ;; esac
+  case ",$labels," in
+    *,plans,* | *,source:plans,*) is_umbrella=yes ;;
+  esac
 
   if [ "$headings" -gt 3 ]; then
     add "Body has $headings headings (cap 3). Most defects need none — problem, 'Done when', one source line."
@@ -92,9 +129,14 @@ if [ -n "$description" ]; then
   if printf '%s' "$description" | grep -qE '§[0-9]'; then
     add "Body carries a spec citation (§5.1). Drop it, or link the file if the reader truly needs it."
   fi
-  if printf '%s' "$description" | grep -qP '^#{1,6} +[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]' 2>/dev/null; then
-    add "Body has an emoji heading. Plain headings only."
-  fi
+  while IFS= read -r heading; do
+    if starts_with_emoji "${heading#\#\#*[[:space:]]}"; then
+      add "Body has an emoji heading. Plain headings only."
+      break
+    fi
+  done <<EOF
+$(printf '%s\n' "$description" | grep -E '^#{1,6} ' || true)
+EOF
 
   # Empty scaffolding — the failure that produced sections reading "—" and
   # paragraphs explaining that telemetry found nothing.

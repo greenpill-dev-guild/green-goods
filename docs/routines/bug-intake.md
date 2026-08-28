@@ -66,7 +66,7 @@ If the Product team, expected Issue statuses, or required canonical labels are m
 Codified from the 2026-05-13 `/qa-triage` first-run findings. These three constraints apply to every Linear write this routine makes:
 
 1. **`ai:*` is single-value-per-Issue.** Default to `ai:routine` (cron'd provenance). When an accepted Issue clears the **Codex-ready bar** (clear behavior + named surface + suggestable fix + validation — see [`README.md` § Codex hand-off](README.md)), set `ai:codex` *instead* (single value — never both; Linear rejects multi-value writes to this group), and **delegate** the Issue to the Codex agent when it also clears the **autonomous-confident bar** (the human stays assignee/reviewer).
-2. **`package:*` is single-value-per-Issue.** When a bug spans more than one package, pick the **primary surface** as the label and name the secondary package(s) in the Issue body's `## Surface` block. Omit the label entirely when the surface is genuinely unknown.
+2. **`package:*` is single-value-per-Issue.** When a bug spans more than one package, pick the **primary surface** as the label and name the secondary package(s) in the problem sentence (the `## Surface` block is retired). Omit the label entirely when the surface is genuinely unknown.
 3. **Customer Needs cannot be standalone.** Linear's `save_customer_need` API rejects calls without an `issue` (or `project`) parameter — `Exactly one of projectId or issueId must be defined`. Every Customer Need this routine creates must link to an Issue. For items that aren't actionable accepted-bug Issues, the routine creates a **lightweight tracking Issue** (`activity:maintenance` + `Backlog`) and links the Need to it. There is no standalone Need path.
 
 ### Linear label scheme (canonical)
@@ -499,7 +499,7 @@ After Phases 1–3, before the umbrella check, fold every PostHog match collecte
 2. **Threshold gate**: a hash is a recurring pattern when its 30-day distinct-session count is **≥ 50**. Below threshold, the per-report Customer Needs from Phases 1–3 stand on their own. Do not aggregate.
 3. **Find or create the parent Issue** unprojected on the Product team:
    - Look for an open Issue carrying `protocol:green-goods` + `ai:routine` + `activity:qa` + a `pattern:posthog-{error-hash-prefix}` label. If the label set is missing on the team, fail loud in the Phase 7 summary and skip aggregation rather than inventing a parent.
-   - If none exists and the threshold is met, create one Issue with title `Recurring: {top-line-error-message-redacted}` (verb-led when possible). Status `Todo`, labels `protocol:green-goods` + `activity:qa` + `package:<inferred>` + `ai:routine` + `pattern:posthog-{error-hash-prefix}`. The parent Issue body uses the safe-summary fields only:
+   - If none exists and the threshold is met, create one Issue whose title is a plain verb-led sentence naming the failure — "Fix the credential request that never resolves on garden join", not `Recurring: {error}`. The `Recurring:` prefix was retired 2026-08-27 and a `PreToolUse` hook now rejects it; the `pattern:posthog-*` label marks the record as a recurring parent. Status `Todo`, labels `protocol:green-goods` + `activity:qa` + `package:<inferred>` + `ai:routine` + `pattern:posthog-{error-hash-prefix}`. The parent Issue body uses the safe-summary fields only:
 
      ```markdown
      ## Recurring pattern

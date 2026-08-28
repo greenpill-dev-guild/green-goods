@@ -140,8 +140,14 @@ When creating or rewriting a Linear *project* description (not an issue),
 follow the companion shape in `.claude/context/linear-project-template.md`.
 
 **Enforcement.** `.claude/scripts/lint-linear-issue.sh` runs as a `PreToolUse`
-hook on every `save_issue` call and blocks writes that break the caps or carry
-banned tokens. Linear's own issue templates cannot help here — `save_issue`
-exposes no template parameter, so templates only reach the composer, Slack and
-email intake, and `?template=` URLs. The hook is the only path that covers
-agent writes.
+hook on `save_issue` and blocks writes that break the caps or carry banned
+tokens, registered in both `.claude/settings.json` and `.codex/hooks.json`. It
+checks shape only — prefixes, heading and word counts, lane metadata, empty
+placeholders — never whether the prose is any good, because a wrong block costs
+an agent a retry loop it cannot reason its way out of. Treat it as a backstop:
+write to this structure directly rather than letting a rejection tell you.
+
+Linear's own issue templates cannot help — `save_issue` exposes no template
+parameter, so templates only reach the composer, Slack and email intake, and
+`?template=` URLs. Creating them in Linear's UI is still worth doing for
+teammates filing by hand; it does nothing for agents.

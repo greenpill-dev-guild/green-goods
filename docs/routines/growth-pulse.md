@@ -206,29 +206,19 @@ The status update carries the routine's health read: `onTrack` on a healthy/quie
 
 When a growth-side metric crosses an anomaly threshold, the anomaly is **accepted** — open a Linear Issue **unprojected** on the Product team with `protocol:green-goods` + `activity:qa` + `package:<inferred>` (e.g., `package:client` for funnel/retention; `package:admin` for action-template stalls) + `ai:routine`. **Codex hand-off:** swap `ai:routine`→`ai:codex` when the anomaly Issue clears the Codex-ready bar (clear surface + concrete suggested fix + validation; see [`README.md` § Codex hand-off](README.md)), and delegate to Codex when it also clears the autonomous-confident bar — a telemetry-emit gap is the canonical example. Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing. Body:
 
+Title is a plain sentence naming what moved — "Onboarding funnel broke at the wallet step", not "Anomaly type: funnel breakage". No `<category>:` prefix and no emoji; the labels carry the category. Body follows the shared contract in [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md) § Issue structure — **cap 3 headings, ~150 words, 300 ceiling** — which a `PreToolUse` hook enforces on every `save_issue` call:
+
 ```markdown
-## Anomaly type
-{e.g. "Onboarding funnel breakage", "Dormant-garden surge", "Retention cliff"}
+{What moved, over what window, and why it matters — two or three plain
+sentences. Name the affected surface and gardens inside them.}
 
-## Signal
-- Question: `{question_name}` (curated `posthog-questions` library)
-- Current value: {value}
-- Prior value: {value}
-- Delta: {±N% / N units}
-- Window: {7d / 30d / cohort week}
+{One signal line: current value, prior value, delta, window.}
 
-## Affected scope
-- Surface: {client | admin}
-- Gardens: {N gardens affected, listed by address — public on-chain so safe to include}
-
-## Suggested fix
-{one paragraph; "needs investigation" only when truly opaque}
-
-## Linked PostHog evidence
-- Saved Insight ID: {id, if a tunable Insight exists}
-- Question name + bind variables: `{question_name}({...})`
-- Sample timestamp: {YYYY-MM-DDTHH:MM:SSZ}
+{One sentence on the suspected cause or next step; say plainly when it needs
+investigation.}
 ```
+
+**The full evidence goes in the first comment, not the description** — saved Insight ID, question name with bind variables, sample timestamp, and the per-garden list. The check still gathers all of it; it just lands where a reader can skip it.
 
 The Issue body **never** carries replay URLs, session IDs, distinct IDs, wallet addresses, or any other field marked private in `posthog-questions.md`. The privacy grep in Phase 4 catches violations before the body is saved.
 

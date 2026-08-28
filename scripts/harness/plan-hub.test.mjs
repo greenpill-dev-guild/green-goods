@@ -669,6 +669,14 @@ test("linear-sync manifest creates actionable lane issues for active hubs", () =
     for (const lane of manifest.lanes) {
       assert.equal(Object.hasOwn(lane, "branch"), false);
       assert.doesNotMatch(lane.description, /Branch signal/);
+      // The handoff must stay plan-relative. `lane.handoff` is stored as
+      // `handoffs/<file>.md`, so emitting it bare leaves a Linear-dispatched
+      // agent unable to tell which plan hub owns it.
+      assert.match(
+        lane.description,
+        /Handoff: `\.plans\/active\/active-linear-fixture\/handoffs\//,
+        "canonical lane body must carry the full plan-relative handoff path",
+      );
     }
     assert.match(manifest.warnings.join("\n"), /missing Linear parent issue/);
     assert.match(manifest.warnings.join("\n"), /missing Linear issue for lane ui/);

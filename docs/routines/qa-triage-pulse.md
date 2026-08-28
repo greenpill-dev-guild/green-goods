@@ -52,7 +52,7 @@ Write Customer Needs on the **Linear Product team**. Mirror [`bug-intake`](./bug
 
 1. **Customer Needs cannot be standalone.** Linear rejects `save_customer_need` calls without an `issue` (or `project`) parameter — `Exactly one of projectId or issueId must be defined`. Every Customer Need this routine creates must link to a Backlog tracking Issue. The routine never creates standalone "raw signal only" Needs.
 2. **`ai:*` is single-value-per-Issue.** Use `ai:routine` on every Issue this routine creates (cron'd provenance). When a track-only item is later promoted to a delegate (`ai:codex` or `ai:claude`), the interactive `/qa-triage` skill swaps the label — this routine doesn't.
-3. **`package:*` is single-value-per-Issue.** When the bug spans more than one package, pick the primary surface as the label; name the secondary package(s) in the Issue body's `## Surface` block.
+3. **`package:*` is single-value-per-Issue.** When the bug spans more than one package, pick the primary surface as the label; name the secondary package(s) in the problem sentence (the `## Surface` block is retired).
 
 ### Labels applied to the Backlog tracking Issues this routine creates
 

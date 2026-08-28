@@ -272,7 +272,7 @@ For each locked item, draft payloads using [`linear-templates.md`](./linear-temp
 Three hard constraints shape every payload — full detail, including the Codex-ready and autonomous-confident delegation bars, lives in [linear-templates.md § Linear API constraints](./linear-templates.md):
 
 1. **`ai:*` is single-value-per-Issue** — the delegate-to agent wins the label; the originating agent goes in a comment, not the body (the `## Provenance` section was retired 2026-08-27).
-2. **`package:*` is single-value-per-Issue** — the primary surface wins; secondary packages go in the body's `## Surface` section.
+2. **`package:*` is single-value-per-Issue** — the primary surface wins; secondary packages are named in the problem sentence (the `## Surface` block is retired).
 3. **Customer Needs cannot be standalone** — every Need links to an Issue via the `issue` parameter; `track-only` = Need + lightweight Backlog tracking Issue.
 
 ### Disposition rules (no standalone Need path)

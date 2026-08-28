@@ -18,7 +18,7 @@ headings: the problem in prose, a short **Done when**, one source line.
 Three hard constraints Linear enforces on every payload:
 
 1. **`ai:*` is single-value-per-Issue.** Only ONE of `ai:claude`, `ai:codex`, `ai:routine` may be applied. When both an "origin" agent and a "delegate-to" agent apply to the same Issue (e.g., Claude created it, Codex is fixing it), the **delegate-to** wins as the label; the originating agent goes in a comment, not the body (the `## Provenance` section was retired 2026-08-27). If only one role applies (no delegation), use the originating agent. **When to route to Codex:** apply `ai:codex` when the Issue clears the **Codex-ready bar** (clear behavior + named surface + suggestable fix + validation — see [`docs/routines/README.md` § Codex hand-off](../../../docs/routines/README.md)); also set the Linear **delegate** to the Codex agent (the human stays assignee/reviewer) when it clears the **autonomous-confident bar** (concrete fix + bounded non-`critical` surface + mechanical + validation). Otherwise keep `ai:routine` / the originating agent.
-2. **`package:*` is single-value-per-Issue.** When a bug spans two packages (e.g., admin display + indexer enrichment, or shared hook + client view), the **primary surface** wins as the label; the secondary package(s) are named in the body's `## Surface` section with a one-line note explaining the constraint.
+2. **`package:*` is single-value-per-Issue.** When a bug spans two packages (e.g., admin display + indexer enrichment, or shared hook + client view), the **primary surface** wins as the label; the secondary package(s) are named in the problem sentence (the `## Surface` block is retired) with a one-line note explaining the constraint.
 3. **Customer Needs cannot be standalone.** Linear's API requires `Exactly one of projectId or issueId must be defined` — every Customer Need must link to an Issue via the `issue` parameter. There is no standalone Need disposition; use `track-only` (Customer Need + lightweight Backlog tracking Issue).
 
 ---
@@ -86,15 +86,11 @@ the 2026-08-27 board audit made the issue worse:
 * **No second copy of the finding.** Do not append an "Authoritative QA
   finding" block restating the defect the body already described.
 
-> **Link asymmetry is intentional.** The Customer Need's `## Linked Issue` carries a clickable `[PRD-XXX](https://linear.app/.../PRD-XXX)` URL because Linear Issues expose stable web URLs. The Issue's `## Source` block, by contrast, refers to "the linked Customer Need" without a clickable URL — Linear's `save_customer_need` API returns `url: null` and Customer Needs are surfaced from the linked Issue's right rail rather than a standalone page. Do not "fix" this by hand-building a Customer Need URL pattern; the asymmetry is a Linear-platform property, not a template bug.
+> **Link asymmetry is intentional.** The Customer Need's `## Linked Issue` carries a clickable `[PRD-XXX](https://linear.app/.../PRD-XXX)` URL because Linear Issues expose stable web URLs. The Issue's source line, by contrast, refers to "the linked Customer Need" without a clickable URL — Linear's `save_customer_need` API returns `url: null` and Customer Needs are surfaced from the linked Issue's right rail rather than a standalone page. Do not "fix" this by hand-building a Customer Need URL pattern; the asymmetry is a Linear-platform property, not a template bug.
 
-The `## Surface` block above supports a **secondary-package note** when a bug spans more than one package. Example:
+**Secondary packages go in the problem sentence, not a `## Surface` block** — that heading is retired along with the rest of the section scaffolding. When a bug spans more than one package, name the second one in prose:
 
-```markdown
-## Surface
-Admin Dashboard (members panel)
-Investigation likely spans `package:admin` (display) and `package:indexer` (enrichment); only `package:admin` is on the label set per Linear's single-value-per-group constraint on `package:*`.
-```
+> Approving work fails on the admin members panel. The display side is `package:admin`; the enrichment it reads comes from `package:indexer`, and only `package:admin` is on the label set because Linear allows one `package:*` per issue.
 
 **Labels (Issue)** — Linear enforces single-value-per-group on `ai:*` and `package:*`; the rules below assume one value per family:
 
@@ -134,7 +130,7 @@ When Phase 3 surfaces a `[derived:recurring]` item and the user approves it in P
 
 **Labels**: `protocol:green-goods`, `activity:qa`, `package:<inferred>`, `ai:claude`, plus `pattern:posthog-<hash-prefix>` if the pattern label family exists on the team. If `pattern:*` is missing, fail loud and skip the recurring-pattern parent rather than inventing a label.
 
-**Title format**: `Recurring: <top-line-error-message-redacted>` — verb-led when possible.
+**Title format**: a plain verb-led sentence naming the failure — "Fix the credential request that never resolves on garden join". The `Recurring:` prefix was retired 2026-08-27 (a `PreToolUse` hook rejects it); the `pattern:posthog-*` label is what marks this as the recurring parent.
 
 ---
 
