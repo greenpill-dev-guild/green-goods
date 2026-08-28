@@ -547,11 +547,13 @@ contract Upgrade is Script {
         wireYieldResolverGardensModule();
     }
 
-    /// @notice Upgrade the two existing integrations required by Commitment Pooling.
+    /// @notice Upgrade the existing integrations required by Commitment Pooling.
     /// @dev The net-new CommitmentPoolingModule and CommitmentRegistry are deployed, never
-    ///      "upgraded". This grouped plan proves GardenToken and WorkApprovalResolver share the
-    ///      declared owner before either existing proxy is touched.
+    ///      "upgraded". KarmaGAPModule must be upgraded before the callers that depend on its new
+    ///      reconciliation selectors. The grouped plan proves all three proxies share the declared
+    ///      owner before any existing proxy is touched.
     function upgradeCommitmentPoolingIntegrations() public {
+        upgradeKarmaGAPModule();
         upgradeGardenToken();
         upgradeWorkApprovalResolver();
 

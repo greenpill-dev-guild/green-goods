@@ -33,6 +33,7 @@ import {
 
 export {
   deriveKarmaIntegrationAuthorization,
+  deriveKarmaProjectSlug,
   deriveKarmaIntegrationStatus,
   KARMA_SYNC_VERSION,
   type KarmaIntegrationAuthorization,
@@ -180,6 +181,7 @@ export function useKarmaIntegration(garden?: Garden | null) {
       deriveKarmaIntegrationStatus({
         chainId,
         gardenAddress: gardenAddress ?? ("0x0000000000000000000000000000000000000000" as Address),
+        gardenName: garden?.name ?? null,
         gardenSlug: slugQuery.data ?? null,
         supported,
         syncVersion: versionQuery.data ?? null,
@@ -190,6 +192,7 @@ export function useKarmaIntegration(garden?: Garden | null) {
     [
       chainId,
       gardenAddress,
+      garden?.name,
       isRetrying,
       projection,
       slugQuery.data,

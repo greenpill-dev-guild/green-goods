@@ -372,11 +372,12 @@ separate pure-simulation process changed chain state. The AssessmentResolver tar
 `backfill-pools.ts` are deliverables of this lane (contract-spec §6.4.4, §7):
 
 `commitment-pooling` deploys and finalizes the module/register while leaving the module paused.
-The grouped `commitment-pooling` upgrade target upgrades GardenToken and WorkApprovalResolver,
-wires and verifies both reverse links, and unpauses only after the complete chain-2/chain-3
-readiness plan passes. `backfill-pools.ts` runs only after that verified unpause. It registers the
-root as Protocol exactly once, enumerates the verified 13-garden set, records the normalized root
-as `SKIPPED_PROTOCOL_ROOT`, and submits Garden registrations only for the 12 non-root addresses.
+The grouped `commitment-pooling` upgrade target upgrades KarmaGAPModule first, then GardenToken
+and WorkApprovalResolver, wires and verifies both reverse links, and unpauses only after the
+complete chain-2/chain-3 readiness plan passes. `backfill-pools.ts` runs only after that verified
+unpause. It registers the root as Protocol exactly once, enumerates the verified 13-garden set,
+records the normalized root as `SKIPPED_PROTOCOL_ROOT`, and submits Garden registrations only for
+the 12 non-root addresses.
 
 Every `--network arbitrum-sepolia` line below is unrunnable against the current tree and stays
 unrunnable until this lane ships the `421614` toolchain named in Outputs: the networks.json
@@ -419,13 +420,14 @@ mismatched values **before** plan persistence.
 For a live chain, the commands execute in the listed dependency order, with a separately
 authorized receipt, post-action verifier, and persisted artifact between stages:
 AssessmentResolver upgrade → schema preparation → module/register deployment → Community
-Testimony finalization with pooling still paused → grouped GardenToken/WorkApprovalResolver
-upgrade and reverse wiring while paused → complete readiness verification → pooling unpause →
+Testimony finalization with pooling still paused → KarmaGAPModule prerequisite upgrade → grouped
+GardenToken/WorkApprovalResolver upgrade and reverse wiring while paused → complete readiness
+verification → pooling unpause →
 root Protocol registration → 13-garden enumeration with root skipped → 12 non-root Garden
 registrations → operational smoke. The full sequence is rehearsed on local and Arbitrum Sepolia
 first. Every tx-plan sender
 must equal the relevant live proxy `owner()` before plan persistence; the grouped upgrade fails
-unless both proxies share that verified owner. That is the contract this lane builds, not current
+unless all three proxies share that verified owner. That is the contract this lane builds, not current
 behavior: `upgrade.ts` today accepts `--sender` optionally, falls back to
 `process.env.SENDER_ADDRESS`, persists `sender: null`, and never reads `owner()`.
 After verified module/register deployment, run

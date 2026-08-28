@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   deriveKarmaIntegrationAuthorization,
+  deriveKarmaProjectSlug,
   deriveKarmaIntegrationStatus,
   KARMA_SYNC_VERSION,
   type KarmaIntegrationDerivationInput,
@@ -116,6 +117,15 @@ describe("deriveKarmaIntegrationStatus", () => {
   it("builds the Karma profile URL from the canonical GardenAccount slug", () => {
     const result = deriveKarmaIntegrationStatus(input({ gardenSlug: "aiyeloja-family-garden" }));
 
+    expect(result.profileUrl).toBe("https://www.karmahq.org/project/aiyeloja-family-garden");
+  });
+
+  it("falls back to the exact Karma payload slug when the GardenAccount slug is empty", () => {
+    const result = deriveKarmaIntegrationStatus(
+      input({ gardenName: " Aiyeloja & Family  Garden! ", gardenSlug: "" })
+    );
+
+    expect(deriveKarmaProjectSlug(" Aiyeloja & Family  Garden! ")).toBe("aiyeloja-family-garden");
     expect(result.profileUrl).toBe("https://www.karmahq.org/project/aiyeloja-family-garden");
   });
 

@@ -88,7 +88,7 @@ export const CEREMONY_STAGES = new Map<CeremonyStage, { script: string; boundari
     "ownership-arbitrum",
     {
       script: "release:ownership:arbitrum",
-      boundaries: 8,
+      boundaries: 9,
       label: "Arbitrum protocol ownership handover",
     },
   ],
@@ -319,7 +319,7 @@ The GardenAccount stage always runs both boundaries and binds step 2 to the capt
 if step 1 already broadcast, recover through the interactive mode with an explicit --receipt.
 
 Ceremony stages:
-  ownership-arbitrum                       8 boundaries
+  ownership-arbitrum                       9 boundaries
   ownership-celo                           1 boundary
   garden-accounts                          2 boundaries
   garden-safes                             18 boundaries

@@ -78,12 +78,31 @@ export const EMPTY_KARMA_PROJECTION: KarmaIntegrationProjection = {
 export interface KarmaIntegrationDerivationInput {
   chainId: number;
   gardenAddress: Address;
+  gardenName?: string | null;
   gardenSlug?: string | null;
   supported: boolean;
   syncVersion: number | null;
   readErrorReason?: string | null;
   isRetrying: boolean;
   projection: KarmaIntegrationProjection;
+}
+
+/** Mirrors StringUtils.generateSlug used by JsonBuilder.buildProjectDetails. */
+export function deriveKarmaProjectSlug(name: string): string {
+  let slug = "";
+
+  for (const character of name) {
+    const code = character.charCodeAt(0);
+    if (code >= 65 && code <= 90) {
+      slug += String.fromCharCode(code + 32);
+    } else if ((code >= 97 && code <= 122) || (code >= 48 && code <= 57)) {
+      slug += character;
+    } else if (code === 32 && slug.length > 0 && !slug.endsWith("-")) {
+      slug += "-";
+    }
+  }
+
+  return slug.endsWith("-") ? slug.slice(0, -1) : slug;
 }
 
 export interface KarmaIntegrationAuthorizationInput {
@@ -107,9 +126,9 @@ function projectedFailureReason(projection: KarmaIntegrationProjection): string 
 export function deriveKarmaIntegrationStatus(
   input: KarmaIntegrationDerivationInput
 ): KarmaIntegrationStatus {
-  const gardenSlug = input.gardenSlug?.trim();
+  const gardenSlug = input.gardenSlug?.trim() || deriveKarmaProjectSlug(input.gardenName ?? "");
   const profileUrl =
-    input.projection.projectUID && gardenSlug
+    !input.readErrorReason && input.projection.projectUID && gardenSlug
       ? `https://www.karmahq.org/project/${encodeURIComponent(gardenSlug)}`
       : null;
   const base = {

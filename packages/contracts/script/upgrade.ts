@@ -443,7 +443,7 @@ Contracts:
   testimony-resolver      Upgrade TestimonyResolver (explicit target; excluded from all)
   deployment-registry     Upgrade Deployment
   greenwill               Upgrade GreenWill (funds-adjacent; explicit target only)
-  commitment-pooling      Plan GardenToken and WorkApprovalResolver as one owner-bound group
+  commitment-pooling      Plan KarmaGAPModule, GardenToken, and WorkApprovalResolver as one owner-bound group
   all                     Upgrade standard contracts (excludes HatsModule, TestimonyResolver,
                           GreenWill, and commitment-pooling)
 
@@ -861,7 +861,7 @@ export function validateReleaseOwnedUpgradePlan(
     "assessment-resolver": ["AssessmentResolver"],
     "garden-token": ["GardenToken"],
     "work-approval-resolver": ["WorkApprovalResolver"],
-    "commitment-pooling": ["GardenToken", "WorkApprovalResolver"],
+    "commitment-pooling": ["KarmaGAPModule", "GardenToken", "WorkApprovalResolver"],
   };
   const names = expectedNames[plan.contract];
   if (!names) throw new Error(`No frozen release-owned plan validator exists for ${plan.contract}`);
@@ -885,6 +885,7 @@ export function validateReleaseOwnedUpgradePlan(
   const manifestUpgrades = new Map(manifest.existingProxyUpgrades.map((upgrade) => [upgrade.name, upgrade]));
   const deploymentKeys: Record<string, string> = {
     AssessmentResolver: "assessmentResolver",
+    KarmaGAPModule: "karmaGAPModule",
     GardenToken: "gardenToken",
     WorkApprovalResolver: "workApprovalResolver",
   };

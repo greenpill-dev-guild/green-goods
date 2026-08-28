@@ -341,7 +341,13 @@ describe("release CLI real entrypoints", () => {
     expect(transfer).toContain("ownershipTransferTargets(network, manifest, lock");
     const verifier = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/release-verify.ts"), "utf8");
     expect(verifier).toContain("export function ownershipTransferTargets(");
-    for (const target of ["AssessmentResolver", "TestimonyResolver", "GardenToken", "WorkApprovalResolver"]) {
+    for (const target of [
+      "AssessmentResolver",
+      "TestimonyResolver",
+      "KarmaGAPModule",
+      "GardenToken",
+      "WorkApprovalResolver",
+    ]) {
       expect(verifier).toContain(`["${target}",`);
     }
     expect(verifier).toContain("protocolSafe.${network}.threshold-minimum");

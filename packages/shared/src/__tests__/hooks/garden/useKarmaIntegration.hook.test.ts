@@ -153,6 +153,23 @@ describe("useKarmaIntegration query and mutation seams", () => {
     );
   });
 
+  it("uses the Karma name-derived slug when the account slug is empty", async () => {
+    mocks.readContract.mockImplementation(async (_config, request) => {
+      if (request.functionName === "karmaSyncVersion") return 1n;
+      if (request.functionName === "slug") return "";
+      if (request.functionName === "ownerOf") return OWNER;
+      throw new Error(`Unexpected read: ${request.functionName}`);
+    });
+    const queryClient = createQueryClient();
+    const { result } = renderHook(() => useKarmaIntegration(garden), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.profileUrl).toBe("https://www.karmahq.org/project/mutable-garden-name");
+  });
+
   it("surfaces a slug read error as failed instead of an upgrade or missing project", async () => {
     const slugFailure = new Error("slug read unavailable");
     mocks.readContract.mockImplementation(async (_config, request) => {

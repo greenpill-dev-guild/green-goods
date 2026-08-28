@@ -191,6 +191,21 @@
       "linkedLibraries": {}
     },
     {
+      "name": "KarmaGAPModule",
+      "stage": "pooling-integration-upgrades",
+      "proxy": "0x0FC2bE8D57595b16af0953CB2d711118F34563FE",
+      "currentImplementation": "0xce37847ce0319610e11ec58c5860d58d4935b6ef",
+      "currentImplementationCodeHash": "0x38bbd4a47cd0d1ee574a8564be8465424b818a3e72c34f5ad80606b26abb8416",
+      "currentOwner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "currentCeremonyEndOwner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "finalArtifact": "Karma.sol/KarmaGAPModule.json",
+      "constructorArguments": [],
+      "expectedImplementationCreationCodeHash": "0xfc30c90ef937e072b48cb679fae054a10f196e599d0914126e6bdd46c9acb68d",
+      "implementationAddressPolicy": "sender-and-stage-nonce-bound-transaction-plan",
+      "initializerPolicy": "preserve-existing-initializer-state",
+      "linkedLibraries": {}
+    },
+    {
       "name": "GardenToken",
       "stage": "pooling-integration-upgrades",
       "proxy": "0xe1Da335110b1ed48e7df63209f5D424d02276593",

@@ -508,7 +508,7 @@ Phase B boundary form (not authorized by Phase A):
           index: 7,
           command: "bun run pooling:upgrade:plan:arbitrum --expected-nonce <fresh-pending-nonce>",
           outcome:
-            "actual GardenToken and WorkApprovalResolver implementations/owners/code hashes, upgrades, reverse wiring, and per-proxy rollback calldata while pooling stays paused",
+            "KarmaGAPModule upgraded before the GardenToken and WorkApprovalResolver callers, with exact implementations/owners/code hashes, reverse wiring, and per-proxy rollback calldata while pooling stays paused",
           nextStageRule:
             "rebuild after earlier receipts; a stale sender nonce invalidates every predicted implementation",
         },

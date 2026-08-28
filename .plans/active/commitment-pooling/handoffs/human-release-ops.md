@@ -81,7 +81,7 @@ verifiers remain available for historical evidence and current-state checks.
   paused and deployment-sender owned.
 - A current-release deployer-owned, root-Protocol-first paused backfill with eighteen verified
   registration receipts, plus a separately authorized pooling unpause command.
-- The protocol-Safe ownership transfer, eight Arbitrum boundaries and one Celo boundary, each with
+- The protocol-Safe ownership transfer, nine Arbitrum boundaries and one Celo boundary, each with
   the destination Safe verified live against its per-chain frozen configuration.
 - A separate signed value-tier checklist for Arbitrum `SettlementModule`, Celo `CeloSettlementExecutor`, and every enabled Safe/Zodiac configuration.
 - For every authorized broadcast: signer set, transaction hash, block, artifact diff,
@@ -428,18 +428,18 @@ The ownership tooling reads the destination Safe live on the target chain before
 broadcast and requires threshold at least 2. Owner count and membership are not release gates. The
 same address is a different Safe on each chain:
 
-- On Arbitrum the threshold is 2. The dry run passes and all eight boundaries report ready.
+- On Arbitrum the threshold is 2. The dry run passes and all nine boundaries report ready.
 - On Celo the threshold is 2. The owner inventory is intentionally different from Arbitrum and
   does not block the Celo boundary.
 
-1. Arbitrum, eight boundaries in order through the release operator:
+1. Arbitrum, nine boundaries in order through the release operator:
    `bun run contracts:release:ownership:dry:arbitrum`, then
    `bun run contracts:release:ownership:arbitrum`. The release operator prompts for the deployer
    password once, executes every remaining boundary in order with a freshly verified nonce, and
    stops on the first failure. Each boundary re-reads the Safe threshold at its receipt block and
    at head before it checkpoints. Verify afterwards with
-   `bun run contracts:release:verify:safe:arbitrum`, which checks all eight
-   ownership targets (including AssessmentResolver, TestimonyResolver, GardenToken, and
+   `bun run contracts:release:verify:safe:arbitrum`, which checks all nine ownership targets
+   (including AssessmentResolver, TestimonyResolver, KarmaGAPModule, GardenToken, and
    WorkApprovalResolver, which are not deterministic lock identities) and re-asserts the Safe's
    threshold.
 2. Celo, one boundary, only after the threshold is raised:
