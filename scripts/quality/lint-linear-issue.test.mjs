@@ -324,6 +324,11 @@ const rejects = [
     input: { title: "Fix the stuck cancel button", description: "## Reproduction\n- needs repro\n\n## Expected\n* TBD" },
     expect: /empty section placeholder/,
   },
+  {
+    name: "lowercase empty placeholder",
+    input: { title: "Fix the stuck cancel button", description: "## Reproduction\ntbd\n\n## Expected\nn/a" },
+    expect: /empty section placeholder/,
+  },
 ];
 
 // --- Emoji detection must not over-match -----------------------------------
@@ -422,6 +427,16 @@ const ignores = [
     input: {
       title: "Fix the stuck cancel button",
       description: `${BODY_OK}\n\n---\n\nThe image upload path is the trigger.`,
+    },
+  },
+  {
+    // Linear renders a fence as code, so `##` comment lines inside one are not
+    // headings. Blocking this valid body is the expensive kind of mistake.
+    name: "fenced shell example containing hash comments",
+    input: {
+      title: "Document the deploy steps for new stewards",
+      description:
+        "The deploy runbook is undocumented, so a new steward cannot ship without pairing.\n\n```bash\n## step one\n## step two\n## step three\n## step four\n```",
     },
   },
   {

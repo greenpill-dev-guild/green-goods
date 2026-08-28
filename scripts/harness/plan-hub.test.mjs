@@ -900,7 +900,11 @@ test("parent-only lane sync suppresses active lane issue actions and warnings", 
     const manifest = JSON.parse(sync.stdout);
     assert.equal(manifest.parent.issue, "PRD-900");
     assert.equal(manifest.parent.state, "In Progress");
-    assert.match(manifest.parent.description, /lanes are not mirrored as child issues/);
+    assert.match(manifest.parent.description, /Lanes are not mirrored as child issues/);
+    // The parent record carries state and priority only — milestone, due date,
+    // and blocker relations live on lane records, which parent_only never
+    // creates. The body must not promise them here.
+    assert.doesNotMatch(manifest.parent.description, /dates,? and dependencies live on this issue/);
     assert.equal(manifest.laneSyncMode, "parent_only");
     assert.deepEqual(manifest.lanes, []);
     assert.equal(manifest.warnings.some((warning) => warning.includes("Plan is missing Linear issue for lane")), false);

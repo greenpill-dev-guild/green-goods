@@ -191,10 +191,25 @@ fi
 # call carries, whether it replaces the body or patches into it. Cumulative
 # rules (heading count, word count) are checked on `description` only, since a
 # patch fragment cannot tell us the size of the resulting document.
+# Blank out fenced code blocks, keeping line numbering intact. Structural rules
+# — heading count, emoji headings, empty placeholders — are about what Linear
+# renders, and it renders a fence as code: four `##` comment lines in a shell
+# example are not four headings, and blocking that valid body is the expensive
+# kind of mistake. Banned-token checks deliberately still read the fence, since
+# citing plan internals inside one is still citing them.
+strip_fenced_code() {
+  printf '%s\n' "$1" | awk '
+    /^[[:space:]]*(```|~~~)/ { fenced = !fenced; print ""; next }
+    fenced { print ""; next }
+    { print }
+  '
+}
+
 check_banned_tokens() {
   scope="$1"
   text="$2"
   [ -n "$text" ] || return 0
+  prose="$(strip_fenced_code "$text")"
 
   if printf '%s' "$text" | grep -qE 'status\.json|execution_sub_lanes|laneSyncMode|plan\.todo\.md'; then
     add "$scope cites plan-hub internals (status.json / execution_sub_lanes). Link the plan directory instead."
@@ -215,7 +230,7 @@ check_banned_tokens() {
   # paragraphs explaining that telemetry found nothing.
   # Bare (`—`) and list-form (`- TBD`, `* N/A`, `1. needs repro`) alike: a
   # bullet does not make an empty slot any more informative.
-  if printf '%s' "$text" | grep -qE '^[[:space:]]*([-*+]|[0-9]+\.)?[[:space:]]*(—|-|N/A|TBD|None|needs repro|needs definition|needs investigation)[[:space:]]*$'; then
+  if printf '%s' "$prose" | grep -qiE '^[[:space:]]*([-*+]|[0-9]+\.)?[[:space:]]*(—|-|N/A|TBD|None|needs repro|needs definition|needs investigation)[[:space:]]*$'; then
     add "$scope renders an empty section placeholder. Drop the section instead — a heading with nothing under it costs the reader a stop."
   fi
   # Strip any heading level generically: an H1 (`# 🔴 Counts`) must be caught
@@ -228,7 +243,7 @@ check_banned_tokens() {
       break
     fi
   done <<EOF
-$(printf '%s\n' "$text" | grep -E '^[[:space:]]*#{1,6} ' || true)
+$(printf '%s\n' "$prose" | grep -E '^[[:space:]]*#{1,6} ' || true)
 EOF
 }
 
@@ -237,8 +252,11 @@ if [ -n "$description" ]; then
   # ATX (`## Section`) plus Setext — a text line followed directly by `===` or
   # `---`, which Linear renders as a heading whether or not the author meant a
   # separator, so it counts toward the cap the same way.
-  atx_headings=$(printf '%s\n' "$description" | grep -cE '^ {0,3}#{1,6} ' || true)
-  setext_headings=$(printf '%s\n' "$description" |
+  # Counted on fence-stripped prose: Linear renders a fenced block as code, so
+  # `##` comment lines in a shell example are not headings.
+  description_prose="$(strip_fenced_code "$description")"
+  atx_headings=$(printf '%s\n' "$description_prose" | grep -cE '^ {0,3}#{1,6} ' || true)
+  setext_headings=$(printf '%s\n' "$description_prose" |
     awk 'prev ~ /[^[:space:]]/ && prev !~ /^ {0,3}#/ && /^ {0,3}(=+|-+)[[:space:]]*$/ { n++ } { prev = $0 } END { print n + 0 }')
   headings=$((atx_headings + setext_headings))
   words=$(printf '%s' "$description" | wc -w | tr -d ' ')

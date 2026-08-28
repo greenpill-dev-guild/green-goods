@@ -902,14 +902,19 @@ function linearProjectForStatus(status, warnings) {
 // avoid. Shape and caps: `.claude/context/linear-routing-rules.md`.
 function buildLinearParentDescription(status, laneSyncMode = DEFAULT_LINEAR_LANE_SYNC_MODE) {
   const source = planRelativeDir(status);
-  const laneSyncPolicy = laneSyncMode === "parent_only"
-    ? "Individual lanes are not mirrored as child issues — the hub is where lane progress lives."
-    : "Child issues track each actionable lane.";
+  // Describe only what this record actually carries. The parent gets state and
+  // priority; milestone, due date, and blocker relations are emitted on lane
+  // records, and in parent_only mode those records do not exist at all — so a
+  // blanket "dates and dependencies live on this issue" would send a reader to
+  // a surface that does not have them.
+  const whereTheRestLives = laneSyncMode === "parent_only"
+    ? "Lanes are not mirrored as child issues, so lane progress, dates, and dependencies live in the hub too."
+    : "Each lane's dates and dependencies sit on its own child issue.";
 
   return [
     `Tracker for the ${status.feature.title} plan, mirrored into Linear for visibility. ` +
-      `Status, dates, and dependencies live on this issue; the scope, lane detail, and handoffs live in the plan hub. ` +
-      laneSyncPolicy,
+      "This issue carries the overall status; the scope, lane detail, and handoffs live in the plan hub. " +
+      whereTheRestLives,
     "",
     `Plan hub: \`${source}\``,
   ].join("\n");
