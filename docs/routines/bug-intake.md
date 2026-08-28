@@ -326,27 +326,22 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
 
    Associate the Customer Need with the customer/garden when known. Customer Needs live unprojected on the Product team — do not associate with the retired `Green Goods` umbrella project or any other staging/completed project. The Customer Need carries **no labels** — `save_customer_need` has no `labels` field; provenance and triage metadata live in the body, and the canonical labels go on the linked Issue created in step 6. Before saving the record, re-check the body against the privacy boundary table in `## PostHog telemetry enrichment`; if any forbidden field slipped in, drop it.
 
-6. **Create accepted-bug Issue** only when the report is actionable per the table above. Issue title is a concise verb-led summary. Body:
+6. **Create accepted-bug Issue** only when the report is actionable per the table above. Issue title is a concise verb-led sentence with no prefix. Body follows the contract in [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md) § Issue structure — **cap 3 headings, ~150 words, 300 ceiling**, and a `PreToolUse` hook rejects writes that break it:
 
    ```markdown
-   ## What
+   {What breaks, for whom, and where — one or two short paragraphs of plain
+   prose. Name the surface and the concrete files inside the sentences rather
+   than giving each its own heading.}
 
-   {one-sentence description of the bug or task}
+   **Done when**
+   - {observable, checkable outcome}
+   - {second outcome, if the fix has two halves}
 
-   ## Where
-
-   {file paths or surfaces — concrete enough that the human triage handoff (or downstream `.plans/` execution) can scope it}
-
-   ## Suggested fix
-
-   {one paragraph — actionable. "Needs investigation" is not enough; if the fix isn't suggestable yet, fall back to the lightweight tracking-Issue pattern: `activity:maintenance` + `Backlog` + body that has Summary + Surface + Source only}
-
-   ## Linked Customer Need
-   {Linear URL of the Customer Need created in step 4}
-
-   ## Source
-   {Discord message URL — same as the Customer Need}
+   {One source line: the Discord message URL, same as the Customer Need. Add a
+   single counts line only when telemetry is the evidence.}
    ```
+
+   Drop anything you cannot fill rather than writing a placeholder — if the fix is not suggestable yet, that is the lightweight tracking pattern (`activity:maintenance` + `Backlog`), not a "Needs investigation" heading. Do not restate the verbatim quote or the reporter list; those live on the linked Customer Need.
 
    Project: leave **unprojected** on the Product team. Apply labels: `protocol:green-goods` + `activity:qa` + `package:<inferred>` (omit if unknown) + `source:discord` + `ai:routine`. Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes). The Issue body inherits the same privacy boundary — never paste replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers into it.
 

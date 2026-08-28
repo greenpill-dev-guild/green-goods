@@ -610,7 +610,7 @@ test("linear-sync manifest keeps backlog hubs parent-only", () =>
     assert.equal(manifest.feature.slug, "linear-fixture");
     assert.equal(manifest.feature.path, ".plans/backlog/linear-fixture/");
     assert.equal(manifest.parent.action, "create");
-    assert.equal(manifest.parent.title, "plan: Linear Fixture");
+    assert.equal(manifest.parent.title, "Linear Fixture roadmap");
     assert.deepEqual(manifest.parent.labels, [
       "activity:architecture",
       "package:client",
@@ -644,12 +644,12 @@ test("linear-sync manifest creates actionable lane issues for active hubs", () =
     assert.equal(manifest.feature.slug, "active-linear-fixture");
     assert.equal(manifest.feature.path, ".plans/active/active-linear-fixture/");
     assert.equal(manifest.parent.action, "create");
-    assert.equal(manifest.parent.title, "plan: Active Linear Fixture");
+    assert.equal(manifest.parent.title, "Active Linear Fixture roadmap");
     assert.deepEqual(
       manifest.lanes.map((lane) => [lane.lane, lane.action, lane.title, lane.state]),
       [
-        ["ui", "create", "UI: Active Linear Fixture", "Todo"],
-        ["state_api", "create", "State/API: Active Linear Fixture", "Todo"],
+        ["ui", "create", "Build the interface for Active Linear Fixture", "Todo"],
+        ["state_api", "create", "Build the data and API layer for Active Linear Fixture", "Todo"],
       ],
     );
     assert.deepEqual(manifest.lanes[0].labels, [
@@ -892,7 +892,7 @@ test("parent-only lane sync suppresses active lane issue actions and warnings", 
     const manifest = JSON.parse(sync.stdout);
     assert.equal(manifest.parent.issue, "PRD-900");
     assert.equal(manifest.parent.state, "In Progress");
-    assert.match(manifest.parent.description, /intentionally does not create or update lane issues/);
+    assert.match(manifest.parent.description, /lanes are not mirrored as child issues/);
     assert.equal(manifest.laneSyncMode, "parent_only");
     assert.deepEqual(manifest.lanes, []);
     assert.equal(manifest.warnings.some((warning) => warning.includes("Plan is missing Linear issue for lane")), false);
@@ -981,7 +981,7 @@ test("linear-sync uses execution sub-lanes without duplicating aggregate impleme
     assert.equal(manifest.lanes[0].dueDate, null);
     assert.ok(manifest.lanes[0].labels.includes("ai:codex"));
     assert.equal(manifest.lanes[1].action, "create");
-    assert.equal(manifest.lanes[1].title, "Settlement Evidence: Execution Linear");
+    assert.equal(manifest.lanes[1].title, "Settlement Evidence for Execution Linear");
     assert.equal(manifest.lanes[1].parentId, null);
     assert.equal(manifest.lanes[1].milestone, null);
     assert.equal(manifest.lanes[1].dueDate, "2026-09-30");

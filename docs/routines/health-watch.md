@@ -78,7 +78,7 @@ Compute `delta = chain_head - latest_processed_block`.
 
 If the indexer endpoint returns 5xx, treat as 🔴 anomaly (`indexer unreachable`).
 
-**Issue body** must include both block numbers, the delta, and how long the indexer has been at this state (compare to yesterday's check if you can find it in the Issue's prior comments).
+**Evidence to capture** (body gets the one-line summary; the detail goes in the first comment — see § Dedupe logic): both block numbers, the delta, and how long the indexer has been at this state (compare to yesterday's check if you can find it in the Issue's prior comments).
 
 ### 2. Vercel
 
@@ -96,7 +96,7 @@ For each project:
 
 3. **Web vitals trend** — Web Vitals from Vercel Analytics. If LCP p75 degraded >25% vs prior 7d baseline → 🟡 informational (note in summary, no Issue). LCP/INP/CLS catastrophic regressions (>50% worse) → 🔴 accepted anomaly with a separate Linear Issue (carry `package:client` or `package:admin` plus the perf signal in the body).
 
-**Issue body** must include the project name, latest deploy state + URL, the offending commit SHA, error counts (current + baseline), and any web-vitals deltas. Privacy: never paste user-identifying paths from runtime logs — strip query strings, IDs, and addresses before quoting log lines.
+**Evidence to capture** (body gets the one-line summary; the detail goes in the first comment): the project name, latest deploy state + URL, the offending commit SHA, error counts (current + baseline), and any web-vitals deltas. Privacy: never paste user-identifying paths from runtime logs — strip query strings, IDs, and addresses before quoting log lines.
 
 ### 3. Contracts
 
@@ -140,7 +140,7 @@ Thresholds are **absolute count floors** calibrated from 30-day observed volume 
 
 **Degraded-payload caveat**: `$exception_type` and `$exception_message` have been null since 2026-05-13 (the `qa-triage-pulse` "M1" finding). This check **counts** events and groups them by URL — it cannot categorize the error type yet. Carry this caveat into the Issue body: report the count, the top offending URLs, and the window; do not assert *which* error spiked. Revisit promoting this to a per-error-type check once the payload is repaired.
 
-**Issue body**: per-project 24h count, the top `$current_url` paths (strip query strings, IDs, and addresses — privacy), and the degraded-payload note. Carry `package:client` (App surge) or `package:admin` (Admin surge).
+**Evidence to capture** (body gets the count line; the detail goes in the first comment): per-project 24h count, the top `$current_url` paths (strip query strings, IDs, and addresses — privacy), and the degraded-payload note. Carry `package:client` (App surge) or `package:admin` (Admin surge).
 
 ### 6. Sentry release regression context (optional)
 
@@ -193,16 +193,33 @@ if no open Linear Issue matching the canonical labels + category marker:
   Linear: create Issue
     team        = Product
     project     = (none — unprojected)
-    title       = "<category marker>: <one-line summary>"
+    title       = "<plain sentence naming the anomaly>"
+                  // no "<category>:" prefix — the labels carry the category
     labels      = "green-goods", "qa", "routine",
                   <package child, e.g. "indexer"> (when applicable)
                   // bare child names or IDs only — save_issue rejects the
                   // group:child display form, and one bad entry rejects all
     status      = Backlog (exploratory) or Todo (well-scoped)
-    body        = <findings>
+    body        = <the anomaly in 2-3 plain sentences + one counts line>
+    comment #1  = <the full evidence: tables, per-URL breakdowns, Sentry
+                   corroboration, caveats>
 else:
   Linear: comment on the existing Issue with <dated append>
 ```
+
+**The body is a description, not a dashboard.** Say what is happening, what it
+means, and what a person should do next, in two or three sentences, followed by
+a single counts line. Every table, per-URL breakdown, threshold restatement,
+and payload caveat named in the per-check "Issue body" notes above goes in the
+**first comment**, not the description — the check still gathers all of it, it
+just lands where a reader can skip it. Never open with which routine or check
+number filed the issue; the `routine` label carries that. Title is a plain
+sentence with no prefix or emoji.
+
+This obeys the shared contract in
+[`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md)
+§ Issue structure — cap 3 headings, ~150 words, 300 ceiling — and a
+`PreToolUse` hook rejects writes that break it.
 
 Never apply old `health:*`, `area:*`, `work:*`, or `automation:*` labels — those are retired. Never attach the Issue to a GitHub Project, never set a `Sprints` field, and never write to the retired `Green Goods` umbrella project.
 

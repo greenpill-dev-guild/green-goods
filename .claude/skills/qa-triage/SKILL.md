@@ -271,7 +271,7 @@ For each locked item, draft payloads using [`linear-templates.md`](./linear-temp
 
 Three hard constraints shape every payload — full detail, including the Codex-ready and autonomous-confident delegation bars, lives in [linear-templates.md § Linear API constraints](./linear-templates.md):
 
-1. **`ai:*` is single-value-per-Issue** — the delegate-to agent wins the label; the originating agent goes in the body's `## Provenance` section.
+1. **`ai:*` is single-value-per-Issue** — the delegate-to agent wins the label; the originating agent goes in a comment, not the body (the `## Provenance` section was retired 2026-08-27).
 2. **`package:*` is single-value-per-Issue** — the primary surface wins; secondary packages go in the body's `## Surface` section.
 3. **Customer Needs cannot be standalone** — every Need links to an Issue via the `issue` parameter; `track-only` = Need + lightweight Backlog tracking Issue.
 
@@ -285,7 +285,7 @@ Three hard constraints shape every payload — full detail, including the Codex-
 | Question / "me too" / no actionable content | Skip both | Skip both |
 | Duplicate of existing record | No new Issue; link via `relatedTo` | Optional — comment on existing if user wants the verbatim quote preserved |
 
-Title shape for track-only Issues: prefix `[tracking]`, then use an action-verb-led title (e.g., "[tracking] Bring back public-site Positions UI", not "Positions UI missing"). Body: shorter than a bug Issue — Summary + Surface + Suggested fix + Source.
+Title shape for track-only Issues: a plain action-verb-led sentence, no prefix — "Bring back the Positions section on the public site", not "[tracking] Positions UI missing". The `[tracking]` prefix is retired (2026-08-27); the `maintenance` label plus `Backlog` state carry that meaning, and a `PreToolUse` hook rejects the prefix. Body: shorter than a bug Issue — the ask in prose, then one source line. Full contract: [`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md) § Issue structure.
 
 **Assignee dialog (bulk-default + exceptions-only review)**:
 
@@ -296,7 +296,7 @@ Single bulk prompt up front, then surface only the items where the proposed assi
 
 Then, before writing, the assistant surfaces a **proposed exceptions list** for the user to ratify — items where the bulk default seems wrong given context (e.g., an admin bug when the default is Gui, a PWA architectural bug when the default is `ai:claude`). The user sees only items that need a decision, not the whole list.
 
-Recall `ai:*` is single-value: when delegate (`ai:claude` / `ai:codex`) is chosen, the originating agent is implicit and goes in the body's `## Provenance` section. The interactive skill running in Claude Code is the origin by default.
+Recall `ai:*` is single-value: when delegate (`ai:claude` / `ai:codex`) is chosen, the originating agent is implicit and goes in a comment when it matters — never in the body, whose `## Provenance` section was retired 2026-08-27. The interactive skill running in Claude Code is the origin by default.
 
 **Per-item preference capture (subtle)**:
 

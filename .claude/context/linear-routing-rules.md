@@ -40,6 +40,97 @@ this file is the operational contract for skills that create records.
    sensitive context only in private notes or a handoff the user explicitly
    approves.
 
+## Issue structure (Accepted Product Work / Accepted Research Task)
+
+Both structures are the same shape. Research issues ask a question and end in a
+decision-ready artifact; Product issues name a defect or outcome and end in
+shipped work. Voice rules live in `AGENTS.md § Linear Workspace`; this section
+owns the shape and the caps.
+
+**Title** — what a person would say broke, or what should exist. A plain
+sentence fragment, no trailing period.
+
+* No prefixes. Not `plan:`, `[tracking]`, `UI:`, `QA Pass 2:`, `backlog:`,
+  `P0`, `ETHOnline:`, or any lane, routine, or team tag. Labels and project
+  fields already carry that; a prefix in the title only costs scan width.
+* No symbol names where a human phrase exists. "Garden join fails on the
+  passkey prompt", not "`buildSmartAccount` NotAllowedError on join".
+* One issue per issue. A title joining two unrelated problems with "and" is two
+  issues — file both.
+
+**Body — three blocks, in this order, prose first.**
+
+1. **The problem or the outcome.** One or two short paragraphs. Lead with what
+   breaks and for whom, or what should exist and why. Define any term the
+   reader would have to look up, on first use. This block is never optional.
+2. **Done when.** Two to four checkable bullets. This is what keeps an issue
+   dispatchable to Codex — it is the acceptance criteria, written plainly.
+   Omit for a pure decision or discussion issue.
+3. **One evidence or source line.** A link, plus counts where telemetry is the
+   evidence. Everything else — dashboards, stack traces, repro transcripts,
+   file inventories — goes in the first comment, not the description.
+
+**Caps.**
+
+| | Limit |
+|---|---|
+| Headings | 3 (a defect usually needs 0) |
+| Words | ~150 target · 300 ceiling for a defect |
+| Plan mirror | 3 sentences plus the hub link |
+| Telemetry in the body | one line of counts |
+
+An umbrella tracker or roadmap issue may exceed the word ceiling when the prose
+stays plain — label it `plans` and keep the three-block order.
+
+**Never render an empty section.** If a block has nothing to say, drop it. A
+heading followed by "—", "needs repro", or a paragraph explaining that the
+telemetry found nothing is worse than its own absence: it costs the reader a
+stop and tells them nothing. Report tooling gaps in the run summary, not the
+issue.
+
+**Never restate.** One fact has one home in the body. A summary followed by a
+detail section repeating it, or a finding block duplicating the opening
+paragraph, is the single most common bloat in this workspace.
+
+**Never paste raw agent output** — session transcripts, tool logs, full stack
+traces, diff dumps, lane metadata (`Owner/status:`, `Source plan:`,
+`status.json#execution_sub_lanes`), screen codes (`W26`), or spec citations
+(`§5.1`). Link the file instead.
+
+### Worked example
+
+Not this:
+
+```markdown
+## Summary
+[tracking] Cancel is broken in the garden edit dialog.
+## Surface
+Admin Dashboard (garden edit → image upload). `package:admin`.
+## Suggested fix
+Investigate the dialog dismiss path.
+## Safe evidence
+PostHog (Admin 262122): no matching exception signature. A cancel button that
+fails to dismiss does not necessarily throw.
+## Source
+qa-triage-pulse · auto-extracted · qa-sync:2026-07-29
+## Authoritative QA finding
+Cancel is broken in the garden edit dialog. [...repeats the whole defect...]
+```
+
+This:
+
+```markdown
+Editing a garden and changing its image makes the edit impossible to cancel —
+the dialog stops responding and the operator has to reload. Leaving the image
+alone and cancelling works fine, so the image change is the trigger.
+
+**Done when**
+- Cancel dismisses the dialog after an image change, discarding the edit.
+- The garden keeps its previous image.
+
+Reported in QA sync 2026-07-29. [Notes](<drive-url>)
+```
+
 ## How skills consume this
 
 Reference this file (`.claude/context/linear-routing-rules.md`) instead of
@@ -47,3 +138,10 @@ restating the rules. Keep inline only what is genuinely skill-specific — e.g.
 `audit`'s severity→record-category table, `debug`'s Customer-Need body shape.
 When creating or rewriting a Linear *project* description (not an issue),
 follow the companion shape in `.claude/context/linear-project-template.md`.
+
+**Enforcement.** `.claude/scripts/lint-linear-issue.sh` runs as a `PreToolUse`
+hook on every `save_issue` call and blocks writes that break the caps or carry
+banned tokens. Linear's own issue templates cannot help here — `save_issue`
+exposes no template parameter, so templates only reach the composer, Slack and
+email intake, and `?template=` URLs. The hook is the only path that covers
+agent writes.

@@ -2,7 +2,14 @@
 
 These templates mirror [`bug-intake`](../../../docs/routines/bug-intake.md) Phase 3's body shape, adapted for the interactive single-source case (no Discord ack, no daily summary — those belong to the routine).
 
-Render every field. Empty fields become `—` rather than the section being dropped; readers should be able to scan the body shape across records and immediately see what's known vs not.
+**Drop any section you cannot fill.** A heading followed by `—`, "needs repro",
+or a paragraph explaining that PostHog matched nothing costs the reader a stop
+and tells them nothing; report tooling gaps in the run summary instead. The
+issue body obeys the caps in
+[`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md)
+§ Issue structure — **3 headings, ~150 words, 300 ceiling** — and a
+`PreToolUse` hook blocks writes that break them. A defect usually needs zero
+headings: the problem in prose, a short **Done when**, one source line.
 
 ---
 
@@ -10,7 +17,7 @@ Render every field. Empty fields become `—` rather than the section being drop
 
 Three hard constraints Linear enforces on every payload:
 
-1. **`ai:*` is single-value-per-Issue.** Only ONE of `ai:claude`, `ai:codex`, `ai:routine` may be applied. When both an "origin" agent and a "delegate-to" agent apply to the same Issue (e.g., Claude created it, Codex is fixing it), the **delegate-to** wins as the label; the originating agent goes in the body's `## Provenance` section. If only one role applies (no delegation), use the originating agent. **When to route to Codex:** apply `ai:codex` when the Issue clears the **Codex-ready bar** (clear behavior + named surface + suggestable fix + validation — see [`docs/routines/README.md` § Codex hand-off](../../../docs/routines/README.md)); also set the Linear **delegate** to the Codex agent (the human stays assignee/reviewer) when it clears the **autonomous-confident bar** (concrete fix + bounded non-`critical` surface + mechanical + validation). Otherwise keep `ai:routine` / the originating agent.
+1. **`ai:*` is single-value-per-Issue.** Only ONE of `ai:claude`, `ai:codex`, `ai:routine` may be applied. When both an "origin" agent and a "delegate-to" agent apply to the same Issue (e.g., Claude created it, Codex is fixing it), the **delegate-to** wins as the label; the originating agent goes in a comment, not the body (the `## Provenance` section was retired 2026-08-27). If only one role applies (no delegation), use the originating agent. **When to route to Codex:** apply `ai:codex` when the Issue clears the **Codex-ready bar** (clear behavior + named surface + suggestable fix + validation — see [`docs/routines/README.md` § Codex hand-off](../../../docs/routines/README.md)); also set the Linear **delegate** to the Codex agent (the human stays assignee/reviewer) when it clears the **autonomous-confident bar** (concrete fix + bounded non-`critical` surface + mechanical + validation). Otherwise keep `ai:routine` / the originating agent.
 2. **`package:*` is single-value-per-Issue.** When a bug spans two packages (e.g., admin display + indexer enrichment, or shared hook + client view), the **primary surface** wins as the label; the secondary package(s) are named in the body's `## Surface` section with a one-line note explaining the constraint.
 3. **Customer Needs cannot be standalone.** Linear's API requires `Exactly one of projectId or issueId must be defined` — every Customer Need must link to an Issue via the `issue` parameter. There is no standalone Need disposition; use `track-only` (Customer Need + lightweight Backlog tracking Issue).
 
@@ -43,48 +50,41 @@ That's it. Two paragraphs, max. No `## Need statement` (the verbatim quote IS th
 ## Issue body (only when the item crosses both bars: actionable description + named surface)
 
 ```markdown
-## Summary
-<one-paragraph behavior — what's broken, who hits it, where>
+<What breaks, for whom, and where — one or two short paragraphs of plain
+prose. Fold the surface and the trigger into the sentence rather than giving
+each its own heading: "Editing a garden and changing its image makes the edit
+impossible to cancel — the operator has to reload. Leaving the image alone and
+cancelling works fine, so the image change is the trigger.">
 
-## Surface
-<client-pwa | client-website | admin | docs>
-<route or component if known>
+**Done when**
+- <observable, checkable outcome>
+- <second outcome, if the fix has two halves>
 
-## Reproduction
-<steps from the notes verbatim where possible; "needs repro" if absent>
-
-## Expected
-<expected behavior from the notes; "needs definition" if absent>
-
-## Actual
-<observed behavior from the notes>
-
-## PostHog evidence (safe summary)
-- Error hash: `<hash>` (if matched)
-- Affected sessions (7d): <N>
-- Affected users (7d): <N>
-- First seen / Last seen: <UTC>
-- App surface: <client | admin>
-- Match confidence: <high | medium | low>
-
-## Deploy correlation (gated on PostHog match)
-{same shape as the Customer Need block; omit entirely if no deploy in the [first_seen - 24h, first_seen + 1h] window. When present, this often *is* the answer to "Suggested fix" — revert or fix forward the named commit.}
-
-## Suggested fix
-<one sentence from the notes or extraction; "needs investigation" if absent. When a Deploy-correlation block is present, default to "investigate the linked diff" unless the notes named a different fix path.>
-
-## Provenance
-{include only when the `ai:*` label can't carry both an origin and a delegate}
-- Created by: <ai:claude | ai:routine>
-- Delegated to: <ai:codex | ai:claude>
-- The label set carries the delegate-to agent (Linear enforces single-value-per-group on `ai:*`); the originating agent is captured here.
-
-## Source
-QA Sync — <meeting-title> on <YYYY-MM-DD>. Speaker named on the linked Customer Need.
-[Customer Need](<linear-need-url>) carries the verbatim quote + reporter context. [Notes](<drive-url>).
+<One source line. Add a single counts line only when telemetry is the
+evidence: "PostHog: 31 occurrences across 12 sessions, 4 users, first seen
+2026-08-07.">
+QA Sync — <meeting-title> on <YYYY-MM-DD>. [Notes](<drive-url>)
 ```
 
-The Issue body is the **actionable surface** — it has Reproduction, Expected, Actual, Suggested fix, PostHog evidence, Deploy correlation. **It does NOT duplicate the verbatim quote or the reporter list** — those live on the linked Customer Need. The Issue's `## Source` line references "the linked Customer Need" by phrase; the Customer Need links back via its `## Linked Issue` line carrying a real PRD URL. Each record has one job; the integration is the link.
+The Issue is the **actionable surface**; the linked Customer Need holds the
+verbatim quote and reporter context, so the Issue never repeats them.
+
+**What is deliberately not in this template**, because every instance of it in
+the 2026-08-27 board audit made the issue worse:
+
+* **No `## Reproduction` / `## Expected` / `## Actual` trio for a defect a
+  sentence already explains.** Keep numbered repro steps only when the path is
+  genuinely non-obvious — then they are the body's one heading.
+* **No "we found nothing" evidence block.** If PostHog did not match, say
+  nothing here and note the gap in the run summary. Absence of a signature is
+  not evidence, and it never changes what the reader does next.
+* **No `## Deploy correlation` section.** When a deploy *is* the suspect, that
+  is one sentence in the problem paragraph ("started with the 2026-08-24
+  deploy") — not a block.
+* **No `## Provenance` section.** Labels carry origin and delegate. If both
+  genuinely apply and `ai:*` can only hold one, put the other in a comment.
+* **No second copy of the finding.** Do not append an "Authoritative QA
+  finding" block restating the defect the body already described.
 
 > **Link asymmetry is intentional.** The Customer Need's `## Linked Issue` carries a clickable `[PRD-XXX](https://linear.app/.../PRD-XXX)` URL because Linear Issues expose stable web URLs. The Issue's `## Source` block, by contrast, refers to "the linked Customer Need" without a clickable URL — Linear's `save_customer_need` API returns `url: null` and Customer Needs are surfaced from the linked Issue's right rail rather than a standalone page. Do not "fix" this by hand-building a Customer Need URL pattern; the asymmetry is a Linear-platform property, not a template bug.
 
@@ -104,7 +104,7 @@ Investigation likely spans `package:admin` (display) and `package:indexer` (enri
 - `activity:maintenance` — cleanup or polish that isn't a user-visible defect.
 - `activity:architecture` — strategic / architectural work (e.g., cross-device account recovery, auth-flow rework).
 - `source:drive` — provenance still matters for triage.
-- `ai:*` (one only) — `ai:claude` (interactive Claude Code), `ai:codex` (delegated to Codex), `ai:routine` (cron'd routine writes). When both an origin and a delegate-to apply, the **delegate-to** wins as the label; the originating agent goes in the body's `## Provenance` section. The interactive `qa-triage` skill defaults to `ai:claude` unless the user picks Codex delegation in the assignee dialog.
+- `ai:*` (one only) — `ai:claude` (interactive Claude Code), `ai:codex` (delegated to Codex), `ai:routine` (cron'd routine writes). When both an origin and a delegate-to apply, the **delegate-to** wins as the label; the originating agent goes in a comment, not the body (the `## Provenance` section was retired 2026-08-27). The interactive `qa-triage` skill defaults to `ai:claude` unless the user picks Codex delegation in the assignee dialog.
 
 **Workflow state**:
 - `Todo` when surface + behavior are clear and a fix path is suggestable.
@@ -153,21 +153,24 @@ Linear's API requires every Customer Need to link to an Issue (or Project). Item
 - **Label**: `activity:maintenance` (default for UX polish, copy fixes, low-urgency feature gaps) **or** `activity:architecture` (for strategic items tied to a larger rework — e.g., cross-device account recovery).
 - **Priority**: Low (P3) or Medium (P2). Never P0/P1 — those are real bugs and use the main pattern instead.
 - **Status**: `Backlog`. The tracking Issue isn't claimed as committed work; it's a tracking surface for the Customer Need to attach to.
-- **Title**: prefix with `[tracking]` so the tracking Issue is visually distinct from real planned work in Linear list views. Example: `[tracking] Positions UI on public site (missing)`, `[tracking] Donate vs Endow copy needs clarification`, `[tracking] Cross-device account recovery (strategic)`. The `[tracking]` token signals: this is raw signal tracked as an Issue for API reasons (Customer Needs require an Issue link), not committed work. When the interactive `/qa-triage` skill promotes one of these to real work, the user removes the `[tracking]` prefix as part of the promotion (along with relabeling `activity:maintenance` → `activity:qa`, moving `Backlog` → `Todo`, setting priority, assigning).
-- **Body**: shorter than a bug Issue. Summary + Surface + Suggested fix + Source. Skip Reproduction / Expected / Actual blocks.
+- **Title**: a plain sentence, same as any other issue. **The `[tracking]`
+  prefix is retired** (2026-08-27) — the `maintenance` label plus the `Backlog`
+  state already say this is uncommitted signal, and the prefix cost scan width
+  on every board view. Write `Bring back the Positions section on the public
+  site`, not `[tracking] Positions UI (missing)`. A `PreToolUse` hook rejects
+  the prefix. Promotion to real work is now purely a label/state/priority
+  change, with no title edit.
+- **Body**: shorter than a bug Issue — the ask in prose, then one source line.
+  No Reproduction / Expected / Actual, no Surface heading.
 - **Body template** for a tracking Issue:
 
 ```markdown
-## Summary
-<one-paragraph distillation of the feedback / idea / strategic gap>
+<One short paragraph: what the person wants or what is missing, and why it
+matters to them. Name the surface inside the sentence.>
 
-## Surface
-<route, component, or area>
+<What it would take, in one sentence — "needs a design call" or "needs a
+product call" is a legitimate answer.>
 
-## Suggested fix
-<one sentence; "needs design call" or "needs product call" is acceptable here>
-
-## Source
 QA Sync — <meeting-title> on <YYYY-MM-DD>. Speaker: <name>. [Notes](<drive-url>)
 ```
 
