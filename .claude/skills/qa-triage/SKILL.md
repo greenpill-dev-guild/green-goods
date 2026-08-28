@@ -329,7 +329,7 @@ Surface vocabulary on the Defects row: `Public Website | PWA iOS | PWA Android |
 
 ## Phase 6 — Confirm & write to Linear + QA Sheet
 
-1. **Privacy grep** across every Linear body for `replay`, `session_id`, `distinct_id`, `0x`, and any reporter identifiers seen this run. Hits → redact in place and re-confirm. The grep **does NOT apply to `sheet-rows.csv`** — the Sheet is the explicit private-internal exception (Phase 0 verified its access mode is tight).
+1. **Privacy grep** across every Linear body **and every comment this run drafted or posted** for `replay`, `session_id`, `distinct_id`, `0x`, and any reporter identifiers seen this run. Evidence that moves out of a description and into the first comment stays inside the privacy boundary (`.claude/context/linear-routing-rules.md` § Invariant rules) — a grep that skips comments is not a redaction gate. Hits → redact in place and re-confirm. The grep **does NOT apply to `sheet-rows.csv`** — the Sheet is the explicit private-internal exception (Phase 0 verified its access mode is tight).
 
 2. Show the final draft payloads as a single review block — Linear records + Sheet rows side-by-side, with the Sheet's `PostHog Session ID` and `PostHog Replay URL` columns visibly flagged so the privacy exception is re-acknowledged before the write.
 
@@ -417,7 +417,7 @@ The canonical boundary from [`bug-intake.md`](../../../docs/routines/bug-intake.
 This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Session ID` and `PostHog Replay URL` columns. Conditions:
 
 1. Sheet permissions are tight (not `anyoneWithLink`, not `public`). Phase 0 hard-aborts if not.
-2. Every other surface still enforces the strict boundary. The Phase 6 privacy grep runs on Linear bodies but skips `sheet-rows.csv` by design.
+2. Every other surface still enforces the strict boundary. The Phase 6 privacy grep runs on Linear bodies and comments alike, and skips only `sheet-rows.csv`, by design.
 3. Distinct IDs and wallet addresses remain private-only **everywhere**, including the Sheet — the exception is narrow to session ID + replay URL.
 
 ## Anti-Patterns

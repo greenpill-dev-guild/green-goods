@@ -896,10 +896,26 @@ function linearProjectForStatus(status, warnings) {
 }
 
 // Mirror bodies are read cold by teammates in Linear, so they are plain
-// sentences, never a stack of `Key: value` lane metadata. Owner and status are
-// deliberately omitted: Linear's own assignee and state fields carry them, and
-// duplicating them into the body is the drift this thin-mirror model exists to
-// avoid. Shape and caps: `.claude/context/linear-routing-rules.md`.
+// sentences, never a stack of `Key: value` lane metadata.
+//
+// Owner and blocked-ness still have to be said, because nothing else carries
+// them: the manifest emits no assignee or delegate, and `linearStateForLane`
+// maps everything except `in_progress` to the stage default, so a blocked,
+// human-owned lane would otherwise render as an unassigned Todo that looks
+// ready to pick up. Say it in a sentence rather than an `Owner/status:` line.
+// Shape and caps: `.claude/context/linear-routing-rules.md`.
+function laneOwnershipSentence(lane) {
+  const parts = [];
+  if (lane.status === "blocked") {
+    parts.push("This lane is blocked; the handoff records what it is waiting on.");
+  }
+  if (lane.owner === "human") {
+    parts.push("A person owns it, not an agent.");
+  } else if (lane.owner) {
+    parts.push(`${lane.owner === "claude" ? "Claude" : lane.owner === "codex" ? "Codex" : lane.owner} owns it.`);
+  }
+  return parts.join(" ");
+}
 function buildLinearParentDescription(status, laneSyncMode = DEFAULT_LINEAR_LANE_SYNC_MODE) {
   const source = planRelativeDir(status);
   // Describe only what this record actually carries. The parent gets state and
@@ -927,9 +943,11 @@ function buildLinearParentDescription(status, laneSyncMode = DEFAULT_LINEAR_LANE
 // `Source plan:` line.
 function buildLinearLaneDescription(status, lane) {
   const source = planRelativeDir(status);
+  const ownership = laneOwnershipSentence(lane);
   return [
-    "The scope, acceptance criteria, and validation for this lane live in its handoff. " +
-      "This issue tracks its status and dependencies.",
+    ["The scope, acceptance criteria, and validation for this lane live in its handoff.", ownership]
+      .filter(Boolean)
+      .join(" "),
     "",
     `Handoff: \`${source}${lane.handoff}\``,
   ].join("\n");
@@ -937,9 +955,11 @@ function buildLinearLaneDescription(status, lane) {
 
 function buildLinearExecutionSubLaneDescription(status, lane) {
   const source = planRelativeDir(status);
+  const ownership = laneOwnershipSentence(lane);
   return [
-    "The scope, acceptance criteria, and validation for this lane live in its handoff. " +
-      "This issue tracks its status and dependencies.",
+    ["The scope, acceptance criteria, and validation for this lane live in its handoff.", ownership]
+      .filter(Boolean)
+      .join(" "),
     "",
     `Handoff: \`${source}${lane.handoff}\``,
   ].join("\n");

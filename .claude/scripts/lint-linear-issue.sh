@@ -210,7 +210,12 @@ strip_fenced_code() {
   printf '%s\n' "$1" | awk '
     {
       line = $0
-      sub(/^[[:space:]]*/, "", line)
+      # Markdown allows a fence up to three spaces of indentation; at four it is
+      # an indented code line, not a fence opener. Treating one as an opener
+      # starts a block that never closes and masks the whole rest of the body,
+      # which would hide every heading after it from the cap.
+      if (line ~ /^ {0,3}[^ ]/) sub(/^ {0,3}/, "", line)
+      else line = ""
       marker = ""
       if (line ~ /^`{3,}/) marker = "`"
       else if (line ~ /^~{3,}/) marker = "~"
@@ -315,14 +320,17 @@ if [ -n "$description" ]; then
   # A single trailing link line ("Handoff: `path`") is fine and useful; what
   # broke those issues was a body that OPENED with metadata, or stacked several
   # such lines into a block where the problem statement should have been.
-  meta_re='^[[:space:]]*(Source plan|Source|Status JSON|Lane|Owner/status|Owner|Handoff|Plan hub):[[:space:]]*`'
+  # The field label is what makes this a metadata line, not the inline-code
+  # formatting around its value — `Source plan: .plans/active/x/` is the same
+  # metadata-first opening as the backticked form.
+  meta_re='^[[:space:]]*(Source plan|Source|Status JSON|Lane|Owner/status|Owner|Handoff|Plan hub):[[:space:]]*[`.a-zA-Z0-9]'
   first_line="$(printf '%s\n' "$description" | grep -vE '^[[:space:]]*$' | head -1)"
   meta_count=$(printf '%s\n' "$description" | grep -cE "$meta_re" || true)
 
   if printf '%s' "$first_line" | grep -qE "$meta_re"; then
     add "Body opens with lane metadata instead of the problem. Lead with what breaks or what should exist; put the link at the end."
   elif [ "$meta_count" -ge 2 ]; then
-    add "Body stacks $meta_count metadata lines (Source / Lane / Owner / Handoff). Linear's assignee and state fields own that — keep one link line at most."
+    add "Body stacks $meta_count metadata lines (Source / Lane / Owner / Handoff). Say what matters in a sentence and keep one link line at most."
   fi
 
   check_banned_tokens "Body" "$description"

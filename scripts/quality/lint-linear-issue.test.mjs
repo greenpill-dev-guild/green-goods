@@ -184,6 +184,25 @@ const rejects = [
     expect: /opens with lane metadata/,
   },
   {
+    // The field label makes it metadata, not the inline-code formatting.
+    name: "metadata opener without backticks",
+    input: {
+      title: "Run the community rollout for Commitment Pooling",
+      description: "Source plan: .plans/active/commitment-pooling/\n\nSome prose.",
+    },
+    expect: /opens with lane metadata/,
+  },
+  {
+    // Four spaces is indented code, not a fence opener. Treating it as one
+    // would mask the rest of the body and hide these headings from the cap.
+    name: "indented backticks do not mask the headings after them",
+    input: {
+      title: "Fix the stuck cancel button",
+      description: "Prose.\n\n    ```\n\n## A\nx\n## B\ny\n## C\nz\n## D\nw",
+    },
+    expect: /headings \(cap 3\)/,
+  },
+  {
     name: "body stacking several metadata lines",
     input: {
       title: "Run the community rollout for Commitment Pooling",
