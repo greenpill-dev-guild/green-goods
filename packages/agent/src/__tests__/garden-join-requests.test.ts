@@ -9,8 +9,9 @@ const requestedAt = "2026-08-27T12:00:00.000Z";
 const expiresAt = "2026-09-26T12:00:00.000Z";
 
 function createStore() {
+  let requestId = 0;
   return new MemoryGardenJoinRequestStore(createGardenJoinRequestCipher(secret), {
-    id: () => "0198f665-9a00-7000-8000-000000000001",
+    id: () => `request-${++requestId}`,
   });
 }
 
@@ -125,7 +126,7 @@ describe("garden join request store", () => {
 
   it("withdraws pending rows and hard-deletes expired or retained rows", async () => {
     const store = createStore();
-    await store.create({
+    const created = await store.create({
       gardenAddress: garden,
       accountAddress: account,
       displayName: "Maya",
@@ -133,7 +134,15 @@ describe("garden join request store", () => {
       requestedAt,
       expiresAt,
     });
-    expect(await store.withdraw(garden, account)).toBe(true);
+    if (created.created !== true) throw new Error("Expected request to be created");
+    expect(
+      await store.withdraw({
+        gardenAddress: garden,
+        accountAddress: account,
+        requestId: created.request.id,
+        expectedRevision: created.request.revision,
+      })
+    ).toBe(true);
     expect(await store.getMine(garden, account)).toBeUndefined();
 
     await store.create({
@@ -171,6 +180,72 @@ describe("garden join request store", () => {
       expiredPending: 0,
       deletedResolved: 1,
     });
+  });
+
+  it("does not let a stale withdrawal delete a replacement request", async () => {
+    const store = createStore();
+    const first = await store.create({
+      gardenAddress: garden,
+      accountAddress: account,
+      displayName: "First request",
+      requestedVia: "garden_detail",
+      requestedAt,
+      expiresAt,
+    });
+    if (first.created !== true) throw new Error("Expected first request to be created");
+    const firstIdentity = {
+      gardenAddress: garden,
+      accountAddress: account,
+      requestId: first.request.id,
+      expectedRevision: first.request.revision,
+    };
+    expect(await store.withdraw(firstIdentity)).toBe(true);
+
+    const replacement = await store.create({
+      gardenAddress: garden,
+      accountAddress: account,
+      displayName: "Replacement request",
+      requestedVia: "garden_detail",
+      requestedAt: "2026-08-27T12:01:00.000Z",
+      expiresAt: "2026-09-26T12:01:00.000Z",
+    });
+    if (replacement.created !== true) throw new Error("Expected replacement request to be created");
+
+    expect(await store.withdraw(firstIdentity)).toBe(false);
+    expect(await store.getMine(garden, account)).toMatchObject({
+      id: replacement.request.id,
+      state: "pending",
+    });
+  });
+
+  it("deletes expired pending rows before self and queue reads", async () => {
+    const store = createStore();
+    await store.create({
+      gardenAddress: garden,
+      accountAddress: account,
+      displayName: "Expired request",
+      requestedVia: "garden_detail",
+      requestedAt: "2026-07-01T12:00:00.000Z",
+      expiresAt: "2026-08-01T12:00:00.000Z",
+    });
+
+    await expect(
+      store.getMine(garden, account, "2026-08-02T12:00:00.000Z")
+    ).resolves.toBeUndefined();
+    expect(store.inspectEncryptedRecords()).toHaveLength(0);
+
+    await store.create({
+      gardenAddress: garden,
+      accountAddress: account,
+      displayName: "Another expired request",
+      requestedVia: "garden_detail",
+      requestedAt: "2026-07-02T12:00:00.000Z",
+      expiresAt: "2026-08-01T12:00:00.000Z",
+    });
+    await expect(
+      store.listPending(garden, { nowIso: "2026-08-02T12:00:00.000Z" })
+    ).resolves.toEqual({ items: [] });
+    expect(store.inspectEncryptedRecords()).toHaveLength(0);
   });
 
   it("stores replay guards as keyed nonce digests", async () => {

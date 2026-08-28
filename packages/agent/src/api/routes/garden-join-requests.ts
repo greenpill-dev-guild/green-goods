@@ -49,17 +49,14 @@ async function handleMine(c: Context, ctx: GardenJoinRequestRouteContext) {
   const chain = ctx.deps.gardenJoinRequestChainReader;
   if (!store || !chain) return gardenJoinRequestsUnavailable(c, ctx);
   try {
-    let request = await store.getMine(preflight.garden, authenticated.proof.accountAddress);
+    const nowIso = new Date(ctx.deps.now?.() ?? Date.now()).toISOString();
+    let request = await store.getMine(preflight.garden, authenticated.proof.accountAddress, nowIso);
     if (
       request &&
       request.state !== "welcomed" &&
       (await chain.isMember(preflight.garden, authenticated.proof.accountAddress))
     ) {
-      request = await store.reconcileWelcomed(
-        preflight.garden,
-        request.id,
-        new Date(ctx.deps.now?.() ?? Date.now()).toISOString()
-      );
+      request = await store.reconcileWelcomed(preflight.garden, request.id, nowIso);
     }
     void trackGardenJoinRequestEvent("join_request_status_checked", {
       state: request?.state ?? "none",
@@ -84,6 +81,16 @@ async function handleWithdraw(c: Context, ctx: GardenJoinRequestRouteContext) {
   const store = ctx.store;
   if (!store) return gardenJoinRequestsUnavailable(c, ctx);
   try {
+    const { requestId, expectedRevision } = authenticated.proof;
+    if (!requestId || expectedRevision === undefined) {
+      return gardenJoinRequestFailure(
+        c,
+        ctx,
+        "invalid_request",
+        "The signed request identity is required.",
+        400
+      );
+    }
     if (!(await claimGardenJoinRequestProof(store, authenticated.proof))) {
       return gardenJoinRequestFailure(
         c,
@@ -93,7 +100,12 @@ async function handleWithdraw(c: Context, ctx: GardenJoinRequestRouteContext) {
         409
       );
     }
-    const withdrawn = await store.withdraw(preflight.garden, authenticated.proof.accountAddress);
+    const withdrawn = await store.withdraw({
+      gardenAddress: preflight.garden,
+      accountAddress: authenticated.proof.accountAddress,
+      requestId,
+      expectedRevision,
+    });
     if (!withdrawn)
       return gardenJoinRequestFailure(
         c,
@@ -164,6 +176,7 @@ async function handleList(c: Context, ctx: GardenJoinRequestRouteContext) {
     const page = await store.listPending(preflight.garden, {
       ...(cursor ? { cursor } : {}),
       limit,
+      nowIso: new Date(ctx.deps.now?.() ?? Date.now()).toISOString(),
     });
     const items = [];
     const resolvedAt = new Date(ctx.deps.now?.() ?? Date.now()).toISOString();

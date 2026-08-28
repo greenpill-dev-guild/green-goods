@@ -9,6 +9,7 @@ import {
   type GardenJoinRequestCipher,
   type GardenJoinRequestPersonalFields,
   type ResolveGardenJoinRequestRecord,
+  type WithdrawGardenJoinRequestRecord,
 } from "../garden-join-requests";
 
 type StoredGardenJoinRequest = Omit<EncryptedGardenJoinRequest, "resolvedAt"> & {
@@ -77,15 +78,21 @@ export function getGardenJoinRequestMine(
   db: Database,
   cipher: GardenJoinRequestCipher,
   gardenAddress: Address,
-  accountAddress: Address
+  accountAddress: Address,
+  nowIso = new Date().toISOString()
 ) {
+  const accountAddressKey = cipher.accountKey(accountAddress);
+  db.query(
+    `DELETE FROM garden_join_requests
+     WHERE gardenAddress = ? AND accountAddressKey = ? AND state = 'pending' AND expiresAt <= ?`
+  ).run(gardenAddress, accountAddressKey, nowIso);
   const row = db
     .query(
       `SELECT * FROM garden_join_requests
        WHERE gardenAddress = ? AND accountAddressKey = ?
        ORDER BY requestedAt DESC, id DESC LIMIT 1`
     )
-    .get(gardenAddress, cipher.accountKey(accountAddress)) as StoredGardenJoinRequest | null;
+    .get(gardenAddress, accountAddressKey) as StoredGardenJoinRequest | null;
   return row ? decrypt(cipher, row) : undefined;
 }
 
@@ -103,8 +110,11 @@ export function listPendingGardenJoinRequests(
   db: Database,
   cipher: GardenJoinRequestCipher,
   gardenAddress: Address,
-  options: { cursor?: string; limit?: number } = {}
+  options: { cursor?: string; limit?: number; nowIso?: string } = {}
 ) {
+  db.query(
+    "DELETE FROM garden_join_requests WHERE gardenAddress = ? AND state = 'pending' AND expiresAt <= ?"
+  ).run(gardenAddress, options.nowIso ?? new Date().toISOString());
   const limit = Math.min(Math.max(options.limit ?? 25, 1), 100);
   const [cursorDate, cursorId] = options.cursor?.split("|") ?? [];
   const rows = (
@@ -221,15 +231,20 @@ export function claimGardenJoinRequestProof(db: Database, nonceHash: string, exp
 export function withdrawGardenJoinRequest(
   db: Database,
   cipher: GardenJoinRequestCipher,
-  gardenAddress: Address,
-  accountAddress: Address
+  input: WithdrawGardenJoinRequestRecord
 ) {
   const result = db
     .query(
       `DELETE FROM garden_join_requests
-       WHERE gardenAddress = ? AND accountAddressKey = ? AND state = 'pending'`
+       WHERE id = ? AND gardenAddress = ? AND accountAddressKey = ?
+         AND state = 'pending' AND revision = ?`
     )
-    .run(gardenAddress, cipher.accountKey(accountAddress));
+    .run(
+      input.requestId,
+      input.gardenAddress,
+      cipher.accountKey(input.accountAddress),
+      input.expectedRevision
+    );
   return result.changes > 0;
 }
 

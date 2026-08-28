@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   accountAddress: "0x2222222222222222222222222222222222222222" as Address,
   mine: vi.fn(),
   create: vi.fn(),
+  withdraw: vi.fn(),
   list: vi.fn(),
 }));
 
@@ -38,6 +39,7 @@ vi.mock("../../modules/garden-join-requests", () => ({
   gardenJoinRequestTransport: {
     mine: (...args: unknown[]) => mocks.mine(...args),
     create: (...args: unknown[]) => mocks.create(...args),
+    withdraw: (...args: unknown[]) => mocks.withdraw(...args),
     list: (...args: unknown[]) => mocks.list(...args),
   },
 }));
@@ -85,7 +87,9 @@ describe("useGardenJoinRequests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.accountAddress = "0x2222222222222222222222222222222222222222";
+    mocks.mine.mockResolvedValue(selfResponse);
     mocks.create.mockResolvedValue(selfResponse);
+    mocks.withdraw.mockResolvedValue({ ok: true });
     mocks.list.mockResolvedValue(queueResponse);
   });
 
@@ -189,5 +193,26 @@ describe("useGardenJoinRequests", () => {
     expect(mocks.mine).toHaveBeenCalledOnce();
     expect(result.current.request).toEqual(selfResponse.request);
     expect(result.current.hasCheckedStatus).toBe(true);
+  });
+
+  it("binds a withdrawal proof to the loaded request and revision", async () => {
+    const { result } = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    await act(async () => {
+      await result.current.checkStatus();
+    });
+
+    await act(async () => {
+      await result.current.withdrawRequest();
+    });
+
+    expect(mocks.withdraw).toHaveBeenCalledWith(
+      GARDEN_A,
+      expect.objectContaining({
+        action: "withdraw",
+        requestId: "request-a",
+        expectedRevision: 0,
+      })
+    );
+    expect(result.current.request).toBeNull();
   });
 });

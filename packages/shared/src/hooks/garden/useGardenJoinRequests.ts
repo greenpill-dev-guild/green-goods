@@ -202,7 +202,17 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
     const operationId = ++latestRequestOperationRef.current;
     setMutationState({ isLoading: true, error: null });
     try {
-      const proof = await signProof("withdraw");
+      if (!request || request.state !== "pending") {
+        throw new Error("No pending request is available to withdraw.");
+      }
+      const proof = await signProof(
+        "withdraw",
+        {},
+        {
+          requestId: request.id,
+          expectedRevision: request.revision,
+        }
+      );
       await gardenJoinRequestTransport.withdraw(gardenAddress!, proof);
       if (isCurrentScope(operationScope) && operationId === latestRequestOperationRef.current) {
         setRequest(null);
@@ -220,7 +230,7 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
         setMutationState((current) => ({ ...current, isLoading: false }));
       }
     }
-  }, [beginRequestMutation, gardenAddress, isCurrentScope, scopeKey, signProof]);
+  }, [beginRequestMutation, gardenAddress, isCurrentScope, request, scopeKey, signProof]);
 
   const loadQueue = useCallback(
     async (options: { cursor?: string; append?: boolean } = {}) => {

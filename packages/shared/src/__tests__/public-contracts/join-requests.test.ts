@@ -111,4 +111,31 @@ describe("garden join request public contract", () => {
       )
     ).toMatchObject({ ok: false, error: { fieldErrors: { cursor: expect.any(String) } } });
   });
+
+  it("requires withdrawal proofs to identify the pending request revision", () => {
+    expect(
+      validateGardenJoinProofEnvelope(
+        { ...proof, action: "withdraw" },
+        {
+          nowSeconds: issuedAt,
+          expectedAction: "withdraw",
+          allowedChainIds: [11155111],
+        }
+      )
+    ).toMatchObject({ ok: false, error: { fieldErrors: { requestId: expect.any(String) } } });
+
+    expect(
+      validateGardenJoinProofEnvelope(
+        { ...proof, action: "withdraw", requestId: "request-1", expectedRevision: 2 },
+        {
+          nowSeconds: issuedAt,
+          expectedAction: "withdraw",
+          allowedChainIds: [11155111],
+        }
+      )
+    ).toMatchObject({
+      ok: true,
+      value: { requestId: "request-1", expectedRevision: 2 },
+    });
+  });
 });

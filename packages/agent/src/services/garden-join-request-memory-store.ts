@@ -11,6 +11,7 @@ import {
   type GardenJoinRequestRecord,
   type GardenJoinRequestStore,
   type ResolveGardenJoinRequestRecord,
+  type WithdrawGardenJoinRequestRecord,
 } from "./garden-join-requests";
 
 export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
@@ -67,8 +68,13 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
     return { created: true as const, request: this.decrypt(record) };
   }
 
-  async getMine(gardenAddress: Address, accountAddress: Address) {
+  async getMine(
+    gardenAddress: Address,
+    accountAddress: Address,
+    nowIso = new Date().toISOString()
+  ) {
     const accountAddressKey = this.cipher.accountKey(accountAddress);
+    this.deleteExpiredPending(gardenAddress, nowIso, accountAddressKey);
     const record = [...this.records.values()]
       .filter(
         (candidate) =>
@@ -84,7 +90,11 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
     return record?.gardenAddress === gardenAddress ? this.decrypt(record) : undefined;
   }
 
-  async listPending(gardenAddress: Address, options: { cursor?: string; limit?: number } = {}) {
+  async listPending(
+    gardenAddress: Address,
+    options: { cursor?: string; limit?: number; nowIso?: string } = {}
+  ) {
+    this.deleteExpiredPending(gardenAddress, options.nowIso ?? new Date().toISOString());
     const limit = Math.min(Math.max(options.limit ?? 25, 1), 100);
     const ordered = [...this.records.values()]
       .filter(
@@ -158,10 +168,17 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
     return true;
   }
 
-  async withdraw(gardenAddress: Address, accountAddress: Address) {
-    const accountAddressKey = this.cipher.accountKey(accountAddress);
-    const record = this.findPending(gardenAddress, accountAddressKey);
-    if (!record) return false;
+  async withdraw(input: WithdrawGardenJoinRequestRecord) {
+    const record = this.records.get(input.requestId);
+    if (
+      !record ||
+      record.gardenAddress !== input.gardenAddress ||
+      record.accountAddressKey !== this.cipher.accountKey(input.accountAddress) ||
+      record.state !== "pending" ||
+      record.revision !== input.expectedRevision
+    ) {
+      return false;
+    }
     return this.records.delete(record.id);
   }
 
@@ -202,6 +219,24 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
         record.accountAddressKey === accountAddressKey &&
         record.state === "pending"
     );
+  }
+
+  private deleteExpiredPending(
+    gardenAddress: Address,
+    nowIso: string,
+    accountAddressKey?: string
+  ): void {
+    const now = Date.parse(nowIso);
+    for (const [id, record] of this.records) {
+      if (
+        record.gardenAddress === gardenAddress &&
+        record.state === "pending" &&
+        Date.parse(record.expiresAt) <= now &&
+        (accountAddressKey === undefined || record.accountAddressKey === accountAddressKey)
+      ) {
+        this.records.delete(id);
+      }
+    }
   }
 
   private decryptPersonal(record: EncryptedGardenJoinRequest): GardenJoinRequestPersonalFields {

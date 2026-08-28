@@ -172,6 +172,38 @@ describe("agent storage with real bun:sqlite", () => {
     ).toEqual({ count: 1 });
   });
 
+  it("deletes expired join requests on self and queue reads", async () => {
+    const cipher = createGardenJoinRequestCipher("ad".repeat(32));
+    let requestId = 0;
+    const store = createSqliteGardenJoinRequestStore(cipher, {
+      id: () => `sqlite-expired-request-${++requestId}`,
+    });
+    const garden = `0x${"a".repeat(40)}` as const;
+    const account = `0x${"b".repeat(40)}` as const;
+    const expiredInput = {
+      gardenAddress: garden,
+      accountAddress: account,
+      displayName: "Expired request",
+      requestedVia: "garden_detail" as const,
+      requestedAt: "2026-07-01T12:00:00.000Z",
+      expiresAt: "2026-08-01T12:00:00.000Z",
+    };
+    await store.create(expiredInput);
+
+    await expect(
+      store.getMine(garden, account, "2026-08-02T12:00:00.000Z")
+    ).resolves.toBeUndefined();
+    await store.create(expiredInput);
+    await expect(
+      store.listPending(garden, { nowIso: "2026-08-02T12:00:00.000Z" })
+    ).resolves.toEqual({ items: [] });
+    expect(
+      rawDatabase()
+        .query("SELECT COUNT(*) AS count FROM garden_join_requests WHERE gardenAddress = ?")
+        .get(garden)
+    ).toEqual({ count: 0 });
+  });
+
   it("persists encrypted users and retrieves them after reopening the database", async () => {
     const privateKey = `0x${"a".repeat(64)}`;
     const db = getDB();

@@ -126,6 +126,17 @@ export function validateGardenJoinProofEnvelope(
   ) {
     return { ok: false, error: error("Invalid expected revision.", "expectedRevision") };
   }
+  if (candidate.action === "withdraw") {
+    if (typeof candidate.requestId !== "string" || !candidate.requestId.trim()) {
+      return { ok: false, error: error("Request ID is required.", "requestId") };
+    }
+    if (candidate.expectedRevision === undefined) {
+      return {
+        ok: false,
+        error: error("Expected revision is required.", "expectedRevision"),
+      };
+    }
+  }
   return {
     ok: true,
     value: {

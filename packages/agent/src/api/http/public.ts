@@ -56,7 +56,23 @@ export function checkRateLimitWithPolicy(
 ): PublicApiError | undefined {
   const limiter = deps.publicRateLimiter ?? defaultPublicRateLimiter;
   const now = deps.now?.() ?? Date.now();
-  if (route !== "join_request_create") {
+  if (route === "join_request_create") {
+    const aggregateIpResult = limiter.check(
+      publicIpMaterialRateLimitKey({
+        route: "join_request_create_ip",
+        request: c.req.raw,
+        material: "all-gardens",
+        trustedProxy: deps.trustedProxy,
+      }),
+      PUBLIC_RATE_LIMIT_POLICIES.join_request_create_ip,
+      now
+    );
+    if (!aggregateIpResult.allowed) {
+      return safeError("rate_limited", "Too many requests. Please try again later.", {
+        params: { retryAfterSeconds: aggregateIpResult.retryAfterSeconds ?? 60 },
+      });
+    }
+  } else {
     const ipResult = limiter.check(
       publicIpRateLimitKey({
         route,

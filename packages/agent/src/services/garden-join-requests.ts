@@ -58,6 +58,13 @@ export type ResolveGardenJoinRequestRecord = {
   resolvedAt: string;
 };
 
+export type WithdrawGardenJoinRequestRecord = {
+  gardenAddress: Address;
+  accountAddress: Address;
+  requestId: string;
+  expectedRevision: number;
+};
+
 export type GardenJoinRequestStore = {
   create(
     input: CreateGardenJoinRequestRecord
@@ -66,12 +73,13 @@ export type GardenJoinRequestStore = {
   >;
   getMine(
     gardenAddress: Address,
-    accountAddress: Address
+    accountAddress: Address,
+    nowIso?: string
   ): Promise<GardenJoinRequestRecord | undefined>;
   getById(gardenAddress: Address, requestId: string): Promise<GardenJoinRequestRecord | undefined>;
   listPending(
     gardenAddress: Address,
-    options?: { cursor?: string; limit?: number }
+    options?: { cursor?: string; limit?: number; nowIso?: string }
   ): Promise<{ items: GardenJoinRequestRecord[]; nextCursor?: string }>;
   resolve(
     input: ResolveGardenJoinRequestRecord
@@ -85,7 +93,7 @@ export type GardenJoinRequestStore = {
     resolvedAt: string
   ): Promise<GardenJoinRequestRecord | undefined>;
   claimProof(nonce: string, expiresAt: string): Promise<boolean>;
-  withdraw(gardenAddress: Address, accountAddress: Address): Promise<boolean>;
+  withdraw(input: WithdrawGardenJoinRequestRecord): Promise<boolean>;
   sweep(nowIso: string): Promise<{ expiredPending: number; deletedResolved: number }>;
 };
 
@@ -185,9 +193,9 @@ export function createSqliteGardenJoinRequestStore(
   return {
     create: (input) =>
       import("./db").then((db) => db.createGardenJoinRequest(cipher, generators.id(), input)),
-    getMine: (gardenAddress, accountAddress) =>
+    getMine: (gardenAddress, accountAddress, nowIso) =>
       import("./db").then((db) =>
-        db.getGardenJoinRequestMine(cipher, gardenAddress, accountAddress)
+        db.getGardenJoinRequestMine(cipher, gardenAddress, accountAddress, nowIso)
       ),
     getById: (gardenAddress, requestId) =>
       import("./db").then((db) => db.getGardenJoinRequestById(cipher, gardenAddress, requestId)),
@@ -202,10 +210,7 @@ export function createSqliteGardenJoinRequestStore(
       import("./db").then((db) =>
         db.claimGardenJoinRequestProof(cipher.proofKey(nonce), expiresAt)
       ),
-    withdraw: (gardenAddress, accountAddress) =>
-      import("./db").then((db) =>
-        db.withdrawGardenJoinRequest(cipher, gardenAddress, accountAddress)
-      ),
+    withdraw: (input) => import("./db").then((db) => db.withdrawGardenJoinRequest(cipher, input)),
     sweep: (nowIso) => import("./db").then((db) => db.sweepGardenJoinRequests(nowIso)),
   };
 }

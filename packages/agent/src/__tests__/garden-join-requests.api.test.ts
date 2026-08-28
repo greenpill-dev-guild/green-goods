@@ -290,6 +290,78 @@ describe("garden join request public API", () => {
     expect((await replay.json()).errorCode).toBe("idempotency_conflict");
   });
 
+  it("does not let a stale withdrawal proof delete a replacement request", async () => {
+    const { app } = createApp();
+    const created = await submit(app);
+    const first = (await created.json()).request as { id: string; revision: number };
+    const staleProof = proof("withdraw", APPLICANT, {
+      requestId: first.id,
+      expectedRevision: first.revision,
+    });
+    const withdrawn = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+      method: "DELETE",
+      headers: headers(
+        proof("withdraw", APPLICANT, {
+          requestId: first.id,
+          expectedRevision: first.revision,
+        })
+      ),
+    });
+    expect(withdrawn.status).toBe(200);
+
+    const replacement = await submit(app);
+    expect(replacement.status).toBe(201);
+    const replacementBody = await replacement.json();
+    expect(replacementBody.request.id).not.toBe(first.id);
+
+    const staleWithdrawal = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+      method: "DELETE",
+      headers: headers(staleProof),
+    });
+    expect(staleWithdrawal.status).toBe(404);
+
+    const mine = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+      headers: headers(proof("read_self")),
+    });
+    expect(await mine.json()).toMatchObject({
+      request: { id: replacementBody.request.id, state: "pending" },
+    });
+  });
+
+  it("omits expired pending requests from self and queue reads", async () => {
+    const { app, store } = createApp();
+    await store.create({
+      gardenAddress: GARDEN,
+      accountAddress: APPLICANT,
+      displayName: "Expired applicant",
+      requestedVia: "garden_detail",
+      requestedAt: new Date(NOW - 31 * 24 * 60 * 60 * 1000).toISOString(),
+      expiresAt: new Date(NOW - 1).toISOString(),
+    });
+
+    const mine = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+      headers: headers(proof("read_self")),
+    });
+    expect(mine.status).toBe(200);
+    expect(await mine.json()).toEqual({ ok: true, request: null });
+
+    await store.create({
+      gardenAddress: GARDEN,
+      accountAddress: APPLICANT,
+      displayName: "Expired queue item",
+      requestedVia: "garden_detail",
+      requestedAt: new Date(NOW - 31 * 24 * 60 * 60 * 1000).toISOString(),
+      expiresAt: new Date(NOW - 1).toISOString(),
+    });
+    const listed = await app.request(
+      `/public/gardens/${GARDEN}/join-requests?state=pending&limit=25`,
+      { headers: headers(proof("list", OPERATOR)) }
+    );
+    expect(listed.status).toBe(200);
+    expect(await listed.json()).toMatchObject({ items: [] });
+    expect(store.inspectEncryptedRecords()).toHaveLength(0);
+  });
+
   it("rate-limits invalid proofs before unbounded signature verification", async () => {
     const signatureVerifier = vi.fn(async () => false);
     const { app } = createApp({ signatureVerifier });
@@ -349,7 +421,7 @@ describe("garden join request public API", () => {
     expect(rateLimitPressure.hasRecent(GARDEN, NOW)).toBe(true);
   });
 
-  it("scopes the pre-authentication IP limit to each garden", async () => {
+  it("retains the per-garden pre-authentication limit below the aggregate ceiling", async () => {
     const signatureVerifier = vi.fn(async () => false);
     const { app } = createApp({ signatureVerifier });
 
@@ -359,6 +431,27 @@ describe("garden join request public API", () => {
 
     expect((await submitForGarden(app, SECOND_GARDEN, APPLICANT)).status).toBe(401);
     expect(signatureVerifier).toHaveBeenCalledTimes(11);
+  });
+
+  it("caps pre-authentication verification across garden and origin rotation", async () => {
+    const signatureVerifier = vi.fn(async () => false);
+    const { app } = createApp({ signatureVerifier });
+
+    for (let attempt = 1; attempt <= 30; attempt += 1) {
+      const gardenAddress = `0x${attempt.toString(16).padStart(40, "0")}` as Address;
+      const origin = `https://green-goods-${attempt}-greenpilldevguild.vercel.app`;
+      expect((await submitForGarden(app, gardenAddress, APPLICANT, origin)).status).toBe(401);
+    }
+
+    const limitedGarden = `0x${"31".padStart(40, "0")}` as Address;
+    const limited = await submitForGarden(
+      app,
+      limitedGarden,
+      APPLICANT,
+      "https://green-goods-next-greenpilldevguild.vercel.app"
+    );
+    expect(limited.status).toBe(429);
+    expect(signatureVerifier).toHaveBeenCalledTimes(30);
   });
 
   it("applies the daily create ceiling per signed account rather than per shared IP", async () => {

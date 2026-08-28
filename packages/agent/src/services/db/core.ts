@@ -262,13 +262,15 @@ class DB {
   async getGardenJoinRequestMine(
     cipher: GardenJoinRequestCipher,
     gardenAddress: Address,
-    accountAddress: Address
+    accountAddress: Address,
+    nowIso?: string
   ) {
     return gardenJoinRequests.getGardenJoinRequestMine(
       this.db,
       cipher,
       gardenAddress,
-      accountAddress
+      accountAddress,
+      nowIso
     );
   }
 
@@ -283,7 +285,7 @@ class DB {
   async listPendingGardenJoinRequests(
     cipher: GardenJoinRequestCipher,
     gardenAddress: Address,
-    options?: { cursor?: string; limit?: number }
+    options?: { cursor?: string; limit?: number; nowIso?: string }
   ) {
     return gardenJoinRequests.listPendingGardenJoinRequests(
       this.db,
@@ -321,15 +323,9 @@ class DB {
 
   async withdrawGardenJoinRequest(
     cipher: GardenJoinRequestCipher,
-    gardenAddress: Address,
-    accountAddress: Address
+    input: Parameters<typeof gardenJoinRequests.withdrawGardenJoinRequest>[2]
   ) {
-    return gardenJoinRequests.withdrawGardenJoinRequest(
-      this.db,
-      cipher,
-      gardenAddress,
-      accountAddress
-    );
+    return gardenJoinRequests.withdrawGardenJoinRequest(this.db, cipher, input);
   }
 
   async sweepGardenJoinRequests(nowIso: string) {
@@ -461,8 +457,9 @@ export const createGardenJoinRequest = (
 export const getGardenJoinRequestMine = (
   cipher: GardenJoinRequestCipher,
   gardenAddress: Address,
-  accountAddress: Address
-) => getDB().getGardenJoinRequestMine(cipher, gardenAddress, accountAddress);
+  accountAddress: Address,
+  nowIso?: string
+) => getDB().getGardenJoinRequestMine(cipher, gardenAddress, accountAddress, nowIso);
 export const getGardenJoinRequestById = (
   cipher: GardenJoinRequestCipher,
   gardenAddress: Address,
@@ -471,7 +468,7 @@ export const getGardenJoinRequestById = (
 export const listPendingGardenJoinRequests = (
   cipher: GardenJoinRequestCipher,
   gardenAddress: Address,
-  options?: { cursor?: string; limit?: number }
+  options?: { cursor?: string; limit?: number; nowIso?: string }
 ) => getDB().listPendingGardenJoinRequests(cipher, gardenAddress, options);
 export const resolveGardenJoinRequest = (
   cipher: GardenJoinRequestCipher,
@@ -487,9 +484,8 @@ export const claimGardenJoinRequestProof = (nonce: string, expiresAt: string) =>
   getDB().claimGardenJoinRequestProof(nonce, expiresAt);
 export const withdrawGardenJoinRequest = (
   cipher: GardenJoinRequestCipher,
-  gardenAddress: Address,
-  accountAddress: Address
-) => getDB().withdrawGardenJoinRequest(cipher, gardenAddress, accountAddress);
+  input: Parameters<DB["withdrawGardenJoinRequest"]>[1]
+) => getDB().withdrawGardenJoinRequest(cipher, input);
 export const sweepGardenJoinRequests = (nowIso: string) => getDB().sweepGardenJoinRequests(nowIso);
 
 export const closeDB = async () => {

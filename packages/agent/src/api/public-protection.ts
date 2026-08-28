@@ -14,6 +14,7 @@ export type PublicRouteClass =
   | "saved_offers_read"
   | "saved_offers_mutation"
   | "join_request_create"
+  | "join_request_create_ip"
   | "join_request_create_account"
   | "join_request_create_garden"
   | "join_request_read"
@@ -58,6 +59,7 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   saved_offers_read: { limit: 120, windowMs: 10 * 60 * 1000 },
   saved_offers_mutation: { limit: 30, windowMs: 10 * 60 * 1000 },
   join_request_create: { limit: 10, windowMs: 10 * 60 * 1000 },
+  join_request_create_ip: { limit: 30, windowMs: 10 * 60 * 1000 },
   join_request_create_account: { limit: 3, windowMs: 24 * 60 * 60 * 1000 },
   join_request_create_garden: { limit: 50, windowMs: 24 * 60 * 60 * 1000 },
   join_request_read: { limit: 120, windowMs: 10 * 60 * 1000 },
