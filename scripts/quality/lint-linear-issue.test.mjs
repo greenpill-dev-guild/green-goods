@@ -280,6 +280,21 @@ const rejects = [
     input: { title: "Fix the stuck cancel button", description: "   ## A\nx\n   ## B\ny\n   ## C\nz\n   ## D\nw" },
     expect: /headings \(cap 3\)/,
   },
+  {
+    // Setext form renders as a heading in Linear whether or not the author
+    // meant a separator, so it counts the same as ATX.
+    name: "Setext headings count toward the cap",
+    input: {
+      title: "Fix the stuck cancel button",
+      description: "Alpha\n===\nx\n\nBeta\n---\ny\n\nGamma\n===\nz\n\nDelta\n---\nw",
+    },
+    expect: /headings \(cap 3\)/,
+  },
+  {
+    name: "list-form empty placeholder",
+    input: { title: "Fix the stuck cancel button", description: "## Reproduction\n- needs repro\n\n## Expected\n* TBD" },
+    expect: /empty section placeholder/,
+  },
 ];
 
 // --- Emoji detection must not over-match -----------------------------------
@@ -365,6 +380,15 @@ const ignores = [
     // Must not read as a priority prefix.
     name: "title beginning with a P-and-digit word",
     input: { title: "P2P sync fails between two devices", description: BODY_OK },
+  },
+  {
+    // A horizontal rule sits after a blank line, so it is not a Setext heading
+    // and must not be counted as one.
+    name: "horizontal rule separating paragraphs",
+    input: {
+      title: "Fix the stuck cancel button",
+      description: `${BODY_OK}\n\n---\n\nThe image upload path is the trigger.`,
+    },
   },
   {
     name: "label-only update",

@@ -173,7 +173,7 @@ Apply a per-run cap: at most **15 Customer Need + Issue pairs**. If the notes co
 
 ## Phase 5: Privacy grep
 
-Before posting, grep every Customer Need body created this run for `replay`, `session_id`, `distinct_id`, `0x`, and any reporter identifier seen this run. Hits → fail loud in the Discord summary's `⚠ Failures this run` block, redact in place, and re-verify.
+Before posting, grep everything this run wrote to Linear — every Customer Need body, every tracking Issue body, and every comment — for `replay`, `session_id`, `distinct_id`, `0x`, and any reporter identifier seen this run. Comments are inside the privacy boundary exactly like bodies (`.claude/context/linear-routing-rules.md` § Invariant rules), so a grep that skips them is not a redaction gate. Hits → fail loud in the Discord summary's `⚠ Failures this run` block, redact in place, and re-verify.
 
 ## Phase 6: Discord summary to #product
 

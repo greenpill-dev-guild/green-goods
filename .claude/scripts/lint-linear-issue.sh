@@ -185,7 +185,9 @@ check_banned_tokens() {
   fi
   # Empty scaffolding — the failure that produced sections reading "—" and
   # paragraphs explaining that telemetry found nothing.
-  if printf '%s' "$text" | grep -qE '^[[:space:]]*(—|-|N/A|TBD|None|needs repro|needs definition|needs investigation)[[:space:]]*$'; then
+  # Bare (`—`) and list-form (`- TBD`, `* N/A`, `1. needs repro`) alike: a
+  # bullet does not make an empty slot any more informative.
+  if printf '%s' "$text" | grep -qE '^[[:space:]]*([-*+]|[0-9]+\.)?[[:space:]]*(—|-|N/A|TBD|None|needs repro|needs definition|needs investigation)[[:space:]]*$'; then
     add "$scope renders an empty section placeholder. Drop the section instead — a heading with nothing under it costs the reader a stop."
   fi
   # Strip any heading level generically: an H1 (`# 🔴 Counts`) must be caught
@@ -204,7 +206,13 @@ EOF
 
 # --- Body ------------------------------------------------------------------
 if [ -n "$description" ]; then
-  headings=$(printf '%s\n' "$description" | grep -cE '^ {0,3}#{1,6} ' || true)
+  # ATX (`## Section`) plus Setext — a text line followed directly by `===` or
+  # `---`, which Linear renders as a heading whether or not the author meant a
+  # separator, so it counts toward the cap the same way.
+  atx_headings=$(printf '%s\n' "$description" | grep -cE '^ {0,3}#{1,6} ' || true)
+  setext_headings=$(printf '%s\n' "$description" |
+    awk 'prev ~ /[^[:space:]]/ && prev !~ /^ {0,3}#/ && /^ {0,3}(=+|-+)[[:space:]]*$/ { n++ } { prev = $0 } END { print n + 0 }')
+  headings=$((atx_headings + setext_headings))
   words=$(printf '%s' "$description" | wc -w | tr -d ' ')
   # Umbrella trackers and roadmaps legitimately run long; they still obey the
   # heading cap and the banned-token rules.

@@ -177,7 +177,11 @@ Issue these against the PostHog connector and keep the responses in private rout
 
 ### Linking private replay evidence
 
-Replay URLs, session IDs, and distinct IDs are useful for the human triaging the Customer Need and for `/debug` later. Hand them off via Linear's **private** comment surface (Slack-equivalent if Linear's Discord/Slack integration exposes a private channel mirror) **or** via the routine's daily Discord summary as a private DM to `<@${DISCORD_USER_ID_AFO}>` — never as a public message. If neither private surface is available, drop the link from the routine output entirely and let `/debug` re-query PostHog by the public error hash.
+Replay URLs, session IDs, and distinct IDs are useful for the human triaging the Customer Need and for `/debug` later. Hand them off **only** as a private DM to `<@${DISCORD_USER_ID_AFO}>` in the routine's daily Discord summary.
+
+**Never put them in a Linear comment.** Linear has no private comment surface — a comment is visible to everyone who can see the issue, exactly like the description, and the shared contract counts comments inside the privacy boundary (`.claude/context/linear-routing-rules.md` § Invariant rules). An earlier version of this file described comments as a private hand-off channel; that was wrong, and following it would have published session identifiers.
+
+If the DM path is unavailable, drop the link from the routine output entirely and let `/debug` re-query PostHog by the public error hash.
 
 ### Fallback when the connector is unavailable
 
@@ -540,7 +544,7 @@ After Phases 1–4, before posting the summary:
 2. List every linked Issue this run created (per-report and recurring-pattern parent) and confirm it has the expected labels, status, source URL, and Customer Need link.
 3. List every duplicate detection — every existing Customer Need or Issue this run commented on — and confirm the comment landed.
 4. List every rejection — every signal you read but did not act on — and the reason.
-5. Run a privacy grep across every body created or edited this run **and across every captured `chat_messages.text` and attachment caption that this run consumed** for the strings `replay`, `session_id`, `distinct_id`, `0x`, the reporter identifiers seen this run, and any other token from the "private" column of the privacy-boundary table. Any hit in a Linear body means the routine leaked private context — fail loud in Phase 7's `⚠ Failures this run` block and edit the offending body in place to redact before the run completes. Hits in raw `chat_messages.text` or captions cause the run to drop that record's quote from the Phase 7 digest (Linear still records it, scrubbed) — never leak the raw text downstream.
+5. Run a privacy grep across every body created or edited this run, **every comment this run posted**, **and across every captured `chat_messages.text` and attachment caption that this run consumed** for the strings `replay`, `session_id`, `distinct_id`, `0x`, the reporter identifiers seen this run, and any other token from the "private" column of the privacy-boundary table. Any hit in a Linear body means the routine leaked private context — fail loud in Phase 7's `⚠ Failures this run` block and edit the offending body in place to redact before the run completes. Hits in raw `chat_messages.text` or captions cause the run to drop that record's quote from the Phase 7 digest (Linear still records it, scrubbed) — never leak the raw text downstream.
 
 Carry these into Phase 7 so the digest is verifiable.
 
