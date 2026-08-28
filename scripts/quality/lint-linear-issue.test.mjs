@@ -295,6 +295,10 @@ const proseTitles = [
   // A bare digit or the word form must not be mistaken for a keycap emoji.
   "2 gardens cannot submit work offline",
   "Copyright notice shows the wrong year",
+  // The rule is emoji-LED, so a sequence appearing later in an otherwise
+  // compliant title is fine. Only the first grapheme is inspected.
+  "A ©️ licensing notice is wrong",
+  "The 1️⃣ step in onboarding is broken",
 ];
 for (const t of proseTitles) {
   test(`accepts: non-emoji punctuation title ${JSON.stringify(t.slice(0, 2))}`, () => {

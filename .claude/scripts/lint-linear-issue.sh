@@ -101,14 +101,33 @@ starts_with_emoji() {
 # Emoji whose first codepoint is ordinary text: keycaps (`1️⃣` = digit + VS16 +
 # U+20E3) and variation-selector forms (`©️`). The lead character is ASCII or
 # Latin-1, so the codepoint test above passes them; they are still an emoji-led
-# title. Look for VS16 (EF B8 8F) or the keycap mark (E2 83 A3) among the first
-# few bytes, which is narrow enough not to catch prose that merely contains one
-# later on.
+# title.
+#
+# Only the FIRST grapheme counts. Scanning a byte window instead would reject
+# "A ©️ licensing notice is wrong" — compliant prose that merely contains such a
+# sequence later on — so measure the leading character's width and look only at
+# the bytes attached directly to it.
 leads_with_emoji_sequence() {
   stripped="${1#"${1%%[![:space:]]*}"}"
   [ -n "$stripped" ] || return 1
-  case "$(printf '%s' "$stripped" | od -An -tx1 -N8 | tr -d ' \n')" in
-    *efb88f* | *e283a3*) return 0 ;;
+
+  bytes="$(printf '%s' "$stripped" | od -An -tx1 -N8 | tr -d ' \n')"
+  [ -n "$bytes" ] || return 1
+  lead=$((16#${bytes:0:2}))
+  if [ "$lead" -ge 240 ]; then
+    width=8
+  elif [ "$lead" -ge 224 ]; then
+    width=6
+  elif [ "$lead" -ge 192 ]; then
+    width=4
+  else
+    width=2
+  fi
+
+  # VS16 (EF B8 8F) or the combining enclosing keycap (E2 83 A3), attached
+  # directly to the leading character.
+  case "${bytes:$width:6}" in
+    efb88f | e283a3) return 0 ;;
     *) return 1 ;;
   esac
 }
