@@ -55,19 +55,21 @@ export function checkRateLimitWithPolicy(
 ): PublicApiError | undefined {
   const limiter = deps.publicRateLimiter ?? defaultPublicRateLimiter;
   const now = deps.now?.() ?? Date.now();
-  const ipResult = limiter.check(
-    publicIpRateLimitKey({
-      route,
-      request: c.req.raw,
-      trustedProxy: deps.trustedProxy,
-    }),
-    policy,
-    now
-  );
-  if (!ipResult.allowed) {
-    return safeError("rate_limited", "Too many requests. Please try again later.", {
-      params: { retryAfterSeconds: ipResult.retryAfterSeconds ?? 60 },
-    });
+  if (route !== "join_request_create") {
+    const ipResult = limiter.check(
+      publicIpRateLimitKey({
+        route,
+        request: c.req.raw,
+        trustedProxy: deps.trustedProxy,
+      }),
+      policy,
+      now
+    );
+    if (!ipResult.allowed) {
+      return safeError("rate_limited", "Too many requests. Please try again later.", {
+        params: { retryAfterSeconds: ipResult.retryAfterSeconds ?? 60 },
+      });
+    }
   }
   const key = publicRateLimitKey({
     route,

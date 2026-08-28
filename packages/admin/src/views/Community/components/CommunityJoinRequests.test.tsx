@@ -5,9 +5,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const loadQueue = vi.fn(async () => ({ ok: true, items: [] }));
 const resolveRequest = vi.fn(async () => ({ ok: true, pendingOnchainMembership: false }));
-const addGardener = vi.fn(async () => ({ success: true, hash: "0x1234" }));
+const addGardener = vi.fn(
+  async (): Promise<{
+    success: boolean;
+    hash?: `0x${string}`;
+    error?: { name: string; message: string };
+  }> => ({ success: true, hash: "0x1234" })
+);
 
 vi.mock("@green-goods/shared/hooks/garden/useGardenJoinRequests", () => ({
+  useGardenJoinRequestAvailability: () => true,
   useGardenJoinRequests: () => ({
     queue: [
       {
@@ -17,6 +24,7 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenJoinRequests", () => ({
         note: "I can help with seedlings.",
         state: "pending",
         revision: 0,
+        requestedAt: "2026-08-27T12:00:00.000Z",
       },
     ],
     nextCursor: undefined,
@@ -102,6 +110,26 @@ describe("CommunityJoinRequests", () => {
         reason: "No capacity this season.",
       })
     );
+  });
+
+  it("reconciles an existing membership after the add operation reports failure", async () => {
+    addGardener.mockResolvedValueOnce({
+      success: false,
+      error: { name: "AlreadyMember", message: "Account already has this role." },
+    });
+    resolveRequest.mockResolvedValueOnce({ ok: true, pendingOnchainMembership: false });
+    const user = userEvent.setup();
+    renderQueue();
+
+    await user.click(screen.getByRole("button", { name: "Welcome" }));
+
+    await waitFor(() =>
+      expect(resolveRequest).toHaveBeenCalledWith("request-1", {
+        action: "welcome",
+        expectedRevision: 0,
+      })
+    );
+    expect(await screen.findByText("The gardener was welcomed.")).toBeVisible();
   });
 
   it("shows decline failures inside the open dialog", async () => {

@@ -1,6 +1,7 @@
 import {
   encodeGardenJoinAuthorization,
   type CreateGardenJoinRequestInput,
+  type GardenJoinRequestAvailabilityResponse,
   type GardenJoinProofEnvelope,
   type GardenJoinRequestApiError,
   type GardenJoinRequestQueueResponse,
@@ -10,6 +11,7 @@ import {
 import type { Address } from "../../types/domain";
 
 const REQUEST_TIMEOUT_MS = 10_000;
+const AVAILABILITY_ROUTE = "/public/features/garden-join-requests";
 
 export class GardenJoinRequestTransportError extends Error {
   constructor(
@@ -34,12 +36,29 @@ function collectionRoute(gardenAddress: Address): string {
   return `/public/gardens/${encodeURIComponent(gardenAddress.toLowerCase())}/join-requests`;
 }
 
+function assertSecureApiBaseUrl(baseUrl: string): void {
+  let url: URL;
+  try {
+    url = new URL(baseUrl);
+  } catch {
+    throw new GardenJoinRequestTransportError("The garden request service URL is invalid.");
+  }
+  const isLoopback =
+    url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]";
+  if (url.protocol !== "https:" && !(url.protocol === "http:" && isLoopback)) {
+    throw new GardenJoinRequestTransportError(
+      "The garden request service requires a secure HTTPS connection."
+    );
+  }
+}
+
 async function request<T>(
   path: string,
-  proof: GardenJoinProofEnvelope,
+  proof: GardenJoinProofEnvelope | null,
   init: RequestInit = {},
   baseUrl = apiBaseUrl()
 ): Promise<T> {
+  assertSecureApiBaseUrl(baseUrl);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
@@ -47,7 +66,7 @@ async function request<T>(
       ...init,
       signal: controller.signal,
       headers: {
-        Authorization: encodeGardenJoinAuthorization(proof),
+        ...(proof ? { Authorization: encodeGardenJoinAuthorization(proof) } : {}),
         ...(init.body ? { "Content-Type": "application/json" } : {}),
         ...init.headers,
       },
@@ -83,6 +102,15 @@ async function request<T>(
 }
 
 export const gardenJoinRequestTransport = {
+  availability(baseUrl = apiBaseUrl()) {
+    return request<GardenJoinRequestAvailabilityResponse>(
+      AVAILABILITY_ROUTE,
+      null,
+      { method: "GET" },
+      baseUrl
+    );
+  },
+
   create(
     gardenAddress: Address,
     input: CreateGardenJoinRequestInput,

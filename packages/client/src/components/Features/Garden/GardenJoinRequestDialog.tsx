@@ -1,8 +1,12 @@
-import { useGardenJoinRequests } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
+import {
+  useGardenJoinRequestAvailability,
+  useGardenJoinRequests,
+} from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import {
   GARDEN_JOIN_REQUEST_DISPLAY_NAME_MAX_LENGTH,
   GARDEN_JOIN_REQUEST_NOTE_MAX_LENGTH,
 } from "@green-goods/shared/public-contracts/join-requests";
+import { GardenJoinRequestTransportError } from "@green-goods/shared/modules/garden-join-requests";
 import type { Address } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -21,23 +25,46 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
   const [displayName, setDisplayName] = useState("");
   const [note, setNote] = useState("");
   const [successMessage, setSuccessMessage] = useState<string>();
+  const [outcomeUnknown, setOutcomeUnknown] = useState(false);
+  const [ignoreMutationError, setIgnoreMutationError] = useState(false);
+  const isAvailable = useGardenJoinRequestAvailability();
   const join = useGardenJoinRequests(gardenAddress);
-  const error = join.mutationState.error ?? join.statusState.error;
+  const error = outcomeUnknown
+    ? join.statusState.error
+    : ((ignoreMutationError ? null : join.mutationState.error) ?? join.statusState.error);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSuccessMessage(undefined);
-    await join
-      .submitRequest({ displayName, note: note || undefined, requestedVia: "garden_detail" })
-      .then(() =>
-        setSuccessMessage(
-          formatMessage({
-            id: "app.garden.joinRequest.sent",
-            defaultMessage: "Your request was sent to the garden stewards.",
-          })
-        )
-      )
-      .catch(() => undefined);
+    setOutcomeUnknown(false);
+    setIgnoreMutationError(false);
+    try {
+      await join.submitRequest({
+        displayName,
+        note: note || undefined,
+        requestedVia: "garden_detail",
+      });
+      setSuccessMessage(
+        formatMessage({
+          id: "app.garden.joinRequest.sent",
+          defaultMessage: "Your request was sent to the garden stewards.",
+        })
+      );
+    } catch (caught) {
+      if (caught instanceof GardenJoinRequestTransportError && caught.outcomeUnknown) {
+        setOutcomeUnknown(true);
+      }
+    }
+  }
+
+  async function checkStatus() {
+    try {
+      await join.checkStatus();
+      setOutcomeUnknown(false);
+      setIgnoreMutationError(true);
+    } catch {
+      // The persistent status error remains visible and a retry stays blocked.
+    }
   }
 
   async function withdraw() {
@@ -54,6 +81,8 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
       )
       .catch(() => undefined);
   }
+
+  if (!isAvailable) return null;
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -109,6 +138,18 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
               {successMessage ? (
                 <p className="rounded-[var(--radius-md)] bg-success-lighter p-3 text-sm text-success-dark">
                   {successMessage}
+                </p>
+              ) : null}
+              {outcomeUnknown ? (
+                <p
+                  role="alert"
+                  className="rounded-[var(--radius-md)] bg-warning-lighter p-3 text-sm text-warning-dark"
+                >
+                  {formatMessage({
+                    id: "app.garden.joinRequest.outcomeUnknown",
+                    defaultMessage:
+                      "We could not confirm whether your request was saved. Check its status before trying again.",
+                  })}
                 </p>
               ) : null}
               {error ? (
@@ -234,7 +275,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
                     mode="filled"
                     size="small"
                     isLoading={join.mutationState.isLoading}
-                    disabled={!displayName.trim()}
+                    disabled={!displayName.trim() || outcomeUnknown}
                     type="submit"
                   />
                   <Button
@@ -246,7 +287,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
                     mode="stroke"
                     size="small"
                     isLoading={join.statusState.isLoading}
-                    onClick={() => void join.checkStatus().catch(() => undefined)}
+                    onClick={() => void checkStatus()}
                     type="button"
                   />
                 </div>

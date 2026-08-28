@@ -1,4 +1,7 @@
-import { useGardenJoinRequests } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
+import {
+  useGardenJoinRequestAvailability,
+  useGardenJoinRequests,
+} from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import { useGardenOperations } from "@green-goods/shared/hooks/garden/useGardenOperations";
 import {
   GARDEN_JOIN_REQUEST_REASON_MAX_LENGTH,
@@ -12,7 +15,8 @@ import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 
 export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Address }) {
-  const { formatMessage } = useIntl();
+  const { formatDate, formatMessage } = useIntl();
+  const isAvailable = useGardenJoinRequestAvailability();
   const join = useGardenJoinRequests(gardenAddress);
   const operations = useGardenOperations(gardenAddress);
   const [loaded, setLoaded] = useState(false);
@@ -38,7 +42,11 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
       const transaction = await operations.addGardener(request.accountAddress, {
         trackMemberAnalytics: false,
       });
-      if (!transaction.success) {
+      const resolution = await join.resolveRequest(request.id, {
+        action: "welcome",
+        expectedRevision: request.revision,
+      });
+      if (!transaction.success && resolution.pendingOnchainMembership) {
         throw new Error(
           transaction.error?.message ??
             formatMessage({
@@ -47,10 +55,6 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
             })
         );
       }
-      const resolution = await join.resolveRequest(request.id, {
-        action: "welcome",
-        expectedRevision: request.revision,
-      });
       setNotice(
         resolution.pendingOnchainMembership
           ? formatMessage({
@@ -103,6 +107,8 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
       setActiveId(undefined);
     }
   }
+
+  if (!isAvailable) return null;
 
   return (
     <section
@@ -172,6 +178,20 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
               <p className="font-mono text-xs text-text-sub-600">
                 {formatAddress(request.accountAddress)}
               </p>
+              <time dateTime={request.requestedAt} className="mt-1 block text-xs text-text-sub-600">
+                {formatMessage(
+                  {
+                    id: "app.garden.joinQueue.requestedAt",
+                    defaultMessage: "Requested {date}",
+                  },
+                  {
+                    date: formatDate(new Date(request.requestedAt), {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    }),
+                  }
+                )}
+              </time>
               {request.note ? (
                 <p className="mt-2 whitespace-pre-wrap text-sm text-text-sub-600">{request.note}</p>
               ) : null}

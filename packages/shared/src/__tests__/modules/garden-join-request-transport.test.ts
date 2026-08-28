@@ -77,6 +77,53 @@ describe("garden join request transport", () => {
     ).rejects.toMatchObject(expectedError);
   });
 
+  it("rejects insecure non-loopback targets before encoding or sending a proof", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      gardenJoinRequestTransport.create(
+        GARDEN,
+        { displayName: "Maya", requestedVia: "garden_detail" },
+        proof,
+        "http://agent.example"
+      )
+    ).rejects.toMatchObject({
+      message: "The garden request service requires a secure HTTPS connection.",
+      outcomeUnknown: false,
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("allows explicit loopback HTTP targets for local development", async () => {
+    const fetchMock = vi.fn(async () =>
+      Response.json({ ok: true, request: { id: "request-1", state: "pending" } }, { status: 201 })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await gardenJoinRequestTransport.create(
+      GARDEN,
+      { displayName: "Maya", requestedVia: "garden_detail" },
+      proof,
+      "http://127.0.0.1:3000"
+    );
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("reads the server-owned activation state without sending a proof", async () => {
+    const fetchMock = vi.fn(async () => Response.json({ ok: true, enabled: false }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(gardenJoinRequestTransport.availability("https://agent.example")).resolves.toEqual(
+      { ok: true, enabled: false }
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://agent.example/public/features/garden-join-requests",
+      expect.objectContaining({ headers: {} })
+    );
+  });
+
   it("keeps the timeout active while the response body is being read", async () => {
     vi.useFakeTimers();
     let requestSignal: AbortSignal | undefined;

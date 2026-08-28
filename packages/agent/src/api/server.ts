@@ -30,6 +30,8 @@ import { createSqliteProfileAvatarStore } from "../services/profile-avatars";
 import { registerSavedOfferRoutes } from "./routes/saved-offers";
 import { bindPublicRequestPeerIp } from "./public-protection";
 import { registerGardenJoinRequestRoutes } from "./routes/garden-join-requests";
+import { publicBrowserCorsPreflight, publicBrowserCorsResponse } from "./http/public";
+import { trackGardenJoinRequestEvent } from "../services/analytics";
 
 const log = loggers.api;
 
@@ -110,11 +112,23 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       : deps.gardenJoinRequestSweepIntervalMs;
   let joinRequestSweepTimer: ReturnType<typeof setInterval> | null = null;
   const joinRequestsEnabled = deps.gardenJoinRequestsEnabled === true;
+  const joinRequestsAvailable = Boolean(
+    joinRequestsEnabled &&
+      deps.gardenJoinRequestStore &&
+      deps.gardenJoinRequestChainId &&
+      deps.gardenJoinRequestChainReader &&
+      deps.gardenJoinRequestSignatureVerifier
+  );
   const sweepJoinRequests = () =>
     deps
       .gardenJoinRequestStore!.sweep(new Date(deps.now?.() ?? Date.now()).toISOString())
+      .then((result) => {
+        if (result.deleted > 0) {
+          void trackGardenJoinRequestEvent("join_request_expired", { count: result.deleted });
+        }
+      })
       .catch((err) => log.warn({ err }, "Garden join-request retention sweep failed"));
-  if (joinRequestsEnabled && deps.gardenJoinRequestStore && joinRequestSweepIntervalMs > 0) {
+  if (deps.gardenJoinRequestStore && joinRequestSweepIntervalMs > 0) {
     void sweepJoinRequests();
     joinRequestSweepTimer = setInterval(() => void sweepJoinRequests(), joinRequestSweepIntervalMs);
     if (
@@ -160,7 +174,12 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     savedOfferStore: deps.savedOfferStore,
     savedOffersSessionStore: deps.savedOffersSessionStore,
   });
-  if (joinRequestsEnabled) {
+  const joinRequestAvailabilityRoute = "/public/features/garden-join-requests";
+  app.options(joinRequestAvailabilityRoute, (c) => publicBrowserCorsPreflight(c, deps));
+  app.get(joinRequestAvailabilityRoute, (c) =>
+    publicBrowserCorsResponse(c, deps, { ok: true, enabled: joinRequestsAvailable })
+  );
+  if (joinRequestsAvailable) {
     registerGardenJoinRequestRoutes(app, {
       ...routeContext,
       store: deps.gardenJoinRequestStore,

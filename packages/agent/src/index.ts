@@ -101,10 +101,12 @@ async function main(): Promise<void> {
   const savedOfferCipher = config.savedOffersEncryptionKey
     ? createSavedOfferCipher(config.savedOffersEncryptionKey)
     : undefined;
-  const joinRequestCipher =
-    config.joinRequestsEnabled && config.joinRequestsEncryptionKey
-      ? createGardenJoinRequestCipher(config.joinRequestsEncryptionKey)
-      : undefined;
+  const joinRequestCipher = config.joinRequestsEncryptionKey
+    ? createGardenJoinRequestCipher(config.joinRequestsEncryptionKey)
+    : undefined;
+  const gardenJoinRequestStore = joinRequestCipher
+    ? createSqliteGardenJoinRequestStore(joinRequestCipher)
+    : undefined;
   const agentRpcUrl = resolveAgentRpcUrl(config.chainId);
 
   const groupCapture = createGroupCaptureHandler(config.captureTopics);
@@ -151,11 +153,9 @@ async function main(): Promise<void> {
     savedOffersAudience: config.savedOffersAudience,
     savedOffersChainIds: [config.chainId],
     gardenJoinRequestsEnabled: config.joinRequestsEnabled,
+    gardenJoinRequestStore,
     ...(config.joinRequestsEnabled
       ? {
-          gardenJoinRequestStore: joinRequestCipher
-            ? createSqliteGardenJoinRequestStore(joinRequestCipher)
-            : undefined,
           gardenJoinRequestChainId: config.chainId,
           gardenJoinRequestChainReader: createGardenJoinRequestChainReader({
             chain: config.chain,

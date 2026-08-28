@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useSignMessage } from "wagmi";
 import { gardenJoinRequestTransport } from "../../modules/garden-join-requests";
 import {
@@ -23,6 +24,16 @@ import { useCurrentChain } from "../blockchain/useChainConfig";
 
 type AsyncState = { isLoading: boolean; error: Error | null };
 const IDLE_ASYNC_STATE: AsyncState = { isLoading: false, error: null };
+
+export function useGardenJoinRequestAvailability(): boolean {
+  const query = useQuery({
+    queryKey: ["garden-join-requests", "availability"],
+    queryFn: () => gardenJoinRequestTransport.availability(),
+    staleTime: 60_000,
+    retry: false,
+  });
+  return query.data?.enabled === true;
+}
 
 export function useGardenJoinRequests(gardenAddress?: Address | null) {
   const chainId = useCurrentChain();

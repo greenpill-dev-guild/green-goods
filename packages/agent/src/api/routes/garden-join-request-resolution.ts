@@ -4,6 +4,7 @@ import {
 } from "@green-goods/shared/public-contracts/join-requests";
 import type { Context } from "hono";
 import { readLimitedJsonBody } from "../http/body";
+import { trackGardenJoinRequestEvent } from "../../services/analytics";
 import { checkRateLimit, publicBrowserCorsResponse } from "../http/public";
 import {
   authenticateGardenJoinRequest,
@@ -65,6 +66,25 @@ export async function handleGardenJoinRequestResolution(
     if (!request) {
       return gardenJoinRequestFailure(c, ctx, "request_not_found", "Join request not found.", 404);
     }
+    const isMember = await chain.isMember(preflight.garden, request.accountAddress);
+    if (isMember) {
+      if (!(await claimGardenJoinRequestProof(store, authenticated.proof))) {
+        return gardenJoinRequestFailure(
+          c,
+          ctx,
+          "idempotency_conflict",
+          "This signed request was already used.",
+          409
+        );
+      }
+      const welcomed = await store.reconcileWelcomed(
+        preflight.garden,
+        requestId,
+        new Date(ctx.deps.now?.() ?? Date.now()).toISOString()
+      );
+      void trackResolution("welcomed", authenticated.proof.factory !== undefined);
+      return publicBrowserCorsResponse(c, ctx.deps, { ok: true, request: welcomed });
+    }
     if (request.revision !== parsed.value.expectedRevision) {
       return gardenJoinRequestFailure(
         c,
@@ -74,7 +94,6 @@ export async function handleGardenJoinRequestResolution(
         409
       );
     }
-    const isMember = await chain.isMember(preflight.garden, request.accountAddress);
     if (action === "welcome" && !isMember) {
       return publicBrowserCorsResponse(
         c,
@@ -91,14 +110,6 @@ export async function handleGardenJoinRequestResolution(
         "This signed request was already used.",
         409
       );
-    }
-    if (isMember) {
-      const welcomed = await store.reconcileWelcomed(
-        preflight.garden,
-        requestId,
-        new Date(ctx.deps.now?.() ?? Date.now()).toISOString()
-      );
-      return publicBrowserCorsResponse(c, ctx.deps, { ok: true, request: welcomed });
     }
     if (parsed.value.action !== "decline") {
       return gardenJoinRequestFailure(
@@ -127,8 +138,20 @@ export async function handleGardenJoinRequestResolution(
         status
       );
     }
+    void trackResolution("declined", authenticated.proof.factory !== undefined);
     return publicBrowserCorsResponse(c, ctx.deps, { ok: true, request: resolved.request });
   } catch {
     return gardenJoinRequestsUnavailable(c, ctx);
   }
+}
+
+function trackResolution(
+  resolution: "declined" | "welcomed",
+  isCounterfactual: boolean
+): Promise<void> {
+  return trackGardenJoinRequestEvent("join_request_resolved", {
+    kind: "garden_membership",
+    resolution,
+    is_counterfactual: isCounterfactual,
+  });
 }

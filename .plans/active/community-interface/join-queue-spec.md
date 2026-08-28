@@ -76,7 +76,7 @@ These defaults were authorized for local implementation on 2026-08-27. Productio
 
 Existing browser contracts are framework-free shared types (`packages/shared/src/public-contracts/index.ts:14-74`) and public routes are composed in the agent server (`packages/agent/src/api/server.ts:118-136`). **NET-NEW:** add `join-requests.ts` to that shared contracts surface, including validators, response types, route constants, and error codes. The agent adds one route module; it does not add a second API framework.
 
-**NET-NEW September dual-use:** the current closed-garden client creates only `garden_membership`, which derives `requestedVia: closed_garden_card`. Once RESR-64 accepts the September slice, the Community first-action flow creates `community_membership`, deriving `requestedVia: community_first_action`. Both kinds use the same table, proofs, endpoints, three visible states, retention, and operator flow. Until that gate clears, the agent rejects `community_membership` with `409 kind_not_enabled`; no September UI is implied by this data contract.
+**NET-NEW September dual-use:** the current closed-garden client creates only `garden_membership`, which derives `requestedVia: garden_detail`. Once RESR-64 accepts the September slice, the Community first-action flow creates `community_membership`, deriving `requestedVia: community_first_action`. Both kinds use the same table, proofs, endpoints, three visible states, retention, and operator flow. Until that gate clears, the agent rejects `community_membership` with `409 kind_not_enabled`; no September UI is implied by this data contract.
 
 | Route | Auth | Request / response behavior |
 |---|---|---|
@@ -140,9 +140,9 @@ The browser API already checks allowed origins and derives public rate-limit key
 
 ## 6. Acceptance, exclusions, and RESR-64 decisions
 
-- [ ] A passkey user can submit exactly one signed pending request for a closed garden, retry safely, withdraw while pending, and read their own outcome.
-- [ ] A duplicate create/resolve proof cannot replay within its expiry, including after withdrawal or decline; the same idempotency key returns the same outcome.
-- [ ] The verifier accepts counterfactual passkey accounts through EIP-6492, deployed smart accounts through ERC-1271, and EOAs only through EIP-712 recovery.
+- [ ] A passkey user can submit exactly one signed pending request for a closed garden, check status after an unknown outcome, retry with a newly signed proof, withdraw while pending, and read their own outcome.
+- [ ] A duplicate create/resolve proof cannot replay within its expiry, including after withdrawal or decline; a newly signed create converges on the active row.
+- [ ] The personal-sign verifier accepts counterfactual passkey accounts through EIP-6492, deployed smart accounts through ERC-1271, and EOAs through message recovery.
 - [ ] An operator/owner can read only their garden's paginated queue, use the existing gardener transaction, and decline with a reason.
 - [ ] Welcome follows an observed gardener role; it releases waiting work without consuming a retry.
 - [ ] Concurrent welcome/decline actions converge on the observed gardener role, and an existing gardener/operator never receives a new request row.

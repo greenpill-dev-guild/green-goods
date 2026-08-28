@@ -4,6 +4,7 @@ import {
   type GardenJoinProofEnvelope,
 } from "@green-goods/shared/public-contracts/join-requests";
 import { describe, expect, it, vi } from "vitest";
+import type { Address } from "viem";
 import { InMemoryPublicRateLimiter } from "../api/public-protection";
 import { createServer } from "../api/server";
 import { MemoryGardenJoinRequestStore } from "../services/garden-join-request-memory-store";
@@ -13,6 +14,7 @@ import type { ProfileAvatarSignatureVerifier } from "../services/profile-avatars
 const ORIGIN = "https://greengoods.app";
 const CHAIN_ID = 42161;
 const GARDEN = "0x1111111111111111111111111111111111111111" as const;
+const SECOND_GARDEN = "0x7777777777777777777777777777777777777777" as const;
 const APPLICANT = "0x2222222222222222222222222222222222222222" as const;
 const OPERATOR = "0x3333333333333333333333333333333333333333" as const;
 const NOW = Date.UTC(2026, 7, 27, 12);
@@ -55,16 +57,16 @@ function createApp(options: { signatureVerifier?: ProfileAvatarSignatureVerifier
   let openJoining = false;
   const chainReader = {
     isMember: vi.fn(
-      async (_garden: string, account: string) =>
+      async (_garden: Address, account: Address) =>
         account.toLowerCase() === APPLICANT && applicantIsMember
     ),
     canManage: vi.fn(
-      async (_garden: string, account: string) => account.toLowerCase() === OPERATOR
+      async (_garden: Address, account: Address) => account.toLowerCase() === OPERATOR
     ),
-    areMembers: vi.fn(async (_garden: string, accounts: readonly string[]) =>
+    areMembers: vi.fn(async (_garden: Address, accounts: readonly Address[]) =>
       accounts.map((account) => account.toLowerCase() === APPLICANT && applicantIsMember)
     ),
-    isOpenJoining: vi.fn(async () => openJoining),
+    isOpenJoining: vi.fn(async (_garden: Address) => openJoining),
   };
   const app = createServer({
     isAIReady: () => true,
@@ -103,9 +105,17 @@ async function submitFor(
   app: ReturnType<typeof createServer>,
   accountAddress: GardenJoinProofEnvelope["accountAddress"]
 ) {
-  return app.request(`/public/gardens/${GARDEN}/join-requests`, {
+  return submitForGarden(app, GARDEN, accountAddress);
+}
+
+async function submitForGarden(
+  app: ReturnType<typeof createServer>,
+  gardenAddress: Address,
+  accountAddress: GardenJoinProofEnvelope["accountAddress"]
+) {
+  return app.request(`/public/gardens/${gardenAddress}/join-requests`, {
     method: "POST",
-    headers: headers(proof("create", accountAddress)),
+    headers: headers(proof("create", accountAddress, { gardenAddress })),
     body: JSON.stringify({ displayName: "Maya", requestedVia: "garden_detail" }),
   });
 }
@@ -203,6 +213,37 @@ describe("garden join request public API", () => {
     expect(await welcomed.json()).toMatchObject({ request: { state: "welcomed", revision: 1 } });
   });
 
+  it("lets confirmed membership override a stale declined revision", async () => {
+    const { app, setMember } = createApp();
+    await submit(app);
+    const declined = await app.request(
+      `/public/gardens/${GARDEN}/join-requests/request-1/resolve`,
+      {
+        method: "POST",
+        headers: headers(
+          proof("decline", OPERATOR, { requestId: "request-1", expectedRevision: 0 })
+        ),
+        body: JSON.stringify({ action: "decline", expectedRevision: 0, reason: "No capacity." }),
+      }
+    );
+    expect(declined.status).toBe(200);
+
+    setMember(true);
+    const reconciled = await app.request(
+      `/public/gardens/${GARDEN}/join-requests/request-1/resolve`,
+      {
+        method: "POST",
+        headers: headers(
+          proof("welcome", OPERATOR, { requestId: "request-1", expectedRevision: 0 })
+        ),
+        body: JSON.stringify({ action: "welcome", expectedRevision: 0 }),
+      }
+    );
+
+    expect(reconciled.status).toBe(200);
+    expect(await reconciled.json()).toMatchObject({ request: { state: "welcomed", revision: 2 } });
+  });
+
   it("rejects replayed write proofs", async () => {
     const { app } = createApp();
     const createProof = proof("create");
@@ -232,6 +273,18 @@ describe("garden join request public API", () => {
     expect(signatureVerifier).toHaveBeenCalledTimes(10);
   });
 
+  it("scopes the pre-authentication IP limit to each garden", async () => {
+    const signatureVerifier = vi.fn(async () => false);
+    const { app } = createApp({ signatureVerifier });
+
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      expect((await submitFor(app, APPLICANT)).status).toBe(401);
+    }
+
+    expect((await submitForGarden(app, SECOND_GARDEN, APPLICANT)).status).toBe(401);
+    expect(signatureVerifier).toHaveBeenCalledTimes(11);
+  });
+
   it("applies the daily create ceiling per signed account rather than per shared IP", async () => {
     const { app } = createApp();
     const applicants = [
@@ -247,12 +300,12 @@ describe("garden join request public API", () => {
     }
   });
 
-  it("runs the retention sweep when the enabled service starts", async () => {
+  it("runs the retention sweep when storage exists even if collection is disabled", async () => {
     const store = new MemoryGardenJoinRequestStore(createGardenJoinRequestCipher("22".repeat(32)));
     const sweep = vi.spyOn(store, "sweep");
     const app = createServer({
       isAIReady: () => true,
-      gardenJoinRequestsEnabled: true,
+      gardenJoinRequestsEnabled: false,
       gardenJoinRequestStore: store,
       gardenJoinRequestSweepIntervalMs: 60_000,
       now: () => NOW,
@@ -263,8 +316,14 @@ describe("garden join request public API", () => {
   });
 
   it("does not expose queue routes until activation is explicit", async () => {
-    const app = createServer({ isAIReady: () => true });
+    const app = createServer({ isAIReady: () => true, gardenJoinRequestsEnabled: false });
     const response = await submit(app);
     expect(response.status).toBe(404);
+
+    const availability = await app.request("/public/features/garden-join-requests", {
+      headers: { origin: ORIGIN },
+    });
+    expect(availability.status).toBe(200);
+    expect(await availability.json()).toEqual({ ok: true, enabled: false });
   });
 });

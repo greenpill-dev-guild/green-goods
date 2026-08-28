@@ -1,5 +1,8 @@
 import { Alert } from "@green-goods/shared/components/Alert";
-import { useGardenJoinRequests } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
+import {
+  useGardenJoinRequestAvailability,
+  useGardenJoinRequests,
+} from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import { useGardenOperations } from "@green-goods/shared/hooks/garden/useGardenOperations";
 import {
   GARDEN_JOIN_REQUEST_REASON_MAX_LENGTH,
@@ -15,7 +18,8 @@ import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
 export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Address }) {
-  const { formatMessage } = useIntl();
+  const { formatDate, formatMessage } = useIntl();
+  const isAvailable = useGardenJoinRequestAvailability();
   const join = useGardenJoinRequests(gardenAddress);
   const operations = useGardenOperations(gardenAddress);
   const [loaded, setLoaded] = useState(false);
@@ -41,16 +45,16 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
       const transaction = await operations.addGardener(request.accountAddress, {
         trackMemberAnalytics: false,
       });
-      if (!transaction.success) {
+      const resolution = await join.resolveRequest(request.id, {
+        action: "welcome",
+        expectedRevision: request.revision,
+      });
+      if (!transaction.success && resolution.pendingOnchainMembership) {
         throw new Error(
           transaction.error?.message ??
             formatMessage({ id: "app.garden.joinQueue.membershipAddFailed" })
         );
       }
-      const resolution = await join.resolveRequest(request.id, {
-        action: "welcome",
-        expectedRevision: request.revision,
-      });
       setNotice(
         resolution.pendingOnchainMembership
           ? formatMessage({ id: "cockpit.community.joinRequests.membershipPending" })
@@ -85,6 +89,8 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
       setActiveId(undefined);
     }
   }
+
+  if (!isAvailable) return null;
 
   return (
     <>
@@ -136,6 +142,20 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
                     {request.displayName}
                   </h4>
                   <EnsAddressText address={request.accountAddress} />
+                  <time
+                    dateTime={request.requestedAt}
+                    className="mt-1 block text-body-sm text-[rgb(var(--m3-on-surface-variant))]"
+                  >
+                    {formatMessage(
+                      { id: "cockpit.community.joinRequests.requestedAt" },
+                      {
+                        date: formatDate(new Date(request.requestedAt), {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        }),
+                      }
+                    )}
+                  </time>
                 </div>
                 {request.note ? (
                   <p className="max-w-2xl whitespace-pre-wrap text-body-sm text-[rgb(var(--m3-on-surface-variant))]">

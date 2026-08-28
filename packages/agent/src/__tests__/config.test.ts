@@ -233,6 +233,7 @@ describe("production Saved Offers configuration", () => {
     "SAVED_OFFERS_AUDIENCE",
     "JOIN_REQUESTS_ENABLED",
     "JOIN_REQUESTS_ENCRYPTION_KEY",
+    "JOIN_REQUESTS_PRODUCTION_READY",
     "AGENT_TRUSTED_PROXY_HOPS",
     "AGENT_TRUSTED_PROXY_CIDRS",
   ] as const;
@@ -251,6 +252,7 @@ describe("production Saved Offers configuration", () => {
     process.env.SAVED_OFFERS_AUDIENCE = "agent.greengoods.app";
     process.env.JOIN_REQUESTS_ENABLED = "true";
     process.env.JOIN_REQUESTS_ENCRYPTION_KEY = "c".repeat(64);
+    process.env.JOIN_REQUESTS_PRODUCTION_READY = "true";
     process.env.AGENT_TRUSTED_PROXY_HOPS = "1";
     process.env.AGENT_TRUSTED_PROXY_CIDRS = "10.0.0.0/8";
   });
@@ -266,6 +268,7 @@ describe("production Saved Offers configuration", () => {
     ["SAVED_OFFERS_ENCRYPTION_KEY", "SAVED_OFFERS_ENCRYPTION_KEY"],
     ["SAVED_OFFERS_AUDIENCE", "SAVED_OFFERS_AUDIENCE"],
     ["JOIN_REQUESTS_ENCRYPTION_KEY", "JOIN_REQUESTS_ENCRYPTION_KEY"],
+    ["JOIN_REQUESTS_PRODUCTION_READY", "JOIN_REQUESTS_PRODUCTION_READY"],
     ["AGENT_TRUSTED_PROXY_HOPS", "AGENT_TRUSTED_PROXY_HOPS"],
     ["AGENT_TRUSTED_PROXY_CIDRS", "AGENT_TRUSTED_PROXY_CIDRS"],
   ] as const)("fails startup when %s is missing", (envKey, message) => {
@@ -280,6 +283,7 @@ describe("production Saved Offers configuration", () => {
   it("allows production startup while the join-request queue is disabled", () => {
     process.env.JOIN_REQUESTS_ENABLED = "false";
     delete process.env.JOIN_REQUESTS_ENCRYPTION_KEY;
+    delete process.env.JOIN_REQUESTS_PRODUCTION_READY;
     expect(() => validateConfig(loadConfig())).not.toThrow();
   });
 });
