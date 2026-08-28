@@ -214,6 +214,29 @@ const rejects = [
     input: { title: "Fix the stuck cancel button" },
     expect: /no body/,
   },
+  {
+    // An update is exempt from carrying a body, but not from the title rules —
+    // otherwise a rename could reintroduce a prefix that creates reject.
+    name: "rename that reintroduces a retired prefix",
+    input: { id: "PRD-800", title: "[tracking] Reintroduce the bad prefix" },
+    expect: /\[tracking\]/,
+  },
+  {
+    // Patching is a write like any other; the absolute rules must survive it.
+    name: "patch smuggling plan-hub internals into an existing body",
+    input: { id: "PRD-800", patch: [{ op: "append", text: "Lane truth is in status.json#execution_sub_lanes.docs." }] },
+    expect: /Patched text cites plan-hub internals/,
+  },
+  {
+    name: "patch smuggling a screen code",
+    input: { id: "PRD-800", patch: [{ op: "replace", old_string: "x", new_string: "Covers W26 repair." }] },
+    expect: /Patched text uses screen codes/,
+  },
+  {
+    name: "emoji heading at H1 (not just H2)",
+    input: { title: "Client errors spiked overnight", description: "# 🔴 Counts\n99 exceptions in 24h." },
+    expect: /emoji heading/,
+  },
 ];
 
 for (const { name, input, expect } of rejects) {
@@ -235,8 +258,15 @@ const ignores = [
     input: { id: "PRD-800", state: "Done" },
   },
   {
-    name: "patch edit carrying no full description",
-    input: { id: "PRD-800", patch: [{ op: "append", text: "## a\n## b\n## c\n## d\n## e" }] },
+    // A patch fragment cannot reveal the size of the resulting document, so the
+    // cumulative caps are not evaluated here — but the absolute rules are, and
+    // the rejecting fixtures below prove a patch cannot smuggle them in.
+    name: "patch edit whose inserted text is clean",
+    input: { id: "PRD-800", patch: [{ op: "append", text: "Fixed in the 2026-08-27 deploy." }] },
+  },
+  {
+    name: "rename to a clean title with no description",
+    input: { id: "PRD-800", title: "Allow cancelling garden edits after changing the image" },
   },
   {
     name: "label-only update",

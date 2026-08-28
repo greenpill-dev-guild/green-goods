@@ -36,10 +36,15 @@ has_patch="$(printf '%s' "$payload" | jq -r 'if ((.tool_input.patch // []) | len
 # alone, and blocking those would wedge routine triage.
 is_update="$(printf '%s' "$payload" | jq -r 'if (.tool_input.id // "") != "" then "yes" else "no" end')"
 
-# Nothing to judge: property-only update, or a patch edit that carries no full body.
-if [ -z "$title" ] && [ -z "$description" ]; then exit 0; fi
-if [ "$has_patch" = "yes" ] && [ -z "$description" ]; then exit 0; fi
-if [ "$is_update" = "yes" ] && [ -z "$description" ]; then exit 0; fi
+# Text a `patch` edit inserts into an existing body. The patch ops carry only a
+# fragment, never the resulting document, so the cumulative caps (heading count,
+# word count) cannot be evaluated here — but the absolute rules can, and without
+# this a caller could smuggle lane metadata or extra headings into a body by
+# patching it instead of replacing it.
+patch_text="$(printf '%s' "$payload" | jq -r '[.tool_input.patch // [] | .[] | (.text // ""), (.new_string // "")] | join("\n")')"
+
+# Nothing at all to judge: a property-only write (state, labels, relations).
+if [ -z "$title" ] && [ -z "$description" ] && [ -z "${patch_text//[$'\n\t ']/}" ]; then exit 0; fi
 
 violations=""
 add() { violations="${violations}  - $1"$'\n'; }
@@ -79,17 +84,55 @@ if [ -n "$title" ]; then
 fi
 
 # A create must carry the problem/outcome block; the contract calls it the one
-# section that is never optional. Updates are exempt above.
-if [ "$is_update" = "no" ] && [ -z "$description" ]; then
+# section that is never optional. An update may legitimately touch state,
+# labels, or relations alone, so only creates are required to have a body.
+if [ "$is_update" = "no" ] && [ -z "$description" ] && [ "$has_patch" = "no" ]; then
   add "New issue has no body. Say what breaks and for whom, or what should exist and why — that block is never optional."
 fi
+
+# Absolute rules — banned tokens and empty scaffolding — hold for any prose the
+# call carries, whether it replaces the body or patches into it. Cumulative
+# rules (heading count, word count) are checked on `description` only, since a
+# patch fragment cannot tell us the size of the resulting document.
+check_banned_tokens() {
+  scope="$1"
+  text="$2"
+  [ -n "$text" ] || return 0
+
+  if printf '%s' "$text" | grep -qE 'status\.json|execution_sub_lanes|laneSyncMode|plan\.todo\.md'; then
+    add "$scope cites plan-hub internals (status.json / execution_sub_lanes). Link the plan directory instead."
+  fi
+  if printf '%s' "$text" | grep -qE '\bW[0-9]{1,2}\b'; then
+    add "$scope uses screen codes (W12 and similar). Use the screen's human name."
+  fi
+  if printf '%s' "$text" | grep -qE '§[0-9]'; then
+    add "$scope carries a spec citation (§5.1). Drop it, or link the file if the reader truly needs it."
+  fi
+  # Empty scaffolding — the failure that produced sections reading "—" and
+  # paragraphs explaining that telemetry found nothing.
+  if printf '%s' "$text" | grep -qE '^[[:space:]]*(—|-|N/A|TBD|None|needs repro|needs definition|needs investigation)[[:space:]]*$'; then
+    add "$scope renders an empty section placeholder. Drop the section instead — a heading with nothing under it costs the reader a stop."
+  fi
+  # Strip any heading level generically: an H1 (`# 🔴 Counts`) must be caught
+  # alongside an H2, so the marker run and its following space both go.
+  while IFS= read -r heading; do
+    [ -n "$heading" ] || continue
+    stripped_heading="${heading#"${heading%%[![:space:]#]*}"}"
+    if starts_with_emoji "$stripped_heading"; then
+      add "$scope has an emoji heading. Plain headings only."
+      break
+    fi
+  done <<EOF
+$(printf '%s\n' "$text" | grep -E '^[[:space:]]*#{1,6} ' || true)
+EOF
+}
 
 # --- Body ------------------------------------------------------------------
 if [ -n "$description" ]; then
   headings=$(printf '%s\n' "$description" | grep -cE '^#{1,6} ' || true)
   words=$(printf '%s' "$description" | wc -w | tr -d ' ')
   # Umbrella trackers and roadmaps legitimately run long; they still obey the
-  # heading cap and the banned-token rules below.
+  # heading cap and the banned-token rules.
   # Callers pass labels either as bare child names (`plans`, what save_issue
   # accepts) or in the namespaced display form (`source:plans`, what plan-hub
   # writes into its manifest). Accept both so the exemption cannot depend on
@@ -120,29 +163,12 @@ if [ -n "$description" ]; then
   elif [ "$meta_count" -ge 2 ]; then
     add "Body stacks $meta_count metadata lines (Source / Lane / Owner / Handoff). Linear's assignee and state fields own that — keep one link line at most."
   fi
-  if printf '%s' "$description" | grep -qE 'status\.json|execution_sub_lanes|laneSyncMode|plan\.todo\.md'; then
-    add "Body cites plan-hub internals (status.json / execution_sub_lanes). Link the plan directory instead."
-  fi
-  if printf '%s' "$description" | grep -qE '\bW[0-9]{1,2}\b'; then
-    add "Body uses screen codes (W12 and similar). Use the screen's human name."
-  fi
-  if printf '%s' "$description" | grep -qE '§[0-9]'; then
-    add "Body carries a spec citation (§5.1). Drop it, or link the file if the reader truly needs it."
-  fi
-  while IFS= read -r heading; do
-    if starts_with_emoji "${heading#\#\#*[[:space:]]}"; then
-      add "Body has an emoji heading. Plain headings only."
-      break
-    fi
-  done <<EOF
-$(printf '%s\n' "$description" | grep -E '^#{1,6} ' || true)
-EOF
 
-  # Empty scaffolding — the failure that produced sections reading "—" and
-  # paragraphs explaining that telemetry found nothing.
-  if printf '%s' "$description" | grep -qE '^[[:space:]]*(—|-|N/A|TBD|None|needs repro|needs definition|needs investigation)[[:space:]]*$'; then
-    add "Body renders an empty section placeholder. Drop the section instead — a heading with nothing under it costs the reader a stop."
-  fi
+  check_banned_tokens "Body" "$description"
+fi
+
+if [ -n "${patch_text//[$'\n\t ']/}" ]; then
+  check_banned_tokens "Patched text" "$patch_text"
 fi
 
 if [ -n "$violations" ]; then

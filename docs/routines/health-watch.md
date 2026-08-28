@@ -200,7 +200,8 @@ if no open Linear Issue matching the canonical labels + category marker:
                   // bare child names or IDs only — save_issue rejects the
                   // group:child display form, and one bad entry rejects all
     status      = Backlog (exploratory) or Todo (well-scoped)
-    body        = <the anomaly in 2-3 plain sentences + one counts line>
+    body        = <the anomaly in 2-3 plain sentences + one counts line,
+                   then a "Done when" list of checkable outcomes>
     comment #1  = <the full evidence: tables, per-URL breakdowns, Sentry
                    corroboration, caveats>
 else:
@@ -209,12 +210,16 @@ else:
 
 **The body is a description, not a dashboard.** Say what is happening, what it
 means, and what a person should do next, in two or three sentences, followed by
-a single counts line. Every table, per-URL breakdown, threshold restatement,
-and payload caveat named in the per-check "Issue body" notes above goes in the
-**first comment**, not the description — the check still gathers all of it, it
-just lands where a reader can skip it. Never open with which routine or check
-number filed the issue; the `routine` label carries that. Title is a plain
-sentence with no prefix or emoji.
+a single counts line and a short **Done when** list. Every table, per-URL
+breakdown, threshold restatement, and payload caveat named in the per-check
+"Evidence to capture" notes above goes in the **first comment**, not the
+description — the check still gathers all of it, it just lands where a reader
+can skip it. Never open with which routine or check number filed the issue; the
+`routine` label carries that. Title is a plain sentence with no prefix or emoji.
+
+**`Done when` is required on any issue filed as `Todo` or delegated to Codex** —
+without checkable outcomes a dispatched agent stops at the Codex-ready gate. An
+anomaly nobody can yet write an outcome for belongs in `Backlog`.
 
 This obeys the shared contract in
 [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md)

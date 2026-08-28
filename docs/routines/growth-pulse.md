@@ -216,7 +216,14 @@ sentences. Name the affected surface and gardens inside them.}
 
 {One sentence on the suspected cause or next step; say plainly when it needs
 investigation.}
+
+**Done when**
+- {the observable outcome that closes this — a restored metric, a shipped fix,
+  or a written explanation of a benign cause}
+- {second outcome, when the anomaly has two halves}
 ```
+
+**`Done when` is required whenever the anomaly is filed as `Todo` or delegated under the Codex hand-off above.** Without acceptance criteria a dispatched agent must stop at the Codex-ready gate, so an anomaly with no checkable outcome belongs in `Backlog` until someone can name one.
 
 **The full evidence goes in the first comment, not the description** — saved Insight ID, question name with bind variables, sample timestamp, and the per-garden list. The check still gathers all of it; it just lands where a reader can skip it.
 
