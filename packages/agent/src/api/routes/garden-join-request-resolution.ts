@@ -1,7 +1,7 @@
 import {
   type GardenJoinProofContent,
   validateResolveGardenJoinRequest,
-} from "@green-goods/shared/public-contracts";
+} from "@green-goods/shared/public-contracts/join-requests";
 import type { Context } from "hono";
 import { readLimitedJsonBody } from "../http/body";
 import { checkRateLimit, publicBrowserCorsResponse } from "../http/public";

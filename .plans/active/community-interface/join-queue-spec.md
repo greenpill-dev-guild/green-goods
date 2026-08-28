@@ -16,7 +16,7 @@ The implementation reuses the repository's existing personal-sign signature veri
 
 The first shipped source is `garden_detail`, matching the requested PWA garden-detail placement. Create replay guards are durable and the active-row constraint makes a newly signed retry converge on the existing pending request. Same-proof automatic retry and the draft `Idempotency-Key` response cache are deferred; the UI reports an unknown outcome and asks for an explicit status check or newly signed retry instead of persisting a browser credential.
 
-Production activation remains blocked until the Fly.io secret is installed, the backup operator is named, and the operator recovery path is rehearsed. No contract or indexer change is part of this slice.
+Production activation remains blocked until the Fly.io secret is installed, the backup operator is named, the operator recovery path is rehearsed, and authenticated Brave proof is recorded. No contract or indexer change is part of this slice.
 
 ## 1. Decision and ownership
 
@@ -42,24 +42,23 @@ If the service is unavailable, the operator adds the address manually using the 
 
 ### 2.1 One encrypted table
 
-**NET-NEW `garden_join_requests` fields:**
+Implemented `garden_join_requests` fields:
 
 | Field | Purpose |
 |---|---|
-| `id`, `gardenAddress`, `kind` | Opaque request ID; public garden scope; `garden_membership` now and `community_membership` reserved for the September consumer after RESR-64 approval |
-| `accountAddressCiphertext`, `accountAddressKey` | Encrypted requested account; keyed digest for lookup, the active-request constraint, and rate limits — raw address is not indexed or logged |
-| `displayNameCiphertext`, `noteCiphertext?`, `declineReasonCiphertext?` | Chosen handoff text only; field-encrypted at rest |
+| `id`, `gardenAddress`, `kind` | Opaque request ID; public garden scope; the current kind is `garden_membership` |
+| `ciphertext`, `nonce`, `accountAddressKey` | One authenticated encrypted payload contains address, name, optional note, and optional decline reason; the keyed account digest supports lookup without storing a raw address |
 | `state` | `pending`, `welcomed`, or `declined`; decline requires a reason |
-| `requestedVia` | `closed_garden_card` or `community_first_action` |
+| `requestedVia` | `garden_detail` in the current slice |
 | `requestedAt`, `expiresAt`, `resolvedAt`, `updatedAt`, `revision` | Lifecycle timestamps plus a monotonic compare-and-set revision |
 
 **NET-NEW request indexes:** `UNIQUE(gardenAddress, accountAddressKey) WHERE state = 'pending'`; queue scan `(gardenAddress, state, requestedAt DESC, id DESC)`; member history `(gardenAddress, accountAddressKey, requestedAt DESC)`. The partial constraint permits a re-request immediately after decline without allowing two active requests.
 
-**NET-NEW `join_request_guards` is a tiny hash-only companion table, not a second request store.** It holds `purpose`, `nonceHash`, `accountAddressKey`, `idempotencyKeyHash?`, `requestFingerprint?`, `requestId?`, and `expiresAt` — no address, name, note, reason, or signature. Its constraints are `UNIQUE(nonceHash)` for create and resolve proofs, `UNIQUE(accountAddressKey, idempotencyKeyHash) WHERE idempotencyKeyHash IS NOT NULL`, and an expiry-sweep index. It is deleted at proof expiry (five minutes); a withdrawn request deletes its encrypted row but keeps this guard briefly, so the same proof cannot reopen it.
+The implemented `garden_join_request_proofs` companion table stores only a domain-separated keyed digest of each proof nonce and its expiry. It stores no raw nonce, address, name, note, reason, request ID, or signature. The digest is unique and is deleted at proof expiry, so a withdrawn request cannot be reopened with the same proof.
 
 The agent remains a direct SQLite service (`packages/agent/src/services/db.ts:35-48`) and its schema is initialized in `packages/agent/src/services/db/schema.ts:3-112`. **NET-NEW:** add this table, migration, and narrowly named query helpers there; do not add a second data store.
 
-### 2.2 Lifecycle and retention — proposed, pending RESR-64 approval
+### 2.2 Lifecycle and retention — locally authorized; production activation gated
 
 | Rule | Proposal |
 |---|---|
@@ -69,7 +68,7 @@ The agent remains a direct SQLite service (`packages/agent/src/services/db.ts:35
 | Encryption | Encrypt address, name, note, and reason at rest; the RESR-64 record must name the key owner, rotation, backup, and deletion mechanism before any collection begins. |
 | Analytics | Retain aggregate, non-identifying event counts only; never retain address, note, reason, signature, request ID, or garden ID in analytics. |
 
-These are deliberately proposed defaults, not an assumed operating policy. RESR-64 must accept or replace them before implementation.
+These defaults were authorized for local implementation on 2026-08-27. Production collection remains blocked until the activation requirements in `status.json` are satisfied.
 
 ## 3. API and proof contract
 
@@ -81,29 +80,29 @@ Existing browser contracts are framework-free shared types (`packages/shared/src
 
 | Route | Auth | Request / response behavior |
 |---|---|---|
-| `POST /public/gardens/:garden/join-requests` | Member `JoinRequestV1` proof | Body: garden, account, kind, display name, optional note, nonce, expiry, signature; `Idempotency-Key` header. Returns `201` for new or `200` for the same active request. |
+| `POST /public/gardens/:garden/join-requests` | Member create proof in `Authorization` | Body: display name, optional note, and `requestedVia: garden_detail`. Returns `201` for a new request or `200` when a newly signed request converges on the existing active row. |
 | `GET /public/gardens/:garden/join-requests/me` | Member `JoinQueueAccessV1` proof in `Authorization` | Returns only the caller's request ID, state, reason when declined, timestamps, and `canAskAgain`. No background polling or stored bearer token. |
-| `GET /public/gardens/:garden/join-requests?state=pending&kind=…&cursor=…&limit=…` | Operator/owner `JoinQueueAccessV1` proof | Returns only that garden's rows plus `nextCursor`. Default 25, maximum 100; cursor encodes `(requestedAt,id)`, never an address. |
+| `GET /public/gardens/:garden/join-requests?state=pending&cursor=…&limit=…` | Operator/owner list proof in `Authorization` | Returns only that garden's rows plus `nextCursor`. Default 25, maximum 100; cursor encodes `(requestedAt,id)`, never an address. |
 | `POST /public/gardens/:garden/join-requests/:id/resolve` | Operator/owner `JoinQueueAccessV1` proof | Body is either `{ action: "welcome", expectedRevision }` or `{ action: "decline", reason, expectedRevision }`. Welcome returns `202` until a current gardener-role read succeeds, then `200` welcomed; decline is `200`. |
-| `DELETE /public/gardens/:garden/join-requests/me` | Member `JoinQueueAccessV1` proof | Withdraws only a pending request, returns `204`; welcomed/declined history remains readable until its retention window ends. |
+| `DELETE /public/gardens/:garden/join-requests/me` | Member withdrawal proof in `Authorization` | Withdraws only a pending request and returns `{ ok: true }`; welcomed/declined history remains readable until its retention window ends. |
 
-The API uses `Cache-Control: no-store`, matching the current response helper (`packages/agent/src/api/http/responses.ts:16-20`). Every protected request sends `Authorization: GG-JoinProof <base64url({ typedData, signature })>`; signatures never appear in query parameters. Browser CORS must add `Authorization` and `DELETE` to the current headers/methods (`packages/agent/src/api/http/public.ts:68-76`).
+The API uses `Cache-Control: no-store`. Every protected request sends `Authorization: GG-JoinProof <base64url(JSON proof envelope)>`; signatures never appear in query parameters. The proof envelope includes the fields needed to reconstruct the exact personal-sign message on the server.
 
 **NET-NEW response/error contract:** successful detail responses are `{ ok: true, request: { id, kind, state, revision, requestedVia, requestedAt, expiresAt, resolvedAt?, reason?, canAskAgain } }`; list responses add `{ items, nextCursor? }`. Use `400 invalid_request`, `401 invalid_signature`, `403 garden_role_required`, `404 request_not_found`, `409 already_member|idempotency_conflict|kind_not_enabled|resolution_conflict`, `410 request_expired|request_withdrawn`, `429 rate_limited`, `503 chain_reader_unavailable`, and the existing `500 internal_error` shape. No response includes a signature, token, keyed digest, or encrypted field.
 
-**NET-NEW idempotency:** one SQLite transaction first purges expired guards, claims the create nonce and `(accountAddressKey, idempotencyKeyHash)` guard, then checks the active-row constraint. Same key and same `requestFingerprint` returns the prior response; the same key with different fields returns `409 idempotency_conflict`; a guard for a withdrawn row returns `410 request_withdrawn`; a different key while pending returns the current row. The client retries one failed fetch with the same key and proof while the proof remains valid, then asks the member to try again. This is a plain fetch-with-retry, never a sixth offline job kind.
+**Deferred idempotency work:** the current transport does not send `Idempotency-Key` or automatically retry a write with the same proof. Durable proof-digest claims reject a reused write proof, while the active-row constraint makes a newly signed retry return the existing pending request. After an unknown write outcome, the client asks the member to check status or sign a new retry. A response cache for same-key/same-proof retries remains future work and must not be described as shipped behavior.
 
 ### 3.2 Signature binding — selected path
 
-**NET-NEW `JoinRequestV1` is EIP-712 typed data.** Its domain is `{ name: "Green Goods Garden Join Request", version: "1", chainId, verifyingContract: gardenAddress }`; its exact fields are `account: address`, `garden: address`, `kind: uint8`, `displayNameHash: bytes32`, `noteHash: bytes32`, `nonce: bytes32`, `issuedAt: uint64`, and `expiresAt: uint64`. `displayNameHash` and `noteHash` are `keccak256` over the exact submitted UTF-8 bytes (the absent note is the hash of an empty byte string); `nonce` is 32 random bytes. The agent re-encodes the received UTF-8 fields after validation (name ≤80 characters, note ≤500) and rejects any hash mismatch, future issue time, or expiry beyond five minutes. Address comparisons use normalized `Address` values; the signature is never written to SQLite or logs.
+The canonical proof is a personal-sign signature over the UTF-8 bytes returned by `buildGardenJoinProofMessage`. The message is a newline-joined sequence with this fixed order: title, version, chain ID, normalized garden, normalized account, action, normalized nonce, issued time, expiry time, then present request ID, cursor, expected revision, display name, note, reason, requested-via, state, and limit fields. User-controlled string values escape backslash, carriage return, and newline as `\\`, `\r`, and `\n` before joining, so content cannot create a second field. The client signs this exact string and the agent reconstructs the same string after validation.
 
-**NET-NEW `JoinQueueAccessV1` is separate EIP-712 typed data.** It binds the same domain plus `account: address`, `garden: address`, `action: uint8` (`read_self|list|resolve|withdraw`), `requestIdHash: bytes32`, `cursorHash: bytes32`, `expectedRevision: uint64`, `nonce: bytes32`, and `expiresAt: uint64`; absent request/cursor values are `bytes32(0)`. Resolve consumes its nonce atomically. Read/list proofs may be replayed only until expiry and only for the exact garden/action/cursor; this avoids a durable browser session or an implicit localStorage transport.
+Create, read, list, withdrawal, welcome, and decline all use that same personal-sign encoding with different bound action and content fields. Five-minute issue/expiry validation, garden matching, action matching, cursor/revision matching, and nonce replay claims prevent a proof from being reused for another operation. The signature itself is never written to SQLite or logs.
 
 **NET-NEW verification order:**
 
-1. For a passkey smart account, verify through an EIP-6492 universal validator by `eth_call` on the signed `chainId`. This is the primary path: it verifies an undeployed counterfactual account by deploying only within the simulated call, and verifies a deployed smart account through ERC-1271.
-2. If the account has deployed code and the signature is not a valid EIP-6492/1271 proof, reject it — never fall through to an EOA recovery.
-3. Only if the account has no code **and** the signature is not EIP-6492-wrapped, use EOA EIP-712 recovery. A counterfactual passkey client must produce the EIP-6492 form; a code-less plain signature that recovers to another address is rejected.
+1. Validate the proof envelope, timestamps, expected action, and garden binding before signature verification.
+2. Rebuild the canonical personal-sign message from the validated proof and request content.
+3. Use the shared viem signature verifier for EOA personal-sign recovery, deployed ERC-1271 accounts, and counterfactual EIP-6492 accounts. Reject any proof that does not verify for the bound account.
 
 The current passkey flow creates a Kernel smart account from the WebAuthn credential (`packages/shared/src/workflows/authServices.ts:350-388`), so an EOA-only verifier would fail the first join for a never-transacted passkey account. **NET-NEW:** inject a narrow `JoinQueueChainReader` into the agent API for the configured EIP-6492 universal-validator `eth_call` and current operator/owner/gardener role reads; the current API dependency surface does not provide one (`packages/agent/src/api/http/server.types.ts:35-70`). Its validator address and RPC operator must be accepted in the RESR-64 record and come from a checked-in deployment configuration. This is the only additional server dependency, not a transaction signer or protocol admin key.
 
@@ -151,7 +150,7 @@ The browser API already checks allowed origins and derives public rate-limit key
 - [ ] Pending, resolved, and withdrawn records follow the accepted expiry/deletion policy; no personal request field reaches logs or analytics.
 - [ ] Rate limits, queue cap, and the aggregate operator spam signal are testable.
 - [ ] Every string is added in en/es/pt and avoids the glossary's disallowed copy (`docs/docs/reference/glossary-community.md:102-121`).
-- [ ] API, database, and UI implementation remain blocked until RESR-64 accepts the operating record.
+- [x] API, database, and UI implementation is authorized locally; production request collection remains blocked by the activation checklist in `status.json`.
 
 **Out of scope:** public on-chain requests; Linear-as-queue; implicit localStorage transport; a protocol admin key; automatic membership grants; a new pool job kind; a new admin workspace or route; September Community UI; and activation of `community_membership` before RESR-64 accepts it.
 

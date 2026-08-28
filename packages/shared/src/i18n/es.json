@@ -1954,6 +1954,7 @@
   "app.garden.joinQueue.description": "Revisa a las personas que solicitaron unirse a este jardín.",
   "app.garden.joinQueue.empty": "No hay solicitudes pendientes.",
   "app.garden.joinQueue.load": "Revisar solicitudes",
+  "app.garden.joinQueue.membershipAddFailed": "No se pudo añadir la membresía.",
   "app.garden.joinQueue.membershipPending": "La transacción de membresía fue enviada. Confírmala de nuevo cuando sea visible en la cadena.",
   "app.garden.joinQueue.title": "Solicitudes para unirse",
   "app.garden.joinQueue.updateFailed": "No se pudo actualizar la solicitud.",

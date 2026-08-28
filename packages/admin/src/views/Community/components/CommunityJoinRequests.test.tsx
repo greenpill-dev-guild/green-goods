@@ -39,6 +39,7 @@ import { CommunityJoinRequests } from "./CommunityJoinRequests";
 
 const messages = {
   "app.common.cancel": "Cancel",
+  "app.garden.joinQueue.membershipAddFailed": "Membership could not be added.",
   "cockpit.community.joinRequests.confirmDecline": "Decline request",
   "cockpit.community.joinRequests.decline": "Decline",
   "cockpit.community.joinRequests.declined": "The request was declined.",
@@ -75,10 +76,15 @@ describe("CommunityJoinRequests", () => {
 
     await user.click(screen.getByRole("button", { name: "Welcome" }));
     await waitFor(() => expect(addGardener).toHaveBeenCalledOnce());
-    expect(resolveRequest).toHaveBeenCalledWith("request-1", {
-      action: "welcome",
-      expectedRevision: 0,
+    expect(addGardener).toHaveBeenCalledWith("0x2222222222222222222222222222222222222222", {
+      trackMemberAnalytics: false,
     });
+    await waitFor(() =>
+      expect(resolveRequest).toHaveBeenCalledWith("request-1", {
+        action: "welcome",
+        expectedRevision: 0,
+      })
+    );
   });
 
   it("requires and sends a decline reason", async () => {
@@ -96,5 +102,22 @@ describe("CommunityJoinRequests", () => {
         reason: "No capacity this season.",
       })
     );
+  });
+
+  it("shows decline failures inside the open dialog", async () => {
+    resolveRequest.mockRejectedValueOnce(new Error("The request changed. Refresh and retry."));
+    const user = userEvent.setup();
+    renderQueue();
+
+    await user.click(screen.getByRole("button", { name: "Decline" }));
+    const reason = screen.getByLabelText(/Reason for declining/);
+    await user.type(reason, "No capacity this season.");
+    await user.click(screen.getByRole("button", { name: "Decline request" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "The request changed. Refresh and retry."
+    );
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(reason).toHaveValue("No capacity this season.");
   });
 });

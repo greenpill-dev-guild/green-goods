@@ -31,6 +31,7 @@ export type GardenJoinRequestApiErrorCode =
   | "garden_role_required"
   | "request_not_found"
   | "already_member"
+  | "open_joining_enabled"
   | "idempotency_conflict"
   | "resolution_conflict"
   | "request_expired"
@@ -313,8 +314,14 @@ export function validateGardenJoinProofEnvelope(
   ) {
     return { ok: false, error: error("Invalid counterfactual account data.", "factory") };
   }
-  if (candidate.requestId !== undefined && !candidate.requestId.trim()) {
+  if (
+    candidate.requestId !== undefined &&
+    (typeof candidate.requestId !== "string" || !candidate.requestId.trim())
+  ) {
     return { ok: false, error: error("Invalid request ID.", "requestId") };
+  }
+  if (candidate.cursor !== undefined && typeof candidate.cursor !== "string") {
+    return { ok: false, error: error("Invalid cursor.", "cursor") };
   }
   if (
     candidate.expectedRevision !== undefined &&

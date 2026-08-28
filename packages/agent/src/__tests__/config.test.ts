@@ -231,6 +231,7 @@ describe("production Saved Offers configuration", () => {
     "AGENT_ALLOWED_ORIGINS",
     "SAVED_OFFERS_ENCRYPTION_KEY",
     "SAVED_OFFERS_AUDIENCE",
+    "JOIN_REQUESTS_ENABLED",
     "JOIN_REQUESTS_ENCRYPTION_KEY",
     "AGENT_TRUSTED_PROXY_HOPS",
     "AGENT_TRUSTED_PROXY_CIDRS",
@@ -248,6 +249,7 @@ describe("production Saved Offers configuration", () => {
     process.env.AGENT_ALLOWED_ORIGINS = "https://greengoods.app";
     process.env.SAVED_OFFERS_ENCRYPTION_KEY = "b".repeat(64);
     process.env.SAVED_OFFERS_AUDIENCE = "agent.greengoods.app";
+    process.env.JOIN_REQUESTS_ENABLED = "true";
     process.env.JOIN_REQUESTS_ENCRYPTION_KEY = "c".repeat(64);
     process.env.AGENT_TRUSTED_PROXY_HOPS = "1";
     process.env.AGENT_TRUSTED_PROXY_CIDRS = "10.0.0.0/8";
@@ -272,6 +274,12 @@ describe("production Saved Offers configuration", () => {
   });
 
   it("accepts the complete production Saved Offers configuration", () => {
+    expect(() => validateConfig(loadConfig())).not.toThrow();
+  });
+
+  it("allows production startup while the join-request queue is disabled", () => {
+    process.env.JOIN_REQUESTS_ENABLED = "false";
+    delete process.env.JOIN_REQUESTS_ENCRYPTION_KEY;
     expect(() => validateConfig(loadConfig())).not.toThrow();
   });
 });

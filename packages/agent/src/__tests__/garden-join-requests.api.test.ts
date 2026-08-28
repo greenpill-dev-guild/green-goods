@@ -2,12 +2,13 @@ import {
   encodeGardenJoinAuthorization,
   type GardenJoinProofAction,
   type GardenJoinProofEnvelope,
-} from "@green-goods/shared/public-contracts";
+} from "@green-goods/shared/public-contracts/join-requests";
 import { describe, expect, it, vi } from "vitest";
 import { InMemoryPublicRateLimiter } from "../api/public-protection";
 import { createServer } from "../api/server";
 import { MemoryGardenJoinRequestStore } from "../services/garden-join-request-memory-store";
 import { createGardenJoinRequestCipher } from "../services/garden-join-requests";
+import type { ProfileAvatarSignatureVerifier } from "../services/profile-avatars";
 
 const ORIGIN = "https://greengoods.app";
 const CHAIN_ID = 42161;
@@ -45,12 +46,13 @@ function headers(joinProof: GardenJoinProofEnvelope) {
   };
 }
 
-function createApp(options: { signatureVerifier?: ReturnType<typeof vi.fn> } = {}) {
+function createApp(options: { signatureVerifier?: ProfileAvatarSignatureVerifier } = {}) {
   let requestId = 0;
   const store = new MemoryGardenJoinRequestStore(createGardenJoinRequestCipher("11".repeat(32)), {
     id: () => `request-${++requestId}`,
   });
   let applicantIsMember = false;
+  let openJoining = false;
   const chainReader = {
     isMember: vi.fn(
       async (_garden: string, account: string) =>
@@ -59,11 +61,16 @@ function createApp(options: { signatureVerifier?: ReturnType<typeof vi.fn> } = {
     canManage: vi.fn(
       async (_garden: string, account: string) => account.toLowerCase() === OPERATOR
     ),
+    areMembers: vi.fn(async (_garden: string, accounts: readonly string[]) =>
+      accounts.map((account) => account.toLowerCase() === APPLICANT && applicantIsMember)
+    ),
+    isOpenJoining: vi.fn(async () => openJoining),
   };
   const app = createServer({
     isAIReady: () => true,
     allowedOrigins: new Set([ORIGIN]),
     publicRateLimiter: new InMemoryPublicRateLimiter(),
+    gardenJoinRequestsEnabled: true,
     gardenJoinRequestStore: store,
     gardenJoinRequestChainId: CHAIN_ID,
     gardenJoinRequestChainReader: chainReader,
@@ -71,7 +78,13 @@ function createApp(options: { signatureVerifier?: ReturnType<typeof vi.fn> } = {
     gardenJoinRequestSweepIntervalMs: 0,
     now: () => NOW,
   });
-  return { app, store, setMember: (value: boolean) => (applicantIsMember = value) };
+  return {
+    app,
+    store,
+    chainReader,
+    setMember: (value: boolean) => (applicantIsMember = value),
+    setOpenJoining: (value: boolean) => (openJoining = value),
+  };
 }
 
 async function submit(app: ReturnType<typeof createServer>) {
@@ -117,8 +130,19 @@ describe("garden join request public API", () => {
     });
   });
 
+  it("rejects requests for gardens that allow direct joining", async () => {
+    const { app, store, setOpenJoining } = createApp();
+    setOpenJoining(true);
+
+    const response = await submit(app);
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ errorCode: "open_joining_enabled" });
+    expect(await store.getMine(GARDEN, APPLICANT)).toBeUndefined();
+  });
+
   it("requires an operator or owner proof to list and decline requests", async () => {
-    const { app } = createApp();
+    const { app, chainReader } = createApp();
     await submit(app);
 
     const denied = await app.request(
@@ -139,6 +163,7 @@ describe("garden join request public API", () => {
     expect(queue.items).toEqual([
       expect.objectContaining({ id: "request-1", displayName: "Maya", accountAddress: APPLICANT }),
     ]);
+    expect(chainReader.areMembers).toHaveBeenCalledOnce();
 
     const declined = await app.request(
       `/public/gardens/${GARDEN}/join-requests/request-1/resolve`,
@@ -220,5 +245,26 @@ describe("garden join request public API", () => {
       const response = await submitFor(app, applicant);
       expect(response.status).toBe(201);
     }
+  });
+
+  it("runs the retention sweep when the enabled service starts", async () => {
+    const store = new MemoryGardenJoinRequestStore(createGardenJoinRequestCipher("22".repeat(32)));
+    const sweep = vi.spyOn(store, "sweep");
+    const app = createServer({
+      isAIReady: () => true,
+      gardenJoinRequestsEnabled: true,
+      gardenJoinRequestStore: store,
+      gardenJoinRequestSweepIntervalMs: 60_000,
+      now: () => NOW,
+    });
+
+    await vi.waitFor(() => expect(sweep).toHaveBeenCalledWith(new Date(NOW).toISOString()));
+    await app.close();
+  });
+
+  it("does not expose queue routes until activation is explicit", async () => {
+    const app = createServer({ isAIReady: () => true });
+    const response = await submit(app);
+    expect(response.status).toBe(404);
   });
 });

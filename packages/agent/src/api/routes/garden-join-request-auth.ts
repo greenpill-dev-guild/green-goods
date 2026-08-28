@@ -6,7 +6,7 @@ import {
   type GardenJoinProofContent,
   type GardenJoinProofEnvelope,
   type GardenJoinRequestApiErrorCode,
-} from "@green-goods/shared/public-contracts";
+} from "@green-goods/shared/public-contracts/join-requests";
 import type { Address } from "@green-goods/shared/types";
 import type { Context } from "hono";
 import type { GardenJoinRequestStore } from "../../services/garden-join-requests";
@@ -14,11 +14,6 @@ import { checkOrigin, publicBrowserCorsResponse } from "../http/public";
 import type { ApiRouteContext } from "../http/route-context";
 
 const ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
-
-export type GardenJoinRequestChainReader = {
-  isMember(gardenAddress: Address, accountAddress: Address): Promise<boolean>;
-  canManage(gardenAddress: Address, accountAddress: Address): Promise<boolean>;
-};
 
 export type GardenJoinRequestRouteContext = ApiRouteContext & {
   store?: GardenJoinRequestStore;

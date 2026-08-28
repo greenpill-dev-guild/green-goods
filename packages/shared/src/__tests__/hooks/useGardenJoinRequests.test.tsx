@@ -4,9 +4,10 @@ import type {
   GardenJoinRequestQueueResponse,
   GardenJoinRequestSelfResponse,
 } from "../../public-contracts/join-requests";
+import type { Address } from "../../types/domain";
 
 const mocks = vi.hoisted(() => ({
-  accountAddress: "0x2222222222222222222222222222222222222222",
+  accountAddress: "0x2222222222222222222222222222222222222222" as Address,
   mine: vi.fn(),
   list: vi.fn(),
 }));
@@ -89,7 +90,7 @@ describe("useGardenJoinRequests", () => {
     mocks.mine.mockReturnValueOnce(pendingMine.promise);
     const { result, rerender } = renderHook(
       ({ gardenAddress }) => useGardenJoinRequests(gardenAddress),
-      { initialProps: { gardenAddress: GARDEN_A } }
+      { initialProps: { gardenAddress: GARDEN_A as Address } }
     );
 
     let statusPromise!: Promise<unknown>;

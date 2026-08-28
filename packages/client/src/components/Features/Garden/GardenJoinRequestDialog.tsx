@@ -2,7 +2,7 @@ import { useGardenJoinRequests } from "@green-goods/shared/hooks/garden/useGarde
 import {
   GARDEN_JOIN_REQUEST_DISPLAY_NAME_MAX_LENGTH,
   GARDEN_JOIN_REQUEST_NOTE_MAX_LENGTH,
-} from "@green-goods/shared/public-contracts";
+} from "@green-goods/shared/public-contracts/join-requests";
 import type { Address } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as Dialog from "@radix-ui/react-dialog";

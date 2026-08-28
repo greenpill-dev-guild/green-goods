@@ -2,6 +2,10 @@ import type { GardenJoinProofContent, GardenJoinProofEnvelope } from "./join-req
 
 const AUTHORIZATION_PREFIX = "GG-JoinProof ";
 
+function escapeProofField(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/\r/g, "\\r").replace(/\n/g, "\\n");
+}
+
 export function buildGardenJoinProofMessage(
   proof: Omit<GardenJoinProofEnvelope, "signature" | "factory" | "factoryData">,
   content: GardenJoinProofContent = {}
@@ -17,14 +21,16 @@ export function buildGardenJoinProofMessage(
     `Issued at: ${proof.issuedAt}`,
     `Expires at: ${proof.expiresAt}`,
   ];
-  if (proof.requestId) lines.push(`Request ID: ${proof.requestId}`);
-  if (proof.cursor) lines.push(`Cursor: ${proof.cursor}`);
+  if (proof.requestId) lines.push(`Request ID: ${escapeProofField(proof.requestId)}`);
+  if (proof.cursor) lines.push(`Cursor: ${escapeProofField(proof.cursor)}`);
   if (proof.expectedRevision !== undefined) {
     lines.push(`Expected revision: ${proof.expectedRevision}`);
   }
-  if (content.displayName !== undefined) lines.push(`Display name: ${content.displayName}`);
-  if (content.note !== undefined) lines.push(`Note: ${content.note ?? ""}`);
-  if (content.reason !== undefined) lines.push(`Reason: ${content.reason}`);
+  if (content.displayName !== undefined) {
+    lines.push(`Display name: ${escapeProofField(content.displayName)}`);
+  }
+  if (content.note !== undefined) lines.push(`Note: ${escapeProofField(content.note ?? "")}`);
+  if (content.reason !== undefined) lines.push(`Reason: ${escapeProofField(content.reason)}`);
   if (content.requestedVia !== undefined) lines.push(`Requested via: ${content.requestedVia}`);
   if (content.state !== undefined) lines.push(`State: ${content.state}`);
   if (content.limit !== undefined) lines.push(`Limit: ${content.limit}`);

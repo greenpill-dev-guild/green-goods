@@ -1954,6 +1954,7 @@
   "app.garden.joinQueue.description": "Review people who asked to join this garden.",
   "app.garden.joinQueue.empty": "There are no pending join requests.",
   "app.garden.joinQueue.load": "Check requests",
+  "app.garden.joinQueue.membershipAddFailed": "Membership could not be added.",
   "app.garden.joinQueue.membershipPending": "The membership transaction was submitted. Confirm again after it is visible on-chain.",
   "app.garden.joinQueue.title": "Join requests",
   "app.garden.joinQueue.updateFailed": "The request could not be updated.",

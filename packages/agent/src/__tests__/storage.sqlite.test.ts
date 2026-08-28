@@ -99,6 +99,20 @@ describe("agent storage with real bun:sqlite", () => {
     });
   });
 
+  it("persists replay nonces only as keyed digests", async () => {
+    const cipher = createGardenJoinRequestCipher("ef".repeat(32));
+    const store = createSqliteGardenJoinRequestStore(cipher);
+    const proofNonce = `0x${"34".repeat(32)}`;
+
+    expect(await store.claimProof(proofNonce, "2026-09-26T12:00:00.000Z")).toBe(true);
+    const raw = rawDatabase()
+      .query("SELECT nonce FROM garden_join_request_proofs ORDER BY expiresAt DESC LIMIT 1")
+      .get() as { nonce: string };
+
+    expect(raw.nonce).toBe(cipher.proofKey(proofNonce));
+    expect(raw.nonce).not.toBe(proofNonce);
+  });
+
   it("persists encrypted users and retrieves them after reopening the database", async () => {
     const privateKey = `0x${"a".repeat(64)}`;
     const db = getDB();

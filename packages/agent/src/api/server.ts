@@ -109,12 +109,14 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       ? 24 * 60 * 60 * 1000
       : deps.gardenJoinRequestSweepIntervalMs;
   let joinRequestSweepTimer: ReturnType<typeof setInterval> | null = null;
-  if (deps.gardenJoinRequestStore && joinRequestSweepIntervalMs > 0) {
-    joinRequestSweepTimer = setInterval(() => {
-      void deps
-        .gardenJoinRequestStore!.sweep(new Date(deps.now?.() ?? Date.now()).toISOString())
-        .catch((err) => log.warn({ err }, "Garden join-request retention sweep failed"));
-    }, joinRequestSweepIntervalMs);
+  const joinRequestsEnabled = deps.gardenJoinRequestsEnabled === true;
+  const sweepJoinRequests = () =>
+    deps
+      .gardenJoinRequestStore!.sweep(new Date(deps.now?.() ?? Date.now()).toISOString())
+      .catch((err) => log.warn({ err }, "Garden join-request retention sweep failed"));
+  if (joinRequestsEnabled && deps.gardenJoinRequestStore && joinRequestSweepIntervalMs > 0) {
+    void sweepJoinRequests();
+    joinRequestSweepTimer = setInterval(() => void sweepJoinRequests(), joinRequestSweepIntervalMs);
     if (
       typeof joinRequestSweepTimer === "object" &&
       joinRequestSweepTimer &&
@@ -158,10 +160,12 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     savedOfferStore: deps.savedOfferStore,
     savedOffersSessionStore: deps.savedOffersSessionStore,
   });
-  registerGardenJoinRequestRoutes(app, {
-    ...routeContext,
-    store: deps.gardenJoinRequestStore,
-  });
+  if (joinRequestsEnabled) {
+    registerGardenJoinRequestRoutes(app, {
+      ...routeContext,
+      store: deps.gardenJoinRequestStore,
+    });
+  }
 
   const fundingRouteContext: FundingRouteContext = {
     deps,

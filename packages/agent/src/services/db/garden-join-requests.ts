@@ -202,10 +202,10 @@ export function reconcileWelcomedGardenJoinRequest(
   return updated ? decrypt(cipher, updated) : undefined;
 }
 
-export function claimGardenJoinRequestProof(db: Database, nonce: string, expiresAt: string) {
+export function claimGardenJoinRequestProof(db: Database, nonceHash: string, expiresAt: string) {
   const result = db
     .query("INSERT OR IGNORE INTO garden_join_request_proofs (nonce, expiresAt) VALUES (?, ?)")
-    .run(nonce, expiresAt);
+    .run(nonceHash, expiresAt);
   return result.changes > 0;
 }
 

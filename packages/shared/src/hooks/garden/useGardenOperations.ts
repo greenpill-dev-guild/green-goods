@@ -10,7 +10,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import type { Garden } from "../../types/domain";
+import type { Address, Garden } from "../../types/domain";
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
 import { useToastAction } from "../app/useToastAction";
 import { gardensKeys } from "../../config/query-keys/garden";
@@ -18,6 +18,8 @@ import {
   createGardenOperation,
   GARDEN_OPERATIONS,
   type GardenOperationMessages,
+  type GardenOperation,
+  type GardenOperationCallOptions,
   type GardenOperationResult,
   type OptimisticUpdateCallback,
 } from "./createGardenOperation";
@@ -162,13 +164,12 @@ export function useGardenOperations(gardenId: string) {
 
   // Wrapper to handle operation result and potential rollback
   const createOperationWrapper = useCallback(
-    (
-      operation: (targetAddress: string) => Promise<GardenOperationResult>,
-      memberType: GardenRole,
-      operationType: "add" | "remove"
-    ) => {
-      return async (targetAddress: string): Promise<GardenOperationResult> => {
-        const result = await operation(targetAddress);
+    (operation: GardenOperation, memberType: GardenRole, operationType: "add" | "remove") => {
+      return async (
+        targetAddress: Address,
+        options?: GardenOperationCallOptions
+      ): Promise<GardenOperationResult> => {
+        const result = await operation(targetAddress, options);
 
         if (!result.success && result.optimisticUpdate) {
           // Rollback if transaction failed after optimistic update was applied
@@ -185,7 +186,7 @@ export function useGardenOperations(gardenId: string) {
   const operations = useMemo(() => {
     if (!sender || !address) {
       // Return no-op functions when wallet is not connected
-      const notConnected = async (): Promise<GardenOperationResult> => ({
+      const notConnected: GardenOperation = async () => ({
         success: false,
         error: {
           name: "WalletNotConnected",

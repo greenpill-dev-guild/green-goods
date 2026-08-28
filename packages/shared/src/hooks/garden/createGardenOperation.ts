@@ -165,6 +165,16 @@ export interface GardenOperationResult {
   };
 }
 
+export interface GardenOperationCallOptions {
+  /** Queue actions carry applicant addresses and must not use member-level analytics. */
+  trackMemberAnalytics?: boolean;
+}
+
+export type GardenOperation = (
+  targetAddress: Address,
+  options?: GardenOperationCallOptions
+) => Promise<GardenOperationResult>;
+
 /**
  * Callback for applying optimistic updates
  */
@@ -197,9 +207,13 @@ export function createGardenOperation(
   executeWithToast: ExecuteWithToast,
   setIsLoading: (loading: boolean) => void,
   onOptimisticUpdate?: OptimisticUpdateCallback
-): (targetAddress: Address) => Promise<GardenOperationResult> {
-  return async (targetAddress: Address): Promise<GardenOperationResult> => {
+): GardenOperation {
+  return async (
+    targetAddress: Address,
+    options: GardenOperationCallOptions = {}
+  ): Promise<GardenOperationResult> => {
     let optimisticUpdate: GardenOperationResult["optimisticUpdate"];
+    const shouldTrackMemberAnalytics = options.trackMemberAnalytics !== false;
 
     if (!sender || !address) {
       return {
@@ -212,7 +226,9 @@ export function createGardenOperation(
     }
 
     // Track operation started
-    trackOperationStarted(gardenId, config.memberType, config.operationType, targetAddress);
+    if (shouldTrackMemberAnalytics) {
+      trackOperationStarted(gardenId, config.memberType, config.operationType, targetAddress);
+    }
 
     setIsLoading(true);
 
@@ -248,13 +264,15 @@ export function createGardenOperation(
 
       if (!simulation.success) {
         // Track failure
-        trackOperationFailed(
-          gardenId,
-          config.memberType,
-          config.operationType,
-          targetAddress,
-          simulation.error?.message ?? "Simulation failed"
-        );
+        if (shouldTrackMemberAnalytics) {
+          trackOperationFailed(
+            gardenId,
+            config.memberType,
+            config.operationType,
+            targetAddress,
+            simulation.error?.message ?? "Simulation failed"
+          );
+        }
 
         // Show error toast for simulation failure
         toastService.error({
@@ -300,7 +318,15 @@ export function createGardenOperation(
       const hash = transaction.hash;
 
       // Track operation success
-      trackOperationSuccess(gardenId, config.memberType, config.operationType, targetAddress, hash);
+      if (shouldTrackMemberAnalytics) {
+        trackOperationSuccess(
+          gardenId,
+          config.memberType,
+          config.operationType,
+          targetAddress,
+          hash
+        );
+      }
 
       return {
         hash,
@@ -312,13 +338,15 @@ export function createGardenOperation(
       const parsed = parseContractError(error);
 
       // Track operation failure
-      trackOperationFailed(
-        gardenId,
-        config.memberType,
-        config.operationType,
-        targetAddress,
-        parsed.message
-      );
+      if (shouldTrackMemberAnalytics) {
+        trackOperationFailed(
+          gardenId,
+          config.memberType,
+          config.operationType,
+          targetAddress,
+          parsed.message
+        );
+      }
 
       return {
         success: false,

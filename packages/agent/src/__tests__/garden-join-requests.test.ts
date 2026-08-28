@@ -115,4 +115,14 @@ describe("garden join request store", () => {
     expect(await store.sweep("2026-09-27T12:00:00.000Z")).toEqual({ deleted: 1 });
     expect(await store.getMine(garden, account)).toBeUndefined();
   });
+
+  it("stores replay guards as keyed nonce digests", async () => {
+    const store = createStore();
+    const proofNonce = `0x${"12".repeat(32)}`;
+
+    expect(await store.claimProof(proofNonce, expiresAt)).toBe(true);
+    expect(store.inspectProofKeys()).toHaveLength(1);
+    expect(store.inspectProofKeys()).not.toContain(proofNonce);
+    expect(await store.claimProof(proofNonce, expiresAt)).toBe(false);
+  });
 });

@@ -2,7 +2,7 @@
 
 **Feature Slug**: `community-interface`
 **Stage**: `active`
-**Status**: `ACTIVE: four-schema/two-resolver/refUID architecture locked 2026-07-27; this is architecture/planning convergence only, implementation has not started, and every implementation lane remains subject to its named gates`
+**Status**: `ACTIVE: four-schema/two-resolver/refUID architecture locked 2026-07-27; the join-request lane is implemented locally but production collection remains gated; other implementation lanes remain subject to their named gates`
 **Created**: 2026-07-04
 **Last Updated**: 2026-07-30
 
@@ -24,7 +24,7 @@ Linear mirror: project [Community Needs & Signals](https://linear.app/greenpill-
 | 7 | Discovery: global read-only browse; my garden is the scoped default; signal rights same-garden only. |
 | 8 | No claim flow in v1; the need→operator triage binding is first-class (time-sensitive triage, seed-from-Need). |
 | 9 | A Need is a problem paired with a desired outcome; it has no kind. Request / Offer is commitment direction only. Domains are operator-applied, optional, and multi-valued; commitments use the same optional multi-domain shape, with action pairing required only for DomainImpact. |
-| 10 | Join requests use the minimal encrypted garden-scoped service queue specified in `join-queue-spec.md`. The architecture is selected; PRD-691's membership-queue slice remains blocked until RESR-64 accepts the controller, access, retention/deletion, encryption, recovery, abuse, cost, incident-owner, and operator-handoff operating record. |
+| 10 | Join requests use the minimal encrypted garden-scoped service queue specified in `join-queue-spec.md`. Local implementation was authorized on 2026-08-27; production collection remains blocked until its encryption, backup-operator, recovery, and authenticated-Brave gates are complete. |
 | 11 | `packages/community` is an independent PWA at `community.greengoods.app` / local 3010; a prerequisite shared-foundation lane extracts generic runtime/auth/offline/install/update/error/shell primitives for both client and Community without sharing routes, manifests, service-worker scope, telemetry identity, or copy. |
 | 12 | Need moderation and progress are separate axes; declined is author/operator-only, hidden is operator-only, merge redirects, acknowledgement with rationale reopens, and author retraction leaves a content-free lineage tombstone. |
 | 13 | PRD-758 is the Community Needs architecture gate for PRD-682. It must close before PRD-682 implementation, but it does not block PRD-721/722/723 or the core Commitment Pooling backend. |
@@ -37,7 +37,7 @@ Sub-decisions: Need/NeedSignal revocable (self-retraction/clear only); NeedStatu
 
 - [x] Research evidence recorded: `corrections-log.md` (every research-pass repo claim verified, corrected, or superseded, with file paths)
 - [x] Existing repo patterns identified: IGardenAccessControl resolver gating, badge-schemas standalone registration, AudioRecorder/useAudioRecording + audioNotes IPFS path, agent transcription service, job-queue kind extension points, two-indexer read path
-- [x] Human judgment points surfaced and decided: 15 locked decisions; the join-request service-queue architecture is selected, while implementation remains blocked on the RESR-64 operating-record acceptance criteria
+- [x] Human judgment points surfaced and decided: 15 locked decisions; the join-request service queue is locally implemented, while production collection remains blocked on its activation criteria
 - [x] Out of scope defined: claim flow, leaderboards/funding-ranked boards, per-need escrow, push notifications, settlement, eligibility module (parked), ActionSignalPool wiring
 - [x] Lightest honest validation chosen per lane (see Validation)
 - [x] UX/research artifacts landed: ERDs + sequences, low-fi screens, six personas, six role journeys, customer/community journey map, operator service blueprint, consent/readiness protocol, and Linear-aligned onboarding schedule
@@ -51,7 +51,7 @@ Sub-decisions: Need/NeedSignal revocable (self-retraction/clear only); NeedStatu
 | Pimlico sponsorship policy for need/signal/testimony writes | `ops_paymaster` | [PRD-687](https://linear.app/greenpill-dev-guild/issue/PRD-687) | [PRD-689](https://linear.app/greenpill-dev-guild/issue/PRD-689) | ⏳ |
 | Shared substrate: job kinds, needs hooks + derivation join, voice dictation & transcription | `state_api` | [PRD-687](https://linear.app/greenpill-dev-guild/issue/PRD-687) | [PRD-690](https://linear.app/greenpill-dev-guild/issue/PRD-690) | ⏳ |
 | Shared foundations: runtime/auth/passkey/offline/install/update/error/shell extraction and client migration proof | `shared_foundation` | [PRD-682](https://linear.app/greenpill-dev-guild/issue/PRD-682) | none | MANUALLY BLOCKED on authorization, reviewer, and accepted RED characterization targets |
-| Admin: need triage, moderation, gathering view; membership queue after RESR-64 accepts the operating record | `ui_admin` | [PRD-691](https://linear.app/greenpill-dev-guild/issue/PRD-691) | none (parent tracker) | ⏳ / operating gate |
+| Admin: need triage, moderation, gathering view; locally implemented membership queue with production collection still gated | `ui_admin` | [PRD-691](https://linear.app/greenpill-dev-guild/issue/PRD-691) | none (parent tracker) | join queue local ✅ / production gate |
 | Funder lens: global needs gallery + donate/endowment embed + FundingAttribution | `funder_lens` | [PRD-691](https://linear.app/greenpill-dev-guild/issue/PRD-691) | [PRD-692](https://linear.app/greenpill-dev-guild/issue/PRD-692) | ⏳ |
 | Docs: community guide + operator triage guide + glossary entries | `docs` | [PRD-691](https://linear.app/greenpill-dev-guild/issue/PRD-691) | [PRD-693](https://linear.app/greenpill-dev-guild/issue/PRD-693) | ⏳ |
 | QA/dogfood: TAS pilot run, PostHog metrics readiness, offline proof | `qa_dogfood` | [PRD-691](https://linear.app/greenpill-dev-guild/issue/PRD-691) | [PRD-694](https://linear.app/greenpill-dev-guild/issue/PRD-694) | ⏳ |

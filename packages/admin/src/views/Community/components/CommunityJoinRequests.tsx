@@ -4,7 +4,7 @@ import { useGardenOperations } from "@green-goods/shared/hooks/garden/useGardenO
 import {
   GARDEN_JOIN_REQUEST_REASON_MAX_LENGTH,
   type GardenJoinRequestQueueItem,
-} from "@green-goods/shared/public-contracts";
+} from "@green-goods/shared/public-contracts/join-requests";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiCheckLine, RiCloseLine, RiInbox2Line } from "@remixicon/react";
 import { useState } from "react";
@@ -21,6 +21,7 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
   const [loaded, setLoaded] = useState(false);
   const [activeId, setActiveId] = useState<string>();
   const [declining, setDeclining] = useState<GardenJoinRequestQueueItem>();
+  const [declineError, setDeclineError] = useState<string>();
   const [notice, setNotice] = useState<string>();
   const [localError, setLocalError] = useState<string>();
   const error = join.queueState.error ?? join.mutationState.error;
@@ -37,9 +38,14 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
     setNotice(undefined);
     setLocalError(undefined);
     try {
-      const transaction = await operations.addGardener(request.accountAddress);
+      const transaction = await operations.addGardener(request.accountAddress, {
+        trackMemberAnalytics: false,
+      });
       if (!transaction.success) {
-        throw new Error(transaction.error?.message ?? "Membership could not be added.");
+        throw new Error(
+          transaction.error?.message ??
+            formatMessage({ id: "app.garden.joinQueue.membershipAddFailed" })
+        );
       }
       const resolution = await join.resolveRequest(request.id, {
         action: "welcome",
@@ -72,6 +78,7 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
         expectedRevision: declining.revision,
         reason,
       });
+      setDeclineError(undefined);
       setDeclining(undefined);
       setNotice(formatMessage({ id: "cockpit.community.joinRequests.declined" }));
     } finally {
@@ -151,7 +158,10 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
                   size="sm"
                   leadingIcon={<RiCloseLine />}
                   disabled={Boolean(activeId)}
-                  onClick={() => setDeclining(request)}
+                  onClick={() => {
+                    setDeclineError(undefined);
+                    setDeclining(request);
+                  }}
                 >
                   {formatMessage({ id: "cockpit.community.joinRequests.decline" })}
                 </AdminButton>
@@ -174,9 +184,18 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
 
       <AdminReasonDialog
         isOpen={Boolean(declining)}
-        onClose={() => setDeclining(undefined)}
+        onClose={() => {
+          setDeclineError(undefined);
+          setDeclining(undefined);
+        }}
         onConfirm={decline}
-        onError={() => undefined}
+        onError={(caught) =>
+          setDeclineError(
+            caught instanceof Error
+              ? caught.message
+              : formatMessage({ id: "cockpit.community.joinRequests.updateFailed" })
+          )
+        }
         title={formatMessage({ id: "cockpit.community.joinRequests.declineTitle" })}
         description={formatMessage(
           { id: "cockpit.community.joinRequests.declineDescription" },
@@ -188,7 +207,9 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
         variant="danger"
         tone="community"
         isLoading={Boolean(activeId)}
-      />
+      >
+        {declineError ? <Alert variant="error">{declineError}</Alert> : null}
+      </AdminReasonDialog>
     </>
   );
 }

@@ -5,7 +5,7 @@ import type {
   GardenJoinRequestQueueItem,
   GardenJoinRequestSelfRecord,
   GardenJoinRequestState,
-} from "@green-goods/shared/public-contracts";
+} from "@green-goods/shared/public-contracts/join-requests";
 import type { Address } from "@green-goods/shared/types";
 
 export const GARDEN_JOIN_REQUEST_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
@@ -15,6 +15,7 @@ export type GardenJoinRequestCipher = {
   encrypt(plaintext: string): { ciphertext: string; nonce: string };
   decrypt(encrypted: { ciphertext: string; nonce: string }): string;
   accountKey(address: Address): string;
+  proofKey(nonce: string): string;
 };
 
 export type GardenJoinRequestRecord = GardenJoinRequestQueueItem & {
@@ -120,6 +121,9 @@ export function createGardenJoinRequestCipher(secret: string): GardenJoinRequest
         .update(`garden-join-account:${address.toLowerCase()}`)
         .digest("hex");
     },
+    proofKey(nonce) {
+      return createHmac("sha256", key).update(`garden-join-proof:${nonce}`).digest("hex");
+    },
   };
 }
 
@@ -176,7 +180,9 @@ export function createSqliteGardenJoinRequestStore(
         db.reconcileWelcomedGardenJoinRequest(cipher, gardenAddress, requestId, resolvedAt)
       ),
     claimProof: (nonce, expiresAt) =>
-      import("./db").then((db) => db.claimGardenJoinRequestProof(nonce, expiresAt)),
+      import("./db").then((db) =>
+        db.claimGardenJoinRequestProof(cipher.proofKey(nonce), expiresAt)
+      ),
     withdraw: (gardenAddress, accountAddress) =>
       import("./db").then((db) =>
         db.withdrawGardenJoinRequest(cipher, gardenAddress, accountAddress)

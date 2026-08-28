@@ -3,7 +3,7 @@ import { useGardenOperations } from "@green-goods/shared/hooks/garden/useGardenO
 import {
   GARDEN_JOIN_REQUEST_REASON_MAX_LENGTH,
   type GardenJoinRequestQueueItem,
-} from "@green-goods/shared/public-contracts";
+} from "@green-goods/shared/public-contracts/join-requests";
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { RiCheckLine, RiCloseLine, RiGroupLine } from "@remixicon/react";
@@ -35,9 +35,17 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
     setNotice(undefined);
     setLocalError(undefined);
     try {
-      const transaction = await operations.addGardener(request.accountAddress);
+      const transaction = await operations.addGardener(request.accountAddress, {
+        trackMemberAnalytics: false,
+      });
       if (!transaction.success) {
-        throw new Error(transaction.error?.message ?? "Membership could not be added.");
+        throw new Error(
+          transaction.error?.message ??
+            formatMessage({
+              id: "app.garden.joinQueue.membershipAddFailed",
+              defaultMessage: "Membership could not be added.",
+            })
+        );
       }
       const resolution = await join.resolveRequest(request.id, {
         action: "welcome",

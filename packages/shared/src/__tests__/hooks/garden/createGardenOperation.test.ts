@@ -66,6 +66,11 @@ import {
   GARDEN_OPERATIONS,
   type GardenOperationConfig,
 } from "../../../hooks/garden/createGardenOperation";
+import {
+  trackAdminMemberAddFailed,
+  trackAdminMemberAddStarted,
+  trackAdminMemberAddSuccess,
+} from "../../../modules/app/analytics-events";
 import type { Address } from "../../../types/domain";
 
 // ============================================
@@ -149,6 +154,24 @@ describe("createGardenOperation", () => {
 
       expect(result.success).toBe(true);
       expect(result.hash).toBe(TX_HASH);
+    });
+
+    it("suppresses member analytics for privacy-sensitive queue operations", async () => {
+      const operation = createGardenOperation(
+        GARDEN_ID,
+        createConfig(),
+        createMockSender(),
+        USER_ADDRESS,
+        CHAIN_ID,
+        createMockExecuteWithToast(),
+        mockSetIsLoading
+      );
+
+      await operation(TARGET_ADDRESS, { trackMemberAnalytics: false });
+
+      expect(trackAdminMemberAddStarted).not.toHaveBeenCalled();
+      expect(trackAdminMemberAddSuccess).not.toHaveBeenCalled();
+      expect(trackAdminMemberAddFailed).not.toHaveBeenCalled();
     });
 
     it("calls simulation before transaction", async () => {

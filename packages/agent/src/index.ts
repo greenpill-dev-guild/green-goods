@@ -101,9 +101,10 @@ async function main(): Promise<void> {
   const savedOfferCipher = config.savedOffersEncryptionKey
     ? createSavedOfferCipher(config.savedOffersEncryptionKey)
     : undefined;
-  const joinRequestCipher = config.joinRequestsEncryptionKey
-    ? createGardenJoinRequestCipher(config.joinRequestsEncryptionKey)
-    : undefined;
+  const joinRequestCipher =
+    config.joinRequestsEnabled && config.joinRequestsEncryptionKey
+      ? createGardenJoinRequestCipher(config.joinRequestsEncryptionKey)
+      : undefined;
   const agentRpcUrl = resolveAgentRpcUrl(config.chainId);
 
   const groupCapture = createGroupCaptureHandler(config.captureTopics);
@@ -149,18 +150,23 @@ async function main(): Promise<void> {
     }),
     savedOffersAudience: config.savedOffersAudience,
     savedOffersChainIds: [config.chainId],
-    gardenJoinRequestStore: joinRequestCipher
-      ? createSqliteGardenJoinRequestStore(joinRequestCipher)
-      : undefined,
-    gardenJoinRequestChainId: config.chainId,
-    gardenJoinRequestChainReader: createGardenJoinRequestChainReader({
-      chain: config.chain,
-      rpcUrl: agentRpcUrl,
-    }),
-    gardenJoinRequestSignatureVerifier: createViemProfileAvatarSignatureVerifier({
-      chain: config.chain,
-      rpcUrl: agentRpcUrl,
-    }),
+    gardenJoinRequestsEnabled: config.joinRequestsEnabled,
+    ...(config.joinRequestsEnabled
+      ? {
+          gardenJoinRequestStore: joinRequestCipher
+            ? createSqliteGardenJoinRequestStore(joinRequestCipher)
+            : undefined,
+          gardenJoinRequestChainId: config.chainId,
+          gardenJoinRequestChainReader: createGardenJoinRequestChainReader({
+            chain: config.chain,
+            rpcUrl: agentRpcUrl,
+          }),
+          gardenJoinRequestSignatureVerifier: createViemProfileAvatarSignatureVerifier({
+            chain: config.chain,
+            rpcUrl: agentRpcUrl,
+          }),
+        }
+      : {}),
     allowedOrigins: resolveAllowedOrigins(config.publicAllowedOrigins, {
       includeDevelopmentDefaults: config.isDevelopment,
     }),

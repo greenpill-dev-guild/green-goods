@@ -42,9 +42,8 @@ async function request<T>(
 ): Promise<T> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  let response: Response;
   try {
-    response = await fetch(`${baseUrl.replace(/\/$/, "")}${path}`, {
+    const response = await fetch(`${baseUrl.replace(/\/$/, "")}${path}`, {
       ...init,
       signal: controller.signal,
       headers: {
@@ -53,7 +52,25 @@ async function request<T>(
         ...init.headers,
       },
     });
-  } catch {
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch (error) {
+      if (controller.signal.aborted) throw error;
+      payload = null;
+    }
+    if (!response.ok) {
+      const failure = payload as Partial<GardenJoinRequestApiError> | null;
+      throw new GardenJoinRequestTransportError(
+        failure?.message ?? "The garden request could not be completed.",
+        response.status,
+        failure?.errorCode,
+        response.status >= 500
+      );
+    }
+    return payload as T;
+  } catch (error) {
+    if (error instanceof GardenJoinRequestTransportError) throw error;
     throw new GardenJoinRequestTransportError(
       "The garden request service could not be reached.",
       undefined,
@@ -63,17 +80,6 @@ async function request<T>(
   } finally {
     clearTimeout(timeoutId);
   }
-  const payload = await response.json().catch(() => null);
-  if (!response.ok) {
-    const failure = payload as Partial<GardenJoinRequestApiError> | null;
-    throw new GardenJoinRequestTransportError(
-      failure?.message ?? "The garden request could not be completed.",
-      response.status,
-      failure?.errorCode,
-      response.status >= 500
-    );
-  }
-  return payload as T;
 }
 
 export const gardenJoinRequestTransport = {

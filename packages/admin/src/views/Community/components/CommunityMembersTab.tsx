@@ -7,6 +7,7 @@ import { RiArrowRightSLine, RiGroupLine, RiUserSettingsLine } from "@remixicon/r
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { isAddress } from "viem";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
@@ -46,6 +47,7 @@ export function CommunityMembersTab({
 }: CommunityMembersTabProps) {
   const { formatMessage } = useIntl();
   const [roleFilter, setRoleFilter] = useState<GardenRole | "all">("all");
+  const hasValidGardenAddress = isAddress(garden.id);
   const gardenRouteContext = { gardenId: garden.id };
   const totalMembers = roleSummary.reduce((sum, entry) => sum + entry.count, 0);
   const filteredDirectory = useMemo(
@@ -69,7 +71,9 @@ export function CommunityMembersTab({
     <div className="garden-tab-shell">
       <div className="garden-tab-layout">
         <div className="garden-tab-main">
-          {canManage ? <CommunityJoinRequests gardenAddress={garden.id as `0x${string}`} /> : null}
+          {canManage && hasValidGardenAddress ? (
+            <CommunityJoinRequests gardenAddress={garden.id} />
+          ) : null}
           <AdminCard variant="elevated" className="space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>

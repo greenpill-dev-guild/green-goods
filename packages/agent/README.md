@@ -26,7 +26,7 @@ bun run build && bun run start
 - Telegram token (`TELEGRAM_BOT_TOKEN`) from BotFather
 - 32+ char `ENCRYPTION_SECRET`
 - 32-byte hex or base64 `SAVED_OFFERS_ENCRYPTION_KEY`
-- 32-byte hex or base64 `JOIN_REQUESTS_ENCRYPTION_KEY`
+- 32-byte hex or base64 `JOIN_REQUESTS_ENCRYPTION_KEY` when the join-request queue is enabled
 - Canonical production audience in `SAVED_OFFERS_AUDIENCE`
 - Trusted reverse-proxy hop count in `AGENT_TRUSTED_PROXY_HOPS`
 - 32+ char `BOT_API_TOKEN` (bearer token that routines use to call `/api/messages` and its attachments proxy)
@@ -50,7 +50,7 @@ flyctl secrets set --config fly.toml \
   TELEGRAM_BOT_TOKEN=<botfather-token> \
   ENCRYPTION_SECRET=<32+-char-secret> \
   SAVED_OFFERS_ENCRYPTION_KEY=<32-byte-hex-or-base64-key> \
-  JOIN_REQUESTS_ENCRYPTION_KEY=<32-byte-hex-or-base64-key> \
+  JOIN_REQUESTS_ENABLED=false \
   SAVED_OFFERS_AUDIENCE=agent.greengoods.app \
   AGENT_TRUSTED_PROXY_HOPS=1 \
   BOT_API_TOKEN=<routine-auth-bearer-token> \
@@ -178,11 +178,12 @@ Create a `.env` file in the repo root:
 TELEGRAM_BOT_TOKEN=your-bot-token-from-botfather
 ENCRYPTION_SECRET=your-32-character-secret-key
 SAVED_OFFERS_ENCRYPTION_KEY=your-32-byte-hex-or-base64-key
-JOIN_REQUESTS_ENCRYPTION_KEY=your-32-byte-hex-or-base64-key
 SAVED_OFFERS_AUDIENCE=agent.greengoods.app
 AGENT_TRUSTED_PROXY_HOPS=1
 
 # Optional
+JOIN_REQUESTS_ENABLED=false  # Keep false until every activation gate is complete
+JOIN_REQUESTS_ENCRYPTION_KEY= # Required only when JOIN_REQUESTS_ENABLED=true
 BOT_MODE=polling              # or "webhook" (default: polling in dev)
 PORT=3000                     # HTTP server port
 WEBHOOK_URL=https://...       # Required for webhook mode
@@ -305,7 +306,7 @@ See [agent.md](/.claude/context/agent.md) for detailed architecture documentatio
 
 - [ ] Set `ENCRYPTION_SECRET` (32+ characters)
 - [ ] Set `SAVED_OFFERS_ENCRYPTION_KEY`, `SAVED_OFFERS_AUDIENCE`, and `AGENT_TRUSTED_PROXY_HOPS`
-- [ ] Set `JOIN_REQUESTS_ENCRYPTION_KEY` and name a backup operator before enabling join requests in production
+- [ ] Before setting `JOIN_REQUESTS_ENABLED=true`, set `JOIN_REQUESTS_ENCRYPTION_KEY`, name a backup operator, rehearse recovery, and record authenticated Brave proof. The authoritative activation state is in [the community interface status](/.plans/active/community-interface/status.json).
 - [ ] Configure webhook URL with TLS
 - [ ] Consider HSM/KMS for key storage
 - [ ] Set up monitoring for `/health` endpoint

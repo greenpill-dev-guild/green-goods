@@ -2,7 +2,7 @@ import {
   GARDEN_JOIN_REQUEST_DEFAULT_PAGE_SIZE,
   GARDEN_JOIN_REQUEST_MAX_PAGE_SIZE,
   validateCreateGardenJoinRequest,
-} from "@green-goods/shared/public-contracts";
+} from "@green-goods/shared/public-contracts/join-requests";
 import type { Context, Hono } from "hono";
 import {
   GARDEN_JOIN_REQUEST_RETENTION_MS,
@@ -73,6 +73,15 @@ async function handleCreate(c: Context, ctx: GardenJoinRequestRouteContext) {
   const store = ctx.store;
   if (!chain || !store) return gardenJoinRequestsUnavailable(c, ctx);
   try {
+    if (await chain.isOpenJoining(preflight.garden)) {
+      return gardenJoinRequestFailure(
+        c,
+        ctx,
+        "open_joining_enabled",
+        "This garden is open. Join it directly instead.",
+        409
+      );
+    }
     if (await chain.isMember(preflight.garden, authenticated.proof.accountAddress)) {
       return gardenJoinRequestFailure(
         c,
@@ -242,8 +251,16 @@ async function handleList(c: Context, ctx: GardenJoinRequestRouteContext) {
     });
     const items = [];
     const resolvedAt = new Date(ctx.deps.now?.() ?? Date.now()).toISOString();
-    for (const request of page.items) {
-      if (await chain.isMember(preflight.garden, request.accountAddress)) {
+    const membership = chain.areMembers
+      ? await chain.areMembers(
+          preflight.garden,
+          page.items.map((request) => request.accountAddress)
+        )
+      : await Promise.all(
+          page.items.map((request) => chain.isMember(preflight.garden, request.accountAddress))
+        );
+    for (const [index, request] of page.items.entries()) {
+      if (membership[index]) {
         await store.reconcileWelcomed(preflight.garden, request.id, resolvedAt);
       } else {
         items.push(request);

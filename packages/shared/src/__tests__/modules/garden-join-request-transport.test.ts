@@ -76,4 +76,34 @@ describe("garden join request transport", () => {
       )
     ).rejects.toMatchObject(expectedError);
   });
+
+  it("keeps the timeout active while the response body is being read", async () => {
+    vi.useFakeTimers();
+    let requestSignal: AbortSignal | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        requestSignal = init?.signal ?? undefined;
+        return {
+          ok: true,
+          status: 200,
+          json: () =>
+            new Promise((_resolve, reject) =>
+              requestSignal?.addEventListener("abort", () => reject(new Error("aborted")))
+            ),
+        } as Response;
+      })
+    );
+
+    const pending = gardenJoinRequestTransport.mine(GARDEN, proof, "https://agent.example");
+    const rejection = expect(pending).rejects.toMatchObject({
+      message: "The garden request service could not be reached.",
+      outcomeUnknown: false,
+    });
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    expect(requestSignal?.aborted).toBe(true);
+    await rejection;
+    vi.useRealTimers();
+  });
 });

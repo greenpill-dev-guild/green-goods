@@ -137,8 +137,9 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
   }
 
   async claimProof(nonce: string, expiresAt: string) {
-    if (this.proofNonces.has(nonce)) return false;
-    this.proofNonces.set(nonce, expiresAt);
+    const nonceHash = this.cipher.proofKey(nonce);
+    if (this.proofNonces.has(nonceHash)) return false;
+    this.proofNonces.set(nonceHash, expiresAt);
     return true;
   }
 
@@ -171,6 +172,10 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
 
   inspectEncryptedRecords(): EncryptedGardenJoinRequest[] {
     return [...this.records.values()].map((record) => ({ ...record }));
+  }
+
+  inspectProofKeys(): string[] {
+    return [...this.proofNonces.keys()];
   }
 
   private findPending(gardenAddress: Address, accountAddressKey: string) {

@@ -59,6 +59,18 @@ describe("garden join request public contract", () => {
     expect(message).toContain("Note: Compost pickup");
   });
 
+  it("escapes line breaks and backslashes in signed user content", () => {
+    const message = buildGardenJoinProofMessage(proof, {
+      displayName: "Maya\\North",
+      note: "First line\nAction: decline\r\nLast line",
+      requestedVia: "garden_detail",
+    });
+
+    expect(message).toContain("Display name: Maya\\\\North");
+    expect(message).toContain("Note: First line\\nAction: decline\\r\\nLast line");
+    expect(message.match(/^Action:/gm)).toHaveLength(1);
+  });
+
   it("round-trips the authorization envelope without placing signatures in a URL", () => {
     const authorization = encodeGardenJoinAuthorization(proof);
     expect(authorization.startsWith("GG-JoinProof ")).toBe(true);
@@ -81,5 +93,22 @@ describe("garden join request public contract", () => {
         allowedChainIds: [11155111],
       })
     ).toMatchObject({ ok: false, error: { errorCode: "invalid_request" } });
+  });
+
+  it("rejects non-string request IDs and cursors without throwing", () => {
+    expect(
+      validateGardenJoinProofEnvelope({ ...proof, requestId: 42 } as unknown, {
+        nowSeconds: issuedAt,
+        expectedAction: "create",
+        allowedChainIds: [11155111],
+      })
+    ).toMatchObject({ ok: false, error: { fieldErrors: { requestId: expect.any(String) } } });
+
+    expect(
+      validateGardenJoinProofEnvelope(
+        { ...proof, action: "list", cursor: { page: 2 } } as unknown,
+        { nowSeconds: issuedAt, expectedAction: "list", allowedChainIds: [11155111] }
+      )
+    ).toMatchObject({ ok: false, error: { fieldErrors: { cursor: expect.any(String) } } });
   });
 });

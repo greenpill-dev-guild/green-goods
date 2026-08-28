@@ -24,7 +24,7 @@ import type {
   SavedOffersSignatureVerifier,
 } from "../../services/saved-offers";
 import type { GardenJoinRequestStore } from "../../services/garden-join-requests";
-import type { GardenJoinRequestChainReader } from "../routes/garden-join-request-auth";
+import type { GardenJoinRequestChainReader } from "../../services/garden-join-requests-chain";
 
 export interface ServerConfig {
   port: number;
@@ -87,6 +87,7 @@ export interface ServerDeps {
   savedOffersAudience?: string;
   savedOffersChainIds?: readonly number[];
   gardenJoinRequestStore?: GardenJoinRequestStore;
+  gardenJoinRequestsEnabled?: boolean;
   gardenJoinRequestChainId?: number;
   gardenJoinRequestChainReader?: GardenJoinRequestChainReader;
   gardenJoinRequestSignatureVerifier?: ProfileAvatarSignatureVerifier;
