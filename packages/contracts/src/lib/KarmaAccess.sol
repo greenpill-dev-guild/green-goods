@@ -68,7 +68,9 @@ library KarmaAccessLib {
             return (roleActive, changed);
         }
 
-        _reconcileMembership(memberUIDs, memberProjectUIDs, syncInFlight, garden, projectUID, account, roleActive);
+        bool membershipChanged =
+            _reconcileMembership(memberUIDs, memberProjectUIDs, syncInFlight, garden, projectUID, account, roleActive);
+        changed = changed || membershipChanged;
     }
 
     function recordPrerequisiteFailure(address garden, bytes32 projectUID, address account, string memory reason) internal {
@@ -161,6 +163,7 @@ library KarmaAccessLib {
         bool roleActive
     )
         private
+        returns (bool changed)
     {
         bytes32 memberUID = memberUIDs[garden][account];
         bool belongsToCurrentProject = memberProjectUIDs[garden][account] == projectUID;
@@ -175,7 +178,7 @@ library KarmaAccessLib {
                 belongsToCurrentProject ? memberUID : bytes32(0),
                 belongsToCurrentProject ? "history_retained" : "role_inactive"
             );
-            return;
+            return false;
         }
         if (memberUID != bytes32(0) && belongsToCurrentProject) {
             _record(
@@ -188,7 +191,7 @@ library KarmaAccessLib {
                 memberUID,
                 "already_exists"
             );
-            return;
+            return false;
         }
 
         bytes32 lockKey = keccak256(abi.encodePacked("karma-membership", projectUID, account));
@@ -204,7 +207,7 @@ library KarmaAccessLib {
                 bytes32(0),
                 "sync_in_flight"
             );
-            return;
+            return false;
         }
 
         AttestationRequestData memory memberData = AttestationRequestData({
@@ -228,6 +231,7 @@ library KarmaAccessLib {
                 uid,
                 ""
             );
+            return true;
         } catch {
             syncInFlight[lockKey] = false;
             emit GAPOperationFailed(garden, "reconcileProjectAccess", "MemberOf attestation failed");
@@ -241,6 +245,7 @@ library KarmaAccessLib {
                 bytes32(0),
                 "attestation_failed"
             );
+            return false;
         }
     }
 

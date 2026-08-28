@@ -1,15 +1,15 @@
-import { indexer, type Garden, type KarmaProjectAccess } from "envio";
+import { indexer, type Garden } from "envio";
+import type { Address } from "viem";
 
+import { addUniqueAddress, GARDEN_ROLE, normalizeAddress, removeAddress } from "./shared";
 import {
-  addUniqueAddress,
   createDefaultGarden,
-  GARDEN_ROLE,
-  normalizeAddress,
-  removeAddress,
-} from "./shared";
+  createDefaultKarmaProjectAccess,
+  type EventContext,
+} from "./entity-defaults";
 import { getKarmaProjectAccessId } from "./ids";
 
-function markKarmaAccessPending(garden: Garden, account: string, role: number): Garden {
+function markKarmaAccessPending(garden: Garden, account: Address, role: number): Garden {
   if (role !== GARDEN_ROLE.Steward && role !== GARDEN_ROLE.Owner) return garden;
 
   return {
@@ -25,30 +25,16 @@ function markKarmaAccessPending(garden: Garden, account: string, role: number): 
 }
 
 async function setPendingAccessAggregate(
-  context: Parameters<Parameters<typeof indexer.onEvent>[1]>[0]["context"],
+  context: EventContext,
   chainId: number,
-  garden: string,
-  account: string,
+  garden: Address,
+  account: Address,
   timestamp: number,
   projectUID?: string
 ) {
   const id = getKarmaProjectAccessId(chainId, garden, account);
   const existing = await context.KarmaProjectAccess.get(id);
-  const base: KarmaProjectAccess = existing ?? {
-    id,
-    chainId,
-    garden: normalizeAddress(garden),
-    account: normalizeAddress(account),
-    projectUID,
-    membershipState: "UNKNOWN",
-    membershipOutcome: undefined,
-    membershipReason: undefined,
-    membershipUpdatedAt: undefined,
-    accessState: "UNKNOWN",
-    accessOutcome: undefined,
-    accessReason: undefined,
-    accessUpdatedAt: undefined,
-  };
+  const base = existing ?? createDefaultKarmaProjectAccess(chainId, garden, account, projectUID);
 
   context.KarmaProjectAccess.set({
     ...base,

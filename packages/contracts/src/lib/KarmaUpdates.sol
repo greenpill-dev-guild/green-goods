@@ -10,7 +10,7 @@ import { KarmaLib } from "./Karma.sol";
 
 /// @notice Storage-neutral Project Update and milestone attestation behavior.
 library KarmaUpdatesLib {
-    event GAPImpactCreated(bytes32 indexed projectUID, bytes32 indexed impactUID, bytes32 indexed workUID);
+    event GAPImpactCreated(bytes32 indexed projectUID, bytes32 indexed impactUID, bytes32 workUID);
     event GAPMilestoneCreated(bytes32 indexed projectUID, bytes32 indexed milestoneUID, string title);
     event GAPOperationFailed(address indexed garden, string operation, string reason);
     event KarmaSyncRecorded(

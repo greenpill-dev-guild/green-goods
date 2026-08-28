@@ -1,46 +1,28 @@
-import { indexer, type Garden, type KarmaProjectAccess } from "envio";
+import { indexer, type Garden } from "envio";
+import type { Address } from "viem";
 
-import { addUniqueAddress, createDefaultGarden, normalizeAddress, removeAddress } from "./shared";
+import {
+  createDefaultGarden,
+  createDefaultKarmaProjectAccess,
+  type EventContext,
+} from "./entity-defaults";
+import { addUniqueAddress, removeAddress } from "./shared";
 import { getKarmaProjectAccessId } from "./ids";
 
-type EventContext = Parameters<Parameters<typeof indexer.onEvent>[1]>[0]["context"];
 type HookFailureEvent = {
   chainId: number;
   block: { timestamp: number };
-  params: { garden: string; account: string; operation: bigint; reason: string };
+  params: { garden: Address; account: Address; operation: bigint; reason: string };
 };
 
 function markAccountFailed(
   pending: readonly string[] | undefined,
   failed: readonly string[] | undefined,
-  account: string
+  account: Address
 ): { pending: string[]; failed: string[] } {
   return {
     pending: removeAddress([...(pending ?? [])], account),
     failed: addUniqueAddress([...(failed ?? [])], account),
-  };
-}
-
-function defaultAccess(
-  chainId: number,
-  garden: string,
-  account: string,
-  projectUID?: string
-): KarmaProjectAccess {
-  return {
-    id: getKarmaProjectAccessId(chainId, garden, account),
-    chainId,
-    garden: normalizeAddress(garden),
-    account: normalizeAddress(account),
-    projectUID,
-    membershipState: "UNKNOWN",
-    membershipOutcome: undefined,
-    membershipReason: undefined,
-    membershipUpdatedAt: undefined,
-    accessState: "UNKNOWN",
-    accessOutcome: undefined,
-    accessReason: undefined,
-    accessUpdatedAt: undefined,
   };
 }
 
@@ -78,11 +60,16 @@ async function handleKarmaHookFailed(event: HookFailureEvent, context: EventCont
       karmaProjectUpdateReason: reason,
       karmaProjectUpdateUpdatedAt: timestamp,
     };
-  } else if (operation === 2 || operation === 3) {
+  } else if (operation === 2) {
     const accessId = getKarmaProjectAccessId(event.chainId, gardenId, account);
     const existingAccess =
       (await context.KarmaProjectAccess.get(accessId)) ??
-      defaultAccess(event.chainId, gardenId, account, existingGarden.gapProjectUID);
+      createDefaultKarmaProjectAccess(
+        event.chainId,
+        gardenId,
+        account,
+        existingGarden.gapProjectUID
+      );
     const membership = markAccountFailed(
       existingGarden.karmaMembershipPendingAccounts,
       existingGarden.karmaMembershipFailedAccounts,
@@ -98,39 +85,46 @@ async function handleKarmaHookFailed(event: HookFailureEvent, context: EventCont
       karmaMembershipFailedAccounts: membership.failed,
     };
 
-    let access: KarmaProjectAccess = {
+    context.KarmaProjectAccess.set({
       ...existingAccess,
       projectUID: existingAccess.projectUID ?? existingGarden.gapProjectUID,
       membershipState: "FAILED",
       membershipOutcome: "FAILED",
       membershipReason: reason,
       membershipUpdatedAt: timestamp,
-    };
-
-    if (operation === 3) {
-      const projectAccess = markAccountFailed(
-        existingGarden.karmaAccessPendingAccounts,
-        existingGarden.karmaAccessFailedAccounts,
-        account
+    });
+  } else if (operation === 3) {
+    const accessId = getKarmaProjectAccessId(event.chainId, gardenId, account);
+    const existingAccess =
+      (await context.KarmaProjectAccess.get(accessId)) ??
+      createDefaultKarmaProjectAccess(
+        event.chainId,
+        gardenId,
+        account,
+        existingGarden.gapProjectUID
       );
-      garden = {
-        ...garden,
-        karmaAccessState: "FAILED",
-        karmaAccessReason: reason,
-        karmaAccessUpdatedAt: timestamp,
-        karmaAccessPendingAccounts: projectAccess.pending,
-        karmaAccessFailedAccounts: projectAccess.failed,
-      };
-      access = {
-        ...access,
-        accessState: "FAILED",
-        accessOutcome: "FAILED",
-        accessReason: reason,
-        accessUpdatedAt: timestamp,
-      };
-    }
+    const projectAccess = markAccountFailed(
+      existingGarden.karmaAccessPendingAccounts,
+      existingGarden.karmaAccessFailedAccounts,
+      account
+    );
 
-    context.KarmaProjectAccess.set(access);
+    garden = {
+      ...garden,
+      karmaAccessState: "FAILED",
+      karmaAccessReason: reason,
+      karmaAccessUpdatedAt: timestamp,
+      karmaAccessPendingAccounts: projectAccess.pending,
+      karmaAccessFailedAccounts: projectAccess.failed,
+    };
+    context.KarmaProjectAccess.set({
+      ...existingAccess,
+      projectUID: existingAccess.projectUID ?? existingGarden.gapProjectUID,
+      accessState: "FAILED",
+      accessOutcome: "FAILED",
+      accessReason: reason,
+      accessUpdatedAt: timestamp,
+    });
   } else {
     throw new Error(`Unknown Karma hook operation ordinal: ${event.params.operation.toString()}`);
   }

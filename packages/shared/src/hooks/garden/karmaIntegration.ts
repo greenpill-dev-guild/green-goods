@@ -101,7 +101,6 @@ function projectedFailureReason(projection: KarmaIntegrationProjection): string 
   if (projection.detailsState === "failed") return projection.detailsReason;
   if (projection.membershipState === "failed") return projection.membershipReason;
   if (projection.accessState === "failed") return projection.accessReason;
-  if (projection.projectUpdateState === "failed") return projection.projectUpdateReason;
   return projection.lastFailureReason;
 }
 
@@ -144,7 +143,6 @@ export function deriveKarmaIntegrationStatus(
     input.projection.detailsState === "failed" ||
     input.projection.membershipState === "failed" ||
     input.projection.accessState === "failed" ||
-    input.projection.projectUpdateState === "failed" ||
     input.projection.membershipFailedAccounts.length > 0 ||
     input.projection.accessFailedAccounts.length > 0
   ) {

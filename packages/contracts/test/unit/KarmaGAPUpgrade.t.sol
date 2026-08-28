@@ -54,7 +54,7 @@ contract KarmaGAPUpgradeTest is Test {
     address internal constant GARDEN = address(0xB05);
     bytes32 internal constant PROJECT_UID = bytes32(uint256(0xB06));
 
-    function testUpgrade_KarmaGAPPreservesLegacyStorageAndInitializesNewSlotsEmpty() public {
+    function testUpgrade_Karma_preservesLegacyStorageAndInitializesNewSlotsEmpty() public {
         LegacyKarmaGAPModuleFixture legacyImplementation = new LegacyKarmaGAPModuleFixture();
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(legacyImplementation),

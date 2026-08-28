@@ -1,55 +1,11 @@
 import assert from "assert";
 import { getKarmaProjectAccessId } from "../src/handlers/ids";
 import { addr, CHAINS, mockEvent } from "./helpers/events";
+import { seedGarden } from "./helpers/garden";
 import { assertRoleArrays } from "./helpers/projections";
 import { createTestIndexer, HatsModule, processEvents } from "./v3";
 
 const CHAIN_ID = CHAINS.arbitrum;
-
-function seedGarden(mockDb: any, gardenAddress: string) {
-  mockDb.Garden.set({
-    id: gardenAddress,
-    chainId: CHAIN_ID,
-    tokenAddress: addr(1),
-    tokenID: 1n,
-    name: "Test Garden",
-    description: "",
-    location: "",
-    bannerImage: "",
-    openJoining: false,
-    initialized: true,
-    gardeners: [],
-    operators: [],
-    evaluators: [],
-    owners: [],
-    funders: [],
-    communities: [],
-    createdAt: 1000,
-    gapProjectUID: undefined,
-    karmaProjectState: "UNKNOWN",
-    karmaProjectReason: undefined,
-    karmaProjectUpdatedAt: undefined,
-    karmaDetailsState: "UNKNOWN",
-    karmaDetailsReason: undefined,
-    karmaDetailsUpdatedAt: undefined,
-    karmaMembershipState: "UNKNOWN",
-    karmaMembershipReason: undefined,
-    karmaMembershipUpdatedAt: undefined,
-    karmaAccessState: "UNKNOWN",
-    karmaAccessReason: undefined,
-    karmaAccessUpdatedAt: undefined,
-    karmaProjectUpdateState: "UNKNOWN",
-    karmaProjectUpdateReason: undefined,
-    karmaProjectUpdateUpdatedAt: undefined,
-    karmaMembershipPendingAccounts: [],
-    karmaMembershipFailedAccounts: [],
-    karmaAccessPendingAccounts: [],
-    karmaAccessFailedAccounts: [],
-    karmaLastFailureReason: undefined,
-    karmaLastSyncAt: undefined,
-  });
-  return mockDb;
-}
 
 // ============================================================================
 // ROLE GRANT — ALL 6 ROLE TYPES

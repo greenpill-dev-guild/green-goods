@@ -1,6 +1,8 @@
-import { indexer, type Enum, type Garden, type KarmaProjectAccess } from "envio";
+import { indexer, type Enum, type Garden } from "envio";
+import type { Address } from "viem";
 
-import { addUniqueAddress, createDefaultGarden, normalizeAddress, removeAddress } from "./shared";
+import { createDefaultGarden, createDefaultKarmaProjectAccess } from "./entity-defaults";
+import { addUniqueAddress, normalizeAddress, removeAddress } from "./shared";
 import { getTxHash } from "./event-access";
 import { getKarmaProjectAccessId, getKarmaSyncRecordId } from "./ids";
 
@@ -41,7 +43,7 @@ function projectionState(outcome: KarmaSyncOutcome): KarmaProjectionState {
 function trackedAccounts(
   pending: readonly string[] | undefined,
   failed: readonly string[] | undefined,
-  account: string,
+  account: Address,
   state: KarmaProjectionState
 ): { pending: string[]; failed: string[]; aggregate: KarmaProjectionState } {
   let nextPending = [...(pending ?? [])];
@@ -62,29 +64,6 @@ function trackedAccounts(
   };
 }
 
-function defaultAccess(
-  chainId: number,
-  garden: string,
-  account: string,
-  projectUID?: string
-): KarmaProjectAccess {
-  return {
-    id: getKarmaProjectAccessId(chainId, garden, account),
-    chainId,
-    garden: normalizeAddress(garden),
-    account: normalizeAddress(account),
-    projectUID,
-    membershipState: "UNKNOWN",
-    membershipOutcome: undefined,
-    membershipReason: undefined,
-    membershipUpdatedAt: undefined,
-    accessState: "UNKNOWN",
-    accessOutcome: undefined,
-    accessReason: undefined,
-    accessUpdatedAt: undefined,
-  };
-}
-
 indexer.onEvent(
   { contract: "KarmaGAPModule", event: "GAPProjectCreated" },
   async ({ event, context }) => {
@@ -98,6 +77,25 @@ indexer.onEvent(
       gapProjectUID: event.params.projectUID,
       karmaProjectState: "SYNCED",
       karmaProjectReason: undefined,
+      karmaProjectUpdatedAt: event.block.timestamp,
+      karmaLastSyncAt: event.block.timestamp,
+    });
+  }
+);
+
+indexer.onEvent(
+  { contract: "KarmaGAPModule", event: "GAPProjectReset" },
+  async ({ event, context }) => {
+    const gardenId = event.params.garden;
+    const existing =
+      (await context.Garden.get(gardenId)) ??
+      createDefaultGarden(gardenId, event.chainId, event.block.timestamp);
+
+    context.Garden.set({
+      ...existing,
+      gapProjectUID: undefined,
+      karmaProjectState: "PENDING",
+      karmaProjectReason: "project_reset",
       karmaProjectUpdatedAt: event.block.timestamp,
       karmaLastSyncAt: event.block.timestamp,
     });
@@ -168,7 +166,7 @@ indexer.onEvent(
       const accessId = getKarmaProjectAccessId(event.chainId, gardenId, account);
       const existingAccess =
         (await context.KarmaProjectAccess.get(accessId)) ??
-        defaultAccess(event.chainId, gardenId, account, projectUID);
+        createDefaultKarmaProjectAccess(event.chainId, gardenId, account, projectUID);
 
       if (operation === "MEMBERSHIP") {
         const tracked = trackedAccounts(

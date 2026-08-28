@@ -2,6 +2,7 @@
 pragma solidity >=0.8.25;
 
 import { Test } from "forge-std/Test.sol";
+import { Vm } from "forge-std/Vm.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { AccountGuardian } from "@tokenbound/AccountGuardian.sol";
 import { AccountProxy } from "@tokenbound/AccountProxy.sol";
@@ -722,7 +723,7 @@ contract GardenAccountTest is Test, ERC6551Helper {
         assertEq(gardenAccount.getGAPProjectUID(), bytes32(0));
     }
 
-    function test_metadataUpdatePersistsAndEmitsWhenKarmaCallReverts() public {
+    function testGardenAccount_metadataUpdatePersistsAndEmitsWhenKarmaCallReverts() public {
         karmaModule.setShouldRevert(true);
         vm.expectEmit(true, true, true, true, gardenAddress);
         emit KarmaHookFailed(gardenAddress, address(0), IKarmaGAPModule.KarmaSyncOperation.Details, "module_call_reverted");
@@ -733,7 +734,23 @@ contract GardenAccountTest is Test, ERC6551Helper {
         assertEq(gardenAccount.description(), "updated despite Karma outage");
     }
 
-    function test_currentGardenAccountProxyCannotUseUupsUpgrade() public {
+    function testGardenAccount_metadataUpdateSkipsFailureEventWhenKarmaModuleIsUnset() public {
+        vm.prank(multisig);
+        gardenToken.setKarmaGAPModule(address(0));
+        vm.recordLogs();
+
+        vm.prank(operator);
+        gardenAccount.updateDescription("updated without Karma configured");
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bytes32 failureSignature = keccak256("KarmaHookFailed(address,address,uint8,string)");
+        for (uint256 index = 0; index < logs.length; index++) {
+            assertTrue(logs[index].topics.length == 0 || logs[index].topics[0] != failureSignature);
+        }
+        assertEq(gardenAccount.description(), "updated without Karma configured");
+    }
+
+    function testGardenAccount_currentProxyCannotUseUupsUpgrade() public {
         GardenAccount nextImplementation = new GardenAccount(
             address(0x001), address(0x002), address(0x003), address(0x004), address(0x2001), address(0x2002)
         );
@@ -743,7 +760,7 @@ contract GardenAccountTest is Test, ERC6551Helper {
         gardenAccount.upgradeTo(address(nextImplementation));
     }
 
-    function test_accountProxyRejectsStewardUpgrade() public {
+    function testGardenAccount_accountProxyRejectsStewardUpgrade() public {
         (GardenAccount upgradeableAccount, GardenAccount nextImplementation,) = _deployUpgradeableGardenAccount();
 
         vm.prank(operator);
@@ -751,7 +768,7 @@ contract GardenAccountTest is Test, ERC6551Helper {
         upgradeableAccount.upgradeTo(address(nextImplementation));
     }
 
-    function test_accountProxyAllowsGardenNftOwnerUpgrade() public {
+    function testGardenAccount_accountProxyAllowsGardenNftOwnerUpgrade() public {
         (GardenAccount upgradeableAccount, GardenAccount nextImplementation,) = _deployUpgradeableGardenAccount();
         bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
 

@@ -151,13 +151,13 @@ contract JsonBuilderTest is Test {
         assertTrue(_contains(json, "\"slug\":\"my-cool-garden\""), "Should generate correct slug");
     }
 
-    function testProjectDetailsUsesCanonicalGardenSlug() public {
+    function testGAPJsonBuilder_projectDetailsUsesCanonicalGardenSlug() public {
         string memory json = wrapper.buildProjectDetailsWithSlug("Renamed Garden", "stable-garden-slug", "Desc", "Loc", "");
 
         assertTrue(_contains(json, "\"slug\":\"stable-garden-slug\""), "Should preserve the canonical Garden slug");
     }
 
-    function testProjectDetailsRepairsMalformedEmbeddedHTTPBanner() public {
+    function testGAPJsonBuilder_projectDetailsRepairsMalformedEmbeddedHTTPBanner() public {
         string memory json = wrapper.buildProjectDetails("Garden", "Desc", "Loc", "ipfs://https://cdn.example/banner.png");
 
         assertTrue(_contains(json, "\"imageURL\":\"https://cdn.example/banner.png\""));
@@ -196,7 +196,7 @@ contract JsonBuilderTest is Test {
         assertTrue(_contains(json, "\"type\":\"project-update\""), "Should have correct type");
     }
 
-    function testImpactUsesSupportedProjectUpdateDates() public {
+    function testGAPJsonBuilder_impactUsesSupportedProjectUpdateDates() public {
         string memory json = wrapper.buildImpact("Work", "Desc", "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000, "");
 
         assertTrue(_contains(json, "\"startsAt\":1700000000"));
@@ -261,7 +261,7 @@ contract JsonBuilderTest is Test {
         assertFalse(_contains(json, "metadataCID"), "Empty metadataCID should not appear in JSON");
     }
 
-    function testProjectUpdateUsesChainSpecificEASLinkAndNormalizesEmbeddedURLs() public {
+    function testGAPJsonBuilder_projectUpdateUsesChainSpecificEASLinkAndNormalizesEmbeddedURLs() public {
         string memory json = wrapper.buildProjectUpdate(
             "Work",
             "Desc",
@@ -279,7 +279,7 @@ contract JsonBuilderTest is Test {
         assertFalse(_contains(json, "ipfs://https://"));
     }
 
-    function testProjectUpdateUsesOnlySupportedTopLevelKeys() public {
+    function testGAPJsonBuilder_projectUpdateUsesOnlySupportedTopLevelKeys() public {
         string memory json = wrapper.buildProjectUpdate(
             "Work", "Desc", "QmProof", bytes32(uint256(1)), address(0xBEEF), 1_700_000_000, "QmMetadata", 42_161
         );

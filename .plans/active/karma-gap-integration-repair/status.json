@@ -43,7 +43,7 @@
   },
   "notes": [
     "GardenAccount authority compatibility with the active Celo ownership plan must be reviewed before completion.",
-    "Implementation is validated in the working tree, but terminal lane receipts remain pending until the changes are pinned to a clean commit.",
+    "Implementation validation is unverified at this commit; fresh command receipts are required before completion.",
     "Existing Arbitrum GardenAccounts are immutable ERC-6551 delegates created from the implementation rather than AccountProxy-backed UUPS instances; production repair requires a separately reviewed compatibility design.",
     "Authenticated Brave UI proof is blocked because the ChatGPT browser extension connection is unavailable in this session.",
     "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",

@@ -189,6 +189,23 @@ contract KarmaGAPReconciliationTest is Test, ERC6551Helper {
         assertEq(_countSyncEvents(logs, IKarmaGAPModule.KarmaSyncOperation.Access, steward), 1);
     }
 
+    function testIntegration_Karma_membershipRetryReportsAChangeWhenAccessIsAlreadyCurrent() public {
+        address nextSteward = address(0xCAFE);
+        hats.setOperator(address(garden), nextSteward, true);
+        gap.setFailSchema(MEMBER_SCHEMA, true);
+
+        (, bool accessChanged) = karma.reconcileProjectAccess(address(garden), nextSteward);
+        assertTrue(accessChanged);
+        assertEq(karma.gardenMemberOfUIDs(address(garden), nextSteward), bytes32(0));
+
+        gap.setFailSchema(MEMBER_SCHEMA, false);
+        (bool roleActive, bool membershipChanged) = karma.reconcileProjectAccess(address(garden), nextSteward);
+
+        assertTrue(roleActive);
+        assertTrue(membershipChanged);
+        assertTrue(karma.gardenMemberOfUIDs(address(garden), nextSteward) != bytes32(0));
+    }
+
     function testIntegration_Karma_detailsFailureKeepsProjectAndRetriesDetailsOnly() public {
         bytes32 detailsHashBefore = karma.gardenDetailsHashes(address(garden));
         gap.setFailSchema(DETAILS_SCHEMA, true);

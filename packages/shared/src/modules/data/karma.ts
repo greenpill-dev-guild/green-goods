@@ -1,10 +1,9 @@
-import { gql } from "graphql-request";
-
 import type { KarmaIntegrationProjection, KarmaProjectionState } from "../../types/karma";
 import type { Address } from "../../types/domain";
+import { greenGoodsGraphQL, type ResultOf } from "./graphql";
 import { greenGoodsIndexer, type GraphQLReader } from "./graphql-client";
 
-const KARMA_GARDEN_PROJECTION_QUERY = gql`
+const KARMA_GARDEN_PROJECTION_QUERY = greenGoodsGraphQL(/* GraphQL */ `
   query KarmaGardenProjection($gardenAddress: String!, $chainId: Int!) {
     Garden(
       where: { id: { _eq: $gardenAddress }, chainId: { _eq: $chainId } }
@@ -29,31 +28,10 @@ const KARMA_GARDEN_PROJECTION_QUERY = gql`
       karmaLastSyncAt
     }
   }
-`;
+`);
 
-interface KarmaGardenProjectionRow {
-  gapProjectUID?: `0x${string}` | null;
-  karmaProjectState?: string | null;
-  karmaProjectReason?: string | null;
-  karmaDetailsState?: string | null;
-  karmaDetailsReason?: string | null;
-  karmaMembershipState?: string | null;
-  karmaMembershipReason?: string | null;
-  karmaAccessState?: string | null;
-  karmaAccessReason?: string | null;
-  karmaProjectUpdateState?: string | null;
-  karmaProjectUpdateReason?: string | null;
-  karmaMembershipPendingAccounts?: Address[] | null;
-  karmaMembershipFailedAccounts?: Address[] | null;
-  karmaAccessPendingAccounts?: Address[] | null;
-  karmaAccessFailedAccounts?: Address[] | null;
-  karmaLastFailureReason?: string | null;
-  karmaLastSyncAt?: number | null;
-}
-
-interface KarmaGardenProjectionResponse {
-  Garden: KarmaGardenProjectionRow[];
-}
+type KarmaGardenProjectionResponse = ResultOf<typeof KARMA_GARDEN_PROJECTION_QUERY>;
+type KarmaGardenProjectionRow = KarmaGardenProjectionResponse["Garden"][number];
 
 const ZERO_BYTES32 = /^0x0{64}$/i;
 
@@ -64,10 +42,18 @@ function parseProjectionState(value: string | null | undefined): KarmaProjection
     : "unknown";
 }
 
+function parseProjectUID(value: string | null | undefined): `0x${string}` | null {
+  if (!value || ZERO_BYTES32.test(value) || !/^0x[0-9a-f]{64}$/i.test(value)) return null;
+  return value as `0x${string}`;
+}
+
+function parseAddresses(values: readonly string[] | null | undefined): Address[] {
+  return (values ?? []) as Address[];
+}
+
 function mapProjection(row?: KarmaGardenProjectionRow): KarmaIntegrationProjection {
-  const projectUID = row?.gapProjectUID;
   return {
-    projectUID: projectUID && !ZERO_BYTES32.test(projectUID) ? projectUID : null,
+    projectUID: parseProjectUID(row?.gapProjectUID),
     projectState: parseProjectionState(row?.karmaProjectState),
     projectReason: row?.karmaProjectReason ?? null,
     detailsState: parseProjectionState(row?.karmaDetailsState),
@@ -78,10 +64,10 @@ function mapProjection(row?: KarmaGardenProjectionRow): KarmaIntegrationProjecti
     accessReason: row?.karmaAccessReason ?? null,
     projectUpdateState: parseProjectionState(row?.karmaProjectUpdateState),
     projectUpdateReason: row?.karmaProjectUpdateReason ?? null,
-    membershipPendingAccounts: row?.karmaMembershipPendingAccounts ?? [],
-    membershipFailedAccounts: row?.karmaMembershipFailedAccounts ?? [],
-    accessPendingAccounts: row?.karmaAccessPendingAccounts ?? [],
-    accessFailedAccounts: row?.karmaAccessFailedAccounts ?? [],
+    membershipPendingAccounts: parseAddresses(row?.karmaMembershipPendingAccounts),
+    membershipFailedAccounts: parseAddresses(row?.karmaMembershipFailedAccounts),
+    accessPendingAccounts: parseAddresses(row?.karmaAccessPendingAccounts),
+    accessFailedAccounts: parseAddresses(row?.karmaAccessFailedAccounts),
     lastFailureReason: row?.karmaLastFailureReason ?? null,
     lastSyncAt: row?.karmaLastSyncAt ?? null,
   };
@@ -92,7 +78,7 @@ export async function getKarmaGardenProjection(
   chainId: number,
   reader: GraphQLReader = greenGoodsIndexer
 ): Promise<KarmaIntegrationProjection> {
-  const { data, error } = await reader.query<KarmaGardenProjectionResponse>(
+  const { data, error } = await reader.query(
     KARMA_GARDEN_PROJECTION_QUERY,
     { gardenAddress, chainId },
     "getKarmaGardenProjection"

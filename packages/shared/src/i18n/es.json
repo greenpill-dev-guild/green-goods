@@ -3608,7 +3608,7 @@
   "cockpit.garden.members.title": "Miembros de {name}",
   "cockpit.garden.overview": "Vista general",
   "cockpit.garden.overviewPlaceholder": "La vista general del jardín se mostrará aquí",
-  "cockpit.garden.karma.action.reconcile": "Reintentar sincronización",
+  "cockpit.garden.karma.action.reconcile": "Reconciliar con Karma",
   "cockpit.garden.karma.action.retry": "Reintentar sincronización con Karma",
   "cockpit.garden.karma.action.retrying": "Sincronizando…",
   "cockpit.garden.karma.body.accessPending": "Los roles del jardín cambiaron y el acceso en Karma todavía debe actualizarse.",

@@ -5,6 +5,7 @@ import { useIntl } from "react-intl";
 import type { Hex } from "viem";
 
 import { getWagmiConfig } from "../../config/appkit";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
 import { gardensKeys } from "../../config/query-keys/garden";
 import { queryInvalidation } from "../../config/query-keys/invalidation";
@@ -17,7 +18,6 @@ import { isValidAddressFormat, isZeroAddress } from "../../utils/blockchain/addr
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
-import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 import {
@@ -48,11 +48,10 @@ export type {
 
 export function useKarmaIntegration(garden?: Garden | null) {
   const { formatMessage } = useIntl();
-  const defaultChainId = useCurrentChain();
   const primaryAddress = usePrimaryAddress() as Address | null;
   const queryClient = useQueryClient();
   const transactionSender = useTransactionSender();
-  const chainId = garden?.chainId || defaultChainId;
+  const chainId = garden?.chainId ?? DEFAULT_CHAIN_ID;
   const gardenAddress = garden?.id as Address | undefined;
   const karmaModule = getNetworkContracts(chainId).karmaGAPModule;
   const supported =

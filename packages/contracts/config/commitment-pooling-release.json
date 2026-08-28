@@ -200,7 +200,7 @@
       "currentCeremonyEndOwner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
       "finalArtifact": "Garden.sol/GardenToken.json",
       "constructorArguments": ["0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692"],
-      "expectedImplementationCreationCodeHash": "0x43a8cc1fa39f9d35595fbe7495fbeba58e1c24c4c0677a69ea14099609409f9c",
+      "expectedImplementationCreationCodeHash": "0x0006fc30ff58c7e7e0d644e102e3b23b688ddc1c2f889e7db5e5b0b707d27252",
       "implementationAddressPolicy": "sender-and-stage-nonce-bound-transaction-plan",
       "initializerPolicy": "preserve-existing-initializer-state",
       "linkedLibraries": {
@@ -220,7 +220,7 @@
         "0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458",
         "0xA514eA2730b9eD401875693793BEfA9e2D51C0b4"
       ],
-      "expectedImplementationCreationCodeHash": "0x526eb41dae0a9732131a68fecd3d470d1986b6acb51a72f2a76219c6ce8a6ac0",
+      "expectedImplementationCreationCodeHash": "0x0647772951e6ff99163ccb3a249d98fb3b37f4a1ce1948c10f034da52c053a18",
       "implementationAddressPolicy": "sender-and-stage-nonce-bound-transaction-plan",
       "initializerPolicy": "preserve-existing-initializer-state",
       "linkedLibraries": {}

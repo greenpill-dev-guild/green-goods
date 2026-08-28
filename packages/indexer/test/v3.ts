@@ -248,6 +248,7 @@ export const GardenAccount = createContract("GardenAccount", [
 ] as const);
 export const KarmaGAPModule = createContract("KarmaGAPModule", [
   "GAPProjectCreated",
+  "GAPProjectReset",
   "KarmaSyncRecorded",
 ] as const);
 export const GardenToken = createContract("GardenToken", [

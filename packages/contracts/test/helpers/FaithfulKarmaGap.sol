@@ -42,7 +42,7 @@ contract FaithfulProjectResolver is IProjectResolver {
     }
 
     function isOwner(bytes32 projectUID, address account) public view returns (bool) {
-        return projectOwner[projectUID] == account || protocolOwner == account || projectAdmins[projectUID][account];
+        return projectOwner[projectUID] == account || protocolOwner == account;
     }
 }
 

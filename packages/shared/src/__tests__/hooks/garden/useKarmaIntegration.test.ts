@@ -170,6 +170,21 @@ describe("deriveKarmaIntegrationStatus", () => {
       reason: "MemberOf attestation failed",
     });
   });
+
+  it("does not expose historical project-update failures as retryable integration failures", () => {
+    const result = deriveKarmaIntegrationStatus(
+      input({
+        projection: {
+          ...input().projection,
+          projectUpdateState: "failed",
+          projectUpdateReason: "Project Update attestation failed",
+          lastFailureReason: "Project Update attestation failed",
+        },
+      })
+    );
+
+    expect(result).toMatchObject({ status: "synced", reason: null });
+  });
 });
 
 describe("deriveKarmaIntegrationAuthorization", () => {

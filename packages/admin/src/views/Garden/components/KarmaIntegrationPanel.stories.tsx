@@ -1,5 +1,7 @@
-import type { KarmaIntegrationController } from "@green-goods/shared/hooks/garden/useKarmaIntegration";
-import type { KarmaIntegrationStatusName } from "@green-goods/shared/types/karma";
+import type {
+  KarmaIntegrationController,
+  KarmaIntegrationStatusName,
+} from "@green-goods/shared/hooks/garden/useKarmaIntegration";
 import type { Meta, StoryObj } from "@storybook/react";
 import { KarmaIntegrationPanel } from "./KarmaIntegrationPanel";
 

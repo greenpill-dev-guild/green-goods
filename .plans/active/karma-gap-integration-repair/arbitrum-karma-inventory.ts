@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { Contract, JsonRpcProvider, getAddress, keccak256, toBeHex } from "ethers";
+import type { Address } from "viem";
 
 const CHAIN_ID = 42_161;
 const TOKENBOUND_REGISTRY = "0x000000006551c19487814612e58FE06813775758";
@@ -32,11 +33,18 @@ interface CliOptions {
   rpcUrl: string;
 }
 
-interface Deployment {
+interface DeploymentJson {
   accountProxy: string;
   gardenAccountImpl: string;
   gardenToken: string;
   karmaGAPModule: string;
+}
+
+interface Deployment {
+  accountProxy: Address;
+  gardenAccountImpl: Address;
+  gardenToken: Address;
+  karmaGAPModule: Address;
 }
 
 interface StorageLayout {
@@ -68,14 +76,23 @@ function parseArgs(argv: string[]): CliOptions | null {
   }
   if (!rpcUrl) throw new Error("--rpc-url is required");
   const parsed = new URL(rpcUrl);
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-    throw new Error("--rpc-url must use http or https");
+  if (parsed.protocol !== "https:") {
+    throw new Error("--rpc-url must use https");
   }
   return { rpcUrl };
 }
 
 function readJson<T>(filePath: string): T {
   return JSON.parse(readFileSync(resolve(filePath), "utf8")) as T;
+}
+
+function normalizeDeployment(raw: DeploymentJson): Deployment {
+  return {
+    accountProxy: getAddress(raw.accountProxy) as Address,
+    gardenAccountImpl: getAddress(raw.gardenAccountImpl) as Address,
+    gardenToken: getAddress(raw.gardenToken) as Address,
+    karmaGAPModule: getAddress(raw.karmaGAPModule) as Address,
+  };
 }
 
 async function optionalRead<T>(read: () => Promise<T>): Promise<T | null> {
@@ -95,11 +112,13 @@ function implementationFromSlot(value: string): string | null {
 async function main(): Promise<void> {
   const options = parseArgs(process.argv.slice(2));
   if (!options) {
-    console.log(usage());
+    process.stdout.write(`${usage()}\n`);
     return;
   }
 
-  const deployment = readJson<Deployment>("packages/contracts/deployments/42161-latest.json");
+  const deployment = normalizeDeployment(
+    readJson<DeploymentJson>("packages/contracts/deployments/42161-latest.json")
+  );
   const tokenLayout = readJson<StorageLayout>("packages/contracts/storage-layouts/GardenToken.json");
   const nextTokenSlot = tokenLayout.storage.find((entry) => entry.label === "_nextTokenId")?.slot;
   if (nextTokenSlot === undefined) throw new Error("GardenToken _nextTokenId storage slot is missing");
@@ -234,7 +253,7 @@ async function main(): Promise<void> {
     gardens,
   };
 
-  console.log(JSON.stringify(result, null, 2));
+  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   if (blockers.length > 0) process.exitCode = 2;
 }
 

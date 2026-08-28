@@ -351,6 +351,7 @@ contract GardenAccount is AccountV3Upgradable, Initializable, IGardenAccessContr
 
     function _syncKarmaDetailsBestEffort() internal {
         IKarmaGAPModule module = _getKarmaGAPModule();
+        if (address(module) == address(0)) return;
         if (!GardenKarmaLib.reconcileDetails(module)) {
             emit KarmaHookFailed(
                 address(this), address(0), IKarmaGAPModule.KarmaSyncOperation.Details, "module_call_reverted"

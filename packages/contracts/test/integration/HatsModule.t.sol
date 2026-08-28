@@ -709,7 +709,7 @@ contract HatsModuleTest is Test {
         assertTrue(adapter.isEvaluatorOf(garden1, user2), "User2 should be evaluator");
     }
 
-    function test_grantOwner_syncsKarmaProjectAdmin() public {
+    function testIntegration_Hats_grantOwnerSyncsKarmaProjectAdmin() public {
         _configureGarden1WithOwner();
         adapter.setKarmaGAPModule(address(karmaAdminSync));
 
@@ -718,7 +718,7 @@ contract HatsModuleTest is Test {
         assertEq(karmaAdminSync.addCalls(garden1, user1), 1);
     }
 
-    function test_grantRoles_syncsEveryInitialStewardToKarma() public {
+    function testIntegration_Hats_grantRolesSyncsEveryInitialStewardToKarma() public {
         _configureGarden1WithOwner();
         adapter.setKarmaGAPModule(address(karmaAdminSync));
         address[] memory accounts = new address[](2);
@@ -734,7 +734,7 @@ contract HatsModuleTest is Test {
         assertEq(karmaAdminSync.addCalls(garden1, user2), 1);
     }
 
-    function test_revokeOwnerOrSteward_reconcilesKarmaProjectAdmin() public {
+    function testIntegration_Hats_revokeOwnerOrStewardReconcilesKarmaProjectAdmin() public {
         _configureGarden1WithOwner();
         adapter.setKarmaGAPModule(address(karmaAdminSync));
         adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Owner);

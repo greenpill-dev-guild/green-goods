@@ -288,7 +288,7 @@ contract KarmaModuleTest is Test {
         assertEq(module.getProjectUID(GARDEN), uid, "getProjectUID should return the UID");
     }
 
-    function test_createProject_isIdempotentForExistingProject() public {
+    function testKarma_createProjectIsIdempotentForExistingProject() public {
         _setupSupportedChain();
 
         vm.prank(GARDEN_TOKEN);
@@ -314,7 +314,7 @@ contract KarmaModuleTest is Test {
         assertEq(uid, bytes32(0), "Should return zero UID when GAP fails");
     }
 
-    function test_createProject_detailsFailure_persistsProjectForRetry() public {
+    function testKarma_createProjectDetailsFailurePersistsProjectForRetry() public {
         _setupSupportedChain();
 
         // Project and details are independent attempts: persist the project before details.
@@ -331,7 +331,7 @@ contract KarmaModuleTest is Test {
         assertEq(module.gardenDetailsHashes(GARDEN), bytes32(0), "Failed details hash must not be persisted");
     }
 
-    function test_createProject_detailsRetryDoesNotDuplicateProject() public {
+    function testKarma_createProjectDetailsRetryDoesNotDuplicateProject() public {
         _setupSupportedChain();
 
         mockGAP.setRevertAfterCalls(1);
@@ -347,7 +347,7 @@ contract KarmaModuleTest is Test {
         assertEq(mockGAP.attestationCount(), 2, "Retry should attest details without duplicating the project");
     }
 
-    function test_addProjectAdmin_reportsMissingGardenAccountCallback() public {
+    function testKarma_addProjectAdminReportsMissingGardenAccountCallback() public {
         _setupSupportedChain();
 
         vm.prank(GARDEN_TOKEN);
@@ -360,7 +360,7 @@ contract KarmaModuleTest is Test {
         module.addProjectAdmin(GARDEN, ADMIN);
     }
 
-    function test_removeProjectAdmin_reportsMissingGardenAccountCallback() public {
+    function testKarma_removeProjectAdminReportsMissingGardenAccountCallback() public {
         _setupSupportedChain();
 
         vm.prank(GARDEN_TOKEN);
@@ -373,7 +373,7 @@ contract KarmaModuleTest is Test {
         module.removeProjectAdmin(GARDEN, ADMIN);
     }
 
-    function test_addProjectAdmin_doesNotRouteThroughGAPFacade() public {
+    function testKarma_addProjectAdminDoesNotRouteThroughGAPFacade() public {
         _setupSupportedChain();
 
         vm.prank(GARDEN_TOKEN);
@@ -388,7 +388,7 @@ contract KarmaModuleTest is Test {
         module.addProjectAdmin(GARDEN, ADMIN);
     }
 
-    function test_removeProjectAdmin_doesNotRouteThroughGAPFacade() public {
+    function testKarma_removeProjectAdminDoesNotRouteThroughGAPFacade() public {
         _setupSupportedChain();
 
         vm.prank(GARDEN_TOKEN);

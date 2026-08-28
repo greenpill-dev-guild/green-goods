@@ -33,6 +33,7 @@ contracts:
     handler: src/EventHandlers.ts
     events:
       - event: GAPProjectCreated(bytes32 indexed projectUID, address indexed garden, string projectName)
+      - event: GAPProjectReset(address indexed garden, bytes32 indexed previousUID)
       - event: KarmaSyncRecorded(address indexed garden, bytes32 indexed projectUID, address indexed account, uint8 operation, uint8 outcome, bytes32 sourceUID, bytes32 resultUID, string reason)
   - name: HatsModule
     handler: src/EventHandlers.ts

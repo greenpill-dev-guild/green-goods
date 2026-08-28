@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 
 import { getKarmaProjectAccessId, getKarmaSyncRecordId } from "../src/handlers/ids";
 import { addr, CHAINS, mockEvent, txHash } from "./helpers/events";
+import { seedGarden } from "./helpers/garden";
 import {
   createTestIndexer,
   GardenAccount,
@@ -17,51 +18,6 @@ const CHAIN_ID = CHAINS.arbitrum;
 const PROJECT_UID = `0x${"11".repeat(32)}`;
 const SOURCE_UID = `0x${"22".repeat(32)}`;
 const RESULT_UID = `0x${"33".repeat(32)}`;
-
-function seedGarden(mockDb: ReturnType<typeof createTestIndexer>, garden: string) {
-  mockDb.Garden.set({
-    id: garden,
-    chainId: CHAIN_ID,
-    tokenAddress: addr(1),
-    tokenID: 1n,
-    name: "Karma Garden",
-    description: "",
-    location: "",
-    bannerImage: "",
-    openJoining: false,
-    initialized: true,
-    gardeners: [],
-    operators: [],
-    evaluators: [],
-    owners: [],
-    funders: [],
-    communities: [],
-    createdAt: 1_000,
-    gapProjectUID: undefined,
-    karmaProjectState: "UNKNOWN",
-    karmaProjectReason: undefined,
-    karmaProjectUpdatedAt: undefined,
-    karmaDetailsState: "UNKNOWN",
-    karmaDetailsReason: undefined,
-    karmaDetailsUpdatedAt: undefined,
-    karmaMembershipState: "UNKNOWN",
-    karmaMembershipReason: undefined,
-    karmaMembershipUpdatedAt: undefined,
-    karmaAccessState: "UNKNOWN",
-    karmaAccessReason: undefined,
-    karmaAccessUpdatedAt: undefined,
-    karmaProjectUpdateState: "UNKNOWN",
-    karmaProjectUpdateReason: undefined,
-    karmaProjectUpdateUpdatedAt: undefined,
-    karmaMembershipPendingAccounts: [],
-    karmaMembershipFailedAccounts: [],
-    karmaAccessPendingAccounts: [],
-    karmaAccessFailedAccounts: [],
-    karmaLastFailureReason: undefined,
-    karmaLastSyncAt: undefined,
-  });
-  return mockDb;
-}
 
 describe("KarmaGAPModule event boundary", () => {
   it("is statically registered at the deployed Arbitrum proxy", () => {
@@ -89,6 +45,31 @@ describe("KarmaGAPModule event boundary", () => {
     assert.equal(projected.gapProjectUID, PROJECT_UID);
     assert.equal(projected.karmaProjectState, "SYNCED");
     assert.equal(projected.karmaProjectUpdatedAt, 2_000);
+  });
+
+  it("clears a reset project before a replacement project is reconciled", async () => {
+    const garden = addr(10);
+    const mockDb = seedGarden(createTestIndexer(), garden);
+    mockDb.Garden.set({
+      ...(await mockDb.Garden.get(garden))!,
+      gapProjectUID: PROJECT_UID,
+      karmaProjectState: "SYNCED",
+      karmaProjectReason: undefined,
+    });
+    const event = KarmaGAPModule.GAPProjectReset.createMockEvent({
+      garden,
+      previousUID: PROJECT_UID,
+      mockEventData: mockEvent(CHAIN_ID, 2_001),
+    });
+
+    const result = await KarmaGAPModule.GAPProjectReset.processEvent({ event, mockDb });
+    const projected = await result.Garden.get(garden);
+
+    assert.ok(projected);
+    assert.equal(projected.gapProjectUID, undefined);
+    assert.equal(projected.karmaProjectState, "PENDING");
+    assert.equal(projected.karmaProjectReason, "project_reset");
+    assert.equal(projected.karmaProjectUpdatedAt, 2_001);
   });
 
   it("creates a placeholder Garden instead of dropping an early project event", async () => {
@@ -316,7 +297,7 @@ describe("KarmaHookFailed fallback projections", () => {
     assert.equal(projected.karmaLastFailureReason, "project update hook reverted");
   });
 
-  it("marks both membership and access failed for an Access hook failure", async () => {
+  it("marks only access failed for an Access hook failure", async () => {
     const garden = addr(40);
     const account = addr(41);
     const mockDb = seedGarden(createTestIndexer(), garden);
@@ -335,16 +316,16 @@ describe("KarmaHookFailed fallback projections", () => {
     );
 
     assert.ok(projected);
-    assert.equal(projected.karmaMembershipState, "FAILED");
+    assert.equal(projected.karmaMembershipState, "UNKNOWN");
     assert.equal(projected.karmaAccessState, "FAILED");
     assert.deepEqual(projected.karmaMembershipPendingAccounts, []);
-    assert.deepEqual(projected.karmaMembershipFailedAccounts, [account.toLowerCase()]);
+    assert.deepEqual(projected.karmaMembershipFailedAccounts, []);
     assert.deepEqual(projected.karmaAccessPendingAccounts, []);
     assert.deepEqual(projected.karmaAccessFailedAccounts, [account.toLowerCase()]);
 
     assert.ok(aggregate);
-    assert.equal(aggregate.membershipState, "FAILED");
-    assert.equal(aggregate.membershipOutcome, "FAILED");
+    assert.equal(aggregate.membershipState, "UNKNOWN");
+    assert.equal(aggregate.membershipOutcome, undefined);
     assert.equal(aggregate.accessState, "FAILED");
     assert.equal(aggregate.accessOutcome, "FAILED");
   });
