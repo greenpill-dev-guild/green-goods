@@ -1,7 +1,7 @@
 ---
 name: qa-triage
 user-invocable: true
-description: Turn build sync QA meeting notes (the meeting formerly called product sync) into triaged Linear records + QA-sheet rows. Fires on any mention of a QA call/sync/session, build sync, product sync (legacy name), or filing/triaging bugs from a recent meeting — even without the word "qa-triage". Pulls the latest Gemini notes from Drive (~/Downloads fallback), cross-references PostHog + existing Linear/Sheet records, scope-locks, then writes Customer Needs/Issues and QA Sheet rows.
+description: Turn build sync QA meeting notes (the meeting formerly called product sync) into triaged Linear records + QA-sheet rows. Fires on any mention of a QA call/sync/meeting, build sync, product sync (legacy name), or filing/triaging bugs from a recent meeting — even without the word "qa-triage". For a live walkthrough where the user dictates observations in real time (or a dictated-walk transcript), use qa-session instead. Pulls the latest Gemini notes from Drive (~/Downloads fallback), cross-references PostHog + existing Linear/Sheet records, scope-locks, then writes Customer Needs/Issues and QA Sheet rows.
 argument-hint: "[<notes-path|slug|qa-sync:YYYY-MM-DD>] [--dry-run] [--no-codex] [--no-sheet] [--fixture]"
 ---
 
@@ -16,7 +16,7 @@ Mirror [`docs/routines/bug-intake.md`](../../../docs/routines/bug-intake.md) for
 | Trigger | Action |
 |---------|--------|
 | `/qa-triage` | Discover the latest Build Sync notes (Drive → Downloads). If the [`qa-triage-pulse`](../../../docs/routines/qa-triage-pulse.md) routine has pre-staged Customer Needs for the latest sync, offer to resume from those instead. |
-| `/qa-triage <path>` | Use the supplied notes path (absolute, relative, or `~/Downloads/...`) |
+| `/qa-triage <path>` | Use the supplied notes path (absolute, relative, or `~/Downloads/...`). A `tmp/qa-session/<date>/session.md` from the qa-session skill is a supported source — its numbered, typed, verbatim-quoted items parse directly and its exact `case:` Test IDs bypass fuzzy matching |
 | `/qa-triage <slug>` | Resume an incomplete run from `tmp/qa-triage/<slug>/notes.md` |
 | `/qa-triage qa-sync:<YYYY-MM-DD>` | Resume from routine-pre-staged Customer Needs carrying that `qa-sync:*` label. Phases 1-3 are skipped (already done by `qa-triage-pulse`); triage gate fires immediately. |
 | `/qa-triage … --dry-run` | Print payloads instead of writing to Linear; still emit Sheet CSVs |
@@ -440,6 +440,7 @@ This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Ses
 
 ## Related Skills
 
+- [`qa-session`](../qa-session/SKILL.md) — the live founder-led walkthrough copilot. Its close phase hands deferred observations to this skill as a pre-structured `session.md`; this skill owns everything downstream (PostHog cross-ref, scope lock, Linear + Sheet writes).
 - [qa-triage-pulse routine](../../../docs/routines/qa-triage-pulse.md) — cron'd async sibling routine that pre-stages Customer Needs every Wednesday after the 10am PST Build Sync. The skill's Phase 1 step 0 resumes from those pre-stages when present, cutting interactive triage time to ~5 minutes.
 - [bug-intake routine](../../../docs/routines/bug-intake.md) — cron'd async sibling routine for Discord + Telegram + Drive bug-source intake (M/W/F). Shares the Linear protocol and privacy boundary. This skill is the interactive single-source counterpart for QA-sync notes specifically.
 - [`posthog-questions`](../../../docs/routines/posthog-questions.md) — named PostHog questions this skill calls.
