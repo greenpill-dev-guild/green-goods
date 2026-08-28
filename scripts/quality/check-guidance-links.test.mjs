@@ -6,8 +6,10 @@ import { fileURLToPath } from "node:url";
 
 import {
   addedLineNumbersFromDiff,
+  checkDecisionLogCitations,
   filterPresentPaths,
   findBrokenRootCodePaths,
+  findStaleLockedDecisions,
   findUntaggedFenceOpenings,
   parseNameStatus,
   scanDeletedSurfaceReferences,
@@ -227,6 +229,31 @@ test("parses deleted and renamed paths", () => {
       },
     ],
   );
+});
+
+test("accepts DL citations present in the ledger and rejects unknown ones", () => {
+  const ledger = "| DL-007 | 2026-08-16 | decision | rationale | codified | interaction-patterns.md |";
+  const files = [
+    {
+      path: ".claude/skills/design/interaction-patterns.md",
+      text: "steps follow DL-007\nrail split cites DL-099",
+    },
+  ];
+  const failures = checkDecisionLogCitations(files, ledger);
+  assert.equal(failures.length, 1);
+  assert.match(failures[0], /interaction-patterns\.md:2/);
+  assert.match(failures[0], /DL-099/);
+});
+
+test("warns only on stale locked decision rows", () => {
+  const ledger = [
+    "| DL-009 | 2026-07-01 | old decision | why | locked | — |",
+    "| DL-010 | 2026-07-01 | codified decision | why | codified | interaction-patterns.md |",
+    "| DL-011 | 2026-08-27 | fresh decision | why | locked | — |",
+  ].join("\n");
+  const warnings = findStaleLockedDecisions(ledger, new Date("2026-08-28T00:00:00Z"), 30);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /DL-009 locked since 2026-07-01/);
 });
 
 test("rejects unknown CLI arguments", () => {

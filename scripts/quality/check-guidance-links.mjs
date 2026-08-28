@@ -246,6 +246,37 @@ export function scanPersistentRetiredReferences(files, patterns = RETIRED_PATTER
   return failures;
 }
 
+export function checkDecisionLogCitations(files, ledgerText) {
+  const ledgerIds = new Set(
+    [...ledgerText.matchAll(/^\|\s*(DL-\d+)\s*\|/gm)].map((match) => match[1]),
+  );
+  const failures = [];
+  for (const file of files) {
+    for (const [index, line] of file.text.split(/\r?\n/).entries()) {
+      for (const match of line.matchAll(/\bDL-\d+\b/g)) {
+        if (!ledgerIds.has(match[0])) {
+          failures.push(
+            `${file.path}:${index + 1}: DL citation missing from design/decision-log.md ledger -> ${match[0]}`,
+          );
+        }
+      }
+    }
+  }
+  return failures;
+}
+
+export function findStaleLockedDecisions(ledgerText, now = new Date(), maxAgeDays = 30) {
+  const warnings = [];
+  const lockedRow = /^\|\s*(DL-\d+)\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|(?:[^|]*\|){2}\s*locked\s*\|/gm;
+  for (const match of ledgerText.matchAll(lockedRow)) {
+    const ageDays = (now - new Date(`${match[2]}T00:00:00Z`)) / 86_400_000;
+    if (ageDays > maxAgeDays) {
+      warnings.push(`${match[1]} locked since ${match[2]} — codify it or supersede it`);
+    }
+  }
+  return warnings;
+}
+
 export function addedLineNumbersFromDiff(diff) {
   const linesByFile = new Map();
   let currentFile;
@@ -375,6 +406,30 @@ function checkBannerParity(failures) {
     if (!bannerSkills.has(name)) {
       failures.push(`skill ${name} declares user-invocable: true but is missing from the banner`);
     }
+  }
+}
+
+function checkDesignDecisionLedger(failures) {
+  const ledgerRelative = ".claude/skills/design/decision-log.md";
+  const files = [
+    ...walkMarkdown(path.join(repoRoot, ".claude", "skills", "design")),
+    path.join(repoRoot, ".claude", "rules", "frontend-design.md"),
+  ]
+    .filter((file) => fs.existsSync(file))
+    .map((file) => ({
+      path: path.relative(repoRoot, file),
+      text: fs.readFileSync(file, "utf8"),
+    }));
+  const ledger = files.find((file) => file.path === ledgerRelative);
+  if (!ledger) {
+    if (files.some((file) => /\bDL-\d+\b/.test(file.text))) {
+      failures.push(`${ledgerRelative}: missing, but DL-NNN citations exist in design guidance`);
+    }
+    return;
+  }
+  failures.push(...checkDecisionLogCitations(files, ledger.text));
+  for (const warning of findStaleLockedDecisions(ledger.text)) {
+    console.warn(`check-guidance-links: warning — ${warning}`);
   }
 }
 
@@ -542,13 +597,14 @@ function main() {
   }
 
   checkBannerParity(failures);
+  checkDesignDecisionLedger(failures);
   if (failures.length > 0) {
     console.error(`check-guidance-links: ${failures.length} failure(s):`);
     for (const failure of failures) console.error(`- ${failure}`);
     process.exit(1);
   }
   console.log(
-    `check-guidance-links: ${guidanceFiles.length} guidance files OK (links, commands, retirements, changed fences, and banner parity).`,
+    `check-guidance-links: ${guidanceFiles.length} guidance files OK (links, commands, retirements, changed fences, banner parity, and DL citations).`,
   );
 }
 
