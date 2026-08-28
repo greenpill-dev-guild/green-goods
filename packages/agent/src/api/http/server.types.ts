@@ -23,6 +23,11 @@ import type {
   SavedOffersSessionStore,
   SavedOffersSignatureVerifier,
 } from "../../services/saved-offers";
+import type {
+  GardenJoinRequestRateLimitPressure,
+  GardenJoinRequestStore,
+} from "../../services/garden-join-requests";
+import type { GardenJoinRequestChainReader } from "../../services/garden-join-requests-chain";
 
 export interface ServerConfig {
   port: number;
@@ -84,6 +89,14 @@ export interface ServerDeps {
   savedOffersSignatureVerifier?: SavedOffersSignatureVerifier;
   savedOffersAudience?: string;
   savedOffersChainIds?: readonly number[];
+  gardenJoinRequestStore?: GardenJoinRequestStore;
+  gardenJoinRequestRateLimitPressure?: GardenJoinRequestRateLimitPressure;
+  gardenJoinRequestsEnabled?: boolean;
+  gardenJoinRequestChainId?: number;
+  gardenJoinRequestChainReader?: GardenJoinRequestChainReader;
+  gardenJoinRequestSignatureVerifier?: ProfileAvatarSignatureVerifier;
+  /** Defaults to 24 hours; zero disables the retention sweep. */
+  gardenJoinRequestSweepIntervalMs?: number;
   now?: () => number;
 }
 

@@ -1,22 +1,37 @@
 # Membership queue decision handoff
 
-**Status:** MANUALLY BLOCKED — RESR-64 decision due 2026-08-12.
+**Status:** IMPLEMENTED LOCALLY — production activation remains manually blocked.
 
-## Inputs
+## Selected operating model
 
-- `research-plan.md` options/exit criteria, operator interviews, privacy/threat/abuse review, cost and recovery rehearsal.
+- Green Goods is the data controller; Fly.io is the processor.
+- Afo owns the initial 32-byte encryption key and incident response.
+- Pending requests expire after 30 days; resolved requests are deleted 30 days after resolution.
+- The agent stores one AES-256-GCM encrypted personal payload and a keyed account digest. Raw addresses, names, notes, reasons, signatures, and request IDs do not enter analytics or logs.
+- On-chain Garden/Hats membership is authoritative. The agent never grants membership and reconciles manual additions on the next member or operator read.
+- Public on-chain requests, Linear-as-queue, implicit localStorage transport, notifications, contract changes, and indexer changes remain excluded.
 
-## Outputs
+## Implemented surfaces
 
-- Signed engagement-model decision naming selected transport, controller/processor, auth, encrypted fields, retention/deletion, cancellation/recovery, abuse controls, cost, incident owner, and operator handoff.
+- Closed, non-member garden detail: signed request dialog with required display name, optional note, explicit status check, withdrawal, decline reason, and welcomed username prompt.
+- PWA Gardeners tab: steward/owner queue above the roster with welcome/decline actions and persistent results.
+- Admin `/community/members`: the same authorized queue above the member directory.
+- Agent: origin checks, signed EOA/ERC-1271/EIP-6492 proof verification, garden-role scoping, rate limits, replay guards, encrypted SQLite persistence, 30-day sweeps, and on-chain reconciliation.
+- Shared: dependency-light public contract, transport, auth-mode-aware hook, and passkey-capable member role mutation.
 
-## Acceptance
+## Remaining production activation gate
 
-- Selected option and rejected alternatives are justified; member/operator failure paths are rehearsed; revisit date is set; public on-chain, Linear-as-queue, and implicit localStorage remain excluded.
+- Install `JOIN_REQUESTS_ENCRYPTION_KEY` in the Fly.io secret store.
+- Name a backup operator with access to the recovery procedure.
+- Rehearse manual member addition during agent downtime and verify the next signed status/list read reconciles the row.
+- Complete authenticated Brave proof against a production-shaped local or staging surface.
 
-## RED / GREEN or proof limit
+## RED / GREEN evidence
 
-- Proof limit: no implementation test can replace human/privacy evidence. RED is any missing exit criterion; GREEN is Product/Research/operator sign-off on every criterion.
+- Shared contract RED: missing `join-requests` module; GREEN: four validator/message/authorization tests pass.
+- Agent storage RED: missing encrypted store and SQLite table; GREEN: memory and SQLite lifecycle/encryption tests pass.
+- Agent API RED: route suite returned no implementation; GREEN: create, self-read, role-scoped list/decline, on-chain welcome reconciliation, signature failure, and replay tests pass.
+- UI GREEN: PWA request dialog, client garden roster, admin queue, and membership sender tests pass. Browser proof remains part of the activation gate above.
 
 ## Exact commands
 
@@ -27,8 +42,8 @@ node scripts/harness/plan-hub.mjs linear-sync --feature community-interface --js
 
 ## Out of scope
 
-Implementing the queue, storing real join identities in repo/Linear, or changing `waiting_for_hat` into join transport.
+Storing real join identities in repo/Linear, changing `waiting_for_hat` into join transport, adding contract/indexer state, or activating collection before the remaining production gate clears.
 
-## Unblock evidence
+## Activation evidence
 
-Linked RESR-64 document, dated sign-offs, threat/abuse review, operator rehearsal notes, and an intentional status change setting this sublane's `manual_blocked` false.
+Named backup operator, Fly.io secret receipt, dated recovery rehearsal, authenticated Brave screenshots, and an intentional status change setting this sublane's `manual_blocked` false.
