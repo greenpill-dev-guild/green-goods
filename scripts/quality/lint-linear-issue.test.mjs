@@ -237,7 +237,47 @@ const rejects = [
     input: { title: "Client errors spiked overnight", description: "# 🔴 Counts\n99 exceptions in 24h." },
     expect: /emoji heading/,
   },
+  {
+    // An absent description means "leave the body alone"; an explicit empty one
+    // means "erase it", and only the second breaks the contract.
+    name: "update that blanks an existing body",
+    input: { id: "PRD-800", description: "" },
+    expect: /erases the body/,
+  },
+  {
+    // Markdown renders up to three leading spaces as a heading, so the count
+    // has to see them or the cap is trivially bypassed.
+    name: "indented headings still count toward the cap",
+    input: { title: "Fix the stuck cancel button", description: "   ## A\nx\n   ## B\ny\n   ## C\nz\n   ## D\nw" },
+    expect: /headings \(cap 3\)/,
+  },
 ];
+
+// --- Emoji detection must not over-match -----------------------------------
+// The symbol and punctuation blocks share a UTF-8 lead byte, so a lead-byte
+// test rejects ordinary prose. These pin both directions.
+
+const emojiTitles = ["🔴 Client errors spiked", "✅ Verified the fix", "⚡ Speed regression on load"];
+for (const t of emojiTitles) {
+  test(`rejects: emoji-led title ${JSON.stringify(t.slice(0, 2))}`, () => {
+    const { code, stderr } = runGate({ title: t, description: BODY_OK });
+    assert.equal(code, 2);
+    assert.match(stderr, /Title starts with an emoji/);
+  });
+}
+
+const proseTitles = [
+  "“Offline mode” fails for gardeners",
+  "— dash-led title from a pasted note",
+  "…ellipsis-led title",
+  "Área de jardim não carrega",
+];
+for (const t of proseTitles) {
+  test(`accepts: non-emoji punctuation title ${JSON.stringify(t.slice(0, 2))}`, () => {
+    const { code, stderr } = runGate({ title: t, description: BODY_OK });
+    assert.equal(code, 0, `punctuation must not read as an emoji, got:\n${stderr}`);
+  });
+}
 
 for (const { name, input, expect } of rejects) {
   test(`rejects: ${name}`, () => {

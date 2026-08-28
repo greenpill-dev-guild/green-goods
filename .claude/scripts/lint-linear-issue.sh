@@ -35,6 +35,10 @@ has_patch="$(printf '%s' "$payload" | jq -r 'if ((.tool_input.patch // []) | len
 # carry a body: an update may legitimately touch state, labels, or relations
 # alone, and blocking those would wedge routine triage.
 is_update="$(printf '%s' "$payload" | jq -r 'if (.tool_input.id // "") != "" then "yes" else "no" end')"
+# An absent `description` key means "leave the body alone"; an explicitly empty
+# one means "erase it". Only the second is a contract violation, and `// empty`
+# renders both as "", so the key has to be probed separately.
+sent_description="$(printf '%s' "$payload" | jq -r 'if (.tool_input | has("description")) then "yes" else "no" end')"
 
 # Text a `patch` edit inserts into an existing body. The patch ops carry only a
 # fragment, never the resulting document, so the cumulative caps (heading count,
@@ -44,26 +48,54 @@ is_update="$(printf '%s' "$payload" | jq -r 'if (.tool_input.id // "") != "" the
 patch_text="$(printf '%s' "$payload" | jq -r '[.tool_input.patch // [] | .[] | (.text // ""), (.new_string // "")] | join("\n")')"
 
 # Nothing at all to judge: a property-only write (state, labels, relations).
-if [ -z "$title" ] && [ -z "$description" ] && [ -z "${patch_text//[$'\n\t ']/}" ]; then exit 0; fi
+# An explicitly supplied `description` still counts as something to judge even
+# when it is empty — that is a body erase, not an untouched body.
+if [ -z "$title" ] && [ -z "$description" ] && [ -z "${patch_text//[$'\n\t ']/}" ] &&
+  [ "$sent_description" = "no" ]; then
+  exit 0
+fi
 
 violations=""
 add() { violations="${violations}  - $1"$'\n'; }
 
 # Emoji detection without `grep -P`: BSD grep (macOS, where humans run this) has
 # no PCRE support, while the routines run on Linux — a -P-only check would fire
-# on one platform and silently pass on the other. Inspect the first byte
-# instead, which behaves the same everywhere.
+# on one platform and silently pass on the other. Decode the first character's
+# codepoint from its UTF-8 bytes instead, which behaves the same everywhere.
 #
-# UTF-8 lead byte E2 covers U+2000-U+2FFF (✅ ⚡ ➡ and the dingbats/symbols) and
-# F0 covers U+10000 and up (the emoji planes). Accented Latin leads with C3 and
-# ASCII is single-byte, so neither is caught.
+# Testing the lead byte alone is not good enough: E2 also leads the general
+# punctuation block, so a title opening with a curly quote (“Offline mode” …),
+# an em dash, or an ellipsis would be rejected as an emoji. Those are ordinary
+# prose, and a wrong block wedges an agent in a retry loop it cannot satisfy —
+# so match the actual symbol and emoji ranges and let punctuation through.
 starts_with_emoji() {
   stripped="${1#"${1%%[![:space:]]*}"}"
   [ -n "$stripped" ] || return 1
-  case "$(printf '%s' "$stripped" | od -An -tx1 -N1 | tr -d ' \n')" in
-    e2 | f0) return 0 ;;
-    *) return 1 ;;
-  esac
+
+  # shellcheck disable=SC2046 # deliberate word-splitting of the byte list
+  set -- $(printf '%s' "$stripped" | od -An -tu1 -N4 | tr -s ' ' '\n' | grep -v '^$')
+  b1=${1:-0}
+  b2=${2:-0}
+  b3=${3:-0}
+  b4=${4:-0}
+
+  if [ "$b1" -ge 240 ]; then
+    codepoint=$(((b1 - 240) * 262144 + (b2 - 128) * 4096 + (b3 - 128) * 64 + (b4 - 128)))
+  elif [ "$b1" -ge 224 ]; then
+    codepoint=$(((b1 - 224) * 4096 + (b2 - 128) * 64 + (b3 - 128)))
+  else
+    # ASCII, or a 2-byte sequence (Latin-1 supplement, accented letters).
+    return 1
+  fi
+
+  # U+1F000-U+1FBFF emoji planes · U+2600-U+27BF symbols and dingbats ·
+  # U+2B00-U+2BFF arrows and stars · U+231A-U+23F3 watch, hourglass, media.
+  # U+2000-U+206F punctuation is deliberately absent.
+  if [ "$codepoint" -ge 126976 ] && [ "$codepoint" -le 130047 ]; then return 0; fi
+  if [ "$codepoint" -ge 9728 ] && [ "$codepoint" -le 10175 ]; then return 0; fi
+  if [ "$codepoint" -ge 11008 ] && [ "$codepoint" -le 11263 ]; then return 0; fi
+  if [ "$codepoint" -ge 8986 ] && [ "$codepoint" -le 9203 ]; then return 0; fi
+  return 1
 }
 
 # --- Title -----------------------------------------------------------------
@@ -88,6 +120,8 @@ fi
 # labels, or relations alone, so only creates are required to have a body.
 if [ "$is_update" = "no" ] && [ -z "$description" ] && [ "$has_patch" = "no" ]; then
   add "New issue has no body. Say what breaks and for whom, or what should exist and why — that block is never optional."
+elif [ "$is_update" = "yes" ] && [ "$sent_description" = "yes" ] && [ -z "${description//[$'\n\t ']/}" ]; then
+  add "This update erases the body. The problem/outcome block is never optional — rewrite it rather than blanking it."
 fi
 
 # Absolute rules — banned tokens and empty scaffolding — hold for any prose the
@@ -129,7 +163,7 @@ EOF
 
 # --- Body ------------------------------------------------------------------
 if [ -n "$description" ]; then
-  headings=$(printf '%s\n' "$description" | grep -cE '^#{1,6} ' || true)
+  headings=$(printf '%s\n' "$description" | grep -cE '^ {0,3}#{1,6} ' || true)
   words=$(printf '%s' "$description" | wc -w | tr -d ' ')
   # Umbrella trackers and roadmaps legitimately run long; they still obey the
   # heading cap and the banned-token rules.

@@ -502,19 +502,24 @@ After Phases 1–3, before the umbrella check, fold every PostHog match collecte
    - If none exists and the threshold is met, create one Issue whose title is a plain verb-led sentence naming the failure — "Fix the credential request that never resolves on garden join", not `Recurring: {error}`. The `Recurring:` prefix was retired 2026-08-27 and a `PreToolUse` hook now rejects it; the `pattern:posthog-*` label marks the record as a recurring parent. Status `Todo`, labels `protocol:green-goods` + `activity:qa` + `package:<inferred>` + `ai:routine` + `pattern:posthog-{error-hash-prefix}`. The parent Issue body uses the safe-summary fields only:
 
      ```markdown
-     ## Recurring pattern
+     {What keeps failing, for whom, and on which surface — two or three plain
+     sentences. Name the redacted top-line message inside them.}
 
-     - Error hash: `{posthog-error-hash}`
-     - Top-line message: `{redacted-error-message}`
-     - Distinct sessions (last 30d): {S}
-     - Distinct users (last 30d): {U}
-     - First seen: {YYYY-MM-DDTHH:MM:SSZ}
-     - Last seen: {YYYY-MM-DDTHH:MM:SSZ}
-     - App surface: {client | admin}
+     Seen {S} sessions and {U} users over 30 days, first {YYYY-MM-DD}, last
+     {YYYY-MM-DD}. Error hash `{posthog-error-hash}`.
+
+     **Done when**
+     - {the observable recovery — the failing path succeeds again, or the error
+       is understood and deliberately accepted}
+     - {second outcome, when the pattern has two halves}
 
      ## Linked Customer Needs
      {bullet list of Linear URLs for every Customer Need this routine has ever associated with this error hash}
      ```
+
+     This parent is filed as `Todo`, so **`Done when` is required** — without
+     checkable outcomes a Codex hand-off stops at the readiness gate. If no
+     outcome can be named yet, file it `Backlog` instead.
 
    - If a parent Issue already exists, append any new Customer Need URLs to its `## Linked Customer Needs` list and refresh the safe-summary numbers in place.
 4. **Backlink** every contributing Customer Need to the parent Issue via Linear's relation surface (`relates to` or the parent's linked-issues field). The Customer Needs themselves are not edited beyond adding the relation.

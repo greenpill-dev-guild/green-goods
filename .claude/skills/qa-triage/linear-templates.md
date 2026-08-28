@@ -114,19 +114,21 @@ the 2026-08-27 board audit made the issue worse:
 When Phase 3 surfaces a `[derived:recurring]` item and the user approves it in Phase 4, file the parent Issue with the shape below.
 
 ```markdown
-## Recurring pattern
+<What keeps failing, for whom, and on which surface — two or three plain
+sentences naming the redacted top-line message.>
 
-- Error hash: `<posthog-error-hash>`
-- Top-line message: `<redacted-error-message>`
-- Distinct sessions (last 30d): <S>
-- Distinct users (last 30d): <U>
-- First seen: <YYYY-MM-DDTHH:MM:SSZ>
-- Last seen: <YYYY-MM-DDTHH:MM:SSZ>
-- App surface: <client | admin>
+Seen <S> sessions and <U> users over 30 days, first <YYYY-MM-DD>, last
+<YYYY-MM-DD>. Error hash `<posthog-error-hash>`.
+
+**Done when**
+- <the observable recovery — the failing path succeeds again, or the error is
+  understood and deliberately accepted>
 
 ## Linked Customer Needs
 <bullet list of Linear URLs for every Customer Need this run associates with this hash>
 ```
+
+This parent is filed as `Todo`, so **`Done when` is required** — without checkable outcomes a Codex hand-off stops at the readiness gate. If no outcome can be named yet, file it `Backlog` instead.
 
 **Labels**: `protocol:green-goods`, `activity:qa`, `package:<inferred>`, `ai:claude`, plus `pattern:posthog-<hash-prefix>` if the pattern label family exists on the team. If `pattern:*` is missing, fail loud and skip the recurring-pattern parent rather than inventing a label.
 
