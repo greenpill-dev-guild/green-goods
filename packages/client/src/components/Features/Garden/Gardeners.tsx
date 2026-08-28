@@ -25,6 +25,7 @@ import { Avatar, AvatarFallback, AvatarImage, AvatarSkeleton } from "@/component
 import { AddressCopy } from "@/components/Inputs";
 import { pwaDrawerStyles } from "@/components/Pwa/drawerStyles";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import { GardenJoinRequestsQueue } from "./GardenJoinRequestsQueue";
 
 export type GardenMember = GardenerCard & {
   account: Address;
@@ -35,6 +36,7 @@ export type GardenMember = GardenerCard & {
 interface GardenGardenersProps {
   members: GardenMember[];
   garden?: Garden;
+  canManageRequests?: boolean;
 }
 
 const GardenMemberItem = memo(function GardenMemberItem({
@@ -147,7 +149,7 @@ function GardenMemberRow({
 }
 
 export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps>(
-  ({ members, garden }, ref) => {
+  ({ members, garden, canManageRequests = false }, ref) => {
     const intl = useIntl();
     const shouldVirtualize = members.length > 40;
     const [selected, setSelected] = useState<GardenMember | null>(null);
@@ -185,6 +187,11 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
 
     return (
       <ul className="flex-1" ref={ref}>
+        {canManageRequests && garden?.id ? (
+          <li className="list-none" role="presentation">
+            <GardenJoinRequestsQueue gardenAddress={garden.id as Address} />
+          </li>
+        ) : null}
         {members.length ? (
           shouldVirtualize ? (
             <List

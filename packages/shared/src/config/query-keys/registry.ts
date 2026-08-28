@@ -2,6 +2,7 @@ import { actionsKeys, assessmentsKeys, gardensKeys, platformKeys } from "./garde
 import { commitmentPoolingKeys } from "./commitment-pooling";
 import { creditKeys } from "./credit";
 import { greenWillKeys } from "./greenwill";
+import { gardenJoinRequestKeys } from "./garden-join-requests";
 import { convictionKeys, hypercertsKeys, marketplaceKeys } from "./hypercert";
 import {
   communityKeys,
@@ -51,4 +52,5 @@ export const queryKeys = {
   commitmentPooling: commitmentPoolingKeys,
   credit: creditKeys,
   savedOffers: savedOffersKeys,
+  gardenJoinRequests: gardenJoinRequestKeys,
 } as const;

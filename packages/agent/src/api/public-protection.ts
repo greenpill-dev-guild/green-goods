@@ -13,6 +13,12 @@ export type PublicRouteClass =
   | "saved_offers_session"
   | "saved_offers_read"
   | "saved_offers_mutation"
+  | "join_request_create"
+  | "join_request_create_ip"
+  | "join_request_create_account"
+  | "join_request_create_garden"
+  | "join_request_read"
+  | "join_request_resolve"
   | "webhook_pre"
   | "webhook_post";
 
@@ -52,6 +58,12 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   saved_offers_session: { limit: 10, windowMs: 10 * 60 * 1000 },
   saved_offers_read: { limit: 120, windowMs: 10 * 60 * 1000 },
   saved_offers_mutation: { limit: 30, windowMs: 10 * 60 * 1000 },
+  join_request_create: { limit: 10, windowMs: 10 * 60 * 1000 },
+  join_request_create_ip: { limit: 30, windowMs: 10 * 60 * 1000 },
+  join_request_create_account: { limit: 3, windowMs: 24 * 60 * 60 * 1000 },
+  join_request_create_garden: { limit: 50, windowMs: 24 * 60 * 60 * 1000 },
+  join_request_read: { limit: 120, windowMs: 10 * 60 * 1000 },
+  join_request_resolve: { limit: 30, windowMs: 10 * 60 * 1000 },
   webhook_pre: { limit: 300, windowMs: 60 * 1000 },
   webhook_post: { limit: 300, windowMs: 60 * 1000 },
 } as const satisfies Record<PublicRouteClass, RateLimitPolicy>;
@@ -158,6 +170,27 @@ export function publicIpRateLimitKey(input: Omit<PublicRateLimitKeyInput, "mater
   return [input.route, origin, ip, "ip"].join(":");
 }
 
+/** Build an origin-independent pre-authentication key for one IP and resource. */
+export function publicIpMaterialRateLimitKey(input: PublicRateLimitKeyInput): string {
+  const ip = derivePublicClientIp(input.request, input.trustedProxy);
+  const hashedMaterial = hashPublicRateLimitMaterial(input.material ?? "");
+  return [input.route, ip, hashedMaterial].join(":");
+}
+
+/**
+ * Build a rate-limit key for an authenticated resource identity.
+ *
+ * Unlike publicRateLimitKey, this intentionally excludes the request IP and
+ * origin. Account and garden limits must follow the signed identity across
+ * networks without also imposing the same low ceiling on everyone sharing an
+ * IP address.
+ */
+export function publicMaterialRateLimitKey(
+  input: Pick<PublicRateLimitKeyInput, "route" | "material">
+): string {
+  return [input.route, "material", hashPublicRateLimitMaterial(input.material ?? "")].join(":");
+}
+
 export class InMemoryPublicRateLimiter {
   private buckets = new Map<string, { count: number; resetAt: number }>();
   private nextSweepAt = 0;
@@ -184,6 +217,16 @@ export class InMemoryPublicRateLimiter {
 
     existing.count += 1;
     return { allowed: true };
+  }
+
+  release(key: string, now: number = Date.now()): void {
+    const existing = this.buckets.get(key);
+    if (!existing) return;
+    if (existing.resetAt <= now || existing.count <= 1) {
+      this.buckets.delete(key);
+      return;
+    }
+    existing.count -= 1;
   }
 
   clear(): void {

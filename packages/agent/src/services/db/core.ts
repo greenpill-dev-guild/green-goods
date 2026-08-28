@@ -20,6 +20,7 @@ import type {
 } from "../../types";
 import * as chatMessages from "./chat-messages";
 import * as fundingIntents from "./funding-intents";
+import * as gardenJoinRequests from "./garden-join-requests";
 import * as idempotency from "./idempotency";
 import { type ClaimIdempotencyInput, type IdempotencyRecord } from "./idempotency";
 import * as pendingWork from "./pending-work";
@@ -32,6 +33,7 @@ import type { FundingIntentRecord } from "../funding-intents";
 import type { ProfileAvatarRecord } from "@green-goods/shared/profile-avatar/protocol";
 import type { Address } from "@green-goods/shared/types";
 import type { SavedOfferCipher } from "../saved-offers";
+import type { GardenJoinRequestCipher } from "../garden-join-requests";
 
 // ============================================================================
 // DATABASE CLASS
@@ -249,6 +251,87 @@ class DB {
     return savedOffers.tombstoneSavedOffer(this.db, input);
   }
 
+  async createGardenJoinRequest(
+    cipher: GardenJoinRequestCipher,
+    id: string,
+    input: Parameters<typeof gardenJoinRequests.createGardenJoinRequest>[3]
+  ) {
+    return gardenJoinRequests.createGardenJoinRequest(this.db, cipher, id, input);
+  }
+
+  async getGardenJoinRequestMine(
+    cipher: GardenJoinRequestCipher,
+    gardenAddress: Address,
+    accountAddress: Address,
+    nowIso?: string
+  ) {
+    return gardenJoinRequests.getGardenJoinRequestMine(
+      this.db,
+      cipher,
+      gardenAddress,
+      accountAddress,
+      nowIso
+    );
+  }
+
+  async getGardenJoinRequestById(
+    cipher: GardenJoinRequestCipher,
+    gardenAddress: Address,
+    requestId: string
+  ) {
+    return gardenJoinRequests.getGardenJoinRequestById(this.db, cipher, gardenAddress, requestId);
+  }
+
+  async listPendingGardenJoinRequests(
+    cipher: GardenJoinRequestCipher,
+    gardenAddress: Address,
+    options?: { cursor?: string; limit?: number; nowIso?: string }
+  ) {
+    return gardenJoinRequests.listPendingGardenJoinRequests(
+      this.db,
+      cipher,
+      gardenAddress,
+      options
+    );
+  }
+
+  async resolveGardenJoinRequest(
+    cipher: GardenJoinRequestCipher,
+    input: Parameters<typeof gardenJoinRequests.resolveGardenJoinRequest>[2]
+  ) {
+    return gardenJoinRequests.resolveGardenJoinRequest(this.db, cipher, input);
+  }
+
+  async reconcileWelcomedGardenJoinRequest(
+    cipher: GardenJoinRequestCipher,
+    gardenAddress: Address,
+    requestId: string,
+    resolvedAt: string
+  ) {
+    return gardenJoinRequests.reconcileWelcomedGardenJoinRequest(
+      this.db,
+      cipher,
+      gardenAddress,
+      requestId,
+      resolvedAt
+    );
+  }
+
+  async claimGardenJoinRequestProof(nonce: string, expiresAt: string) {
+    return gardenJoinRequests.claimGardenJoinRequestProof(this.db, nonce, expiresAt);
+  }
+
+  async withdrawGardenJoinRequest(
+    cipher: GardenJoinRequestCipher,
+    input: Parameters<typeof gardenJoinRequests.withdrawGardenJoinRequest>[2]
+  ) {
+    return gardenJoinRequests.withdrawGardenJoinRequest(this.db, cipher, input);
+  }
+
+  async sweepGardenJoinRequests(nowIso: string) {
+    return gardenJoinRequests.sweepGardenJoinRequests(this.db, nowIso);
+  }
+
   // ===========================================================================
   // LIFECYCLE
   // ===========================================================================
@@ -365,6 +448,45 @@ export const compareAndSwapSavedOffer = (
 ) => getDB().compareAndSwapSavedOffer(cipher, input);
 export const tombstoneSavedOffer = (input: Parameters<typeof savedOffers.tombstoneSavedOffer>[1]) =>
   getDB().tombstoneSavedOffer(input);
+
+export const createGardenJoinRequest = (
+  cipher: GardenJoinRequestCipher,
+  id: string,
+  input: Parameters<DB["createGardenJoinRequest"]>[2]
+) => getDB().createGardenJoinRequest(cipher, id, input);
+export const getGardenJoinRequestMine = (
+  cipher: GardenJoinRequestCipher,
+  gardenAddress: Address,
+  accountAddress: Address,
+  nowIso?: string
+) => getDB().getGardenJoinRequestMine(cipher, gardenAddress, accountAddress, nowIso);
+export const getGardenJoinRequestById = (
+  cipher: GardenJoinRequestCipher,
+  gardenAddress: Address,
+  requestId: string
+) => getDB().getGardenJoinRequestById(cipher, gardenAddress, requestId);
+export const listPendingGardenJoinRequests = (
+  cipher: GardenJoinRequestCipher,
+  gardenAddress: Address,
+  options?: { cursor?: string; limit?: number; nowIso?: string }
+) => getDB().listPendingGardenJoinRequests(cipher, gardenAddress, options);
+export const resolveGardenJoinRequest = (
+  cipher: GardenJoinRequestCipher,
+  input: Parameters<DB["resolveGardenJoinRequest"]>[1]
+) => getDB().resolveGardenJoinRequest(cipher, input);
+export const reconcileWelcomedGardenJoinRequest = (
+  cipher: GardenJoinRequestCipher,
+  gardenAddress: Address,
+  requestId: string,
+  resolvedAt: string
+) => getDB().reconcileWelcomedGardenJoinRequest(cipher, gardenAddress, requestId, resolvedAt);
+export const claimGardenJoinRequestProof = (nonce: string, expiresAt: string) =>
+  getDB().claimGardenJoinRequestProof(nonce, expiresAt);
+export const withdrawGardenJoinRequest = (
+  cipher: GardenJoinRequestCipher,
+  input: Parameters<DB["withdrawGardenJoinRequest"]>[1]
+) => getDB().withdrawGardenJoinRequest(cipher, input);
+export const sweepGardenJoinRequests = (nowIso: string) => getDB().sweepGardenJoinRequests(nowIso);
 
 export const closeDB = async () => {
   if (!_db) return;

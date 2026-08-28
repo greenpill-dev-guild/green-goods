@@ -42,6 +42,7 @@ import { GardenErrorBoundary } from "@/components/Errors";
 import {
   GardenAssessments,
   GardenGardeners,
+  GardenJoinRequestDialog,
   type GardenMember,
   GardenWork,
 } from "@/components/Features";
@@ -187,6 +188,13 @@ export const Garden: React.FC = () => {
     "evaluator"
   );
   const canReview = isSteward || canReviewOnChain;
+  const canManageRequests = useMemo(() => {
+    if (!primaryAddress || !garden) return false;
+    const account = primaryAddress.toLowerCase();
+    return [...(garden.stewards ?? []), ...(garden.owners ?? [])].some(
+      (address) => address.toLowerCase() === account
+    );
+  }, [garden, primaryAddress]);
 
   // Gate header drawers behind steward/funder roles. Default gardeners should not see
   // governance or endowment chrome — those drawers expose protocol-shaped surfaces (signal pool,
@@ -196,17 +204,15 @@ export const Garden: React.FC = () => {
   const showEndowmentButton = gardenVaults.length > 0 && (canReview || hasOwnEndowmentDeposit);
   const hasGovernance = showGovernanceButton;
 
-  // Check if current user is already a member of this garden.
-  // pendingJoinsVersion subscribes to in-tab pending-join changes so the
-  // header re-renders the moment a join confirms or expires (the header
-  // would otherwise stay on the stale `Join` button until an unrelated
-  // dep change forced a re-memo).
+  // The version counter refreshes membership as in-tab joins confirm or expire,
+  // so the header does not keep showing stale join controls.
   const pendingJoinsVersion = usePendingJoinsVersion();
   const isMember = useMemo(() => {
     if (!garden) return false;
-    return isGardenMember(primaryAddress, garden.gardeners, garden.stewards, garden.id);
+    const { gardeners, stewards, id } = garden;
+    return canManageRequests || isGardenMember(primaryAddress, gardeners, stewards, id);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
-  }, [primaryAddress, garden, pendingJoinsVersion]);
+  }, [primaryAddress, garden, canManageRequests, pendingJoinsVersion]);
 
   // Join garden functionality
   const { joinGarden, isJoining } = useJoinGarden();
@@ -248,6 +254,7 @@ export const Garden: React.FC = () => {
     if (!garden?.openJoining) return false;
     return true;
   }, [primaryAddress, isMember, garden?.openJoining]);
+  const showJoinRequestButton = Boolean(primaryAddress && !isMember && !garden?.openJoining);
 
   if (!garden) {
     if (gardensInitialLoading) {
@@ -338,7 +345,13 @@ export const Garden: React.FC = () => {
           />
         );
       case GardenTab.Gardeners:
-        return <GardenGardeners members={members} garden={garden} />;
+        return (
+          <GardenGardeners
+            members={members}
+            garden={garden}
+            canManageRequests={canManageRequests}
+          />
+        );
     }
   };
 
@@ -415,6 +428,9 @@ export const Garden: React.FC = () => {
                       disabled={isJoining}
                     />
                   )}
+                  {showJoinRequestButton ? (
+                    <GardenJoinRequestDialog gardenAddress={garden.id as Address} />
+                  ) : null}
                 </div>
               </div>
 

@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import messages from "@green-goods/shared/i18n/en.json";
 
 const mockNavigate = vi.fn();
+let mockPrimaryAddress: `0x${string}` | null = null;
 const mockUseGardenTabs = vi.fn(() => ({
   activeTab: "Work",
   setActiveTab: vi.fn(),
@@ -132,7 +133,7 @@ vi.mock("@green-goods/shared/stores/useUIStore", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
-  useUser: () => ({ primaryAddress: null }),
+  useUser: () => ({ primaryAddress: mockPrimaryAddress }),
 }));
 
 vi.mock("@green-goods/shared/hooks/vault/useVaultDeposits", () => ({
@@ -179,6 +180,7 @@ vi.mock("@/components/Features", () => ({
     description?: string | null;
   }) => mockGardenAssessments(props),
   GardenGardeners: () => createElement("div", null, "Gardeners"),
+  GardenJoinRequestDialog: () => createElement("div", { "data-testid": "join-request-dialog" }),
   GardenWork: () => createElement("div", null, "Work"),
 }));
 
@@ -197,6 +199,7 @@ import { Garden } from "../../views/Home/Garden";
 describe("Home garden route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrimaryAddress = null;
     mockUseGardenTabs.mockReturnValue({
       activeTab: "Work",
       setActiveTab: vi.fn(),
@@ -286,5 +289,46 @@ describe("Home garden route", () => {
         description: "Garden description",
       })
     );
+  });
+
+  it("does not offer a closed-garden join request to an owner", () => {
+    mockPrimaryAddress = "0x9999999999999999999999999999999999999999";
+    mockUseGardens.mockReturnValue({
+      data: [
+        {
+          id: "garden-1",
+          name: "Owner Garden",
+          bannerImage: "/banner.png",
+          location: "Test Location",
+          createdAt: Date.now(),
+          description: "Garden description",
+          assessments: [],
+          gardeners: [],
+          stewards: [],
+          owners: [mockPrimaryAddress],
+          openJoining: false,
+        },
+      ],
+      isLoading: false,
+      isFetching: false,
+    });
+
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/home/garden-1"] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, { path: "/home/:id", element: createElement(Garden) })
+          )
+        )
+      )
+    );
+
+    expect(screen.queryByTestId("join-request-dialog")).not.toBeInTheDocument();
   });
 });

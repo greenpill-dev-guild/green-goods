@@ -7,6 +7,13 @@
 export const GARDEN_ACCOUNT_ROLE_ABI = [
   {
     type: "function",
+    name: "openJoining",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    type: "function",
     name: "isGardener",
     stateMutability: "view",
     inputs: [{ name: "account", type: "address" }],
