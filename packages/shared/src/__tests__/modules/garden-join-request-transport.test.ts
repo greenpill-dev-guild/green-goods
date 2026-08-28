@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { GardenJoinProofEnvelope } from "../../public-contracts/join-requests";
 import {
+  gardenJoinRequestErrorMessage,
   GardenJoinRequestTransportError,
   gardenJoinRequestTransport,
 } from "../../modules/garden-join-requests";
@@ -19,6 +20,22 @@ const proof: GardenJoinProofEnvelope = {
 };
 
 describe("garden join request transport", () => {
+  it("maps stable and local transport failures to locale message descriptors", () => {
+    expect(
+      gardenJoinRequestErrorMessage(
+        new GardenJoinRequestTransportError("Already joined.", 409, "already_member")
+      )
+    ).toMatchObject({ id: "app.garden.joinRequest.error.alreadyMember" });
+    expect(
+      gardenJoinRequestErrorMessage(
+        new GardenJoinRequestTransportError("The service could not be reached.")
+      )
+    ).toMatchObject({ id: "app.garden.joinRequest.error.unavailable" });
+    expect(gardenJoinRequestErrorMessage(new Error("Raw fallback"))).toMatchObject({
+      id: "app.garden.joinRequest.error.generic",
+    });
+  });
+
   it("sends a signed create request to the garden-scoped route", async () => {
     const fetchMock = vi.fn(
       async () =>

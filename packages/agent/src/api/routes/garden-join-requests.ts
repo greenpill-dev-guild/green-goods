@@ -1,16 +1,10 @@
 import {
   GARDEN_JOIN_REQUEST_DEFAULT_PAGE_SIZE,
   GARDEN_JOIN_REQUEST_MAX_PAGE_SIZE,
-  validateCreateGardenJoinRequest,
 } from "@green-goods/shared/public-contracts/join-requests";
 import type { Context, Hono } from "hono";
+import { toGardenJoinRequestSelfRecord } from "../../services/garden-join-requests";
 import {
-  GARDEN_JOIN_REQUEST_RETENTION_MS,
-  toGardenJoinRequestSelfRecord,
-} from "../../services/garden-join-requests";
-import { readLimitedJsonBody } from "../http/body";
-import {
-  checkMaterialRateLimit,
   checkRateLimit,
   publicBrowserCorsPreflight,
   publicBrowserCorsResponse,
@@ -23,10 +17,9 @@ import {
   gardenJoinRequestsUnavailable,
   prepareGardenJoinRequest,
 } from "./garden-join-request-auth";
+import { handleCreateGardenJoinRequest } from "./garden-join-request-create";
 import { handleGardenJoinRequestResolution } from "./garden-join-request-resolution";
 import { trackGardenJoinRequestEvent } from "../../services/analytics";
-
-const BODY_LIMIT_BYTES = 8 * 1024;
 
 export function registerGardenJoinRequestRoutes(
   app: Hono,
@@ -38,132 +31,11 @@ export function registerGardenJoinRequestRoutes(
   app.options(collection, (c) => publicBrowserCorsPreflight(c, ctx.deps));
   app.options(mine, (c) => publicBrowserCorsPreflight(c, ctx.deps));
   app.options(resolve, (c) => publicBrowserCorsPreflight(c, ctx.deps));
-  app.post(collection, (c) => handleCreate(c, ctx));
+  app.post(collection, (c) => handleCreateGardenJoinRequest(c, ctx));
   app.get(collection, (c) => handleList(c, ctx));
   app.get(mine, (c) => handleMine(c, ctx));
   app.delete(mine, (c) => handleWithdraw(c, ctx));
   app.post(resolve, (c) => handleGardenJoinRequestResolution(c, ctx));
-}
-
-async function handleCreate(c: Context, ctx: GardenJoinRequestRouteContext) {
-  const preflight = prepareGardenJoinRequest(c, ctx);
-  if (!preflight.ok) return preflight.response;
-  const preAuthRateError = checkRateLimit(c, ctx.deps, "join_request_create", preflight.garden);
-  if (preAuthRateError) {
-    ctx.deps.gardenJoinRequestRateLimitPressure?.mark(
-      preflight.garden,
-      ctx.deps.now?.() ?? Date.now()
-    );
-    void trackCreateRejected("rate_limited");
-    return publicBrowserCorsResponse(c, ctx.deps, preAuthRateError, 429);
-  }
-  const body = await readLimitedJsonBody<unknown>(c.req.raw, BODY_LIMIT_BYTES);
-  if (!body.ok) {
-    void trackCreateRejected("invalid_request");
-    return publicBrowserCorsResponse(c, ctx.deps, body.error, body.status);
-  }
-  const parsed = validateCreateGardenJoinRequest(body.value);
-  if (!parsed.ok) {
-    void trackCreateRejected("invalid_request");
-    return publicBrowserCorsResponse(c, ctx.deps, parsed.error, 400);
-  }
-  const authenticated = await authenticateGardenJoinRequest(c, ctx, "create", {
-    displayName: parsed.value.displayName,
-    note: parsed.value.note ?? null,
-    requestedVia: parsed.value.requestedVia,
-  });
-  if (!authenticated.ok) {
-    void trackCreateRejected("authentication_failed");
-    return authenticated.response;
-  }
-  const rateError =
-    checkMaterialRateLimit(
-      ctx.deps,
-      "join_request_create_account",
-      `${preflight.garden}:${authenticated.proof.accountAddress}`
-    ) ?? checkMaterialRateLimit(ctx.deps, "join_request_create_garden", preflight.garden);
-  if (rateError) {
-    ctx.deps.gardenJoinRequestRateLimitPressure?.mark(
-      preflight.garden,
-      ctx.deps.now?.() ?? Date.now()
-    );
-    void trackCreateRejected("rate_limited", authenticated.proof.factory !== undefined);
-    return publicBrowserCorsResponse(c, ctx.deps, rateError, 429);
-  }
-
-  const chain = ctx.deps.gardenJoinRequestChainReader;
-  const store = ctx.store;
-  if (!chain || !store) {
-    void trackCreateRejected("service_unavailable", authenticated.proof.factory !== undefined);
-    return gardenJoinRequestsUnavailable(c, ctx);
-  }
-  try {
-    if (await chain.isOpenJoining(preflight.garden)) {
-      void trackCreateRejected("open_joining", authenticated.proof.factory !== undefined);
-      return gardenJoinRequestFailure(
-        c,
-        ctx,
-        "open_joining_enabled",
-        "This garden is open. Join it directly instead.",
-        409
-      );
-    }
-    if (await chain.isMember(preflight.garden, authenticated.proof.accountAddress)) {
-      void trackCreateRejected("already_member", authenticated.proof.factory !== undefined);
-      return gardenJoinRequestFailure(
-        c,
-        ctx,
-        "already_member",
-        "You are already a member of this garden.",
-        409
-      );
-    }
-    if (!(await claimGardenJoinRequestProof(store, authenticated.proof))) {
-      void trackCreateRejected("proof_replayed", authenticated.proof.factory !== undefined);
-      return gardenJoinRequestFailure(
-        c,
-        ctx,
-        "idempotency_conflict",
-        "This signed request was already used.",
-        409
-      );
-    }
-    const now = ctx.deps.now?.() ?? Date.now();
-    const result = await store.create({
-      gardenAddress: preflight.garden,
-      accountAddress: authenticated.proof.accountAddress,
-      displayName: parsed.value.displayName,
-      ...(parsed.value.note ? { note: parsed.value.note } : {}),
-      requestedVia: parsed.value.requestedVia,
-      requestedAt: new Date(now).toISOString(),
-      expiresAt: new Date(now + GARDEN_JOIN_REQUEST_RETENTION_MS).toISOString(),
-    });
-    if ("full" in result) {
-      void trackCreateRejected("queue_full", authenticated.proof.factory !== undefined);
-      return gardenJoinRequestFailure(
-        c,
-        ctx,
-        "queue_full",
-        "This garden's request queue is full right now.",
-        409
-      );
-    }
-    void trackGardenJoinRequestEvent("join_request_created", {
-      kind: "garden_membership",
-      requested_via: parsed.value.requestedVia,
-      is_counterfactual: authenticated.proof.factory !== undefined,
-      retry: !result.created,
-    });
-    return publicBrowserCorsResponse(
-      c,
-      ctx.deps,
-      { ok: true, request: toGardenJoinRequestSelfRecord(result.request) },
-      result.created ? 201 : 200
-    );
-  } catch {
-    void trackCreateRejected("service_unavailable", authenticated.proof.factory !== undefined);
-    return gardenJoinRequestsUnavailable(c, ctx);
-  }
 }
 
 async function handleMine(c: Context, ctx: GardenJoinRequestRouteContext) {
@@ -238,26 +110,6 @@ async function handleWithdraw(c: Context, ctx: GardenJoinRequestRouteContext) {
   } catch {
     return gardenJoinRequestsUnavailable(c, ctx);
   }
-}
-
-function trackCreateRejected(
-  errorClass:
-    | "already_member"
-    | "authentication_failed"
-    | "invalid_request"
-    | "open_joining"
-    | "proof_replayed"
-    | "queue_full"
-    | "rate_limited"
-    | "service_unavailable",
-  isCounterfactual = false
-): Promise<void> {
-  return trackGardenJoinRequestEvent("join_request_create_rejected", {
-    kind: "garden_membership",
-    error_class: errorClass,
-    is_counterfactual: isCounterfactual,
-    retry: false,
-  });
 }
 
 async function handleList(c: Context, ctx: GardenJoinRequestRouteContext) {

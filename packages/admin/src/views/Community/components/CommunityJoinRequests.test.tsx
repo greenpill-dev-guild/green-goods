@@ -2,10 +2,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { GardenJoinRequestTransportError } from "@green-goods/shared/modules/garden-join-requests";
 
 const loadQueue = vi.fn(async () => ({ ok: true, items: [] }));
 const resolveRequest = vi.fn(async () => ({ ok: true, pendingOnchainMembership: false }));
 let rateLimitedRecently = false;
+let mutationError: Error | null = null;
 const addGardener = vi.fn(
   async (): Promise<{
     success: boolean;
@@ -30,7 +32,7 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenJoinRequests", () => ({
     ],
     nextCursor: undefined,
     queueState: { isLoading: false, error: null },
-    mutationState: { isLoading: false, error: null },
+    mutationState: { isLoading: false, error: mutationError },
     rateLimitedRecently,
     loadQueue,
     resolveRequest,
@@ -51,6 +53,8 @@ const messages = {
   "app.common.cancel": "Cancel",
   "app.garden.joinQueue.membershipAddFailed": "Membership could not be added.",
   "app.garden.joinQueue.rateLimitedNotice": "Some join requests were rate-limited recently.",
+  "app.garden.joinRequest.error.conflict":
+    "This request changed or was already used. Check its status and try again.",
   "cockpit.community.joinRequests.confirmDecline": "Decline request",
   "cockpit.community.joinRequests.decline": "Decline",
   "cockpit.community.joinRequests.declined": "The request was declined.",
@@ -79,6 +83,7 @@ describe("CommunityJoinRequests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     rateLimitedRecently = false;
+    mutationError = null;
   });
 
   it("loads explicitly and welcomes through the on-chain membership operation first", async () => {
@@ -161,6 +166,23 @@ describe("CommunityJoinRequests", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent(
       "Some join requests were rate-limited recently."
+    );
+  });
+
+  it("renders resolution transport errors through locale messages", () => {
+    mutationError = new GardenJoinRequestTransportError(
+      "The request changed. Refresh and retry.",
+      409,
+      "resolution_conflict"
+    );
+
+    renderQueue();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "This request changed or was already used. Check its status and try again."
+    );
+    expect(screen.getByRole("alert")).not.toHaveTextContent(
+      "The request changed. Refresh and retry."
     );
   });
 });

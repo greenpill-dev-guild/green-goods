@@ -24,6 +24,9 @@ export function createGardenJoinRequest(
   const accountAddressKey = cipher.accountKey(input.accountAddress);
   db.run("BEGIN IMMEDIATE");
   try {
+    db.query(
+      "DELETE FROM garden_join_requests WHERE gardenAddress = ? AND state = 'pending' AND expiresAt <= ?"
+    ).run(input.gardenAddress, input.requestedAt);
     const existing = findPending(db, input.gardenAddress, accountAddressKey);
     if (existing) {
       db.run("COMMIT");
@@ -154,9 +157,10 @@ export function resolveGardenJoinRequest(
     const personal = JSON.parse(
       cipher.decrypt({ ciphertext: existing.ciphertext, nonce: existing.nonce })
     ) as GardenJoinRequestPersonalFields;
+    const { reason: _reason, ...personalWithoutReason } = personal;
     const encrypted = cipher.encrypt(
       JSON.stringify({
-        ...personal,
+        ...personalWithoutReason,
         ...(input.state === "declined" && input.reason ? { reason: input.reason } : {}),
       } satisfies GardenJoinRequestPersonalFields)
     );
@@ -193,11 +197,16 @@ export function reconcileWelcomedGardenJoinRequest(
   const existing = getById(db, gardenAddress, requestId);
   if (!existing) return undefined;
   if (existing.state === "welcomed") return decrypt(cipher, existing);
+  const personal = JSON.parse(
+    cipher.decrypt({ ciphertext: existing.ciphertext, nonce: existing.nonce })
+  ) as GardenJoinRequestPersonalFields;
+  const { reason: _reason, ...personalWithoutReason } = personal;
+  const encrypted = cipher.encrypt(JSON.stringify(personalWithoutReason));
   db.query(
     `UPDATE garden_join_requests
-     SET state = 'welcomed', resolvedAt = ?, updatedAt = ?, revision = revision + 1
+     SET ciphertext = ?, nonce = ?, state = 'welcomed', resolvedAt = ?, updatedAt = ?, revision = revision + 1
      WHERE id = ? AND gardenAddress = ?`
-  ).run(resolvedAt, resolvedAt, requestId, gardenAddress);
+  ).run(encrypted.ciphertext, encrypted.nonce, resolvedAt, resolvedAt, requestId, gardenAddress);
   const updated = getById(db, gardenAddress, requestId);
   return updated ? decrypt(cipher, updated) : undefined;
 }

@@ -6,7 +6,10 @@ import {
   GARDEN_JOIN_REQUEST_DISPLAY_NAME_MAX_LENGTH,
   GARDEN_JOIN_REQUEST_NOTE_MAX_LENGTH,
 } from "@green-goods/shared/public-contracts/join-requests";
-import { GardenJoinRequestTransportError } from "@green-goods/shared/modules/garden-join-requests";
+import {
+  gardenJoinRequestErrorMessage,
+  GardenJoinRequestTransportError,
+} from "@green-goods/shared/modules/garden-join-requests";
 import type { Address } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -157,7 +160,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
                   role="alert"
                   className="rounded-[var(--radius-md)] bg-error-lighter p-3 text-sm text-error-dark"
                 >
-                  {error.message}
+                  {formatMessage(gardenJoinRequestErrorMessage(error))}
                 </p>
               ) : null}
             </div>
@@ -275,7 +278,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
                     mode="filled"
                     size="small"
                     isLoading={join.mutationState.isLoading}
-                    disabled={!displayName.trim() || outcomeUnknown}
+                    disabled={!displayName.trim() || outcomeUnknown || join.statusState.isLoading}
                     type="submit"
                   />
                   <Button
@@ -287,6 +290,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
                     mode="stroke"
                     size="small"
                     isLoading={join.statusState.isLoading}
+                    disabled={join.mutationState.isLoading}
                     onClick={() => void checkStatus()}
                     type="button"
                   />

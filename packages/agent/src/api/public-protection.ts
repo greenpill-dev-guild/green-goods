@@ -217,6 +217,16 @@ export class InMemoryPublicRateLimiter {
     return { allowed: true };
   }
 
+  release(key: string, now: number = Date.now()): void {
+    const existing = this.buckets.get(key);
+    if (!existing) return;
+    if (existing.resetAt <= now || existing.count <= 1) {
+      this.buckets.delete(key);
+      return;
+    }
+    existing.count -= 1;
+  }
+
   clear(): void {
     this.buckets.clear();
   }

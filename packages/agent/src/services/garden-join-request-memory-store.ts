@@ -24,6 +24,16 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
 
   async create(input: CreateGardenJoinRequestRecord) {
     const accountAddressKey = this.cipher.accountKey(input.accountAddress);
+    const requestedAt = Date.parse(input.requestedAt);
+    for (const [id, record] of this.records) {
+      if (
+        record.gardenAddress === input.gardenAddress &&
+        record.state === "pending" &&
+        Date.parse(record.expiresAt) <= requestedAt
+      ) {
+        this.records.delete(id);
+      }
+    }
     const existing = this.findPending(input.gardenAddress, accountAddressKey);
     if (existing) return { created: false as const, request: this.decrypt(existing) };
     const pendingCount = [...this.records.values()].filter(
@@ -103,9 +113,10 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
       return { ok: false as const, reason: "not_pending" as const };
     }
     const personal = this.decryptPersonal(record);
+    const { reason: _reason, ...personalWithoutReason } = personal;
     const encrypted = this.cipher.encrypt(
       JSON.stringify({
-        ...personal,
+        ...personalWithoutReason,
         ...(input.state === "declined" && input.reason ? { reason: input.reason } : {}),
       } satisfies GardenJoinRequestPersonalFields)
     );
@@ -125,8 +136,12 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
     const record = this.records.get(requestId);
     if (!record || record.gardenAddress !== gardenAddress) return undefined;
     if (record.state === "welcomed") return this.decrypt(record);
+    const personal = this.decryptPersonal(record);
+    const { reason: _reason, ...personalWithoutReason } = personal;
+    const encrypted = this.cipher.encrypt(JSON.stringify(personalWithoutReason));
     const updated: EncryptedGardenJoinRequest = {
       ...record,
+      ...encrypted,
       state: "welcomed",
       resolvedAt,
       updatedAt: resolvedAt,

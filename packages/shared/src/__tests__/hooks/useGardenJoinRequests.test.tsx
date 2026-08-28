@@ -150,4 +150,44 @@ describe("useGardenJoinRequests", () => {
     expect(result.current.request).toEqual(selfResponse.request);
     expect(result.current.hasCheckedStatus).toBe(true);
   });
+
+  it("waits for an in-flight submission before starting a later status check", async () => {
+    const pendingCreate = deferred<GardenJoinRequestSelfResponse>();
+    let submissionSettled = false;
+    mocks.create.mockReturnValueOnce(pendingCreate.promise);
+    mocks.mine.mockImplementationOnce(async () => {
+      expect(submissionSettled).toBe(true);
+      return selfResponse;
+    });
+    const { result } = renderHook(() => useGardenJoinRequests(GARDEN_A));
+
+    let submitPromise!: Promise<unknown>;
+    let statusPromise!: Promise<unknown>;
+    act(() => {
+      submitPromise = result.current.submitRequest({
+        displayName: "Maya",
+        requestedVia: "garden_detail",
+      });
+    });
+    await waitFor(() => expect(mocks.create).toHaveBeenCalledOnce());
+
+    act(() => {
+      statusPromise = result.current.checkStatus();
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(mocks.mine).not.toHaveBeenCalled();
+
+    submissionSettled = true;
+    pendingCreate.resolve(selfResponse);
+    await act(async () => {
+      await Promise.all([submitPromise, statusPromise]);
+    });
+
+    expect(mocks.mine).toHaveBeenCalledOnce();
+    expect(result.current.request).toEqual(selfResponse.request);
+    expect(result.current.hasCheckedStatus).toBe(true);
+  });
 });

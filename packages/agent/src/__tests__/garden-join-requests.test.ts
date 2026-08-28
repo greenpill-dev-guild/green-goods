@@ -89,6 +89,38 @@ describe("garden join request store", () => {
       reason: "Please attend one garden gathering first.",
       canAskAgain: true,
     });
+
+    const reconciled = await store.reconcileWelcomed(
+      garden,
+      created.request.id,
+      "2026-08-28T12:00:00.000Z"
+    );
+    expect(reconciled).toMatchObject({ state: "welcomed", revision: 2 });
+    expect(reconciled).not.toHaveProperty("reason");
+  });
+
+  it("replaces an expired pending request before duplicate and capacity checks", async () => {
+    const store = createStore();
+    await store.create({
+      gardenAddress: garden,
+      accountAddress: account,
+      displayName: "Expired request",
+      requestedVia: "garden_detail",
+      requestedAt: "2026-07-01T12:00:00.000Z",
+      expiresAt: "2026-08-01T12:00:00.000Z",
+    });
+
+    const fresh = await store.create({
+      gardenAddress: garden,
+      accountAddress: account,
+      displayName: "Fresh request",
+      requestedVia: "garden_detail",
+      requestedAt: "2026-08-02T12:00:00.000Z",
+      expiresAt: "2026-09-01T12:00:00.000Z",
+    });
+
+    expect(fresh).toMatchObject({ created: true, request: { displayName: "Fresh request" } });
+    expect(store.inspectEncryptedRecords()).toHaveLength(1);
   });
 
   it("withdraws pending rows and hard-deletes expired or retained rows", async () => {
@@ -143,11 +175,12 @@ describe("garden join request store", () => {
 
   it("stores replay guards as keyed nonce digests", async () => {
     const store = createStore();
-    const proofNonce = `0x${"12".repeat(32)}`;
+    const proofNonce = `0x${"aB".repeat(32)}`;
+    const caseVariant = `0x${proofNonce.slice(2).toUpperCase()}`;
 
     expect(await store.claimProof(proofNonce, expiresAt)).toBe(true);
     expect(store.inspectProofKeys()).toHaveLength(1);
     expect(store.inspectProofKeys()).not.toContain(proofNonce);
-    expect(await store.claimProof(proofNonce, expiresAt)).toBe(false);
+    expect(await store.claimProof(caseVariant, expiresAt)).toBe(false);
   });
 });

@@ -3,6 +3,7 @@ import {
   useGardenJoinRequests,
 } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import { useGardenOperations } from "@green-goods/shared/hooks/garden/useGardenOperations";
+import { gardenJoinRequestErrorMessage } from "@green-goods/shared/modules/garden-join-requests";
 import {
   GARDEN_JOIN_REQUEST_REASON_MAX_LENGTH,
   type GardenJoinRequestQueueItem,
@@ -163,7 +164,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
             role="alert"
             className="rounded-[var(--radius-md)] bg-error-lighter p-3 text-sm text-error-dark"
           >
-            {error?.message ?? localError}
+            {error ? formatMessage(gardenJoinRequestErrorMessage(error)) : localError}
           </p>
         ) : null}
       </div>

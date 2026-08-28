@@ -139,7 +139,9 @@ export function createGardenJoinRequestCipher(secret: string): GardenJoinRequest
         .digest("hex");
     },
     proofKey(nonce) {
-      return createHmac("sha256", key).update(`garden-join-proof:${nonce}`).digest("hex");
+      return createHmac("sha256", key)
+        .update(`garden-join-proof:${nonce.toLowerCase()}`)
+        .digest("hex");
     },
   };
 }
@@ -158,7 +160,7 @@ function toGardenJoinRequestRecord(
     requestedAt: record.requestedAt,
     expiresAt: record.expiresAt,
     ...(record.resolvedAt ? { resolvedAt: record.resolvedAt } : {}),
-    ...(personal.reason ? { reason: personal.reason } : {}),
+    ...(record.state === "declined" && personal.reason ? { reason: personal.reason } : {}),
     canAskAgain: record.state !== "pending",
     accountAddress: personal.accountAddress,
     displayName: personal.displayName,

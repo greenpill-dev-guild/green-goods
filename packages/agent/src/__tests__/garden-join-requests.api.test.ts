@@ -12,7 +12,9 @@ import {
   createGardenJoinRequestCipher,
   GardenJoinRequestRateLimitPressure,
 } from "../services/garden-join-requests";
+import { initAgentAnalytics, resetAgentAnalyticsForTests } from "../services/analytics";
 import type { ProfileAvatarSignatureVerifier } from "../services/profile-avatars";
+import { mockPostHog } from "./setup";
 
 const ORIGIN = "https://greengoods.app";
 const CHAIN_ID = 42161;
@@ -43,10 +45,14 @@ function proof(
   };
 }
 
-function headers(joinProof: GardenJoinProofEnvelope, origin = ORIGIN) {
+function headers(
+  joinProof: GardenJoinProofEnvelope,
+  origin = ORIGIN,
+  testSocketIp = "198.51.100.10"
+) {
   return {
     origin,
-    "x-gg-test-socket-ip": "198.51.100.10",
+    "x-gg-test-socket-ip": testSocketIp,
     "content-type": "application/json",
     authorization: encodeGardenJoinAuthorization(joinProof),
   };
@@ -120,11 +126,12 @@ async function submitForGarden(
   app: ReturnType<typeof createServer>,
   gardenAddress: Address,
   accountAddress: GardenJoinProofEnvelope["accountAddress"],
-  origin = ORIGIN
+  origin = ORIGIN,
+  testSocketIp = "198.51.100.10"
 ) {
   return app.request(`/public/gardens/${gardenAddress}/join-requests`, {
     method: "POST",
-    headers: headers(proof("create", accountAddress, { gardenAddress }), origin),
+    headers: headers(proof("create", accountAddress, { gardenAddress }), origin, testSocketIp),
     body: JSON.stringify({ displayName: "Maya", requestedVia: "garden_detail" }),
   });
 }
@@ -214,12 +221,16 @@ describe("garden join request public API", () => {
     const waitingProof = proof("welcome", OPERATOR, {
       requestId: "request-1",
       expectedRevision: 0,
+      nonce: `0x${"ab".repeat(32)}`,
     });
 
     const waiting = await resolve(waitingProof);
     expect(waiting.status).toBe(202);
     expect(await waiting.json()).toMatchObject({ ok: true, pendingOnchainMembership: true });
-    const replay = await resolve(waitingProof);
+    const replay = await resolve({
+      ...waitingProof,
+      nonce: `0x${waitingProof.nonce.slice(2).toUpperCase()}`,
+    });
     expect(replay.status).toBe(409);
     expect(await replay.json()).toMatchObject({ errorCode: "idempotency_conflict" });
 
@@ -259,7 +270,9 @@ describe("garden join request public API", () => {
     );
 
     expect(reconciled.status).toBe(200);
-    expect(await reconciled.json()).toMatchObject({ request: { state: "welcomed", revision: 2 } });
+    const body = await reconciled.json();
+    expect(body).toMatchObject({ request: { state: "welcomed", revision: 2 } });
+    expect(body.request).not.toHaveProperty("reason");
   });
 
   it("rejects replayed write proofs", async () => {
@@ -289,6 +302,31 @@ describe("garden join request public API", () => {
     const limited = await submitFor(app, APPLICANT);
     expect(limited.status).toBe(429);
     expect(signatureVerifier).toHaveBeenCalledTimes(10);
+  });
+
+  it("classifies verifier outages as service failures", async () => {
+    mockPostHog.capture.mockClear();
+    initAgentAnalytics({ apiKey: "phc_agent_test", enabled: true });
+    const { app } = createApp({
+      signatureVerifier: vi.fn(async () => {
+        throw new Error("RPC unavailable");
+      }),
+    });
+
+    try {
+      const response = await submit(app);
+
+      expect(response.status).toBe(503);
+      await vi.waitFor(() =>
+        expect(mockPostHog.capture).toHaveBeenCalledWith({
+          distinctId: "green-goods-agent-runtime",
+          event: "join_request_create_rejected",
+          properties: expect.objectContaining({ error_class: "service_unavailable" }),
+        })
+      );
+    } finally {
+      resetAgentAnalyticsForTests();
+    }
   });
 
   it("does not let rotating allowed origins bypass the pre-authentication limit", async () => {
@@ -336,6 +374,60 @@ describe("garden join request public API", () => {
       const response = await submitFor(app, applicant);
       expect(response.status).toBe(201);
     }
+  });
+
+  it("does not spend garden create slots on rejected open-joining attempts", async () => {
+    const { app, setOpenJoining } = createApp();
+    setOpenJoining(true);
+
+    for (let attempt = 1; attempt <= 51; attempt += 1) {
+      const applicant = `0x${attempt.toString(16).padStart(40, "0")}` as Address;
+      const response = await submitForGarden(
+        app,
+        GARDEN,
+        applicant,
+        ORIGIN,
+        `198.51.100.${attempt}`
+      );
+      expect(response.status).toBe(409);
+    }
+
+    setOpenJoining(false);
+    const accepted = await submitForGarden(
+      app,
+      GARDEN,
+      `0x${"99".padStart(40, "0")}`,
+      ORIGIN,
+      "198.51.100.99"
+    );
+    expect(accepted.status).toBe(201);
+  });
+
+  it("does not spend garden create slots when existing requests converge", async () => {
+    const { app } = createApp();
+
+    for (let index = 1; index <= 17; index += 1) {
+      const applicant = `0x${(index + 100).toString(16).padStart(40, "0")}` as Address;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const response = await submitForGarden(
+          app,
+          GARDEN,
+          applicant,
+          ORIGIN,
+          `203.0.113.${index}`
+        );
+        expect(response.status).toBe(attempt === 0 ? 201 : 200);
+      }
+    }
+
+    const accepted = await submitForGarden(
+      app,
+      GARDEN,
+      `0x${"fe".padStart(40, "0")}`,
+      ORIGIN,
+      "203.0.113.99"
+    );
+    expect(accepted.status).toBe(201);
   });
 
   it("runs the retention sweep when storage exists even if collection is disabled", async () => {

@@ -4,6 +4,7 @@ import {
   type GardenJoinRequestAvailabilityResponse,
   type GardenJoinProofEnvelope,
   type GardenJoinRequestApiError,
+  type GardenJoinRequestApiErrorCode,
   type GardenJoinRequestQueueResponse,
   type GardenJoinRequestSelfResponse,
   type ResolveGardenJoinRequestInput,
@@ -17,11 +18,99 @@ export class GardenJoinRequestTransportError extends Error {
   constructor(
     message: string,
     readonly status?: number,
-    readonly errorCode?: string,
+    readonly errorCode?: GardenJoinRequestApiErrorCode,
     readonly outcomeUnknown = false
   ) {
     super(message);
     this.name = "GardenJoinRequestTransportError";
+  }
+}
+
+export function gardenJoinRequestErrorMessage(error: unknown): {
+  id: string;
+  defaultMessage: string;
+} {
+  const errorCode = error instanceof GardenJoinRequestTransportError ? error.errorCode : undefined;
+
+  switch (errorCode) {
+    case "already_member":
+      return {
+        id: "app.garden.joinRequest.error.alreadyMember",
+        defaultMessage: "You are already a member of this garden.",
+      };
+    case "signature_invalid":
+    case "signature_expired":
+      return {
+        id: "app.garden.joinRequest.error.authorization",
+        defaultMessage: "We could not verify your authorization. Please sign again.",
+      };
+    case "idempotency_conflict":
+    case "resolution_conflict":
+      return {
+        id: "app.garden.joinRequest.error.conflict",
+        defaultMessage: "This request changed or was already used. Check its status and try again.",
+      };
+    case "request_expired":
+      return {
+        id: "app.garden.joinRequest.error.expired",
+        defaultMessage: "This request expired. You can send a new one.",
+      };
+    case "request_not_found":
+      return {
+        id: "app.garden.joinRequest.error.notFound",
+        defaultMessage: "We could not find this join request.",
+      };
+    case "open_joining_enabled":
+      return {
+        id: "app.garden.joinRequest.error.openJoining",
+        defaultMessage: "This garden is open. Join it directly instead.",
+      };
+    case "garden_role_required":
+      return {
+        id: "app.garden.joinRequest.error.permission",
+        defaultMessage: "You do not have permission to manage this request.",
+      };
+    case "queue_full":
+      return {
+        id: "app.garden.joinRequest.error.queueFull",
+        defaultMessage: "This garden's request queue is full right now. Please try again later.",
+      };
+    case "rate_limited":
+      return {
+        id: "app.garden.joinRequest.error.rateLimited",
+        defaultMessage: "Too many attempts. Please try again later.",
+      };
+    case "chain_unsupported":
+      return {
+        id: "app.garden.joinRequest.error.unsupportedChain",
+        defaultMessage: "Garden join requests are not available on this network.",
+      };
+    case "request_withdrawn":
+      return {
+        id: "app.garden.joinRequest.error.withdrawn",
+        defaultMessage: "This request was already withdrawn.",
+      };
+    case "provider_unavailable":
+    case "internal_error":
+    case "origin_not_allowed":
+      return {
+        id: "app.garden.joinRequest.error.unavailable",
+        defaultMessage: "Garden join requests are unavailable right now. Please try again later.",
+      };
+    default:
+      if (
+        error instanceof GardenJoinRequestTransportError &&
+        (error.status === undefined || error.status >= 500)
+      ) {
+        return {
+          id: "app.garden.joinRequest.error.unavailable",
+          defaultMessage: "Garden join requests are unavailable right now. Please try again later.",
+        };
+      }
+      return {
+        id: "app.garden.joinRequest.error.generic",
+        defaultMessage: "We could not complete the request. Please try again.",
+      };
   }
 }
 

@@ -4,6 +4,7 @@ import {
   useGardenJoinRequests,
 } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import { useGardenOperations } from "@green-goods/shared/hooks/garden/useGardenOperations";
+import { gardenJoinRequestErrorMessage } from "@green-goods/shared/modules/garden-join-requests";
 import {
   GARDEN_JOIN_REQUEST_REASON_MAX_LENGTH,
   type GardenJoinRequestQueueItem,
@@ -124,7 +125,9 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
             </Alert>
           ) : null}
           {error || localError ? (
-            <Alert variant="error">{error?.message ?? localError}</Alert>
+            <Alert variant="error">
+              {error ? formatMessage(gardenJoinRequestErrorMessage(error)) : localError}
+            </Alert>
           ) : null}
         </div>
 

@@ -22,6 +22,7 @@ import type { Address } from "../../types/domain";
 import { useAuth } from "../auth/useAuth";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
+import { useGardenJoinRequestMutationBarrier } from "./useGardenJoinRequestMutationBarrier";
 
 type AsyncState = { isLoading: boolean; error: Error | null };
 const IDLE_ASYNC_STATE: AsyncState = { isLoading: false, error: null };
@@ -44,6 +45,7 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
   const scopeKey = `${chainId}:${gardenAddress?.toLowerCase() ?? "none"}:${accountAddress?.toLowerCase() ?? "none"}`;
   const latestScopeKeyRef = useRef(scopeKey);
   const latestRequestOperationRef = useRef(0);
+  const { beginRequestMutation, waitForRequestMutation } = useGardenJoinRequestMutationBarrier();
   latestScopeKeyRef.current = scopeKey;
   const [stateScopeKey, setStateScopeKey] = useState(scopeKey);
   const [request, setRequest] = useState<GardenJoinRequestSelfRecord | null>(null);
@@ -135,6 +137,8 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
 
   const checkStatus = useCallback(async () => {
     const operationScope = scopeKey;
+    await waitForRequestMutation(operationScope);
+    if (!isCurrentScope(operationScope)) return null;
     const operationId = ++latestRequestOperationRef.current;
     setStatusState({ isLoading: true, error: null });
     try {
@@ -156,11 +160,12 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
         setStatusState((current) => ({ ...current, isLoading: false }));
       }
     }
-  }, [gardenAddress, isCurrentScope, scopeKey, signProof]);
+  }, [gardenAddress, isCurrentScope, scopeKey, signProof, waitForRequestMutation]);
 
   const submitRequest = useCallback(
     async (input: CreateGardenJoinRequestInput) => {
       const operationScope = scopeKey;
+      const finishRequestMutation = beginRequestMutation(operationScope);
       const operationId = ++latestRequestOperationRef.current;
       setMutationState({ isLoading: true, error: null });
       try {
@@ -182,16 +187,18 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
         }
         throw error;
       } finally {
+        finishRequestMutation();
         if (isCurrentScope(operationScope)) {
           setMutationState((current) => ({ ...current, isLoading: false }));
         }
       }
     },
-    [gardenAddress, isCurrentScope, scopeKey, signProof]
+    [beginRequestMutation, gardenAddress, isCurrentScope, scopeKey, signProof]
   );
 
   const withdrawRequest = useCallback(async () => {
     const operationScope = scopeKey;
+    const finishRequestMutation = beginRequestMutation(operationScope);
     const operationId = ++latestRequestOperationRef.current;
     setMutationState({ isLoading: true, error: null });
     try {
@@ -208,11 +215,12 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
       }
       throw error;
     } finally {
+      finishRequestMutation();
       if (isCurrentScope(operationScope)) {
         setMutationState((current) => ({ ...current, isLoading: false }));
       }
     }
-  }, [gardenAddress, isCurrentScope, scopeKey, signProof]);
+  }, [beginRequestMutation, gardenAddress, isCurrentScope, scopeKey, signProof]);
 
   const loadQueue = useCallback(
     async (options: { cursor?: string; append?: boolean } = {}) => {

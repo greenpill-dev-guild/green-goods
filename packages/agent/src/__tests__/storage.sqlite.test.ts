@@ -102,7 +102,8 @@ describe("agent storage with real bun:sqlite", () => {
   it("persists replay nonces only as keyed digests", async () => {
     const cipher = createGardenJoinRequestCipher("ef".repeat(32));
     const store = createSqliteGardenJoinRequestStore(cipher);
-    const proofNonce = `0x${"34".repeat(32)}`;
+    const proofNonce = `0x${"cD".repeat(32)}`;
+    const caseVariant = `0x${proofNonce.slice(2).toUpperCase()}`;
 
     expect(await store.claimProof(proofNonce, "2026-09-26T12:00:00.000Z")).toBe(true);
     const raw = rawDatabase()
@@ -111,6 +112,64 @@ describe("agent storage with real bun:sqlite", () => {
 
     expect(raw.nonce).toBe(cipher.proofKey(proofNonce));
     expect(raw.nonce).not.toBe(proofNonce);
+    expect(await store.claimProof(caseVariant, "2026-09-26T12:00:00.000Z")).toBe(false);
+  });
+
+  it("replaces expired pending rows and removes decline reasons when welcoming", async () => {
+    const cipher = createGardenJoinRequestCipher("ac".repeat(32));
+    let requestId = 0;
+    const store = createSqliteGardenJoinRequestStore(cipher, {
+      id: () => `sqlite-join-request-${++requestId}`,
+    });
+    const garden = `0x${"8".repeat(40)}` as const;
+    const account = `0x${"9".repeat(40)}` as const;
+    await store.create({
+      gardenAddress: garden,
+      accountAddress: account,
+      displayName: "Expired request",
+      requestedVia: "garden_detail",
+      requestedAt: "2026-07-01T12:00:00.000Z",
+      expiresAt: "2026-08-01T12:00:00.000Z",
+    });
+
+    const fresh = await store.create({
+      gardenAddress: garden,
+      accountAddress: account,
+      displayName: "Fresh request",
+      requestedVia: "garden_detail",
+      requestedAt: "2026-08-02T12:00:00.000Z",
+      expiresAt: "2026-09-01T12:00:00.000Z",
+    });
+    expect(fresh).toMatchObject({ created: true, request: { displayName: "Fresh request" } });
+    if (fresh.created !== true) throw new Error("Expected a fresh request");
+
+    await store.resolve({
+      gardenAddress: garden,
+      requestId: fresh.request.id,
+      expectedRevision: 0,
+      state: "declined",
+      reason: "Private decline reason",
+      resolvedAt: "2026-08-03T12:00:00.000Z",
+    });
+    const welcomed = await store.reconcileWelcomed(
+      garden,
+      fresh.request.id,
+      "2026-08-04T12:00:00.000Z"
+    );
+    expect(welcomed).toMatchObject({ state: "welcomed", revision: 2 });
+    expect(welcomed).not.toHaveProperty("reason");
+
+    const raw = rawDatabase()
+      .query(
+        "SELECT ciphertext, nonce FROM garden_join_requests WHERE gardenAddress = ? AND id = ?"
+      )
+      .get(garden, fresh.request.id) as { ciphertext: string; nonce: string };
+    expect(cipher.decrypt(raw)).not.toContain("Private decline reason");
+    expect(
+      rawDatabase()
+        .query("SELECT COUNT(*) AS count FROM garden_join_requests WHERE gardenAddress = ?")
+        .get(garden)
+    ).toEqual({ count: 1 });
   });
 
   it("persists encrypted users and retrieves them after reopening the database", async () => {

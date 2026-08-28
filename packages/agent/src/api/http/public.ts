@@ -112,6 +112,16 @@ export function checkMaterialRateLimit(
   });
 }
 
+/** Return one previously consumed post-authentication slot to its bucket. */
+export function releaseMaterialRateLimit(
+  deps: ServerDeps,
+  route: Parameters<typeof publicMaterialRateLimitKey>[0]["route"],
+  material: string
+): void {
+  const limiter = deps.publicRateLimiter ?? defaultPublicRateLimiter;
+  limiter.release(publicMaterialRateLimitKey({ route, material }), deps.now?.() ?? Date.now());
+}
+
 function setPublicBrowserCorsHeaders(c: Context, deps: ServerDeps): void {
   const origin = c.req.header("origin");
   if (!origin || !isOriginAllowed(c.req.raw, getAllowedOrigins(deps))) return;
