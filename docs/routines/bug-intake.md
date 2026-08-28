@@ -512,16 +512,20 @@ After Phases 1–3, before the umbrella check, fold every PostHog match collecte
      - {the observable recovery — the failing path succeeds again, or the error
        is understood and deliberately accepted}
      - {second outcome, when the pattern has two halves}
-
-     ## Linked Customer Needs
-     {bullet list of Linear URLs for every Customer Need this routine has ever associated with this error hash}
      ```
 
      This parent is filed as `Todo`, so **`Done when` is required** — without
      checkable outcomes a Codex hand-off stops at the readiness gate. If no
      outcome can be named yet, file it `Backlog` instead.
 
-   - If a parent Issue already exists, append any new Customer Need URLs to its `## Linked Customer Needs` list and refresh the safe-summary numbers in place.
+     **The contributing Customer Needs are not listed in the body.** Step 4
+     below already backlinks each one through Linear's relation surface, which
+     renders them in the Issue's right rail and stays correct as the list
+     grows. A markdown copy would be a second home for the same fact, and an
+     unbounded one — the body is capped at 300 words, so a long-lived pattern
+     would eventually make its own refresh unwritable.
+
+   - If a parent Issue already exists, add the new Customer Needs through the relation surface (step 4) and refresh the counts and last-seen date in the body. Do not accumulate URLs in the description — the relations are the list.
 4. **Backlink** every contributing Customer Need to the parent Issue via Linear's relation surface (`relates to` or the parent's linked-issues field). The Customer Needs themselves are not edited beyond adding the relation.
 5. **Attach Sentry matches as root-cause context** when they point at the same top-line message/surface/release. Sentry issue IDs enrich the parent Issue body or comment with release and stack context; they do not replace the PostHog distinct-session threshold because Sentry event counts and PostHog session counts are not comparable.
 5. **Cap**: at most **2 new parent Issues per run** to keep human triage from drowning. Carry overflow into the next run.

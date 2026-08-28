@@ -200,6 +200,12 @@ const rejects = [
     expect: /lane or record-type prefix/,
   },
   {
+    // Named in the contract's prohibited list, so the gate must know it.
+    name: "event-tag title prefix",
+    input: { title: "ETHOnline: Publish Needs with honest queue states", description: BODY_OK },
+    expect: /lane or record-type prefix/,
+  },
+  {
     name: "emoji-led title",
     input: { title: "🔴 Client errors spiked", description: BODY_OK },
     expect: /Title starts with an emoji/,
@@ -264,7 +270,15 @@ const rejects = [
 // The symbol and punctuation blocks share a UTF-8 lead byte, so a lead-byte
 // test rejects ordinary prose. These pin both directions.
 
-const emojiTitles = ["🔴 Client errors spiked", "✅ Verified the fix", "⚡ Speed regression on load"];
+const emojiTitles = [
+  "🔴 Client errors spiked",
+  "✅ Verified the fix",
+  "⚡ Speed regression on load",
+  // Emoji whose first codepoint is ordinary text: a keycap and a
+  // variation-selector form. The codepoint test alone passes both.
+  "1️⃣ First onboarding step fails",
+  "©️ Licensing notice is wrong",
+];
 for (const t of emojiTitles) {
   test(`rejects: emoji-led title ${JSON.stringify(t.slice(0, 2))}`, () => {
     const { code, stderr } = runGate({ title: t, description: BODY_OK });
@@ -278,6 +292,9 @@ const proseTitles = [
   "— dash-led title from a pasted note",
   "…ellipsis-led title",
   "Área de jardim não carrega",
+  // A bare digit or the word form must not be mistaken for a keycap emoji.
+  "2 gardens cannot submit work offline",
+  "Copyright notice shows the wrong year",
 ];
 for (const t of proseTitles) {
   test(`accepts: non-emoji punctuation title ${JSON.stringify(t.slice(0, 2))}`, () => {

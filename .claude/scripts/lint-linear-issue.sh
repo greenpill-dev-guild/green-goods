@@ -98,19 +98,34 @@ starts_with_emoji() {
   return 1
 }
 
+# Emoji whose first codepoint is ordinary text: keycaps (`1️⃣` = digit + VS16 +
+# U+20E3) and variation-selector forms (`©️`). The lead character is ASCII or
+# Latin-1, so the codepoint test above passes them; they are still an emoji-led
+# title. Look for VS16 (EF B8 8F) or the keycap mark (E2 83 A3) among the first
+# few bytes, which is narrow enough not to catch prose that merely contains one
+# later on.
+leads_with_emoji_sequence() {
+  stripped="${1#"${1%%[![:space:]]*}"}"
+  [ -n "$stripped" ] || return 1
+  case "$(printf '%s' "$stripped" | od -An -tx1 -N8 | tr -d ' \n')" in
+    *efb88f* | *e283a3*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 # --- Title -----------------------------------------------------------------
 if [ -n "$title" ]; then
   # Retired 2026-08-27: prefixes are carried by labels and state, not the title.
   if printf '%s' "$title" | grep -qiE '^\[tracking\]'; then
     add "Title starts with [tracking]. That prefix is retired — the 'maintenance' label plus Backlog state already say this is uncommitted signal."
   fi
-  if printf '%s' "$title" | grep -qiE '^(plan|backlog|idea|ui|state/api|contracts|docs|community|editorial|release ops|qa pass [0-9]+|qa|chore|spike|recurring|epic):'; then
+  if printf '%s' "$title" | grep -qiE '^(plan|backlog|idea|ui|state/api|contracts|docs|community|editorial|release ops|qa pass [0-9]+|qa|chore|spike|recurring|epic|ethonline):'; then
     add "Title starts with a lane or record-type prefix. Write what a person would say broke or should exist; labels carry the rest."
   fi
   if printf '%s' "$title" | grep -qE '^P[0-9][: ]'; then
     add "Title carries a priority prefix. Linear's priority field owns that."
   fi
-  if starts_with_emoji "$title"; then
+  if starts_with_emoji "$title" || leads_with_emoji_sequence "$title"; then
     add "Title starts with an emoji. Plain text only."
   fi
 fi
@@ -152,7 +167,7 @@ check_banned_tokens() {
   while IFS= read -r heading; do
     [ -n "$heading" ] || continue
     stripped_heading="${heading#"${heading%%[![:space:]#]*}"}"
-    if starts_with_emoji "$stripped_heading"; then
+    if starts_with_emoji "$stripped_heading" || leads_with_emoji_sequence "$stripped_heading"; then
       add "$scope has an emoji heading. Plain headings only."
       break
     fi

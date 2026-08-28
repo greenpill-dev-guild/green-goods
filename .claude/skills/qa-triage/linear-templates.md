@@ -123,12 +123,11 @@ Seen <S> sessions and <U> users over 30 days, first <YYYY-MM-DD>, last
 **Done when**
 - <the observable recovery — the failing path succeeds again, or the error is
   understood and deliberately accepted>
-
-## Linked Customer Needs
-<bullet list of Linear URLs for every Customer Need this run associates with this hash>
 ```
 
 This parent is filed as `Todo`, so **`Done when` is required** — without checkable outcomes a Codex hand-off stops at the readiness gate. If no outcome can be named yet, file it `Backlog` instead.
+
+**The contributing Customer Needs are not listed in the body.** Link each one through Linear's relation surface, which renders them in the right rail and stays correct as the list grows. A markdown copy is a second home for the same fact, and an unbounded one — the body is capped at 300 words, so a long-lived pattern would eventually make its own refresh unwritable.
 
 **Labels**: `protocol:green-goods`, `activity:qa`, `package:<inferred>`, `ai:claude`, plus `pattern:posthog-<hash-prefix>` if the pattern label family exists on the team. If `pattern:*` is missing, fail loud and skip the recurring-pattern parent rather than inventing a label.
 
