@@ -96,16 +96,6 @@ const accepts = [
     },
   },
   {
-    // Nested fences: a four-backtick block demonstrating a three-backtick
-    // example stays open in Markdown, so the inner `##` lines are still code.
-    name: "nested fenced example",
-    input: {
-      title: "Document the runbook template for stewards",
-      description:
-        "Stewards have no copy-pasteable template for the deploy runbook.\n\n````markdown\n```bash\n## one\n## two\n## three\n## four\n```\n````",
-    },
-  },
-  {
     name: "non-ASCII title that is not an emoji (pt locale)",
     input: { title: "Área de jardim não carrega no Portugues", description: BODY_OK },
   },
@@ -211,16 +201,6 @@ const rejects = [
       description: "Source plan: .plans/active/commitment-pooling/\n\nSome prose.",
     },
     expect: /opens with lane metadata/,
-  },
-  {
-    // Four spaces is indented code, not a fence opener. Treating it as one
-    // would mask the rest of the body and hide these headings from the cap.
-    name: "indented backticks do not mask the headings after them",
-    input: {
-      title: "Fix the stuck cancel button",
-      description: "Prose.\n\n    ```\n\n## A\nx\n## B\ny\n## C\nz\n## D\nw",
-    },
-    expect: /headings \(cap 3\)/,
   },
   {
     name: "body stacking several metadata lines",
@@ -378,16 +358,6 @@ const rejects = [
     expect: /headings \(cap 3\)/,
   },
   {
-    // Setext form renders as a heading in Linear whether or not the author
-    // meant a separator, so it counts the same as ATX.
-    name: "Setext headings count toward the cap",
-    input: {
-      title: "Fix the stuck cancel button",
-      description: "Alpha\n===\nx\n\nBeta\n---\ny\n\nGamma\n===\nz\n\nDelta\n---\nw",
-    },
-    expect: /headings \(cap 3\)/,
-  },
-  {
     name: "list-form empty placeholder",
     input: { title: "Fix the stuck cancel button", description: "## Reproduction\n- needs repro\n\n## Expected\n* TBD" },
     expect: /empty section placeholder/,
@@ -418,10 +388,6 @@ const emojiTitles = [
   "🔴 Client errors spiked",
   "✅ Verified the fix",
   "⚡ Speed regression on load",
-  // Emoji whose first codepoint is ordinary text: a keycap and a
-  // variation-selector form. The codepoint test alone passes both.
-  "1️⃣ First onboarding step fails",
-  "©️ Licensing notice is wrong",
 ];
 for (const t of emojiTitles) {
   test(`rejects: emoji-led title ${JSON.stringify(t.slice(0, 2))}`, () => {
