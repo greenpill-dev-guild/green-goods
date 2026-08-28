@@ -274,6 +274,23 @@ const rejects = [
     expect: /Patched text uses screen codes/,
   },
   {
+    // Erasing the body via patch must cost the same as `description: ""`,
+    // which is rejected — otherwise the patch path is the cheaper way to do it.
+    name: "patch erasing a block of the body",
+    input: {
+      id: "PRD-800",
+      patch: [
+        {
+          op: "replace",
+          old_string:
+            "Editing a garden and changing its image makes the edit impossible to cancel — the operator has to reload.",
+          new_string: "",
+        },
+      ],
+    },
+    expect: /deletes a block of the body/,
+  },
+  {
     name: "emoji heading at H1 (not just H2)",
     input: { title: "Client errors spiked overnight", description: "# 🔴 Counts\n99 exceptions in 24h." },
     expect: /emoji heading/,
@@ -374,6 +391,11 @@ const ignores = [
     // the rejecting fixtures below prove a patch cannot smuggle them in.
     name: "patch edit whose inserted text is clean",
     input: { id: "PRD-800", patch: [{ op: "append", text: "Fixed in the 2026-08-27 deploy." }] },
+  },
+  {
+    // Ordinary editing. Only a large unreplaced deletion is destructive.
+    name: "patch deleting a stray word",
+    input: { id: "PRD-800", patch: [{ op: "replace", old_string: " actually", new_string: "" }] },
   },
   {
     name: "rename to a clean title with no description",

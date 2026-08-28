@@ -47,11 +47,25 @@ sent_description="$(printf '%s' "$payload" | jq -r 'if (.tool_input | has("descr
 # patching it instead of replacing it.
 patch_text="$(printf '%s' "$payload" | jq -r '[.tool_input.patch // [] | .[] | (.text // ""), (.new_string // "")] | join("\n")')"
 
+# Longest run of prose a patch op deletes outright (a replace whose new_string
+# is empty). Small deletions are ordinary editing; emptying a whole block is the
+# same destructive act as sending `description: ""`, which is rejected below,
+# and it must not be cheaper to do the second way.
+patch_deleted_chars="$(printf '%s' "$payload" | jq -r '
+  [ .tool_input.patch // []
+    | .[]
+    | select((.op // "") | test("^replace"))
+    | select(((.new_string // "") | gsub("\\s"; "")) == "")
+    | ((.old_string // .from // "") | length)
+  ] | max // 0')"
+
 # Nothing at all to judge: a property-only write (state, labels, relations).
 # An explicitly supplied `description` still counts as something to judge even
 # when it is empty — that is a body erase, not an untouched body.
+# A patch that only deletes has no inserted text to inspect, so it must not be
+# mistaken for a property-only write.
 if [ -z "$title" ] && [ -z "$description" ] && [ -z "${patch_text//[$'\n\t ']/}" ] &&
-  [ "$sent_description" = "no" ]; then
+  [ "$sent_description" = "no" ] && [ "${patch_deleted_chars:-0}" -eq 0 ]; then
   exit 0
 fi
 
@@ -163,6 +177,14 @@ if [ "$is_update" = "no" ] && [ -z "${description//[$'\n\t ']/}" ] && [ "$has_pa
   add "New issue has no body. Say what breaks and for whom, or what should exist and why — that block is never optional."
 elif [ "$is_update" = "yes" ] && [ "$sent_description" = "yes" ] && [ -z "${description//[$'\n\t ']/}" ]; then
   add "This update erases the body. The problem/outcome block is never optional — rewrite it rather than blanking it."
+fi
+
+# A patch carries a fragment, never the resulting document, so a large deletion
+# cannot be checked against the caps or the never-optional body rule. Ask for a
+# full description in that case: the same erase sent as `description: ""` is
+# rejected above, and the patch path must not be the cheaper way to do it.
+if [ "${patch_deleted_chars:-0}" -gt 80 ]; then
+  add "This patch deletes a block of the body ($patch_deleted_chars characters) without replacing it. Send the full description instead, so the result can be checked against the contract."
 fi
 
 # Absolute rules — banned tokens and empty scaffolding — hold for any prose the
