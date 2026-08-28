@@ -25,6 +25,14 @@ The skill **always** uses the column order read from the Sheet, not the order in
 
 Phase 0 confirms all tabs above exist. If any is missing, fail loud — don't write to a partial workbook.
 
+A `Docs` test tab exists upstream in the catalog and ships in generated run workbooks; it is **not yet Phase 0-required** here. Once its generated tab has been pasted into this Sheet, add it to the table above.
+
+---
+
+## Catalog relationship
+
+Test-scenario **definitions** are versioned in the repo: `scripts/data/qa-test-catalog.json` is the upstream source of truth (Test IDs, scenarios, steps, expected results — columns 1–10 and 13). This Sheet is the **live defect log and team run ledger**; its test tabs are downstream copies. When definitions change, regenerate a run workbook (`bun run qa:workbook`) and reconcile the Sheet by appending new rows or marking retired ones — never rewrite historical result columns. Results, owners, defect links, and PostHog data live only here and in generated run workbooks (stored in Drive), never in the public repo.
+
 ---
 
 ## Defects tab schema
@@ -151,6 +159,6 @@ If the access mode changes between runs and a subsequent run detects `anyoneWith
 
 ## Read-modify-write conflict policy
 
-V0.1.0 uses guided paste (the Drive MCP doesn't expose Sheets `values.append`), so this section applies to v0.2.0 when `scripts/agents/qa-sheet-append.ts` exists.
+Appends go through the Apps Script webhook client `scripts/agents/qa-sheet-append.ts` (ops: `bootstrap`, `defectRows`, `testBackfills`; setup in `scripts/agents/qa-sheet-webhook-setup.md`). Guided paste remains the fallback when the webhook is unavailable — the Drive MCP doesn't expose Sheets `values.append`.
 
 Before any append, re-read the Defects body row count. If it differs from the count captured in Phase 0, abort the Sheet write and surface the conflict — another run or a manual edit landed mid-flight. Re-running `/qa-triage <slug>` after the conflict resolves picks up where it left off because the workspace is durable.

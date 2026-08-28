@@ -79,16 +79,21 @@ echo ""
 echo "== Port Assignments =="
 
 extract_stack_port() {
+  # Values are arrays (client: [3001], indexer: [3006, 3007, 3008]); the
+  # canonical port for cross-checks is the first element.
   local app="$1"
   awk -v app="$app" '
-    /const portByApp = \{/ { in_ports = 1; next }
+    /const portsByApp = \{/ { in_ports = 1; next }
     in_ports && /^\};/ { in_ports = 0 }
     in_ports {
       line = $0
-      gsub(/["'\'' ,]/, "", line)
+      gsub(/["'\'' ]/, "", line)
       split(line, parts, ":")
       if (parts[1] == app) {
-        print parts[2]
+        val = parts[2]
+        gsub(/[][]/, "", val)
+        split(val, nums, ",")
+        print nums[1]
         exit
       }
     }
@@ -130,6 +135,14 @@ check_port_match() {
     drift "$label port is $actual in $source, expected $expected from scripts/dev/stack.js"
   fi
 }
+
+# Self-check first: if the declaration itself is gone or renamed, report the
+# parser as the broken piece instead of six misleading "port not found" drifts.
+if grep -q 'const portsByApp = {' scripts/dev/stack.js 2>/dev/null; then
+  pass
+else
+  drift "portsByApp declaration not found in scripts/dev/stack.js — the stack renamed its port map; update extract_stack_port in check-drift.sh"
+fi
 
 for app in client admin docs storybook agent indexer; do
   check_required_port "$app"
