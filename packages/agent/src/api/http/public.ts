@@ -56,15 +56,20 @@ export function checkRateLimitWithPolicy(
 ): PublicApiError | undefined {
   const limiter = deps.publicRateLimiter ?? defaultPublicRateLimiter;
   const now = deps.now?.() ?? Date.now();
-  if (route === "join_request_create") {
+  const isJoinRequestRoute =
+    route === "join_request_create" ||
+    route === "join_request_read" ||
+    route === "join_request_resolve";
+  if (isJoinRequestRoute) {
+    const aggregateRoute = route === "join_request_create" ? "join_request_create_ip" : route;
     const aggregateIpResult = limiter.check(
       publicIpMaterialRateLimitKey({
-        route: "join_request_create_ip",
+        route: aggregateRoute,
         request: c.req.raw,
         material: "all-gardens",
         trustedProxy: deps.trustedProxy,
       }),
-      PUBLIC_RATE_LIMIT_POLICIES.join_request_create_ip,
+      PUBLIC_RATE_LIMIT_POLICIES[aggregateRoute],
       now
     );
     if (!aggregateIpResult.allowed) {
@@ -88,20 +93,19 @@ export function checkRateLimitWithPolicy(
       });
     }
   }
-  const key =
-    route === "join_request_create"
-      ? publicIpMaterialRateLimitKey({
-          route,
-          request: c.req.raw,
-          material,
-          trustedProxy: deps.trustedProxy,
-        })
-      : publicRateLimitKey({
-          route,
-          request: c.req.raw,
-          material,
-          trustedProxy: deps.trustedProxy,
-        });
+  const key = isJoinRequestRoute
+    ? publicIpMaterialRateLimitKey({
+        route,
+        request: c.req.raw,
+        material,
+        trustedProxy: deps.trustedProxy,
+      })
+    : publicRateLimitKey({
+        route,
+        request: c.req.raw,
+        material,
+        trustedProxy: deps.trustedProxy,
+      });
   const result = limiter.check(key, policy, now);
   if (result.allowed) return undefined;
   return safeError("rate_limited", "Too many requests. Please try again later.", {

@@ -454,6 +454,80 @@ describe("garden join request public API", () => {
     expect(signatureVerifier).toHaveBeenCalledTimes(30);
   });
 
+  it("caps read verification across self, list, and origin rotation", async () => {
+    const signatureVerifier = vi.fn(async () => false);
+    const { app } = createApp({ signatureVerifier });
+
+    for (let attempt = 1; attempt <= 120; attempt += 1) {
+      const origin = `https://green-goods-read-${attempt}-greenpilldevguild.vercel.app`;
+      const response =
+        attempt % 2 === 0
+          ? await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+              headers: headers(proof("read_self"), origin),
+            })
+          : await app.request(`/public/gardens/${GARDEN}/join-requests?state=pending&limit=25`, {
+              headers: headers(proof("list", OPERATOR), origin),
+            });
+      expect(response.status).toBe(401);
+    }
+
+    const limited = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+      headers: headers(
+        proof("read_self"),
+        "https://green-goods-read-next-greenpilldevguild.vercel.app"
+      ),
+    });
+    expect(limited.status).toBe(429);
+    expect(signatureVerifier).toHaveBeenCalledTimes(120);
+  });
+
+  it("caps resolve verification across withdrawal, resolution, and origin rotation", async () => {
+    const signatureVerifier = vi.fn(async () => false);
+    const { app } = createApp({ signatureVerifier });
+
+    for (let attempt = 1; attempt <= 30; attempt += 1) {
+      const origin = `https://green-goods-resolve-${attempt}-greenpilldevguild.vercel.app`;
+      const response =
+        attempt % 2 === 0
+          ? await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+              method: "DELETE",
+              headers: headers(
+                proof("withdraw", APPLICANT, {
+                  requestId: "request-1",
+                  expectedRevision: 0,
+                }),
+                origin
+              ),
+            })
+          : await app.request(`/public/gardens/${GARDEN}/join-requests/request-1/resolve`, {
+              method: "POST",
+              headers: headers(
+                proof("decline", OPERATOR, {
+                  requestId: "request-1",
+                  expectedRevision: 0,
+                }),
+                origin
+              ),
+              body: JSON.stringify({
+                action: "decline",
+                expectedRevision: 0,
+                reason: "No capacity.",
+              }),
+            });
+      expect(response.status).toBe(401);
+    }
+
+    const limited = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+      method: "DELETE",
+      headers: headers(
+        proof("withdraw", APPLICANT, { requestId: "request-1", expectedRevision: 0 }),
+        "https://green-goods-resolve-next-greenpilldevguild.vercel.app"
+      ),
+    });
+    expect(limited.status).toBe(429);
+    expect(signatureVerifier).toHaveBeenCalledTimes(30);
+  });
+
   it("applies the daily create ceiling per signed account rather than per shared IP", async () => {
     const { app } = createApp();
     const applicants = [
