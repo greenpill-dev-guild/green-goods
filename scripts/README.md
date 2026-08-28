@@ -65,6 +65,7 @@ scripts/
 | `check-skill-behavior-contracts.test.mjs` | `bun run test:review-guardrails`, Supply Chain Guardrails | Positive live-source coverage and negative mutations proving each critical guidance scenario fails closed |
 | `check-immutable-plan-reports.mjs` | `bun run check:immutable-plan-reports`, Supply Chain Guardrails | Reject edits, deletions, and renames of existing dated Plan Hub reports while allowing new correction artifacts |
 | `check-immutable-plan-reports.test.mjs` | `bun run test:review-guardrails` | Fixture tests for immutable dated report diff classification |
+| `lint-linear-issue.test.mjs` | `bun run test:review-guardrails` | Fixture tests for the `.claude/scripts/lint-linear-issue.sh` PreToolUse gate: accepted shapes (including generated plan mirrors), every rejecting rule with its reason, and the property-only/patch calls it must ignore |
 | `check-source-structure.js` | `bun run check:source-structure` | Source placement, client naming, hook/shared-import layering, changed-file dead exports, file-size limits, and shrinking baseline policy |
 | `check-source-structure.test.mjs` | `bun run test:validation-system` | Fixture coverage for placement, naming, layering, dead-export exclusions, staged modules, and exact baseline shrinkage |
 | `check-staged-modules.mjs` | `bun run check:staged-modules`, validation selector | Keep deferred Card Endow modules marked and isolated from live Client imports |
