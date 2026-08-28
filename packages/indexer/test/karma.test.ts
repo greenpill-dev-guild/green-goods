@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 
+import { createDefaultKarmaProjectAccess } from "../src/handlers/entity-defaults";
 import { getKarmaProjectAccessId, getKarmaSyncRecordId } from "../src/handlers/ids";
 import { addr, CHAINS, mockEvent, txHash } from "./helpers/events";
 import { seedGarden } from "./helpers/garden";
@@ -49,12 +50,35 @@ describe("KarmaGAPModule event boundary", () => {
 
   it("clears a reset project before a replacement project is reconciled", async () => {
     const garden = addr(10);
+    const owner = addr(20);
+    const steward = addr(21);
+    const formerSteward = addr(22);
     const mockDb = seedGarden(createTestIndexer(), garden);
     mockDb.Garden.set({
       ...(await mockDb.Garden.get(garden))!,
       gapProjectUID: PROJECT_UID,
       karmaProjectState: "SYNCED",
       karmaProjectReason: undefined,
+      owners: [owner],
+      operators: [owner, steward],
+      karmaMembershipState: "FAILED",
+      karmaMembershipFailedAccounts: [formerSteward],
+      karmaAccessState: "FAILED",
+      karmaAccessFailedAccounts: [formerSteward],
+    });
+    mockDb.KarmaProjectAccess.set({
+      ...createDefaultKarmaProjectAccess(CHAIN_ID, garden, owner, PROJECT_UID),
+      membershipState: "SYNCED",
+      membershipOutcome: "SUCCEEDED",
+      accessState: "SYNCED",
+      accessOutcome: "SUCCEEDED",
+    });
+    mockDb.KarmaProjectAccess.set({
+      ...createDefaultKarmaProjectAccess(CHAIN_ID, garden, formerSteward, PROJECT_UID),
+      membershipState: "FAILED",
+      membershipOutcome: "FAILED",
+      accessState: "FAILED",
+      accessOutcome: "FAILED",
     });
     const event = KarmaGAPModule.GAPProjectReset.createMockEvent({
       garden,
@@ -70,6 +94,34 @@ describe("KarmaGAPModule event boundary", () => {
     assert.equal(projected.karmaProjectState, "PENDING");
     assert.equal(projected.karmaProjectReason, "project_reset");
     assert.equal(projected.karmaProjectUpdatedAt, 2_001);
+    assert.equal(projected.karmaMembershipState, "PENDING");
+    assert.equal(projected.karmaMembershipReason, "project_reset");
+    assert.deepEqual(projected.karmaMembershipPendingAccounts, [owner, steward]);
+    assert.deepEqual(projected.karmaMembershipFailedAccounts, []);
+    assert.equal(projected.karmaAccessState, "PENDING");
+    assert.equal(projected.karmaAccessReason, "project_reset");
+    assert.deepEqual(projected.karmaAccessPendingAccounts, [owner, steward]);
+    assert.deepEqual(projected.karmaAccessFailedAccounts, []);
+
+    for (const account of [owner, steward]) {
+      const access = await result.KarmaProjectAccess.get(
+        getKarmaProjectAccessId(CHAIN_ID, garden, account)
+      );
+      assert.ok(access);
+      assert.equal(access.projectUID, undefined);
+      assert.equal(access.membershipState, "PENDING");
+      assert.equal(access.membershipOutcome, undefined);
+      assert.equal(access.accessState, "PENDING");
+      assert.equal(access.accessOutcome, undefined);
+    }
+
+    const inactiveAccess = await result.KarmaProjectAccess.get(
+      getKarmaProjectAccessId(CHAIN_ID, garden, formerSteward)
+    );
+    assert.ok(inactiveAccess);
+    assert.equal(inactiveAccess.projectUID, undefined);
+    assert.equal(inactiveAccess.membershipState, "UNKNOWN");
+    assert.equal(inactiveAccess.accessState, "UNKNOWN");
   });
 
   it("creates a placeholder Garden instead of dropping an early project event", async () => {

@@ -31,7 +31,7 @@ const ALLOWED_CONTRACT_EVENTS = {
     "OpenJoiningUpdated",
     "KarmaHookFailed",
   ]),
-  KarmaGAPModule: new Set(["GAPProjectCreated", "KarmaSyncRecorded"]),
+  KarmaGAPModule: new Set(["GAPProjectCreated", "GAPProjectReset", "KarmaSyncRecorded"]),
   HatsModule: new Set(["RoleGranted", "RoleRevoked", "KarmaHookFailed"]),
   WorkApprovalResolver: new Set(["KarmaHookFailed"]),
   OctantModule: new Set([

@@ -1,7 +1,11 @@
 import { indexer, type Enum, type Garden } from "envio";
 import type { Address } from "viem";
 
-import { createDefaultGarden, createDefaultKarmaProjectAccess } from "./entity-defaults";
+import {
+  createDefaultGarden,
+  createDefaultKarmaProjectAccess,
+  type EventContext,
+} from "./entity-defaults";
 import { addUniqueAddress, normalizeAddress, removeAddress } from "./shared";
 import { getTxHash } from "./event-access";
 import { getKarmaProjectAccessId, getKarmaSyncRecordId } from "./ids";
@@ -64,6 +68,69 @@ function trackedAccounts(
   };
 }
 
+function uniqueKarmaAccounts(accounts: readonly string[]): Address[] {
+  let unique: Address[] = [];
+  for (const account of accounts) {
+    const normalized = normalizeAddress(account) as Address;
+    if (!unique.includes(normalized)) unique = [...unique, normalized];
+  }
+  return unique;
+}
+
+async function resetProjectAccessGeneration(
+  context: EventContext,
+  garden: Garden,
+  chainId: number,
+  timestamp: number
+): Promise<Garden> {
+  const activeAccounts = uniqueKarmaAccounts([...garden.owners, ...garden.operators]);
+  const trackedAccountsToReset = uniqueKarmaAccounts([
+    ...activeAccounts,
+    ...(garden.karmaMembershipPendingAccounts ?? []),
+    ...(garden.karmaMembershipFailedAccounts ?? []),
+    ...(garden.karmaAccessPendingAccounts ?? []),
+    ...(garden.karmaAccessFailedAccounts ?? []),
+  ]);
+  const activeAccountSet = new Set(activeAccounts);
+
+  for (const account of trackedAccountsToReset) {
+    const accessId = getKarmaProjectAccessId(chainId, garden.id, account);
+    const existingAccess =
+      (await context.KarmaProjectAccess.get(accessId)) ??
+      createDefaultKarmaProjectAccess(chainId, garden.id as Address, account);
+    const state: KarmaProjectionState = activeAccountSet.has(account) ? "PENDING" : "UNKNOWN";
+
+    context.KarmaProjectAccess.set({
+      ...existingAccess,
+      projectUID: undefined,
+      membershipState: state,
+      membershipOutcome: undefined,
+      membershipReason: "project_reset",
+      membershipUpdatedAt: timestamp,
+      accessState: state,
+      accessOutcome: undefined,
+      accessReason: "project_reset",
+      accessUpdatedAt: timestamp,
+    });
+  }
+
+  const state: KarmaProjectionState = activeAccounts.length > 0 ? "PENDING" : "SYNCED";
+  const reason = activeAccounts.length > 0 ? "project_reset" : undefined;
+  return {
+    ...garden,
+    karmaMembershipState: state,
+    karmaMembershipReason: reason,
+    karmaMembershipUpdatedAt: timestamp,
+    karmaMembershipPendingAccounts: activeAccounts,
+    karmaMembershipFailedAccounts: [],
+    karmaAccessState: state,
+    karmaAccessReason: reason,
+    karmaAccessUpdatedAt: timestamp,
+    karmaAccessPendingAccounts: activeAccounts,
+    karmaAccessFailedAccounts: [],
+  };
+}
+
 indexer.onEvent(
   { contract: "KarmaGAPModule", event: "GAPProjectCreated" },
   async ({ event, context }) => {
@@ -91,8 +158,15 @@ indexer.onEvent(
       (await context.Garden.get(gardenId)) ??
       createDefaultGarden(gardenId, event.chainId, event.block.timestamp);
 
+    const resetGarden = await resetProjectAccessGeneration(
+      context,
+      existing,
+      event.chainId,
+      event.block.timestamp
+    );
+
     context.Garden.set({
-      ...existing,
+      ...resetGarden,
       gapProjectUID: undefined,
       karmaProjectState: "PENDING",
       karmaProjectReason: "project_reset",
