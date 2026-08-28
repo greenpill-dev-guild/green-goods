@@ -135,6 +135,22 @@ const rejects = [
     expect: /priority field/,
   },
   {
+    name: "bracketed priority prefix",
+    input: { title: "[P1] Fix the approval revert", description: BODY_OK },
+    expect: /priority field/,
+  },
+  {
+    // Named in AGENTS.md's prohibited-shorthand list alongside §-citations.
+    name: "register-number shorthand in the body",
+    input: { title: "Freeze the roster on confirmation", description: "Per register #90 the roster freezes." },
+    expect: /internal shorthand/,
+  },
+  {
+    name: "decision-log number in the body",
+    input: { title: "Freeze the roster on confirmation", description: "Decision Log 4 settled this." },
+    expect: /internal shorthand/,
+  },
+  {
     name: "body opening with lane metadata",
     input: {
       title: "Run the community rollout for Commitment Pooling",
@@ -335,6 +351,20 @@ const ignores = [
   {
     name: "rename to a clean title with no description",
     input: { id: "PRD-800", title: "Allow cancelling garden edits after changing the image" },
+  },
+  {
+    // A PR or issue reference is legitimate and useful; only the named
+    // shorthand forms (register #N, decision log N) are banned.
+    name: "body citing a pull request number",
+    input: {
+      title: "Fix the admin approval revert",
+      description: "Regressed in #778 — the pre-flight simulation now reverts on a garden-membership check.",
+    },
+  },
+  {
+    // Must not read as a priority prefix.
+    name: "title beginning with a P-and-digit word",
+    input: { title: "P2P sync fails between two devices", description: BODY_OK },
   },
   {
     name: "label-only update",

@@ -141,7 +141,8 @@ if [ -n "$title" ]; then
   if printf '%s' "$title" | grep -qiE '^(plan|backlog|idea|ui|state/api|contracts|docs|community|editorial|release ops|qa pass [0-9]+|qa|chore|spike|recurring|epic|ethonline):'; then
     add "Title starts with a lane or record-type prefix. Write what a person would say broke or should exist; labels carry the rest."
   fi
-  if printf '%s' "$title" | grep -qE '^P[0-9][: ]'; then
+  # Bare (`P1 …`, `P0: …`) and bracketed (`[P1] …`) review-style forms alike.
+  if printf '%s' "$title" | grep -qE '^\[?P[0-9]\]?[[:space:]:]'; then
     add "Title carries a priority prefix. Linear's priority field owns that."
   fi
   if starts_with_emoji "$title" || leads_with_emoji_sequence "$title"; then
@@ -173,8 +174,14 @@ check_banned_tokens() {
   if printf '%s' "$text" | grep -qE '\bW[0-9]{1,2}\b'; then
     add "$scope uses screen codes (W12 and similar). Use the screen's human name."
   fi
+  # The named shorthand forms from AGENTS.md: section signs, register numbers,
+  # and decision-log numbers. Deliberately NOT a bare `#\d+` ban — a PR or issue
+  # reference ("fixed in #778") is legitimate and useful in a body.
   if printf '%s' "$text" | grep -qE '§[0-9]'; then
     add "$scope carries a spec citation (§5.1). Drop it, or link the file if the reader truly needs it."
+  fi
+  if printf '%s' "$text" | grep -qiE '\bregister #[0-9]+|\bdecision[ -]log #?[0-9]+'; then
+    add "$scope cites internal shorthand (register #90, decision log 4). Those live in .plans — say what it means, or link the file."
   fi
   # Empty scaffolding — the failure that produced sections reading "—" and
   # paragraphs explaining that telemetry found nothing.

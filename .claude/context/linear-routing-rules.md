@@ -38,7 +38,10 @@ this file is the operational contract for skills that create records.
    Linear bodies (error message + hash + counts are OK; replay URLs, session
    IDs, distinct IDs, wallet addresses, reporter identifiers are not). Store
    sensitive context only in private notes or a handoff the user explicitly
-   approves.
+   approves. **Comments are inside the boundary, not outside it.** The issue
+   structure below sends evidence dumps to the first comment to keep bodies
+   short; that is a readability move, not a privacy escape hatch, and a routine
+   with a redaction step must scan the comments it posts as well as the bodies.
 
 ## Issue structure (Accepted Product Work / Accepted Research Task)
 

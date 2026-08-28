@@ -138,7 +138,7 @@ Thresholds are **absolute count floors** calibrated from 30-day observed volume 
 | App (163591) | <10 / 24h | 10–29 / 24h | ≥30 / 24h |
 | Admin (262122) | <5 / 24h | 5–14 / 24h | ≥15 / 24h |
 
-**Degraded-payload caveat**: `$exception_type` and `$exception_message` have been null since 2026-05-13 (the `qa-triage-pulse` "M1" finding). This check **counts** events and groups them by URL — it cannot categorize the error type yet. Carry this caveat into the Issue body: report the count, the top offending URLs, and the window; do not assert *which* error spiked. Revisit promoting this to a per-error-type check once the payload is repaired.
+**Degraded-payload caveat**: `$exception_type` and `$exception_message` have been null since 2026-05-13 (the `qa-triage-pulse` "M1" finding). This check **counts** events and groups them by URL — it cannot categorize the error type yet. Carry this caveat with the evidence — the description says the count and the window in a sentence, the first comment carries the top offending URLs and this caveat. Either way, do not assert *which* error spiked. Revisit promoting this to a per-error-type check once the payload is repaired.
 
 **Evidence to capture** (body gets the count line; the detail goes in the first comment): per-project 24h count, the top `$current_url` paths (strip query strings, IDs, and addresses — privacy), and the degraded-payload note. Carry `package:client` (App surge) or `package:admin` (Admin surge).
 
@@ -223,6 +223,12 @@ can skip it. Never open with which routine or check number filed the issue; the
 **`Done when` is required on any issue filed as `Todo` or delegated to Codex** —
 without checkable outcomes a dispatched agent stops at the Codex-ready gate. An
 anomaly nobody can yet write an outcome for belongs in `Backlog`.
+
+**The privacy boundary covers the comment too.** Moving detail out of the
+description does not move it out of a public record — strip query strings, IDs,
+addresses, and any user-identifying path from the evidence comment exactly as
+you would from the body. Re-read both against the per-check privacy notes above
+before posting.
 
 This obeys the shared contract in
 [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md)
