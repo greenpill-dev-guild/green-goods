@@ -1957,6 +1957,7 @@
   "app.garden.joinQueue.membershipAddFailed": "No se pudo añadir la membresía.",
   "app.garden.joinQueue.membershipPending": "La transacción de membresía fue enviada. Confírmala de nuevo cuando sea visible en la cadena.",
   "app.garden.joinQueue.requestedAt": "Solicitada el {date}",
+  "app.garden.joinQueue.rateLimitedNotice": "Algunas solicitudes para unirse se limitaron recientemente.",
   "app.garden.joinQueue.title": "Solicitudes para unirse",
   "app.garden.joinQueue.updateFailed": "No se pudo actualizar la solicitud.",
   "app.garden.joinQueue.welcome": "Dar la bienvenida",

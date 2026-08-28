@@ -1,12 +1,19 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { withAdminIdentity } from "../../../../../shared/.storybook/decorators";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import {
+  withAdminIdentity,
+  withSeededQueryClient,
+} from "../../../../../shared/.storybook/decorators";
 import { CommunityJoinRequests } from "./CommunityJoinRequests";
 
 const meta = {
   title: "Admin/Workflows/Community/Join Requests",
   component: CommunityJoinRequests,
   tags: ["autodocs"],
-  decorators: [withAdminIdentity],
+  decorators: [
+    withAdminIdentity,
+    withSeededQueryClient([[queryKeys.gardenJoinRequests.availability(), { enabled: true }]]),
+  ],
   parameters: {
     layout: "padded",
     docs: {

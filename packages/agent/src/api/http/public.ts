@@ -4,6 +4,7 @@ import {
   InMemoryPublicRateLimiter,
   isOriginAllowed,
   PUBLIC_RATE_LIMIT_POLICIES,
+  publicIpMaterialRateLimitKey,
   publicIpRateLimitKey,
   publicMaterialRateLimitKey,
   publicRateLimitKey,
@@ -71,12 +72,20 @@ export function checkRateLimitWithPolicy(
       });
     }
   }
-  const key = publicRateLimitKey({
-    route,
-    request: c.req.raw,
-    material,
-    trustedProxy: deps.trustedProxy,
-  });
+  const key =
+    route === "join_request_create"
+      ? publicIpMaterialRateLimitKey({
+          route,
+          request: c.req.raw,
+          material,
+          trustedProxy: deps.trustedProxy,
+        })
+      : publicRateLimitKey({
+          route,
+          request: c.req.raw,
+          material,
+          trustedProxy: deps.trustedProxy,
+        });
   const result = limiter.check(key, policy, now);
   if (result.allowed) return undefined;
   return safeError("rate_limited", "Too many requests. Please try again later.", {

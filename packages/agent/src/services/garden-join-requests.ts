@@ -10,6 +10,23 @@ import type { Address } from "@green-goods/shared/types";
 
 export const GARDEN_JOIN_REQUEST_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 export const GARDEN_JOIN_REQUEST_MAX_PENDING_PER_GARDEN = 100;
+const GARDEN_JOIN_REQUEST_RATE_LIMIT_NOTICE_MS = 10 * 60 * 1000;
+
+export class GardenJoinRequestRateLimitPressure {
+  private readonly limitedAtByGarden = new Map<Address, number>();
+
+  mark(gardenAddress: Address, now: number): void {
+    this.limitedAtByGarden.set(gardenAddress, now);
+  }
+
+  hasRecent(gardenAddress: Address, now: number): boolean {
+    const limitedAt = this.limitedAtByGarden.get(gardenAddress);
+    if (limitedAt === undefined) return false;
+    if (now - limitedAt <= GARDEN_JOIN_REQUEST_RATE_LIMIT_NOTICE_MS) return true;
+    this.limitedAtByGarden.delete(gardenAddress);
+    return false;
+  }
+}
 
 export type GardenJoinRequestCipher = {
   encrypt(plaintext: string): { ciphertext: string; nonce: string };
@@ -69,7 +86,7 @@ export type GardenJoinRequestStore = {
   ): Promise<GardenJoinRequestRecord | undefined>;
   claimProof(nonce: string, expiresAt: string): Promise<boolean>;
   withdraw(gardenAddress: Address, accountAddress: Address): Promise<boolean>;
-  sweep(nowIso: string): Promise<{ deleted: number }>;
+  sweep(nowIso: string): Promise<{ expiredPending: number; deletedResolved: number }>;
 };
 
 export type GardenJoinRequestPersonalFields = {

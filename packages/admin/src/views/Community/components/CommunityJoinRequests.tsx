@@ -118,6 +118,11 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
 
         <div aria-live="polite" className="space-y-2">
           {notice ? <Alert variant="success">{notice}</Alert> : null}
+          {join.rateLimitedRecently ? (
+            <Alert variant="warning">
+              {formatMessage({ id: "app.garden.joinQueue.rateLimitedNotice" })}
+            </Alert>
+          ) : null}
           {error || localError ? (
             <Alert variant="error">{error?.message ?? localError}</Alert>
           ) : null}

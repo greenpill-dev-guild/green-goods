@@ -228,15 +228,17 @@ export function sweepGardenJoinRequests(db: Database, nowIso: string) {
   const resolvedCutoff = new Date(
     Date.parse(nowIso) - GARDEN_JOIN_REQUEST_RETENTION_MS
   ).toISOString();
-  const result = db
+  const pending = db
+    .query("DELETE FROM garden_join_requests WHERE state = 'pending' AND expiresAt <= ?")
+    .run(nowIso);
+  const resolved = db
     .query(
       `DELETE FROM garden_join_requests
-       WHERE (state = 'pending' AND expiresAt <= ?)
-          OR (state != 'pending' AND resolvedAt IS NOT NULL AND resolvedAt <= ?)`
+       WHERE state != 'pending' AND resolvedAt IS NOT NULL AND resolvedAt <= ?`
     )
-    .run(nowIso, resolvedCutoff);
+    .run(resolvedCutoff);
   db.query("DELETE FROM garden_join_request_proofs WHERE expiresAt <= ?").run(nowIso);
-  return { deleted: result.changes };
+  return { expiredPending: pending.changes, deletedResolved: resolved.changes };
 }
 
 function getById(db: Database, gardenAddress: Address, requestId: string) {

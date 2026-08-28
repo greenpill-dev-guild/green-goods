@@ -168,6 +168,13 @@ export function publicIpRateLimitKey(input: Omit<PublicRateLimitKeyInput, "mater
   return [input.route, origin, ip, "ip"].join(":");
 }
 
+/** Build an origin-independent pre-authentication key for one IP and resource. */
+export function publicIpMaterialRateLimitKey(input: PublicRateLimitKeyInput): string {
+  const ip = derivePublicClientIp(input.request, input.trustedProxy);
+  const hashedMaterial = hashPublicRateLimitMaterial(input.material ?? "");
+  return [input.route, ip, hashedMaterial].join(":");
+}
+
 /**
  * Build a rate-limit key for an authenticated resource identity.
  *

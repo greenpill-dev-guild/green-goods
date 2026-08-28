@@ -147,6 +147,17 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
         {notice ? (
           <p className="rounded-[var(--radius-md)] bg-bg-white-0 p-3 text-sm">{notice}</p>
         ) : null}
+        {join.rateLimitedRecently ? (
+          <p
+            role="status"
+            className="rounded-[var(--radius-md)] bg-warning-lighter p-3 text-sm text-warning-dark"
+          >
+            {formatMessage({
+              id: "app.garden.joinQueue.rateLimitedNotice",
+              defaultMessage: "Some join requests were rate-limited recently.",
+            })}
+          </p>
+        ) : null}
         {error || localError ? (
           <p
             role="alert"

@@ -152,7 +152,8 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
 
   async sweep(nowIso: string) {
     const now = Date.parse(nowIso);
-    let deleted = 0;
+    let expiredPending = 0;
+    let deletedResolved = 0;
     for (const [id, record] of this.records) {
       const pendingExpired = record.state === "pending" && Date.parse(record.expiresAt) <= now;
       const resolvedExpired =
@@ -161,13 +162,14 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
         Date.parse(record.resolvedAt!) + GARDEN_JOIN_REQUEST_RETENTION_MS <= now;
       if (pendingExpired || resolvedExpired) {
         this.records.delete(id);
-        deleted += 1;
+        if (pendingExpired) expiredPending += 1;
+        else deletedResolved += 1;
       }
     }
     for (const [nonce, expiresAt] of this.proofNonces) {
       if (Date.parse(expiresAt) <= now) this.proofNonces.delete(nonce);
     }
-    return { deleted };
+    return { expiredPending, deletedResolved };
   }
 
   inspectEncryptedRecords(): EncryptedGardenJoinRequest[] {

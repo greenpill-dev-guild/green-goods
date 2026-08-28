@@ -23,7 +23,10 @@ import type {
   SavedOffersSessionStore,
   SavedOffersSignatureVerifier,
 } from "../../services/saved-offers";
-import type { GardenJoinRequestStore } from "../../services/garden-join-requests";
+import type {
+  GardenJoinRequestRateLimitPressure,
+  GardenJoinRequestStore,
+} from "../../services/garden-join-requests";
 import type { GardenJoinRequestChainReader } from "../../services/garden-join-requests-chain";
 
 export interface ServerConfig {
@@ -87,6 +90,7 @@ export interface ServerDeps {
   savedOffersAudience?: string;
   savedOffersChainIds?: readonly number[];
   gardenJoinRequestStore?: GardenJoinRequestStore;
+  gardenJoinRequestRateLimitPressure?: GardenJoinRequestRateLimitPressure;
   gardenJoinRequestsEnabled?: boolean;
   gardenJoinRequestChainId?: number;
   gardenJoinRequestChainReader?: GardenJoinRequestChainReader;

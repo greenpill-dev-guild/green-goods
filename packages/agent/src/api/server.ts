@@ -32,6 +32,7 @@ import { bindPublicRequestPeerIp } from "./public-protection";
 import { registerGardenJoinRequestRoutes } from "./routes/garden-join-requests";
 import { publicBrowserCorsPreflight, publicBrowserCorsResponse } from "./http/public";
 import { trackGardenJoinRequestEvent } from "../services/analytics";
+import { GardenJoinRequestRateLimitPressure } from "../services/garden-join-requests";
 
 const log = loggers.api;
 
@@ -119,12 +120,16 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       deps.gardenJoinRequestChainReader &&
       deps.gardenJoinRequestSignatureVerifier
   );
+  const gardenJoinRequestRateLimitPressure =
+    deps.gardenJoinRequestRateLimitPressure ?? new GardenJoinRequestRateLimitPressure();
   const sweepJoinRequests = () =>
     deps
       .gardenJoinRequestStore!.sweep(new Date(deps.now?.() ?? Date.now()).toISOString())
       .then((result) => {
-        if (result.deleted > 0) {
-          void trackGardenJoinRequestEvent("join_request_expired", { count: result.deleted });
+        if (result.expiredPending > 0) {
+          void trackGardenJoinRequestEvent("join_request_expired", {
+            count: result.expiredPending,
+          });
         }
       })
       .catch((err) => log.warn({ err }, "Garden join-request retention sweep failed"));
@@ -182,6 +187,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
   if (joinRequestsAvailable) {
     registerGardenJoinRequestRoutes(app, {
       ...routeContext,
+      deps: { ...routeContext.deps, gardenJoinRequestRateLimitPressure },
       store: deps.gardenJoinRequestStore,
     });
   }

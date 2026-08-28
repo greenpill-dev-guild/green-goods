@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSignMessage } from "wagmi";
+import { gardenJoinRequestKeys } from "../../config/query-keys/garden-join-requests";
 import { gardenJoinRequestTransport } from "../../modules/garden-join-requests";
 import {
   createProfileAvatarSigner,
@@ -27,7 +28,7 @@ const IDLE_ASYNC_STATE: AsyncState = { isLoading: false, error: null };
 
 export function useGardenJoinRequestAvailability(): boolean {
   const query = useQuery({
-    queryKey: ["garden-join-requests", "availability"],
+    queryKey: gardenJoinRequestKeys.availability(),
     queryFn: () => gardenJoinRequestTransport.availability(),
     staleTime: 60_000,
     retry: false,
@@ -42,12 +43,14 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
   const { signMessageAsync } = useSignMessage();
   const scopeKey = `${chainId}:${gardenAddress?.toLowerCase() ?? "none"}:${accountAddress?.toLowerCase() ?? "none"}`;
   const latestScopeKeyRef = useRef(scopeKey);
+  const latestRequestOperationRef = useRef(0);
   latestScopeKeyRef.current = scopeKey;
   const [stateScopeKey, setStateScopeKey] = useState(scopeKey);
   const [request, setRequest] = useState<GardenJoinRequestSelfRecord | null>(null);
   const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
   const [queue, setQueue] = useState<GardenJoinRequestQueueItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string>();
+  const [rateLimitedRecently, setRateLimitedRecently] = useState(false);
   const [statusState, setStatusState] = useState<AsyncState>({ isLoading: false, error: null });
   const [queueState, setQueueState] = useState<AsyncState>({ isLoading: false, error: null });
   const [mutationState, setMutationState] = useState<AsyncState>({ isLoading: false, error: null });
@@ -63,6 +66,7 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
     setHasCheckedStatus(false);
     setQueue([]);
     setNextCursor(undefined);
+    setRateLimitedRecently(false);
     setStatusState(IDLE_ASYNC_STATE);
     setQueueState(IDLE_ASYNC_STATE);
     setMutationState(IDLE_ASYNC_STATE);
@@ -131,18 +135,19 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
 
   const checkStatus = useCallback(async () => {
     const operationScope = scopeKey;
+    const operationId = ++latestRequestOperationRef.current;
     setStatusState({ isLoading: true, error: null });
     try {
       const proof = await signProof("read_self");
       const response = await gardenJoinRequestTransport.mine(gardenAddress!, proof);
-      if (isCurrentScope(operationScope)) {
+      if (isCurrentScope(operationScope) && operationId === latestRequestOperationRef.current) {
         setRequest(response.request);
         setHasCheckedStatus(true);
       }
       return response.request;
     } catch (caught) {
       const error = toError(caught, "Unable to check your request status.");
-      if (isCurrentScope(operationScope)) {
+      if (isCurrentScope(operationScope) && operationId === latestRequestOperationRef.current) {
         setStatusState({ isLoading: false, error });
       }
       throw error;
@@ -156,6 +161,7 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
   const submitRequest = useCallback(
     async (input: CreateGardenJoinRequestInput) => {
       const operationScope = scopeKey;
+      const operationId = ++latestRequestOperationRef.current;
       setMutationState({ isLoading: true, error: null });
       try {
         const proof = await signProof("create", {
@@ -164,14 +170,14 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
           requestedVia: input.requestedVia,
         });
         const response = await gardenJoinRequestTransport.create(gardenAddress!, input, proof);
-        if (isCurrentScope(operationScope)) {
+        if (isCurrentScope(operationScope) && operationId === latestRequestOperationRef.current) {
           setRequest(response.request);
           setHasCheckedStatus(true);
         }
         return response.request;
       } catch (caught) {
         const error = toError(caught, "Unable to send your join request.");
-        if (isCurrentScope(operationScope)) {
+        if (isCurrentScope(operationScope) && operationId === latestRequestOperationRef.current) {
           setMutationState({ isLoading: false, error });
         }
         throw error;
@@ -186,17 +192,18 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
 
   const withdrawRequest = useCallback(async () => {
     const operationScope = scopeKey;
+    const operationId = ++latestRequestOperationRef.current;
     setMutationState({ isLoading: true, error: null });
     try {
       const proof = await signProof("withdraw");
       await gardenJoinRequestTransport.withdraw(gardenAddress!, proof);
-      if (isCurrentScope(operationScope)) {
+      if (isCurrentScope(operationScope) && operationId === latestRequestOperationRef.current) {
         setRequest(null);
       }
       return true;
     } catch (caught) {
       const error = toError(caught, "Unable to withdraw your join request.");
-      if (isCurrentScope(operationScope)) {
+      if (isCurrentScope(operationScope) && operationId === latestRequestOperationRef.current) {
         setMutationState({ isLoading: false, error });
       }
       throw error;
@@ -228,6 +235,7 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
             options.append ? [...current, ...response.items] : response.items
           );
           setNextCursor(response.nextCursor);
+          setRateLimitedRecently(response.rateLimitedRecently);
         }
         return response;
       } catch (caught) {
@@ -291,6 +299,7 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
     hasCheckedStatus: hasCurrentScope ? hasCheckedStatus : false,
     queue: hasCurrentScope ? queue : [],
     nextCursor: hasCurrentScope ? nextCursor : undefined,
+    rateLimitedRecently: hasCurrentScope ? rateLimitedRecently : false,
     statusState: hasCurrentScope ? statusState : IDLE_ASYNC_STATE,
     queueState: hasCurrentScope ? queueState : IDLE_ASYNC_STATE,
     mutationState: hasCurrentScope ? mutationState : IDLE_ASYNC_STATE,

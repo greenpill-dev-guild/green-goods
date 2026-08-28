@@ -8,7 +8,10 @@ import type { Address } from "viem";
 import { InMemoryPublicRateLimiter } from "../api/public-protection";
 import { createServer } from "../api/server";
 import { MemoryGardenJoinRequestStore } from "../services/garden-join-request-memory-store";
-import { createGardenJoinRequestCipher } from "../services/garden-join-requests";
+import {
+  createGardenJoinRequestCipher,
+  GardenJoinRequestRateLimitPressure,
+} from "../services/garden-join-requests";
 import type { ProfileAvatarSignatureVerifier } from "../services/profile-avatars";
 
 const ORIGIN = "https://greengoods.app";
@@ -40,9 +43,10 @@ function proof(
   };
 }
 
-function headers(joinProof: GardenJoinProofEnvelope) {
+function headers(joinProof: GardenJoinProofEnvelope, origin = ORIGIN) {
   return {
-    origin: ORIGIN,
+    origin,
+    "x-gg-test-socket-ip": "198.51.100.10",
     "content-type": "application/json",
     authorization: encodeGardenJoinAuthorization(joinProof),
   };
@@ -53,6 +57,7 @@ function createApp(options: { signatureVerifier?: ProfileAvatarSignatureVerifier
   const store = new MemoryGardenJoinRequestStore(createGardenJoinRequestCipher("11".repeat(32)), {
     id: () => `request-${++requestId}`,
   });
+  const rateLimitPressure = new GardenJoinRequestRateLimitPressure();
   let applicantIsMember = false;
   let openJoining = false;
   const chainReader = {
@@ -72,8 +77,10 @@ function createApp(options: { signatureVerifier?: ProfileAvatarSignatureVerifier
     isAIReady: () => true,
     allowedOrigins: new Set([ORIGIN]),
     publicRateLimiter: new InMemoryPublicRateLimiter(),
+    trustedProxy: { allowTestSocketIp: true },
     gardenJoinRequestsEnabled: true,
     gardenJoinRequestStore: store,
+    gardenJoinRequestRateLimitPressure: rateLimitPressure,
     gardenJoinRequestChainId: CHAIN_ID,
     gardenJoinRequestChainReader: chainReader,
     gardenJoinRequestSignatureVerifier: options.signatureVerifier ?? vi.fn(async () => true),
@@ -83,6 +90,7 @@ function createApp(options: { signatureVerifier?: ProfileAvatarSignatureVerifier
   return {
     app,
     store,
+    rateLimitPressure,
     chainReader,
     setMember: (value: boolean) => (applicantIsMember = value),
     setOpenJoining: (value: boolean) => (openJoining = value),
@@ -111,11 +119,12 @@ async function submitFor(
 async function submitForGarden(
   app: ReturnType<typeof createServer>,
   gardenAddress: Address,
-  accountAddress: GardenJoinProofEnvelope["accountAddress"]
+  accountAddress: GardenJoinProofEnvelope["accountAddress"],
+  origin = ORIGIN
 ) {
   return app.request(`/public/gardens/${gardenAddress}/join-requests`, {
     method: "POST",
-    headers: headers(proof("create", accountAddress, { gardenAddress })),
+    headers: headers(proof("create", accountAddress, { gardenAddress }), origin),
     body: JSON.stringify({ displayName: "Maya", requestedVia: "garden_detail" }),
   });
 }
@@ -152,8 +161,9 @@ describe("garden join request public API", () => {
   });
 
   it("requires an operator or owner proof to list and decline requests", async () => {
-    const { app, chainReader } = createApp();
+    const { app, chainReader, rateLimitPressure } = createApp();
     await submit(app);
+    rateLimitPressure.mark(GARDEN, NOW);
 
     const denied = await app.request(
       `/public/gardens/${GARDEN}/join-requests?state=pending&limit=25`,
@@ -173,6 +183,7 @@ describe("garden join request public API", () => {
     expect(queue.items).toEqual([
       expect.objectContaining({ id: "request-1", displayName: "Maya", accountAddress: APPLICANT }),
     ]);
+    expect(queue.rateLimitedRecently).toBe(true);
     expect(chainReader.areMembers).toHaveBeenCalledOnce();
 
     const declined = await app.request(
@@ -194,21 +205,28 @@ describe("garden join request public API", () => {
   it("waits for the role transaction, then reconciles membership as welcomed", async () => {
     const { app, setMember } = createApp();
     await submit(app);
-    const resolve = () =>
+    const resolve = (joinProof: GardenJoinProofEnvelope) =>
       app.request(`/public/gardens/${GARDEN}/join-requests/request-1/resolve`, {
         method: "POST",
-        headers: headers(
-          proof("welcome", OPERATOR, { requestId: "request-1", expectedRevision: 0 })
-        ),
+        headers: headers(joinProof),
         body: JSON.stringify({ action: "welcome", expectedRevision: 0 }),
       });
+    const waitingProof = proof("welcome", OPERATOR, {
+      requestId: "request-1",
+      expectedRevision: 0,
+    });
 
-    const waiting = await resolve();
+    const waiting = await resolve(waitingProof);
     expect(waiting.status).toBe(202);
     expect(await waiting.json()).toMatchObject({ ok: true, pendingOnchainMembership: true });
+    const replay = await resolve(waitingProof);
+    expect(replay.status).toBe(409);
+    expect(await replay.json()).toMatchObject({ errorCode: "idempotency_conflict" });
 
     setMember(true);
-    const welcomed = await resolve();
+    const welcomed = await resolve(
+      proof("welcome", OPERATOR, { requestId: "request-1", expectedRevision: 0 })
+    );
     expect(welcomed.status).toBe(200);
     expect(await welcomed.json()).toMatchObject({ request: { state: "welcomed", revision: 1 } });
   });
@@ -271,6 +289,26 @@ describe("garden join request public API", () => {
     const limited = await submitFor(app, APPLICANT);
     expect(limited.status).toBe(429);
     expect(signatureVerifier).toHaveBeenCalledTimes(10);
+  });
+
+  it("does not let rotating allowed origins bypass the pre-authentication limit", async () => {
+    const signatureVerifier = vi.fn(async () => false);
+    const { app, rateLimitPressure } = createApp({ signatureVerifier });
+
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const origin = `https://green-goods-${attempt}-greenpilldevguild.vercel.app`;
+      expect((await submitForGarden(app, GARDEN, APPLICANT, origin)).status).toBe(401);
+    }
+
+    const limited = await submitForGarden(
+      app,
+      GARDEN,
+      APPLICANT,
+      "https://green-goods-next-greenpilldevguild.vercel.app"
+    );
+    expect(limited.status).toBe(429);
+    expect(signatureVerifier).toHaveBeenCalledTimes(10);
+    expect(rateLimitPressure.hasRecent(GARDEN, NOW)).toBe(true);
   });
 
   it("scopes the pre-authentication IP limit to each garden", async () => {

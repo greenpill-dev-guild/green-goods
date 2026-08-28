@@ -94,14 +94,6 @@ export async function handleGardenJoinRequestResolution(
         409
       );
     }
-    if (action === "welcome" && !isMember) {
-      return publicBrowserCorsResponse(
-        c,
-        ctx.deps,
-        { ok: true, request, pendingOnchainMembership: true },
-        202
-      );
-    }
     if (!(await claimGardenJoinRequestProof(store, authenticated.proof))) {
       return gardenJoinRequestFailure(
         c,
@@ -109,6 +101,14 @@ export async function handleGardenJoinRequestResolution(
         "idempotency_conflict",
         "This signed request was already used.",
         409
+      );
+    }
+    if (action === "welcome" && !isMember) {
+      return publicBrowserCorsResponse(
+        c,
+        ctx.deps,
+        { ok: true, request, pendingOnchainMembership: true },
+        202
       );
     }
     if (parsed.value.action !== "decline") {

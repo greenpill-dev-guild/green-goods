@@ -50,6 +50,10 @@ async function handleCreate(c: Context, ctx: GardenJoinRequestRouteContext) {
   if (!preflight.ok) return preflight.response;
   const preAuthRateError = checkRateLimit(c, ctx.deps, "join_request_create", preflight.garden);
   if (preAuthRateError) {
+    ctx.deps.gardenJoinRequestRateLimitPressure?.mark(
+      preflight.garden,
+      ctx.deps.now?.() ?? Date.now()
+    );
     void trackCreateRejected("rate_limited");
     return publicBrowserCorsResponse(c, ctx.deps, preAuthRateError, 429);
   }
@@ -79,6 +83,10 @@ async function handleCreate(c: Context, ctx: GardenJoinRequestRouteContext) {
       `${preflight.garden}:${authenticated.proof.accountAddress}`
     ) ?? checkMaterialRateLimit(ctx.deps, "join_request_create_garden", preflight.garden);
   if (rateError) {
+    ctx.deps.gardenJoinRequestRateLimitPressure?.mark(
+      preflight.garden,
+      ctx.deps.now?.() ?? Date.now()
+    );
     void trackCreateRejected("rate_limited", authenticated.proof.factory !== undefined);
     return publicBrowserCorsResponse(c, ctx.deps, rateError, 429);
   }
@@ -325,6 +333,11 @@ async function handleList(c: Context, ctx: GardenJoinRequestRouteContext) {
     return publicBrowserCorsResponse(c, ctx.deps, {
       ok: true,
       items,
+      rateLimitedRecently:
+        ctx.deps.gardenJoinRequestRateLimitPressure?.hasRecent(
+          preflight.garden,
+          ctx.deps.now?.() ?? Date.now()
+        ) ?? false,
       ...(page.nextCursor ? { nextCursor: page.nextCursor } : {}),
     });
   } catch {

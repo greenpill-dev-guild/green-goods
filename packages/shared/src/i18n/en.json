@@ -1957,6 +1957,7 @@
   "app.garden.joinQueue.membershipAddFailed": "Membership could not be added.",
   "app.garden.joinQueue.membershipPending": "The membership transaction was submitted. Confirm again after it is visible on-chain.",
   "app.garden.joinQueue.requestedAt": "Requested {date}",
+  "app.garden.joinQueue.rateLimitedNotice": "Some join requests were rate-limited recently.",
   "app.garden.joinQueue.title": "Join requests",
   "app.garden.joinQueue.updateFailed": "The request could not be updated.",
   "app.garden.joinQueue.welcome": "Welcome",

@@ -112,8 +112,33 @@ describe("garden join request store", () => {
       requestedAt,
       expiresAt,
     });
-    expect(await store.sweep("2026-09-27T12:00:00.000Z")).toEqual({ deleted: 1 });
+    expect(await store.sweep("2026-09-27T12:00:00.000Z")).toEqual({
+      expiredPending: 1,
+      deletedResolved: 0,
+    });
     expect(await store.getMine(garden, account)).toBeUndefined();
+
+    const retained = await store.create({
+      gardenAddress: garden,
+      accountAddress: account,
+      displayName: "Maya",
+      requestedVia: "garden_detail",
+      requestedAt,
+      expiresAt,
+    });
+    if (retained.created !== true) throw new Error("Expected retained request to be created");
+    await store.resolve({
+      gardenAddress: garden,
+      requestId: retained.request.id,
+      expectedRevision: 0,
+      state: "declined",
+      reason: "No capacity.",
+      resolvedAt: requestedAt,
+    });
+    expect(await store.sweep("2026-09-27T12:00:00.000Z")).toEqual({
+      expiredPending: 0,
+      deletedResolved: 1,
+    });
   });
 
   it("stores replay guards as keyed nonce digests", async () => {

@@ -107,6 +107,7 @@ export type GardenJoinRequestQueueResponse = {
   ok: true;
   items: GardenJoinRequestQueueItem[];
   nextCursor?: string;
+  rateLimitedRecently: boolean;
 };
 
 export type GardenJoinRequestAvailabilityResponse = {

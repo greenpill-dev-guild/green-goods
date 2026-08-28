@@ -9,6 +9,7 @@ import type { Address } from "../../types/domain";
 const mocks = vi.hoisted(() => ({
   accountAddress: "0x2222222222222222222222222222222222222222" as Address,
   mine: vi.fn(),
+  create: vi.fn(),
   list: vi.fn(),
 }));
 
@@ -36,6 +37,7 @@ vi.mock("../../modules/profile-avatar", () => ({
 vi.mock("../../modules/garden-join-requests", () => ({
   gardenJoinRequestTransport: {
     mine: (...args: unknown[]) => mocks.mine(...args),
+    create: (...args: unknown[]) => mocks.create(...args),
     list: (...args: unknown[]) => mocks.list(...args),
   },
 }));
@@ -76,12 +78,14 @@ const queueResponse: GardenJoinRequestQueueResponse = {
       displayName: "Maya",
     },
   ],
+  rateLimitedRecently: false,
 };
 
 describe("useGardenJoinRequests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.accountAddress = "0x2222222222222222222222222222222222222222";
+    mocks.create.mockResolvedValue(selfResponse);
     mocks.list.mockResolvedValue(queueResponse);
   });
 
@@ -122,5 +126,28 @@ describe("useGardenJoinRequests", () => {
 
     expect(result.current.queue).toEqual([]);
     expect(result.current.nextCursor).toBeUndefined();
+  });
+
+  it("does not let an older status read replace a newly submitted request", async () => {
+    const pendingMine = deferred<GardenJoinRequestSelfResponse>();
+    mocks.mine.mockReturnValueOnce(pendingMine.promise);
+    const { result } = renderHook(() => useGardenJoinRequests(GARDEN_A));
+
+    let statusPromise!: Promise<unknown>;
+    act(() => {
+      statusPromise = result.current.checkStatus();
+    });
+    await waitFor(() => expect(mocks.mine).toHaveBeenCalledOnce());
+
+    await act(async () => {
+      await result.current.submitRequest({ displayName: "Maya", requestedVia: "garden_detail" });
+    });
+    pendingMine.resolve({ ok: true, request: null });
+    await act(async () => {
+      await statusPromise;
+    });
+
+    expect(result.current.request).toEqual(selfResponse.request);
+    expect(result.current.hasCheckedStatus).toBe(true);
   });
 });

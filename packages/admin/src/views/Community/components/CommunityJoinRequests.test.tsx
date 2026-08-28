@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const loadQueue = vi.fn(async () => ({ ok: true, items: [] }));
 const resolveRequest = vi.fn(async () => ({ ok: true, pendingOnchainMembership: false }));
+let rateLimitedRecently = false;
 const addGardener = vi.fn(
   async (): Promise<{
     success: boolean;
@@ -30,6 +31,7 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenJoinRequests", () => ({
     nextCursor: undefined,
     queueState: { isLoading: false, error: null },
     mutationState: { isLoading: false, error: null },
+    rateLimitedRecently,
     loadQueue,
     resolveRequest,
   }),
@@ -48,6 +50,7 @@ import { CommunityJoinRequests } from "./CommunityJoinRequests";
 const messages = {
   "app.common.cancel": "Cancel",
   "app.garden.joinQueue.membershipAddFailed": "Membership could not be added.",
+  "app.garden.joinQueue.rateLimitedNotice": "Some join requests were rate-limited recently.",
   "cockpit.community.joinRequests.confirmDecline": "Decline request",
   "cockpit.community.joinRequests.decline": "Decline",
   "cockpit.community.joinRequests.declined": "The request was declined.",
@@ -73,7 +76,10 @@ function renderQueue() {
 }
 
 describe("CommunityJoinRequests", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    rateLimitedRecently = false;
+  });
 
   it("loads explicitly and welcomes through the on-chain membership operation first", async () => {
     const user = userEvent.setup();
@@ -147,5 +153,14 @@ describe("CommunityJoinRequests", () => {
     );
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(reason).toHaveValue("No capacity this season.");
+  });
+
+  it("shows aggregate request pressure without exposing applicant details", () => {
+    rateLimitedRecently = true;
+    renderQueue();
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Some join requests were rate-limited recently."
+    );
   });
 });

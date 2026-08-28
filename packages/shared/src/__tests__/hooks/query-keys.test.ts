@@ -85,9 +85,15 @@ describe("queryKeys", () => {
       queryKeys.hypercerts.all,
       queryKeys.marketplace.all,
       queryKeys.greenWill.all,
+      queryKeys.gardenJoinRequests.all,
     ];
 
     roots.forEach((root) => expectRooted(root, queryKeys.all));
+    expect(queryKeys.gardenJoinRequests.availability()).toEqual([
+      "greengoods",
+      "garden-join-requests",
+      "availability",
+    ]);
   });
 
   it("builds representative keys without mutating caller input", () => {
