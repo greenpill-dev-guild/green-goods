@@ -77,10 +77,12 @@ verifiers remain available for historical evidence and current-state checks.
 
 - A signed paused-deployment checklist covering the shared blocking security requirements and the ordered
   `AssessmentResolver` upgrade/schema preparation, pooling module/register/schema finalization,
-  and `GardenToken`/`WorkApprovalResolver` upgrades and reverse wiring. Its terminal state is
-  paused and deployment-sender owned.
-- A current-release deployer-owned, root-Protocol-first paused backfill with eighteen verified
-  registration receipts, plus a separately authorized pooling unpause command.
+  and KarmaGAPModule/`WorkApprovalResolver` upgrades plus WorkApproval reverse wiring. Its terminal
+  state is paused and deployment-sender owned. GardenToken stays deferred until a compatible
+  GardenAccount implementation can ship in the same separately reviewed release.
+- A follow-up deployer-owned, root-Protocol-first paused backfill with eighteen verified
+  registration receipts, plus a separately authorized pooling unpause command after the
+  GardenAccount/GardenToken compatibility release establishes both reverse links.
 - The protocol-Safe ownership transfer, nine Arbitrum boundaries and one Celo boundary, each with
   the destination Safe verified live against its per-chain frozen configuration.
 - A separate signed value-tier checklist for Arbitrum `SettlementModule`, Celo `CeloSettlementExecutor`, and every enabled Safe/Zodiac configuration.
@@ -135,18 +137,19 @@ A replacement owner must be named in PRD-686/PRD-731 and this handoff before exe
       verified module only after its UID and record are exact; set the final non-zero,
       pairwise-distinct schema UIDs; verify dependency/schema/proxy state; and keep the pooling
       module paused through the integration upgrades.
-   3. **Integration upgrades and paused handoff**: upgrade the existing `GardenToken` and
-      `WorkApprovalResolver` proxies in place; wire `setCommitmentPoolingModule` and
-      `setCommitmentModule`; prove updater preservation plus post-upgrade storage, ownership,
-      both-direction wiring, and rollback state while pooling remains paused. Stop with every
-      touched proxy owned by `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6`.
+   3. **Integration upgrades and paused handoff**: upgrade KarmaGAPModule before the existing
+      `WorkApprovalResolver` proxy; wire `setCommitmentModule`; prove updater preservation plus
+      post-upgrade storage, ownership, WorkApproval wiring, and rollback state while pooling
+      remains paused. Do not upgrade or wire GardenToken in this release: its constructor must be
+      bound to a compatible GardenAccount implementation in a separately reviewed release first.
+      Stop with every touched proxy owned by `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6`.
 
    **Activation correction (updated 2026-08-12).** Protocol-Safe transfer is deferred beyond this
-   release. While the module remains deployment-sender owned and paused, the current release may
-   execute the exact root-Protocol-first plus seventeen-Garden registration plan through the
-   reviewed deployer path. It must prove every direct transaction receipt, pool ID, finalized
-   inventory, owner, implementation, reverse integration link, and paused state, and stop after
-   registration boundary 18. Core unpause remains separately authorized. The later ownership
+   release. The root-Protocol-first plus seventeen-Garden registration plan remains blocked until
+   the GardenAccount/GardenToken compatibility release establishes and verifies the missing
+   GardenToken reverse link. That follow-up must prove every direct transaction receipt, pool ID,
+   finalized inventory, owner, implementation, both reverse integration links, and paused state,
+   and stop after registration boundary 18. Core unpause remains separately authorized. The later ownership
    issue must reread the complete Safe owner set and threshold on each target chain and verify each
    transfer independently; it does not block this release's registration backfill.
    Rehearse the exact sequence locally and on pinned forks. Ethereum Sepolia may prove an endpoint

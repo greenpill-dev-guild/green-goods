@@ -206,23 +206,6 @@
       "linkedLibraries": {}
     },
     {
-      "name": "GardenToken",
-      "stage": "pooling-integration-upgrades",
-      "proxy": "0xe1Da335110b1ed48e7df63209f5D424d02276593",
-      "currentImplementation": "0x9Bc05d65e323527A38e5629AA8de53446010f50b",
-      "currentImplementationCodeHash": "0xbf36d4c524ecc261cc4992d4609645b35a95db77ed31ef1bff503b6173a3b2a7",
-      "currentOwner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
-      "currentCeremonyEndOwner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
-      "finalArtifact": "Garden.sol/GardenToken.json",
-      "constructorArguments": ["0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692"],
-      "expectedImplementationCreationCodeHash": "0x0006fc30ff58c7e7e0d644e102e3b23b688ddc1c2f889e7db5e5b0b707d27252",
-      "implementationAddressPolicy": "sender-and-stage-nonce-bound-transaction-plan",
-      "initializerPolicy": "preserve-existing-initializer-state",
-      "linkedLibraries": {
-        "src/lib/TBA.sol:TBALib": "0xc0B513c1eA2bAe5FC17b26ccc8F7c03e5aDFDAD6"
-      }
-    },
-    {
       "name": "WorkApprovalResolver",
       "stage": "pooling-integration-upgrades",
       "proxy": "0x166732eD81Ab200A099215cF33F6A712309B69F7",

@@ -547,14 +547,13 @@ contract Upgrade is Script {
         wireYieldResolverGardensModule();
     }
 
-    /// @notice Upgrade the existing integrations required by Commitment Pooling.
+    /// @notice Upgrade the existing Work integration required by Commitment Pooling.
     /// @dev The net-new CommitmentPoolingModule and CommitmentRegistry are deployed, never
-    ///      "upgraded". KarmaGAPModule must be upgraded before the callers that depend on its new
-    ///      reconciliation selectors. The grouped plan proves all three proxies share the declared
-    ///      owner before any existing proxy is touched.
+    ///      "upgraded". KarmaGAPModule must be upgraded before WorkApprovalResolver, which depends
+    ///      on its Project Update selector. GardenToken is deliberately excluded until a compatible
+    ///      GardenAccount implementation can be deployed and bound to it in a separate release.
     function upgradeCommitmentPoolingIntegrations() public {
         upgradeKarmaGAPModule();
-        upgradeGardenToken();
         upgradeWorkApprovalResolver();
 
         address poolingModule = vm.envAddress("COMMITMENT_POOLING_MODULE");
@@ -562,11 +561,9 @@ contract Upgrade is Script {
         if (vm.envBool("UPGRADE_REQUIRE_LIVE_DEPENDENCIES")) {
             validateAddress(poolingModule, "CommitmentPoolingModule");
         }
-        address gardenTokenProxy = loadProxyAddress("gardenToken");
         address workApprovalProxy = loadProxyAddress("workApprovalResolver");
 
         vm.startBroadcast();
-        GardenToken(gardenTokenProxy).setCommitmentPoolingModule(poolingModule);
         WorkApprovalResolver(payable(workApprovalProxy)).setCommitmentModule(poolingModule);
         vm.stopBroadcast();
         console.log("Commitment Pooling integration reverse wiring completed");

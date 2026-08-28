@@ -2119,12 +2119,17 @@ GardenToken on 42161 is a live UUPS proxy at `0xe1Da335110b1ed48e7df63209f5D424d
 - Upgrade preserves state test extended (`testGardenTokenUpgradePreservesState`, `packages/contracts/test/StorageLayout.t.sol:270-289`) to set and survive `commitmentPoolingModule`.
 - Broadcast via the named root `contracts:*` scripts only (keystore + sender encoding per root CLAUDE.md; never raw forge, `.claude/rules/contracts.md`).
 
-Post-upgrade ops sequence (one-shot, lives in `.plans/`, not `scripts/`): upgrade
-`KarmaGAPModule` before the `GardenToken` and `WorkApprovalResolver` callers, then call
-`gardenToken.setCommitmentPoolingModule(module)` and
-`workApprovalResolver.setCommitmentModule(module)`; verify both reverse links, updater
-preservation, storage, ownership, and every chain-2/chain-3 readiness fact while the pooling
-module remains paused; register the protocol pool on the root garden first, enumerate the live
+The current pooling release excludes this GardenToken upgrade. Its constructor would otherwise
+bind newly minted gardens to the legacy GardenAccount implementation, which lacks the required
+Karma access callback. A separately reviewed compatibility release must first deploy a compatible
+GardenAccount implementation, bind the new GardenToken implementation to it, upgrade GardenToken,
+call `gardenToken.setCommitmentPoolingModule(module)`, and verify that reverse link while pooling
+remains paused.
+
+Post-upgrade ops sequence after that compatibility release (one-shot, lives in `.plans/`, not
+`scripts/`): verify both reverse links, updater preservation, storage, ownership, and every
+chain-2/chain-3 readiness fact while the pooling module remains paused; register the protocol pool
+on the root garden first, enumerate the live
 GardenToken gardens at execution (18 at the 2026-08-08 census),
 skip the normalized root GardenAccount
 because it already owns the Protocol pool, submit `registerPool(garden, Garden)` for every
@@ -2589,14 +2594,15 @@ as named deliverables.
    evidence passes. Ethereum
    Sepolia (`11155111`) remains a legacy regression lane and does not substitute for the
    protocol's target-chain rehearsal.
-3. PR chain 3 (upgrades): upgrade GardenToken implementation (6.3) and
-   WorkApprovalResolver implementation (6.5); `setCommitmentPoolingModule` /
-   `setCommitmentModule`; verify updater preservation, post-upgrade storage/ownership, and
-   both-direction wiring; keep the pooling module paused while registering the protocol pool on the root garden
-   (`deployments/42161-latest.json:40-43`), enumerate all live gardens at execution (18 at the
-   2026-08-08 census), skip that normalized
-   root address, and backfill `registerPool(garden, Garden)` for every non-root garden. Verify the
-   complete inventory, then perform the separately authorized unpause.
+3. PR chain 3 (current upgrades): upgrade KarmaGAPModule before WorkApprovalResolver (6.5), then
+   call `setCommitmentModule`; verify updater preservation, post-upgrade storage/ownership, and the
+   WorkApproval reverse link. GardenToken (6.3), `setCommitmentPoolingModule`, the live-garden
+   backfill, and unpause remain blocked behind a separately reviewed GardenAccount/GardenToken
+   compatibility release. That follow-up binds GardenToken to a compatible GardenAccount
+   implementation, verifies both reverse links, registers the protocol pool on the root garden,
+   enumerates all live gardens at execution (18 at the 2026-08-08 census), skips that normalized
+   root address, and backfills `registerPool(garden, Garden)` for every non-root garden before the
+   separately authorized unpause.
 4. Update `packages/indexer/config.yaml` addresses from zero-address placeholders and bump
    `start_block` (8.1).
 
@@ -2674,7 +2680,7 @@ bun script/upgrade.ts commitment-pooling --network arbitrum --tx-plan --sender 0
 
 # One-shot backfill stays in the plan hub, not scripts/. It reads the deployment
 # artifact, prints one Protocol call for the root plus 12 Garden calls for the non-root
-# members of the verified 13-garden set, records the root as SKIPPED_PROTOCOL_ROOT, and
+# members of the live-enumerated 18-garden set, records the root as SKIPPED_PROTOCOL_ROOT, and
 # writes no chain state in dry-run mode.
 bun ../../.plans/active/commitment-pooling/backfill-pools.ts --network arbitrum --dry-run
 
@@ -2699,7 +2705,7 @@ must fail before plan persistence rather than defaulting.
 Both angle-bracketed `421614` senders are mandatory future artifact inputs, not optional
 placeholders or inferred defaults. The grouped `commitment-pooling` upgrade target is likewise
 NET-NEW — it is not a current `upgrade.ts` contract name — and ships with its own owner check: it
-verifies that KarmaGAPModule, GardenToken, and WorkApprovalResolver report the same live owner
+verifies that KarmaGAPModule and WorkApprovalResolver report the same live owner
 before persisting one transaction plan; differing owners require separately named targets and
 plans rather than an inferred sender.
 Each chain-connected command above is illegal until the preceding stage's separately authorized
@@ -2708,12 +2714,13 @@ separate pure-simulation process. The complete sequence is rehearsed first on de
 chains and Arbitrum Sepolia. `--finalize-community-testimony` requires the verified
 module/register artifact, never accepts an address override, and proves the pinned UID plus exact
 registry record before activating the verified module last. `upgrade.ts commitment-pooling`
-upgrades exactly KarmaGAPModule, GardenToken, and WorkApprovalResolver in that dependency order,
-verifies implementation slots and storage baselines, wires both module
-setters, and merges no schema keys. `backfill-pools.ts` persists a resumable result artifact at
+upgrades exactly KarmaGAPModule and WorkApprovalResolver in that dependency order, verifies
+implementation slots and storage baselines, wires the WorkApproval module setter, and merges no
+schema keys. It deliberately excludes GardenToken until a compatible GardenAccount implementation
+can be deployed and bound in a separate reviewed release. `backfill-pools.ts` persists a resumable result artifact at
 `.plans/active/commitment-pooling/artifacts/{chainId}-pool-backfill.json` keyed by garden. It
 normalizes every enumerated address, records the exact root as `SKIPPED_PROTOCOL_ROOT`, and emits
-no Garden-type call for it; the remaining 12 entries record their Garden registration plan or
+no Garden-type call for it; the remaining 17 entries record their Garden registration plan or
 receipt. Dry-run produces a simulation artifact under `.generated/runtime` only, while an
 explicitly authorized broadcast records tx hash, receipt block, and resulting poolId per submitted
 garden. Deploy dry-runs write simulation output only; broadcasts merge only the named append-only
@@ -4034,16 +4041,19 @@ authorization.
 
 ### `packages/contracts` PR chain 3: live upgrades + backfill
 
-Deliverables: KarmaGAPModule prerequisite upgrade, GardenToken change set (6.3), WorkApprovalResolver bridge (6.5), 42161 broadcast runbook (one-shot ops doc in `.plans/active/commitment-pooling/`, not `scripts/`), protocol pool registration, and a verified live-garden enumeration that records the root skip and submits every non-root Garden registration (18 gardens / 17 non-root at the 2026-08-08 census; no count frozen).
+Deliverables: KarmaGAPModule prerequisite upgrade, WorkApprovalResolver bridge (6.5), and a 42161
+broadcast runbook (one-shot ops doc in `.plans/active/commitment-pooling/`, not `scripts/`). The
+GardenToken change set (6.3), compatible GardenAccount implementation, protocol pool registration,
+and verified live-garden enumeration remain a separately reviewed follow-up (18 gardens / 17
+non-root at the 2026-08-08 census; execution still enumerates live state).
 
-Acceptance: storage-layout gates green pre-broadcast; KarmaGAPModule is upgraded before GardenToken
-and WorkApprovalResolver, and both reverse links are verified while pooling remains paused; the root receives
-exactly one owner-registered Protocol pool first, the backfill proves `SKIPPED_PROTOCOL_ROOT` for
-that address, and every enumerated non-root garden receives a Garden pool without a `PoolExists`
-abort while the module remains paused. Unpause is a separate authorization only after every
-chain-2/chain-3 and backfill-readiness fact passes; a scripted offer -> fulfilled smoke passes; the
-post-broadcast artifact shows both new addresses and non-zero pool count; and a live approval on an
-existing garden emits `ApprovedWorkCounted` for a linked work.
+Acceptance: storage-layout gates green pre-broadcast; KarmaGAPModule is upgraded before
+WorkApprovalResolver, the WorkApproval reverse link is verified, and pooling remains paused. The
+current release performs no GardenToken upgrade, garden backfill, or unpause. The compatibility
+follow-up must bind GardenToken to a compatible GardenAccount implementation, verify both reverse
+links, register exactly one owner-created Protocol pool first, prove `SKIPPED_PROTOCOL_ROOT`, and
+register every enumerated non-root garden without a `PoolExists` abort before a separately
+authorized unpause and operational smoke.
 
 ### `packages/indexer`
 
@@ -4093,8 +4103,10 @@ Exit criteria, in dependency order:
 1. Schemas registered on Sepolia + Arbitrum with resolvers live (PR chain 1); baselines attestable before cycle 1 opens.
 2. Module + register deployed with module-side wiring verified, storage baselines committed, and
    pooling still paused (PR chain 2).
-3. KarmaGAPModule upgraded before GardenToken + WorkApprovalResolver on 42161; reverse links verified; pooling unpaused;
-   protocol pool + every non-root Garden pool registered (census-derived count; 17 at the 2026-08-08 read); operational smoke passed (PR chain 3).
+3. KarmaGAPModule upgraded before WorkApprovalResolver on 42161 and the WorkApproval reverse link
+   verified while pooling remains paused. A separately reviewed GardenAccount/GardenToken
+   compatibility release must establish the GardenToken link before unpause, protocol-pool plus
+   every non-root Garden registration, and operational smoke (PR chain 3 plus follow-up).
 4. Indexer serving the four core aggregates plus settlement/disbursement status from Green Goods core events alone.
 5. Shared substrate (types, signed saved-Offer persistence, hooks, six offline queue job kinds including `commitmentSeries` plus online wallet `transfer`, settlement selectors) consumed by admin + client + editorial surfaces.
 6. First cycle is ready to seed and open with an allocation preset; the non-value deployments have persisted post-deploy and rollback proof; and the commitment, confirmation, consideration, and settlement paths have deployment-grade proof without treating the July broadcast as a user-facing release or value-tier authorization.

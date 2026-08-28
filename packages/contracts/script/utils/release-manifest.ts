@@ -637,7 +637,7 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
       requireAddress(argument, `existingProxyUpgrades.${upgrade.name}.constructorArguments.${index}`);
     });
   }
-  for (const required of ["AssessmentResolver", "KarmaGAPModule", "GardenToken", "WorkApprovalResolver"]) {
+  for (const required of ["AssessmentResolver", "KarmaGAPModule", "WorkApprovalResolver"]) {
     if (!upgradeNames.has(required)) throw new Error(`Missing existing proxy upgrade manifest for ${required}`);
   }
 

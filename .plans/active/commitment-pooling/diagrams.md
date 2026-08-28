@@ -250,7 +250,7 @@ Notes:
 
 ## D2. Contract/module topology and trust boundaries
 
-**How to read this**: four trust boundaries, one job each — the application boundary queues intent and authorizes nothing, the Arbitrum boundary owns source state, Envio restates explicit events from both Green Goods contracts, and the Celo executor moves value under a reviewed Safe + Zodiac scope, stores its idempotent outcome, then uses CCIP to acknowledge it. Both Work-rail resolvers are drawn: `WorkResolver` validates the Work attestation itself and `WorkApprovalResolver` validates each approval/rejection decision; the non-blocking `onWorkDecision` bridge from that resolver into the pooling module is **implemented in the repo but not yet live on-chain** — it ships in the same `pooling-integration-upgrades` release stage as the GardenToken hook — so the edge stays dashed until that upgrade is live. Community Needs uses four EAS schema records across two resolver proxies: `NeedsResolver` owns the role-gated Need/NeedSignal/NeedStatus branches, while the ungated `FundingAttributionResolver` keeps a separate blast wall.
+**How to read this**: four trust boundaries, one job each — the application boundary queues intent and authorizes nothing, the Arbitrum boundary owns source state, Envio restates explicit events from both Green Goods contracts, and the Celo executor moves value under a reviewed Safe + Zodiac scope, stores its idempotent outcome, then uses CCIP to acknowledge it. Both Work-rail resolvers are drawn: `WorkResolver` validates the Work attestation itself and `WorkApprovalResolver` validates each approval/rejection decision; the non-blocking `onWorkDecision` bridge from that resolver into the pooling module is **implemented in the repo but not yet live on-chain** and ships in `pooling-integration-upgrades`. The GardenToken hook remains deferred until a compatible GardenAccount implementation can ship with it, so that edge stays dashed beyond the current upgrade stage. Community Needs uses four EAS schema records across two resolver proxies: `NeedsResolver` owns the role-gated Need/NeedSignal/NeedStatus branches, while the ungated `FundingAttributionResolver` keeps a separate blast wall.
 
 ```mermaid
 flowchart TB
@@ -262,7 +262,7 @@ flowchart TB
   end
   subgraph ARB["Arbitrum trust boundary"]
     HATS["HatsModule<br/>membership and scoped roles"]
-    GT["GardenToken<br/>live token · pool hook ships in the<br/>pooling-integration-upgrades stage"]
+    GT["GardenToken<br/>live token · pool hook deferred behind<br/>GardenAccount compatibility release"]
     CPM["CommitmentPoolingModule<br/>state + access + EAS checks"]
     REG["CommitmentRegistry<br/>onlyModule unit accounting"]
     SM["SettlementModule<br/>immutable route/source/executor scope<br/>funding deposits + refund obligations"]
@@ -2130,7 +2130,7 @@ classDiagram
   class GardenToken {
     <<live UUPS proxy · hook upgrade pending>>
     +mint() existing flow
-    +setCommitmentPoolingModule() onlyOwner — ships with the integration upgrade
+    +setCommitmentPoolingModule() onlyOwner — deferred behind GardenAccount compatibility
   }
   class HatsModule {
     <<live>>
@@ -2310,7 +2310,7 @@ The ledger has 161 unique selector names: 53 validation, 14 permission/identity,
 
 ## D26. Deployment and upgrade topology
 
-**How to read this**: the only diagram here about *getting to* the system rather than the system itself, and — since 2026-08-11 — a copy of the shipped release tooling rather than a plan. The eleven stages are the eight keystore-gated operator commands in `release-operator.ts` plus the three operations the ceremony explicitly defers (`ownership-transfer`, the garden-pool backfill, `core-unpause`), exactly as `config/commitment-pooling-release.json` freezes them (`ceremony.endState: "paused-deployer-owned"`; all three deferred-inclusion flags false). Read the amber band as a single invariant: **the pooling module is deployed paused and stays paused until both reverse links exist and every readiness fact passes** — the ceremony itself *ends* inside that band, deployer-owned. Unpausing early is the exact contradiction corrections-log §23 was written to close.
+**How to read this**: the only diagram here about *getting to* the system rather than the system itself, and — since 2026-08-11 — a copy of the shipped release tooling rather than a plan. The eleven stages are the eight keystore-gated operator commands in `release-operator.ts` plus the three operations the ceremony explicitly defers (`ownership-transfer`, the garden-pool backfill, `core-unpause`), exactly as `config/commitment-pooling-release.json` freezes them (`ceremony.endState: "paused-deployer-owned"`; all three deferred-inclusion flags false). Read the amber band as a single invariant: **the pooling module is deployed paused and stays paused until a separate GardenAccount/GardenToken compatibility release establishes the deferred GardenToken reverse link and every readiness fact passes** — the ceremony itself *ends* inside that band, deployer-owned. Unpausing early is the exact contradiction corrections-log §23 was written to close.
 
 Three more rules the picture encodes. Rehearsal is the **Arbitrum One fork**, not a testnet: Arbitrum Sepolia `421614` was withdrawn on 2026-08-06 (Hats has no deployment there), the fork runs the same runbook against live Hats, EAS, and resolver state (contract-spec §7.3 amendments), and Ethereum Sepolia survives only as a labeled endpoint-evidence lane. Schema UID pinning remains **one-way** — a wrong pin is not recoverable by re-pinning. Stage 10 runs while the module remains paused: the owner registers the exact-root Protocol pool first, the verifier re-enumerates the live Garden inventory, and only then may the non-root Garden registrations execute before a separately authorized unpause. Register #104 accepts the residual unchanged-authority risk that a current root-garden steward could front-run that owner transaction with a Garden-type registration and consume the root's one-pool slot; the reviewed plan rejects that shape, but the contract adds no new authority guard. The re-frozen manifest records a measured batch limit of 3 against the fixed 300,000-gas source acknowledgment budget: three cold, distinct funded-plan closures used 250,326 gas while four required 304,689. `activationIncluded` remains false, so both source and executor batching stay disabled until the separately authorized Safe/value-authority ceremony configures the same limit on both chains. The manifest also records `timelockWaivedForRelease: true`: the four settlement setters are owner-direct and paused-only in code, with the timelock an ops-policy ownership target for later governance.
 
@@ -2323,7 +2323,7 @@ flowchart TB
     S4["4 · pooling:finalize<br/>reconcile the exact Community Testimony record<br/>activate its resolver module last"]
     S5["5 · settlement:module:deploy<br/>paused message-only SettlementModule<br/>no peer · no value authority"]
     S6["6 · credit:registry:deploy<br/>paused records-only CreditRegistry<br/>two-way settlement binding · G$ pool rail disabled"]
-    S7["7 · pooling:upgrade<br/>GardenToken §6.3 + WorkApprovalResolver §6.5<br/>establish BOTH reverse links while pooling stays paused"]
+    S7["7 · pooling:upgrade<br/>KarmaGAPModule + WorkApprovalResolver §6.5<br/>wire WorkApproval · defer GardenToken compatibility"]
     S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7
   end
 
@@ -2333,7 +2333,7 @@ flowchart TB
 
   subgraph FOLLOW["Deferred follow-up"]
     S9["9 · ownership-transfer<br/>eight Arbitrum proxies + the Celo executor to the<br/>protocol Safe 2-of-6 · one verified boundary at a time"]
-    S10["10 · garden-pool backfill while PAUSED<br/>owner registers exact-root Protocol pool FIRST ·<br/>enumerate live GardenToken accounts at execution<br/>then one Garden pool per non-root garden"]
+    S10["10 · GardenAccount/GardenToken compatibility + backfill while PAUSED<br/>bind compatible account implementation and verify both links ·<br/>register exact-root Protocol pool FIRST · enumerate live gardens<br/>then one Garden pool per non-root garden"]
     S11["11 · core-unpause<br/>separate authorization after every readiness fact"]
     S9 --> S10 --> S11
   end

@@ -103,10 +103,9 @@ describe("schema registration planning", () => {
 });
 
 describe("pooling upgrade targets", () => {
-  it("resolves Karma before both callers in one grouped target", () => {
+  it("resolves Karma before the WorkApproval caller in one grouped target", () => {
     const deployment = {
       karmaGAPModule: "0x3333333333333333333333333333333333333333",
-      gardenToken: "0x1111111111111111111111111111111111111111",
       workApprovalResolver: "0x2222222222222222222222222222222222222222",
     };
 
@@ -115,19 +114,20 @@ describe("pooling upgrade targets", () => {
     expect(resolved.map((target) => target.deploymentKey)).toEqual([...POOLING_INTEGRATION_UPGRADE_KEYS]);
   });
 
-  it("executes the Karma prerequisite before either caller upgrade", () => {
+  it("executes the Karma prerequisite before the WorkApproval upgrade", () => {
     const upgradeScript = fs.readFileSync(path.join(__dirname, "../Upgrade.s.sol"), "utf8");
     const groupedUpgrade = upgradeScript.slice(
       upgradeScript.indexOf("function upgradeCommitmentPoolingIntegrations()"),
       upgradeScript.indexOf("/// @notice Upgrade all contracts"),
     );
 
-    expect(groupedUpgrade.indexOf("upgradeKarmaGAPModule();")).toBeLessThan(
-      groupedUpgrade.indexOf("upgradeGardenToken();"),
-    );
-    expect(groupedUpgrade.indexOf("upgradeGardenToken();")).toBeLessThan(
-      groupedUpgrade.indexOf("upgradeWorkApprovalResolver();"),
-    );
+    const karmaIndex = groupedUpgrade.indexOf("upgradeKarmaGAPModule();");
+    const workIndex = groupedUpgrade.indexOf("upgradeWorkApprovalResolver();");
+    expect(karmaIndex).toBeGreaterThanOrEqual(0);
+    expect(workIndex).toBeGreaterThanOrEqual(0);
+    expect(groupedUpgrade).not.toContain("upgradeGardenToken();");
+    expect(groupedUpgrade).not.toContain("setCommitmentPoolingModule(poolingModule)");
+    expect(karmaIndex).toBeLessThan(workIndex);
   });
 
   it("fails closed when a coordinated upgrade target is missing from the artifact", () => {

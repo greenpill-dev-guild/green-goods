@@ -65,7 +65,6 @@ describe("combined commitment release manifest", () => {
       manifest.ownership.deploymentSender,
       manifest.ownership.deploymentSender,
       manifest.ownership.deploymentSender,
-      manifest.ownership.deploymentSender,
     ]);
   });
 
