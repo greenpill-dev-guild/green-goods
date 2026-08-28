@@ -118,7 +118,7 @@ fi
 # A create must carry the problem/outcome block; the contract calls it the one
 # section that is never optional. An update may legitimately touch state,
 # labels, or relations alone, so only creates are required to have a body.
-if [ "$is_update" = "no" ] && [ -z "$description" ] && [ "$has_patch" = "no" ]; then
+if [ "$is_update" = "no" ] && [ -z "${description//[$'\n\t ']/}" ] && [ "$has_patch" = "no" ]; then
   add "New issue has no body. Say what breaks and for whom, or what should exist and why — that block is never optional."
 elif [ "$is_update" = "yes" ] && [ "$sent_description" = "yes" ] && [ -z "${description//[$'\n\t ']/}" ]; then
   add "This update erases the body. The problem/outcome block is never optional — rewrite it rather than blanking it."

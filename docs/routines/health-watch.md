@@ -155,7 +155,7 @@ If Sentry is unavailable, note `Sentry: skipped — connector unavailable` in pr
 
 ## Auto-close on recovery (Linear Issue status)
 
-Before opening a new Issue or appending a comment, query Linear for an existing open Issue in the relevant category — match on the canonical labels above plus a category marker carried in the title (e.g., `Indexer lag` / `Vercel deploy` / `Contracts drift` / `Agent down` / `Client errors`):
+Before opening a new Issue or appending a comment, query Linear for an existing open Issue in the relevant category — match on the canonical labels above plus a category phrase carried in the title (`Indexer lag` / `Vercel deploy` / `Contracts drift` / `Agent down` / `Client errors`). Titles are plain sentences with no prefix, so the phrase must sit **inside** the sentence for this lookup to find last run's Issue; a title that drops it opens a duplicate every run:
 
 ```
 Linear query (read-only):
@@ -193,8 +193,11 @@ if no open Linear Issue matching the canonical labels + category marker:
   Linear: create Issue
     team        = Product
     project     = (none — unprojected)
-    title       = "<plain sentence naming the anomaly>"
-                  // no "<category>:" prefix — the labels carry the category
+    title       = "<plain sentence that contains the category phrase>"
+                  // no "<category>:" prefix; the phrase sits inside the
+                  // sentence, because § Auto-close matches on it to find
+                  // the previous run's Issue — e.g. "Indexer lag has grown
+                  // to 12,000 blocks on Arbitrum"
     labels      = "green-goods", "qa", "routine",
                   <package child, e.g. "indexer"> (when applicable)
                   // bare child names or IDs only — save_issue rejects the

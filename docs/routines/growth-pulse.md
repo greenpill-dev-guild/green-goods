@@ -212,7 +212,8 @@ Title is a plain sentence naming what moved — "Onboarding funnel broke at the 
 {What moved, over what window, and why it matters — two or three plain
 sentences. Name the affected surface and gardens inside them.}
 
-{One signal line: current value, prior value, delta, window.}
+{One signal line naming the curated question, so later runs can recognise the
+same anomaly: "`funnel.onboarding`: 18% conversion, down from 41% over 7d."}
 
 {One sentence on the suspected cause or next step; say plainly when it needs
 investigation.}
@@ -276,7 +277,7 @@ Apply these thresholds to the question outputs:
 
 For each anomaly:
 
-1. **Dedupe** against existing open Linear Customer Needs/Issues on the Product team filtered by `protocol:green-goods` + `activity:qa`. Match by `## Anomaly type` + affected scope. If a duplicate exists, **append a comment** with the new numbers and refresh the date — do not create a parallel Issue.
+1. **Dedupe** against existing open Linear Customer Needs/Issues on the Product team filtered by `protocol:green-goods` + `activity:qa`. Match by the **curated question name** carried in the signal line (`funnel.onboarding` and the like) plus the affected surface — that pair is stable across runs and survives the prose body shape, whereas the old `## Anomaly type` heading was retired with the section scaffolding on 2026-08-27. If a duplicate exists, **append a comment** with the new numbers and refresh the date — do not create a parallel Issue.
 2. **Create** the Linear Issue per the body schema above, **unprojected** on the Product team. Status: `Backlog` (exploratory) or `Todo` (well-scoped, e.g., funnel breakage with a clear culprit step).
 3. **Cap**: at most **3 new Linear Issues per run**. If more anomalies exist, surface them in the digest body and let the human triage which to escalate next week.
 

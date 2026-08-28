@@ -215,6 +215,13 @@ const rejects = [
     expect: /no body/,
   },
   {
+    // A body of spaces and newlines is as unreadable as no body; `-z` alone
+    // treats it as present.
+    name: "create whose body is only whitespace",
+    input: { title: "Fix the stuck cancel button", description: "   \n\t  \n" },
+    expect: /no body/,
+  },
+  {
     // An update is exempt from carrying a body, but not from the title rules —
     // otherwise a rename could reintroduce a prefix that creates reject.
     name: "rename that reintroduces a retired prefix",
