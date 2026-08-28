@@ -47,16 +47,17 @@ sent_description="$(printf '%s' "$payload" | jq -r 'if (.tool_input | has("descr
 # patching it instead of replacing it.
 patch_text="$(printf '%s' "$payload" | jq -r '[.tool_input.patch // [] | .[] | (.text // ""), (.new_string // "")] | join("\n")')"
 
-# Longest run of prose a patch op deletes outright (a replace whose new_string
-# is empty). Small deletions are ordinary editing; emptying a whole block is the
-# same destructive act as sending `description: ""`, which is rejected below,
-# and it must not be cheaper to do the second way.
-patch_deleted_chars="$(printf '%s' "$payload" | jq -r '
+# Words a patch op deletes outright (a replace whose new_string is empty).
+# Counted in words rather than characters: a short body is still a body, so
+# `replace("Short but complete problem statement.", "")` must be caught even
+# though it is under any sensible character threshold, while deleting a stray
+# word or two stays ordinary editing.
+patch_deleted_words="$(printf '%s' "$payload" | jq -r '
   [ .tool_input.patch // []
     | .[]
     | select((.op // "") | test("^replace"))
     | select(((.new_string // "") | gsub("\\s"; "")) == "")
-    | ((.old_string // .from // "") | length)
+    | ((.old_string // .from // "") | [splits("\\s+")] | map(select(length > 0)) | length)
   ] | max // 0')"
 
 # Nothing at all to judge: a property-only write (state, labels, relations).
@@ -65,7 +66,7 @@ patch_deleted_chars="$(printf '%s' "$payload" | jq -r '
 # A patch that only deletes has no inserted text to inspect, so it must not be
 # mistaken for a property-only write.
 if [ -z "$title" ] && [ -z "$description" ] && [ -z "${patch_text//[$'\n\t ']/}" ] &&
-  [ "$sent_description" = "no" ] && [ "${patch_deleted_chars:-0}" -eq 0 ]; then
+  [ "$sent_description" = "no" ] && [ "${patch_deleted_words:-0}" -eq 0 ]; then
   exit 0
 fi
 
@@ -158,8 +159,12 @@ if [ -n "$title" ]; then
   if printf '%s' "$title" | grep -qiE '^\[tracking\]'; then
     add "Title starts with [tracking]. That prefix is retired — the 'maintenance' label plus Backlog state already say this is uncommitted signal."
   fi
-  if printf '%s' "$title" | grep -qiE '^(plan|backlog|idea|ui|state/api|contracts|docs|community|editorial|release ops|qa pass [0-9]+|qa|chore|spike|recurring|epic|ethonline):'; then
-    add "Title starts with a lane or record-type prefix. Write what a person would say broke or should exist; labels carry the rest."
+  # Lane names, record types, work types, package names, and team names — the
+  # categories that Linear's own fields already carry. Enumerated rather than
+  # matched as a generic `Word:` shape, because a colon is legitimate inside a
+  # real sentence and blocking those would cost more than the prefixes do.
+  if printf '%s' "$title" | grep -qiE '^(plan|backlog|idea|ui|ux|state/api|contracts|docs|documentation|community|editorial|release ops|release|qa pass [0-9]+|qa|chore|spike|recurring|epic|ethonline|bug|fix|hotfix|feature|task|improvement|refactor|incident|research|design|infra|ops|security|perf|performance|test|a11y|i18n|admin|client|shared|indexer|agent|network|growth|marketing)[[:space:]]*:'; then
+    add "Title starts with a lane, record-type, or category prefix. Write what a person would say broke or should exist; labels and Linear's own fields carry the rest."
   fi
   # Bare (`P1 …`, `P0: …`) and bracketed (`[P1] …`) review-style forms alike.
   if printf '%s' "$title" | grep -qE '^\[?P[0-9]\]?[[:space:]:]'; then
@@ -183,8 +188,8 @@ fi
 # cannot be checked against the caps or the never-optional body rule. Ask for a
 # full description in that case: the same erase sent as `description: ""` is
 # rejected above, and the patch path must not be the cheaper way to do it.
-if [ "${patch_deleted_chars:-0}" -gt 80 ]; then
-  add "This patch deletes a block of the body ($patch_deleted_chars characters) without replacing it. Send the full description instead, so the result can be checked against the contract."
+if [ "${patch_deleted_words:-0}" -ge 5 ]; then
+  add "This patch deletes $patch_deleted_words words of the body without replacing them. Send the full description instead, so the result can be checked against the contract."
 fi
 
 # Absolute rules — banned tokens and empty scaffolding — hold for any prose the

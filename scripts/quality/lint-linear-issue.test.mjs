@@ -58,8 +58,8 @@ const accepts = [
     input: {
       title: "Commitment Pooling roadmap",
       description:
-        "Tracker for the Commitment Pooling plan, mirrored into Linear for visibility. Status, dates, and dependencies live on this issue.\n\nPlan hub: `.plans/active/commitment-pooling/`",
-      labels: ["plans"],
+        "Tracker for the Commitment Pooling plan, mirrored into Linear for visibility. This issue carries the overall status; the scope, lane detail, and handoffs live in the plan hub.\n\nPlan hub: `.plans/active/commitment-pooling/`",
+      labels: ["plans", "architecture"],
     },
   },
   {
@@ -135,12 +135,12 @@ const rejects = [
   {
     name: "lane-prefixed title",
     input: { title: "QA Pass 2: Commitment Pooling", description: BODY_OK },
-    expect: /lane or record-type prefix/,
+    expect: /category prefix/,
   },
   {
     name: "plan-prefixed title",
     input: { title: "plan: Community Needs & Signals", description: BODY_OK },
-    expect: /lane or record-type prefix/,
+    expect: /category prefix/,
   },
   {
     name: "priority-prefixed title",
@@ -162,7 +162,7 @@ const rejects = [
   {
     name: "lane prefix hidden behind a leading tab",
     input: { title: "\tQA Pass 2: Commitment Pooling", description: BODY_OK },
-    expect: /lane or record-type prefix/,
+    expect: /category prefix/,
   },
   {
     // Named in AGENTS.md's prohibited-shorthand list alongside §-citations.
@@ -233,18 +233,28 @@ const rejects = [
   {
     name: "Recurring: routine title prefix",
     input: { title: "Recurring: Failed to request credential", description: BODY_OK },
-    expect: /lane or record-type prefix/,
+    expect: /category prefix/,
   },
   {
     name: "lowercase lane prefix (the check is case-insensitive)",
     input: { title: "docs: Commitment Pooling", description: BODY_OK },
-    expect: /lane or record-type prefix/,
+    expect: /category prefix/,
   },
   {
     // Named in the contract's prohibited list, so the gate must know it.
     name: "event-tag title prefix",
     input: { title: "ETHOnline: Publish Needs with honest queue states", description: BODY_OK },
-    expect: /lane or record-type prefix/,
+    expect: /category prefix/,
+  },
+  {
+    name: "work-type title prefix",
+    input: { title: "Bug: Garden edit cancel stops responding", description: BODY_OK },
+    expect: /category prefix/,
+  },
+  {
+    name: "package-name title prefix",
+    input: { title: "Admin: work queue renders empty after approval", description: BODY_OK },
+    expect: /category prefix/,
   },
   {
     name: "emoji-led title",
@@ -301,7 +311,7 @@ const rejects = [
         },
       ],
     },
-    expect: /deletes a block of the body/,
+    expect: /deletes \d+ words of the body/,
   },
   {
     name: "emoji heading at H1 (not just H2)",
