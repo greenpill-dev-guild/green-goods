@@ -283,7 +283,9 @@ if [ -n "$description" ]; then
   # Counted on fence-stripped prose: Linear renders a fenced block as code, so
   # `##` comment lines in a shell example are not headings.
   description_prose="$(strip_fenced_code "$description")"
-  atx_headings=$(printf '%s\n' "$description_prose" | grep -cE '^ {0,3}#{1,6} ' || true)
+  # A tab (or a bare `##` on its own line) delimits an ATX heading just as a
+  # space does, and Linear renders it as one.
+  atx_headings=$(printf '%s\n' "$description_prose" | grep -cE '^ {0,3}#{1,6}([[:space:]]|$)' || true)
   setext_headings=$(printf '%s\n' "$description_prose" |
     awk 'prev ~ /[^[:space:]]/ && prev !~ /^ {0,3}#/ && /^ {0,3}(=+|-+)[[:space:]]*$/ { n++ } { prev = $0 } END { print n + 0 }')
   headings=$((atx_headings + setext_headings))
@@ -307,6 +309,13 @@ if [ -n "$description" ]; then
       esac
       ;;
   esac
+  # `save_issue` accepts label IDs as well as names, and a caller passing UUIDs
+  # matches neither case above — which would block a genuine roadmap at 301
+  # words. The gate cannot resolve IDs, so fall back to a signal it can read:
+  # plan-hub titles every roadmap parent "<Feature> roadmap".
+  if [ "$is_umbrella" = "no" ] && printf '%s' "$title" | grep -qiE '(^|[[:space:]])roadmap$'; then
+    is_umbrella=yes
+  fi
 
   if [ "$headings" -gt 3 ]; then
     add "Body has $headings headings (cap 3). Most defects need none — problem, 'Done when', one source line."
@@ -324,8 +333,11 @@ if [ -n "$description" ]; then
   # formatting around its value — `Source plan: .plans/active/x/` is the same
   # metadata-first opening as the backticked form.
   meta_re='^[[:space:]]*(Source plan|Source|Status JSON|Lane|Owner/status|Owner|Handoff|Plan hub):[[:space:]]*[`.a-zA-Z0-9]'
-  first_line="$(printf '%s\n' "$description" | grep -vE '^[[:space:]]*$' | head -1)"
-  meta_count=$(printf '%s\n' "$description" | grep -cE "$meta_re" || true)
+  # Counted on fence-stripped prose, like the heading and placeholder rules: a
+  # documentation issue quoting a legacy `Source:` line inside an example is
+  # describing the old shape, not adopting it.
+  first_line="$(printf '%s\n' "$description_prose" | grep -vE '^[[:space:]]*$' | head -1)"
+  meta_count=$(printf '%s\n' "$description_prose" | grep -cE "$meta_re" || true)
 
   if printf '%s' "$first_line" | grep -qE "$meta_re"; then
     add "Body opens with lane metadata instead of the problem. Lead with what breaks or what should exist; put the link at the end."

@@ -110,6 +110,26 @@ const accepts = [
     input: { title: "Área de jardim não carrega no Portugues", description: BODY_OK },
   },
   {
+    // Quoting the retired shape in an example is describing it, not adopting
+    // it, so the metadata rule reads fence-stripped prose like the others.
+    name: "fenced example quoting legacy metadata lines",
+    input: {
+      title: "Document the retired mirror format for stewards",
+      description:
+        "Stewards keep reproducing the old mirror shape from memory.\n\n```markdown\nSource: notes.md\nLane: ui\n```",
+    },
+  },
+  {
+    // save_issue accepts label IDs, which the gate cannot resolve — so the
+    // roadmap title is the fallback signal for the length exemption.
+    name: "roadmap identified by title when labels are opaque IDs",
+    input: {
+      title: "Commitment Pooling roadmap",
+      description: "Where the work stands and what needs a person. ".repeat(60),
+      labels: ["a1b2c3d4-0000-0000-0000-000000000001"],
+    },
+  },
+  {
     name: "update may carry no description at all",
     input: { id: "PRD-800", title: "Allow cancelling garden edits after changing the image" },
   },
@@ -349,6 +369,12 @@ const rejects = [
     // has to see them or the cap is trivially bypassed.
     name: "indented headings still count toward the cap",
     input: { title: "Fix the stuck cancel button", description: "   ## A\nx\n   ## B\ny\n   ## C\nz\n   ## D\nw" },
+    expect: /headings \(cap 3\)/,
+  },
+  {
+    // A tab delimits an ATX heading just as a space does.
+    name: "tab-delimited headings count toward the cap",
+    input: { title: "Fix the stuck cancel button", description: "##\tA\nx\n##\tB\ny\n##\tC\nz\n##\tD\nw" },
     expect: /headings \(cap 3\)/,
   },
   {
