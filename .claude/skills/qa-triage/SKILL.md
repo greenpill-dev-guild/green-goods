@@ -271,8 +271,8 @@ For each locked item, draft payloads using [`linear-templates.md`](./linear-temp
 
 Three hard constraints shape every payload — full detail, including the Codex-ready and autonomous-confident delegation bars, lives in [linear-templates.md § Linear API constraints](./linear-templates.md):
 
-1. **`ai:*` is single-value-per-Issue** — the delegate-to agent wins the label; the originating agent goes in the body's `## Provenance` section.
-2. **`package:*` is single-value-per-Issue** — the primary surface wins; secondary packages go in the body's `## Surface` section.
+1. **`ai:*` is single-value-per-Issue** — the delegate-to agent wins the label; the originating agent goes in a comment, not the body (the `## Provenance` section was retired 2026-08-27).
+2. **`package:*` is single-value-per-Issue** — the primary surface wins; secondary packages are named in the problem sentence (the `## Surface` block is retired).
 3. **Customer Needs cannot be standalone** — every Need links to an Issue via the `issue` parameter; `track-only` = Need + lightweight Backlog tracking Issue.
 
 ### Disposition rules (no standalone Need path)
@@ -285,7 +285,7 @@ Three hard constraints shape every payload — full detail, including the Codex-
 | Question / "me too" / no actionable content | Skip both | Skip both |
 | Duplicate of existing record | No new Issue; link via `relatedTo` | Optional — comment on existing if user wants the verbatim quote preserved |
 
-Title shape for track-only Issues: prefix `[tracking]`, then use an action-verb-led title (e.g., "[tracking] Bring back public-site Positions UI", not "Positions UI missing"). Body: shorter than a bug Issue — Summary + Surface + Suggested fix + Source.
+Title shape for track-only Issues: a plain action-verb-led sentence, no prefix — "Bring back the Positions section on the public site", not "[tracking] Positions UI missing". The `[tracking]` prefix is retired (2026-08-27); the `maintenance` label plus `Backlog` state carry that meaning, and a `PreToolUse` hook rejects the prefix. Body: shorter than a bug Issue — the ask in prose, then one source line. Full contract: [`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md) § Issue structure.
 
 **Assignee dialog (bulk-default + exceptions-only review)**:
 
@@ -296,7 +296,7 @@ Single bulk prompt up front, then surface only the items where the proposed assi
 
 Then, before writing, the assistant surfaces a **proposed exceptions list** for the user to ratify — items where the bulk default seems wrong given context (e.g., an admin bug when the default is Gui, a PWA architectural bug when the default is `ai:claude`). The user sees only items that need a decision, not the whole list.
 
-Recall `ai:*` is single-value: when delegate (`ai:claude` / `ai:codex`) is chosen, the originating agent is implicit and goes in the body's `## Provenance` section. The interactive skill running in Claude Code is the origin by default.
+Recall `ai:*` is single-value: when delegate (`ai:claude` / `ai:codex`) is chosen, the originating agent is implicit and goes in a comment when it matters — never in the body, whose `## Provenance` section was retired 2026-08-27. The interactive skill running in Claude Code is the origin by default.
 
 **Per-item preference capture (subtle)**:
 
@@ -329,7 +329,7 @@ Surface vocabulary on the Defects row: `Public Website | PWA iOS | PWA Android |
 
 ## Phase 6 — Confirm & write to Linear + QA Sheet
 
-1. **Privacy grep** across every Linear body for `replay`, `session_id`, `distinct_id`, `0x`, and any reporter identifiers seen this run. Hits → redact in place and re-confirm. The grep **does NOT apply to `sheet-rows.csv`** — the Sheet is the explicit private-internal exception (Phase 0 verified its access mode is tight).
+1. **Privacy grep** across every Linear body **and every comment this run drafted or posted** for `replay`, `session_id`, `distinct_id`, `0x`, and any reporter identifiers seen this run. Evidence that moves out of a description and into the first comment stays inside the privacy boundary (`.claude/context/linear-routing-rules.md` § Invariant rules) — a grep that skips comments is not a redaction gate. Hits → redact in place and re-confirm. The grep **does NOT apply to `sheet-rows.csv`** — the Sheet is the explicit private-internal exception (Phase 0 verified its access mode is tight).
 
 2. Show the final draft payloads as a single review block — Linear records + Sheet rows side-by-side, with the Sheet's `PostHog Session ID` and `PostHog Replay URL` columns visibly flagged so the privacy exception is re-acknowledged before the write.
 
@@ -417,7 +417,7 @@ The canonical boundary from [`bug-intake.md`](../../../docs/routines/bug-intake.
 This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Session ID` and `PostHog Replay URL` columns. Conditions:
 
 1. Sheet permissions are tight (not `anyoneWithLink`, not `public`). Phase 0 hard-aborts if not.
-2. Every other surface still enforces the strict boundary. The Phase 6 privacy grep runs on Linear bodies but skips `sheet-rows.csv` by design.
+2. Every other surface still enforces the strict boundary. The Phase 6 privacy grep runs on Linear bodies and comments alike, and skips only `sheet-rows.csv`, by design.
 3. Distinct IDs and wallet addresses remain private-only **everywhere**, including the Sheet — the exception is narrow to session ID + replay URL.
 
 ## Anti-Patterns
@@ -434,7 +434,7 @@ This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Ses
 | Hand `codex exec` a `--full-auto` flag or a bare-array output schema | codex 0.149+ rejects the flag outright, and strict structured output rejects a top-level array or a `required` list that omits a property; use the snippet and the object-wrapped schema in `codex-prompt.md` |
 | Treat the Drive MCP's natural-language flatten as authoritative for Sheet column order | Cache the actual column order to `~/.config/qa-triage/cache.json` on first read |
 | Run without the Sheet permission check | Skipping that check is how session IDs leak |
-| Apply multiple `ai:*` or `package:*` labels to one Issue | Linear enforces single-value-per-group on these families; the API silently drops the second label OR rejects the write entirely. Pick the most actionable label and put the secondary in the body's `## Provenance` / `## Surface` section |
+| Apply multiple `ai:*` or `package:*` labels to one Issue | Linear enforces single-value-per-group on these families; the API silently drops the second label OR rejects the write entirely. Pick the most actionable label; name the secondary package in the problem sentence, and put a delegation note in a comment. The `## Provenance` and `## Surface` sections were retired 2026-08-27 |
 | Create a Customer Need without an `issue` (or `project`) parameter | Linear API rejects with `Exactly one of projectId or issueId must be defined`. If the extracted item has no actionable Issue, create a lightweight `activity:maintenance` Backlog Issue first as the attach point |
 | Request workspace-level label-group config changes from inside the skill | The single-value-per-group constraint is a workspace setting in Linear. Changing it (to multi-value) is a config decision for the workspace owner, not a skill change. Document the constraint and work within it |
 

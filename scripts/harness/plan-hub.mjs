@@ -154,12 +154,25 @@ const EXECUTION_SUB_LANE_PACKAGE_LABELS = {
   walkthrough_videos: "package:docs",
   community: "package:client",
 };
-const LANE_DISPLAY_NAMES = {
-  ui: "UI",
-  state_api: "State/API",
-  contracts: "Contracts",
-  qa_pass_1: "QA Pass 1",
-  qa_pass_2: "QA Pass 2",
+// Human titles for mirrored lane issues. Linear titles are read by teammates
+// scanning a board, so a lane mirror is titled by the work it covers, never by
+// its lane slug — see `.claude/context/linear-routing-rules.md`. Lanes absent
+// here fall back to "<Lane Name> for <Feature>", which still reads as a phrase.
+const LANE_TITLE_PHRASES = {
+  ui: "Build the interface for",
+  ui_admin: "Build the admin interface for",
+  ui_client: "Build the client interface for",
+  state_api: "Build the data and API layer for",
+  contracts: "Build the contracts for",
+  indexer: "Build the indexer for",
+  qa_pass_1: "Run the first QA pass on",
+  qa_pass_2: "Run the second QA pass on",
+  docs: "Write the documentation for",
+  docs_guides: "Write the guides for",
+  editorial: "Write the editorial surfaces for",
+  walkthrough_videos: "Record the walkthrough videos for",
+  community: "Run the community rollout for",
+  release_ops: "Run release ops for",
 };
 const TRACK_TO_PACKAGE_LABEL = {
   admin: "package:admin",
@@ -882,39 +895,93 @@ function linearProjectForStatus(status, warnings) {
   return null;
 }
 
+// Mirror bodies are read cold by teammates in Linear, so they are plain
+// sentences, never a stack of `Key: value` lane metadata.
+//
+// Owner and blocked-ness still have to be said, because nothing else carries
+// them: the manifest emits no assignee or delegate, and `linearStateForLane`
+// maps everything except `in_progress` to the stage default, so a blocked,
+// human-owned lane would otherwise render as an unassigned Todo that looks
+// ready to pick up. Say it in a sentence rather than an `Owner/status:` line.
+// Shape and caps: `.claude/context/linear-routing-rules.md`.
+function laneOwnershipSentence(lane) {
+  const parts = [];
+  if (lane.status === "blocked") {
+    // The schema requires blocked_reason on synced blocked lanes, and the
+    // mirror is read cold — "blocked" without the why sends the reader
+    // hunting. Fall back to pointing at the handoff for legacy hubs.
+    const reason = hasText(lane.blocked_reason) ? lane.blocked_reason.trim() : null;
+    parts.push(
+      reason
+        ? `This lane is blocked: ${reason}${/[.!?]$/.test(reason) ? "" : "."}`
+        : "This lane is blocked; the handoff records what it is waiting on.",
+    );
+  }
+  if (lane.owner === "human") {
+    parts.push("A person owns it, not an agent.");
+  } else if (lane.owner) {
+    parts.push(`${lane.owner === "claude" ? "Claude" : lane.owner === "codex" ? "Codex" : lane.owner} owns it.`);
+  }
+  return parts.join(" ");
+}
 function buildLinearParentDescription(status, laneSyncMode = DEFAULT_LINEAR_LANE_SYNC_MODE) {
   const source = planRelativeDir(status);
-  const laneSyncPolicy = laneSyncMode === "parent_only"
-    ? "Plan-level tracker for Linear visibility. Keep execution detail, lane truth, and handoffs in `.plans`; this mirror intentionally does not create or update lane issues."
-    : "Plan-level tracker for Linear visibility. Keep execution detail and lane truth in `.plans/status.json`; child issues track actionable lanes.";
+  // Describe only what this record actually carries. The parent gets state and
+  // priority; milestone, due date, and blocker relations are emitted on lane
+  // records, and in parent_only mode those records do not exist at all — so a
+  // blanket "dates and dependencies live on this issue" would send a reader to
+  // a surface that does not have them. The parent's Linear state is
+  // stage-derived (`linearStateForParent` never reads
+  // `workflow.overall_status`), so the body must not claim this issue carries
+  // the overall status either — the hub owns it.
+  const whereTheRestLives = laneSyncMode === "parent_only"
+    ? "Lanes are not mirrored as child issues, so lane progress, dates, and dependencies live in the hub too."
+    : "Each lane's dates and dependencies sit on its own child issue.";
 
   return [
-    `Source plan: \`${source}\``,
-    `Status JSON: \`${source}status.json\``,
+    `Tracker for the ${status.feature.title} plan, mirrored into Linear for visibility. ` +
+      "The plan hub owns the overall status, scope, lane detail, and handoffs. " +
+      whereTheRestLives,
     "",
-    laneSyncPolicy,
+    `Plan hub: \`${source}\``,
   ].join("\n");
 }
 
-function buildLinearLaneDescription(status, laneName, lane) {
+// `lane.handoff` is stored plan-relative (`handoffs/codex-ui.md`), so the plan
+// directory has to be prefixed here. Emitting the bare value would leave a
+// Linear-dispatched agent unable to tell which of the many plan hubs owns the
+// handoff — the old body only got away with it because it carried a separate
+// `Source plan:` line.
+function buildLinearLaneDescription(status, lane) {
   const source = planRelativeDir(status);
+  const ownership = laneOwnershipSentence(lane);
   return [
-    `Source plan: \`${source}\``,
-    `Lane: \`${laneName}\``,
-    `Owner: \`${lane.owner || "unassigned"}\``,
-    `Handoff: \`${lane.handoff}\``,
+    ["The scope, acceptance criteria, and validation for this lane live in its handoff.", ownership]
+      .filter(Boolean)
+      .join(" "),
     "",
-    "This issue mirrors an actionable plan lane for Linear visibility. Keep implementation proof, lane state, and validation evidence in `.plans/status.json` and the lane handoff.",
-  ].join("\n");
-}
-
-function buildLinearExecutionSubLaneDescription(status, laneName, lane) {
-  const source = planRelativeDir(status);
-  return [
-    `Source: \`${source}status.json#execution_sub_lanes.${laneName}\``,
     `Handoff: \`${source}${lane.handoff}\``,
-    `Owner/status: \`${lane.owner}\` / \`${lane.status}\``,
   ].join("\n");
+}
+
+function buildLinearExecutionSubLaneDescription(status, lane) {
+  const source = planRelativeDir(status);
+  const ownership = laneOwnershipSentence(lane);
+  return [
+    ["The scope, acceptance criteria, and validation for this lane live in its handoff.", ownership]
+      .filter(Boolean)
+      .join(" "),
+    "",
+    `Handoff: \`${source}${lane.handoff}\``,
+  ].join("\n");
+}
+
+// A plain, human lane title: the work it covers, never the lane slug.
+function linearLaneTitle(status, laneName) {
+  const phrase = LANE_TITLE_PHRASES[laneName];
+  return phrase
+    ? `${phrase} ${status.feature.title}`
+    : `${titleFromSlug(laneName)} for ${status.feature.title}`;
 }
 
 function buildLinearSchedule(status, laneLinear) {
@@ -983,13 +1050,13 @@ function buildExecutionSubLaneLinearRecord(status, laneName, lane, project, team
     issue,
     parentId: parentIssue,
     parentRef: parentIssue ? null : null,
-    title: `${titleFromSlug(laneName)}: ${status.feature.title}`,
+    title: linearLaneTitle(status, laneName),
     team,
     state: linearStateForLane(status, lane),
     priority,
     labels: linearLabelsForExecutionSubLane(status, laneName, lane),
     project,
-    description: buildLinearExecutionSubLaneDescription(status, laneName, lane),
+    description: buildLinearExecutionSubLaneDescription(status, lane),
     handoff: lane.handoff,
     dependsOn: Array.isArray(lane.depends_on) ? lane.depends_on : [],
     blockedByIssues: resolveBlockedByIssues(status, lane.depends_on),
@@ -1039,7 +1106,7 @@ function buildLinearSyncManifest(status) {
   const parent = {
     action: parentIssue ? "update" : "create",
     issue: parentIssue,
-    title: `plan: ${normalized.feature.title}`,
+    title: `${normalized.feature.title} roadmap`,
     team,
     state: linearStateForParent(normalized, laneSyncMode),
     priority,
@@ -1071,7 +1138,7 @@ function buildLinearSyncManifest(status) {
           issue,
           parentId: parentIssue,
           parentRef: "parent",
-          title: `${LANE_DISPLAY_NAMES[laneName]}: ${normalized.feature.title}`,
+          title: linearLaneTitle(normalized, laneName),
           team,
           state: linearStateForLane(normalized, lane),
           priority,
@@ -1082,7 +1149,7 @@ function buildLinearSyncManifest(status) {
             lane,
           ),
           project,
-          description: buildLinearLaneDescription(normalized, laneName, lane),
+          description: buildLinearLaneDescription(normalized, lane),
           handoff: lane.handoff,
           dependsOn: Array.isArray(lane.depends_on) ? lane.depends_on : [],
           blockedByIssues: resolveBlockedByIssues(normalized, lane.depends_on),

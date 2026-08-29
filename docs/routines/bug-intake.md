@@ -66,7 +66,7 @@ If the Product team, expected Issue statuses, or required canonical labels are m
 Codified from the 2026-05-13 `/qa-triage` first-run findings. These three constraints apply to every Linear write this routine makes:
 
 1. **`ai:*` is single-value-per-Issue.** Default to `ai:routine` (cron'd provenance). When an accepted Issue clears the **Codex-ready bar** (clear behavior + named surface + suggestable fix + validation — see [`README.md` § Codex hand-off](README.md)), set `ai:codex` *instead* (single value — never both; Linear rejects multi-value writes to this group), and **delegate** the Issue to the Codex agent when it also clears the **autonomous-confident bar** (the human stays assignee/reviewer).
-2. **`package:*` is single-value-per-Issue.** When a bug spans more than one package, pick the **primary surface** as the label and name the secondary package(s) in the Issue body's `## Surface` block. Omit the label entirely when the surface is genuinely unknown.
+2. **`package:*` is single-value-per-Issue.** When a bug spans more than one package, pick the **primary surface** as the label and name the secondary package(s) in the problem sentence (the `## Surface` block is retired). Omit the label entirely when the surface is genuinely unknown.
 3. **Customer Needs cannot be standalone.** Linear's `save_customer_need` API rejects calls without an `issue` (or `project`) parameter — `Exactly one of projectId or issueId must be defined`. Every Customer Need this routine creates must link to an Issue. For items that aren't actionable accepted-bug Issues, the routine creates a **lightweight tracking Issue** (`activity:maintenance` + `Backlog`) and links the Need to it. There is no standalone Need path.
 
 ### Linear label scheme (canonical)
@@ -177,7 +177,11 @@ Issue these against the PostHog connector and keep the responses in private rout
 
 ### Linking private replay evidence
 
-Replay URLs, session IDs, and distinct IDs are useful for the human triaging the Customer Need and for `/debug` later. Hand them off via Linear's **private** comment surface (Slack-equivalent if Linear's Discord/Slack integration exposes a private channel mirror) **or** via the routine's daily Discord summary as a private DM to `<@${DISCORD_USER_ID_AFO}>` — never as a public message. If neither private surface is available, drop the link from the routine output entirely and let `/debug` re-query PostHog by the public error hash.
+Replay URLs, session IDs, and distinct IDs are useful for the human triaging the Customer Need and for `/debug` later. Hand them off **only** as a private DM to `<@${DISCORD_USER_ID_AFO}>` in the routine's daily Discord summary.
+
+**Never put them in a Linear comment.** Linear has no private comment surface — a comment is visible to everyone who can see the issue, exactly like the description, and the shared contract counts comments inside the privacy boundary (`.claude/context/linear-routing-rules.md` § Invariant rules). An earlier version of this file described comments as a private hand-off channel; that was wrong, and following it would have published session identifiers.
+
+If the DM path is unavailable, drop the link from the routine output entirely and let `/debug` re-query PostHog by the public error hash.
 
 ### Fallback when the connector is unavailable
 
@@ -326,27 +330,22 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
 
    Associate the Customer Need with the customer/garden when known. Customer Needs live unprojected on the Product team — do not associate with the retired `Green Goods` umbrella project or any other staging/completed project. The Customer Need carries **no labels** — `save_customer_need` has no `labels` field; provenance and triage metadata live in the body, and the canonical labels go on the linked Issue created in step 6. Before saving the record, re-check the body against the privacy boundary table in `## PostHog telemetry enrichment`; if any forbidden field slipped in, drop it.
 
-6. **Create accepted-bug Issue** only when the report is actionable per the table above. Issue title is a concise verb-led summary. Body:
+6. **Create accepted-bug Issue** only when the report is actionable per the table above. Issue title is a concise verb-led sentence with no prefix. Body follows the contract in [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md) § Issue structure — **cap 3 headings, ~150 words, 300 ceiling**, and a `PreToolUse` hook rejects writes that break it:
 
    ```markdown
-   ## What
+   {What breaks, for whom, and where — one or two short paragraphs of plain
+   prose. Name the surface and the concrete files inside the sentences rather
+   than giving each its own heading.}
 
-   {one-sentence description of the bug or task}
+   **Done when**
+   - {observable, checkable outcome}
+   - {second outcome, if the fix has two halves}
 
-   ## Where
-
-   {file paths or surfaces — concrete enough that the human triage handoff (or downstream `.plans/` execution) can scope it}
-
-   ## Suggested fix
-
-   {one paragraph — actionable. "Needs investigation" is not enough; if the fix isn't suggestable yet, fall back to the lightweight tracking-Issue pattern: `activity:maintenance` + `Backlog` + body that has Summary + Surface + Source only}
-
-   ## Linked Customer Need
-   {Linear URL of the Customer Need created in step 4}
-
-   ## Source
-   {Discord message URL — same as the Customer Need}
+   {One source line: the Discord message URL, same as the Customer Need. Add a
+   single counts line only when telemetry is the evidence.}
    ```
+
+   Drop anything you cannot fill rather than writing a placeholder — if the fix is not suggestable yet, that is the lightweight tracking pattern (`activity:maintenance` + `Backlog`), not a "Needs investigation" heading. Do not restate the verbatim quote or the reporter list; those live on the linked Customer Need.
 
    Project: leave **unprojected** on the Product team. Apply labels: `protocol:green-goods` + `activity:qa` + `package:<inferred>` (omit if unknown) + `source:discord` + `ai:routine`. Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes). The Issue body inherits the same privacy boundary — never paste replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers into it.
 
@@ -504,24 +503,33 @@ After Phases 1–3, before the umbrella check, fold every PostHog match collecte
 2. **Threshold gate**: a hash is a recurring pattern when its 30-day distinct-session count is **≥ 50**. Below threshold, the per-report Customer Needs from Phases 1–3 stand on their own. Do not aggregate.
 3. **Find or create the parent Issue** unprojected on the Product team:
    - Look for an open Issue carrying `protocol:green-goods` + `ai:routine` + `activity:qa` + a `pattern:posthog-{error-hash-prefix}` label. If the label set is missing on the team, fail loud in the Phase 7 summary and skip aggregation rather than inventing a parent.
-   - If none exists and the threshold is met, create one Issue with title `Recurring: {top-line-error-message-redacted}` (verb-led when possible). Status `Todo`, labels `protocol:green-goods` + `activity:qa` + `package:<inferred>` + `ai:routine` + `pattern:posthog-{error-hash-prefix}`. The parent Issue body uses the safe-summary fields only:
+   - If none exists and the threshold is met, create one Issue whose title is a plain verb-led sentence naming the failure — "Fix the credential request that never resolves on garden join", not `Recurring: {error}`. The `Recurring:` prefix was retired 2026-08-27 and a `PreToolUse` hook now rejects it; the `pattern:posthog-*` label marks the record as a recurring parent. Status `Todo`, labels `protocol:green-goods` + `activity:qa` + `package:<inferred>` + `ai:routine` + `pattern:posthog-{error-hash-prefix}`. The parent Issue body uses the safe-summary fields only:
 
      ```markdown
-     ## Recurring pattern
+     {What keeps failing, for whom, and on which surface — two or three plain
+     sentences. Name the redacted top-line message inside them.}
 
-     - Error hash: `{posthog-error-hash}`
-     - Top-line message: `{redacted-error-message}`
-     - Distinct sessions (last 30d): {S}
-     - Distinct users (last 30d): {U}
-     - First seen: {YYYY-MM-DDTHH:MM:SSZ}
-     - Last seen: {YYYY-MM-DDTHH:MM:SSZ}
-     - App surface: {client | admin}
+     Seen {S} sessions and {U} users over 30 days, first {YYYY-MM-DD}, last
+     {YYYY-MM-DD}. Error hash `{posthog-error-hash}`.
 
-     ## Linked Customer Needs
-     {bullet list of Linear URLs for every Customer Need this routine has ever associated with this error hash}
+     **Done when**
+     - {the observable recovery — the failing path succeeds again, or the error
+       is understood and deliberately accepted}
+     - {second outcome, when the pattern has two halves}
      ```
 
-   - If a parent Issue already exists, append any new Customer Need URLs to its `## Linked Customer Needs` list and refresh the safe-summary numbers in place.
+     This parent is filed as `Todo`, so **`Done when` is required** — without
+     checkable outcomes a Codex hand-off stops at the readiness gate. If no
+     outcome can be named yet, file it `Backlog` instead.
+
+     **The contributing Customer Needs are not listed in the body.** Step 4
+     below already backlinks each one through Linear's relation surface, which
+     renders them in the Issue's right rail and stays correct as the list
+     grows. A markdown copy would be a second home for the same fact, and an
+     unbounded one — the body is capped at 300 words, so a long-lived pattern
+     would eventually make its own refresh unwritable.
+
+   - If a parent Issue already exists, add the new Customer Needs through the relation surface (step 4) and refresh the counts and last-seen date in the body. Do not accumulate URLs in the description — the relations are the list.
 4. **Backlink** every contributing Customer Need to the parent Issue via Linear's relation surface (`relates to` or the parent's linked-issues field). The Customer Needs themselves are not edited beyond adding the relation.
 5. **Attach Sentry matches as root-cause context** when they point at the same top-line message/surface/release. Sentry issue IDs enrich the parent Issue body or comment with release and stack context; they do not replace the PostHog distinct-session threshold because Sentry event counts and PostHog session counts are not comparable.
 5. **Cap**: at most **2 new parent Issues per run** to keep human triage from drowning. Carry overflow into the next run.
@@ -536,7 +544,7 @@ After Phases 1–4, before posting the summary:
 2. List every linked Issue this run created (per-report and recurring-pattern parent) and confirm it has the expected labels, status, source URL, and Customer Need link.
 3. List every duplicate detection — every existing Customer Need or Issue this run commented on — and confirm the comment landed.
 4. List every rejection — every signal you read but did not act on — and the reason.
-5. Run a privacy grep across every body created or edited this run **and across every captured `chat_messages.text` and attachment caption that this run consumed** for the strings `replay`, `session_id`, `distinct_id`, `0x`, the reporter identifiers seen this run, and any other token from the "private" column of the privacy-boundary table. Any hit in a Linear body means the routine leaked private context — fail loud in Phase 7's `⚠ Failures this run` block and edit the offending body in place to redact before the run completes. Hits in raw `chat_messages.text` or captions cause the run to drop that record's quote from the Phase 7 digest (Linear still records it, scrubbed) — never leak the raw text downstream.
+5. Run a privacy grep across every body created or edited this run, **every comment this run posted**, **and across every captured `chat_messages.text` and attachment caption that this run consumed** for the strings `replay`, `session_id`, `distinct_id`, `0x`, the reporter identifiers seen this run, and any other token from the "private" column of the privacy-boundary table. Any hit in a Linear body or comment means the routine leaked private context — fail loud in Phase 7's `⚠ Failures this run` block and edit the offending body or comment in place to redact before the run completes. Hits in raw `chat_messages.text` or captions cause the run to drop that record's quote from the Phase 7 digest (Linear still records it, scrubbed) — never leak the raw text downstream.
 
 Carry these into Phase 7 so the digest is verifiable.
 

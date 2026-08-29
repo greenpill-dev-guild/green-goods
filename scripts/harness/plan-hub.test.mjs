@@ -610,7 +610,7 @@ test("linear-sync manifest keeps backlog hubs parent-only", () =>
     assert.equal(manifest.feature.slug, "linear-fixture");
     assert.equal(manifest.feature.path, ".plans/backlog/linear-fixture/");
     assert.equal(manifest.parent.action, "create");
-    assert.equal(manifest.parent.title, "plan: Linear Fixture");
+    assert.equal(manifest.parent.title, "Linear Fixture roadmap");
     assert.deepEqual(manifest.parent.labels, [
       "activity:architecture",
       "package:client",
@@ -644,12 +644,12 @@ test("linear-sync manifest creates actionable lane issues for active hubs", () =
     assert.equal(manifest.feature.slug, "active-linear-fixture");
     assert.equal(manifest.feature.path, ".plans/active/active-linear-fixture/");
     assert.equal(manifest.parent.action, "create");
-    assert.equal(manifest.parent.title, "plan: Active Linear Fixture");
+    assert.equal(manifest.parent.title, "Active Linear Fixture roadmap");
     assert.deepEqual(
       manifest.lanes.map((lane) => [lane.lane, lane.action, lane.title, lane.state]),
       [
-        ["ui", "create", "UI: Active Linear Fixture", "Todo"],
-        ["state_api", "create", "State/API: Active Linear Fixture", "Todo"],
+        ["ui", "create", "Build the interface for Active Linear Fixture", "Todo"],
+        ["state_api", "create", "Build the data and API layer for Active Linear Fixture", "Todo"],
       ],
     );
     assert.deepEqual(manifest.lanes[0].labels, [
@@ -669,6 +669,14 @@ test("linear-sync manifest creates actionable lane issues for active hubs", () =
     for (const lane of manifest.lanes) {
       assert.equal(Object.hasOwn(lane, "branch"), false);
       assert.doesNotMatch(lane.description, /Branch signal/);
+      // The handoff must stay plan-relative. `lane.handoff` is stored as
+      // `handoffs/<file>.md`, so emitting it bare leaves a Linear-dispatched
+      // agent unable to tell which plan hub owns it.
+      assert.match(
+        lane.description,
+        /Handoff: `\.plans\/active\/active-linear-fixture\/handoffs\//,
+        "canonical lane body must carry the full plan-relative handoff path",
+      );
     }
     assert.match(manifest.warnings.join("\n"), /missing Linear parent issue/);
     assert.match(manifest.warnings.join("\n"), /missing Linear issue for lane ui/);
@@ -892,7 +900,14 @@ test("parent-only lane sync suppresses active lane issue actions and warnings", 
     const manifest = JSON.parse(sync.stdout);
     assert.equal(manifest.parent.issue, "PRD-900");
     assert.equal(manifest.parent.state, "In Progress");
-    assert.match(manifest.parent.description, /intentionally does not create or update lane issues/);
+    assert.match(manifest.parent.description, /Lanes are not mirrored as child issues/);
+    // The parent record carries state and priority only — milestone, due date,
+    // and blocker relations live on lane records, which parent_only never
+    // creates. The body must not promise them here. Its Linear state is
+    // stage-derived, so it must not claim to carry the overall status either.
+    assert.doesNotMatch(manifest.parent.description, /dates,? and dependencies live on this issue/);
+    assert.match(manifest.parent.description, /The plan hub owns the overall status/);
+    assert.doesNotMatch(manifest.parent.description, /This issue carries the overall status/);
     assert.equal(manifest.laneSyncMode, "parent_only");
     assert.deepEqual(manifest.lanes, []);
     assert.equal(manifest.warnings.some((warning) => warning.includes("Plan is missing Linear issue for lane")), false);
@@ -981,10 +996,16 @@ test("linear-sync uses execution sub-lanes without duplicating aggregate impleme
     assert.equal(manifest.lanes[0].dueDate, null);
     assert.ok(manifest.lanes[0].labels.includes("ai:codex"));
     assert.equal(manifest.lanes[1].action, "create");
-    assert.equal(manifest.lanes[1].title, "Settlement Evidence: Execution Linear");
+    assert.equal(manifest.lanes[1].title, "Settlement Evidence for Execution Linear");
     assert.equal(manifest.lanes[1].parentId, null);
     assert.equal(manifest.lanes[1].milestone, null);
     assert.equal(manifest.lanes[1].dueDate, "2026-09-30");
+    // A blocked lane's validated blocked_reason must reach the cold Linear
+    // reader instead of an unverified "the handoff records it" claim.
+    assert.match(
+      manifest.lanes[1].description,
+      /This lane is blocked: Definition inputs are not locked\./,
+    );
     assert.equal(manifest.lanes[1].labels.some((label) => label.startsWith("ai:")), false);
     assert.equal(manifest.lanes.some((lane) => lane.lane === "ui" || lane.lane === "state_api"), false);
     assert.deepEqual(manifest.lanes[2].milestone, { key: "build", targetDate: "2026-07-31" });

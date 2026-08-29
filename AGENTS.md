@@ -93,6 +93,10 @@ Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09
 - **Comments are updates, not changelogs.** Say what changed and what it means for the reader. Don't narrate your process.
 - **Don't rewrite history.** A `Done` issue's description stays as it was; add a comment, or open a successor and link it.
 
+- **No prefixes in titles.** Not `plan:`, `[tracking]`, `UI:`, `QA Pass 2:`, or a category marker. Labels, state, and project fields already carry that. (`[tracking]` was retired 2026-08-27; promotion is now a label and state change, with no title edit.)
+
+The shape those principles produce — the three-block body, the heading and word caps, and the worked example — is the **Accepted Product Work** structure in `.claude/context/linear-routing-rules.md § Issue structure`. `.claude/scripts/lint-linear-issue.sh` enforces it as a `PreToolUse` hook on `save_issue`; a blocked write returns the specific rule it broke, and the agent rewrites before anything reaches Linear. It is registered in both `.claude/settings.json` and `.codex/hooks.json`, so it covers Claude Code sessions, the cloud routines, and Codex — but a hook is a backstop, not the contract: write to the structure directly rather than relying on a rejection to tell you. Linear's own issue templates cannot cover agent writes at all, because `save_issue` takes no template parameter.
+
 Issue references use native `<issue>` mentions rather than markdown links. Fuller conventions and the routing contract: `.claude/context/linear-routing-rules.md`.
 
 **Privacy boundary** (PostHog evidence in Linear bodies): error message + hash + counts OK; replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers stay out.
