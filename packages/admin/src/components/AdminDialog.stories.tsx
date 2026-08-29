@@ -239,11 +239,7 @@ export const LongBody: Story = {
 };
 
 export const MobileSheetContract: Story = {
-  parameters: {
-    viewport: {
-      defaultViewport: "mobile1",
-    },
-  },
+  globals: { viewport: { value: "mobile" } },
   render: () => (
     <DialogPreview
       title="Edit domains"
@@ -508,10 +504,10 @@ export const MobileSheetGeometry: Story = {
   tags: ["storybook-ci"],
   parameters: {
     viewport: {
-      defaultViewport: "adminMobile390x844",
-      viewports: ADMIN_MOBILE_390_VIEWPORT,
+      options: ADMIN_MOBILE_390_VIEWPORT,
     },
   },
+  globals: { viewport: { value: "adminMobile390x844" } },
   render: () => (
     <OpenGeometryDialog
       title="Mobile bottom sheet"

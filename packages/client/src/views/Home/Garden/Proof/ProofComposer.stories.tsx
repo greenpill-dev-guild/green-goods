@@ -58,7 +58,8 @@ const ROSTER = [
 const meta: Meta = {
   title: "Client/Commitments/ProofComposer",
   tags: ["autodocs", "storybook-ci"],
-  parameters: { viewport: { defaultViewport: "mobile1" }, layout: "fullscreen" },
+  parameters: { layout: "fullscreen" },
+  globals: { viewport: { value: "mobile" } },
   // TopNav reads the queue for its offline state, so the shell needs the
   // client runtime around it, as the AppBar story does.
   decorators: [

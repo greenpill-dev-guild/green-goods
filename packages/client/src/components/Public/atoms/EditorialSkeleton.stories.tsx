@@ -57,7 +57,7 @@ export const StateCatalog: Story = {
 };
 
 export const MobileRows: Story = {
-  parameters: { viewport: { defaultViewport: "mobile1" } },
+  globals: { viewport: { value: "mobile" } },
   render: () => (
     <div className="space-y-4 bg-bg-weak-50 p-5">
       <EditorialListRowSkeleton />

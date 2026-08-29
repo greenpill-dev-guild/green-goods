@@ -85,7 +85,8 @@ const meta: Meta<typeof ConfirmSheet> = {
   title: "Client/Commitments/ConfirmSheet",
   component: ConfirmSheet,
   tags: ["autodocs", "storybook-ci"],
-  parameters: { viewport: { defaultViewport: "mobile1" }, layout: "fullscreen" },
+  parameters: { layout: "fullscreen" },
+  globals: { viewport: { value: "mobile" } },
   args: {
     open: true,
     onOpenChange: fn(),

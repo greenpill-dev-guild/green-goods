@@ -406,7 +406,5 @@ export const Mobile: Story = {
   args: {
     activePath: "/garden",
   },
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
 };

@@ -15,8 +15,8 @@ const meta: Meta<typeof Splash> = {
   title: "Client/Layout/Splash",
   component: Splash,
   tags: ["autodocs"],
+  globals: { viewport: { value: "mobile" } },
   parameters: {
-    viewport: { defaultViewport: "mobile1" },
     layout: "fullscreen",
   },
   decorators: [
@@ -267,9 +267,7 @@ export const Mobile: Story = {
       onSelect: () => {},
     },
   },
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

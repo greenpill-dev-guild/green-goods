@@ -19,8 +19,8 @@ const meta = {
   tags: ["autodocs", "storybook-ci"],
   parameters: {
     layout: "fullscreen",
-    viewport: { defaultViewport: "mobile1" },
   },
+  globals: { viewport: { value: "mobile" } },
   decorators: [withClientAppRuntime, withRouter],
 } satisfies Meta<typeof OfflineIndicator>;
 

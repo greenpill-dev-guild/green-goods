@@ -124,10 +124,10 @@ export const RouteBackedCreateMobile: Story = {
   decorators: actionsDescriptorDecorators(),
   parameters: {
     viewport: {
-      defaultViewport: "adminMobile390x844",
-      viewports: ADMIN_MOBILE_390_VIEWPORT,
+      options: ADMIN_MOBILE_390_VIEWPORT,
     },
   },
+  globals: { viewport: { value: "adminMobile390x844" } },
   play: async ({ canvasElement: _canvasElement }) => {
     // On mobile the AdminDialog presents as a bottom sheet (built into the
     // dialog), still portaled to document.body with role="dialog".

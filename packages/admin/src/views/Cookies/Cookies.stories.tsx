@@ -158,7 +158,5 @@ export const DeployRouteManyGardens: Story = {
 export const DeployRouteMobile: Story = {
   tags: ["visual-harness"],
   args: { initialPath: "/cookies/deploy" },
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
 };

@@ -28,9 +28,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const DesktopNavigation: Story = {
-  parameters: {
-    viewport: { defaultViewport: "desktop" },
-  },
+  globals: { viewport: { value: "desktop" } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
@@ -39,9 +37,7 @@ export const DesktopNavigation: Story = {
 };
 
 export const MobileDrawer: Story = {
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "Open menu" }));
