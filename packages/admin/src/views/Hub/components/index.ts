@@ -10,5 +10,3 @@ export { HubStageContent } from "./HubStageContent";
 export { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 export { HubWorkQueue } from "./HubWorkQueue";
 export { MediaEvidence } from "./MediaEvidence";
-export { WorkCard } from "./WorkCard";
-export { WorkSubmissionsView } from "./WorkSubmissionsView";
