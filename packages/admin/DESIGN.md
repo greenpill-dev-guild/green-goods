@@ -122,13 +122,13 @@ Color roles:
 
 ## Admin Component Pattern
 
-All admin-specific components use **Admin* adapter wrappers** following M3 v0.192 exactly. Zero changes to the shared package.
+The M3 primitives are **Admin* adapter wrappers** following M3 v0.192 exactly — zero changes to the shared package. Around them sit admin-owned shell and layout families that intentionally do not carry the prefix: the Shell forks (`AppBar`, `NavigationBar`, `MainSheet`, `FabButton`), `CanvasLayout` and the `Canvas*` route-state surfaces, the `Account*` panels, the `ActionFlow*` flow chrome, and named singletons (`PageHeader`, `CommandPalette`, `ConnectShell`, `LeftInspectorDialog`).
 
-Components (20): AdminBadge, AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminDialog, AdminFab, AdminFilterChip, AdminInlineField, AdminLinearProgress, AdminListItem, AdminSearchToolbar, AdminSelectableCard, AdminSettingRow, AdminSideSheet, AdminSortSelect, AdminTabRail, AdminTextField, AdminTooltip, AdminViewActions.
+Wrappers (22): AdminBadge, AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminConfirmDialog, AdminDialog, AdminFab, AdminFilterChip, AdminInlineField, AdminLinearProgress, AdminListItem, AdminReasonDialog, AdminSearchToolbar, AdminSelectableCard, AdminSettingRow, AdminSideSheet, AdminSortSelect, AdminTabRail, AdminTextField, AdminTooltip, AdminViewActions.
 
 ### Card and selection grammar
 
-- `WorkbenchCard` is for workbench records and action/assessment queue items that stewards scan, compare, and act on in a grid or list.
+- `WorkbenchCard` (a shared Canvas primitive from `@green-goods/shared`, not an Admin* wrapper) is for workbench records and action/assessment queue items that stewards scan, compare, and act on in a grid or list.
 - `AdminCard` is for compact modules, stats, settings, status panels, and supporting detail regions.
 - `AdminSelectableCard` is for richer exclusive or multi-select choices where the option needs a title, description, icon, or metadata.
 - `AdminChoiceGroup` is for compact single-select preferences and context switches inside dense panels.
@@ -144,7 +144,7 @@ Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as
 
 - **AppBar** (top context bar, Z3): GardenChip selector, search, settings, notifications, avatar
 - **NavigationBar** (bottom, Z3): Workspace tabs — Hub, Garden, Community, Actions. Symbol-first. Role-adaptive visibility via permissions.
-- **AdminFab**: Per-workspace primary action — M3 large FAB with 16px radius; the in-dock nav FAB is circular. Integrated into NavigationBar via FabProvider.
+- **FAB** (`Shell/FabButton`): Per-workspace primary action — M3 large FAB geometry with 16px radius; the in-dock nav FAB is circular. Integrated into NavigationBar via FabProvider. (`AdminFab` is the standalone M3 FAB wrapper in the palette; the shipped nav dock uses `Shell/FabButton`.)
 - **Desktop profile**: On desktop, Profile redirects to Hub and opens the AdminSideSheet account inspector with profile content.
 - **Controlled Chrome**: only the NavigationBar/FAB dock is translucent — flat `rgb(var(--admin-surface-0) / 0.85)`, 12px blur, warm ambient shadow, 1px ink ring (every dialog surface and the account side sheet are solid M3). The AppBar root and MainSheet are transparent while child controls can carry their own solid/hover states. Page content, tables, forms, and route cards do not use glass.
 

@@ -80,6 +80,7 @@ The admin package is the Green Goods steward canvas. This page is the single UI 
 - `AdminInlineField`
 - `AdminLinearProgress`
 - `AdminListItem`
+- `AdminReasonDialog`
 - `AdminSearchToolbar`
 - `AdminSelectableCard`
 - `AdminSettingRow`
@@ -95,7 +96,7 @@ The admin package is the Green Goods steward canvas. This page is the single UI 
 
 ## Card And Selection Grammar
 
-- Use `WorkbenchCard` for workbench records, action queue items, assessment queue items, and other records stewards scan, compare, and act on in a grid or list.
+- Use `WorkbenchCard` (a shared Canvas primitive from `@green-goods/shared`, not an Admin* wrapper) for workbench records, action queue items, assessment queue items, and other records stewards scan, compare, and act on in a grid or list.
 - Use `AdminCard` for compact modules, stats, settings, status panels, and supporting detail regions.
 - Use `AdminSelectableCard` for richer exclusive or multi-select choices where the option needs a title, description, icon, or metadata.
 - Use `AdminChoiceGroup` for compact single-select preferences and context switches inside dense panels.
