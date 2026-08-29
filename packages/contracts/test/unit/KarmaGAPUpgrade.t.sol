@@ -78,5 +78,40 @@ contract KarmaGAPUpgradeTest is Test {
         assertEq(upgraded.gardenDetailsHashes(GARDEN), bytes32(0));
         assertEq(upgraded.gardenMemberOfUIDs(GARDEN, OWNER), bytes32(0));
         assertEq(upgraded.projectUpdateUIDs(bytes32(uint256(1))), bytes32(0));
+        assertFalse(upgraded.projectUpdateMigrationComplete());
+    }
+
+    function testUpgrade_Karma_blocksProjectUpdatesUntilLegacyUIDsAreSeeded() public {
+        vm.chainId(11_155_111);
+        LegacyKarmaGAPModuleFixture legacyImplementation = new LegacyKarmaGAPModuleFixture();
+        ERC1967Proxy proxy = new ERC1967Proxy(
+            address(legacyImplementation),
+            abi.encodeCall(LegacyKarmaGAPModuleFixture.initialize, (OWNER, GARDEN_TOKEN, WORK_APPROVAL, ASSESSMENT))
+        );
+        LegacyKarmaGAPModuleFixture legacy = LegacyKarmaGAPModuleFixture(address(proxy));
+        vm.prank(OWNER);
+        legacy.seed(HATS, GARDEN, PROJECT_UID);
+
+        KarmaGAPModule newImplementation = new KarmaGAPModule();
+        vm.prank(OWNER);
+        legacy.upgradeTo(address(newImplementation));
+
+        KarmaGAPModule upgraded = KarmaGAPModule(address(proxy));
+        bytes32 workUID = bytes32(uint256(0xCAFE));
+        bytes32 updateUID = bytes32(uint256(0xBEEF));
+        vm.prank(WORK_APPROVAL);
+        assertEq(upgraded.createProjectUpdate(GARDEN, "Work", "Update", "proof", workUID, "metadata"), bytes32(0));
+
+        bytes32[] memory workUIDs = new bytes32[](1);
+        workUIDs[0] = workUID;
+        bytes32[] memory updateUIDs = new bytes32[](1);
+        updateUIDs[0] = updateUID;
+        vm.prank(OWNER);
+        upgraded.migrateProjectUpdates(workUIDs, updateUIDs);
+
+        assertTrue(upgraded.projectUpdateMigrationComplete());
+        assertEq(upgraded.projectUpdateUIDs(workUID), updateUID);
+        vm.prank(WORK_APPROVAL);
+        assertEq(upgraded.createProjectUpdate(GARDEN, "Work", "Update", "proof", workUID, "metadata"), updateUID);
     }
 }

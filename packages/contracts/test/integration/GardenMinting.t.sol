@@ -26,6 +26,7 @@ contract MockKarmaGAPModule is IKarmaGAPModule {
 
     ProjectCall public lastProject;
     bool public created;
+    bool public projectUpdateMigrationComplete = true;
     mapping(address garden => bytes32 uid) public projectUIDs;
 
     function createProject(
@@ -73,6 +74,8 @@ contract MockKarmaGAPModule is IKarmaGAPModule {
     function reconcileProjectAccess(address, address) external pure returns (bool, bool) {
         return (false, false);
     }
+
+    function migrateProjectUpdates(bytes32[] calldata, bytes32[] calldata) external { }
 
     function createImpact(
         address,

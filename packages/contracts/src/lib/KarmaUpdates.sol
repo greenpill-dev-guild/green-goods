@@ -28,6 +28,7 @@ library KarmaUpdatesLib {
         mapping(address garden => bytes32 projectUID) storage gardenProjects,
         mapping(bytes32 workUID => bytes32 updateUID) storage projectUpdateUIDs,
         mapping(bytes32 key => bool active) storage syncInFlight,
+        bool projectUpdateMigrationComplete,
         address garden,
         string calldata workTitle,
         string calldata updateText,
@@ -47,6 +48,18 @@ library KarmaUpdatesLib {
         if (!KarmaLib.isSupported()) {
             emit GAPOperationFailed(garden, "createImpact", "Chain not supported");
             _record(garden, projectUID, workUID, bytes32(0), IKarmaGAPModule.KarmaSyncOutcome.Failed, "chain_not_supported");
+            return bytes32(0);
+        }
+        if (!projectUpdateMigrationComplete) {
+            emit GAPOperationFailed(garden, "createImpact", "Project Update migration incomplete");
+            _record(
+                garden,
+                projectUID,
+                workUID,
+                bytes32(0),
+                IKarmaGAPModule.KarmaSyncOutcome.Failed,
+                "project_update_migration_incomplete"
+            );
             return bytes32(0);
         }
 

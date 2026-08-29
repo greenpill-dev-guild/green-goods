@@ -61,10 +61,11 @@ describe("KarmaGAPModule event boundary", () => {
       karmaProjectReason: undefined,
       owners: [owner],
       operators: [owner, steward],
-      karmaMembershipState: "FAILED",
-      karmaMembershipFailedAccounts: [formerSteward],
-      karmaAccessState: "FAILED",
-      karmaAccessFailedAccounts: [formerSteward],
+      karmaMembershipState: "SYNCED",
+      karmaMembershipFailedAccounts: [],
+      karmaAccessState: "SYNCED",
+      karmaAccessFailedAccounts: [],
+      karmaTrackedAccessAccounts: [owner, steward, formerSteward],
     });
     mockDb.KarmaProjectAccess.set({
       ...createDefaultKarmaProjectAccess(CHAIN_ID, garden, owner, PROJECT_UID),
@@ -214,6 +215,59 @@ describe("KarmaGAPModule.KarmaSyncRecorded", () => {
     assert.equal(projected.karmaDetailsReason, "Details attestation failed");
     assert.equal(projected.karmaProjectState, "UNKNOWN");
     assert.equal(projected.karmaAccessState, "UNKNOWN");
+  });
+
+  it("ignores reconciliation records for addresses that were never indexed as Gardens", async () => {
+    const garden = addr(99);
+    const hash = txHash(901);
+    const mockDb = createTestIndexer();
+    const event = KarmaGAPModule.KarmaSyncRecorded.createMockEvent({
+      garden,
+      projectUID: `0x${"00".repeat(32)}`,
+      account: addr(20),
+      operation: 0n,
+      outcome: 2n,
+      sourceUID: SOURCE_UID,
+      resultUID: RESULT_UID,
+      reason: "invalid_garden",
+      mockEventData: mockEvent(CHAIN_ID, 3_000, { txHash: hash, logIndex: 8 }),
+    });
+
+    const result = await KarmaGAPModule.KarmaSyncRecorded.processEvent({ event, mockDb });
+
+    assert.equal(await result.Garden.get(garden), undefined);
+    assert.equal(
+      await result.KarmaSyncRecord.get(getKarmaSyncRecordId(CHAIN_ID, hash, 8)),
+      undefined
+    );
+  });
+
+  it("ignores legacy zero-account access failures", async () => {
+    const garden = addr(10);
+    const hash = txHash(902);
+    const mockDb = seedGarden(createTestIndexer(), garden);
+    const event = KarmaGAPModule.KarmaSyncRecorded.createMockEvent({
+      garden,
+      projectUID: PROJECT_UID,
+      account: "0x0000000000000000000000000000000000000000",
+      operation: 3n,
+      outcome: 2n,
+      sourceUID: SOURCE_UID,
+      resultUID: RESULT_UID,
+      reason: "invalid_account",
+      mockEventData: mockEvent(CHAIN_ID, 3_000, { txHash: hash, logIndex: 9 }),
+    });
+
+    const result = await KarmaGAPModule.KarmaSyncRecorded.processEvent({ event, mockDb });
+    const projected = await result.Garden.get(garden);
+
+    assert.ok(projected);
+    assert.equal(projected.karmaAccessState, "UNKNOWN");
+    assert.deepEqual(projected.karmaAccessFailedAccounts, []);
+    assert.equal(
+      await result.KarmaSyncRecord.get(getKarmaSyncRecordId(CHAIN_ID, hash, 9)),
+      undefined
+    );
   });
 
   it("keeps per-account membership and access outcomes independent", async () => {

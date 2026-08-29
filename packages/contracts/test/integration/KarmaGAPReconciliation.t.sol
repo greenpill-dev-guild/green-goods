@@ -189,6 +189,17 @@ contract KarmaGAPReconciliationTest is Test, ERC6551Helper {
         assertEq(_countSyncEvents(logs, IKarmaGAPModule.KarmaSyncOperation.Access, steward), 1);
     }
 
+    function testIntegration_Karma_zeroAccountDoesNotCreateUnrecoverableSyncRecords() public {
+        vm.recordLogs();
+        (bool roleActive, bool changed) = karma.reconcileProjectAccess(address(garden), address(0));
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        assertFalse(roleActive);
+        assertFalse(changed);
+        assertEq(_countSyncEvents(logs, IKarmaGAPModule.KarmaSyncOperation.Membership, address(0)), 0);
+        assertEq(_countSyncEvents(logs, IKarmaGAPModule.KarmaSyncOperation.Access, address(0)), 0);
+    }
+
     function testIntegration_Karma_membershipRetryReportsAChangeWhenAccessIsAlreadyCurrent() public {
         address nextSteward = address(0xCAFE);
         hats.setOperator(address(garden), nextSteward, true);

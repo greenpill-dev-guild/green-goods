@@ -1419,6 +1419,7 @@ type Garden {
   karmaMembershipFailedAccounts: [String!]
   karmaAccessPendingAccounts: [String!]
   karmaAccessFailedAccounts: [String!]
+  karmaTrackedAccessAccounts: [String!]
   karmaLastFailureReason: String
   karmaLastSyncAt: Int
 }

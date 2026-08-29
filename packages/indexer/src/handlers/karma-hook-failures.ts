@@ -78,6 +78,10 @@ async function handleKarmaHookFailed(event: HookFailureEvent, context: EventCont
 
     garden = {
       ...garden,
+      karmaTrackedAccessAccounts: addUniqueAddress(
+        existingGarden.karmaTrackedAccessAccounts ?? [],
+        account
+      ),
       karmaMembershipState: "FAILED",
       karmaMembershipReason: reason,
       karmaMembershipUpdatedAt: timestamp,
@@ -111,6 +115,10 @@ async function handleKarmaHookFailed(event: HookFailureEvent, context: EventCont
 
     garden = {
       ...garden,
+      karmaTrackedAccessAccounts: addUniqueAddress(
+        existingGarden.karmaTrackedAccessAccounts ?? [],
+        account
+      ),
       karmaAccessState: "FAILED",
       karmaAccessReason: reason,
       karmaAccessUpdatedAt: timestamp,

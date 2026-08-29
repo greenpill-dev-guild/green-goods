@@ -127,7 +127,21 @@ describe("pooling upgrade targets", () => {
     expect(workIndex).toBeGreaterThanOrEqual(0);
     expect(groupedUpgrade).not.toContain("upgradeGardenToken();");
     expect(groupedUpgrade).not.toContain("setCommitmentPoolingModule(poolingModule)");
+    expect(groupedUpgrade).toContain("setCommitmentModule(poolingModule)");
     expect(karmaIndex).toBeLessThan(workIndex);
+  });
+
+  it("seeds legacy Project Update UIDs atomically with the Karma upgrade", () => {
+    const upgradeScript = fs.readFileSync(path.join(__dirname, "../Upgrade.s.sol"), "utf8");
+    const karmaUpgrade = upgradeScript.slice(
+      upgradeScript.indexOf("function upgradeKarmaGAPModule()"),
+      upgradeScript.indexOf("/// @notice Upgrade GreenWill"),
+    );
+
+    expect(karmaUpgrade).toContain('vm.envBytes32("KARMA_LEGACY_WORK_UIDS", ",")');
+    expect(karmaUpgrade).toContain('vm.envBytes32("KARMA_LEGACY_PROJECT_UPDATE_UIDS", ",")');
+    expect(karmaUpgrade).toContain("upgradeToAndCall(");
+    expect(karmaUpgrade).toContain("KarmaGAPModule.migrateProjectUpdates");
   });
 
   it("fails closed when a coordinated upgrade target is missing from the artifact", () => {

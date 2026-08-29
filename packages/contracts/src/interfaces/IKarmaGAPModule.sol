@@ -81,6 +81,13 @@ interface IKarmaGAPModule {
     error ProjectNotFound(address garden);
     error GAPNotSupported();
     error InvalidGarden(address garden);
+    error ProjectUpdateMigrationAlreadyComplete();
+    error ProjectUpdateMigrationLengthMismatch();
+    error InvalidProjectUpdateMigrationEntry(uint256 index);
+    error ProjectUpdateMigrationConflict(bytes32 workUID, bytes32 existingUID, bytes32 suppliedUID);
+
+    /// @notice Emitted after legacy Project Update UIDs have been restored during a proxy upgrade.
+    event ProjectUpdateMigrationCompleted(uint256 seededCount);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Project Management
@@ -123,6 +130,9 @@ interface IKarmaGAPModule {
 
     /// @notice Reconciles historical membership and current admin access for one account.
     function reconcileProjectAccess(address garden, address account) external returns (bool roleActive, bool changed);
+
+    /// @notice Restores legacy Work-to-Project-Update UID pairs before Project Update creation is enabled.
+    function migrateProjectUpdates(bytes32[] calldata workUIDs, bytes32[] calldata updateUIDs) external;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Impact & Milestone Creation
@@ -194,6 +204,9 @@ interface IKarmaGAPModule {
     /// @param garden The garden address
     /// @return The project UID (bytes32(0) if no project)
     function getProjectUID(address garden) external view returns (bytes32);
+
+    /// @notice Whether the legacy Project Update migration boundary has been completed.
+    function projectUpdateMigrationComplete() external view returns (bool);
 
     /// @notice Checks if GAP is supported on the current chain
     /// @return True if GAP is supported

@@ -478,7 +478,12 @@ contract Upgrade is Script {
 
         if (address(newImpl) == currentImplAddr) revert SameImplementation();
 
-        UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
+        bytes32[] memory legacyWorkUIDs = vm.envBytes32("KARMA_LEGACY_WORK_UIDS", ",");
+        bytes32[] memory legacyUpdateUIDs = vm.envBytes32("KARMA_LEGACY_PROJECT_UPDATE_UIDS", ",");
+        UUPSUpgradeable(proxy)
+            .upgradeToAndCall(
+                address(newImpl), abi.encodeCall(KarmaGAPModule.migrateProjectUpdates, (legacyWorkUIDs, legacyUpdateUIDs))
+            );
         console.log("KarmaGAPModule upgraded successfully");
 
         vm.stopBroadcast();

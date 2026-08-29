@@ -34,6 +34,7 @@ import { SALT, TOKENBOUND_REGISTRY } from "../../src/lib/TBA.sol";
 contract MockKarmaGAPForAccount is IKarmaGAPModule {
     mapping(address garden => bytes32 uid) public projectUIDs;
     bool public shouldRevert;
+    bool public projectUpdateMigrationComplete = true;
 
     function setProjectUID(address garden, bytes32 uid) external {
         projectUIDs[garden] = uid;
@@ -69,6 +70,8 @@ contract MockKarmaGAPForAccount is IKarmaGAPModule {
     function reconcileProjectAccess(address, address) external pure returns (bool, bool) {
         return (false, false);
     }
+
+    function migrateProjectUpdates(bytes32[] calldata, bytes32[] calldata) external { }
 
     function createImpact(
         address,

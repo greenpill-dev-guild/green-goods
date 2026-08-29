@@ -14,6 +14,7 @@ function markKarmaAccessPending(garden: Garden, account: Address, role: number):
 
   return {
     ...garden,
+    karmaTrackedAccessAccounts: addUniqueAddress(garden.karmaTrackedAccessAccounts ?? [], account),
     karmaMembershipState: "PENDING",
     karmaMembershipPendingAccounts: addUniqueAddress(
       garden.karmaMembershipPendingAccounts ?? [],

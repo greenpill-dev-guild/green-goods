@@ -6,7 +6,7 @@ import {
   createDefaultKarmaProjectAccess,
   type EventContext,
 } from "./entity-defaults";
-import { addUniqueAddress, normalizeAddress, removeAddress } from "./shared";
+import { addUniqueAddress, normalizeAddress, removeAddress, ZERO_ADDRESS } from "./shared";
 import { getTxHash } from "./event-access";
 import { getKarmaProjectAccessId, getKarmaSyncRecordId } from "./ids";
 
@@ -86,6 +86,7 @@ async function resetProjectAccessGeneration(
   const activeAccounts = uniqueKarmaAccounts([...garden.owners, ...garden.operators]);
   const trackedAccountsToReset = uniqueKarmaAccounts([
     ...activeAccounts,
+    ...(garden.karmaTrackedAccessAccounts ?? []),
     ...(garden.karmaMembershipPendingAccounts ?? []),
     ...(garden.karmaMembershipFailedAccounts ?? []),
     ...(garden.karmaAccessPendingAccounts ?? []),
@@ -128,6 +129,7 @@ async function resetProjectAccessGeneration(
     karmaAccessUpdatedAt: timestamp,
     karmaAccessPendingAccounts: activeAccounts,
     karmaAccessFailedAccounts: [],
+    karmaTrackedAccessAccounts: activeAccounts,
   };
 }
 
@@ -187,9 +189,14 @@ indexer.onEvent(
     const state = projectionState(outcome);
     const reason = event.params.reason || undefined;
     const txHash = getTxHash(event.transaction);
-    const existingGarden =
-      (await context.Garden.get(gardenId)) ??
-      createDefaultGarden(gardenId, event.chainId, event.block.timestamp);
+    const existingGarden = await context.Garden.get(gardenId);
+    if (!existingGarden) return;
+    if (
+      (operation === "MEMBERSHIP" || operation === "ACCESS") &&
+      normalizeAddress(account) === ZERO_ADDRESS
+    ) {
+      return;
+    }
 
     context.KarmaSyncRecord.set({
       id: getKarmaSyncRecordId(event.chainId, txHash, event.logIndex),
@@ -251,6 +258,10 @@ indexer.onEvent(
         );
         updatedGarden = {
           ...updatedGarden,
+          karmaTrackedAccessAccounts: addUniqueAddress(
+            existingGarden.karmaTrackedAccessAccounts ?? [],
+            account
+          ),
           karmaMembershipState: tracked.aggregate,
           karmaMembershipReason: reason,
           karmaMembershipUpdatedAt: event.block.timestamp,
@@ -274,6 +285,10 @@ indexer.onEvent(
         );
         updatedGarden = {
           ...updatedGarden,
+          karmaTrackedAccessAccounts: addUniqueAddress(
+            existingGarden.karmaTrackedAccessAccounts ?? [],
+            account
+          ),
           karmaAccessState: tracked.aggregate,
           karmaAccessReason: reason,
           karmaAccessUpdatedAt: event.block.timestamp,

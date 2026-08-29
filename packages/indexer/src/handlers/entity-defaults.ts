@@ -76,6 +76,7 @@ export function createDefaultGarden(gardenId: string, chainId: number, timestamp
     karmaMembershipFailedAccounts: [],
     karmaAccessPendingAccounts: [],
     karmaAccessFailedAccounts: [],
+    karmaTrackedAccessAccounts: [],
     karmaLastFailureReason: undefined,
     karmaLastSyncAt: undefined,
   };

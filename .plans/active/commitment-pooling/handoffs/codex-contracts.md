@@ -368,8 +368,9 @@ existing regression surfaces.
 Run these deployment commands from packages/contracts; they remain simulation/transaction-plan
 only until separately authorized. Commands are stage-gated: no invocation may assume that a
 separate pure-simulation process changed chain state. The AssessmentResolver target already exists.
-`commitment-schemas`, `commitment-pooling`, the grouped pooling upgrade target, and
-`backfill-pools.ts` are deliverables of this lane (contract-spec §6.4.4, §7):
+`commitment-schemas`, `commitment-pooling`, and the grouped pooling upgrade target are deliverables
+of this lane (contract-spec §6.4.4, §7). `backfill-pools.ts` is retained only for the later
+GardenAccount/GardenToken compatibility release:
 
 `commitment-pooling` deploys and finalizes the module/register while leaving the module paused.
 The grouped `commitment-pooling` upgrade target upgrades KarmaGAPModule first, then
@@ -401,6 +402,12 @@ existing infrastructure.
 - bun script/deploy.ts commitment-schemas --network arbitrum --finalize-community-testimony --dry-run
 - bun script/upgrade.ts commitment-pooling --network arbitrum --dry-run --pure-simulation
 - bun script/upgrade.ts commitment-pooling --network arbitrum --tx-plan --sender <verified-arbitrum-pooling-upgrade-owner>
+
+The following command is not executable in this lane. It belongs to the separately reviewed
+GardenAccount/GardenToken compatibility release and remains blocked until that release deploys and
+binds a compatible account implementation, upgrades and wires GardenToken, and verifies both
+reverse links while pooling is paused:
+
 - bun ../../.plans/active/commitment-pooling/backfill-pools.ts --network arbitrum --dry-run
 
 **The two Arbitrum One `--tx-plan` lines are future-only and must not be run yet.** Two independent

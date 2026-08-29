@@ -65,8 +65,11 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
     /// @notice Per-operation guard for external Karma and ProjectResolver calls.
     mapping(bytes32 key => bool active) private _syncInFlight;
 
+    /// @notice True only after legacy Project Update UIDs are seeded or a fresh proxy is initialized.
+    bool public projectUpdateMigrationComplete;
+
     /// @notice Storage gap for future upgrades
-    uint256[40] private __gap;
+    uint256[39] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constructor & Initializer
@@ -101,6 +104,7 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         gardenToken = _gardenToken;
         workApprovalResolver = _workApprovalResolver;
         assessmentResolver = _assessmentResolver;
+        projectUpdateMigrationComplete = true;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -160,6 +164,29 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
     function setHatsModule(address _hatsModule) external onlyOwner {
         if (_hatsModule == address(0)) revert ZeroAddress();
         hatsModule = _hatsModule;
+    }
+
+    /// @inheritdoc IKarmaGAPModule
+    function migrateProjectUpdates(bytes32[] calldata workUIDs, bytes32[] calldata updateUIDs) external onlyOwner {
+        if (projectUpdateMigrationComplete) revert ProjectUpdateMigrationAlreadyComplete();
+        if (workUIDs.length != updateUIDs.length) revert ProjectUpdateMigrationLengthMismatch();
+
+        for (uint256 i = 0; i < workUIDs.length; i++) {
+            bytes32 workUID = workUIDs[i];
+            bytes32 updateUID = updateUIDs[i];
+            if (workUID == bytes32(0) || updateUID == bytes32(0)) {
+                revert InvalidProjectUpdateMigrationEntry(i);
+            }
+
+            bytes32 existingUID = projectUpdateUIDs[workUID];
+            if (existingUID != bytes32(0) && existingUID != updateUID) {
+                revert ProjectUpdateMigrationConflict(workUID, existingUID, updateUID);
+            }
+            projectUpdateUIDs[workUID] = updateUID;
+        }
+
+        projectUpdateMigrationComplete = true;
+        emit ProjectUpdateMigrationCompleted(workUIDs.length);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -312,6 +339,7 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
             gardenProjects,
             projectUpdateUIDs,
             _syncInFlight,
+            projectUpdateMigrationComplete,
             garden,
             workTitle,
             updateText,

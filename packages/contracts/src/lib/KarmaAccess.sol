@@ -35,6 +35,11 @@ library KarmaAccessLib {
         internal
         returns (bool roleActive, bool changed)
     {
+        if (account == address(0)) {
+            emit GAPOperationFailed(garden, "reconcileProjectAccess", "Invalid account");
+            return (false, false);
+        }
+
         bytes32 projectUID = gardenProjects[garden];
         if (projectUID == bytes32(0)) {
             emit GAPOperationFailed(garden, "reconcileProjectAccess", "No project");
@@ -46,12 +51,6 @@ library KarmaAccessLib {
             _recordPrerequisiteFailure(garden, projectUID, account, "chain_not_supported");
             return (false, false);
         }
-        if (account == address(0)) {
-            emit GAPOperationFailed(garden, "reconcileProjectAccess", "Invalid account");
-            _recordPrerequisiteFailure(garden, projectUID, account, "invalid_account");
-            return (false, false);
-        }
-
         bool accessSucceeded;
         (roleActive, changed, accessSucceeded) = _reconcileAccess(syncInFlight, garden, projectUID, account);
         if (!accessSucceeded) {

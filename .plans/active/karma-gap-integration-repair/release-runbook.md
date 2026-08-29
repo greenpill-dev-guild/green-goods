@@ -2,6 +2,15 @@
 
 This lane does not authorize a deployment, upgrade, reconciliation transaction, or broadcast.
 
+Before any Karma proxy upgrade is planned, reconstruct the complete historical
+`GAPImpactCreated` inventory and pair every event's `workUID` with its `impactUID`. Supply those
+ordered, comma-separated bytes32 lists as `KARMA_LEGACY_WORK_UIDS` and
+`KARMA_LEGACY_PROJECT_UPDATE_UIDS`. The upgrade wrapper consumes both lists in one
+`upgradeToAndCall`, seeds `projectUpdateUIDs`, and marks the migration complete before the upgraded
+WorkApprovalResolver can create Project Updates. Missing, mismatched, zero, or conflicting entries
+must block the upgrade; an unseeded upgraded module fails Project Update creation closed instead of
+duplicating an immutable historical update.
+
 Before any release decision, generate a fresh finalized-block inventory with an explicitly supplied
 Arbitrum RPC endpoint:
 
