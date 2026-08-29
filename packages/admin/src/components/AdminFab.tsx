@@ -29,15 +29,17 @@ export interface AdminFabProps {
 /**
  * AdminFab — M3 Floating Action Button
  *
- * Implements Material Design 3 FAB anatomy in four configurations:
+ * Implements Material Design 3 FAB anatomy in four configurations, on the
+ * admin shape scale (which tops at 16dp — no 20/24/28dp steps):
  * - small (40dp): corner-medium (12dp), h-6 w-6 icon
  * - standard (56dp, default): corner-large (16dp), h-6 w-6 icon
- * - large (96dp): corner-extra-large (28dp), h-9 w-9 icon
+ * - large (96dp): corner-large (16dp), h-9 w-9 icon
  * - extended (when extended=true): standard height, auto width, label + icon
  *
  * Container: primary-container background
  * Icon/label: on-primary-container color
- * Elevation: elevation-3 base, elevation-4 on hover
+ * Elevation: the warm chrome shadow (--admin-chrome-shadow, elevation-2
+ * fallback) — the single-ladder treatment for floating chrome; no hover step
  *
  * Icon-only configurations are wrapped in `AdminTooltip` so the action name
  * surfaces on hover/focus alongside the screen-reader aria-label.
