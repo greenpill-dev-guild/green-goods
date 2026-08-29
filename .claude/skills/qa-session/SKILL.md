@@ -80,8 +80,10 @@ Run before the user starts walking. Print the checklist results compactly; stop 
    a full reload just ate the flow (optimizeDeps drift); note it as an env event, fix the
    `optimizeDeps.include` list after the session.
 4. **Identity plan.** Authenticated Brave QA profile via the Chrome-extension path for
-   authenticated proof (per `CLAUDE.md § Claude Tool Routing`; unreachable → that evidence lane
-   is Blocked, no substitute browser). **Use `?mockAuth=deployer` for read-only production
+   authenticated proof (per `CLAUDE.md § Claude Tool Routing`). Probe reachability with a
+   tab-context call, NOT the connected-browsers listing — the listing lags registration and
+   reads empty while the extension works; declare the lane Blocked (no substitute browser)
+   only after the tab-context probe itself fails. **Use `?mockAuth=deployer` for read-only production
    passes** — verified 2026-08-28 to render real garden data (work queues, submissions, media).
    `?mockAuth=steward` currently resolves to an address with **no garden assignment in the
    production indexer** and lands on the "no garden access" empty state, so it proves the gate,
