@@ -151,8 +151,12 @@ export function groupByArea(cases: CatalogCase[]): Array<{ area: string; cases: 
 
 export function resolveSurfaceFilter(raw: string, knownTabs: string[]): string[] {
   const tabs = new Set<string>();
+  let includesAll = false;
   for (const token of raw.split(",").map((value) => value.trim()).filter(Boolean)) {
-    if (token.toLowerCase() === "all") return [...knownTabs];
+    if (token.toLowerCase() === "all") {
+      includesAll = true;
+      continue;
+    }
     const aliased = SURFACE_ALIASES[token.toLowerCase()];
     const exact = knownTabs.find((tab) => tab.toLowerCase() === token.toLowerCase());
     for (const tab of aliased ?? (exact ? [exact] : [])) tabs.add(tab);
@@ -162,7 +166,7 @@ export function resolveSurfaceFilter(raw: string, knownTabs: string[]): string[]
       );
     }
   }
-  return [...tabs];
+  return includesAll ? [...knownTabs] : [...tabs];
 }
 
 /**
@@ -438,7 +442,7 @@ async function writeWorkbook(
   await workbook.xlsx.writeFile(outPath);
 }
 
-function parseArgs(argv: string[]): {
+export function parseArgs(argv: string[]): {
   surface?: string;
   cases?: string[];
   tags?: string[];
@@ -449,16 +453,21 @@ function parseArgs(argv: string[]): {
   for (let index = 0; index < argv.length; index++) {
     const flag = argv[index];
     const value = argv[index + 1];
-    if (flag === "--surface" && value) {
+    if (["--surface", "--cases", "--tag", "--out"].includes(flag)) {
+      if (!value || value.startsWith("--")) {
+        throw new Error(`missing value for '${flag}'`);
+      }
+    }
+    if (flag === "--surface") {
       parsed.surface = value;
       index++;
-    } else if (flag === "--cases" && value) {
+    } else if (flag === "--cases") {
       parsed.cases = value.split(",").map((id) => id.trim()).filter(Boolean);
       index++;
-    } else if (flag === "--tag" && value) {
+    } else if (flag === "--tag") {
       parsed.tags = value.split(",").map((tag) => tag.trim()).filter(Boolean);
       index++;
-    } else if (flag === "--out" && value) {
+    } else if (flag === "--out") {
       parsed.out = value;
       index++;
     } else if (flag === "--local") {

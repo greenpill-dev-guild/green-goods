@@ -80,6 +80,20 @@ test("skill and documented skill-inventory changes select direct guidance contra
   }
 });
 
+test("agent-tool changes select their direct tests for QA and review", () => {
+  for (const intent of ["qa", "review"]) {
+    const plan = selectValidation({
+      intent,
+      changedPaths: ["scripts/agents/qa-workbook-build.ts"],
+    });
+
+    const agentTools = plan.checks.find((check) => check.id === "agent-tools-test");
+    assert.ok(agentTools, intent);
+    assert.equal(agentTools.command, "bun run test:agent-tools");
+    assert.ok(agentTools.selectedBy.includes("conditional:agent-tools-test"), intent);
+  }
+});
+
 test("architecture evidence reviews select only the three safe guidance checks", () => {
   const probes = [
     ".claude/skills/plan/SKILL.md",

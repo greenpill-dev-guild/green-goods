@@ -258,6 +258,8 @@
     },
     {
       "check": "agent-tools-test",
+      "runInQa": true,
+      "runInEvidence": true,
       "exact": [
         "scripts/data/qa-test-catalog.json",
         "scripts/agents/qa-workbook-build.ts",

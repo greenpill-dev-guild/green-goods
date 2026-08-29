@@ -115,7 +115,7 @@ For every item, include the verbatim quote from the notes that grounds the extra
 
 ## Test ID matching
 
-If a note explicitly references a Test ID from the QA workbook (pattern: `PUB-NNN`, `PWA-IOS-NNN`, `PWA-AND-NNN`, `ADM-NNN`, `XPLAT-NNN`, `PWA-ROLE-NNN`), include it in the `linked_test_id` field. Otherwise leave that field empty.
+If a note explicitly references a Test ID from the QA workbook or repo catalog (pattern: `PUB-NNN`, `PWA-IOS-NNN`, `PWA-AND-NNN`, `ADM-NNN`, `XPLAT-NNN`, `PWA-ROLE-NNN`, `DOCS-NNN`), include it in the `linked_test_id` field. Otherwise leave that field empty.
 
 ## Output
 
@@ -191,7 +191,7 @@ property is required; optional fields stay optional by allowing `null`.
           },
           "linked_test_id": {
             "type": ["string", "null"],
-            "description": "Matching Test ID from the QA workbook if mentioned (e.g., ADM-006), else null"
+            "description": "Matching Test ID from the QA workbook or repo catalog if mentioned (e.g., ADM-006 or DOCS-003), else null"
           },
           "severity_hint": {
             "type": ["string", "null"],

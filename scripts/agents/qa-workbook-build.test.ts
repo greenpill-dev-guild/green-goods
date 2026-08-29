@@ -11,6 +11,7 @@ import {
   groupByArea,
   howToCheck,
   loadCatalog,
+  parseArgs,
   projectRow,
   reserveOutputPath,
   resolveSurfaceFilter,
@@ -227,5 +228,15 @@ describe("resolveSurfaceFilter", () => {
 
   it("rejects unknown surfaces", () => {
     expect(() => resolveSurfaceFilter("phone", tabs)).toThrow(/unknown surface/);
+    expect(() => resolveSurfaceFilter("all,phone", tabs)).toThrow(/unknown surface/);
   });
+});
+
+describe("parseArgs", () => {
+  it.each(["--surface", "--cases", "--tag", "--out"])(
+    "rejects another flag as the value for %s",
+    (flag) => {
+      expect(() => parseArgs([flag, "--local"])).toThrow(`missing value for '${flag}'`);
+    },
+  );
 });
