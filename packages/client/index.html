@@ -109,6 +109,9 @@
           "/landing",
           "/vaults",
         ];
+        // "/landing" redirects to "/" (config/routes.tsx), so it boots the
+        // fullscreen home hero; every other website path mounts a banner hero.
+        var HOME_HERO_PATHS = ["/", "/landing"];
 
         function isLocalHostname(hostname) {
           var normalized = String(hostname || "").toLowerCase();
@@ -142,6 +145,11 @@
           if (isLocalHostname(url.hostname)) return false;
           var pathname = normalizePathname(effectivePathname(url));
           return PUBLIC_PATHS.indexOf(pathname) !== -1 || pathname.indexOf("/gardens/") === 0;
+        }
+
+        function heroVariantForUrl(url) {
+          var pathname = normalizePathname(effectivePathname(url));
+          return HOME_HERO_PATHS.indexOf(pathname) !== -1 ? "fullscreen" : "banner";
         }
 
         function readLocalOverride(url) {
@@ -195,6 +203,7 @@
         }
 
         var mode = "website";
+        var heroVariant = "fullscreen";
         try {
           var url = new URL(window.location.href);
           var localOverride = readLocalOverride(url);
@@ -205,11 +214,15 @@
           } else if (isStandalone() || (isLocalHostname(url.hostname) && hasMobileDeviceSignals())) {
             mode = "pwa";
           }
+          heroVariant = heroVariantForUrl(url);
         } catch (_) {
           mode = isStandalone() ? "pwa" : "website";
         }
 
         document.documentElement.dataset.bootPresentation = mode;
+        if (mode === "website") {
+          document.documentElement.dataset.bootHero = heroVariant;
+        }
       })();
     </script>
     <style id="boot-fallback-styles">
@@ -219,11 +232,11 @@
       }
 
       #boot-fallback {
-        --boot-canvas: var(--color-bg-weak-50, #f7f3e9);
+        --boot-canvas: var(--color-bg-weak-50, #fafaf9);
+        --boot-card: var(--color-bg-weak-50, #fafaf9);
         --boot-ink: var(--color-text-strong-950, #1f2a24);
         --boot-muted: var(--color-text-sub-600, #6f756f);
         --boot-line: var(--color-stroke-soft-200, #d7d2c7);
-        --boot-warm: var(--color-editorial-warm, #f1ece2);
         --boot-deep: var(--color-editorial-deep, #2d2118);
         --boot-deep-fg: var(--color-editorial-deep-fg, #f5f0e8);
         --boot-action: var(--color-primary-action, #173f2a);
@@ -240,10 +253,10 @@
 
       [data-theme="dark"] #boot-fallback {
         --boot-canvas: var(--color-bg-weak-50, #161412);
+        --boot-card: var(--color-bg-weak-50, #161412);
         --boot-ink: var(--color-text-strong-950, #f5f0e8);
         --boot-muted: var(--color-text-sub-600, #c5beb4);
         --boot-line: var(--color-stroke-soft-200, #453d35);
-        --boot-warm: var(--color-editorial-warm, #1e1610);
         --boot-deep: var(--color-editorial-deep, #120d09);
       }
 
@@ -254,16 +267,26 @@
         background: var(--boot-deep);
       }
 
+      /* GEOMETRY SYNC: the editorial skeleton below mirrors the container
+         equation of SiteHeader.tsx and PublicEditorialHero.tsx in plain CSS
+         (this renders before Tailwind loads). Each mirrored declaration names
+         its Tailwind class; bootFallbackGeometry.test.ts fails when either
+         side changes — update both together. */
       .boot-editorial-header {
         position: absolute;
         inset: 0 0 auto;
         z-index: 2;
+        box-sizing: border-box;
+        padding: 0 24px; /* px-6 */
+      }
+
+      .boot-editorial-header-row {
         display: flex;
-        height: 64px;
+        height: 64px; /* h-16 */
+        max-width: 1280px; /* max-w-7xl */
+        margin: 0 auto;
         align-items: center;
         justify-content: space-between;
-        box-sizing: border-box;
-        padding: 0 40px;
       }
 
       .boot-editorial-logo {
@@ -307,21 +330,36 @@
       .boot-editorial-hero {
         position: relative;
         min-height: 100vh;
+        min-height: 100svh; /* min-h-[100svh] */
         box-sizing: border-box;
         background:
           radial-gradient(circle at 72% 22%, rgb(245 240 232 / 0.08), transparent 34%),
           linear-gradient(145deg, var(--boot-deep), #18291f 62%, #23382b);
       }
 
-      .boot-editorial-card {
+      /* Card position replicates the hero's container equation wrapper for
+         wrapper (rail → gutter → centered column → left-aligned card) instead
+         of viewport offsets, so wide screens can't drift the card. */
+      .boot-editorial-card-rail {
         position: absolute;
-        right: 40px;
-        bottom: 40px;
-        left: 40px;
-        width: min(640px, calc(100% - 80px));
+        right: 0;
+        bottom: 56px; /* bottom-14 */
+        left: 0;
+        z-index: 1;
         box-sizing: border-box;
-        padding: 32px;
-        background: var(--boot-warm);
+        padding: 0 24px; /* px-6 */
+      }
+
+      .boot-editorial-card-column {
+        max-width: 1280px; /* max-w-7xl */
+        margin: 0 auto;
+      }
+
+      .boot-editorial-card {
+        max-width: 496px; /* max-w-[31rem] */
+        box-sizing: border-box;
+        padding: 24px; /* p-6 */
+        background: var(--boot-card); /* bg-bg-weak-50 */
         box-shadow: 0 30px 80px -30px rgb(18 13 9 / 0.35);
       }
 
@@ -353,40 +391,95 @@
         background-size: 220% 100%, 100% 100%;
       }
 
-      .boot-skeleton-kicker {
-        width: 128px;
-        height: 10px;
+      /* Card content mirrors the hero's real line boxes so the skeleton card's
+         height equals the loaded card's at every band. Each bar occupies one
+         line-height of the type it stands in for: EditorialHeading display
+         scale × leading-[1.04] (home overrides md/lg), EditorialLede
+         text-base/md:text-lg × leading-[1.6]. Home hero composition is
+         title + lede + actions (no kicker); banner heroes drop the actions.
+         Line counts follow the measured wrap thresholds of the real hero
+         copy (2026-08-29): title 3→2 at 378px, back to 3 from 768px; lede
+         8→7→6→5→4 at 348/364/424/488px, 5 in the md band, 4 from 1024px. */
+      .boot-editorial-card {
+        --boot-title-lh: 31.2px; /* text-3xl × 1.04 */
+        --boot-lede-lh: 25.6px; /* text-base × 1.6 */
       }
 
-      .boot-skeleton-title {
-        width: min(100%, 520px);
-        height: 44px;
-        margin-top: 24px;
+      .boot-skeleton-title-group,
+      .boot-skeleton-lede-group {
+        display: flex;
+        flex-direction: column;
       }
 
-      .boot-skeleton-title-short {
-        width: min(72%, 380px);
-        height: 44px;
-        margin-top: 10px;
+      .boot-skeleton-lede-group {
+        margin-top: 16px; /* mt-4 */
       }
 
-      .boot-skeleton-lede {
-        width: min(88%, 470px);
-        height: 16px;
-        margin-top: 24px;
+      .boot-skeleton-title-line {
+        height: calc(var(--boot-title-lh) * 0.72);
+        margin-block: calc(var(--boot-title-lh) * 0.14);
       }
 
-      .boot-skeleton-lede-short {
-        width: min(66%, 330px);
-        height: 16px;
-        margin-top: 9px;
+      .boot-skeleton-lede-line {
+        height: calc(var(--boot-lede-lh) * 0.6);
+        margin-block: calc(var(--boot-lede-lh) * 0.2);
+      }
+
+      .boot-skeleton-title-line:nth-child(1) { width: 94%; }
+      .boot-skeleton-title-line:nth-child(2) { width: 76%; }
+      .boot-skeleton-title-line:nth-child(3) { width: 58%; }
+      .boot-skeleton-lede-line:nth-child(1) { width: 100%; }
+      .boot-skeleton-lede-line:nth-child(2) { width: 98%; }
+      .boot-skeleton-lede-line:nth-child(3) { width: 96%; }
+      .boot-skeleton-lede-line:nth-child(4) { width: 90%; }
+      .boot-skeleton-lede-line:nth-child(5) { width: 97%; }
+      .boot-skeleton-lede-line:nth-child(6) { width: 94%; }
+      .boot-skeleton-lede-line:nth-child(7) { width: 85%; }
+      .boot-skeleton-lede-line:nth-child(8) { width: 62%; }
+
+      /* In-band wrap steps: viewport = measured content width + 96px
+         (24px gutter + 24px card padding per side below 640px). */
+      @media (min-width: 348px) {
+        .boot-skeleton-lede-line[data-line="8"] {
+          display: none;
+        }
+      }
+
+      @media (min-width: 364px) {
+        .boot-skeleton-lede-line[data-line="7"] {
+          display: none;
+        }
+      }
+
+      @media (min-width: 378px) {
+        .boot-skeleton-title-line[data-line="3"] {
+          display: none;
+        }
+      }
+
+      @media (min-width: 424px) {
+        .boot-skeleton-lede-line[data-line="6"] {
+          display: none;
+        }
+      }
+
+      @media (min-width: 488px) {
+        .boot-skeleton-lede-line[data-line="5"] {
+          display: none;
+        }
       }
 
       .boot-skeleton-action {
         width: 148px;
-        height: 44px;
-        margin-top: 28px;
+        height: 44px; /* hero actions row (pill height) */
+        margin-top: 24px; /* mt-6 */
         border-radius: 999px;
+      }
+
+      /* Most banner heroes render no actions row (GardenDetail is the
+         exception); drop it so banner card heights match. */
+      [data-boot-hero="banner"] .boot-editorial-card .boot-skeleton-action {
+        display: none;
       }
 
       .boot-skeleton-nav {
@@ -487,11 +580,8 @@
         line-height: 1.5;
       }
 
+      /* Nav visibility mirrors the md: (768px) step in SiteHeader.tsx. */
       @media (max-width: 767px) {
-        .boot-editorial-header {
-          padding: 0 24px;
-        }
-
         .boot-editorial-nav,
         .boot-editorial-actions {
           display: none;
@@ -501,18 +591,92 @@
           position: relative;
           display: flex;
         }
+      }
 
-        .boot-editorial-card {
-          right: 20px;
-          bottom: 20px;
-          left: 20px;
-          width: calc(100% - 40px);
-          padding: 24px;
+      @media (min-width: 640px) {
+        .boot-editorial-header {
+          padding: 0 40px; /* sm:px-10 */
         }
 
-        .boot-skeleton-title,
-        .boot-skeleton-title-short {
-          height: 32px;
+        .boot-editorial-card-rail {
+          bottom: 96px; /* sm:bottom-24 */
+          padding: 0 40px; /* sm:px-10 */
+        }
+
+        .boot-editorial-card {
+          --boot-title-lh: 37.44px; /* sm:text-4xl × 1.04 */
+          padding: 32px; /* sm:p-8 */
+        }
+      }
+
+      @media (min-width: 768px) {
+        .boot-editorial-card {
+          --boot-title-lh: 55.744px; /* md:text-[3.35rem] × 1.04 (home override) */
+          --boot-lede-lh: 28.8px; /* md:text-lg × 1.6 */
+        }
+
+        [data-boot-hero="banner"] .boot-editorial-card {
+          --boot-title-lh: 49.92px; /* md:text-5xl × 1.04 */
+        }
+
+        .boot-skeleton-title-line[data-line="3"],
+        .boot-skeleton-lede-line[data-line="5"] {
+          display: block;
+        }
+      }
+
+      @media (min-width: 1024px) {
+        .boot-editorial-card-rail {
+          /* lg:bottom-[12svh]; parsers without svh keep the 96px step above */
+          bottom: 12svh;
+        }
+
+        .boot-editorial-card {
+          --boot-title-lh: 66.56px; /* lg:text-[4rem] × 1.04 (home override) */
+          max-width: 536px; /* lg:max-w-[33.5rem] */
+          padding: 40px; /* lg:p-10 */
+        }
+
+        [data-boot-hero="banner"] .boot-editorial-card {
+          --boot-title-lh: 62.4px; /* lg:text-6xl × 1.04 */
+        }
+
+        .boot-skeleton-lede-line[data-line="5"] {
+          display: none;
+        }
+      }
+
+      /* Banner-variant skeleton for non-home public paths (data-boot-hero is
+         stamped by the boot-presentation detector): short image plate with the
+         card spilling below it onto the canvas, mirroring the hero's banner
+         variant. Scoped to rails inside the plate so the recovery card keeps
+         the viewport-anchored fullscreen geometry. */
+      [data-boot-hero="banner"] .boot-editorial-shell {
+        background: var(--boot-canvas);
+      }
+
+      [data-boot-hero="banner"] .boot-editorial-hero {
+        min-height: 0;
+        height: 340px; /* h-[340px] */
+      }
+
+      [data-boot-hero="banner"] .boot-editorial-hero .boot-editorial-card-rail {
+        bottom: -64px; /* bottom-[-4rem] */
+      }
+
+      @media (min-width: 640px) {
+        [data-boot-hero="banner"] .boot-editorial-hero {
+          height: 420px; /* sm:h-[420px] */
+        }
+
+        [data-boot-hero="banner"] .boot-editorial-hero .boot-editorial-card-rail {
+          bottom: -80px; /* sm:bottom-[-5rem] */
+        }
+      }
+
+      @media (min-width: 1024px) {
+        [data-boot-hero="banner"] .boot-editorial-hero {
+          height: 500px; /* lg:h-[500px] */
         }
       }
     </style>
@@ -524,39 +688,59 @@
         <div class="boot-editorial-shell">
           <div id="boot-website-skeleton" aria-hidden="true">
             <div class="boot-editorial-header">
-              <img
-                class="boot-editorial-logo"
-                alt=""
-                src="%BASE_URL%icon.png"
-                width="56"
-                height="32"
-              />
-              <div class="boot-editorial-nav">
-                <span class="boot-skeleton boot-skeleton-nav"></span>
-                <span class="boot-skeleton boot-skeleton-nav"></span>
-                <span class="boot-skeleton boot-skeleton-nav"></span>
-                <span class="boot-skeleton boot-skeleton-nav"></span>
+              <div class="boot-editorial-header-row">
+                <img
+                  class="boot-editorial-logo"
+                  alt=""
+                  src="%BASE_URL%icon.png"
+                  width="56"
+                  height="32"
+                />
+                <div class="boot-editorial-nav">
+                  <span class="boot-skeleton boot-skeleton-nav"></span>
+                  <span class="boot-skeleton boot-skeleton-nav"></span>
+                  <span class="boot-skeleton boot-skeleton-nav"></span>
+                  <span class="boot-skeleton boot-skeleton-nav"></span>
+                </div>
+                <div class="boot-editorial-actions">
+                  <span class="boot-skeleton boot-skeleton-cta"></span>
+                </div>
+                <span class="boot-editorial-menu"></span>
               </div>
-              <div class="boot-editorial-actions">
-                <span class="boot-skeleton boot-skeleton-cta"></span>
-              </div>
-              <span class="boot-editorial-menu"></span>
             </div>
             <div class="boot-editorial-hero">
-              <div class="boot-editorial-card">
-                <span class="boot-skeleton boot-skeleton-kicker"></span>
-                <span class="boot-skeleton boot-skeleton-title"></span>
-                <span class="boot-skeleton boot-skeleton-title-short"></span>
-                <span class="boot-skeleton boot-skeleton-lede"></span>
-                <span class="boot-skeleton boot-skeleton-lede-short"></span>
-                <span class="boot-skeleton boot-skeleton-action"></span>
+              <div class="boot-editorial-card-rail">
+                <div class="boot-editorial-card-column">
+                  <div class="boot-editorial-card">
+                    <div class="boot-skeleton-title-group">
+                      <span class="boot-skeleton boot-skeleton-title-line" data-line="1"></span>
+                      <span class="boot-skeleton boot-skeleton-title-line" data-line="2"></span>
+                      <span class="boot-skeleton boot-skeleton-title-line" data-line="3"></span>
+                    </div>
+                    <div class="boot-skeleton-lede-group">
+                      <span class="boot-skeleton boot-skeleton-lede-line" data-line="1"></span>
+                      <span class="boot-skeleton boot-skeleton-lede-line" data-line="2"></span>
+                      <span class="boot-skeleton boot-skeleton-lede-line" data-line="3"></span>
+                      <span class="boot-skeleton boot-skeleton-lede-line" data-line="4"></span>
+                      <span class="boot-skeleton boot-skeleton-lede-line" data-line="5"></span>
+                      <span class="boot-skeleton boot-skeleton-lede-line" data-line="6"></span>
+                      <span class="boot-skeleton boot-skeleton-lede-line" data-line="7"></span>
+                      <span class="boot-skeleton boot-skeleton-lede-line" data-line="8"></span>
+                    </div>
+                    <span class="boot-skeleton boot-skeleton-action"></span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          <div class="boot-editorial-card boot-editorial-recovery" id="boot-website-recovery" hidden>
-            <h1 id="boot-website-recovery-title">This page is taking longer than expected.</h1>
-            <p id="boot-website-recovery-body">Reload to try again.</p>
-            <button class="boot-reload-button" id="boot-website-reload" type="button">Reload</button>
+          <div class="boot-editorial-card-rail" id="boot-website-recovery" hidden>
+            <div class="boot-editorial-card-column">
+              <div class="boot-editorial-card boot-editorial-recovery">
+                <h1 id="boot-website-recovery-title">This page is taking longer than expected.</h1>
+                <p id="boot-website-recovery-body">Reload to try again.</p>
+                <button class="boot-reload-button" id="boot-website-reload" type="button">Reload</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

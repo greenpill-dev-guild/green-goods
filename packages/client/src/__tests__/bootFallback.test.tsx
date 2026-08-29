@@ -38,15 +38,17 @@ function createStorage(): Storage {
   } as Storage;
 }
 
-function detectPresentation({
-  href,
-  displayMode,
-  navigator: navigatorOverrides = {},
-}: {
+interface DetectOptions {
   href: string;
   displayMode?: "standalone" | "window-controls-overlay" | "fullscreen";
   navigator?: Partial<Navigator> & { standalone?: boolean; userAgentData?: { mobile?: boolean } };
-}): string | undefined {
+}
+
+function detectBootDataset({
+  href,
+  displayMode,
+  navigator: navigatorOverrides = {},
+}: DetectOptions): DOMStringMap {
   const dataset: DOMStringMap = {};
   const navigator = {
     userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
@@ -72,7 +74,11 @@ function detectPresentation({
     inlineScript("boot-presentation-detector")
   )(windowLike, documentLike, navigator, URL);
 
-  return dataset.bootPresentation;
+  return dataset;
+}
+
+function detectPresentation(options: DetectOptions): string | undefined {
+  return detectBootDataset(options).bootPresentation;
 }
 
 function runController(presentation: "website" | "pwa") {
@@ -165,6 +171,25 @@ describe("presentation-specific boot fallback", () => {
         displayMode: "standalone",
       })
     ).toBe("website");
+  });
+
+  it("keys the website skeleton hero variant off the pathname", () => {
+    expect(detectBootDataset({ href: "https://www.greengoods.app/" }).bootHero).toBe("fullscreen");
+    expect(detectBootDataset({ href: "https://www.greengoods.app/landing" }).bootHero).toBe(
+      "fullscreen"
+    );
+    expect(detectBootDataset({ href: "https://www.greengoods.app/impact" }).bootHero).toBe(
+      "banner"
+    );
+    expect(detectBootDataset({ href: "https://www.greengoods.app/gardens/0xabc" }).bootHero).toBe(
+      "banner"
+    );
+    expect(detectBootDataset({ href: "http://localhost:3001/actions" }).bootHero).toBe("banner");
+    // PWA boots never render the website skeleton, so no variant is stamped.
+    expect(
+      detectBootDataset({ href: "https://www.greengoods.app/home", displayMode: "standalone" })
+        .bootHero
+    ).toBeUndefined();
   });
 
   it("reveals the website skeleton after 200ms with no loading live region", () => {

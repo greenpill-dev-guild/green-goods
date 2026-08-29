@@ -16,6 +16,10 @@ import { EditorialDivider, EditorialHeading, EditorialKicker, EditorialLede } fr
  *   section; fullscreen sits the card inside the first viewport.
  * - All hero text lives *inside* the card on every breakpoint — no body
  *   text directly over imagery (mobile contrast was a design correction).
+ * - GEOMETRY SYNC: the boot skeleton in index.html mirrors this component's
+ *   rail/gutter/column/card geometry and the banner plate heights in plain
+ *   CSS; bootFallbackGeometry.test.ts trips when the class strings here
+ *   change — update the skeleton with them.
  *
  * Animation: the panel rises (`editorial-hero-in`) and the kicker /
  * heading / lede / actions stagger in (`editorial-fade-up-1/2/3`). All

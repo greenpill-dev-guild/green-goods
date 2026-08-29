@@ -1,6 +1,6 @@
 import { APP_NAME } from "@green-goods/shared/config/app";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useEventListener } from "@green-goods/shared/hooks/utils/useEventListener";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCloseLine, RiMenuLine } from "@remixicon/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -152,6 +152,8 @@ export const SiteHeader = () => {
             aria-hidden={isFullyHidden ? "true" : undefined}
             data-variant="transparent"
           >
+            {/* GEOMETRY SYNC: the boot header skeleton in index.html mirrors this
+                gutter + column (bootFallbackGeometry.test.ts trips on changes). */}
             <div className="px-6 sm:px-10">
               <div className="mx-auto flex h-16 max-w-7xl items-center justify-between">
                 {/* Logo — image only, h-8 keeps the GG mark at a stable height while w-auto
