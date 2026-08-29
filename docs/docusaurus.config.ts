@@ -4,6 +4,18 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
+// Code blocks sit on the DesignMD `code-surface` colors (docs/DESIGN.md) rather
+// than the stock Prism theme grounds, so dark code blocks stay on the warm
+// neutral ladder instead of Dracula's cold #282A36.
+const prismLight = {
+  ...prismThemes.github,
+  plain: {...prismThemes.github.plain, backgroundColor: '#F5F5F5'},
+};
+const prismDark = {
+  ...prismThemes.dracula,
+  plain: {...prismThemes.dracula.plain, backgroundColor: '#292929'},
+};
+
 const config: Config = {
   title: 'Green Goods Documentation',
   tagline: 'Bringing community and environmental actions on-chain',
@@ -480,8 +492,8 @@ const config: Config = {
       copyright: `Making grassroots conservation visible, verifiable, and funded.<br/>Copyright © ${new Date().getFullYear()} Greenpill Dev Guild.`,
     },
     prism: {
-      theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
+      theme: prismLight,
+      darkTheme: prismDark,
     },
   } satisfies Preset.ThemeConfig,
 };

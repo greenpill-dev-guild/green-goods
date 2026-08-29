@@ -17,6 +17,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
 import {
+  EditorialGhostButton,
   EditorialHeading,
   EditorialKicker,
   EditorialListRowSkeleton,
@@ -627,18 +628,18 @@ function FundPageContent() {
                   })}
                 </EditorialHeading>
               </div>
-              <button
-                type="button"
+              <EditorialGhostButton
+                variant="warm"
                 onClick={handleManageEndowmentsClick}
                 aria-expanded={isEndowmentPanelOpen}
                 aria-haspopup="dialog"
-                className="inline-flex min-h-11 w-fit items-center border-b border-primary-action/35 text-left text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-4 focus-visible:ring-offset-bg-weak-50 sm:mt-1"
+                className="w-fit sm:mt-1"
               >
                 {formatMessage({
                   id: "public.fund.manageEndowments.cta",
                   defaultMessage: "Manage Endowments",
                 })}
-              </button>
+              </EditorialGhostButton>
             </div>
           </header>
 

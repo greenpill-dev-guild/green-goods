@@ -129,7 +129,7 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   return (
     <div
       className={cn("group/fab relative flex items-center", !mobileFloating && "ml-auto")}
-      data-component="NavigationBar"
+      data-component="FabButton"
       data-slot={mobileFloating ? "mobile-fab" : "desktop-fab"}
       data-state={speedDialOpen ? "open" : "closed"}
       data-mode={isSingleAction ? "single-action" : "speed-dial"}

@@ -26,7 +26,7 @@ import { publicCuration } from "@/content/publicCuration";
  *
  * Composition order matches the editorial dialect:
  *   Hero → Featured Gardens → Living Public Record → Regenerative Loop →
- *   Funding Bridge → Get In Touch → Footer.
+ *   Who Tends a Garden → Funding Bridge → Get In Touch → Footer.
  */
 export default function Home() {
   const { formatMessage } = useIntl();
