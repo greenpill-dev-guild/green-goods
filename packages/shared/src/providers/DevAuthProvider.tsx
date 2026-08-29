@@ -52,7 +52,18 @@ function persistMockRole(role: DevMockAuthRole) {
   window.sessionStorage.setItem(DEV_MOCK_AUTH_STORAGE_KEY, role);
 }
 
+const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+
+function isLoopbackHost(hostname: string): boolean {
+  return LOOPBACK_HOSTNAMES.has(hostname) || hostname.endsWith(".localhost");
+}
+
 export function hasMockAuthOverride(): boolean {
+  // The dev servers bind on all interfaces (vite `host: true`), so without
+  // this guard any device on the LAN could request ?mockAuth= and receive
+  // production-backed views with no credentials. Mock auth is a loopback-only
+  // seam: on any other hostname the real AuthProvider stays in charge.
+  if (!isLoopbackHost(window.location.hostname)) return false;
   const params = new URLSearchParams(window.location.search);
   return normalizeMockRole(params.get("mockAuth")) !== null || readPersistedMockRole() !== null;
 }

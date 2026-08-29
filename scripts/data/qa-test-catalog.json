@@ -1,5 +1,5 @@
 {
-  "$comment": "Upstream source of truth for QA test-scenario DEFINITIONS across product surfaces. The private Google Sheet 'Green Goods v1.1 QA' is the live defect log and team run ledger; generated xlsx workbooks (bun run qa:workbook -> tmp/qa/) are per-run working artifacts. Results, owners, defect links, and PostHog data never enter this file or git (public repo). Consumed by scripts/agents/qa-workbook-build.ts and the qa-session skill. IDs are never reused: set status 'retired' instead of deleting. steps[] joins with '; ' in generated sheets. requiresProduction marks cases that cannot run on localhost dev (production origin installs, passkey RP-ID ceremonies).",
+  "$comment": "Upstream source of truth for QA test-scenario DEFINITIONS across product surfaces. The private Google Sheet 'Green Goods v1.1 QA' is the live defect log and team run ledger; generated xlsx workbooks (bun run qa:workbook -> tmp/qa/) are per-run working artifacts. Results, owners, defect links, and PostHog data never enter this file or git (public repo). Consumed by scripts/agents/qa-workbook-build.ts and the qa-session skill. IDs are never reused: set status 'retired' instead of deleting. steps[] joins with '; ' in generated sheets. requiresProduction marks cases needing the production origin (installs, passkey RP-ID ceremonies); requiresDevice marks cases whose steps need a real installed device (camera, app termination/relaunch, OS keyboard/safe-area, touch gestures). Both pre-block in --local run sheets.",
   "version": 1,
   "tabs": ["Public Website", "PWA iOS", "PWA Android", "Admin Dashboard", "Cross Surface", "Docs"],
   "cases": [
@@ -284,6 +284,7 @@
       "role": "gardener",
       "tags": ["upload", "draft", "media"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "sheet-v1.1"
     },
@@ -307,6 +308,7 @@
       "role": "gardener",
       "tags": ["upload", "media"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "sheet-v1.1"
     },
@@ -331,6 +333,7 @@
       "role": "gardener",
       "tags": ["offline", "sync", "queue"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "sheet-v1.1"
     },
@@ -348,6 +351,7 @@
       "role": "any",
       "tags": ["safe-area", "responsive"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "sheet-v1.1"
     },
@@ -421,6 +425,7 @@
       "role": "gardener",
       "tags": ["data", "empty-state", "loading"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "mdx-matrix"
     },
@@ -512,6 +517,7 @@
       "role": "gardener",
       "tags": ["navigation", "safe-area", "shell"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "mdx-matrix"
     },
@@ -534,6 +540,7 @@
       "role": "gardener",
       "tags": ["auth", "session"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "drive-test-cases-2025-12"
     },
@@ -612,6 +619,7 @@
       "role": "gardener",
       "tags": ["upload", "media", "draft"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "sheet-v1.1"
     },
@@ -629,6 +637,7 @@
       "role": "gardener",
       "tags": ["offline", "sync", "queue"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "sheet-v1.1"
     },
@@ -646,6 +655,7 @@
       "role": "any",
       "tags": ["responsive", "keyboard"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "sheet-v1.1"
     },
@@ -1004,7 +1014,7 @@
         "Check action descriptions for diacritics",
         "Repeat spot checks in Spanish"
       ],
-      "expected": "No English-formatted dates, no raw '1 sessions'-style plurals, diacritics intact — locale-key parity alone is not language-quality proof",
+      "expected": "No English-formatted dates, no raw '1 sessions'-style plurals, diacritics intact \u2014 locale-key parity alone is not language-quality proof",
       "evidence": "Screenshots of pt/es views with real records",
       "role": "steward",
       "tags": ["i18n", "locale"],
@@ -1053,7 +1063,7 @@
         "Retry with a wallet on the wrong network",
         "Confirm a switch-network prompt gates the action"
       ],
-      "expected": "No wallet shows clear instructions, wrong network prompts a switch and blocks the transaction path — never a blank or broken state",
+      "expected": "No wallet shows clear instructions, wrong network prompts a switch and blocks the transaction path \u2014 never a blank or broken state",
       "evidence": "Screenshots of both states",
       "role": "none",
       "tags": ["wallet", "error-recovery", "funding"],
@@ -1074,7 +1084,7 @@
         "Immediately attempt a second decision on the same submission",
         "Where safely reproducible, interrupt the approval transaction and observe the result"
       ],
-      "expected": "A second decision is blocked or disabled; a failed approval transaction surfaces an error and the submission stays Pending — status never lies",
+      "expected": "A second decision is blocked or disabled; a failed approval transaction surfaces an error and the submission stays Pending \u2014 status never lies",
       "evidence": "Screenshots of the blocked second decision and the failure state",
       "role": "steward",
       "tags": ["review", "transaction", "integrity"],
@@ -1228,7 +1238,7 @@
         "Scroll through the full list",
         "Open an item deep in the list and return"
       ],
-      "expected": "Lists scroll smoothly, load progressively or paginate, and returning preserves position — no jank or unbounded loading",
+      "expected": "Lists scroll smoothly, load progressively or paginate, and returning preserves position \u2014 no jank or unbounded loading",
       "evidence": "Screen recording of the scroll",
       "role": "any",
       "tags": ["performance", "lists"],
@@ -1266,7 +1276,7 @@
       "area": "Search",
       "scenario": "Local search returns relevant results with keyboard flow",
       "preconditions": [
-        "Built docs site (bun run build:docs, served) or the deployed docs site — the dev server has no search index"
+        "Built docs site (bun run build:docs, served) or the deployed docs site \u2014 the dev server has no search index"
       ],
       "steps": [
         "Focus the search input",
@@ -1288,7 +1298,7 @@
       "platform": "Desktop Browser",
       "priority": "P1",
       "area": "Glossary Anchors",
-      "scenario": "Glossary anchor links resolve — they are a client API",
+      "scenario": "Glossary anchor links resolve \u2014 they are a client API",
       "preconditions": ["Docs site available"],
       "steps": [
         "Open two or three /glossary#term URLs that the client links to",

@@ -95,8 +95,12 @@ Run before the user starts walking. Print the checklist results compactly; stop 
    flows in a **fresh tab that never carried `?mockAuth`**, and never reuse a mock tab for a
    write flow. `?presentation=pwa` once per tab for the PWA shell on desktop.
    `?gardenId=<address>` switches between the user's garden and the community garden.
-   **Passkey ceremonies cannot run on localhost** (RP-ID `greengoods.app`): catalog cases marked
-   `requiresProduction` are pre-marked `Blocked` for local sessions.
+   The loopback rule is also **enforced in code**: `hasMockAuthOverride` ignores the mock seam
+   on any non-loopback hostname, so a LAN device hitting the dev server gets the real
+   AuthProvider. **Passkey ceremonies cannot run on localhost** (RP-ID `greengoods.app`):
+   catalog cases marked `requiresProduction` or `requiresDevice` (camera, app relaunch, touch
+   gestures) are pre-marked `Blocked` in `--local` run sheets — desktop PWA-shell observations
+   about those journeys go in OBS notes, never into the installed-device rows.
 5. **Real-write boundary.** dev:prod wallet transactions are REAL Arbitrum writes. Ask once,
    before the walk: *which flows may broadcast transactions, and which stop at the review step?*
    Record the answer in the session header and respect it absolutely.

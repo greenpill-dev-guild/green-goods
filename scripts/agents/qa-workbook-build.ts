@@ -70,6 +70,7 @@ const TAB_COLORS: Record<string, string> = {
 };
 
 const REQUIRES_PRODUCTION_NOTE = "Can't run on localhost — needs a production install/passkey";
+const REQUIRES_DEVICE_NOTE = "Needs a real installed device — run on a phone against production";
 
 export interface CatalogCase {
   id: string;
@@ -85,6 +86,7 @@ export interface CatalogCase {
   role: string;
   tags?: string[];
   requiresProduction?: boolean;
+  requiresDevice?: boolean;
   status: "active" | "retired";
   source: string;
 }
@@ -110,11 +112,20 @@ export function howToCheck(testCase: CatalogCase): string {
 
 /**
  * One catalog case -> the 8-cell run-sheet row. Result columns stay empty,
- * except in a --local run, where requiresProduction cases are pre-marked
- * Blocked so the Overview counts carry the known blocks without manual entry.
+ * except in a --local run, where requiresProduction and requiresDevice cases
+ * are pre-marked Blocked so the Overview counts carry the known blocks — a
+ * localhost desktop session can prove neither production-origin flows nor
+ * installed-device steps (camera, app relaunch, touch gestures).
  */
 export function projectRow(testCase: CatalogCase, options: { localRun?: boolean } = {}): string[] {
-  const blockedLocally = Boolean(options.localRun && testCase.requiresProduction);
+  const blockedLocally = Boolean(
+    options.localRun && (testCase.requiresProduction || testCase.requiresDevice),
+  );
+  const note = testCase.requiresProduction
+    ? REQUIRES_PRODUCTION_NOTE
+    : testCase.requiresDevice
+      ? REQUIRES_DEVICE_NOTE
+      : "";
   return [
     testCase.id,
     testCase.priority,
@@ -123,7 +134,7 @@ export function projectRow(testCase: CatalogCase, options: { localRun?: boolean 
     testCase.expected,
     blockedLocally ? "Blocked" : "", // Result
     "", // Severity
-    testCase.requiresProduction ? REQUIRES_PRODUCTION_NOTE : "",
+    note,
   ];
 }
 

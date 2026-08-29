@@ -20,20 +20,44 @@ function setSearch(search: string) {
   (window.location as unknown as { search: string }).search = search ? `?${search}` : "";
 }
 
+function setHostname(hostname: string) {
+  (window.location as unknown as { hostname: string }).hostname = hostname;
+}
+
 describe("dev mock-auth role resolution", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
     setSearch("");
+    setHostname("localhost");
   });
 
   afterEach(() => {
     window.sessionStorage.clear();
     setSearch("");
+    setHostname("localhost");
   });
 
   it("accepts the current role name from the URL", () => {
     setSearch("mockAuth=steward");
     expect(hasMockAuthOverride()).toBe(true);
+  });
+
+  it("ignores the mock seam entirely on non-loopback hosts (LAN exposure guard)", () => {
+    // Vite binds host:true, so a LAN device could otherwise get production-backed
+    // views via ?mockAuth= with no credentials. Only loopback may use the seam.
+    setHostname("192.168.1.20");
+    setSearch("mockAuth=deployer");
+    expect(hasMockAuthOverride()).toBe(false);
+    window.sessionStorage.setItem(DEV_MOCK_AUTH_STORAGE_KEY, "steward");
+    expect(hasMockAuthOverride()).toBe(false);
+  });
+
+  it("accepts the seam on every loopback hostname form", () => {
+    setSearch("mockAuth=deployer");
+    for (const host of ["localhost", "127.0.0.1", "[::1]", "app.localhost"]) {
+      setHostname(host);
+      expect(hasMockAuthOverride()).toBe(true);
+    }
   });
 
   it("still accepts the former `operator` name from a saved QA link", () => {

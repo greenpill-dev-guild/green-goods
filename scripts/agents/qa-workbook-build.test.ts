@@ -121,6 +121,14 @@ describe("projectRow", () => {
     expect(projectRow(testCase)[5]).toBe(""); // production-run sheets stay executable
     expect(projectRow(makeCase(), { localRun: true })[5]).toBe(""); // local cases unaffected
   });
+
+  it("pre-marks requiresDevice cases Blocked locally with the device note", () => {
+    const testCase = makeCase({ requiresDevice: true });
+    const localRow = projectRow(testCase, { localRun: true });
+    expect(localRow[5]).toBe("Blocked");
+    expect(localRow[7]).toContain("real installed device");
+    expect(projectRow(testCase)[5]).toBe(""); // executable on a real device run
+  });
 });
 
 describe("groupByArea", () => {
