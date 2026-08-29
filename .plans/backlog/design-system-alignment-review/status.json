@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-04-25T05:11:42.581Z",
-    "updated_at": "2026-08-29T20:55:37.862Z"
+    "updated_at": "2026-08-29T21:24:32.440Z"
   },
   "links": {
     "brief": "brief.md",
@@ -128,6 +128,14 @@
       "status": "in_progress",
       "branch": "claude/ui/design-system-alignment-review",
       "note": "Round 2 guard step landed (14eef2880): four blind-spot guards in check-tokens.sh over the audited baseline; 85 debt lines baselined to 2026-12-31; RED/GREEN proof recorded in plan.todo.md"
+    },
+    {
+      "timestamp": "2026-08-29T21:24:32.440Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Round 2 shadow-ladder migration landed (99ef12b11): ladder deleted, 11 consumers on --m3-elevation-*, reappearance guard RED-proven, 11 baseline entries burned (198 rows remain), dist-verified"
     }
   ],
   "taxonomy": {
