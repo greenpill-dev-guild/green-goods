@@ -256,8 +256,10 @@ Fast, honest sessions depend on the environment being set up deliberately:
   re-optimization full-reload just ate the current flow; note it and repair the
   `optimizeDeps.include` drift after the session.
 - **Identity**: real steward identity via wallet connect in the authenticated Brave profile for
-  write flows; `?mockAuth=steward` for fast read-only rendering of real production data (all
-  writes no-op); `?presentation=pwa` once per tab for the PWA shell on desktop. **Passkey
+  write flows; `?mockAuth=deployer` for fast read-only rendering of real production data (all
+  writes no-op — verified against the production indexer; `?mockAuth=steward` resolves to an
+  address with no garden assignment and only proves the no-access gate);
+  `?presentation=pwa` once per tab for the PWA shell on desktop. **Passkey
   ceremonies cannot run on localhost** — the RP ID is `greengoods.app`, so passkey cases are
   `Blocked` locally by design and run against production installs instead.
 - **Port ownership**: 3001/3002 are strict-port with no worktree offset — real-time fixes must

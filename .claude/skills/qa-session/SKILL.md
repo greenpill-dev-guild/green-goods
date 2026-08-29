@@ -209,14 +209,22 @@ Per accepted fix (or batched in a fix window):
    header (commit, branch, surfaces, gardens, identities, write boundary), catalog cases
    exercised with result counts, OBS totals by disposition, fix list (OBS → commit SHA →
    revalidated), deferred list, locked DL IDs, environment notes (watchdog trips,
-   dep-optimization reloads, restarts), remaining risk. Before ANY upload, run qa-triage's
-   privacy grep (replay URLs, session IDs, distinct IDs, `0x` addresses, reporter identifiers)
-   over **every artifact leaving the machine — `receipt.md`, `results.csv`, and any captured
-   evidence (screenshots, recordings) in the session directory** — on a match, redact it or
-   stop; an unresolved match fails closed with no upload. Then verify the destination **Drive QA
-   folder next to the Green Goods v1.1 QA Sheet** is access-restricted (not link-public — same
-   check as qa-triage Phase 0) and upload the receipt, results, and evidence files there. These
-   artifacts carry per-case results and identities: **never commit them to the public repo.**
+   dep-optimization reloads, restarts), remaining risk. Before ANY upload, every artifact
+   leaving the machine passes a **media-appropriate** privacy check — the text grep cannot see
+   pixels, and Drive access restriction never replaces content inspection:
+   - **Text artifacts** (`receipt.md`, `results.csv`, logs): qa-triage's privacy grep (replay
+     URLs, session IDs, distinct IDs, `0x` addresses, reporter identifiers) — on a match,
+     redact or stop.
+   - **Media artifacts** (screenshots, recordings): explicit VISUAL inspection — the agent
+     re-opens each captured image and checks its rendered content for wallet addresses,
+     session/replay values, or reporter identity, listing anything found for redaction or
+     exclusion; media it cannot inspect (e.g. video it cannot review) is named to the user for
+     manual review before upload.
+   Any artifact with an unresolved finding fails closed — no upload. Then verify the
+   destination **Drive QA folder next to the Green Goods v1.1 QA Sheet** is access-restricted
+   (not link-public — same check as qa-triage Phase 0) and upload the receipt, results, and
+   cleared evidence files there. These artifacts carry per-case results and identities:
+   **never commit them to the public repo.**
 6. **Ship.** Full `bun run validation:plan -- --intent review` on the accumulated branch, then
    the [`ship`](../ship/SKILL.md) skill for the push/PR decision. Delete
    `tmp/qa-session/<slug>/` only after the handoff completed AND every retained artifact

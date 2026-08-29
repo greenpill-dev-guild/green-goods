@@ -19,7 +19,7 @@
  * cannot run installs/passkey ceremonies); omit it for production-run sheets.
  */
 
-import { closeSync, mkdirSync, openSync, readFileSync } from "node:fs";
+import { closeSync, mkdirSync, openSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -462,12 +462,21 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   const date = new Date().toISOString().slice(0, 10);
+  const reservedDefault = !args.out;
   const outPath = args.out
     ? path.resolve(args.out)
     : reserveOutputPath(
         path.resolve(scriptDir, "..", "..", "tmp", "qa", `green-goods-qa-test-sheet-${date}.xlsx`),
       );
-  await writeWorkbook(catalog, cases, outPath, { localRun: args.local });
+  try {
+    await writeWorkbook(catalog, cases, outPath, { localRun: args.local });
+  } catch (error) {
+    // A failed generation must not leave the empty/partial reservation behind:
+    // later runs would suffix past it and the stale file could be mistaken for
+    // a real run sheet. Explicit --out paths are the user's to manage.
+    if (reservedDefault) rmSync(outPath, { force: true });
+    throw error;
+  }
   const tabCounts = catalog.tabs
     .map((tab) => ({ tab, count: cases.filter((c) => c.tab === tab).length }))
     .filter(({ count }) => count > 0)
