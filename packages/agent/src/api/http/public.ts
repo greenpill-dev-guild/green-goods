@@ -60,7 +60,8 @@ export function checkRateLimitWithPolicy(
     route === "join_request_create" ||
     route === "join_request_read" ||
     route === "join_request_resolve";
-  if (isJoinRequestRoute) {
+  const usesOriginIndependentKeys = isJoinRequestRoute || route === "garden_impact_read";
+  if (usesOriginIndependentKeys) {
     const aggregateRoute = route === "join_request_create" ? "join_request_create_ip" : route;
     const aggregateIpResult = limiter.check(
       publicIpMaterialRateLimitKey({
@@ -93,7 +94,7 @@ export function checkRateLimitWithPolicy(
       });
     }
   }
-  const key = isJoinRequestRoute
+  const key = usesOriginIndependentKeys
     ? publicIpMaterialRateLimitKey({
         route,
         request: c.req.raw,

@@ -1,4 +1,5 @@
 import { createCipheriv, createDecipheriv, createHmac, randomBytes, randomUUID } from "node:crypto";
+import type { Address } from "@green-goods/shared/public-contracts";
 import type {
   GardenJoinRequestedVia,
   GardenJoinRequestKind,
@@ -6,7 +7,6 @@ import type {
   GardenJoinRequestSelfRecord,
   GardenJoinRequestState,
 } from "@green-goods/shared/public-contracts/join-requests";
-import type { Address } from "@green-goods/shared/types";
 
 export const GARDEN_JOIN_REQUEST_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 export const GARDEN_JOIN_REQUEST_MAX_PENDING_PER_GARDEN = 100;

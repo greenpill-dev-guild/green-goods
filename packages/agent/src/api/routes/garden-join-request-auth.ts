@@ -7,7 +7,7 @@ import {
   type GardenJoinProofEnvelope,
   type GardenJoinRequestApiErrorCode,
 } from "@green-goods/shared/public-contracts/join-requests";
-import type { Address } from "@green-goods/shared/types";
+import type { Address } from "@green-goods/shared/public-contracts";
 import type { Context } from "hono";
 import type { GardenJoinRequestStore } from "../../services/garden-join-requests";
 import { checkOrigin, publicBrowserCorsResponse } from "../http/public";

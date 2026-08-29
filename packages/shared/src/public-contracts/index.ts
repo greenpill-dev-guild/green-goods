@@ -10,6 +10,19 @@ import {
 
 export { derivePublicGardenSlug } from "./garden-slug";
 export {
+  PUBLIC_GARDEN_IMPACT_DEFAULT_RECENT_LIMIT,
+  PUBLIC_GARDEN_IMPACT_DOMAINS,
+  PUBLIC_GARDEN_IMPACT_MAX_RECENT_LIMIT,
+  PUBLIC_GARDEN_IMPACT_VERSION,
+  type PublicGardenImpactActionBreakdown,
+  type PublicGardenImpactCount,
+  type PublicGardenImpactDomain,
+  type PublicGardenImpactDomainBreakdown,
+  type PublicGardenImpactRecentWork,
+  type PublicGardenImpactResponseV1,
+  type PublicGardenImpactSource,
+} from "./garden-impact";
+export {
   createPublicImpactSlice,
   PUBLIC_IMPACT_DEFAULT_PAGE_SIZE,
   PUBLIC_IMPACT_GARDEN_FETCH_CAP,
@@ -19,7 +32,7 @@ export {
   type PublicImpactGardenSource,
   type PublicImpactSlice,
 } from "./public-impact";
-export { PUBLIC_AGENT_ROUTES } from "./routes";
+export { buildPublicGardenImpactPath, PUBLIC_AGENT_ROUTES } from "./routes";
 
 export {
   PUBLIC_UPLOAD_SIGN_ALLOWED_CATEGORIES,

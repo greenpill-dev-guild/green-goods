@@ -3,7 +3,7 @@ title: API Index
 slug: /builders/packages/api-index
 audience: developer
 owner: docs
-last_verified: 2026-02-18
+last_verified: 2026-08-28
 feature_status: Live
 goal: "Locate canonical endpoints and schema sources without ambiguity."
 difficulty: "advanced"
@@ -14,6 +14,8 @@ persona_context: "Developers and maintainers building, operating, and validating
 source_of_truth:
   - docs/src/data/endpoints.ts
   - packages/indexer/config.yaml
+  - packages/shared/src/public-contracts/garden-impact.ts
+  - packages/agent/src/api/routes/public-garden-impact.ts
   - packages/contracts/deployments/42161-latest.json
 ---
 
@@ -38,15 +40,40 @@ import {INDEXER_ENDPOINT, EAS_GRAPHQL_ENDPOINTS} from "@site/src/data/endpoints"
 - `packages/contracts/deployments/11155111-latest.json`
 - `packages/contracts/config/schemas.json` (read-only source)
 
+## Public garden impact
+
+`GET /public/gardens/:chainId/:gardenAddress/impact?recentLimit=3`
+
+The Agent aggregates one publicly visible garden's Work, Work Approval, Action, Assessment, and
+Hypercert records. The response contract is versioned independently from the frontend impact
+archive. Supported chains are Arbitrum (`42161`) and Sepolia (`11155111`). Celo (`42220`) remains
+unsupported until its public Garden, Action, and Hypercert indexer sources are available. Values
+above 12 for `recentLimit` are clamped to 12.
+
+The response's `garden.url` is a canonical self-link keyed by chain ID and checksummed Garden
+address. Garden identity is verified against the chain's token-bound account registry, so the same
+address on another chain cannot resolve through an indexer collision. Consumers should use the URL
+instead of deriving an identity from the nullable Garden name.
+
+An approved Work count means **protocol-approved**: at least one positive, nonrevoked Work Approval
+exists. It does not assess submission quality or independently validate the supporting material.
+
+Counts are `null` when their required source or schema is unavailable. Check `provenance.status`,
+`partialData`, and `unavailableSources` before interpreting a partial response. A successful empty
+source returns zero instead. The endpoint is implemented in the Agent source; deploying it is a
+separate release step.
+
 ## Shared package integration entry points
 
 - `packages/shared/src/modules/data/eas.ts`
+- `packages/shared/src/modules/data/public-garden-impact-readers.ts`
 - `packages/shared/src/hooks/index.ts`
 
 ## Notes
 
 1. Always select chain context before querying schema-scoped data.
 2. Work and approval schema IDs must come from deployment artifacts for the same chain.
+3. Do not substitute an unsupported chain with a default chain when resolving public impact.
 
 <NextBestAction
   title="Next best action"

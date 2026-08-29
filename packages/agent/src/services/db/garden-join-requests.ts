@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import type { Address } from "@green-goods/shared/types";
+import type { Address } from "@green-goods/shared/public-contracts";
 import {
   decryptGardenJoinRequestRecord,
   GARDEN_JOIN_REQUEST_MAX_PENDING_PER_GARDEN,
