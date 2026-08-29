@@ -25,7 +25,7 @@ The skill **always** uses the column order read from the Sheet, not the order in
 
 Phase 0 confirms all tabs above exist. If any is missing, fail loud — don't write to a partial workbook.
 
-A `Docs` surface exists upstream in the catalog and in generated run sheets; it is **not yet Phase 0-required** here. If this Sheet gains a `Docs` test tab, create it in this Sheet's own 20-column schema from the catalog definitions (the generated run sheet uses a simplified 8-column layout — do not paste it here), then add it to the table above.
+A `Docs` surface exists upstream in the catalog and in generated run sheets; it is **not yet Phase 0-required** here. If this Sheet gains a `Docs` test tab, create it in this Sheet's own 20-column schema from the catalog definitions (the generated run sheet uses a simplified 8-column layout — do not paste it here), then add it to the table above. **Until that tab exists, Phase 5 must not emit `sheet-test-backfill.csv` rows targeting `Docs`** — a backfill against a missing tab cannot be applied. For a Defects row whose `Linked Test ID` is a `DOCS-*` case, keep the Test ID on the Defects row and skip the test-tab backfill.
 
 ---
 

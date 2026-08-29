@@ -103,7 +103,7 @@ Run before the user starts walking. Print the checklist results compactly; stop 
 6. **Workspace — no branch changes.** Clean tree required. Define the session slug ONCE:
    `<slug>` = `YYYY-MM-DD`, with a `-2`/`-3` suffix if `tmp/qa-session/<slug>/` already exists —
    and reuse that exact slug for every artifact this session (directory, log, results, receipt,
-   handoff, and any branch created later). Create `tmp/qa-session/<slug>/` and open
+   handoff). Create `tmp/qa-session/<slug>/` and open
    `qa-session-<slug>.md` with the header: commit SHA, branch, surfaces in scope, gardens,
    identity modes, write boundary, and the in-scope catalog case IDs. The session **stays on the
    current branch** — per `AGENTS.md § Multi-Agent Repo Safety`, never create or switch branches
@@ -111,8 +111,9 @@ Run before the user starts walking. Print the checklist results compactly; stop 
    accepted fix (Phase 3), not at session start.
 7. **Walk checklist (optional).** Read `scripts/data/qa-test-catalog.json`, print the in-scope
    case IDs + scenarios as the walk checklist (`--surface`/`--cases` filters). A generated
-   workbook (`bun run qa:workbook`) is the durable results artifact; the checklist is the
-   in-session view of the same rows.
+   run sheet (`bun run qa:workbook --local` for local sessions — pre-marks `requiresProduction`
+   cases `Blocked`; omit `--local` for production-run sheets) is the durable results artifact;
+   the checklist is the in-session view of the same rows.
 
 ## Phase 1 — Capture
 
@@ -162,9 +163,12 @@ surface) — their choice, per item or standing.
 ## Phase 3 — Fix-now loop
 
 **Branch decision (first accepted fix only):** if the current branch is `develop` or `main`, ask
-the user once for the branch action (e.g. create `fix/qa-session-<slug>`) and proceed only on
-their explicit yes — never create or switch branches without that ask. On an existing work
-branch, commit there.
+the user once for the branch action and proceed only on their explicit yes — never create or
+switch branches without that ask. Propose a name describing the WORK, derived from the first
+accepted fix per `AGENTS.md § Branch + PR` (`fix/<work-description>`, e.g.
+`fix/pin-review-dialog-actions`) — never a session/date/orchestration name like
+`fix/qa-session-…`. Session traceability lives in the commit messages (`OBS-NN` refs), not the
+branch name. On an existing work branch, commit there.
 
 Per accepted fix (or batched in a fix window):
 
@@ -182,14 +186,16 @@ Per accepted fix (or batched in a fix window):
 
 1. **Disposition sweep.** Every OBS must end `fixed | deferred | answered | decision | blocked |
    dropped`. No silent items.
-2. **Deferred handoff.** Do not re-implement qa-triage. The session log is shaped so its Phase 2
-   parses items 1:1 (numbered, typed, surfaced, verbatim-quoted, exact `case:` IDs). Run
-   `/qa-triage tmp/qa-session/<slug>/qa-session-<slug>.md --no-codex` — the slugged filename
-   gives each handoff its own qa-triage workspace (a bare `session.md` would collide every run),
-   and the Codex dual-extraction pass exists for messy meeting notes; this input is
-   agent-authored and structured. qa-triage's PostHog cross-ref, scope lock, Linear templates,
-   and Sheet Defects flow run unchanged. If the user is out of time, the handoff command is the
-   named next step in the receipt.
+2. **Deferred handoff — deferred items ONLY.** Do not re-implement qa-triage, and do not hand it
+   the full session log: qa-triage files every parsed item and does not understand session
+   dispositions, so fixed/answered/dropped observations would be re-filed as duplicates.
+   Generate `tmp/qa-session/<slug>/deferred-<slug>.md` containing only the OBS entries whose
+   disposition is `deferred` (same numbered/typed/verbatim format, exact `case:` IDs), then run
+   `/qa-triage tmp/qa-session/<slug>/deferred-<slug>.md --no-codex` — the slugged filename gives
+   each handoff its own qa-triage workspace, and the Codex dual-extraction pass exists for messy
+   meeting notes; this input is agent-authored and structured. qa-triage's PostHog cross-ref,
+   scope lock, Linear templates, and Sheet Defects flow run unchanged. If the user is out of
+   time, the handoff command is the named next step in the receipt.
 3. **Results rows.** For every catalog case exercised, append to
    `tmp/qa-session/<slug>/results.csv`: `Test ID, Result (Pass|Fail|Blocked|N/A), Severity,
    Notes` — matching the run sheet's result columns (build/commit lives once in the receipt
@@ -205,15 +211,17 @@ Per accepted fix (or batched in a fix window):
    revalidated), deferred list, locked DL IDs, environment notes (watchdog trips,
    dep-optimization reloads, restarts), remaining risk. Before ANY upload, run qa-triage's
    privacy grep (replay URLs, session IDs, distinct IDs, `0x` addresses, reporter identifiers)
-   over **both `receipt.md` and `results.csv`** — on a match, redact it or stop; an unresolved
-   match fails closed with no upload. Then verify the destination **Drive QA folder next to the
-   Green Goods v1.1 QA Sheet** is access-restricted (not link-public — same check as qa-triage
-   Phase 0) and upload both files there. These artifacts carry per-case results and identities:
-   **never commit them to the public repo.**
+   over **every artifact leaving the machine — `receipt.md`, `results.csv`, and any captured
+   evidence (screenshots, recordings) in the session directory** — on a match, redact it or
+   stop; an unresolved match fails closed with no upload. Then verify the destination **Drive QA
+   folder next to the Green Goods v1.1 QA Sheet** is access-restricted (not link-public — same
+   check as qa-triage Phase 0) and upload the receipt, results, and evidence files there. These
+   artifacts carry per-case results and identities: **never commit them to the public repo.**
 6. **Ship.** Full `bun run validation:plan -- --intent review` on the accumulated branch, then
    the [`ship`](../ship/SKILL.md) skill for the push/PR decision. Delete
-   `tmp/qa-session/<slug>/` only after the handoff completed; keep it for resume on failure or
-   interruption.
+   `tmp/qa-session/<slug>/` only after the handoff completed AND every retained artifact
+   (receipt, results, screenshots/recordings) is uploaded — deleting first destroys the visual
+   proof behind filed defects. Keep the directory for resume on failure or interruption.
 
 ## Batch mode (recorded transcript)
 

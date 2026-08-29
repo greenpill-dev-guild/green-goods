@@ -101,6 +101,7 @@
     "indexer:db:down": "cd packages/indexer && bun run db:down",
     "indexer:reset": "cd packages/indexer && bun run reset",
     "qa:workbook": "bun scripts/agents/qa-workbook-build.ts",
+    "test:agent-tools": "bun --bun x vitest run --dir scripts/agents",
     "dev:contracts": "cd packages/contracts && bun run dev",
     "dev:contracts:arbitrum-fork": "cd packages/contracts && bun run dev:arbitrum-fork",
     "verify:contracts:arbitrum-fork": "bun run --cwd packages/contracts verify:arbitrum-fork",

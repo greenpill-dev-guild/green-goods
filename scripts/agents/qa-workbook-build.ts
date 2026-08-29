@@ -13,10 +13,13 @@
  * results and belong in the private Drive QA folder.
  *
  *   bun run qa:workbook [--surface <tab|alias>[,...]] [--cases <ID>[,...]]
- *                       [--tag <tag>[,...]] [--out <path>]
+ *                       [--tag <tag>[,...]] [--local] [--out <path>]
+ *
+ * --local marks requiresProduction cases Blocked up front (localhost sessions
+ * cannot run installs/passkey ceremonies); omit it for production-run sheets.
  */
 
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { closeSync, mkdirSync, openSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -105,15 +108,20 @@ export function howToCheck(testCase: CatalogCase): string {
   return lines.join("\n");
 }
 
-/** One catalog case -> the 8-cell run-sheet row. Result columns stay empty. */
-export function projectRow(testCase: CatalogCase): string[] {
+/**
+ * One catalog case -> the 8-cell run-sheet row. Result columns stay empty,
+ * except in a --local run, where requiresProduction cases are pre-marked
+ * Blocked so the Overview counts carry the known blocks without manual entry.
+ */
+export function projectRow(testCase: CatalogCase, options: { localRun?: boolean } = {}): string[] {
+  const blockedLocally = Boolean(options.localRun && testCase.requiresProduction);
   return [
     testCase.id,
     testCase.priority,
     testCase.scenario,
     howToCheck(testCase),
     testCase.expected,
-    "", // Result
+    blockedLocally ? "Blocked" : "", // Result
     "", // Severity
     testCase.requiresProduction ? REQUIRES_PRODUCTION_NOTE : "",
   ];
@@ -148,17 +156,34 @@ export function resolveSurfaceFilter(raw: string, knownTabs: string[]): string[]
 
 /**
  * Run sheets can hold entered results — a second generation on the same date
- * must never silently replace one. The default output path gets a -2/-3 suffix
- * on collision; an explicit --out is taken as the user's deliberate choice.
+ * must never silently replace one, even from a concurrent process. The default
+ * output path is RESERVED atomically: each candidate is claimed with an
+ * exclusive create (O_EXCL), so two racing generators can never both select the
+ * same file; the loser moves to the next -2/-3 suffix. An explicit --out is
+ * taken as the user's deliberate choice and is not reserved.
  */
-export function collisionSafePath(basePath: string, exists: (p: string) => boolean = existsSync): string {
-  if (!exists(basePath)) return basePath;
+function tryExclusiveCreate(candidate: string): boolean {
+  mkdirSync(path.dirname(candidate), { recursive: true });
+  try {
+    closeSync(openSync(candidate, "wx"));
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") return false;
+    throw error;
+  }
+}
+
+export function reserveOutputPath(
+  basePath: string,
+  reserve: (p: string) => boolean = tryExclusiveCreate,
+): string {
+  if (reserve(basePath)) return basePath;
   const dir = path.dirname(basePath);
   const ext = path.extname(basePath);
   const stem = path.basename(basePath, ext);
   for (let n = 2; ; n++) {
     const candidate = path.join(dir, `${stem}-${n}${ext}`);
-    if (!exists(candidate)) return candidate;
+    if (reserve(candidate)) return candidate;
   }
 }
 
@@ -248,6 +273,7 @@ async function writeWorkbook(
   catalog: Catalog,
   cases: CatalogCase[],
   outPath: string,
+  options: { localRun?: boolean } = {},
 ): Promise<void> {
   const { default: ExcelJS } = await import("exceljs");
   const workbook = new ExcelJS.Workbook();
@@ -289,7 +315,7 @@ async function writeWorkbook(
       areaRow.height = 20;
 
       for (const testCase of group.cases) {
-        const row = sheet.addRow(projectRow(testCase));
+        const row = sheet.addRow(projectRow(testCase, options));
         if (firstCaseRow === 0) firstCaseRow = row.number;
         lastCaseRow = row.number;
         row.alignment = { vertical: "top" };
@@ -394,8 +420,9 @@ function parseArgs(argv: string[]): {
   cases?: string[];
   tags?: string[];
   out?: string;
+  local?: boolean;
 } {
-  const parsed: { surface?: string; cases?: string[]; tags?: string[]; out?: string } = {};
+  const parsed: { surface?: string; cases?: string[]; tags?: string[]; out?: string; local?: boolean } = {};
   for (let index = 0; index < argv.length; index++) {
     const flag = argv[index];
     const value = argv[index + 1];
@@ -411,6 +438,8 @@ function parseArgs(argv: string[]): {
     } else if (flag === "--out" && value) {
       parsed.out = value;
       index++;
+    } else if (flag === "--local") {
+      parsed.local = true;
     } else {
       throw new Error(`unknown argument '${flag}' — see the header comment for usage`);
     }
@@ -435,10 +464,10 @@ async function main(): Promise<void> {
   const date = new Date().toISOString().slice(0, 10);
   const outPath = args.out
     ? path.resolve(args.out)
-    : collisionSafePath(
+    : reserveOutputPath(
         path.resolve(scriptDir, "..", "..", "tmp", "qa", `green-goods-qa-test-sheet-${date}.xlsx`),
       );
-  await writeWorkbook(catalog, cases, outPath);
+  await writeWorkbook(catalog, cases, outPath, { localRun: args.local });
   const tabCounts = catalog.tabs
     .map((tab) => ({ tab, count: cases.filter((c) => c.tab === tab).length }))
     .filter(({ count }) => count > 0)

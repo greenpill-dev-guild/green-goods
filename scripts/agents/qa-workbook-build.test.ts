@@ -1,14 +1,18 @@
 import { describe, expect, it } from "vitest";
 
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
 import {
   type Catalog,
   type CatalogCase,
-  collisionSafePath,
   filterCases,
   groupByArea,
   howToCheck,
   loadCatalog,
   projectRow,
+  reserveOutputPath,
   resolveSurfaceFilter,
   RUN_SHEET_COLUMNS,
   validateCatalog,
@@ -110,6 +114,13 @@ describe("projectRow", () => {
     const row = projectRow(makeCase({ requiresProduction: true }));
     expect(row[7]).toContain("Can't run on localhost");
   });
+
+  it("pre-marks requiresProduction cases Blocked only in local runs", () => {
+    const testCase = makeCase({ requiresProduction: true });
+    expect(projectRow(testCase, { localRun: true })[5]).toBe("Blocked");
+    expect(projectRow(testCase)[5]).toBe(""); // production-run sheets stay executable
+    expect(projectRow(makeCase(), { localRun: true })[5]).toBe(""); // local cases unaffected
+  });
 });
 
 describe("groupByArea", () => {
@@ -143,18 +154,29 @@ describe("filterCases", () => {
   });
 });
 
-describe("collisionSafePath", () => {
-  it("keeps the path when nothing exists there", () => {
-    expect(collisionSafePath("/tmp/qa/sheet-2026-08-31.xlsx", () => false)).toBe(
-      "/tmp/qa/sheet-2026-08-31.xlsx",
-    );
-  });
-
-  it("suffixes -2, -3 instead of overwriting an existing run sheet", () => {
-    const existing = new Set(["/tmp/qa/sheet-2026-08-31.xlsx", "/tmp/qa/sheet-2026-08-31-2.xlsx"]);
-    expect(collisionSafePath("/tmp/qa/sheet-2026-08-31.xlsx", (p) => existing.has(p))).toBe(
+describe("reserveOutputPath", () => {
+  it("returns the first candidate the reserver claims, suffixing past losses", () => {
+    const claimed = new Set(["/tmp/qa/sheet-2026-08-31.xlsx", "/tmp/qa/sheet-2026-08-31-2.xlsx"]);
+    const reserve = (p: string) => !claimed.has(p);
+    expect(reserveOutputPath("/tmp/qa/sheet-2026-08-31.xlsx", reserve)).toBe(
       "/tmp/qa/sheet-2026-08-31-3.xlsx",
     );
+    expect(reserveOutputPath("/tmp/qa/fresh.xlsx", reserve)).toBe("/tmp/qa/fresh.xlsx");
+  });
+
+  it("claims the path on disk with an exclusive create so a racer cannot reuse it", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "qa-reserve-"));
+    try {
+      const base = path.join(dir, "sheet.xlsx");
+      const first = reserveOutputPath(base);
+      expect(first).toBe(base);
+      expect(existsSync(first)).toBe(true); // the reservation itself creates the file
+      const second = reserveOutputPath(base);
+      expect(second).toBe(path.join(dir, "sheet-2.xlsx"));
+      expect(existsSync(second)).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 
