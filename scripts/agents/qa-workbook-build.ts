@@ -260,6 +260,18 @@ export function validateCatalog(catalog: Catalog): string[] {
       }
       if (!testCase.expected.trim()) problems.push(`${testCase.id}: empty expected`);
       if (!testCase.scenario.trim()) problems.push(`${testCase.id}: empty scenario`);
+      // Installed-PWA rows declare a device platform; a desktop-local pass can
+      // never prove them, so every case on these tabs must carry a capability
+      // flag that pre-blocks it in --local run sheets.
+      if (
+        (testCase.tab === "PWA iOS" || testCase.tab === "PWA Android") &&
+        !testCase.requiresProduction &&
+        !testCase.requiresDevice
+      ) {
+        problems.push(
+          `${testCase.id}: installed-PWA case must set requiresProduction or requiresDevice`,
+        );
+      }
     }
   }
   return problems;

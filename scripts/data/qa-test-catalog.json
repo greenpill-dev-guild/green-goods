@@ -369,6 +369,7 @@
       "role": "steward",
       "tags": ["review", "roles"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "sheet-v1.1"
     },
@@ -386,6 +387,7 @@
       "role": "steward",
       "tags": ["review", "roles"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "sheet-v1.1"
     },
@@ -403,6 +405,7 @@
       "role": "gardener",
       "tags": ["permissions", "roles"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "sheet-v1.1"
     },
@@ -450,6 +453,7 @@
       "role": "gardener",
       "tags": ["commitments", "recovery", "wallet"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "mdx-matrix"
     },
@@ -472,6 +476,7 @@
       "role": "gardener",
       "tags": ["assessments", "navigation"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "mdx-matrix"
     },
@@ -495,6 +500,7 @@
       "role": "any",
       "tags": ["profile", "i18n", "auth"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "mdx-matrix"
     },
@@ -562,6 +568,7 @@
       "role": "gardener",
       "tags": ["upload", "validation", "duplicate-protection"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "drive-test-cases-2025-12"
     },
@@ -673,6 +680,7 @@
       "role": "steward",
       "tags": ["review", "roles"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "sheet-v1.1"
     },
@@ -690,6 +698,7 @@
       "role": "steward",
       "tags": ["review", "roles"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "sheet-v1.1"
     },
@@ -707,6 +716,7 @@
       "role": "gardener",
       "tags": ["permissions", "roles"],
       "requiresProduction": false,
+      "requiresDevice": true,
       "status": "active",
       "source": "sheet-v1.1"
     },

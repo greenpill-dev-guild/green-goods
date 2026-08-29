@@ -317,7 +317,7 @@ The next run reads this file at Phase 0 and uses it to *propose* better defaults
 **Sheet payloads**:
 
 - `sheet-rows.csv` — one Defects row per filed item (skip `tracker-known` items). Match the Sheet's actual column order from `~/.config/qa-triage/cache.json`. Auto-generate `Defect ID` as `D-NNN` from the highest existing ID + 1.
-- `sheet-test-backfill.csv` — one row per Defects row that has a non-empty `Linked Test ID`, shaped `<tab>,<Test ID>,<Defect ID>`. Phase 6 fills the matching test row's `Defect Link` column **only** — never touches `Result`, `Severity`, `QA Owner`, or any other test column.
+- `sheet-test-backfill.csv` — one row per Defects row that has a non-empty `Linked Test ID`, shaped `<tab>,<Test ID>,<Defect ID>` — **except `DOCS-*` Test IDs: emit no backfill row for them** (the Sheet has no `Docs` test tab yet, so the backfill could not be applied; the Test ID stays on the Defects row — see `sheet-schema.md § Workbook tabs`). Phase 6 fills the matching test row's `Defect Link` column **only** — never touches `Result`, `Severity`, `QA Owner`, or any other test column.
 
 Severity defaults for the Defects row:
 - `P0` — PostHog confirms ≥50 sessions in 30d OR the call flagged it as release-blocking.

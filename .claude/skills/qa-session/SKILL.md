@@ -229,8 +229,12 @@ Per accepted fix (or batched in a fix window):
    (not link-public — same check as qa-triage Phase 0) and upload the receipt, results, and
    cleared evidence files there. These artifacts carry per-case results and identities:
    **never commit them to the public repo.**
-6. **Ship.** Full `bun run validation:plan -- --intent review` on the accumulated branch, then
-   the [`ship`](../ship/SKILL.md) skill for the push/PR decision. Delete
+6. **Ship — only when the session changed the repo.** If the session produced commits, run the
+   full `bun run validation:plan -- --intent review` on the accumulated branch, then the
+   [`ship`](../ship/SKILL.md) skill for the push/PR decision. A session with no repository
+   changes (all-pass, or every observation deferred) has nothing to ship: skip the push/PR path
+   entirely — the receipt, results, and handoff complete the session, and `ship` would rightly
+   refuse to run on an unchanged `develop`. Delete
    `tmp/qa-session/<slug>/` only after the handoff completed AND every retained artifact
    (receipt, results, screenshots/recordings) is uploaded — deleting first destroys the visual
    proof behind filed defects. Keep the directory for resume on failure or interruption.

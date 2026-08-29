@@ -73,9 +73,17 @@ describe("validateCatalog", () => {
     expect(problems.some((problem) => problem.includes("empty steps"))).toBe(true);
   });
 
+  it("requires a capability flag on every installed-PWA case", () => {
+    const unflagged = makeCase({ id: "PWA-IOS-099", tab: "PWA iOS" });
+    const flagged = makeCase({ id: "PWA-IOS-098", tab: "PWA iOS", requiresDevice: true });
+    const problems = validateCatalog({ version: 1, tabs, cases: [unflagged, flagged] });
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/PWA-IOS-099.*requiresProduction or requiresDevice/);
+  });
+
   it("allows the PWA-ROLE- prefix on both PWA tabs only", () => {
-    const onIos = makeCase({ id: "PWA-ROLE-001", tab: "PWA iOS" });
-    const onAndroid = makeCase({ id: "PWA-ROLE-004", tab: "PWA Android" });
+    const onIos = makeCase({ id: "PWA-ROLE-001", tab: "PWA iOS", requiresDevice: true });
+    const onAndroid = makeCase({ id: "PWA-ROLE-004", tab: "PWA Android", requiresDevice: true });
     const onAdmin = makeCase({ id: "PWA-ROLE-009", tab: "Admin Dashboard" });
     expect(validateCatalog({ version: 1, tabs, cases: [onIos, onAndroid] })).toEqual([]);
     expect(validateCatalog({ version: 1, tabs, cases: [onAdmin] })).not.toEqual([]);
