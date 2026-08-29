@@ -903,8 +903,11 @@ test("parent-only lane sync suppresses active lane issue actions and warnings", 
     assert.match(manifest.parent.description, /Lanes are not mirrored as child issues/);
     // The parent record carries state and priority only — milestone, due date,
     // and blocker relations live on lane records, which parent_only never
-    // creates. The body must not promise them here.
+    // creates. The body must not promise them here. Its Linear state is
+    // stage-derived, so it must not claim to carry the overall status either.
     assert.doesNotMatch(manifest.parent.description, /dates,? and dependencies live on this issue/);
+    assert.match(manifest.parent.description, /The plan hub owns the overall status/);
+    assert.doesNotMatch(manifest.parent.description, /This issue carries the overall status/);
     assert.equal(manifest.laneSyncMode, "parent_only");
     assert.deepEqual(manifest.lanes, []);
     assert.equal(manifest.warnings.some((warning) => warning.includes("Plan is missing Linear issue for lane")), false);
@@ -997,6 +1000,12 @@ test("linear-sync uses execution sub-lanes without duplicating aggregate impleme
     assert.equal(manifest.lanes[1].parentId, null);
     assert.equal(manifest.lanes[1].milestone, null);
     assert.equal(manifest.lanes[1].dueDate, "2026-09-30");
+    // A blocked lane's validated blocked_reason must reach the cold Linear
+    // reader instead of an unverified "the handoff records it" claim.
+    assert.match(
+      manifest.lanes[1].description,
+      /This lane is blocked: Definition inputs are not locked\./,
+    );
     assert.equal(manifest.lanes[1].labels.some((label) => label.startsWith("ai:")), false);
     assert.equal(manifest.lanes.some((lane) => lane.lane === "ui" || lane.lane === "state_api"), false);
     assert.deepEqual(manifest.lanes[2].milestone, { key: "build", targetDate: "2026-07-31" });

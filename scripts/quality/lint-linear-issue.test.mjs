@@ -123,6 +123,33 @@ const accepts = [
     name: "update may carry no description at all",
     input: { id: "PRD-800", title: "Allow cancelling garden edits after changing the image" },
   },
+  {
+    // Banned tokens hold for prose, not for code examples quoting them — the
+    // same describing-vs-adopting rule the fenced-metadata fixture above pins.
+    name: "fenced example quoting a banned internals token",
+    input: {
+      title: "Fix the plan hub crash on corrupted status",
+      description:
+        "Running linear-sync on a corrupted hub throws before the manifest builds.\n\n```\nTypeError: cannot read status.json#execution_sub_lanes\n```\n\nSeen on the 2026-08-27 sync run.",
+    },
+  },
+  {
+    name: "fenced example quoting a screen code",
+    input: {
+      title: "Document the screen-code map for stewards",
+      description:
+        "The retired screen codes still appear in exported notes and confuse new stewards.\n\n```\nW26 recognition-blocked\n```",
+    },
+  },
+  {
+    // Four leading spaces is indented code in Markdown, not a heading; the
+    // emoji-heading rule uses the same 0-3 space bound as the heading counter.
+    name: "indented emoji code line is not an emoji heading",
+    input: {
+      title: "Client errors spiked overnight",
+      description: "Errors spiked overnight and users see blank gardens.\n\n    ## 🔴 Counts\n99 in 24h.",
+    },
+  },
 ];
 
 for (const { name, input } of accepts) {
@@ -377,6 +404,36 @@ const rejects = [
       labels: ["plans", "build"],
     },
     expect: /words \(cap 300/,
+  },
+  {
+    // \r must count as whitespace: a CRLF-only body is as empty as no body.
+    name: "create whose body is only CRLF whitespace",
+    input: { title: "Fix the stuck cancel button", description: "\r\n\r\n" },
+    expect: /no body/,
+  },
+  {
+    // Deletions are summed across ops: each op here removes only four words,
+    // so a per-op maximum would wave the pair through while the body loses
+    // eight words with nothing replacing them.
+    name: "patch erasing the body across several small deletions",
+    input: {
+      id: "PRD-800",
+      patch: [
+        { op: "replace", old_string: "Editing a garden and", new_string: "" },
+        { op: "replace", old_string: "changing its image makes", new_string: "" },
+      ],
+    },
+    expect: /deletes 8 words of the body/,
+  },
+  {
+    // The stack rule holds on fragments: restoring a metadata stack by patch
+    // must cost the same as writing it into a fresh body.
+    name: "patch stacking metadata lines",
+    input: {
+      id: "PRD-800",
+      patch: [{ op: "append", text: "Lane: ui\nOwner: human" }],
+    },
+    expect: /Patched text stacks 2 metadata lines/,
   },
 ];
 

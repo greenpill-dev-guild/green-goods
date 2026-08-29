@@ -70,8 +70,10 @@ sentence fragment, no trailing period.
    dispatchable to Codex — it is the acceptance criteria, written plainly.
    Omit for a pure decision or discussion issue.
 3. **One evidence or source line.** A link, plus counts where telemetry is the
-   evidence. Everything else — dashboards, stack traces, repro transcripts,
-   file inventories — goes in the first comment, not the description.
+   evidence. Everything else — dashboards, repro steps, file inventories,
+   structured telemetry — goes in the first comment as redacted summaries and
+   tables, not the description. Raw output stays a linked file either way; see
+   the never-paste rule below.
 
 **Caps.**
 
@@ -83,7 +85,10 @@ sentence fragment, no trailing period.
 | Telemetry in the body | one line of counts |
 
 An umbrella tracker or roadmap issue may exceed the word ceiling when the prose
-stays plain — label it `plans` and keep the three-block order.
+stays plain — label it `plans` **plus** `architecture` (a parent titled
+`<feature> roadmap` also qualifies) and keep the three-block order. `plans`
+alone does not earn the exemption: plan-hub stamps it on every mirror, lane
+issues included, and those obey the ceiling.
 
 **Never render an empty section.** If a block has nothing to say, drop it. A
 heading followed by "—", "needs repro", or a paragraph explaining that the
@@ -95,10 +100,12 @@ issue.
 detail section repeating it, or a finding block duplicating the opening
 paragraph, is the single most common bloat in this workspace.
 
-**Never paste raw agent output** — session transcripts, tool logs, full stack
-traces, diff dumps, lane metadata (`Owner/status:`, `Source plan:`,
-`status.json#execution_sub_lanes`), screen codes (`W26`), or spec citations
-(`§5.1`). Link the file instead.
+**Never paste raw agent output — in the body or a comment.** Session
+transcripts, tool logs, full stack traces, diff dumps, lane metadata
+(`Owner/status:`, `Source plan:`, `status.json#execution_sub_lanes`), screen
+codes (`W26`), and spec citations (`§5.1`) get linked as files, never pasted.
+The first comment carries structured, redacted evidence — it is not an escape
+hatch for the dumps this rule bans.
 
 ### Worked example
 

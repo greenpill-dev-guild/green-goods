@@ -907,7 +907,15 @@ function linearProjectForStatus(status, warnings) {
 function laneOwnershipSentence(lane) {
   const parts = [];
   if (lane.status === "blocked") {
-    parts.push("This lane is blocked; the handoff records what it is waiting on.");
+    // The schema requires blocked_reason on synced blocked lanes, and the
+    // mirror is read cold — "blocked" without the why sends the reader
+    // hunting. Fall back to pointing at the handoff for legacy hubs.
+    const reason = hasText(lane.blocked_reason) ? lane.blocked_reason.trim() : null;
+    parts.push(
+      reason
+        ? `This lane is blocked: ${reason}${/[.!?]$/.test(reason) ? "" : "."}`
+        : "This lane is blocked; the handoff records what it is waiting on.",
+    );
   }
   if (lane.owner === "human") {
     parts.push("A person owns it, not an agent.");
@@ -922,14 +930,17 @@ function buildLinearParentDescription(status, laneSyncMode = DEFAULT_LINEAR_LANE
   // priority; milestone, due date, and blocker relations are emitted on lane
   // records, and in parent_only mode those records do not exist at all — so a
   // blanket "dates and dependencies live on this issue" would send a reader to
-  // a surface that does not have them.
+  // a surface that does not have them. The parent's Linear state is
+  // stage-derived (`linearStateForParent` never reads
+  // `workflow.overall_status`), so the body must not claim this issue carries
+  // the overall status either — the hub owns it.
   const whereTheRestLives = laneSyncMode === "parent_only"
     ? "Lanes are not mirrored as child issues, so lane progress, dates, and dependencies live in the hub too."
     : "Each lane's dates and dependencies sit on its own child issue.";
 
   return [
     `Tracker for the ${status.feature.title} plan, mirrored into Linear for visibility. ` +
-      "This issue carries the overall status; the scope, lane detail, and handoffs live in the plan hub. " +
+      "The plan hub owns the overall status, scope, lane detail, and handoffs. " +
       whereTheRestLives,
     "",
     `Plan hub: \`${source}\``,

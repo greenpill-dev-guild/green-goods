@@ -226,7 +226,7 @@ investigation.}
 
 **`Done when` is required whenever the anomaly is filed as `Todo` or delegated under the Codex hand-off above.** Without acceptance criteria a dispatched agent must stop at the Codex-ready gate, so an anomaly with no checkable outcome belongs in `Backlog` until someone can name one.
 
-**The full evidence goes in the first comment, not the description** — saved Insight ID, question name with bind variables, sample timestamp, and the per-garden list. The check still gathers all of it; it just lands where a reader can skip it.
+**The full evidence goes in the first comment, not the description** — saved Insight ID, question name with bind variables, sample timestamp, and the per-garden list. The check still gathers all of it; it just lands where a reader can skip it. **Privacy-grep the drafted comment (the Phase 4 string list) before posting it** — a comment is public the moment it lands, and a post-hoc edit does not unpublish it.
 
 Neither the Issue body **nor the evidence comment** carries replay URLs, session IDs, distinct IDs, wallet addresses, or any other field marked private in `posthog-questions.md`. Moving detail out of the description does not move it outside the privacy boundary — a comment is just as public. The Phase 4 privacy grep covers both.
 
@@ -318,7 +318,7 @@ Before posting:
 
 1. List every Linear Issue this run created/refreshed and confirm: unprojected on the Product team, expected canonical labels (`protocol:green-goods`, `activity:qa`, `package:*`, one `ai:*` value — `ai:routine` by default or `ai:codex` when the Issue clears the Codex-ready bar), body matches schema, no private fields.
 2. Confirm the weekly digest status update: posted to the resolved initiative, body matches the schema, health set, no private fields. Confirm NO GitHub PR, branch, or `docs/metrics/` file was created.
-3. **Privacy grep** across every Linear body (anomaly Issues + the weekly digest status update), **every evidence comment this run posted**, and the Discord post for the strings `replay`, `session_id`, `distinct_id`, `0x` (wallet addresses are public on-chain, but treat as suspect — confirm each one is a deliberate `garden_address` reference, not a `distinct_id`), full stack URLs with query strings, and any reporter identifiers. Any unintended hit means the routine leaked private context — fail loud in the `⚠ Failures this run` block and edit the offending body in place to redact before saving.
+3. **Privacy grep** across every Linear body (anomaly Issues + the weekly digest status update), **every evidence comment this run drafted or posted** (drafts are checked before Phase 2 posts them; this pass is the backstop), and the Discord post for the strings `replay`, `session_id`, `distinct_id`, `0x` (wallet addresses are public on-chain, but treat as suspect — confirm each one is a deliberate `garden_address` reference, not a `distinct_id`), full stack URLs with query strings, and any reporter identifiers. Any unintended hit means the routine leaked private context — fail loud in the `⚠ Failures this run` block and edit the offending body or comment in place to redact before saving.
 4. Confirm the Discord post and `#funding` cross-post fit the schema. Drop excess content rather than expanding sections.
 
 ## Phase 5: Discord post + cross-post

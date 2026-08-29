@@ -46,26 +46,28 @@ sent_description="$(printf '%s' "$payload" | jq -r 'if (.tool_input | has("descr
 
 # Text a `patch` edit inserts. The ops carry a fragment, never the resulting
 # document, so the cumulative caps cannot be evaluated against them — but the
-# banned-token rules can, and without this a caller could smuggle lane metadata
-# into a body by patching it instead of replacing it.
+# banned-token and metadata-stack rules can, and without this a caller could
+# smuggle lane metadata into a body by patching it instead of replacing it.
 patch_text="$(printf '%s' "$payload" | jq -r '[.tool_input.patch // [] | .[] | (.text // ""), (.new_string // "")] | join("\n")')"
 
 # Words a patch op deletes outright. Erasing a body via patch is the same
 # destructive act as sending `description: ""`, which is rejected below, and it
 # must not be cheaper to do the second way. Counted in words so a short body is
-# still protected, while dropping a stray word stays ordinary editing.
+# still protected, while dropping a stray word stays ordinary editing — and
+# summed across operations, so splitting one erase into several small
+# deletions costs the same as doing it in one.
 patch_deleted_words="$(printf '%s' "$payload" | jq -r '
   [ .tool_input.patch // []
     | .[]
     | select((.op // "") | test("^replace"))
     | select(((.new_string // "") | gsub("\\s"; "")) == "")
     | ((.old_string // .from // "") | [splits("\\s+")] | map(select(length > 0)) | length)
-  ] | max // 0')"
+  ] | add // 0')"
 
 # Nothing to judge: a property-only write. An explicitly supplied `description`
 # still counts even when empty (that is an erase), and so does a delete-only
 # patch, which has no inserted text to inspect.
-if [ -z "$title" ] && [ -z "$description" ] && [ -z "${patch_text//[$'\n\t ']/}" ] &&
+if [ -z "$title" ] && [ -z "$description" ] && [ -z "${patch_text//[$'\r\n\t ']/}" ] &&
   [ "$sent_description" = "no" ] && [ "${patch_deleted_words:-0}" -eq 0 ]; then
   exit 0
 fi
@@ -93,6 +95,11 @@ strip_fenced_code() {
     { print }
   '
 }
+
+# The lane-metadata field labels. Shared by the body rules below and the
+# patch-fragment stack check: the label is what makes a line metadata, not the
+# formatting around its value.
+meta_re='^[[:space:]]*(Source plan|Source|Status JSON|Lane|Owner/status|Owner|Handoff|Plan hub):[[:space:]]*[`.a-zA-Z0-9]'
 
 # --- Title -----------------------------------------------------------------
 # Trim first: every rule below is anchored, so an untrimmed title would slip all
@@ -125,9 +132,9 @@ fi
 # A create must carry the problem/outcome block; the contract calls it the one
 # section that is never optional. An update may touch state, labels, or
 # relations alone, so only creates are required to have a body.
-if [ "$is_update" = "no" ] && [ -z "${description//[$'\n\t ']/}" ] && [ "$has_patch" = "no" ]; then
+if [ "$is_update" = "no" ] && [ -z "${description//[$'\r\n\t ']/}" ] && [ "$has_patch" = "no" ]; then
   add "New issue has no body. Say what breaks and for whom, or what should exist and why — that block is never optional."
-elif [ "$is_update" = "yes" ] && [ "$sent_description" = "yes" ] && [ -z "${description//[$'\n\t ']/}" ]; then
+elif [ "$is_update" = "yes" ] && [ "$sent_description" = "yes" ] && [ -z "${description//[$'\r\n\t ']/}" ]; then
   add "This update erases the body. The problem/outcome block is never optional — rewrite it rather than blanking it."
 fi
 
@@ -136,25 +143,27 @@ if [ "${patch_deleted_words:-0}" -ge 5 ]; then
 fi
 
 # Rules that hold for any prose the call carries, whether it replaces the body
-# or patches into it.
+# or patches into it. Every rule reads fence-stripped prose: quoting a banned
+# token inside a code example is describing it, not adopting it, and blocking
+# the description is the expensive failure the header warns about.
 check_banned_tokens() {
   scope="$1"
   text="$2"
   [ -n "$text" ] || return 0
   prose="$(strip_fenced_code "$text")"
 
-  if printf '%s' "$text" | grep -qE 'status\.json|execution_sub_lanes|laneSyncMode|plan\.todo\.md'; then
+  if printf '%s' "$prose" | grep -qE 'status\.json|execution_sub_lanes|laneSyncMode|plan\.todo\.md'; then
     add "$scope cites plan-hub internals (status.json / execution_sub_lanes). Link the plan directory instead."
   fi
-  if printf '%s' "$text" | grep -qE '\bW[0-9]{1,2}\b'; then
+  if printf '%s' "$prose" | grep -qE '\bW[0-9]{1,2}\b'; then
     add "$scope uses screen codes (W12 and similar). Use the screen's human name."
   fi
   # The named shorthand from AGENTS.md. Deliberately NOT a bare `#\d+` ban — a
   # PR reference ("regressed in #778") is legitimate and useful.
-  if printf '%s' "$text" | grep -qE '§[0-9]'; then
+  if printf '%s' "$prose" | grep -qE '§[0-9]'; then
     add "$scope carries a spec citation (§5.1). Drop it, or link the file if the reader truly needs it."
   fi
-  if printf '%s' "$text" | grep -qiE '\bregister #[0-9]+|\bdecision[ -]log #?[0-9]+'; then
+  if printf '%s' "$prose" | grep -qiE '\bregister #[0-9]+|\bdecision[ -]log #?[0-9]+'; then
     add "$scope cites internal shorthand (register #90, decision log 4). Those live in .plans — say what it means, or link the file."
   fi
   # Empty scaffolding — the failure that produced sections reading "—" and
@@ -162,7 +171,9 @@ check_banned_tokens() {
   if printf '%s' "$prose" | grep -qiE '^[[:space:]]*([-*+]|[0-9]+\.)?[[:space:]]*(—|-|N/A|TBD|None|needs repro|needs definition|needs investigation)[[:space:]]*$'; then
     add "$scope renders an empty section placeholder. Drop the section instead — a heading with nothing under it costs the reader a stop."
   fi
-  if printf '%s\n' "$prose" | grep -E '^[[:space:]]*#{1,6}[[:space:]]' | grep -qE "($EMOJI_ALTERNATION)"; then
+  # Same 0-3 space indent bound as the heading counter: four or more spaces is
+  # indented code in Markdown, not a heading, and must not trip the emoji rule.
+  if printf '%s\n' "$prose" | grep -E '^ {0,3}#{1,6}[[:space:]]' | grep -qE "($EMOJI_ALTERNATION)"; then
     add "$scope has an emoji heading. Plain headings only."
   fi
 }
@@ -197,15 +208,13 @@ if [ -n "$description" ]; then
     add "Body has $headings headings (cap 3). Most defects need none — problem, 'Done when', one source line."
   fi
   if [ "$is_umbrella" = "no" ] && [ "$words" -gt 300 ]; then
-    add "Body is $words words (cap 300, target ~150). Move evidence dumps, repro transcripts, and file inventories into the first comment."
+    add "Body is $words words (cap 300, target ~150). Move evidence dumps, repro transcripts, and file inventories into the first comment. (Umbrella trackers labeled plans + architecture, or titled '<feature> roadmap', are exempt.)"
   fi
 
   # Lane metadata: the tokens that made plan mirrors unreadable in the
   # 2026-08-27 board audit. One trailing link line ("Handoff: `path`") is fine;
   # what broke those issues was a body that OPENED with metadata, or stacked
-  # several such lines where the problem statement should have been. The field
-  # label is what makes it metadata, not the formatting around its value.
-  meta_re='^[[:space:]]*(Source plan|Source|Status JSON|Lane|Owner/status|Owner|Handoff|Plan hub):[[:space:]]*[`.a-zA-Z0-9]'
+  # several such lines where the problem statement should have been.
   first_line="$(printf '%s\n' "$description_prose" | grep -vE '^[[:space:]]*$' | head -1)"
   meta_count=$(printf '%s\n' "$description_prose" | grep -cE "$meta_re" || true)
 
@@ -218,8 +227,16 @@ if [ -n "$description" ]; then
   check_banned_tokens "Body" "$description"
 fi
 
-if [ -n "${patch_text//[$'\n\t ']/}" ]; then
+if [ -n "${patch_text//[$'\r\n\t ']/}" ]; then
   check_banned_tokens "Patched text" "$patch_text"
+  # The metadata-STACK rule also holds on a fragment: two or more field lines in
+  # the inserted text restore exactly the stacks the body rule rejects. The
+  # opens-with rule stays description-only — position needs the whole body.
+  patch_prose="$(strip_fenced_code "$patch_text")"
+  patch_meta=$(printf '%s\n' "$patch_prose" | grep -cE "$meta_re" || true)
+  if [ "${patch_meta:-0}" -ge 2 ]; then
+    add "Patched text stacks $patch_meta metadata lines (Source / Lane / Owner / Handoff). Say what matters in a sentence and keep one link line at most."
+  fi
 fi
 
 if [ -n "$violations" ]; then
