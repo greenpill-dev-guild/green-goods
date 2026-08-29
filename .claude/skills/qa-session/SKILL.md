@@ -69,7 +69,11 @@ Run before the user starts walking. Print the checklist results compactly; stop 
 2. **Stack.** `bun run dev:prod` (docs, admin, client, storybook against real Arbitrum, hosted
    indexer, production agent) if not already up. `dev:prod:mirror` when the session needs a local
    indexer. Health: `bun run dev:doctor -- --profile prod`.
-3. **Warm-up.** Load every in-scope surface once BEFORE dictation begins. The client boot
+3. **Warm-up and profile state.** Load every in-scope surface once BEFORE dictation begins. Also
+   record the QA profile's stored preferences that change rendering — most importantly
+   `localStorage["gg-language"]`, which overrides browser locale: a Portuguese UI on an English
+   browser is a saved preference, not a defect. Note the active locale in the session header so
+   language rendering is judged against the right expectation. The client boot
    watchdog shows recovery UI when React has not mounted within ~4.5s — a cold Vite transform can
    trip it. A fallback on a **cold** first load is instrumentation, not a defect; reproduce warm
    before logging it as one. Watch the dev log for `new dependencies optimized` — that line means
@@ -77,8 +81,11 @@ Run before the user starts walking. Print the checklist results compactly; stop 
    `optimizeDeps.include` list after the session.
 4. **Identity plan.** Authenticated Brave QA profile via the Chrome-extension path for
    authenticated proof (per `CLAUDE.md § Claude Tool Routing`; unreachable → that evidence lane
-   is Blocked, no substitute browser). `?mockAuth=steward` renders the real production steward's
-   data read-only (writes are no-ops) — fastest for read flows, and **loopback-only**: use it
+   is Blocked, no substitute browser). **Use `?mockAuth=deployer` for read-only production
+   passes** — verified 2026-08-28 to render real garden data (work queues, submissions, media).
+   `?mockAuth=steward` currently resolves to an address with **no garden assignment in the
+   production indexer** and lands on the "no garden access" empty state, so it proves the gate,
+   not the journey. Both are read-only (writes are no-ops), and both are **loopback-only**: use them
    solely on `localhost`/`127.0.0.1` sessions, never over `dev:tunnel` or any non-loopback URL
    (a tunneled dev server would hand production-backed steward views to anyone with the link) —
    those checks go through authenticated Brave instead. The mock role persists in **per-tab**
