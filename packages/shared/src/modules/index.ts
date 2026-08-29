@@ -146,14 +146,14 @@ export {
   USERNAME_STORAGE_KEY,
 } from "./auth/session";
 // ============================================================================
-// DATA / EAS
-// ============================================================================
+// DATA / EAS =================================================================
 export {
   getGardenAssessments,
   getWorkApprovals,
   getWorks,
   getWorksByGardener,
 } from "./data/eas";
+export { getKarmaGardenProjection } from "./data/karma";
 // ============================================================================
 // DATA / GARDENS (Gardens V2 Subgraph)
 // ============================================================================

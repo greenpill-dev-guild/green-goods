@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   getCookieJarId,
   getGardenCommunityId,
+  getKarmaProjectAccessId,
+  getKarmaSyncRecordId,
   getGardenSignalPoolId,
   getGardenVaultId,
   getGardenVaultIndexId,
@@ -80,6 +82,17 @@ describe("ID helpers", () => {
 
   it("getGardenCommunityId normalizes garden", () => {
     assert.equal(getGardenCommunityId(CHAIN, GARDEN), `${CHAIN}-${GARDEN.toLowerCase()}`);
+  });
+
+  it("getKarmaSyncRecordId is chain-aware and replay-safe", () => {
+    assert.equal(getKarmaSyncRecordId(CHAIN, "0xTX", 9n), `${CHAIN}-0xTX-9`);
+  });
+
+  it("getKarmaProjectAccessId normalizes garden and account", () => {
+    assert.equal(
+      getKarmaProjectAccessId(CHAIN, GARDEN, "0xACCOUNT"),
+      `${CHAIN}-${GARDEN.toLowerCase()}-0xaccount`
+    );
   });
 
   it("getGardenSignalPoolId normalizes addresses", () => {

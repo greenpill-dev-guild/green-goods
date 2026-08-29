@@ -103,9 +103,9 @@ describe("schema registration planning", () => {
 });
 
 describe("pooling upgrade targets", () => {
-  it("resolves the two existing pooling integrations together as one grouped target", () => {
+  it("resolves Karma before the WorkApproval caller in one grouped target", () => {
     const deployment = {
-      gardenToken: "0x1111111111111111111111111111111111111111",
+      karmaGAPModule: "0x3333333333333333333333333333333333333333",
       workApprovalResolver: "0x2222222222222222222222222222222222222222",
     };
 
@@ -114,15 +114,49 @@ describe("pooling upgrade targets", () => {
     expect(resolved.map((target) => target.deploymentKey)).toEqual([...POOLING_INTEGRATION_UPGRADE_KEYS]);
   });
 
-  it("fails closed when either half is missing from the artifact", () => {
+  it("executes the Karma prerequisite before the WorkApproval upgrade", () => {
+    const upgradeScript = fs.readFileSync(path.join(__dirname, "../Upgrade.s.sol"), "utf8");
+    const groupedUpgrade = upgradeScript.slice(
+      upgradeScript.indexOf("function upgradeCommitmentPoolingIntegrations()"),
+      upgradeScript.indexOf("/// @notice Upgrade all contracts"),
+    );
+
+    const karmaIndex = groupedUpgrade.indexOf("upgradeKarmaGAPModule();");
+    const workIndex = groupedUpgrade.indexOf("upgradeWorkApprovalResolver();");
+    expect(karmaIndex).toBeGreaterThanOrEqual(0);
+    expect(workIndex).toBeGreaterThanOrEqual(0);
+    expect(groupedUpgrade).not.toContain("upgradeGardenToken();");
+    expect(groupedUpgrade).not.toContain("setCommitmentPoolingModule(poolingModule)");
+    expect(groupedUpgrade).toContain("setCommitmentModule(poolingModule)");
+    expect(karmaIndex).toBeLessThan(workIndex);
+  });
+
+  it("seeds legacy Project Update UIDs atomically with the Karma upgrade", () => {
+    const upgradeScript = fs.readFileSync(path.join(__dirname, "../Upgrade.s.sol"), "utf8");
+    const karmaUpgrade = upgradeScript.slice(
+      upgradeScript.indexOf("function upgradeKarmaGAPModule()"),
+      upgradeScript.indexOf("/// @notice Upgrade GreenWill"),
+    );
+
+    expect(karmaUpgrade).toContain('vm.envBytes32("KARMA_LEGACY_WORK_UIDS", ",")');
+    expect(karmaUpgrade).toContain('vm.envBytes32("KARMA_LEGACY_PROJECT_UPDATE_UIDS", ",")');
+    expect(karmaUpgrade).toContain("upgradeToAndCall(");
+    expect(karmaUpgrade).toContain("KarmaGAPModule.migrateProjectUpdates");
+  });
+
+  it("fails closed when a coordinated upgrade target is missing from the artifact", () => {
     expect(() =>
-      resolveUpgradeTargets("commitment-pooling", { gardenToken: "0x1111111111111111111111111111111111111111" }),
-    ).toThrow(/workApprovalResolver/);
+      resolveUpgradeTargets("commitment-pooling", {
+        gardenToken: "0x1111111111111111111111111111111111111111",
+        workApprovalResolver: "0x2222222222222222222222222222222222222222",
+      }),
+    ).toThrow(/karmaGAPModule/);
   });
 
   it("fails closed on a zero address rather than upgrading nothing", () => {
     expect(() =>
       resolveUpgradeTargets("commitment-pooling", {
+        karmaGAPModule: "0x3333333333333333333333333333333333333333",
         gardenToken: "0x1111111111111111111111111111111111111111",
         workApprovalResolver: ZERO,
       }),

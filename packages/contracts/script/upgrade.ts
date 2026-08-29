@@ -443,7 +443,7 @@ Contracts:
   testimony-resolver      Upgrade TestimonyResolver (explicit target; excluded from all)
   deployment-registry     Upgrade Deployment
   greenwill               Upgrade GreenWill (funds-adjacent; explicit target only)
-  commitment-pooling      Plan GardenToken and WorkApprovalResolver as one owner-bound group
+  commitment-pooling      Plan KarmaGAPModule and WorkApprovalResolver as one owner-bound group
   all                     Upgrade standard contracts (excludes HatsModule, TestimonyResolver,
                           GreenWill, and commitment-pooling)
 
@@ -691,10 +691,7 @@ function persistTxPlan(options: UpgradeOptions, chainId: number, preState: Upgra
   });
   const wiring =
     options.contract === "commitment-pooling"
-      ? [
-          { deploymentKey: "gardenToken", function: "setCommitmentPoolingModule" },
-          { deploymentKey: "workApprovalResolver", function: "setCommitmentModule" },
-        ].map((expected) => {
+      ? [{ deploymentKey: "workApprovalResolver", function: "setCommitmentModule" }].map((expected) => {
           const snapshot = preState.find((candidate) => candidate.deploymentKey === expected.deploymentKey);
           if (!snapshot) throw new Error(`Missing pre-state for ${expected.deploymentKey}`);
           const selector = poolingIntegrationInterface.getFunction(expected.function)!.selector;
@@ -861,7 +858,7 @@ export function validateReleaseOwnedUpgradePlan(
     "assessment-resolver": ["AssessmentResolver"],
     "garden-token": ["GardenToken"],
     "work-approval-resolver": ["WorkApprovalResolver"],
-    "commitment-pooling": ["GardenToken", "WorkApprovalResolver"],
+    "commitment-pooling": ["KarmaGAPModule", "WorkApprovalResolver"],
   };
   const names = expectedNames[plan.contract];
   if (!names) throw new Error(`No frozen release-owned plan validator exists for ${plan.contract}`);
@@ -885,6 +882,7 @@ export function validateReleaseOwnedUpgradePlan(
   const manifestUpgrades = new Map(manifest.existingProxyUpgrades.map((upgrade) => [upgrade.name, upgrade]));
   const deploymentKeys: Record<string, string> = {
     AssessmentResolver: "assessmentResolver",
+    KarmaGAPModule: "karmaGAPModule",
     GardenToken: "gardenToken",
     WorkApprovalResolver: "workApprovalResolver",
   };
@@ -950,8 +948,7 @@ export function validateReleaseOwnedUpgradePlan(
     )?.address;
     if (!frozenModule) throw new Error("Frozen release has no CommitmentPoolingModule proxy");
     const expectedWiring = [
-      { deploymentKey: "gardenToken", functionName: "setCommitmentPoolingModule", index: names.length * 2 },
-      { deploymentKey: "workApprovalResolver", functionName: "setCommitmentModule", index: names.length * 2 + 1 },
+      { deploymentKey: "workApprovalResolver", functionName: "setCommitmentModule", index: names.length * 2 },
     ];
     if (plan.wiring.length !== expectedWiring.length) {
       throw new Error("Commitment Pooling upgrade changes the frozen wiring set");

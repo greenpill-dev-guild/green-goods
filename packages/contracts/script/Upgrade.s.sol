@@ -478,7 +478,12 @@ contract Upgrade is Script {
 
         if (address(newImpl) == currentImplAddr) revert SameImplementation();
 
-        UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
+        bytes32[] memory legacyWorkUIDs = vm.envBytes32("KARMA_LEGACY_WORK_UIDS", ",");
+        bytes32[] memory legacyUpdateUIDs = vm.envBytes32("KARMA_LEGACY_PROJECT_UPDATE_UIDS", ",");
+        UUPSUpgradeable(proxy)
+            .upgradeToAndCall(
+                address(newImpl), abi.encodeCall(KarmaGAPModule.migrateProjectUpdates, (legacyWorkUIDs, legacyUpdateUIDs))
+            );
         console.log("KarmaGAPModule upgraded successfully");
 
         vm.stopBroadcast();
@@ -547,12 +552,13 @@ contract Upgrade is Script {
         wireYieldResolverGardensModule();
     }
 
-    /// @notice Upgrade the two existing integrations required by Commitment Pooling.
+    /// @notice Upgrade the existing Work integration required by Commitment Pooling.
     /// @dev The net-new CommitmentPoolingModule and CommitmentRegistry are deployed, never
-    ///      "upgraded". This grouped plan proves GardenToken and WorkApprovalResolver share the
-    ///      declared owner before either existing proxy is touched.
+    ///      "upgraded". KarmaGAPModule must be upgraded before WorkApprovalResolver, which depends
+    ///      on its Project Update selector. GardenToken is deliberately excluded until a compatible
+    ///      GardenAccount implementation can be deployed and bound to it in a separate release.
     function upgradeCommitmentPoolingIntegrations() public {
-        upgradeGardenToken();
+        upgradeKarmaGAPModule();
         upgradeWorkApprovalResolver();
 
         address poolingModule = vm.envAddress("COMMITMENT_POOLING_MODULE");
@@ -560,11 +566,9 @@ contract Upgrade is Script {
         if (vm.envBool("UPGRADE_REQUIRE_LIVE_DEPENDENCIES")) {
             validateAddress(poolingModule, "CommitmentPoolingModule");
         }
-        address gardenTokenProxy = loadProxyAddress("gardenToken");
         address workApprovalProxy = loadProxyAddress("workApprovalResolver");
 
         vm.startBroadcast();
-        GardenToken(gardenTokenProxy).setCommitmentPoolingModule(poolingModule);
         WorkApprovalResolver(payable(workApprovalProxy)).setCommitmentModule(poolingModule);
         vm.stopBroadcast();
         console.log("Commitment Pooling integration reverse wiring completed");

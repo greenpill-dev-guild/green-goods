@@ -36,11 +36,25 @@ contract RevertingHatsModuleFactory is IHatsModuleFactory {
     }
 }
 
+contract MockKarmaAdminSync {
+    mapping(address garden => mapping(address account => uint256 count)) public addCalls;
+    mapping(address garden => mapping(address account => uint256 count)) public removeCalls;
+
+    function addProjectAdmin(address garden, address account) external {
+        addCalls[garden][account]++;
+    }
+
+    function removeProjectAdmin(address garden, address account) external {
+        removeCalls[garden][account]++;
+    }
+}
+
 /// @title HatsModuleTest
 /// @notice Tests for the HatsModule contract
 contract HatsModuleTest is Test {
     HatsModule public adapter;
     MockHats public mockHats;
+    MockKarmaAdminSync public karmaAdminSync;
 
     address public owner;
     address public garden1;
@@ -91,6 +105,7 @@ contract HatsModuleTest is Test {
 
         // Deploy mock Hats
         mockHats = new MockHats();
+        karmaAdminSync = new MockKarmaAdminSync();
 
         // Deploy adapter with proxy
         HatsModule impl = new HatsModule();
@@ -692,6 +707,43 @@ contract HatsModuleTest is Test {
 
         assertTrue(adapter.isGardenerOf(garden1, user1), "User1 should be gardener");
         assertTrue(adapter.isEvaluatorOf(garden1, user2), "User2 should be evaluator");
+    }
+
+    function testIntegration_Hats_grantOwnerSyncsKarmaProjectAdmin() public {
+        _configureGarden1WithOwner();
+        adapter.setKarmaGAPModule(address(karmaAdminSync));
+
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Owner);
+
+        assertEq(karmaAdminSync.addCalls(garden1, user1), 1);
+    }
+
+    function testIntegration_Hats_grantRolesSyncsEveryInitialStewardToKarma() public {
+        _configureGarden1WithOwner();
+        adapter.setKarmaGAPModule(address(karmaAdminSync));
+        address[] memory accounts = new address[](2);
+        IHatsModule.GardenRole[] memory roles = new IHatsModule.GardenRole[](2);
+        accounts[0] = user1;
+        accounts[1] = user2;
+        roles[0] = IHatsModule.GardenRole.Steward;
+        roles[1] = IHatsModule.GardenRole.Steward;
+
+        adapter.grantRoles(garden1, accounts, roles);
+
+        assertEq(karmaAdminSync.addCalls(garden1, user1), 1);
+        assertEq(karmaAdminSync.addCalls(garden1, user2), 1);
+    }
+
+    function testIntegration_Hats_revokeOwnerOrStewardReconcilesKarmaProjectAdmin() public {
+        _configureGarden1WithOwner();
+        adapter.setKarmaGAPModule(address(karmaAdminSync));
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Owner);
+
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Owner);
+        assertEq(karmaAdminSync.removeCalls(garden1, user1), 1);
+
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Steward);
+        assertEq(karmaAdminSync.removeCalls(garden1, user1), 2);
     }
 
     function test_grantRoles_revertsOnArrayMismatch() public {

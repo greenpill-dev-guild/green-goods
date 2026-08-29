@@ -19,7 +19,7 @@ describe("constants", () => {
   it("GARDEN_ROLE maps all 6 roles", () => {
     assert.equal(GARDEN_ROLE.Gardener, 0);
     assert.equal(GARDEN_ROLE.Evaluator, 1);
-    assert.equal(GARDEN_ROLE.Operator, 2);
+    assert.equal(GARDEN_ROLE.Steward, 2);
     assert.equal(GARDEN_ROLE.Owner, 3);
     assert.equal(GARDEN_ROLE.Funder, 4);
     assert.equal(GARDEN_ROLE.Community, 5);

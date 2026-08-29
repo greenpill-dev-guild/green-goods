@@ -1,8 +1,8 @@
 export type * from "./ontology/types";
 export * from "./ontology/query";
 export * from "./hooks/client-ui";
-// COMPONENTS
-// ============================================================================
+export * from "./hooks/garden/useKarmaIntegration";
+// COMPONENTS =================================================================
 export type {
   ActionBannerFallbackProps,
   AddressDisplayProps,

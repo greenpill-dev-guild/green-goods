@@ -192,6 +192,7 @@
     "./hooks/garden/useGardenJoinRequests": "./src/hooks/garden/useGardenJoinRequests.ts",
     "./modules/garden-join-requests": "./src/modules/garden-join-requests/index.ts",
     "./hooks/garden/useGardenPermissions": "./src/hooks/garden/useGardenPermissions.ts",
+    "./hooks/garden/useKarmaIntegration": "./src/hooks/garden/useKarmaIntegration.ts",
     "./hooks/garden/useSetGardenDomains": "./src/hooks/garden/useSetGardenDomains.ts",
     "./hooks/garden/useUpdateGarden": "./src/hooks/garden/useUpdateGarden.ts",
     "./hooks/gardener/useRole": "./src/hooks/gardener/useRole.ts",

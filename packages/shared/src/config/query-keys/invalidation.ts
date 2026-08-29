@@ -84,6 +84,14 @@ export const queryInvalidation = {
     queryKeys.gardens.detail(gardenId, chainId),
   ],
 
+  invalidateGardenKarma: (gardenId: string, chainId: number) => [
+    queryKeys.gardens.byChain(chainId),
+    queryKeys.gardens.detail(gardenId, chainId),
+    queryKeys.gardens.karmaStatus(gardenId, chainId),
+    queryKeys.gardens.karmaVersion(gardenId, chainId),
+    queryKeys.gardens.karmaSlug(gardenId, chainId),
+  ],
+
   invalidateDrafts: (userAddress: string, chainId: number) => [
     queryKeys.drafts.all,
     queryKeys.drafts.list(userAddress, chainId),

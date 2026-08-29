@@ -319,7 +319,7 @@ async function verifySettlement(
 
 /**
  * Safe-phase ownership proof. The deterministic-identity loop above covers only the five lock
- * proxies, but the ownership ceremony hands over eight Arbitrum contracts and one on Celo, so every
+ * proxies, but the ownership ceremony hands over nine Arbitrum contracts and one on Celo, so every
  * ownership target is checked here from the same list the transfer plan uses. The protocol Safe's
  * own threshold is then re-read live, because "owner() equals the Safe address" says nothing
  * about whether that Safe still satisfies the release floor.
@@ -369,6 +369,7 @@ export function ownershipTransferTargets(
         ["TestimonyResolver", manifest.schemaPreparation.expected.proxy],
         ["CommitmentPoolingModule", proxy("CommitmentPoolingModule")],
         ["CommitmentRegistry", proxy("CommitmentRegistry")],
+        ["KarmaGAPModule", deployed("karmaGAPModule")],
         ["GardenToken", deployed("gardenToken")],
         ["WorkApprovalResolver", deployed("workApprovalResolver")],
         ["SettlementModule", proxy("SettlementModule")],

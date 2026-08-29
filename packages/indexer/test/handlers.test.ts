@@ -11,6 +11,7 @@ import {
   YieldSplitter,
 } from "./v3";
 import { addr, CHAINS, mockEvent, txHash } from "./helpers/events";
+import { seedGarden } from "./helpers/garden";
 
 const CHAIN_ID = CHAINS.arbitrum;
 const CREATE_COOKIE_JAR_ABI = [
@@ -150,26 +151,7 @@ describe("retained garden + role handlers", () => {
     const gardenAddress = addr(20);
     const operator = addr(21);
 
-    mockDb.Garden.set({
-      id: gardenAddress,
-      chainId: CHAIN_ID,
-      tokenAddress: addr(1),
-      tokenID: 1n,
-      name: "Garden",
-      description: "",
-      location: "",
-      bannerImage: "",
-      openJoining: false,
-      initialized: true,
-      gardeners: [],
-      operators: [],
-      evaluators: [],
-      owners: [],
-      funders: [],
-      communities: [],
-      createdAt: 1,
-      gapProjectUID: undefined,
-    });
+    mockDb = seedGarden(mockDb, gardenAddress, { name: "Garden", createdAt: 1 });
 
     const grantEvent = HatsModule.RoleGranted.createMockEvent({
       garden: gardenAddress,

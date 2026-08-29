@@ -32,6 +32,18 @@ export function getGardenCommunityId(chainId: number, garden: string): string {
   return `${chainId}-${normalizeAddress(garden)}`;
 }
 
+export function getKarmaSyncRecordId(
+  chainId: number,
+  txHash: string,
+  logIndex: bigint | number
+): string {
+  return `${chainId}-${txHash}-${logIndex.toString()}`;
+}
+
+export function getKarmaProjectAccessId(chainId: number, garden: string, account: string): string {
+  return `${chainId}-${normalizeAddress(garden)}-${normalizeAddress(account)}`;
+}
+
 export function getGardenSignalPoolId(
   chainId: number,
   garden: string,

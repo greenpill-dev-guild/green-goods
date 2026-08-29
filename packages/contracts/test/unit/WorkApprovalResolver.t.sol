@@ -21,6 +21,7 @@ import { NotInActionRegistry } from "../../src/resolvers/Work.sol";
 import { ActionRegistry, Capital, Domain } from "../../src/registries/Action.sol";
 import { MockEAS } from "../../src/mocks/EAS.sol";
 import { MockGardenAccessControl } from "../../src/mocks/GardenAccessControl.sol";
+import { IKarmaGAPModule } from "../../src/interfaces/IKarmaGAPModule.sol";
 
 /// @title WorkApprovalResolverTest
 /// @notice Unit tests for WorkApprovalResolver onAttest validation logic
@@ -453,19 +454,28 @@ contract WorkApprovalResolverTest is Test {
         vm.prank(multisig);
         workApprovalResolver.setKarmaGAPModule(address(mockModule));
 
-        // Mock IERC6551Account.token() on the garden address (work attestation recipient)
-        // _createGAPProjectImpact calls token() BEFORE the try/catch block
-        vm.mockCall(
-            address(mockGarden),
-            abi.encodeWithSignature("token()"),
-            abi.encode(uint256(11_155_111), address(0xdead), uint256(1))
-        );
-
         Attestation memory attestation = _buildApprovalAttestation(operator, workUID, activeActionId, true);
 
         vm.prank(address(mockEAS));
         bool result = workApprovalResolver.attest(attestation);
         assertTrue(result, "Approval should succeed with GAP module");
+        assertTrue(mockModule.createProjectUpdateCalled(), "Approval should create a Project Update");
+    }
+
+    function testOnAttestApproval_succeedsWhenKarmaProjectUpdateFails() public {
+        MockKarmaForWorkApproval mockModule = new MockKarmaForWorkApproval();
+        mockModule.setShouldRevert(true);
+        vm.prank(multisig);
+        workApprovalResolver.setKarmaGAPModule(address(mockModule));
+
+        Attestation memory attestation = _buildApprovalAttestation(operator, workUID, activeActionId, true);
+
+        vm.expectEmit(true, true, true, true, address(workApprovalResolver));
+        emit KarmaHookFailed(
+            address(mockGarden), address(0), IKarmaGAPModule.KarmaSyncOperation.ProjectUpdate, "module_call_reverted"
+        );
+        vm.prank(address(mockEAS));
+        assertTrue(workApprovalResolver.attest(attestation), "Karma failure must not block approval");
     }
 
     function testOnAttestRejection_doesNotCallGAP() public {
@@ -487,6 +497,9 @@ contract WorkApprovalResolverTest is Test {
 
     event KarmaGAPModuleUpdated(address indexed oldModule, address indexed newModule);
     event SchemaUIDUpdated(bytes32 indexed schemaUID);
+    event KarmaHookFailed(
+        address indexed garden, address indexed account, IKarmaGAPModule.KarmaSyncOperation indexed operation, string reason
+    );
 
     function testSetSchemaUID_emitsEvent() public {
         bytes32 newSchemaUID = bytes32(uint256(300));
@@ -761,9 +774,11 @@ contract WorkApprovalResolverTest is Test {
 
 /// @notice Mock KarmaGAPModule for testing the GAP integration branch
 contract MockKarmaForWorkApproval {
-    function createImpact(
+    bool public createProjectUpdateCalled;
+    bool public shouldRevert;
+
+    function createProjectUpdate(
         address,
-        uint256,
         string calldata,
         string calldata,
         string calldata,
@@ -771,10 +786,15 @@ contract MockKarmaForWorkApproval {
         string calldata
     )
         external
-        pure
         returns (bytes32)
     {
+        if (shouldRevert) revert("Karma unavailable");
+        createProjectUpdateCalled = true;
         return bytes32(uint256(1));
+    }
+
+    function setShouldRevert(bool value) external {
+        shouldRevert = value;
     }
 }
 

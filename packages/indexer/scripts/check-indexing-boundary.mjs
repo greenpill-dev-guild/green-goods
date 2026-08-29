@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import * as yaml from "js-yaml";
 
 import { validatePinnedPoolingContracts } from "./indexing-boundary-rules.mjs";
+import { validateKarmaGapBoundary } from "./indexing-boundary-rules.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,16 +22,18 @@ const ALLOWED_CONTRACT_EVENTS = {
     "ActionInstructionsUpdated",
     "ActionMediaUpdated",
   ]),
-  GardenToken: new Set(["GardenMinted"]),
+  GardenToken: new Set(["GardenMinted", "KarmaHookFailed"]),
   GardenAccount: new Set([
     "NameUpdated",
     "DescriptionUpdated",
     "LocationUpdated",
     "BannerImageUpdated",
-    "GAPProjectCreated",
     "OpenJoiningUpdated",
+    "KarmaHookFailed",
   ]),
-  HatsModule: new Set(["RoleGranted", "RoleRevoked"]),
+  KarmaGAPModule: new Set(["GAPProjectCreated", "GAPProjectReset", "KarmaSyncRecorded"]),
+  HatsModule: new Set(["RoleGranted", "RoleRevoked", "KarmaHookFailed"]),
+  WorkApprovalResolver: new Set(["KarmaHookFailed"]),
   OctantModule: new Set([
     "VaultCreated",
     "HarvestTriggered",
@@ -186,7 +189,9 @@ const ALLOWED_CONTRACTS_BY_CHAIN = new Map([
       "ActionRegistry",
       "GardenToken",
       "GardenAccount",
+      "KarmaGAPModule",
       "HatsModule",
+      "WorkApprovalResolver",
       "OctantModule",
       "OctantVault",
       "YieldSplitter",
@@ -313,6 +318,7 @@ async function main() {
 
   const chains = Array.isArray(config?.chains) ? config.chains : [];
   errors.push(...validatePinnedPoolingContracts(chains));
+  errors.push(...validateKarmaGapBoundary(chains));
   if (chains.length !== REQUIRED_CHAIN_BOUNDARIES.size) {
     errors.push(
       `Expected ${REQUIRED_CHAIN_BOUNDARIES.size} configured chains, found ${chains.length}`

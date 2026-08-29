@@ -1,33 +1,11 @@
 import assert from "assert";
+import { getKarmaProjectAccessId } from "../src/handlers/ids";
 import { addr, CHAINS, mockEvent } from "./helpers/events";
+import { seedGarden } from "./helpers/garden";
 import { assertRoleArrays } from "./helpers/projections";
 import { createTestIndexer, HatsModule, processEvents } from "./v3";
 
 const CHAIN_ID = CHAINS.arbitrum;
-
-function seedGarden(mockDb: any, gardenAddress: string) {
-  mockDb.Garden.set({
-    id: gardenAddress,
-    chainId: CHAIN_ID,
-    tokenAddress: addr(1),
-    tokenID: 1n,
-    name: "Test Garden",
-    description: "",
-    location: "",
-    bannerImage: "",
-    openJoining: false,
-    initialized: true,
-    gardeners: [],
-    operators: [],
-    evaluators: [],
-    owners: [],
-    funders: [],
-    communities: [],
-    createdAt: 1000,
-    gapProjectUID: undefined,
-  });
-  return mockDb;
-}
 
 // ============================================================================
 // ROLE GRANT — ALL 6 ROLE TYPES
@@ -72,14 +50,14 @@ describe("HatsModule.RoleGranted", () => {
     assert.ok(garden.evaluators.includes(account.toLowerCase()));
   });
 
-  it("grants Operator role (role=2)", async () => {
+  it("grants Steward role and marks its Karma access reconciliation pending (role=2)", async () => {
     let mockDb = seedGarden(createTestIndexer(), addr(10));
     const account = addr(20);
 
     const event = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
-      role: 2n, // Operator
+      role: 2n, // Steward
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
 
@@ -88,6 +66,17 @@ describe("HatsModule.RoleGranted", () => {
 
     assert.ok(garden);
     assert.ok(garden.operators.includes(account.toLowerCase()));
+    assert.equal(garden.karmaMembershipState, "PENDING");
+    assert.equal(garden.karmaAccessState, "PENDING");
+    assert.deepEqual(garden.karmaMembershipPendingAccounts, [account.toLowerCase()]);
+    assert.deepEqual(garden.karmaAccessPendingAccounts, [account.toLowerCase()]);
+
+    const access = await mockDb.KarmaProjectAccess.get(
+      getKarmaProjectAccessId(CHAIN_ID, addr(10), account)
+    );
+    assert.ok(access);
+    assert.equal(access.membershipState, "PENDING");
+    assert.equal(access.accessState, "PENDING");
   });
 
   it("grants Owner role (role=3)", async () => {
@@ -106,6 +95,7 @@ describe("HatsModule.RoleGranted", () => {
 
     assert.ok(garden);
     assert.ok(garden.owners.includes(account.toLowerCase()));
+    assert.deepEqual(garden.karmaAccessPendingAccounts, [account.toLowerCase()]);
   });
 
   it("grants Funder role (role=4)", async () => {
@@ -178,7 +168,7 @@ describe("HatsModule.RoleGranted", () => {
     const event = HatsModule.RoleGranted.createMockEvent({
       garden: gardenAddress,
       account,
-      role: 2n, // Operator
+      role: 2n, // Steward
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
 
@@ -306,7 +296,7 @@ describe("HatsModule.RoleGranted — Gardener entity", () => {
     const event = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
-      role: 2n, // Operator (not Gardener)
+      role: 2n, // Steward (not Gardener)
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
     mockDb = await HatsModule.RoleGranted.processEvent({ event, mockDb });
@@ -390,6 +380,15 @@ describe("HatsModule.RoleRevoked", () => {
     const garden = await mockDb.Garden.get(addr(10));
     assert.ok(garden);
     assert.equal(garden.owners.length, 0);
+    assert.equal(garden.karmaMembershipState, "PENDING");
+    assert.equal(garden.karmaAccessState, "PENDING");
+
+    const access = await mockDb.KarmaProjectAccess.get(
+      getKarmaProjectAccessId(CHAIN_ID, addr(10), account)
+    );
+    assert.ok(access);
+    assert.equal(access.membershipState, "PENDING");
+    assert.equal(access.accessState, "PENDING");
   });
 
   it("revokes Funder role", async () => {

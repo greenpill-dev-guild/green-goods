@@ -98,7 +98,7 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   `PoolExists(existingProtocolGarden)`. The deployment wrapper supplies the artifact-verified
   root GardenAccount to `initialize(owner, rootGarden)`; no chain address is hardcoded in the
   implementation.
-- GardenToken and WorkApprovalResolver wiring, isolated deploy targets, append-only artifact persistence, and post-deploy/indexer update hooks.
+- WorkApprovalResolver wiring, isolated deploy targets, append-only artifact persistence, and post-deploy/indexer update hooks. GardenToken wiring remains deferred until a compatible GardenAccount implementation can be deployed and bound in the same reviewed release.
 - Contract tests and deployment-script tests that become the frozen ABI/event source for indexer and shared lanes.
 - The `421614` toolchain that every `--network arbitrum-sepolia` command below depends on and
   that does not exist today: an `arbitrum-sepolia` / `421614` record in
@@ -113,8 +113,8 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   Today the flag is optional, falls back to `process.env.SENDER_ADDRESS`, persists
   `sender: null` (`script/upgrade.ts:425`), and `owner()` is never read anywhere in the script.
   The grouped `commitment-pooling` upgrade target is likewise NET-NEW and ships with its own
-  check that GardenToken and WorkApprovalResolver report the same live owner before one plan
-  persists.
+  check that KarmaGAPModule and WorkApprovalResolver report the same live owner before one plan
+  persists. GardenToken is excluded from this release-owned target.
 - Mainnet transaction planning fails closed against the active risk tier. Paused/no-authority
   deployment is tier 1. Non-custodial and non-transferable coordination is tier 2 only while every
   value dependency is paused or disabled and the exact temporary/rollback owners, explicit human
@@ -368,15 +368,19 @@ existing regression surfaces.
 Run these deployment commands from packages/contracts; they remain simulation/transaction-plan
 only until separately authorized. Commands are stage-gated: no invocation may assume that a
 separate pure-simulation process changed chain state. The AssessmentResolver target already exists.
-`commitment-schemas`, `commitment-pooling`, the grouped pooling upgrade target, and
-`backfill-pools.ts` are deliverables of this lane (contract-spec §6.4.4, §7):
+`commitment-schemas`, `commitment-pooling`, and the grouped pooling upgrade target are deliverables
+of this lane (contract-spec §6.4.4, §7). `backfill-pools.ts` is retained only for the later
+GardenAccount/GardenToken compatibility release:
 
 `commitment-pooling` deploys and finalizes the module/register while leaving the module paused.
-The grouped `commitment-pooling` upgrade target upgrades GardenToken and WorkApprovalResolver,
-wires and verifies both reverse links, and unpauses only after the complete chain-2/chain-3
-readiness plan passes. `backfill-pools.ts` runs only after that verified unpause. It registers the
-root as Protocol exactly once, enumerates the verified 13-garden set, records the normalized root
-as `SKIPPED_PROTOCOL_ROOT`, and submits Garden registrations only for the 12 non-root addresses.
+The grouped `commitment-pooling` upgrade target upgrades KarmaGAPModule first, then
+WorkApprovalResolver, and wires the WorkApproval reverse link while pooling stays paused.
+GardenToken and its mint hook are excluded until a separately reviewed compatibility release
+deploys a GardenAccount implementation with the required Karma callback and binds GardenToken to
+that implementation. `backfill-pools.ts` remains a deferred follow-up behind that release. It
+registers the root as Protocol exactly once, enumerates the live GardenToken set, requires exactly
+18 gardens, records the normalized root as `SKIPPED_PROTOCOL_ROOT`, and submits Garden
+registrations for every non-root Garden.
 
 Every `--network arbitrum-sepolia` line below is unrunnable against the current tree and stays
 unrunnable until this lane ships the `421614` toolchain named in Outputs: the networks.json
@@ -398,6 +402,12 @@ existing infrastructure.
 - bun script/deploy.ts commitment-schemas --network arbitrum --finalize-community-testimony --dry-run
 - bun script/upgrade.ts commitment-pooling --network arbitrum --dry-run --pure-simulation
 - bun script/upgrade.ts commitment-pooling --network arbitrum --tx-plan --sender <verified-arbitrum-pooling-upgrade-owner>
+
+The following command is not executable in this lane. It belongs to the separately reviewed
+GardenAccount/GardenToken compatibility release and remains blocked until that release deploys and
+binds a compatible account implementation, upgrades and wires GardenToken, and verifies both
+reverse links while pooling is paused:
+
 - bun ../../.plans/active/commitment-pooling/backfill-pools.ts --network arbitrum --dry-run
 
 **The two Arbitrum One `--tx-plan` lines are future-only and must not be run yet.** Two independent
@@ -419,13 +429,14 @@ mismatched values **before** plan persistence.
 For a live chain, the commands execute in the listed dependency order, with a separately
 authorized receipt, post-action verifier, and persisted artifact between stages:
 AssessmentResolver upgrade → schema preparation → module/register deployment → Community
-Testimony finalization with pooling still paused → grouped GardenToken/WorkApprovalResolver
-upgrade and reverse wiring while paused → complete readiness verification → pooling unpause →
-root Protocol registration → 13-garden enumeration with root skipped → 12 non-root Garden
-registrations → operational smoke. The full sequence is rehearsed on local and Arbitrum Sepolia
-first. Every tx-plan sender
-must equal the relevant live proxy `owner()` before plan persistence; the grouped upgrade fails
-unless both proxies share that verified owner. That is the contract this lane builds, not current
+Testimony finalization with pooling still paused → KarmaGAPModule prerequisite upgrade → grouped
+WorkApprovalResolver upgrade and reverse wiring while paused → stop. A separately reviewed
+GardenAccount/GardenToken compatibility release must then deploy and bind the compatible account
+implementation, upgrade and wire GardenToken, and pass complete readiness verification before
+pooling unpause → root Protocol registration → live enumeration of exactly 18 gardens with root
+skipped → every non-root Garden registration → operational smoke. Every tx-plan sender must equal
+the relevant live proxy `owner()` before plan persistence; the current grouped upgrade fails unless
+KarmaGAPModule and WorkApprovalResolver share that verified owner. That is the contract this lane builds, not current
 behavior: `upgrade.ts` today accepts `--sender` optionally, falls back to
 `process.env.SENDER_ADDRESS`, persists `sender: null`, and never reads `owner()`.
 After verified module/register deployment, run

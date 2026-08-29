@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import { IERC6551Registry } from "../interfaces/IERC6551Registry.sol";
+import { IERC6551Account } from "../interfaces/IERC6551Account.sol";
 
 error InvalidChainId();
 
@@ -46,6 +47,27 @@ library TBALib {
                 .account(implementation, SALT, block.chainid, tokenContract, tokenId);
         } else {
             revert InvalidChainId();
+        }
+    }
+
+    /// @notice Validates an ERC-6551 tuple and deterministic account address, returning its token ID.
+    function canonicalTokenId(
+        address implementation,
+        address tokenContract,
+        address account
+    )
+        internal
+        view
+        returns (bool valid, uint256 tokenId)
+    {
+        if (account.code.length == 0) return (false, 0);
+        try IERC6551Account(account).token() returns (uint256 chainId, address boundToken, uint256 boundTokenId) {
+            if (chainId != block.chainid || boundToken != tokenContract) return (false, 0);
+            address expected = IERC6551Registry(TOKENBOUND_REGISTRY)
+                .account(implementation, SALT, block.chainid, tokenContract, boundTokenId);
+            return (expected == account, boundTokenId);
+        } catch {
+            return (false, 0);
         }
     }
 }

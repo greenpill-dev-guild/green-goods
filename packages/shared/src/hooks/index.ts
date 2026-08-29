@@ -1,5 +1,4 @@
-// Hooks — EXPLICIT EXPORTS for tree-shaking
-// ============================================================================
+// Hooks — EXPLICIT EXPORTS for tree-shaking ==================================
 // QUERY KEYS
 // ============================================================================
 export type { QueryKey, QueueQueryKey, WorksQueryKey } from "../config/query-keys";
@@ -287,6 +286,7 @@ export { useGardenInvites } from "./garden/useGardenInvites";
 export { useGardenOperations } from "./garden/useGardenOperations";
 export type { GardenPermissions } from "./garden/useGardenPermissions";
 export { useGardenPermissions } from "./garden/useGardenPermissions";
+export * from "./garden/useKarmaIntegration";
 export { GardenTab, useGardenTabs } from "./garden/useGardenTabs";
 export {
   checkGardenOpenJoining,

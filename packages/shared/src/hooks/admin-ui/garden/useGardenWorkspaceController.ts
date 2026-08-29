@@ -7,6 +7,7 @@ import { adminRoutes } from "../../../utils/navigation/admin-routes";
 import { useAdminGardenWorkspaceSelection } from "../../garden/useAdminGardenWorkspaceSelection";
 import { useGardenDerivedState } from "../../garden/useGardenDerivedState";
 import { useGardenDetailData } from "../../garden/useGardenDetailData";
+import { useKarmaIntegration } from "../../garden/useKarmaIntegration";
 import { useCanvasSearchParams } from "../../navigation/useCanvasSearchParams";
 import { useMediaQuery } from "../../ui/useMediaQuery";
 import { useSheetWidth } from "../../useSheetWidth";
@@ -100,6 +101,7 @@ export function useGardenWorkspaceController() {
     hypercertsLoading,
     roleMembers,
   } = useGardenDetailData(selectedGarden?.id);
+  const karmaIntegration = useKarmaIntegration(garden);
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const viewActions = useMemo(
@@ -283,6 +285,7 @@ export function useGardenWorkspaceController() {
     hypercerts,
     hypercertsLoading,
     isOwner,
+    karmaIntegration,
     openSection,
     range,
     roleMembers,

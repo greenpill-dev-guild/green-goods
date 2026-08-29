@@ -1,9 +1,41 @@
-import type { Enum, Garden, GardenVault, Hypercert } from "envio";
+import {
+  indexer,
+  type Enum,
+  type Garden,
+  type GardenVault,
+  type Hypercert,
+  type KarmaProjectAccess,
+} from "envio";
+import type { Address } from "viem";
 
 import { normalizeAddress } from "./addresses";
-import { getGardenVaultId } from "./ids";
+import { getGardenVaultId, getKarmaProjectAccessId } from "./ids";
 
 type HypercertStatus = Enum<"HypercertStatus">;
+export type EventContext = Parameters<Parameters<typeof indexer.onEvent>[1]>[0]["context"];
+
+export function createDefaultKarmaProjectAccess(
+  chainId: number,
+  garden: Address,
+  account: Address,
+  projectUID?: string
+): KarmaProjectAccess {
+  return {
+    id: getKarmaProjectAccessId(chainId, garden, account),
+    chainId,
+    garden: normalizeAddress(garden),
+    account: normalizeAddress(account),
+    projectUID,
+    membershipState: "UNKNOWN",
+    membershipOutcome: undefined,
+    membershipReason: undefined,
+    membershipUpdatedAt: undefined,
+    accessState: "UNKNOWN",
+    accessOutcome: undefined,
+    accessReason: undefined,
+    accessUpdatedAt: undefined,
+  };
+}
 
 export function createDefaultGarden(gardenId: string, chainId: number, timestamp: number): Garden {
   return {
@@ -25,6 +57,28 @@ export function createDefaultGarden(gardenId: string, chainId: number, timestamp
     communities: [],
     createdAt: timestamp,
     gapProjectUID: undefined,
+    karmaProjectState: "UNKNOWN",
+    karmaProjectReason: undefined,
+    karmaProjectUpdatedAt: undefined,
+    karmaDetailsState: "UNKNOWN",
+    karmaDetailsReason: undefined,
+    karmaDetailsUpdatedAt: undefined,
+    karmaMembershipState: "UNKNOWN",
+    karmaMembershipReason: undefined,
+    karmaMembershipUpdatedAt: undefined,
+    karmaAccessState: "UNKNOWN",
+    karmaAccessReason: undefined,
+    karmaAccessUpdatedAt: undefined,
+    karmaProjectUpdateState: "UNKNOWN",
+    karmaProjectUpdateReason: undefined,
+    karmaProjectUpdateUpdatedAt: undefined,
+    karmaMembershipPendingAccounts: [],
+    karmaMembershipFailedAccounts: [],
+    karmaAccessPendingAccounts: [],
+    karmaAccessFailedAccounts: [],
+    karmaTrackedAccessAccounts: [],
+    karmaLastFailureReason: undefined,
+    karmaLastSyncAt: undefined,
   };
 }
 
