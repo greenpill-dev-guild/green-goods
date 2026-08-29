@@ -816,7 +816,7 @@
       "area": "Endowment",
       "scenario": "Endowment and vault routes are role-gated and readable",
       "preconditions": ["Admin or mock role available"],
-      "steps": ["Open /community/endowment and /vault"],
+      "steps": ["Open /community/endowment", "Open /community/endowment/vault"],
       "expected": "Funding controls are gated and no destructive action is one-click",
       "evidence": "Screenshot",
       "role": "steward",
@@ -1265,7 +1265,9 @@
       "priority": "P1",
       "area": "Search",
       "scenario": "Local search returns relevant results with keyboard flow",
-      "preconditions": ["Docs site available"],
+      "preconditions": [
+        "Built docs site (bun run build:docs, served) or the deployed docs site — the dev server has no search index"
+      ],
       "steps": [
         "Focus the search input",
         "Type a product term such as garden or attestation",

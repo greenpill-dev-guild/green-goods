@@ -2,7 +2,7 @@
 name: qa-session
 user-invocable: true
 description: Live product-experience QA copilot — the user walks Green Goods flows locally against production data (dev:prod) while dictating observations, or supplies a recorded dictation transcript of such a walk. Captures each observation with a stable OBS ID, triages fix-now vs defer in real time, applies safe fixes in the same running checkout for immediate revalidation, hands deferred items to qa-triage, and locks design decisions at close. Fires on "QA session", "QA walk/walkthrough", "I'll walk the flows and call out issues", "fix live while I test", or a dictated-walk transcript. Not for triaging meeting notes (qa-triage), a single reported bug (debug), or reviewing a diff (review).
-argument-hint: "[<transcript-path>] [--surface admin|pwa|website|docs|all] [--cases <IDs|area>]"
+argument-hint: "[<transcript-path>] [--surface admin|pwa|ios|android|website|docs|all] [--cases <IDs|area>]"
 ---
 
 # QA Session Skill
@@ -60,9 +60,11 @@ duplicate them:
 Run before the user starts walking. Print the checklist results compactly; stop on a hard fail.
 
 1. **Same-checkout guard.** Live fixes only render if they land in the checkout serving the
-   ports. Verify 3001/3002 listeners belong to THIS repo root (`lsof -nP -iTCP:3001 -sTCP:LISTEN`
-   then check the pid's cwd). If another checkout or session owns the ports
-   (`bun run dev:stack status`), stop and say so — do not restart another session's stack.
+   ports. Primary check: `bun run dev:stack status` — it reports each surface's lease owner and
+   compatibility key without external tools (the Codex container has no `lsof`). If another
+   owner holds 3001/3002, stop and say so — do not restart another session's stack. Where
+   available, `lsof -nP -iTCP:3001 -sTCP:LISTEN` (then the pid's cwd) is a secondary
+   cross-check that the listener really serves THIS repo root.
    **Never `EnterWorktree` during a session**; fixes land in this checkout.
 2. **Stack.** `bun run dev:prod` (docs, admin, client, storybook against real Arbitrum, hosted
    indexer, production agent) if not already up. `dev:prod:mirror` when the session needs a local
@@ -76,17 +78,28 @@ Run before the user starts walking. Print the checklist results compactly; stop 
 4. **Identity plan.** Authenticated Brave QA profile via the Chrome-extension path for
    authenticated proof (per `CLAUDE.md § Claude Tool Routing`; unreachable → that evidence lane
    is Blocked, no substitute browser). `?mockAuth=steward` renders the real production steward's
-   data read-only (writes are no-ops) — fastest for read flows. `?presentation=pwa` once per tab
-   for the PWA shell on desktop. `?gardenId=<address>` switches between the user's garden and the
-   community garden. **Passkey ceremonies cannot run on localhost** (RP-ID `greengoods.app`):
-   catalog cases marked `requiresProduction` are pre-marked `Blocked` for local sessions.
+   data read-only (writes are no-ops) — fastest for read flows, and **loopback-only**: use it
+   solely on `localhost`/`127.0.0.1` sessions, never over `dev:tunnel` or any non-loopback URL
+   (a tunneled dev server would hand production-backed steward views to anyone with the link) —
+   those checks go through authenticated Brave instead. The mock role persists in **per-tab**
+   sessionStorage and removing the query param does not restore real auth: run wallet-write
+   flows in a **fresh tab that never carried `?mockAuth`**, and never reuse a mock tab for a
+   write flow. `?presentation=pwa` once per tab for the PWA shell on desktop.
+   `?gardenId=<address>` switches between the user's garden and the community garden.
+   **Passkey ceremonies cannot run on localhost** (RP-ID `greengoods.app`): catalog cases marked
+   `requiresProduction` are pre-marked `Blocked` for local sessions.
 5. **Real-write boundary.** dev:prod wallet transactions are REAL Arbitrum writes. Ask once,
    before the walk: *which flows may broadcast transactions, and which stop at the review step?*
    Record the answer in the session header and respect it absolutely.
-6. **Branch + workspace.** Clean tree required. Create `fix/qa-session-YYYY-MM-DD` off the
-   current branch. Create `tmp/qa-session/<YYYY-MM-DD>/` (suffix `-2` on collision) and open
-   `session.md` with the header: commit SHA, branch, surfaces in scope, gardens, identity modes,
-   write boundary, and the in-scope catalog case IDs.
+6. **Workspace — no branch changes.** Clean tree required. Define the session slug ONCE:
+   `<slug>` = `YYYY-MM-DD`, with a `-2`/`-3` suffix if `tmp/qa-session/<slug>/` already exists —
+   and reuse that exact slug for every artifact this session (directory, log, results, receipt,
+   handoff, and any branch created later). Create `tmp/qa-session/<slug>/` and open
+   `qa-session-<slug>.md` with the header: commit SHA, branch, surfaces in scope, gardens,
+   identity modes, write boundary, and the in-scope catalog case IDs. The session **stays on the
+   current branch** — per `AGENTS.md § Multi-Agent Repo Safety`, never create or switch branches
+   without the user explicitly asking for that branch action; branching is decided at the first
+   accepted fix (Phase 3), not at session start.
 7. **Walk checklist (optional).** Read `scripts/data/qa-test-catalog.json`, print the in-scope
    case IDs + scenarios as the walk checklist (`--surface`/`--cases` filters). A generated
    workbook (`bun run qa:workbook`) is the durable results artifact; the checklist is the
@@ -94,7 +107,7 @@ Run before the user starts walking. Print the checklist results compactly; stop 
 
 ## Phase 1 — Capture
 
-Log every dictated item to `session.md` **immediately**, before any discussion. Never stall the
+Log every dictated item to `tmp/qa-session/<slug>/qa-session-<slug>.md` **immediately**, before any discussion. Never stall the
 walk with diagnosis monologues — one-line acknowledgment plus the triage question, nothing more.
 
 ```markdown
@@ -139,6 +152,11 @@ surface) — their choice, per item or standing.
 
 ## Phase 3 — Fix-now loop
 
+**Branch decision (first accepted fix only):** if the current branch is `develop` or `main`, ask
+the user once for the branch action (e.g. create `fix/qa-session-<slug>`) and proceed only on
+their explicit yes — never create or switch branches without that ask. On an existing work
+branch, commit there.
+
 Per accepted fix (or batched in a fix window):
 
 1. Edit in THIS checkout → Vite HMR → the user revalidates in their open tab. On a full reload,
@@ -148,21 +166,23 @@ Per accepted fix (or batched in a fix window):
    `bun run validation:plan -- --intent qa` when the touched set is broader. Full rungs wait for
    close.
 3. Record on the OBS: `fix: <files> · proof: <command → result> · revalidated: yes|no`.
-4. Commit per fix: `fix(<pkg>): <what> (qa-session YYYY-MM-DD OBS-NN)`. Commits stay local until
+4. Commit per fix: `fix(<pkg>): <what> (qa-session <slug> OBS-NN)`. Commits stay local until
    close.
 
 ## Phase 4 — Close
 
 1. **Disposition sweep.** Every OBS must end `fixed | deferred | answered | decision | blocked |
    dropped`. No silent items.
-2. **Deferred handoff.** Do not re-implement qa-triage. `session.md` is shaped so its Phase 2
+2. **Deferred handoff.** Do not re-implement qa-triage. The session log is shaped so its Phase 2
    parses items 1:1 (numbered, typed, surfaced, verbatim-quoted, exact `case:` IDs). Run
-   `/qa-triage tmp/qa-session/<date>/session.md --no-codex` — the Codex dual-extraction pass
-   exists for messy meeting notes; this input is agent-authored and structured. qa-triage's
-   PostHog cross-ref, scope lock, Linear templates, and Sheet Defects flow run unchanged. If the
-   user is out of time, the handoff command is the named next step in the receipt.
+   `/qa-triage tmp/qa-session/<slug>/qa-session-<slug>.md --no-codex` — the slugged filename
+   gives each handoff its own qa-triage workspace (a bare `session.md` would collide every run),
+   and the Codex dual-extraction pass exists for messy meeting notes; this input is
+   agent-authored and structured. qa-triage's PostHog cross-ref, scope lock, Linear templates,
+   and Sheet Defects flow run unchanged. If the user is out of time, the handoff command is the
+   named next step in the receipt.
 3. **Results rows.** For every catalog case exercised, append to
-   `tmp/qa-session/<date>/results.csv`: `Test ID, Result (Pass|Fail|Blocked|N/A), Severity,
+   `tmp/qa-session/<slug>/results.csv`: `Test ID, Result (Pass|Fail|Blocked|N/A), Severity,
    Notes` — matching the run sheet's result columns (build/commit lives once in the receipt
    header). The user pastes these into the run sheet / Sheet. Results never enter git.
 4. **Decision lock gate.** List all `decision` OBS verbatim and ask: *"Lock which of these as
@@ -170,17 +190,20 @@ Per accepted fix (or batched in a fix window):
    [`design/decision-log.md`](../design/decision-log.md) as `DL-NNN` rows (`Status: locked`),
    each with a proposed codification target per the ledger's graduation ladder. Small
    codifications may land in the same session; larger ones become deferred items in the handoff.
-5. **Receipt.** Write `tmp/qa-session/<date>/receipt.md`: environment header (commit, branch,
-   surfaces, gardens, identities, write boundary), catalog cases exercised with result counts,
-   OBS totals by disposition, fix list (OBS → commit SHA → revalidated), deferred list, locked
-   DL IDs, environment notes (watchdog trips, dep-optimization reloads, restarts), remaining
-   risk. Apply qa-triage's privacy grep (replay URLs, session IDs, distinct IDs, `0x` addresses,
-   reporter identifiers) — then upload receipt + filled results to the **Drive QA folder next to
-   the Green Goods v1.1 QA Sheet**. Receipts carry per-case results and identities: **never
-   commit them to the public repo.**
+5. **Receipt — privacy-gated upload.** Write `tmp/qa-session/<slug>/receipt.md`: environment
+   header (commit, branch, surfaces, gardens, identities, write boundary), catalog cases
+   exercised with result counts, OBS totals by disposition, fix list (OBS → commit SHA →
+   revalidated), deferred list, locked DL IDs, environment notes (watchdog trips,
+   dep-optimization reloads, restarts), remaining risk. Before ANY upload, run qa-triage's
+   privacy grep (replay URLs, session IDs, distinct IDs, `0x` addresses, reporter identifiers)
+   over **both `receipt.md` and `results.csv`** — on a match, redact it or stop; an unresolved
+   match fails closed with no upload. Then verify the destination **Drive QA folder next to the
+   Green Goods v1.1 QA Sheet** is access-restricted (not link-public — same check as qa-triage
+   Phase 0) and upload both files there. These artifacts carry per-case results and identities:
+   **never commit them to the public repo.**
 6. **Ship.** Full `bun run validation:plan -- --intent review` on the accumulated branch, then
    the [`ship`](../ship/SKILL.md) skill for the push/PR decision. Delete
-   `tmp/qa-session/<date>/` only after the handoff completed; keep it for resume on failure or
+   `tmp/qa-session/<slug>/` only after the handoff completed; keep it for resume on failure or
    interruption.
 
 ## Batch mode (recorded transcript)

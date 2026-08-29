@@ -247,10 +247,18 @@ export function scanPersistentRetiredReferences(files, patterns = RETIRED_PATTER
 }
 
 export function checkDecisionLogCitations(files, ledgerText) {
-  const ledgerIds = new Set(
-    [...ledgerText.matchAll(/^\|\s*(DL-\d+)\s*\|/gm)].map((match) => match[1]),
-  );
+  const ledgerRows = [...ledgerText.matchAll(/^\|\s*(DL-\d+)\s*\|/gm)].map((match) => match[1]);
+  const ledgerIds = new Set(ledgerRows);
   const failures = [];
+  const seenIds = new Set();
+  for (const id of ledgerRows) {
+    if (seenIds.has(id)) {
+      failures.push(
+        `.claude/skills/design/decision-log.md: duplicate ledger id (IDs are never reused) -> ${id}`,
+      );
+    }
+    seenIds.add(id);
+  }
   for (const file of files) {
     for (const [index, line] of file.text.split(/\r?\n/).entries()) {
       for (const match of line.matchAll(/\bDL-\d+\b/g)) {

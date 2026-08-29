@@ -397,9 +397,10 @@ Implement improvements in this order so later signals are trustworthy.
 6. **Add a role and device matrix to route E2E.** Prioritize steward, gardener, evaluator, and funder
    boundaries; iOS-sized and Android-sized PWA flows; and public pages at 375px and 1440px.
 7. **Grow the catalog into a machine-readable journey manifest.** The seed exists:
-   `scripts/data/qa-test-catalog.json` versions journeys with roles and states, and its
-   `linkedChecks` field is the growth path for mapping each case to its deterministic tests,
-   stories, and most recent accepted evidence so coverage drift becomes visible.
+   `scripts/data/qa-test-catalog.json` versions journeys with roles and states, and a planned
+   `linkedChecks` field (not yet in the schema) is the growth path for mapping each case to its
+   deterministic tests, stories, and most recent accepted evidence so coverage drift becomes
+   visible.
 8. **Repair QA-tooling drift.** The dev-port parser is fixed (self-checking, 2026-08-28). Still
    open: decide whether the validation selector needs an `audit` intent (none exists today) or
    document that audit-shaped work maps onto the existing `diagnose`/`review` intents.

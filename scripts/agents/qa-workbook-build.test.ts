@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   type Catalog,
   type CatalogCase,
+  collisionSafePath,
   filterCases,
   groupByArea,
   howToCheck,
@@ -11,6 +12,7 @@ import {
   resolveSurfaceFilter,
   RUN_SHEET_COLUMNS,
   validateCatalog,
+  validateSelectors,
 } from "./qa-workbook-build";
 
 function makeCase(overrides: Partial<CatalogCase> = {}): CatalogCase {
@@ -138,6 +140,40 @@ describe("filterCases", () => {
     expect(filterCases(cases, { tabs: ["Docs"] }).map((c) => c.id)).toEqual(["DOCS-001"]);
     expect(filterCases(cases, { ids: ["ADM-001"] }).map((c) => c.id)).toEqual(["ADM-001"]);
     expect(filterCases(cases, { tags: ["navigation"] }).map((c) => c.id)).toEqual(["DOCS-001"]);
+  });
+});
+
+describe("collisionSafePath", () => {
+  it("keeps the path when nothing exists there", () => {
+    expect(collisionSafePath("/tmp/qa/sheet-2026-08-31.xlsx", () => false)).toBe(
+      "/tmp/qa/sheet-2026-08-31.xlsx",
+    );
+  });
+
+  it("suffixes -2, -3 instead of overwriting an existing run sheet", () => {
+    const existing = new Set(["/tmp/qa/sheet-2026-08-31.xlsx", "/tmp/qa/sheet-2026-08-31-2.xlsx"]);
+    expect(collisionSafePath("/tmp/qa/sheet-2026-08-31.xlsx", (p) => existing.has(p))).toBe(
+      "/tmp/qa/sheet-2026-08-31-3.xlsx",
+    );
+  });
+});
+
+describe("validateSelectors", () => {
+  const cases = [
+    makeCase({ tags: ["dialog"] }),
+    makeCase({ id: "ADM-099", status: "retired", scenario: "retired case" }),
+  ];
+
+  it("accepts known ids and tags", () => {
+    expect(validateSelectors(cases, { ids: ["ADM-001"], tags: ["dialog"] })).toEqual([]);
+  });
+
+  it("names every unmatched or retired selector instead of silently dropping it", () => {
+    const problems = validateSelectors(cases, { ids: ["ADM-001", "TYPO-999", "ADM-099"], tags: ["nope"] });
+    expect(problems).toHaveLength(3);
+    expect(problems.join("\n")).toMatch(/TYPO-999: no such case id/);
+    expect(problems.join("\n")).toMatch(/ADM-099: case is retired/);
+    expect(problems.join("\n")).toMatch(/--tag nope: no active case/);
   });
 });
 

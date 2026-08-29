@@ -30,9 +30,9 @@ import {StatusBadge} from "@site/src/components/docs";
 
 # Test Cases
 
-<StatusBadge status="Planned" />
+<StatusBadge status="In progress" />
 
-Structured test case tracking is planned. Today, the source of truth is the package test scripts, GitHub Actions workflows, Vitest configs, contracts test scripts, Playwright config, and test-quality guardrail. Use this page as an orientation map, not as proof that every listed workflow has full automated coverage.
+Product-experience test cases now have a canonical checked-in source: `scripts/data/qa-test-catalog.json` (see the admonition below). For behavior-level coverage, the source of truth remains the package test scripts, GitHub Actions workflows, Vitest configs, contracts test scripts, Playwright config, and test-quality guardrail. Use this page as an orientation map, not as proof that every listed workflow has full automated coverage.
 
 ```mermaid
 flowchart LR
@@ -152,9 +152,9 @@ The core user journey that must never break:
 
 ## Status
 
-Current test infrastructure is operational, but the structured catalog is still planned. Known gaps:
+Current test infrastructure is operational, and product-experience scenarios are tracked in the checked-in catalog (`scripts/data/qa-test-catalog.json`). Known gaps:
 
-- This page is not yet generated from or linked to a canonical test-case source.
+- The behavior-level categories below are not yet linked to that catalog or generated from it.
 - Planned categories need explicit links to current tests before they can be described as covered.
 - E2E and fork coverage remain curated and environment-dependent.
 - Load testing and broad cross-chain verification should not be implied unless a checked-in workflow or script proves them.

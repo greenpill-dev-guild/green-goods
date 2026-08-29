@@ -130,6 +130,8 @@ scripts/
 | `posthog-query.test.ts` | `bun run test:agent-tools` | Fixture coverage for the curated read-only commands, request shaping, cache behavior, and public-evidence privacy boundary |
 | `qa-sheet-append.ts` | `qa-triage` skill (Phase 6 write path) | Thin client that POSTs Defects rows + Test-tab Defect Link backfills + column bootstrap to an Apps Script Web App deployed on the Green Goods v1.1 QA workbook. No Google Cloud Console, no OAuth, no service account — the Apps Script writes under the user's Google identity. Webhook URL + secrets cached at `~/.config/qa-triage/{webhook,webhook-secret,webhook-admin-secret}.txt`. Canonical Apps Script source at `~/.config/qa-triage/setup.md` (chmod 600, never in git); repo-side pointer: [`qa-sheet-webhook-setup.md`](agents/qa-sheet-webhook-setup.md) |
 | `qa-sheet-webhook-setup.md` | n/a | Repo-side pointer: tells you how to recreate `~/.config/qa-triage/setup.md` on a fresh machine. The canonical Apps Script source + both secrets live in that local file, never in git |
+| `qa-workbook-build.ts` | `bun run qa:workbook` (root package.json) / `qa-session` skill pre-flight | Projects `scripts/data/qa-test-catalog.json` (the upstream QA scenario source of truth) into a human-first Excel run sheet — Overview tab with run info + live counts, one tab per surface with plain-language columns grouped by area — in gitignored `tmp/qa/`. Definitions only; results live in Drive/the v1.1 Sheet, never in git |
+| `qa-workbook-build.test.ts` | `bunx vitest run scripts/agents/qa-workbook-build.test.ts` | Catalog validation (unique IDs, prefix↔tab consistency, enums) and projection coverage for the run-sheet generator |
 
 ### `harness/` — skill and planning helpers
 | Script | Caller | Purpose |

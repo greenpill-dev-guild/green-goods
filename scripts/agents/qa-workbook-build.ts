@@ -16,7 +16,7 @@
  *                       [--tag <tag>[,...]] [--out <path>]
  */
 
-import { mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -144,6 +144,42 @@ export function resolveSurfaceFilter(raw: string, knownTabs: string[]): string[]
     }
   }
   return [...tabs];
+}
+
+/**
+ * Run sheets can hold entered results — a second generation on the same date
+ * must never silently replace one. The default output path gets a -2/-3 suffix
+ * on collision; an explicit --out is taken as the user's deliberate choice.
+ */
+export function collisionSafePath(basePath: string, exists: (p: string) => boolean = existsSync): string {
+  if (!exists(basePath)) return basePath;
+  const dir = path.dirname(basePath);
+  const ext = path.extname(basePath);
+  const stem = path.basename(basePath, ext);
+  for (let n = 2; ; n++) {
+    const candidate = path.join(dir, `${stem}-${n}${ext}`);
+    if (!exists(candidate)) return candidate;
+  }
+}
+
+/** A typo in --cases/--tag must fail loudly, not silently shrink coverage. */
+export function validateSelectors(
+  cases: CatalogCase[],
+  filter: { ids?: string[]; tags?: string[] } = {},
+): string[] {
+  const problems: string[] = [];
+  const active = cases.filter((testCase) => testCase.status !== "retired");
+  const knownIds = new Set(active.map((testCase) => testCase.id));
+  const retiredIds = new Set(cases.filter((c) => c.status === "retired").map((c) => c.id));
+  const knownTags = new Set(active.flatMap((testCase) => testCase.tags ?? []));
+  for (const id of filter.ids ?? []) {
+    if (retiredIds.has(id)) problems.push(`--cases ${id}: case is retired`);
+    else if (!knownIds.has(id)) problems.push(`--cases ${id}: no such case id in the catalog`);
+  }
+  for (const tag of filter.tags ?? []) {
+    if (!knownTags.has(tag)) problems.push(`--tag ${tag}: no active case carries this tag`);
+  }
+  return problems;
 }
 
 export function filterCases(
@@ -386,15 +422,22 @@ async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const catalog = await loadCatalog();
   const tabs = args.surface ? resolveSurfaceFilter(args.surface, catalog.tabs) : undefined;
+  const selectorProblems = validateSelectors(catalog.cases, { ids: args.cases, tags: args.tags });
+  if (selectorProblems.length > 0) {
+    console.error(`qa:workbook: unmatched selectors:\n- ${selectorProblems.join("\n- ")}`);
+    process.exit(1);
+  }
   const cases = filterCases(catalog.cases, { tabs, ids: args.cases, tags: args.tags });
   if (cases.length === 0) {
     console.error("qa:workbook: no cases match the given filters");
     process.exit(1);
   }
   const date = new Date().toISOString().slice(0, 10);
-  const outPath = path.resolve(
-    args.out ?? path.join(scriptDir, "..", "..", "tmp", "qa", `green-goods-qa-test-sheet-${date}.xlsx`),
-  );
+  const outPath = args.out
+    ? path.resolve(args.out)
+    : collisionSafePath(
+        path.resolve(scriptDir, "..", "..", "tmp", "qa", `green-goods-qa-test-sheet-${date}.xlsx`),
+      );
   await writeWorkbook(catalog, cases, outPath);
   const tabCounts = catalog.tabs
     .map((tab) => ({ tab, count: cases.filter((c) => c.tab === tab).length }))

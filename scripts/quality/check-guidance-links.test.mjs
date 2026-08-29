@@ -245,6 +245,17 @@ test("accepts DL citations present in the ledger and rejects unknown ones", () =
   assert.match(failures[0], /DL-099/);
 });
 
+test("rejects duplicate ledger ids", () => {
+  const ledger = [
+    "| DL-007 | 2026-08-16 | a | b | codified | x |",
+    "| DL-007 | 2026-08-28 | c | d | locked | — |",
+  ].join("\n");
+  const failures = checkDecisionLogCitations([], ledger);
+  assert.equal(failures.length, 1);
+  assert.match(failures[0], /duplicate ledger id/);
+  assert.match(failures[0], /DL-007/);
+});
+
 test("warns only on stale locked decision rows", () => {
   const ledger = [
     "| DL-009 | 2026-07-01 | old decision | why | locked | — |",

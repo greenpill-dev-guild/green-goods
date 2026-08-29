@@ -16,7 +16,7 @@ Mirror [`docs/routines/bug-intake.md`](../../../docs/routines/bug-intake.md) for
 | Trigger | Action |
 |---------|--------|
 | `/qa-triage` | Discover the latest Build Sync notes (Drive → Downloads). If the [`qa-triage-pulse`](../../../docs/routines/qa-triage-pulse.md) routine has pre-staged Customer Needs for the latest sync, offer to resume from those instead. |
-| `/qa-triage <path>` | Use the supplied notes path (absolute, relative, or `~/Downloads/...`). A `tmp/qa-session/<date>/session.md` from the qa-session skill is a supported source — its numbered, typed, verbatim-quoted items parse directly and its exact `case:` Test IDs bypass fuzzy matching |
+| `/qa-triage <path>` | Use the supplied notes path (absolute, relative, or `~/Downloads/...`). A `tmp/qa-session/<slug>/qa-session-<slug>.md` from the qa-session skill is a supported source — the slugged filename keeps each handoff's workspace distinct, its numbered, typed, verbatim-quoted items parse directly, and its exact `case:` Test IDs bypass fuzzy matching |
 | `/qa-triage <slug>` | Resume an incomplete run from `tmp/qa-triage/<slug>/notes.md` |
 | `/qa-triage qa-sync:<YYYY-MM-DD>` | Resume from routine-pre-staged Customer Needs carrying that `qa-sync:*` label. Phases 1-3 are skipped (already done by `qa-triage-pulse`); triage gate fires immediately. |
 | `/qa-triage … --dry-run` | Print payloads instead of writing to Linear; still emit Sheet CSVs |
