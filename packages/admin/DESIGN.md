@@ -124,7 +124,7 @@ Color roles:
 
 The M3 primitives are **Admin* adapter wrappers** following M3 v0.192 exactly — zero changes to the shared package. Around them sit admin-owned shell and layout families that intentionally do not carry the prefix: the Shell forks (`AppBar`, `NavigationBar`, `MainSheet`, `FabButton`), `CanvasLayout` and the `Canvas*` route-state surfaces, the `Account*` panels, the `ActionFlow*` flow chrome, and named singletons (`PageHeader`, `CommandPalette`, `ConnectShell`, `LeftInspectorDialog`).
 
-Wrappers (22): AdminBadge, AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminConfirmDialog, AdminDialog, AdminFab, AdminFilterChip, AdminInlineField, AdminLinearProgress, AdminListItem, AdminReasonDialog, AdminSearchToolbar, AdminSelectableCard, AdminSettingRow, AdminSideSheet, AdminSortSelect, AdminTabRail, AdminTextField, AdminTooltip, AdminViewActions.
+Wrappers (20): AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminConfirmDialog, AdminDialog, AdminFilterChip, AdminInlineField, AdminLinearProgress, AdminReasonDialog, AdminSearchToolbar, AdminSelectableCard, AdminSettingRow, AdminSideSheet, AdminSortSelect, AdminTabRail, AdminTextArea, AdminTextField, AdminTooltip, AdminViewActions. (AdminBadge, AdminFab, and AdminListItem were deleted 2026-08-29 — zero production consumers; the dock FAB is `Shell/FabButton`.)
 
 ### Card and selection grammar
 
@@ -144,7 +144,7 @@ Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as
 
 - **AppBar** (top context bar, Z3): GardenChip selector, search, settings, notifications, avatar
 - **NavigationBar** (bottom, Z3): Workspace tabs — Hub, Garden, Community, Actions. Symbol-first. Role-adaptive visibility via permissions.
-- **FAB** (`Shell/FabButton`): Per-workspace primary action — M3 large FAB geometry with 16px radius; the in-dock nav FAB is circular. Integrated into NavigationBar via FabProvider. (`AdminFab` is the standalone M3 FAB wrapper in the palette; the shipped nav dock uses `Shell/FabButton`.)
+- **FAB** (`Shell/FabButton`): Per-workspace primary action — M3 large FAB geometry with 16px radius; the in-dock nav FAB is circular. Integrated into NavigationBar via FabProvider.
 - **Desktop profile**: On desktop, Profile redirects to Hub and opens the AdminSideSheet account inspector with profile content.
 - **Controlled Chrome**: only the NavigationBar/FAB dock is translucent — flat `rgb(var(--admin-surface-0) / 0.85)`, 12px blur, warm ambient shadow, 1px ink ring (every dialog surface and the account side sheet are solid M3). The AppBar root and MainSheet are transparent while child controls can carry their own solid/hover states. Page content, tables, forms, and route cards do not use glass.
 
