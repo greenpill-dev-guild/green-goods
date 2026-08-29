@@ -1,5 +1,4 @@
 // Modules — EXPLICIT EXPORTS for tree-shaking
-
 export * from "./commitment-pooling";
 
 export {
@@ -181,6 +180,7 @@ export {
   greenGoodsIndexer,
   withTimeout,
 } from "./data/graphql-client";
+export * from "./data/public-garden-impact-readers";
 // ============================================================================
 // DATA / GREENGOODS
 // ============================================================================

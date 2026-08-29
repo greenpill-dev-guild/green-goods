@@ -4,12 +4,13 @@ sidebar_label: Agent
 slug: /builders/packages/agent
 audience: developer
 owner: docs
-last_verified: 2026-04-19
+last_verified: 2026-08-28
 feature_status: Live
 source_of_truth:
   - packages/agent/AGENTS.md
   - packages/agent/package.json
   - packages/agent/src/index.ts
+  - packages/agent/src/api/routes/public-garden-impact.ts
   - packages/agent/README.md
 ---
 
@@ -48,6 +49,39 @@ Bot, webhook, and limited public API service for Green Goods. The current packag
 - AI-assisted transcription/photo/text processing paths.
 - Rate limiting, database integration, analytics, and structured logging.
 - Blockchain service initialization for Green Goods transaction flows.
+- A versioned, read-only public garden impact aggregation route.
+
+## Public garden impact route
+
+```http
+GET /public/gardens/11155111/0x1111111111111111111111111111111111111111/impact?recentLimit=3
+```
+
+The response contains the public garden identity, nullable source-aware totals, domain and action
+breakdowns, recent protocol-approved Work, and provenance. It excludes gardener, steward,
+evaluator, assessor, and other role addresses.
+
+`garden.url` is the canonical impact-resource URL for the resolved chain and checksummed Garden
+address. It is not derived from the Garden name, so duplicate names and cross-chain Gardens remain
+distinct.
+
+The route behaves as follows:
+
+- `GET` and `OPTIONS` allow any origin without credentials. This wildcard policy is local to the
+  impact route; other public APIs keep their configured origin allowlist.
+- Requests are limited to 120 per 10 minutes using the existing public IP, origin, and garden
+  material buckets. Cache hits count toward the limit; preflight requests do not.
+- Successful snapshots use a five-minute, 100-garden in-process LRU cache. The Agent loads up to 12
+  recent items once and slices the cached result for each request.
+- A 200 response uses
+  `public, max-age=60, s-maxage=300, stale-while-revalidate=86400`. Errors use `no-store`.
+- Invalid or unsupported targets return 400, hidden and missing gardens share a generic 404,
+  exhausted rate limits return 429, and an unsafe provider result returns 503.
+
+`provenance.status: "partial"` means at least one source is unavailable. Fields that depend on that
+source are `null`; successful empty sources remain zero. Celo therefore reports missing Approval or
+Assessment schema data as partial until those schemas are configured. The implementation does not
+deploy the Agent or provide production URL proof.
 
 ## What to expect
 

@@ -33,6 +33,7 @@ import { registerGardenJoinRequestRoutes } from "./routes/garden-join-requests";
 import { publicBrowserCorsPreflight, publicBrowserCorsResponse } from "./http/public";
 import { trackGardenJoinRequestEvent } from "../services/analytics";
 import { GardenJoinRequestRateLimitPressure } from "../services/garden-join-requests";
+import { registerPublicGardenImpactRoutes } from "./routes/public-garden-impact";
 
 const log = loggers.api;
 
@@ -170,6 +171,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
   registerUploadSignRoutes(app, routeContext);
   registerMessageRoutes(app, routeContext);
   registerSubscribeRoutes(app, routeContext);
+  registerPublicGardenImpactRoutes(app, routeContext);
   registerProfileAvatarRoutes(app, {
     ...routeContext,
     profileAvatarStore: deps.profileAvatarStore ?? createSqliteProfileAvatarStore(),

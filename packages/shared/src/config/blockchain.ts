@@ -104,6 +104,13 @@ function hasNetworkConfig(chainId: number): boolean {
   );
 }
 
+/** True only for a directly configured Green Goods deployment with its own EAS endpoint. */
+export function isPublicGardenImpactChainSupported(chainId: number): boolean {
+  if (!Number.isSafeInteger(chainId) || chainId <= 0) return false;
+  const key = String(chainId);
+  return Boolean(DEPLOYMENT_CONFIGS[key] && EAS_GRAPHQL_URLS[key] && hasNetworkConfig(chainId));
+}
+
 function resolveChainId(chainId?: number | string): number {
   if (chainId === undefined || chainId === null || chainId === "") {
     return FALLBACK_CHAIN_ID;

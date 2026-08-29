@@ -1,0 +1,194 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "public-garden-impact-api",
+    "title": "Public Garden Impact API",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-08-29T00:24:32.707Z",
+    "updated_at": "2026-08-29T03:15:48.344Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["shared", "agent", "docs"],
+    "work_types": ["implementation"],
+    "surfaces": [
+      "packages/shared/src/public-contracts",
+      "packages/shared/src/modules/data",
+      "packages/agent/src/api",
+      "docs/docs/builders/packages",
+      ".plans/active/public-garden-impact-api"
+    ],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Repository-only implementation: no Linear mirror or tracker write was requested.",
+    "The clean detached checkout is preserved; branch, commit, PR, deployment, and production proof are outside scope.",
+    "UI and contracts lanes are not applicable; behavior lives in the State/API lane.",
+    "The hub stays active because terminal status requires a clean commit-attributed validation receipt.",
+    "The Agent default loader dynamically uses the existing Shared modules export; the production Bun runtime import is covered directly and no package-map entry was added.",
+    "Review closure makes garden.url a chain/address-stable impact self-link and uses Hypercert updatedAt for lifecycle activity."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No rendered UI, component, i18n, or browser-visible behavior changes."
+      },
+      "skill_tags": ["not-applicable"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/public-garden-impact.test.ts src/__tests__/public-garden-impact-readers.test.ts",
+          "evidence": "Deep-review regression tests failed in three expected places before source edits: name-derived Garden URL, minted-only certificate activity, and missing updatedAt in the Hypercert query."
+        },
+        "green": {
+          "command": "bun run test src/__tests__/public-contracts.test.ts src/__tests__/public-garden-impact-readers.test.ts src/__tests__/public-garden-impact.test.ts (Shared); bun run test src/__tests__/public-garden-impact-api.test.ts (Agent)",
+          "evidence": "Shared passed 3 files and 40 tests; Agent passed 1 file and 14 tests. A direct Bun import also resolved readPublicGardenImpactSnapshot through the existing @green-goods/shared/modules export."
+        },
+        "note": ""
+      },
+      "skill_tags": ["public-api", "data-layer", "agent"],
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No Solidity, ABI, deployment, broadcast, or release surface changes."
+      },
+      "skill_tags": ["not-applicable"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-08-29T00:24:32.744Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-08-29T00:24:43.000Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Locked the public impact API contract, source semantics, cache and rate-limit behavior, and repository-only scope before implementation."
+    },
+    {
+      "timestamp": "2026-08-29T00:58:38.785Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-08-29T01:09:30.615Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Implementation, RED/GREEN proof, and selected validation are complete. Lane stays in progress because the detached working tree is intentionally uncommitted and terminal receipt evidence requires separate commit authority."
+    },
+    {
+      "timestamp": "2026-08-29T02:06:53.101Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-08-29T03:06:30.362Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-08-29T03:15:48.344Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Deep-review fixes and direct behavior proof are complete. The pinned quick gate passes every independent check; Agent source/test typechecks and build remain blocked only by pre-existing Garden join-request address-type errors outside this lane."
+    }
+  ]
+}

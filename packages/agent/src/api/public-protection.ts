@@ -6,6 +6,7 @@ export type PublicRouteClass =
   | "funding_create"
   | "funding_proof"
   | "receipt_read"
+  | "garden_impact_read"
   | "upload_sign"
   | "profile_avatar_read"
   | "profile_avatar_mutation"
@@ -51,6 +52,7 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   funding_create: { limit: 10, windowMs: 10 * 60 * 1000 },
   funding_proof: { limit: 10, windowMs: 10 * 60 * 1000 },
   receipt_read: { limit: 60, windowMs: 10 * 60 * 1000 },
+  garden_impact_read: { limit: 120, windowMs: 10 * 60 * 1000 },
   upload_sign: { limit: 20, windowMs: 60 * 1000 },
   profile_avatar_read: { limit: 120, windowMs: 10 * 60 * 1000 },
   profile_avatar_mutation: { limit: 10, windowMs: 10 * 60 * 1000 },
