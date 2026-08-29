@@ -14,7 +14,7 @@ export function ImpactFunders() {
 
   if (isLoading) {
     return (
-      <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
+      <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-5">
         <div className="h-5 w-40 rounded skeleton-shimmer" />
         <div className="mt-3 space-y-2">
           {[0, 1, 2].map((i) => (
@@ -38,7 +38,7 @@ export function ImpactFunders() {
   const maxYield = funders[0]?.totalYieldGenerated ?? 0n;
 
   return (
-    <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
+    <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="font-heading text-lg font-semibold text-text-strong">

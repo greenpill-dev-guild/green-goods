@@ -65,7 +65,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
     : allocations.slice(0, INITIAL_ALLOCATION_COUNT);
 
   return (
-    <div className="mb-4 rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+    <div className="mb-4 rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-lighter">

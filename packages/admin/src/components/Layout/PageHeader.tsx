@@ -73,7 +73,7 @@ export function PageHeader({
           ? "relative px-0 pt-3 pb-2"
           : cn(
               "border-b px-4 py-3 sm:px-6 sm:py-4",
-              sticky ? "bg-bg-white shadow-regular-sm" : "bg-bg-white"
+              sticky ? "bg-bg-white shadow-[var(--m3-elevation-1)]" : "bg-bg-white"
             ),
         sticky &&
           (isCanvas

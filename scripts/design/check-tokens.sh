@@ -514,6 +514,19 @@ if grep -qE '^[[:space:]]*--elevation-[0-9]:' "$ADMIN_INDEX_CSS"; then
   exit 1
 fi
 
+# The Tailwind-named .shadow-xs..2xl override block — a second ladder wearing
+# Tailwind's own class names, invisible to the --elevation-N guard above — was
+# deleted 2026-08-29 (admin audit, PRD-644 round 2). Fail if any shadow-*
+# class definition reappears in admin-owned CSS.
+SHADOW_CLASS_REDEFINITION="$(grep -RnE '^[[:space:]]*(\[[^]]+\][[:space:]]*)*\.shadow-(xs|sm|md|lg|xl|2xl|elevation)' \
+  "$ADMIN_INDEX_CSS" "$ADMIN_M3_TOKENS" packages/admin/src/styles/admin-m3-components.css 2>/dev/null || true)"
+if [[ -n "$SHADOW_CLASS_REDEFINITION" ]]; then
+  echo "❌ Parallel shadow ladder reintroduced — .shadow-* class definitions found in admin CSS:"
+  echo "$SHADOW_CLASS_REDEFINITION" | sed 's/^/  /'
+  echo "   Depth in the cockpit is shadow-[var(--m3-elevation-0/1/2)] plus --admin-chrome-shadow on floating nav/FAB chrome; do not redefine Tailwind shadow utility classes."
+  exit 1
+fi
+
 node scripts/design/check-css-custom-properties.mjs
 node scripts/design/check-guidance-examples.mjs
 

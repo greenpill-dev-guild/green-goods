@@ -214,7 +214,8 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({
                 key={work.id}
                 className={cn(
                   "rounded-lg transition-shadow",
-                  highlightWorkId === work.id && "ring-1 ring-primary-base shadow-sm"
+                  highlightWorkId === work.id &&
+                    "ring-1 ring-primary-base shadow-[var(--m3-elevation-1)]"
                 )}
               >
                 <WorkCard work={work} canReview={canReview} hubContext={hubContext} />

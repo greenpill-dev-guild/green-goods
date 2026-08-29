@@ -129,7 +129,7 @@ export function DistributionChart({
               if (!active || !payload?.length) return null;
               const data = payload[0].payload as ChartDataItem;
               return (
-                <div className="rounded-lg border border-stroke-soft bg-bg-white p-2 shadow-md">
+                <div className="rounded-lg border border-stroke-soft bg-bg-white p-2 shadow-[var(--m3-elevation-2)]">
                   <p className="text-sm font-medium text-text-strong">
                     <DistributionTooltipTitle data={data} />
                   </p>

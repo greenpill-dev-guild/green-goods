@@ -49,7 +49,7 @@ export function VaultEventHistory({
   const visibleEvents = useMemo(() => events.slice(0, visibleCount), [events, visibleCount]);
 
   return (
-    <section className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+    <section className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-6">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-semibold text-text-strong sm:text-lg">
           {formatMessage({ id: "app.treasury.events" })}
