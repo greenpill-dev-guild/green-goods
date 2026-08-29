@@ -221,7 +221,7 @@ export function CookieJarManageModal({
                             if (e.key === "Enter") submitMaxWithdrawal(jar);
                             if (e.key === "Escape") cancelEditing();
                           }}
-                          className="w-20 rounded border border-stroke-soft bg-bg-white px-1.5 py-0.5 text-xs text-text-strong focus:border-primary-base focus:outline-none"
+                          className="w-20 rounded border border-stroke-soft bg-bg-white px-1.5 py-0.5 text-xs text-text-strong"
                           disabled={updateMaxWithdrawalMutation.isPending}
                         />
                         <AdminButton
@@ -286,7 +286,7 @@ export function CookieJarManageModal({
                           surface="admin"
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
-                          className="rounded border border-stroke-soft bg-bg-white px-1.5 py-0.5 text-xs text-text-strong focus:border-primary-base focus:outline-none"
+                          className="rounded border border-stroke-soft bg-bg-white px-1.5 py-0.5 text-xs text-text-strong"
                           disabled={updateIntervalMutation.isPending}
                         >
                           {INTERVAL_PRESETS.map((preset) => (

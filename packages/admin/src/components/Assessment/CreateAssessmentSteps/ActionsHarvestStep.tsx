@@ -195,7 +195,7 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
                       checked={isChecked}
                       onChange={() => handleToggleAction(action.id)}
                       disabled={isSubmitting}
-                      className="mt-0.5 h-4 w-4 rounded border-stroke-sub text-primary-base focus:ring-2 focus:ring-primary-alpha-24 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="mt-0.5 h-4 w-4 rounded border-stroke-sub accent-primary-base focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-60"
                     />
                     <div className="min-w-0 flex-1">
                       <span className="block truncate font-medium" title={action.title}>

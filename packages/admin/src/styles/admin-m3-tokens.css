@@ -115,6 +115,11 @@
   --m3-on-primary: var(--tone-on-primary, 255 255 255);
   --m3-primary-container: var(--tone-primary-container, var(--green-100));
   --m3-on-primary-container: var(--tone-on-primary-container, var(--green-900));
+  /* Focus-ring convergence (PRD-644 round 2): the generic input focus rule in
+   * index.css reads --focus-ring, which theme.css points at blue. In the
+   * cockpit it rides the single focus role instead; --tone-focus-ring flips
+   * per theme on its own, so one theme-agnostic line covers light and dark. */
+  --focus-ring: var(--tone-focus-ring, var(--m3-primary));
 }
 
 /* --------------------------------------------------------------------------
@@ -139,6 +144,9 @@
   --m3-on-primary: var(--tone-on-primary, 255 255 255);
   --m3-primary-container: var(--tone-primary-container, var(--green-100));
   --m3-on-primary-container: var(--tone-on-primary-container, var(--green-900));
+  /* Portal pair of the .admin-m3 --focus-ring re-point above — dialog portals
+   * carry [data-tone] but not .admin-m3. */
+  --focus-ring: var(--tone-focus-ring, var(--m3-primary));
 }
 
 /* --------------------------------------------------------------------------

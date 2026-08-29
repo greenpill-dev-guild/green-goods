@@ -67,7 +67,7 @@ export function EnsAddressWithCopy({
         type="button"
         onClick={() => copy(address)}
         className={cn(
-          "rounded p-0.5 text-text-sub transition hover:bg-bg-weak hover:text-text-strong focus:outline-none focus:ring-1 focus:ring-primary-light",
+          "rounded p-0.5 text-text-sub transition hover:bg-bg-weak hover:text-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
           buttonClassName
         )}
         aria-label={formatMessage({ id: "app.common.copyAddress" })}

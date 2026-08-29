@@ -193,7 +193,7 @@ function MockCommandPalette({
           id: "app.admin.nav.search",
           defaultMessage: "Search",
         })}
-        className="min-h-11 min-w-11 p-2 rounded-md text-text-soft hover:text-text-sub hover:bg-bg-weak transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
+        className="min-h-11 min-w-11 p-2 rounded-md text-text-soft hover:text-text-sub hover:bg-bg-weak transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
       >
         <RiSearchLine className="h-5 w-5" />
       </button>

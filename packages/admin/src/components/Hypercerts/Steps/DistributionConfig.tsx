@@ -48,7 +48,7 @@ function RemoveRecipientButton({ entry, onRemove }: RemoveRecipientButtonProps) 
         { id: "app.hypercerts.distribution.removeRecipient" },
         { address: recipientLabel }
       )}
-      className="h-8 min-w-8 rounded-[var(--m3-shape-sm)] px-2 text-text-sub hover:bg-error-lighter hover:text-error-dark focus-visible:ring-error-light"
+      className="h-8 min-w-8 rounded-[var(--m3-shape-sm)] px-2 text-text-sub hover:bg-error-lighter hover:text-error-dark"
     >
       <RiCloseLine className="h-4 w-4" />
     </AdminButton>

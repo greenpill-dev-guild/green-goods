@@ -67,6 +67,11 @@ export function AdminSearchToolbar({
           // Background + outline
           "border border-[rgb(var(--m3-outline-variant))]",
           "bg-[rgb(var(--m3-surface-container))]",
+          // Keyboard focus — the input itself strips its outline (the ring
+          // would render as a square inside the pill), so the pill carries the
+          // canonical ring while the input has focus. Scoped with :has() to
+          // the input only — the clear button brings its own ring.
+          "has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
           // Layout
           "flex w-full items-center sm:flex-1"
         )}

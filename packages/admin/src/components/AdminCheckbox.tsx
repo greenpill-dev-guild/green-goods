@@ -130,6 +130,11 @@ export const AdminCheckbox = React.forwardRef<HTMLInputElement, AdminCheckboxPro
               "h-[18px] w-[18px] shrink-0 rounded-[var(--m3-shape-xs)]",
               // Cursor
               "cursor-pointer disabled:cursor-not-allowed",
+              // Keyboard focus — the canonical cockpit ring role. The global
+              // index.css input focus rule deliberately excludes checkboxes,
+              // so without this line the control is keyboard-invisible
+              // (2026-08-29 audit, WCAG 2.4.7).
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2",
               // Transition
               "transition-colors duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
               // Unselected states

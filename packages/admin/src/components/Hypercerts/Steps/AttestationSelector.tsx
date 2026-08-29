@@ -152,7 +152,7 @@ export function AttestationSelector({
             aria-label={formatMessage({ id: "app.hypercerts.attestations.filter.assessment" })}
             value={selectedAssessmentId ?? ""}
             onChange={(event) => onAssessmentChange(event.target.value || null)}
-            className="block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4 text-sm text-text-strong-950 transition-all duration-[var(--spring-effects-fast-duration,150ms)] focus:ring-2 focus:ring-primary-lighter focus:border-primary-base"
+            className="block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4 text-sm text-text-strong-950 transition-all duration-[var(--spring-effects-fast-duration,150ms)] focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
           >
             <option value="">
               {formatMessage({ id: "app.hypercerts.attestations.filter.assessment.none" })}
@@ -191,7 +191,7 @@ export function AttestationSelector({
             disabled={Boolean(selectedAssessment)}
             onChange={(event) => setDomainFilter(event.target.value as DomainOption | "")}
             className={cn(
-              "block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4 text-sm text-text-strong-950 transition-all duration-[var(--spring-effects-fast-duration,150ms)] focus:ring-2 focus:ring-primary-lighter focus:border-primary-base",
+              "block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4 text-sm text-text-strong-950 transition-all duration-[var(--spring-effects-fast-duration,150ms)] focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
               selectedAssessment && "opacity-50 cursor-not-allowed"
             )}
           >
@@ -308,7 +308,7 @@ export function AttestationSelector({
               disabled={isBundled}
               className={cn(
                 "flex h-auto w-full min-w-0 flex-col gap-2 rounded-lg border p-4 text-left transition",
-                "focus:outline-none focus:ring-2 focus:ring-primary-base focus:ring-offset-2",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2",
                 isBundled
                   ? "border-stroke-soft bg-bg-weak text-text-disabled cursor-not-allowed"
                   : isSelected

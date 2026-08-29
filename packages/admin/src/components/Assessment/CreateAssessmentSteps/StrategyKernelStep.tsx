@@ -520,7 +520,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                   checked={isSelected}
                   onChange={() => setField("cynefinPhase", option.value)}
                   disabled={isSubmitting}
-                  className="mt-0.5 h-4 w-4 border-stroke-sub text-primary-base focus:ring-2 focus:ring-primary-alpha-24 focus:ring-offset-0"
+                  className="mt-0.5 h-4 w-4 border-stroke-sub accent-primary-base focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-0"
                 />
                 <div>
                   <span className="text-sm font-medium">{option.label}</span>

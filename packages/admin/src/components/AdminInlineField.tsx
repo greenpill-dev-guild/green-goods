@@ -96,7 +96,7 @@ export function AdminInlineField({
             "placeholder-[rgb(var(--m3-on-surface-variant)/0.6)]",
             hasError
               ? "ring-[rgb(var(--m3-error))] focus:ring-2 focus:ring-[rgb(var(--m3-error))]"
-              : "ring-[rgb(var(--m3-outline))] focus:ring-2 focus:ring-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]",
+              : "ring-[rgb(var(--m3-outline))] focus:ring-2 focus:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
             disabled && "cursor-not-allowed text-[rgb(var(--m3-on-surface)/0.38)]"
           )}
         />
