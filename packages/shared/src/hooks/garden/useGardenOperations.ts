@@ -9,9 +9,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { useAccount, useWalletClient } from "wagmi";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import type { Garden } from "../../types/domain";
+import type { Address, Garden } from "../../types/domain";
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
 import { useToastAction } from "../app/useToastAction";
 import { gardensKeys } from "../../config/query-keys/garden";
@@ -19,9 +18,13 @@ import {
   createGardenOperation,
   GARDEN_OPERATIONS,
   type GardenOperationMessages,
+  type GardenOperation,
+  type GardenOperationCallOptions,
   type GardenOperationResult,
   type OptimisticUpdateCallback,
 } from "./createGardenOperation";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
 
 /**
  * Apply optimistic update to garden cache data
@@ -74,8 +77,8 @@ export function useGardenOperations(gardenId: string) {
   const chainId = DEFAULT_CHAIN_ID;
   const [isLoading, setIsLoading] = useState(false);
   const { executeWithToast } = useToastAction();
-  const { address } = useAccount();
-  const { data: walletClient } = useWalletClient();
+  const address = usePrimaryAddress();
+  const sender = useTransactionSender();
   const queryClient = useQueryClient();
   const { formatMessage } = useIntl();
 
@@ -161,13 +164,12 @@ export function useGardenOperations(gardenId: string) {
 
   // Wrapper to handle operation result and potential rollback
   const createOperationWrapper = useCallback(
-    (
-      operation: (targetAddress: string) => Promise<GardenOperationResult>,
-      memberType: GardenRole,
-      operationType: "add" | "remove"
-    ) => {
-      return async (targetAddress: string): Promise<GardenOperationResult> => {
-        const result = await operation(targetAddress);
+    (operation: GardenOperation, memberType: GardenRole, operationType: "add" | "remove") => {
+      return async (
+        targetAddress: Address,
+        options?: GardenOperationCallOptions
+      ): Promise<GardenOperationResult> => {
+        const result = await operation(targetAddress, options);
 
         if (!result.success && result.optimisticUpdate) {
           // Rollback if transaction failed after optimistic update was applied
@@ -182,9 +184,9 @@ export function useGardenOperations(gardenId: string) {
 
   // Create memoized operations using the factory with optimistic updates
   const operations = useMemo(() => {
-    if (!walletClient || !address) {
+    if (!sender || !address) {
       // Return no-op functions when wallet is not connected
-      const notConnected = async (): Promise<GardenOperationResult> => ({
+      const notConnected: GardenOperation = async () => ({
         success: false,
         error: {
           name: "WalletNotConnected",
@@ -208,8 +210,6 @@ export function useGardenOperations(gardenId: string) {
     }
 
     const optimisticCallback = createOptimisticCallback();
-    const narrowedAddress = address as `0x${string}`;
-
     return {
       addGardener: createOperationWrapper(
         createGardenOperation(
@@ -218,8 +218,8 @@ export function useGardenOperations(gardenId: string) {
             ...GARDEN_OPERATIONS.addGardener,
             messages: buildMessages("gardener", "add"),
           },
-          walletClient,
-          narrowedAddress,
+          sender,
+          address,
           chainId,
           executeWithToast,
           setIsLoading,
@@ -235,8 +235,8 @@ export function useGardenOperations(gardenId: string) {
             ...GARDEN_OPERATIONS.removeGardener,
             messages: buildMessages("gardener", "remove"),
           },
-          walletClient,
-          narrowedAddress,
+          sender,
+          address,
           chainId,
           executeWithToast,
           setIsLoading,
@@ -252,8 +252,8 @@ export function useGardenOperations(gardenId: string) {
             ...GARDEN_OPERATIONS.addSteward,
             messages: buildMessages("steward", "add"),
           },
-          walletClient,
-          narrowedAddress,
+          sender,
+          address,
           chainId,
           executeWithToast,
           setIsLoading,
@@ -269,8 +269,8 @@ export function useGardenOperations(gardenId: string) {
             ...GARDEN_OPERATIONS.removeSteward,
             messages: buildMessages("steward", "remove"),
           },
-          walletClient,
-          narrowedAddress,
+          sender,
+          address,
           chainId,
           executeWithToast,
           setIsLoading,
@@ -286,8 +286,8 @@ export function useGardenOperations(gardenId: string) {
             ...GARDEN_OPERATIONS.addEvaluator,
             messages: buildMessages("evaluator", "add"),
           },
-          walletClient,
-          narrowedAddress,
+          sender,
+          address,
           chainId,
           executeWithToast,
           setIsLoading,
@@ -303,8 +303,8 @@ export function useGardenOperations(gardenId: string) {
             ...GARDEN_OPERATIONS.removeEvaluator,
             messages: buildMessages("evaluator", "remove"),
           },
-          walletClient,
-          narrowedAddress,
+          sender,
+          address,
           chainId,
           executeWithToast,
           setIsLoading,
@@ -320,8 +320,8 @@ export function useGardenOperations(gardenId: string) {
             ...GARDEN_OPERATIONS.addOwner,
             messages: buildMessages("owner", "add"),
           },
-          walletClient,
-          narrowedAddress,
+          sender,
+          address,
           chainId,
           executeWithToast,
           setIsLoading,
@@ -337,8 +337,8 @@ export function useGardenOperations(gardenId: string) {
             ...GARDEN_OPERATIONS.removeOwner,
             messages: buildMessages("owner", "remove"),
           },
-          walletClient,
-          narrowedAddress,
+          sender,
+          address,
           chainId,
           executeWithToast,
           setIsLoading,
@@ -354,8 +354,8 @@ export function useGardenOperations(gardenId: string) {
             ...GARDEN_OPERATIONS.addFunder,
             messages: buildMessages("funder", "add"),
           },
-          walletClient,
-          narrowedAddress,
+          sender,
+          address,
           chainId,
           executeWithToast,
           setIsLoading,
@@ -371,8 +371,8 @@ export function useGardenOperations(gardenId: string) {
             ...GARDEN_OPERATIONS.removeFunder,
             messages: buildMessages("funder", "remove"),
           },
-          walletClient,
-          narrowedAddress,
+          sender,
+          address,
           chainId,
           executeWithToast,
           setIsLoading,
@@ -388,8 +388,8 @@ export function useGardenOperations(gardenId: string) {
             ...GARDEN_OPERATIONS.addCommunity,
             messages: buildMessages("community", "add"),
           },
-          walletClient,
-          narrowedAddress,
+          sender,
+          address,
           chainId,
           executeWithToast,
           setIsLoading,
@@ -405,8 +405,8 @@ export function useGardenOperations(gardenId: string) {
             ...GARDEN_OPERATIONS.removeCommunity,
             messages: buildMessages("community", "remove"),
           },
-          walletClient,
-          narrowedAddress,
+          sender,
+          address,
           chainId,
           executeWithToast,
           setIsLoading,
@@ -418,7 +418,7 @@ export function useGardenOperations(gardenId: string) {
     };
   }, [
     gardenId,
-    walletClient,
+    sender,
     address,
     executeWithToast,
     createOptimisticCallback,

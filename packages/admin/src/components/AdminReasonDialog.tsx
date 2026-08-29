@@ -19,6 +19,8 @@ export interface AdminReasonDialogProps {
   cancelLabel?: string;
   reasonLabel?: string;
   reasonPlaceholder?: string;
+  /** Maximum accepted reason length when the downstream contract is narrower. */
+  maxReasonLength?: number;
   /** Short phrases a steward can start from; each fills the field, editable. */
   suggestions?: string[];
   variant?: "default" | "danger";
@@ -30,7 +32,7 @@ export interface AdminReasonDialogProps {
   children?: ReactNode;
 }
 
-const MAX_REASON = 2000;
+const DEFAULT_MAX_REASON_LENGTH = 2000;
 
 /**
  * AdminReasonDialog — the reason-required confirmation.
@@ -57,6 +59,7 @@ export function AdminReasonDialog({
   cancelLabel,
   reasonLabel,
   reasonPlaceholder,
+  maxReasonLength = DEFAULT_MAX_REASON_LENGTH,
   suggestions = [],
   variant = "default",
   isLoading = false,
@@ -147,7 +150,7 @@ export function AdminReasonDialog({
           data-component="AdminReasonDialogField"
           value={reason}
           onChange={(event) => setReason(event.target.value)}
-          maxLength={MAX_REASON}
+          maxLength={maxReasonLength}
           rows={3}
           required
           disabled={busy}

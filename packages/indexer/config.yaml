@@ -19,6 +19,7 @@ contracts:
     handler: src/EventHandlers.ts
     events:
       - event: GardenMinted(uint256 indexed tokenId, address indexed account, string name, string description, string location, string bannerImage, bool openJoining)
+      - event: KarmaHookFailed(address indexed garden, address indexed account, uint8 indexed operation, string reason)
   - name: GardenAccount
     handler: src/EventHandlers.ts
     events:
@@ -26,13 +27,24 @@ contracts:
       - event: DescriptionUpdated(address indexed updater, string newDescription)
       - event: LocationUpdated(address indexed updater, string newLocation)
       - event: BannerImageUpdated(address indexed updater, string newBannerImage)
-      - event: GAPProjectCreated(bytes32 indexed projectUID, address indexed gardenAddress, string projectName)
       - event: OpenJoiningUpdated(address indexed updater, bool openJoining)
+      - event: KarmaHookFailed(address indexed garden, address indexed account, uint8 indexed operation, string reason)
+  - name: KarmaGAPModule
+    handler: src/EventHandlers.ts
+    events:
+      - event: GAPProjectCreated(bytes32 indexed projectUID, address indexed garden, string projectName)
+      - event: GAPProjectReset(address indexed garden, bytes32 indexed previousUID)
+      - event: KarmaSyncRecorded(address indexed garden, bytes32 indexed projectUID, address indexed account, uint8 operation, uint8 outcome, bytes32 sourceUID, bytes32 resultUID, string reason)
   - name: HatsModule
     handler: src/EventHandlers.ts
     events:
       - event: RoleGranted(address indexed garden, address indexed account, uint8 role)
       - event: RoleRevoked(address indexed garden, address indexed account, uint8 role)
+      - event: KarmaHookFailed(address indexed garden, address indexed account, uint8 indexed operation, string reason)
+  - name: WorkApprovalResolver
+    handler: src/EventHandlers.ts
+    events:
+      - event: KarmaHookFailed(address indexed garden, address indexed account, uint8 indexed operation, string reason)
   - name: OctantModule
     handler: src/EventHandlers.ts
     events:
@@ -209,8 +221,12 @@ chains:
         address: "0xe1Da335110b1ed48e7df63209f5D424d02276593"
       - name: GardenAccount
         address: "0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692"
+      - name: KarmaGAPModule
+        address: "0x0FC2bE8D57595b16af0953CB2d711118F34563FE"
       - name: HatsModule
         address: "0x5b943088ecdDBF8E4ae387348A88A654aC5F7266"
+      - name: WorkApprovalResolver
+        address: "0x166732eD81Ab200A099215cF33F6A712309B69F7"
       - name: OctantModule
         address: "0x70b25a2bAAA4f2Ae477bab315a87A03cfe89CEe9"
       # No address: dynamically registered via OctantModule.VaultCreated.

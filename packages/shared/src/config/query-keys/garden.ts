@@ -3,6 +3,12 @@ export const gardensKeys = {
   byChain: (chainId: number) => ["greengoods", "gardens", chainId] as const,
   detail: (gardenId: string, chainId: number) =>
     ["greengoods", "gardens", "detail", gardenId, chainId] as const,
+  karmaStatus: (gardenId: string, chainId: number) =>
+    ["greengoods", "gardens", "karma", "status", gardenId, chainId] as const,
+  karmaVersion: (gardenId: string, chainId: number) =>
+    ["greengoods", "gardens", "karma", "version", gardenId, chainId] as const,
+  karmaSlug: (gardenId: string, chainId: number) =>
+    ["greengoods", "gardens", "karma", "slug", gardenId, chainId] as const,
 } as const;
 
 export const actionsKeys = {

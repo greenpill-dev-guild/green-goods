@@ -2,6 +2,37 @@ import { Database } from "bun:sqlite";
 
 export function initSchema(db: Database): void {
   db.run(`
+      CREATE TABLE IF NOT EXISTS garden_join_requests (
+        id TEXT PRIMARY KEY,
+        gardenAddress TEXT NOT NULL,
+        accountAddressKey TEXT NOT NULL,
+        ciphertext TEXT NOT NULL,
+        nonce TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        state TEXT NOT NULL,
+        requestedVia TEXT NOT NULL,
+        requestedAt TEXT NOT NULL,
+        expiresAt TEXT NOT NULL,
+        resolvedAt TEXT,
+        updatedAt TEXT NOT NULL,
+        revision INTEGER NOT NULL DEFAULT 0
+      )
+    `);
+  db.run(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_garden_join_requests_active
+      ON garden_join_requests(gardenAddress, accountAddressKey) WHERE state = 'pending'
+    `);
+  db.run(`
+      CREATE INDEX IF NOT EXISTS idx_garden_join_requests_queue
+      ON garden_join_requests(gardenAddress, state, requestedAt DESC, id DESC)
+    `);
+  db.run(`
+      CREATE TABLE IF NOT EXISTS garden_join_request_proofs (
+        nonce TEXT PRIMARY KEY,
+        expiresAt TEXT NOT NULL
+      )
+    `);
+  db.run(`
       CREATE TABLE IF NOT EXISTS saved_offers (
         chainId INTEGER NOT NULL,
         owner TEXT NOT NULL,
@@ -225,7 +256,7 @@ export function initSchema(db: Database): void {
     `CREATE INDEX IF NOT EXISTS idx_funding_intent_events_intent
        ON funding_intent_events(intentId, createdAt)`
   );
-  db.run("PRAGMA user_version = 5");
+  db.run("PRAGMA user_version = 7");
 }
 
 function ensureColumn(

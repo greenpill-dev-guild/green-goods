@@ -16,6 +16,8 @@
  */
 import "./handlers/actionRegistry";
 import "./handlers/garden";
+import "./handlers/karma";
+import "./handlers/karma-hook-failures";
 import "./handlers/hatsModule";
 import "./handlers/octantVault";
 import "./handlers/hypercerts";

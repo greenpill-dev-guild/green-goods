@@ -44,6 +44,9 @@ export interface Config {
   encryptionSecret?: string;
   savedOffersEncryptionKey?: string;
   savedOffersAudience?: string;
+  joinRequestsEnabled: boolean;
+  joinRequestsEncryptionKey?: string;
+  joinRequestsProductionReady: boolean;
 
   // API
   botApiToken?: string;
@@ -167,6 +170,9 @@ export function loadConfig(): Config {
     encryptionSecret: process.env.ENCRYPTION_SECRET,
     savedOffersEncryptionKey: process.env.SAVED_OFFERS_ENCRYPTION_KEY,
     savedOffersAudience: process.env.SAVED_OFFERS_AUDIENCE,
+    joinRequestsEnabled: process.env.JOIN_REQUESTS_ENABLED === "true",
+    joinRequestsEncryptionKey: process.env.JOIN_REQUESTS_ENCRYPTION_KEY,
+    joinRequestsProductionReady: process.env.JOIN_REQUESTS_PRODUCTION_READY === "true",
 
     // Analytics
     posthogApiKey,
@@ -334,6 +340,16 @@ export function validateConfig(config: Config): void {
 
   if (config.isProduction && !config.savedOffersAudience?.trim()) {
     errors.push("SAVED_OFFERS_AUDIENCE is required in production.");
+  }
+
+  if (config.joinRequestsEnabled && !config.joinRequestsEncryptionKey?.trim()) {
+    errors.push("JOIN_REQUESTS_ENCRYPTION_KEY is required when join requests are enabled.");
+  }
+
+  if (config.isProduction && config.joinRequestsEnabled && !config.joinRequestsProductionReady) {
+    errors.push(
+      "JOIN_REQUESTS_PRODUCTION_READY=true is required after every production activation gate is recorded."
+    );
   }
 
   if (config.isProduction && !config.trustedProxyHops) {

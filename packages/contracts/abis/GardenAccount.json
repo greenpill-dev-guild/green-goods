@@ -747,6 +747,19 @@
   },
   {
     "type": "function",
+    "name": "karmaSyncVersion",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
     "name": "location",
     "inputs": [],
     "outputs": [
@@ -1131,6 +1144,30 @@
   },
   {
     "type": "function",
+    "name": "syncKarmaProjectAccess",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "roleActive",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "changed",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "token",
     "inputs": [],
     "outputs": [
@@ -1438,6 +1475,37 @@
   },
   {
     "type": "event",
+    "name": "KarmaHookFailed",
+    "inputs": [
+      {
+        "name": "garden",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "operation",
+        "type": "uint8",
+        "indexed": true,
+        "internalType": "enum IKarmaGAPModule.KarmaSyncOperation"
+      },
+      {
+        "name": "reason",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "LocationUpdated",
     "inputs": [
       {
@@ -1679,6 +1747,11 @@
   },
   {
     "type": "error",
+    "name": "KarmaGAPNotSupported",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "NameTooLong",
     "inputs": []
   },
@@ -1701,6 +1774,17 @@
     "type": "error",
     "name": "NotGardensModule",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotKarmaGAPModule",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",

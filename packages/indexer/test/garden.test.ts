@@ -1,9 +1,16 @@
 import assert from "assert";
+import type { Garden } from "envio";
 import { assertGardenProjection, assertRoleArrays } from "./helpers/projections";
 import { addr, CHAINS, mockEvent } from "./helpers/events";
 import { createTestIndexer, GardenAccount, GardenToken, indexedAddress } from "./v3";
 
 const CHAIN_ID = CHAINS.arbitrum;
+
+function assertKarmaDetailsPending(garden: Garden | undefined) {
+  assert.ok(garden);
+  assert.equal(garden.karmaDetailsState, "PENDING");
+  assert.equal(garden.karmaDetailsReason, "garden_metadata_changed");
+}
 
 // ============================================================================
 // GARDEN TOKEN HANDLERS
@@ -129,6 +136,7 @@ describe("GardenAccount.NameUpdated", () => {
 
     assert.ok(garden);
     assert.equal(garden.name, "Updated Name");
+    assertKarmaDetailsPending(garden);
     // Other fields should be preserved
     assert.equal(garden.initialized, true);
   });
@@ -184,6 +192,7 @@ describe("GardenAccount.DescriptionUpdated", () => {
 
     assert.ok(garden);
     assert.equal(garden.description, "New description");
+    assertKarmaDetailsPending(garden);
   });
 
   it("creates default garden when missing", async () => {
@@ -236,6 +245,7 @@ describe("GardenAccount.LocationUpdated", () => {
 
     assert.ok(garden);
     assert.equal(garden.location, "New York");
+    assertKarmaDetailsPending(garden);
   });
 
   it("creates default garden when missing", async () => {
@@ -288,6 +298,7 @@ describe("GardenAccount.BannerImageUpdated", () => {
 
     assert.ok(garden);
     assert.equal(garden.bannerImage, "ipfs://new");
+    assertKarmaDetailsPending(garden);
   });
 
   it("creates default garden when missing", async () => {
@@ -306,61 +317,6 @@ describe("GardenAccount.BannerImageUpdated", () => {
     assert.ok(garden);
     assert.equal(garden.bannerImage, "ipfs://banner");
     assert.equal(garden.initialized, false);
-  });
-});
-
-describe("GardenAccount.GAPProjectCreated", () => {
-  it("sets gapProjectUID on existing garden", async () => {
-    let mockDb = createTestIndexer();
-    const gardenAddress = addr(10);
-
-    const mintEvent = GardenToken.GardenMinted.createMockEvent({
-      tokenId: 1n,
-      account: gardenAddress,
-      name: "Garden",
-      description: "",
-      location: "",
-      bannerImage: "",
-      openJoining: false,
-      mockEventData: mockEvent(CHAIN_ID, 1000),
-    });
-    mockDb = await GardenToken.GardenMinted.processEvent({ event: mintEvent, mockDb });
-
-    const gapEvent = GardenAccount.GAPProjectCreated.createMockEvent({
-      projectUID: "0xproject-uid-123",
-      gardenAddress: gardenAddress,
-      projectName: "Garden GAP",
-      mockEventData: mockEvent(CHAIN_ID, 2000, { srcAddress: gardenAddress }),
-    });
-
-    const result = await GardenAccount.GAPProjectCreated.processEvent({
-      event: gapEvent,
-      mockDb,
-    });
-    const garden = await result.Garden.get(gardenAddress);
-
-    assert.ok(garden);
-    assert.equal(garden.gapProjectUID, "0xproject-uid-123");
-  });
-
-  it("does nothing when garden not found", async () => {
-    const mockDb = createTestIndexer();
-    const gardenAddress = addr(10);
-
-    const gapEvent = GardenAccount.GAPProjectCreated.createMockEvent({
-      projectUID: "0xproject-uid-123",
-      gardenAddress: gardenAddress,
-      projectName: "Garden GAP",
-      mockEventData: mockEvent(CHAIN_ID, 2000),
-    });
-
-    // Should not throw - just logs a warning
-    const result = await GardenAccount.GAPProjectCreated.processEvent({
-      event: gapEvent,
-      mockDb,
-    });
-    const garden = await result.Garden.get(gardenAddress);
-    assert.equal(garden, undefined);
   });
 });
 

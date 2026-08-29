@@ -191,21 +191,19 @@
       "linkedLibraries": {}
     },
     {
-      "name": "GardenToken",
+      "name": "KarmaGAPModule",
       "stage": "pooling-integration-upgrades",
-      "proxy": "0xe1Da335110b1ed48e7df63209f5D424d02276593",
-      "currentImplementation": "0x9Bc05d65e323527A38e5629AA8de53446010f50b",
-      "currentImplementationCodeHash": "0xbf36d4c524ecc261cc4992d4609645b35a95db77ed31ef1bff503b6173a3b2a7",
+      "proxy": "0x0FC2bE8D57595b16af0953CB2d711118F34563FE",
+      "currentImplementation": "0xce37847ce0319610e11ec58c5860d58d4935b6ef",
+      "currentImplementationCodeHash": "0x38bbd4a47cd0d1ee574a8564be8465424b818a3e72c34f5ad80606b26abb8416",
       "currentOwner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
       "currentCeremonyEndOwner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
-      "finalArtifact": "Garden.sol/GardenToken.json",
-      "constructorArguments": ["0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692"],
-      "expectedImplementationCreationCodeHash": "0x43a8cc1fa39f9d35595fbe7495fbeba58e1c24c4c0677a69ea14099609409f9c",
+      "finalArtifact": "Karma.sol/KarmaGAPModule.json",
+      "constructorArguments": [],
+      "expectedImplementationCreationCodeHash": "0x47c6ebff2b94fda8602196eb6fe2aba2495fea411ec23826164a419163c2ba69",
       "implementationAddressPolicy": "sender-and-stage-nonce-bound-transaction-plan",
       "initializerPolicy": "preserve-existing-initializer-state",
-      "linkedLibraries": {
-        "src/lib/TBA.sol:TBALib": "0xc0B513c1eA2bAe5FC17b26ccc8F7c03e5aDFDAD6"
-      }
+      "linkedLibraries": {}
     },
     {
       "name": "WorkApprovalResolver",
@@ -220,7 +218,7 @@
         "0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458",
         "0xA514eA2730b9eD401875693793BEfA9e2D51C0b4"
       ],
-      "expectedImplementationCreationCodeHash": "0x526eb41dae0a9732131a68fecd3d470d1986b6acb51a72f2a76219c6ce8a6ac0",
+      "expectedImplementationCreationCodeHash": "0x0647772951e6ff99163ccb3a249d98fb3b37f4a1ce1948c10f034da52c053a18",
       "implementationAddressPolicy": "sender-and-stage-nonce-bound-transaction-plan",
       "initializerPolicy": "preserve-existing-initializer-state",
       "linkedLibraries": {}

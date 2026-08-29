@@ -271,4 +271,40 @@ library StringUtils {
         // Bare CID — prepend ipfs://
         return string(abi.encodePacked("ipfs://", value));
     }
+
+    /// @notice Normalizes an IPFS reference or existing web URL to a browser-safe HTTP URL.
+    /// @dev Malformed `ipfs://https://...` values are repaired instead of double-prefixed.
+    function toHTTPURL(string memory value) internal pure returns (string memory) {
+        bytes memory input = bytes(value);
+        if (input.length == 0) return "";
+
+        if (_startsWith(input, bytes("ipfs://"))) {
+            bytes memory remainder = _slice(input, 7);
+            if (_startsWith(remainder, bytes("http://")) || _startsWith(remainder, bytes("https://"))) {
+                return string(remainder);
+            }
+            return string(abi.encodePacked("https://ipfs.io/ipfs/", remainder));
+        }
+
+        if (_startsWith(input, bytes("http://")) || _startsWith(input, bytes("https://"))) return value;
+        if (_startsWith(input, bytes("/ipfs/"))) {
+            return string(abi.encodePacked("https://ipfs.io", input));
+        }
+        return string(abi.encodePacked("https://ipfs.io/ipfs/", input));
+    }
+
+    function _startsWith(bytes memory value, bytes memory prefix) private pure returns (bool) {
+        if (value.length < prefix.length) return false;
+        for (uint256 i = 0; i < prefix.length; i++) {
+            if (value[i] != prefix[i]) return false;
+        }
+        return true;
+    }
+
+    function _slice(bytes memory value, uint256 start) private pure returns (bytes memory result) {
+        result = new bytes(value.length - start);
+        for (uint256 i = start; i < value.length; i++) {
+            result[i - start] = value[i];
+        }
+    }
 }

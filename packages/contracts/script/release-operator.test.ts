@@ -82,10 +82,10 @@ describe("release operator session", () => {
     );
     expect(CEREMONY_STAGES.get("ownership-arbitrum")).toEqual({
       script: "release:ownership:arbitrum",
-      boundaries: 8,
+      boundaries: 9,
       label: "Arbitrum protocol ownership handover",
     });
-    expect(plannedStageBoundaries("ownership-arbitrum", 5)).toEqual([6, 7, 8]);
+    expect(plannedStageBoundaries("ownership-arbitrum", 5)).toEqual([6, 7, 8, 9]);
     expect(parseSessionOptions(["--commit", candidate, "--stage", "ownership-celo"]).stage).toBe("ownership-celo");
     expect(CEREMONY_STAGES.get("ownership-celo")).toEqual({
       script: "release:ownership:celo",
@@ -133,17 +133,17 @@ describe("release operator session", () => {
 
   it("binds each ownership boundary to the freshly observed pending nonce", () => {
     expect(ownershipBoundaryArguments(1, 978)).toEqual(["--step", "1", "--expected-nonce", "978"]);
-    expect(ownershipBoundaryArguments(8, 985)).toEqual(["--step", "8", "--expected-nonce", "985"]);
+    expect(ownershipBoundaryArguments(9, 986)).toEqual(["--step", "9", "--expected-nonce", "986"]);
     expect(() => ownershipBoundaryArguments(0, 978)).toThrow(/positive boundary/);
     expect(() => ownershipBoundaryArguments(1, -1)).toThrow(/non-negative nonce/);
   });
 
   it("refreshes the pending nonce before every remaining ownership boundary", async () => {
-    const pendingNonces = [978, 979, 981];
+    const pendingNonces = [978, 979, 981, 982];
     const executions: Array<{ boundary: number; args: string[] }> = [];
 
     await executeOwnershipBoundaries(
-      [6, 7, 8],
+      [6, 7, 8, 9],
       async () => pendingNonces.shift() ?? -1,
       (boundary, args) => void executions.push({ boundary, args }),
     );
@@ -152,6 +152,7 @@ describe("release operator session", () => {
       { boundary: 6, args: ["--step", "6", "--expected-nonce", "978"] },
       { boundary: 7, args: ["--step", "7", "--expected-nonce", "979"] },
       { boundary: 8, args: ["--step", "8", "--expected-nonce", "981"] },
+      { boundary: 9, args: ["--step", "9", "--expected-nonce", "982"] },
     ]);
   });
 

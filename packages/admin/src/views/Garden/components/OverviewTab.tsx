@@ -9,6 +9,7 @@ import type {
   TabBadgeSeverity,
 } from "@green-goods/shared/types/garden-detail";
 import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
+import type { KarmaIntegrationController } from "@green-goods/shared/hooks/garden/useKarmaIntegration";
 import { RiArrowRightSLine, RiTimeLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -22,6 +23,7 @@ import {
   RANGE_OPTIONS,
   SECTION_CARD_MIN_HEIGHT,
 } from "./gardenDetail.constants";
+import { KarmaIntegrationPanel } from "./KarmaIntegrationPanel";
 
 export interface OverviewTabProps {
   mode: "health" | "activity";
@@ -57,6 +59,7 @@ export interface OverviewTabProps {
   assessmentCount30d: number;
   gardenerCount: number;
   treasuryBalance: string;
+  karmaIntegration: KarmaIntegrationController;
 }
 
 export function OverviewTab({
@@ -80,6 +83,7 @@ export function OverviewTab({
   assessmentCount30d,
   gardenerCount,
   treasuryBalance,
+  karmaIntegration,
 }: OverviewTabProps) {
   const { formatMessage } = useIntl();
   const formatActivityTime = useLocalizedRelativeTime();
@@ -387,6 +391,8 @@ export function OverviewTab({
 
         <aside className="garden-tab-rail">
           <div className="garden-tab-rail-sticky">
+            {isHealthMode ? <KarmaIntegrationPanel integration={karmaIntegration} /> : null}
+
             <Card>
               <Card.Header>
                 <h3 className="admin-section-title admin-section-title--compact">

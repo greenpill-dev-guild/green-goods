@@ -39,6 +39,13 @@ export type { AuthMode, BaseAuthContext } from "./auth";
 // Blockchain Types
 // ============================================
 export type { ChainId, DeploymentConfig } from "./blockchain";
+export {
+  KARMA_REQUIRED_SYNC_VERSION,
+  type KarmaIntegrationProjection,
+  type KarmaIntegrationStatus,
+  type KarmaIntegrationStatusName,
+  type KarmaProjectionState,
+} from "./karma";
 // ============================================
 // Contract Types
 // ============================================

@@ -16,7 +16,7 @@ source_of_truth:
 
 Scope: installed-PWA runtime files in `packages/client/src`. Public browser routes, stories, and tests are excluded so the freeze audit stays focused on the protected app surface.
 
-Summary: 379 token references (accent: 72, action: 175, state: 117, contrast-exception: 15, contrast-risk: 0).
+Summary: 381 token references (accent: 73, action: 175, state: 118, contrast-exception: 15, contrast-risk: 0).
 
 Unapproved bright-green text-bearing combinations: 0.
 
@@ -75,11 +75,13 @@ Approved contrast exceptions:
 | `packages/client/src/components/Features/Garden/Assessments.tsx:214` | `text-primary` | accent | <code>&lt;div className="flex items-center gap-2 text-primary"&gt;</code> |
 | `packages/client/src/components/Features/Garden/Assessments.tsx:223` | `text-primary` | accent | <code>className="mt-auto inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"</code> |
 | `packages/client/src/components/Features/Garden/Assessments.tsx:247` | `text-primary` | accent | <code>&lt;RiInformationLine size=&#123;24&#125; className="text-primary" aria-hidden="true" /&gt;</code> |
-| `packages/client/src/components/Features/Garden/Gardeners.tsx:116` | `text-primary` | accent | <code>&lt;RiCalendarEventFill className="w-3.5 h-3.5 text-primary" /&gt;</code> |
-| `packages/client/src/components/Features/Garden/Gardeners.tsx:262` | `text-primary` | accent | <code>&lt;RiUserLine className="w-4 h-4 text-primary" /&gt;</code> |
-| `packages/client/src/components/Features/Garden/Gardeners.tsx:284` | `text-primary` | accent | <code>&lt;RiWallet3Fill className="w-4 h-4 text-primary" /&gt;</code> |
-| `packages/client/src/components/Features/Garden/Gardeners.tsx:312` | `text-primary` | accent | <code>&lt;RiMailFill className="w-4 h-4 text-primary" /&gt;</code> |
-| `packages/client/src/components/Features/Garden/Gardeners.tsx:333` | `text-primary` | accent | <code>&lt;RiPhoneLine className="w-4 h-4 text-primary" /&gt;</code> |
+| `packages/client/src/components/Features/Garden/Gardeners.tsx:118` | `text-primary` | accent | <code>&lt;RiCalendarEventFill className="w-3.5 h-3.5 text-primary" /&gt;</code> |
+| `packages/client/src/components/Features/Garden/Gardeners.tsx:269` | `text-primary` | accent | <code>&lt;RiUserLine className="w-4 h-4 text-primary" /&gt;</code> |
+| `packages/client/src/components/Features/Garden/Gardeners.tsx:291` | `text-primary` | accent | <code>&lt;RiWallet3Fill className="w-4 h-4 text-primary" /&gt;</code> |
+| `packages/client/src/components/Features/Garden/Gardeners.tsx:319` | `text-primary` | accent | <code>&lt;RiMailFill className="w-4 h-4 text-primary" /&gt;</code> |
+| `packages/client/src/components/Features/Garden/Gardeners.tsx:340` | `text-primary` | accent | <code>&lt;RiPhoneLine className="w-4 h-4 text-primary" /&gt;</code> |
+| `packages/client/src/components/Features/Garden/GardenJoinRequestDialog.tsx:212` | `text-primary-base` | accent | <code>"inline-flex min-h-11 items-center rounded-[var(--radius-md)] px-4 font-semibold text-primary-base",</code> |
+| `packages/client/src/components/Features/Garden/GardenJoinRequestsQueue.tsx:226` | `ring-primary-base` | state | <code>className="w-full rounded-[var(--radius-md)] border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"</code> |
 | `packages/client/src/components/Features/Garden/Work.tsx:177` | `bg-primary-action` | action | <code>className="flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-primary-action-hover disabled:cursor-not-allowed disabled:opacity-50"</code> |
 | `packages/client/src/components/Features/Garden/Work.tsx:177` | `bg-primary-action-hover` | action | <code>className="flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-primary-action-hover disabled:cursor-not-allowed disabled:opacity-50"</code> |
 | `packages/client/src/components/Features/Garden/Work.tsx:177` | `text-primary-action-foreground` | action | <code>className="flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-primary-action-hover disabled:cursor-not-allowed disabled:opacity-50"</code> |
@@ -321,8 +323,8 @@ Approved contrast exceptions:
 | `packages/client/src/views/Home/Garden/Compose/ComposeWhat.tsx:93` | `border-primary-alpha-24` | state | <code>? "flex min-h-[7rem] flex-col gap-2 rounded-[var(--radius-lg)] border border-primary-alpha-24 bg-primary-alpha-10 p-3 text-left tap-target-lg"</code> |
 | `packages/client/src/views/Home/Garden/Compose/ComposeWhat.tsx:143` | `bg-primary-alpha-10` | state | <code>? "block w-full rounded-[var(--radius-lg)] border border-primary-alpha-24 bg-primary-alpha-10 p-3 text-left text-sm font-medium text-text-strong-950 tap-target-lg"</code> |
 | `packages/client/src/views/Home/Garden/Compose/ComposeWhat.tsx:143` | `border-primary-alpha-24` | state | <code>? "block w-full rounded-[var(--radius-lg)] border border-primary-alpha-24 bg-primary-alpha-10 p-3 text-left text-sm font-medium text-text-strong-950 tap-target-lg"</code> |
-| `packages/client/src/views/Home/Garden/index.tsx:390` | `text-primary` | accent | <code>&lt;RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" /&gt;</code> |
-| `packages/client/src/views/Home/Garden/index.tsx:397` | `text-primary` | accent | <code>&lt;RiCalendarEventFill className="h-4 w-4 text-primary flex-shrink-0" /&gt;</code> |
+| `packages/client/src/views/Home/Garden/index.tsx:403` | `text-primary` | accent | <code>&lt;RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" /&gt;</code> |
+| `packages/client/src/views/Home/Garden/index.tsx:410` | `text-primary` | accent | <code>&lt;RiCalendarEventFill className="h-4 w-4 text-primary flex-shrink-0" /&gt;</code> |
 | `packages/client/src/views/Home/Garden/Notifications.tsx:96` | `bg-primary-action` | action | <code>className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-[background-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] active:scale-95 focus:outline-none focus-visible:shadow-button-primary-focus"</code> |
 | `packages/client/src/views/Home/Garden/Notifications.tsx:96` | `text-primary-action-foreground` | action | <code>className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-[background-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] active:scale-95 focus:outline-none focus-visible:shadow-button-primary-focus"</code> |
 | `packages/client/src/views/Home/Garden/Pool/CycleRail.tsx:87` | `bg-primary-alpha-10` | state | <code>? "border-primary-alpha-24 bg-primary-alpha-10"</code> |

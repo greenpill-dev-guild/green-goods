@@ -243,15 +243,30 @@ export const GardenAccount = createContract("GardenAccount", [
   "DescriptionUpdated",
   "LocationUpdated",
   "BannerImageUpdated",
-  "GAPProjectCreated",
   "OpenJoiningUpdated",
+  "KarmaHookFailed",
 ] as const);
-export const GardenToken = createContract("GardenToken", ["GardenMinted"] as const);
+export const KarmaGAPModule = createContract("KarmaGAPModule", [
+  "GAPProjectCreated",
+  "GAPProjectReset",
+  "KarmaSyncRecorded",
+] as const);
+export const GardenToken = createContract("GardenToken", [
+  "GardenMinted",
+  "KarmaHookFailed",
+] as const);
 export const GreenWill = createContract("GreenWill", [
   "BadgeClassConfigured",
   "BadgeIssued",
 ] as const);
-export const HatsModule = createContract("HatsModule", ["RoleGranted", "RoleRevoked"] as const);
+export const HatsModule = createContract("HatsModule", [
+  "RoleGranted",
+  "RoleRevoked",
+  "KarmaHookFailed",
+] as const);
+export const WorkApprovalResolver = createContract("WorkApprovalResolver", [
+  "KarmaHookFailed",
+] as const);
 export const HypercertMinter = createContract("HypercertMinter", [
   "TransferSingle",
   "ClaimStored",

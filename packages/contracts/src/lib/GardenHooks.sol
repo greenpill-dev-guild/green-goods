@@ -33,20 +33,13 @@ library GardenHooksLib {
         }
     }
 
-    function notifyKarma(
-        IKarmaGAPModule module,
-        address gardenAccount,
-        address minter,
-        string calldata name,
-        string calldata description,
-        string calldata location,
-        string calldata bannerImage
-    )
-        internal
-    {
-        if (address(module) == address(0)) return;
-        // solhint-disable-next-line no-empty-blocks
-        try module.createProject(gardenAccount, minter, name, description, location, bannerImage) { } catch { }
+    function notifyKarma(IKarmaGAPModule module, address gardenAccount) internal returns (bool succeeded) {
+        if (address(module) == address(0)) return false;
+        try module.reconcileProject(gardenAccount) {
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     function notifyOctant(OctantModule module, address gardenAccount, string calldata name) internal {

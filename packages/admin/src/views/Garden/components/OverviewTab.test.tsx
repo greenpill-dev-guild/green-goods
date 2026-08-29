@@ -3,12 +3,34 @@
  */
 
 import type { GardenActivityEvent } from "@green-goods/shared/types/garden-detail";
+import type { KarmaIntegrationController } from "@green-goods/shared/hooks/garden/useKarmaIntegration";
 import pt from "@green-goods/shared/i18n/pt.json";
 import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { OverviewTab } from "./OverviewTab";
+
+const karmaIntegration = {
+  status: {
+    status: "synced",
+    chainId: 42161,
+    gardenAddress: "0x0000000000000000000000000000000000000001",
+    projectUID: null,
+    profileUrl: "https://www.karmahq.org/project/test-garden",
+    syncVersion: 1,
+    requiredSyncVersion: 1,
+    reason: null,
+  },
+  profileUrl: "https://www.karmahq.org/project/test-garden",
+  canReconcile: true,
+  isLoading: false,
+  isFetching: false,
+  isReconciling: false,
+  isPending: false,
+  error: null,
+  reconcile: vi.fn(async () => "0x1" as const),
+} satisfies KarmaIntegrationController;
 
 describe("OverviewTab", () => {
   it("localizes canonical work titles and relative times in Portuguese", () => {
@@ -46,6 +68,7 @@ describe("OverviewTab", () => {
             assessmentCount30d={0}
             gardenerCount={1}
             treasuryBalance="0"
+            karmaIntegration={karmaIntegration}
           />
         </MemoryRouter>
       </IntlProvider>

@@ -26,6 +26,8 @@ contract MockKarmaGAPModule is IKarmaGAPModule {
 
     ProjectCall public lastProject;
     bool public created;
+    bool public projectUpdateMigrationComplete = true;
+    mapping(address garden => bytes32 uid) public projectUIDs;
 
     function createProject(
         address garden,
@@ -54,6 +56,27 @@ contract MockKarmaGAPModule is IKarmaGAPModule {
 
     function removeProjectAdmin(address, address) external { }
 
+    function reconcileProject(address garden) external returns (bytes32 projectUID) {
+        GardenAccount account = GardenAccount(payable(garden));
+        lastProject = ProjectCall({
+            garden: garden,
+            operator: address(0),
+            name: account.name(),
+            description: account.description(),
+            location: account.location(),
+            bannerImage: account.bannerImage()
+        });
+        created = true;
+        projectUID = bytes32(uint256(0x1234));
+        projectUIDs[garden] = projectUID;
+    }
+
+    function reconcileProjectAccess(address, address) external pure returns (bool, bool) {
+        return (false, false);
+    }
+
+    function migrateProjectUpdates(bytes32[] calldata, bytes32[] calldata) external { }
+
     function createImpact(
         address,
         uint256,
@@ -64,6 +87,21 @@ contract MockKarmaGAPModule is IKarmaGAPModule {
         string calldata
     )
         external
+        returns (bytes32)
+    {
+        return bytes32(0);
+    }
+
+    function createProjectUpdate(
+        address,
+        string calldata,
+        string calldata,
+        string calldata,
+        bytes32,
+        string calldata
+    )
+        external
+        pure
         returns (bytes32)
     {
         return bytes32(0);
@@ -85,8 +123,8 @@ contract MockKarmaGAPModule is IKarmaGAPModule {
         return bytes32(0);
     }
 
-    function getProjectUID(address) external pure returns (bytes32) {
-        return bytes32(0);
+    function getProjectUID(address garden) external view returns (bytes32) {
+        return projectUIDs[garden];
     }
 
     function isSupported() external pure returns (bool) {
@@ -160,7 +198,7 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
             string memory projectBanner
         ) = karmaModule.lastProject();
         assertEq(projectGarden, gardenAccount, "Karma garden should match");
-        assertEq(projectOperator, multisig, "Karma operator should match minter/owner");
+        assertEq(projectOperator, address(0), "Reconciliation does not infer an operator");
         assertEq(projectName, "Garden Alpha", "Karma name should match");
         assertEq(projectDescription, "Desc", "Karma description should match");
         assertEq(projectLocation, "Location", "Karma location should match");

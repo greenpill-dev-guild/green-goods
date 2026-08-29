@@ -11,6 +11,7 @@ import { TBALib } from "../lib/TBA.sol";
 import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
+import { IKarmaSyncObserver } from "../interfaces/IKarmaSyncObserver.sol";
 import { IGardensModule } from "../interfaces/IGardensModule.sol";
 import { OctantModule } from "../modules/Octant.sol";
 import { ICookieJarModule } from "../interfaces/ICookieJarModule.sol";
@@ -19,10 +20,8 @@ import { ICommitmentPoolingModule } from "../interfaces/ICommitmentPoolingModule
 import { Deployment } from "../registries/Deployment.sol";
 import { ActionRegistry } from "../registries/Action.sol";
 
-/// @title GardenToken Contract
-/// @notice This contract manages the minting of Garden tokens and the creation of associated Garden accounts.
 /// @dev This contract is upgradable and follows the UUPS pattern.
-contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
+contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable, IKarmaSyncObserver {
     uint256 private _nextTokenId;
     address private immutable _GARDEN_ACCOUNT_IMPLEMENTATION;
     address public deploymentRegistry;
@@ -377,35 +376,27 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @param gardenAccount The TBA garden account address
     /// @param config The garden configuration
     function _initializeGardenModules(address gardenAccount, GardenConfig calldata config) private {
+        _initializeGardenAccount(gardenAccount, config);
         _initializeRoleAndGovernance(gardenAccount, config);
-        _initializeIntegrationsAndAccount(gardenAccount, config);
+        _initializeIntegrations(gardenAccount, config);
     }
 
-    /// @dev Phase 1: Hats tree, KarmaGAP project, Octant vault, Gardens community.
-    ///      Everything after the required Hats setup is a GardenHooksLib best-effort hook.
     function _initializeRoleAndGovernance(address gardenAccount, GardenConfig calldata config) private {
-        // Hats Protocol: create hat tree + initial owner role
         hatsModule.createGardenHatTree(gardenAccount, config.name, communityToken);
+        if (!GardenHooksLib.notifyKarma(karmaGAPModule, gardenAccount)) {
+            emit KarmaHookFailed(
+                gardenAccount, address(0), IKarmaGAPModule.KarmaSyncOperation.Project, "module_call_reverted"
+            );
+        }
         hatsModule.grantRole(gardenAccount, _msgSender(), IHatsModule.GardenRole.Owner);
 
         GardenHooksLib.grantRolesBestEffort(hatsModule, gardenAccount, config.gardeners, IHatsModule.GardenRole.Gardener);
         GardenHooksLib.grantRolesBestEffort(hatsModule, gardenAccount, config.stewards, IHatsModule.GardenRole.Steward);
-        GardenHooksLib.notifyKarma(
-            karmaGAPModule,
-            gardenAccount,
-            _msgSender(),
-            config.name,
-            config.description,
-            config.location,
-            config.bannerImage
-        );
         GardenHooksLib.notifyOctant(octantModule, gardenAccount, config.name);
         GardenHooksLib.notifyGardens(gardensModule, gardenAccount, config.weightScheme, config.name, config.description);
     }
 
-    /// @dev Phase 2: CookieJar, Commitment Pooling, ActionRegistry domains, ENS, account
-    ///      initialization. ENS stays inline because its failure path writes refund storage.
-    function _initializeIntegrationsAndAccount(address gardenAccount, GardenConfig calldata config) private {
+    function _initializeIntegrations(address gardenAccount, GardenConfig calldata config) private {
         GardenHooksLib.notifyCookieJar(cookieJarModule, gardenAccount);
         GardenHooksLib.notifyPooling(commitmentPoolingModule, gardenAccount);
         GardenHooksLib.notifyActionDomains(actionRegistry, gardenAccount, config.domainMask);
@@ -426,8 +417,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
                 }
             }
         }
+    }
 
-        // Initialize garden account with metadata
+    function _initializeGardenAccount(address gardenAccount, GardenConfig calldata config) private {
         IGardenAccount.InitParams memory params = IGardenAccount.InitParams({
             communityToken: communityToken,
             name: config.name,
@@ -440,6 +432,12 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         });
 
         IGardenAccount(gardenAccount).initialize(params);
+    }
+
+    function isGardenAccount(address gardenAccount) external view returns (bool) {
+        (bool canonical, uint256 tokenId) =
+            TBALib.canonicalTokenId(_GARDEN_ACCOUNT_IMPLEMENTATION, address(this), gardenAccount);
+        return canonical && _ownerOf(tokenId) != address(0);
     }
 
     /// @notice Claim queued refund from failed ENS registration attempts
