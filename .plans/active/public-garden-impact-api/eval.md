@@ -16,7 +16,7 @@
 | AC-2 | Aggregation | Approval, certificate, deduplication, partial/null, privacy, and ordering rules pass | `state_api` | Direct aggregator suite passed |
 | AC-3 | Strict readers | Chain support, pagination, schema gaps, provider failures, and overflow fail closed | `state_api` | Direct reader suite passed |
 | AC-4 | HTTP route | GET/OPTIONS, validation, status mapping, wildcard CORS, rate limit, and cache pass | `state_api` | Agent integration suite passed |
-| AC-5 | Regression review | Protected CORS, source structure, package types, builds, and repo checkpoint pass | `qa_pass_1`, `qa_pass_2` | Validation receipts |
+| AC-5 | Regression review | Protected CORS, source structure, package types, builds, and repo checkpoint pass | `qa_pass_1`, `qa_pass_2` | Pending — validation receipts incomplete |
 
 ## Test Strategy
 

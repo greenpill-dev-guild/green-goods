@@ -124,18 +124,18 @@ describe("public garden impact aggregation", () => {
       { chainId: 42161, gardenAddress, recentLimit: 3 },
       { readers: readers(), now: () => now }
     );
-    const celo = await loadPublicGardenImpactSnapshot(
-      { chainId: 42220, gardenAddress, recentLimit: 3 },
+    const sepolia = await loadPublicGardenImpactSnapshot(
+      { chainId: 11155111, gardenAddress, recentLimit: 3 },
       { readers: readers(), now: () => now }
     );
 
     expect(arbitrum.garden.url).toBe(
       `https://agent.greengoods.app/public/gardens/42161/${gardenAddress}/impact`
     );
-    expect(celo.garden.url).toBe(
-      `https://agent.greengoods.app/public/gardens/42220/${gardenAddress}/impact`
+    expect(sepolia.garden.url).toBe(
+      `https://agent.greengoods.app/public/gardens/11155111/${gardenAddress}/impact`
     );
-    expect(arbitrum.garden.url).not.toBe(celo.garden.url);
+    expect(arbitrum.garden.url).not.toBe(sepolia.garden.url);
   });
 
   it("keeps known-domain and action breakdowns deterministic", async () => {

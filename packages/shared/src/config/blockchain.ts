@@ -53,6 +53,7 @@ interface DeploymentConfig {
     schemaRegistry?: string;
   };
   gardenToken?: string;
+  gardenAccountImpl?: string;
   actionRegistry?: string;
   workResolver?: string;
   workApprovalResolver?: string;
@@ -97,6 +98,13 @@ const EAS_GRAPHQL_URLS: Record<string, string> = {
 
 const DEFAULT_EAS_GRAPHQL_URL = "https://sepolia.easscan.org/graphql";
 const FALLBACK_CHAIN_ID = 42161;
+const PUBLIC_GARDEN_IMPACT_INDEXER_CHAINS = new Set([42161, 11155111]);
+
+export interface PublicGardenImpactChainConfig {
+  gardenToken: string;
+  gardenAccountImpl: string;
+  tokenboundRegistry: string;
+}
 
 function hasNetworkConfig(chainId: number): boolean {
   return Object.values(networksConfig.networks).some(
@@ -104,11 +112,43 @@ function hasNetworkConfig(chainId: number): boolean {
   );
 }
 
-/** True only for a directly configured Green Goods deployment with its own EAS endpoint. */
+function isConfiguredAddress(value: unknown): value is string {
+  return (
+    typeof value === "string" && /^0x[0-9a-fA-F]{40}$/.test(value) && !/^0x0{40}$/i.test(value)
+  );
+}
+
+export function getPublicGardenImpactChainConfig(
+  chainId: number
+): PublicGardenImpactChainConfig | null {
+  const deployment = DEPLOYMENT_CONFIGS[String(chainId)];
+  const tokenboundRegistry = (
+    networksConfig as { deploymentDefaults?: { tokenboundRegistry?: string } }
+  ).deploymentDefaults?.tokenboundRegistry;
+  if (
+    !isConfiguredAddress(deployment?.gardenToken) ||
+    !isConfiguredAddress(deployment.gardenAccountImpl) ||
+    !isConfiguredAddress(tokenboundRegistry)
+  ) {
+    return null;
+  }
+  return {
+    gardenToken: deployment.gardenToken,
+    gardenAccountImpl: deployment.gardenAccountImpl,
+    tokenboundRegistry,
+  };
+}
+
+/** True only when every source required by the public impact adapter covers the chain. */
 export function isPublicGardenImpactChainSupported(chainId: number): boolean {
   if (!Number.isSafeInteger(chainId) || chainId <= 0) return false;
   const key = String(chainId);
-  return Boolean(DEPLOYMENT_CONFIGS[key] && EAS_GRAPHQL_URLS[key] && hasNetworkConfig(chainId));
+  return Boolean(
+    PUBLIC_GARDEN_IMPACT_INDEXER_CHAINS.has(chainId) &&
+      getPublicGardenImpactChainConfig(chainId) &&
+      EAS_GRAPHQL_URLS[key] &&
+      hasNetworkConfig(chainId)
+  );
 }
 
 function resolveChainId(chainId?: number | string): number {

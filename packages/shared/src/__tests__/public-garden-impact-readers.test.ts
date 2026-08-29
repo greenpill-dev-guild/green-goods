@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { isPublicGardenImpactChainSupported } from "../config/blockchain";
+import type { Address } from "../public-contracts";
+import {
+  getPublicGardenImpactChainConfig,
+  isPublicGardenImpactChainSupported,
+} from "../config/blockchain";
 import {
   PUBLIC_GARDEN_IMPACT_SOURCE_LIMIT,
   PublicGardenImpactSourceError,
@@ -7,20 +11,17 @@ import {
 } from "../modules/data/public-garden-impact-readers";
 import type { GraphQLReader } from "../modules/data/graphql-client";
 
-const gardenAddress = "0x1111111111111111111111111111111111111111";
+const gardenAddress: Address = "0x1111111111111111111111111111111111111111";
 
 function reader(query: GraphQLReader["query"]): GraphQLReader {
   return { query };
 }
 
 describe("public garden impact source readers", () => {
-  it("supports only direct deployment chains with EAS endpoints", () => {
-    expect([42161, 42220, 11155111].map(isPublicGardenImpactChainSupported)).toEqual([
-      true,
-      true,
-      true,
-    ]);
-    expect([1, 31337, 10, Number.NaN].map(isPublicGardenImpactChainSupported)).toEqual([
+  it("supports only chains covered by the Garden, EAS, and indexer sources", () => {
+    expect([42161, 11155111].map(isPublicGardenImpactChainSupported)).toEqual([true, true]);
+    expect([1, 42220, 31337, 10, Number.NaN].map(isPublicGardenImpactChainSupported)).toEqual([
+      false,
       false,
       false,
       false,
@@ -28,47 +29,18 @@ describe("public garden impact source readers", () => {
     ]);
   });
 
-  it("rejects unsupported chains before constructing a fallback EAS reader", async () => {
+  it("rejects Celo before constructing a fallback EAS reader", async () => {
     const createEasReader = vi.fn(() => reader(vi.fn()));
     const impactReaders = createPublicGardenImpactReaders({
       indexerReader: reader(vi.fn()),
       createEasReader,
     });
 
-    await expect(impactReaders.readWorks(1, gardenAddress)).rejects.toMatchObject({
+    await expect(impactReaders.readWorks(42220, gardenAddress)).rejects.toMatchObject({
       source: "works",
       reason: "unsupported_chain",
     });
     expect(createEasReader).not.toHaveBeenCalled();
-  });
-
-  it("keeps a missing approval schema distinct from an empty result", async () => {
-    const indexer = reader(vi.fn());
-    const eas = reader(vi.fn());
-    const impactReaders = createPublicGardenImpactReaders({
-      indexerReader: indexer,
-      createEasReader: () => eas,
-    });
-
-    await expect(impactReaders.readApprovals(42220)).rejects.toMatchObject({
-      source: "approvals",
-      reason: "missing_schema",
-    });
-    expect(eas.query).not.toHaveBeenCalled();
-  });
-
-  it("keeps a missing Assessment schema distinct from an empty result", async () => {
-    const eas = reader(vi.fn());
-    const impactReaders = createPublicGardenImpactReaders({
-      indexerReader: reader(vi.fn()),
-      createEasReader: () => eas,
-    });
-
-    await expect(impactReaders.readAssessments(42220, gardenAddress)).rejects.toMatchObject({
-      source: "assessments",
-      reason: "missing_schema",
-    });
-    expect(eas.query).not.toHaveBeenCalled();
   });
 
   it("treats a structurally missing provider result as unavailable, not empty", async () => {
@@ -84,27 +56,66 @@ describe("public garden impact source readers", () => {
     });
   });
 
-  it("reads the exact chain/address garden without replacing nullable fields", async () => {
-    const indexerQuery = vi.fn(async (_document, variables, operationName) => {
-      expect(operationName).toBe("readPublicGardenImpactGarden");
-      expect(variables).toMatchObject({ chainId: 11155111, gardenAddress });
-      return {
-        data: {
-          Garden: [
-            { id: gardenAddress, chainId: 11155111, name: "", location: "", initialized: true },
-          ],
-        },
-      };
+  it("resolves the exact chain-qualified Garden account without replacing nullable fields", async () => {
+    const config = getPublicGardenImpactChainConfig(11155111);
+    expect(config).not.toBeNull();
+    const readContract = vi.fn(async (input: { functionName: string }) => {
+      if (input.functionName === "token") {
+        return [11155111n, config?.gardenToken, 7n];
+      }
+      if (input.functionName === "account") return gardenAddress;
+      if (input.functionName === "name" || input.functionName === "location") return "";
+      throw new Error(`Unexpected function ${input.functionName}`);
     });
     const impactReaders = createPublicGardenImpactReaders({
-      indexerReader: reader(indexerQuery as GraphQLReader["query"]),
+      indexerReader: reader(vi.fn()),
       createEasReader: () => reader(vi.fn()),
+      createChainReader: (chainId) => {
+        expect(chainId).toBe(11155111);
+        return { readContract };
+      },
     });
 
     await expect(impactReaders.readGarden(11155111, gardenAddress)).resolves.toEqual({
       id: gardenAddress,
       name: null,
       location: null,
+    });
+    expect(readContract.mock.calls.map(([input]) => input.functionName)).toEqual([
+      "token",
+      "account",
+      "name",
+      "location",
+    ]);
+  });
+
+  it("rejects an account whose token binding belongs to another chain", async () => {
+    const arbitrum = getPublicGardenImpactChainConfig(42161);
+    const readContract = vi.fn(async () => [42161n, arbitrum?.gardenToken, 7n]);
+    const impactReaders = createPublicGardenImpactReaders({
+      indexerReader: reader(vi.fn()),
+      createEasReader: () => reader(vi.fn()),
+      createChainReader: () => ({ readContract }),
+    });
+
+    await expect(impactReaders.readGarden(11155111, gardenAddress)).resolves.toBeNull();
+    expect(readContract).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a Garden provider failure distinct from a missing Garden", async () => {
+    const impactReaders = createPublicGardenImpactReaders({
+      indexerReader: reader(vi.fn()),
+      createEasReader: () => reader(vi.fn()),
+      createChainReader: () => ({
+        readContract: vi.fn(async () => {
+          throw new Error("RPC unavailable");
+        }),
+      }),
+    });
+
+    await expect(impactReaders.readGarden(11155111, gardenAddress)).rejects.toMatchObject({
+      source: "works",
+      reason: "provider_failed",
     });
   });
 

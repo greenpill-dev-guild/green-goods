@@ -31,6 +31,7 @@ import * as sessions from "./sessions";
 import * as users from "./users";
 import type { FundingIntentRecord } from "../funding-intents";
 import type { ProfileAvatarRecord } from "@green-goods/shared/profile-avatar/protocol";
+import type { Address as PublicAddress } from "@green-goods/shared/public-contracts";
 import type { Address } from "@green-goods/shared/types";
 import type { SavedOfferCipher } from "../saved-offers";
 import type { GardenJoinRequestCipher } from "../garden-join-requests";
@@ -261,8 +262,8 @@ class DB {
 
   async getGardenJoinRequestMine(
     cipher: GardenJoinRequestCipher,
-    gardenAddress: Address,
-    accountAddress: Address,
+    gardenAddress: PublicAddress,
+    accountAddress: PublicAddress,
     nowIso?: string
   ) {
     return gardenJoinRequests.getGardenJoinRequestMine(
@@ -276,7 +277,7 @@ class DB {
 
   async getGardenJoinRequestById(
     cipher: GardenJoinRequestCipher,
-    gardenAddress: Address,
+    gardenAddress: PublicAddress,
     requestId: string
   ) {
     return gardenJoinRequests.getGardenJoinRequestById(this.db, cipher, gardenAddress, requestId);
@@ -284,7 +285,7 @@ class DB {
 
   async listPendingGardenJoinRequests(
     cipher: GardenJoinRequestCipher,
-    gardenAddress: Address,
+    gardenAddress: PublicAddress,
     options?: { cursor?: string; limit?: number; nowIso?: string }
   ) {
     return gardenJoinRequests.listPendingGardenJoinRequests(
@@ -304,7 +305,7 @@ class DB {
 
   async reconcileWelcomedGardenJoinRequest(
     cipher: GardenJoinRequestCipher,
-    gardenAddress: Address,
+    gardenAddress: PublicAddress,
     requestId: string,
     resolvedAt: string
   ) {
@@ -456,18 +457,18 @@ export const createGardenJoinRequest = (
 ) => getDB().createGardenJoinRequest(cipher, id, input);
 export const getGardenJoinRequestMine = (
   cipher: GardenJoinRequestCipher,
-  gardenAddress: Address,
-  accountAddress: Address,
+  gardenAddress: PublicAddress,
+  accountAddress: PublicAddress,
   nowIso?: string
 ) => getDB().getGardenJoinRequestMine(cipher, gardenAddress, accountAddress, nowIso);
 export const getGardenJoinRequestById = (
   cipher: GardenJoinRequestCipher,
-  gardenAddress: Address,
+  gardenAddress: PublicAddress,
   requestId: string
 ) => getDB().getGardenJoinRequestById(cipher, gardenAddress, requestId);
 export const listPendingGardenJoinRequests = (
   cipher: GardenJoinRequestCipher,
-  gardenAddress: Address,
+  gardenAddress: PublicAddress,
   options?: { cursor?: string; limit?: number; nowIso?: string }
 ) => getDB().listPendingGardenJoinRequests(cipher, gardenAddress, options);
 export const resolveGardenJoinRequest = (
@@ -476,7 +477,7 @@ export const resolveGardenJoinRequest = (
 ) => getDB().resolveGardenJoinRequest(cipher, input);
 export const reconcileWelcomedGardenJoinRequest = (
   cipher: GardenJoinRequestCipher,
-  gardenAddress: Address,
+  gardenAddress: PublicAddress,
   requestId: string,
   resolvedAt: string
 ) => getDB().reconcileWelcomedGardenJoinRequest(cipher, gardenAddress, requestId, resolvedAt);

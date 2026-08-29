@@ -3,8 +3,8 @@ import {
   type GardenJoinProofAction,
   type GardenJoinProofEnvelope,
 } from "@green-goods/shared/public-contracts/join-requests";
+import type { Address } from "@green-goods/shared/public-contracts";
 import { describe, expect, it, vi } from "vitest";
-import type { Address } from "viem";
 import { InMemoryPublicRateLimiter } from "../api/public-protection";
 import { createServer } from "../api/server";
 import { MemoryGardenJoinRequestStore } from "../services/garden-join-request-memory-store";
@@ -563,7 +563,7 @@ describe("garden join request public API", () => {
     const accepted = await submitForGarden(
       app,
       GARDEN,
-      `0x${"99".padStart(40, "0")}`,
+      `0x${"99".padStart(40, "0")}` as Address,
       ORIGIN,
       "198.51.100.99"
     );
@@ -590,7 +590,7 @@ describe("garden join request public API", () => {
     const accepted = await submitForGarden(
       app,
       GARDEN,
-      `0x${"fe".padStart(40, "0")}`,
+      `0x${"fe".padStart(40, "0")}` as Address,
       ORIGIN,
       "203.0.113.99"
     );

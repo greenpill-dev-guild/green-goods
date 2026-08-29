@@ -163,6 +163,31 @@ describe("public garden impact API", () => {
     expect(preflight.status).toBe(204);
   });
 
+  it("rate-limits one client IP across caller-controlled origins", async () => {
+    const app = createServer({
+      ...deps(),
+      trustedProxy: { allowTestSocketIp: true },
+    });
+    for (let index = 0; index < 120; index++) {
+      const response = await app.request(route, {
+        headers: {
+          origin: `https://partner-${index}.example`,
+          "x-gg-test-socket-ip": "198.51.100.10",
+        },
+      });
+      expect(response.status).toBe(200);
+    }
+    const limited = await app.request(route, {
+      headers: {
+        origin: "https://partner-120.example",
+        "x-gg-test-socket-ip": "198.51.100.10",
+      },
+    });
+
+    expect(limited.status).toBe(429);
+    expect((await limited.json()).errorCode).toBe("rate_limited");
+  });
+
   it("coalesces concurrent loads and removes a failed pending entry", async () => {
     let resolveLoad: ((value: PublicGardenImpactResponseV1) => void) | undefined;
     const loader = vi

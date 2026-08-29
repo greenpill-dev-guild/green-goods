@@ -46,11 +46,14 @@ import {INDEXER_ENDPOINT, EAS_GRAPHQL_ENDPOINTS} from "@site/src/data/endpoints"
 
 The Agent aggregates one publicly visible garden's Work, Work Approval, Action, Assessment, and
 Hypercert records. The response contract is versioned independently from the frontend impact
-archive. Supported chains are Arbitrum (`42161`), Celo (`42220`), and Sepolia (`11155111`). Values
+archive. Supported chains are Arbitrum (`42161`) and Sepolia (`11155111`). Celo (`42220`) remains
+unsupported until its public Garden, Action, and Hypercert indexer sources are available. Values
 above 12 for `recentLimit` are clamped to 12.
 
 The response's `garden.url` is a canonical self-link keyed by chain ID and checksummed Garden
-address. Consumers should use it instead of deriving an identity URL from the nullable Garden name.
+address. Garden identity is verified against the chain's token-bound account registry, so the same
+address on another chain cannot resolve through an indexer collision. Consumers should use the URL
+instead of deriving an identity from the nullable Garden name.
 
 An approved Work count means **protocol-approved**: at least one positive, nonrevoked Work Approval
 exists. It does not assess submission quality or independently validate the supporting material.

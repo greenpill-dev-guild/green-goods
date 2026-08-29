@@ -1,3 +1,5 @@
+import type { Address } from "./core";
+
 export const PUBLIC_AGENT_ROUTES = {
   subscribe: "/public/subscribe",
   fundingIntents: "/public/funding-intents",
@@ -10,7 +12,7 @@ export const PUBLIC_AGENT_ROUTES = {
 
 export function buildPublicGardenImpactPath(
   chainId: number | string,
-  gardenAddress: string
+  gardenAddress: Address
 ): string {
   return `/public/gardens/${encodeURIComponent(String(chainId))}/${encodeURIComponent(gardenAddress)}/impact`;
 }

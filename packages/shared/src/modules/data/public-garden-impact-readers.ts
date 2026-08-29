@@ -1,8 +1,24 @@
+import {
+  getPublicGardenImpactChainConfig,
+  isPublicGardenImpactChainSupported,
+} from "../../config/blockchain";
+import { getChain } from "../../config/chains";
+import type { Address } from "../../public-contracts/core";
 import type { PublicGardenImpactDomain } from "../../public-contracts/garden-impact";
+import { getRpcUrl } from "../../utils/blockchain/chain-registry";
+import {
+  ContractFunctionExecutionError,
+  ContractFunctionRevertedError,
+  ContractFunctionZeroDataError,
+  createPublicClient,
+  getAddress,
+  http,
+} from "viem";
 import { createEasClient, greenGoodsIndexer, type GraphQLReader } from "./graphql-client";
 import { createPublicGardenImpactEasReaders } from "./public-garden-impact-eas-readers";
 import {
   assertPublicGardenImpactChain,
+  PublicGardenImpactSourceError,
   queryPublicGardenImpactRows,
   readPublicGardenImpactPages,
   wrapPublicGardenImpactSourceError,
@@ -30,6 +46,78 @@ export {
 interface ReaderDependencies {
   indexerReader?: GraphQLReader;
   createEasReader?: (chainId: number) => GraphQLReader;
+  createChainReader?: (chainId: number) => PublicGardenImpactChainReader;
+}
+
+interface PublicGardenImpactChainReader {
+  readContract(input: {
+    address: Address;
+    abi: readonly unknown[];
+    functionName: string;
+    args?: readonly unknown[];
+  }): Promise<unknown>;
+}
+
+const GARDEN_ACCOUNT_IDENTITY_ABI = [
+  {
+    type: "function",
+    name: "token",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [
+      { name: "chainId", type: "uint256" },
+      { name: "tokenContract", type: "address" },
+      { name: "tokenId", type: "uint256" },
+    ],
+  },
+  {
+    type: "function",
+    name: "name",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "string" }],
+  },
+  {
+    type: "function",
+    name: "location",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "string" }],
+  },
+] as const;
+
+const TOKENBOUND_REGISTRY_ABI = [
+  {
+    type: "function",
+    name: "account",
+    stateMutability: "view",
+    inputs: [
+      { name: "implementation", type: "address" },
+      { name: "salt", type: "bytes32" },
+      { name: "chainId", type: "uint256" },
+      { name: "tokenContract", type: "address" },
+      { name: "tokenId", type: "uint256" },
+    ],
+    outputs: [{ name: "account", type: "address" }],
+  },
+] as const;
+
+const GARDEN_ACCOUNT_SALT =
+  "0x6551655165516551655165516551655165516551655165516551655165516551" as const;
+
+function defaultChainReader(chainId: number): PublicGardenImpactChainReader {
+  return createPublicClient({
+    chain: getChain(chainId),
+    transport: http(getRpcUrl(chainId)),
+  }) as unknown as PublicGardenImpactChainReader;
+}
+
+function isMissingGardenContract(error: unknown): boolean {
+  return (
+    error instanceof ContractFunctionExecutionError &&
+    (error.cause instanceof ContractFunctionZeroDataError ||
+      error.cause instanceof ContractFunctionRevertedError)
+  );
 }
 
 function toDomain(domain: unknown): PublicGardenImpactDomain | null {
@@ -58,36 +146,65 @@ export function createPublicGardenImpactReaders(
 
     async readGarden(chainId, gardenAddress): Promise<PublicGardenImpactGardenRecord | null> {
       assertPublicGardenImpactChain(chainId, "works");
-      const query = /* GraphQL */ `
-        query PublicGardenImpactGarden($chainId: Int!, $gardenAddress: String!) {
-          Garden(
-            where: { chainId: { _eq: $chainId }, id: { _ilike: $gardenAddress } }
-            limit: 2
-          ) {
-            id
-            chainId
-            name
-            location
-            initialized
-          }
-        }
-      `;
+      const config = getPublicGardenImpactChainConfig(chainId);
+      if (!config || !isPublicGardenImpactChainSupported(chainId)) {
+        throw new PublicGardenImpactSourceError("works", "unsupported_chain");
+      }
       try {
-        const rows = await queryPublicGardenImpactRows<Record<string, unknown>>({
-          reader: indexer,
-          document: query,
-          variables: { chainId, gardenAddress },
-          operationName: "readPublicGardenImpactGarden",
-          field: "Garden",
-          source: "works",
+        const chainReader = deps.createChainReader?.(chainId) ?? defaultChainReader(chainId);
+        let token: unknown;
+        try {
+          token = await chainReader.readContract({
+            address: gardenAddress,
+            abi: GARDEN_ACCOUNT_IDENTITY_ABI,
+            functionName: "token",
+          });
+        } catch (error) {
+          if (isMissingGardenContract(error)) return null;
+          throw error;
+        }
+        if (!Array.isArray(token) || token.length !== 3)
+          throw new Error("Invalid Garden token tuple");
+        const tokenChainId = BigInt(token[0] as bigint | number | string);
+        const tokenContract = getAddress(String(token[1]));
+        const tokenId = BigInt(token[2] as bigint | number | string);
+        if (
+          tokenChainId !== BigInt(chainId) ||
+          tokenContract.toLowerCase() !== config.gardenToken.toLowerCase()
+        ) {
+          return null;
+        }
+        const expectedAccount = await chainReader.readContract({
+          address: getAddress(config.tokenboundRegistry) as Address,
+          abi: TOKENBOUND_REGISTRY_ABI,
+          functionName: "account",
+          args: [
+            getAddress(config.gardenAccountImpl),
+            GARDEN_ACCOUNT_SALT,
+            tokenChainId,
+            tokenContract,
+            tokenId,
+          ],
         });
-        const garden = rows.find((row) => Number(row.chainId) === chainId);
-        if (!garden || garden.initialized === false) return null;
+        if (getAddress(String(expectedAccount)).toLowerCase() !== gardenAddress.toLowerCase()) {
+          return null;
+        }
+        const [name, location] = await Promise.all([
+          chainReader.readContract({
+            address: gardenAddress,
+            abi: GARDEN_ACCOUNT_IDENTITY_ABI,
+            functionName: "name",
+          }),
+          chainReader.readContract({
+            address: gardenAddress,
+            abi: GARDEN_ACCOUNT_IDENTITY_ABI,
+            functionName: "location",
+          }),
+        ]);
         return {
-          id: String(garden.id ?? ""),
-          name: typeof garden.name === "string" && garden.name.trim() ? garden.name : null,
-          location:
-            typeof garden.location === "string" && garden.location.trim() ? garden.location : null,
+          id: gardenAddress,
+          name: typeof name === "string" && name.trim() ? name : null,
+          location: typeof location === "string" && location.trim() ? location : null,
         };
       } catch (error) {
         throw wrapPublicGardenImpactSourceError("works", error);

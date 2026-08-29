@@ -76,7 +76,7 @@ export interface PublicGardenImpactReaders {
 
 export interface PublicGardenImpactLoadInput {
   chainId: number;
-  gardenAddress: string;
+  gardenAddress: Address;
   recentLimit: number;
 }
 

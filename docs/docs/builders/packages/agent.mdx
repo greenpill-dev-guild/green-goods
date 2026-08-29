@@ -69,8 +69,8 @@ The route behaves as follows:
 
 - `GET` and `OPTIONS` allow any origin without credentials. This wildcard policy is local to the
   impact route; other public APIs keep their configured origin allowlist.
-- Requests are limited to 120 per 10 minutes using the existing public IP, origin, and garden
-  material buckets. Cache hits count toward the limit; preflight requests do not.
+- Requests are limited to 120 per 10 minutes using origin-independent IP and garden material
+  buckets. Cache hits count toward the limit; preflight requests do not.
 - Successful snapshots use a five-minute, 100-garden in-process LRU cache. The Agent loads up to 12
   recent items once and slices the cached result for each request.
 - A 200 response uses
@@ -79,8 +79,8 @@ The route behaves as follows:
   exhausted rate limits return 429, and an unsafe provider result returns 503.
 
 `provenance.status: "partial"` means at least one source is unavailable. Fields that depend on that
-source are `null`; successful empty sources remain zero. Celo therefore reports missing Approval or
-Assessment schema data as partial until those schemas are configured. The implementation does not
+source are `null`; successful empty sources remain zero. Arbitrum and Sepolia are supported. Celo is
+rejected until its Garden, Action, and Hypercert sources are indexed. The implementation does not
 deploy the Agent or provide production URL proof.
 
 ## What to expect

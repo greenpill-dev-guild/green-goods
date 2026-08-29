@@ -18,7 +18,8 @@ validation, wildcard route CORS, rate limiting, caching, and safe error mapping.
 2. Treat any positive nonrevoked Work Approval as protocol approval; deduplicate Work and Approval
    UIDs and use the newest positive approval timestamp.
 3. Count deduplicated Hypercerts only in active, claimed, or sold states.
-4. Support only Arbitrum, Celo, and Sepolia through a no-fallback chain predicate.
+4. Support only Arbitrum and Sepolia through a no-fallback chain predicate. Keep Celo rejected until
+   the public indexer covers its Garden, Action, and Hypercert sources.
 5. Keep missing schemas and individual source failures explicit through nullable dependent fields
    and partial provenance; return 503 only when Garden resolution is unsafe or all primary impact
    sources are unusable.
@@ -35,9 +36,11 @@ validation, wildcard route CORS, rate limiting, caching, and safe error mapping.
 - Confirmed against the official EAS GraphQL documentation and checked-in schema types: supported
   chains expose chain-specific endpoints, and Attestation queries support bounded ordering and
   pagination without a client-side fallback.
-- Confirmed: Garden IDs are bare normalized addresses plus `chainId`; Action IDs are
+- Confirmed: indexer Garden IDs are bare normalized addresses and can collide across chains, so
+  Garden identity resolves from the chain-qualified token-bound account instead. Action IDs are
   `${chainId}-${actionUID}`; current Approval records cannot be joined reliably by recipient or
-  `refUID`; Celo lacks Approval and Assessment schema UIDs.
+  `refUID`; Celo lacks Approval and Assessment schema UIDs plus public Garden, Action, and Hypercert
+  indexer coverage.
 - Assumption: page each source in stable order with 100-record pages and fail the source closed when
   more than 1,000 records are detected.
 
@@ -74,7 +77,7 @@ validation, wildcard route CORS, rate limiting, caching, and safe error mapping.
 - Silent source truncation could undercount impact. Mitigation: detect the 1,001st row and mark the
   source unavailable.
 - Historical Approval recipients vary. Mitigation: page the schema, then join by exact Work UID.
-- Celo schema gaps could look like zero impact. Mitigation: nullable fields and unavailable-source
-  provenance.
+- Celo's absent indexer sources could look like zero impact. Mitigation: reject Celo until those
+  sources exist instead of advertising an incomplete chain.
 - Cache or CORS changes could weaken protected routes. Mitigation: route-local wildcard headers and
   regression coverage proving protected CORS is unchanged.

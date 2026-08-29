@@ -18,16 +18,16 @@
 
 ## Validation
 
-- Pending lane implementation.
+- Not applicable.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending
-- Run at (UTC): pending
-- Exact command(s): pending
-- Result: pending
-- Validated paths: pending
-- Worktree identity command and result: pending
+- Tested implementation commit SHA: not applicable
+- Run at (UTC): not applicable
+- Exact command(s): not applicable
+- Result: not applicable
+- Validated paths: not applicable
+- Worktree identity command and result: not applicable
 - Evidence-only diff command and result (if applicable): not applicable
 - Evidence-only worktree-status command and result (if applicable): not applicable
 

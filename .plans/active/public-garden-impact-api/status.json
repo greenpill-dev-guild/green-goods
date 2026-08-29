@@ -41,7 +41,7 @@
   },
   "notes": [
     "Repository-only implementation: no Linear mirror or tracker write was requested.",
-    "The clean detached checkout is preserved; branch, commit, PR, deployment, and production proof are outside scope.",
+    "Implementation is tracked by PR 782 on feature/review-garden-impact-api-plan; deployment and production proof remain outside scope.",
     "UI and contracts lanes are not applicable; behavior lives in the State/API lane.",
     "The hub stays active because terminal status requires a clean commit-attributed validation receipt.",
     "The Agent default loader dynamically uses the existing Shared modules export; the production Bun runtime import is covered directly and no package-map entry was added.",
@@ -83,8 +83,8 @@
           "evidence": "Deep-review regression tests failed in three expected places before source edits: name-derived Garden URL, minted-only certificate activity, and missing updatedAt in the Hypercert query."
         },
         "green": {
-          "command": "bun run test src/__tests__/public-contracts.test.ts src/__tests__/public-garden-impact-readers.test.ts src/__tests__/public-garden-impact.test.ts (Shared); bun run test src/__tests__/public-garden-impact-api.test.ts (Agent)",
-          "evidence": "Shared passed 3 files and 40 tests; Agent passed 1 file and 14 tests. A direct Bun import also resolved readPublicGardenImpactSnapshot through the existing @green-goods/shared/modules export."
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/public-contracts.test.ts src/__tests__/public-garden-impact-readers.test.ts src/__tests__/public-garden-impact.test.ts && bun run --filter @green-goods/agent test -- src/__tests__/public-garden-impact-api.test.ts src/__tests__/garden-join-requests.api.test.ts",
+          "evidence": "Shared passed 3 files and 40 tests; Agent passed 2 files and 35 tests. Each invocation records its package filter and contains no non-shell labels. A direct Bun import also resolved readPublicGardenImpactSnapshot through the existing @green-goods/shared/modules export."
         },
         "note": ""
       },
