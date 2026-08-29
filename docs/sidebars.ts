@@ -254,7 +254,7 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
-    // ── Quality Assurance (5 items) ──
+    // ── Quality Assurance (6 items) ──
     {
       type: 'category',
       label: 'Quality Assurance',
@@ -264,6 +264,7 @@ const sidebars: SidebarsConfig = {
           'Quality gates, regression testing, and CI/CD pipelines.',
       },
       items: [
+        {type: 'doc', id: 'builders/quality/product-experience-qa', label: 'Product Experience QA'},
         {type: 'doc', id: 'builders/quality/test-cases', label: 'Test Cases'},
         {type: 'doc', id: 'builders/quality/regression', label: 'Regression Testing'},
         {type: 'doc', id: 'builders/quality/agentic-eval', label: 'Agentic Evaluation'},

@@ -4,10 +4,11 @@ sidebar_label: Test Cases
 slug: /builders/quality/test-cases
 audience: developer
 owner: docs
-last_verified: 2026-04-25
-feature_status: Planned
+last_verified: 2026-08-28
+feature_status: In progress
 source_of_truth:
   - package.json
+  - scripts/data/qa-test-catalog.json
   - .github/workflows/contracts.yml
   - .github/workflows/indexer.yml
   - .github/workflows/shared.yml
@@ -70,8 +71,14 @@ The future structured catalog should map test cases to source-backed scripts, wo
 
 ## Test Cases
 
-:::info Planned catalog
-Test cases are not yet maintained as a canonical checked-in test-case repository. Add links to concrete tests, workflows, or acceptance artifacts before treating a category as covered.
+:::info Canonical catalog
+Product-experience test cases are now maintained as a checked-in catalog:
+`scripts/data/qa-test-catalog.json` versions the scenario definitions (63 cases across Public
+Website, PWA iOS, PWA Android, Admin Dashboard, Cross Surface, and Docs), and
+`bun run qa:workbook` generates per-run Excel workbooks from it. See
+[Product Experience QA](/builders/quality/product-experience-qa) for the journey matrices and
+the QA session process. The behavior-level categories below still need links to concrete tests,
+workflows, or acceptance artifacts before being treated as enforced coverage.
 :::
 
 ### Critical Path: Work Submission to Attestation

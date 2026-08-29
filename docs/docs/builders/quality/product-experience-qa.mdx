@@ -1,0 +1,429 @@
+---
+title: Product Experience QA
+sidebar_label: Product Experience QA
+slug: /builders/quality/product-experience-qa
+audience: developer
+owner: product
+last_verified: 2026-08-28
+feature_status: In progress
+source_of_truth:
+  - AGENTS.md
+  - packages/admin/AGENTS.md
+  - packages/client/AGENTS.md
+  - packages/admin/src/routes/views.tsx
+  - packages/client/src/config/routes.tsx
+  - scripts/data/qa-test-catalog.json
+  - scripts/agents/qa-workbook-build.ts
+  - .claude/skills/qa-session/SKILL.md
+  - .claude/skills/qa-triage/sheet-schema.md
+  - .claude/skills/debug/SKILL.md
+  - .claude/skills/design/review-checklist.md
+  - .claude/skills/design/interaction-patterns.md
+  - .claude/skills/design/decision-log.md
+  - .claude/context/validation-pipeline.md
+  - playwright.config.ts
+  - .github/workflows/design.yml
+  - .github/workflows/client.yml
+  - .github/workflows/admin.yml
+keywords: [QA, product experience, UI regression, admin, PWA, editorial website, accessibility]
+---
+
+import {StatusBadge} from "@site/src/components/docs";
+
+# Product Experience QA
+
+<StatusBadge status="In progress" />
+
+Green Goods is not ready to call a frontend change complete merely because it builds, passes unit
+tests, or reaches a contract successfully. Product experience QA must prove that a person can find,
+understand, use, recover from, and complete the intended journey without layout, interaction,
+language, accessibility, or state defects.
+
+This standard covers four product surfaces:
+
+- the steward-facing admin console;
+- the installed client PWA;
+- the public editorial website in the client package;
+- the Docusaurus documentation site — a first-class surface with its own journey matrix below,
+  because it is where builders and community members learn the product, and its glossary anchors
+  are a client-facing API.
+
+## Release decision
+
+A user-facing change is ready only when both proof layers pass:
+
+1. **Behavior proof** confirms that state and data change correctly, including loading, failure,
+   recovery, permissions, and asynchronous completion.
+2. **Experience proof** confirms that the real rendered journey is understandable, operable, and
+   visually coherent at the required viewport, role, locale, and data state.
+
+A green behavior test cannot overrule a visible product defect. A Storybook story cannot substitute
+for an authenticated route when identity, permissions, wallet state, installed-app behavior, or live
+data materially changes the experience.
+
+## Evidence hierarchy
+
+Use the strongest available evidence and say which layer was reached.
+
+| Layer | What it proves | What it does not prove |
+| --- | --- | --- |
+| Source and mechanical checks | Types, tokens, vocabulary, route declarations, build integrity | The rendered journey is usable or polished |
+| Component and Storybook proof | Isolated states, interaction contracts, component geometry | Route composition, real identity, live data, or recovery behavior |
+| Clean-room built-route proof | Entry, routing, overflow, console health, selected responsive checks | Authenticated or profile-dependent behavior |
+| Authenticated Brave proof | The actual local journey for the selected identity, role, locale, and data | Other roles, devices, states, or production deployment health |
+
+For admin, PWA, wallet, installed-app, staging-session, and profile-dependent claims, authenticated
+Brave is required. Clean-room browser checks remain useful secondary evidence and must be labeled as
+such.
+
+**Capability blocks name the harness.** Different agent harnesses reach different evidence layers:
+a sandboxed agent without the authenticated-Brave extension path cannot produce layer-4 evidence
+that Claude Code with the connected extension can, and some flows (real-device installs, passkey
+ceremonies) are human-only. A finding that could not be verified because of the *verifier's*
+environment is recorded as `Capability blocked (<harness>, <missing capability>)` — never stated
+as a universal blocker, and never silently upgraded to a product defect. Conversely, a `Blocker`
+label requires reproduction in a warm, authenticated environment.
+
+## Audit baseline: 2026-08-28 (re-verified 2026-08-28)
+
+The initial deep pass ran in an agent sandbox whose environment shaped several findings. Each row
+below was re-verified the same day from a second harness (Claude Code: source verification, a
+fresh warm `dev:prod` stack, and a gate re-run; the authenticated-Brave visual lanes were
+capability-blocked in that session and are named as such). This baseline is not a permanent claim
+about later builds.
+
+### Findings and re-verified status
+
+| Priority | Surface | Finding | Re-verified status |
+| --- | --- | --- | --- |
+| High (was Blocker) | PWA and editorial website | Both client presentations showed reload-only boot recovery in the original pass: `/home?presentation=pwa` displayed “Green Goods needs the latest app files”; the public presentation displayed “This page is taking longer than expected.” | **Unverified as a product defect — environment artifact suspected.** The recovery UI is a boot watchdog in `packages/client/index.html` that fires when React has not mounted within ~4.5s; a cold Vite dev server mid dependency-optimization can exceed that, and the original pass loaded cold. Smoke (`bun run dev:smoke:web`) and all boot-fallback unit tests pass — they prove the fallback exists, not that recovery succeeds. Warm authenticated re-check was capability-blocked in the re-verification session; first qa-session re-verifies warm, and the improvement sequence still owes a mount/recovery regression test. |
+| High | Admin work review | The primary review decisions live inside the scrolling dialog body instead of the pinned dialog action region, so at short viewports (observed at 1084×637: buttons began ~y=692, dialog ended ~y=621) a steward can open a valid review and not see how to complete it. | **Confirmed product defect (source-verified same day).** `ReviewForm.tsx` renders the Reject/Approve decision row inline in its form body, and `LeftInspectorDialog.tsx` wraps `AdminDialog` without passing an `actions` slot — the structural cause is present in current source. Catalog case ADM-012 anchors the journey. |
+| Medium (was High) | Editorial homepage component | The “Explore Gardens” action rendered with text color equal to its green background in the `PublicHome` Storybook composition (both computed `rgb(26, 117, 68)` at the mobile story viewport). | **Unverified — story-harness token resolution suspected.** In current source the token chain is correct: `DESIGN.md` sets `on-tertiary-action: #FFFFFF` and the generated CSS emits `--gg-design-on-tertiary-action: 255 255 255`, so green-on-green is not reproducible from the source tokens. The suspect is token resolution inside the story composition environment. Needs a live computed-style check (capability-blocked in the re-verification session); the live public route remains the deciding evidence. |
+| High | QA reliability | The Storybook interaction gate is red. | **Confirmed QA harness defect (re-run twice same day).** `CI=true bun run --filter @green-goods/shared test:stories:ci` failed identically in both runs — 3 failed / 190 passed, same three stories: `Actions.stories.tsx › Registry`, `ActionsSheetDescriptor.stories.tsx › Route Backed Create Mobile`, `Garden.stories.tsx › Create Garden Route` — all `findByRole` timeouts consistent with live Alchemy/IPFS/Reown dependencies stalling. Consistently red locally rather than flaky; either way the gate proves an unreliable QA seam, not three product regressions. |
+
+### Confirmed refinement gaps
+
+| Priority | Surface | Finding | Required QA response |
+| --- | --- | --- | --- |
+| Medium | Admin | Portuguese UI included English-formatted dates and raw English units with incorrect singular forms, such as `1 sessions`. Some action descriptions omitted Portuguese diacritics. | Exercise locale, plural, date, number, and long-content states with real records; do not treat locale-key parity as language-quality proof. |
+| Medium | Admin | Common icon controls were 40×40px and several row actions were 32px high. | Check the intended pointer-versus-touch policy per responsive state. Interactive targets used in touch or narrow layouts should meet the 44px target contract. |
+| Medium | Editorial stories | Public Fund, Impact, and Actions route stories render placeholder headings rather than their real route components. | Treat these as route-shell sentinels only. Add real route compositions and representative states before describing them as visual or journey coverage. |
+| Medium | PWA stories | The protected PWA catalog renders synthetic route frames rather than the real Home, Garden, and Profile views. | Keep the fixture tests, but add route-level stories or deterministic built-route journeys for the actual screens and controllers. |
+| Medium | QA tooling | `.claude/scripts/check-drift.sh` reported all dev-stack ports missing because it parsed `const portByApp` while `scripts/dev/stack.js` declares `portsByApp` (array-valued). | **Repaired 2026-08-28**: the parser now matches `portsByApp`, handles array values, and carries a self-check that names the parser itself when the declaration moves again — instead of six misleading "port missing" drifts. |
+
+### Evidence that passed, with its correct interpretation
+
+| Check | Result | Correct interpretation |
+| --- | --- | --- |
+| DesignMD, generated design, token, and vocabulary checks | Pass | The design-token projection and banned-vocabulary rules are internally consistent. This does not judge layout or interaction quality. |
+| Story coverage | 258/258 required surfaces | Every surface in the current enforcement contract has a story. The client contract covers only a small set of curated catalogs, not every route or journey. |
+| Story quality | 230 story files checked | The fixtures meet the current static quality rules. The checker does not judge visual quality, responsive layout, accessibility, or journey correctness. |
+| Admin authenticated route sweep | Primary Hub, Garden, and Community routes loaded | The selected steward session could reach these routes. It does not prove other roles or every task state. |
+| Admin Submit Work flow | Header, step body, and pinned footer rendered correctly | This flow is a useful reference implementation and was rejected as a regression finding. |
+| Admin lazy-route loading | Slower routes recovered after additional wait | The initial loading state was not treated as a stuck-route defect. |
+
+## Required QA matrix
+
+Every release or substantial UI pass should mark each applicable row `Pass`, `Fail`, `Blocked`, or
+`Not applicable` (`N/A` in the workbook and Sheet — same value). `Blocked` is not a pass and must
+name the missing capability or data.
+
+The executable form of this matrix is the versioned test-case catalog:
+`scripts/data/qa-test-catalog.json` holds the scenario definitions (Test IDs `PUB-`, `PWA-IOS-`,
+`PWA-AND-`, `PWA-ROLE-`, `ADM-`, `XPLAT-`, `DOCS-`), and `bun run qa:workbook` projects them into
+a per-run Excel workbook mirroring the private **Green Goods v1.1 QA** Sheet (Guide, Summary,
+surface tabs, Defects template). Definitions are reviewed in git; results, owners, and defect
+links live only in the workbook, the Sheet, and Linear — never in this public repo. The journey
+tables below are the narrative contract those cases decompose.
+
+### Admin console
+
+| Journey | Required proof |
+| --- | --- |
+| Authentication and access | Supported login path, session recovery, unauthorized route, missing role, and garden-switch behavior |
+| Hub work review | Find a submission, inspect evidence, choose confidence, enter feedback, reject, approve, cancel, recover from transaction failure, and see the updated queue |
+| Hub confirmations | Open a commitment, understand who and what is affected, confirm or decline, handle stale data, and verify the resulting state |
+| Assessment and certification | Inspect an assessment, create or mint through the permitted path, review summaries, cancel safely, and verify completion and error states |
+| Garden lifecycle | Create a Garden, review before submission, handle duplicate or invalid fields, wait through chain progress, and land on a usable result |
+| Garden operations | Review health, activity, impact, settings, pool, members, permissions, empty states, long records, and failed queries |
+| Actions registry | Browse, filter, inspect, create, edit, and exercise unauthorized and incomplete-data states |
+| Community coordination | Review people, proposals, pools, payouts, and endowment operations with clear status, safe destructive actions, and recovery paths |
+| Cross-route continuity | Back, close, refresh, and deep-link behavior preserve the selected workspace and return people to a sensible place |
+
+Admin flows must use the canonical canvas and dialog anatomy. A review or form is not complete when
+its commit and cancel actions are hidden inside an initially clipped scrolling region.
+
+### Client PWA
+
+| Journey | Required proof |
+| --- | --- |
+| Presentation and installation | Website-to-install handoff, installed start URL, PWA shell selection, update recovery, stale service-worker recovery, and no website/PWA chrome mixing |
+| Login and identity | Wallet and passkey paths that are currently supported, canceled login, failed login, restored session, disconnected session, and permission changes |
+| Home and Garden discovery | Home content, Garden list, Garden detail, empty membership, loading, refresh, and stale or unavailable data |
+| Work capture | Select an Action, enter details, attach supported media, reject unsupported media, save or recover a draft, review, submit, wait, fail, retry, and find the resulting Work |
+| Offline and sync | Create or edit while offline, show honest queue state, reconnect, retry, resolve failure, prevent duplicate submission, and preserve user input |
+| Commitments | Compose, inspect, accept or decline, link Work, provide proof, confirm not-yet states, and recover from wallet or network failure |
+| Assessments | Open an assessment, understand requirements and status, inspect evidence, and return without losing Garden context |
+| Profile | Identity, avatar, settings, language, wallet state, long names, missing metadata, and session exit |
+| Installed navigation | Bottom AppBar visibility, safe-area handling, active state, hidden-during-flow state, back behavior, and no covered controls |
+
+The PWA matrix must include at least one iOS-sized and one Android-sized viewport using the real
+installed presentation. Desktop-only Chromium coverage is not sufficient.
+
+### Editorial website
+
+| Journey | Required proof |
+| --- | --- |
+| Home | Header, mobile menu, hero media fallback, readable calls to action, featured Gardens, public counts, role explanations, funding bridge, contact form, and footer |
+| Garden archive and detail | Browse, filter or navigate as supported, image fallback, empty archive, long descriptions, pluralization, detail evidence, and broken or unknown Garden |
+| Actions | Browse and inspect regenerative Actions, long metadata, missing media, deep links, and navigation into the relevant next step |
+| Cookies | Understand the public record, inspect active and empty content, and follow supported participation links |
+| Impact | Read counts and evidence without misleading loading or empty states; verify links to source records |
+| Funding and Vaults | Understand donate/endow boundaries, select a Garden or Vault, connect as required, cancel safely, fail safely, and receive an honest result |
+| Glossary and orientation | Terms, cross-links, browser back, direct URLs, and unknown routes remain understandable |
+| Responsive editorial shell | 375px and 1440px layouts, keyboard navigation, mobile menu focus, image cropping, no horizontal overflow, and legible long-form rhythm |
+
+### Documentation site
+
+| Journey | Required proof |
+| --- | --- |
+| Navigation | Sidebar and top-nav navigation across builders, community, and reference sections; direct deep URLs; honest 404 for unknown routes |
+| Search | Local search returns relevant results; keyboard navigation through results; opening a result lands focus in content |
+| Glossary anchors | `/glossary#term` anchors the client links to resolve and scroll to their term — these anchors are a client API and must not break |
+| Responsive shell | 375px and 1440px hold without horizontal page overflow; the mobile sidebar drawer opens and closes; wide tables, code blocks, and mermaid diagrams scroll inside their own containers |
+| Keyboard and focus | Tab order through header, sidebar, and content is sensible with visible focus; content reachable without a mouse |
+| Theme and diagrams | Dark mode toggles cleanly; mermaid diagrams and code blocks stay legible in both themes |
+| Freshness and links | Internal links resolve (build-time `onBrokenLinks: throw`); frontmatter `last_verified` and `feature_status` reflect reality (docs-audit) |
+
+Catalog cases `DOCS-001`–`DOCS-006` anchor this matrix.
+
+### State and quality dimensions
+
+Apply these dimensions to every applicable journey, not just to primitives in isolation:
+
+- default, hover, focus-visible, active, selected, and disabled;
+- loading, skeleton, empty, partial data, error, retry, success, and stale data;
+- authorized, unauthorized, own record, another person's record, and expired or completed record;
+- short, long, missing, malformed, translated, and user-authored content;
+- narrow mobile, common mobile, tablet or narrow desktop, and wide desktop as applicable;
+- online, slow network, offline, reconnected, and duplicate-action protection;
+- keyboard-only, visible focus, accessible name, focus return, dialog containment, and reduced motion;
+- light and dark theme where the surface supports both;
+- no clipping, overlap, accidental scroll traps, horizontal overflow, invisible text, or controls
+  covered by fixed chrome.
+
+## The QA session loop
+
+The canonical polish process is the founder-led **QA session**, owned by the `qa-session` skill
+(`.claude/skills/qa-session/SKILL.md`): the founder walks real flows on the local stack against
+production data — their own Garden and the community Garden, switched via `?gardenId=` — while
+dictating observations; the agent copilots. The loop:
+
+1. **Pre-flight** — same-checkout guard (fixes must land in the checkout serving ports
+   3001/3002), `bun run dev:prod`, warm-up loads before dictation, an identity plan, and a
+   real-write boundary agreed once (dev:prod wallet transactions are real Arbitrum writes).
+2. **Capture** — every dictated item is logged immediately with a stable `OBS-NN` id, the
+   verbatim quote, surface + route, a quiet component resolution, and the catalog `case:` id
+   when matched. The walk is never stalled by diagnosis.
+3. **Live triage** — one-line fix-now vs defer proposal per observation. Fix-now requires small
+   size (≤30 min, ≤3 files, binding timebox), presentation-level blast radius, HMR
+   validatability, and reversibility; everything else defers.
+4. **Fix and revalidate** — accepted fixes are edited live, the founder revalidates through HMR
+   in their open tab within the same session, and each fix commits with its OBS id.
+5. **Close** — deferred items hand off to `qa-triage` as a pre-structured session log; results
+   rows go to the run workbook and Sheet; dictated `decision` items pass through a lock gate
+   into the design decision ledger (`.claude/skills/design/decision-log.md`) so polish rulings
+   compound into guidance; a session receipt (results, fixes, environment notes, remaining
+   risk) is stored in the private Drive QA folder — never committed.
+
+A recorded dictation transcript of a completed walk runs the same skill in batch mode, with a
+scope-lock gate before any edit and agent-side reproduction per the `debug` protocols.
+
+### Session environment recipe
+
+Fast, honest sessions depend on the environment being set up deliberately:
+
+- **Profile**: `bun run dev:prod` — docs (:3003), admin (:3002), client (:3001), and Storybook
+  (:3004) against real Arbitrum One, the hosted indexer, and the production agent API.
+  `dev:prod:mirror` adds a local indexer mirroring live chain. Health:
+  `bun run dev:doctor -- --profile prod`.
+- **Warm before dictating**: load each in-scope surface once. The client's boot watchdog shows
+  recovery UI if React has not mounted within ~4.5s; a cold Vite transform can trip it, and a
+  cold-load fallback is instrumentation, not a defect, until reproduced warm.
+- **Watch for `new dependencies optimized`** in the dev log — that line means a dependency
+  re-optimization full-reload just ate the current flow; note it and repair the
+  `optimizeDeps.include` drift after the session.
+- **Identity**: real steward identity via wallet connect in the authenticated Brave profile for
+  write flows; `?mockAuth=steward` for fast read-only rendering of real production data (all
+  writes no-op); `?presentation=pwa` once per tab for the PWA shell on desktop. **Passkey
+  ceremonies cannot run on localhost** — the RP ID is `greengoods.app`, so passkey cases are
+  `Blocked` locally by design and run against production installs instead.
+- **Port ownership**: 3001/3002 are strict-port with no worktree offset — real-time fixes must
+  land in the same checkout the founder is browsing, and surface leases
+  (`bun run dev:stack status`) say who owns what. Never restart another session's stack.
+
+## Agent execution protocol
+
+This is the minimum protocol for agents performing a deep QA pass or validating user-facing work
+— it applies inside qa-session fix windows and to any standalone agent verification.
+
+### 1. Lock the journey and environment
+
+Record the build or commit, surface, exact route, presentation mode, identity, role, locale, viewport,
+theme, connectivity, and starting data state. If any of these materially changes the result, it is
+part of the test case.
+
+### 2. Reproduce from the rendered surface
+
+Use authenticated Brave for profile-dependent local QA. Start with what a person can see and touch.
+Do not infer that a provider, hook, or contract is the cause until the rendered surface is shown to
+be intact.
+
+### 3. Inspect geometry and interaction state
+
+For suspect elements, inspect bounding boxes and computed `display`, `visibility`, `opacity`,
+`pointer-events`, `overflow`, stacking, disabled state, selected classes, borders, rings, and text
+contrast. Perform the interaction and verify that state actually changes.
+
+### 4. Complete the critical path
+
+Do not stop at route load or the first successful click. Continue through review, confirmation,
+asynchronous progress, success, and the resulting destination. Exercise cancel and failure recovery
+without discarding user input unexpectedly.
+
+### 5. Sweep relevant states and siblings
+
+Check the state matrix above and the directly related routes, roles, locales, or responsive layouts.
+Keep the sweep bounded to the feature and its regression surface.
+
+### 6. Anchor the regression
+
+Add or identify the smallest deterministic check that would fail if the defect returned. Use unit or
+component tests for logic, Storybook for controlled visual states, and route E2E for composition and
+journey continuity. Do not use a synthetic shell as proof of a real route.
+
+### 7. Produce a QA receipt
+
+Every completed pass should leave this evidence:
+
+```text
+Build/commit:
+Surface and route:
+Presentation:
+Identity and role:
+Locale, theme, and viewport:
+Starting data state:
+Actions performed:
+Expected result:
+Actual result:
+State matrix exercised:
+Console/network observations:
+Screenshot or DOM evidence:
+Automated regression anchor:
+Result: Pass | Fail | Blocked | Not applicable
+Remaining risk:
+```
+
+A pass without this context is not reusable regression evidence.
+
+## Defect writing standard
+
+Write one defect per issue, in language a teammate can understand cold:
+
+```text
+[Surface] [route or journey] — [problem or blocked outcome]
+
+Given [identity, role, locale, viewport, and data state],
+when [action],
+the product [actual visible or behavioral result].
+It should [expected result].
+
+Evidence: [screenshot, DOM measurement, error, or reproducible steps]
+Regression anchor: [current test, missing test, or proposed deterministic proof]
+```
+
+Separate labels should distinguish:
+
+- **Product defect** — the real rendered experience is wrong.
+- **QA harness defect** — the test or fixture is nondeterministic, synthetic, stale, or misleading.
+- **Missing proof** — the behavior may work, but no accepted evidence covers it.
+- **Capability blocked** — the required browser, role, device, data, or service is unavailable.
+
+## Current QA capability and its limits
+
+Green Goods already has substantial QA infrastructure. The weakness is fragmentation and the lack of
+one end-to-end experience acceptance contract.
+
+| Capability | Strength | Gap to close |
+| --- | --- | --- |
+| `debug` skill | Excellent rendered-surface-first diagnosis for known visible defects | Reactive; it does not inventory whole journeys |
+| `review` skill | Strong change and regression review with production evidence rules | Diff-oriented rather than a full product sweep |
+| Design review guidance | Detailed spatial, interaction, accessibility, responsive, and state contracts | Much of the interaction contract still requires human-visible proof |
+| Admin defect grammar | Converts observations into route/component/state/expected/actual reports | Admin-focused and defect-driven |
+| `qa-session` skill | Owns the live founder-led loop: pre-flight, OBS capture, fix-now/defer triage, HMR revalidation, decision locking, receipts | New; its autonomous agent-led sweep counterpart is deliberately deferred (see improvement sequence) |
+| `qa-triage` skill | Good intake, enrichment, deduplication, scope lock, and durable issue creation — now also the downstream consumer of qa-session logs | It triages reported signals; it does not execute tests |
+| Versioned test-case catalog | `scripts/data/qa-test-catalog.json` versions all scenario definitions (63 cases incl. a Docs surface) in git; `bun run qa:workbook` generates per-run Excel workbooks mirroring the Sheet | Results still round-trip manually into the private Sheet; the Sheet's Docs tab is pending a paste from the generated workbook |
+| Validation selector | Chooses risk-aware test, build, design, story, and browser checks | It has no `audit` intent even though audit workflows refer to the selector |
+| Storybook | Broad shared/admin coverage, component states, play tests, and an accessibility add-on | Client coverage enforcement is narrow; the accessibility add-on is not a blocking gate; the interaction runner currently leaks live dependencies |
+| Playwright | Client and admin CI projects cover selected critical flows | Default CI is desktop Chromium; mobile is manual; public editorial journeys are lightly covered |
+| Built-route browser proof | Checks selected routes at 375, 1024, and 1440 for entry errors, console errors, motion, and overflow | Clean-room only and intentionally not proof of authenticated or data-rich correctness |
+| Visual regression | Screenshots and optional Chromatic publishing exist | Chromatic is manual and exits successfully on visual changes; unexpected diffs do not block pull requests |
+| Lighthouse | Provides advisory client and admin signals | Manual, warning-only, and not a UI-quality acceptance gate |
+
+## Improvement sequence
+
+Implement improvements in this order so later signals are trustworthy.
+
+1. **Restore client startup and recovery.** Add a route-level regression that fails when React never
+   mounts, when the module graph cannot load, or when cache-busted reload returns to the same recovery
+   state. Keep the friendly fallback tests, but distinguish “fallback displayed” from “recovery
+   succeeded.”
+2. **Make Storybook interaction CI deterministic.** Stories tagged `storybook-ci` must not contact
+   live chain, IPFS, wallet, or Reown services. Add provider/query seams or remove the tag until the
+   story has a controlled environment.
+3. **Ship the human-led session loop first; defer the autonomous sweep.** Done: the `qa-session`
+   skill owns the founder-led loop and orchestrates the existing debug, design, qa-triage, and
+   validation authorities rather than duplicating them. The agent-led autonomous matrix sweep
+   (`qa-sweep`) is deliberately deferred until items 1 and 2 are green — an autonomous sweep run
+   today would re-report the boot watchdog and the red Storybook gate on every pass.
+4. **Replace synthetic client coverage with real compositions.** Preserve useful shell fixtures, but
+   add the actual PWA Home, Garden, Profile, work, commitment, proof, and offline flows. Replace public
+   Fund, Impact, and Actions sentinels with deterministic real route components.
+5. **Make selected visual and accessibility regressions blocking.** Start with the critical journeys
+   in this document, approve stable baselines, fail unexpected diffs, and run axe checks against the
+   same curated set. Do not multiply every story across every device.
+6. **Add a role and device matrix to route E2E.** Prioritize steward, gardener, evaluator, and funder
+   boundaries; iOS-sized and Android-sized PWA flows; and public pages at 375px and 1440px.
+7. **Grow the catalog into a machine-readable journey manifest.** The seed exists:
+   `scripts/data/qa-test-catalog.json` versions journeys with roles and states, and its
+   `linkedChecks` field is the growth path for mapping each case to its deterministic tests,
+   stories, and most recent accepted evidence so coverage drift becomes visible.
+8. **Repair QA-tooling drift.** The dev-port parser is fixed (self-checking, 2026-08-28). Still
+   open: decide whether the validation selector needs an `audit` intent (none exists today) or
+   document that audit-shaped work maps onto the existing `diagnose`/`review` intents.
+9. **Add language-quality checks beyond key parity.** Exercise ICU pluralization, `Intl` date/number
+   formatting, diacritics, long translations, and mixed user-authored content in the route where it
+   is displayed.
+10. **Documentation site QA lane.** Done at the definition level: docs is a first-class surface
+    with its own journey matrix above and catalog cases `DOCS-001`–`DOCS-006` (navigation,
+    search, glossary anchors, responsive shell, keyboard/focus, theme/diagrams). Still open:
+    wiring any of it into CI beyond build success.
+
+## Definition of QA complete
+
+A frontend journey is QA-complete only when:
+
+- its acceptance outcome is explicit;
+- the real route has been exercised in the required presentation, role, locale, and viewport;
+- primary actions are visible, understandable, reachable, and retain context across success or
+  failure;
+- applicable loading, empty, error, success, permission, long-content, and responsive states pass;
+- keyboard, focus, accessible names, reduced motion, and target sizing have been checked;
+- no blocking console, module-load, horizontal-overflow, clipping, invisible-text, or fixed-chrome
+  collision remains;
+- a deterministic regression anchor protects the behavior at the right layer;
+- the QA receipt is attached to the change or issue; and
+- unresolved risk and blocked capability are stated plainly.
+
+Passing code checks is necessary. It is not, by itself, evidence that the product experience is
+ready.
