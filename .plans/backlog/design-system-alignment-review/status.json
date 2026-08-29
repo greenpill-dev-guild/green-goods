@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-04-25T05:11:42.581Z",
-    "updated_at": "2026-08-29T22:52:01.196Z"
+    "updated_at": "2026-08-29T23:03:28.079Z"
   },
   "links": {
     "brief": "brief.md",
@@ -37,12 +37,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "cd packages/admin && bun run test -- --run AdminFocusRing",
-          "evidence": "4/4 assertions failed pre-fix: AdminCheckbox/AdminSearchToolbar/AdminInlineField/AdminTextField carried no --tone-focus-ring (checkbox had no focus indicator at all)"
+          "command": "cd packages/admin && bun run test -- --run AdminTextField",
+          "evidence": "AdminTextArea import failed pre-implementation (component absent); suite exited 1"
         },
         "green": {
-          "command": "cd packages/admin && bun run test -- --run AdminFocusRing && bun run test -- --run src/__tests__/components && bun run typecheck:source",
-          "evidence": "4/4 guard assertions pass; components suite 463/463; typecheck clean; check:design-tokens green after burning 13 stale alias-ring baseline entries; dist-verified at f66a13113"
+          "command": "cd packages/admin && bun run test -- --run AdminTextField && bun run test -- --run src/__tests__/components && bun run test -- --run src/__tests__/views && bun run typecheck:source",
+          "evidence": "AdminTextArea tests pass; components 464/464, views 139/139, workflows 6/6; typecheck + build + story contract 255/255 + token guards green at 3496c5cc2"
         },
         "note": ""
       }
@@ -181,6 +181,22 @@
       "status": "in_progress",
       "branch": "claude/ui/design-system-alignment-review",
       "note": "DL-009 locked+shipped (790f8c762 tokens, b82fd591c codification, token_version 2.7.0): tonal dark filled actions; Storybook hosting resolved — already live at design.greengoods.app; reference artifact v3 updated"
+    },
+    {
+      "timestamp": "2026-08-29T23:03:27.548Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-08-29T23:03:28.079Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Round 2 COMPLETE (3496c5cc2/fbf5f9927): dead trio + WorkCard pair deleted, AdminTextArea shipped, AdminReasonDialog migrated, palette 20 wrappers, canon synced, reference page v4"
     }
   ],
   "taxonomy": {
