@@ -45,6 +45,7 @@ where the user locks a decision. **IDs are never reused** — supersede, don't d
 | DL-006 | 2026-04-07 | Spatial architecture integrates deeply: all beziers → tokens, radii → concentric types | Spatial architecture is the first Warm Earth consumer; coherence matters | codified | [language.md](./language.md) § Design Decisions Log |
 | DL-007 | 2026-08-16 | Admin flows reuse the client composer grammar (what → how much → proof/protection → sectioned review, with an Advanced detour); admin gets denser fields, never parallel step patterns | Reuse shipping rhythms; one flow grammar across surfaces | codified | [interaction-patterns.md](./interaction-patterns.md) § 3 |
 | DL-008 | 2026-08-16 | Workspace tabs that earn it use a two-column split — left column majority width, ~300–340px right rail — collapsing below ~900px with nothing hidden | Operational density with a stable status rail; no hidden critical data (pool-tab decision) | codified | [interaction-patterns.md](./interaction-patterns.md) § 4 |
+| DL-009 | 2026-08-29 | Dark filled actions are tonal: the workspace `-200` fill with `-900` ink and a lighter `-100` hover; the deep-fill + white-text dark pair is retired | Afo locked it during the design-system review round — M3-dark convention and typical dark-mode reading beat the 2026-07 keep-saturation ruling; measured AA 4.58–11.74:1 across the five tones | codified | [language.md](./language.md) § Dark Mode Palette |
 
 ## Related
 
