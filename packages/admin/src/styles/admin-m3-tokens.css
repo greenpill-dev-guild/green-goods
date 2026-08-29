@@ -476,12 +476,18 @@
  * Every block keeps --tone-on-surface-accent (gate; the bright tone-TEXT role).
  * All ratios verified against the warm card surface (32 25 19). */
 [data-theme="dark"][data-tone="hub"],
+/* DL-009 (2026-08-29): dark filled actions are TONAL — the −200 fill with −900
+ * ink, hover one step LIGHTER (−100), per the M3-dark convention (filled
+ * surfaces go light, text goes deep; higher = lighter). The pre-DL-009 deep
+ * fill + white text pair is retired in dark. Measured fill/hover ratios noted
+ * per tone; community is the tightest at 4.58 and still clears AA. */
 [data-theme="dark"] [data-tone="hub"] {
   --tone-primary: var(--blue-200);
   --tone-on-primary: var(--blue-900);
-  --tone-action: var(--blue-700);
-  --tone-action-hover: var(--blue-800);
-  --tone-on-action: 255 255 255;
+  /* DL-009 tonal: fill 7.81:1 · hover 8.88:1 */
+  --tone-action: var(--blue-200);
+  --tone-action-hover: var(--blue-100);
+  --tone-on-action: var(--blue-900);
   --tone-primary-container: var(--blue-900);
   --tone-on-primary-container: var(--blue-100);
   --tone-on-surface-accent: var(--blue-200);
@@ -492,9 +498,10 @@
 [data-theme="dark"] [data-tone="garden"] {
   --tone-primary: var(--green-200);
   --tone-on-primary: var(--green-900);
-  --tone-action: var(--green-800);
-  --tone-action-hover: var(--green-900); /* deeper hover stays white-safe (green-700 fails 4.29) */
-  --tone-on-action: 255 255 255;
+  /* DL-009 tonal: fill 5.95:1 · hover 6.39:1 */
+  --tone-action: var(--green-200);
+  --tone-action-hover: var(--green-100);
+  --tone-on-action: var(--green-900);
   --tone-primary-container: var(--green-900);
   --tone-on-primary-container: var(--green-100);
   --tone-on-surface-accent: var(--green-200);
@@ -510,9 +517,10 @@
 [data-theme="dark"] [data-tone="community"] {
   --tone-primary: var(--yellow-200);
   --tone-on-primary: var(--yellow-900);
-  --tone-action: var(--orange-700);
-  --tone-action-hover: var(--orange-800);
-  --tone-on-action: 255 255 255;
+  /* DL-009 tonal: fill 4.58:1 (tightest of the five) · hover 4.70:1 */
+  --tone-action: var(--yellow-200);
+  --tone-action-hover: var(--yellow-100);
+  --tone-on-action: var(--yellow-900);
   --tone-primary-container: var(--yellow-900);
   --tone-on-primary-container: var(--yellow-100);
   --tone-on-surface-accent: var(--yellow-200);
@@ -523,9 +531,10 @@
 [data-theme="dark"] [data-tone="actions"] {
   --tone-primary: var(--red-200);
   --tone-on-primary: var(--red-900);
-  --tone-action: var(--red-700);
-  --tone-action-hover: var(--red-800); /* deeper hover stays white-safe (red-600 fails 4.15) */
-  --tone-on-action: 255 255 255;
+  /* DL-009 tonal: fill 6.04:1 · hover 7.00:1 */
+  --tone-action: var(--red-200);
+  --tone-action-hover: var(--red-100);
+  --tone-on-action: var(--red-900);
   --tone-primary-container: var(--red-900);
   --tone-on-primary-container: var(--red-100);
   --tone-on-surface-accent: var(--red-200);
@@ -536,9 +545,10 @@
 [data-theme="dark"] [data-tone="home"] {
   --tone-primary: var(--neutral-300);
   --tone-on-primary: var(--neutral-900);
-  --tone-action: var(--neutral-600);
-  --tone-action-hover: var(--neutral-700);
-  --tone-on-action: 255 255 255;
+  /* DL-009 tonal: fill 11.74:1 · hover 13.93:1 */
+  --tone-action: var(--neutral-300);
+  --tone-action-hover: var(--neutral-200);
+  --tone-on-action: var(--neutral-900);
   --tone-primary-container: var(--neutral-700);
   --tone-on-primary-container: var(--neutral-100);
   --tone-on-surface-accent: var(--neutral-300);
