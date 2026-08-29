@@ -501,15 +501,15 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
     track("sw_update_applied", telemetry);
     track("sw_update_apply_started", telemetry);
 
-    // Tell the waiting SW to skip waiting and become active
-    worker.postMessage({ type: "SKIP_WAITING" });
-
     // Use { once: true } to automatically remove the listener after it fires
     // Track that we added it for cleanup on unmount
     controllerChangeListenerRef.current = true;
     navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange, {
       once: true,
     });
+
+    // Attach first so a fast activation cannot race past controllerchange.
+    worker.postMessage({ type: "SKIP_WAITING" });
 
     // Fail open after a bounded wait: if the waiting worker never activates
     // (PRD-500's indefinite "Updating…" hang), recover the UI so the user can

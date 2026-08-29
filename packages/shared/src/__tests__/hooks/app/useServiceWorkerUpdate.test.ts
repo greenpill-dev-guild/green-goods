@@ -289,6 +289,17 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       expect(result.current.updateStalled).toBe(false);
       expect(result.current.phase).toBe("applying");
       expect(waitingWorker.postMessage).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
+      const addServiceWorkerListener = navigator.serviceWorker
+        .addEventListener as unknown as ReturnType<typeof vi.fn>;
+      const postWorkerMessage = waitingWorker.postMessage as ReturnType<typeof vi.fn>;
+      expect(addServiceWorkerListener).toHaveBeenCalledWith(
+        "controllerchange",
+        expect.any(Function),
+        { once: true }
+      );
+      expect(addServiceWorkerListener.mock.invocationCallOrder.at(-1)).toBeLessThan(
+        postWorkerMessage.mock.invocationCallOrder[0]
+      );
 
       // controllerchange never fires (the PRD-500 hang scenario)
       act(() => {

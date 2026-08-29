@@ -260,6 +260,10 @@
         --boot-deep: var(--color-editorial-deep, #120d09);
       }
 
+      html[data-boot-presentation="pwa"] #boot-fallback {
+        --boot-canvas: var(--color-static-white, #ffffff);
+      }
+
       .boot-editorial-shell {
         position: relative;
         min-height: 100vh;
@@ -552,32 +556,75 @@
         outline-offset: 3px;
       }
 
+      .boot-reload-button[aria-disabled="true"] {
+        cursor: wait;
+        opacity: 0.72;
+      }
+
       .boot-pwa-shell {
         min-height: 100vh;
+        min-height: 100dvh;
         box-sizing: border-box;
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 24px;
+        background: var(--color-static-white, #ffffff);
+        color: var(--color-static-black, #1f2a24);
         text-align: center;
       }
 
       .boot-pwa-content {
         width: min(100%, 320px);
+        display: grid;
+        grid-template-rows: 64px 144px 68px;
+        align-items: center;
+        justify-items: stretch;
+      }
+
+      .boot-pwa-logo-slot,
+      .boot-pwa-message-slot,
+      .boot-pwa-action-slot {
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .boot-pwa-logo-slot {
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .boot-pwa-content img {
         display: block;
-        width: 72px;
-        height: 72px;
-        margin: 0 auto 20px;
+        width: 112px;
+        height: auto;
+        margin: 0 auto;
       }
 
-      .boot-pwa-content p {
+      .boot-pwa-message-slot {
+        block-size: 144px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow-y: auto;
+      }
+
+      .boot-pwa-message-slot p {
+        width: 100%;
+        max-block-size: 100%;
         margin: 0;
-        font-size: 16px;
+        overflow-y: auto;
+        font-size: 1rem;
         font-weight: 650;
         line-height: 1.5;
+      }
+
+      .boot-pwa-action-slot {
+        block-size: 68px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
       }
 
       /* Nav visibility mirrors the md: (768px) step in SiteHeader.tsx. */
@@ -747,21 +794,27 @@
 
       <div id="boot-fallback-pwa" class="boot-pwa-shell" hidden>
         <div class="boot-pwa-content">
-        <img
-          alt=""
-          src="%BASE_URL%%PWA_BROWSER_ICON%"
-          width="72"
-          height="72"
-        />
-          <p id="boot-pwa-message">Green Goods is loading.</p>
-        <button
-            class="boot-reload-button"
-            id="boot-pwa-reload"
-          type="button"
-          hidden
-        >
-          Reload
-        </button>
+          <div class="boot-pwa-logo-slot" data-boot-slot="logo">
+            <img
+              alt=""
+              src="%BASE_URL%icon.png"
+              width="112"
+              height="64"
+            />
+          </div>
+          <div class="boot-pwa-message-slot" data-boot-slot="message">
+            <p id="boot-pwa-message">Green Goods is loading.</p>
+          </div>
+          <div class="boot-pwa-action-slot" data-boot-slot="action">
+            <button
+              class="boot-reload-button"
+              id="boot-pwa-reload"
+              type="button"
+              hidden
+            >
+              Reload
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -784,31 +837,59 @@
           .slice(0, 2);
         var copy = {
           en: {
+            applying: "Updating Green Goods…",
+            applyingAction: "Updating…",
             loading: "Green Goods is loading.",
+            offline: "You’re offline. Reconnect, then try again.",
+            retry: "Try again",
+            stalled: "The update didn’t finish. Close and reopen Green Goods, or try again.",
             update: "Green Goods needs the latest app files.",
+            updateAction: "Update app",
             websiteRecoveryTitle: "This page is taking longer than expected.",
             websiteRecoveryBody: "Reload to try again.",
             reload: "Reload",
           },
           es: {
+            applying: "Actualizando Green Goods…",
+            applyingAction: "Actualizando…",
             loading: "Green Goods se está cargando.",
+            offline: "Estás sin conexión. Vuelve a conectarte e inténtalo de nuevo.",
+            retry: "Intentar de nuevo",
+            stalled:
+              "La actualización no terminó. Cierra y vuelve a abrir Green Goods, o inténtalo de nuevo.",
             update: "Green Goods necesita los archivos más recientes.",
+            updateAction: "Actualizar app",
             websiteRecoveryTitle: "Esta página está tardando más de lo esperado.",
             websiteRecoveryBody: "Recarga para intentarlo de nuevo.",
             reload: "Recargar",
           },
           pt: {
+            applying: "Atualizando o Green Goods…",
+            applyingAction: "Atualizando…",
             loading: "Green Goods está carregando.",
+            offline: "Você está offline. Reconecte-se e tente novamente.",
+            retry: "Tentar novamente",
+            stalled:
+              "A atualização não terminou. Feche e abra o Green Goods novamente ou tente de novo.",
             update: "Green Goods precisa dos arquivos mais recentes.",
+            updateAction: "Atualizar app",
             websiteRecoveryTitle: "Esta página está demorando mais do que o esperado.",
             websiteRecoveryBody: "Recarregue para tentar novamente.",
             reload: "Recarregar",
           },
         };
         var labels = copy[language] || copy.en;
+        document.documentElement.dataset.bootLoadingMessage = labels.loading;
         var timer;
         var updateTimer;
         var observer;
+        var recoveryTimer;
+        var recoveryRegistration;
+        var recoveryInstallingWorker;
+        var recoveryInFlight = false;
+        var controllerChangeListening = false;
+
+        var PWA_RECOVERY_TIMEOUT_MS = 15000;
 
         function hasAppContent() {
           return root && root.children.length > 0;
@@ -816,7 +897,18 @@
 
         function showFallback(kind) {
           if (!fallback || hasAppContent()) return;
-          if (kind === "loading" && fallback.dataset.state === "recovery") return;
+          if (
+            kind === "loading" &&
+            ["recovery", "applying", "stalled"].indexOf(fallback.dataset.state) !== -1
+          ) {
+            return;
+          }
+          if (
+            kind === "recovery" &&
+            ["applying", "stalled"].indexOf(fallback.dataset.state) !== -1
+          ) {
+            return;
+          }
           var isRecovery = kind === "recovery";
           fallback.hidden = false;
           fallback.dataset.presentation = presentation;
@@ -833,7 +925,8 @@
             if (pwaMessage) pwaMessage.textContent = isRecovery ? labels.update : labels.loading;
             if (pwaReload) {
               pwaReload.hidden = !isRecovery;
-              pwaReload.textContent = labels.reload;
+              pwaReload.setAttribute("aria-disabled", "false");
+              pwaReload.textContent = labels.updateAction;
             }
             return;
           }
@@ -861,11 +954,166 @@
           }
         }
 
+        function removeRecoveryListeners() {
+          if (recoveryTimer) {
+            window.clearTimeout(recoveryTimer);
+            recoveryTimer = undefined;
+          }
+          if (recoveryRegistration) {
+            recoveryRegistration.removeEventListener("updatefound", handleUpdateFound);
+          }
+          if (recoveryInstallingWorker) {
+            recoveryInstallingWorker.removeEventListener("statechange", handleInstallingStateChange);
+          }
+          if (controllerChangeListening && "serviceWorker" in navigator) {
+            navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
+          }
+          recoveryRegistration = undefined;
+          recoveryInstallingWorker = undefined;
+          controllerChangeListening = false;
+        }
+
+        function setPwaRecoveryState(kind, message) {
+          if (!fallback || !pwa || !pwaMessage || !pwaReload) return;
+          var isApplying = kind === "applying";
+          var isAlert = kind === "stalled";
+
+          fallback.dataset.state = kind;
+          pwa.setAttribute("role", isAlert ? "alert" : "status");
+          pwa.setAttribute("aria-live", isAlert ? "assertive" : "polite");
+          pwa.setAttribute("aria-busy", isApplying ? "true" : "false");
+          pwaMessage.textContent = message;
+          pwaReload.hidden = false;
+          pwaReload.setAttribute("aria-disabled", isApplying ? "true" : "false");
+          pwaReload.textContent = isApplying ? labels.applyingAction : labels.retry;
+        }
+
+        function stallPwaRecovery(message) {
+          removeRecoveryListeners();
+          recoveryInFlight = false;
+          setPwaRecoveryState("stalled", message || labels.stalled);
+          if (pwaReload) pwaReload.focus();
+        }
+
+        function handleControllerChange() {
+          removeRecoveryListeners();
+          recoveryInFlight = false;
+          window.location.reload();
+        }
+
+        function activateWaitingWorker(worker) {
+          if (!worker || !recoveryInFlight || !("serviceWorker" in navigator)) {
+            stallPwaRecovery(labels.stalled);
+            return;
+          }
+
+          try {
+            if (!controllerChangeListening) {
+              controllerChangeListening = true;
+              navigator.serviceWorker.addEventListener(
+                "controllerchange",
+                handleControllerChange,
+                { once: true }
+              );
+            }
+            worker.postMessage({ type: "SKIP_WAITING" });
+          } catch (_) {
+            stallPwaRecovery(labels.stalled);
+          }
+        }
+
+        function handleInstallingStateChange() {
+          if (!recoveryInstallingWorker || !recoveryInFlight) return;
+
+          if (recoveryInstallingWorker.state === "installed") {
+            activateWaitingWorker(
+              (recoveryRegistration && recoveryRegistration.waiting) || recoveryInstallingWorker
+            );
+          } else if (recoveryInstallingWorker.state === "redundant") {
+            stallPwaRecovery(labels.stalled);
+          }
+        }
+
+        function watchInstallingWorker(worker) {
+          if (!worker || !recoveryInFlight) return;
+          if (recoveryInstallingWorker === worker) {
+            handleInstallingStateChange();
+            return;
+          }
+          if (recoveryInstallingWorker && recoveryInstallingWorker !== worker) {
+            recoveryInstallingWorker.removeEventListener("statechange", handleInstallingStateChange);
+          }
+          recoveryInstallingWorker = worker;
+          recoveryInstallingWorker.addEventListener("statechange", handleInstallingStateChange);
+          handleInstallingStateChange();
+        }
+
+        function handleUpdateFound() {
+          if (recoveryRegistration && recoveryRegistration.waiting) {
+            activateWaitingWorker(recoveryRegistration.waiting);
+            return;
+          }
+          if (recoveryRegistration && recoveryRegistration.installing) {
+            watchInstallingWorker(recoveryRegistration.installing);
+          }
+        }
+
+        async function recoverPwa() {
+          if (recoveryInFlight || presentation !== "pwa") return;
+          recoveryInFlight = true;
+          setPwaRecoveryState("applying", labels.applying);
+          recoveryTimer = window.setTimeout(function () {
+            stallPwaRecovery(labels.stalled);
+          }, PWA_RECOVERY_TIMEOUT_MS);
+
+          if (!("serviceWorker" in navigator)) {
+            stallPwaRecovery(labels.stalled);
+            return;
+          }
+
+          try {
+            recoveryRegistration = await navigator.serviceWorker.getRegistration();
+            if (!recoveryInFlight) return;
+            if (!recoveryRegistration) {
+              stallPwaRecovery(labels.stalled);
+              return;
+            }
+
+            recoveryRegistration.addEventListener("updatefound", handleUpdateFound);
+
+            if (recoveryRegistration.waiting) {
+              activateWaitingWorker(recoveryRegistration.waiting);
+              return;
+            }
+            if (recoveryRegistration.installing) {
+              watchInstallingWorker(recoveryRegistration.installing);
+              return;
+            }
+            if (navigator.onLine === false) {
+              stallPwaRecovery(labels.offline);
+              return;
+            }
+
+            await recoveryRegistration.update();
+            if (!recoveryInFlight) return;
+
+            if (recoveryRegistration.waiting) {
+              activateWaitingWorker(recoveryRegistration.waiting);
+            } else if (recoveryRegistration.installing) {
+              watchInstallingWorker(recoveryRegistration.installing);
+            }
+          } catch (_) {
+            stallPwaRecovery(navigator.onLine === false ? labels.offline : labels.stalled);
+          }
+        }
+
         function clearFallback() {
           if (!hasAppContent()) return;
           if (timer) window.clearTimeout(timer);
           if (updateTimer) window.clearTimeout(updateTimer);
           if (observer) observer.disconnect();
+          removeRecoveryListeners();
+          recoveryInFlight = false;
           if (fallback) {
             fallback.hidden = true;
             fallback.dataset.state = "cleared";
@@ -885,7 +1133,7 @@
         window.__GG_CLEAR_BOOT_FALLBACK = clearFallback;
 
         if (websiteReload) websiteReload.addEventListener("click", reloadWithCacheBust);
-        if (pwaReload) pwaReload.addEventListener("click", reloadWithCacheBust);
+        if (pwaReload) pwaReload.addEventListener("click", recoverPwa);
 
         window.addEventListener(
           "error",
