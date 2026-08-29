@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-04-25T05:11:42.581Z",
-    "updated_at": "2026-06-27T00:28:08.421Z"
+    "updated_at": "2026-08-29T20:42:24.509Z"
   },
   "links": {
     "brief": "brief.md",
@@ -27,11 +27,12 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "todo",
+      "status": "in_progress",
       "branch": "claude/ui/design-system-alignment-review",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
-      "skill_tags": ["ui", "design", "review"]
+      "skill_tags": ["ui", "design", "review"],
+      "manual_blocked": false
     },
     "state_api": {
       "owner": "codex",
@@ -103,6 +104,22 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-08-29T20:42:23.969Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Round 1 (admin cockpit) delivered 2026-08-29: reports/2026-08-29-admin-cockpit-audit.md, score 72/100, 7 confirmed drift clusters; fix pass accepted by Afo as Round 2; client/docs rounds remain open"
+    },
+    {
+      "timestamp": "2026-08-29T20:42:24.509Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
   ],
   "taxonomy": {
@@ -114,8 +131,9 @@
   },
   "linear": {
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-06-27T00:28:08.421Z",
+    "lastSyncedAt": "2026-08-29T20:42:24.509Z",
     "parentIssue": "PRD-644",
-    "lanes": {}
+    "lanes": {},
+    "laneSyncMode": "parent_only"
   }
 }
