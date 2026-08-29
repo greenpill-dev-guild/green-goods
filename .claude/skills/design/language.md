@@ -637,7 +637,9 @@ This prevents over-designing for communities that need onboarding simplicity, wh
 
 ## Design Decisions Log
 
-Decisions made during the Warm Earth synthesis (2026-04-07):
+Decisions made during the Warm Earth synthesis (2026-04-07). This table is a frozen historical
+snapshot, mirrored as DL-001–DL-006 in [decision-log.md](./decision-log.md) — the living
+append-only ledger where all ongoing design decisions land:
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|

@@ -29,7 +29,7 @@
     {
       "id": "qa-06",
       "query": "Let's triage all the bugs from the QA session and figure out who fixes what. PostHog should have data on most of them",
-      "expect": "qa-triage"
+      "expect": ["qa-triage", "qa-session"]
     },
     {
       "id": "qa-07",
@@ -246,6 +246,46 @@
       "id": "none-05",
       "query": "Just got back to this branch after a week — where were we and what are the next moves?",
       "expect": "none"
+    },
+    {
+      "id": "qasession-01",
+      "query": "Starting a QA session — dev:prod is up, I'll walk my garden on the PWA and call things out as I go",
+      "expect": "qa-session"
+    },
+    {
+      "id": "qasession-02",
+      "query": "Here's the transcript of my QA walkthrough from this morning — triage it and fix what's safe to fix now",
+      "expect": "qa-session"
+    },
+    {
+      "id": "qasession-03",
+      "query": "Let's do a product experience QA pass on the admin cockpit. I'll drive and dictate issues, you fix them live so I can re-check",
+      "expect": "qa-session"
+    },
+    {
+      "id": "qasession-04",
+      "query": "I want to walk the funding flow against production data and call out problems while you patch them in real time",
+      "expect": "qa-session"
+    },
+    {
+      "id": "qasession-neg-01",
+      "query": "We finished the build sync call — here are the QA notes, file the bugs in Linear and the sheet",
+      "expect": "qa-triage"
+    },
+    {
+      "id": "qasession-neg-02",
+      "query": "Process yesterday's QA meeting notes from Drive and cross-reference PostHog before filing",
+      "expect": "qa-triage"
+    },
+    {
+      "id": "qasession-neg-03",
+      "query": "A steward reported the review dialog won't scroll on iPad — can you investigate what's going on?",
+      "expect": "debug"
+    },
+    {
+      "id": "qasession-neg-04",
+      "query": "What's our rule for where dialog actions go — pinned footer or inline at the end of the form?",
+      "expect": ["design", "none"]
     }
   ]
 }

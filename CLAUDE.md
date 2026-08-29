@@ -37,6 +37,9 @@ commands live in the nearest package guide. Service variants and operational ent
 - For authenticated local UI QA, use the authenticated Brave QA profile.
   Take the Claude Code Chrome/Chromium extension path and claim the already-open authenticated Brave profile/tab.
   (Codex sessions take the Codex browser-extension path for the same window.)
+  Probe reachability behaviorally with a tab-context call (`tabs_context_mcp`), never the
+  connected-browsers listing — the roster registers lazily and reads empty while the extension
+  is fully working (observed 2026-08-28); only a failed tab-context call is disconnection evidence.
   If the extension cannot reach it, use visible computer control of that Brave window.
   Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA.
   If authenticated Brave access is blocked, stop and report QA as blocked.

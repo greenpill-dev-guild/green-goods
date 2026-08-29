@@ -22,6 +22,7 @@ Design philosophy and visual direction for building spatial-ready, AI-driven int
 - You need the **admin** AI prompt contract (stable core, vocabulary, never-use list) → [prompt-contract.md](./prompt-contract.md).
 - You need the **client** AI prompt contract → [client-prompt-contract.md](./client-prompt-contract.md).
 - You need to **report a UI defect** on an admin surface (grammar, component identifiers, browser workflow) → [defect-grammar.md](./defect-grammar.md).
+- You need the **locked design decisions** (the `DL-NNN` ledger, its graduation ladder, or where a decision was codified) → [decision-log.md](./decision-log.md).
 - You just need a scannable token cheat sheet → [quick-reference.md](./quick-reference.md).
 - You are doing a **design-system alignment review** — full-repo, or stack-only when the target is just the `design/` skill stack → [system-alignment-review.md](./system-alignment-review.md).
 
@@ -43,6 +44,7 @@ This skill's frontmatter `token_version` reflects the current Warm Earth token s
 | **Admin Prompt Contract** | admin stable core, banned terms, workspace vocabulary for AI design tools | [prompt-contract.md](./prompt-contract.md) |
 | **Client Prompt Contract** | client stable core, banned terms, PWA shell vocabulary | [client-prompt-contract.md](./client-prompt-contract.md) |
 | **Defect Grammar** | "this looks broken", describe UI bug, component identifier lookup, defect types, browser inspect workflow | [defect-grammar.md](./defect-grammar.md) |
+| **Decision Log** | locked decision, DL-NNN, design ruling, "what did we decide about", decision ledger, codification | [decision-log.md](./decision-log.md) |
 | **Quick Reference** | cheat sheet, radii, springs, colors, materials, paradigms at a glance | [quick-reference.md](./quick-reference.md) |
 | **Design Philosophy** | design direction, paradigm, adaptive surface, spatial, vision, progressive immersion | This file |
 | **Surfaces** | Z-axis, depth, glass pane, elevation, material, blur, adaptive density, progressive disclosure, multimodal | [surfaces.md](./surfaces.md) |
@@ -53,6 +55,7 @@ This skill's frontmatter `token_version` reflects the current Warm Earth token s
 | **System Alignment Review** | design system alignment, UI drift, Storybook alignment, full repo design-system review, stack review, meta-review of the design skill stack | [system-alignment-review.md](./system-alignment-review.md) |
 
 When invoked:
+0. Check [decision-log.md](./decision-log.md) for `locked` rows touching your surface — locked decisions bind immediately, before codification
 1. Establish design paradigm and material metaphor before writing code
 2. Apply Inclusive Design lens — every decision raises or lowers barriers
 3. Apply Ecosystem lens for multi-user surfaces — whose experience composes with whose? ([ecosystem.md](./ecosystem.md))

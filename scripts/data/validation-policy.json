@@ -6,7 +6,9 @@
     "foundry": "1.7.1"
   },
   "environmentProfiles": {
-    "validation": { "VITE_CHAIN_ID": "11155111" }
+    "validation": {
+      "VITE_CHAIN_ID": "11155111"
+    }
   },
   "intentOrder": [
     "diagnose",
@@ -37,12 +39,30 @@
     }
   ],
   "surfaceRules": [
-    { "surface": "docs", "prefixes": ["docs/"] },
-    { "surface": "client", "prefixes": ["packages/client/"] },
-    { "surface": "admin", "prefixes": ["packages/admin/"] },
-    { "surface": "agent", "prefixes": ["packages/agent/"] },
-    { "surface": "indexer", "prefixes": ["packages/indexer/"] },
-    { "surface": "contracts", "prefixes": ["packages/contracts/", "scripts/contracts/"] },
+    {
+      "surface": "docs",
+      "prefixes": ["docs/"]
+    },
+    {
+      "surface": "client",
+      "prefixes": ["packages/client/"]
+    },
+    {
+      "surface": "admin",
+      "prefixes": ["packages/admin/"]
+    },
+    {
+      "surface": "agent",
+      "prefixes": ["packages/agent/"]
+    },
+    {
+      "surface": "indexer",
+      "prefixes": ["packages/indexer/"]
+    },
+    {
+      "surface": "contracts",
+      "prefixes": ["packages/contracts/", "scripts/contracts/"]
+    },
     {
       "surface": "shared",
       "prefixes": [
@@ -67,7 +87,10 @@
         "packages/contracts/deployments/"
       ]
     },
-    { "surface": "agent", "prefixes": ["packages/shared/"] },
+    {
+      "surface": "agent",
+      "prefixes": ["packages/shared/"]
+    },
     {
       "surface": "indexer",
       "prefixes": ["packages/contracts/abis/", "packages/contracts/deployments/"]
@@ -232,6 +255,18 @@
       "match": "all",
       "prefixes": ["packages/client/src/", "packages/admin/src/"],
       "extensions": [".jsx", ".tsx", ".css", ".scss"]
+    },
+    {
+      "check": "agent-tools-test",
+      "runInQa": true,
+      "runInEvidence": true,
+      "exact": [
+        "scripts/data/qa-test-catalog.json",
+        "scripts/agents/qa-workbook-build.ts",
+        "scripts/agents/qa-workbook-build.test.ts",
+        "scripts/agents/posthog-query.ts",
+        "scripts/agents/posthog-query.test.ts"
+      ]
     }
   ],
   "checks": [
@@ -667,6 +702,16 @@
       "budgetSeconds": 180,
       "stopRule": "report-advisory-failure",
       "capabilities": ["dependencies", "browser"]
+    },
+    {
+      "id": "agent-tools-test",
+      "command": "bun run test:agent-tools",
+      "risk": "agent query surfaces or the QA catalog/generator regress without a required gate",
+      "expectedSignal": "posthog-query and qa-workbook-build suites pass",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
     }
   ],
   "criticalOverrides": [

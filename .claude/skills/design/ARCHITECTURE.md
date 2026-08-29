@@ -49,6 +49,7 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 | Decision: which paradigm for this surface? | `design/SKILL.md § Paradigm Selection` |
 | Decision: which component / primitive? | `design/implementation.md § New Component Runbook` (10 steps) |
 | Surface-specific brief | `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md` |
+| Locked design decisions (DL-NNN ledger, graduation ladder) | `design/decision-log.md` — append-only; `qa-session` close gate and design rounds append here |
 | PR review (per-change, 4 lenses) | `design/review-checklist.md` — Regenerative → Spatial → Ecosystem → Compliance |
 | Design-system alignment (full repo, or stack-only self-audit) | `design/system-alignment-review.md` — DesignMD files, Warm Earth, `theme.css`, Storybook, admin, client PWA/browser, docs, agentic guidance, Claude + Codex instructions; § Stack-only mode for `design/` infrastructure alone |
 | Ecosystem / cascade / archetype analysis | `design/ecosystem.md` |

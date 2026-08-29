@@ -117,7 +117,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '%s\\n' 'Green Goods Claude Code' '  /review /audit /clean /qa-triage /doc-feedback' '  planning, debugging: describe the intent (no slash)'",
+            "command": "printf '%s\\n' 'Green Goods Claude Code' '  /review /audit /clean /qa-triage /qa-session /doc-feedback' '  planning, debugging: describe the intent (no slash)'",
             "once": true
           }
         ]

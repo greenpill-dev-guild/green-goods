@@ -25,6 +25,14 @@ The skill **always** uses the column order read from the Sheet, not the order in
 
 Phase 0 confirms all tabs above exist. If any is missing, fail loud — don't write to a partial workbook.
 
+A `Docs` surface exists upstream in the catalog and in generated run sheets; it is **not yet Phase 0-required** here. If this Sheet gains a `Docs` test tab, create it in this Sheet's own 20-column schema from the catalog definitions (the generated run sheet uses a simplified 8-column layout — do not paste it here), then add it to the table above. **Until that tab exists, Phase 5 must not emit `sheet-test-backfill.csv` rows targeting `Docs`** — a backfill against a missing tab cannot be applied. For a Defects row whose `Linked Test ID` is a `DOCS-*` case, keep the Test ID on the Defects row and skip the test-tab backfill.
+
+---
+
+## Catalog relationship
+
+Test-scenario **definitions** are versioned in the repo: `scripts/data/qa-test-catalog.json` is the upstream source of truth (Test IDs, areas, scenarios, steps, expected results, roles). This Sheet is the **live defect log and team run ledger**; its test tabs are downstream. `bun run qa:workbook` projects the catalog into a simplified human-first run sheet (Overview + surface tabs, 8 columns) used for walkthroughs — Test ID / Area / Scenario stay verbatim, so this skill's matching keeps working. When definitions change, reconcile this Sheet by appending new rows or marking retired ones — never rewrite historical result columns. Results, owners, defect links, and PostHog data live only here and in run sheets stored in Drive, never in the public repo.
+
 ---
 
 ## Defects tab schema
@@ -151,6 +159,6 @@ If the access mode changes between runs and a subsequent run detects `anyoneWith
 
 ## Read-modify-write conflict policy
 
-V0.1.0 uses guided paste (the Drive MCP doesn't expose Sheets `values.append`), so this section applies to v0.2.0 when `scripts/agents/qa-sheet-append.ts` exists.
+Appends go through the Apps Script webhook client `scripts/agents/qa-sheet-append.ts` (ops: `bootstrap`, `defectRows`, `testBackfills`; setup in `scripts/agents/qa-sheet-webhook-setup.md`). Guided paste remains the fallback when the webhook is unavailable — the Drive MCP doesn't expose Sheets `values.append`.
 
 Before any append, re-read the Defects body row count. If it differs from the count captured in Phase 0, abort the Sheet write and surface the conflict — another run or a manual edit landed mid-flight. Re-running `/qa-triage <slug>` after the conflict resolves picks up where it left off because the workspace is durable.
