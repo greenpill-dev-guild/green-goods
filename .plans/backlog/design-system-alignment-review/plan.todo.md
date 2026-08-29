@@ -69,11 +69,17 @@ The fix pass Afo accepted from the round-1 audit. Order matters: the guard work 
 
 **Round 2 complete (2026-08-29):** all five accepted audit actions landed — guards, shadow ladder, focus pass, canon re-true, inventory — plus DL-009 and the living reference page. Remaining admin-side nit: CommandPalette `tone` prop (tone-budget note).
 
-### Round 3 — Remaining Review Surfaces (open)
+### Round 3 — Remaining Review Surfaces
 
-- [ ] Client PWA + public browser surfaces against the protocol (include `lint:vocab`).
-- [ ] Docs UI + Storybook + agent-guidance surfaces.
-- [ ] Sibling living reference pages for the client PWA and the editorial browser site (Afo, 2026-08-29), after the admin page settles.
+- [x] Client PWA + public browser surfaces against the protocol (include `lint:vocab`).
+- [x] Docs UI + Storybook + agent-guidance surfaces.
+  **Receipt (both)**: 2026-08-29T23:5xZ — full validator set green first (`lint:vocab` run for the first time this cycle: clean), then two parallel evidence sweeps pinned to HEAD (foreign in-flight PwaRuntime/service-worker files excluded). Findings: **7 confirmed drift clusters, 5 risks, 4 missing-proof** in [reports/2026-08-29-round-3-client-docs-storybook.md](reports/2026-08-29-round-3-client-docs-storybook.md) — read-only, awaiting Afo's triage. Headline: client *behavior* held everywhere (chrome separation, receipt-token safety, editorial grammar exact); the drift is the descriptive layer (undocumented `/vaults`, 8th homepage section, stale overlay roster) + guidance rosters missed by the Round-2 sweep + dead Storybook viewport API (27 stories) + four small code regressions (footer nav gap, Manage Endowments capsule, docs Prism surfaces, FAB spec-vs-code).
+- [x] Sibling living reference pages for the client PWA and the editorial browser site (Afo, 2026-08-29).
+  **Receipt**: published 2026-08-29 — [Field Tool Design System](https://claude.ai/code/artifact/13bcde21-f35d-48e8-873f-e9a38c2c59bb) (installed PWA: chrome rules incl. the shipped third AppBar hide-route, bright-green rhythm, full Warm Earth shape/material/motion, Inter-only type) and [Living Record Design System](https://claude.ai/code/artifact/05a6d12b-1479-40c7-8aa4-09f634f5602c) (public browser: SiteHeader contract, shipped 8-section homepage with the undocumented § 05 flagged, Fraunces/Inter rules, editorial linen/walnut + domain palette, the real overlay roster, honesty + receipt-token rules). Both document SHIPPED truth, flag the open Round-3 findings inline, and deep-link into design.greengoods.app. Stable URLs; projections only — repo stays canon.
+
+### Round 3 findings — awaiting Afo's triage
+
+Seven confirmed clusters in [reports/2026-08-29-round-3-client-docs-storybook.md](reports/2026-08-29-round-3-client-docs-storybook.md): (1) guidance rosters still describe the pre-deletion admin library (Round-2 sweep gap — one guidance commit); (2) browser/PWA briefs lag shipped truth (/vaults, overlay roster, AppBar hide-routes — spec updates); (3) homepage 8-vs-7 sections (document-or-remove + order test); (4) below-the-fold wayfinding gap (footer nav links — decision); (5) dead Storybook viewport API ×27 (codemod); (6) FAB-large 16px spec vs shipped capsule (decision + token_version); (7) two one-liners (Manage Endowments capsule, docs Prism surfaces).
 
 ### State / API (`codex/state-api/design-system-alignment-review`)
 
