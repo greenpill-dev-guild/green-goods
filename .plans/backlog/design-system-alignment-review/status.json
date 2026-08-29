@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-04-25T05:11:42.581Z",
-    "updated_at": "2026-08-29T22:00:53.512Z"
+    "updated_at": "2026-08-29T22:22:45.037Z"
   },
   "links": {
     "brief": "brief.md",
@@ -165,6 +165,14 @@
       "status": "in_progress",
       "branch": "claude/ui/design-system-alignment-review",
       "note": "Round 2 focus pass landed (f66a13113): checkbox/search/palette keyboard focus, 13 alias rings converged on --tone-focus-ring, generic input --focus-ring re-pointed off shared blue, CommandPalette combobox wiring; AdminFocusRing guard test added"
+    },
+    {
+      "timestamp": "2026-08-29T22:22:45.037Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Round 2 item 4 landed (docs 830a7239f-parent pair): DESIGN.md canon re-trued to 22 wrappers + family map, admin.mdx aligned, AdminDialog/AdminFab JSDoc fixed; Cockpit Design System living reference published as artifact 7d1f5e6f"
     }
   ],
   "taxonomy": {
