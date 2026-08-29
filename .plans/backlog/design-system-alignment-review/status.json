@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-04-25T05:11:42.581Z",
-    "updated_at": "2026-08-29T21:24:32.440Z"
+    "updated_at": "2026-08-29T22:00:53.512Z"
   },
   "links": {
     "brief": "brief.md",
@@ -32,7 +32,20 @@
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
       "skill_tags": ["ui", "design", "review"],
-      "manual_blocked": false
+      "manual_blocked": false,
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "cd packages/admin && bun run test -- --run AdminFocusRing",
+          "evidence": "4/4 assertions failed pre-fix: AdminCheckbox/AdminSearchToolbar/AdminInlineField/AdminTextField carried no --tone-focus-ring (checkbox had no focus indicator at all)"
+        },
+        "green": {
+          "command": "cd packages/admin && bun run test -- --run AdminFocusRing && bun run test -- --run src/__tests__/components && bun run typecheck:source",
+          "evidence": "4/4 guard assertions pass; components suite 463/463; typecheck clean; check:design-tokens green after burning 13 stale alias-ring baseline entries; dist-verified at f66a13113"
+        },
+        "note": ""
+      }
     },
     "state_api": {
       "owner": "codex",
@@ -136,6 +149,22 @@
       "status": "in_progress",
       "branch": "claude/ui/design-system-alignment-review",
       "note": "Round 2 shadow-ladder migration landed (99ef12b11): ladder deleted, 11 consumers on --m3-elevation-*, reappearance guard RED-proven, 11 baseline entries burned (198 rows remain), dist-verified"
+    },
+    {
+      "timestamp": "2026-08-29T22:00:53.015Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-08-29T22:00:53.512Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Round 2 focus pass landed (f66a13113): checkbox/search/palette keyboard focus, 13 alias rings converged on --tone-focus-ring, generic input --focus-ring re-pointed off shared blue, CommandPalette combobox wiring; AdminFocusRing guard test added"
     }
   ],
   "taxonomy": {
