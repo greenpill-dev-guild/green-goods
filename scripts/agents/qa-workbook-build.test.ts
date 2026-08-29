@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   type Catalog,
   type CatalogCase,
-  DEFECTS_TAB_COLUMNS,
   filterCases,
+  groupByArea,
+  howToCheck,
   loadCatalog,
   projectRow,
   resolveSurfaceFilter,
-  surfaceColumnValue,
-  TEST_TAB_COLUMNS,
+  RUN_SHEET_COLUMNS,
   validateCatalog,
 } from "./qa-workbook-build";
 
@@ -76,31 +76,50 @@ describe("validateCatalog", () => {
   });
 });
 
-describe("projectRow", () => {
-  it("emits exactly the 20 test-tab columns with run columns empty", () => {
-    const row = projectRow(makeCase());
-    expect(row).toHaveLength(TEST_TAB_COLUMNS.length);
-    expect(row[0]).toBe("ADM-001");
-    expect(row[7]).toBe("Open /hub; Inspect shell");
-    // QA Owner, Device/Browser, Build/Commit, Result, Severity, Defect Link,
-    // Retest Result, Retest Date stay empty in a generated workbook.
-    for (const index of [10, 11, 13, 14, 15, 16, 18, 19]) {
-      expect(row[index]).toBe("");
-    }
+describe("howToCheck", () => {
+  it("folds needs, numbered steps, and capture into one readable cell", () => {
+    const cell = howToCheck(makeCase());
+    expect(cell).toBe(
+      "Needs: steward account; Admin URL available\n1. Open /hub\n2. Inspect shell\nCapture: Screenshot",
+    );
   });
 
-  it("maps PWA tabs to the 'PWA' surface column value", () => {
-    expect(surfaceColumnValue("PWA iOS")).toBe("PWA");
-    expect(surfaceColumnValue("PWA Android")).toBe("PWA");
-    expect(surfaceColumnValue("Docs")).toBe("Docs");
-    const row = projectRow(makeCase({ id: "PWA-IOS-001", tab: "PWA iOS" }));
-    expect(row[1]).toBe("PWA");
+  it("omits the needs line for role none/any with no preconditions", () => {
+    const cell = howToCheck(makeCase({ role: "none", preconditions: [], evidence: "" }));
+    expect(cell).toBe("1. Open /hub\n2. Inspect shell");
+  });
+});
+
+describe("projectRow", () => {
+  it("emits exactly the 8 run-sheet columns with result columns empty", () => {
+    const row = projectRow(makeCase());
+    expect(row).toHaveLength(RUN_SHEET_COLUMNS.length);
+    expect(row[0]).toBe("ADM-001");
+    expect(row[1]).toBe("P0");
+    expect(row[2]).toBe("Admin hub loads");
+    expect(row[3]).toContain("1. Open /hub");
+    expect(row[4]).toBe("Shell loads");
+    expect(row[5]).toBe(""); // Result
+    expect(row[6]).toBe(""); // Severity
+    expect(row[7]).toBe(""); // Notes
   });
 
   it("pre-fills the notes column for requiresProduction cases", () => {
     const row = projectRow(makeCase({ requiresProduction: true }));
-    expect(row[17]).toContain("Requires production origin");
-    expect(projectRow(makeCase())[17]).toBe("");
+    expect(row[7]).toContain("Can't run on localhost");
+  });
+});
+
+describe("groupByArea", () => {
+  it("groups by area preserving first-appearance order", () => {
+    const cases = [
+      makeCase({ id: "ADM-001", area: "Shell" }),
+      makeCase({ id: "ADM-002", area: "Routing" }),
+      makeCase({ id: "ADM-003", area: "Shell" }),
+    ];
+    const groups = groupByArea(cases);
+    expect(groups.map((group) => group.area)).toEqual(["Shell", "Routing"]);
+    expect(groups[0].cases.map((c) => c.id)).toEqual(["ADM-001", "ADM-003"]);
   });
 });
 
@@ -134,14 +153,5 @@ describe("resolveSurfaceFilter", () => {
 
   it("rejects unknown surfaces", () => {
     expect(() => resolveSurfaceFilter("phone", tabs)).toThrow(/unknown surface/);
-  });
-});
-
-describe("schemas", () => {
-  it("keeps the sheet-schema column contracts", () => {
-    expect(TEST_TAB_COLUMNS).toHaveLength(20);
-    expect(DEFECTS_TAB_COLUMNS).toHaveLength(22);
-    expect(TEST_TAB_COLUMNS[16]).toBe("Defect Link");
-    expect(DEFECTS_TAB_COLUMNS[21]).toBe("Linear URL");
   });
 });

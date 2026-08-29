@@ -25,13 +25,13 @@ The skill **always** uses the column order read from the Sheet, not the order in
 
 Phase 0 confirms all tabs above exist. If any is missing, fail loud — don't write to a partial workbook.
 
-A `Docs` test tab exists upstream in the catalog and ships in generated run workbooks; it is **not yet Phase 0-required** here. Once its generated tab has been pasted into this Sheet, add it to the table above.
+A `Docs` surface exists upstream in the catalog and in generated run sheets; it is **not yet Phase 0-required** here. If this Sheet gains a `Docs` test tab, create it in this Sheet's own 20-column schema from the catalog definitions (the generated run sheet uses a simplified 8-column layout — do not paste it here), then add it to the table above.
 
 ---
 
 ## Catalog relationship
 
-Test-scenario **definitions** are versioned in the repo: `scripts/data/qa-test-catalog.json` is the upstream source of truth (Test IDs, scenarios, steps, expected results — columns 1–10 and 13). This Sheet is the **live defect log and team run ledger**; its test tabs are downstream copies. When definitions change, regenerate a run workbook (`bun run qa:workbook`) and reconcile the Sheet by appending new rows or marking retired ones — never rewrite historical result columns. Results, owners, defect links, and PostHog data live only here and in generated run workbooks (stored in Drive), never in the public repo.
+Test-scenario **definitions** are versioned in the repo: `scripts/data/qa-test-catalog.json` is the upstream source of truth (Test IDs, areas, scenarios, steps, expected results, roles). This Sheet is the **live defect log and team run ledger**; its test tabs are downstream. `bun run qa:workbook` projects the catalog into a simplified human-first run sheet (Overview + surface tabs, 8 columns) used for walkthroughs — Test ID / Area / Scenario stay verbatim, so this skill's matching keeps working. When definitions change, reconcile this Sheet by appending new rows or marking retired ones — never rewrite historical result columns. Results, owners, defect links, and PostHog data live only here and in run sheets stored in Drive, never in the public repo.
 
 ---
 

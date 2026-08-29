@@ -516,6 +516,49 @@
       "source": "mdx-matrix"
     },
     {
+      "id": "PWA-IOS-013",
+      "tab": "PWA iOS",
+      "platform": "iOS Safari Installed PWA",
+      "priority": "P1",
+      "area": "Auth",
+      "scenario": "Logout clears the session and re-login works cleanly",
+      "preconditions": ["Authenticated account"],
+      "steps": [
+        "Log out from the profile",
+        "Confirm landing on the login screen",
+        "Use device back and confirm no authenticated content shows",
+        "Log back in immediately"
+      ],
+      "expected": "Local session is cleared, back navigation never reveals authenticated content, and immediate re-login succeeds",
+      "evidence": "Screen recording of the loop",
+      "role": "gardener",
+      "tags": ["auth", "session"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "drive-test-cases-2025-12"
+    },
+    {
+      "id": "PWA-IOS-014",
+      "tab": "PWA iOS",
+      "platform": "iOS Safari Installed PWA",
+      "priority": "P0",
+      "area": "Upload",
+      "scenario": "Submission validation blocks incomplete work and rapid double-taps",
+      "preconditions": ["Garden/account able to submit work"],
+      "steps": [
+        "Start a work submission and try to submit without a photo or required fields",
+        "Confirm clear field-level errors",
+        "Complete the form and tap Submit rapidly several times"
+      ],
+      "expected": "Missing required fields block submission with clear errors, and rapid taps never create duplicate submissions",
+      "evidence": "Screenshot of validation errors; work list showing a single submission",
+      "role": "gardener",
+      "tags": ["upload", "validation", "duplicate-protection"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "drive-test-cases-2025-12"
+    },
+    {
       "id": "PWA-AND-001",
       "tab": "PWA Android",
       "platform": "Android Chrome Installed PWA",
@@ -995,6 +1038,51 @@
       "source": "mdx-matrix"
     },
     {
+      "id": "PUB-012",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P1",
+      "area": "Funding",
+      "scenario": "Wallet edge states fail helpfully: none installed, wrong network",
+      "preconditions": [
+        "One browser profile without a wallet; one wallet on an unsupported network"
+      ],
+      "steps": [
+        "Open /fund with no wallet available and start a funding action",
+        "Confirm helpful guidance instead of a crash",
+        "Retry with a wallet on the wrong network",
+        "Confirm a switch-network prompt gates the action"
+      ],
+      "expected": "No wallet shows clear instructions, wrong network prompts a switch and blocks the transaction path — never a blank or broken state",
+      "evidence": "Screenshots of both states",
+      "role": "none",
+      "tags": ["wallet", "error-recovery", "funding"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "drive-test-cases-2025-12"
+    },
+    {
+      "id": "ADM-018",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "area": "Hub Work Review",
+      "scenario": "Decision integrity: no double decisions, honest tx failure",
+      "preconditions": ["Steward session; a pending submission it is safe to decide on"],
+      "steps": [
+        "Approve or reject a submission",
+        "Immediately attempt a second decision on the same submission",
+        "Where safely reproducible, interrupt the approval transaction and observe the result"
+      ],
+      "expected": "A second decision is blocked or disabled; a failed approval transaction surfaces an error and the submission stays Pending — status never lies",
+      "evidence": "Screenshots of the blocked second decision and the failure state",
+      "role": "steward",
+      "tags": ["review", "transaction", "integrity"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "drive-test-cases-2025-12"
+    },
+    {
       "id": "XPLAT-001",
       "tab": "Cross Surface",
       "platform": "Any",
@@ -1105,6 +1193,48 @@
       "requiresProduction": false,
       "status": "active",
       "source": "mdx-matrix"
+    },
+    {
+      "id": "XPLAT-007",
+      "tab": "Cross Surface",
+      "platform": "Any",
+      "priority": "P2",
+      "area": "Concurrency",
+      "scenario": "Two stewards acting on the same submission converge on one state",
+      "preconditions": ["Two steward sessions on the same garden with a pending submission"],
+      "steps": [
+        "Open the same pending submission in two steward sessions",
+        "Decide in one session",
+        "Act or refresh in the other"
+      ],
+      "expected": "The final state is consistent in both sessions; the second steward sees the decided state, not a stale actionable one",
+      "evidence": "Screenshots from both sessions",
+      "role": "steward",
+      "tags": ["concurrency", "review", "stale-data"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "drive-test-cases-2025-12"
+    },
+    {
+      "id": "XPLAT-008",
+      "tab": "Cross Surface",
+      "platform": "Any",
+      "priority": "P2",
+      "area": "Performance",
+      "scenario": "Long lists stay usable at real data volumes",
+      "preconditions": ["Garden or account with many submissions/entries (production data)"],
+      "steps": [
+        "Open the busiest work and garden lists",
+        "Scroll through the full list",
+        "Open an item deep in the list and return"
+      ],
+      "expected": "Lists scroll smoothly, load progressively or paginate, and returning preserves position — no jank or unbounded loading",
+      "evidence": "Screen recording of the scroll",
+      "role": "any",
+      "tags": ["performance", "lists"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "drive-test-cases-2025-12"
     },
     {
       "id": "DOCS-001",

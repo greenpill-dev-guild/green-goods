@@ -1,14 +1,16 @@
 #!/usr/bin/env bun
 /**
- * Green Goods QA run-workbook generator.
+ * Green Goods QA test-sheet generator.
  *
  * Projects scripts/data/qa-test-catalog.json (the upstream scenario source of
- * truth) into a per-run Excel workbook mirroring the "Green Goods v1.1 QA"
- * Google Sheet layout (see .claude/skills/qa-triage/sheet-schema.md): Guide,
- * Summary, one tab per surface (including Docs), and an empty Defects tab.
+ * truth) into a simple, human-first spreadsheet: an Overview tab (purpose,
+ * run info filled once, how-to, live per-surface counts) plus one tab per
+ * surface with plain-language columns and area section rows. Defect records
+ * stay in the private "Green Goods v1.1 QA" Sheet — this sheet is the
+ * walk-through checklist and result tracker.
  *
- * Output is a working artifact, never committed: filled workbooks carry run
- * results and belong in the private Drive QA folder next to the Sheet.
+ * Output is a working artifact, never committed: filled sheets carry run
+ * results and belong in the private Drive QA folder.
  *
  *   bun run qa:workbook [--surface <tab|alias>[,...]] [--cases <ID>[,...]]
  *                       [--tag <tag>[,...]] [--out <path>]
@@ -20,52 +22,15 @@ import { fileURLToPath } from "node:url";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 
-export const TEST_TAB_COLUMNS = [
-  "Test ID",
-  "Surface",
-  "Platform",
-  "Priority",
-  "Area",
-  "Scenario",
-  "Preconditions",
-  "Steps",
-  "Expected Result",
-  "Required Evidence",
-  "QA Owner",
-  "Device/Browser",
-  "Account/Role",
-  "Build/Commit",
+export const RUN_SHEET_COLUMNS = [
+  "ID",
+  "Pri",
+  "What we're checking",
+  "How to check",
+  "What should happen",
   "Result",
   "Severity",
-  "Defect Link",
-  "Notes",
-  "Retest Result",
-  "Retest Date",
-] as const;
-
-export const DEFECTS_TAB_COLUMNS = [
-  "Defect ID",
-  "Linked Test ID",
-  "Severity",
-  "Surface",
-  "Title",
-  "Owner",
-  "Status",
-  "Repro Steps",
-  "Expected",
-  "Actual",
-  "Evidence Link",
-  "Fix Owner",
-  "Retest Owner",
-  "Retest Result",
-  "Release Decision",
-  "Notes",
-  "PostHog Hash",
-  "PostHog Sessions 7d",
-  "PostHog Users 7d",
-  "PostHog Session ID",
-  "PostHog Replay URL",
-  "Linear URL",
+  "Notes / evidence",
 ] as const;
 
 export const RESULT_VALUES = ["Pass", "Fail", "Blocked", "N/A"] as const;
@@ -92,8 +57,16 @@ const SURFACE_ALIASES: Record<string, string[]> = {
   docs: ["Docs"],
 };
 
-const REQUIRES_PRODUCTION_NOTE =
-  "Requires production origin (install/passkey) — cannot run on localhost dev";
+const TAB_COLORS: Record<string, string> = {
+  "Public Website": "1A7544",
+  "PWA iOS": "2E7D6B",
+  "PWA Android": "3E8E5A",
+  "Admin Dashboard": "5B7553",
+  "Cross Surface": "8A7F5C",
+  Docs: "6B8E9E",
+};
+
+const REQUIRES_PRODUCTION_NOTE = "Can't run on localhost — needs a production install/passkey";
 
 export interface CatalogCase {
   id: string;
@@ -119,35 +92,42 @@ export interface Catalog {
   cases: CatalogCase[];
 }
 
-/** The Surface COLUMN value differs from the tab name for the PWA tabs. */
-export function surfaceColumnValue(tab: string): string {
-  return tab === "PWA iOS" || tab === "PWA Android" ? "PWA" : tab;
+/** "How to check": needs line, numbered steps, capture line — one readable cell. */
+export function howToCheck(testCase: CatalogCase): string {
+  const lines: string[] = [];
+  const needs = [
+    testCase.role !== "none" && testCase.role !== "any" ? `${testCase.role} account` : "",
+    ...testCase.preconditions,
+  ].filter(Boolean);
+  if (needs.length > 0) lines.push(`Needs: ${needs.join("; ")}`);
+  testCase.steps.forEach((step, index) => lines.push(`${index + 1}. ${step}`));
+  if (testCase.evidence.trim()) lines.push(`Capture: ${testCase.evidence}`);
+  return lines.join("\n");
 }
 
-/** One catalog case -> the 20-cell test-tab row. Run columns stay empty. */
+/** One catalog case -> the 8-cell run-sheet row. Result columns stay empty. */
 export function projectRow(testCase: CatalogCase): string[] {
   return [
     testCase.id,
-    surfaceColumnValue(testCase.tab),
-    testCase.platform,
     testCase.priority,
-    testCase.area,
     testCase.scenario,
-    testCase.preconditions.join("; "),
-    testCase.steps.join("; "),
+    howToCheck(testCase),
     testCase.expected,
-    testCase.evidence,
-    "", // QA Owner
-    "", // Device/Browser
-    testCase.role === "none" ? "" : testCase.role,
-    "", // Build/Commit
     "", // Result
     "", // Severity
-    "", // Defect Link
     testCase.requiresProduction ? REQUIRES_PRODUCTION_NOTE : "",
-    "", // Retest Result
-    "", // Retest Date
   ];
+}
+
+/** Group a tab's cases by area, preserving first-appearance order. */
+export function groupByArea(cases: CatalogCase[]): Array<{ area: string; cases: CatalogCase[] }> {
+  const groups: Array<{ area: string; cases: CatalogCase[] }> = [];
+  for (const testCase of cases) {
+    const group = groups.find((candidate) => candidate.area === testCase.area);
+    if (group) group.cases.push(testCase);
+    else groups.push({ area: testCase.area, cases: [testCase] });
+  }
+  return groups;
 }
 
 export function resolveSurfaceFilter(raw: string, knownTabs: string[]): string[] {
@@ -224,33 +204,9 @@ export async function loadCatalog(
   return catalog;
 }
 
-const GUIDE_ROWS: string[][] = [
-  ["Green Goods QA Run Workbook"],
-  [
-    "Generated from scripts/data/qa-test-catalog.json (the upstream scenario source of truth). " +
-      "Use the surface tabs for execution and the Defects tab for follow-up. " +
-      "Filled workbooks carry results and belong in the private Drive QA folder — never in git.",
-  ],
-  [],
-  ["Rule", "How to use it"],
-  ["Result values", "Use Pass, Fail, Blocked, or N/A only. Leave blank until the test is actually run."],
-  ["Severity values", "Use P0, P1, P2, or P3 for failures. Leave blank for passing rows."],
-  [
-    "Evidence",
-    "Every Fail needs a screenshot, video, console note, or defect link. Visual/device issues need screenshots or screen recordings.",
-  ],
-  ["P0 behavior", "Any open P0 failure blocks release until fixed or explicitly waived by the release owner."],
-  ["PWA device proof", "PWA iOS and PWA Android tabs must be run on real installed devices when possible."],
-  [
-    "Localhost limits",
-    "Rows noted 'Requires production origin' (installs, passkey ceremonies) cannot run against localhost dev — the passkey RP-ID is greengoods.app.",
-  ],
-  [
-    "Mainnet safety",
-    "Local dev:prod sessions run against real Arbitrum: connected-wallet transactions are real. Do not broadcast mainnet transactions or irreversible deploys unless explicitly authorized.",
-  ],
-  ["Retest", "After a fix, fill Retest Result and Retest Date. Do not overwrite the original failed Result."],
-];
+const BRAND_GREEN = "FF1A7544";
+const AREA_LINEN = "FFF5F1E8";
+const INK_SOFT = "FF6B6B6B";
 
 async function writeWorkbook(
   catalog: Catalog,
@@ -261,83 +217,137 @@ async function writeWorkbook(
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "green-goods qa:workbook";
 
-  const guide = workbook.addWorksheet("Guide");
-  for (const row of GUIDE_ROWS) guide.addRow(row);
-  guide.getColumn(1).width = 22;
-  guide.getColumn(2).width = 110;
-  guide.getRow(1).font = { bold: true, size: 14 };
-  guide.getColumn(2).alignment = { wrapText: true, vertical: "top" };
-
   const includedTabs = catalog.tabs.filter((tab) => cases.some((c) => c.tab === tab));
+  const tabRanges = new Map<string, { first: number; last: number }>();
 
-  const summary = workbook.addWorksheet("Summary");
-  summary.addRow(["Green Goods QA Run Summary"]).font = { bold: true, size: 14 };
-  summary.addRow([]);
-  const summaryHeader = summary.addRow([
-    "Surface",
-    "Total Tests",
-    "Passed",
-    "Failed",
-    "Blocked",
-    "N/A",
-    "P0 Open",
-    "Owner Notes",
-  ]);
-  summaryHeader.font = { bold: true };
+  // Created first so it is the first tab; content is filled after the
+  // surface tabs exist and their row ranges are known.
+  const overview = workbook.addWorksheet("Overview", {
+    properties: { tabColor: { argb: BRAND_GREEN } },
+  });
+
+  // ── Surface tabs ──────────────────────────────────────────────────────
   for (const tab of includedTabs) {
-    const count = cases.filter((c) => c.tab === tab).length;
-    const range = `'${tab}'!$O$2:$O$${count + 1}`;
-    const severityRange = `'${tab}'!$P$2:$P$${count + 1}`;
-    summary.addRow([
-      tab,
-      count,
-      { formula: `COUNTIF(${range},"Pass")` },
-      { formula: `COUNTIF(${range},"Fail")` },
-      { formula: `COUNTIF(${range},"Blocked")` },
-      { formula: `COUNTIF(${range},"N/A")` },
-      { formula: `COUNTIFS(${range},"Fail",${severityRange},"P0")` },
-      "",
-    ]);
-  }
-  summary.getColumn(1).width = 18;
-  summary.getColumn(8).width = 40;
+    const sheet = workbook.addWorksheet(tab, {
+      views: [{ state: "frozen", ySplit: 1 }],
+      properties: { tabColor: { argb: `FF${TAB_COLORS[tab] ?? "1A7544"}` } },
+    });
 
-  for (const tab of includedTabs) {
-    const sheet = workbook.addWorksheet(tab, { views: [{ state: "frozen", ySplit: 1 }] });
-    const header = sheet.addRow([...TEST_TAB_COLUMNS]);
-    header.font = { bold: true };
-    const tabCases = cases.filter((c) => c.tab === tab);
-    for (const testCase of tabCases) sheet.addRow(projectRow(testCase));
+    const header = sheet.addRow([...RUN_SHEET_COLUMNS]);
+    header.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    header.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BRAND_GREEN } };
+    header.height = 22;
 
-    const widths = [14, 14, 24, 8, 18, 44, 34, 54, 44, 28, 12, 16, 13, 13, 9, 9, 16, 30, 12, 12];
+    const widths = [13, 5, 38, 52, 40, 10, 9, 30];
     widths.forEach((width, index) => {
       sheet.getColumn(index + 1).width = width;
     });
-    for (const column of [6, 7, 8, 9, 10, 18]) {
-      sheet.getColumn(column).alignment = { wrapText: true, vertical: "top" };
-    }
-    const lastRow = tabCases.length + 1;
-    for (let row = 2; row <= lastRow; row++) {
-      for (const column of ["O", "S"]) {
-        sheet.getCell(`${column}${row}`).dataValidation = {
+
+    let firstCaseRow = 0;
+    let lastCaseRow = 0;
+    for (const group of groupByArea(cases.filter((c) => c.tab === tab))) {
+      const areaRow = sheet.addRow([group.area]);
+      sheet.mergeCells(areaRow.number, 1, areaRow.number, RUN_SHEET_COLUMNS.length);
+      areaRow.font = { bold: true, color: { argb: "FF3D3A33" } };
+      areaRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: AREA_LINEN } };
+      areaRow.height = 20;
+
+      for (const testCase of group.cases) {
+        const row = sheet.addRow(projectRow(testCase));
+        if (firstCaseRow === 0) firstCaseRow = row.number;
+        lastCaseRow = row.number;
+        row.alignment = { vertical: "top" };
+        for (const column of [3, 4, 5, 8]) {
+          row.getCell(column).alignment = { wrapText: true, vertical: "top" };
+        }
+        row.getCell(2).alignment = { horizontal: "center", vertical: "top" };
+        if (testCase.priority === "P0") row.getCell(2).font = { bold: true };
+        if (testCase.requiresProduction) row.getCell(8).font = { italic: true, color: { argb: INK_SOFT } };
+        row.getCell(6).dataValidation = {
           type: "list",
           allowBlank: true,
           formulae: [`"${RESULT_VALUES.join(",")}"`],
         };
+        row.getCell(7).dataValidation = {
+          type: "list",
+          allowBlank: true,
+          formulae: [`"${SEVERITY_VALUES.join(",")}"`],
+        };
       }
-      sheet.getCell(`P${row}`).dataValidation = {
-        type: "list",
-        allowBlank: true,
-        formulae: [`"${SEVERITY_VALUES.join(",")}"`],
-      };
     }
+    tabRanges.set(tab, { first: firstCaseRow, last: lastCaseRow });
   }
 
-  const defects = workbook.addWorksheet("Defects", { views: [{ state: "frozen", ySplit: 1 }] });
-  defects.addRow([...DEFECTS_TAB_COLUMNS]).font = { bold: true };
-  DEFECTS_TAB_COLUMNS.forEach((_, index) => {
-    defects.getColumn(index + 1).width = 18;
-  });
+  // ── Overview content ──────────────────────────────────────────────────
+  overview.getColumn(1).width = 22;
+  overview.getColumn(2).width = 16;
+  for (let column = 3; column <= 8; column++) overview.getColumn(column).width = 11;
+
+  const title = overview.addRow(["Green Goods QA Test Sheet"]);
+  title.font = { bold: true, size: 16, color: { argb: BRAND_GREEN } };
+  overview.addRow([
+    "Walk each surface tab top to bottom, mark Result as you go, note anything you see.",
+  ]).font = { italic: true, color: { argb: INK_SOFT } };
+  overview.addRow([]);
+
+  const runInfoHeader = overview.addRow(["This run"]);
+  runInfoHeader.font = { bold: true };
+  for (const label of ["Date", "Build / commit", "Tester", "Environment", "Device / browser"]) {
+    const row = overview.addRow([label, ""]);
+    row.getCell(1).font = { color: { argb: INK_SOFT } };
+    row.getCell(2).border = { bottom: { style: "thin", color: { argb: "FFBBBBBB" } } };
+  }
+  overview.addRow([]);
+
+  const howHeader = overview.addRow(["How to use"]);
+  howHeader.font = { bold: true };
+  for (const rule of [
+    "Result: Pass, Fail, Blocked, or N/A. Leave blank until you actually run it.",
+    "Severity (P0–P3) only on Fails. Any open P0 fail blocks release.",
+    "Every Fail gets a note and a screenshot or recording.",
+    "Rows marked “Can't run on localhost” need the production app (installs, passkeys).",
+    "Bugs graduate to the Green Goods v1.1 QA sheet and Linear via triage — this sheet is the walk.",
+  ]) {
+    overview.addRow([`•  ${rule}`]);
+  }
+  overview.addRow([]);
+
+  const summaryHeader = overview.addRow([
+    "Surface",
+    "Cases",
+    "Pass",
+    "Fail",
+    "Blocked",
+    "N/A",
+    "Open P0",
+  ]);
+  summaryHeader.font = { bold: true, color: { argb: "FFFFFFFF" } };
+  for (let column = 1; column <= 7; column++) {
+    summaryHeader.getCell(column).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: BRAND_GREEN },
+    };
+  }
+  for (const tab of includedTabs) {
+    const range = tabRanges.get(tab);
+    if (!range || range.first === 0) continue;
+    const results = `'${tab}'!$F$${range.first}:$F$${range.last}`;
+    const severities = `'${tab}'!$G$${range.first}:$G$${range.last}`;
+    overview.addRow([
+      tab,
+      cases.filter((c) => c.tab === tab).length,
+      { formula: `COUNTIF(${results},"Pass")` },
+      { formula: `COUNTIF(${results},"Fail")` },
+      { formula: `COUNTIF(${results},"Blocked")` },
+      { formula: `COUNTIF(${results},"N/A")` },
+      { formula: `COUNTIFS(${results},"Fail",${severities},"P0")` },
+    ]);
+  }
+  overview.addRow([]);
+  overview.addRow([
+    "Test definitions are versioned in the repo (scripts/data/qa-test-catalog.json).",
+  ]).font = { italic: true, size: 9, color: { argb: INK_SOFT } };
 
   mkdirSync(path.dirname(outPath), { recursive: true });
   await workbook.xlsx.writeFile(outPath);
@@ -383,7 +393,7 @@ async function main(): Promise<void> {
   }
   const date = new Date().toISOString().slice(0, 10);
   const outPath = path.resolve(
-    args.out ?? path.join(scriptDir, "..", "..", "tmp", "qa", `green-goods-qa-workbook-${date}.xlsx`),
+    args.out ?? path.join(scriptDir, "..", "..", "tmp", "qa", `green-goods-qa-test-sheet-${date}.xlsx`),
   );
   await writeWorkbook(catalog, cases, outPath);
   const tabCounts = catalog.tabs

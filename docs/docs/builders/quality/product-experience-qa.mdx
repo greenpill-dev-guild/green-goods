@@ -131,10 +131,12 @@ name the missing capability or data.
 The executable form of this matrix is the versioned test-case catalog:
 `scripts/data/qa-test-catalog.json` holds the scenario definitions (Test IDs `PUB-`, `PWA-IOS-`,
 `PWA-AND-`, `PWA-ROLE-`, `ADM-`, `XPLAT-`, `DOCS-`), and `bun run qa:workbook` projects them into
-a per-run Excel workbook mirroring the private **Green Goods v1.1 QA** Sheet (Guide, Summary,
-surface tabs, Defects template). Definitions are reviewed in git; results, owners, and defect
-links live only in the workbook, the Sheet, and Linear — never in this public repo. The journey
-tables below are the narrative contract those cases decompose.
+a simple human-first run sheet: an Overview tab (run info filled once, how-to, live per-surface
+counts) plus one tab per surface with plain-language columns — ID, priority, what we're checking,
+how to check, what should happen, result, severity, notes — grouped by area. Defect records stay
+in the private **Green Goods v1.1 QA** Sheet. Definitions are reviewed in git; results, owners,
+and defect links live only in the run sheet, the Sheet, and Linear — never in this public repo.
+The journey tables below are the narrative contract those cases decompose.
 
 ### Admin console
 
@@ -362,7 +364,7 @@ one end-to-end experience acceptance contract.
 | Admin defect grammar | Converts observations into route/component/state/expected/actual reports | Admin-focused and defect-driven |
 | `qa-session` skill | Owns the live founder-led loop: pre-flight, OBS capture, fix-now/defer triage, HMR revalidation, decision locking, receipts | New; its autonomous agent-led sweep counterpart is deliberately deferred (see improvement sequence) |
 | `qa-triage` skill | Good intake, enrichment, deduplication, scope lock, and durable issue creation — now also the downstream consumer of qa-session logs | It triages reported signals; it does not execute tests |
-| Versioned test-case catalog | `scripts/data/qa-test-catalog.json` versions all scenario definitions (63 cases incl. a Docs surface) in git; `bun run qa:workbook` generates per-run Excel workbooks mirroring the Sheet | Results still round-trip manually into the private Sheet; the Sheet's Docs tab is pending a paste from the generated workbook |
+| Versioned test-case catalog | `scripts/data/qa-test-catalog.json` versions all scenario definitions in git (incl. a Docs surface and the absorbed 2025-12 Drive test-case archive); `bun run qa:workbook` generates a simple human-first run sheet | Results still round-trip manually into the private Sheet; the Sheet has no Docs test tab yet |
 | Validation selector | Chooses risk-aware test, build, design, story, and browser checks | It has no `audit` intent even though audit workflows refer to the selector |
 | Storybook | Broad shared/admin coverage, component states, play tests, and an accessibility add-on | Client coverage enforcement is narrow; the accessibility add-on is not a blocking gate; the interaction runner currently leaks live dependencies |
 | Playwright | Client and admin CI projects cover selected critical flows | Default CI is desktop Chromium; mobile is manual; public editorial journeys are lightly covered |

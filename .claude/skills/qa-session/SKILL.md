@@ -163,8 +163,8 @@ Per accepted fix (or batched in a fix window):
    user is out of time, the handoff command is the named next step in the receipt.
 3. **Results rows.** For every catalog case exercised, append to
    `tmp/qa-session/<date>/results.csv`: `Test ID, Result (Pass|Fail|Blocked|N/A), Severity,
-   Defect Link (blank — qa-triage backfills), Notes, Build/Commit`. The user pastes these into
-   the run workbook / Sheet. Results never enter git.
+   Notes` — matching the run sheet's result columns (build/commit lives once in the receipt
+   header). The user pastes these into the run sheet / Sheet. Results never enter git.
 4. **Decision lock gate.** List all `decision` OBS verbatim and ask: *"Lock which of these as
    design decisions? (numbers / all / none)"*. Locked ones append to
    [`design/decision-log.md`](../design/decision-log.md) as `DL-NNN` rows (`Status: locked`),
