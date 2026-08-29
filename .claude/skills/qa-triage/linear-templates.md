@@ -25,7 +25,7 @@ Three hard constraints Linear enforces on every payload:
 
 ## Customer Need body (terse — source-of-truth raw signal)
 
-The Customer Need is the durable record of what the reporter said. Keep it minimal: verbatim + speaker + link to the Issue. The Issue body holds the actionable detail (Reproduction / Expected / Actual / Suggested fix / PostHog evidence / Deploy correlation). Avoid duplicating Issue content here — the `issue` link is the integration.
+The Customer Need is the durable record of what the reporter said. Keep it minimal: verbatim + speaker + link to the Issue. The Issue holds the actionable detail — the problem in prose with **Done when** outcomes in the body, and the safe PostHog/deploy enrichment in its first comment. Avoid duplicating Issue content here — the `issue` link is the integration.
 
 ```markdown
 ## Source
@@ -34,7 +34,7 @@ QA Sync — <meeting-title> on <YYYY-MM-DD>. Speaker: <name | "anonymous">. [Not
 > <verbatim excerpt — scrubbed of any name not on the call's attendee list>
 
 ## Linked Issue
-[PRD-XXX](<linear-url>) (<status>, <priority>) — Issue carries the actionable detail, repro steps, PostHog evidence, and suggested fix.
+[PRD-XXX](<linear-url>) (<status>, <priority>) — Issue carries the actionable detail; its first comment carries the safe PostHog/deploy enrichment.
 ```
 
 That's it. Two paragraphs, max. No `## Need statement` (the verbatim quote IS the need statement). No `## Reporter context` beyond the Speaker line (other attendees are on the Drive notes one click away). No PostHog evidence or Deploy correlation block (those live on the Issue). The Customer Need is the raw signal anchor; the Issue is where work happens.
@@ -68,6 +68,26 @@ QA Sync — <meeting-title> on <YYYY-MM-DD>. [Notes](<drive-url>)
 
 The Issue is the **actionable surface**; the linked Customer Need holds the
 verbatim quote and reporter context, so the Issue never repeats them.
+
+### Evidence comment (first comment on the Issue)
+
+When Phase 3 produced a PostHog match or a deploy correlation, the safe
+enrichment goes in the Issue's **first comment**, posted right after the Issue
+is created — never back into the body, and never left only in the scratch
+workspace, which the run deletes on success:
+
+```markdown
+PostHog `<error-hash>` — <S> sessions / <U> users over 30d, first <date>,
+last <date>, match confidence <high|medium|low>.
+Deploy correlation: `<commit-sha>` deployed <timestamp> ([compare](<url>)).
+```
+
+Drop the deploy line when no deploy sits in the window, and drop the whole
+comment when PostHog matched nothing. The comment obeys the same privacy
+boundary as the body — error hash, counts, and commit SHAs are safe; replay
+URLs, session IDs, distinct IDs, and reporter identifiers never appear — and
+the Phase 6 grep covers it like any other comment. Grep the draft before
+posting; a comment is public the moment it lands.
 
 **What is deliberately not in this template**, because every instance of it in
 the 2026-08-27 board audit made the issue worse:

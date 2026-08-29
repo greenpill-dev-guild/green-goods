@@ -142,12 +142,12 @@ For each extracted item:
    - PostHog error hash (if matched)
 
    If duplicate:
-   - **Existing Customer Need**: append a comment with today's sync date + the verbatim quote; do NOT create a duplicate.
+   - **Existing Customer Need**: append a comment with today's sync date + the verbatim quote; do NOT create a duplicate. Grep the drafted comment with the Phase 5 string list **before** posting — a comment is public the moment it lands, and a post-hoc edit does not unpublish it.
    - **Existing Issue**: link as `relates to` if a Customer Need is being created; skip the new Customer Need if the Issue already covers the same behavior.
 
 ## Phase 4: Pre-stage Customer Needs with Backlog tracking Issues
 
-Linear requires every Customer Need to link to an Issue. For each non-duplicate item:
+Linear requires every Customer Need to link to an Issue. Grep every drafted body with the Phase 5 string list **before** each write — Phase 5 is the backstop, not the gate. For each non-duplicate item:
 
 1. **First, create the Backlog tracking Issue** on the Product team. Title: a plain action-verb-led sentence with **no prefix** — "Investigate the PWA install hang on Android", not "[tracking] Install hangs". The `[tracking]` prefix is retired (2026-08-27): the `maintenance` label plus `Backlog` state already say the work is uncommitted, and a `PreToolUse` hook now rejects the prefix. Body: the problem in one or two plain paragraphs, then one source line — **no headings unless the item genuinely needs them (cap 3), ~150 words, 300 ceiling**, and no Reproduction/Expected/Actual at this routine stage. Drop any section you cannot fill rather than writing "—" or a paragraph reporting that PostHog matched nothing; note tooling gaps in the Discord summary instead. Full contract: [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md) § Issue structure.
    - Labels: `protocol:green-goods` + ONE `package:*` (primary surface; omit if unknown) + `activity:qa` (clear bug) or `activity:maintenance` (idea / polish / unclear actionability) + `source:drive` + `source:qa-triage-pulse` + `ai:routine` + `qa-sync:<YYYY-MM-DD>`. Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
@@ -173,7 +173,7 @@ Apply a per-run cap: at most **15 Customer Need + Issue pairs**. If the notes co
 
 ## Phase 5: Privacy grep
 
-Before posting, grep everything this run wrote to Linear — every Customer Need body, every tracking Issue body, and every comment — for `replay`, `session_id`, `distinct_id`, `0x`, and any reporter identifier seen this run. Comments are inside the privacy boundary exactly like bodies (`.claude/context/linear-routing-rules.md` § Invariant rules), so a grep that skips them is not a redaction gate. Hits → fail loud in the Discord summary's `⚠ Failures this run` block, redact in place, and re-verify.
+The backstop for the pre-write greps in Phases 3–4: re-grep everything this run wrote to Linear — every Customer Need body, every tracking Issue body, and every comment — for `replay`, `session_id`, `distinct_id`, `0x`, and any reporter identifier seen this run. Comments are inside the privacy boundary exactly like bodies (`.claude/context/linear-routing-rules.md` § Invariant rules), so a grep that skips them is not a redaction gate. A hit here means the value was already published: redact in place, re-verify, and fail loud in the Discord summary's `⚠ Failures this run` block, reporting it as an exposure rather than a save.
 
 ## Phase 6: Discord summary to #product
 

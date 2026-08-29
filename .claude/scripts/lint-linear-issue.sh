@@ -45,10 +45,14 @@ is_update="$(printf '%s' "$payload" | jq -r 'if (.tool_input.id // "") != "" the
 sent_description="$(printf '%s' "$payload" | jq -r 'if (.tool_input | has("description")) then "yes" else "no" end')"
 
 # Text a `patch` edit inserts. The ops carry a fragment, never the resulting
-# document, so the cumulative caps cannot be evaluated against them — but the
-# banned-token and metadata-stack rules can, and without this a caller could
-# smuggle lane metadata into a body by patching it instead of replacing it.
+# document, so the cumulative caps cannot be evaluated against a replace
+# fragment (it can shrink what it touches) — but the banned-token and
+# metadata-stack rules run on every fragment, and an append-only fragment that
+# alone breaches a cap proves the resulting body breaches it too.
 patch_text="$(printf '%s' "$payload" | jq -r '[.tool_input.patch // [] | .[] | (.text // ""), (.new_string // "")] | join("\n")')"
+
+# Just the append-family insertions, for the fragment-level cap checks below.
+append_text="$(printf '%s' "$payload" | jq -r '[.tool_input.patch // [] | .[] | select((.op // "") | test("^(append|prepend)")) | (.text // ""), (.new_string // "")] | join("\n")')"
 
 # Words a patch op deletes outright. Erasing a body via patch is the same
 # destructive act as sending `description: ""`, which is rejected below, and it
@@ -129,6 +133,25 @@ if [ -n "$title" ]; then
   fi
 fi
 
+# Roadmap trackers legitimately run long; they still obey the heading cap and
+# the banned-token rules. `plans` alone is not the signal — plan-hub stamps it
+# on every mirror including lane issues, so exempting on it would lift the
+# ceiling for ordinary build and QA work. The roadmap parent is the only
+# mirror also carrying the architecture label. `save_issue` accepts label IDs
+# too, which the gate cannot resolve, so a roadmap title is the fallback.
+# Computed here so both the body word cap and the append-fragment cap share it.
+is_umbrella=no
+case ",$labels," in
+  *,plans,* | *,source:plans,*)
+    case ",$labels," in
+      *,architecture,* | *,activity:architecture,*) is_umbrella=yes ;;
+    esac
+    ;;
+esac
+if [ "$is_umbrella" = "no" ] && printf '%s' "$title" | grep -qiE '(^|[[:space:]])roadmap$'; then
+  is_umbrella=yes
+fi
+
 # A create must carry the problem/outcome block; the contract calls it the one
 # section that is never optional. An update may touch state, labels, or
 # relations alone, so only creates are required to have a body.
@@ -186,24 +209,6 @@ if [ -n "$description" ]; then
   headings=$(printf '%s\n' "$description_prose" | grep -cE '^ {0,3}#{1,6}([[:space:]]|$)' || true)
   words=$(printf '%s' "$description" | wc -w | tr -d ' ')
 
-  # Roadmap trackers legitimately run long; they still obey the heading cap and
-  # the banned-token rules. `plans` alone is not the signal — plan-hub stamps it
-  # on every mirror including lane issues, so exempting on it would lift the
-  # ceiling for ordinary build and QA work. The roadmap parent is the only
-  # mirror also carrying the architecture label. `save_issue` accepts label IDs
-  # too, which the gate cannot resolve, so a roadmap title is the fallback.
-  is_umbrella=no
-  case ",$labels," in
-    *,plans,* | *,source:plans,*)
-      case ",$labels," in
-        *,architecture,* | *,activity:architecture,*) is_umbrella=yes ;;
-      esac
-      ;;
-  esac
-  if [ "$is_umbrella" = "no" ] && printf '%s' "$title" | grep -qiE '(^|[[:space:]])roadmap$'; then
-    is_umbrella=yes
-  fi
-
   if [ "$headings" -gt 3 ]; then
     add "Body has $headings headings (cap 3). Most defects need none — problem, 'Done when', one source line."
   fi
@@ -236,6 +241,22 @@ if [ -n "${patch_text//[$'\r\n\t ']/}" ]; then
   patch_meta=$(printf '%s\n' "$patch_prose" | grep -cE "$meta_re" || true)
   if [ "${patch_meta:-0}" -ge 2 ]; then
     add "Patched text stacks $patch_meta metadata lines (Source / Lane / Owner / Handoff). Say what matters in a sentence and keep one link line at most."
+  fi
+
+  # Caps on append fragments. An append cannot remove existing content, so a
+  # fragment that alone breaches a cumulative cap proves the resulting body
+  # breaches it too — the one case where fragment-level cap checks are sound.
+  # Replace fragments stay exempt: they can shrink what they touch.
+  if [ -n "${append_text//[$'\r\n\t ']/}" ]; then
+    append_prose="$(strip_fenced_code "$append_text")"
+    append_headings=$(printf '%s\n' "$append_prose" | grep -cE '^ {0,3}#{1,6}([[:space:]]|$)' || true)
+    append_words=$(printf '%s' "$append_text" | wc -w | tr -d ' ')
+    if [ "${append_headings:-0}" -gt 3 ]; then
+      add "Appended text alone carries $append_headings headings — the whole body is capped at 3. Send the full description instead, so the result can be checked against the contract."
+    fi
+    if [ "$is_umbrella" = "no" ] && [ "${append_words:-0}" -gt 300 ]; then
+      add "Appended text alone is $append_words words — the whole body is capped at 300. Move the evidence to the first comment, or send the full description."
+    fi
   fi
 fi
 

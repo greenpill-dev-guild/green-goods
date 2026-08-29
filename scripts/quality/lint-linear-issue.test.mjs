@@ -435,6 +435,26 @@ const rejects = [
     },
     expect: /Patched text stacks 2 metadata lines/,
   },
+  {
+    // An append cannot remove content, so four appended headings prove the
+    // resulting body exceeds the three-heading cap whatever it held before.
+    name: "append fragment that alone breaches the heading cap",
+    input: {
+      id: "PRD-800",
+      patch: [{ op: "append", text: "## A\nx\n## B\ny\n## C\nz\n## D\nw" }],
+    },
+    expect: /Appended text alone carries 4 headings/,
+  },
+  {
+    name: "append fragment that alone breaches the word cap",
+    input: {
+      id: "PRD-800",
+      patch: [
+        { op: "append", text: "Where the work stands and what needs a person. ".repeat(45) },
+      ],
+    },
+    expect: /Appended text alone is \d+ words/,
+  },
 ];
 
 // --- Emoji detection must not over-match -----------------------------------
@@ -493,11 +513,33 @@ const ignores = [
     input: { id: "PRD-800", state: "Done" },
   },
   {
-    // A patch fragment cannot reveal the size of the resulting document, so the
-    // cumulative caps are not evaluated here — but the absolute rules are, and
-    // the rejecting fixtures below prove a patch cannot smuggle them in.
+    // A replace fragment cannot reveal the size of the resulting document, so
+    // the cumulative caps are not evaluated on it — the absolute rules are,
+    // and append fragments that alone breach a cap are rejected below. A
+    // small clean append passes.
     name: "patch edit whose inserted text is clean",
     input: { id: "PRD-800", patch: [{ op: "append", text: "Fixed in the 2026-08-27 deploy." }] },
+  },
+  {
+    // Three appended headings cannot prove the result exceeds the cap of
+    // three, so the fragment passes; only self-sufficient breaches reject.
+    name: "append fragment at the heading cap",
+    input: { id: "PRD-800", patch: [{ op: "append", text: "## A\nx\n## B\ny\n## C\nz" }] },
+  },
+  {
+    // A replace fragment can shrink what it touches, so a long new_string is
+    // not proof the resulting body exceeds the word cap.
+    name: "long replace fragment stays exempt from the caps",
+    input: {
+      id: "PRD-800",
+      patch: [
+        {
+          op: "replace",
+          old_string: "x",
+          new_string: "Where the work stands and what needs a person. ".repeat(45),
+        },
+      ],
+    },
   },
   {
     // Ordinary editing. Only a large unreplaced deletion is destructive.
