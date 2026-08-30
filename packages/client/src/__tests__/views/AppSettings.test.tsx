@@ -198,7 +198,7 @@ describe("AppSettings", () => {
 
     render(wrap(createElement(AppSettings)));
 
-    expect(screen.getByText("Update Needs a Restart")).toBeInTheDocument();
+    expect(screen.getByText("Update needs a restart")).toBeInTheDocument();
     expect(screen.getByText(/close and reopen the app/i)).toBeInTheDocument();
     expect(screen.getByTestId("btn-Try Again")).toBeInTheDocument();
   });

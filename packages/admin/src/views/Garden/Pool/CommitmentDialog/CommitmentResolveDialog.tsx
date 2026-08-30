@@ -90,7 +90,7 @@ export function CommitmentResolveDialog({
             value: "RESTORE_PREVIOUS",
             label: formatMessage({
               id: "cockpit.garden.pool.commitment.resolve.restore",
-              defaultMessage: "Restore previous state",
+              defaultMessage: "Restore Previous State",
             }),
             description: formatMessage({
               id: "cockpit.garden.pool.commitment.resolve.restoreHint",

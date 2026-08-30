@@ -247,7 +247,7 @@ const messages = {
   "app.garden.selectYourGarden": "Select Your Garden",
   "app.garden.whichGarden": "Which garden?",
   "app.garden.upload.title": "Upload Media",
-  "app.garden.submit.tab.media.instruction": "Take a photo",
+  "app.garden.submit.tab.media.instruction": "Take a Photo",
   "app.garden.details.title": "Enter Details",
   "app.garden.submit.tab.details.instruction": "Provide details",
   "app.garden.details.feedbackPlaceholder": "Feedback",

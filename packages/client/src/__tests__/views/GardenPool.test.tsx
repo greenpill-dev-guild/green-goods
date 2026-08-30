@@ -641,7 +641,7 @@ describe("GardenPool", () => {
 
     // Closed: one entry, no doors, and no form.
     expect(screen.queryByRole("button", { name: "Offer" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Offer or request" }));
+    await user.click(screen.getByRole("button", { name: "Offer or Request" }));
     expect(screen.getByRole("button", { name: "Request" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Offer" }));
@@ -656,12 +656,12 @@ describe("GardenPool", () => {
     const protocol = pool({ poolType: "PROTOCOL", garden: OTHER });
 
     const { unmount } = render(<GardenPool pool={protocol} />);
-    expect(screen.queryByRole("button", { name: "Offer or request" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Offer or Request" })).not.toBeInTheDocument();
     unmount();
 
     mockUseHasRole.mockReturnValue({ hasRole: true, isLoading: false });
     render(<GardenPool pool={protocol} />);
-    expect(screen.getByRole("button", { name: "Offer or request" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Offer or Request" })).toBeInTheDocument();
   });
 
   it("closes the doors without starting anything", async () => {
@@ -669,7 +669,7 @@ describe("GardenPool", () => {
     mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: [commitment()] }));
 
     render(<GardenPool pool={pool()} />);
-    await user.click(screen.getByRole("button", { name: "Offer or request" }));
+    await user.click(screen.getByRole("button", { name: "Offer or Request" }));
     await user.click(screen.getByRole("button", { name: "Close" }));
 
     expect(screen.queryByRole("button", { name: "Offer" })).not.toBeInTheDocument();
@@ -682,7 +682,7 @@ describe("GardenPool", () => {
     render(<GardenPool pool={pool()} />);
 
     expect(screen.getByText("No commitments yet")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Offer or request" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Offer or Request" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Make a request" }));
     expect(mockNavigate).toHaveBeenCalledWith("commitments/new?direction=request");
   });
@@ -692,7 +692,7 @@ describe("GardenPool", () => {
 
     render(<GardenPool pool={pool({ state: "PAUSED" })} />);
 
-    expect(screen.queryByRole("button", { name: "Offer or request" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Offer or Request" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Offer support" })).not.toBeInTheDocument();
   });
 

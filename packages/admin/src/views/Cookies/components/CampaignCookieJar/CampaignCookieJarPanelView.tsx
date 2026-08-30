@@ -130,7 +130,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
             >
               {formatMessage({
                 id: "cockpit.community.cookies.sync",
-                defaultMessage: "Sync allowlist",
+                defaultMessage: "Sync Allowlist",
               })}
             </AdminButton>
           </>

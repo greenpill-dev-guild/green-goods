@@ -93,7 +93,7 @@ export function BasicsStep({ form, domainOptions }: BasicsStepProps) {
       <FormField
         label={formatMessage({
           id: "app.admin.actions.create.startDateLabel",
-          defaultMessage: "Start Date",
+          defaultMessage: "Start date",
         })}
         htmlFor="create-action-starttime"
         error={form.formState.errors.startTime?.message}
@@ -110,7 +110,7 @@ export function BasicsStep({ form, domainOptions }: BasicsStepProps) {
       <FormField
         label={formatMessage({
           id: "app.admin.actions.create.endDateLabel",
-          defaultMessage: "End Date",
+          defaultMessage: "End date",
         })}
         htmlFor="create-action-endtime"
         error={form.formState.errors.endTime?.message}

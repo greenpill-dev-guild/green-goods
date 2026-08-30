@@ -415,7 +415,7 @@ describe("garden domain recovery UI", () => {
 
     expect(screen.getByText("No actions available for this garden's domains")).toBeVisible();
 
-    await user.click(screen.getByRole("button", { name: "Configure domains" }));
+    await user.click(screen.getByRole("button", { name: "Configure Domains" }));
 
     expect(screen.getByText("Garden settings route")).toBeVisible();
   });

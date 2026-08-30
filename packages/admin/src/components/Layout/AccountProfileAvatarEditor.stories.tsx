@@ -59,17 +59,17 @@ export const PublishedAvatar: Story = {
   ],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const trigger = await canvas.findByRole("button", { name: "Edit profile photo" });
+    const trigger = await canvas.findByRole("button", { name: "Edit Profile Photo" });
     await expect(trigger).toBeVisible();
     await userEvent.click(trigger);
 
     const body = within(canvasElement.ownerDocument.body);
-    const dialog = await body.findByRole("dialog", { name: "Edit profile photo" });
+    const dialog = await body.findByRole("dialog", { name: "Edit Profile Photo" });
     await waitFor(() => expect(dialog).toBeVisible());
-    await waitFor(() => expect(body.getByRole("button", { name: "Remove photo" })).toBeVisible());
+    await waitFor(() => expect(body.getByRole("button", { name: "Remove Photo" })).toBeVisible());
     await userEvent.click(within(dialog).getByRole("button", { name: "Close" }));
     await waitFor(() =>
-      expect(body.queryByRole("dialog", { name: "Edit profile photo" })).not.toBeInTheDocument()
+      expect(body.queryByRole("dialog", { name: "Edit Profile Photo" })).not.toBeInTheDocument()
     );
   },
 };

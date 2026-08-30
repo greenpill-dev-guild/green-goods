@@ -99,7 +99,7 @@ export function PoolCommitmentsCard({
           >
             {formatMessage({
               id: "cockpit.garden.pool.act.seed",
-              defaultMessage: "Seed commitment",
+              defaultMessage: "Seed Commitment",
             })}
           </AdminButton>
         </div>

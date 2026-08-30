@@ -263,7 +263,7 @@ export const ProfileBadges: React.FC = () => {
     return renderBadgeState(
       intl.formatMessage({
         id: "app.profile.badges.connectTitle",
-        defaultMessage: "Connect to See Badges",
+        defaultMessage: "Connect to see badges",
       }),
       intl.formatMessage({
         id: "app.profile.badges.connect",

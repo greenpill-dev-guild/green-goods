@@ -195,7 +195,7 @@ export const Hero: FC<HeroProps> = () => {
                       {guidance.scenario === "in-app-browser"
                         ? intl.formatMessage({
                             id: "app.hero.inapp.title",
-                            defaultMessage: "Open in Browser",
+                            defaultMessage: "Open in browser",
                           })
                         : intl.formatMessage({
                             id: "app.hero.wrongbrowser.title",

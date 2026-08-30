@@ -142,7 +142,7 @@ export function Login() {
           message={loadingMessage}
           buttonLabel={intl.formatMessage({
             id: "app.login.button.recoverPasskey",
-            defaultMessage: "Recover with passkey",
+            defaultMessage: "Recover with Passkey",
           })}
           errorMessage={!isAuthenticating ? loginError : null}
           usernameInput={{
@@ -219,7 +219,7 @@ export function Login() {
                 label: hasExistingAccount
                   ? intl.formatMessage({
                       id: "app.login.button.recoverWithUsername",
-                      defaultMessage: "Recover with username",
+                      defaultMessage: "Recover with Username",
                     })
                   : intl.formatMessage({
                       id: "app.login.button.haveAccount",

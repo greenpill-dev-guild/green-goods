@@ -232,7 +232,7 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
           <p className="text-sm font-medium text-text-strong">
             {formatMessage({
               id: "cockpit.community.governance.signIn.title",
-              defaultMessage: "Sign in to Allocate Conviction",
+              defaultMessage: "Sign In to Allocate Conviction",
             })}
           </p>
           <p className="mt-1 body-sm text-text-sub">

@@ -59,7 +59,7 @@ export function SeedFlowFooter({
           >
             {formatMessage({
               id: "cockpit.garden.pool.seed.submit",
-              defaultMessage: "Seed this commitment",
+              defaultMessage: "Seed This Commitment",
             })}
           </AdminButton>
         ) : (

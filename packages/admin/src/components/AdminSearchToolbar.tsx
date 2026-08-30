@@ -49,7 +49,7 @@ export function AdminSearchToolbar({
 
   const clearLabel = intl.formatMessage({
     id: "app.admin.listToolbar.clearSearch",
-    defaultMessage: "Clear search",
+    defaultMessage: "Clear Search",
   });
 
   return (

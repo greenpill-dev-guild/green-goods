@@ -127,7 +127,7 @@ export function CommitmentReasonDialogs({
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.commitment.dispute.confirm",
-          defaultMessage: "Raise dispute",
+          defaultMessage: "Raise Dispute",
         })}
         suggestions={[
           formatMessage({
@@ -177,7 +177,7 @@ export function CommitmentFallbackDialog({
         fallbackPath === "PROTOCOL_FALLBACK"
           ? formatMessage({
               id: "cockpit.garden.pool.commitment.fallback.protocolTitle",
-              defaultMessage: "Confirm for the Green Goods team",
+              defaultMessage: "Confirm for the Green Goods Team",
             })
           : formatMessage({
               id: "cockpit.garden.pool.commitment.fallback.gardenTitle",

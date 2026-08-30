@@ -93,7 +93,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
         <Button
           label={formatMessage({
             id: "app.garden.joinRequest.action",
-            defaultMessage: "Request to join",
+            defaultMessage: "Request to Join",
           })}
           leadingIcon={<RiUserAddLine className="h-4 w-4" />}
           variant="primary"
@@ -115,7 +115,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
               <Dialog.Title className="text-lg font-semibold text-text-strong-950">
                 {formatMessage({
                   id: "app.garden.joinRequest.title",
-                  defaultMessage: "Request to join this garden",
+                  defaultMessage: "Request to Join This Garden",
                 })}
               </Dialog.Title>
               <Dialog.Description id={descriptionId} className="mt-1 text-sm text-text-sub-600">

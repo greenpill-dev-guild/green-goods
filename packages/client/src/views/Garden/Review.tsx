@@ -296,7 +296,7 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
           <p className="text-xs tracking-tight mb-1 uppercase text-text-sub">
             {intl.formatMessage({
               id: "app.garden.review.audioNotes",
-              defaultMessage: "Audio Notes",
+              defaultMessage: "Audio notes",
             })}
           </p>
           {audioNotes.map((file, index) => (

@@ -114,7 +114,7 @@ type Story = StoryObj<typeof ConfirmSheet>;
 export const AskSupport: Story = {
   play: async () => {
     await expect(await screen.findByRole("button", { name: "Confirm It Was Kept" })).toBeVisible();
-    await expect(screen.getByRole("button", { name: "Not yet" })).toBeVisible();
+    await expect(screen.getByRole("button", { name: "Not Yet" })).toBeVisible();
     await expect(screen.getByText("2 items")).toBeVisible();
     await expect(
       screen.getByText("2 pieces of proof are recorded but cannot be shown right now.")
@@ -171,7 +171,7 @@ export const NamedGroup: Story = {
 export const NotYet: Story = {
   play: async () => {
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Not yet" }));
+    await user.click(await screen.findByRole("button", { name: "Not Yet" }));
     await expect(await screen.findByLabelText("What still needs doing?")).toBeVisible();
   },
 };
@@ -180,7 +180,7 @@ export const NotYetOffline: Story = {
   args: { isOnline: false },
   play: async () => {
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Not yet" }));
+    await user.click(await screen.findByRole("button", { name: "Not Yet" }));
     await waitFor(() =>
       expect(screen.getByRole("button", { name: /Send to the Stewards/ })).toBeDisabled()
     );

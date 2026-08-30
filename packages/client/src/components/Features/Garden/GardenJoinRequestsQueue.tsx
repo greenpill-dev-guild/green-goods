@@ -121,7 +121,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
           <h2 id="garden-join-requests-title" className="font-semibold text-text-strong-950">
             {formatMessage({
               id: "app.garden.joinQueue.title",
-              defaultMessage: "Join Requests",
+              defaultMessage: "Join requests",
             })}
           </h2>
           <p className="mt-1 text-sm text-text-sub-600">

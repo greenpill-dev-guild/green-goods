@@ -57,7 +57,7 @@ export function CampaignCookieJarPanelList({
           <FormField
             label={formatMessage({
               id: "cockpit.community.cookies.searchCampaigns",
-              defaultMessage: "Search Cookie Jars",
+              defaultMessage: "Search cookie jars",
             })}
             htmlFor="campaign-cookie-jar-search"
           >

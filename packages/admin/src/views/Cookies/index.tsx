@@ -27,7 +27,7 @@ export default function CookiesView() {
         : [
             {
               id: "create-cookie-jar",
-              label: "Create cookie jar",
+              label: "Create Cookie Jar",
               labelId: "cockpit.community.cookies.create",
               icon: RiAddLine,
               onClick: () => navigate(adminRoutes.cookiesDeploy()),

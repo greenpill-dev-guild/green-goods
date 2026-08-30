@@ -241,7 +241,7 @@ export function GardenPoolTab({
             >
               {formatMessage({
                 id: "cockpit.garden.pool.act.setUp",
-                defaultMessage: "Set up commitments",
+                defaultMessage: "Set Up Commitments",
               })}
             </AdminButton>
           </AdminCard>

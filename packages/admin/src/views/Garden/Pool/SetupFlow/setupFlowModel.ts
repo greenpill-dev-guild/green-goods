@@ -126,7 +126,7 @@ export function setupFlowTitle(
   return intent === "first-run"
     ? formatMessage({
         id: "cockpit.garden.pool.setup.title",
-        defaultMessage: "Set up commitments",
+        defaultMessage: "Set Up Commitments",
       })
     : isCampaign
       ? formatMessage({

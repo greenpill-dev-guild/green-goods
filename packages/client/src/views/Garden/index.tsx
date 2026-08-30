@@ -250,7 +250,7 @@ const Work: React.FC = () => {
       primaryLabel: isWalletRequestExpired
         ? intl.formatMessage({
             id: "app.garden.submit.tab.review.retryLabel",
-            defaultMessage: "Submit again",
+            defaultMessage: "Submit Again",
           })
         : intl.formatMessage({
             id: "app.garden.submit.tab.review.label",

@@ -174,8 +174,8 @@ describe("PoolDialogs", () => {
 
   it.each([
     ["close", "Close Pool", "closePool"],
-    ["compost", "Archive pool", "compostPool"],
-    ["reopen", "Reopen to set-up", "reopenPool"],
+    ["compost", "Archive Pool", "compostPool"],
+    ["reopen", "Reopen to Set-Up", "reopenPool"],
   ] as const)("executes and closes the %s confirmation", async (confirmDialog, label, act) => {
     const result = setup({ confirmDialog });
     fireEvent.click(screen.getByRole("button", { name: label }));

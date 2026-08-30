@@ -274,7 +274,7 @@ export function HubConfirmQueue({
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.commitment.dispute.confirm",
-          defaultMessage: "Raise dispute",
+          defaultMessage: "Raise Dispute",
         })}
         suggestions={[
           formatMessage({

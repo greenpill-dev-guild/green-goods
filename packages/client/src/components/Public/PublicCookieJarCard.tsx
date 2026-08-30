@@ -624,7 +624,7 @@ function CampaignCookieJarInlineActions({
         >
           {formatMessage({
             id: "public.cookies.claimCookie",
-            defaultMessage: "Claim cookie",
+            defaultMessage: "Claim Cookie",
           })}
         </Button>
       </div>

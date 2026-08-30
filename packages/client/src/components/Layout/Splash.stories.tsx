@@ -279,7 +279,7 @@ export const Mobile: Story = {
 // Slot model recap: two control slots on one scaffold. ENTRY screens put the
 // primary in slot 1 and the wallet secondary in slot 2; FORM screens (create /
 // recover) put the input in slot 1 and the primary in slot 2. The message zone
-// shows error XOR info; the tertiary is "Recover with username" on entry and
+// shows error XOR info; the tertiary is "Recover with Username" on entry and
 // "Back" on forms. Recovery is flat — no separate-account fork.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -290,9 +290,9 @@ const COPY = {
   createButton: "Create Account",
   signInButton: "Sign in with Passkey",
   continueAs: "Continue as gardener.eth",
-  recoverButton: "Recover with passkey",
+  recoverButton: "Recover with Passkey",
   wallet: "Sign in with a Wallet",
-  recoverWithUsername: "Recover with username",
+  recoverWithUsername: "Recover with Username",
   haveAccount: "Already have an account?",
   newAccountLabel: "Display name for new account",
   newAccountPlaceholder: "e.g. alice or alice.eth",
@@ -453,7 +453,7 @@ const CATALOG: ReadonlyArray<{ label: string; args: SplashStoryArgs }> = [
   { label: "Entry · first install", args: entryNewArgs },
   { label: "Entry · returning", args: entryReturningArgs },
   { label: "Create account form", args: createFormArgs },
-  { label: "Recover with username", args: recoverFormArgs },
+  { label: "Recover with Username", args: recoverFormArgs },
   { label: "Error · not found", args: { ...recoverFormArgs, errorMessage: COPY.err.noPasskey } },
   {
     label: "Error · server unavailable",

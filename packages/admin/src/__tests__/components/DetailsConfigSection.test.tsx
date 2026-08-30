@@ -105,10 +105,10 @@ describe("DetailsConfigSection", () => {
     });
     fireEvent.click(screen.getAllByLabelText("Required field")[0]);
 
-    fireEvent.click(screen.getAllByTitle("Move down")[0]);
+    fireEvent.click(screen.getAllByTitle("Move Down")[0]);
     expect(currentConfig().inputs.map((input) => input.key)).toEqual(["notes", "crop"]);
 
-    fireEvent.click(screen.getAllByTitle("Move up")[1]);
+    fireEvent.click(screen.getAllByTitle("Move Up")[1]);
     expect(currentConfig().inputs.map((input) => input.key)).toEqual(["crop", "notes"]);
 
     fireEvent.click(screen.getAllByTitle("Delete")[1]);

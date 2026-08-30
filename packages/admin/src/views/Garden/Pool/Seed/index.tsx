@@ -140,7 +140,7 @@ export function SeedCommitmentDialog({
   const busy = jobs.isPending;
   const title = formatMessage({
     id: "cockpit.garden.pool.seed.title",
-    defaultMessage: "Seed a commitment",
+    defaultMessage: "Seed a Commitment",
   });
 
   const goNext = useCallback(async () => {

@@ -241,7 +241,7 @@ function InputFieldEditor({
             className="h-8 w-8 min-w-0 px-0 text-text-soft hover:text-text-strong disabled:opacity-30"
             title={formatMessage({
               id: "app.admin.actions.detailsConfig.moveUp",
-              defaultMessage: "Move up",
+              defaultMessage: "Move Up",
             })}
           >
             <RiArrowUpLine className="h-4 w-4" />
@@ -255,7 +255,7 @@ function InputFieldEditor({
             className="h-8 w-8 min-w-0 px-0 text-text-soft hover:text-text-strong disabled:opacity-30"
             title={formatMessage({
               id: "app.admin.actions.detailsConfig.moveDown",
-              defaultMessage: "Move down",
+              defaultMessage: "Move Down",
             })}
           >
             <RiArrowDownLine className="h-4 w-4" />

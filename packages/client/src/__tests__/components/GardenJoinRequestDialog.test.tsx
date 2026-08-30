@@ -50,7 +50,7 @@ describe("GardenJoinRequestDialog", () => {
       </MemoryRouter>
     );
 
-    await user.click(screen.getByRole("button", { name: "Request to join" }));
+    await user.click(screen.getByRole("button", { name: "Request to Join" }));
     const send = screen.getByRole("button", { name: "Send Request" });
     expect(send).toHaveAttribute("aria-disabled", "true");
     await user.type(screen.getByLabelText("Display name"), "Maya");
@@ -75,7 +75,7 @@ describe("GardenJoinRequestDialog", () => {
       </MemoryRouter>
     );
     expect(checkStatus).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "Request to join" }));
+    await user.click(screen.getByRole("button", { name: "Request to Join" }));
     await user.click(screen.getByRole("button", { name: "Check request status" }));
     expect(checkStatus).toHaveBeenCalledOnce();
   });
@@ -93,7 +93,7 @@ describe("GardenJoinRequestDialog", () => {
       </MemoryRouter>
     );
 
-    await user.click(screen.getByRole("button", { name: "Request to join" }));
+    await user.click(screen.getByRole("button", { name: "Request to Join" }));
     await user.type(screen.getByLabelText("Display name"), "Maya");
     await user.click(screen.getByRole("button", { name: "Send Request" }));
 
@@ -166,7 +166,7 @@ describe("GardenJoinRequestDialog", () => {
       </MemoryRouter>
     );
 
-    await user.click(screen.getByRole("button", { name: "Request to join" }));
+    await user.click(screen.getByRole("button", { name: "Request to Join" }));
 
     expect(screen.getByRole("button", { name: "Check request status" })).toHaveAttribute(
       "aria-disabled",

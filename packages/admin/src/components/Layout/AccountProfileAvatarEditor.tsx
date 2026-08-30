@@ -49,8 +49,8 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
   const hasUnpublishedDraft = Boolean(selectedFile ?? draftFile);
   const saveLabel =
     resolved.source === "app"
-      ? formatMessage({ id: "profile.avatar.replace", defaultMessage: "Replace photo" })
-      : formatMessage({ id: "profile.avatar.save", defaultMessage: "Save photo" });
+      ? formatMessage({ id: "profile.avatar.replace", defaultMessage: "Replace Photo" })
+      : formatMessage({ id: "profile.avatar.save", defaultMessage: "Save Photo" });
 
   useEffect(() => {
     setSelectedPreview(null);
@@ -126,7 +126,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
         className="account-avatar-tile relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2"
         aria-label={formatMessage({
           id: "profile.avatar.edit",
-          defaultMessage: "Edit profile photo",
+          defaultMessage: "Edit Profile Photo",
         })}
       >
         {resolved.avatarUri ? (
@@ -146,7 +146,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
       <AdminDialog
         open={open}
         onOpenChange={setOpen}
-        title={formatMessage({ id: "profile.avatar.edit", defaultMessage: "Edit profile photo" })}
+        title={formatMessage({ id: "profile.avatar.edit", defaultMessage: "Edit Profile Photo" })}
         description={formatMessage({
           id: "profile.avatar.privacyNotice",
           defaultMessage:
@@ -165,7 +165,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
                 disabled={busy}
                 leadingIcon={<RiDeleteBinLine />}
               >
-                {formatMessage({ id: "profile.avatar.remove", defaultMessage: "Remove photo" })}
+                {formatMessage({ id: "profile.avatar.remove", defaultMessage: "Remove Photo" })}
               </AdminButton>
             ) : null}
             <AdminButton
@@ -208,7 +208,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
               accept="image/jpeg,image/png,image/webp"
               aria-label={formatMessage({
                 id: "profile.avatar.chooseFile",
-                defaultMessage: "Choose photo",
+                defaultMessage: "Choose Photo",
               })}
               className="sr-only"
               onChange={(event) => {
@@ -220,7 +220,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
               disabled={busy}
             />
             <RiImageAddLine className="h-4 w-4" aria-hidden="true" />
-            {formatMessage({ id: "profile.avatar.chooseFile", defaultMessage: "Choose photo" })}
+            {formatMessage({ id: "profile.avatar.chooseFile", defaultMessage: "Choose Photo" })}
           </label>
 
           {status ? (
@@ -290,7 +290,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
         })}
         confirmLabel={formatMessage({
           id: "profile.avatar.remove",
-          defaultMessage: "Remove photo",
+          defaultMessage: "Remove Photo",
         })}
         cancelLabel={formatMessage({ id: "profile.avatar.cancel", defaultMessage: "Cancel" })}
         variant="danger"

@@ -169,7 +169,7 @@ export const AppSettings: React.FC = () => {
         }),
         buttonLabel: intl.formatMessage({
           id: "app.update.restartButton",
-          defaultMessage: "Restart to update",
+          defaultMessage: "Restart to Update",
         }),
       },
       applying: {
@@ -185,7 +185,7 @@ export const AppSettings: React.FC = () => {
       stalled: {
         title: intl.formatMessage({
           id: "app.update.stalled.title",
-          defaultMessage: "Update Needs a Restart",
+          defaultMessage: "Update needs a restart",
         }),
         description: intl.formatMessage({
           id: "app.update.stalled.description",

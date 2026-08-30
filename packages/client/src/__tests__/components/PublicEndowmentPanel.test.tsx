@@ -133,7 +133,7 @@ import { PublicEndowmentPanel } from "../../components/Public/PublicEndowmentPan
 const messages: Record<string, string> = {
   "app.treasury.invalidAmount": "Enter a valid number",
   "public.fund.endowments.connect.cta": "Connect Wallet",
-  "public.fund.endowments.connect.title": "Connect to See Your Endowments",
+  "public.fund.endowments.connect.title": "Connect to see your endowments",
   "public.fund.endowments.empty.title": "No endowments for this wallet yet",
   "public.fund.endowments.position.withdraw": "Withdraw",
   "public.fund.endowments.title": "Your Endowments",
@@ -243,7 +243,7 @@ describe("PublicEndowmentPanel", () => {
 
     expect(screen.getByRole("heading", { name: "Your Endowments" })).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Connect to See Your Endowments" })
+      screen.getByRole("heading", { name: "Connect to see your endowments" })
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Connect Wallet" }));

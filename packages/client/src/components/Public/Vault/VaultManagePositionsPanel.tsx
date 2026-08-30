@@ -253,7 +253,7 @@ function ConnectedWalletSection({
         <h3 className="font-serif text-xl font-normal text-text-strong-950">
           {formatMessage({
             id: "public.vaults.manage.connected.connectTitle",
-            defaultMessage: "Connect to See Your Endowments",
+            defaultMessage: "Connect to see your endowments",
           })}
         </h3>
         <p className="mt-3 text-sm leading-[1.6] text-text-sub-600">

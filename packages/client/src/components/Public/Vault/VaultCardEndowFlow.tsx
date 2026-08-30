@@ -1186,7 +1186,7 @@ function CardEndowProviderContent({
               {otpSent
                 ? formatMessage({
                     id: "public.vaults.cardEndow.verifyWallet",
-                    defaultMessage: "Verify email",
+                    defaultMessage: "Verify Email",
                   })
                 : formatMessage({
                     id: "public.vaults.cardEndow.sendCode",
@@ -1384,7 +1384,7 @@ function CardEndowProviderContent({
             >
               {formatMessage({
                 id: "public.vaults.cardEndow.readShares",
-                defaultMessage: "Check confirmation",
+                defaultMessage: "Check Confirmation",
               })}
             </button>
           )}

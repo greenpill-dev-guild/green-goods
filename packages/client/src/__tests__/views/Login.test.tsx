@@ -329,7 +329,7 @@ describe("Login View - New User (two-step create)", () => {
 
     await user.click(screen.getByTestId("tertiary-button"));
 
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with passkey");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with Passkey");
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
     // Flat sub-flow: no wallet, no fork — just Back.
     expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
@@ -361,7 +361,7 @@ describe("Login View - New User (two-step create)", () => {
     // Recovery is flat: the user retries or goes Back — nothing else appears.
     expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
     expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back");
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with passkey");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with Passkey");
 
     // Back returns to the entry screen where a fresh account can be created.
     await user.click(screen.getByTestId("tertiary-button"));
@@ -464,7 +464,7 @@ describe("Login View - Existing User (entry screen)", () => {
 
   it("offers username recovery as tertiary when the passkey server is enabled", () => {
     renderWithRouter();
-    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Recover with username");
+    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Recover with Username");
   });
 
   it("does not show a tertiary action when the passkey server is disabled", () => {
@@ -479,7 +479,7 @@ describe("Login View - Existing User (entry screen)", () => {
 
     await user.click(screen.getByTestId("tertiary-button"));
 
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with passkey");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with Passkey");
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
     expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
     expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back");

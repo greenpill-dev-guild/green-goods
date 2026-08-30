@@ -419,8 +419,8 @@ describe("GardenCommitment", () => {
     );
     render();
 
-    await userEvent.click(screen.getByRole("button", { name: "Take this up" }));
-    await userEvent.click(screen.getByRole("button", { name: "Take this up" }));
+    await userEvent.click(screen.getByRole("button", { name: "Take This Up" }));
+    await userEvent.click(screen.getByRole("button", { name: "Take This Up" }));
     expect(mockActs.claim).toHaveBeenCalledWith({ kind: "personal", garden: GARDEN });
   });
 
@@ -532,7 +532,7 @@ describe("GardenCommitment", () => {
     );
     render();
     await userEvent.click(screen.getByRole("button", { name: "Confirm It Was Kept" }));
-    await userEvent.click(screen.getByRole("button", { name: "Not yet" }));
+    await userEvent.click(screen.getByRole("button", { name: "Not Yet" }));
     await userEvent.type(screen.getByLabelText("What still needs doing?"), "The far bed");
     await userEvent.click(screen.getByRole("button", { name: "Send to the Stewards" }));
 
@@ -573,9 +573,9 @@ describe("GardenCommitment", () => {
       })
     );
     render();
-    await userEvent.click(screen.getByRole("button", { name: "Link work" }));
+    await userEvent.click(screen.getByRole("button", { name: "Link Work" }));
     await userEvent.click(screen.getByRole("radio", { name: /Prune the north beds/ }));
-    const confirm = screen.getByRole("button", { name: "Link this work" });
+    const confirm = screen.getByRole("button", { name: "Link This Work" });
     await userEvent.click(confirm);
     await userEvent.click(confirm);
 
@@ -597,7 +597,7 @@ describe("GardenCommitment", () => {
     );
     render();
 
-    await userEvent.click(screen.getByRole("button", { name: "Link work" }));
+    await userEvent.click(screen.getByRole("button", { name: "Link Work" }));
     await userEvent.click(screen.getByRole("button", { name: "Submit work for requirement 1" }));
 
     expect(screen.getByText("Work submission")).toBeInTheDocument();
@@ -622,7 +622,7 @@ describe("GardenCommitment", () => {
     );
     render();
 
-    await userEvent.click(screen.getByRole("button", { name: "Link work" }));
+    await userEvent.click(screen.getByRole("button", { name: "Link Work" }));
 
     expect(
       screen.getByRole("button", { name: "Submit work for requirement 1" })
@@ -666,7 +666,7 @@ describe("GardenCommitment", () => {
     );
     render();
 
-    await userEvent.click(screen.getByRole("button", { name: "Link work" }));
+    await userEvent.click(screen.getByRole("button", { name: "Link Work" }));
     await userEvent.click(screen.getByRole("radio", { name: /Prune the north beds/ }));
 
     const row = screen.getByRole("combobox", { name: "Which row it fulfils" });

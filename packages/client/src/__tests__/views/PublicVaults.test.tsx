@@ -1026,7 +1026,7 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
     expect(screen.getByTestId("vault-wallet-endow-path")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Enter an amount" })).toBeDisabled();
-    expect(screen.getByText("Review Your Endowment")).toBeInTheDocument();
+    expect(screen.getByText("Review your endowment")).toBeInTheDocument();
     expect(screen.getByText("Octant vault on Ethereum")).toBeInTheDocument();
     expect(screen.getByText("Set when you connect a wallet")).toBeInTheDocument();
     expect(screen.queryByTestId("vault-checkout-amount-feedback")).not.toBeInTheDocument();

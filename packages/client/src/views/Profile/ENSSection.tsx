@@ -309,7 +309,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                     : isReleaseUnavailable
                       ? intl.formatMessage({
                           id: "app.profile.ensChangeRequestButton",
-                          defaultMessage: "Request username change",
+                          defaultMessage: "Request Username Change",
                         })
                       : releasingSlug === existingSlug
                         ? intl.formatMessage({
@@ -318,7 +318,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                           })
                         : intl.formatMessage({
                             id: "app.profile.releaseENSButton",
-                            defaultMessage: "Release username",
+                            defaultMessage: "Release Username",
                           })
                 }
                 className="w-full"
@@ -601,7 +601,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                         })
                       : intl.formatMessage({
                           id: "app.profile.claimButton",
-                          defaultMessage: "Claim name",
+                          defaultMessage: "Claim Name",
                         })
                   }
                   className="w-full"
@@ -640,7 +640,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
         variant="warning"
         confirmLabel={intl.formatMessage({
           id: "app.profile.releaseENSButton",
-          defaultMessage: "Release username",
+          defaultMessage: "Release Username",
         })}
         isLoading={ensRelease.isPending}
       />

@@ -215,7 +215,7 @@ export function PublicEndowmentPanel({
                 <h3 className="font-serif text-xl font-normal text-text-strong-950">
                   {formatMessage({
                     id: "public.fund.endowments.connect.title",
-                    defaultMessage: "Connect to See Your Endowments",
+                    defaultMessage: "Connect to see your endowments",
                   })}
                 </h3>
                 <p className="mt-3 text-sm leading-[1.6] text-text-sub-600">

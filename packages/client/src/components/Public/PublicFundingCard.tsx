@@ -533,7 +533,7 @@ export function SuccessBody({
           {isDonate
             ? formatMessage({
                 id: "public.fund.card.donateAgain",
-                defaultMessage: "Donate again",
+                defaultMessage: "Donate Again",
               })
             : formatMessage({
                 id: "public.fund.card.endowAgain",

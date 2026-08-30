@@ -29,7 +29,7 @@ const messages: Record<string, string> = {
   "public.fund.card.unavailable.endow": "This Garden hasn't enabled endowments yet.",
   "public.fund.card.successDonate": "Donated {amount} to {garden}",
   "public.fund.card.successEndow": "Endowed {amount} to {garden}",
-  "public.fund.card.donateAgain": "Donate again",
+  "public.fund.card.donateAgain": "Donate Again",
   "public.fund.card.endowAgain": "Endow Again",
 };
 

@@ -532,7 +532,7 @@ export function ActionTranslationEditor({
         >
           {formatMessage({
             id: "app.admin.actions.translations.generateDraft",
-            defaultMessage: "Generate draft",
+            defaultMessage: "Generate Draft",
           })}
         </AdminButton>
         <AdminButton

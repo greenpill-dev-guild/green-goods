@@ -209,7 +209,7 @@ export default function Glossary() {
                   <EditorialLinkArrow to={`${DOCS_BASE}${term.docsPath}`} external>
                     {formatMessage({
                       id: "public.glossary.readDocs",
-                      defaultMessage: "Read in docs",
+                      defaultMessage: "Read in Docs",
                     })}
                   </EditorialLinkArrow>
                 </div>

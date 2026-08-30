@@ -451,7 +451,7 @@ function PendingFundedDepositCard({
       })
     : formatMessage({
         id: "public.vaults.manage.card.pendingFinishCta",
-        defaultMessage: "Finish endowment",
+        defaultMessage: "Finish Endowment",
       });
 
   return (
@@ -676,7 +676,7 @@ function RestoreEmailWallet({
           >
             {formatMessage({
               id: "public.vaults.manage.card.verify",
-              defaultMessage: "Restore access",
+              defaultMessage: "Restore Access",
             })}
           </EditorialGhostButton>
         </form>

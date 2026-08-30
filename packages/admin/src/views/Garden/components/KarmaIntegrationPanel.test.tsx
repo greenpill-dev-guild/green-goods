@@ -85,7 +85,7 @@ describe("KarmaIntegrationPanel", () => {
   it("renders a disambiguated external Karma profile link when one is available", () => {
     renderPanel();
 
-    const link = screen.getByRole("link", { name: "Open this garden's Karma profile" });
+    const link = screen.getByRole("link", { name: "Open This Garden's Karma Profile" });
     expect(link).toHaveAttribute("href", "https://www.karmahq.org/project/aiyeloja-family-garden");
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");

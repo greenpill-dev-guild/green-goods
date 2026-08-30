@@ -314,7 +314,7 @@ describe("CookiesPage", () => {
 
     renderPage();
 
-    await user.click(await screen.findByRole("button", { name: "Claim cookie" }));
+    await user.click(await screen.findByRole("button", { name: "Claim Cookie" }));
 
     expect(mockClaimMutate).toHaveBeenCalledWith(
       {
@@ -358,7 +358,7 @@ describe("CookiesPage", () => {
     expect(await screen.findByRole("heading", { name: /Seasonal jars/i }));
     const card = await screen.findByRole("article", { name: "Earth Week Cookie Jar" });
 
-    expect(within(card).getByRole("button", { name: "Claim cookie" })).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: "Claim Cookie" })).toBeInTheDocument();
     expect(within(card).getByRole("button", { name: "Deposit" })).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -382,7 +382,7 @@ describe("CookiesPage", () => {
     renderPage();
 
     await user.type(await screen.findByLabelText("Amount to claim"), "3");
-    await user.click(screen.getByRole("button", { name: "Claim cookie" }));
+    await user.click(screen.getByRole("button", { name: "Claim Cookie" }));
 
     expect(mockClaimMutate).toHaveBeenCalledWith(
       {
@@ -406,7 +406,7 @@ describe("CookiesPage", () => {
     renderPage();
 
     expect(await screen.findByText(/wallet is not on the list yet/i));
-    expect(screen.getByRole("button", { name: "Claim cookie" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Claim Cookie" })).toBeDisabled();
   });
 
   it("submits a deposit from the same public page", async () => {

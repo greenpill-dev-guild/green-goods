@@ -882,7 +882,7 @@ function VaultCheckoutDialogContent({
             })}
             title={formatMessage({
               id: "public.vaults.walletEndow.stageTitle",
-              defaultMessage: "Review Your Endowment",
+              defaultMessage: "Review your endowment",
             })}
             description={formatMessage({
               id: "public.vaults.walletEndow.stageDescription",

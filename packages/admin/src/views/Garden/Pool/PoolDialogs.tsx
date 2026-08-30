@@ -149,7 +149,7 @@ export function PoolDialogs({
         variant="warning"
         title={formatMessage({
           id: "cockpit.garden.pool.compost.title",
-          defaultMessage: "Archive this pool",
+          defaultMessage: "Archive This Pool",
         })}
         description={formatMessage({
           id: "cockpit.garden.pool.compost.description",
@@ -158,7 +158,7 @@ export function PoolDialogs({
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.compost.confirm",
-          defaultMessage: "Archive pool",
+          defaultMessage: "Archive Pool",
         })}
         cancelLabel={formatMessage({
           id: "cockpit.garden.pool.compost.keep",
@@ -177,7 +177,7 @@ export function PoolDialogs({
         tone={tone}
         title={formatMessage({
           id: "cockpit.garden.pool.reopen.title",
-          defaultMessage: "Reopen this pool",
+          defaultMessage: "Reopen This Pool",
         })}
         description={formatMessage({
           id: "cockpit.garden.pool.reopen.description",
@@ -186,7 +186,7 @@ export function PoolDialogs({
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.reopen.confirm",
-          defaultMessage: "Reopen to set-up",
+          defaultMessage: "Reopen to Set-Up",
         })}
         cancelLabel={formatMessage({
           id: "cockpit.garden.pool.reopen.keep",

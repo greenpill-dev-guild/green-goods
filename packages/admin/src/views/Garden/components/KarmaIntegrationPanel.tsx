@@ -199,7 +199,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
             className="admin-hit-target inline-flex h-8 items-center gap-1 rounded-[var(--m3-shape-full)] px-2 text-label-sm font-medium text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2"
             aria-label={formatMessage({
               id: "cockpit.garden.karma.profileLinkLabel",
-              defaultMessage: "Open this garden's Karma profile",
+              defaultMessage: "Open This Garden's Karma Profile",
             })}
           >
             {formatMessage({

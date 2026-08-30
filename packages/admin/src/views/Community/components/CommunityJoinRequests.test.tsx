@@ -62,10 +62,10 @@ const messages = {
   "cockpit.community.joinRequests.declineTitle": "Decline Join Request",
   "cockpit.community.joinRequests.description": "Review pending requests.",
   "cockpit.community.joinRequests.empty": "No pending requests.",
-  "cockpit.community.joinRequests.load": "Check requests",
+  "cockpit.community.joinRequests.load": "Check Requests",
   "cockpit.community.joinRequests.membershipPending": "Membership pending.",
   "cockpit.community.joinRequests.reason": "Reason for declining",
-  "cockpit.community.joinRequests.title": "Join Requests",
+  "cockpit.community.joinRequests.title": "Join requests",
   "cockpit.community.joinRequests.updateFailed": "The request could not be updated.",
   "cockpit.community.joinRequests.welcome": "Welcome",
   "cockpit.community.joinRequests.welcomed": "The gardener was welcomed.",
@@ -90,7 +90,7 @@ describe("CommunityJoinRequests", () => {
     const user = userEvent.setup();
     renderQueue();
     expect(loadQueue).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "Check requests" }));
+    await user.click(screen.getByRole("button", { name: "Check Requests" }));
     expect(loadQueue).toHaveBeenCalledOnce();
 
     await user.click(screen.getByRole("button", { name: "Welcome" }));

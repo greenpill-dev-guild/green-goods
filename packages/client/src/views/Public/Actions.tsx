@@ -371,7 +371,7 @@ export default function ActionsGallery() {
           <nav
             aria-label={formatMessage({
               id: "public.actions.filterLabel",
-              defaultMessage: "Filter Actions by domain",
+              defaultMessage: "Filter actions by domain",
             })}
             className="mt-8"
           >

@@ -17,7 +17,7 @@ const meta: Meta<typeof SeedFlowFooter> = {
   },
   args: {
     busy: false,
-    title: "Seed a commitment",
+    title: "Seed a Commitment",
     stepIndex: 0,
     isLast: false,
     seedDisabled: false,

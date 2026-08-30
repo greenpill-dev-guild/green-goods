@@ -271,7 +271,7 @@ export function PoolStatusCard({
             >
               {formatMessage({
                 id: "cockpit.garden.pool.act.resume",
-                defaultMessage: "Resume pool",
+                defaultMessage: "Resume Pool",
               })}
             </AdminButton>
           ) : model.status === "open" ? (

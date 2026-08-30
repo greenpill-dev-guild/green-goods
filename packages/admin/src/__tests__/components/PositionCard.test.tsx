@@ -212,7 +212,7 @@ describe("PositionCard", () => {
       render(createElement(PositionCard, defaultProps));
 
       expect(screen.queryByText("Harvest & Distribute")).not.toBeInTheDocument();
-      expect(screen.queryByText("Distribute yield")).not.toBeInTheDocument();
+      expect(screen.queryByText("Distribute Yield")).not.toBeInTheDocument();
       expect(screen.queryByText("Emergency pause")).not.toBeInTheDocument();
     });
 
@@ -291,7 +291,7 @@ describe("PositionCard", () => {
 
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
-      expect(screen.getByText("Distribute yield")).toBeInTheDocument();
+      expect(screen.getByText("Distribute Yield")).toBeInTheDocument();
       expect(screen.queryByText("Harvest & Distribute")).not.toBeInTheDocument();
     });
 
@@ -306,7 +306,7 @@ describe("PositionCard", () => {
 
       expect(screen.getByText(/2 USDC is waiting/i)).toBeInTheDocument();
       expect(screen.getByText(/7 USDC minimum/i)).toBeInTheDocument();
-      expect(screen.queryByText("Distribute yield")).not.toBeInTheDocument();
+      expect(screen.queryByText("Distribute Yield")).not.toBeInTheDocument();
     });
 
     it("routes the split-only retry through a fresh destination-aware confirmation", async () => {
@@ -330,7 +330,7 @@ describe("PositionCard", () => {
       expect(screen.getByText("Harvest and Distribute Yield")).toBeInTheDocument();
       expect(mockYieldRefetch).toHaveBeenCalled();
 
-      await user.click(screen.getByText("Distribute yield"));
+      await user.click(screen.getByText("Distribute Yield"));
       expect(mockHarvestDistributionMutate).toHaveBeenCalledWith(
         expect.objectContaining({ harvestFirst: false }),
         expect.objectContaining({ onSettled: expect.any(Function) })
@@ -469,7 +469,7 @@ describe("PositionCard", () => {
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
       expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
-      await user.click(screen.getByText("Check status"));
+      await user.click(screen.getByText("Check Status"));
 
       expect(mockYieldRefetch).toHaveBeenCalled();
       await waitFor(() => expect(mockHarvestDistributionReset).toHaveBeenCalled());
@@ -489,7 +489,7 @@ describe("PositionCard", () => {
         createElement(PositionCard, { ...defaultProps, canManage: true })
       );
 
-      await user.click(screen.getByText("Check status"));
+      await user.click(screen.getByText("Check Status"));
       expect(mockYieldRefetch).toHaveBeenCalled();
       expect(mockHarvestDistributionReset).not.toHaveBeenCalled();
 
@@ -516,7 +516,7 @@ describe("PositionCard", () => {
 
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
-      await user.click(screen.getByText("Check status"));
+      await user.click(screen.getByText("Check Status"));
 
       expect(mockYieldRefetch).toHaveBeenCalled();
       expect(mockHarvestDistributionReset).not.toHaveBeenCalled();
@@ -538,7 +538,7 @@ describe("PositionCard", () => {
 
       expect(screen.getByText(/outcome could not be verified yet/i)).toBeInTheDocument();
       expect(screen.queryByText("Retry Harvest")).not.toBeInTheDocument();
-      expect(screen.getByText("Check status")).toBeInTheDocument();
+      expect(screen.getByText("Check Status")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
     });
 
@@ -617,7 +617,7 @@ describe("PositionCard", () => {
       };
       rerender(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
-      const confirmButtons = screen.getAllByText("Distribute yield");
+      const confirmButtons = screen.getAllByText("Distribute Yield");
       await user.click(confirmButtons[confirmButtons.length - 1]);
       expect(mockHarvestDistributionMutate).toHaveBeenCalledWith(
         expect.objectContaining({ harvestFirst: false }),
@@ -697,7 +697,7 @@ describe("PositionCard", () => {
         })
       );
 
-      expect(screen.getByText("Enable Auto-allocation")).toBeInTheDocument();
+      expect(screen.getByText("Enable Auto-Allocation")).toBeInTheDocument();
     });
 
     it("does NOT show CTA when vault is shutdown even if maxDeposit is 0", () => {
@@ -718,7 +718,7 @@ describe("PositionCard", () => {
         })
       );
 
-      expect(screen.queryByText("Enable Auto-allocation")).not.toBeInTheDocument();
+      expect(screen.queryByText("Enable Auto-Allocation")).not.toBeInTheDocument();
     });
 
     it("does NOT show CTA when deposit limit is non-zero (vault is full, not misconfigured)", () => {
@@ -739,7 +739,7 @@ describe("PositionCard", () => {
         })
       );
 
-      expect(screen.queryByText("Enable Auto-allocation")).not.toBeInTheDocument();
+      expect(screen.queryByText("Enable Auto-Allocation")).not.toBeInTheDocument();
     });
 
     it("calls enableAutoAllocate when the recovery action is clicked", async () => {
@@ -760,7 +760,7 @@ describe("PositionCard", () => {
         })
       );
 
-      await user.click(screen.getByText("Enable Auto-allocation"));
+      await user.click(screen.getByText("Enable Auto-Allocation"));
 
       expect(mockEnableAutoAllocateMutate).toHaveBeenCalledWith(
         { gardenAddress: defaultProps.gardenAddress, assetAddress: mockVault.asset },

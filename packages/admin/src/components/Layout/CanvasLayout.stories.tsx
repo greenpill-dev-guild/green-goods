@@ -271,7 +271,7 @@ export const RealProviderShell: Story = {
     await expect(await canvas.findByRole("heading", { name: "Hub workbench" })).toBeVisible();
     await expect(await canvas.findByRole("button", { name: "Botanic Commons" })).toBeVisible();
 
-    const searchButton = canvas.queryByRole("button", { name: "Open search" });
+    const searchButton = canvas.queryByRole("button", { name: "Open Search" });
     if (searchButton) {
       await userEvent.click(searchButton);
       const body = within(document.body);
