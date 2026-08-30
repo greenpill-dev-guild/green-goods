@@ -19,9 +19,15 @@ const appDir = path.join(repoRoot, "packages", "qa");
 const page = readFileSync(path.join(appDir, "index.html"), "utf8");
 
 function inlineScript(): string {
-  const match = page.match(/<script>([\s\S]*)<\/script>/);
-  if (!match) throw new Error("index.html has no inline <script>");
-  return match[1];
+  // Literal slicing rather than a tag-shaped regex. This is not sanitizing
+  // hostile HTML — it reads one file we author — but a regex that pattern-
+  // matches an HTML tag reads as a broken sanitizer to scanners, and the
+  // string search is both clearer and exactly as correct here.
+  const OPEN = "<script>";
+  const start = page.indexOf(OPEN);
+  const end = page.lastIndexOf("</script>");
+  if (start < 0 || end < start) throw new Error("index.html has no inline <script>");
+  return page.slice(start + OPEN.length, end);
 }
 
 describe("QA app page", () => {
