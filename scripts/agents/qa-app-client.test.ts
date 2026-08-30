@@ -176,8 +176,6 @@ async function outboxDurabilityHarness() {
     rd: false,
     tx: false,
   };
-  // A second case so one tab's queued work can be distinguished from another's.
-  const otherCase = { ...testCase, id: "PUB-002", scenario: "Browse the gardens map" };
   const response = (body) => ({ ok: true, status: 200, json: async () => structuredClone(body) });
   const flush = async () => {
     await Promise.resolve();
