@@ -267,6 +267,9 @@
         "scripts/agents/qa-state.ts",
         "scripts/agents/qa-state.test.ts",
         "scripts/agents/qa-state-pull.ts",
+        "scripts/agents/qa-app-parity.test.ts",
+        "packages/qa/api/state.ts",
+        "packages/qa/dev.mjs",
         "scripts/agents/posthog-query.ts",
         "scripts/agents/posthog-query.test.ts"
       ]
