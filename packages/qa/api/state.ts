@@ -26,7 +26,10 @@
 
 import { BlobPreconditionFailedError, get, put } from "@vercel/blob";
 
-import { SESSION_COOKIE, isAllowed, parseAllowlist, readCookie, readSession } from "../auth";
+// `.js`, not `.ts`, and not extensionless: Vercel compiles this to ESM and
+// Node's resolver demands an explicit extension on a relative import. Without
+// it the function crashes at load with ERR_MODULE_NOT_FOUND — which it did.
+import { SESSION_COOKIE, isAllowed, parseAllowlist, readCookie, readSession } from "../auth.js";
 
 /**
  * A shard is keyed by the ADDRESS that owns it, never by a display name.

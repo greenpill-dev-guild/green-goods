@@ -23,7 +23,7 @@ import {
   sessionCookie,
   siweMessage,
   verifySignIn,
-} from "../auth";
+} from "../auth.js";
 
 const MAX_BODY_BYTES = 8 * 1024;
 
