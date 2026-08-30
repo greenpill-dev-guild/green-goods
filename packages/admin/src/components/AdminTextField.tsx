@@ -173,9 +173,8 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
     const controlClasses = cn(
       // Layout — sits above the active indicator
       "peer w-full bg-transparent",
-      // Typography — 14px, the cockpit workhorse size (DL-011 compact metric).
-      // Color uses the [color:…] form so tailwind-merge can't classify it as a
-      // font-size and drop text-body-md (the AdminSortSelect trap).
+      // 14px (DL-011). [color:…] form so tailwind-merge can't read the color
+      // as a font-size and drop text-body-md (the AdminSortSelect trap).
       "text-body-md [color:rgb(var(--m3-on-surface))]",
       // Remove browser defaults
       "outline-none border-none focus:outline-none focus:border-none",
