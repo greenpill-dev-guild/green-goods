@@ -40,6 +40,7 @@ let mockHasStoredCredential = false;
 let mockAuthError: Error | null = null;
 let mockPasskeyServerEnabled = true;
 let mockIsAuthenticated = false;
+let mockIsReady = true;
 let mockAuthUserName: string | null = null;
 let mockStoredUsername: string | null = null;
 
@@ -51,7 +52,7 @@ vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
     loginWithEmbedded: mockLoginWithEmbedded,
     isAuthenticating: false,
     isAuthenticated: mockIsAuthenticated,
-    isReady: true,
+    isReady: mockIsReady,
     smartAccountAddress: null,
     hasStoredCredential: mockHasStoredCredential,
     userName: mockAuthUserName,
@@ -106,12 +107,6 @@ vi.mock("@green-goods/shared/components/Toast/toast.service", async (importOrigi
     toastService: mockToastService,
   };
 });
-
-// Mock LoadingSplash component (boot state only)
-vi.mock("@/views/Login/components/LoadingSplash", () => ({
-  LoadingSplash: ({ loadingState, message }: { loadingState: string; message?: string }) =>
-    createElement("div", { "data-testid": "loading-splash" }, message || loadingState),
-}));
 
 // Mock Splash component to simplify testing — renders all action tiers + the
 // shared message zone (error wins over info, mirroring the real component)
@@ -223,6 +218,7 @@ describe("Login View - New User (two-step create)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockHasStoredCredential = false;
+    mockIsReady = true;
     mockAuthError = null;
     mockPasskeyServerEnabled = true;
     mockStoredUsername = null;
@@ -241,6 +237,15 @@ describe("Login View - New User (two-step create)", () => {
   it("renders splash screen", () => {
     renderWithRouter();
     expect(screen.getByTestId("splash-screen")).toBeInTheDocument();
+  });
+
+  it("leaves cold-start rendering to the static PWA surface until auth is ready", () => {
+    mockIsReady = false;
+
+    const view = renderWithRouter();
+
+    expect(view.container).toBeEmptyDOMElement();
+    expect(screen.queryByTestId("splash-screen")).not.toBeInTheDocument();
   });
 
   it("sets the login document title", async () => {

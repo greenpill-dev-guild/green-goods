@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { MemoryRouter } from "react-router-dom";
 import { expect, userEvent, within } from "storybook/test";
 import { Splash } from "./Splash";
-import { LoadingSplash } from "../../views/Login/components/LoadingSplash";
 // Canonical flow source (renders as a Mermaid diagram on GitHub). `?raw` is
 // typed via vite/client (packages/client/src/vite-env.d.ts) and inlined by Vite.
 import loginFlowDiagram from "../../views/Login/login-flow.mmd?raw";
@@ -512,11 +511,11 @@ export const FlowDiagram: Story = {
  * component in every screen shape that must agree — both entry variants, the
  * create form, the recover form (with the worst-case localized info), the
  * longest real error, a deliberately over-long (~4-line) error, an in-flight
- * form attempt (spinner INSIDE the primary), and the boot LoadingSplash — each
- * pinned to a real 375px phone width. The play function asserts, with real
+ * form attempt (spinner INSIDE the primary) — each pinned to a real 375px
+ * phone width. The play function asserts, with real
  * (non-zero) browser geometry:
  *
- *   1. the LOGO sits at the same Y in EVERY state, including the boot swap;
+ *   1. the LOGO sits at the same Y in EVERY login state;
  *   2. BOTH SLOT ZONES sit at the same Y in every state — the skeleton never
  *      moves; the primary lives in slot 1 on entry screens and slot 2 on form
  *      screens, pinned within each cluster, and the entry→form move is EXACTLY
@@ -566,9 +565,6 @@ export const LayoutStability: Story = {
           message={COPY.loadingAuth}
         />
       </div>
-      <div data-testid="panel-boot" style={{ width: 375 }}>
-        <LoadingSplash loadingState="welcome" />
-      </div>
     </div>
   ),
   play: async ({ canvasElement }) => {
@@ -594,7 +590,6 @@ export const LayoutStability: Story = {
       "panel-error",
       "panel-overflow",
       "panel-loading",
-      "panel-boot",
     ];
     const entryPanels = ["panel-entry-new", "panel-entry-returning"];
     const formPanels = [
@@ -613,7 +608,7 @@ export const LayoutStability: Story = {
     await expect(entryLogo.height).toBeGreaterThan(0);
     await expect(entryPrimary.height).toBeGreaterThan(0);
 
-    // 2) Logo Y is identical across EVERY state, including the boot swap.
+    // 2) Logo Y is identical across every login state.
     const logoBase = logoOffset("panel-entry-new");
     for (const id of allPanels) {
       await expect(Math.abs(logoOffset(id) - logoBase)).toBeLessThanOrEqual(1);

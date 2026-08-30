@@ -257,7 +257,6 @@
         height: 100%;
         margin: 0;
         overflow: hidden;
-        background: var(--color-static-white, #ffffff);
         font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
 
@@ -572,24 +571,36 @@
       }
 
       .boot-pwa-shell {
+        position: relative;
         min-height: 100vh;
         min-height: 100dvh;
         box-sizing: border-box;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 24px;
+        overflow-x: hidden;
+        overflow-y: auto;
         background: var(--color-static-white, #ffffff);
         color: var(--color-static-black, #1f2a24);
         text-align: center;
       }
 
       .boot-pwa-content {
-        width: min(100%, 320px);
+        position: absolute;
+        top: max(24px, calc(50% - 96px));
+        left: 50%;
+        width: min(calc(100% - 48px), 320px);
+        transform: translateX(-50%);
         display: grid;
-        grid-template-rows: 64px 144px 68px;
+        grid-template-rows: 64px auto;
+        row-gap: 16px;
         align-items: center;
         justify-items: stretch;
+      }
+
+      .boot-pwa-copy-stack {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
       }
 
       .boot-pwa-logo-slot,
@@ -613,9 +624,9 @@
       }
 
       .boot-pwa-message-slot {
-        block-size: 144px;
+        block-size: 48px;
         display: flex;
-        align-items: center;
+        align-items: flex-end;
         justify-content: center;
         overflow-y: auto;
       }
@@ -631,10 +642,37 @@
       }
 
       .boot-pwa-action-slot {
-        block-size: 68px;
+        block-size: 44px;
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         justify-content: center;
+      }
+
+      .boot-pwa-action-slot .boot-reload-button {
+        margin-top: 0;
+        white-space: nowrap;
+      }
+
+      /* At 200% browser zoom, a 375px phone exposes roughly 188 CSS pixels.
+         Keep every translated recovery line available without changing the
+         compact geometry at normal mobile widths. The shell can scroll on
+         shorter phones, while logo, message, and action anchors remain stable
+         across states at the same zoom level. */
+      @media (max-width: 240px) {
+        .boot-pwa-content {
+          top: 24px;
+          width: min(calc(100% - 24px), 320px);
+        }
+
+        .boot-pwa-message-slot {
+          block-size: 120px;
+        }
+
+        .boot-pwa-action-slot .boot-reload-button {
+          max-width: 100%;
+          padding-inline: 12px;
+          font-size: 0.875rem;
+        }
       }
 
       /* Nav visibility mirrors the md: (768px) step in SiteHeader.tsx. */
@@ -812,18 +850,25 @@
               height="64"
             />
           </div>
-          <div class="boot-pwa-message-slot" data-boot-slot="message">
-            <p id="boot-pwa-message">Green Goods is loading.</p>
-          </div>
-          <div class="boot-pwa-action-slot" data-boot-slot="action">
-            <button
-              class="boot-reload-button"
-              id="boot-pwa-reload"
-              type="button"
+          <div class="boot-pwa-copy-stack">
+            <div class="boot-pwa-message-slot" data-boot-slot="message">
+              <p id="boot-pwa-message">Green Goods is loading.</p>
+            </div>
+            <div
+              class="boot-pwa-action-slot"
+              id="boot-pwa-action"
+              data-boot-slot="action"
               hidden
             >
-              Reload
-            </button>
+              <button
+                class="boot-reload-button"
+                id="boot-pwa-reload"
+                type="button"
+                hidden
+              >
+                Reload
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -840,6 +885,7 @@
         var websiteReload = document.getElementById("boot-website-reload");
         var pwa = document.getElementById("boot-fallback-pwa");
         var pwaMessage = document.getElementById("boot-pwa-message");
+        var pwaAction = document.getElementById("boot-pwa-action");
         var pwaReload = document.getElementById("boot-pwa-reload");
         var presentation = document.documentElement.dataset.bootPresentation || "website";
         var language = (navigator.language || document.documentElement.lang || "en")
@@ -852,7 +898,7 @@
             loading: "Green Goods is loading.",
             offline: "You’re offline. Reconnect, then try again.",
             retry: "Try Again",
-            stalled: "The update didn’t finish. Close and reopen Green Goods, or try again.",
+            stalled: "Update failed. Close and reopen Green Goods, or try again.",
             update: "Green Goods needs the latest app files.",
             updateAction: "Update app",
             websiteRecoveryTitle: "This page is taking longer than expected.",
@@ -865,8 +911,7 @@
             loading: "Green Goods se está cargando.",
             offline: "Estás sin conexión. Vuelve a conectarte e inténtalo de nuevo.",
             retry: "Intentar de nuevo",
-            stalled:
-              "La actualización no terminó. Cierra y vuelve a abrir Green Goods, o inténtalo de nuevo.",
+            stalled: "La actualización falló. Cierra y abre Green Goods, o reintenta.",
             update: "Green Goods necesita los archivos más recientes.",
             updateAction: "Actualizar app",
             websiteRecoveryTitle: "Esta página está tardando más de lo esperado.",
@@ -879,8 +924,7 @@
             loading: "Green Goods está carregando.",
             offline: "Você está offline. Reconecte-se e tente novamente.",
             retry: "Tentar novamente",
-            stalled:
-              "A atualização não terminou. Feche e abra o Green Goods novamente ou tente de novo.",
+            stalled: "A atualização falhou. Feche e abra o Green Goods, ou tente de novo.",
             update: "Green Goods precisa dos arquivos mais recentes.",
             updateAction: "Atualizar app",
             websiteRecoveryTitle: "Esta página está demorando mais do que o esperado.",
@@ -932,6 +976,7 @@
             }
             if (website) website.hidden = true;
             if (pwaMessage) pwaMessage.textContent = isRecovery ? labels.update : labels.loading;
+            if (pwaAction) pwaAction.hidden = !isRecovery;
             if (pwaReload) {
               pwaReload.hidden = !isRecovery;
               pwaReload.setAttribute("aria-disabled", "false");
@@ -983,7 +1028,7 @@
         }
 
         function setPwaRecoveryState(kind, message) {
-          if (!fallback || !pwa || !pwaMessage || !pwaReload) return;
+          if (!fallback || !pwa || !pwaMessage || !pwaAction || !pwaReload) return;
           var isApplying = kind === "applying";
           var isAlert = kind === "stalled";
 
@@ -992,19 +1037,21 @@
           pwa.setAttribute("aria-live", isAlert ? "assertive" : "polite");
           pwa.setAttribute("aria-busy", isApplying ? "true" : "false");
           pwaMessage.textContent = message;
+          pwaAction.hidden = false;
           pwaReload.hidden = false;
           pwaReload.setAttribute("aria-disabled", isApplying ? "true" : "false");
           pwaReload.textContent = isApplying ? labels.applyingAction : labels.retry;
         }
 
         function setPwaLoadingState() {
-          if (!fallback || !pwa || !pwaMessage || !pwaReload) return;
+          if (!fallback || !pwa || !pwaMessage || !pwaAction || !pwaReload) return;
           fallback.hidden = false;
           fallback.dataset.state = "loading";
           pwa.setAttribute("role", "status");
           pwa.setAttribute("aria-live", "polite");
           pwa.setAttribute("aria-busy", "true");
           pwaMessage.textContent = labels.loading;
+          pwaAction.hidden = true;
           pwaReload.hidden = true;
           pwaReload.setAttribute("aria-disabled", "false");
           pwaReload.textContent = labels.updateAction;

@@ -4,7 +4,6 @@ import { Navigate, Outlet } from "react-router-dom";
 
 import { Splash } from "@/components/Layout";
 import { APP_ROUTES } from "@/config/pwaRouting";
-import { LoadingSplash } from "@/views/Login/components/LoadingSplash";
 
 export function Login() {
   const {
@@ -42,7 +41,9 @@ export function Login() {
   const goToRecover = () => goTo("recover");
 
   if (isNestedRoute) return <Outlet />;
-  if (!isReady) return <LoadingSplash loadingState="welcome" />;
+  // The pre-React PWA surface stays mounted until auth restoration resolves.
+  // Rendering another full-screen loader here creates a visible second scene.
+  if (!isReady) return null;
   if (isAuthenticated) return <Navigate to={redirectTo} replace />;
   // In-flight passkey attempts never swap the tree: each screen's Splash stays
   // mounted and shows the spinner inside the primary button (loadingState and
