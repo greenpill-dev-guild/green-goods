@@ -1,0 +1,89 @@
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+
+import { existingArtifacts, parseArgs, parseShard, SESSION_ARTIFACTS } from "./qa-state-pull";
+
+const repoRoot = path.join(import.meta.dirname, "..", "..");
+
+describe("qa:pull output boundary", () => {
+  it("keeps the default output in the repo's gitignored tmp directory", () => {
+    expect(parseArgs(["--slug", "2026-09-02"]).outDir).toBe(
+      path.join(repoRoot, "tmp", "qa-session", "2026-09-02"),
+    );
+  });
+
+  it("accepts a custom destination under tmp", () => {
+    expect(parseArgs(["--out", "tmp/qa-session/rehearsal"]).outDir).toBe(
+      path.join(repoRoot, "tmp", "qa-session", "rehearsal"),
+    );
+  });
+
+  it("refuses tracked or external destinations", () => {
+    expect(() => parseArgs(["--out", "docs/qa-run"])).toThrow(/must stay under.*tmp/i);
+    expect(() => parseArgs(["--out", path.join(repoRoot, "packages", "qa", "results")])).toThrow(
+      /must stay under.*tmp/i,
+    );
+  });
+});
+
+describe("qa:pull overwrite guard", () => {
+  const outDir = path.join(repoRoot, "tmp", "qa-session", "2026-09-02");
+  const present = (...names: string[]) => (target: string) => names.includes(path.basename(target));
+
+  it("reports nothing to lose when the destination is empty", () => {
+    expect(existingArtifacts(outDir, () => false)).toEqual([]);
+  });
+
+  it("names each artifact a rerun would replace", () => {
+    // Severity, redactions and hand-added rows exist only in these files, so a
+    // refresh landing on either of them is a silent loss, not an update.
+    expect(existingArtifacts(outDir, present("results.csv"))).toEqual(["results.csv"]);
+    expect(existingArtifacts(outDir, present(...SESSION_ARTIFACTS))).toEqual([...SESSION_ARTIFACTS]);
+  });
+
+  it("only replaces a pulled session when the operator says so", () => {
+    expect(parseArgs(["--slug", "2026-09-02"]).force).toBe(false);
+    expect(parseArgs(["--slug", "2026-09-02", "--force"]).force).toBe(true);
+    expect(parseArgs(["--force", "--out", "tmp/qa-session/rehearsal"])).toMatchObject({
+      force: true,
+      outDir: path.join(repoRoot, "tmp", "qa-session", "rehearsal"),
+    });
+  });
+});
+
+describe("qa:pull shard validation", () => {
+  const good = JSON.stringify({
+    person: "Afo",
+    updatedAt: "2026-08-30T10:00:00.000Z",
+    entries: { "PUB-014": { s: "fail", n: "approve never fired", at: "2026-08-30T10:00:00.000Z" } },
+  });
+
+  it("accepts a well-formed shard", () => {
+    expect(parseShard("Afo", good).entries["PUB-014"].s).toBe("fail");
+  });
+
+  it("fails the pull rather than dropping a tester whose shard is malformed", () => {
+    // mergeShards skips a shape it does not recognise, which is right for a
+    // merge and wrong for ingestion: silently skipping here writes a
+    // complete-LOOKING run sheet with somebody's whole session missing.
+    expect(() => parseShard("Afo", "not json")).toThrow(/not valid JSON/i);
+    expect(() => parseShard("Afo", "null")).toThrow(/not an object/i);
+    expect(() => parseShard("Afo", "[]")).toThrow(/not an object/i);
+    expect(() => parseShard("Afo", '{"person":"Afo"}')).toThrow(/no entries object/i);
+    expect(() => parseShard("Afo", '{"person":"Afo","entries":[]}')).toThrow(/no entries object/i);
+  });
+
+  it("refuses a shard filed under the wrong owner", () => {
+    expect(() => parseShard("Afo", '{"person":"Gui","entries":{}}')).toThrow(/owner as "Gui"/);
+    expect(() => parseShard("Afo", '{"entries":{}}')).toThrow(/owner as null/);
+  });
+
+  it("refuses an entry that is not a verdict and a note", () => {
+    expect(() => parseShard("Afo", '{"person":"Afo","entries":{"PUB-014":null}}')).toThrow(
+      /PUB-014 is malformed/,
+    );
+    expect(() => parseShard("Afo", '{"person":"Afo","entries":{"PUB-014":{"s":"fail"}}}')).toThrow(
+      /PUB-014 is malformed/,
+    );
+  });
+});

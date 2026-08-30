@@ -1,0 +1,17 @@
+{
+  "installCommand": "cd ../.. && bun install --frozen-lockfile",
+  "buildCommand": "node build.mjs",
+  "outputDirectory": "dist",
+  "framework": null,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    }
+  ]
+}

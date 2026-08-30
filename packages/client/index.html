@@ -1190,9 +1190,19 @@
         }
 
         function markReactMounted() {
+          // Cancel the stale-assets timer the moment React calls in, whatever it
+          // has painted. That timer exists to catch a bundle that never arrived,
+          // and React running proves one did. A login waiting on auth
+          // restoration renders nothing ON PURPOSE, so leaving it armed told the
+          // installed PWA after 4.5s that it "needs the latest app files" and
+          // offered an update that would reload the sign-in already in flight.
+          if (updateTimer) window.clearTimeout(updateTimer);
+          // Everything below is about CONTENT, not about the bundle. With an
+          // empty root the boot surface has to stay up — and `timer`, which
+          // raises it, has to stay armed — or a slow restore flashes blank.
+          // The observer re-enters here as soon as React paints.
           if (!hasAppContent()) return;
           if (timer) window.clearTimeout(timer);
-          if (updateTimer) window.clearTimeout(updateTimer);
           if (observer) observer.disconnect();
 
           if (fallback && fallback.dataset.state === "cleared") return;

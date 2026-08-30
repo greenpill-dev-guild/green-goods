@@ -264,8 +264,20 @@
         "scripts/data/qa-test-catalog.json",
         "scripts/agents/qa-workbook-build.ts",
         "scripts/agents/qa-workbook-build.test.ts",
+        "scripts/agents/qa-state.ts",
+        "scripts/agents/qa-state.test.ts",
+        "scripts/agents/qa-state-pull.ts",
+        "scripts/agents/qa-app-parity.test.ts",
+        "packages/qa/api/state.ts",
+        "packages/qa/dev.mjs",
         "scripts/agents/posthog-query.ts",
-        "scripts/agents/posthog-query.test.ts"
+        "scripts/agents/posthog-query.test.ts",
+        "packages/qa/index.html",
+        "packages/qa/build.mjs",
+        "scripts/agents/qa-app-build.test.ts",
+        "scripts/agents/qa-app-client.test.ts",
+        "scripts/agents/qa-app-store.test.ts",
+        "scripts/agents/qa-state-pull.test.ts"
       ]
     }
   ],

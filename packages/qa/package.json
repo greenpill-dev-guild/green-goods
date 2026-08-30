@@ -1,0 +1,13 @@
+{
+  "name": "@green-goods/qa",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Two-writer QA recording surface — deployed checklist backed by a private Blob store",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.3.0"
+  }
+}

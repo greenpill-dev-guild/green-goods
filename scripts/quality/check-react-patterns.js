@@ -46,6 +46,10 @@ const PACKAGE_DEPENDENCY_POLICY = {
   client: ["shared"],
   admin: ["shared"],
   agent: ["shared"],
+  // Internal QA tooling, deliberately dependency-free: it reads the test
+  // catalog from disk at build time rather than importing a package, so it can
+  // never drag product code into a tool nobody ships to users.
+  qa: [],
 };
 
 // This channel is an admin-shell implementation detail: its hooks coordinate
