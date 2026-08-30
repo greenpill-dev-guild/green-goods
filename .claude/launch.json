@@ -18,6 +18,20 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "4601", "--bind", "127.0.0.1", "-d", "/tmp/gg-proto"],
       "port": 4601
+    },
+    {
+      "name": "storybook-static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4620",
+        "--bind",
+        "127.0.0.1",
+        "-d",
+        "packages/shared/storybook-static"
+      ],
+      "port": 4620
     }
   ]
 }
