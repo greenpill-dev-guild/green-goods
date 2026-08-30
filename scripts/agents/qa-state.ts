@@ -84,8 +84,14 @@ export function notesFor(byPerson: Record<string, Entry> | undefined): string {
 /**
  * Project merged entries into the results.csv the qa-session skill consumes:
  * `Test ID, Result, Severity, Notes`. Only cases somebody actually recorded
- * appear — an untouched case is not a result. Severity defaults to the case's
- * catalog priority; a tester who disagrees says so in the note.
+ * appear — an untouched case is not a result.
+ *
+ * Severity is left for triage to assign. It is tempting to default it to the
+ * case's catalog priority, but those measure different things: priority says
+ * how much we care that this case gets WALKED, severity says how badly the
+ * product is broken when it fails. A P0 smoke case can fail on a cosmetic
+ * misalignment, and a P2 case can surface data loss. Filling the column from
+ * priority would put a judgement in the run sheet that nobody made.
  */
 export function toResultsCsv(cases: CatalogCase[], merged: MergedEntries): string {
   const byId = new Map(cases.map((testCase) => [testCase.id, testCase]));
@@ -94,12 +100,11 @@ export function toResultsCsv(cases: CatalogCase[], merged: MergedEntries): strin
     const byPerson = merged[testCase.id];
     if (!byPerson || !Object.keys(byPerson).length) continue;
     const result = rollupVerdict(byPerson);
-    const severity = result === "Fail" || result === "Blocked" ? testCase.priority : "";
     rows.push(
       [
         csvField(testCase.id),
         csvField(result),
-        csvField(severity),
+        "",
         csvField(notesFor(byPerson)),
       ].join(","),
     );

@@ -19,6 +19,8 @@ import { mergeDelta as mergeLocal, sanitizeDelta as sanitizeLocal } from "../../
 
 const EARLIER = "2026-08-30T10:00:00.000Z";
 const LATER = "2026-08-30T11:00:00.000Z";
+/** The instant the server "receives" a write in these tests. */
+const STAMP = "2026-08-30T12:00:00.000Z";
 
 const entry = (s: string, n: string, at = LATER) => ({ s, n, at });
 
@@ -34,10 +36,12 @@ const SANITIZE_CASES: Array<[string, unknown]> = [
 
 const MERGE_CASES: Array<[string, Record<string, ReturnType<typeof entry>>, Record<string, ReturnType<typeof entry>>]> = [
   ["adds a new case", { "PUB-001": entry("pass", "a") }, { "PUB-002": entry("fail", "b") }],
-  ["newer write wins", { "PUB-001": entry("pass", "old", EARLIER) }, { "PUB-001": entry("fail", "new", LATER) }],
-  ["older write is ignored", { "PUB-001": entry("fail", "new", LATER) }, { "PUB-001": entry("pass", "stale", EARLIER) }],
+  ["the arriving write wins", { "PUB-001": entry("pass", "old", EARLIER) }, { "PUB-001": entry("fail", "new", LATER) }],
+  // A client claiming an older clock still wins: ordering is arrival, not the
+  // timestamp the client sent. A device an hour behind must not be muted.
+  ["a backdated write still wins", { "PUB-001": entry("fail", "new", LATER) }, { "PUB-001": entry("pass", "corrected", EARLIER) }],
   ["a tombstone deletes", { "PUB-001": entry("pass", "a", EARLIER) }, { "PUB-001": entry("", "", LATER) }],
-  ["a stale tombstone does not delete", { "PUB-001": entry("pass", "a", LATER) }, { "PUB-001": entry("", "", EARLIER) }],
+  ["a backdated tombstone still deletes", { "PUB-001": entry("pass", "a", LATER) }, { "PUB-001": entry("", "", EARLIER) }],
 ];
 
 describe("QA app merge rules — deployed function vs local server", () => {
@@ -46,21 +50,30 @@ describe("QA app merge rules — deployed function vs local server", () => {
   });
 
   it.each(MERGE_CASES)("mergeDelta agrees when it %s", (_label, existing, delta) => {
-    expect(mergeLocal(existing, delta)).toEqual(mergeDeployed(existing, delta));
+    // Both stamp arrival time; pass the same instant so the comparison is of
+    // the merge rules and not of two clock reads a millisecond apart.
+    expect(mergeLocal(existing, delta, STAMP)).toEqual(mergeDeployed(existing, delta, STAMP));
+  });
+
+  it("both restamp a written entry with arrival time, discarding the client's", () => {
+    const existing = {};
+    const delta = { "PUB-001": entry("pass", "typed on a skewed laptop", EARLIER) };
+    expect(mergeDeployed(existing, delta, STAMP)["PUB-001"].at).toBe(STAMP);
+    expect(mergeLocal(existing, delta, STAMP)["PUB-001"].at).toBe(STAMP);
   });
 
   it("both treat a tombstone as a delete, not an empty entry", () => {
     const existing = { "PUB-001": entry("pass", "recorded", EARLIER) };
     const delta = { "PUB-001": entry("", "", LATER) };
-    expect(mergeDeployed(existing, delta)).toEqual({});
-    expect(mergeLocal(existing, delta)).toEqual({});
+    expect(mergeDeployed(existing, delta, STAMP)).toEqual({});
+    expect(mergeLocal(existing, delta, STAMP)).toEqual({});
   });
 
   it("both keep an untouched case when a delta names only another", () => {
     // The delta contract: a save must never imply anything about cases it omits.
     const existing = { "PUB-001": entry("pass", "keep me", EARLIER) };
     const delta = { "PUB-002": entry("fail", "new", LATER) };
-    expect(Object.keys(mergeDeployed(existing, delta)).sort()).toEqual(["PUB-001", "PUB-002"]);
-    expect(mergeLocal(existing, delta)).toEqual(mergeDeployed(existing, delta));
+    expect(Object.keys(mergeDeployed(existing, delta, STAMP)).sort()).toEqual(["PUB-001", "PUB-002"]);
+    expect(mergeLocal(existing, delta, STAMP)).toEqual(mergeDeployed(existing, delta, STAMP));
   });
 });

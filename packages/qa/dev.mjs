@@ -4,9 +4,13 @@
  *
  * Serves dist/ and implements the same /api/state contract against per-tester
  * JSON files under tmp/qa/, so the sharded-by-writer model can be exercised
- * (two browsers, same case, no clobbering) before anything is deployed. It is
- * also the offline fallback: if the deploy is unavailable mid-session, this
- * runs the same page against the same shape of state.
+ * (two browsers, same case, no clobbering) before anything is deployed.
+ *
+ * It is NOT a mid-session fallback. Its state is a separate store: it neither
+ * reads the deployed shards nor pushes back to them, so a session split across
+ * both ends up with results in two places and `qa:pull` only sees one of them.
+ * If the deployment is down mid-session, the honest options are to wait or to
+ * record on paper — not to quietly start a second source of truth.
  *
  *   node packages/qa/dev.mjs [--port 4610]
  *
@@ -51,20 +55,23 @@ export function sanitizeDelta(raw) {
     delta[caseId] = {
       s: typeof value.s === "string" && STATUSES.has(value.s) ? value.s : "",
       n: typeof value.n === "string" ? value.n.slice(0, MAX_NOTE_LENGTH) : "",
-      at: typeof value.at === "string" ? value.at : new Date().toISOString(),
+      // Accepted so the shape round-trips, never trusted: mergeDelta restamps it.
+      at: typeof value.at === "string" ? value.at : "",
     };
   }
   return delta;
 }
 
-/** Newest write wins per case; a tombstone removes the entry. */
-export function mergeDelta(existing, delta) {
+/**
+ * Arrival-ordered merge; a tombstone removes the entry. Client clocks are never
+ * trusted for ordering — see the reasoning in packages/qa/api/state.ts, which
+ * this must match exactly (scripts/agents/qa-app-parity.test.ts proves it does).
+ */
+export function mergeDelta(existing, delta, now = new Date().toISOString()) {
   const merged = { ...existing };
   for (const [caseId, incoming] of Object.entries(delta)) {
-    const current = merged[caseId];
-    if (current && current.at && incoming.at && incoming.at < current.at) continue;
     if (!incoming.s && !incoming.n.trim()) delete merged[caseId];
-    else merged[caseId] = incoming;
+    else merged[caseId] = { s: incoming.s, n: incoming.n, at: now };
   }
   return merged;
 }
@@ -94,9 +101,24 @@ function readShard(person) {
     const parsed = JSON.parse(text);
     if (!parsed || typeof parsed !== "object" || !parsed.entries) throw new Error("malformed");
     return parsed;
-  } catch {
-    throw new Error(`${person}'s entries are unreadable and were not overwritten`);
+  } catch (error) {
+    throw new StoreError(`${person}'s entries are unreadable and were not overwritten`, error);
   }
+}
+
+/** Message is safe to return; detail stays in the server log. Mirrors api/state.ts. */
+class StoreError extends Error {
+  constructor(message, detail) {
+    super(message);
+    this.name = "StoreError";
+    this.detail = detail;
+  }
+}
+
+function sendFailure(response, error, fallback) {
+  const safe = error instanceof StoreError ? error.message : fallback;
+  console.error(`qa dev: ${safe}`, error instanceof StoreError ? error.detail : error);
+  return sendJson(response, 503, { error: safe });
 }
 
 function writeShard(shard) {
@@ -117,13 +139,23 @@ function sendJson(response, status, body) {
   response.end(payload);
 }
 
+/**
+ * The build emits exactly two files, so the request never contributes to the
+ * path at all: it selects a key in a fixed map. Sanitizing a request-derived
+ * path would work too, but only as long as the check stays correct — this
+ * cannot traverse because there is nothing to traverse.
+ */
+const SERVABLE = new Map([
+  ["/", "index.html"],
+  ["/index.html", "index.html"],
+  ["/catalog.json", "catalog.json"],
+]);
+
 function resolveStatic(requestPath) {
-  const pathname = decodeURIComponent(requestPath.split("?")[0]);
-  if (pathname.includes("\0")) return null;
-  const candidate = path.resolve(distDir, `.${pathname === "/" ? "/index.html" : pathname}`);
-  const rootWithSeparator = `${distDir}${path.sep}`;
-  if (candidate !== distDir && !candidate.startsWith(rootWithSeparator)) return null;
-  return existsSync(candidate) ? candidate : null;
+  const name = SERVABLE.get(requestPath.split("?")[0]);
+  if (!name) return null;
+  const file = path.join(distDir, name);
+  return existsSync(file) ? file : null;
 }
 
 async function readBody(request) {
@@ -138,7 +170,7 @@ function handleState(request, response) {
       const entries = mergeShards(TEAM.map(readShard));
       return sendJson(response, 200, { team: TEAM, entries, readAt: new Date().toISOString() });
     } catch (error) {
-      return sendJson(response, 503, { error: String(error.message || error) });
+      return sendFailure(response, error, "session state could not be read");
     }
   }
   if (request.method === "POST") {
@@ -149,14 +181,21 @@ function handleState(request, response) {
       } catch {
         return sendJson(response, 400, { error: "invalid JSON" });
       }
+      // `JSON.parse("null")` and `JSON.parse("[]")` both succeed.
+      if (!body || typeof body !== "object" || Array.isArray(body)) {
+        return sendJson(response, 400, { error: "body must be a JSON object" });
+      }
       if (!TEAM.includes(body.person)) {
         return sendJson(response, 400, { error: `unknown tester — expected one of ${TEAM.join(", ")}` });
       }
+      // No conditional write is needed here the way the deployed function needs
+      // one: node runs this handler to completion on a single thread, with no
+      // await between the read and the write, so a second POST cannot interleave.
       let previous;
       try {
         previous = readShard(body.person);
       } catch (error) {
-        return sendJson(response, 503, { error: String(error.message || error) });
+        return sendFailure(response, error, `${body.person}'s entries were not saved`);
       }
       const shard = {
         person: body.person,

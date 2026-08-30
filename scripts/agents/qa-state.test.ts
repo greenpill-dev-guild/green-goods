@@ -100,7 +100,9 @@ describe("toResultsCsv", () => {
     const csv = toResultsCsv(cases, merged);
     const lines = csv.trim().split("\n");
     expect(lines[0]).toBe("Test ID,Result,Severity,Notes");
-    expect(lines[1]).toBe('PUB-014,Fail,P0,"Afo: approve never fired, card stuck | Gui: fine on Brave"');
+    // Severity stays blank even on a failing P0 case: how much we care that a
+    // case gets walked is not how badly the product is broken when it fails.
+    expect(lines[1]).toBe('PUB-014,Fail,,"Afo: approve never fired, card stuck | Gui: fine on Brave"');
     // An untouched case is not a result.
     expect(csv).not.toContain("PUB-002");
   });
@@ -111,7 +113,7 @@ describe("toResultsCsv", () => {
     expect(csv).toContain("UNKNOWN CASE");
   });
 
-  it("leaves severity blank for passing rows, and the note empty when nobody wrote one", () => {
+  it("leaves severity to triage, and the note empty when nobody wrote one", () => {
     const csv = toResultsCsv([makeCase()], mergeShards([shard("Afo", { "PUB-014": { s: "pass", n: "" } })]));
     expect(csv.trim().split("\n")[1]).toBe("PUB-014,Pass,,");
   });

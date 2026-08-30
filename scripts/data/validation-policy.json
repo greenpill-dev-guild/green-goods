@@ -271,7 +271,10 @@
         "packages/qa/api/state.ts",
         "packages/qa/dev.mjs",
         "scripts/agents/posthog-query.ts",
-        "scripts/agents/posthog-query.test.ts"
+        "scripts/agents/posthog-query.test.ts",
+        "packages/qa/index.html",
+        "packages/qa/build.mjs",
+        "scripts/agents/qa-app-build.test.ts"
       ]
     }
   ],

@@ -123,7 +123,7 @@
   let dirty = false;
   let saveTimer = null;
   let pollTimer = null;
-  let saving = false;
+  let saving = null;
 
   const mount = document.getElementById("mount");
   const savebar = document.getElementById("savebar");
@@ -252,7 +252,7 @@
         <div class="scen">${esc(c.scenario)}${flag}<span class="why">${esc(c.expected)}</span></div>
         <div class="ctl">${STATUSES.map((s) =>
           `<button class="st ${s} ${own && own.s === s ? "on" : ""}" data-id="${esc(c.id)}" data-s="${s}" title="${who ? esc(who) + ": " + s : "pick your name first"}"${who ? "" : " disabled"}>${LABEL[s]}</button>`).join("")}</div>
-        <div class="note">${others}<textarea data-note="${esc(c.id)}" rows="1" placeholder="${who ? esc(who) + "'s notes — saves as you go…" : "pick your name above to add notes"}"${who ? "" : " disabled"}>${esc(own ? own.n || "" : "")}</textarea></div>
+        <div class="note">${others}<textarea data-note="${esc(c.id)}" rows="1" maxlength="4000" placeholder="${who ? esc(who) + "'s notes — saves as you go…" : "pick your name above to add notes"}"${who ? "" : " disabled"}>${esc(own ? own.n || "" : "")}</textarea></div>
       </div>`;
     }).join("")).join("");
 
@@ -270,10 +270,7 @@
       scope = b.dataset.scope; saveView(); render();
     }));
     mount.querySelectorAll(".who-btn").forEach((b) => b.addEventListener("click", () => {
-      who = who === b.dataset.who ? "" : b.dataset.who;
-      try { localStorage.setItem("qa-who", who); } catch (e) {}
-      clearOutbox();
-      render();
+      switchWho(who === b.dataset.who ? "" : b.dataset.who);
     }));
     mount.querySelectorAll(".st").forEach((b) => b.addEventListener("click", () => {
       if (!who) return;
@@ -321,6 +318,31 @@
   addEventListener("resize", () => { clearTimeout(growTimer); growTimer = setTimeout(growAll, 120); });
   document.addEventListener("visibilitychange", () => { if (!document.hidden) growAll(); });
 
+  /**
+   * Change who this browser records as.
+   *
+   * The outbox belongs to whoever filled it, so the switch waits for it to
+   * drain before `who` moves. Clearing it instead would throw away notes the
+   * tester had already typed, and switching first would file them under the
+   * wrong name. If the save will not go through, the switch simply does not
+   * happen and the tester is told why — their notes outrank the switch.
+   */
+  async function switchWho(next) {
+    const previous = who;
+    if (previous && Object.keys(outbox).length) {
+      await save(previous);
+      if (Object.keys(outbox).length) {
+        savebar.className = "savebar ro";
+        savebar.textContent = "still saving " + previous + "'s notes — not switching yet";
+        return;
+      }
+    }
+    who = next;
+    try { localStorage.setItem("qa-who", who); } catch (e) {}
+    clearOutbox();
+    render();
+  }
+
   // ── Save ────────────────────────────────────────────────────────────
   function queueSave(delay) {
     dirty = true;
@@ -331,17 +353,28 @@
     saveTimer = setTimeout(save, delay || 900);
   }
 
-  async function save() {
-    if (!who || !dirty || saving) return;
+  /**
+   * One request at a time. A caller that arrives mid-flight gets the promise
+   * already running rather than a silent no-op, so `switchWho` can wait for a
+   * real result instead of assuming the outbox drained.
+   */
+  function save(owner) {
+    if (saving) return saving;
+    const person = owner || who;
+    if (!person) return Promise.resolve();
+    saving = postDelta(person).finally(() => { saving = null; });
+    return saving;
+  }
+
+  async function postDelta(person) {
     const sent = { ...outbox };
     if (!Object.keys(sent).length) { dirty = false; return; }
-    saving = true;
     dirty = false;
     try {
       const response = await fetch("/api/state", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ person: who, entries: sent }),
+        body: JSON.stringify({ person: person, entries: sent }),
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       // Throws on the password-protection HTML page, which is what turns an
@@ -350,13 +383,25 @@
       // Clear only what was actually sent AND has not changed since — anything
       // typed during the request stays pending for the next save.
       for (const [caseId, entry] of Object.entries(sent)) {
-        const current = entryFor(caseId, who);
+        const current = entryFor(caseId, person);
         const settled = current ? sameEntry(entry, current) : !entry.s && !entry.n.trim();
         if (settled && sameEntry(outbox[caseId], entry)) delete outbox[caseId];
       }
       saveOutbox();
-      savebar.className = "savebar saved";
-      savebar.textContent = "saved ✓";
+      // Anything typed while the request was in flight is still pending. The
+      // debounce that would have flushed it already fired and found a save
+      // running, so nothing else will schedule it — do that here or those
+      // edits sit unsent until the tester happens to type again.
+      if (Object.keys(outbox).length) {
+        dirty = true;
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(save, 400);
+        savebar.className = "savebar saving";
+        savebar.textContent = "saving…";
+      } else {
+        savebar.className = "savebar saved";
+        savebar.textContent = "saved ✓";
+      }
     } catch (e) {
       // The work is already in sessionStorage; keep retrying rather than
       // telling the tester it saved when it did not.
@@ -365,14 +410,19 @@
       savebar.textContent = "not saved — kept locally, retrying";
       clearTimeout(saveTimer);
       saveTimer = setTimeout(save, 5000);
-    } finally {
-      saving = false;
     }
   }
 
   // ── Poll ────────────────────────────────────────────────────────────
-  // Adopt other testers' entries only. This browser stays authoritative for
-  // its own person, so a poll can never roll back what you just typed.
+  // Adopt other testers' entries always, and this tester's OWN entries for any
+  // case they have no unsent edit on.
+  //
+  // That second half matters for the phone-and-laptop workflow. Skipping your
+  // own entries entirely keeps each device on its first-load copy of you: the
+  // phone records a verdict, the laptop still shows none, and the laptop's
+  // next note posts `{s:"", n:"..."}` — clearing the verdict the phone set.
+  // The outbox is the precise test for "I have something unsent here", so
+  // cases outside it can safely take the server's version.
   async function poll() {
     // Skip only while a save is in flight. Pausing on `dirty` too would freeze
     // a tester's view of their partner for as long as their OWN saves keep
@@ -391,7 +441,8 @@
         const remoteRow = remote[caseId] || {};
         const localRow = entries[caseId] || {};
         for (const person of TEAM) {
-          if (person === who) continue;
+          // Never overwrite a case this browser has not yet managed to save.
+          if (person === who && Object.prototype.hasOwnProperty.call(outbox, caseId)) continue;
           const before = JSON.stringify(localRow[person] || null);
           const after = JSON.stringify(remoteRow[person] || null);
           if (before === after) continue;

@@ -10,22 +10,45 @@ their taps never save. This is the same interface with a store behind it.
 ## How it stays correct with two writers
 
 Each tester owns exactly one blob — `qa/entries/<person>.json` — and only ever writes that one.
-Two people recording the same case touch **different objects**, so there is no conflict to resolve:
-no locking, no compare-and-set, no merge policy, and no way for one tester's work to overwrite
-another's. `GET /api/state` reads every shard and merges; the page polls it every four seconds and
-adopts only *other* people's entries, so a poll can never roll back what you just typed.
+Two people recording the same case touch **different objects**, so there is nothing to resolve
+between them and no way for one tester's work to overwrite another's. `GET /api/state` reads every
+shard and merges.
 
-Saves send a **delta**, not the whole shard. That matters when one person has two clients open — a
-phone walking the PWA and a laptop on admin — where a whole-shard write would let the stale client
-erase the other's work.
+Within one tester there *is* a conflict to handle, because the workflow expects a phone on the PWA
+and a laptop on admin at once. Three things make that safe:
 
-Two details that look like bugs if you get them wrong, and are handled here:
+- Saves send a **delta**, not the whole shard, so a stale client cannot write away cases it never
+  touched.
+- Each write is conditional on the ETag that was read (`ifMatch`); a losing write re-reads,
+  re-merges and retries rather than overwriting blind.
+- The poll adopts your own entries too, for any case you have no unsent edit on. Without that, each
+  device stays on its first-load copy of you, and a note typed on the laptop clears a verdict the
+  phone set.
 
-- Private blob reads are CDN-cached for up to 60s. Every read passes `useCache: false`, and writes
-  set `cacheControlMaxAge: 0` — otherwise your partner's entries appear to never arrive.
+Ordering is by **arrival at the server**, which restamps every entry it stores. Client clocks are
+never trusted: a device an hour fast would otherwise win every comparison forever, silently dropping
+every later correction from the other device.
+
+Two more details that look like bugs if you get them wrong:
+
+- Private blob reads are CDN-cached for up to 60s, so every read passes `useCache: false` and goes
+  to origin. Writes deliberately set no `cacheControlMaxAge` — the store's documented floor is 60s,
+  and a rejected write is a lost verdict.
 - Every keystroke lands in `sessionStorage` before any network call, so a reload, a crash, or a
   failed save never costs anyone their notes. The page says "not saved — kept locally, retrying"
   rather than claiming success.
+
+### The trust boundary
+
+Access control is the deployment password, and that is the whole of it. The API takes `person` from
+the request body and does not — cannot — prove the caller is that person: Gui is not on the Vercel
+team, which is exactly why the deployment is password-protected rather than SSO-gated. Anyone with
+the password can write to anyone's shard.
+
+That is acceptable because the password is shared with three teammates recording their own QA
+findings, and the failure mode is a misattributed note rather than a leak or a loss. It would not be
+acceptable if this app ever held anything that mattered to anyone outside the team, or if the roster
+grew past people who trust each other. Treat per-person auth as the prerequisite for either.
 
 ## Layout
 
@@ -46,8 +69,12 @@ active cases ship; retired rows stay in the catalog as an audit trail.
 node packages/qa/build.mjs && node packages/qa/dev.mjs
 ```
 
-Serves <http://127.0.0.1:4610> with state in gitignored `tmp/qa/`. This is also the fallback if
-the deployment is unavailable mid-session.
+Serves <http://127.0.0.1:4610> with state in gitignored `tmp/qa/`. Use it to rehearse a session and
+to prove the two-writer behaviour before deploying.
+
+It is not a mid-session fallback. Its state is a separate store — it neither reads the deployed
+shards nor pushes back to them — so a session split across both leaves results in two places and
+`qa:pull` sees only one of them.
 
 ## Deploy (one-time setup)
 
