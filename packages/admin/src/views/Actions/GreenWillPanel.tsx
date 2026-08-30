@@ -140,7 +140,7 @@ export function GreenWillPanel() {
 
   const badgeLookupFeedbackClassName =
     badgeLookupFeedback.tone === "error"
-      ? "text-body-md text-error-base"
+      ? "text-body-md text-error-dark"
       : "text-body-md text-text-sub-600";
 
   return (
@@ -194,7 +194,7 @@ export function GreenWillPanel() {
               })}
             </p>
           ) : isDefinitionsError ? (
-            <p className="text-body-md text-error-base">
+            <p className="text-body-md text-error-dark">
               {intl.formatMessage({
                 id: "admin.greenWill.definitionsError",
                 defaultMessage: "Could not load GreenWill badge definitions.",
@@ -255,7 +255,7 @@ export function GreenWillPanel() {
               })}
             </p>
           ) : isGrantsError ? (
-            <p className="text-body-md text-error-base">
+            <p className="text-body-md text-error-dark">
               {intl.formatMessage({
                 id: "admin.greenWill.grantsError",
                 defaultMessage: "Could not load GreenWill grant history.",

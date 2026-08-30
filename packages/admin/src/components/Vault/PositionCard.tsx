@@ -278,7 +278,7 @@ export function PositionCard({
           href={getBlockExplorerAddressUrl(chainId, vault.vaultAddress)}
           target="_blank"
           rel="noreferrer"
-          className="mt-1 inline-flex items-center gap-1 text-body-sm text-primary-base hover:underline"
+          className="mt-1 inline-flex items-center gap-1 text-body-sm text-primary-dark hover:underline"
         >
           {formatMessage({ id: "app.explorer.viewVault" })}:{" "}
           <EnsAddressText address={vault.vaultAddress} />
