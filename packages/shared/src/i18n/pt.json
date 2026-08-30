@@ -3167,6 +3167,7 @@
   "app.work.detail.hint.missingMethod": "Selecione pelo menos um método de verificação para aprovar.",
   "app.work.detail.loading": "Carregando trabalho...",
   "app.work.detail.loadingDescription": "Buscando detalhes do trabalho.",
+  "app.work.detail.loadError": "Não foi possível carregar os detalhes do trabalho. Verifique sua conexão e tente novamente.",
   "app.work.detail.noPermission": "Você não tem permissão para revisar trabalho neste jardim.",
   "app.work.detail.notFound": "Trabalho não encontrado",
   "app.work.detail.notFoundDescription": "O envio de trabalho solicitado não foi encontrado.",

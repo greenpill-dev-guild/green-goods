@@ -3167,6 +3167,7 @@
   "app.work.detail.hint.missingMethod": "Select at least one verification method to approve.",
   "app.work.detail.loading": "Loading work...",
   "app.work.detail.loadingDescription": "Fetching work details.",
+  "app.work.detail.loadError": "Work details could not be loaded. Check your connection and try again.",
   "app.work.detail.noPermission": "You don't have permission to review work in this garden.",
   "app.work.detail.notFound": "Work not found",
   "app.work.detail.notFoundDescription": "The requested work submission could not be found.",

@@ -80,7 +80,7 @@ function isPendingWorkApproval(value: unknown): value is PendingWorkApproval {
   );
 }
 
-export function readPendingWorkApproval(): PendingWorkApproval | null {
+function readPendingWorkApproval(): PendingWorkApproval | null {
   const storage = getStorage();
   if (!storage) return null;
   try {
@@ -123,19 +123,25 @@ export function useWorkApprovalLifecycle(options: UseWorkApprovalLifecycleOption
   optionsRef.current = options;
   const reconciliationRef = useRef(false);
   const presentedHashRef = useRef<string | null>(null);
-  const [hasPendingRecord, setHasPendingRecord] = useState(
-    () => readPendingWorkApproval() !== null
-  );
+  const [initialPendingRecord] = useState<PendingWorkApproval | null>(readPendingWorkApproval);
+  const pendingRecordRef = useRef<PendingWorkApproval | null>(initialPendingRecord);
+  const [hasPendingRecord, setHasPendingRecord] = useState(initialPendingRecord !== null);
   const [stage, setStage] = useState<WorkApprovalLifecycleStage>(
-    () => readPendingWorkApproval()?.stage ?? "idle"
+    initialPendingRecord?.stage ?? "idle"
   );
+
+  const getPendingRecord = useCallback((): PendingWorkApproval | null => {
+    const pending = pendingRecordRef.current ?? readPendingWorkApproval();
+    if (pending) pendingRecordRef.current = pending;
+    return pending;
+  }, []);
 
   const persistStage = useCallback(
     (
       nextStage: PendingWorkApproval["stage"],
       updates: Partial<Pick<PendingWorkApproval, "retryableReason" | "txHash">> = {}
     ): PendingWorkApproval | null => {
-      const current = readPendingWorkApproval();
+      const current = getPendingRecord();
       if (!current) return null;
       const next: PendingWorkApproval = {
         ...current,
@@ -144,6 +150,7 @@ export function useWorkApprovalLifecycle(options: UseWorkApprovalLifecycleOption
         updatedAt: Date.now(),
       };
       if (updates.retryableReason === undefined) delete next.retryableReason;
+      pendingRecordRef.current = next;
       writePendingWorkApproval(next);
       setHasPendingRecord(true);
       setStage(nextStage);
@@ -160,7 +167,7 @@ export function useWorkApprovalLifecycle(options: UseWorkApprovalLifecycleOption
       }
       return next;
     },
-    []
+    [getPendingRecord]
   );
 
   const begin = useCallback((completion: WorkApprovalCompletion & { chainId: number }) => {
@@ -173,6 +180,7 @@ export function useWorkApprovalLifecycle(options: UseWorkApprovalLifecycleOption
       updatedAt: now,
     };
     presentedHashRef.current = null;
+    pendingRecordRef.current = pending;
     writePendingWorkApproval(pending);
     setHasPendingRecord(true);
     setStage("handoff");
@@ -181,7 +189,7 @@ export function useWorkApprovalLifecycle(options: UseWorkApprovalLifecycleOption
 
   const recordWalletStage = useCallback(
     (event: ApprovalWalletLifecycleEvent) => {
-      const current = readPendingWorkApproval();
+      const current = getPendingRecord();
       const repeatedRetryableStage =
         "reason" in event &&
         current?.stage === event.stage &&
@@ -195,7 +203,7 @@ export function useWorkApprovalLifecycle(options: UseWorkApprovalLifecycleOption
         optionsRef.current.onRetryable?.(event.reason);
       }
     },
-    [persistStage]
+    [getPendingRecord, persistStage]
   );
 
   const notifyRetryable = useCallback(
@@ -205,6 +213,7 @@ export function useWorkApprovalLifecycle(options: UseWorkApprovalLifecycleOption
         retryableReason: reason,
         updatedAt: Date.now(),
       };
+      pendingRecordRef.current = next;
       writePendingWorkApproval(next);
       setHasPendingRecord(true);
       setStage(next.stage);
@@ -229,6 +238,7 @@ export function useWorkApprovalLifecycle(options: UseWorkApprovalLifecycleOption
           workUID: completed.workUID,
         });
         presentedHashRef.current = completed.txHash ?? null;
+        pendingRecordRef.current = null;
         clearPendingWorkApproval();
         setHasPendingRecord(false);
         setStage("completed");
@@ -257,7 +267,7 @@ export function useWorkApprovalLifecycle(options: UseWorkApprovalLifecycleOption
   const resume = useCallback(async (): Promise<void> => {
     if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
     if (reconciliationRef.current) return;
-    const pending = readPendingWorkApproval();
+    const pending = getPendingRecord();
     if (!pending) return;
 
     reconciliationRef.current = true;
@@ -286,6 +296,7 @@ export function useWorkApprovalLifecycle(options: UseWorkApprovalLifecycleOption
         if (broadcast) notifyRetryable("receipt-timeout", broadcast);
         return;
       }
+      pendingRecordRef.current = null;
       clearPendingWorkApproval();
       setHasPendingRecord(false);
       setStage("failed");
@@ -293,7 +304,7 @@ export function useWorkApprovalLifecycle(options: UseWorkApprovalLifecycleOption
     } finally {
       reconciliationRef.current = false;
     }
-  }, [notifyRetryable, persistStage, present, reconcileConfirmed]);
+  }, [getPendingRecord, notifyRetryable, persistStage, present, reconcileConfirmed]);
 
   useEffect(() => {
     const resumeWhenVisible = () => {
@@ -311,16 +322,18 @@ export function useWorkApprovalLifecycle(options: UseWorkApprovalLifecycleOption
   }, [resume]);
 
   const cancel = useCallback(() => {
-    const pending = readPendingWorkApproval();
+    const pending = getPendingRecord();
+    pendingRecordRef.current = null;
     clearPendingWorkApproval();
     setHasPendingRecord(false);
     setStage("cancelled");
     if (pending) {
       optionsRef.current.onStage?.({ approved: pending.approved, stage: "cancelled" });
     }
-  }, []);
+  }, [getPendingRecord]);
 
   const fail = useCallback(() => {
+    pendingRecordRef.current = null;
     clearPendingWorkApproval();
     setHasPendingRecord(false);
     setStage("failed");
@@ -328,7 +341,7 @@ export function useWorkApprovalLifecycle(options: UseWorkApprovalLifecycleOption
 
   const completeConfirmed = useCallback(async () => {
     if (reconciliationRef.current) return;
-    const pending = readPendingWorkApproval();
+    const pending = getPendingRecord();
     if (!pending) return;
     reconciliationRef.current = true;
     try {
@@ -336,7 +349,7 @@ export function useWorkApprovalLifecycle(options: UseWorkApprovalLifecycleOption
     } finally {
       reconciliationRef.current = false;
     }
-  }, [reconcileConfirmed]);
+  }, [getPendingRecord, reconcileConfirmed]);
 
   return {
     begin,

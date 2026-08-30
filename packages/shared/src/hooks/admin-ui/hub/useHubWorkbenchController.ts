@@ -104,6 +104,7 @@ export function useHubWorkbenchController() {
     works,
     worksLoading,
     worksFetching,
+    worksError,
     refreshWorks,
     assessments,
     fetchingAssessments,
@@ -329,7 +330,7 @@ export function useHubWorkbenchController() {
     () => formatEventAge(lastRefreshAt),
     [formatEventAge, lastRefreshAt]
   );
-  const hasDataError = Boolean(error || assessmentsError);
+  const hasDataError = Boolean(error || worksError || assessmentsError);
 
   const sortOptions = useMemo<SortOption<SortDirection>[]>(
     () => [

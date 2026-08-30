@@ -23,6 +23,7 @@
     "./hooks": "./src/hooks/index.ts",
     "./hooks/admin-ui/useCanvasChromeProbe": "./src/hooks/admin-ui/useCanvasChromeProbe.ts",
     "./hooks/app/useOnlineStatus": "./src/hooks/app/useOnlineStatus.ts",
+    "./hooks/ui/useDocumentScrollLock": "./src/hooks/ui/useDocumentScrollLock.ts",
     "./i18n": "./src/i18n/index.ts",
     "./i18n/commitmentUnits": "./src/i18n/commitmentUnits.ts",
     "./lib/env": "./src/lib/env.ts",

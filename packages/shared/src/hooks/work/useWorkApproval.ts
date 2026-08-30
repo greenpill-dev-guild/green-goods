@@ -56,6 +56,11 @@ interface UseWorkApprovalDependencies {
 
 const PENDING_AUTO_CLEAR_MS = LOCAL_OVERLAY_GRACE_MS;
 type PendingWork = OverlayWork;
+interface WorkDecisionCacheSnapshot {
+  gardenId: string;
+  merged?: PendingWork[];
+  online?: PendingWork[];
+}
 
 export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) {
   const { formatMessage } = useIntl();
@@ -65,6 +70,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
   const queryClient = useQueryClient();
   const { set: scheduleAutoClear } = useTimeout();
   const lastGardenRef = useRef<string>("");
+  const decisionCacheRef = useRef<WorkDecisionCacheSnapshot | null>(null);
   const { start: scheduleFollowUp } = useProgressiveInvalidation(
     useCallback(() => {
       if (lastGardenRef.current) {
@@ -88,20 +94,32 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
       isOfflineHash = false
     ) => {
       const status = completion.approved ? ("approved" as const) : ("rejected" as const);
-      const update = (old: PendingWork[] = []): PendingWork[] =>
-        old.map((work) =>
-          work.id === completion.workUID
-            ? {
-                ...work,
-                status,
-                _isPending: awaitingConfirmation,
-                _txHash: isOfflineHash ? undefined : txHash,
-                _pendingUntilMs: isOfflineHash ? undefined : overlayDeadline(),
-              }
-            : work
-        );
-      queryClient.setQueryData(worksKeys.merged(completion.gardenId, chainId), update);
-      queryClient.setQueryData(worksKeys.online(completion.gardenId, chainId), update);
+      const cacheSnapshot =
+        decisionCacheRef.current?.gardenId.toLowerCase() === completion.gardenId.toLowerCase()
+          ? decisionCacheRef.current
+          : null;
+      const update =
+        (fallback: PendingWork[] | undefined) =>
+        (old: PendingWork[] = []): PendingWork[] =>
+          (old.length > 0 ? old : (fallback ?? old)).map((work) =>
+            work.id === completion.workUID
+              ? {
+                  ...work,
+                  status,
+                  _isPending: awaitingConfirmation,
+                  _txHash: isOfflineHash ? undefined : txHash,
+                  _pendingUntilMs: isOfflineHash ? undefined : overlayDeadline(),
+                }
+              : work
+          );
+      queryClient.setQueryData(
+        worksKeys.merged(completion.gardenId, chainId),
+        update(cacheSnapshot?.merged)
+      );
+      queryClient.setQueryData(
+        worksKeys.online(completion.gardenId, chainId),
+        update(cacheSnapshot?.online?.length ? cacheSnapshot.online : cacheSnapshot?.merged)
+      );
     },
     [chainId, queryClient]
   );
@@ -178,6 +196,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
       if (!approval.txHash) return;
       recordDecision(approval, approval.txHash, false);
       await invalidateApprovalQueries(approval);
+      decisionCacheRef.current = null;
       hapticSuccess();
       if (approval.approved) {
         trackWorkApprovalSuccess({
@@ -256,17 +275,24 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         });
       }
 
-      await queryClient.cancelQueries({
-        queryKey: worksKeys.merged(work.gardenAddress, chainId),
-      });
-      await queryClient.cancelQueries({
-        queryKey: worksKeys.online(work.gardenAddress, chainId),
-      });
       const previousMerged = queryClient.getQueryData<Work[]>(
         worksKeys.merged(work.gardenAddress, chainId)
       );
       const previousOnline = queryClient.getQueryData<Work[]>(
         worksKeys.online(work.gardenAddress, chainId)
+      );
+      decisionCacheRef.current = {
+        gardenId: work.gardenAddress,
+        merged: previousMerged,
+        online: previousOnline,
+      };
+      await queryClient.cancelQueries(
+        { queryKey: worksKeys.merged(work.gardenAddress, chainId) },
+        { revert: false }
+      );
+      await queryClient.cancelQueries(
+        { queryKey: worksKeys.online(work.gardenAddress, chainId) },
+        { revert: false }
       );
 
       if (authMode !== "wallet") {
@@ -340,6 +366,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
             suppressLogging: true,
           });
           await invalidateApprovalQueries(completion);
+          decisionCacheRef.current = null;
           return;
         }
         lifecycle.recordWalletStage({ stage: "confirmed", txHash: result.hash });
@@ -382,6 +409,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         suppressLogging: true,
       });
       await invalidateApprovalQueries(completion);
+      decisionCacheRef.current = null;
     },
     onError: (error: unknown, variables, context) => {
       if (!variables) return;
@@ -404,6 +432,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
       };
       if (isCancelledTxError(error)) lifecycle.cancel();
       else lifecycle.fail();
+      decisionCacheRef.current = null;
       reportApprovalError(error, completion);
     },
   });

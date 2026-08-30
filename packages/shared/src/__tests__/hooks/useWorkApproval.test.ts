@@ -270,6 +270,101 @@ describe("hooks/work/useWorkApproval", () => {
       );
     });
 
+    it("does not roll the visible work collection back when approval cancels an active refetch", async () => {
+      let releaseSubmission: (() => void) | undefined;
+      (submitApprovalDirectly as any).mockImplementation(async () => {
+        await new Promise<void>((resolve) => {
+          releaseSubmission = resolve;
+        });
+        return MOCK_CONFIRMED_APPROVAL_RESULT;
+      });
+
+      const work = createMockWork({ id: "work-reviewed", status: "pending" });
+      const unrelatedWork = createMockWork({ id: "work-unrelated", status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: false,
+      });
+      const workQueryKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      const cancelQueriesSpy = vi.spyOn(queryClient, "cancelQueries");
+
+      queryClient.setQueryData(workQueryKey, []);
+      const activeRefetch = queryClient.fetchQuery({
+        queryKey: workQueryKey,
+        queryFn: () => new Promise<never>(() => {}),
+      });
+      void activeRefetch.catch(() => {});
+      await waitFor(() =>
+        expect(queryClient.getQueryState(workQueryKey)?.fetchStatus).toBe("fetching")
+      );
+
+      queryClient.setQueryData(workQueryKey, [work, unrelatedWork]);
+
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+      let approvalPromise!: ReturnType<typeof result.current.mutateAsync>;
+      act(() => {
+        approvalPromise = result.current.mutateAsync({ draft, work });
+      });
+
+      try {
+        await waitFor(() => expect(submitApprovalDirectly).toHaveBeenCalled());
+        expect(queryClient.getQueryData(workQueryKey)).toEqual([work, unrelatedWork]);
+        expect(cancelQueriesSpy).toHaveBeenCalledWith(
+          { queryKey: workQueryKey },
+          { revert: false }
+        );
+        queryClient.setQueryData(workQueryKey, []);
+      } finally {
+        await act(async () => {
+          releaseSubmission?.();
+          await approvalPromise;
+        });
+      }
+
+      const reconciled =
+        queryClient.getQueryData<Array<{ id: string; status: string }>>(workQueryKey);
+      expect(reconciled?.map(({ id, status }) => [id, status])).toEqual([
+        [work.id, "rejected"],
+        [unrelatedWork.id, "pending"],
+      ]);
+    });
+
+    it("reconciles a confirmed wallet decision when durable approval storage is unavailable", async () => {
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
+
+      const work = createMockWork({ id: "work-reviewed", status: "pending" });
+      const unrelatedWork = createMockWork({ id: "work-unrelated", status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: false,
+      });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      const onlineKey = queryKeys.works.online(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work, unrelatedWork]);
+      queryClient.setQueryData(onlineKey, [work, unrelatedWork]);
+      const setItemSpy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+        throw new DOMException("Storage unavailable", "QuotaExceededError");
+      });
+
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      expect(setItemSpy).toHaveBeenCalled();
+      for (const queryKey of [mergedKey, onlineKey]) {
+        const reconciled =
+          queryClient.getQueryData<Array<{ id: string; status: string }>>(queryKey);
+        expect(reconciled?.map(({ id, status }) => [id, status])).toEqual([
+          [work.id, "rejected"],
+          [unrelatedWork.id, "pending"],
+        ]);
+      }
+    });
+
     it("records wallet decisions when receipt confirmation times out", async () => {
       (submitApprovalDirectly as any).mockResolvedValue({
         hash: MOCK_TX_HASH,
