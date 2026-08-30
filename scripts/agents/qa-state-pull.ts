@@ -25,13 +25,14 @@ import { mergeShards, ROSTER, summarize, toResultsCsv, type Shard } from "./qa-s
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(scriptDir, "..", "..");
+const privateOutputRoot = path.join(repoRoot, "tmp");
 
 interface Options {
   slug: string;
   outDir: string;
 }
 
-function parseArgs(argv: string[]): Options {
+export function parseArgs(argv: string[]): Options {
   let slug = new Date().toISOString().slice(0, 10);
   let outDir = "";
   for (let index = 0; index < argv.length; index++) {
@@ -45,7 +46,16 @@ function parseArgs(argv: string[]): Options {
     else outDir = value;
     index++;
   }
-  return { slug, outDir: outDir || path.join(repoRoot, "tmp", "qa-session", slug) };
+  const resolvedOutDir = path.resolve(repoRoot, outDir || path.join("tmp", "qa-session", slug));
+  const relativeToPrivateRoot = path.relative(privateOutputRoot, resolvedOutDir);
+  const escapesPrivateRoot =
+    relativeToPrivateRoot === ".." ||
+    relativeToPrivateRoot.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relativeToPrivateRoot);
+  if (escapesPrivateRoot) {
+    throw new Error("--out must stay under the repo's gitignored tmp/ directory");
+  }
+  return { slug, outDir: resolvedOutDir };
 }
 
 /**

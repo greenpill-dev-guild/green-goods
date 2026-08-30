@@ -124,6 +124,12 @@
   let saveTimer = null;
   let pollTimer = null;
   let saving = null;
+  let versionClock = 0;
+  let pollSequence = 0;
+  let lastAppliedPoll = 0;
+  let outboxVersions = {};
+  const localVersions = {};
+  const confirmedVersions = {};
 
   const mount = document.getElementById("mount");
   const savebar = document.getElementById("savebar");
@@ -135,14 +141,19 @@
   function esc(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
   }
+  function hasOwn(value, key) {
+    return Boolean(value) && Object.prototype.hasOwnProperty.call(value, key);
+  }
+  function versionKey(person, caseId) {
+    return person + "|" + caseId;
+  }
 
   // ── Local durability ────────────────────────────────────────────────
-  // `outbox` is the pending DELTA — only the cases this tester changed since
-  // the last confirmed save. It lands in sessionStorage on every keystroke, so
-  // a reload, a crash, or a failed POST never costs anyone their notes. Sending
-  // a delta rather than the whole shard also means one person with two clients
-  // open (a phone on the PWA, a laptop on admin) can never have one client's
-  // stale snapshot roll back the other's work.
+  // `outbox` is the pending FIELD-LEVEL delta — a status click carries only `s`
+  // and a note edit carries only `n`. It lands in sessionStorage on every
+  // keystroke, so a reload, crash, or failed POST never costs anyone their
+  // notes. Omitting the untouched field also prevents a phone's stale note from
+  // replacing a laptop edit, or a laptop's stale status from clearing a verdict.
   let outbox = {};
   try {
     const stored = JSON.parse(sessionStorage.getItem(OUTBOX_KEY) || "null");
@@ -152,31 +163,95 @@
   function saveOutbox() {
     try {
       if (!who) return;
-      sessionStorage.setItem(OUTBOX_KEY, JSON.stringify({ person: who, delta: outbox }));
+      if (Object.keys(outbox).length) {
+        sessionStorage.setItem(OUTBOX_KEY, JSON.stringify({ person: who, delta: outbox }));
+      } else {
+        sessionStorage.removeItem(OUTBOX_KEY);
+      }
     } catch (e) {}
   }
   function clearOutbox() {
     outbox = {};
+    outboxVersions = {};
     try { sessionStorage.removeItem(OUTBOX_KEY); } catch (e) {}
   }
-  /** A cleared case travels as an empty entry — the server reads it as a delete. */
+  /** Clearing a case is explicit, so clearing one field never means deletion. */
   function tombstone() {
-    return { s: "", n: "", at: new Date().toISOString() };
+    return { delete: true };
   }
-  function sameEntry(a, b) {
+  function samePatch(a, b) {
     if (!a && !b) return true;
     if (!a || !b) return false;
-    return a.s === b.s && (a.n || "") === (b.n || "");
+    return Boolean(a.delete) === Boolean(b.delete)
+      && hasOwn(a, "s") === hasOwn(b, "s")
+      && (!hasOwn(a, "s") || a.s === b.s)
+      && hasOwn(a, "n") === hasOwn(b, "n")
+      && (!hasOwn(a, "n") || a.n === b.n);
+  }
+  function patchEntry(current, patch) {
+    if (patch.delete) return null;
+    const next = {
+      s: hasOwn(patch, "s") ? patch.s || "" : current ? current.s || "" : "",
+      n: hasOwn(patch, "n") ? patch.n || "" : current ? current.n || "" : "",
+      at: new Date().toISOString(),
+    };
+    return !next.s && !next.n.trim() ? null : next;
+  }
+  function markLocalEdit(caseId, person) {
+    const key = versionKey(person, caseId);
+    const version = ++versionClock;
+    localVersions[key] = version;
+    return version;
+  }
+  function normalizeLoadedOutbox() {
+    const normalized = {};
+    for (const [caseId, raw] of Object.entries(outbox)) {
+      if (!raw || typeof raw !== "object") continue;
+      if (raw.delete === true) {
+        normalized[caseId] = tombstone();
+        continue;
+      }
+      const hasStatus = hasOwn(raw, "s") && typeof raw.s === "string";
+      const hasNote = hasOwn(raw, "n") && typeof raw.n === "string";
+      // The previous page stored whole entries with an `at` field. Diff those
+      // against the server copy so a recovered outbox becomes a field patch
+      // instead of reviving the old whole-entry overwrite race.
+      if (hasOwn(raw, "at")) {
+        if (hasStatus && hasNote && !raw.s && !raw.n.trim()) {
+          normalized[caseId] = tombstone();
+          continue;
+        }
+        const current = entryFor(caseId, who);
+        const patch = {};
+        if (hasStatus && raw.s !== (current ? current.s || "" : "")) patch.s = raw.s;
+        if (hasNote && raw.n !== (current ? current.n || "" : "")) patch.n = raw.n;
+        if (Object.keys(patch).length) normalized[caseId] = patch;
+        continue;
+      }
+      const patch = {};
+      if (hasStatus) patch.s = raw.s;
+      if (hasNote) patch.n = raw.n;
+      if (Object.keys(patch).length) normalized[caseId] = patch;
+    }
+    outbox = normalized;
   }
 
   function entryFor(caseId, person) {
     return (entries[caseId] || {})[person] || null;
   }
-  function setMine(caseId, entry) {
+  function setMine(caseId, entry, patch) {
     entries[caseId] = entries[caseId] || {};
     if (entry) entries[caseId][who] = entry;
     else delete entries[caseId][who];
-    outbox[caseId] = entry || tombstone();
+    const pending = outbox[caseId];
+    if (patch.delete) outbox[caseId] = tombstone();
+    // Once a pending delete is followed by a new entry, send the complete new
+    // value. The server still has the pre-delete entry until this delta lands.
+    else if (pending && pending.delete) {
+      outbox[caseId] = entry ? { s: entry.s || "", n: entry.n || "" } : { ...patch };
+    }
+    else outbox[caseId] = { ...(pending || {}), ...patch };
+    outboxVersions[caseId] = markLocalEdit(caseId, who);
     saveOutbox();
   }
 
@@ -277,8 +352,8 @@
       const id = b.dataset.id;
       const cur = entryFor(id, who) || { s: "", n: "" };
       const next = cur.s === b.dataset.s ? "" : b.dataset.s;
-      if (!next && !(cur.n || "").trim()) setMine(id, null);
-      else setMine(id, { s: next, n: cur.n || "", at: new Date().toISOString() });
+      if (!next && !(cur.n || "").trim()) setMine(id, null, { s: "" });
+      else setMine(id, { s: next, n: cur.n || "", at: new Date().toISOString() }, { s: next });
       queueSave(); render();
     }));
     mount.querySelectorAll("[data-note]").forEach((i) => {
@@ -288,8 +363,8 @@
         growEl(i);
         const id = i.dataset.note;
         const cur = entryFor(id, who) || { s: "" };
-        if (!i.value.trim() && !cur.s) setMine(id, null);
-        else setMine(id, { s: cur.s || "", n: i.value, at: new Date().toISOString() });
+        if (!i.value.trim() && !cur.s) setMine(id, null, { n: "" });
+        else setMine(id, { s: cur.s || "", n: i.value, at: new Date().toISOString() }, { n: i.value });
         queueSave(2500);
       });
     });
@@ -368,6 +443,7 @@
 
   async function postDelta(person) {
     const sent = { ...outbox };
+    const sentVersions = { ...outboxVersions };
     if (!Object.keys(sent).length) { dirty = false; return; }
     dirty = false;
     try {
@@ -380,12 +456,15 @@
       // Throws on the password-protection HTML page, which is what turns an
       // expired session into an honest "not saved" instead of silent loss.
       await response.json();
-      // Clear only what was actually sent AND has not changed since — anything
-      // typed during the request stays pending for the next save.
-      for (const [caseId, entry] of Object.entries(sent)) {
-        const current = entryFor(caseId, person);
-        const settled = current ? sameEntry(entry, current) : !entry.s && !entry.n.trim();
-        if (settled && sameEntry(outbox[caseId], entry)) delete outbox[caseId];
+      // Confirm the exact local version this response represents. Anything
+      // typed during the request has a later version and remains pending.
+      for (const [caseId, patch] of Object.entries(sent)) {
+        const key = versionKey(person, caseId);
+        confirmedVersions[key] = Math.max(confirmedVersions[key] || 0, sentVersions[caseId] || 0);
+        if (samePatch(outbox[caseId], patch) && outboxVersions[caseId] === sentVersions[caseId]) {
+          delete outbox[caseId];
+          delete outboxVersions[caseId];
+        }
       }
       saveOutbox();
       // Anything typed while the request was in flight is still pending. The
@@ -421,19 +500,24 @@
   // own entries entirely keeps each device on its first-load copy of you: the
   // phone records a verdict, the laptop still shows none, and the laptop's
   // next note posts `{s:"", n:"..."}` — clearing the verdict the phone set.
-  // The outbox is the precise test for "I have something unsent here", so
-  // cases outside it can safely take the server's version.
+  // The outbox protects unsent work; per-case versions below also reject a GET
+  // that started before a now-confirmed save and therefore captured stale data.
   async function poll() {
     // Skip only while a save is in flight. Pausing on `dirty` too would freeze
-    // a tester's view of their partner for as long as their OWN saves keep
-    // failing — the moment they most need to see what the other is finding.
-    // Merging is safe regardless: it only ever adopts other people's entries,
-    // and the re-render restores focus and caret.
+    // a tester's view of their partner while their OWN saves keep failing. The
+    // per-case versions below protect local edits from a GET that started too
+    // early; the re-render restores focus and caret.
     if (saving) return;
+    const sequence = ++pollSequence;
+    const startedLocalVersions = { ...localVersions };
+    const startedConfirmedVersions = { ...confirmedVersions };
     try {
       const response = await fetch("/api/state", { cache: "no-store" });
       if (!response.ok) return;
       const data = await response.json();
+      // A slower, older GET must never apply after a newer poll already did.
+      if (sequence < lastAppliedPoll) return;
+      lastAppliedPoll = sequence;
       if (Array.isArray(data.team) && data.team.length) TEAM = data.team;
       let changed = false;
       const remote = data.entries || {};
@@ -443,6 +527,12 @@
         for (const person of TEAM) {
           // Never overwrite a case this browser has not yet managed to save.
           if (person === who && Object.prototype.hasOwnProperty.call(outbox, caseId)) continue;
+          const key = versionKey(person, caseId);
+          const started = startedLocalVersions[key] || 0;
+          // A GET that began before this browser's edit—or while that edit was
+          // still unconfirmed—cannot prove its snapshot contains the edit.
+          if (started > (startedConfirmedVersions[key] || 0)) continue;
+          if ((localVersions[key] || 0) > started) continue;
           const before = JSON.stringify(localRow[person] || null);
           const after = JSON.stringify(remoteRow[person] || null);
           if (before === after) continue;
@@ -505,12 +595,16 @@
 
       // Unsent work from a previous page life wins over the server copy.
       if (who && Object.keys(outbox).length) {
-        for (const [caseId, entry] of Object.entries(outbox)) {
+        normalizeLoadedOutbox();
+        for (const [caseId, patch] of Object.entries(outbox)) {
+          const entry = patchEntry(entryFor(caseId, who), patch);
           entries[caseId] = entries[caseId] || {};
-          if (!entry.s && !entry.n.trim()) delete entries[caseId][who];
-          else entries[caseId][who] = entry;
+          if (entry) entries[caseId][who] = entry;
+          else delete entries[caseId][who];
+          outboxVersions[caseId] = markLocalEdit(caseId, who);
         }
-        queueSave(400);
+        saveOutbox();
+        if (Object.keys(outbox).length) queueSave(400);
       }
 
       render();

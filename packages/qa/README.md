@@ -17,13 +17,14 @@ shard and merges.
 Within one tester there *is* a conflict to handle, because the workflow expects a phone on the PWA
 and a laptop on admin at once. Three things make that safe:
 
-- Saves send a **delta**, not the whole shard, so a stale client cannot write away cases it never
-  touched.
+- Saves send **field-level deltas**, not whole entries or shards. A status click sends only the
+  status, and a note edit sends only the note, so either device can preserve the other's field.
 - Each write is conditional on the ETag that was read (`ifMatch`); a losing write re-reads,
-  re-merges and retries rather than overwriting blind.
-- The poll adopts your own entries too, for any case you have no unsent edit on. Without that, each
-  device stays on its first-load copy of you, and a note typed on the laptop clears a verdict the
-  phone set.
+  re-merges and retries rather than overwriting blind. The first write is create-only, so two
+  clients that both saw an absent shard cannot both replace it and report success.
+- The poll adopts your own entries too, but rejects an own-entry snapshot that began before a local
+  edit was confirmed. That lets the phone and laptop converge without allowing a slow GET to roll
+  the UI back after `saved ✓`.
 
 Ordering is by **arrival at the server**, which restamps every entry it stores. Client clocks are
 never trusted: a device an hour fast would otherwise win every comparison forever, silently dropping

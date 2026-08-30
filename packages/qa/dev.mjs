@@ -42,9 +42,9 @@ function shardPath(person) {
 }
 
 /**
- * Same delta semantics the deployed function applies, so a local run cannot
- * prove something the deployment would not do. An entry with no status and no
- * note is a tombstone (the tester cleared that case).
+ * Same field-level delta semantics the deployed function applies, so a local
+ * run cannot prove something the deployment would not do. Deletion is
+ * explicit; the legacy two-empty-fields shape remains compatible.
  */
 export function sanitizeDelta(raw) {
   const delta = {};
@@ -52,26 +52,40 @@ export function sanitizeDelta(raw) {
   for (const [caseId, value] of Object.entries(raw)) {
     if (typeof caseId !== "string" || caseId.length > 64) continue;
     if (!value || typeof value !== "object") continue;
-    delta[caseId] = {
-      s: typeof value.s === "string" && STATUSES.has(value.s) ? value.s : "",
-      n: typeof value.n === "string" ? value.n.slice(0, MAX_NOTE_LENGTH) : "",
-      // Accepted so the shape round-trips, never trusted: mergeDelta restamps it.
-      at: typeof value.at === "string" ? value.at : "",
-    };
+    const hasStatus =
+      Object.prototype.hasOwnProperty.call(value, "s") && typeof value.s === "string" && STATUSES.has(value.s);
+    const hasNote = Object.prototype.hasOwnProperty.call(value, "n") && typeof value.n === "string";
+    if (value.delete === true || (hasStatus && hasNote && !value.s && !value.n.trim())) {
+      delta[caseId] = { delete: true };
+      continue;
+    }
+    const patch = {};
+    if (hasStatus) patch.s = value.s;
+    if (hasNote) patch.n = value.n.slice(0, MAX_NOTE_LENGTH);
+    if (Object.keys(patch).length) delta[caseId] = patch;
   }
   return delta;
 }
 
 /**
- * Arrival-ordered merge; a tombstone removes the entry. Client clocks are never
- * trusted for ordering — see the reasoning in packages/qa/api/state.ts, which
- * this must match exactly (scripts/agents/qa-app-parity.test.ts proves it does).
+ * Arrival-ordered, field-level merge. Client clocks are never trusted for
+ * ordering — see packages/qa/api/state.ts, which this must match exactly.
  */
 export function mergeDelta(existing, delta, now = new Date().toISOString()) {
   const merged = { ...existing };
   for (const [caseId, incoming] of Object.entries(delta)) {
-    if (!incoming.s && !incoming.n.trim()) delete merged[caseId];
-    else merged[caseId] = { s: incoming.s, n: incoming.n, at: now };
+    if (incoming.delete) {
+      delete merged[caseId];
+      continue;
+    }
+    const current = merged[caseId] ?? { s: "", n: "", at: now };
+    const next = {
+      s: Object.prototype.hasOwnProperty.call(incoming, "s") ? (incoming.s ?? "") : current.s,
+      n: Object.prototype.hasOwnProperty.call(incoming, "n") ? (incoming.n ?? "") : current.n,
+      at: now,
+    };
+    if (!next.s && !next.n.trim()) delete merged[caseId];
+    else merged[caseId] = next;
   }
   return merged;
 }

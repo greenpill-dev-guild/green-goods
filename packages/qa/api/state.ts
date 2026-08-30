@@ -39,6 +39,13 @@ interface Entry {
   at: string;
 }
 
+/** One case's changed fields, or an explicit request to remove the case. */
+interface EntryPatch {
+  s?: string;
+  n?: string;
+  delete?: true;
+}
+
 interface Shard {
   person: Person;
   updatedAt: string;
@@ -136,36 +143,41 @@ async function readShard(person: Person): Promise<{ shard: Shard; etag: string }
 
 /**
  * Normalize an incoming delta, dropping anything the page would not have
- * written. An entry with no status and no note is a TOMBSTONE — the tester
- * cleared that case — and is carried through as a deletion rather than
- * silently ignored.
+ * written. Status and note are independent patches: one browser changing a
+ * verdict must not send its stale copy of the note, or vice versa. Deletion is
+ * explicit so clearing one field cannot accidentally clear the whole case.
+ *
+ * The two-empty-fields form remains a delete for an outbox written by the
+ * previous page version. Explicit deletes use `{ delete: true }`.
  */
-export function sanitizeDelta(raw: unknown): Record<string, Entry> {
-  const delta: Record<string, Entry> = {};
+export function sanitizeDelta(raw: unknown): Record<string, EntryPatch> {
+  const delta: Record<string, EntryPatch> = {};
   if (!raw || typeof raw !== "object") return delta;
   for (const [caseId, value] of Object.entries(raw as Record<string, unknown>)) {
     if (typeof caseId !== "string" || caseId.length > 64) continue;
-    const entry = value as Partial<Entry> | null;
-    if (!entry || typeof entry !== "object") continue;
-    delta[caseId] = {
-      s: typeof entry.s === "string" && STATUSES.has(entry.s) ? entry.s : "",
-      n: typeof entry.n === "string" ? entry.n.slice(0, MAX_NOTE_LENGTH) : "",
-      // `at` is accepted so the shape round-trips, but it is never trusted:
-      // mergeDelta restamps it. See below.
-      at: typeof entry.at === "string" ? entry.at : "",
-    };
+    const incoming = value as Partial<Entry> & { delete?: unknown };
+    if (!incoming || typeof incoming !== "object") continue;
+    const hasStatus =
+      Object.prototype.hasOwnProperty.call(incoming, "s") &&
+      typeof incoming.s === "string" &&
+      STATUSES.has(incoming.s);
+    const hasNote = Object.prototype.hasOwnProperty.call(incoming, "n") && typeof incoming.n === "string";
+    if (incoming.delete === true || (hasStatus && hasNote && !incoming.s && !incoming.n?.trim())) {
+      delta[caseId] = { delete: true };
+      continue;
+    }
+    const patch: EntryPatch = {};
+    if (hasStatus) patch.s = incoming.s;
+    if (hasNote) patch.n = incoming.n?.slice(0, MAX_NOTE_LENGTH);
+    if (Object.keys(patch).length) delta[caseId] = patch;
   }
   return delta;
 }
 
-function isTombstone(entry: Entry): boolean {
-  return !entry.s && !entry.n.trim();
-}
-
 /**
- * Merge a delta into a tester's existing entries. Clients send only what
- * changed, so one tester with two browsers open cannot have one client's stale
- * snapshot roll back the other's work — which a whole-shard write would do.
+ * Merge field-level patches into a tester's existing entries. A phone verdict
+ * and laptop note that arrive together both survive regardless of arrival
+ * order because neither write carries the field it did not change.
  *
  * Ordering is by ARRIVAL, stamped here. A client clock is never trusted: a
  * device an hour fast would otherwise make its writes win forever, and every
@@ -176,13 +188,23 @@ function isTombstone(entry: Entry): boolean {
  */
 export function mergeDelta(
   existing: Record<string, Entry>,
-  delta: Record<string, Entry>,
+  delta: Record<string, EntryPatch>,
   now: string = new Date().toISOString(),
 ): Record<string, Entry> {
   const merged: Record<string, Entry> = { ...existing };
   for (const [caseId, incoming] of Object.entries(delta)) {
-    if (isTombstone(incoming)) delete merged[caseId];
-    else merged[caseId] = { s: incoming.s, n: incoming.n, at: now };
+    if (incoming.delete) {
+      delete merged[caseId];
+      continue;
+    }
+    const current = merged[caseId] ?? { s: "", n: "", at: now };
+    const next = {
+      s: Object.prototype.hasOwnProperty.call(incoming, "s") ? (incoming.s ?? "") : current.s,
+      n: Object.prototype.hasOwnProperty.call(incoming, "n") ? (incoming.n ?? "") : current.n,
+      at: now,
+    };
+    if (!next.s && !next.n.trim()) delete merged[caseId];
+    else merged[caseId] = next;
   }
   return merged;
 }
@@ -195,12 +217,11 @@ export function mergeDelta(
  * the ETag and we merge again onto the new base. Without this, the second
  * writer's `put` would land the first writer's entries away.
  *
- * The create path (no shard yet) cannot be conditional — `put` has no
- * create-only mode — so it verifies instead: if a concurrent create won, the
- * read-back is missing our keys and the loop runs again, now with an ETag.
+ * The create path uses Blob's create-only mode (`allowOverwrite: false`). Two
+ * clients that both read an absent shard therefore cannot both report success:
+ * one creates it, while the other retries against the newly created ETag.
  */
-async function applyDelta(person: Person, delta: Record<string, Entry>): Promise<Shard> {
-  const keys = Object.keys(delta);
+export async function applyDelta(person: Person, delta: Record<string, EntryPatch>): Promise<Shard> {
   for (let attempt = 1; attempt <= MAX_WRITE_ATTEMPTS; attempt++) {
     // Never merge onto an assumed-empty base: that would overwrite this
     // tester's whole record with just the delta in hand. readShard throws
@@ -218,7 +239,10 @@ async function applyDelta(person: Person, delta: Record<string, Entry>): Promise
         // A stable pathname per tester is the whole point of the sharding — a
         // random suffix would mint a new object per save and orphan the last one.
         addRandomSuffix: false,
-        allowOverwrite: true,
+        // Existing writes are conditional overwrites. A missing shard is a
+        // create-only write, so a client that read the same absence cannot land
+        // later and erase the first client's successful create.
+        allowOverwrite: Boolean(previous),
         // No cacheControlMaxAge. Freshness is a READ-side guarantee here:
         // every `get` passes `useCache: false` and goes to origin, so the CDN
         // lifetime this would set is never on the path. Setting it to 0 to
@@ -227,18 +251,14 @@ async function applyDelta(person: Person, delta: Record<string, Entry>): Promise
         ...(previous ? { ifMatch: previous.etag } : {}),
       });
     } catch (error) {
-      if (error instanceof BlobPreconditionFailedError && attempt < MAX_WRITE_ATTEMPTS) continue;
+      // Blob reports ETag contention precisely. A create conflict is currently
+      // surfaced as a generic Blob error, so any failed create gets the same
+      // bounded re-read: if another client won, the next attempt has its ETag;
+      // if this was a store failure, the final attempt still returns 503.
+      if ((error instanceof BlobPreconditionFailedError || !previous) && attempt < MAX_WRITE_ATTEMPTS) continue;
       throw new StoreError(`${person}'s entries could not be saved`, error);
     }
-    if (previous) return shard;
-    // Unconditional create: prove it survived a concurrent create before
-    // reporting success, so a lost race retries instead of silently dropping.
-    const landed = await readShard(person);
-    const settled = keys.every((caseId) => {
-      const stored = landed?.shard.entries[caseId];
-      return isTombstone(delta[caseId]) ? !stored : Boolean(stored);
-    });
-    if (settled) return landed?.shard ?? shard;
+    return shard;
   }
   throw new StoreError(`${person}'s entries are being saved from elsewhere — try again`, "write contention");
 }

@@ -23,10 +23,15 @@ const LATER = "2026-08-30T11:00:00.000Z";
 const STAMP = "2026-08-30T12:00:00.000Z";
 
 const entry = (s: string, n: string, at = LATER) => ({ s, n, at });
+type Entry = ReturnType<typeof entry>;
+type EntryPatch = { s?: string; n?: string; delete?: true };
 
 const SANITIZE_CASES: Array<[string, unknown]> = [
   ["a normal verdict and note", { "PUB-001": entry("pass", "looks right") }],
-  ["a tombstone (tester cleared the case)", { "PUB-001": entry("", "") }],
+  ["a status-only patch", { "PUB-001": { s: "pass" } }],
+  ["a note-only patch", { "PUB-001": { n: "looks right" } }],
+  ["an explicit delete", { "PUB-001": { delete: true } }],
+  ["a legacy tombstone", { "PUB-001": entry("", "") }],
   ["an unknown status", { "PUB-001": entry("maybe", "note") }],
   ["a non-object entry", { "PUB-001": "nope" }],
   ["an over-long case id", { ["X".repeat(80)]: entry("pass", "note") }],
@@ -34,14 +39,14 @@ const SANITIZE_CASES: Array<[string, unknown]> = [
   ["a null payload", null],
 ];
 
-const MERGE_CASES: Array<[string, Record<string, ReturnType<typeof entry>>, Record<string, ReturnType<typeof entry>>]> = [
-  ["adds a new case", { "PUB-001": entry("pass", "a") }, { "PUB-002": entry("fail", "b") }],
-  ["the arriving write wins", { "PUB-001": entry("pass", "old", EARLIER) }, { "PUB-001": entry("fail", "new", LATER) }],
-  // A client claiming an older clock still wins: ordering is arrival, not the
-  // timestamp the client sent. A device an hour behind must not be muted.
-  ["a backdated write still wins", { "PUB-001": entry("fail", "new", LATER) }, { "PUB-001": entry("pass", "corrected", EARLIER) }],
-  ["a tombstone deletes", { "PUB-001": entry("pass", "a", EARLIER) }, { "PUB-001": entry("", "", LATER) }],
-  ["a backdated tombstone still deletes", { "PUB-001": entry("pass", "a", LATER) }, { "PUB-001": entry("", "", EARLIER) }],
+const MERGE_CASES: Array<[string, Record<string, Entry>, Record<string, EntryPatch>]> = [
+  ["adds a new case", { "PUB-001": entry("pass", "a") }, { "PUB-002": { s: "fail", n: "b" } }],
+  ["the arriving status wins", { "PUB-001": entry("pass", "old", EARLIER) }, { "PUB-001": { s: "fail" } }],
+  ["a status patch preserves the note", { "PUB-001": entry("pass", "phone note", EARLIER) }, { "PUB-001": { s: "fail" } }],
+  ["a note patch preserves the status", { "PUB-001": entry("pass", "old", EARLIER) }, { "PUB-001": { n: "laptop note" } }],
+  ["clearing status preserves a concurrent note", { "PUB-001": entry("pass", "laptop note", EARLIER) }, { "PUB-001": { s: "" } }],
+  ["clearing the final field removes the empty case", { "PUB-001": entry("pass", "", EARLIER) }, { "PUB-001": { s: "" } }],
+  ["an explicit delete removes the case", { "PUB-001": entry("pass", "a", EARLIER) }, { "PUB-001": { delete: true } }],
 ];
 
 describe("QA app merge rules — deployed function vs local server", () => {
@@ -57,14 +62,14 @@ describe("QA app merge rules — deployed function vs local server", () => {
 
   it("both restamp a written entry with arrival time, discarding the client's", () => {
     const existing = {};
-    const delta = { "PUB-001": entry("pass", "typed on a skewed laptop", EARLIER) };
+    const delta = { "PUB-001": { s: "pass", n: "typed on a skewed laptop" } };
     expect(mergeDeployed(existing, delta, STAMP)["PUB-001"].at).toBe(STAMP);
     expect(mergeLocal(existing, delta, STAMP)["PUB-001"].at).toBe(STAMP);
   });
 
-  it("both treat a tombstone as a delete, not an empty entry", () => {
+  it("both treat an explicit delete as removal, not an empty entry", () => {
     const existing = { "PUB-001": entry("pass", "recorded", EARLIER) };
-    const delta = { "PUB-001": entry("", "", LATER) };
+    const delta = { "PUB-001": { delete: true as const } };
     expect(mergeDeployed(existing, delta, STAMP)).toEqual({});
     expect(mergeLocal(existing, delta, STAMP)).toEqual({});
   });
@@ -72,8 +77,29 @@ describe("QA app merge rules — deployed function vs local server", () => {
   it("both keep an untouched case when a delta names only another", () => {
     // The delta contract: a save must never imply anything about cases it omits.
     const existing = { "PUB-001": entry("pass", "keep me", EARLIER) };
-    const delta = { "PUB-002": entry("fail", "new", LATER) };
+    const delta = { "PUB-002": { s: "fail", n: "new" } };
     expect(Object.keys(mergeDeployed(existing, delta, STAMP)).sort()).toEqual(["PUB-001", "PUB-002"]);
     expect(mergeLocal(existing, delta, STAMP)).toEqual(mergeDeployed(existing, delta, STAMP));
+  });
+
+  it("keeps a phone verdict and laptop note regardless of arrival order", () => {
+    const phoneFirst = mergeDeployed(
+      mergeDeployed({}, { "PUB-001": { s: "pass" } }, EARLIER),
+      { "PUB-001": { n: "laptop note" } },
+      LATER,
+    );
+    const laptopFirst = mergeDeployed(
+      mergeDeployed({}, { "PUB-001": { n: "laptop note" } }, EARLIER),
+      { "PUB-001": { s: "pass" } },
+      LATER,
+    );
+    expect(phoneFirst["PUB-001"]).toMatchObject({ s: "pass", n: "laptop note" });
+    expect(laptopFirst["PUB-001"]).toMatchObject({ s: "pass", n: "laptop note" });
+  });
+
+  it("converts the previous page's empty-entry tombstone into an explicit delete", () => {
+    expect(sanitizeDeployed({ "PUB-001": entry("", "", EARLIER) })).toEqual({
+      "PUB-001": { delete: true },
+    });
   });
 });

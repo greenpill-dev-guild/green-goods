@@ -274,7 +274,10 @@
         "scripts/agents/posthog-query.test.ts",
         "packages/qa/index.html",
         "packages/qa/build.mjs",
-        "scripts/agents/qa-app-build.test.ts"
+        "scripts/agents/qa-app-build.test.ts",
+        "scripts/agents/qa-app-client.test.ts",
+        "scripts/agents/qa-app-store.test.ts",
+        "scripts/agents/qa-state-pull.test.ts"
       ]
     }
   ],

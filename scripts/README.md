@@ -136,7 +136,10 @@ scripts/
 | `qa-state.ts` | `bun run qa:pull` (root package.json) / `qa-state.test.ts` | Pure merge and projection rules for QA app session state — folds each tester's shard into one case-keyed view, rolls up the standing verdict when testers disagree (most severe wins), and projects `results.csv` for the `qa-session` skill |
 | `qa-state.test.ts` | `bun run test:agent-tools` (root package.json) | Two testers on one case both survive the merge, verdict rollup ordering, and CSV quoting for dictated notes full of commas and quotes |
 | `qa-state-pull.ts` | `bun run qa:pull` (root package.json) / `qa-session` skill close-out | Pulls a QA app session (packages/qa) from its private Blob store into `tmp/qa-session/<slug>/` as `results.csv` + `qa-state.json`. Reads the store directly, so it works while the app is password-protected. Results stay in gitignored `tmp/` |
+| `qa-state-pull.test.ts` | `bun run test:agent-tools` (root package.json) | Proves custom pull destinations cannot escape the repo's gitignored `tmp/` privacy boundary |
 | `qa-app-parity.test.ts` | `bun run test:agent-tools` (root package.json) | Guards the one duplication the QA app accepts: the merge rules in the deployed function (`packages/qa/api/state.ts`) and the local server (`packages/qa/dev.mjs`) must agree, or a local two-tester run proves something the deployment would not do |
+| `qa-app-store.test.ts` | `bun run test:agent-tools` (root package.json) | Runs two first writers against a deterministic Blob fake and proves create-only retry merges both deltas |
+| `qa-app-client.test.ts` | `bun run test:agent-tools` (root package.json) | Executes the shipped inline page in Node-hosted JSDOM and proves field-level saves survive a stale in-flight poll |
 | `qa-app-build.test.ts` | `bun run test:agent-tools` (root package.json) | Guards the QA app's bundler-less page: proves the inline script parses, that its note cap and roster fallback match the API, that every path it fetches is one the local server serves, and that the build ships only active catalog cases |
 
 ### `harness/` — skill and planning helpers
