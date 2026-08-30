@@ -103,6 +103,21 @@ describe("QA app deployment contract", () => {
     expect((module as Record<string, unknown>).default).toBeUndefined();
   });
 
+  it("gives every relative import an explicit extension", () => {
+    // Vercel compiles these to ESM, and Node's resolver will not guess an
+    // extension on a relative import. Extensionless `../auth` compiled fine,
+    // passed every local test, and crashed the deployed function at load with
+    // ERR_MODULE_NOT_FOUND. TypeScript wants `.js` here even though the source
+    // is `.ts`.
+    for (const file of ["state.ts", "auth.ts"]) {
+      const source = readFileSync(path.join(appDir, "api", file), "utf8");
+      const relative = [...source.matchAll(/from\s+"(\.[^"]*)"/g)].map((match) => match[1]);
+      for (const specifier of relative) {
+        expect(specifier, `${file} imports ${specifier}`).toMatch(/\.(js|mjs|json)$/);
+      }
+    }
+  });
+
   it("routes both methods through one handler", async () => {
     const module = await import("../../packages/qa/api/state");
     const response = await module.GET(new Request("https://qa.test/api/state", { method: "DELETE" }));
