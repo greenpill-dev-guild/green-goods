@@ -145,4 +145,3 @@ export function AdminCardHeader({ className, ...props }: React.HTMLAttributes<HT
 export function AdminCardBody({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div data-component="AdminCardBody" className={cn("p-4", className)} {...props} />;
 }
-
