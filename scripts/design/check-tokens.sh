@@ -297,8 +297,41 @@ collect_admin_invariant_hits() {
     | sort -u
 }
 
+# ----------------------------------------------------------------------------
+# Admin wrapper-adoption sweep (DL-011/012 adoption program, 2026-08-30 audit)
+#
+# The cockpit control surface is the 21-wrapper Admin* family. Three bypass
+# classes were found at scale by the post-DL-011/012 adoption audit
+# (.plans/backlog/design-system-alignment-review/reports/) and burn down
+# through the same audited baseline as the raw sweep:
+#   1. Shared field primitives rendered directly (TextInput/Textarea/
+#      NativeSelect/FormField and local FormInput/FormTextarea re-wraps) —
+#      the canonical anatomy is AdminTextField/AdminTextArea/AdminSelect/
+#      AdminInlineField.
+#   2. Raw <button> elements — actions ride AdminButton/AdminIconButton,
+#      choices ride AdminFilterChip/AdminChoiceGroup/AdminSelectableCard,
+#      tabs ride AdminTabRail. (m3-state-layer row/card buttons are folded
+#      into the baseline until a dedicated row primitive exists.)
+#   3. Legacy shared Card renders — cockpit surfaces are AdminCard.
+# Scope is packages/admin/src production code only; tests and stories are
+# exercise scaffolding, not adoption surface.
+# ----------------------------------------------------------------------------
+ADMIN_WRAPPER_BYPASS_PATTERN='<(TextInput|Textarea|NativeSelect|FormField|FormInput|FormTextarea|button|Card(\.[A-Za-z]+)?)([[:space:]/>]|$)'
+
+collect_admin_wrapper_bypass_hits() {
+  grep -RInE --include='*.ts' --include='*.tsx' \
+    --exclude='*.test.tsx' --exclude='*.test.ts' \
+    --exclude='*.stories.tsx' --exclude='*.stories.ts' \
+    --exclude-dir=__tests__ --exclude-dir=node_modules --exclude-dir=dist \
+    --exclude-dir=build --exclude-dir=storybook-static --exclude-dir=coverage \
+    "$ADMIN_WRAPPER_BYPASS_PATTERN" packages/admin/src 2>/dev/null \
+    | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
+    | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
+    | sort -u
+}
+
 validate_usage_baseline
-USAGE_HITS="$({ collect_usage_hits || true; collect_admin_invariant_hits || true; } | sort -u)"
+USAGE_HITS="$({ collect_usage_hits || true; collect_admin_invariant_hits || true; collect_admin_wrapper_bypass_hits || true; } | sort -u)"
 BASELINE_HITS=""
 if [[ -f "$USAGE_BASELINE" ]]; then
   BASELINE_HITS="$(awk -F '\t' '!/^[[:space:]]*(#|$)/ {print $1}' "$USAGE_BASELINE" | sort -u || true)"
@@ -538,6 +571,7 @@ echo "✅ admin M3 variable usages resolve to defined tokens."
 echo "✅ no new raw cubic-bezier, duration, color, radius literals, or primitive palette utilities outside token-definition or audited baseline files."
 echo "✅ admin Controlled Chrome guard passed: glass/blur/gradients stay in approved shell CSS."
 echo "✅ admin cockpit invariant sweep passed: off-ladder shadows, hover/press transforms, alias focus rings, and text-*-base stay within the audited baseline."
+echo "✅ admin wrapper-adoption sweep passed: shared field primitives, raw <button> elements, and legacy Card renders stay within the audited baseline."
 echo "✅ admin focus-ring guard passed: focus indicators use --tone-focus-ring."
 echo "✅ action-flow modality guard passed: no retired AdminDialog size=\"fullscreen\" usage."
 echo "✅ token_version declared in design skill (${DESIGN_VER})."
