@@ -173,6 +173,7 @@ property is required; optional fields stay optional by allowing `null`.
             "type": "string",
             "enum": [
               "Public Website",
+              "PWA",
               "PWA iOS",
               "PWA Android",
               "Admin Dashboard",

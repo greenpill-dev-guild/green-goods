@@ -1198,11 +1198,15 @@
       "priority": "P0",
       "area": "Garden Join",
       "scenario": "Join flows: open joining, request-to-join with note, withdraw request, steward welcome/decline",
-      "preconditions": ["Gardens with open and closed joining"],
+      "preconditions": [
+        "Gardens with open and closed joining",
+        "Steward identity for the join queue"
+      ],
       "steps": [
-        "Join an open garden and watch the optimistic flip",
-        "Request to join a closed garden with a note",
-        "Withdraw the request; resubmit after a decline"
+        "As gardener: join an open garden and watch the optimistic flip",
+        "As gardener: request to join a closed garden with a note; withdraw the request; resubmit",
+        "As steward: welcome one pending request and decline another with a reason",
+        "As the declined gardener: resubmit after the decline"
       ],
       "expected": "Open joining flips membership optimistically with distinct toasts; closed gardens take a request with display name; withdraw and declined-with-reason resubmit both work",
       "evidence": "Screenshots of each toast",
@@ -1704,12 +1708,16 @@
       "priority": "P0",
       "area": "Commitments",
       "scenario": "Commitment detail acts: take up, withdraw with reason, confirm / not-yet, link work, steward claim decisions",
-      "preconditions": ["Open commitments in reachable states"],
+      "preconditions": [
+        "Open commitments in reachable states",
+        "Steward identity for claim decisions"
+      ],
       "steps": [
         "Take up a commitment",
         "Withdraw with a reason",
         "Confirm and not-yet from the sheet; fail one and check the sheet stays",
-        "Link work; retry/discard a failed queued act"
+        "Link work; retry/discard a failed queued act",
+        "As steward: accept one claim and decline another with a reason; confirm both land on the commitment"
       ],
       "expected": "Each act shows its gate honestly; not-yet keeps the sheet open on failure with the reason intact; link-work dialog queues idempotently; failed queued acts offer retry/discard",
       "evidence": "Screenshots per act",
@@ -2444,14 +2452,17 @@
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "area": "Performance",
-      "scenario": "Cold-boot budget: cold vs warm load without watchdog trips or reload loops",
-      "preconditions": ["dev:prod stack"],
-      "steps": [
-        "Cold-start the app (cleared cache) and time to interactive",
-        "Warm-reload and compare",
-        "Watch for boot-watchdog trips or dep re-optimization reloads"
+      "scenario": "Boot performance: warm reload locally; cold-start budget on a production build",
+      "preconditions": [
+        "Local dev:prod stack",
+        "A production build (bun run build preview) or hosted origin for the cold measurement"
       ],
-      "expected": "Cold start stays under the boot watchdog threshold, warm loads are fast, and no dependency re-optimization reload loop appears",
+      "steps": [
+        "Local dev:prod: warm-reload the app and confirm fast interactive with no re-optimization reload loop",
+        "Local dev:prod: note (but do not fail on) cold-transform watchdog trips — reproduce warm before judging",
+        "Production build or hosted origin: clear caches, cold-start, and time to interactive against the watchdog budget"
+      ],
+      "expected": "Local dev:prod: warm reloads are fast and no dependency re-optimization reload loop appears — a cold Vite transform tripping the boot watchdog locally is an environment artifact, never a defect. Hosted/production build: a cleared-cache cold start stays under the boot watchdog threshold and never shows the recovery screen",
       "evidence": "Console timings screenshot",
       "role": "none",
       "tags": ["performance"],
@@ -2778,6 +2789,69 @@
       "requiresProduction": false,
       "status": "retired",
       "source": "drive-test-cases-2025-12"
+    },
+    {
+      "id": "PUB-033",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P2",
+      "area": "Vocabulary",
+      "scenario": "Editorial vocabulary holds: no admin/cockpit jargon on public pages",
+      "expected": "Public pages use the editorial vocabulary only — no cockpit/internal terms, frozen names intact; lint:vocab excludes prompt-only wording, so this human sweep is the gate",
+      "preconditions": ["Frozen-name list and surface prompt contracts (design skill)"],
+      "steps": [
+        "Sweep the surface's primary routes reading every heading, label, and empty state",
+        "Check against the frozen-name list and the surface's banned-terms contract",
+        "Note any wrong-surface term with its route"
+      ],
+      "evidence": "List of offending terms with routes (or a clean pass note)",
+      "role": "none",
+      "tags": ["vocabulary", "copy"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-session-2026-08-29"
+    },
+    {
+      "id": "PWA-045",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P2",
+      "area": "Vocabulary",
+      "scenario": "PWA vocabulary holds: gardener-facing language, no internal or admin terms",
+      "expected": "App copy speaks gardener-facing vocabulary; no admin/cockpit or internal terms leak; frozen names intact",
+      "preconditions": ["Frozen-name list and surface prompt contracts (design skill)"],
+      "steps": [
+        "Sweep the surface's primary routes reading every heading, label, and empty state",
+        "Check against the frozen-name list and the surface's banned-terms contract",
+        "Note any wrong-surface term with its route"
+      ],
+      "evidence": "List of offending terms with routes (or a clean pass note)",
+      "role": "none",
+      "tags": ["vocabulary", "copy"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-session-2026-08-29"
+    },
+    {
+      "id": "ADM-035",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "area": "Vocabulary",
+      "scenario": "Admin vocabulary holds: cockpit language, no editorial 'hero/story' terms",
+      "expected": "Cockpit copy stays in the admin vocabulary — no client editorial terms; Title Case action labels per DL-012; frozen names intact",
+      "preconditions": ["Frozen-name list and surface prompt contracts (design skill)"],
+      "steps": [
+        "Sweep the surface's primary routes reading every heading, label, and empty state",
+        "Check against the frozen-name list and the surface's banned-terms contract",
+        "Note any wrong-surface term with its route"
+      ],
+      "evidence": "List of offending terms with routes (or a clean pass note)",
+      "role": "none",
+      "tags": ["vocabulary", "copy"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-session-2026-08-29"
     }
   ]
 }

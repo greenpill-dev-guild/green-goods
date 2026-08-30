@@ -138,13 +138,14 @@ The skill's surface vocabulary matches the Sheet's `Surface` column values, plus
 | Vocabulary | Source surface | Test tab | PostHog project |
 |---|---|---|---|
 | `Public Website` | Client editorial (`packages/client` in website mode) | `Public Website` | App `163591` |
+| `PWA` | Client app (merged surface; desktop shell or device-unspecified) | — route by prefix; merged tab pending | App `163591` |
 | `PWA iOS` | Installed PWA on iOS | `PWA iOS` | App `163591` |
 | `PWA Android` | Installed PWA on Android | `PWA Android` | App `163591` |
 | `Admin Dashboard` | Admin cockpit (`packages/admin`) | `Admin Dashboard` | Admin `262122` |
 | `Cross Surface` | Multi-surface / cross-cutting | `Cross Surface` | App + Admin (per-surface) |
 | `Docs` | Docusaurus (`docs/`) | — (no test tab) | none |
 
-The PWA iOS / PWA Android split is platform-specific. When the extraction's notes don't name a device, default to `PWA iOS`; if the call discussed Android specifically, use `PWA Android`; if it's universal across platforms, use `Cross Surface` rather than picking one.
+Platform assignment: when the notes name a device, use `PWA iOS` or `PWA Android`; when they discuss the client app without naming a device (or the desktop shell), use the merged `PWA` surface — never default to iOS. `Cross Surface` is only for observations genuinely spanning client and admin.
 
 ---
 
