@@ -156,7 +156,8 @@ Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as
 - **Radius set** — 4/8/12/16/9999px only; no 20/24/28px shapes anywhere in admin.
 - **Four-use tone budget** — workspace tone appears only in the active tab, the active nav pill, one filled header action, and the nav-shell FAB fill (plus the faint canvas wash).
 - **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`; never translate/scale lifts or hue shifts.
-- **AdminButton only** — pill-shaped, sentence case; the shared `Button` (`gg-button`) does not appear in admin.
+- **AdminButton only** — pill-shaped, Title Case action labels in en (DL-012; es/pt keep native casing); the shared `Button` (`gg-button`) does not appear in admin.
+- **Compact cockpit metric (DL-011)** — control heights ride the 28/32/36/40/44 scale: buttons 28/32/40 (sm/md/lg, 44px hit targets preserved), fields 44 with 14px text, inline field 32 on the md-button axis, toolbar pills and tabs 36, chips 32, identity pill 36. Shell chrome (AppBar 56, FAB 48/56 per DL-010, nav dock) sits deliberately outside this scale.
 
 ---
 

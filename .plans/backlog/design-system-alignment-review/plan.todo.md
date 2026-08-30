@@ -99,6 +99,17 @@ Critique verdict recorded first: three of the five reported inconsistencies (Fil
   **Receipt**: 2026-08-30T01:31Z, commits `224636a2c` (code) + `5db9634f2` (rosters → 21 wrappers/18 files). RED→GREEN for AdminSelect in `AdminTextField.test.tsx` (2 failed → 5/5): shares the full `AdminTextFieldBase` anatomy, permanently floated label, default chevron, `data-component="AdminSelect"`; stories filled/error/disabled/outlined with a play assertion. Required asterisk made aria-hidden family-wide (caught by SetupFlow's exact-name play query — accessible names now equal label text). Migrations: 3 textareas → AdminTextArea (PoolSettingsDialog, SetupStepHow, SeedStepWhat), 2 selects → AdminSelect (SeedStepHowMuch, SeedStepWhat; `SELECT_CLASS` deleted), native checkbox → AdminCheckbox (ActionsHarvestStep, card restructured div + htmlFor label). FabButton `active:scale-95` removed and its TSV baseline entry burned (baseline 47→46). Proof: targeted suites 22/22; SetupFlow story 4/4 isolated; `test:stories:ci` 192/193 — the single failure rotates across untouched Actions stories under load 12–26 and passes isolated ×2 (known Ship-Gate load flake); `check:design-tokens`, `check:stories`, `check:story-quality`, `check:design-md`, `check:guidance-links` 65, `check:skill-behavior` 15, oxlint (admin, deny-warnings), `check:source-structure` (base origin/develop) all green. Pushed `--no-verify` once: the repo-wide pre-push `format:check` fails on a concurrent session's in-flight unformatted `useWorkApprovalLifecycle.ts`, not on these commits (scoped equivalents run green above; peer session notified).
   Open follower: StrategyKernelStep's shared-token radio pills (AdminChoiceGroup-shaped candidate).
 
+### Critique round 3 — compact scale, Title Case, one field anatomy, generated gallery (Afo locked 4 decisions, 2026-08-29)
+
+Discussion round (plan mode): Afo rejected the current sizing ("too big"), inconsistent inputs, near-identical chip sizes, sentence-case buttons, the divergent Create Garden control, and the still-incomplete hand-drawn gallery. Locked: (1) DL-011 compact metric 28/32/36/40/44; (2) DL-012 Title Case action labels, admin + client, en only; (3) filled-underline default field anatomy + unified error treatment; (4) the complete gallery is GENERATED from the story index and ships on design.greengoods.app (hand-drawn specimens retired — they drifted twice).
+
+- [ ] W1 compact scale (AdminButton 28/32/40, fields 44/14px, inline 32, pills 36, tabs 36) — `AdminDensityScale.guard` RED→GREEN.
+- [ ] W3 field/error unification (AdminInlineField owns label+supporting on m3 roles; GardenChip create row on cockpit roles; SignalPool label-key split).
+- [ ] W2 Title Case sweep (345 en strings + defaultMessages + test literals; es/pt untouched).
+- [ ] Canon: DL-011 + DL-012 rows, token_version 2.9.0, 7 guidance files.
+- [ ] W4 `scripts/design/build-story-gallery.mjs` wired into build-storybook + vercel /gallery headers; artifact slimmed to digest.
+- [ ] Validation receipts (suites, stories CI, gates) + push + PRD-644.
+
 ### State / API (`codex/state-api/design-system-alignment-review`)
 
 - [x] Mark this lane `n/a`.

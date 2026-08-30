@@ -126,11 +126,12 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   primary. A text + outlined + filled trio in one row reads as three unrelated controls.
 - **Stacked action groups are equal width.** Buttons in a rail or sheet stack go full-bleed;
   three ragged widths read as three unrelated things.
-- **Title Case for titles, sentence case for actions.** Card titles, section headings, dialog
-  and flow titles, and step-rail titles take Title Case ("Season & Campaigns", "Pool Status",
-  "Quick Actions", "How It Works"). Buttons, banners, meta, and body copy stay sentence case
-  ("Close season…", "Start a campaign"). A card title also never repeats its container's name —
-  the Pool tab's status card is "Pool Status", not "Pool — the container".
+- **Title Case for titles AND action labels (DL-012, en only).** Card titles, section headings,
+  dialog and flow titles, step-rail titles, and button/action labels take Title Case ("Season &
+  Campaigns", "Pool Status", "Start a Campaign", "Close Season"). Banners, meta, field labels,
+  helper text, and body copy stay sentence case; es/pt keep their native casing throughout. A
+  card title also never repeats its container's name — the Pool tab's status card is "Pool
+  Status", not "Pool — the container".
 - **Banners teach once; chips carry state.** Repeating per-row conditions (past due, expired,
   lapsed) as info banners is a defect — encode them in chips + meta. Reserve banners for one-time
   context the user genuinely lacks. (Refactoring UI: emphasis is a budget.)

@@ -15,7 +15,7 @@ Paste this sentence (or a trimmed version) into every AI design prompt for admin
 The admin cockpit and the client PWA are both Warm Earth. The difference is expressiveness, not foundation:
 
 - **Shared baseline**: concentric geometry, spring motion tokens, role hierarchy (canvas/ink/stone/green accent), 4 disclosure layers, 5 Z-layers, material system.
-- **Admin subset**: Standard motion scheme (never Expressive); translucency restricted to the Navigation/FAB **Controlled Chrome** — flat 85% surface + 12px blur + warm ambient shadow + 1px ink ring (rules in `admin-m3-tokens.css`), never "liquid glass" — while every dialog and side-sheet surface is solid and `MainSheet` is transparent; transparent admin `AppBar` root over the workspace canvas; the reduced admin radius scale 4/8/12/16/9999 — every button is a pill and the FAB is a capsule at both sizes (DL-010); solid surfaces over blur everywhere else; no organic/hero shapes; no decorative color.
+- **Admin subset**: Standard motion scheme (never Expressive); translucency restricted to the Navigation/FAB **Controlled Chrome** — flat 85% surface + 12px blur + warm ambient shadow + 1px ink ring (rules in `admin-m3-tokens.css`), never "liquid glass" — while every dialog and side-sheet surface is solid and `MainSheet` is transparent; transparent admin `AppBar` root over the workspace canvas; the reduced admin radius scale 4/8/12/16/9999 — every button is a pill and the FAB is a capsule at both sizes (DL-010); the compact control metric 28/32/36/40/44 (DL-011 — buttons 28/32/40, fields 44, toolbar pills 36); Title Case action labels in en (DL-012); solid surfaces over blur everywhere else; no organic/hero shapes; no decorative color.
 - **Why**: stewards scanning a queue need motion that aids, not entertains. The cockpit inherits warmth; it does not perform it.
 
 If you would not ship a move on Linear, GitHub, or Stripe Dashboard, it does not belong in the cockpit — regardless of what the Warm Earth language permits in client flows.
@@ -184,6 +184,8 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 `AdminButton` · `AdminCard` · `AdminCheckbox` · `AdminChoiceGroup` · `AdminConfirmDialog` · `AdminDialog` · `AdminFilterChip` · `AdminInlineField` · `AdminLinearProgress` · `AdminReasonDialog` · `AdminSearchToolbar` · `AdminSelect` · `AdminSelectableCard` · `AdminSettingRow` · `AdminSideSheet` · `AdminSortSelect` · `AdminTabRail` · `AdminTextArea` · `AdminTextField` · `AdminTooltip` · `AdminViewActions`
 
 Form selects use `AdminSelect` (full field anatomy, permanently floated label, chevron slot, empty-value option as the placeholder row); `AdminSortSelect` is the toolbar sort pill only — never a form control.
+
+**Field anatomy**: the filled variant with its bottom underline is the cockpit's default field look ("the line"); use `variant="outlined"` only when a field sits ON a filled surface (e.g. inside a container-highest panel) where the underline would vanish. All fields share the 44px compact height, 14px text, and one error anatomy — label + indicator/ring recolor to `--m3-error`, supporting text in the family slot (`AdminInlineField` included).
 
 (`AdminBadge`, `AdminFab`, and `AdminListItem` were deleted 2026-08-29 — do not reintroduce them; the nav-shell FAB is `Shell/FabButton`.)
 
