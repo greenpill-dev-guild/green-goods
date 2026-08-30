@@ -70,11 +70,12 @@ interface AdminTextFieldBaseProps extends AdminTextFieldCommonProps {
 // ============================================================================
 
 /**
- * Shared M3 text-field anatomy behind {@link AdminTextField} and
- * {@link AdminTextArea}:
- * - Floating label that animates between resting (body-lg) and floating (body-sm)
+ * Shared M3 text-field anatomy behind {@link AdminTextField},
+ * {@link AdminTextArea}, and {@link AdminSelect}, on the 44dp compact cockpit
+ * metric (DL-011):
+ * - Floating label that animates between resting (body-md) and floating (body-sm)
  * - Active indicator line (filled) or outline ring (outlined) reflecting focus/error state
- * - Leading and trailing icon slots (24dp, on-surface-variant)
+ * - Leading and trailing icon slots (20dp, on-surface-variant)
  * - Supporting text / error message below with aria-describedby linkage
  * - forwardRef compatible — wraps the native control for react-hook-form register()
  *
@@ -172,8 +173,10 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
     const controlClasses = cn(
       // Layout — sits above the active indicator
       "peer w-full bg-transparent",
-      // Typography
-      "text-body-lg text-[rgb(var(--m3-on-surface))]",
+      // Typography — 14px, the cockpit workhorse size (DL-011 compact metric).
+      // Color uses the [color:…] form so tailwind-merge can't classify it as a
+      // font-size and drop text-body-md (the AdminSortSelect trap).
+      "text-body-md [color:rgb(var(--m3-on-surface))]",
       // Remove browser defaults
       "outline-none border-none focus:outline-none focus:border-none",
       // Caret color
@@ -184,9 +187,9 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
       "placeholder-[rgb(var(--m3-on-surface-variant)/0.6)]",
       !focused && "placeholder-transparent",
       // Disabled text
-      disabled && "text-[rgb(var(--m3-on-surface)/0.38)] cursor-not-allowed",
+      disabled && "[color:rgb(var(--m3-on-surface)/0.38)] cursor-not-allowed",
       // Push the control below the floating label space
-      "pb-2 pt-6",
+      "pb-1.5 pt-5",
       multiline && "resize-y",
       // Selects drop the native chrome; the chevron renders in the trailing
       // icon slot and clicks fall through it to the control.
@@ -233,10 +236,10 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
 
     const iconClasses = (position: "left" | "right") =>
       cn(
-        position === "left" ? "absolute left-3 bottom-4" : "absolute right-3 bottom-4",
+        position === "left" ? "absolute left-3 bottom-3" : "absolute right-3 bottom-3",
         // Decorative only — clicks fall through (a select's chevron must not
         // swallow the tap that opens it).
-        "pointer-events-none h-6 w-6 shrink-0",
+        "pointer-events-none h-5 w-5 shrink-0",
         hasError ? "text-[rgb(var(--m3-error))]" : "text-[rgb(var(--m3-on-surface-variant))]",
         disabled && "text-[rgb(var(--m3-on-surface)/0.38)]"
       );
@@ -254,8 +257,8 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
           isFloating
             ? floatedClasses
             : [
-                // Resting: vertically centered, body-lg
-                "top-1/2 -translate-y-1/2 text-body-lg",
+                // Resting: vertically centered, body-md (compact metric)
+                "top-1/2 -translate-y-1/2 text-body-md",
                 hasError
                   ? "text-[rgb(var(--m3-error))]"
                   : "text-[rgb(var(--m3-on-surface-variant))]",
@@ -305,7 +308,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
               // 12px) — it's the field's own tier, applied across admin fields.
               "rounded-t-[var(--m3-shape-sm)] rounded-b-none",
               // Height
-              "min-h-14",
+              "min-h-11",
               // Background
               disabled
                 ? "bg-[rgb(var(--m3-on-surface)/0.04)]"
@@ -380,7 +383,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
             // (Field's own tier; not matched to the sibling cards at 12-20px.)
             "rounded-[var(--m3-shape-sm)]",
             // Height
-            "min-h-14",
+            "min-h-11",
             // Background
             "bg-transparent",
             // Layout

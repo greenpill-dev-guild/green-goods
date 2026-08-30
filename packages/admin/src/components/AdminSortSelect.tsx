@@ -39,7 +39,7 @@ export function AdminSortSelect({
   return (
     <label
       data-component="AdminSortSelect"
-      className="flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-[var(--m3-shape-full)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container))] pl-3 pr-2 text-body-md text-[rgb(var(--m3-on-surface-variant))]"
+      className="flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-[var(--m3-shape-full)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container))] pl-3 pr-2 text-body-md text-[rgb(var(--m3-on-surface-variant))]"
     >
       <span className="whitespace-nowrap">{resolvedLabel}</span>
       <NativeSelect

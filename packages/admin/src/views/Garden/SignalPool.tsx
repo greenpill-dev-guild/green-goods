@@ -386,13 +386,10 @@ export default function GardenSignalPoolView({
               {canManage && !hasReadError && (
                 <AdminInlineField
                   className="mt-4"
-                  // NOTE: the existing `...Placeholder` keys hold label text
-                  // ("Hypercert token ID" / "Action UID"). On resume, split into
-                  // dedicated `...Label` + example-placeholder keys (see plan).
                   label={formatMessage({
                     id: isActionPool
-                      ? "app.signal.actionPool.actionIdPlaceholder"
-                      : "app.signal.hypercertPool.hypercertIdPlaceholder",
+                      ? "app.signal.actionPool.actionIdLabel"
+                      : "app.signal.hypercertPool.hypercertIdLabel",
                   })}
                   value={newItemId}
                   onChange={(next) => {

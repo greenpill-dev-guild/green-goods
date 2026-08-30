@@ -62,8 +62,8 @@ export function AdminSearchToolbar({
         className={cn(
           // Shape: pill
           "rounded-[var(--m3-shape-full)]",
-          // Height aligns with chips and toolbar icon buttons.
-          "h-10 min-w-0",
+          // 36dp — the toolbar-pill tier of the compact metric (DL-011).
+          "h-9 min-w-0",
           // Background + outline
           "border border-[rgb(var(--m3-outline-variant))]",
           "bg-[rgb(var(--m3-surface-container))]",
@@ -104,8 +104,8 @@ export function AdminSearchToolbar({
             onClick={() => onSearchChange("")}
             aria-label={clearLabel}
             className={cn(
-              // 32dp circular control
-              "mr-1 h-8 w-8 shrink-0 rounded-full",
+              // 28dp circular control inside the 36dp pill
+              "mr-1 h-7 w-7 shrink-0 rounded-full",
               // State layer
               "m3-state-layer",
               "[--state-layer-color:var(--m3-on-surface-variant)]",

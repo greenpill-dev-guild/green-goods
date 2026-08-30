@@ -43,7 +43,7 @@ export function GardenChip({
 
   const displayName =
     selectedGarden?.name ??
-    formatMessage({ id: "cockpit.gardenChip.selectGarden", defaultMessage: "Select garden" });
+    formatMessage({ id: "cockpit.gardenChip.selectGarden", defaultMessage: "Select Garden" });
 
   const hasMultiple = gardens.length >= 2;
   const chipTriggerStyle: CSSProperties = {
@@ -195,11 +195,16 @@ export function GardenChip({
                   setOpen(false);
                 }}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-body-md",
-                  "text-primary-base hover:bg-bg-weak",
+                  // Menu row on cockpit roles (tone-aware with shared fallbacks
+                  // — this popover only ever renders inside the admin shell):
+                  // accent from the workspace, ink hover layer, the canonical
+                  // focus-ring role. Previously client-green + raw primary ring.
+                  "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-body-md font-medium",
+                  "[color:rgb(var(--tone-on-surface-accent,var(--primary-base)))]",
+                  "hover:bg-[rgb(var(--m3-on-surface,var(--text-strong-950))/0.08)]",
                   "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
                   "motion-reduce:transition-none",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
                 )}
                 data-component="GardenChip"
                 data-slot="create-action"

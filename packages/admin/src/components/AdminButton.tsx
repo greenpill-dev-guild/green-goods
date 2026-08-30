@@ -18,8 +18,8 @@ const adminButtonVariants = tv({
     // outlined variant rendered 2px wider than filled (measured). Outlined
     // overrides only the border COLOR.
     "border border-transparent",
-    // Typography — sentence-case labels as authored ("Create assessment");
-    // no text-transform (1a spec).
+    // Typography — Title Case labels as authored ("Create Assessment",
+    // DL-012; en only — es/pt keep native casing); no text-transform.
     "text-label-lg font-medium",
     // Motion
     "transition-all duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
@@ -76,26 +76,29 @@ const adminButtonVariants = tv({
       ],
     },
     size: {
-      // Compact dense action — 32dp. Used in list rows, table actions, and
-      // inline text-variant buttons where 40dp would feel oversized.
-      sm: "admin-hit-target h-8 px-3 text-label-sm",
-      // Standard M3 common-button height (40dp).
-      md: "h-10 px-6 text-label-lg",
-      // Prominent first-action button (48dp).
-      lg: "h-12 px-6 text-body-lg",
+      // Compact cockpit metric (DL-011): 28 / 32 / 40. Visual heights sit
+      // below the 44px accessibility floor for sm and md, so both carry
+      // admin-hit-target (28dp/32dp visual, 44px effective).
+      // Densest action — list rows, table actions, inline text buttons.
+      sm: "admin-hit-target h-7 px-2.5 text-label-sm",
+      // Standard action (32dp).
+      md: "admin-hit-target h-8 px-4 text-label-lg",
+      // Prominent first-action button (40dp). Label stays 14px — size
+      // difference carries the emphasis, not a type jump.
+      lg: "h-10 px-5 text-label-lg",
     },
     hasLeadingIcon: {
-      true: "pl-4",
+      true: "pl-3",
       false: "",
     },
   },
   compoundVariants: [
-    // When hasLeadingIcon + md → pl-4 pr-6
-    { size: "md", hasLeadingIcon: true, class: "pl-4 pr-6" },
-    // When hasLeadingIcon + sm → pl-2 pr-3 (tight spacing for the dense size)
-    { size: "sm", hasLeadingIcon: true, class: "pl-2 pr-3" },
-    // When hasLeadingIcon + lg → pl-4 pr-6
-    { size: "lg", hasLeadingIcon: true, class: "pl-4 pr-6" },
+    // When hasLeadingIcon + md → pl-3 pr-4
+    { size: "md", hasLeadingIcon: true, class: "pl-3 pr-4" },
+    // When hasLeadingIcon + sm → pl-2 pr-2.5 (tight spacing for the dense size)
+    { size: "sm", hasLeadingIcon: true, class: "pl-2 pr-2.5" },
+    // When hasLeadingIcon + lg → pl-3.5 pr-5
+    { size: "lg", hasLeadingIcon: true, class: "pl-3.5 pr-5" },
   ],
   defaultVariants: {
     variant: "filled",
@@ -156,10 +159,12 @@ export const AdminButton = React.forwardRef<HTMLButtonElement, AdminButtonProps>
 
     const classes = cn(adminButtonVariants({ variant, size, hasLeadingIcon }), className);
 
+    // 16px icons in the densest tier; 18px otherwise.
+    const iconSize = size === "sm" ? "h-4 w-4" : "h-[18px] w-[18px]";
     const leadingSlot = loading ? (
-      <RiLoader4Line className="h-[18px] w-[18px] shrink-0 animate-spin" aria-hidden />
+      <RiLoader4Line className={cn(iconSize, "shrink-0 animate-spin")} aria-hidden />
     ) : leadingIcon ? (
-      <span className="h-[18px] w-[18px] shrink-0 [&>svg]:h-full [&>svg]:w-full" aria-hidden>
+      <span className={cn(iconSize, "shrink-0 [&>svg]:h-full [&>svg]:w-full")} aria-hidden>
         {leadingIcon}
       </span>
     ) : null;
