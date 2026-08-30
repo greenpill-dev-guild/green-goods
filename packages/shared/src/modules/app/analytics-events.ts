@@ -13,11 +13,9 @@
  */
 
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
-import { track } from "./posthog";
+import { track, type TrackOptions } from "./posthog";
 
-// ============================================================================
 // TRACKER FACTORY
-// ============================================================================
 
 export type AuthMode = "passkey" | "wallet" | "embedded" | null;
 type MemberType = GardenRole;
@@ -52,14 +50,12 @@ function toSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
  */
 export function createTracker<T extends Record<string, unknown>>(
   eventName: string,
-  options?: { includeSessionId?: boolean }
+  options?: TrackOptions
 ) {
   return (props: T) => track(eventName, toSnakeCase(props), options);
 }
 
-// ============================================================================
 // EVENT NAMES
-// ============================================================================
 
 export const ANALYTICS_EVENTS = {
   // Auth
@@ -97,6 +93,7 @@ export const ANALYTICS_EVENTS = {
   WORK_APPROVAL_SUCCESS: "work_approval_success",
   WORK_APPROVAL_FAILED: "work_approval_failed",
   WORK_APPROVAL_LIFECYCLE: "work_approval_lifecycle",
+  WORK_APPROVAL_PRESENTATION_FAILED: "work_approval_presentation_failed",
   WORK_REJECTION_SUCCESS: "work_rejection_success",
 
   // Admin: Garden Management
@@ -136,9 +133,7 @@ export const ANALYTICS_EVENTS = {
   ADMIN_HARVEST_DISTRIBUTION_OUTCOME: "admin_harvest_distribution_outcome",
 } as const;
 
-// ============================================================================
 // AUTH TRACKING
-// ============================================================================
 
 type AuthPasskeyTelemetry = {
   source: AuthPasskeySource;
@@ -192,9 +187,7 @@ export const trackAuthSwitchMethod = createTracker<{
   to: "passkey" | "wallet";
 }>(ANALYTICS_EVENTS.AUTH_SWITCH_METHOD);
 
-// ============================================================================
 // GARDEN JOIN TRACKING
-// ============================================================================
 
 export const trackGardenJoinStarted = createTracker<{
   gardenAddress: string;
@@ -231,9 +224,7 @@ export const trackGardenJoinAlreadyMember = createTracker<{ gardenAddress: strin
   ANALYTICS_EVENTS.GARDEN_JOIN_ALREADY_MEMBER
 );
 
-// ============================================================================
 // WORK SUBMISSION TRACKING
-// ============================================================================
 
 const workSubmissionTrackerOptions = { includeSessionId: false };
 
@@ -320,9 +311,7 @@ export const trackWorkSubmissionOffline = createTracker<{
   jobId: string;
 }>(ANALYTICS_EVENTS.WORK_SUBMISSION_OFFLINE);
 
-// ============================================================================
 // WORK APPROVAL TRACKING
-// ============================================================================
 
 export const trackWorkApprovalStarted = createTracker<{
   workUID: string;
@@ -359,9 +348,16 @@ export const trackWorkApprovalLifecycle = createTracker<{
   reason?: "receipt-timeout" | "indexer-delay" | "presentation-failed";
 }>(ANALYTICS_EVENTS.WORK_APPROVAL_LIFECYCLE);
 
-// ============================================================================
+export const trackWorkApprovalPresentationFailed = createTracker<{
+  approved: boolean;
+  failureReason: "detail-resolution" | "inspector-close";
+  resolutionStatus: "loading" | "resolved" | "temporarily-absent" | "not-found" | "error";
+}>(ANALYTICS_EVENTS.WORK_APPROVAL_PRESENTATION_FAILED, {
+  anonymizeIdentity: true,
+  includeSessionId: false,
+});
+
 // WALLET SUBMISSION TIMING
-// ============================================================================
 
 export function trackWalletSubmissionTiming(props: {
   gardenAddress: string;
@@ -384,9 +380,7 @@ export function trackWalletSubmissionTiming(props: {
   });
 }
 
-// ============================================================================
 // ADMIN: GARDEN MANAGEMENT
-// ============================================================================
 
 export const trackAdminGardenCreateStarted = createTracker<{
   gardenName: string;
@@ -426,9 +420,7 @@ export const trackAdminAssessmentCreateFailed = createTracker<{
   error: string;
 }>(ANALYTICS_EVENTS.ADMIN_ASSESSMENT_CREATE_FAILED);
 
-// ============================================================================
 // ADMIN: MEMBER MANAGEMENT
-// ============================================================================
 
 export const trackAdminMemberAddStarted = createTracker<{
   gardenAddress: string;
@@ -470,9 +462,7 @@ export const trackAdminMemberRemoveFailed = createTracker<{
   error: string;
 }>(ANALYTICS_EVENTS.ADMIN_MEMBER_REMOVE_FAILED);
 
-// ============================================================================
 // ADMIN: DEPLOYMENT
-// ============================================================================
 
 export const trackAdminDeployStarted = createTracker<{ chainId: number; contractType: string }>(
   ANALYTICS_EVENTS.ADMIN_DEPLOY_STARTED
@@ -491,9 +481,7 @@ export const trackAdminDeployFailed = createTracker<{
   error: string;
 }>(ANALYTICS_EVENTS.ADMIN_DEPLOY_FAILED);
 
-// ============================================================================
 // ADMIN: ACTION MANAGEMENT
-// ============================================================================
 
 export const trackAdminActionCreateStarted = createTracker<{
   gardenAddress: string;

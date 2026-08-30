@@ -24,6 +24,7 @@ const mockGetWorkApprovals = vi.fn();
 const mockGetJobs = vi.fn();
 const mockGetImagesForJob = vi.fn();
 const mockOnMultiple = vi.fn().mockReturnValue(() => {});
+let latestUseMergedConfig: Record<string, unknown> | undefined;
 
 vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: TEST_CHAIN_ID,
@@ -63,18 +64,21 @@ vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
 }));
 
 vi.mock("../../../hooks/app/useMerged", () => ({
-  useMerged: (config: Record<string, unknown>) => ({
-    online: { data: null, isFetching: false, isError: false, error: null, refetch: vi.fn() },
-    offline: { data: [], refetch: vi.fn() },
-    merged: {
-      data: null,
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    },
-  }),
+  useMerged: (config: Record<string, unknown>) => {
+    latestUseMergedConfig = config;
+    return {
+      online: { data: null, isFetching: false, isError: false, error: null, refetch: vi.fn() },
+      offline: { data: [], refetch: vi.fn() },
+      merged: {
+        data: null,
+        isLoading: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      },
+    };
+  },
 }));
 
 vi.mock("../../../config/react-query", () => ({
@@ -128,6 +132,7 @@ describe("hooks/work/useWorks", () => {
     mockGetWorkApprovals.mockResolvedValue([]);
     mockGetJobs.mockResolvedValue([]);
     mockGetImagesForJob.mockResolvedValue([]);
+    latestUseMergedConfig = undefined;
   });
 
   afterEach(() => {
@@ -169,6 +174,20 @@ describe("hooks/work/useWorks", () => {
       expect(result.current.works).toHaveLength(1);
     });
     expect(mockGetWorks).toHaveBeenCalledWith(TEST_GARDEN, TEST_CHAIN_ID);
+  });
+
+  it("keeps the disabled offline merge observer off the live online-only cache key", () => {
+    renderHook(() => useWorks(TEST_GARDEN), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    expect(latestUseMergedConfig?.enabled).toBe(false);
+    expect(latestUseMergedConfig?.mergedKey).not.toEqual([
+      "works",
+      "merged",
+      TEST_GARDEN,
+      TEST_CHAIN_ID,
+    ]);
   });
 
   it("computes work status from approvals (approved/rejected/pending)", async () => {
@@ -286,6 +305,82 @@ describe("hooks/work/useWorks", () => {
     await waitFor(() => {
       expect(result.current.works[0]?.status).toBe("rejected");
     });
+  });
+
+  it("retains unrelated cached work while a confirmed decision reconciles an empty indexer read", async () => {
+    const reviewed = {
+      id: "reviewed-work",
+      title: "Reviewed work",
+      actionUID: 1,
+      gardenerAddress: "0x1",
+      gardenAddress: TEST_GARDEN,
+      feedback: "",
+      metadata: "{}",
+      media: [],
+      createdAt: 1001,
+      status: "rejected" as const,
+      _isPending: false,
+      _pendingUntilMs: Date.now() + 60_000,
+    };
+    const unrelated = {
+      id: "unrelated-work",
+      title: "Unrelated work",
+      actionUID: 2,
+      gardenerAddress: "0x2",
+      gardenAddress: TEST_GARDEN,
+      feedback: "",
+      metadata: "{}",
+      media: [],
+      createdAt: 1000,
+      status: "pending" as const,
+    };
+    queryClient.setQueryData(
+      ["works", "merged", TEST_GARDEN, TEST_CHAIN_ID],
+      [reviewed, unrelated],
+      { updatedAt: Date.now() - 31_000 }
+    );
+    mockGetWorks.mockResolvedValue([]);
+    mockGetWorkApprovals.mockResolvedValue([{ workUID: reviewed.id, approved: false }]);
+
+    const { result } = renderHook(() => useWorks(TEST_GARDEN), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(mockGetWorks).toHaveBeenCalled());
+    await waitFor(() => expect(mockGetWorkApprovals).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+
+    expect(result.current.works).toEqual([reviewed, unrelated]);
+  });
+
+  it("retains the last authoritative work collection after the decision overlay expires", async () => {
+    const staleReviewed = {
+      id: "reviewed-work",
+      title: "Reviewed work",
+      actionUID: 1,
+      gardenerAddress: "0x1",
+      gardenAddress: TEST_GARDEN,
+      feedback: "",
+      metadata: "{}",
+      media: [],
+      createdAt: 1001,
+      status: "rejected" as const,
+      _isPending: false,
+      _pendingUntilMs: Date.now() - 1,
+    };
+    queryClient.setQueryData(["works", "merged", TEST_GARDEN, TEST_CHAIN_ID], [staleReviewed], {
+      updatedAt: Date.now() - 31_000,
+    });
+    mockGetWorks.mockResolvedValue([]);
+
+    const { result } = renderHook(() => useWorks(TEST_GARDEN), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(mockGetWorks).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+
+    expect(result.current.works).toEqual([{ ...staleReviewed, status: "pending" }]);
   });
 
   it("returns offlineCount 0 in online-only mode", async () => {

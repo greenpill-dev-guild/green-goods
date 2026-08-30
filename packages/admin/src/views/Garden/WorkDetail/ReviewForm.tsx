@@ -33,7 +33,7 @@ interface ReviewFormProps {
   canApproveOrReject: boolean;
   isReviewed: boolean;
   layout?: "page" | "sheet";
-  onSuccess?: () => void;
+  onSuccess?: (approved: boolean) => void;
 }
 
 export function ReviewForm({
@@ -144,7 +144,7 @@ export function ReviewForm({
 
       await approvalMutation.mutateAsync({ draft, work });
 
-      onSuccess?.();
+      onSuccess?.(approved);
     } catch (error) {
       const { message: formattedMessage, parsed } = parseAndFormatError(error);
 

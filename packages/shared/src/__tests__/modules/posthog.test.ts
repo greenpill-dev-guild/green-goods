@@ -31,6 +31,7 @@ import {
   trackOfflineEvent,
   trackSyncPerformance,
 } from "../../modules/app/posthog";
+import { trackWorkApprovalPresentationFailed } from "../../modules/app/analytics-events";
 import { trackAuthWalletRestore } from "../../modules/app/authWalletRestoreAnalytics";
 
 describe("modules/posthog", () => {
@@ -80,6 +81,37 @@ describe("modules/posthog", () => {
         $window_id: undefined,
       });
       expect(firstProperties).not.toHaveProperty("session_id");
+      unregister();
+    });
+
+    it("anonymizes post-success work detail failures while preserving diagnostic fields", () => {
+      const sink = { capture: vi.fn() };
+      const unregister = registerTelemetrySink(sink);
+
+      trackWorkApprovalPresentationFailed({
+        approved: false,
+        failureReason: "detail-resolution",
+        resolutionStatus: "temporarily-absent",
+      });
+
+      expect(sink.capture).toHaveBeenCalledWith(
+        "work_approval_presentation_failed",
+        expect.objectContaining({
+          approved: false,
+          distinct_id: expect.stringMatching(/^anonymous_work_approval_presentation_failed_/),
+          failure_reason: "detail-resolution",
+          resolution_status: "temporarily-absent",
+        })
+      );
+      const properties = sink.capture.mock.calls[0]?.[1];
+      expect(properties).toMatchObject({
+        $anon_distinct_id: undefined,
+        $device_id: undefined,
+        $session_id: undefined,
+        $user_id: undefined,
+        $window_id: undefined,
+      });
+      expect(properties).not.toHaveProperty("session_id");
       unregister();
     });
 
