@@ -8,7 +8,7 @@
  * skill expects, and holds every rule that decides what a case's standing
  * verdict is. It is deliberately IO-free so the rules can be tested directly.
  *
- * Consumed by scripts/agents/qa-state-pull.ts.
+ * Consumed by scripts/agents/qa-state-pull.ts and qa-status.ts.
  */
 
 import type { CatalogCase } from "./qa-workbook-build";
@@ -134,15 +134,19 @@ export function toResultsCsv(cases: CatalogCase[], merged: MergedEntries): strin
   return `${rows.join("\n")}\n`;
 }
 
-/** Per-tester and overall counts for the session receipt. */
-export function summarize(cases: CatalogCase[], merged: MergedEntries) {
+export interface VerdictSummary {
+  total: number;
+  recorded: number;
+  untouched: number;
+  noVerdict: number;
+  pass: number;
+  fail: number;
+  blocked: number;
+  na: number;
+}
+
+function summarizeVerdicts(cases: CatalogCase[], merged: MergedEntries): VerdictSummary {
   const recorded = cases.filter((testCase) => merged[testCase.id]);
-  const perPerson = Object.fromEntries(
-    ROSTER.map((person) => [
-      person,
-      cases.filter((testCase) => merged[testCase.id]?.[person]).length,
-    ]),
-  );
   const tally = (result: string) =>
     recorded.filter((testCase) => rollupVerdict(merged[testCase.id]) === result).length;
   return {
@@ -157,6 +161,26 @@ export function summarize(cases: CatalogCase[], merged: MergedEntries) {
     fail: tally("Fail"),
     blocked: tally("Blocked"),
     na: tally("N/A"),
-    perPerson,
   };
+}
+
+/** Per-tester, per-surface, and overall counts for receipts and privacy-safe coverage output. */
+export function summarize(cases: CatalogCase[], merged: MergedEntries) {
+  const perPerson = Object.fromEntries(
+    ROSTER.map((person) => [
+      person,
+      cases.filter((testCase) => merged[testCase.id]?.[person]).length,
+    ]),
+  );
+  const tabs = [...new Set(cases.map((testCase) => testCase.tab))];
+  const perTab = Object.fromEntries(
+    tabs.map((tab) => [
+      tab,
+      summarizeVerdicts(
+        cases.filter((testCase) => testCase.tab === tab),
+        merged,
+      ),
+    ]),
+  );
+  return { ...summarizeVerdicts(cases, merged), perPerson, perTab };
 }

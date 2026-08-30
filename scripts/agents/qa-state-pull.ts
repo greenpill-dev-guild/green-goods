@@ -2,7 +2,7 @@
 /**
  * Pull a QA app session into the repo's session workspace.
  *
- * The QA app (packages/qa) is where Afo and Gui record during a walk; this
+ * The QA app (packages/qa) is where testers record during a walk; this
  * brings that back as the artifacts `.claude/skills/qa-session/SKILL.md`
  * expects, so a session that ran in the browser closes out exactly like one
  * driven from the terminal.
@@ -22,6 +22,8 @@ import { fileURLToPath } from "node:url";
 
 import { loadCatalog } from "./qa-workbook-build";
 import { mergeShards, ROSTER, summarize, toResultsCsv, type Shard } from "./qa-state";
+// @ts-expect-error -- plain JS helper shared with the env tooling
+import { parseEnvFile } from "../lib/env-schema.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(scriptDir, "..", "..");
@@ -91,6 +93,27 @@ export function existingArtifacts(outDir: string, exists: (target: string) => bo
  * would then write a complete-LOOKING run sheet with their session missing.
  * Failing the pull is recoverable; a confident, incomplete CSV is not.
  */
+/**
+ * Find the Blob token, from the process environment or the repo's own `.env`.
+ *
+ * Both commands promise "the repository root environment", and relying on the
+ * runtime to autoload `.env` does not keep that promise — bun's autoload does
+ * not fire in every shell these run from, which reads as "the token is not set"
+ * when it is sitting in the file. Reading it explicitly makes the promise true.
+ * The process environment still wins, so CI and one-off overrides behave.
+ */
+export function resolveBlobToken(env: NodeJS.ProcessEnv = process.env): string {
+  const fromProcess = env.BLOB_READ_WRITE_TOKEN?.trim();
+  if (fromProcess) return fromProcess;
+  const rootEnv = parseEnvFile(path.join(import.meta.dirname, "..", "..", ".env"));
+  const fromFile = rootEnv?.BLOB_READ_WRITE_TOKEN?.trim();
+  if (fromFile) return fromFile;
+  throw new Error(
+    "BLOB_READ_WRITE_TOKEN is not set — checked the process environment and the repo root .env. " +
+      "Copy it from the QA app's Blob store in Vercel.",
+  );
+}
+
 export function parseShard(person: string, text: string): Shard {
   let parsed: unknown;
   try {
@@ -120,7 +143,7 @@ export function parseShard(person: string, text: string): Shard {
  * Read one tester's shard. A missing shard is normal — it means that person has
  * not recorded anything — and must not fail the pull for everyone else.
  */
-async function readShard(person: string, token: string): Promise<Shard | null> {
+export async function readShard(person: string, token: string): Promise<Shard | null> {
   const { get } = await import("@vercel/blob");
   let text: string;
   try {
@@ -142,15 +165,14 @@ async function readShard(person: string, token: string): Promise<Shard | null> {
   return parseShard(person, text);
 }
 
+/** Read every roster shard from the private store through one shared transport path. */
+export async function readShards(token: string): Promise<Array<Shard | null>> {
+  return Promise.all(ROSTER.map((person) => readShard(person, token)));
+}
+
 async function main(): Promise<void> {
   const options = parseArgs(process.argv.slice(2));
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) {
-    throw new Error(
-      "BLOB_READ_WRITE_TOKEN is not set. Copy it from the QA app's Blob store " +
-        "(Vercel > Storage > the private QA store > .env.local tab) into the repo root .env.",
-    );
-  }
+  const token = resolveBlobToken();
 
   // Before the store fan-out, so a refused pull costs nothing and reads clearly.
   const clashes = existingArtifacts(options.outDir);
@@ -164,7 +186,7 @@ async function main(): Promise<void> {
 
   const catalog = await loadCatalog();
   const active = catalog.cases.filter((testCase) => testCase.status !== "retired");
-  const shards = await Promise.all(ROSTER.map((person) => readShard(person, token)));
+  const shards = await readShards(token);
   const merged = mergeShards(shards);
   const summary = summarize(active, merged);
 
