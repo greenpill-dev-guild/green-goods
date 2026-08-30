@@ -81,13 +81,21 @@ export function mergeShards(shards) {
   return entries;
 }
 
+/**
+ * Absent vs unreadable matters here exactly as it does in the deployed
+ * function: absent means "nothing recorded yet" and merges onto an empty base,
+ * while unreadable must refuse the write rather than erase the shard.
+ */
 function readShard(person) {
   const file = shardPath(person);
   if (!existsSync(file)) return null;
+  const text = readFileSync(file, "utf8");
   try {
-    return JSON.parse(readFileSync(file, "utf8"));
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== "object" || !parsed.entries) throw new Error("malformed");
+    return parsed;
   } catch {
-    return null;
+    throw new Error(`${person}'s entries are unreadable and were not overwritten`);
   }
 }
 
@@ -126,8 +134,12 @@ async function readBody(request) {
 
 function handleState(request, response) {
   if (request.method === "GET") {
-    const entries = mergeShards(TEAM.map(readShard));
-    return sendJson(response, 200, { team: TEAM, entries, readAt: new Date().toISOString() });
+    try {
+      const entries = mergeShards(TEAM.map(readShard));
+      return sendJson(response, 200, { team: TEAM, entries, readAt: new Date().toISOString() });
+    } catch (error) {
+      return sendJson(response, 503, { error: String(error.message || error) });
+    }
   }
   if (request.method === "POST") {
     return readBody(request).then((text) => {
@@ -140,7 +152,12 @@ function handleState(request, response) {
       if (!TEAM.includes(body.person)) {
         return sendJson(response, 400, { error: `unknown tester — expected one of ${TEAM.join(", ")}` });
       }
-      const previous = readShard(body.person);
+      let previous;
+      try {
+        previous = readShard(body.person);
+      } catch (error) {
+        return sendJson(response, 503, { error: String(error.message || error) });
+      }
       const shard = {
         person: body.person,
         updatedAt: new Date().toISOString(),

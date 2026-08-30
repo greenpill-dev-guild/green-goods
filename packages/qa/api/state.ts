@@ -61,18 +61,43 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+/**
+ * Read one tester's shard.
+ *
+ * The distinction between ABSENT and UNREADABLE is load-bearing, not
+ * defensive style. Absent is normal — that tester has recorded nothing yet —
+ * and merging a delta onto an empty base is exactly right. Unreadable is a
+ * transient store error, and treating it as "no entries" would merge onto an
+ * empty base and silently erase everything that tester had recorded. So an
+ * unreadable shard throws, and the caller refuses the write instead.
+ */
 async function readShard(person: Person): Promise<Shard | null> {
-  const result = await get(shardPath(person), { access: "private", useCache: false });
-  if (!result || result.statusCode !== 200 || !result.stream) return null;
+  let result: Awaited<ReturnType<typeof get>>;
   try {
-    const text = await new Response(result.stream).text();
-    const parsed = JSON.parse(text) as Shard;
-    return parsed && typeof parsed === "object" && parsed.entries ? parsed : null;
-  } catch {
-    // A corrupt shard must not take the whole session down: the other testers'
-    // work is still readable, and the owner's next write repairs their own.
-    return null;
+    result = await get(shardPath(person), { access: "private", useCache: false });
+  } catch (error) {
+    throw new Error(`could not read ${person}'s entries: ${describe(error)}`);
   }
+  // `get` resolves null when the blob does not exist yet.
+  if (!result) return null;
+  if (result.statusCode !== 200 || !result.stream) {
+    throw new Error(`could not read ${person}'s entries: unexpected status ${result.statusCode}`);
+  }
+  const text = await new Response(result.stream).text();
+  let parsed: Shard;
+  try {
+    parsed = JSON.parse(text) as Shard;
+  } catch {
+    throw new Error(`${person}'s entries are corrupt and were not overwritten`);
+  }
+  if (!parsed || typeof parsed !== "object" || !parsed.entries) {
+    throw new Error(`${person}'s entries are malformed and were not overwritten`);
+  }
+  return parsed;
+}
+
+function describe(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 /**
@@ -123,7 +148,14 @@ export function mergeDelta(
 
 export default async function handler(request: Request): Promise<Response> {
   if (request.method === "GET") {
-    const shards = await Promise.all(TEAM.map((person) => readShard(person)));
+    let shards: Array<Shard | null>;
+    try {
+      shards = await Promise.all(TEAM.map((person) => readShard(person)));
+    } catch (error) {
+      // Returning a partial view would render as "that tester cleared their
+      // entries". Fail the poll instead; the page keeps what it has and retries.
+      return json({ error: describe(error) }, 503);
+    }
     // caseId -> person -> entry, the exact shape the page renders from.
     const entries: Record<string, Record<string, Entry>> = {};
     for (const shard of shards) {
@@ -149,25 +181,38 @@ export default async function handler(request: Request): Promise<Response> {
       return json({ error: `unknown tester — expected one of ${TEAM.join(", ")}` }, 400);
     }
 
-    const previous = await readShard(body.person);
+    let previous: Shard | null;
+    try {
+      previous = await readShard(body.person);
+    } catch (error) {
+      // Never merge onto an assumed-empty base: that would overwrite this
+      // tester's whole record with just the delta in hand. Refuse the write —
+      // the page keeps the work in sessionStorage and retries.
+      return json({ error: describe(error) }, 503);
+    }
+
     const shard: Shard = {
       person: body.person,
       updatedAt: new Date().toISOString(),
       entries: mergeDelta(previous?.entries ?? {}, sanitizeDelta(body.entries)),
     };
 
-    await put(shardPath(body.person), JSON.stringify(shard), {
-      access: "private",
-      contentType: "application/json",
-      // A stable pathname per tester is the whole point of the sharding — a
-      // random suffix would mint a new object per save and orphan the last one.
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      // Writes must be immediately visible to the other tester's next poll;
-      // the default month-long CDN lifetime would read as "my partner's
-      // entries never arrive".
-      cacheControlMaxAge: 0,
-    });
+    try {
+      await put(shardPath(body.person), JSON.stringify(shard), {
+        access: "private",
+        contentType: "application/json",
+        // A stable pathname per tester is the whole point of the sharding — a
+        // random suffix would mint a new object per save and orphan the last one.
+        addRandomSuffix: false,
+        allowOverwrite: true,
+        // Writes must be immediately visible to the other tester's next poll;
+        // the default month-long CDN lifetime would read as "my partner's
+        // entries never arrive".
+        cacheControlMaxAge: 0,
+      });
+    } catch (error) {
+      return json({ error: `could not save ${body.person}'s entries: ${describe(error)}` }, 503);
+    }
 
     return json({ ok: true, person: shard.person, count: Object.keys(shard.entries).length });
   }

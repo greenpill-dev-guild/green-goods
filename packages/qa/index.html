@@ -374,9 +374,12 @@
   // Adopt other testers' entries only. This browser stays authoritative for
   // its own person, so a poll can never roll back what you just typed.
   async function poll() {
-    // Never merge over unsent work, and never re-render between a keystroke
-    // and the save it belongs to.
-    if (dirty || saving) return;
+    // Skip only while a save is in flight. Pausing on `dirty` too would freeze
+    // a tester's view of their partner for as long as their OWN saves keep
+    // failing — the moment they most need to see what the other is finding.
+    // Merging is safe regardless: it only ever adopts other people's entries,
+    // and the re-render restores focus and caret.
+    if (saving) return;
     try {
       const response = await fetch("/api/state", { cache: "no-store" });
       if (!response.ok) return;
