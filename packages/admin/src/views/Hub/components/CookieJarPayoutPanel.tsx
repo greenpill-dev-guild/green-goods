@@ -120,7 +120,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
       <AdminCard density="none" className="overflow-hidden">
         <AdminCardHeader>
           <div>
-            <h3 className="label-md text-text-strong sm:text-lg">
+            <h3 className="label-md text-text-strong sm:text-title-md">
               {formatMessage({
                 id: "app.cookieJar.payoutTitle",
                 defaultMessage: "Cookie Jars",
@@ -149,15 +149,15 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h4 className="text-lg font-semibold text-text-strong" title={symbol}>
+                      <h4 className="text-title-md font-semibold text-text-strong" title={symbol}>
                         {symbol}
                       </h4>
-                      <p className="mt-1 text-xs text-text-soft">
+                      <p className="mt-1 text-label-sm text-text-soft">
                         <EnsAddressText address={jar.jarAddress} />
                       </p>
                     </div>
                     <span
-                      className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
+                      className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-label-sm font-medium ${
                         jar.isPaused
                           ? "bg-warning-lighter text-warning-dark"
                           : "bg-success-lighter text-success-dark"
@@ -170,16 +170,16 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                   </div>
 
                   <div className="rounded-lg bg-bg-weak px-4 py-3">
-                    <p className="text-xs font-medium text-text-soft">
+                    <p className="text-label-sm font-medium text-text-soft">
                       {formatMessage({ id: "app.cookieJar.balance" })}
                     </p>
-                    <p className="mt-1 text-2xl font-semibold tabular-nums text-text-strong">
+                    <p className="mt-1 text-headline-sm font-semibold tabular-nums text-text-strong">
                       {formatTokenAmount(jar.balance, jar.decimals)}{" "}
-                      <span className="text-base font-medium text-text-sub">{symbol}</span>
+                      <span className="text-title-sm font-medium text-text-sub">{symbol}</span>
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="grid grid-cols-2 gap-2 text-body-md">
                     <div className="rounded-md bg-bg-weak px-3 py-2">
                       <p className="body-xs text-text-soft">
                         {formatMessage({ id: "app.cookieJar.maxWithdrawal" })}
@@ -198,7 +198,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                     </div>
                   </div>
 
-                  <p className="text-xs text-text-sub">
+                  <p className="text-body-sm text-text-sub">
                     {formatMessage(
                       { id: "cockpit.community.payouts.jarFundingContext" },
                       { count: allocationCount }

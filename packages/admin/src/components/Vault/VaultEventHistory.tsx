@@ -11,6 +11,7 @@ import {
 import { formatDateTime } from "@green-goods/shared/utils/time";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
 interface VaultEventHistoryProps {
@@ -195,13 +196,13 @@ export function VaultEventHistory({
 
           {visibleCount < events.length && (
             <div className="mt-4">
-              <button
-                type="button"
+              <AdminButton
+                variant="text"
+                size="sm"
                 onClick={() => setVisibleCount((count) => count + initialVisibleCount)}
-                className="rounded-md border border-stroke-sub bg-bg-white px-3 py-1.5 text-sm font-medium text-text-sub hover:bg-bg-weak"
               >
                 {formatMessage({ id: "app.treasury.loadMore" })}
-              </button>
+              </AdminButton>
             </div>
           )}
         </>

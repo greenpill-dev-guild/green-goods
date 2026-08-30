@@ -265,9 +265,11 @@ export function PositionCard({
     <AdminCard>
       <div className="mb-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold text-text-strong sm:text-lg">{assetSymbol}</h3>
+          <h3 className="text-title-sm font-semibold text-text-strong sm:text-title-md">
+            {assetSymbol}
+          </h3>
           {!vaultAcceptingDeposits && (
-            <span className="rounded-full bg-warning-lighter px-2 py-1 text-xs font-medium text-warning-dark">
+            <span className="rounded-full bg-warning-lighter px-2 py-1 text-label-sm font-medium text-warning-dark">
               {formatMessage({ id: "app.treasury.depositsDisabled" })}
             </span>
           )}
@@ -276,7 +278,7 @@ export function PositionCard({
           href={getBlockExplorerAddressUrl(chainId, vault.vaultAddress)}
           target="_blank"
           rel="noreferrer"
-          className="mt-1 inline-flex items-center gap-1 text-xs text-primary-base hover:underline"
+          className="mt-1 inline-flex items-center gap-1 text-body-sm text-primary-base hover:underline"
         >
           {formatMessage({ id: "app.explorer.viewVault" })}:{" "}
           <EnsAddressText address={vault.vaultAddress} />
@@ -284,9 +286,9 @@ export function PositionCard({
         </a>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 text-sm">
+      <div className="grid grid-cols-2 gap-3 text-body-md">
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
-          <p className="text-xs text-text-soft">
+          <p className="text-label-sm text-text-soft">
             {formatMessage({ id: "app.treasury.netDeposited" })}
           </p>
           <p className="mt-1 font-semibold text-text-strong">
@@ -296,7 +298,7 @@ export function PositionCard({
         <div
           className={`rounded-md border p-3 ${unharvestedImpactYield > 0n ? "border-success-light bg-success-lighter" : "border-stroke-soft bg-bg-weak"}`}
         >
-          <p className="text-xs text-text-soft">
+          <p className="text-label-sm text-text-soft">
             {formatMessage({ id: "app.treasury.currentYield" })}
           </p>
           <p
@@ -304,27 +306,27 @@ export function PositionCard({
           >
             {formatTokenAmount(unharvestedImpactYield, assetDecimals)} {assetSymbol}
             {unharvestedImpactYield > 0n && (
-              <span className="ml-1 text-xs font-normal">
+              <span className="ml-1 text-body-sm font-normal">
                 {formatMessage({ id: "app.yield.accruing" })}
               </span>
             )}
           </p>
         </div>
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
-          <p className="text-xs text-text-soft">
+          <p className="text-label-sm text-text-soft">
             {formatMessage({ id: "app.treasury.depositorCount" })}
           </p>
           <p className="mt-1 font-semibold text-text-strong">{vault.depositorCount}</p>
         </div>
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
-          <p className="text-xs text-text-soft">
+          <p className="text-label-sm text-text-soft">
             {formatMessage({ id: "app.treasury.harvestCount" })}
           </p>
           <p className="mt-1 font-semibold text-text-strong">{vault.totalHarvestCount}</p>
         </div>
       </div>
 
-      <p className="mt-3 text-xs text-text-sub">
+      <p className="mt-3 text-body-sm text-text-sub">
         {formatMessage({ id: "app.treasury.impactYieldHelper" })}
       </p>
 

@@ -9,6 +9,7 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiFileTextLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { AdminButton } from "@/components/AdminButton";
 import { EnsAddressWithCopy } from "@/components/EnsAddressText";
 import { DistributionChart } from "../DistributionChart";
 
@@ -36,13 +37,9 @@ function SectionHeader({ labelId, onEdit }: { labelId: string; onEdit?: () => vo
     <div className="flex items-center justify-between">
       <p className="label-xs text-text-soft">{formatMessage({ id: labelId })}</p>
       {onEdit && (
-        <button
-          type="button"
-          onClick={onEdit}
-          className="text-xs text-primary-base hover:underline"
-        >
+        <AdminButton type="button" variant="text" size="sm" onClick={onEdit}>
           {formatMessage({ id: "app.hypercerts.preview.edit" })}
-        </button>
+        </AdminButton>
       )}
     </div>
   );

@@ -3,6 +3,7 @@ import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiArrowDownSLine, RiArrowUpSLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 import { FunderRow } from "./FunderRow";
 
 const DEFAULT_VISIBLE = 3;
@@ -65,20 +66,17 @@ export function ImpactFunders() {
       </div>
 
       {hasMore && (
-        <button
-          type="button"
+        <AdminButton
+          variant="outlined"
+          size="sm"
+          className="mt-3 w-full"
           onClick={() => setExpanded((prev) => !prev)}
-          className="mt-3 flex w-full items-center justify-center gap-1 rounded-md border border-stroke-soft py-2 text-xs font-medium text-text-sub transition-colors hover:bg-bg-weak"
+          leadingIcon={expanded ? <RiArrowUpSLine /> : <RiArrowDownSLine />}
         >
           {expanded
             ? formatMessage({ id: "app.funders.collapse" })
             : formatMessage({ id: "app.funders.viewAll" }, { count: funders.length })}
-          {expanded ? (
-            <RiArrowUpSLine className="h-3.5 w-3.5" />
-          ) : (
-            <RiArrowDownSLine className="h-3.5 w-3.5" />
-          )}
-        </button>
+        </AdminButton>
       )}
 
       <p className="mt-3 text-xs text-text-sub">

@@ -88,7 +88,9 @@ export default function ActionDetail() {
         />
         <CanvasRouteContent maxWidthClassName="max-w-[960px]" className="mt-4">
           <AdminCard className="text-center">
-            <p className="text-sm text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
+            <p className="text-body-md text-text-sub">
+              {formatMessage({ id: "app.actions.notFound" })}
+            </p>
           </AdminCard>
         </CanvasRouteContent>
       </CanvasRouteFrame>
@@ -124,7 +126,7 @@ export default function ActionDetail() {
         metadata={
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge variant={lifecycleVariant}>{lifecycleLabel}</StatusBadge>
-            <span className="text-xs text-text-soft">
+            <span className="text-label-sm text-text-soft">
               {formatMessage({ id: "cockpit.actions.lifecycle", defaultMessage: "Lifecycle" })}
             </span>
           </div>
@@ -148,10 +150,10 @@ export default function ActionDetail() {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,1fr)]">
               <div className="space-y-4">
                 <div>
-                  <h2 className="label-md text-text-strong sm:text-lg">
+                  <h2 className="label-md text-text-strong sm:text-title-md">
                     {formatMessage({ id: "app.actions.detail.details" })}
                   </h2>
-                  <p className="mt-1 text-sm text-text-sub">
+                  <p className="mt-1 text-body-md text-text-sub">
                     {formatMessage({
                       id: "cockpit.actions.detailDescription",
                       defaultMessage:
@@ -162,21 +164,21 @@ export default function ActionDetail() {
 
                 <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <AdminCard variant="outlined" className="px-4 py-3">
-                    <dt className="text-xs text-text-soft">
+                    <dt className="text-label-sm text-text-soft">
                       {formatMessage({
                         id: "cockpit.actions.lifecycle",
                         defaultMessage: "Lifecycle",
                       })}
                     </dt>
-                    <dd className="mt-1 text-sm font-semibold text-text-strong">
+                    <dd className="mt-1 text-body-md font-semibold text-text-strong">
                       {lifecycleLabel}
                     </dd>
                   </AdminCard>
                   <AdminCard variant="outlined" className="px-4 py-3">
-                    <dt className="text-xs text-text-soft">
+                    <dt className="text-label-sm text-text-soft">
                       {formatMessage({ id: "app.actions.detail.capitals" })}
                     </dt>
-                    <dd className="mt-1 text-sm font-semibold text-text-strong">
+                    <dd className="mt-1 text-body-md font-semibold text-text-strong">
                       {formatMessage(
                         {
                           id: "app.actions.detail.capitalsForms",
@@ -187,18 +189,18 @@ export default function ActionDetail() {
                     </dd>
                   </AdminCard>
                   <AdminCard variant="outlined" className="px-4 py-3">
-                    <dt className="text-xs text-text-soft">
+                    <dt className="text-label-sm text-text-soft">
                       {formatMessage({ id: "app.actions.detail.startTime" })}
                     </dt>
-                    <dd className="mt-1 text-sm font-semibold text-text-strong">
+                    <dd className="mt-1 text-body-md font-semibold text-text-strong">
                       {formatDateTime(action.startTime)}
                     </dd>
                   </AdminCard>
                   <AdminCard variant="outlined" className="px-4 py-3">
-                    <dt className="text-xs text-text-soft">
+                    <dt className="text-label-sm text-text-soft">
                       {formatMessage({ id: "app.actions.detail.endTime" })}
                     </dt>
-                    <dd className="mt-1 text-sm font-semibold text-text-strong">
+                    <dd className="mt-1 text-body-md font-semibold text-text-strong">
                       {formatDateTime(action.endTime)}
                     </dd>
                   </AdminCard>
@@ -208,14 +210,14 @@ export default function ActionDetail() {
               <AdminCard variant="filled" className="space-y-3">
                 <div className="flex items-center gap-2">
                   <RiFileListLine className="h-4 w-4 text-text-soft" />
-                  <h3 className="text-sm font-semibold text-text-strong">
+                  <h3 className="text-body-md font-semibold text-text-strong">
                     {formatMessage({
                       id: "cockpit.actions.requirements",
                       defaultMessage: "Submission requirements",
                     })}
                   </h3>
                 </div>
-                <p className="text-sm text-text-sub">
+                <p className="text-body-md text-text-sub">
                   {formatMessage({
                     id: "cockpit.actions.requirementsDescription",
                     defaultMessage:
@@ -227,18 +229,18 @@ export default function ActionDetail() {
                     displayAction.inputs.map((input) => (
                       <AdminCard variant="outlined" key={input.key} className="px-3 py-2.5">
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-medium text-text-strong">{input.title}</p>
-                          <span className="text-xs text-text-soft">{input.type}</span>
+                          <p className="text-body-md font-medium text-text-strong">{input.title}</p>
+                          <span className="text-label-sm text-text-soft">{input.type}</span>
                         </div>
                         {input.required ? (
-                          <p className="mt-1 text-xs text-text-soft">
+                          <p className="mt-1 text-label-sm text-text-soft">
                             {formatMessage({ id: "app.admin.actions.detailsConfig.requiredField" })}
                           </p>
                         ) : null}
                       </AdminCard>
                     ))
                   ) : (
-                    <p className="text-sm text-text-sub">
+                    <p className="text-body-md text-text-sub">
                       {formatMessage({
                         id: "cockpit.actions.noInputs",
                         defaultMessage: "No form fields configured",
@@ -255,10 +257,10 @@ export default function ActionDetail() {
               <div className="flex items-center gap-2">
                 <RiImageLine className="h-4 w-4 text-text-soft" />
                 <div>
-                  <h3 className="text-sm font-semibold text-text-strong">
+                  <h3 className="text-body-md font-semibold text-text-strong">
                     {formatMessage({ id: "app.actions.detail.media" })}
                   </h3>
-                  <p className="mt-1 text-sm text-text-sub">
+                  <p className="mt-1 text-body-md text-text-sub">
                     {formatMessage({
                       id: "cockpit.actions.mediaDescription",
                       defaultMessage: "Reference media and banner assets attached to this action.",
@@ -286,7 +288,7 @@ export default function ActionDetail() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-text-sub">
+                <p className="text-body-md text-text-sub">
                   {formatMessage({
                     id: "cockpit.actions.noMedia",
                     defaultMessage: "No media attached",

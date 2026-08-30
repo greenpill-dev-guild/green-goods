@@ -1,5 +1,4 @@
 import { Alert } from "@green-goods/shared/components/Alert";
-import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { TOTAL_UNITS } from "@green-goods/shared/lib/hypercerts/constants";
 import { type DistributionMode, sumUnits } from "@green-goods/shared/lib/hypercerts/distribution";
@@ -10,6 +9,7 @@ import { useIntl } from "react-intl";
 import { isAddress, zeroAddress } from "viem";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
+import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressWithCopy, formatEnsAddressName } from "@/components/EnsAddressText";
 import { DistributionChart } from "../DistributionChart";
 
@@ -167,7 +167,6 @@ export function DistributionConfig({
           {allowlist.map((entry, index) => {
             const percent = totalUnits > 0n ? Number((entry.units * 10000n) / totalUnits) / 100 : 0;
             const addressValid = isAddress(entry.address);
-            const errorId = `address-error-${index}`;
             return (
               <div
                 key={`${entry.address}-${index}`}
@@ -180,40 +179,32 @@ export function DistributionConfig({
               >
                 <div className="space-y-1">
                   {mode === "custom" ? (
-                    <TextInput
-                      surface="admin"
-                      value={entry.address}
-                      onChange={(event) => handleAddressChange(index, event.target.value)}
-                      aria-label={formatMessage({
+                    <AdminTextField
+                      className="w-full"
+                      label={formatMessage({
                         id: "app.hypercerts.distribution.table.recipient",
                       })}
-                      aria-invalid={!addressValid}
-                      aria-describedby={!addressValid ? errorId : undefined}
-                      className={cn(
-                        "w-full rounded-md border px-2 py-1 text-xs",
-                        addressValid ? "border-stroke-sub" : "border-error-light"
-                      )}
+                      value={entry.address}
+                      onChange={(event) => handleAddressChange(index, event.target.value)}
+                      error={
+                        !addressValid
+                          ? formatMessage({
+                              id: "app.hypercerts.distribution.error.invalidAddress",
+                            })
+                          : undefined
+                      }
                     />
                   ) : (
                     <EnsAddressWithCopy address={entry.address} labelClassName="text-xs" />
                   )}
-                  {!addressValid && mode === "custom" && (
-                    <span id={errorId} className="text-xs text-error-dark">
-                      {formatMessage({ id: "app.hypercerts.distribution.error.invalidAddress" })}
-                    </span>
-                  )}
                   {entry.label && <p className="text-xs text-text-sub">{entry.label}</p>}
                 </div>
-                <TextInput
-                  surface="admin"
+                <AdminTextField
+                  className="w-full"
+                  label={formatMessage({ id: "app.hypercerts.distribution.table.units" })}
                   value={entry.units.toString()}
                   onChange={(event) => handleUnitsChange(index, event.target.value)}
                   disabled={mode !== "custom"}
-                  aria-label={formatMessage({ id: "app.hypercerts.distribution.table.units" })}
-                  className={cn(
-                    "w-full rounded-md border px-2 py-1 text-xs",
-                    mode !== "custom" ? "bg-bg-weak" : "border-stroke-sub"
-                  )}
                 />
                 <span className="text-xs text-text-sub">{percent.toFixed(2)}%</span>
                 {mode === "custom" && (

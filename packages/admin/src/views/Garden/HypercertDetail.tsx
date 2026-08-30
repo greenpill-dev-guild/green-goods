@@ -24,16 +24,16 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useParams } from "react-router-dom";
 import { formatEther } from "viem";
+import { AdminButton } from "@/components/AdminButton";
+import { EnsAddressText } from "@/components/EnsAddressText";
 import { CreateListingDialog } from "@/components/Hypercerts/CreateListingDialog";
 import { MarketplaceApprovalGate } from "@/components/Hypercerts/MarketplaceApprovalGate";
 import { TradeHistoryTable } from "@/components/Hypercerts/TradeHistoryTable";
-import { AdminButton } from "@/components/AdminButton";
 import {
   CanvasRouteContent,
   CanvasRouteFrame,
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
-import { EnsAddressText } from "@/components/EnsAddressText";
 
 const HYPERCERTS_APP_BASE_URL = "https://app.hypercerts.org/hypercerts";
 
@@ -54,7 +54,7 @@ function SyncStatusIndicator({
 }) {
   if (status === "synced") {
     return (
-      <div className="inline-flex items-center gap-1.5 rounded-full bg-success-lighter px-3 py-1 text-xs font-medium text-success-dark">
+      <div className="inline-flex items-center gap-1.5 rounded-full bg-success-lighter px-3 py-1 text-label-sm font-medium text-success-dark">
         <RiCheckLine className="h-3.5 w-3.5" />
         {formatMessage({ id: "app.hypercerts.detail.synced" })}
       </div>
@@ -63,7 +63,7 @@ function SyncStatusIndicator({
 
   if (status === "syncing") {
     return (
-      <div className="inline-flex items-center gap-1.5 rounded-full bg-warning-lighter px-3 py-1 text-xs font-medium text-warning-dark">
+      <div className="inline-flex items-center gap-1.5 rounded-full bg-warning-lighter px-3 py-1 text-label-sm font-medium text-warning-dark">
         <RiLoader4Line className="h-3.5 w-3.5 animate-spin" />
         {formatMessage({ id: "app.hypercerts.detail.syncing" })}
       </div>
@@ -72,7 +72,7 @@ function SyncStatusIndicator({
 
   if (status === "optimistic") {
     return (
-      <div className="inline-flex items-center gap-1.5 rounded-full bg-info-lighter px-3 py-1 text-xs font-medium text-info-dark">
+      <div className="inline-flex items-center gap-1.5 rounded-full bg-info-lighter px-3 py-1 text-label-sm font-medium text-info-dark">
         {formatMessage({ id: "app.hypercerts.detail.optimistic" })}
       </div>
     );
@@ -177,10 +177,10 @@ export default function HypercertDetail({
               <div className="flex items-center gap-3">
                 <RiLoader4Line className="h-5 w-5 animate-spin text-info-dark" />
                 <div>
-                  <p className="text-sm font-medium text-info-dark">
+                  <p className="text-body-md font-medium text-info-dark">
                     {formatMessage({ id: "app.hypercerts.detail.syncingBanner.title" })}
                   </p>
-                  <p className="mt-0.5 text-xs text-info-dark/80">
+                  <p className="mt-0.5 text-body-sm text-info-dark/80">
                     {formatMessage({ id: "app.hypercerts.detail.syncingBanner.message" })}
                   </p>
                 </div>
@@ -192,7 +192,7 @@ export default function HypercertDetail({
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-semibold text-text-strong">
+                  <h2 className="text-title-md font-semibold text-text-strong">
                     {hypercert.title ||
                       formatMessage({ id: "app.hypercerts.detail.fallbackTitle" })}
                   </h2>
@@ -200,7 +200,7 @@ export default function HypercertDetail({
                     <SyncStatusIndicator status={syncStatus} formatMessage={formatMessage} />
                   )}
                 </div>
-                <p className="mt-1 text-sm text-text-sub">
+                <p className="mt-1 text-body-md text-text-sub">
                   {hypercert.description ||
                     formatMessage({ id: "app.hypercerts.detail.fallbackDescription" })}
                 </p>
@@ -210,7 +210,7 @@ export default function HypercertDetail({
                   href={buildHypercertUrl(hypercert.id)}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 rounded-md border border-stroke-sub px-3 py-2 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
+                  className="inline-flex items-center gap-1 rounded-md border border-stroke-sub px-3 py-2 text-label-sm font-medium text-text-sub transition hover:bg-bg-weak"
                 >
                   <RiExternalLinkLine className="h-4 w-4" />
                   {formatMessage({ id: "app.hypercerts.detail.viewExternal" })}
@@ -220,7 +220,7 @@ export default function HypercertDetail({
                     href={`${explorer}/tx/${hypercert.txHash}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-md border border-stroke-sub px-3 py-2 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
+                    className="inline-flex items-center gap-1 rounded-md border border-stroke-sub px-3 py-2 text-label-sm font-medium text-text-sub transition hover:bg-bg-weak"
                   >
                     <RiExternalLinkLine className="h-4 w-4" />
                     {formatMessage({ id: "app.hypercerts.detail.viewTransaction" })}
@@ -228,7 +228,7 @@ export default function HypercertDetail({
                 )}
               </div>
             </div>
-            <div className="mt-4 grid gap-3 text-xs text-text-sub sm:grid-cols-3">
+            <div className="mt-4 grid gap-3 text-body-sm text-text-sub sm:grid-cols-3">
               <div>
                 <span className="font-medium text-text-strong">
                   {formatMessage({ id: "app.hypercerts.detail.mintedOn" })}:
@@ -254,7 +254,7 @@ export default function HypercertDetail({
 
           {hypercert.imageUri && (
             <section className="surface-inset p-6">
-              <h3 className="text-sm font-semibold text-text-strong">
+              <h3 className="text-body-md font-semibold text-text-strong">
                 {formatMessage({ id: "app.hypercerts.detail.image" })}
               </h3>
               <div className="mt-3 aspect-square max-w-xs overflow-hidden rounded-lg border border-stroke-soft">
@@ -269,10 +269,10 @@ export default function HypercertDetail({
 
           {hypercert.workScopes?.length ? (
             <section className="surface-inset p-6">
-              <h3 className="text-sm font-semibold text-text-strong">
+              <h3 className="text-body-md font-semibold text-text-strong">
                 {formatMessage({ id: "app.hypercerts.detail.workScopes" })}
               </h3>
-              <p className="mt-2 text-sm text-text-sub">{hypercert.workScopes.join(", ")}</p>
+              <p className="mt-2 text-body-md text-text-sub">{hypercert.workScopes.join(", ")}</p>
             </section>
           ) : null}
 
@@ -289,14 +289,14 @@ export default function HypercertDetail({
 
           {hypercert.attestations && hypercert.attestations.length > 0 && (
             <section className="surface-inset p-6">
-              <h3 className="text-sm font-semibold text-text-strong">
+              <h3 className="text-body-md font-semibold text-text-strong">
                 {formatMessage({ id: "app.hypercerts.detail.attestationRefs" })}
               </h3>
               <div className="mt-3 space-y-2">
                 {hypercert.attestations.map((attestation) => (
                   <div
                     key={attestation.id}
-                    className="rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-xs"
+                    className="rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-body-sm"
                   >
                     <div className="font-medium text-text-strong">{attestation.title}</div>
                     <div className="text-text-sub">
@@ -313,11 +313,11 @@ export default function HypercertDetail({
 
           {hypercert.allowlistEntries && hypercert.allowlistEntries.length > 0 && (
             <section className="surface-inset p-6">
-              <h3 className="text-sm font-semibold text-text-strong">
+              <h3 className="text-body-md font-semibold text-text-strong">
                 {formatMessage({ id: "app.hypercerts.detail.claims" })}
               </h3>
               <div className="mt-3 overflow-hidden rounded-md border border-stroke-soft">
-                <div className="grid grid-cols-[2fr_1fr_1fr] gap-2 border-b border-stroke-soft bg-bg-weak px-4 py-2 text-xs font-medium text-text-sub">
+                <div className="grid grid-cols-[2fr_1fr_1fr] gap-2 border-b border-stroke-soft bg-bg-weak px-4 py-2 text-label-sm font-medium text-text-sub">
                   <span>{formatMessage({ id: "app.hypercerts.detail.claims.claimer" })}</span>
                   <span>{formatMessage({ id: "app.hypercerts.detail.claims.units" })}</span>
                   <span>{formatMessage({ id: "app.hypercerts.detail.claims.date" })}</span>
@@ -326,7 +326,7 @@ export default function HypercertDetail({
                   {hypercert.allowlistEntries.map((claim) => (
                     <div
                       key={claim.id}
-                      className="grid grid-cols-[2fr_1fr_1fr] gap-2 px-4 py-3 text-xs text-text-sub"
+                      className="grid grid-cols-[2fr_1fr_1fr] gap-2 px-4 py-3 text-body-sm text-text-sub"
                     >
                       <EnsAddressText address={claim.claimant} className="text-text-strong" />
                       <span>{claim.units.toLocaleString()}</span>
@@ -343,7 +343,7 @@ export default function HypercertDetail({
           )}
 
           {!hypercert.allowlistEntries?.length && (
-            <section className="surface-inset p-6 text-sm text-text-sub">
+            <section className="surface-inset p-6 text-body-md text-text-sub">
               {formatMessage({ id: "app.hypercerts.detail.noClaims" })}
             </section>
           )}
@@ -408,7 +408,7 @@ function MarketplaceSection({
   return (
     <>
       <section className="surface-inset p-6">
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-text-strong">
+        <h3 className="flex items-center gap-2 text-body-md font-semibold text-text-strong">
           <RiExchangeDollarLine className="h-4 w-4 text-primary-base" />
           {formatMessage({ id: "app.hypercerts.marketplace.title" })}
         </h3>
@@ -418,7 +418,7 @@ function MarketplaceSection({
             <div className="mt-4 space-y-3">
               <div className="flex items-center gap-2">
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-label-sm font-medium ${
                     isExpired
                       ? "bg-warning-lighter text-warning-dark"
                       : "bg-success-lighter text-success-dark"
@@ -434,7 +434,7 @@ function MarketplaceSection({
                     : formatMessage({ id: "app.hypercerts.marketplace.listedForYield" })}
                 </span>
               </div>
-              <div className="grid gap-2 text-xs text-text-sub sm:grid-cols-3">
+              <div className="grid gap-2 text-body-sm text-text-sub sm:grid-cols-3">
                 <div>
                   <span className="font-medium text-text-strong">
                     {formatMessage({ id: "app.hypercerts.marketplace.price" })}:
@@ -461,7 +461,7 @@ function MarketplaceSection({
             </div>
           ) : (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-text-soft">
+              <p className="text-body-md text-text-soft">
                 {formatMessage({ id: "app.hypercerts.marketplace.notListed" })}
               </p>
               <AdminButton
@@ -481,7 +481,7 @@ function MarketplaceSection({
       {/* Trade History */}
       {hypercertId > 0n && (
         <section className="surface-inset p-6">
-          <h3 className="mb-4 text-sm font-semibold text-text-strong">
+          <h3 className="mb-4 text-body-md font-semibold text-text-strong">
             {formatMessage({ id: "app.hypercerts.marketplace.tradeHistory" })}
           </h3>
           <TradeHistoryTable hypercertId={hypercertId} chainId={chainId} />
