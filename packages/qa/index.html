@@ -206,21 +206,50 @@
     try { sessionStorage.removeItem(LEGACY_OUTBOX_KEY); } catch (e) {}
   }
 
-  function saveOutbox() {
+  function writeOutbox(person, delta) {
     try {
-      if (!who) return;
-      if (Object.keys(outbox).length) {
-        localStorage.setItem(outboxKey(who), JSON.stringify({ person: who, delta: outbox }));
+      if (Object.keys(delta).length) {
+        localStorage.setItem(outboxKey(person), JSON.stringify({ person, delta }));
       } else {
-        localStorage.removeItem(outboxKey(who));
+        localStorage.removeItem(outboxKey(person));
       }
     } catch (e) {}
   }
-  /** Drop one tester's queue. Never touches another tester's. */
+
+  /**
+   * Persist this tab's queue WITHOUT discarding another tab's.
+   *
+   * Per-tester keys stop one tester clearing another's work, but two tabs of
+   * the SAME tester still share a key while each holds its own in-memory
+   * queue. Writing the whole object made the second tab replace the first's
+   * cases — record case A here and case B there while saves are failing, close
+   * the first tab, and A is gone despite the promise on the savebar. So the
+   * write merges: this tab is authoritative for the cases it is holding, and
+   * silent about every other.
+   */
+  function saveOutbox() {
+    if (!who) return;
+    writeOutbox(who, { ...storedOutboxFor(who), ...outbox });
+  }
+
+  /**
+   * Forget specific cases in storage as well as memory. A case leaves the
+   * stored queue only when the tab that sent it has a confirmation for it —
+   * merging alone would otherwise keep resurrecting what was already saved.
+   */
+  function forgetStoredCases(person, caseIds) {
+    if (!person || !caseIds.length) return;
+    const stored = storedOutboxFor(person) || {};
+    for (const caseId of caseIds) delete stored[caseId];
+    writeOutbox(person, { ...stored, ...outbox });
+  }
+
+  /** Drop this tab's queue. Never touches another tab's or another tester's. */
   function clearOutbox(person) {
+    const owned = Object.keys(outbox);
     outbox = {};
     outboxVersions = {};
-    try { localStorage.removeItem(outboxKey(person || who)); } catch (e) {}
+    forgetStoredCases(person || who, owned);
   }
   /** Clearing a case is explicit, so clearing one field never means deletion. */
   function tombstone() {
@@ -356,7 +385,7 @@
       <div class="runline">${CASES.length} cases · two testers can record the same case — each keeps their own verdict and notes</div>
       <div class="tabs">${TABS.map((t) => {
         const k = counts(t);
-        return `<button class="tab ${t === activeTab ? "on" : ""}" data-tab="${esc(t)}">${esc(t)}<small>${k.done}/${k.total}${k.fails ? " · " + k.fails + "F" : ""}</small></button>`;
+        return `<button class="tab ${t === activeTab ? "on" : ""}" data-tab="${esc(t)}" aria-pressed="${t === activeTab ? "true" : "false"}">${esc(t)}<small>${k.done}/${k.total}${k.fails ? " · " + k.fails + "F" : ""}</small></button>`;
       }).join("")}</div>
       <div class="filters">${[["all", "All"], ["issues", "Issues"], ["open", "Undecided"]].map(([k, l]) =>
         `<button class="filt ${filter === k ? "on" : ""}" data-f="${k}" aria-pressed="${filter === k ? "true" : "false"}">${l}</button>`).join("")}<span class="who-group" role="group" aria-label="who is testing"><span class="grouplabel">testing as</span>${TEAM.map((n) =>
@@ -391,7 +420,7 @@
         <div class="scen">${esc(c.scenario)}${flag}<span class="why">${esc(c.expected)}</span></div>
         <div class="ctl" role="group" aria-label="${esc(c.id)} verdict">${STATUSES.map((s) =>
           `<button class="st ${s} ${own && own.s === s ? "on" : ""}" data-id="${esc(c.id)}" data-s="${s}" aria-pressed="${own && own.s === s ? "true" : "false"}" aria-label="${esc(SPOKEN[s])}" title="${who ? esc(who) + ": " + s : "pick your name first"}"${who ? "" : " disabled"}>${LABEL[s]}</button>`).join("")}</div>
-        <div class="note">${others}<textarea data-note="${esc(c.id)}" rows="1" maxlength="4000" placeholder="${who ? esc(who) + "'s notes — saves as you go…" : "pick your name above to add notes"}"${who ? "" : " disabled"}>${esc(own ? own.n || "" : "")}</textarea></div>
+        <div class="note">${others}<textarea data-note="${esc(c.id)}" rows="1" maxlength="4000" aria-label="${esc(c.id)} — ${who ? esc(who) + "'s notes" : "notes"}" placeholder="${who ? esc(who) + "'s notes — saves as you go…" : "pick your name above to add notes"}"${who ? "" : " disabled"}>${esc(own ? own.n || "" : "")}</textarea></div>
       </div>`;
     }).join("")).join("");
 
@@ -534,11 +563,15 @@
       // `{s, n}` and overwrote a newer status from the other device. A field
       // the server has stored is done; only what changed since is still ours
       // to send.
+      const settled = [];
       for (const [caseId, patch] of Object.entries(sent)) {
         const key = versionKey(person, caseId);
         confirmedVersions[key] = Math.max(confirmedVersions[key] || 0, sentVersions[caseId] || 0);
         const pending = outbox[caseId];
-        if (!pending) continue;
+        if (!pending) {
+          settled.push(caseId);
+          continue;
+        }
         // A delete queued after this send is a new intent, not an echo of it.
         if (Boolean(pending.delete) !== Boolean(patch.delete)) continue;
         for (const field of ["s", "n"]) {
@@ -549,8 +582,10 @@
         if (pending.delete || !Object.keys(pending).length) {
           delete outbox[caseId];
           delete outboxVersions[caseId];
+          settled.push(caseId);
         }
       }
+      forgetStoredCases(person, settled);
       saveOutbox();
       // Anything typed while the request was in flight is still pending. The
       // debounce that would have flushed it already fired and found a save

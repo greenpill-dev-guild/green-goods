@@ -37,6 +37,21 @@ describe("QA app page", () => {
     expect(() => new Script(inlineScript())).not.toThrow();
   });
 
+  it("gives every selectable control a selected state and every note a name", () => {
+    const script = inlineScript();
+    // Selection lived only in the `on` class, which a screen reader cannot see.
+    // Every group that renders `on` has to render the matching state as well.
+    const selectable = ["tab", "filt", "who-btn", "scope-btn", "st"];
+    for (const control of selectable) {
+      const rendered = script.slice(script.indexOf(`class="${control} `));
+      expect(rendered.slice(0, 400), `${control} has no selected state`).toContain("aria-pressed");
+    }
+    // The textareas render one per case and would otherwise share a placeholder.
+    expect(script).toMatch(/data-note="\$\{esc\(c\.id\)\}"[^>]*aria-label=/);
+    // The verdict glyphs need a spoken name; "P" is not one.
+    expect(script).toContain('const SPOKEN = { pass: "pass", fail: "fail", blocked: "blocked", na: "not applicable" }');
+  });
+
   it("caps notes at the length the API stores", () => {
     // The API slices at 4000. Without a matching cap the tester types past it,
     // the save returns ok, and the tail is gone with nothing to show for it.

@@ -85,9 +85,14 @@ shards nor pushes back to them — so a session split across both leaves results
 2. **Create the project** — import this repo, set **Root Directory** to `packages/qa`, and
    connect the Blob store to it (that injects `BLOB_READ_WRITE_TOKEN` automatically — never set it
    by hand).
-3. **Turn on Password Protection** — Settings → Deployment Protection. It covers `/api/*` too, which
+3. **Enable "Include source files outside of the Root Directory in the Build Step"** — required, not
+   optional. `build.mjs` reads `scripts/data/qa-test-catalog.json` from the repository root, which
+   the build sandbox excludes without this, and the deploy fails on a missing catalog. The
+   Storybook project needs the same setting for the same reason
+   (`docs/docs/builders/testing/storybook.mdx`).
+4. **Turn on Password Protection** — Settings → Deployment Protection. It covers `/api/*` too, which
    is what protects the write endpoint. Share the password with whoever is testing.
-4. **Verify** before relying on it: open the deployment in two browsers, pick a different name in
+5. **Verify** before relying on it: open the deployment in two browsers, pick a different name in
    each under *testing as*, and record a verdict **and** a note on the same case in both. Both marks
    and both notes must appear. If they don't, stop and fix it rather than starting a session.
 

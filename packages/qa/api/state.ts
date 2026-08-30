@@ -132,13 +132,39 @@ async function readShard(person: Person): Promise<{ shard: Shard; etag: string }
   } catch (error) {
     throw new StoreError(`${person}'s entries are unreadable and were not overwritten`, error);
   }
-  if (!parsed || typeof parsed !== "object" || !parsed.entries) {
-    throw new StoreError(
-      `${person}'s entries are unreadable and were not overwritten`,
-      "shard is not an object with entries",
-    );
+  const invalid = shardShapeError(person, parsed);
+  if (invalid) {
+    throw new StoreError(`${person}'s entries are unreadable and were not overwritten`, invalid);
   }
   return { shard: parsed, etag: result.etag };
+}
+
+/**
+ * Why a parsed shard is not one, or null when it is fine.
+ *
+ * Checking only for a truthy `entries` let a malformed entry through, and GET
+ * hands whatever it read straight to the page — which reads `e.s` off it and
+ * takes the checklist down mid-session for everyone. A shard this endpoint
+ * cannot vouch for is a 503, the same answer an unreadable one gets: refusing
+ * the read is recoverable, serving corrupt state to a live session is not.
+ */
+export function shardShapeError(person: string, parsed: unknown): string | null {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return "shard is not an object";
+  }
+  const shard = parsed as Partial<Shard>;
+  if (shard.person !== person) return `shard reports its owner as ${JSON.stringify(shard.person ?? null)}`;
+  if (!shard.entries || typeof shard.entries !== "object" || Array.isArray(shard.entries)) {
+    return "shard has no entries object";
+  }
+  for (const [caseId, entry] of Object.entries(shard.entries)) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return `entry ${caseId} is not an object`;
+    const candidate = entry as Partial<Entry>;
+    if (typeof candidate.s !== "string" || !STATUSES.has(candidate.s)) return `entry ${caseId} has no valid status`;
+    if (typeof candidate.n !== "string") return `entry ${caseId} has no note`;
+    if (typeof candidate.at !== "string") return `entry ${caseId} has no timestamp`;
+  }
+  return null;
 }
 
 /**

@@ -176,6 +176,8 @@ async function outboxDurabilityHarness() {
     rd: false,
     tx: false,
   };
+  // A second case so one tab's queued work can be distinguished from another's.
+  const otherCase = { ...testCase, id: "PUB-002", scenario: "Browse the gardens map" };
   const response = (body) => ({ ok: true, status: 200, json: async () => structuredClone(body) });
   const flush = async () => {
     await Promise.resolve();
@@ -288,6 +290,28 @@ async function outboxDurabilityHarness() {
       { person: "Afo", delta: { "PUB-001": { n: "unsent when the tab closed" } } },
       "Afo's unsent work was discarded by another tester's page",
     );
+  });
+
+  // TWO TABS, ONE TESTER. They share a key but each holds its own queue, so a
+  // whole-object write would drop whatever the other tab had put there.
+  await pageLife({}, async ({ dom, storage }) => {
+    storage.setItem(
+      "qa-outbox:Afo",
+      JSON.stringify({ person: "Afo", delta: { "PUB-002": { n: "queued by the other tab" } } }),
+    );
+
+    const note = dom.window.document.querySelector('[data-note="PUB-001"]');
+    note.value = "queued by this tab";
+    note.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+    await flush();
+
+    assert.deepEqual(JSON.parse(storage.getItem("qa-outbox:Afo") || "null"), {
+      person: "Afo",
+      delta: {
+        "PUB-002": { n: "queued by the other tab" },
+        "PUB-001": { n: "queued by this tab" },
+      },
+    });
   });
 }
 
