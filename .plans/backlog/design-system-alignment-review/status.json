@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-04-25T05:11:42.581Z",
-    "updated_at": "2026-08-29T23:25:52.202Z"
+    "updated_at": "2026-08-30T00:03:04.014Z"
   },
   "links": {
     "brief": "brief.md",
@@ -37,12 +37,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "cd packages/admin && bun run test -- --run AdminTextField",
-          "evidence": "AdminTextArea import failed pre-implementation (component absent); suite exited 1"
+          "command": "cd packages/client && bun run test src/__tests__/components/PublicFooter.test.tsx (before FOOTER_LINKS change)",
+          "evidence": "Round-3 fix pass footer wayfinding: 1 failed | 3 passed — new 'renders the public route wayfinding links first' test fails against the shipped footer (no Gardens/Impact/Fund/Actions links)"
         },
         "green": {
-          "command": "cd packages/admin && bun run test -- --run AdminTextField && bun run test -- --run src/__tests__/components && bun run test -- --run src/__tests__/views && bun run typecheck:source",
-          "evidence": "AdminTextArea tests pass; components 464/464, views 139/139, workflows 6/6; typecheck + build + story contract 255/255 + token guards green at 3496c5cc2"
+          "command": "cd packages/client && bun run test src/__tests__/components/PublicFooter.test.tsx && cd ../shared && bun run test src/__tests__/i18n/ && bun run test:stories:ci",
+          "evidence": "4/4 footer tests pass after FOOTER_LINKS + en/es/pt keys (commit 439196599); i18n gate 27/27; storybook vitest CI 193/193 play tests in headless chromium after the viewport codemod (be50446ca); typecheck:source clean on client+admin at 0d656b780"
         },
         "note": ""
       }
@@ -205,6 +205,14 @@
       "status": "in_progress",
       "branch": "claude/ui/design-system-alignment-review",
       "note": "Round 3 reviews delivered (client+browser / docs+storybook+guidance): validators all green incl. first lint:vocab; 7 confirmed clusters in reports/2026-08-29-round-3; sibling reference pages published (Field Tool 13bcde21, Living Record 05a6d12b); findings await triage"
+    },
+    {
+      "timestamp": "2026-08-30T00:03:04.014Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ],
   "taxonomy": {
