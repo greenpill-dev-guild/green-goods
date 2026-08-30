@@ -314,7 +314,9 @@ collect_admin_invariant_hits() {
 #      into the baseline until a dedicated row primitive exists.)
 #   3. Legacy shared Card renders — cockpit surfaces are AdminCard.
 # Scope is packages/admin/src production code only; tests and stories are
-# exercise scaffolding, not adoption surface.
+# exercise scaffolding, not adoption surface. The wrapper implementations
+# themselves (components/Admin*.tsx) and the shell chrome (components/Shell —
+# DL-011 exempt) legitimately render raw elements and are excluded.
 # ----------------------------------------------------------------------------
 ADMIN_WRAPPER_BYPASS_PATTERN='<(TextInput|Textarea|NativeSelect|FormField|FormInput|FormTextarea|button|Card(\.[A-Za-z]+)?)([[:space:]/>]|$)'
 
@@ -322,8 +324,10 @@ collect_admin_wrapper_bypass_hits() {
   grep -RInE --include='*.ts' --include='*.tsx' \
     --exclude='*.test.tsx' --exclude='*.test.ts' \
     --exclude='*.stories.tsx' --exclude='*.stories.ts' \
+    --exclude='Admin*.tsx' \
     --exclude-dir=__tests__ --exclude-dir=node_modules --exclude-dir=dist \
     --exclude-dir=build --exclude-dir=storybook-static --exclude-dir=coverage \
+    --exclude-dir=Shell \
     "$ADMIN_WRAPPER_BYPASS_PATTERN" packages/admin/src 2>/dev/null \
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \

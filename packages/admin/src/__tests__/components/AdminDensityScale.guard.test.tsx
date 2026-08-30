@@ -12,12 +12,13 @@
  * @vitest-environment jsdom
  */
 
-import { AdminButton } from "@/components/AdminButton";
+import { RiAddLine } from "@remixicon/react";
+import { describe, expect, it } from "vitest";
+import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { AdminInlineField } from "@/components/AdminInlineField";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminSortSelect } from "@/components/AdminSortSelect";
 import { AdminTextField } from "@/components/AdminTextField";
-import { describe, expect, it } from "vitest";
 import { render, screen } from "../test-utils";
 
 describe("AdminDensityScale.guard (DL-011)", () => {
@@ -41,6 +42,32 @@ describe("AdminDensityScale.guard (DL-011)", () => {
     expect(lg).toHaveClass("h-10");
     // 14px labels at every size — lg no longer jumps to body-lg.
     expect(lg).not.toHaveClass("text-body-lg");
+  });
+
+  it("icon buttons ride the same 28/32/40 tiers with a mandatory accessible name", () => {
+    render(
+      <>
+        <AdminIconButton size="sm" label="Move Up">
+          <RiAddLine />
+        </AdminIconButton>
+        <AdminIconButton size="md" label="Remove Photo">
+          <RiAddLine />
+        </AdminIconButton>
+        <AdminIconButton size="lg" label="Open Settings">
+          <RiAddLine />
+        </AdminIconButton>
+      </>
+    );
+
+    const sm = screen.getByRole("button", { name: "Move Up" });
+    const md = screen.getByRole("button", { name: "Remove Photo" });
+    const lg = screen.getByRole("button", { name: "Open Settings" });
+
+    expect(sm).toHaveClass("h-7", "w-7", "admin-hit-target");
+    expect(md).toHaveClass("h-8", "w-8", "admin-hit-target");
+    expect(lg).toHaveClass("h-10", "w-10");
+    expect(md).toHaveAttribute("data-component", "AdminIconButton");
+    expect(md).toHaveAttribute("title", "Remove Photo");
   });
 
   it("fields sit at the 44px tier with 14px control text", () => {

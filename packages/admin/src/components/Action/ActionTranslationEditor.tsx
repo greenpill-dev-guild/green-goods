@@ -1,4 +1,3 @@
-import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { browserTranslator } from "@green-goods/shared/modules/translation/browser-translator";
 import type {
   ActionInstructionConfig,
@@ -23,7 +22,8 @@ import { RiCheckboxCircleLine, RiRefreshLine, RiTranslate2 } from "@remixicon/re
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminTextField } from "@/components/AdminTextField";
+import { AdminFilterChip } from "@/components/AdminFilterChip";
+import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 
 interface ActionTranslationEditorProps {
   sourceTitle: string;
@@ -147,26 +147,19 @@ function TranslationTextControl({
         value={value ?? ""}
         onChange={(event) => onChange(event.target.value)}
         helperText={`${sourceLabel}: ${source}`}
-        variant="outlined"
       />
     );
   }
 
   return (
-    <label className="flex flex-col gap-1" htmlFor={id}>
-      <span className="text-label-md font-medium text-[rgb(var(--m3-on-surface))]">{label}</span>
-      <Textarea
-        surface="admin"
-        id={id}
-        value={value ?? ""}
-        onChange={(event) => onChange(event.target.value)}
-        rows={3}
-        className="min-h-24"
-      />
-      <span className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
-        {sourceLabel}: {source}
-      </span>
-    </label>
+    <AdminTextArea
+      id={id}
+      label={label}
+      value={value ?? ""}
+      onChange={(event) => onChange(event.target.value)}
+      rows={3}
+      helperText={`${sourceLabel}: ${source}`}
+    />
   );
 }
 
@@ -478,22 +471,14 @@ export function ActionTranslationEditor({
         </div>
         <div className="flex flex-wrap gap-2">
           {ACTION_TRANSLATION_LOCALES.map((locale) => {
-            const selected = locale === activeLocale;
             const record = translations[locale];
             return (
-              <button
+              <AdminFilterChip
                 key={locale}
-                type="button"
-                onClick={() => setActiveLocale(locale)}
-                className={cn(
-                  "rounded-[var(--m3-shape-full)] border px-3 py-1.5 text-label-md",
-                  selected
-                    ? "border-[rgb(var(--m3-primary))] bg-[rgb(var(--m3-primary-container))] text-[rgb(var(--m3-on-primary-container))]"
-                    : "border-[rgb(var(--m3-outline-variant))] text-[rgb(var(--m3-on-surface-variant))]"
-                )}
-              >
-                {formatMessage(LOCALE_LABELS[locale])} · {getStatusLabel(record, formatMessage)}
-              </button>
+                label={`${formatMessage(LOCALE_LABELS[locale])} · ${getStatusLabel(record, formatMessage)}`}
+                selected={locale === activeLocale}
+                onToggle={() => setActiveLocale(locale)}
+              />
             );
           })}
         </div>

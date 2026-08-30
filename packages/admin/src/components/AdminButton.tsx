@@ -1,7 +1,7 @@
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiLoader4Line } from "@remixicon/react";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 
 // ============================================================================
 // Variant System
@@ -213,3 +213,132 @@ export const AdminButton = React.forwardRef<HTMLButtonElement, AdminButtonProps>
 );
 
 AdminButton.displayName = "AdminButton";
+
+// ============================================================================
+// Icon Button
+// ============================================================================
+
+const adminIconButtonVariants = tv({
+  base: [
+    "inline-flex shrink-0 items-center justify-center",
+    "rounded-[var(--m3-shape-full)]",
+    "border border-transparent",
+    "transition-all duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
+    "m3-state-layer",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2",
+    "disabled:pointer-events-none disabled:text-[rgb(var(--m3-on-surface)/0.38)]",
+  ],
+  variants: {
+    variant: {
+      // Standard — the M3 default: on-surface-variant glyph, ink state layer.
+      standard: [
+        "bg-transparent [color:rgb(var(--m3-on-surface-variant))]",
+        "[--state-layer-color:var(--m3-on-surface)]",
+      ],
+      // Accent — tone-colored glyph for emphasized inline actions (external
+      // links, primary row actions) without a filled container.
+      accent: [
+        "bg-transparent [color:rgb(var(--tone-on-surface-accent,var(--m3-primary)))]",
+        "[--state-layer-color:var(--m3-primary)]",
+      ],
+      // Tonal — secondary-container fill, medium emphasis.
+      tonal: [
+        "bg-[rgb(var(--m3-secondary-container))] [color:rgb(var(--m3-on-secondary-container))]",
+        "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
+        "[--state-layer-color:var(--m3-on-secondary-container)]",
+        "disabled:bg-[rgb(var(--m3-on-surface)/0.12)]",
+      ],
+      // Filled — highest emphasis, workspace tone fill.
+      filled: [
+        "bg-[rgb(var(--tone-action,var(--primary-action)))] [color:rgb(var(--tone-on-action,var(--primary-action-foreground)))]",
+        "shadow-[var(--m3-elevation-1)] hover:shadow-[var(--m3-elevation-2)]",
+        "[--state-layer-color:var(--tone-on-action,var(--primary-action-foreground))]",
+        "disabled:bg-[rgb(var(--m3-on-surface)/0.12)]",
+      ],
+      // Danger — destructive glyph; feedback stays the error-tinted ink layer.
+      danger: [
+        "bg-transparent [color:rgb(var(--m3-error))]",
+        "[--state-layer-color:var(--m3-error)]",
+      ],
+    },
+    size: {
+      // DL-011 compact tiers; sm and md sit under the 44px floor and carry
+      // the expanded hit target. Glyphs ride 16px in sm, 18px in md/lg.
+      sm: "admin-hit-target h-7 w-7 [&_svg]:h-4 [&_svg]:w-4",
+      md: "admin-hit-target h-8 w-8 [&_svg]:h-[18px] [&_svg]:w-[18px]",
+      lg: "h-10 w-10 [&_svg]:h-[18px] [&_svg]:w-[18px]",
+    },
+  },
+  defaultVariants: {
+    variant: "standard",
+    size: "md",
+  },
+});
+
+type AdminIconButtonVariantProps = VariantProps<typeof adminIconButtonVariants>;
+
+export interface AdminIconButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    AdminIconButtonVariantProps {
+  /**
+   * Accessible name — icon buttons have no text, so the name is mandatory.
+   * Applied as aria-label and title (hover tooltip).
+   */
+  label: string;
+  /** Render as child element (Radix Slot pattern) — e.g. an anchor or Link. */
+  asChild?: boolean;
+  /** Show spinner + aria-busy in place of the glyph. */
+  loading?: boolean;
+}
+
+export const AdminIconButton = React.forwardRef<HTMLButtonElement, AdminIconButtonProps>(
+  (
+    {
+      className,
+      variant,
+      size,
+      label,
+      asChild = false,
+      loading = false,
+      disabled,
+      children,
+      type = "button",
+      ...props
+    },
+    ref
+  ) => {
+    const classes = cn(adminIconButtonVariants({ variant, size }), className);
+    const glyph = loading ? <RiLoader4Line className="animate-spin" aria-hidden /> : children;
+
+    if (asChild && React.isValidElement(children)) {
+      const child = children as React.ReactElement<SlottableChildProps>;
+      return React.cloneElement(child, {
+        ...(props as SlottableChildProps),
+        ref,
+        className: cn(classes, child.props.className),
+        "data-component": "AdminIconButton",
+        "aria-label": label,
+        title: label,
+        "aria-busy": loading || undefined,
+      });
+    }
+
+    return (
+      <button
+        ref={ref}
+        data-component="AdminIconButton"
+        className={classes}
+        disabled={disabled || loading}
+        aria-label={label}
+        title={label}
+        aria-busy={loading || undefined}
+        type={type}
+        {...props}
+      >
+        {glyph}
+      </button>
+    );
+  }
+);
+
+AdminIconButton.displayName = "AdminIconButton";

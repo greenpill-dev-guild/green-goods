@@ -1,5 +1,5 @@
-import { RiArrowDownSLine } from "@remixicon/react";
 import { cn } from "@green-goods/shared/utils/styles/cn";
+import { RiArrowDownSLine } from "@remixicon/react";
 import * as React from "react";
 import { type ComponentType, useCallback, useId, useRef, useState } from "react";
 
@@ -141,11 +141,11 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
     // Determine if the label should be in floating position
     const hasValue = value !== undefined ? value.length > 0 : uncontrolledHasValue;
 
-    // A native <select> always displays its selected option's text (the
-    // empty-value option acts as the placeholder row), so a resting centered
-    // label would overlap it — the select label floats permanently, matching
-    // the M3 exposed-dropdown treatment.
-    const isFloating = select || focused || hasValue || Boolean(defaultValue);
+    // A native <select> always shows its selected option's text, and date/time
+    // inputs paint intrinsic format text (mm/dd/yyyy) — a resting centered
+    // label would overlap both, so those labels float permanently (M3 exposed).
+    const intrinsicText = /^(date|time|datetime-local|month|week)$/.test(type);
+    const isFloating = select || intrinsicText || focused || hasValue || Boolean(defaultValue);
 
     const hasError = Boolean(error);
     const supportingText = error ?? helperText;

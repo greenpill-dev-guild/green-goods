@@ -66,13 +66,13 @@ describe("DetailsConfigSection", () => {
     vi.spyOn(Date, "now").mockReturnValue(1_725_000_000_000);
     render(<DetailsHarness initial={EMPTY_CONFIG} />);
 
-    fireEvent.change(screen.getByLabelText("Section Title"), {
+    fireEvent.change(screen.getByLabelText("Section title"), {
       target: { value: "Work details" },
     });
     fireEvent.change(screen.getByLabelText("Description"), {
       target: { value: "Tell us what happened" },
     });
-    fireEvent.change(screen.getByLabelText("Feedback Placeholder"), {
+    fireEvent.change(screen.getByLabelText("Feedback placeholder"), {
       target: { value: "Share observations" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Add Your First Input Field" }));
@@ -98,7 +98,7 @@ describe("DetailsConfigSection", () => {
   it("edits, reorders, and removes input fields", () => {
     render(<DetailsHarness initial={POPULATED_CONFIG} />);
 
-    fireEvent.change(screen.getAllByLabelText("Field Key")[0], { target: { value: "crop" } });
+    fireEvent.change(screen.getAllByLabelText("Field key")[0], { target: { value: "crop" } });
     fireEvent.change(screen.getAllByLabelText("Label")[0], { target: { value: "Crop planted" } });
     fireEvent.change(screen.getAllByLabelText("Placeholder")[0], {
       target: { value: "Choose a crop" },
@@ -140,7 +140,7 @@ describe("DetailsConfigSection", () => {
     fireEvent.click(optionControls.getAllByRole("button")[0]);
     expect(currentConfig().inputs[0].options).toEqual(["Beans", "Amaranth"]);
 
-    fireEvent.change(screen.getAllByLabelText("Field Type")[0], { target: { value: "number" } });
+    fireEvent.change(screen.getAllByLabelText("Field type")[0], { target: { value: "number" } });
     expect(currentConfig().inputs[0]).toMatchObject({ type: "number", options: [] });
     expect(document.getElementById("field-options-species")).not.toBeInTheDocument();
   });
