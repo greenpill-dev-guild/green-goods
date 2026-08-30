@@ -78,16 +78,16 @@ describe("QA app page", () => {
     }
   });
 
-  it("falls back to the same roster the API enforces", () => {
-    // The page seeds a roster before /api/state answers. If that list drifts
-    // from the server's, it offers a name whose saves are rejected as unknown.
-    const apiTeam = readFileSync(path.join(appDir, "api", "state.ts"), "utf8").match(
-      /export const TEAM = \[([^\]]+)\]/,
-    );
-    const pageTeam = page.match(/if \(!TEAM\.length\) TEAM = \[([^\]]+)\]/);
-    const names = (raw: string | undefined) =>
-      (raw ?? "").split(",").map((part) => part.trim().replace(/^["']|["']$/g, ""));
-    expect(names(pageTeam?.[1])).toEqual(names(apiTeam?.[1]));
+  it("names an unnamed tester the same way on both sides", () => {
+    // Shards are keyed by address and the display name is self-declared, so
+    // there is no roster to agree on any more — but a tester who has not named
+    // themselves must read identically in the page and in the pulled run sheet,
+    // or the same person appears as two people.
+    const api = readFileSync(path.join(appDir, "api", "state.ts"), "utf8");
+    const cli = readFileSync(path.join(repoRoot, "scripts", "agents", "qa-state.ts"), "utf8");
+    const shape = /address\.slice\(0, 6\)\}…\$\{address\.slice\(-4\)/;
+    expect(api).toMatch(shape);
+    expect(cli).toMatch(shape);
   });
 });
 

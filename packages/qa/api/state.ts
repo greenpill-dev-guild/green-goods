@@ -26,10 +26,20 @@
 
 import { BlobPreconditionFailedError, get, put } from "@vercel/blob";
 
-import { SESSION_COOKIE, findAllowed, parseAllowlist, readCookie, readSession } from "../auth";
+import { SESSION_COOKIE, isAllowed, parseAllowlist, readCookie, readSession } from "../auth";
 
-export const TEAM = ["Afo", "Nansel", "Gui"] as const;
-type Person = (typeof TEAM)[number];
+/**
+ * A shard is keyed by the ADDRESS that owns it, never by a display name.
+ *
+ * The allowlist grants an address the right to record; what that person is
+ * called is theirs to declare and lives inside their own shard. Keeping the two
+ * apart means adding a teammate is one address in one variable, and a tester
+ * renaming themselves never orphans the work they already recorded.
+ */
+export type Address = string;
+
+/** How long a name may be. Long enough for a name, short enough for a column. */
+const MAX_NAME_LENGTH = 32;
 
 /** One tester's verdict and notes on one case. */
 interface Entry {
@@ -49,7 +59,10 @@ interface EntryPatch {
 }
 
 interface Shard {
-  person: Person;
+  /** Lowercase owner address. The identity; never taken from a request body. */
+  address: Address;
+  /** Self-declared display name. Empty until the tester sets one. */
+  person: string;
   updatedAt: string;
   entries: Record<string, Entry>;
 }
@@ -61,12 +74,18 @@ const MAX_NOTE_LENGTH = 4000;
 /** Attempts per save. Contention is two clients of one person, not a thundering herd. */
 const MAX_WRITE_ATTEMPTS = 4;
 
-function shardPath(person: Person): string {
-  return `qa/entries/${person}.json`;
+function shardPath(address: Address): string {
+  return `qa/entries/${address.toLowerCase()}.json`;
 }
 
-function isPerson(value: unknown): value is Person {
-  return typeof value === "string" && (TEAM as readonly string[]).includes(value);
+/** A name is a label, so the only rules are "present" and "fits a column". */
+function cleanName(value: unknown): string {
+  return typeof value === "string" ? value.trim().slice(0, MAX_NAME_LENGTH) : "";
+}
+
+/** What to call a tester who has not named themselves yet. */
+export function fallbackName(address: Address): string {
+  return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
 function json(body: unknown, status = 200): Response {
@@ -114,11 +133,11 @@ function fail(error: unknown, fallback: string): Response {
  * empty base and silently erase everything that tester had recorded. So an
  * unreadable shard throws, and the caller refuses the write instead.
  */
-async function readShard(person: Person): Promise<{ shard: Shard; etag: string } | null> {
-  const unreadable = `${person}'s entries could not be read`;
+async function readShard(address: Address): Promise<{ shard: Shard; etag: string } | null> {
+  const unreadable = `${fallbackName(address)}'s entries could not be read`;
   let result: Awaited<ReturnType<typeof get>>;
   try {
-    result = await get(shardPath(person), { access: "private", useCache: false });
+    result = await get(shardPath(address), { access: "private", useCache: false });
   } catch (error) {
     throw new StoreError(unreadable, error);
   }
@@ -132,11 +151,11 @@ async function readShard(person: Person): Promise<{ shard: Shard; etag: string }
   try {
     parsed = JSON.parse(text) as Shard;
   } catch (error) {
-    throw new StoreError(`${person}'s entries are unreadable and were not overwritten`, error);
+    throw new StoreError(`${fallbackName(address)}'s entries are unreadable and were not overwritten`, error);
   }
-  const invalid = shardShapeError(person, parsed);
+  const invalid = shardShapeError(address, parsed);
   if (invalid) {
-    throw new StoreError(`${person}'s entries are unreadable and were not overwritten`, invalid);
+    throw new StoreError(`${fallbackName(address)}'s entries are unreadable and were not overwritten`, invalid);
   }
   return { shard: parsed, etag: result.etag };
 }
@@ -150,12 +169,16 @@ async function readShard(person: Person): Promise<{ shard: Shard; etag: string }
  * cannot vouch for is a 503, the same answer an unreadable one gets: refusing
  * the read is recoverable, serving corrupt state to a live session is not.
  */
-export function shardShapeError(person: string, parsed: unknown): string | null {
+export function shardShapeError(address: string, parsed: unknown): string | null {
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     return "shard is not an object";
   }
   const shard = parsed as Partial<Shard>;
-  if (shard.person !== person) return `shard reports its owner as ${JSON.stringify(shard.person ?? null)}`;
+  // Ownership is the address. A mismatch means this object is not what its
+  // path claims, which is the one case where refusing beats merging.
+  if (typeof shard.address !== "string" || shard.address.toLowerCase() !== address.toLowerCase()) {
+    return `shard reports its owner as ${JSON.stringify(shard.address ?? null)}`;
+  }
   if (!shard.entries || typeof shard.entries !== "object" || Array.isArray(shard.entries)) {
     return "shard has no entries object";
   }
@@ -249,19 +272,26 @@ export function mergeDelta(
  * clients that both read an absent shard therefore cannot both report success:
  * one creates it, while the other retries against the newly created ETag.
  */
-export async function applyDelta(person: Person, delta: Record<string, EntryPatch>): Promise<Shard> {
+export async function applyDelta(
+  address: Address,
+  delta: Record<string, EntryPatch>,
+  declaredName?: string,
+): Promise<Shard> {
   for (let attempt = 1; attempt <= MAX_WRITE_ATTEMPTS; attempt++) {
     // Never merge onto an assumed-empty base: that would overwrite this
     // tester's whole record with just the delta in hand. readShard throws
     // rather than reporting an unreadable shard as an empty one.
-    const previous = await readShard(person);
+    const previous = await readShard(address);
     const shard: Shard = {
-      person,
+      address: address.toLowerCase(),
+      // A tester may rename themselves; an omitted name never erases the
+      // one already recorded.
+      person: cleanName(declaredName) || previous?.shard.person || "",
       updatedAt: new Date().toISOString(),
       entries: mergeDelta(previous?.shard.entries ?? {}, delta),
     };
     try {
-      await put(shardPath(person), JSON.stringify(shard), {
+      await put(shardPath(address), JSON.stringify(shard), {
         access: "private",
         contentType: "application/json",
         // A stable pathname per tester is the whole point of the sharding — a
@@ -284,11 +314,11 @@ export async function applyDelta(person: Person, delta: Record<string, EntryPatc
       // bounded re-read: if another client won, the next attempt has its ETag;
       // if this was a store failure, the final attempt still returns 503.
       if ((error instanceof BlobPreconditionFailedError || !previous) && attempt < MAX_WRITE_ATTEMPTS) continue;
-      throw new StoreError(`${person}'s entries could not be saved`, error);
+      throw new StoreError(`${fallbackName(address)}'s entries could not be saved`, error);
     }
     return shard;
   }
-  throw new StoreError(`${person}'s entries are being saved from elsewhere — try again`, "write contention");
+  throw new StoreError(`${fallbackName(address)}'s entries are being saved from elsewhere — try again`, "write contention");
 }
 
 /**
@@ -321,7 +351,7 @@ export async function POST(request: Request): Promise<Response> {
  */
 async function whoIsCalling(
   request: Request,
-): Promise<{ person: Person } | { error: string; status: number }> {
+): Promise<{ address: Address; allowlist: string[] } | { error: string; status: number }> {
   const secret = process.env.QA_SESSION_SECRET;
   if (!secret || secret.length < 32) {
     return { error: "QA_SESSION_SECRET is missing or too short (needs 32+ characters)", status: 503 };
@@ -341,14 +371,10 @@ async function whoIsCalling(
   );
   if (!session) return { error: "sign in with your wallet to record QA results", status: 401 };
 
-  const allowed = findAllowed(allowlist, session.address);
-  if (!allowed) return { error: "this address is no longer on the QA allowlist", status: 403 };
-  // The allowlist binds addresses to names in the fixed roster; a name outside
-  // it would mint a shard nothing else knows how to read.
-  if (!isPerson(allowed.person)) {
-    return { error: `allowlist maps to an unknown tester '${allowed.person}'`, status: 503 };
+  if (!isAllowed(allowlist, session.address)) {
+    return { error: "this address is no longer on the QA allowlist", status: 403 };
   }
-  return { person: allowed.person };
+  return { address: session.address, allowlist };
 }
 
 export async function handler(request: Request): Promise<Response> {
@@ -363,25 +389,49 @@ export async function handler(request: Request): Promise<Response> {
   if (request.method === "GET") {
     let reads: Array<{ shard: Shard; etag: string } | null>;
     try {
-      reads = await Promise.all(TEAM.map((person) => readShard(person)));
+      reads = await Promise.all(caller.allowlist.map((address) => readShard(address)));
     } catch (error) {
       // Returning a partial view would render as "that tester cleared their
       // entries". Fail the poll instead; the page keeps what it has and retries.
       return fail(error, "session state could not be read");
     }
+    // The roster is whoever the allowlist admits, labelled by the name they
+    // declared. Somebody who has never signed in has no shard and so no name
+    // yet — they still belong on the roster, under their short address.
+    const team: string[] = [];
+    let you = fallbackName(caller.address);
+    const nameFor = new Map<string, string>();
+    caller.allowlist.forEach((address, index) => {
+      const declared = reads[index]?.shard.person?.trim();
+      const label = declared || fallbackName(address);
+      nameFor.set(address, label);
+      team.push(label);
+      if (address === caller.address) you = label;
+    });
+
     // caseId -> person -> entry, the exact shape the page renders from.
     const entries: Record<string, Record<string, Entry>> = {};
     for (const read of reads) {
       if (!read) continue;
+      const label = nameFor.get(read.shard.address) ?? fallbackName(read.shard.address);
       for (const [caseId, entry] of Object.entries(read.shard.entries)) {
-        (entries[caseId] ??= {})[read.shard.person] = entry;
+        (entries[caseId] ??= {})[label] = entry;
       }
     }
-    return json({ team: TEAM, you: caller.person, entries, readAt: new Date().toISOString() });
+    return json({
+      team,
+      you,
+      // The page shows this once so a tester can confirm which wallet is
+      // recording before they trust the name beside it.
+      address: caller.address,
+      named: Boolean(reads[caller.allowlist.indexOf(caller.address)]?.shard.person?.trim()),
+      entries,
+      readAt: new Date().toISOString(),
+    });
   }
 
   if (request.method === "POST") {
-    let body: { entries?: unknown };
+    let body: { entries?: unknown; person?: unknown };
     try {
       const text = await request.text();
       if (text.length > MAX_BODY_BYTES) return json({ error: "payload too large" }, 413);
@@ -391,21 +441,26 @@ export async function handler(request: Request): Promise<Response> {
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
         return json({ error: "body must be a JSON object" }, 400);
       }
-      body = parsed as { entries?: unknown };
+      body = parsed as { entries?: unknown; person?: unknown };
     } catch {
       return json({ error: "invalid JSON" }, 400);
     }
 
-    // `body.person` is ignored if present. Identity is the signed session.
+    // `body.person` sets THIS caller's own display name — a label on their own
+    // shard. It cannot change which shard is written; that is the address.
     let shard: Shard;
     try {
-      shard = await applyDelta(caller.person, sanitizeDelta(body.entries));
+      shard = await applyDelta(caller.address, sanitizeDelta(body.entries), body.person as string | undefined);
     } catch (error) {
       // The page keeps the unsent delta in localStorage and retries.
-      return fail(error, `${caller.person}'s entries were not saved`);
+      return fail(error, `${fallbackName(caller.address)}'s entries were not saved`);
     }
 
-    return json({ ok: true, person: shard.person, count: Object.keys(shard.entries).length });
+    return json({
+      ok: true,
+      person: shard.person || fallbackName(shard.address),
+      count: Object.keys(shard.entries).length,
+    });
   }
 
   return json({ error: "method not allowed" }, 405);

@@ -16,6 +16,10 @@ vi.mock("@vercel/blob", () => {
 
 import { applyDelta, shardShapeError } from "../../packages/qa/api/state";
 
+/** Shards are keyed by owner address; the display name inside is only a label. */
+const ADDRESS = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e";
+const OTHER_ADDRESS = "0x22682c3d3848294ff9bcbf3f0ddf48a605446b56";
+
 interface StoredBlob {
   body: string;
   etag: string;
@@ -74,39 +78,41 @@ describe("shard shape validation", () => {
   const entry = { s: "pass", n: "", at: "2026-08-30T10:00:00.000Z" };
 
   it("accepts a shard this endpoint can vouch for", () => {
-    expect(shardShapeError("Afo", { person: "Afo", entries: { "PUB-001": entry } })).toBeNull();
-    expect(shardShapeError("Afo", { person: "Afo", entries: {} })).toBeNull();
+    expect(shardShapeError(ADDRESS, { address: ADDRESS, entries: { "PUB-001": entry } })).toBeNull();
+    expect(shardShapeError(ADDRESS, { address: ADDRESS, entries: {} })).toBeNull();
     // A note with no verdict yet is a legitimate in-progress entry.
     expect(
-      shardShapeError("Afo", { person: "Afo", entries: { "PUB-001": { ...entry, s: "" } } }),
+      shardShapeError(ADDRESS, { address: ADDRESS, entries: { "PUB-001": { ...entry, s: "" } } }),
     ).toBeNull();
   });
 
   it("rejects a malformed entry rather than serving it to the checklist", () => {
     // GET hands what it read straight to the page, which reads `e.s` off it —
     // one bad entry took the board down for everyone in a live session.
-    expect(shardShapeError("Afo", { person: "Afo", entries: { "PUB-001": null } })).toMatch(
+    expect(shardShapeError(ADDRESS, { address: ADDRESS, entries: { "PUB-001": null } })).toMatch(
       /PUB-001 is not an object/,
     );
-    expect(shardShapeError("Afo", { person: "Afo", entries: { "PUB-001": { n: "x", at: "t" } } })).toMatch(
+    expect(shardShapeError(ADDRESS, { address: ADDRESS, entries: { "PUB-001": { n: "x", at: "t" } } })).toMatch(
       /PUB-001 has no valid status/,
     );
     expect(
-      shardShapeError("Afo", { person: "Afo", entries: { "PUB-001": { ...entry, s: "maybe" } } }),
+      shardShapeError(ADDRESS, { address: ADDRESS, entries: { "PUB-001": { ...entry, s: "maybe" } } }),
     ).toMatch(/PUB-001 has no valid status/);
-    expect(shardShapeError("Afo", { person: "Afo", entries: { "PUB-001": { s: "pass", at: "t" } } })).toMatch(
+    expect(shardShapeError(ADDRESS, { address: ADDRESS, entries: { "PUB-001": { s: "pass", at: "t" } } })).toMatch(
       /PUB-001 has no note/,
     );
-    expect(shardShapeError("Afo", { person: "Afo", entries: { "PUB-001": { s: "pass", n: "" } } })).toMatch(
+    expect(shardShapeError(ADDRESS, { address: ADDRESS, entries: { "PUB-001": { s: "pass", n: "" } } })).toMatch(
       /PUB-001 has no timestamp/,
     );
   });
 
   it("rejects a shard that is not one, or is filed under the wrong owner", () => {
-    expect(shardShapeError("Afo", null)).toMatch(/not an object/);
-    expect(shardShapeError("Afo", [])).toMatch(/not an object/);
-    expect(shardShapeError("Afo", { person: "Gui", entries: {} })).toMatch(/owner as "Gui"/);
-    expect(shardShapeError("Afo", { person: "Afo" })).toMatch(/no entries object/);
-    expect(shardShapeError("Afo", { person: "Afo", entries: [] })).toMatch(/no entries object/);
+    expect(shardShapeError(ADDRESS, null)).toMatch(/not an object/);
+    expect(shardShapeError(ADDRESS, [])).toMatch(/not an object/);
+    expect(shardShapeError(ADDRESS, { address: OTHER_ADDRESS, entries: {} })).toMatch(/owner as/);
+    // A display name is a label; it can never make a shard belong to someone else.
+    expect(shardShapeError(ADDRESS, { address: ADDRESS, person: "Gui", entries: {} })).toBeNull();
+    expect(shardShapeError(ADDRESS, { address: ADDRESS })).toMatch(/no entries object/);
+    expect(shardShapeError(ADDRESS, { address: ADDRESS, entries: [] })).toMatch(/no entries object/);
   });
 });

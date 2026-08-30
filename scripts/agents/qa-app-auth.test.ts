@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
  */
 
 import {
-  findAllowed,
+  isAllowed,
   issueNonce,
   issueSession,
   nonceError,
@@ -30,7 +30,7 @@ const OUTSIDER = privateKeyToAccount("0x8b3a350cf5c34c9194ca85829a2df0ec3153be03
 const NOW = 1_788_000_000_000;
 const DOMAIN = "qa.greengoods.app";
 
-const ALLOWLIST = parseAllowlist(JSON.stringify({ [TESTER.address]: "Afo" }));
+const ALLOWLIST = parseAllowlist(JSON.stringify([TESTER.address]));
 
 async function signedRequest(
   account: typeof TESTER,
@@ -51,16 +51,19 @@ const verify = (input: { message: string; signature: string }, now = NOW) =>
   verifySignIn({ ...input, secret: SECRET, allowlist: ALLOWLIST, expectedDomain: DOMAIN, now });
 
 describe("QA allowlist", () => {
-  it("binds addresses to testers, case-insensitively", () => {
-    expect(findAllowed(ALLOWLIST, TESTER.address.toUpperCase())?.person).toBe("Afo");
-    expect(findAllowed(ALLOWLIST, OUTSIDER.address)).toBeNull();
+  it("admits an address case-insensitively, and nobody else", () => {
+    expect(isAllowed(ALLOWLIST, TESTER.address.toUpperCase())).toBe(true);
+    expect(isAllowed(ALLOWLIST, OUTSIDER.address)).toBe(false);
+  });
+
+  it("holds addresses only — a name would be a second thing to keep in sync", () => {
+    expect(() => parseAllowlist(JSON.stringify({ [TESTER.address]: "Afo" }))).toThrow(/array of addresses/);
   });
 
   it("refuses to load a malformed allowlist rather than admitting nobody silently", () => {
-    expect(() => parseAllowlist("{not json")).toThrow(/valid JSON/);
-    expect(() => parseAllowlist('["0xabc"]')).toThrow(/object of address/);
-    expect(() => parseAllowlist('{"not-an-address":"Afo"}')).toThrow(/not an address/);
-    expect(() => parseAllowlist(`{"${TESTER.address}":""}`)).toThrow(/not a name/);
+    expect(() => parseAllowlist("[not json")).toThrow(/valid JSON/);
+    expect(() => parseAllowlist('["0xabc"]')).toThrow(/not an address/);
+    expect(() => parseAllowlist("[42]")).toThrow(/not an address/);
     expect(parseAllowlist(undefined)).toEqual([]);
   });
 });
@@ -114,7 +117,7 @@ describe("SIWE message", () => {
 describe("QA sign-in verification", () => {
   it("admits an allowlisted tester who signed the message", async () => {
     const result = await verify(await signedRequest(TESTER));
-    expect(result).toEqual({ person: "Afo", address: TESTER.address.toLowerCase() });
+    expect(result).toEqual({ address: TESTER.address.toLowerCase() });
   });
 
   it("refuses an address that is not on the allowlist", async () => {
@@ -135,7 +138,7 @@ describe("QA sign-in verification", () => {
 
   it("refuses a replay after the nonce window closes", async () => {
     const request = await signedRequest(TESTER);
-    expect(await verify(request)).toHaveProperty("person");
+    expect(await verify(request)).toHaveProperty("address");
     const late = await verify(request, NOW + 6 * 60 * 1000);
     expect(late).toEqual({ error: "nonce expired — reload and sign in again" });
   });
@@ -144,7 +147,7 @@ describe("QA sign-in verification", () => {
     const request = await signedRequest(TESTER);
     const result = await verify({ ...request, signature: `${request.signature.slice(0, -2)}00` });
     expect(result).toHaveProperty("error");
-    expect(result).not.toHaveProperty("person");
+    expect(result).not.toHaveProperty("address");
   });
 });
 

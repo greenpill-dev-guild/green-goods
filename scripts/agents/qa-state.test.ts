@@ -156,7 +156,7 @@ describe("summarize", () => {
     expect(summary.pass + summary.fail + summary.blocked + summary.na + summary.noVerdict).toBe(
       summary.recorded,
     );
-    expect(summary.perPerson).toMatchObject({ Afo: 2, Gui: 1, Nansel: 0 });
+    expect(summary.perPerson).toMatchObject({ Afo: 2, Gui: 1 });
   });
 });
 

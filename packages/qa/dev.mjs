@@ -205,7 +205,17 @@ export function handleState(request, response) {
   if (request.method === "GET") {
     try {
       const entries = mergeShards(TEAM.map(readShard));
-      return sendJson(response, 200, { team: TEAM, you: devIdentity(request), entries, readAt: new Date().toISOString() });
+      const you = devIdentity(request);
+      // Same response shape as the deployed function, so the page cannot take a
+      // different path locally than it will in front of a real tester.
+      return sendJson(response, 200, {
+        team: TEAM,
+        you,
+        address: null,
+        named: true,
+        entries,
+        readAt: new Date().toISOString(),
+      });
     } catch (error) {
       return sendFailure(response, error, "session state could not be read");
     }
@@ -276,6 +286,7 @@ function main() {
     if (request.url.split("?")[0] === "/api/auth") {
       const person = devIdentity(request);
       return sendJson(response, 200, {
+        named: true,
         domain: "127.0.0.1",
         uri: `http://127.0.0.1:${port}`,
         nonce: null,

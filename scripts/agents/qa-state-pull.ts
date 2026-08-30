@@ -21,7 +21,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadCatalog } from "./qa-workbook-build";
-import { mergeShards, ROSTER, summarize, toResultsCsv, type Shard } from "./qa-state";
+import { mergeShards, summarize, toResultsCsv, type Shard } from "./qa-state";
 // @ts-expect-error -- plain JS helper shared with the env tooling
 import { parseEnvFile } from "../lib/env-schema.mjs";
 
@@ -114,26 +114,30 @@ export function resolveBlobToken(env: NodeJS.ProcessEnv = process.env): string {
   );
 }
 
-export function parseShard(person: string, text: string): Shard {
+export function parseShard(pathname: string, text: string): Shard {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
   } catch (error) {
-    throw new Error(`${person}'s shard is not valid JSON: ${error instanceof Error ? error.message : error}`);
+    throw new Error(`${pathname} shard is not valid JSON: ${error instanceof Error ? error.message : error}`);
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error(`${person}'s shard is not an object`);
+    throw new Error(`${pathname} shard is not an object`);
   }
   const shard = parsed as Partial<Shard>;
-  if (shard.person !== person) {
-    throw new Error(`${person}'s shard reports its owner as ${JSON.stringify(shard.person ?? null)}`);
+  // Ownership is the address in the path, not the display name inside — the
+  // name is a label the tester may change, and changing it must not make their
+  // own shard unreadable.
+  const owner = pathname.split("/").pop()?.replace(/\.json$/, "").toLowerCase();
+  if (owner && shard.address && shard.address.toLowerCase() !== owner) {
+    throw new Error(`${pathname} reports its owner as ${JSON.stringify(shard.address)}`);
   }
   if (!shard.entries || typeof shard.entries !== "object" || Array.isArray(shard.entries)) {
-    throw new Error(`${person}'s shard has no entries object`);
+    throw new Error(`${pathname} shard has no entries object`);
   }
   for (const [caseId, entry] of Object.entries(shard.entries)) {
     if (!entry || typeof entry !== "object" || typeof entry.s !== "string" || typeof entry.n !== "string") {
-      throw new Error(`${person}'s entry for ${caseId} is malformed`);
+      throw new Error(`${pathname} entry for ${caseId} is malformed`);
     }
   }
   return shard as Shard;
@@ -143,11 +147,11 @@ export function parseShard(person: string, text: string): Shard {
  * Read one tester's shard. A missing shard is normal — it means that person has
  * not recorded anything — and must not fail the pull for everyone else.
  */
-export async function readShard(person: string, token: string): Promise<Shard | null> {
+export async function readShard(pathname: string, token: string): Promise<Shard | null> {
   const { get } = await import("@vercel/blob");
   let text: string;
   try {
-    const result = await get(`qa/entries/${person}.json`, {
+    const result = await get(pathname, {
       access: "private",
       // Match the app: never read a cached copy of a live session.
       useCache: false,
@@ -158,16 +162,26 @@ export async function readShard(person: string, token: string): Promise<Shard | 
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (/not.?found|404/i.test(message)) return null;
-    throw new Error(`could not read ${person}'s shard: ${message}`);
+    throw new Error(`could not read ${pathname}: ${message}`);
   }
   // Deliberately outside the catch: a shape failure is not a transport failure,
   // and must never be mistaken for the absent-shard case handled above.
-  return parseShard(person, text);
+  return parseShard(pathname, text);
 }
 
-/** Read every roster shard from the private store through one shared transport path. */
+/**
+ * Read every shard in the store.
+ *
+ * Enumerated rather than derived from a roster: shards are keyed by owner
+ * address and the allowlist lives in the deployment's environment, not here.
+ * Listing means these commands need no copy of who the testers are, and pick up
+ * somebody added mid-season without a code change.
+ */
 export async function readShards(token: string): Promise<Array<Shard | null>> {
-  return Promise.all(ROSTER.map((person) => readShard(person, token)));
+  const { list } = await import("@vercel/blob");
+  const { blobs } = await list({ prefix: "qa/entries/", token });
+  const shards = blobs.filter((blob) => blob.pathname.endsWith(".json"));
+  return Promise.all(shards.map((blob) => readShard(blob.pathname, token)));
 }
 
 async function main(): Promise<void> {
