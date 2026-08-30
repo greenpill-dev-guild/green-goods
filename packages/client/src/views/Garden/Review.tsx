@@ -1,8 +1,8 @@
-import type { Action, Garden, WorkInput } from "@green-goods/shared/types/domain";
 import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
-import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
-import { getWorkMediaId, isVideoFile } from "@green-goods/shared/modules/work/media-processing";
 import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
+import { getWorkMediaId, isVideoFile } from "@green-goods/shared/modules/work/media-processing";
+import type { Action, Garden, WorkInput } from "@green-goods/shared/types/domain";
+import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiCloseLine,
@@ -228,7 +228,7 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
                       {intl.formatMessage(
                         {
                           id: "app.garden.commitment.fulfillsValue",
-                          defaultMessage: "{title} · requirement {requirement}",
+                          defaultMessage: "{commitment} · requirement {requirement}",
                         },
                         {
                           commitment: commitmentSelection.title,

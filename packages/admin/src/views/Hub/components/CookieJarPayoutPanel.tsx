@@ -226,7 +226,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                     >
                       {formatMessage({
                         id: "app.cookieJar.withdraw",
-                        defaultMessage: "Withdraw",
+                        defaultMessage: "Claim",
                       })}
                     </AdminButton>
                   </div>

@@ -149,7 +149,7 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
                 { count: proposals.length }
               )}
             </span>
-            <AdminButton asChild variant="text" size="sm" className="h-auto rounded p-0">
+            <AdminButton asChild variant="text" size="sm">
               <Link to={adminRoutes.communityCoordinationSignalPool("hypercert", { gardenId })}>
                 {formatMessage({ id: "cockpit.community.coordination.openPool" })}
                 <RiArrowRightSLine className="h-4 w-4" />

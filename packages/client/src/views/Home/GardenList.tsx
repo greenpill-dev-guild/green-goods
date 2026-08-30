@@ -1,5 +1,5 @@
-import type { Garden } from "@green-goods/shared/types/domain";
 import type { GardenFilterScope } from "@green-goods/shared/hooks/garden/useFilteredGardens";
+import type { Garden } from "@green-goods/shared/types/domain";
 import { RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { GardenCard, GardenCardSkeleton } from "@/components/Cards";
@@ -46,7 +46,7 @@ export function GardenList({
         <p className="text-text-sub-600">
           {intl.formatMessage({
             id: "app.home.loadingTimeout",
-            defaultMessage: "Unable to load gardens. The server may be slow or unavailable.",
+            defaultMessage: "Loading is taking longer than expected",
           })}
         </p>
         <button
@@ -100,7 +100,7 @@ export function GardenList({
       <p className="grid place-items-center text-center text-sm italic text-text-sub-600">
         {intl.formatMessage({
           id: "app.home.filters.scope.mineDisabled",
-          defaultMessage: "Sign in or connect a wallet to filter by your gardens.",
+          defaultMessage: "Sign in to filter by your gardens.",
         })}
       </p>
     );

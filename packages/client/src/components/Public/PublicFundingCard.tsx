@@ -1,13 +1,16 @@
+import { TransactionSuccessAffordance } from "@green-goods/shared/components/feedback/TransactionSuccessAffordance";
+import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useEthUsdPrice } from "@green-goods/shared/hooks/blockchain/useEthUsdPrice";
+import { useCookieJarDeposit } from "@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit";
+import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
+import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
+import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
+import { useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
+import { useAppKit } from "@green-goods/shared/providers/AppKitProvider";
+import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts/core";
 import type { Address } from "@green-goods/shared/types/domain";
-import {
-  classifyTxError,
-  isMeaningfulTxErrorMessage,
-} from "@green-goods/shared/utils/errors/tx-error-classifier";
-import {
-  formatTokenAmount,
-  getVaultAssetSymbol,
-  normalizeDecimalInput,
-} from "@green-goods/shared/utils/blockchain/vaults";
+import { truncateAddress } from "@green-goods/shared/utils/blockchain/address";
 import {
   formatUsdCents,
   formatUsdPrice,
@@ -15,23 +18,21 @@ import {
   usdCentsToWei,
   weiToUsdCents,
 } from "@green-goods/shared/utils/blockchain/price-feeds";
-import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
-import { TransactionSuccessAffordance } from "@green-goods/shared/components/feedback/TransactionSuccessAffordance";
-import { truncateAddress } from "@green-goods/shared/utils/blockchain/address";
-import { useAppKit } from "@green-goods/shared/providers/AppKitProvider";
-import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
-import { useCookieJarDeposit } from "@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit";
-import { useEthUsdPrice } from "@green-goods/shared/hooks/blockchain/useEthUsdPrice";
-import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
-import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
-import { useUser } from "@green-goods/shared/hooks/auth/useUser";
-import { useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
-import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts/core";
+import {
+  formatTokenAmount,
+  getVaultAssetSymbol,
+  normalizeDecimalInput,
+} from "@green-goods/shared/utils/blockchain/vaults";
+import {
+  classifyTxError,
+  isMeaningfulTxErrorMessage,
+} from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
 import { EditorialGhostButton, EditorialKicker, EditorialPrimaryButton } from "./atoms";
+
 const DAI_SYMBOL = "DAI";
 const WETH_SYMBOL = "WETH";
 type Denomination = "usd" | "weth";
@@ -628,7 +629,7 @@ function IdleBody(props: IdleBodyProps) {
     if (conversionUnavailable) {
       return formatMessage({
         id: "public.fund.card.conversionUnavailable",
-        defaultMessage: "ETH price unavailable",
+        defaultMessage: "Waiting on the ETH price…",
       });
     }
     const amountLabel = isWethDenomination
@@ -941,7 +942,7 @@ export function AmountInput({
             {formatMessage({
               id: "public.fund.card.wethUnavailable",
               defaultMessage:
-                "ETH price feed unavailable on this network. Pick DAI or check back later.",
+                "The live ETH price isn't reaching us on this network. Pick DAI, or check back soon.",
             })}
           </p>
         ) : null}

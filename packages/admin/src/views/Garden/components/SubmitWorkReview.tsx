@@ -112,7 +112,7 @@ export function SubmitWorkReview({
         <ReviewCard
           title={formatMessage({
             id: "app.admin.work.submit.section.details",
-            defaultMessage: "Details",
+            defaultMessage: "Action details",
           })}
           onEdit={onEditStep ? () => onEditStep(3) : undefined}
           editText={edit}
@@ -140,7 +140,7 @@ export function SubmitWorkReview({
           <ReviewRow
             label={formatMessage({
               id: "app.admin.work.submit.timeSpent",
-              defaultMessage: "Time spent",
+              defaultMessage: "Time Spent (hours)",
             })}
             value={timeValue}
           />

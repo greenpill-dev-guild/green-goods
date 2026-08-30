@@ -1,16 +1,16 @@
 import {
+  type PublicGardenSummary,
+  usePublicGardens,
+} from "@green-goods/shared/hooks/public/usePublicGardens";
+import { usePublicImpactEvidence } from "@green-goods/shared/hooks/public/usePublicImpactEvidence";
+import { usePublicStats } from "@green-goods/shared/hooks/public/usePublicStats";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
+import { selectPublicSurfaceState } from "@green-goods/shared/public";
+import {
   PUBLIC_IMPACT_RECORD_FETCH_CAP,
   type PublicImpactEvidenceKind,
   type PublicImpactEvidenceRecord,
 } from "@green-goods/shared/public-contracts/public-impact";
-import {
-  type PublicGardenSummary,
-  usePublicGardens,
-} from "@green-goods/shared/hooks/public/usePublicGardens";
-import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
-import { usePublicImpactEvidence } from "@green-goods/shared/hooks/public/usePublicImpactEvidence";
-import { usePublicStats } from "@green-goods/shared/hooks/public/usePublicStats";
-import { selectPublicSurfaceState } from "@green-goods/shared/public";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import {
@@ -32,6 +32,7 @@ import { PublicFooter } from "@/components/Public/PublicFooter";
 import { type PublicProofMarker, PublicProofMarkers } from "@/components/Public/PublicProofMarkers";
 import { PublicSurfaceState } from "@/components/Public/PublicSurfaceState";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
+
 type KindFilter = "all" | PublicImpactEvidenceKind;
 interface KindEntry {
   id: KindFilter;
@@ -375,7 +376,7 @@ export default function ImpactPage() {
               {formatMessage({
                 id: "public.impact.ledger.intro",
                 defaultMessage:
-                  "Filter by record kind or domain. Each card opens its source: the full assessment, work entry, or certificate behind the line.",
+                  "Filter by record kind or domain. Each row links to the source: the full assessment, work entry, or certificate behind the line.",
               })}
             </p>
           </header>

@@ -1,16 +1,16 @@
-import type { Address } from "@green-goods/shared/types/domain";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import { ENSProgressTimeline } from "@green-goods/shared/components/Progress/ENSProgressTimeline";
-import { validateSlug } from "@green-goods/shared/utils/blockchain/ens";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import { useENSClaim } from "@green-goods/shared/hooks/ens/useENSClaim";
+import { useENSRegistrationStatus } from "@green-goods/shared/hooks/ens/useENSRegistrationStatus";
 import { useENSReleaseName } from "@green-goods/shared/hooks/ens/useENSReleaseName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
-import { useENSRegistrationStatus } from "@green-goods/shared/hooks/ens/useENSRegistrationStatus";
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import { useProtocolMemberStatus } from "@green-goods/shared/hooks/ens/useProtocolMemberStatus";
 import { useSlugAvailability } from "@green-goods/shared/hooks/ens/useSlugAvailability";
 import { useSlugForm } from "@green-goods/shared/hooks/ens/useSlugForm";
+import type { Address } from "@green-goods/shared/types/domain";
+import { validateSlug } from "@green-goods/shared/utils/blockchain/ens";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiAlertLine,
   RiCheckLine,
@@ -200,7 +200,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
       setRequestError(
         intl.formatMessage({
           id: "app.profile.ensChangeContactError",
-          defaultMessage: "Add a Telegram handle, email, or another contact path.",
+          defaultMessage: "Add a Telegram handle, email, or another way to reach you.",
         })
       );
       return;

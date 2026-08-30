@@ -1,7 +1,7 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { ConfidenceSelector } from "@green-goods/shared/components/Form/ConfidenceSelector";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useWorkDetailController } from "@green-goods/shared/hooks/client-ui/work/useWorkDetailController";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiCheckLine,
   RiCloseLine,
@@ -84,7 +84,7 @@ export const GardenWork: React.FC = () => {
     actionTitle ??
     intl.formatMessage({
       id: "app.home.work.unknownAction",
-      defaultMessage: "Unknown Action",
+      defaultMessage: "Unknown action",
     });
 
   // Retry footer for offline work
@@ -100,7 +100,7 @@ export const GardenWork: React.FC = () => {
             {intl.formatMessage({
               id: "app.home.work.pendingUpload",
               defaultMessage:
-                "Saved on your device — we'll send it to the garden record when you're online.",
+                "Saved on your device. We'll send it to the garden record when you're online.",
             })}
           </p>
           <Button
@@ -179,11 +179,11 @@ export const GardenWork: React.FC = () => {
                   {feedbackMode === "approve"
                     ? intl.formatMessage({
                         id: "app.home.workApproval.addFeedbackOptional",
-                        defaultMessage: "Add Feedback (Optional)",
+                        defaultMessage: "Add feedback (optional)",
                       })
                     : intl.formatMessage({
                         id: "app.home.workApproval.addFeedbackRequired",
-                        defaultMessage: "Add Feedback (Required)",
+                        defaultMessage: "Please add feedback for the gardener.",
                       })}
                 </h2>
                 <button
@@ -202,7 +202,7 @@ export const GardenWork: React.FC = () => {
               <p id="feedback-drawer-description" className="sr-only">
                 {intl.formatMessage({
                   id: "app.home.workApproval.feedbackDescription",
-                  defaultMessage: "Enter your feedback for this work submission.",
+                  defaultMessage: "Provide feedback on this work submission",
                 })}
               </p>
 
@@ -231,7 +231,8 @@ export const GardenWork: React.FC = () => {
                 onChange={(e) => setInlineFeedback(e.target.value)}
                 placeholder={intl.formatMessage({
                   id: "app.home.workApproval.feedbackPlaceholder",
-                  defaultMessage: "Add your feedback here...",
+                  defaultMessage:
+                    "Add feedback for the gardener (optional for approval, required for rejection)...",
                 })}
                 className="w-full min-h-[120px] max-h-[40vh] p-3 rounded-xl border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 placeholder:text-text-soft-400 focus:outline-none focus:ring-2 focus:ring-primary resize-none overflow-y-auto [touch-action:pan-y] [overscroll-behavior-y:auto]"
               />
@@ -254,7 +255,7 @@ export const GardenWork: React.FC = () => {
                 <p className="text-xs text-warning-dark mb-2 text-center">
                   {intl.formatMessage({
                     id: "app.home.workApproval.actionExpired",
-                    defaultMessage: "This action has ended. Approval may fail on-chain.",
+                    defaultMessage: "This action has expired",
                   })}
                 </p>
               )}
@@ -375,11 +376,11 @@ export const GardenWork: React.FC = () => {
               {effectiveStatus === "approved"
                 ? intl.formatMessage({
                     id: "app.home.workApproval.approved",
-                    defaultMessage: "Work Approved",
+                    defaultMessage: "Approved",
                   })
                 : intl.formatMessage({
                     id: "app.home.workApproval.rejected",
-                    defaultMessage: "Work Rejected",
+                    defaultMessage: "Rejected",
                   })}
             </span>
           </div>
@@ -428,7 +429,7 @@ export const GardenWork: React.FC = () => {
                 {intl.formatMessage({
                   id: "app.home.work.metadataFallbackNotice",
                   defaultMessage:
-                    "We couldn't load all work details from storage. Some fields may be unavailable.",
+                    "We couldn't load all of this work's details. Some fields may be unavailable.",
                 })}
               </p>
               {metadataErrorDetail && (

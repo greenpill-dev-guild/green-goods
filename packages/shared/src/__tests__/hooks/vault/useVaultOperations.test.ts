@@ -535,7 +535,7 @@ describe("hooks/vault/useVaultOperations", () => {
             receiverAddress: TEST_PRIMARY_ADDRESS as `0x${string}`,
           },
         })
-      ).rejects.toThrow(/insufficient WETH/i);
+      ).rejects.toThrow(/needs more WETH/i);
     });
 
     // Stops at maxDeposit + balanceOf; never previews, approves, or deposits.
@@ -586,7 +586,7 @@ describe("hooks/vault/useVaultOperations", () => {
             receiverAddress: TEST_PRIMARY_ADDRESS as `0x${string}`,
           },
         })
-      ).rejects.toThrow(/insufficient WETH/i);
+      ).rejects.toThrow(/needs more WETH/i);
     });
 
     expect(lifecycleSteps).toEqual(["error"]);

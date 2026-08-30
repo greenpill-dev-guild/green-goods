@@ -346,7 +346,7 @@ export const GardenSettingsEditor = forwardRef<
         }),
         message: formatMessage({
           id: "app.garden.settings.saveFailedMessage",
-          defaultMessage: "Your edits are still here — review the error and save again.",
+          defaultMessage: "Your edits are still here. Review the error and save again.",
         }),
         context: "garden settings save",
         error,

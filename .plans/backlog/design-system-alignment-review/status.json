@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-04-25T05:11:42.581Z",
-    "updated_at": "2026-08-30T02:31:51.070Z"
+    "updated_at": "2026-08-30T07:08:32.346Z"
   },
   "links": {
     "brief": "brief.md",
@@ -37,14 +37,14 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "cd packages/admin && bun run test src/__tests__/components/AdminDensityScale.guard.test.tsx (guard written before the metric change)",
-          "evidence": "Critique round 3 / DL-011: 4 failed | 0 passed — compact tiers not yet implemented (buttons still 32/40/48, fields 56)"
+          "command": "bun run --cwd packages/admin test -- AdminDensityScale CreateAssessmentDialog",
+          "evidence": "Pre-fix runs failed on legacy anatomy: DetailsConfigSection 3/3 failed on old FormField labels; CreateAssessmentDialog calendar test failed when the label wrapper anatomy changed (Unable to find role button name /Reporting period start/) — fixed via DatePicker label API"
         },
         "green": {
-          "command": "admin+client+shared full suites; storybook vitest CI; check:design-tokens",
-          "evidence": "Guard 4/4 at f9c6bedf3; admin 805/805, client 969/969, shared 4447/4447 after the DL-012 sweep e143966ca; storybook play 191/193 with both real failures fixed (Actions Registry = known load flake, passes isolated); gates green at 2.9.0; pushed f051e4ae3"
+          "command": "bun run --cwd packages/admin test; bun run --cwd packages/client test; bun run --cwd packages/shared test",
+          "evidence": "admin 817/817, client 974/974, shared 4450 passed/18 skipped; check:design-tokens 2.10.0 green with wrapper-adoption baseline burned 156-to-13"
         },
-        "note": ""
+        "note": "Adoption remediation waves 1-5 + casing batch + Card retirement + typography pass"
       }
     },
     "state_api": {
@@ -229,6 +229,14 @@
       "status": "tdd_recorded",
       "branch": "claude/ui/design-system-alignment-review",
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-08-30T07:08:32.346Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Adoption remediation waves 1-5 + casing batch + Card retirement + typography pass"
     }
   ],
   "taxonomy": {

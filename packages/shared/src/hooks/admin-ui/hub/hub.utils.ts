@@ -1,6 +1,3 @@
-import type { MetaStripItem } from "../../../components/Canvas/MetaStrip";
-import { type AdminHubRouteContext, adminRoutes } from "../../../utils/navigation/admin-routes";
-import type { useGardenDerivedState } from "../../garden/useGardenDerivedState";
 import {
   RiAddLine,
   RiCheckLine,
@@ -8,7 +5,10 @@ import {
   RiMedalLine,
   RiShakeHandsLine,
 } from "@remixicon/react";
+import type { MetaStripItem } from "../../../components/Canvas/MetaStrip";
 import type { ViewAction } from "../../../components/Canvas/viewActions.types";
+import { type AdminHubRouteContext, adminRoutes } from "../../../utils/navigation/admin-routes";
+import type { useGardenDerivedState } from "../../garden/useGardenDerivedState";
 import { resolveAdminWorkspaceSectionRoute } from "../navigation/workspaceNavigation";
 
 // ============================================================================
@@ -170,11 +170,11 @@ const STAGE_DESCRIPTIONS: Record<HubPipelineStage, { id: string; defaultMessage:
   },
   assess: {
     id: "cockpit.hub.assess.placeholder.description",
-    defaultMessage: "Approved work appears here for assessment packaging and handoff.",
+    defaultMessage: "Approved work will appear here for bundling into assessments.",
   },
   certify: {
     id: "cockpit.hub.certify.placeholder.description",
-    defaultMessage: "Certification bundles stay inside Hub until they are ready for minting.",
+    defaultMessage: "Completed assessments will appear here for minting as hypercerts.",
   },
   confirm: {
     id: "cockpit.hub.confirm.description",

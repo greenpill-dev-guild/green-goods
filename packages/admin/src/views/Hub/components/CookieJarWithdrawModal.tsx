@@ -198,7 +198,7 @@ export function CookieJarWithdrawModal({
           onChange={(e) => setWithdrawPurpose(e.target.value)}
           placeholder={formatMessage({
             id: "app.cookieJar.purposePlaceholder",
-            defaultMessage: "Describe what these funds will be used for...",
+            defaultMessage: "What will you use this for?",
           })}
           rows={2}
         />

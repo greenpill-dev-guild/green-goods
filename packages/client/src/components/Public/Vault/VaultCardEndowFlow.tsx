@@ -12,17 +12,18 @@
  * latency made that impractical; Arbitrum is expected to clear both bars, so this
  * becomes viable when garden endowments move to it.
  */
+
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
+import { rememberOctantVaultCardWalletPosition } from "@green-goods/shared/modules/octant-vault-card-wallet-cache";
+import { getOctantVaultAssetDisplayPolicy } from "@green-goods/shared/modules/vault-crowdfunding/copy";
+import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
+import { prepareOctantVaultCardEndowFallbackPlan } from "@green-goods/shared/modules/vault-crowdfunding/route-manage";
 import {
   buildPublicFundingAvailabilityKey,
   type SubmitFundingIntentProofResponse,
 } from "@green-goods/shared/public-contracts/core";
 import { PUBLIC_AGENT_ROUTES } from "@green-goods/shared/public-contracts/routes";
-import { prepareOctantVaultCardEndowFallbackPlan } from "@green-goods/shared/modules/vault-crowdfunding/route-manage";
-import { getOctantVaultAssetDisplayPolicy } from "@green-goods/shared/modules/vault-crowdfunding/copy";
-import { rememberOctantVaultCardWalletPosition } from "@green-goods/shared/modules/octant-vault-card-wallet-cache";
-import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import type { Address } from "@green-goods/shared/types/domain";
-import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
 import { type FormEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import {
@@ -30,8 +31,8 @@ import {
   getContract,
   prepareContractCall,
   readContract,
-  waitForReceipt,
   type ThirdwebClient,
+  waitForReceipt,
 } from "thirdweb";
 import { defineChain, ethereum } from "thirdweb/chains";
 import {
@@ -49,15 +50,15 @@ import {
   CHECKOUT_GHOST_BUTTON,
   CHECKOUT_INPUT,
   CHECKOUT_PRIMARY_BUTTON,
-  CheckoutStageHeader,
   CheckoutScreen,
+  CheckoutStageHeader,
   CheckoutSummary,
+  type CheckoutSummaryItem,
   CheckoutTransactionDetails,
   getAddressExplorerUrl,
   getEthereumNetworkLabel,
   getTxExplorerUrl,
   getVaultCheckoutTransactionLabel,
-  type CheckoutSummaryItem,
 } from "./VaultCheckoutShell";
 
 const VAULT_CARD_SETTLEMENT_SLOW_WARNING_MS = 90_000;
@@ -168,7 +169,7 @@ export default function VaultCardEndowFlow({
           {formatMessage({
             id: "public.vaults.cardEndow.missingClientId",
             defaultMessage:
-              "Card checkout is not available on this domain yet. Please choose wallet or try again later.",
+              "Card checkout is not available here yet. Choose wallet or try again later.",
           })}
         </p>
       </CheckoutScreen>
@@ -1247,7 +1248,7 @@ function CardEndowProviderContent({
                 {formatMessage(
                   {
                     id: "public.vaults.cardEndow.emailCodeSent",
-                    defaultMessage: "Code sent. Check {email} and enter the 6-digit code below.",
+                    defaultMessage: "Code sent. Check {email} and enter the 6 digit code below.",
                   },
                   { email: otpEmail }
                 )}
@@ -1266,7 +1267,7 @@ function CardEndowProviderContent({
               <p id={otpHelpId} className="text-sm leading-[1.5] text-text-sub-600">
                 {formatMessage({
                   id: "public.vaults.cardEndow.otpHelp",
-                  defaultMessage: "Enter the 6-digit code from your email.",
+                  defaultMessage: "Enter the 6 digit code from your email.",
                 })}
               </p>
               <input
@@ -1449,7 +1450,7 @@ function CardEndowProviderContent({
               <p className="rounded-none bg-bg-weak-50 p-4 text-sm leading-[1.55] text-text-sub-600">
                 {formatMessage({
                   id: "public.vaults.cardEndow.proofSubmitting",
-                  defaultMessage: "Recording receipt...",
+                  defaultMessage: "Recording your receipt...",
                 })}
               </p>
             ) : null}

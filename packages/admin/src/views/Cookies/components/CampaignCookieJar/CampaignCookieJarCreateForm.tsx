@@ -89,7 +89,7 @@ export function CampaignCookieJarCreateForm(props: CampaignCookieJarCreateFormPr
               {formatMessage({
                 id: "cockpit.community.cookies.deployerOnly",
                 defaultMessage:
-                  "This surface is intended for deployer and ops wallets. Connect a deployer wallet to create and manage campaign cookie jars.",
+                  "This surface is intended for deployer and ops wallets. Connect a deployer wallet to create jars, or the jar owner to sync an existing jar.",
               })}
             </div>
           ) : null}

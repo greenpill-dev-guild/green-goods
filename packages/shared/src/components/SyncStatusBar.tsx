@@ -43,7 +43,7 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ className }) => {
     ? intl.formatMessage(
         {
           id: "app.syncBar.pendingOffline",
-          defaultMessage: "Offline: {count} items waiting to sync",
+          defaultMessage: "Offline: {count} items waiting to send when you're back online",
         },
         { count: pendingCount }
       )
@@ -51,14 +51,14 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ className }) => {
       ? intl.formatMessage(
           {
             id: "app.syncBar.syncing",
-            defaultMessage: "Syncing {count} items...",
+            defaultMessage: "Sending {count} items...",
           },
           { count: pendingCount }
         )
       : intl.formatMessage(
           {
             id: "app.syncBar.pendingOnline",
-            defaultMessage: "{count} items waiting to sync",
+            defaultMessage: "{count} items waiting to send",
           },
           { count: pendingCount }
         );
@@ -94,12 +94,12 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ className }) => {
             {!isOnline
               ? intl.formatMessage({
                   id: "app.syncBar.reconnect",
-                  defaultMessage: "Reconnect to sync",
+                  defaultMessage: "Reconnect to send",
                 })
               : intl.formatMessage(
                   {
                     id: "app.syncBar.syncAll",
-                    defaultMessage: "Sync All ({count})",
+                    defaultMessage: "Send all ({count})",
                   },
                   { count: pendingCount }
                 )}

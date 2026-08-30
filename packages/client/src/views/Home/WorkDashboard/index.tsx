@@ -1,34 +1,34 @@
-import type { Address, Work } from "@green-goods/shared/types/domain";
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import {
-  collectApprovalRecipientsForWorks,
-  collectApprovedWorkUIDs,
-  filterPendingNeedsReview,
-} from "@green-goods/shared/utils/work/pending-review";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import {
   DEFAULT_RETRY_COUNT,
   STALE_TIME_MEDIUM,
 } from "@green-goods/shared/config/query-keys/constants";
-import { fetchApprovalsByRecipients } from "@green-goods/shared/hooks/work/useAggregatedApprovals";
-import { filterByTimeRange, type TimeFilter } from "@green-goods/shared/utils/time";
-import { hapticLight } from "@green-goods/shared/utils/app/haptics";
-import { logger } from "@green-goods/shared/modules/app/logger";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
-import { isUserAddress as sharedIsUserAddress } from "@green-goods/shared/utils/blockchain/address";
-import { toastService } from "@green-goods/shared/components/Toast/toast.service";
-import { useDrafts } from "@green-goods/shared/hooks/work/useDrafts";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useFocusTrap } from "@green-goods/shared/hooks/utils/useFocusTrap";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
+import { fetchApprovalsByRecipients } from "@green-goods/shared/hooks/work/useAggregatedApprovals";
+import { useDrafts } from "@green-goods/shared/hooks/work/useDrafts";
 import { useMyWorks } from "@green-goods/shared/hooks/work/useMyWorks";
 import { useReviewerGardenIds } from "@green-goods/shared/hooks/work/useReviewerGardenIds";
 import { useReviewerWorks } from "@green-goods/shared/hooks/work/useReviewerWorks";
-import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
+import { useWorkApprovals } from "@green-goods/shared/hooks/work/useWorkApprovals";
+import { logger } from "@green-goods/shared/modules/app/logger";
 import {
   useUIStore,
   type WorkDashboardPendingFilter,
   type WorkDashboardTab,
 } from "@green-goods/shared/stores/useUIStore";
-import { useUser } from "@green-goods/shared/hooks/auth/useUser";
-import { useWorkApprovals } from "@green-goods/shared/hooks/work/useWorkApprovals";
+import type { Address, Work } from "@green-goods/shared/types/domain";
+import { hapticLight } from "@green-goods/shared/utils/app/haptics";
+import { isUserAddress as sharedIsUserAddress } from "@green-goods/shared/utils/blockchain/address";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { filterByTimeRange, type TimeFilter } from "@green-goods/shared/utils/time";
+import {
+  collectApprovalRecipientsForWorks,
+  collectApprovedWorkUIDs,
+  filterPendingNeedsReview,
+} from "@green-goods/shared/utils/work/pending-review";
 import { RiCheckLine, RiCloseLine, RiDraftLine, RiTaskLine } from "@remixicon/react";
 import { useQuery } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -263,11 +263,11 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       toastService.error({
         title: intl.formatMessage({
           id: "app.workDashboard.error.navigationFailed",
-          defaultMessage: "Couldn't open work",
+          defaultMessage: "Navigation failed",
         }),
         message: intl.formatMessage({
           id: "app.workDashboard.error.navigationFailedMessage",
-          defaultMessage: "Please try again.",
+          defaultMessage: "Could not navigate to the selected item",
         }),
         context: "workDashboard",
       });
@@ -421,7 +421,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
             <h2 className="title-section truncate">
               {intl.formatMessage({
                 id: "app.workDashboard.title",
-                defaultMessage: "Work Dashboard",
+                defaultMessage: "Your work",
               })}
             </h2>
             <p className="text-sm text-text-sub-600 truncate">

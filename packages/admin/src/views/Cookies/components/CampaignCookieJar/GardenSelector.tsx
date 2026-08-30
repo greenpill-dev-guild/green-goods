@@ -32,7 +32,7 @@ function GardenSelectorCheckbox({
       description={formatMessage(
         {
           id: "cockpit.community.cookies.stewardCount",
-          defaultMessage: "{count, plural, one {# steward} other {# stewards}} - {address}",
+          defaultMessage: "{count, plural, one {# steward} other {# stewards}} · {address}",
         },
         { count: garden.stewards.length, address: addressLabel }
       )}

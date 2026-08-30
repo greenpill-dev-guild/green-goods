@@ -112,7 +112,7 @@ export default function GardensGallery() {
               <span className="sr-only">
                 {formatMessage({
                   id: "public.gardens.searchLabel",
-                  defaultMessage: "Search Gardens",
+                  defaultMessage: "Search gardens",
                 })}
               </span>
               <input

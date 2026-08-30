@@ -144,3 +144,19 @@ Round 1 (2026-08-29, develop): `check:design-generated` ✅ · `check:design-tok
 - [ ] `node scripts/harness/plan-hub.mjs validate`
 
 *(Checkboxes above are for the next full round; round-1 results are recorded in the line + report and are not carried forward as current proof.)*
+
+## Remediation program (2026-08-30 — "address all the findings")
+
+Afo accepted the full audit menu. Executed on develop, commits `f4ac05a33`…`0855bea9a` (+ close-out):
+
+- [x] Casing correction batch — ~95 missed flips, ~24 reverts, retry family, pool dialog split, DL-013 boundary (commits `f4ac05a33`, `dfac65a07`; finding 7 reclassified false positive — submit-tab keys are next-step CTAs)
+- [x] Enforcement — wrapper-adoption sweep in check:design-tokens + audited baseline, self-burning (`1bd97f6d8`, refined `9d1125bbd`, burned 156→13 in `eec8b6ac8`)
+- [x] Field-family adoption waves 1–5 — 99% adoption (1 foreign in-flight site left); new AdminIconButton + AdminFieldGroup primitives; LabeledField retired (`9d1125bbd`, `64db60df2`, `f4da890fe`, `ca5fe62bd`, `69aa19164`)
+- [x] Raw-button folding — 38 → 12 sanctioned baseline rows; all 9 geometry overrides + 3 tab impostors dead
+- [x] Legacy Card retirement — 0 renders; AdminCard Header/Body slots (Footer deleted as dead export, `0855bea9a`)
+- [x] Typography — top-10 pass (157 utilities) + as-touched canon; 771 → 406 raw
+- [x] defaultMessage sync — 116/118 to en.json truth
+- [x] Canon — DL-013 row, roster 23, Rules 7/15, token 2.10.0 (`29f820e1d`)
+- [x] Close report: `reports/2026-08-30-adoption-remediation-close.md` — **95/100**
+
+Validation receipt (close, commit `0855bea9a` + sync working set): admin 817/817 · client 974/974 · shared 4450/18skip · typecheck:source+tests clean · design-tokens/design-md/guidance-links/skill-behavior/source-structure green · play suite 193/193 on clean rerun (first run dropped 3 in the known load-flake class).

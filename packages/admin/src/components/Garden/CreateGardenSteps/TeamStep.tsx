@@ -52,7 +52,7 @@ export function TeamStep() {
             className="min-w-0 flex-1 font-mono"
             label={formatMessage({
               id: "app.roles.steward.plural",
-              defaultMessage: "Garden stewards",
+              defaultMessage: "Stewards",
             })}
             value={stewardInput.input}
             onChange={(event) => stewardInput.setInput(event.target.value)}

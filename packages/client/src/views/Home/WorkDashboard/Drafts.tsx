@@ -1,20 +1,20 @@
-import type { Address } from "@green-goods/shared/types/domain";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
-import { type DraftWithImages, useDrafts } from "@green-goods/shared/hooks/work/useDrafts";
-import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
-import { logger } from "@green-goods/shared/modules/app/logger";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useActions, useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { type DraftWithImages, useDrafts } from "@green-goods/shared/hooks/work/useDrafts";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import type { Address } from "@green-goods/shared/types/domain";
+import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiAlertLine, RiDraftLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { DraftCard } from "@/components/Cards";
 import { EmptyState } from "@/components/Communication";
-import { APP_ROUTES } from "@/config/pwaRouting";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import { APP_ROUTES } from "@/config/pwaRouting";
 
 export interface DraftsTabProps {
   className?: string;
@@ -65,11 +65,11 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
         toastService.error({
           title: intl.formatMessage({
             id: "app.drafts.delete.error",
-            defaultMessage: "Failed to delete draft",
+            defaultMessage: "Delete failed",
           }),
           message: intl.formatMessage({
             id: "app.drafts.delete.errorMessage",
-            defaultMessage: "Please try again.",
+            defaultMessage: "Could not delete the draft. Please try again.",
           }),
           context: "drafts",
         });

@@ -1,6 +1,18 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useIntl } from "react-intl";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { toastService } from "../../../components/Toast/toast.service";
+import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { logger } from "../../../modules/app/logger";
 import { track } from "../../../modules/app/posthog";
+import {
+  hasWorkLinkIntentParams,
+  parseWorkLinkIntent,
+  type WorkLinkIntent,
+  workLinkReturnGarden,
+  writeWorkLinkIntent,
+} from "../../../modules/commitment-pooling/work-link-intent";
+import { canProceedWithWorkSubmission } from "../../../modules/work/submission-flow";
 import { useWorkFormContext, useWorkSelection } from "../../../providers/Work";
 import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
 import { WorkTab } from "../../../stores/workFlowTypes";
@@ -8,27 +20,15 @@ import { findActionByUID } from "../../../utils/action/parsers";
 import { parseContractError } from "../../../utils/errors/contract-errors";
 import { useOffline } from "../../app/useOffline";
 import { useUser } from "../../auth/useUser";
+import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
+import { useWorkLinkChoices } from "../../commitment-pooling/useWorkLinkChoices";
 import { useJoinGarden } from "../../garden/useJoinGarden";
 import { useAudioRecording } from "../../utils/useAudioRecording";
 import { useTimeout } from "../../utils/useTimeout";
 import { useDraftAutoSave } from "../../work/useDraftAutoSave";
 import { useDraftResume } from "../../work/useDraftResume";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useIntl } from "react-intl";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { canProceedWithWorkSubmission } from "../../../modules/work/submission-flow";
-import {
-  hasWorkLinkIntentParams,
-  parseWorkLinkIntent,
-  workLinkReturnGarden,
-  writeWorkLinkIntent,
-  type WorkLinkIntent,
-} from "../../../modules/commitment-pooling/work-link-intent";
 import { useWorkMediaLifecycle } from "./useWorkMediaLifecycle";
 import { useWorkSubmissionPresentationModel } from "./useWorkSubmissionPresentationModel";
-import { useWorkLinkChoices } from "../../commitment-pooling/useWorkLinkChoices";
-import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
-import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 
 type MediaJourneyEvent =
   | "work_media_preview_failed"
@@ -243,7 +243,7 @@ export function useWorkSubmissionFlowController({
           result === "already-member"
             ? intl.formatMessage({
                 id: "app.garden.alreadyMember",
-                defaultMessage: "You're already a member of this garden",
+                defaultMessage: "You are already a member of this garden",
               })
             : intl.formatMessage({
                 id: "app.garden.joinSuccess",

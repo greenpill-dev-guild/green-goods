@@ -1,30 +1,30 @@
-import type { Address } from "@green-goods/shared/types/domain";
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useCommitmentPools } from "@green-goods/shared/commitment-pooling";
 import { GardenBannerFallback } from "@green-goods/shared/components/Display/GardenBannerFallback";
-import { GardenTab, useGardenTabs } from "@green-goods/shared/hooks/garden/useGardenTabs";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
-import {
-  isGardenMember,
-  useJoinGarden,
-  usePendingJoinsVersion,
-} from "@green-goods/shared/hooks/garden/useJoinGarden";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNavigation";
+import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
+import { useScrollToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import {
   useActions,
   useGardeners,
   useGardens,
 } from "@green-goods/shared/hooks/blockchain/useBaseLists";
-import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNavigation";
 import { useConvictionStrategies } from "@green-goods/shared/hooks/conviction/useConvictionStrategies";
-import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
+import { GardenTab, useGardenTabs } from "@green-goods/shared/hooks/garden/useGardenTabs";
+import {
+  isGardenMember,
+  useJoinGarden,
+  usePendingJoinsVersion,
+} from "@green-goods/shared/hooks/garden/useJoinGarden";
 import { useHasRole } from "@green-goods/shared/hooks/roles/useHasRole";
-import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
-import { useScrollToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
-import { useUIStore } from "@green-goods/shared/stores/useUIStore";
-import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
 import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposits";
 import { useWorks } from "@green-goods/shared/hooks/work/useWorks";
-import { useCommitmentPools } from "@green-goods/shared/commitment-pooling";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
+import type { Address } from "@green-goods/shared/types/domain";
 import {
   RiCalendarEventFill,
   RiErrorWarningLine,
@@ -226,14 +226,14 @@ export const Garden: React.FC = () => {
         toastService.success({
           title: intl.formatMessage({
             id: "app.garden.alreadyMember",
-            defaultMessage: "You're already a member of this garden",
+            defaultMessage: "You are already a member of this garden",
           }),
         });
       } else {
         toastService.success({
           title: intl.formatMessage({
             id: "app.garden.joinSuccess",
-            defaultMessage: "Successfully joined the garden!",
+            defaultMessage: "Successfully joined garden",
           }),
         });
       }
@@ -241,7 +241,7 @@ export const Garden: React.FC = () => {
       toastService.error({
         title: intl.formatMessage({
           id: "app.garden.joinError",
-          defaultMessage: "Failed to join garden. Please try again.",
+          defaultMessage: "Failed to join garden",
         }),
       });
     }
@@ -418,7 +418,7 @@ export const Garden: React.FC = () => {
                     <Button
                       label={intl.formatMessage({
                         id: "app.garden.join",
-                        defaultMessage: "Join",
+                        defaultMessage: "Join Garden",
                       })}
                       leadingIcon={<RiUserAddLine className="w-4 h-4" />}
                       variant="primary"

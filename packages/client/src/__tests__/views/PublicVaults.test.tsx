@@ -4,15 +4,14 @@
  * @vitest-environment jsdom
  */
 
+import { VaultDepositStageError } from "@green-goods/shared/hooks/vault/vault-helpers";
+import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Fragment, createElement, useEffect } from "react";
+import { createElement, Fragment, useEffect } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
-import { VaultDepositStageError } from "@green-goods/shared/hooks/vault/vault-helpers";
 import VaultsPage, { CampaignCard, VaultsPageContent } from "../../views/Public/Vaults";
 
 const sharedHookMocks = vi.hoisted(() => ({
@@ -979,9 +978,7 @@ describe("VaultsPage", () => {
     );
     expect(screen.queryByText("Enter a valid dollar amount.")).not.toBeInTheDocument();
     expect(
-      screen.getByText(
-        "ETH pricing is temporarily unavailable. Keep this amount and try again in a moment."
-      )
+      screen.getByText("We can't estimate ETH right now. Try again in a moment.")
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Enter an amount" })).toBeDisabled();
   });

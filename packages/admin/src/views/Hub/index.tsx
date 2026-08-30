@@ -5,6 +5,8 @@ import {
 } from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
 import { useHubWorkbenchController } from "@green-goods/shared/hooks/admin-ui/hub/useHubWorkbenchController";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
+import { useMemo } from "react";
+import { useIntl } from "react-intl";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminSortSelect } from "@/components/AdminSortSelect";
 import { AdminTabRail } from "@/components/AdminTabRail";
@@ -15,8 +17,6 @@ import {
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
 import { CanvasWorkspaceSelectionState } from "@/components/Layout/CanvasWorkspaceSelectionState";
-import { useMemo } from "react";
-import { useIntl } from "react-intl";
 import { HubSheetDescriptor, HubStageContent } from "./components";
 
 export default function HubView() {
@@ -88,8 +88,7 @@ export default function HubView() {
             title={formatMessage({ id: "cockpit.hub.title", defaultMessage: "Hub" })}
             description={formatMessage({
               id: "cockpit.hub.description",
-              defaultMessage:
-                "Review submitted work, run assessments, and certify impact across your gardens.",
+              defaultMessage: "Review and triage pending submissions.",
             })}
             metadata={
               headerStats.length > 0 ? (

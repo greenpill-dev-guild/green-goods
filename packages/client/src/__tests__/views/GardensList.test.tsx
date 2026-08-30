@@ -184,7 +184,7 @@ describe("GardensList", () => {
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
     expect(screen.getByText(/no gardens yet/i)).toBeInTheDocument();
-    expect(screen.getByText(/discover and join gardens/i)).toBeInTheDocument();
+    expect(screen.getByText(/join a garden to start documenting/i)).toBeInTheDocument();
   });
 
   it("navigates to home when Open Gardens is clicked from empty state", async () => {

@@ -1,26 +1,26 @@
-import * as Dialog from "@radix-ui/react-dialog";
-import type { Address } from "@green-goods/shared/types/domain";
 import { Alert } from "@green-goods/shared/components/Alert";
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import {
-  DEFAULT_WITHDRAW_MAX_LOSS_BPS,
-  formatTokenAmount,
-  validateDecimalInput,
-} from "@green-goods/shared/utils/blockchain/vaults";
+import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useWalletConnectDismissGuard } from "@green-goods/shared/hooks/auth/useWalletModalOpen";
 import {
   type PublicEndowmentAssetTotal,
   type PublicEndowmentGardenGroup,
   type PublicEndowmentPosition,
   usePublicEndowmentPositions,
 } from "@green-goods/shared/hooks/public/usePublicEndowmentPositions";
-import { truncateAddress } from "@green-goods/shared/utils/blockchain/address";
-import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
 import { useDebouncedValue } from "@green-goods/shared/hooks/utils/useDebouncedValue";
 import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
-import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
 import { useVaultWithdraw } from "@green-goods/shared/hooks/vault/useVaultWithdraw";
-import { useWalletConnectDismissGuard } from "@green-goods/shared/hooks/auth/useWalletModalOpen";
+import type { Address } from "@green-goods/shared/types/domain";
+import { truncateAddress } from "@green-goods/shared/utils/blockchain/address";
+import {
+  DEFAULT_WITHDRAW_MAX_LOSS_BPS,
+  formatTokenAmount,
+  validateDecimalInput,
+} from "@green-goods/shared/utils/blockchain/vaults";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -191,7 +191,7 @@ export function PublicEndowmentPanel({
                   : formatMessage({
                       id: "public.fund.endowments.connect.lede",
                       defaultMessage:
-                        "Connect the wallet you used to endow Gardens and review what you have supported.",
+                        "Connect the wallet you endowed with, and we'll show you the Gardens your support is growing.",
                     })}
               </Dialog.Description>
             </div>

@@ -363,7 +363,7 @@ export function CookieJarManageModal({
                 icon={<RiCupLine className="h-6 w-6" />}
                 title={formatMessage({
                   id: "app.cookieJar.noJars",
-                  defaultMessage: "No cookie jars found for this garden",
+                  defaultMessage: "No Cookie Jars found for this garden",
                 })}
                 description={formatMessage({
                   id: "app.cookieJar.noJarsHint",

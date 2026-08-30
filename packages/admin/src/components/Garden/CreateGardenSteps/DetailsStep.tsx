@@ -352,7 +352,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           })}
           helpText={formatMessage({
             id: "app.garden.create.bannerImageHelp",
-            defaultMessage: "Upload a hero image showcasing the garden (optional)",
+            defaultMessage: "Upload a banner image showcasing the garden (optional)",
           })}
           accept="image/*"
           multiple={false}

@@ -37,7 +37,7 @@ export function DiscardChangesDialog({
       tone={tone}
       title={formatMessage({
         id: "app.admin.flow.discardChanges.title",
-        defaultMessage: "Discard changes?",
+        defaultMessage: "Discard Changes?",
       })}
       description={formatMessage({
         id: "app.admin.flow.discardChanges.description",

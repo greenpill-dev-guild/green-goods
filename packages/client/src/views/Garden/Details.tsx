@@ -1,5 +1,5 @@
-import type { Action, WorkInput } from "@green-goods/shared/types/domain";
 import type { WorkFormData } from "@green-goods/shared/hooks/work/useWorkForm";
+import type { Action, WorkInput } from "@green-goods/shared/types/domain";
 import { RiFileFill, RiMapPinLine } from "@remixicon/react";
 import React, { useCallback, useState } from "react";
 import type { Control, Path, UseFormRegister, UseFormSetValue } from "react-hook-form";
@@ -211,7 +211,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
                 placeholder ||
                 intl.formatMessage({
                   id: "app.garden.details.selectRange",
-                  defaultMessage: "Select a range",
+                  defaultMessage: "Select Date Range",
                 })
               }
               options={bandOptions.map((band) => ({
@@ -323,7 +323,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
                     })
                   : intl.formatMessage({
                       id: "app.garden.details.locationHint",
-                      defaultMessage: "Coarse GPS for verification",
+                      defaultMessage: "Share your location to auto-fill coordinates",
                     })}
             </p>
           </div>

@@ -4,12 +4,12 @@ import { type FC, useCallback, useEffect, useState } from "react";
 import { DeviceFrameset } from "react-device-frameset";
 import "react-device-frameset/styles/marvel-devices.min.css";
 
-import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
-import { useApp } from "@green-goods/shared/providers/App";
 import { useInstallGuidance } from "@green-goods/shared/hooks/app/useInstallGuidance";
+import { useTunnelUrl } from "@green-goods/shared/hooks/app/useTunnelUrl";
 import { useIsDarkMode } from "@green-goods/shared/hooks/ui/useIsDarkMode";
 import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
-import { useTunnelUrl } from "@green-goods/shared/hooks/app/useTunnelUrl";
+import { useApp } from "@green-goods/shared/providers/App";
+import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
 import {
   RiAddBoxLine,
   RiAlertLine,
@@ -128,7 +128,7 @@ export const Hero: FC<HeroProps> = () => {
           <h2 className="font-bold lg:text-6xl lg:tracking-wide text-primary-dark capitalize">
             {intl.formatMessage({
               id: "app.hero.title",
-              defaultMessage: "From Good Intentions to Green\u00a0Outcomes",
+              defaultMessage: "From Good Intentions to Green Outcomes",
             })}
           </h2>
           <p className="text-xl lg:text-2xl">
@@ -199,7 +199,7 @@ export const Hero: FC<HeroProps> = () => {
                           })
                         : intl.formatMessage({
                             id: "app.hero.wrongbrowser.title",
-                            defaultMessage: "Switch Browser",
+                            defaultMessage: "Unsupported browser",
                           })}
                     </p>
                     <p className="text-sm text-warning-dark/80 mt-1">
@@ -245,7 +245,7 @@ export const Hero: FC<HeroProps> = () => {
                   : copyError
                     ? intl.formatMessage({
                         id: "app.hero.copyFailed",
-                        defaultMessage: "Copy failed",
+                        defaultMessage: "Failed to copy",
                       })
                     : guidance.primaryAction.type === "installing"
                       ? intl.formatMessage({
@@ -296,7 +296,7 @@ export const Hero: FC<HeroProps> = () => {
                           {intl.formatMessage(
                             {
                               id: "app.hero.install.browser",
-                              defaultMessage: "Detected: {browser} on {platform}",
+                              defaultMessage: "Open in Browser",
                             },
                             {
                               browser: guidance.browserInfo.displayName,
@@ -358,7 +358,7 @@ export const Hero: FC<HeroProps> = () => {
                         >
                           {intl.formatMessage({
                             id: "app.hero.install.continue",
-                            defaultMessage: "Continue in browser instead",
+                            defaultMessage: "Continue",
                           })}
                           <RiArrowRightLine className="w-4 h-4" />
                         </a>

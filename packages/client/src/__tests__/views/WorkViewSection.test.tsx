@@ -132,7 +132,7 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
       })
     );
     expect(screen.getByTestId("work-info")).toHaveTextContent(
-      "Saved on your device — we'll send it to the garden record when you're online."
+      "Saved on your device. We'll send it to the garden record when you're online."
     );
   });
 
@@ -156,7 +156,7 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
         effectiveStatus: "approved" as WorkDisplayStatus,
       })
     );
-    expect(screen.getByTestId("work-title")).toHaveTextContent("Work Approved");
+    expect(screen.getByTestId("work-title")).toHaveTextContent("Work approved");
   });
 
   it("shows gardener-specific info for pending status", () => {

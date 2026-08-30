@@ -1,17 +1,17 @@
-import { formatApy } from "@green-goods/shared/utils/blockchain/aave";
-import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
-import { formatUsdCents } from "@green-goods/shared/utils/blockchain/price-feeds";
+import { useOctantVaultHarvestableYield } from "@green-goods/shared/hooks/vault/useOctantVaultHarvestableYield";
+import { useOctantVaultStats } from "@green-goods/shared/hooks/vault/useOctantVaultStats";
+import { useOctantVaultStrategyApy } from "@green-goods/shared/hooks/vault/useOctantVaultStrategyApy";
 import {
   getOctantVaultAssetDisplayPolicy,
   getOctantVaultCampaignCopy,
   getOctantVaultCampaigns,
 } from "@green-goods/shared/modules/vault-crowdfunding/copy";
-import { getOctantVaultCampaignTransactionState } from "@green-goods/shared/modules/vault-crowdfunding/route-manage";
 import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
-import { useOctantVaultHarvestableYield } from "@green-goods/shared/hooks/vault/useOctantVaultHarvestableYield";
-import { useOctantVaultStats } from "@green-goods/shared/hooks/vault/useOctantVaultStats";
-import { useOctantVaultStrategyApy } from "@green-goods/shared/hooks/vault/useOctantVaultStrategyApy";
+import { getOctantVaultCampaignTransactionState } from "@green-goods/shared/modules/vault-crowdfunding/route-manage";
 import { selectPublicSurfaceState } from "@green-goods/shared/public";
+import { formatApy } from "@green-goods/shared/utils/blockchain/aave";
+import { formatUsdCents } from "@green-goods/shared/utils/blockchain/price-feeds";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { Link, Navigate, useLocation, useSearchParams } from "react-router-dom";
@@ -307,7 +307,7 @@ function YieldSupportExplainer() {
         <EditorialKicker className="mb-3">
           {formatMessage({
             id: "public.vaults.strategy.kicker",
-            defaultMessage: "§ 02: Strategy model",
+            defaultMessage: "Support that keeps working",
           })}
         </EditorialKicker>
         <EditorialHeading id="public-vaults-strategy-title" size="sub">

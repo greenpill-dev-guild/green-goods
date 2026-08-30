@@ -1,8 +1,8 @@
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useInstallGuidance } from "@green-goods/shared/hooks/app/useInstallGuidance";
+import { useApp } from "@green-goods/shared/providers/App";
 import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
 import { hapticLight } from "@green-goods/shared/utils/app/haptics";
-import { toastService } from "@green-goods/shared/components/Toast/toast.service";
-import { useApp } from "@green-goods/shared/providers/App";
-import { useInstallGuidance } from "@green-goods/shared/hooks/app/useInstallGuidance";
 import {
   RiAlertLine,
   RiDownloadLine,
@@ -131,11 +131,11 @@ export const InstallCta: React.FC = () => {
                     toastService.success({
                       title: intl.formatMessage({
                         id: "app.profile.urlCopied",
-                        defaultMessage: "Link Copied",
+                        defaultMessage: "URL copied",
                       }),
                       message: intl.formatMessage({
                         id: "app.profile.urlCopiedMessage",
-                        defaultMessage: "Open Safari and paste the link to install.",
+                        defaultMessage: "Profile URL copied to clipboard",
                       }),
                       context: "copy-url",
                       suppressLogging: true,

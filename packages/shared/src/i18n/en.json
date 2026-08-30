@@ -1571,7 +1571,7 @@
   "app.error.garden.goBack": "Go Back",
   "app.error.garden.technicalDetails": "Technical details",
   "app.error.garden.title": "Garden failed to load",
-  "app.error.garden.tryAgain": "Something went wrong. Please try again.",
+  "app.error.garden.tryAgain": "Try Again",
   "app.error.route.chunk.action": "Refresh Page",
   "app.error.route.chunk.description": "A new version has been deployed. Refreshing will load the latest version.",
   "app.error.route.chunk.title": "App Updated",

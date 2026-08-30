@@ -296,7 +296,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
         ? null
         : formatMessage({
             id: "app.admin.assessment.strategyKernel.outcomeMetricRequired",
-            defaultMessage: "Select a Metric",
+            defaultMessage: "Select a metric",
           }),
     target:
       o.target >= 0

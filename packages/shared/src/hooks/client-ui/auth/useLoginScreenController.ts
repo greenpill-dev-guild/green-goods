@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation } from "react-router-dom";
+import { toastService } from "../../../components/Toast/toast.service";
 import {
-  isPasskeyServerEnabled,
   classifyPasskeyCeremonyContext,
+  isPasskeyServerEnabled,
   normalizePasskeyAccountIdentifier,
 } from "../../../config/passkeyServer";
-import { useApp } from "../../../providers/App";
-import { toastService } from "../../../components/Toast/toast.service";
-import { useAuth } from "../../auth/useAuth";
-import { useInstallGuidance } from "../../app/useInstallGuidance";
 import { trackAuthError } from "../../../modules/app/error-categories";
 import { getStoredUsername } from "../../../modules/auth/session";
+import { useApp } from "../../../providers/App";
 import { copyToClipboard } from "../../../utils/app/clipboard";
 import { debugError } from "../../../utils/debug";
+import { useInstallGuidance } from "../../app/useInstallGuidance";
+import { useAuth } from "../../auth/useAuth";
 import { getBrowserGuidanceLabel, getFriendlyLoginErrorMessage } from "./login-screen-messages";
 
 export type LoginScreen = "entry" | "create" | "recover";
@@ -62,7 +62,7 @@ export function useLoginScreenController(routes: { login: string; home: string }
         {
           id: "app.login.toast.fallbackAccountDescription",
           defaultMessage:
-            "No passkey matched “{requested}”, so you're signed in as {actual} — the account saved on this device.",
+            "No passkey matched “{requested}”, so you're signed in as {actual}, the account saved on this device.",
         },
         { requested: attempted, actual: auth.userName }
       ),
@@ -225,7 +225,7 @@ export function useLoginScreenController(routes: { login: string; home: string }
             }),
             description: intl.formatMessage({
               id: "app.login.toast.copyFailedDescription",
-              defaultMessage: "Please manually copy this URL and open it in Safari.",
+              defaultMessage: "Please copy this URL manually and open it in Safari.",
             }),
           }
     );
