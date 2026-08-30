@@ -31,7 +31,7 @@ export function VaultContractDetails({ gardenAddress }: VaultContractDetailsProp
 
   const rowClass = "rounded-md border border-stroke-soft bg-bg-weak px-3 py-2";
   const linkClass =
-    "mt-0.5 inline-flex items-center gap-1 body-xs text-primary-base hover:underline";
+    "mt-0.5 inline-flex items-center gap-1 body-xs text-primary-dark hover:underline";
 
   return (
     <AdminCard density="none">

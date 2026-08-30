@@ -1,3 +1,5 @@
+import enMessages from "@green-goods/shared/i18n/en";
+import { type Action, Domain } from "@green-goods/shared/types/domain";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -5,8 +7,6 @@ import type { ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import enMessages from "@green-goods/shared/i18n/en";
-import { type Action, Domain } from "@green-goods/shared/types/domain";
 import { SubmitWorkPanel } from "./SubmitWork";
 
 const gardenAddress = "0xAbCdEf1234567890aBcDeF1234567890aBcDeF12";
@@ -115,23 +115,6 @@ vi.mock("@green-goods/shared/components/Canvas/SheetFooter", async () => {
   };
 });
 
-vi.mock("@green-goods/shared/components/Cards/CardBase", async () => {
-  const React = await vi.importActual<typeof import("react")>("react");
-  const Card = Object.assign(
-    ({ children }: { children: React.ReactNode }) =>
-      React.createElement("div", { "data-testid": "card" }, children),
-    {
-      Body: ({ children }: { children: React.ReactNode }) =>
-        React.createElement("div", null, children),
-      Footer: ({ children, className }: { children: React.ReactNode; className?: string }) =>
-        React.createElement("div", { className }, children),
-    }
-  );
-  return {
-    Card,
-  };
-});
-
 vi.mock("@green-goods/shared/components/feedback/TxInlineFeedback", async () => {
   const React = await vi.importActual<typeof import("react")>("react");
   return {
@@ -217,32 +200,6 @@ vi.mock("@green-goods/shared/components/Form/ControlPrimitives", async () => {
       invalid?: boolean;
       surface?: string;
     }) => React.createElement("textarea", props),
-  };
-});
-
-vi.mock("@green-goods/shared/components/Form/FormFieldWrapper", async () => {
-  const React = await vi.importActual<typeof import("react")>("react");
-  return {
-    FormField: ({
-      children,
-      label,
-      htmlFor,
-      error,
-      required,
-    }: {
-      children: React.ReactNode;
-      label?: string;
-      htmlFor?: string;
-      error?: string;
-      required?: boolean;
-    }) =>
-      React.createElement(
-        "div",
-        null,
-        label ? React.createElement("label", { htmlFor }, `${label}${required ? " *" : ""}`) : null,
-        children,
-        error ? React.createElement("p", null, error) : null
-      ),
   };
 });
 

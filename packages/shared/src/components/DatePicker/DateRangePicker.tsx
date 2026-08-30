@@ -164,7 +164,7 @@ export const DateRangePicker = forwardRef<HTMLDivElement, DateRangePickerProps>(
     }, [minDateObj, maxDateObj]);
 
     return (
-      <div ref={ref} className={cn("flex flex-col gap-1", error && "shake-error", className)}>
+      <div ref={ref} className={cn("flex flex-col gap-1", className)}>
         {label && (
           <label className="font-semibold text-text-strong-950 text-label-sm">
             {label}

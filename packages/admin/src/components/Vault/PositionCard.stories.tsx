@@ -1,10 +1,10 @@
 import { Alert } from "@green-goods/shared/components/Alert";
-import { Card } from "@green-goods/shared/components/Cards/CardBase";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useIntl } from "react-intl";
 import { fn } from "storybook/test";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminCard } from "@/components/AdminCard";
 
 // ⚠ VISUAL HARNESS — not the real PositionCard.
 // The real component wires `useUser`, `useVaultPreview`, `useYieldStatus`,
@@ -53,28 +53,30 @@ function PositionCardHarness({
 }: PositionCardHarnessProps) {
   const { formatMessage } = useIntl();
   return (
-    <Card padding="compact" className="sm:p-5">
+    <AdminCard>
       <div className="mb-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold text-text-strong sm:text-lg">{symbol}</h3>
+          <h3 className="text-title-sm font-semibold text-text-strong sm:text-title-md">
+            {symbol}
+          </h3>
           {!vaultAcceptingDeposits && (
-            <span className="rounded-full bg-warning-lighter px-2 py-1 text-xs font-medium text-warning-dark">
+            <span className="rounded-full bg-warning-lighter px-2 py-1 text-label-sm font-medium text-warning-dark">
               Deposits disabled
             </span>
           )}
         </div>
         <button
           type="button"
-          className="mt-1 inline-block text-left text-xs text-primary-base hover:underline"
+          className="mt-1 inline-flex items-center gap-1 text-body-sm text-primary-dark hover:underline"
           onClick={() => {}}
         >
           View vault: 0xAaaa…aaa1
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 text-sm">
+      <div className="grid grid-cols-2 gap-3 text-body-md">
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
-          <p className="text-xs text-text-soft">Net deposited</p>
+          <p className="text-label-sm text-text-soft">Net deposited</p>
           <p className="mt-1 font-semibold text-text-strong">
             {formatTokenAmount(netDeposited, 18)} {symbol}
           </p>
@@ -82,25 +84,27 @@ function PositionCardHarness({
         <div
           className={`rounded-md border p-3 ${unharvestedYield > 0n ? "border-success-light bg-success-lighter" : "border-stroke-soft bg-bg-weak"}`}
         >
-          <p className="text-xs text-text-soft">Current yield</p>
+          <p className="text-label-sm text-text-soft">Current yield</p>
           <p
             className={`mt-1 font-semibold ${unharvestedYield > 0n ? "text-success-dark" : "text-text-strong"}`}
           >
             {formatTokenAmount(unharvestedYield, 18)} {symbol}
-            {unharvestedYield > 0n && <span className="ml-1 text-xs font-normal">accruing</span>}
+            {unharvestedYield > 0n && (
+              <span className="ml-1 text-body-sm font-normal">accruing</span>
+            )}
           </p>
         </div>
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
-          <p className="text-xs text-text-soft">Depositors</p>
+          <p className="text-label-sm text-text-soft">Depositors</p>
           <p className="mt-1 font-semibold text-text-strong">{depositorCount}</p>
         </div>
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
-          <p className="text-xs text-text-soft">Harvests</p>
+          <p className="text-label-sm text-text-soft">Harvests</p>
           <p className="mt-1 font-semibold text-text-strong">{harvestCount}</p>
         </div>
       </div>
 
-      <p className="mt-3 text-xs text-text-sub">
+      <p className="mt-3 text-body-sm text-text-sub">
         Depositor share value is expected to stay near flat by design. Harvested yield is routed to
         garden impact, not compounded into depositor returns.
       </p>
@@ -198,7 +202,7 @@ function PositionCardHarness({
           </div>
         </div>
       )}
-    </Card>
+    </AdminCard>
   );
 }
 
