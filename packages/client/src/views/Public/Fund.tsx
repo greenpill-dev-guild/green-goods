@@ -677,13 +677,13 @@ function FundPageContent() {
                   <EditorialLinkArrow to="/gardens">
                     {formatMessage({
                       id: "public.fund.empty.browseGardens",
-                      defaultMessage: "Browse all Gardens",
+                      defaultMessage: "Browse All Gardens",
                     })}
                   </EditorialLinkArrow>
                   <EditorialLinkArrow to="/impact">
                     {formatMessage({
                       id: "public.fund.empty.viewImpact",
-                      defaultMessage: "View public evidence",
+                      defaultMessage: "View Public Evidence",
                     })}
                   </EditorialLinkArrow>
                 </div>

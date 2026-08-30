@@ -114,7 +114,7 @@ export const GardenWork: React.FC = () => {
                   })
                 : intl.formatMessage({
                     id: "app.home.work.uploadNow",
-                    defaultMessage: "Send now",
+                    defaultMessage: "Send Now",
                   })
             }
             className="w-full"
@@ -192,7 +192,7 @@ export const GardenWork: React.FC = () => {
                   className={cn("p-1", pwaDrawerStyles.workCloseButton)}
                   aria-label={intl.formatMessage({
                     id: "app.home.workApproval.closeFeedback",
-                    defaultMessage: "Close feedback",
+                    defaultMessage: "Close Feedback",
                   })}
                 >
                   <RiCloseLine className="w-5 h-5" />
@@ -441,7 +441,7 @@ export const GardenWork: React.FC = () => {
               >
                 {intl.formatMessage({
                   id: "app.home.work.retryMetadataLoad",
-                  defaultMessage: "Retry loading details",
+                  defaultMessage: "Retry Loading Details",
                 })}
               </button>
             </div>

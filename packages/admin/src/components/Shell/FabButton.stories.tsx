@@ -32,13 +32,13 @@ const meta = {
         {
           id: "assessment",
           icon: RiCheckboxCircleLine,
-          label: "Create assessment",
+          label: "Create Assessment",
           labelId: "cockpit.hub.fab.createAssessment",
         },
         {
           id: "work",
           icon: RiFileList3Line,
-          label: "Submit work",
+          label: "Submit Work",
           labelId: "cockpit.hub.fab.submitWork",
         },
       ],
@@ -75,12 +75,12 @@ export const SingleAction: Story = {
   args: {
     config: {
       icon: RiCheckboxCircleLine,
-      label: "Create assessment",
+      label: "Create Assessment",
       actions: [
         {
           id: "assessment",
           icon: RiCheckboxCircleLine,
-          label: "Create assessment",
+          label: "Create Assessment",
           labelId: "cockpit.hub.fab.createAssessment",
         },
       ],
@@ -114,7 +114,7 @@ export const SingleActionLabelMismatch: Story = {
         {
           id: "assessment",
           icon: RiCheckboxCircleLine,
-          label: "Create assessment",
+          label: "Create Assessment",
           labelId: "cockpit.hub.fab.createAssessment",
         },
       ],
@@ -126,9 +126,9 @@ export const SingleActionLabelMismatch: Story = {
     const canvas = within(canvasElement);
     // Resolving the button by that exact name proves the accessible name is the
     // translated action label, not config.label ("Create").
-    const fab = canvas.getByRole("button", { name: "Create assessment" });
+    const fab = canvas.getByRole("button", { name: "Create Assessment" });
     // The same string is the label rendered inside the button. The hover
     // tooltip carries it too, so scope to the button rather than the canvas.
-    await expect(within(fab).getByText("Create assessment")).toBeInTheDocument();
+    await expect(within(fab).getByText("Create Assessment")).toBeInTheDocument();
   },
 };

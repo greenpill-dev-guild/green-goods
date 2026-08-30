@@ -105,7 +105,7 @@ export function HubCertificationInspector({
           >
             {formatMessage({
               id: "cockpit.hub.certify.openMintFlow",
-              defaultMessage: "Open mint flow",
+              defaultMessage: "Open Mint Flow",
             })}
           </AdminButton>
         </SheetFooter>

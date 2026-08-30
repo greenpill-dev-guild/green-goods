@@ -289,7 +289,7 @@ export const RealProviderShell: Story = {
       await waitFor(() => expect(canvasElement).not.toHaveAttribute("aria-hidden"));
     }
 
-    const settingsTrigger = canvas.queryByRole("button", { name: "Open settings" });
+    const settingsTrigger = canvas.queryByRole("button", { name: "Open Settings" });
     const sheetHeading = settingsTrigger ? "Settings" : "Notifications";
     await userEvent.click(settingsTrigger ?? canvas.getByRole("button", { name: "Notifications" }));
     // The right sheet is retired — account/notification content now renders in

@@ -544,13 +544,13 @@ export function ActionTranslationEditor({
         >
           {formatMessage({
             id: "app.admin.actions.translations.markReviewed",
-            defaultMessage: "Mark reviewed",
+            defaultMessage: "Mark Reviewed",
           })}
         </AdminButton>
         <AdminButton type="button" variant="text" size="sm" onClick={markDraft}>
           {formatMessage({
             id: "app.admin.actions.translations.markDraft",
-            defaultMessage: "Mark draft",
+            defaultMessage: "Mark Draft",
           })}
         </AdminButton>
       </div>

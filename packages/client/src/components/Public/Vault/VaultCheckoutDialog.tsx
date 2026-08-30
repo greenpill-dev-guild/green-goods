@@ -754,7 +754,7 @@ function VaultCheckoutDialogContent({
   } else if (hasReadyAmount) {
     actionLabel = formatMessage({
       id: "public.vaults.walletEndow.connect",
-      defaultMessage: "Connect wallet",
+      defaultMessage: "Connect Wallet",
     });
   }
 
@@ -838,7 +838,7 @@ function VaultCheckoutDialogContent({
               >
                 {formatMessage({
                   id: "public.vaults.checkout.viewTransaction",
-                  defaultMessage: "View transaction",
+                  defaultMessage: "View Transaction",
                 })}
               </a>
             ) : null}
@@ -882,7 +882,7 @@ function VaultCheckoutDialogContent({
             })}
             title={formatMessage({
               id: "public.vaults.walletEndow.stageTitle",
-              defaultMessage: "Review your endowment",
+              defaultMessage: "Review Your Endowment",
             })}
             description={formatMessage({
               id: "public.vaults.walletEndow.stageDescription",

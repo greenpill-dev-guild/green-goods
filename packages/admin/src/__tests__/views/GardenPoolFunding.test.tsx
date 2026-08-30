@@ -181,14 +181,14 @@ describe("PoolFundingSection", () => {
   it("shares one manual refresh and announces only its completion", async () => {
     const refetch = vi.fn().mockResolvedValue(undefined);
     renderSection(fundingView({ refetch }));
-    fireEvent.click(screen.getByRole("button", { name: "Refresh pool funding" }));
+    fireEvent.click(screen.getByRole("button", { name: "Refresh Pool Funding" }));
     await waitFor(() => expect(refetch).toHaveBeenCalledTimes(1));
     expect(screen.getByText("Pool funding refreshed")).toBeInTheDocument();
   });
 
   it("returns keyboard focus to the details trigger when the dialog closes", async () => {
     renderWithProviders(<FundingDetailsHarness />);
-    const trigger = screen.getByRole("button", { name: "View funding details" });
+    const trigger = screen.getByRole("button", { name: "View Funding Details" });
     fireEvent.click(trigger);
     const dialog = screen.getByRole("dialog", { name: "Pool funding details" });
     fireEvent.keyDown(dialog, { key: "Escape" });

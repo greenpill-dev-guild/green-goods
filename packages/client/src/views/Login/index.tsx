@@ -89,7 +89,7 @@ export function Login() {
           message={loadingMessage}
           buttonLabel={intl.formatMessage({
             id: "app.login.button.createAccount",
-            defaultMessage: "Create account",
+            defaultMessage: "Create Account",
           })}
           errorMessage={!isAuthenticating ? loginError : null}
           usernameInput={{
@@ -190,11 +190,11 @@ export function Login() {
             ? (personalizedLabel ??
               intl.formatMessage({
                 id: "app.login.button.loginPasskey",
-                defaultMessage: "Sign in with passkey",
+                defaultMessage: "Sign in with Passkey",
               }))
             : intl.formatMessage({
                 id: "app.login.button.createAccount",
-                defaultMessage: "Create account",
+                defaultMessage: "Create Account",
               })
         }
         buttonTitle={personalizedLabel}
@@ -202,7 +202,7 @@ export function Login() {
         secondaryAction={{
           label: intl.formatMessage({
             id: "app.login.button.connectWallet",
-            defaultMessage: "Sign in with a wallet",
+            defaultMessage: "Sign in with a Wallet",
           }),
           onSelect: walletLogin,
         }}

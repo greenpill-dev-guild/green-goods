@@ -206,7 +206,7 @@ export const WalletRequired: Story = {
     const canvas = within(canvasElement);
     await expect(await canvas.findByTestId("wallet-required-shell")).toBeVisible();
     await expect(
-      await canvas.findByRole("button", { name: "Sign out & connect wallet" })
+      await canvas.findByRole("button", { name: "Sign Out & Connect Wallet" })
     ).toBeVisible();
   },
 };

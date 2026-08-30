@@ -103,7 +103,7 @@ const messages: Record<string, string> = {
   "public.impact.evidence.error": "Evidence is temporarily unavailable.",
   "public.impact.evidence.partialData": "Showing partial evidence.",
   "public.impact.evidence.sourceLimitReached": "Capped slice.",
-  "public.impact.evidence.viewSource": "View source",
+  "public.impact.evidence.viewSource": "View Source",
   "public.impact.evidence.noSource": "Source pending",
   "public.impact.evidence.thumbnailFallback": "no image",
   "public.impact.proof.notPublicYet": "Not public yet",

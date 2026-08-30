@@ -167,11 +167,11 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
                 {selectedUIDs.length === domainActions.length
                   ? formatMessage({
                       id: "app.admin.assessment.domainAction.deselectAll",
-                      defaultMessage: "Deselect all",
+                      defaultMessage: "Deselect All",
                     })
                   : formatMessage({
                       id: "app.admin.assessment.domainAction.selectAll",
-                      defaultMessage: "Select all",
+                      defaultMessage: "Select All",
                     })}
               </button>
             </div>

@@ -78,7 +78,7 @@ export const ReadError: Story = {
   args: { isError: true },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    const retry = canvas.getByRole("button", { name: "Try again" });
+    const retry = canvas.getByRole("button", { name: "Try Again" });
     retry.click();
     await expect(args.onRetry).toHaveBeenCalled();
   },

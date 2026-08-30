@@ -58,7 +58,7 @@ const messages: Record<string, string> = {
   "public.home.getInTouch.emailPlaceholder": "you@example.com",
   "public.home.getInTouch.help": "One signup, no hoops. Your email stays with us.",
   "public.home.getInTouch.kicker": "Section 05: Get In Touch",
-  "public.home.getInTouch.scheduleCall": "Schedule a call",
+  "public.home.getInTouch.scheduleCall": "Schedule a Call",
   "public.home.getInTouch.scheduleIntro":
     "Want to talk through a Garden, funding path, or partnership? Book a quiet half-hour with the team.",
   "public.home.getInTouch.submit": "Subscribe",

@@ -110,7 +110,7 @@ export function PoolSettingsDialog({ console: pool, open, onClose }: PoolSetting
             >
               {formatMessage({
                 id: "cockpit.garden.pool.settings.save",
-                defaultMessage: "Save settings",
+                defaultMessage: "Save Settings",
               })}
             </AdminButton>
           </>

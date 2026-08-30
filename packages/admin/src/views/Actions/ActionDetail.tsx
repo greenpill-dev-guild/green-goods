@@ -81,7 +81,7 @@ export default function ActionDetail() {
             to: actionsListHref,
             label: formatMessage({
               id: "app.actions.backToActions",
-              defaultMessage: "Back to actions",
+              defaultMessage: "Back to Actions",
             }),
           }}
           sticky
@@ -118,7 +118,7 @@ export default function ActionDetail() {
           to: actionsListHref,
           label: formatMessage({
             id: "app.actions.backToActions",
-            defaultMessage: "Back to actions",
+            defaultMessage: "Back to Actions",
           }),
         }}
         metadata={

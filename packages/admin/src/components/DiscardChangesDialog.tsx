@@ -49,7 +49,7 @@ export function DiscardChangesDialog({
       })}
       cancelLabel={formatMessage({
         id: "app.admin.flow.discardChanges.cancel",
-        defaultMessage: "Keep editing",
+        defaultMessage: "Keep Editing",
       })}
       variant="warning"
     />

@@ -94,7 +94,7 @@ function CookieJarManageModalHarness({
                     size="sm"
                     className="h-5 w-5 min-w-0 rounded p-0"
                     onClick={fn()}
-                    aria-label="Edit max withdrawal"
+                    aria-label="Edit Max Withdrawal"
                   >
                     <RiPencilLine className="h-3 w-3" />
                   </AdminButton>

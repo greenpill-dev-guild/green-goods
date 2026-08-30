@@ -16,7 +16,7 @@ vi.mock("react-intl", () => ({
   useIntl: () => ({
     formatMessage: ({ id, defaultMessage }: { id: string; defaultMessage?: string }) => {
       const messages: Record<string, string> = {
-        "fab.submit": "Submit work",
+        "fab.submit": "Submit Work",
       };
       return messages[id] ?? defaultMessage ?? id;
     },
@@ -91,7 +91,7 @@ function UnstableFabRegistrationProbe({
   const config: FabConfig = {
     icon: StubIcon,
     label: "Submit",
-    actions: [{ id: "submit", icon: StubIcon, label: "Submit work", labelId: "fab.submit" }],
+    actions: [{ id: "submit", icon: StubIcon, label: "Submit Work", labelId: "fab.submit" }],
     onAction: (actionId) => onAction(actionId, tick),
   };
   const activeConfig = useFabConfigValue();
@@ -187,7 +187,7 @@ describe("Canvas Primitives", () => {
     const config: FabConfig = {
       icon: StubIcon,
       label: "Submit",
-      actions: [{ id: "submit", icon: StubIcon, label: "Submit work", labelId: "fab.submit" }],
+      actions: [{ id: "submit", icon: StubIcon, label: "Submit Work", labelId: "fab.submit" }],
       onAction,
     };
 
@@ -207,7 +207,7 @@ describe("Canvas Primitives", () => {
     const config: FabConfig = {
       icon: StubIcon,
       label: "Submit",
-      actions: [{ id: "submit", icon: StubIcon, label: "Submit work", labelId: "fab.submit" }],
+      actions: [{ id: "submit", icon: StubIcon, label: "Submit Work", labelId: "fab.submit" }],
       onAction,
     };
 
@@ -253,7 +253,7 @@ describe("Canvas Primitives", () => {
     const config: FabConfig = {
       icon: StubIcon,
       label: "Submit",
-      actions: [{ id: "submit", icon: StubIcon, label: "Submit work", labelId: "fab.submit" }],
+      actions: [{ id: "submit", icon: StubIcon, label: "Submit Work", labelId: "fab.submit" }],
       onAction: vi.fn(),
     };
 
@@ -272,7 +272,7 @@ describe("Canvas Primitives", () => {
     const config: FabConfig = {
       icon: StubIcon,
       label: "Submit",
-      actions: [{ id: "submit", icon: StubIcon, label: "Submit work", labelId: "fab.submit" }],
+      actions: [{ id: "submit", icon: StubIcon, label: "Submit Work", labelId: "fab.submit" }],
       onAction: vi.fn(),
     };
 
@@ -297,7 +297,7 @@ describe("Canvas Primitives", () => {
     const config: FabConfig = {
       icon: StubIcon,
       label: "Submit",
-      actions: [{ id: "submit", icon: StubIcon, label: "Submit work", labelId: "fab.submit" }],
+      actions: [{ id: "submit", icon: StubIcon, label: "Submit Work", labelId: "fab.submit" }],
       onAction: vi.fn(),
     };
 

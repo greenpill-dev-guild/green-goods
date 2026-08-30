@@ -242,9 +242,9 @@ vi.mock("@/components/Navigation", () => ({
 import Work from "../../views/Garden";
 
 const messages = {
-  "app.garden.selectYourAction": "Select your action",
+  "app.garden.selectYourAction": "Select Your Action",
   "app.garden.whatTypeOfWork": "What type of work?",
-  "app.garden.selectYourGarden": "Select your garden",
+  "app.garden.selectYourGarden": "Select Your Garden",
   "app.garden.whichGarden": "Which garden?",
   "app.garden.upload.title": "Upload Media",
   "app.garden.submit.tab.media.instruction": "Take a photo",
@@ -262,7 +262,7 @@ const messages = {
   "app.garden.commitment.linkSchedulingError":
     "Your work was submitted, but its commitment link could not be queued.",
   "app.garden.commitment.linkScheduled": "Work submitted. Its commitment link is queued.",
-  "app.garden.commitment.retryLink": "Retry link",
+  "app.garden.commitment.retryLink": "Retry Link",
 };
 
 const renderWithProviders = (initialRoute = "/home/garden") => {
@@ -439,7 +439,7 @@ describe("Garden (Work) View", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent(/work was submitted/i);
     expect(screen.getByRole("button", { name: "Upload Work" })).toBeDisabled();
-    screen.getByRole("button", { name: "Retry link" }).click();
+    screen.getByRole("button", { name: "Retry Link" }).click();
     expect(mockRetryLinkOnly).toHaveBeenCalledTimes(1);
   });
 

@@ -101,7 +101,7 @@ export function AccountProfilePanel({ controller, className }: AccountProfilePan
                 >
                   {formatMessage({
                     id: "cockpit.account.viewOnExplorer",
-                    defaultMessage: "View on explorer",
+                    defaultMessage: "View on Explorer",
                   })}
                   <RiExternalLinkLine className="h-3.5 w-3.5" aria-hidden="true" />
                 </a>

@@ -170,7 +170,7 @@ export function SeedStepHowMuch({
                 <option value="">
                   {formatMessage({
                     id: "cockpit.garden.pool.seed.requirementChoose",
-                    defaultMessage: "Choose an action",
+                    defaultMessage: "Choose an Action",
                   })}
                 </option>
                 {actions.map((action) => {
@@ -223,7 +223,7 @@ export function SeedStepHowMuch({
           >
             {formatMessage({
               id: "cockpit.garden.pool.seed.requirementAdd",
-              defaultMessage: "Add action",
+              defaultMessage: "Add Action",
             })}
           </AdminButton>
           {form.formState.errors.requirements?.message ? (

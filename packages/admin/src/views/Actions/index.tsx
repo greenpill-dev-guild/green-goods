@@ -162,7 +162,7 @@ export default function Actions() {
                   ? {
                       label: intl.formatMessage({
                         id: "app.actions.createFirst",
-                        defaultMessage: "Create your first action",
+                        defaultMessage: "Create Your First Action",
                       }),
                       onClick: actions.openCreateAction,
                     }
@@ -185,7 +185,7 @@ export default function Actions() {
               action={{
                 label: intl.formatMessage({
                   id: "admin.actions.resetFilters",
-                  defaultMessage: "Reset filters",
+                  defaultMessage: "Reset Filters",
                 }),
                 onClick: actions.resetFilters,
               }}

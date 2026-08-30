@@ -176,7 +176,7 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
               >
                 {formatMessage({
                   id: "app.admin.actions.detailsConfig.addFirstInput",
-                  defaultMessage: "Add your first input field",
+                  defaultMessage: "Add Your First Input Field",
                 })}
               </AdminButton>
             </div>

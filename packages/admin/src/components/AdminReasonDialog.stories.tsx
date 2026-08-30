@@ -20,11 +20,11 @@ const meta: Meta<typeof AdminReasonDialog> = {
     onClose: () => undefined,
     onConfirm: async () => undefined,
     tone: "garden",
-    title: "Pause this pool",
+    title: "Pause This Pool",
     description:
       "Pausing stops new commitments, claims, and confirmations across 7 open commitments. Proof, work linkage, and recovery stay open; resuming clears this reason.",
-    confirmLabel: "Pause pool",
-    cancelLabel: "Keep running",
+    confirmLabel: "Pause Pool",
+    cancelLabel: "Keep Running",
     suggestions: ["Weather or season", "Group is regrouping", "Safety first"],
   },
 };
@@ -35,7 +35,7 @@ type Story = StoryObj<typeof AdminReasonDialog>;
 export const Default: Story = {
   play: async () => {
     const dialog = within(document.body);
-    const confirm = await dialog.findByRole("button", { name: "Pause pool" });
+    const confirm = await dialog.findByRole("button", { name: "Pause Pool" });
     await expect(confirm).toBeDisabled();
     await userEvent.click(await dialog.findByRole("button", { name: "Safety first" }));
     await expect(confirm).toBeEnabled();
@@ -45,11 +45,11 @@ export const Default: Story = {
 export const Danger: Story = {
   args: {
     variant: "danger",
-    title: "Cancel this commitment",
+    title: "Cancel This Commitment",
     description:
       "Accepted becomes Cancelled with a recorded reason. Committed units release; the member sees the reason, never “cancelled” alone.",
-    confirmLabel: "Cancel commitment",
-    cancelLabel: "Keep commitment",
+    confirmLabel: "Cancel Commitment",
+    cancelLabel: "Keep Commitment",
     suggestions: ["Withdrawn by agreement", "No longer needed", "Duplicate commitment"],
   },
 };

@@ -204,7 +204,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
           >
             {formatMessage({
               id: "cockpit.garden.karma.profileLink",
-              defaultMessage: "Open Karma profile",
+              defaultMessage: "Open Karma Profile",
             })}
             <RiExternalLinkLine className="h-4 w-4" aria-hidden />
           </a>

@@ -237,7 +237,7 @@ export function PoolStatusCard({
             <AdminButton type="button" variant="text" size="sm" onClick={onReviewLive}>
               {formatMessage({
                 id: "cockpit.garden.pool.close.reviewLive",
-                defaultMessage: "Review live commitments",
+                defaultMessage: "Review Live Commitments",
               })}
             </AdminButton>
           ) : null}
@@ -259,7 +259,7 @@ export function PoolStatusCard({
             onClick={onEditSettings}
             disabled={actDisabled}
           >
-            {formatMessage({ id: "cockpit.garden.pool.act.editPool", defaultMessage: "Edit pool" })}
+            {formatMessage({ id: "cockpit.garden.pool.act.editPool", defaultMessage: "Edit Pool" })}
           </AdminButton>
           {model.status === "paused" ? (
             <AdminButton

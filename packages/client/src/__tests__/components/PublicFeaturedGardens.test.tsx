@@ -48,7 +48,7 @@ import { PublicFeaturedGardens } from "../../components/Public/PublicFeaturedGar
 const messages: Record<string, string> = {
   "public.home.featured.kicker": "§ 01 — Featured Gardens",
   "public.home.featured.title": "Tended places, openly recorded.",
-  "public.home.featured.cta": "Browse all Gardens",
+  "public.home.featured.cta": "Browse All Gardens",
   "public.home.featured.empty": "Featured Gardens will appear here as they come online.",
   "public.gardens.gardeners": "{count} gardeners",
   "public.gardens.works": "{count} entries",

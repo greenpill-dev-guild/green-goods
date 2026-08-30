@@ -130,7 +130,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           )}
         >
           <RiRefreshLine className="h-4 w-4" />
-          Try again
+          Try Again
         </button>
       </div>
     );

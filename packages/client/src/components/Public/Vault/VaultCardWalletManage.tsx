@@ -630,7 +630,7 @@ function RestoreEmailWallet({
           >
             {formatMessage({
               id: "public.vaults.manage.card.sendCode",
-              defaultMessage: "Send email code",
+              defaultMessage: "Send Email Code",
             })}
           </EditorialGhostButton>
         ) : null}

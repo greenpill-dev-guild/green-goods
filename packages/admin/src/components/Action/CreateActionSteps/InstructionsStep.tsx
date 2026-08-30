@@ -51,7 +51,7 @@ export function InstructionsStep({ form }: InstructionsStepProps) {
           <option value="">
             {formatMessage({
               id: "app.admin.actions.create.templateKeepCurrent",
-              defaultMessage: "Keep current configuration",
+              defaultMessage: "Keep Current Configuration",
             })}
           </option>
           <optgroup

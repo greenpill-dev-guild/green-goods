@@ -251,10 +251,10 @@ describe("Login View - New User (two-step create)", () => {
   it("shows the entry screen without an input: create, wallet, recover", () => {
     renderWithRouter();
 
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create Account");
     expect(screen.getByTestId("primary-button")).toBeEnabled();
     expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a Wallet");
     // First-timers get the reframed "existing account" link, not "Recover…";
     // recovery-by-username still exists for existing users on a new device.
     expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Already have an account?");
@@ -267,7 +267,7 @@ describe("Login View - New User (two-step create)", () => {
 
     await user.click(screen.getByTestId("primary-button"));
 
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create Account");
     expect(screen.getByTestId("primary-button")).toBeDisabled();
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
     // Form screens drop the wallet secondary; Back is the tertiary.
@@ -279,7 +279,7 @@ describe("Login View - New User (two-step create)", () => {
     await user.click(screen.getByTestId("tertiary-button"));
 
     expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a Wallet");
   });
 
   it("creates an account from the create form", async () => {
@@ -300,8 +300,8 @@ describe("Login View - New User (two-step create)", () => {
     renderWithRouter();
 
     // Entry: no recover link without a passkey server.
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create Account");
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a Wallet");
     expect(screen.queryByTestId("tertiary-button")).not.toBeInTheDocument();
 
     await user.click(screen.getByTestId("primary-button"));
@@ -365,7 +365,7 @@ describe("Login View - New User (two-step create)", () => {
 
     // Back returns to the entry screen where a fresh account can be created.
     await user.click(screen.getByTestId("tertiary-button"));
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create Account");
     expect(screen.queryByTestId("error-message")).not.toBeInTheDocument();
   });
 
@@ -438,7 +438,7 @@ describe("Login View - Existing User (entry screen)", () => {
 
   it("shows Sign in with passkey as primary for returning users", () => {
     renderWithRouter();
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with passkey");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with Passkey");
     expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
   });
 
@@ -454,12 +454,12 @@ describe("Login View - Existing User (entry screen)", () => {
   it("falls back to the generic label when the stored username is blank", () => {
     mockStoredUsername = "   ";
     renderWithRouter();
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with passkey");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with Passkey");
   });
 
   it("shows Sign in with a wallet as secondary for returning users", () => {
     renderWithRouter();
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a Wallet");
   });
 
   it("offers username recovery as tertiary when the passkey server is enabled", () => {
@@ -486,7 +486,7 @@ describe("Login View - Existing User (entry screen)", () => {
 
     await user.click(screen.getByTestId("tertiary-button"));
 
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with passkey");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with Passkey");
   });
 
   it("keeps recovery flat for returning users too", async () => {

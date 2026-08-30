@@ -138,13 +138,13 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
               {
                 id: "edit-garden",
                 icon: RiSeedlingLine,
-                label: "Edit garden",
+                label: "Edit Garden",
                 labelId: "cockpit.garden.action.editGarden",
               },
               {
                 id: "view-public",
                 icon: RiTeamLine,
-                label: "View public",
+                label: "View Public",
                 labelId: "cockpit.garden.action.viewPublic",
               },
             ],

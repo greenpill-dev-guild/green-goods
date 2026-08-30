@@ -40,7 +40,7 @@ export const MobileDrawer: Story = {
   globals: { viewport: { value: "mobile" } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole("button", { name: "Open menu" }));
+    await userEvent.click(canvas.getByRole("button", { name: "Open Menu" }));
     await expect(canvas.getByRole("dialog")).toBeVisible();
     await expect(canvas.getByRole("navigation", { name: "Mobile navigation" })).toBeVisible();
     await userEvent.click(canvas.getByRole("link", { name: "Install App" }));

@@ -17,7 +17,7 @@ const actions: ViewAction[] = [
   },
   {
     id: "add-member",
-    label: "Add member",
+    label: "Add Member",
     labelId: "cockpit.community.action.addMember",
     icon: RiUserAddLine,
     onClick: vi.fn(),
@@ -37,6 +37,6 @@ describe("AdminViewActions", () => {
     expect(screen.getByRole("button", { name: "Financiar Cookie Jar" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Adicionar membro" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Fund Cookie Jar" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Add member" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add Member" })).not.toBeInTheDocument();
   });
 });

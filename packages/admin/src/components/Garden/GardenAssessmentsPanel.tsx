@@ -92,7 +92,7 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
                   className="inline-flex items-center rounded text-sm text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
                   aria-label={formatMessage({
                     id: "app.admin.assessments.viewOnEas",
-                    defaultMessage: "View assessment on EAS Explorer",
+                    defaultMessage: "View Assessment on EAS Explorer",
                   })}
                 >
                   {formatMessage({ id: "app.actions.view" })}{" "}

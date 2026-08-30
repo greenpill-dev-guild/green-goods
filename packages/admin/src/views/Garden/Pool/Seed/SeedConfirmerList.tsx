@@ -92,7 +92,7 @@ export function SeedConfirmerList({
         <AdminTextField
           label={formatMessage({
             id: "cockpit.garden.pool.seed.confirmerAddress",
-            defaultMessage: "Add an address",
+            defaultMessage: "Add an Address",
           })}
           value={confirmerDraft}
           onChange={(event) => onConfirmerDraftChange(event.target.value)}

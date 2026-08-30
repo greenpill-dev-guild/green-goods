@@ -602,9 +602,9 @@ describe("SectionNotice", () => {
     const notice = screen.getByRole("status");
     expect(notice).toHaveClass("min-h-40");
     expect(notice).not.toHaveClass("flex", "items-center");
-    expect(notice).toHaveTextContent("Field notes could not be loaded right now. Try again");
+    expect(notice).toHaveTextContent("Field notes could not be loaded right now. Try Again");
 
-    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
     expect(onRetry).toHaveBeenCalledOnce();
   });
 });
@@ -823,7 +823,7 @@ describe("GardenDetail § 02 Commitments", () => {
     expect(within(campaignRow).getByText("rides").nextElementSibling).toHaveTextContent("9 of 16");
 
     // One block kicker over both rows, and it does not repeat each row's
-    // own "Open now" so neither reading doubles the other.
+    // own "Open Now" so neither reading doubles the other.
     expect(within(section).getAllByText(en["public.pool.garden.openKicker"])).toHaveLength(1);
     expect(en["public.pool.garden.openKicker"]).not.toBe(en["public.pool.garden.cycle.openNow"]);
 

@@ -115,7 +115,7 @@ export function CanvasLayout() {
             >
               {intl.formatMessage({
                 id: "app.admin.layout.skipToContent",
-                defaultMessage: "Skip to content",
+                defaultMessage: "Skip to Content",
               })}
             </a>
 

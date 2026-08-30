@@ -201,7 +201,7 @@ export function PublicEndowmentPanel({
                 className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-stroke-soft-200 bg-bg-white-0 text-text-sub-600 transition-colors hover:bg-bg-weak-50 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
                 aria-label={formatMessage({
                   id: "public.fund.endowments.close",
-                  defaultMessage: "Close endowments",
+                  defaultMessage: "Close Endowments",
                 })}
               >
                 <RiCloseLine className="h-5 w-5" />
@@ -215,7 +215,7 @@ export function PublicEndowmentPanel({
                 <h3 className="font-serif text-xl font-normal text-text-strong-950">
                   {formatMessage({
                     id: "public.fund.endowments.connect.title",
-                    defaultMessage: "Connect to see your endowments",
+                    defaultMessage: "Connect to See Your Endowments",
                   })}
                 </h3>
                 <p className="mt-3 text-sm leading-[1.6] text-text-sub-600">

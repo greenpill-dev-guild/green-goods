@@ -210,7 +210,7 @@ export function PublicInstallDialog({
                 >
                   {formatMessage({
                     id: "public.installDialog.braveFallback",
-                    defaultMessage: "Open in this tab instead",
+                    defaultMessage: "Open in This Tab Instead",
                   })}
                 </a>
               </div>

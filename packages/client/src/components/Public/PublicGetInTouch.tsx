@@ -237,7 +237,7 @@ export function PublicGetInTouch() {
               >
                 {formatMessage({
                   id: "public.home.getInTouch.scheduleCall",
-                  defaultMessage: "Schedule a call",
+                  defaultMessage: "Schedule a Call",
                 })}
                 <span aria-hidden="true">→</span>
               </a>

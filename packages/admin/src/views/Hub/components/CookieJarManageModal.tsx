@@ -232,7 +232,7 @@ export function CookieJarManageModal({
                           disabled={updateMaxWithdrawalMutation.isPending}
                           aria-label={formatMessage({
                             id: "app.cookieJar.confirmMaxWithdrawal",
-                            defaultMessage: "Confirm max withdrawal",
+                            defaultMessage: "Confirm Max Withdrawal",
                           })}
                         >
                           <RiCheckLine className="h-3.5 w-3.5 text-success-dark" />
@@ -244,7 +244,7 @@ export function CookieJarManageModal({
                           onClick={cancelEditing}
                           aria-label={formatMessage({
                             id: "app.cookieJar.cancelEdit",
-                            defaultMessage: "Cancel edit",
+                            defaultMessage: "Cancel Edit",
                           })}
                         >
                           <RiCloseLine className="h-3.5 w-3.5" />
@@ -261,7 +261,7 @@ export function CookieJarManageModal({
                             onClick={() => startEditing(jar, "maxWithdrawal")}
                             aria-label={formatMessage({
                               id: "app.cookieJar.editMaxWithdrawal",
-                              defaultMessage: "Edit max withdrawal",
+                              defaultMessage: "Edit Max Withdrawal",
                             })}
                           >
                             <RiPencilLine className="h-3 w-3" />
@@ -308,7 +308,7 @@ export function CookieJarManageModal({
                           disabled={updateIntervalMutation.isPending}
                           aria-label={formatMessage({
                             id: "app.cookieJar.confirmWithdrawalCooldown",
-                            defaultMessage: "Confirm withdrawal cooldown",
+                            defaultMessage: "Confirm Withdrawal Cooldown",
                           })}
                         >
                           <RiCheckLine className="h-3.5 w-3.5 text-success-dark" />
@@ -320,7 +320,7 @@ export function CookieJarManageModal({
                           onClick={cancelEditing}
                           aria-label={formatMessage({
                             id: "app.cookieJar.cancelEdit",
-                            defaultMessage: "Cancel edit",
+                            defaultMessage: "Cancel Edit",
                           })}
                         >
                           <RiCloseLine className="h-3.5 w-3.5" />
@@ -337,7 +337,7 @@ export function CookieJarManageModal({
                             onClick={() => startEditing(jar, "interval")}
                             aria-label={formatMessage({
                               id: "app.cookieJar.editWithdrawalCooldown",
-                              defaultMessage: "Edit withdrawal cooldown",
+                              defaultMessage: "Edit Withdrawal Cooldown",
                             })}
                           >
                             <RiPencilLine className="h-3 w-3" />

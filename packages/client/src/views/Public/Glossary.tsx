@@ -235,7 +235,7 @@ export default function Glossary() {
               <EditorialLinkArrow to={`${DOCS_BASE}/glossary`} external>
                 {formatMessage({
                   id: "public.glossary.openDocsGlossary",
-                  defaultMessage: "Open the full docs glossary",
+                  defaultMessage: "Open the Full Docs Glossary",
                 })}
               </EditorialLinkArrow>
             </div>

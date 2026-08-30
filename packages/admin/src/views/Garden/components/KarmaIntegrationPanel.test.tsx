@@ -102,7 +102,7 @@ describe("KarmaIntegrationPanel", () => {
 
     await userEvent.click(
       screen.getByRole("button", {
-        name: status === "failed" ? "Retry Karma sync" : "Retry sync",
+        name: status === "failed" ? "Retry Karma Sync" : "Retry Sync",
       })
     );
 
@@ -112,7 +112,7 @@ describe("KarmaIntegrationPanel", () => {
   it("does not offer reconciliation to a read-only user", () => {
     renderPanel({ status: "failed", canReconcile: false });
 
-    expect(screen.queryByRole("button", { name: "Retry Karma sync" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry Karma Sync" })).not.toBeInTheDocument();
   });
 
   it("reports legacy GardenAccounts as migration-blocked without offering an unsafe action", () => {

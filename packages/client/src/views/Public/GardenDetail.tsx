@@ -208,13 +208,13 @@ export default function GardenDetail() {
             <EditorialPrimaryLink to={fundHref}>
               {formatMessage({
                 id: "public.gardenDetail.support",
-                defaultMessage: "Support this Garden",
+                defaultMessage: "Support This Garden",
               })}
             </EditorialPrimaryLink>
             <EditorialGhostLink to="/impact">
               {formatMessage({
                 id: "public.gardenDetail.evidence.cta",
-                defaultMessage: "View public evidence",
+                defaultMessage: "View Public Evidence",
               })}
             </EditorialGhostLink>
           </div>
@@ -251,7 +251,7 @@ function GardenUnavailable({ onRetry }: { onRetry: () => void }) {
             onClick={onRetry}
             className="inline-flex rounded-full border border-stroke-soft-200 bg-bg-white-0 px-5 py-2.5 text-sm font-medium text-text-strong-950 hover:bg-bg-weak-50"
           >
-            {formatMessage({ id: "public.gardenDetail.retry", defaultMessage: "Try again" })}
+            {formatMessage({ id: "public.gardenDetail.retry", defaultMessage: "Try Again" })}
           </button>
           <Link
             to="/gardens"

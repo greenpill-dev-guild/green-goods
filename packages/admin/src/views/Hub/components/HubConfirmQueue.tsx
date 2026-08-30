@@ -81,7 +81,7 @@ export function HubConfirmQueue({
         <AdminButton type="button" variant="filled" onClick={() => void toConfirm.refetch()}>
           {formatMessage({
             id: "cockpit.garden.pool.readError.retry",
-            defaultMessage: "Try again",
+            defaultMessage: "Try Again",
           })}
         </AdminButton>
       </EmptyStateShell>
@@ -220,7 +220,7 @@ export function HubConfirmQueue({
                       >
                         {formatMessage({
                           id: "cockpit.hub.confirm.act.confirm",
-                          defaultMessage: "Confirm kept",
+                          defaultMessage: "Confirm Kept",
                         })}
                       </AdminButton>
                     ) : (

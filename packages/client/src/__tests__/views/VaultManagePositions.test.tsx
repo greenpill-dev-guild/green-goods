@@ -506,7 +506,7 @@ describe("/vaults?manage=positions", () => {
     expect(within(panel).getByText("Connected wallet")).toBeInTheDocument();
     expect(within(panel).getByText("vault-owner.eth")).toBeInTheDocument();
     expect(within(panel).getByText("No endowments for this wallet yet")).toBeInTheDocument();
-    expect(within(panel).getByRole("button", { name: "Endow a campaign" })).toBeInTheDocument();
+    expect(within(panel).getByRole("button", { name: "Endow a Campaign" })).toBeInTheDocument();
   });
 
   it("gates redeem: disabled over the redeemable max, enabled and signs for a valid share amount", async () => {
@@ -697,8 +697,11 @@ describe("checkout success no longer points to Fund", () => {
 
     const success = await screen.findByTestId("vault-wallet-endow-success");
     expect(mocks.walletEndowMutate).toHaveBeenCalledTimes(1);
-    // No Fund-page CTA or copy remains in the success state.
-    expect(container.querySelector('a[href="/fund"]')).toBeNull();
+    // No Fund-page CTA or copy remains in the success state. Scoped to the
+    // success region: the page footer legitimately carries a /fund wayfinding
+    // link on every public page (DESIGN.browser.md § Compact utility footer).
+    expect(within(success).queryByRole("link", { name: /Fund/i })).toBeNull();
+    expect(success.querySelector('a[href="/fund"]')).toBeNull();
     expect(within(success).queryByText(/Fund page/i)).toBeNull();
     // Primary CTA is now Manage Endowments.
     await user.click(screen.getByRole("button", { name: "Manage Endowments" }));

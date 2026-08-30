@@ -76,7 +76,7 @@ describe("GardenCommunityCard yield wiring", () => {
     renderCard();
 
     expect(screen.getByText("Yield connected")).toBeInTheDocument();
-    expect(screen.queryByText("Connect to yield")).not.toBeInTheDocument();
+    expect(screen.queryByText("Connect to Yield")).not.toBeInTheDocument();
   });
 
   it("missing-resolver-wiring with known expected pool: shows Connect to yield link to /community/coordination", () => {

@@ -36,7 +36,7 @@ export function CommitmentExpireDialog({
       variant="danger"
       title={formatMessage({
         id: "cockpit.garden.pool.expire.title",
-        defaultMessage: "Expire this commitment",
+        defaultMessage: "Expire This Commitment",
       })}
       description={formatMessage(
         {
@@ -48,11 +48,11 @@ export function CommitmentExpireDialog({
       )}
       confirmLabel={formatMessage({
         id: "cockpit.garden.pool.expire.confirm",
-        defaultMessage: "Expire now",
+        defaultMessage: "Expire Now",
       })}
       cancelLabel={formatMessage({
         id: "cockpit.garden.pool.expire.keep",
-        defaultMessage: "Keep it live",
+        defaultMessage: "Keep It Live",
       })}
       isLoading={isLoading}
       onConfirm={onConfirm}

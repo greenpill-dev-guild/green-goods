@@ -193,7 +193,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
       <FormInfo
         title={intl.formatMessage({
           id: "app.garden.selectYourAction",
-          defaultMessage: "Select your action",
+          defaultMessage: "Select Your Action",
         })}
         info={intl.formatMessage({
           id: "app.garden.whatTypeOfWork",
@@ -299,7 +299,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
       <FormInfo
         title={intl.formatMessage({
           id: "app.garden.selectYourGarden",
-          defaultMessage: "Select your garden",
+          defaultMessage: "Select Your Garden",
         })}
         info={intl.formatMessage({
           id: "app.garden.whichGarden",
@@ -376,7 +376,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
                     }
                     label={intl.formatMessage({
                       id: "app.garden.communityOnramp.action",
-                      defaultMessage: "Join garden",
+                      defaultMessage: "Join Garden",
                     })}
                     className="w-full"
                   />

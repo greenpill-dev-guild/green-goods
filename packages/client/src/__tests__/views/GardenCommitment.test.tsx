@@ -298,7 +298,7 @@ describe("GardenCommitment", () => {
       routeGarden: GARDEN,
     });
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("3 hours");
-    expect(screen.getByRole("button", { name: "Add proof" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add Proof" })).toBeInTheDocument();
   });
 
   it("parses an invalid route id as not found", () => {
@@ -334,7 +334,7 @@ describe("GardenCommitment", () => {
 
   it("opens the proof composer from the controller-selected Add proof act", async () => {
     render();
-    await userEvent.click(screen.getByRole("button", { name: "Add proof" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add Proof" }));
     expect(screen.getByText("Proof composer")).toBeInTheDocument();
   });
 
@@ -365,7 +365,7 @@ describe("GardenCommitment", () => {
 
     expect(screen.getByText("Assigned: Prune the north beds")).toBeInTheDocument();
     expect(screen.getByText("1 approved work · no proof yet")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Join the team" }));
+    await userEvent.click(screen.getByRole("button", { name: "Join the Team" }));
     expect(mockActs.join).toHaveBeenCalledTimes(1);
   });
 
@@ -464,7 +464,7 @@ describe("GardenCommitment", () => {
         </Routes>
       </MemoryRouter>
     );
-    expect(screen.getByRole("button", { name: "Add proof" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add Proof" })).toBeDisabled();
 
     mockRetryJob.mockResolvedValue(undefined);
     mockDiscardJob.mockResolvedValue(true);
@@ -491,7 +491,7 @@ describe("GardenCommitment", () => {
       </MemoryRouter>
     );
     const alert = screen.getByRole("alert");
-    await userEvent.click(within(alert).getByRole("button", { name: "Try again" }));
+    await userEvent.click(within(alert).getByRole("button", { name: "Try Again" }));
     await userEvent.click(within(alert).getByRole("button", { name: "Discard" }));
     expect(mockRetryJob).toHaveBeenCalledWith("job-9");
     expect(mockDiscardJob).toHaveBeenCalledWith("job-9");
@@ -500,7 +500,7 @@ describe("GardenCommitment", () => {
   it("delegates send and confirmation acts", async () => {
     mockUseController.mockReturnValue(controller({ actKind: "sendForConfirmation" }));
     const view = render();
-    await userEvent.click(screen.getByRole("button", { name: "Send for confirmation" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send for Confirmation" }));
     expect(mockActs.sendForConfirmation).toHaveBeenCalledTimes(1);
 
     mockUseController.mockReturnValue(
@@ -516,8 +516,8 @@ describe("GardenCommitment", () => {
         </Routes>
       </MemoryRouter>
     );
-    await userEvent.click(screen.getByRole("button", { name: "Confirm it was kept" }));
-    const answers = screen.getAllByRole("button", { name: "Confirm it was kept" });
+    await userEvent.click(screen.getByRole("button", { name: "Confirm It Was Kept" }));
+    const answers = screen.getAllByRole("button", { name: "Confirm It Was Kept" });
     await userEvent.click(answers.at(-1)!);
     expect(mockActs.confirm).toHaveBeenCalledTimes(1);
   });
@@ -531,10 +531,10 @@ describe("GardenCommitment", () => {
       })
     );
     render();
-    await userEvent.click(screen.getByRole("button", { name: "Confirm it was kept" }));
+    await userEvent.click(screen.getByRole("button", { name: "Confirm It Was Kept" }));
     await userEvent.click(screen.getByRole("button", { name: "Not yet" }));
     await userEvent.type(screen.getByLabelText("What still needs doing?"), "The far bed");
-    await userEvent.click(screen.getByRole("button", { name: "Send to the stewards" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send to the Stewards" }));
 
     expect(mockActs.notYet).toHaveBeenCalledWith("The far bed");
     expect(screen.getByText(/Could not reach the stewards/i)).toBeInTheDocument();
@@ -550,11 +550,11 @@ describe("GardenCommitment", () => {
       })
     );
     render();
-    await userEvent.click(screen.getByRole("button", { name: "Withdraw this" }));
+    await userEvent.click(screen.getByRole("button", { name: "Withdraw This" }));
     await userEvent.type(screen.getByLabelText("Reason (required)"), "Plans changed");
 
     expect(screen.getByText(/could not be saved/i)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await userEvent.click(screen.getByRole("button", { name: "Try Again" }));
     expect(mockActs.withdraw).toHaveBeenCalledWith("Plans changed");
   });
 
@@ -649,7 +649,7 @@ describe("GardenCommitment", () => {
 
     const alert = screen.getByRole("alert");
     expect(alert).toHaveTextContent(/no longer have the garden role/i);
-    expect(within(alert).queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+    expect(within(alert).queryByRole("button", { name: "Try Again" })).not.toBeInTheDocument();
     expect(within(alert).getByRole("button", { name: "Discard" })).toBeInTheDocument();
   });
 

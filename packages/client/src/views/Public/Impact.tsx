@@ -503,7 +503,7 @@ export default function ImpactPage() {
                     >
                       {formatMessage({
                         id: "public.impact.evidence.resetFilters",
-                        defaultMessage: "Reset filters",
+                        defaultMessage: "Reset Filters",
                       })}
                       <span aria-hidden="true">→</span>
                     </button>

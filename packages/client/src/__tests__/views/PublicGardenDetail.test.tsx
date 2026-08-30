@@ -154,13 +154,13 @@ const messages: Record<string, string> = {
   "public.gardenDetail.notFound": "Garden not found",
   "public.gardenDetail.unavailable": "This Garden could not be loaded",
   "public.gardenDetail.unavailableHelp": "Could not read it right now.",
-  "public.gardenDetail.retry": "Try again",
+  "public.gardenDetail.retry": "Try Again",
   "public.gardenDetail.notFoundHelp": "The link may be stale.",
   "public.gardenDetail.backToGardens": "Browse Gardens",
   "public.gardenDetail.backToArchive": "All Gardens",
   "public.gardenDetail.place.empty": "Garden narrative will appear here.",
-  "public.gardenDetail.support": "Support this Garden",
-  "public.gardenDetail.evidence.cta": "View public evidence",
+  "public.gardenDetail.support": "Support This Garden",
+  "public.gardenDetail.evidence.cta": "View Public Evidence",
   "public.gardenDetail.stats.entries": "Entries",
   "public.gardenDetail.stats.handsAtWork": "Hands at work",
   "public.gardenDetail.stats.assessments": "Assessments",
@@ -415,7 +415,7 @@ describe("GardenDetail", () => {
 
   it("links the Support CTA to /fund?garden=<slug>", () => {
     renderView();
-    expect(screen.getByRole("link", { name: "Support this Garden" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Support This Garden" })).toHaveAttribute(
       "href",
       "/fund?garden=solar-community-garden"
     );
@@ -466,7 +466,7 @@ describe("GardenDetail", () => {
     expect(screen.getByText("This Garden could not be loaded")).toBeInTheDocument();
     expect(screen.queryByText("Garden not found")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
     expect(refetch).toHaveBeenCalled();
   });
 

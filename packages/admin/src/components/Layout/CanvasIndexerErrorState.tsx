@@ -37,7 +37,7 @@ export function CanvasIndexerErrorState({ onRetry }: CanvasIndexerErrorStateProp
         })}
       </p>
       <AdminButton className="mt-6" onClick={onRetry}>
-        {formatMessage({ id: "cockpit.access.indexerErrorRetry", defaultMessage: "Try again" })}
+        {formatMessage({ id: "cockpit.access.indexerErrorRetry", defaultMessage: "Try Again" })}
       </AdminButton>
     </section>
   );

@@ -284,7 +284,7 @@ describe("CookiesPage", () => {
     expect(
       await screen.findByText(/Connect a wallet to check claim access and add funds/i)
     ).toBeInTheDocument();
-    const connectButtons = screen.getAllByRole("button", { name: "Connect wallet" });
+    const connectButtons = screen.getAllByRole("button", { name: "Connect Wallet" });
     expect(connectButtons.length).toBeGreaterThanOrEqual(1);
     await user.click(connectButtons[0]!);
     expect(mockLoginWithWallet).toHaveBeenCalledTimes(1);

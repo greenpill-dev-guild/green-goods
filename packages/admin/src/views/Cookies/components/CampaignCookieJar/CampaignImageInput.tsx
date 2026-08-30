@@ -128,7 +128,7 @@ export function CampaignImageInput({
         {showUrlFallback
           ? formatMessage({
               id: "cockpit.community.cookies.hideImageUrl",
-              defaultMessage: "Hide image URL",
+              defaultMessage: "Hide Image URL",
             })
           : formatMessage({
               id: "cockpit.community.cookies.pasteImageUrl",

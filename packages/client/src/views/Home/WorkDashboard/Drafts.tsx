@@ -116,7 +116,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
               className="p-2 hover:bg-bg-weak-50 rounded-lg tap-target-lg transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
               aria-label={intl.formatMessage({
                 id: "app.drafts.refresh",
-                defaultMessage: "Refresh drafts",
+                defaultMessage: "Refresh Drafts",
               })}
             >
               <RiRefreshLine className="w-4 h-4 text-text-sub-600" />
@@ -157,7 +157,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
           className="p-2 hover:bg-bg-weak-50 rounded-lg tap-target-lg transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
           aria-label={intl.formatMessage({
             id: "app.drafts.refresh",
-            defaultMessage: "Refresh drafts",
+            defaultMessage: "Refresh Drafts",
           })}
         >
           <RiRefreshLine className="w-4 h-4 text-text-sub-600" />

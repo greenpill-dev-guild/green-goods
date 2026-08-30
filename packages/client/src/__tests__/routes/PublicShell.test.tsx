@@ -86,8 +86,8 @@ const messages: Record<string, string> = {
   "public.nav.fund": "Fund",
   "public.nav.installApp": "Install App",
   "public.nav.openApp": "Open App",
-  "public.nav.openMenu": "Open menu",
-  "public.nav.closeMenu": "Close menu",
+  "public.nav.openMenu": "Open Menu",
+  "public.nav.closeMenu": "Close Menu",
 };
 
 const FundContent = () =>

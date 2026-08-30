@@ -40,7 +40,7 @@ export function CommitmentReasonDialogs({
         variant="danger"
         title={formatMessage({
           id: "cockpit.garden.pool.commitment.cancel.title",
-          defaultMessage: "Cancel this commitment",
+          defaultMessage: "Cancel This Commitment",
         })}
         description={formatMessage({
           id: "cockpit.garden.pool.commitment.cancel.description",
@@ -49,11 +49,11 @@ export function CommitmentReasonDialogs({
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.commitment.cancel.confirm",
-          defaultMessage: "Cancel commitment",
+          defaultMessage: "Cancel Commitment",
         })}
         cancelLabel={formatMessage({
           id: "cockpit.garden.pool.commitment.cancel.keep",
-          defaultMessage: "Keep commitment",
+          defaultMessage: "Keep Commitment",
         })}
         suggestions={[
           formatMessage({
@@ -81,7 +81,7 @@ export function CommitmentReasonDialogs({
         tone={tone}
         title={formatMessage({
           id: "cockpit.garden.pool.commitment.markReady.title",
-          defaultMessage: "Mark ready with override",
+          defaultMessage: "Mark Ready with Override",
         })}
         description={formatMessage({
           id: "cockpit.garden.pool.commitment.markReady.description",
@@ -90,7 +90,7 @@ export function CommitmentReasonDialogs({
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.commitment.markReady.confirm",
-          defaultMessage: "Mark ready",
+          defaultMessage: "Mark Ready",
         })}
         suggestions={[
           formatMessage({
@@ -181,7 +181,7 @@ export function CommitmentFallbackDialog({
             })
           : formatMessage({
               id: "cockpit.garden.pool.commitment.fallback.gardenTitle",
-              defaultMessage: "Confirm as garden fallback",
+              defaultMessage: "Confirm as Garden Fallback",
             })
       }
       description={
@@ -201,11 +201,11 @@ export function CommitmentFallbackDialog({
         fallbackPath === "PROTOCOL_FALLBACK"
           ? formatMessage({
               id: "cockpit.garden.pool.commitment.act.confirmProtocolConfirm",
-              defaultMessage: "Confirm for Green Goods team",
+              defaultMessage: "Confirm for Green Goods Team",
             })
           : formatMessage({
               id: "cockpit.garden.pool.commitment.act.confirmGardenConfirm",
-              defaultMessage: "Confirm as garden fallback",
+              defaultMessage: "Confirm as Garden Fallback",
             })
       }
       suggestions={
@@ -265,7 +265,7 @@ export function CommitmentDeclineClaimDialog({
       tone={tone}
       title={formatMessage({
         id: "cockpit.garden.pool.declineClaim.title",
-        defaultMessage: "Decline this request",
+        defaultMessage: "Decline This Request",
       })}
       description={formatMessage({
         id: "cockpit.garden.pool.declineClaim.description",
@@ -274,11 +274,11 @@ export function CommitmentDeclineClaimDialog({
       })}
       confirmLabel={formatMessage({
         id: "cockpit.garden.pool.declineClaim.confirm",
-        defaultMessage: "Decline request",
+        defaultMessage: "Decline Request",
       })}
       cancelLabel={formatMessage({
         id: "cockpit.garden.pool.declineClaim.keep",
-        defaultMessage: "Keep pending",
+        defaultMessage: "Keep Pending",
       })}
       blockedReason={blockedReason}
       onConfirm={async (reason) => {

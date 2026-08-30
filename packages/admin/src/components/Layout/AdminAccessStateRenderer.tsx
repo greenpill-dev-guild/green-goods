@@ -56,7 +56,7 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
           >
             {intl.formatMessage({
               id: "app.admin.auth.signOutAndReconnect",
-              defaultMessage: "Sign out & connect wallet",
+              defaultMessage: "Sign Out & Connect Wallet",
             })}
           </AdminButton>
         }

@@ -51,7 +51,7 @@ export function WalletConnectButton({
         {connectLabel ??
           formatMessage({
             id: "public.cookies.connectWallet",
-            defaultMessage: "Connect wallet",
+            defaultMessage: "Connect Wallet",
           })}
       </Button>
     );

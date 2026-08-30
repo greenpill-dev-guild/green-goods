@@ -68,7 +68,7 @@ export function CanvasWorkspaceSelectionState({
             <h2 className="label-md text-text-strong sm:text-lg">
               {formatMessage({
                 id: "cockpit.workspace.chooseGardenTitle",
-                defaultMessage: "Choose a garden",
+                defaultMessage: "Choose a Garden",
               })}
             </h2>
             <p className="mt-1 text-sm text-text-sub">

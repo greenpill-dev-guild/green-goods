@@ -260,7 +260,7 @@ describe("hooks/app/useInstallGuidance", () => {
       expect(result.current.primaryAction.type).toBe("open-app");
       expect(result.current.primaryAction.label).toBe("Open App");
       expect(result.current.secondaryAction?.type).toBe("show-manual-steps");
-      expect(result.current.secondaryAction?.label).toBe("Install again");
+      expect(result.current.secondaryAction?.label).toBe("Install Again");
       expect(result.current.showBrowserOption).toBe(true);
       expect(result.current.manualInstructions).toBeDefined();
       expect(result.current.manualInstructions![0].icon).toBe("menu");

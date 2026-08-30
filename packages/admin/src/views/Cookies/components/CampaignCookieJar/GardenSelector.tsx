@@ -83,7 +83,7 @@ export function GardenSelector({
         <FormField
           label={formatMessage({
             id: "cockpit.community.cookies.searchGardens",
-            defaultMessage: "Search gardens",
+            defaultMessage: "Search Gardens",
           })}
           htmlFor="campaign-cookie-jar-garden-search"
         >
@@ -108,7 +108,7 @@ export function GardenSelector({
           >
             {formatMessage({
               id: "cockpit.community.cookies.selectVisibleGardens",
-              defaultMessage: "Select visible",
+              defaultMessage: "Select Visible",
             })}
           </AdminButton>
           <AdminButton

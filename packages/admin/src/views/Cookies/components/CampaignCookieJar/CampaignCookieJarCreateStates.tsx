@@ -86,14 +86,14 @@ export function CampaignCookieJarCreatedState({
             <AdminButton type="button" leadingIcon={<RiArrowLeftLine />} onClick={onBackToList}>
               {formatMessage({
                 id: "cockpit.community.cookies.backToJars",
-                defaultMessage: "Back to cookie jars",
+                defaultMessage: "Back to Cookie Jars",
               })}
             </AdminButton>
             <AdminButton type="button" variant="outlined" asChild>
               <a href={publicUrl} target="_blank" rel="noreferrer">
                 {formatMessage({
                   id: "cockpit.community.cookies.openPublicLink",
-                  defaultMessage: "Open public link",
+                  defaultMessage: "Open Public Link",
                 })}
               </a>
             </AdminButton>
@@ -105,7 +105,7 @@ export function CampaignCookieJarCreatedState({
             >
               {formatMessage({
                 id: "cockpit.community.cookies.createAnother",
-                defaultMessage: "Create another",
+                defaultMessage: "Create Another",
               })}
             </AdminButton>
           </div>
@@ -267,7 +267,7 @@ export function CampaignCookieJarSubmittedState({
           <AdminButton type="button" variant="outlined" onClick={onBackToList}>
             {formatMessage({
               id: "cockpit.community.cookies.backToJars",
-              defaultMessage: "Back to cookie jars",
+              defaultMessage: "Back to Cookie Jars",
             })}
           </AdminButton>
         </div>

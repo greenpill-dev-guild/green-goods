@@ -122,7 +122,7 @@ export function ManageMembersDialog({
                 onClick={onAddMembers}
                 disabled={busy}
               >
-                {formatMessage({ id: "admin.addMember.openAction", defaultMessage: "Add members" })}
+                {formatMessage({ id: "admin.addMember.openAction", defaultMessage: "Add Members" })}
               </AdminButton>
             ) : null}
           </>

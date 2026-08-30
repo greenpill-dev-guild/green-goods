@@ -63,7 +63,7 @@ const messages: Record<string, string> = {
   "app.garden.details.timeSpent": "Time Spent (hours)",
   "app.garden.details.timeSpentPlaceholder": "e.g., 1.5 for 1h 30m",
   "app.garden.details.timeSpentHint": "Enter hours spent on this work (decimals OK)",
-  "app.garden.details.shareLocation": "Share location",
+  "app.garden.details.shareLocation": "Share Location",
   "app.garden.details.locationHint": "Coarse GPS for verification",
   "app.garden.details.locationCaptured": "Location captured",
   "app.garden.details.locationDenied": "Location access denied",
@@ -239,7 +239,7 @@ describe("WorkDetails", () => {
   it("renders location toggle switch in idle state", () => {
     renderDetails();
 
-    expect(screen.getByText("Share location")).toBeInTheDocument();
+    expect(screen.getByText("Share Location")).toBeInTheDocument();
     const toggle = screen.getByRole("switch");
     expect(toggle).toBeInTheDocument();
     expect(toggle).toHaveAttribute("aria-checked", "false");

@@ -535,7 +535,7 @@ describe("ComposeCommitment", () => {
     first.unmount();
 
     render("offer");
-    await user.click(screen.getByRole("button", { name: "Start fresh" }));
+    await user.click(screen.getByRole("button", { name: "Start Fresh" }));
     expect(screen.getByLabelText("Name it")).toHaveValue("");
     expect(Object.keys(useCommitmentComposerDraftStore.getState().drafts)).toHaveLength(0);
   });

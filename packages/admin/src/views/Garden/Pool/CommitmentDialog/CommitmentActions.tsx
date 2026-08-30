@@ -126,7 +126,7 @@ export function CommitmentActions({
           >
             {formatMessage({
               id: "cockpit.garden.pool.commitment.act.send",
-              defaultMessage: "Send for confirmation",
+              defaultMessage: "Send for Confirmation",
             })}
           </AdminButton>
         ) : null}

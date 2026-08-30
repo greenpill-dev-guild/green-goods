@@ -211,7 +211,7 @@ describe("PositionCard", () => {
     it("does not show management buttons when canManage is false", () => {
       render(createElement(PositionCard, defaultProps));
 
-      expect(screen.queryByText("Harvest & distribute")).not.toBeInTheDocument();
+      expect(screen.queryByText("Harvest & Distribute")).not.toBeInTheDocument();
       expect(screen.queryByText("Distribute yield")).not.toBeInTheDocument();
       expect(screen.queryByText("Emergency pause")).not.toBeInTheDocument();
     });
@@ -222,7 +222,7 @@ describe("PositionCard", () => {
       });
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
-      expect(screen.getByText("Harvest & distribute")).toBeInTheDocument();
+      expect(screen.getByText("Harvest & Distribute")).toBeInTheDocument();
       expect(screen.getByText("Emergency pause")).toBeInTheDocument();
     });
 
@@ -239,14 +239,14 @@ describe("PositionCard", () => {
         })
       );
 
-      await user.click(screen.getByText("Harvest & distribute"));
+      await user.click(screen.getByText("Harvest & Distribute"));
 
-      expect(screen.getByText("Harvest and distribute yield")).toBeInTheDocument();
+      expect(screen.getByText("Harvest and Distribute Yield")).toBeInTheDocument();
       expect(screen.getByText(/Cookie Jar.*0x4444/i)).toBeInTheDocument();
       expect(screen.getByText(/two wallet confirmations/i)).toBeInTheDocument();
       expect(mockHarvestDistributionMutate).not.toHaveBeenCalled();
 
-      const confirmButtons = screen.getAllByText("Harvest & distribute");
+      const confirmButtons = screen.getAllByText("Harvest & Distribute");
       await user.click(confirmButtons[confirmButtons.length - 1]);
       expect(mockHarvestDistributionMutate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -268,12 +268,12 @@ describe("PositionCard", () => {
 
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
-      const action = screen.getByRole("button", { name: "Harvest & distribute" });
+      const action = screen.getByRole("button", { name: "Harvest & Distribute" });
       action.focus();
       await user.keyboard("{Enter}");
 
       expect(screen.getByRole("dialog")).toBeInTheDocument();
-      expect(screen.getByText("Harvest and distribute yield")).toBeInTheDocument();
+      expect(screen.getByText("Harvest and Distribute Yield")).toBeInTheDocument();
     });
 
     it("offers distribution without harvesting when registered yield is ready", () => {
@@ -292,7 +292,7 @@ describe("PositionCard", () => {
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
       expect(screen.getByText("Distribute yield")).toBeInTheDocument();
-      expect(screen.queryByText("Harvest & distribute")).not.toBeInTheDocument();
+      expect(screen.queryByText("Harvest & Distribute")).not.toBeInTheDocument();
     });
 
     it("shows below-threshold yield as waiting without an enabled distribution action", () => {
@@ -322,12 +322,12 @@ describe("PositionCard", () => {
       expect(
         screen.getByText(/Harvest confirmed, but distribution is still pending/i)
       ).toBeInTheDocument();
-      await user.click(screen.getByText("Retry distribution"));
+      await user.click(screen.getByText("Retry Distribution"));
 
       // The retry must not fire the mutation directly: routing can change
       // while the alert is visible, so it reopens the confirmation instead.
       expect(mockHarvestDistributionMutate).not.toHaveBeenCalled();
-      expect(screen.getByText("Harvest and distribute yield")).toBeInTheDocument();
+      expect(screen.getByText("Harvest and Distribute Yield")).toBeInTheDocument();
       expect(mockYieldRefetch).toHaveBeenCalled();
 
       await user.click(screen.getByText("Distribute yield"));
@@ -347,7 +347,7 @@ describe("PositionCard", () => {
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
       expect(screen.getByText(/Harvest was submitted for execution/i)).toBeInTheDocument();
-      expect(screen.queryByText("Retry distribution")).not.toBeInTheDocument();
+      expect(screen.queryByText("Retry Distribution")).not.toBeInTheDocument();
     });
 
     it("reports exact confirmed amounts from the distribution event", () => {
@@ -381,7 +381,7 @@ describe("PositionCard", () => {
 
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
-      await user.click(screen.getByText("Harvest & distribute"));
+      await user.click(screen.getByText("Harvest & Distribute"));
 
       expect(mockYieldRefetch).toHaveBeenCalled();
     });
@@ -393,9 +393,9 @@ describe("PositionCard", () => {
 
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
-      const action = screen.getByText("Harvest & distribute");
+      const action = screen.getByText("Harvest & Distribute");
       await user.click(action);
-      const confirmButtons = screen.getAllByText("Harvest & distribute");
+      const confirmButtons = screen.getAllByText("Harvest & Distribute");
       await user.click(confirmButtons[confirmButtons.length - 1]);
 
       expect(mockHarvestDistributionMutate).toHaveBeenCalledWith(
@@ -443,12 +443,12 @@ describe("PositionCard", () => {
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
       expect(screen.getByText(/the vault could not report new yield/i)).toBeInTheDocument();
-      await user.click(screen.getByText("Retry harvest"));
+      await user.click(screen.getByText("Retry Harvest"));
 
       expect(mockHarvestDistributionMutate).not.toHaveBeenCalled();
-      expect(screen.getByText("Harvest and distribute yield")).toBeInTheDocument();
+      expect(screen.getByText("Harvest and Distribute Yield")).toBeInTheDocument();
 
-      await user.click(screen.getByText("Harvest & distribute"));
+      await user.click(screen.getByText("Harvest & Distribute"));
       expect(mockHarvestDistributionMutate).toHaveBeenCalledWith(
         expect.objectContaining({ harvestFirst: true }),
         expect.objectContaining({ onSettled: expect.any(Function) })
@@ -537,7 +537,7 @@ describe("PositionCard", () => {
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
       expect(screen.getByText(/outcome could not be verified yet/i)).toBeInTheDocument();
-      expect(screen.queryByText("Retry harvest")).not.toBeInTheDocument();
+      expect(screen.queryByText("Retry Harvest")).not.toBeInTheDocument();
       expect(screen.getByText("Check status")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
     });
@@ -578,7 +578,7 @@ describe("PositionCard", () => {
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
       expect(screen.getByText(/the harvest itself did not execute/i)).toBeInTheDocument();
-      expect(screen.getByText("Retry harvest")).toBeInTheDocument();
+      expect(screen.getByText("Retry Harvest")).toBeInTheDocument();
     });
 
     it("offers no harvest retry for a failed shares registration", () => {
@@ -597,7 +597,7 @@ describe("PositionCard", () => {
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
       expect(screen.getByText(/resolver owner needs to register or recover/i)).toBeInTheDocument();
-      expect(screen.queryByText("Retry harvest")).not.toBeInTheDocument();
+      expect(screen.queryByText("Retry Harvest")).not.toBeInTheDocument();
     });
 
     it("follows refreshed yield state when choosing harvest vs split-only", async () => {
@@ -608,7 +608,7 @@ describe("PositionCard", () => {
       const { rerender } = render(
         createElement(PositionCard, { ...defaultProps, canManage: true })
       );
-      await user.click(screen.getByText("Harvest & distribute"));
+      await user.click(screen.getByText("Harvest & Distribute"));
 
       mockYieldStatus = {
         ...mockYieldStatus,
@@ -634,12 +634,12 @@ describe("PositionCard", () => {
       const { rerender } = render(
         createElement(PositionCard, { ...defaultProps, canManage: true })
       );
-      await user.click(screen.getByText("Harvest & distribute"));
+      await user.click(screen.getByText("Harvest & Distribute"));
 
       mockYieldStatus = { ...mockYieldStatus, destinationVerified: false };
       rerender(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
-      const confirmButtons = screen.getAllByText("Harvest & distribute");
+      const confirmButtons = screen.getAllByText("Harvest & Distribute");
       const confirmButton = confirmButtons[confirmButtons.length - 1].closest("button");
       expect(confirmButton).toBeDisabled();
     });
@@ -653,13 +653,13 @@ describe("PositionCard", () => {
       const { rerender } = render(
         createElement(PositionCard, { ...defaultProps, canManage: true })
       );
-      await user.click(screen.getByText("Harvest & distribute"));
+      await user.click(screen.getByText("Harvest & Distribute"));
 
       // The refresh triggered by opening surfaces an error: confirm must lock.
       mockYieldStatus = { ...mockYieldStatus, isError: true, status: "error" };
       rerender(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
-      const confirmButtons = screen.getAllByText("Harvest & distribute");
+      const confirmButtons = screen.getAllByText("Harvest & Distribute");
       const confirmButton = confirmButtons[confirmButtons.length - 1].closest("button");
       expect(confirmButton).toBeDisabled();
     });
@@ -674,7 +674,7 @@ describe("PositionCard", () => {
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
       expect(screen.getByText(/its result could not be read back yet/i)).toBeInTheDocument();
-      expect(screen.queryByText("Retry distribution")).not.toBeInTheDocument();
+      expect(screen.queryByText("Retry Distribution")).not.toBeInTheDocument();
     });
   });
 
@@ -697,7 +697,7 @@ describe("PositionCard", () => {
         })
       );
 
-      expect(screen.getByText("Enable auto-allocation")).toBeInTheDocument();
+      expect(screen.getByText("Enable Auto-allocation")).toBeInTheDocument();
     });
 
     it("does NOT show CTA when vault is shutdown even if maxDeposit is 0", () => {
@@ -718,7 +718,7 @@ describe("PositionCard", () => {
         })
       );
 
-      expect(screen.queryByText("Enable auto-allocation")).not.toBeInTheDocument();
+      expect(screen.queryByText("Enable Auto-allocation")).not.toBeInTheDocument();
     });
 
     it("does NOT show CTA when deposit limit is non-zero (vault is full, not misconfigured)", () => {
@@ -739,7 +739,7 @@ describe("PositionCard", () => {
         })
       );
 
-      expect(screen.queryByText("Enable auto-allocation")).not.toBeInTheDocument();
+      expect(screen.queryByText("Enable Auto-allocation")).not.toBeInTheDocument();
     });
 
     it("calls enableAutoAllocate when the recovery action is clicked", async () => {
@@ -760,7 +760,7 @@ describe("PositionCard", () => {
         })
       );
 
-      await user.click(screen.getByText("Enable auto-allocation"));
+      await user.click(screen.getByText("Enable Auto-allocation"));
 
       expect(mockEnableAutoAllocateMutate).toHaveBeenCalledWith(
         { gardenAddress: defaultProps.gardenAddress, assetAddress: mockVault.asset },
@@ -784,7 +784,7 @@ describe("PositionCard", () => {
       await user.click(screen.getByText("Emergency pause"));
 
       // Confirmation dialog should appear
-      expect(screen.getByText("Confirm emergency pause")).toBeInTheDocument();
+      expect(screen.getByText("Confirm Emergency Pause")).toBeInTheDocument();
     });
 
     it("calls emergency pause mutation on confirm", async () => {
@@ -827,12 +827,12 @@ describe("PositionCard", () => {
       );
 
       await user.click(screen.getByText("Emergency pause"));
-      expect(screen.getByText("Confirm emergency pause")).toBeInTheDocument();
+      expect(screen.getByText("Confirm Emergency Pause")).toBeInTheDocument();
 
       await user.click(screen.getByText("Cancel"));
 
       // Dialog title should no longer be visible
-      expect(screen.queryByText("Confirm emergency pause")).not.toBeInTheDocument();
+      expect(screen.queryByText("Confirm Emergency Pause")).not.toBeInTheDocument();
     });
   });
 });

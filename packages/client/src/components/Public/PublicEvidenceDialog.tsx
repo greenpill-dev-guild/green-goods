@@ -330,7 +330,7 @@ export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEv
           {record.sourceAvailable
             ? formatMessage({
                 id: "public.impact.evidence.viewSource",
-                defaultMessage: "View source",
+                defaultMessage: "View Source",
               })
             : formatMessage({
                 id: "public.impact.evidence.noSource",

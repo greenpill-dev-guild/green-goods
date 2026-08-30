@@ -94,7 +94,7 @@ const messages = {
   "app.treasury.withdraw": "Withdraw",
   "app.treasury.harvest": "Harvest",
   "app.treasury.emergencyPause": "Emergency Pause",
-  "app.treasury.enableAutoAllocate": "Enable auto-allocation",
+  "app.treasury.enableAutoAllocate": "Enable Auto-allocation",
   "app.treasury.enablingAutoAllocate": "Enabling auto-allocation",
   "app.treasury.enableAutoAllocateSuccess": "Auto-allocation enabled",
   "app.treasury.depositSuccess": "Deposit successful",

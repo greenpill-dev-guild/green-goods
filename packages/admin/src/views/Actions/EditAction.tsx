@@ -74,7 +74,7 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
             to: actionsListHref,
             label: formatMessage({
               id: "app.actions.backToActions",
-              defaultMessage: "Back to actions",
+              defaultMessage: "Back to Actions",
             }),
           }}
           sticky
@@ -212,7 +212,7 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
           to: actionDetailHref,
           label: formatMessage({
             id: "app.actions.backToAction",
-            defaultMessage: "Back to action",
+            defaultMessage: "Back to Action",
           }),
         }}
         sticky

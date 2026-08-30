@@ -100,12 +100,12 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-text-soft transition hover:bg-bg-weak hover:text-text-sub active:scale-95"
             title={formatMessage({
               id: "admin.gardenMetadata.copyAddress",
-              defaultMessage: "Copy address",
+              defaultMessage: "Copy Address",
             })}
             type="button"
             aria-label={formatMessage({
               id: "admin.gardenMetadata.copyGardenAddress",
-              defaultMessage: "Copy garden address",
+              defaultMessage: "Copy Garden Address",
             })}
           >
             {copiedGarden ? (
@@ -122,11 +122,11 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
               className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-information-dark transition hover:bg-information-lighter active:scale-95"
               title={formatMessage({
                 id: "admin.gardenMetadata.viewOnExplorer",
-                defaultMessage: "View on block explorer",
+                defaultMessage: "View on Block Explorer",
               })}
               aria-label={formatMessage({
                 id: "admin.gardenMetadata.viewGardenOnExplorer",
-                defaultMessage: "View garden on block explorer",
+                defaultMessage: "View Garden on Block Explorer",
               })}
             >
               <RiExternalLinkLine className="h-4 w-4" />
@@ -152,12 +152,12 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-text-soft transition hover:bg-bg-weak hover:text-text-sub active:scale-95"
             title={formatMessage({
               id: "admin.gardenMetadata.copyNFT",
-              defaultMessage: "Copy NFT identifier",
+              defaultMessage: "Copy NFT Identifier",
             })}
             type="button"
             aria-label={formatMessage({
               id: "admin.gardenMetadata.copyNFTId",
-              defaultMessage: "Copy NFT identifier",
+              defaultMessage: "Copy NFT Identifier",
             })}
           >
             {copiedToken ? (
@@ -174,11 +174,11 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
               className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-information-dark transition hover:bg-information-lighter active:scale-95"
               title={formatMessage({
                 id: "admin.gardenMetadata.viewNFTOnExplorer",
-                defaultMessage: "View NFT on block explorer",
+                defaultMessage: "View NFT on Block Explorer",
               })}
               aria-label={formatMessage({
                 id: "admin.gardenMetadata.viewNFTOnExplorer",
-                defaultMessage: "View NFT on block explorer",
+                defaultMessage: "View NFT on Block Explorer",
               })}
             >
               <RiExternalLinkLine className="h-4 w-4" />

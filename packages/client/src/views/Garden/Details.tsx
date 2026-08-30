@@ -307,7 +307,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
             <span id="share-location-label" className="text-sm font-medium text-text-strong-950">
               {intl.formatMessage({
                 id: "app.garden.details.shareLocation",
-                defaultMessage: "Share location",
+                defaultMessage: "Share Location",
               })}
             </span>
             <p className="text-xs text-text-soft-400">

@@ -203,7 +203,7 @@ vi.mock("@/views/Garden/WorkDetail/SubmissionDetails", () => ({
 import WorkDetail, { WorkDetailPanel } from "@/views/Garden/WorkDetail";
 
 const messages = {
-  "app.garden.admin.backToGarden": "Back to garden",
+  "app.garden.admin.backToGarden": "Back to Garden",
   "app.work.detail.loading": "Loading work...",
   "app.work.detail.loadingDescription": "Fetching work details.",
   "app.work.detail.title": "Work Detail",

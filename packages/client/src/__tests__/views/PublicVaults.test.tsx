@@ -541,7 +541,7 @@ describe("VaultsPage", () => {
     expect(screen.queryByText(/Card Endow/i)).not.toBeInTheDocument();
     expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
     expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Connect wallet" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Connect Wallet" })).not.toBeInTheDocument();
   });
 
   it("offers a complete non-production campaign Wallet checkout only, never Card", async () => {
@@ -570,10 +570,10 @@ describe("VaultsPage", () => {
     expect(
       screen.queryByText("Enter a dollar amount first to choose a payment method.")
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Connect wallet" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Connect Wallet" })).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Amount to endow"), "2.50");
-    expect(screen.getByRole("button", { name: "Connect wallet" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Connect Wallet" })).toBeEnabled();
 
     // Card stays gated to the production campaign; this fixture exposes Wallet only.
     expect(screen.getByTestId("vault-wallet-endow-path")).toBeInTheDocument();
@@ -598,7 +598,7 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
     expect(screen.queryByText("How would you like to pay?")).not.toBeInTheDocument();
     await user.type(screen.getByLabelText("Amount to endow"), "25");
-    expect(screen.getByRole("button", { name: "Connect wallet" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Connect Wallet" })).toBeEnabled();
 
     expect(await screen.findByTestId("vault-wallet-endow-path")).toBeInTheDocument();
     expect(screen.queryByTestId("vault-card-endow-flow")).not.toBeInTheDocument();
@@ -1003,7 +1003,7 @@ describe("VaultsPage", () => {
       )
     ).not.toBeInTheDocument();
     expect(amountInput).toHaveAttribute("aria-invalid", "false");
-    expect(screen.getByRole("button", { name: "Connect wallet" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Connect Wallet" })).toBeEnabled();
   });
 
   it("uses one connected-aware checkout surface while amount stays editable", async () => {
@@ -1011,7 +1011,7 @@ describe("VaultsPage", () => {
 
     renderContent([makeCompleteCampaign()]);
 
-    expect(screen.queryByRole("button", { name: "Connect wallet" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Connect Wallet" })).not.toBeInTheDocument();
     expect(sharedHookMocks.walletRuntimeProviderRender).not.toHaveBeenCalled();
 
     await user.click(
@@ -1026,13 +1026,13 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
     expect(screen.getByTestId("vault-wallet-endow-path")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Enter an amount" })).toBeDisabled();
-    expect(screen.getByText("Review your endowment")).toBeInTheDocument();
+    expect(screen.getByText("Review Your Endowment")).toBeInTheDocument();
     expect(screen.getByText("Octant vault on Ethereum")).toBeInTheDocument();
     expect(screen.getByText("Set when you connect a wallet")).toBeInTheDocument();
     expect(screen.queryByTestId("vault-checkout-amount-feedback")).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Amount to endow"), "2.50");
-    expect(screen.getByRole("button", { name: "Connect wallet" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Connect Wallet" })).toBeEnabled();
     expect(screen.getByDisplayValue("2.50")).toBeInTheDocument();
     expect(screen.getByText(/Prepared as .* USDC for the campaign vault/)).toBeInTheDocument();
 
@@ -1042,7 +1042,7 @@ describe("VaultsPage", () => {
     expect(screen.getByDisplayValue("3.25")).toBeInTheDocument();
     expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Connect wallet" }));
+    await user.click(screen.getByRole("button", { name: "Connect Wallet" }));
 
     expect(sharedHookMocks.loginWithWallet).toHaveBeenCalledTimes(1);
     expect(sharedHookMocks.octantVaultWalletEndowMutate).not.toHaveBeenCalled();
@@ -1051,7 +1051,7 @@ describe("VaultsPage", () => {
 
     expect(screen.getByTestId("vault-wallet-endow-path")).toBeInTheDocument();
     expect(screen.getByDisplayValue("3.25")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Connect wallet" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Connect Wallet" })).toBeInTheDocument();
   });
 
   it("unlocks the wallet checkout sheet when wallet connection is cancelled", async () => {
@@ -1066,11 +1066,11 @@ describe("VaultsPage", () => {
       })
     );
     await user.type(screen.getByLabelText("Amount to endow"), "2.50");
-    await user.click(screen.getByRole("button", { name: "Connect wallet" }));
+    await user.click(screen.getByRole("button", { name: "Connect Wallet" }));
 
     expect(sharedHookMocks.loginWithWallet).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument());
-    expect(screen.getByRole("button", { name: "Connect wallet" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Connect Wallet" })).toBeEnabled();
   });
 
   it("does not treat restored passkey auth as Wallet Endow readiness", async () => {
@@ -1086,7 +1086,7 @@ describe("VaultsPage", () => {
       })
     );
     await user.type(screen.getByLabelText("Amount to endow"), "2.50");
-    await user.click(screen.getByRole("button", { name: "Connect wallet" }));
+    await user.click(screen.getByRole("button", { name: "Connect Wallet" }));
 
     expect(sharedHookMocks.loginWithWallet).toHaveBeenCalledTimes(1);
     expect(sharedHookMocks.octantVaultWalletEndowMutate).not.toHaveBeenCalled();
@@ -1459,7 +1459,7 @@ describe("VaultsPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
     await user.type(screen.getByLabelText("Amount to endow"), "30");
-    await user.click(screen.getByRole("button", { name: "Connect wallet" }));
+    await user.click(screen.getByRole("button", { name: "Connect Wallet" }));
     // Committed at $30 with ETH at $3,000 => 0.01 WETH.
     expect(screen.getByText("Prepared as 0.01 WETH for the campaign vault")).toBeInTheDocument();
 
@@ -1497,7 +1497,7 @@ describe("VaultsPage", () => {
     expect(await screen.findByTestId("vault-wallet-endow-success")).toBeInTheDocument();
     expect(screen.getByText("Endowment submitted")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "View transaction" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View Transaction" })).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Approve vault access (1/2)" })
     ).not.toBeInTheDocument();
@@ -1555,7 +1555,7 @@ describe("VaultsPage", () => {
       expect(screen.queryByText(/return through Manage Endowments/i)).not.toBeInTheDocument();
       // The slow state no longer points to the Fund page; vault positions are
       // managed route-locally from /vaults.
-      expect(screen.queryByRole("link", { name: "View on Fund page" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "View on Fund Page" })).not.toBeInTheDocument();
       expect(screen.queryByText(/Fund page/i)).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();

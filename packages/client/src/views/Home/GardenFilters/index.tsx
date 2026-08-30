@@ -190,7 +190,7 @@ export const GardensFilterDrawer = ({
         <Button
           label={intl.formatMessage({
             id: "app.home.filters.reset",
-            defaultMessage: "Reset filters",
+            defaultMessage: "Reset Filters",
           })}
           variant="neutral"
           mode="stroke"

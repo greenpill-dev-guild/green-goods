@@ -49,7 +49,7 @@ export const Open: Story = {
       expect(body.getByRole("alertdialog", { name: "Discard changes?" })).toBeInTheDocument();
     });
     // Both affordances present, warning-variant confirm.
-    expect(body.getByRole("button", { name: "Keep editing" })).toBeInTheDocument();
+    expect(body.getByRole("button", { name: "Keep Editing" })).toBeInTheDocument();
     expect(body.getByRole("button", { name: "Discard" })).toBeInTheDocument();
   },
 };

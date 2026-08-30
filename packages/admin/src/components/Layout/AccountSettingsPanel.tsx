@@ -143,7 +143,7 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
           href={getBlockExplorer(DEFAULT_CHAIN_ID)}
           label={formatMessage({
             id: "cockpit.account.viewOnExplorer",
-            defaultMessage: "View on explorer",
+            defaultMessage: "View on Explorer",
           })}
         />
       </section>

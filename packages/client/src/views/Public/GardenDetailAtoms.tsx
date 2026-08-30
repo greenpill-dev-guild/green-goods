@@ -141,7 +141,7 @@ export function SectionNotice({
 
 function RetryLabel() {
   const { formatMessage } = useIntl();
-  return <>{formatMessage({ id: "public.gardenDetail.retry", defaultMessage: "Try again" })}</>;
+  return <>{formatMessage({ id: "public.gardenDetail.retry", defaultMessage: "Try Again" })}</>;
 }
 
 /**

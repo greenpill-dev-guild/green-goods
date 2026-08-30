@@ -253,7 +253,7 @@ function ConnectedWalletSection({
         <h3 className="font-serif text-xl font-normal text-text-strong-950">
           {formatMessage({
             id: "public.vaults.manage.connected.connectTitle",
-            defaultMessage: "Connect to see your endowments",
+            defaultMessage: "Connect to See Your Endowments",
           })}
         </h3>
         <p className="mt-3 text-sm leading-[1.6] text-text-sub-600">
@@ -405,7 +405,7 @@ export function PositionsList({
           >
             {formatMessage({
               id: "public.vaults.manage.empty.cta",
-              defaultMessage: "Endow a campaign",
+              defaultMessage: "Endow a Campaign",
             })}
           </EditorialGhostButton>
         ) : null}
@@ -760,7 +760,7 @@ export function VaultPositionRowView({
           >
             {formatMessage({
               id: "public.vaults.manage.position.tech.explorer",
-              defaultMessage: "View vault on explorer",
+              defaultMessage: "View Vault on Explorer",
             })}
           </a>
         ) : null}

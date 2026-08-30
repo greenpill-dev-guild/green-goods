@@ -102,7 +102,7 @@ export function PublicProofBand({
             <EditorialLinkArrow to="/impact">
               {formatMessage({
                 id: "public.home.proof.cta",
-                defaultMessage: "View public evidence",
+                defaultMessage: "View Public Evidence",
               })}
             </EditorialLinkArrow>
           </div>

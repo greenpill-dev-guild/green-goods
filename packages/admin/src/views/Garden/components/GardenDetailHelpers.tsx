@@ -117,8 +117,8 @@ export function GardenHeroBanner({
                   className="mt-1 text-xs text-static-white/70 hover:text-static-white/90"
                 >
                   {descExpanded
-                    ? formatMessage({ id: "app.common.showLess", defaultMessage: "Show less" })
-                    : formatMessage({ id: "app.common.showMore", defaultMessage: "Show more" })}
+                    ? formatMessage({ id: "app.common.showLess", defaultMessage: "Show Less" })
+                    : formatMessage({ id: "app.common.showMore", defaultMessage: "Show More" })}
                 </AdminButton>
               ) : null}
             </div>

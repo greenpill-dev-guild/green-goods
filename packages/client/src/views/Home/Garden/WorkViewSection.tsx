@@ -311,7 +311,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
 
     return intl.formatMessage({
       id: "app.home.work.exploreSubmission",
-      defaultMessage: "Explore this work submission",
+      defaultMessage: "Explore This Work Submission",
     });
   };
 
@@ -357,7 +357,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
             id: "view-attestation",
             label: intl.formatMessage({
               id: "app.home.work.viewAttestation",
-              defaultMessage: "View certificate",
+              defaultMessage: "View Certificate",
             }),
             onClick: onViewAttestation,
             icon: <RiExternalLinkLine className="w-6 h-6" />,

@@ -304,7 +304,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                   !isOnline
                     ? intl.formatMessage({
                         id: "app.profile.releaseOffline",
-                        defaultMessage: "Go online to release",
+                        defaultMessage: "Go Online to Release",
                       })
                     : isReleaseUnavailable
                       ? intl.formatMessage({
@@ -457,7 +457,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                         >
                           {intl.formatMessage({
                             id: "app.profile.ensChangeOpenSupport",
-                            defaultMessage: "Open Telegram support",
+                            defaultMessage: "Open Telegram Support",
                           })}
                         </a>
                       </div>
@@ -597,7 +597,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                     !isOnline
                       ? intl.formatMessage({
                           id: "app.profile.claimOffline",
-                          defaultMessage: "Go online to claim",
+                          defaultMessage: "Go Online to Claim",
                         })
                       : intl.formatMessage({
                           id: "app.profile.claimButton",

@@ -277,7 +277,7 @@ export function useInstallGuidance(
         },
         secondaryAction: {
           type: "show-manual-steps",
-          label: "Install again",
+          label: "Install Again",
           description: "If the app was removed",
         },
         showBrowserOption: true,

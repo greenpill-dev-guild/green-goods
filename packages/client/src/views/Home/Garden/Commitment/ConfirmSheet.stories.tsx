@@ -113,7 +113,7 @@ type Story = StoryObj<typeof ConfirmSheet>;
 
 export const AskSupport: Story = {
   play: async () => {
-    await expect(await screen.findByRole("button", { name: "Confirm it was kept" })).toBeVisible();
+    await expect(await screen.findByRole("button", { name: "Confirm It Was Kept" })).toBeVisible();
     await expect(screen.getByRole("button", { name: "Not yet" })).toBeVisible();
     await expect(screen.getByText("2 items")).toBeVisible();
     await expect(
@@ -148,7 +148,7 @@ export const AskGardenWork: Story = {
   },
   play: async () => {
     await expect(
-      await screen.findByRole("button", { name: "Confirm the work was done" })
+      await screen.findByRole("button", { name: "Confirm the Work Was Done" })
     ).toBeVisible();
   },
 };
@@ -182,7 +182,7 @@ export const NotYetOffline: Story = {
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", { name: "Not yet" }));
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /Send to the stewards/ })).toBeDisabled()
+      expect(screen.getByRole("button", { name: /Send to the Stewards/ })).toBeDisabled()
     );
   },
 };

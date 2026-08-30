@@ -135,7 +135,7 @@ export function GardenList({
             >
               {intl.formatMessage({
                 id: "app.home.gardens.mineEmptyCta",
-                defaultMessage: "Browse all gardens",
+                defaultMessage: "Browse All Gardens",
               })}
             </button>
           ) : null}

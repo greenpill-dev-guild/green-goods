@@ -56,7 +56,7 @@ export function ActionDetailPanel({
         <AdminCard className="space-y-3 text-center">
           <p className="text-sm text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
           <AdminButton size="sm" variant="outlined" onClick={onClose}>
-            {formatMessage({ id: "app.actions.backToActions", defaultMessage: "Back to actions" })}
+            {formatMessage({ id: "app.actions.backToActions", defaultMessage: "Back to Actions" })}
           </AdminButton>
         </AdminCard>
       </div>

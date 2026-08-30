@@ -6,7 +6,7 @@ const meta = {
   component: FlowStepHeader,
   tags: ["autodocs"],
   args: {
-    title: "Choose an action",
+    title: "Choose an Action",
     description: "Pick the action this work belongs to.",
   },
   decorators: [

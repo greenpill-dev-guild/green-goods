@@ -248,7 +248,7 @@ describe("PublicInstallAction", () => {
     mockUseInstallGuidance.mockReturnValue({
       scenario: "already-installed",
       primaryAction: { type: "open-app", label: "Open App" },
-      secondaryAction: { type: "show-manual-steps", label: "Install again" },
+      secondaryAction: { type: "show-manual-steps", label: "Install Again" },
       browserInfo: { browser: "chrome" },
       showBrowserOption: true,
       manualInstructions: [
@@ -266,7 +266,7 @@ describe("PublicInstallAction", () => {
     renderAction();
 
     expect(screen.getByTestId("cta")).toHaveTextContent("Open App");
-    expect(screen.getByTestId("fallback")).toHaveTextContent("Install again");
+    expect(screen.getByTestId("fallback")).toHaveTextContent("Install Again");
 
     fireEvent.click(screen.getByTestId("fallback"));
 

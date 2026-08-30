@@ -441,7 +441,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
               data-testid="modal-drawer-close"
               aria-label={intl.formatMessage({
                 id: "app.workDashboard.closeModal",
-                defaultMessage: "Close modal",
+                defaultMessage: "Close Modal",
               })}
             >
               <RiCloseLine className={cn("w-5 h-5", pwaDrawerStyles.closeIcon)} />

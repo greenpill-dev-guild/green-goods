@@ -80,7 +80,7 @@ export function CommitmentDialogNotFound({
         >
           {formatMessage({
             id: "cockpit.garden.pool.commitment.notFound.back",
-            defaultMessage: "Back to pool",
+            defaultMessage: "Back to Pool",
           })}
         </AdminButton>
       </div>
@@ -122,7 +122,7 @@ export function CommitmentDialogUnavailable({ garden }: { garden: Address }) {
       >
         {formatMessage({
           id: "cockpit.garden.pool.commitment.notFound.back",
-          defaultMessage: "Back to pool",
+          defaultMessage: "Back to Pool",
         })}
       </AdminButton>
     </div>

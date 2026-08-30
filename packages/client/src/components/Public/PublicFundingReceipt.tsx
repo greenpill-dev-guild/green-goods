@@ -117,7 +117,7 @@ export function PublicFundingReceipt({ intentId }: PublicFundingReceiptProps) {
             >
               {formatMessage({
                 id: "public.fund.receipt.tryAgain",
-                defaultMessage: "Try again",
+                defaultMessage: "Try Again",
               })}
             </button>
           ) : null}
@@ -285,13 +285,13 @@ function ReceiptBody({
         <EditorialLinkArrow to="/fund">
           {formatMessage({
             id: "public.fund.receipt.supportAnother",
-            defaultMessage: "Support another Garden",
+            defaultMessage: "Support Another Garden",
           })}
         </EditorialLinkArrow>
         <EditorialLinkArrow to="/impact">
           {formatMessage({
             id: "public.fund.receipt.viewImpact",
-            defaultMessage: "View public evidence",
+            defaultMessage: "View Public Evidence",
           })}
         </EditorialLinkArrow>
       </div>

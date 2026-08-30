@@ -89,6 +89,6 @@ describe("GovernancePanel", () => {
     expect(screen.getByText("2 supporters")).toBeInTheDocument();
     expect(screen.getByText("1 supporter")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Open pool/i })).toBeInTheDocument();
-    expect(screen.getByText("Sign in to allocate conviction")).toBeInTheDocument();
+    expect(screen.getByText("Sign in to Allocate Conviction")).toBeInTheDocument();
   });
 });

@@ -504,7 +504,7 @@ export default function VaultCardPaymentPanel({
               })
             : formatMessage({
                 id: "public.vaults.cardEndow.panel.openCheckout",
-                defaultMessage: "Open secure card checkout",
+                defaultMessage: "Open Secure Card Checkout",
               })}
         </button>
         {backButton}
@@ -645,7 +645,7 @@ export default function VaultCardPaymentPanel({
             >
               {formatMessage({
                 id: "public.vaults.cardEndow.panel.openCheckoutLink",
-                defaultMessage: "Open secure checkout link",
+                defaultMessage: "Open Secure Checkout Link",
               })}
             </a>
           ) : null}

@@ -173,7 +173,7 @@ describe("PoolDialogs", () => {
   });
 
   it.each([
-    ["close", "Close pool", "closePool"],
+    ["close", "Close Pool", "closePool"],
     ["compost", "Archive pool", "compostPool"],
     ["reopen", "Reopen to set-up", "reopenPool"],
   ] as const)("executes and closes the %s confirmation", async (confirmDialog, label, act) => {

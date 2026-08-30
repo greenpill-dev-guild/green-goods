@@ -56,7 +56,7 @@ function RadioCardsExample() {
     <div role="radiogroup" aria-label="Action type" className="grid max-w-2xl gap-2">
       {[
         ["review", "Review submission", "Check evidence and approve or return work."],
-        ["attest", "Create assessment", "Record a structured evaluation."],
+        ["attest", "Create Assessment", "Record a structured evaluation."],
       ].map(([id, title, description]) => (
         <AdminSelectableCard
           key={id}

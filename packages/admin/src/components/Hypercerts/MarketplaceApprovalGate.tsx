@@ -123,7 +123,7 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
             <ApprovalStep
               label={formatMessage({
                 id: "app.marketplace.approveTransfer",
-                defaultMessage: "Approve transfer manager",
+                defaultMessage: "Approve Transfer Manager",
               })}
               description={formatMessage({
                 id: "app.marketplace.approveTransferDesc",

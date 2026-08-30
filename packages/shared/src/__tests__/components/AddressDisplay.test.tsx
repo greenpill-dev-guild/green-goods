@@ -85,7 +85,7 @@ describe("AddressDisplay", () => {
     const user = userEvent.setup();
     const { container } = renderAddressDisplay(<AddressDisplay address={TEST_ADDRESS} />);
 
-    await user.click(screen.getByTitle("Copy address"));
+    await user.click(screen.getByTitle("Copy Address"));
 
     await waitFor(() => {
       expect(execCommand).toHaveBeenCalledWith("copy");

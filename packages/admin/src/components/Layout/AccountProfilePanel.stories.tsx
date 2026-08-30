@@ -102,7 +102,7 @@ export const Steward: Story = {
     await expect(await canvas.findByRole("heading", { name: "Wallet" })).toBeVisible();
     await expect(await canvas.findByRole("heading", { name: "Your gardens" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: /Disconnect/ })).toBeVisible();
-    await expect(canvas.getByRole("link", { name: /View on explorer/ })).toBeVisible();
+    await expect(canvas.getByRole("link", { name: /View on Explorer/ })).toBeVisible();
   },
 };
 

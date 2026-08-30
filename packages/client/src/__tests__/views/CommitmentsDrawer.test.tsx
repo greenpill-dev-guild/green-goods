@@ -311,7 +311,7 @@ describe("CommitmentsDrawer", () => {
       screen.getByText("We could not load what is still moving. Your commitments are safe.")
     ).toBeInTheDocument();
 
-    await userEvent.setup().click(screen.getByRole("button", { name: "Try again" }));
+    await userEvent.setup().click(screen.getByRole("button", { name: "Try Again" }));
     expect(refetch).toHaveBeenCalledTimes(1);
   });
 

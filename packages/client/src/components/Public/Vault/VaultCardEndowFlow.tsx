@@ -1190,7 +1190,7 @@ function CardEndowProviderContent({
                   })
                 : formatMessage({
                     id: "public.vaults.cardEndow.sendCode",
-                    defaultMessage: "Send email code",
+                    defaultMessage: "Send Email Code",
                   })}
             </button>
             {backButton}
@@ -1496,7 +1496,7 @@ function CardEndowProviderContent({
           >
             {formatMessage({
               id: "public.vaults.checkout.viewTransaction",
-              defaultMessage: "View transaction",
+              defaultMessage: "View Transaction",
             })}
           </a>
         ) : null}

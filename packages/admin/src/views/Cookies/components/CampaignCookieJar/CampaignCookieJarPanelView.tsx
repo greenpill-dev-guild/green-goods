@@ -156,7 +156,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
               >
                 {formatMessage({
                   id: "cockpit.community.cookies.openPublicLink",
-                  defaultMessage: "Open public link",
+                  defaultMessage: "Open Public Link",
                 })}
                 <RiExternalLinkLine className="h-4 w-4" aria-hidden />
               </a>

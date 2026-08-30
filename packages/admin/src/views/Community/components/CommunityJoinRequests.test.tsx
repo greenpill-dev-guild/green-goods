@@ -55,17 +55,17 @@ const messages = {
   "app.garden.joinQueue.rateLimitedNotice": "Some join requests were rate-limited recently.",
   "app.garden.joinRequest.error.conflict":
     "This request changed or was already used. Check its status and try again.",
-  "cockpit.community.joinRequests.confirmDecline": "Decline request",
+  "cockpit.community.joinRequests.confirmDecline": "Decline Request",
   "cockpit.community.joinRequests.decline": "Decline",
   "cockpit.community.joinRequests.declined": "The request was declined.",
   "cockpit.community.joinRequests.declineDescription": "Decline {name}'s request.",
-  "cockpit.community.joinRequests.declineTitle": "Decline join request",
+  "cockpit.community.joinRequests.declineTitle": "Decline Join Request",
   "cockpit.community.joinRequests.description": "Review pending requests.",
   "cockpit.community.joinRequests.empty": "No pending requests.",
   "cockpit.community.joinRequests.load": "Check requests",
   "cockpit.community.joinRequests.membershipPending": "Membership pending.",
   "cockpit.community.joinRequests.reason": "Reason for declining",
-  "cockpit.community.joinRequests.title": "Join requests",
+  "cockpit.community.joinRequests.title": "Join Requests",
   "cockpit.community.joinRequests.updateFailed": "The request could not be updated.",
   "cockpit.community.joinRequests.welcome": "Welcome",
   "cockpit.community.joinRequests.welcomed": "The gardener was welcomed.",
@@ -113,7 +113,7 @@ describe("CommunityJoinRequests", () => {
     const reason = screen.getByLabelText(/Reason for declining/);
     expect(reason).toHaveAttribute("maxlength", "500");
     await user.type(reason, "No capacity this season.");
-    await user.click(screen.getByRole("button", { name: "Decline request" }));
+    await user.click(screen.getByRole("button", { name: "Decline Request" }));
     await waitFor(() =>
       expect(resolveRequest).toHaveBeenCalledWith("request-1", {
         action: "decline",
@@ -151,7 +151,7 @@ describe("CommunityJoinRequests", () => {
     await user.click(screen.getByRole("button", { name: "Decline" }));
     const reason = screen.getByLabelText(/Reason for declining/);
     await user.type(reason, "No capacity this season.");
-    await user.click(screen.getByRole("button", { name: "Decline request" }));
+    await user.click(screen.getByRole("button", { name: "Decline Request" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "The request changed. Refresh and retry."

@@ -242,7 +242,7 @@ export const MobileSheetContract: Story = {
   globals: { viewport: { value: "mobile" } },
   render: () => (
     <DialogPreview
-      title="Edit domains"
+      title="Edit Domains"
       description="Mobile action dialogs use a full-width sheet while desktop remains centered."
       body="The body scrolls inside the AdminDialog surface and actions stay pinned below it."
       confirmLabel="Save"
@@ -303,13 +303,13 @@ export const FlowVariant: Story = {
       variant="flow"
       className={ADMIN_FLOW_DIALOG_CLASS}
       onOpenChange={() => undefined}
-      title="Submit work"
+      title="Submit Work"
       description="Capture the action, evidence, and notes for a new contribution."
       bodyClassName="flex min-h-0 flex-col !overflow-hidden"
     >
       <ActionFlowShell
         layout="dialog"
-        title="Submit work"
+        title="Submit Work"
         context="Rio Rainforest Lab"
         footer={
           <>

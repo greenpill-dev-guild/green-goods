@@ -206,7 +206,7 @@ export const SiteHeader = () => {
                     className="flex h-10 w-10 items-center justify-center rounded-lg text-static-white/90 transition-colors hover:text-static-white md:hidden"
                     aria-label={intl.formatMessage({
                       id: "public.nav.openMenu",
-                      defaultMessage: "Open menu",
+                      defaultMessage: "Open Menu",
                     })}
                     aria-expanded={isDrawerOpen}
                     aria-controls="mobile-nav-drawer"
@@ -232,7 +232,7 @@ export const SiteHeader = () => {
                 onClick={() => setIsDrawerOpen(false)}
                 aria-label={intl.formatMessage({
                   id: "public.nav.closeMenu",
-                  defaultMessage: "Close menu",
+                  defaultMessage: "Close Menu",
                 })}
               />
 
@@ -256,7 +256,7 @@ export const SiteHeader = () => {
                     className="flex h-10 w-10 items-center justify-center rounded-lg text-text-sub-600 hover:text-text-strong-950"
                     aria-label={intl.formatMessage({
                       id: "public.nav.closeMenu",
-                      defaultMessage: "Close menu",
+                      defaultMessage: "Close Menu",
                     })}
                   >
                     <RiCloseLine className="h-6 w-6" />

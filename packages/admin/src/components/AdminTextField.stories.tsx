@@ -50,7 +50,7 @@ export const WithLeadingIcon: Story = {
     label: "Search",
     variant: "outlined",
     leadingIcon: RiSearchLine,
-    placeholder: "Search gardens",
+    placeholder: "Search Gardens",
   },
   render: (args) => (
     <div className="max-w-sm">

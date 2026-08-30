@@ -51,7 +51,7 @@ describe("GardenJoinRequestDialog", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Request to join" }));
-    const send = screen.getByRole("button", { name: "Send request" });
+    const send = screen.getByRole("button", { name: "Send Request" });
     expect(send).toHaveAttribute("aria-disabled", "true");
     await user.type(screen.getByLabelText("Display name"), "Maya");
     await user.type(screen.getByLabelText("Note (optional)"), "I can help with seedlings.");
@@ -95,12 +95,12 @@ describe("GardenJoinRequestDialog", () => {
 
     await user.click(screen.getByRole("button", { name: "Request to join" }));
     await user.type(screen.getByLabelText("Display name"), "Maya");
-    await user.click(screen.getByRole("button", { name: "Send request" }));
+    await user.click(screen.getByRole("button", { name: "Send Request" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "We could not confirm whether your request was saved"
     );
-    expect(screen.getByRole("button", { name: "Send request" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Send Request" })).toHaveAttribute(
       "aria-disabled",
       "true"
     );
@@ -108,7 +108,7 @@ describe("GardenJoinRequestDialog", () => {
     await user.click(screen.getByRole("button", { name: "Check request status" }));
     expect(checkStatus).toHaveBeenCalledOnce();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Send request" })).not.toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Send Request" })).not.toHaveAttribute(
       "aria-disabled",
       "true"
     );

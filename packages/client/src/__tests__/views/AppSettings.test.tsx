@@ -165,7 +165,7 @@ describe("AppSettings", () => {
     render(wrap(createElement(AppSettings)));
 
     expect(screen.queryByText("Refresh app")).not.toBeInTheDocument();
-    expect(screen.queryByText("Update app")).not.toBeInTheDocument();
+    expect(screen.queryByText("Update App")).not.toBeInTheDocument();
     expect(screen.queryByTestId("btn-Refresh")).not.toBeInTheDocument();
     expect(screen.queryByTestId("btn-Update")).not.toBeInTheDocument();
     expect(screen.queryByTestId("btn-Restart to update")).not.toBeInTheDocument();
@@ -198,9 +198,9 @@ describe("AppSettings", () => {
 
     render(wrap(createElement(AppSettings)));
 
-    expect(screen.getByText("Update needs a restart")).toBeInTheDocument();
+    expect(screen.getByText("Update Needs a Restart")).toBeInTheDocument();
     expect(screen.getByText(/close and reopen the app/i)).toBeInTheDocument();
-    expect(screen.getByTestId("btn-Try again")).toBeInTheDocument();
+    expect(screen.getByTestId("btn-Try Again")).toBeInTheDocument();
   });
 
   it("applies the waiting service worker update from the update card", async () => {

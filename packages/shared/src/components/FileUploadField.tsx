@@ -224,11 +224,11 @@ export function FileUploadField({
               {multiple
                 ? formatMessage({
                     id: "admin.fileUpload.chooseFiles",
-                    defaultMessage: "Choose files",
+                    defaultMessage: "Choose Files",
                   })
                 : formatMessage({
                     id: "admin.fileUpload.chooseFile",
-                    defaultMessage: "Choose file",
+                    defaultMessage: "Choose File",
                   })}
             </span>
           </>

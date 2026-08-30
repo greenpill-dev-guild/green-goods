@@ -182,7 +182,7 @@ describe("ProofComposer", () => {
     await reachReview(user);
 
     expect(screen.getByText(/will wait on your phone, photos and all/i)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Add this proof" }));
+    await user.click(screen.getByRole("button", { name: "Add This Proof" }));
     expect(controller.submit).toHaveBeenCalledTimes(1);
   });
 
@@ -194,7 +194,7 @@ describe("ProofComposer", () => {
     });
     render();
     await reachReview(user);
-    await user.click(screen.getByRole("button", { name: "Add this proof" }));
+    await user.click(screen.getByRole("button", { name: "Add This Proof" }));
 
     expect(controller.submit).toHaveBeenCalledTimes(1);
     expect(screen.getByText("Before you add this")).toBeInTheDocument();

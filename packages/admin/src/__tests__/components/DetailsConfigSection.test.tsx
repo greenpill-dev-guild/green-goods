@@ -75,7 +75,7 @@ describe("DetailsConfigSection", () => {
     fireEvent.change(screen.getByLabelText("Feedback Placeholder"), {
       target: { value: "Share observations" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Add your first input field" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Your First Input Field" }));
 
     expect(currentConfig()).toMatchObject({
       title: "Work details",

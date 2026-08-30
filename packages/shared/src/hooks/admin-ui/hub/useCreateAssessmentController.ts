@@ -373,7 +373,7 @@ export function useCreateAssessmentController() {
       toastService.error({
         title: formatMessage({
           id: "app.assessment.selectGarden",
-          defaultMessage: "Select a garden",
+          defaultMessage: "Select a Garden",
         }),
         message: formatMessage({
           id: "app.assessment.selectGardenMessage",

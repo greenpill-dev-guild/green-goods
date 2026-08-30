@@ -182,7 +182,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
                 <Button
                   label={formatMessage({
                     id: "app.garden.joinRequest.withdraw",
-                    defaultMessage: "Withdraw request",
+                    defaultMessage: "Withdraw Request",
                   })}
                   variant="neutral"
                   mode="stroke"
@@ -272,7 +272,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
                   <Button
                     label={formatMessage({
                       id: "app.garden.joinRequest.send",
-                      defaultMessage: "Send request",
+                      defaultMessage: "Send Request",
                     })}
                     variant="primary"
                     mode="filled"

@@ -328,7 +328,7 @@ describe("GardenPool", () => {
     render(<GardenPool pool={pool()} />);
 
     expect(screen.getByText("Didn't send")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Try again" }));
+    await user.click(screen.getByRole("button", { name: "Try Again" }));
     expect(mockRetryJob).toHaveBeenCalledWith("job-1");
     expect(mockFlush).toHaveBeenCalledTimes(1);
 
@@ -351,7 +351,7 @@ describe("GardenPool", () => {
 
     render(<GardenPool pool={pool()} />);
 
-    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try Again" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
   });
 

@@ -19,7 +19,7 @@ vi.mock("react-intl", () => ({
       const messages: Record<string, string> = {
         "cockpit.topBar.back": "Back",
         "cockpit.topBar.openSearch": "Open search",
-        "cockpit.topBar.openSettings": "Open settings",
+        "cockpit.topBar.openSettings": "Open Settings",
       };
       return messages[id] ?? id;
     },
@@ -142,21 +142,21 @@ describe("AppBar", () => {
   it("renders settings button with correct aria-label when onOpenSettings is provided", () => {
     render(<AppBar gardenChip={<span>Chip</span>} onOpenSettings={() => {}} />);
 
-    const settingsBtn = screen.getByRole("button", { name: "Open settings" });
+    const settingsBtn = screen.getByRole("button", { name: "Open Settings" });
     expect(settingsBtn).toBeTruthy();
   });
 
   it("does not render settings button when onOpenSettings is not provided", () => {
     render(<AppBar gardenChip={<span>Chip</span>} />);
 
-    expect(screen.queryByRole("button", { name: "Open settings" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Open Settings" })).toBeNull();
   });
 
   it("calls onOpenSettings when settings button is clicked", async () => {
     const onOpenSettings = vi.fn();
     render(<AppBar gardenChip={<span>Chip</span>} onOpenSettings={onOpenSettings} />);
 
-    await user.click(screen.getByRole("button", { name: "Open settings" }));
+    await user.click(screen.getByRole("button", { name: "Open Settings" }));
     expect(onOpenSettings).toHaveBeenCalledOnce();
   });
 

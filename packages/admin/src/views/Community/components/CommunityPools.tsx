@@ -131,7 +131,7 @@ export function CommunityPools({ chainId, garden, canManage }: CommunityPoolsPro
             >
               {formatMessage({
                 id: "cockpit.garden.pool.readError.retry",
-                defaultMessage: "Try again",
+                defaultMessage: "Try Again",
               })}
             </AdminButton>
           </AdminCard>
@@ -250,7 +250,7 @@ export function CommunityPools({ chainId, garden, canManage }: CommunityPoolsPro
           >
             {formatMessage({
               id: "cockpit.community.pools.openConsole",
-              defaultMessage: "Open the pool console",
+              defaultMessage: "Open the Pool Console",
             })}
           </AdminButton>
           {!canManage ? (

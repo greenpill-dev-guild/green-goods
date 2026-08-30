@@ -292,7 +292,7 @@ export function FinishedCycles({
           >
             {formatMessage({
               id: "public.pool.garden.history.loadMore",
-              defaultMessage: "Show more seasons",
+              defaultMessage: "Show More Seasons",
             })}
           </button>
         ) : null}
@@ -320,7 +320,7 @@ export function CertificatesTieIn() {
       <a href="#public-garden-detail-certificates" className={ARROW_LINK_CLASS}>
         {formatMessage({
           id: "public.pool.garden.certificatesLink",
-          defaultMessage: "See the certificates",
+          defaultMessage: "See the Certificates",
         })}
         <span
           aria-hidden="true"

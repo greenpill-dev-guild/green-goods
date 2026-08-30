@@ -98,7 +98,7 @@ export function AddressDisplay({
           className="p-1 text-text-soft hover:text-text-sub transition-colors focus:outline-none focus:ring-2 focus:ring-primary-base/40 rounded"
           title={intl.formatMessage({
             id: "app.common.copyAddress",
-            defaultMessage: "Copy address",
+            defaultMessage: "Copy Address",
           })}
         >
           {copied ? (

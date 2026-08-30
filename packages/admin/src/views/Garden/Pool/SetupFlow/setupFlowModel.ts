@@ -131,11 +131,11 @@ export function setupFlowTitle(
     : isCampaign
       ? formatMessage({
           id: "cockpit.garden.pool.setup.campaignTitle",
-          defaultMessage: "Start a campaign",
+          defaultMessage: "Start a Campaign",
         })
       : formatMessage({
           id: "cockpit.garden.pool.setup.seasonTitle",
-          defaultMessage: "Start a season",
+          defaultMessage: "Start a Season",
         });
 }
 

@@ -48,7 +48,7 @@ export default function CookiesView() {
         <CanvasRouteHeader
           title={formatMessage({
             id: "cockpit.community.cookies.dialogTitle",
-            defaultMessage: "Create cookie jar",
+            defaultMessage: "Create Cookie Jar",
           })}
           description={formatMessage({
             id: "cockpit.community.cookies.deployDescription",

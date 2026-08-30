@@ -83,7 +83,7 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
     Boolean(guidance.manualInstructions?.length);
   const fallbackLabel = formatMessage({
     id: "public.nav.installAgain",
-    defaultMessage: "Install again",
+    defaultMessage: "Install Again",
   });
   const dataInstallAction = isInstallPending
     ? "installing"

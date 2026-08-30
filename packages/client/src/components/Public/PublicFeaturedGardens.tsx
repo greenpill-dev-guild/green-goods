@@ -114,7 +114,7 @@ export function PublicFeaturedGardens() {
           <EditorialLinkArrow to="/gardens">
             {formatMessage({
               id: "public.home.featured.cta",
-              defaultMessage: "Browse all Gardens",
+              defaultMessage: "Browse All Gardens",
             })}
           </EditorialLinkArrow>
         </header>

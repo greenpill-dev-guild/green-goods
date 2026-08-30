@@ -646,7 +646,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           >
             {intl.formatMessage({
               id: "app.garden.upload.removeBrokenMedia",
-              defaultMessage: "Remove broken media",
+              defaultMessage: "Remove Broken Media",
             })}
           </button>
         </div>

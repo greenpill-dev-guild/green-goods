@@ -121,7 +121,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
           <h2 id="garden-join-requests-title" className="font-semibold text-text-strong-950">
             {formatMessage({
               id: "app.garden.joinQueue.title",
-              defaultMessage: "Join requests",
+              defaultMessage: "Join Requests",
             })}
           </h2>
           <p className="mt-1 text-sm text-text-sub-600">
@@ -231,7 +231,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
                     type="submit"
                     label={formatMessage({
                       id: "app.garden.joinQueue.confirmDecline",
-                      defaultMessage: "Decline request",
+                      defaultMessage: "Decline Request",
                     })}
                     variant="error"
                     mode="filled"
@@ -285,7 +285,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
 
       {join.nextCursor ? (
         <Button
-          label={formatMessage({ id: "app.common.loadMore", defaultMessage: "Load more" })}
+          label={formatMessage({ id: "app.common.loadMore", defaultMessage: "Load More" })}
           variant="neutral"
           mode="stroke"
           size="small"

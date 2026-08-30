@@ -53,7 +53,7 @@ export default function CreateGarden() {
               <AdminButton variant="tonal" size="sm" onClick={createGarden.retry}>
                 {intl.formatMessage({
                   id: "admin.garden.deploy.retry",
-                  defaultMessage: "Retry deployment",
+                  defaultMessage: "Retry Deployment",
                 })}
               </AdminButton>
             }
@@ -78,7 +78,7 @@ export default function CreateGarden() {
             >
               {intl.formatMessage({
                 id: "admin.garden.form.deploy",
-                defaultMessage: "Deploy garden",
+                defaultMessage: "Deploy Garden",
               })}
             </AdminButton>
           </>

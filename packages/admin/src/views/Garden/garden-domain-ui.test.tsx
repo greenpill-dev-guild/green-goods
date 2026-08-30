@@ -357,7 +357,7 @@ describe("garden domain recovery UI", () => {
 
     expect(await screen.findByText("Discard Changes?")).toBeVisible();
 
-    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    await user.click(screen.getByRole("button", { name: "Keep Editing" }));
 
     expect(screen.getByRole("dialog", { name: "Garden Profile" })).toBeVisible();
     expect(screen.queryByText("Health route")).not.toBeInTheDocument();

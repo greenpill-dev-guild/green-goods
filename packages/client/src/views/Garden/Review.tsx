@@ -189,7 +189,7 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
           >
             {intl.formatMessage({
               id: "app.garden.review.removeBrokenMedia",
-              defaultMessage: "Remove broken media",
+              defaultMessage: "Remove Broken Media",
             })}
           </button>
         </div>

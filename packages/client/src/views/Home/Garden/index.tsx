@@ -289,7 +289,7 @@ export const Garden: React.FC = () => {
             onClick={() => refetchGardens()}
             label={intl.formatMessage({
               id: "app.garden.loadRetry",
-              defaultMessage: "Try again",
+              defaultMessage: "Try Again",
             })}
           />
         </div>

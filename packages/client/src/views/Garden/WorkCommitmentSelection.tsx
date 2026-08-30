@@ -101,7 +101,7 @@ export function WorkCommitmentSelection({
               <RiRefreshLine className="h-4 w-4" aria-hidden="true" />
               {intl.formatMessage({
                 id: "app.garden.commitment.retry",
-                defaultMessage: "Try again",
+                defaultMessage: "Try Again",
               })}
             </button>
           ) : null}

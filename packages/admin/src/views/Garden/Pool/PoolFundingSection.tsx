@@ -73,11 +73,11 @@ export function PoolFundingSection({
           className="!h-11 !w-11 !px-0"
           aria-label={formatMessage({
             id: "cockpit.garden.pool.funding.refresh",
-            defaultMessage: "Refresh pool funding",
+            defaultMessage: "Refresh Pool Funding",
           })}
           title={formatMessage({
             id: "cockpit.garden.pool.funding.refresh",
-            defaultMessage: "Refresh pool funding",
+            defaultMessage: "Refresh Pool Funding",
           })}
           onClick={() => void handleRefresh()}
           loading={manualRefresh === "running"}
@@ -242,7 +242,7 @@ export function PoolFundingSection({
           >
             {formatMessage({
               id: "cockpit.garden.pool.funding.viewDetails",
-              defaultMessage: "View funding details",
+              defaultMessage: "View Funding Details",
             })}
           </AdminButton>
         </>

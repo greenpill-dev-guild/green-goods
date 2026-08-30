@@ -97,7 +97,7 @@ export function PublicSourceDialog({
               {sourceLabel ??
                 formatMessage({
                   id: "public.source.viewSource",
-                  defaultMessage: "View source",
+                  defaultMessage: "View Source",
                 })}
             </a>
           </p>

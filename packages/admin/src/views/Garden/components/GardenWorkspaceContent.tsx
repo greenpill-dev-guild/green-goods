@@ -222,7 +222,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
                 >
                   {formatMessage({
                     id: "app.garden.settings.saveChanges",
-                    defaultMessage: "Save changes",
+                    defaultMessage: "Save Changes",
                   })}
                 </AdminButton>
               </div>

@@ -174,7 +174,7 @@ vi.mock("@/components/Public/PublicEndowmentPanel", () => ({
     return open ? (
       <div role="dialog" aria-label="Your Endowments" data-testid="public-endowment-panel">
         <button type="button" onClick={() => onOpenChange(false)}>
-          Close endowments
+          Close Endowments
         </button>
       </div>
     ) : null;
@@ -481,7 +481,7 @@ describe("FundPage", () => {
 
     expect(screen.getByTestId("location-search")).toHaveTextContent("?manage=endowments");
 
-    await user.click(screen.getByRole("button", { name: "Close endowments" }));
+    await user.click(screen.getByRole("button", { name: "Close Endowments" }));
 
     expect(screen.queryByTestId("public-endowment-panel")).toBeNull();
     expect(screen.getByTestId("location-search")).toHaveTextContent("?manage=endowments");

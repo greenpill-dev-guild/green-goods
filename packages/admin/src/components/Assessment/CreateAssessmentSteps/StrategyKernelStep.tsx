@@ -299,7 +299,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
         ? null
         : formatMessage({
             id: "app.admin.assessment.strategyKernel.outcomeMetricRequired",
-            defaultMessage: "Select a metric",
+            defaultMessage: "Select a Metric",
           }),
     target:
       o.target >= 0
@@ -407,7 +407,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                   <option value="">
                     {formatMessage({
                       id: "app.admin.assessment.strategyKernel.selectMetric",
-                      defaultMessage: "Select metric",
+                      defaultMessage: "Select Metric",
                     })}
                   </option>
                   {metrics.map((m) => (
@@ -451,7 +451,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                     className="mt-1 rounded-md p-1.5 text-error-base transition hover:bg-error-lighter hover:text-error-dark disabled:cursor-not-allowed disabled:opacity-60"
                     aria-label={formatMessage({
                       id: "app.admin.assessment.strategyKernel.removeOutcome",
-                      defaultMessage: "Remove outcome",
+                      defaultMessage: "Remove Outcome",
                     })}
                   >
                     <RiDeleteBinLine className="h-4 w-4" />
@@ -475,7 +475,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
             <RiAddLine className="h-4 w-4" />
             {formatMessage({
               id: "app.admin.assessment.strategyKernel.addOutcome",
-              defaultMessage: "Add outcome",
+              defaultMessage: "Add Outcome",
             })}
           </button>
         </div>

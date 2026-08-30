@@ -287,11 +287,11 @@ type SplashStoryArgs = NonNullable<Story["args"]>;
 
 /** Mirrors the trimmed English strings in packages/shared/src/i18n/en.json. */
 const COPY = {
-  createButton: "Create account",
-  signInButton: "Sign in with passkey",
+  createButton: "Create Account",
+  signInButton: "Sign in with Passkey",
   continueAs: "Continue as gardener.eth",
   recoverButton: "Recover with passkey",
-  wallet: "Sign in with a wallet",
+  wallet: "Sign in with a Wallet",
   recoverWithUsername: "Recover with username",
   haveAccount: "Already have an account?",
   newAccountLabel: "Display name for new account",

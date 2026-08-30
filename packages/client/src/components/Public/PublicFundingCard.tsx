@@ -537,7 +537,7 @@ export function SuccessBody({
               })
             : formatMessage({
                 id: "public.fund.card.endowAgain",
-                defaultMessage: "Endow again",
+                defaultMessage: "Endow Again",
               })}
         </EditorialPrimaryButton>
         <EditorialGhostButton onClick={onClose} className="px-5 py-2.5 text-sm">

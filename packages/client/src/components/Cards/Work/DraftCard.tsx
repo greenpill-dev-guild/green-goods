@@ -130,7 +130,7 @@ export const DraftCard: React.FC<DraftCardProps> = ({
         className="absolute top-1/2 right-2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full text-text-soft-400 transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-error-lighter hover:text-error-base focus:outline-none focus-visible:shadow-button-primary-focus"
         aria-label={intl.formatMessage({
           id: "app.draft.delete",
-          defaultMessage: "Delete draft",
+          defaultMessage: "Delete Draft",
         })}
       >
         <RiDeleteBinLine className="w-4 h-4" />

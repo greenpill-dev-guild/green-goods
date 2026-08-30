@@ -491,7 +491,7 @@ describe("presentation-specific boot fallback", () => {
     await vi.waitFor(() => expect(fallback).toHaveAttribute("data-state", "stalled"));
 
     expect(pwaMessage).toHaveTextContent("You’re offline. Reconnect, then try again.");
-    expect(pwaReload).toHaveTextContent("Try again");
+    expect(pwaReload).toHaveTextContent("Try Again");
     expect(pwaReload).toHaveAttribute("aria-disabled", "false");
     expect(registration.update).not.toHaveBeenCalled();
     expect(registration.unregister).not.toHaveBeenCalled();
@@ -513,7 +513,7 @@ describe("presentation-specific boot fallback", () => {
 
     missingView.pwaReload.click();
     await vi.waitFor(() => expect(missingView.fallback).toHaveAttribute("data-state", "stalled"));
-    expect(missingView.pwaReload).toHaveTextContent("Try again");
+    expect(missingView.pwaReload).toHaveTextContent("Try Again");
     expect(missingWindow.location.reload).not.toHaveBeenCalled();
 
     const { registration } = createRegistration();
@@ -528,7 +528,7 @@ describe("presentation-specific boot fallback", () => {
 
     failedView.pwaReload.click();
     await vi.waitFor(() => expect(failedView.fallback).toHaveAttribute("data-state", "stalled"));
-    expect(failedView.pwaReload).toHaveTextContent("Try again");
+    expect(failedView.pwaReload).toHaveTextContent("Try Again");
     expect(registration.unregister).not.toHaveBeenCalled();
     expect(failedWindow.location.reload).not.toHaveBeenCalled();
   });
@@ -551,7 +551,7 @@ describe("presentation-specific boot fallback", () => {
     expect(pwaMessage).toHaveTextContent(
       "The update didn’t finish. Close and reopen Green Goods, or try again."
     );
-    expect(pwaReload).toHaveTextContent("Try again");
+    expect(pwaReload).toHaveTextContent("Try Again");
     expect(registration.unregister).not.toHaveBeenCalled();
     expect(location.reload).not.toHaveBeenCalled();
   });

@@ -103,7 +103,7 @@ export function PoolStatusCasts({
         >
           {formatMessage({
             id: "cockpit.garden.pool.readError.retry",
-            defaultMessage: "Try again",
+            defaultMessage: "Try Again",
           })}
         </AdminButton>
       </AdminCard>
