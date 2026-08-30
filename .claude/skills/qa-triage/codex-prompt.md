@@ -91,6 +91,7 @@ For every item, fill the JSON schema at `schema.json` strictly. One item per JSO
 ## Surface vocabulary (use these exact strings)
 
 - `Public Website` — client editorial routes (/, /gardens, /fund, /impact, /actions, /cookies on the public site)
+- `PWA` — the client app as one merged surface: desktop PWA shell or device-unspecified observations (catalog v2's active tab; use the platform values below only when the notes name a device)
 - `PWA iOS` — installed PWA on iOS Safari
 - `PWA Android` — installed PWA on Android Chrome
 - `Admin Dashboard` — admin cockpit (Hub, MainSheet, AdminDialog overlays, AdminSideSheet, FabButton, /hub/*, /garden/*, /community/*)

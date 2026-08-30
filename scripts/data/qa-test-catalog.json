@@ -50,7 +50,12 @@
       "area": "Garden Discovery",
       "scenario": "Gardens listing renders real data at volume with search",
       "preconditions": ["Indexer or deployed public data available"],
-      "steps": ["Open /gardens", "Inspect cards", "Open a garden detail URL"],
+      "steps": [
+        "Open /gardens and scroll the full listing; watch for layout jumps and lazy-image pop-in",
+        "Search for a term and confirm the live count narrows (note: the query is lost on refresh — known)",
+        "Search for gibberish and read the empty state",
+        "Open a garden detail URL from a card"
+      ],
       "expected": "All gardens render with lazy images and no layout jumps; search narrows with a live count (note: query is lost on refresh); empty state is honest",
       "evidence": "Screenshot of listing and detail",
       "role": "none",
