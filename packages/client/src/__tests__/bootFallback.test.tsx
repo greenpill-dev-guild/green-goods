@@ -490,6 +490,37 @@ describe("presentation-specific boot fallback", () => {
     expect(websiteRecovery).not.toHaveAttribute("hidden");
   });
 
+  it("does not claim stale app files while a mounted app waits on auth", () => {
+    // Login renders null until auth restoration resolves, so #root stays empty
+    // ON PURPOSE. React calling in still proves the bundle arrived, so the
+    // update prompt would be a false claim — and its reload would restart a
+    // sign-in already in progress.
+    const { fallback, markReactMounted, pwaMessage } = runController("pwa");
+
+    markReactMounted?.();
+    vi.advanceTimersByTime(4500);
+
+    expect(fallback).not.toHaveAttribute("hidden");
+    expect(fallback).toHaveAttribute("data-state", "loading");
+    expect(pwaMessage).toHaveTextContent("Green Goods is loading.");
+  });
+
+  it("still finishes the PWA handoff once a waiting app finally paints", () => {
+    const { clearFallback, fallback, markReactMounted } = runController("pwa");
+
+    markReactMounted?.();
+    vi.advanceTimersByTime(4500);
+    // The observer is still connected while the root is empty, so the real
+    // mount signal is not lost by the early call above.
+    document.getElementById("root")?.append(document.createElement("main"));
+    markReactMounted?.();
+    expect(fallback).toHaveAttribute("data-state", "loading");
+
+    clearFallback?.();
+    expect(fallback).toHaveAttribute("hidden");
+    expect(fallback).toHaveAttribute("data-state", "cleared");
+  });
+
   it("preserves the PWA update recovery message", () => {
     const { fallback, pwaMessage } = runController("pwa");
 

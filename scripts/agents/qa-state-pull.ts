@@ -82,11 +82,47 @@ export function existingArtifacts(outDir: string, exists: (target: string) => bo
 }
 
 /**
+ * Parse one tester's shard, or throw.
+ *
+ * ABSENT and MALFORMED are different answers and only one of them is normal.
+ * `mergeShards` skips a shard whose shape it does not recognise, which is right
+ * for a merge but wrong for ingestion: a shard that is `null`, has no `entries`,
+ * or is owned by someone else would drop that tester silently, and `qa:pull`
+ * would then write a complete-LOOKING run sheet with their session missing.
+ * Failing the pull is recoverable; a confident, incomplete CSV is not.
+ */
+export function parseShard(person: string, text: string): Shard {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch (error) {
+    throw new Error(`${person}'s shard is not valid JSON: ${error instanceof Error ? error.message : error}`);
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`${person}'s shard is not an object`);
+  }
+  const shard = parsed as Partial<Shard>;
+  if (shard.person !== person) {
+    throw new Error(`${person}'s shard reports its owner as ${JSON.stringify(shard.person ?? null)}`);
+  }
+  if (!shard.entries || typeof shard.entries !== "object" || Array.isArray(shard.entries)) {
+    throw new Error(`${person}'s shard has no entries object`);
+  }
+  for (const [caseId, entry] of Object.entries(shard.entries)) {
+    if (!entry || typeof entry !== "object" || typeof entry.s !== "string" || typeof entry.n !== "string") {
+      throw new Error(`${person}'s entry for ${caseId} is malformed`);
+    }
+  }
+  return shard as Shard;
+}
+
+/**
  * Read one tester's shard. A missing shard is normal — it means that person has
  * not recorded anything — and must not fail the pull for everyone else.
  */
 async function readShard(person: string, token: string): Promise<Shard | null> {
   const { get } = await import("@vercel/blob");
+  let text: string;
   try {
     const result = await get(`qa/entries/${person}.json`, {
       access: "private",
@@ -95,12 +131,15 @@ async function readShard(person: string, token: string): Promise<Shard | null> {
       token,
     });
     if (!result || result.statusCode !== 200 || !result.stream) return null;
-    return JSON.parse(await new Response(result.stream).text()) as Shard;
+    text = await new Response(result.stream).text();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (/not.?found|404/i.test(message)) return null;
     throw new Error(`could not read ${person}'s shard: ${message}`);
   }
+  // Deliberately outside the catch: a shape failure is not a transport failure,
+  // and must never be mistaken for the absent-shard case handled above.
+  return parseShard(person, text);
 }
 
 async function main(): Promise<void> {

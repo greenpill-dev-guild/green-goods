@@ -291,6 +291,126 @@ async function outboxDurabilityHarness() {
   });
 }
 
+/**
+ * A field that has already reached the server must not ride along on the next
+ * edit. Status click posts `{s}`; the tester types a note before that response
+ * lands; the follow-up has to carry only `{n}`, or it reasserts a verdict the
+ * other device may have moved on from.
+ */
+async function inFlightFieldHarness() {
+  const dynamicImport = new Function("specifier", "return import(specifier)");
+  const assert = (await dynamicImport("node:assert/strict")).default;
+  const { readFileSync } = await dynamicImport("node:fs");
+  const path = await dynamicImport("node:path");
+  const { JSDOM, VirtualConsole } = await dynamicImport("jsdom");
+
+  const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
+  const testCase = {
+    id: "PUB-001",
+    tab: "Public Website",
+    area: "Funding",
+    pri: "P0",
+    scenario: "Donate end to end",
+    expected: "The donation completes",
+    rp: false,
+    rd: false,
+    tx: false,
+  };
+  const response = (body) => ({ ok: true, status: 200, json: async () => structuredClone(body) });
+  const flush = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+
+  const posts = [];
+  const timers = new Map();
+  let timerId = 0;
+  let releaseFirstPost = null;
+  let jsdomError = "";
+  const virtualConsole = new VirtualConsole();
+  virtualConsole.on("jsdomError", (error) => {
+    jsdomError = error.cause?.stack || error.cause?.message || error.message;
+  });
+
+  const dom = new JSDOM(page, {
+    runScripts: "dangerously",
+    url: "http://localhost:4610/",
+    virtualConsole,
+    beforeParse(window) {
+      window.localStorage.setItem("qa-who", "Afo");
+      window.setTimeout = (callback, delay = 0) => {
+        const id = ++timerId;
+        timers.set(id, { callback, delay });
+        return id;
+      };
+      window.clearTimeout = (id) => timers.delete(id);
+      window.setInterval = () => 1;
+      window.fetch = async (input, init = {}) => {
+        const target = String(input);
+        if (target === "catalog.json") {
+          return response({ tabs: [testCase.tab], cases: [testCase] });
+        }
+        if (target !== "/api/state") throw new Error(`unexpected fetch ${target}`);
+        if (init.method === "POST") {
+          posts.push(JSON.parse(String(init.body)));
+          // Hold the FIRST response open so the note is typed mid-flight.
+          if (posts.length === 1) {
+            return new Promise((resolve) => {
+              releaseFirstPost = () => resolve(response({ ok: true, person: "Afo", count: 1 }));
+            });
+          }
+          return response({ ok: true, person: "Afo", count: 1 });
+        }
+        return response({ team: ["Afo"], entries: {} });
+      };
+    },
+  });
+
+  const takeTimer = (delay) => {
+    const timer = [...timers.entries()].find(([, pending]) => pending.delay === delay);
+    assert.ok(timer, `expected a ${delay}ms timer`);
+    timers.delete(timer[0]);
+    return timer[1].callback;
+  };
+  const runTimer = async (delay) => {
+    await takeTimer(delay)();
+    await flush();
+  };
+
+  try {
+    await flush();
+    assert.ok(
+      dom.window.document.querySelector('[data-note="PUB-001"]'),
+      jsdomError || "the page did not render",
+    );
+
+    dom.window.document.querySelector('[data-id="PUB-001"][data-s="fail"]')?.click();
+    // Fire WITHOUT awaiting — this request is deliberately left in flight.
+    const inFlight = takeTimer(900)();
+    await flush();
+    assert.ok(releaseFirstPost, "the status save did not start");
+    assert.deepEqual(posts[0].entries, { "PUB-001": { s: "fail" } });
+
+    const note = dom.window.document.querySelector('[data-note="PUB-001"]');
+    note.value = "typed while the verdict was still in flight";
+    note.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+    await flush();
+
+    releaseFirstPost();
+    await inFlight;
+    await flush();
+
+    await runTimer(400);
+    assert.equal(posts.length, 2, "the note should have gone out on its own");
+    assert.deepEqual(posts[1].entries, {
+      "PUB-001": { n: "typed while the verdict was still in flight" },
+    });
+  } finally {
+    dom.window.close();
+  }
+}
+
 describe("QA app client races", () => {
   // Each case spawns a Node subprocess and boots JSDOM once per page life, which
   // runs past Vitest's 5s default — the cause of the intermittent timeout here.
@@ -319,6 +439,20 @@ describe("QA app client races", () => {
         "--input-type=module",
         "--eval",
         `await (${outboxDurabilityHarness.toString()})()`,
+      ],
+      { cwd: repoRoot, stdio: "pipe" },
+    );
+  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
+
+  it("does not resend a verdict the server already stored alongside a later note", () => {
+    execFileSync(
+      "node",
+      [
+        "scripts/dev/node-cli.js",
+        "node",
+        "--input-type=module",
+        "--eval",
+        `await (${inFlightFieldHarness.toString()})()`,
       ],
       { cwd: repoRoot, stdio: "pipe" },
     );

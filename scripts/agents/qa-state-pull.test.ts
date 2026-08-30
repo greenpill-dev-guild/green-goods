@@ -1,7 +1,7 @@
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { existingArtifacts, parseArgs, SESSION_ARTIFACTS } from "./qa-state-pull";
+import { existingArtifacts, parseArgs, parseShard, SESSION_ARTIFACTS } from "./qa-state-pull";
 
 const repoRoot = path.join(import.meta.dirname, "..", "..");
 
@@ -48,5 +48,42 @@ describe("qa:pull overwrite guard", () => {
       force: true,
       outDir: path.join(repoRoot, "tmp", "qa-session", "rehearsal"),
     });
+  });
+});
+
+describe("qa:pull shard validation", () => {
+  const good = JSON.stringify({
+    person: "Afo",
+    updatedAt: "2026-08-30T10:00:00.000Z",
+    entries: { "PUB-014": { s: "fail", n: "approve never fired", at: "2026-08-30T10:00:00.000Z" } },
+  });
+
+  it("accepts a well-formed shard", () => {
+    expect(parseShard("Afo", good).entries["PUB-014"].s).toBe("fail");
+  });
+
+  it("fails the pull rather than dropping a tester whose shard is malformed", () => {
+    // mergeShards skips a shape it does not recognise, which is right for a
+    // merge and wrong for ingestion: silently skipping here writes a
+    // complete-LOOKING run sheet with somebody's whole session missing.
+    expect(() => parseShard("Afo", "not json")).toThrow(/not valid JSON/i);
+    expect(() => parseShard("Afo", "null")).toThrow(/not an object/i);
+    expect(() => parseShard("Afo", "[]")).toThrow(/not an object/i);
+    expect(() => parseShard("Afo", '{"person":"Afo"}')).toThrow(/no entries object/i);
+    expect(() => parseShard("Afo", '{"person":"Afo","entries":[]}')).toThrow(/no entries object/i);
+  });
+
+  it("refuses a shard filed under the wrong owner", () => {
+    expect(() => parseShard("Afo", '{"person":"Gui","entries":{}}')).toThrow(/owner as "Gui"/);
+    expect(() => parseShard("Afo", '{"entries":{}}')).toThrow(/owner as null/);
+  });
+
+  it("refuses an entry that is not a verdict and a note", () => {
+    expect(() => parseShard("Afo", '{"person":"Afo","entries":{"PUB-014":null}}')).toThrow(
+      /PUB-014 is malformed/,
+    );
+    expect(() => parseShard("Afo", '{"person":"Afo","entries":{"PUB-014":{"s":"fail"}}}')).toThrow(
+      /PUB-014 is malformed/,
+    );
   });
 });

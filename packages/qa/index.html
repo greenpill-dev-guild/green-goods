@@ -226,15 +226,6 @@
   function tombstone() {
     return { delete: true };
   }
-  function samePatch(a, b) {
-    if (!a && !b) return true;
-    if (!a || !b) return false;
-    return Boolean(a.delete) === Boolean(b.delete)
-      && hasOwn(a, "s") === hasOwn(b, "s")
-      && (!hasOwn(a, "s") || a.s === b.s)
-      && hasOwn(a, "n") === hasOwn(b, "n")
-      && (!hasOwn(a, "n") || a.n === b.n);
-  }
   function patchEntry(current, patch) {
     if (patch.delete) return null;
     const next = {
@@ -535,10 +526,27 @@
       await response.json();
       // Confirm the exact local version this response represents. Anything
       // typed during the request has a later version and remains pending.
+      //
+      // Acknowledge FIELD BY FIELD. Dropping the whole case only when the whole
+      // patch still matched left an already-stored field sitting in the queue
+      // the moment the tester touched the other one — a status that landed,
+      // then a note typed before the response arrived, went back out as
+      // `{s, n}` and overwrote a newer status from the other device. A field
+      // the server has stored is done; only what changed since is still ours
+      // to send.
       for (const [caseId, patch] of Object.entries(sent)) {
         const key = versionKey(person, caseId);
         confirmedVersions[key] = Math.max(confirmedVersions[key] || 0, sentVersions[caseId] || 0);
-        if (samePatch(outbox[caseId], patch) && outboxVersions[caseId] === sentVersions[caseId]) {
+        const pending = outbox[caseId];
+        if (!pending) continue;
+        // A delete queued after this send is a new intent, not an echo of it.
+        if (Boolean(pending.delete) !== Boolean(patch.delete)) continue;
+        for (const field of ["s", "n"]) {
+          if (hasOwn(patch, field) && hasOwn(pending, field) && pending[field] === patch[field]) {
+            delete pending[field];
+          }
+        }
+        if (pending.delete || !Object.keys(pending).length) {
           delete outbox[caseId];
           delete outboxVersions[caseId];
         }
