@@ -1,10 +1,10 @@
 import { Alert } from "@green-goods/shared/components/Alert";
-import { Card } from "@green-goods/shared/components/Cards/CardBase";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiArrowRightSLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminCard, AdminCardBody, AdminCardHeader } from "../AdminCard";
 import { SeedlingIllustration } from "./SeedlingIllustration";
 
 // Paradigm: Ritual — single-purpose garden selection, focused attention.
@@ -31,8 +31,8 @@ export function CanvasWorkspaceSelectionState({
   if (gardens.length === 0) {
     return (
       <div className="py-8">
-        <Card className="mx-auto max-w-xl">
-          <Card.Body className="flex flex-col items-center py-12 text-center">
+        <AdminCard density="none" className="mx-auto max-w-xl">
+          <AdminCardBody className="flex flex-col items-center py-12 text-center">
             <SeedlingIllustration className="h-24 w-24" />
             <h2 className="mt-4 text-title-md text-text-strong">
               {formatMessage({
@@ -54,16 +54,16 @@ export function CanvasWorkspaceSelectionState({
                 })}
               </Link>
             </AdminButton>
-          </Card.Body>
-        </Card>
+          </AdminCardBody>
+        </AdminCard>
       </div>
     );
   }
 
   return (
     <div className="px-4 py-8 sm:px-6">
-      <Card className="mx-auto max-w-3xl">
-        <Card.Header>
+      <AdminCard density="none" className="mx-auto max-w-3xl">
+        <AdminCardHeader>
           <div>
             <h2 className="label-md text-text-strong sm:text-lg">
               {formatMessage({
@@ -81,8 +81,8 @@ export function CanvasWorkspaceSelectionState({
               )}
             </p>
           </div>
-        </Card.Header>
-        <Card.Body className="space-y-4">
+        </AdminCardHeader>
+        <AdminCardBody className="space-y-4">
           <Alert variant="info">
             {formatMessage({
               id: "cockpit.workspace.chooseGardenHint",
@@ -115,8 +115,8 @@ export function CanvasWorkspaceSelectionState({
               </button>
             ))}
           </div>
-        </Card.Body>
-      </Card>
+        </AdminCardBody>
+      </AdminCard>
     </div>
   );
 }

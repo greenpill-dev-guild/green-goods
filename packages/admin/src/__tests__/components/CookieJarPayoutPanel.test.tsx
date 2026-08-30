@@ -60,7 +60,7 @@ describe("CookieJarPayoutPanel", () => {
     expect(screen.getByText("Active")).toBeInTheDocument();
     expect(screen.getByText("Jar Balance")).toBeInTheDocument();
     expect(screen.getByText("Available now")).toBeInTheDocument();
-    expect(screen.getByText("Withdrawal Cooldown")).toBeInTheDocument();
+    expect(screen.getByText("Withdrawal cooldown")).toBeInTheDocument();
     expect(screen.getByText("1h")).toBeInTheDocument();
 
     // The card shows the jar asset and balance details in multiple slots.

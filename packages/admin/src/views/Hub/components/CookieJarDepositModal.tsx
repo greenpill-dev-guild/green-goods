@@ -1,6 +1,4 @@
 import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
-import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
-import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useCookieJarDeposit } from "@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit";
 import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
@@ -11,13 +9,15 @@ import {
   getVaultAssetSymbol,
   validateDecimalInput,
 } from "@green-goods/shared/utils/blockchain/vaults";
-import { AdminButton } from "@/components/AdminButton";
-import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
-import { AdminDialog } from "@/components/AdminDialog";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
 import { useBalance } from "wagmi";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
+import { AdminDialog } from "@/components/AdminDialog";
+import { AdminFieldGroup } from "@/components/AdminFieldGroup";
+import { AdminTextField } from "@/components/AdminTextField";
 
 interface CookieJarDepositModalProps {
   isOpen: boolean;
@@ -149,13 +149,14 @@ export function CookieJarDepositModal({
       <div className="space-y-4">
         {/* Jar switcher — compact single-select between the garden's jars (e.g. DAI / WETH) */}
         {jars.length > 1 && (
-          <FormField
-            label={formatMessage({ id: "app.cookieJar.title", defaultMessage: "Cookie Jar" })}
+          <AdminFieldGroup
+            as="div"
+            label={formatMessage({ id: "app.cookieJar.title", defaultMessage: "Cookie jar" })}
           >
             <AdminChoiceGroup
               ariaLabel={formatMessage({
                 id: "app.cookieJar.title",
-                defaultMessage: "Cookie Jar",
+                defaultMessage: "Cookie jar",
               })}
               columns={2}
               value={depositJar || null}
@@ -169,7 +170,7 @@ export function CookieJarDepositModal({
                 };
               })}
             />
-          </FormField>
+          </AdminFieldGroup>
         )}
 
         {/* Amount in the jar — the prominent number for the selected jar */}
@@ -188,23 +189,16 @@ export function CookieJarDepositModal({
         )}
 
         {/* Amount */}
-        <FormField
+        <AdminTextField
+          id="deposit-amount"
           label={formatMessage({ id: "app.cookieJar.amount", defaultMessage: "Amount" })}
-          htmlFor="deposit-amount"
+          type="text"
+          value={depositAmount}
+          onChange={(e) => setDepositAmount(e.target.value)}
+          placeholder="0.00"
           error={depositInputError ? formatMessage({ id: depositInputError }) : undefined}
-        >
-          <TextInput
-            id="deposit-amount"
-            surface="admin"
-            type="text"
-            inputMode="decimal"
-            value={depositAmount}
-            onChange={(e) => setDepositAmount(e.target.value)}
-            placeholder="0.00"
-            aria-invalid={Boolean(depositInputError)}
-            invalid={Boolean(depositInputError)}
-          />
-        </FormField>
+          inputProps={{ inputMode: "decimal" }}
+        />
 
         {/* Wallet balance */}
         <div className="space-y-1">

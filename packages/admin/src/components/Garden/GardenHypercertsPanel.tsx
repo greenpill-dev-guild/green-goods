@@ -1,4 +1,3 @@
-import { Card } from "@green-goods/shared/components/Cards/CardBase";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { HypercertRecord } from "@green-goods/shared/types/hypercerts";
@@ -8,6 +7,7 @@ import { RiAwardLine, RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { ActiveListingsTable } from "@/components/Hypercerts/ActiveListingsTable";
+import { AdminCard, AdminCardBody, AdminCardHeader } from "../AdminCard";
 
 const HYPERCERTS_APP_BASE_URL = "https://app.hypercerts.org/hypercerts";
 
@@ -30,8 +30,8 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
   const gardenRouteContext = { gardenId: gardenAddress ?? gardenId };
 
   return (
-    <Card>
-      <Card.Header className="gap-2">
+    <AdminCard density="none">
+      <AdminCardHeader className="gap-2">
         <h3 className="min-w-0 truncate label-md text-text-strong sm:text-lg">
           {formatMessage({ id: "app.hypercerts.list.title" })}
         </h3>
@@ -41,8 +41,8 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
         >
           {formatMessage({ id: "app.garden.admin.viewAll" })}
         </Link>
-      </Card.Header>
-      <Card.Body>
+      </AdminCardHeader>
+      <AdminCardBody>
         {isLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
@@ -122,7 +122,7 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
             </div>
           </>
         )}
-      </Card.Body>
-    </Card>
+      </AdminCardBody>
+    </AdminCard>
   );
 };

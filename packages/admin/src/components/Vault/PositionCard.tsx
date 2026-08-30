@@ -1,20 +1,19 @@
-import { Card } from "@green-goods/shared/components/Cards/CardBase";
 import { Alert } from "@green-goods/shared/components/Alert";
-import { useHarvestDistribution } from "@green-goods/shared/hooks/yield/useHarvestDistribution";
-import {
-  estimateYieldDistribution,
-  useYieldStatus,
-} from "@green-goods/shared/hooks/yield/useYieldStatus";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import { useEmergencyPause } from "@green-goods/shared/hooks/vault/useEmergencyPause";
 import { useEnableAutoAllocate } from "@green-goods/shared/hooks/vault/useEnableAutoAllocate";
 import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
+import { useHarvestDistribution } from "@green-goods/shared/hooks/yield/useHarvestDistribution";
+import {
+  estimateYieldDistribution,
+  useYieldStatus,
+} from "@green-goods/shared/hooks/yield/useYieldStatus";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenVault } from "@green-goods/shared/types/vaults";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { OCTANT_VAULT_ABI } from "@green-goods/shared/utils/blockchain/abis/octant";
 import { ZERO_ADDRESS } from "@green-goods/shared/utils/blockchain/address";
-import { formatAddress } from "@green-goods/shared/utils/app/text";
 import {
   formatTokenAmount,
   getNetDeposited,
@@ -29,6 +28,7 @@ import { useReadContracts } from "wagmi";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { EnsAddressText } from "@/components/EnsAddressText";
+import { AdminCard } from "../AdminCard";
 import { HarvestOutcomeAlerts } from "./HarvestOutcomeAlerts";
 
 interface PositionCardProps {
@@ -262,7 +262,7 @@ export function PositionCard({
     : "app.yield.harvestDistribution.action.distribute";
 
   return (
-    <Card padding="compact" className="sm:p-5">
+    <AdminCard>
       <div className="mb-4">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-semibold text-text-strong sm:text-lg">{assetSymbol}</h3>
@@ -468,6 +468,6 @@ export function PositionCard({
         tone="community"
         isLoading={emergencyPause.isPending}
       />
-    </Card>
+    </AdminCard>
   );
 }

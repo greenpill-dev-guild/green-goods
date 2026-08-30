@@ -1,5 +1,4 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
-import { Card } from "@green-goods/shared/components/Cards/CardBase";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useGardenYieldWiringState } from "@green-goods/shared/hooks/yield/useGardenYieldWiringState";
 import { logger } from "@green-goods/shared/modules/app/logger";
@@ -14,6 +13,7 @@ import { RiAddLine, RiAlertLine, RiCheckLine, RiGroupLine, RiQuestionLine } from
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminCard } from "../AdminCard";
 
 interface GardenPool {
   poolType: PoolType;
@@ -68,7 +68,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
         defaultMessage: "Community",
       })}
     >
-      <Card padding="compact" className="sm:p-6">
+      <AdminCard>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-feature-lighter">
@@ -276,7 +276,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
             )}
           </div>
         )}
-      </Card>
+      </AdminCard>
     </section>
   );
 };

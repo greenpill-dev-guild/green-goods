@@ -1,12 +1,12 @@
-import { Card } from "@green-goods/shared/components/Cards/CardBase";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { getEASExplorerUrl } from "@green-goods/shared/utils/eas/explorers";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { formatDate } from "@green-goods/shared/utils/time";
 import { RiExternalLinkLine, RiFileList3Line } from "@remixicon/react";
-import { AdminButton } from "@/components/AdminButton";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminCard, AdminCardBody, AdminCardHeader } from "../AdminCard";
 
 interface Assessment {
   id: string;
@@ -33,8 +33,8 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
   const { formatMessage } = useIntl();
 
   return (
-    <Card>
-      <Card.Header className="gap-2">
+    <AdminCard density="none">
+      <AdminCardHeader className="gap-2">
         <h3 className="min-w-0 truncate label-md text-text-strong sm:text-lg">
           {formatMessage({ id: "app.garden.admin.recentAssessments" })}
         </h3>
@@ -46,8 +46,8 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
             {formatMessage({ id: "app.garden.admin.viewAll" })}
           </Link>
         </AdminButton>
-      </Card.Header>
-      <Card.Body>
+      </AdminCardHeader>
+      <AdminCardBody>
         {isLoading ? (
           <p className="py-4 text-center text-sm text-text-soft">
             {formatMessage({ id: "app.garden.admin.loadingAssessments" })}
@@ -102,7 +102,7 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
             ))}
           </div>
         )}
-      </Card.Body>
-    </Card>
+      </AdminCardBody>
+    </AdminCard>
   );
 };

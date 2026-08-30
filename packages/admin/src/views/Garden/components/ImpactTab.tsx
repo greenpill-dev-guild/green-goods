@@ -1,4 +1,3 @@
-import { Card } from "@green-goods/shared/components/Cards/CardBase";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenDetailTab } from "@green-goods/shared/types/garden-detail";
@@ -8,7 +7,7 @@ import { RiArrowRightSLine, RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardBody, AdminCardHeader } from "@/components/AdminCard";
 import { GardenAssessmentsPanel } from "@/components/Garden/GardenAssessmentsPanel";
 import { GardenHypercertsPanel } from "@/components/Garden/GardenHypercertsPanel";
 import { SectionStateCard } from "./GardenDetailHelpers";
@@ -71,8 +70,8 @@ export function ImpactTab({
           ) : null}
 
           {(section === undefined || section === "hypercerts") && (
-            <Card className={`${IMPACT_HYPERCERT_CARD_CLASS} flex flex-col`}>
-              <Card.Header className="flex-wrap gap-3">
+            <AdminCard density="none" className={`${IMPACT_HYPERCERT_CARD_CLASS} flex flex-col`}>
+              <AdminCardHeader className="flex-wrap gap-3">
                 <div>
                   <h3 className="admin-section-title">
                     {formatMessage({ id: "app.garden.detail.impact.hypercertHighlights" })}
@@ -90,8 +89,8 @@ export function ImpactTab({
                     {formatMessage({ id: "app.garden.admin.viewAll" })}
                   </Link>
                 </AdminButton>
-              </Card.Header>
-              <Card.Body className="flex flex-1 flex-col">
+              </AdminCardHeader>
+              <AdminCardBody className="flex flex-1 flex-col">
                 {hypercertsLoading ? (
                   <div
                     className="grid flex-1 content-start gap-2 xl:grid-cols-2"
@@ -151,8 +150,8 @@ export function ImpactTab({
                     ))}
                   </div>
                 )}
-              </Card.Body>
-            </Card>
+              </AdminCardBody>
+            </AdminCard>
           )}
 
           {section === "assessments" ? (
@@ -178,8 +177,8 @@ export function ImpactTab({
 
         <aside className="garden-tab-rail">
           <div className="garden-tab-rail-sticky">
-            <Card>
-              <Card.Header className="flex-wrap gap-3">
+            <AdminCard density="none">
+              <AdminCardHeader className="flex-wrap gap-3">
                 <h3 className="admin-section-title admin-section-title--compact">
                   {formatMessage({ id: "app.garden.admin.recentAssessments" })}
                 </h3>
@@ -190,8 +189,8 @@ export function ImpactTab({
                     {formatMessage({ id: "app.garden.admin.viewAll" })}
                   </Link>
                 </AdminButton>
-              </Card.Header>
-              <Card.Body>
+              </AdminCardHeader>
+              <AdminCardBody>
                 {fetchingAssessments ? (
                   <div className="space-y-2" role="status" aria-live="polite">
                     {[0, 1, 2].map((index) => (
@@ -241,16 +240,16 @@ export function ImpactTab({
                     ))}
                   </div>
                 )}
-              </Card.Body>
-            </Card>
+              </AdminCardBody>
+            </AdminCard>
 
-            <Card>
-              <Card.Header>
+            <AdminCard density="none">
+              <AdminCardHeader>
                 <h3 className="admin-section-title admin-section-title--compact">
                   {formatMessage({ id: "app.garden.detail.impactSummary" })}
                 </h3>
-              </Card.Header>
-              <Card.Body className="space-y-3">
+              </AdminCardHeader>
+              <AdminCardBody className="space-y-3">
                 <div className="space-y-2">
                   <div className="garden-stat-row">
                     <span className="garden-stat-row-label">
@@ -288,8 +287,8 @@ export function ImpactTab({
                     </div>
                   </div>
                 ) : null}
-              </Card.Body>
-            </Card>
+              </AdminCardBody>
+            </AdminCard>
           </div>
         </aside>
       </div>

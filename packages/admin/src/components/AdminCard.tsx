@@ -1,6 +1,6 @@
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 
 // ============================================================================
 // Variant System
@@ -118,3 +118,40 @@ export function AdminCard({
 }
 
 AdminCard.displayName = "AdminCard";
+
+// ============================================================================
+// Slots
+// ============================================================================
+
+/**
+ * Sectioned-card slots for surfaces migrating off the legacy shared `Card`
+ * (Header/Body/Footer). Use with `<AdminCard density="none">` so the slots
+ * own the padding; hairlines ride the warm stroke step. Header rows default
+ * to `items-center` — pass `items-start` when stacking with `flex-col`.
+ */
+export function AdminCardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      data-component="AdminCardHeader"
+      className={cn(
+        "flex items-center justify-between gap-3 border-b border-stroke-soft px-4 py-3",
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+export function AdminCardBody({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div data-component="AdminCardBody" className={cn("p-4", className)} {...props} />;
+}
+
+export function AdminCardFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      data-component="AdminCardFooter"
+      className={cn("flex items-center gap-3 border-t border-stroke-soft px-4 py-3", className)}
+      {...props}
+    />
+  );
+}

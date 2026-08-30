@@ -1,4 +1,3 @@
-import { Card } from "@green-goods/shared/components/Cards/CardBase";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
 import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
@@ -11,7 +10,7 @@ import { RiCupLine, RiHandCoinLine, RiWalletLine } from "@remixicon/react";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardBody, AdminCardHeader } from "@/components/AdminCard";
 import { EnsAddressText } from "@/components/EnsAddressText";
 import { CookieJarDepositModal } from "./CookieJarDepositModal";
 import { CookieJarWithdrawModal } from "./CookieJarWithdrawModal";
@@ -75,15 +74,15 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
 
   if (!jarsModuleConfigured) {
     return (
-      <Card>
-        <Card.Body>
+      <AdminCard density="none">
+        <AdminCardBody>
           <EmptyState
             icon={<RiCupLine className="h-6 w-6" />}
             title={formatMessage({ id: "app.cookieJar.moduleNotConfigured" })}
             description={formatMessage({ id: "app.cookieJar.noJarsHint" })}
           />
-        </Card.Body>
-      </Card>
+        </AdminCardBody>
+      </AdminCard>
     );
   }
 
@@ -104,22 +103,22 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
 
   if (jars.length === 0) {
     return (
-      <Card>
-        <Card.Body>
+      <AdminCard density="none">
+        <AdminCardBody>
           <EmptyState
             icon={<RiCupLine className="h-6 w-6" />}
             title={formatMessage({ id: "app.cookieJar.noJars" })}
             description={formatMessage({ id: "app.cookieJar.noJarsDescription" })}
           />
-        </Card.Body>
-      </Card>
+        </AdminCardBody>
+      </AdminCard>
     );
   }
 
   return (
     <>
-      <Card className="overflow-hidden">
-        <Card.Header>
+      <AdminCard density="none" className="overflow-hidden">
+        <AdminCardHeader>
           <div>
             <h3 className="label-md text-text-strong sm:text-lg">
               {formatMessage({
@@ -134,9 +133,9 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
               })}
             </p>
           </div>
-        </Card.Header>
+        </AdminCardHeader>
 
-        <Card.Body className="space-y-3">
+        <AdminCardBody className="space-y-3">
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {jars.map((jar) => {
               const symbol = getVaultAssetSymbol(jar.assetAddress, undefined);
@@ -235,8 +234,8 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
               );
             })}
           </div>
-        </Card.Body>
-      </Card>
+        </AdminCardBody>
+      </AdminCard>
 
       <CookieJarWithdrawModal
         isOpen={withdrawOpen}

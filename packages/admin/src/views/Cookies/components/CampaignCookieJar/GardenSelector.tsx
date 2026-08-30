@@ -1,11 +1,10 @@
-import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
-import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import type { Address, Garden } from "@green-goods/shared/types/domain";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCheckbox } from "@/components/AdminCheckbox";
+import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText, formatEnsAddressName } from "@/components/EnsAddressText";
 import {
   filterCampaignCookieJarGardens,
@@ -80,24 +79,20 @@ export function GardenSelector({
   return (
     <div className="space-y-3">
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-        <FormField
+        <AdminTextField
+          id="campaign-cookie-jar-garden-search"
+          className="min-w-0"
           label={formatMessage({
             id: "cockpit.community.cookies.searchGardens",
             defaultMessage: "Search gardens",
           })}
-          htmlFor="campaign-cookie-jar-garden-search"
-        >
-          <TextInput
-            id="campaign-cookie-jar-garden-search"
-            surface="admin"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={formatMessage({
-              id: "cockpit.community.cookies.searchGardensPlaceholder",
-              defaultMessage: "Search by name, slug, or address",
-            })}
-          />
-        </FormField>
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder={formatMessage({
+            id: "cockpit.community.cookies.searchGardensPlaceholder",
+            defaultMessage: "Search by name, slug, or address",
+          })}
+        />
         <div className="flex flex-wrap gap-2">
           <AdminButton
             type="button"
