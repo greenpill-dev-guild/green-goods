@@ -37,7 +37,7 @@
         "integration": ["packages/shared/src/__tests__/providers/Auth.wallet-login.test.tsx"]
       },
       "reviewedAt": "2026-08-30",
-      "evidenceFingerprint": "sha256:b405199e55c0a7ab2f0f2966694e9d327333c981dd6a4d7338fd9dacfe4b5755"
+      "evidenceFingerprint": "sha256:18d9cb5849082cfe8394444a8f31843a922a9dc98d973e2a48ac34702ae8b425"
     },
     {
       "id": "shared-work-provider-command",
