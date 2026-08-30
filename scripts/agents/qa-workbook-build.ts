@@ -39,33 +39,37 @@ export const RUN_SHEET_COLUMNS = [
 export const RESULT_VALUES = ["Pass", "Fail", "Blocked", "N/A"] as const;
 export const SEVERITY_VALUES = ["P0", "P1", "P2", "P3"] as const;
 
+// Specific installed-device prefixes must precede the generic "PWA-" entry:
+// prefix resolution takes the first startsWith match in insertion order.
+// XPLAT- survives only on the two rows rehomed when Cross Surface dissolved.
 export const TAB_PREFIXES: Record<string, readonly string[]> = {
   "PUB-": ["Public Website"],
-  "PWA-IOS-": ["PWA iOS"],
-  "PWA-AND-": ["PWA Android"],
-  "PWA-ROLE-": ["PWA iOS", "PWA Android"],
+  "PWA-IOS-": ["PWA"],
+  "PWA-AND-": ["PWA"],
+  "PWA-ROLE-": ["PWA"],
+  "PWA-": ["PWA"],
   "ADM-": ["Admin Dashboard"],
-  "XPLAT-": ["Cross Surface"],
+  "XPLAT-": ["PWA", "Admin Dashboard"],
   "DOCS-": ["Docs"],
 };
+
+/** Installed-device rows keep their platform-specific id prefix on the merged PWA tab. */
+export const INSTALLED_PWA_PREFIXES = ["PWA-IOS-", "PWA-AND-", "PWA-ROLE-"] as const;
 
 const SURFACE_ALIASES: Record<string, string[]> = {
   website: ["Public Website"],
   public: ["Public Website"],
-  pwa: ["PWA iOS", "PWA Android"],
-  ios: ["PWA iOS"],
-  android: ["PWA Android"],
+  pwa: ["PWA"],
+  ios: ["PWA"],
+  android: ["PWA"],
   admin: ["Admin Dashboard"],
-  cross: ["Cross Surface"],
   docs: ["Docs"],
 };
 
 const TAB_COLORS: Record<string, string> = {
   "Public Website": "1A7544",
-  "PWA iOS": "2E7D6B",
-  "PWA Android": "3E8E5A",
+  PWA: "2E7D6B",
   "Admin Dashboard": "5B7553",
-  "Cross Surface": "8A7F5C",
   Docs: "6B8E9E",
 };
 
@@ -243,15 +247,6 @@ export function validateCatalog(catalog: Catalog): string[] {
   for (const testCase of catalog.cases) {
     if (seen.has(testCase.id)) problems.push(`duplicate id: ${testCase.id}`);
     seen.add(testCase.id);
-    if (!catalog.tabs.includes(testCase.tab)) {
-      problems.push(`${testCase.id}: unknown tab '${testCase.tab}'`);
-    }
-    const prefix = Object.keys(TAB_PREFIXES).find((candidate) => testCase.id.startsWith(candidate));
-    if (!prefix) {
-      problems.push(`${testCase.id}: id has no registered prefix`);
-    } else if (!TAB_PREFIXES[prefix].includes(testCase.tab)) {
-      problems.push(`${testCase.id}: prefix ${prefix} does not belong on tab '${testCase.tab}'`);
-    }
     if (!SEVERITY_VALUES.includes(testCase.priority as (typeof SEVERITY_VALUES)[number])) {
       problems.push(`${testCase.id}: priority '${testCase.priority}' not in ${SEVERITY_VALUES.join("/")}`);
     }
@@ -259,16 +254,29 @@ export function validateCatalog(catalog: Catalog): string[] {
       problems.push(`${testCase.id}: status '${testCase.status}' not active|retired`);
     }
     if (testCase.status === "active") {
+      // Tab and prefix membership only bind active rows: retired rows freeze
+      // their historical tab (e.g. "PWA iOS", "Cross Surface") as an audit trail.
+      if (!catalog.tabs.includes(testCase.tab)) {
+        problems.push(`${testCase.id}: unknown tab '${testCase.tab}'`);
+      }
+      const prefix = Object.keys(TAB_PREFIXES).find((candidate) =>
+        testCase.id.startsWith(candidate),
+      );
+      if (!prefix) {
+        problems.push(`${testCase.id}: id has no registered prefix`);
+      } else if (!TAB_PREFIXES[prefix].includes(testCase.tab)) {
+        problems.push(`${testCase.id}: prefix ${prefix} does not belong on tab '${testCase.tab}'`);
+      }
       if (!testCase.steps.length || testCase.steps.some((step) => !step.trim())) {
         problems.push(`${testCase.id}: empty steps`);
       }
       if (!testCase.expected.trim()) problems.push(`${testCase.id}: empty expected`);
       if (!testCase.scenario.trim()) problems.push(`${testCase.id}: empty scenario`);
-      // Installed-PWA rows declare a device platform; a desktop-local pass can
-      // never prove them, so every case on these tabs must carry a capability
-      // flag that pre-blocks it in --local run sheets.
+      // Installed-device rows (PWA-IOS-/PWA-AND-/PWA-ROLE-) can never pass on a
+      // desktop-local walk, so each must carry a capability flag that pre-blocks
+      // it in --local run sheets. Generic PWA- desktop-journey rows are exempt.
       if (
-        (testCase.tab === "PWA iOS" || testCase.tab === "PWA Android") &&
+        INSTALLED_PWA_PREFIXES.some((candidate) => testCase.id.startsWith(candidate)) &&
         !testCase.requiresProduction &&
         !testCase.requiresDevice
       ) {

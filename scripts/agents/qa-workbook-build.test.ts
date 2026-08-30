@@ -42,24 +42,26 @@ function makeCase(overrides: Partial<CatalogCase> = {}): CatalogCase {
 describe("qa-test-catalog.json", () => {
   it("loads and validates the real catalog", async () => {
     const catalog = await loadCatalog();
-    expect(catalog.version).toBe(1);
-    expect(catalog.cases.length).toBeGreaterThanOrEqual(60);
-    // Docs is a first-class surface with cases of its own.
-    expect(filterCases(catalog.cases, { tabs: ["Docs"] }).length).toBeGreaterThanOrEqual(6);
+    expect(catalog.version).toBe(2);
+    expect(catalog.cases.length).toBeGreaterThanOrEqual(120);
+    // Docs is a first-class surface with content-truth cases of its own.
+    expect(filterCases(catalog.cases, { tabs: ["Docs"] }).length).toBeGreaterThanOrEqual(13);
+    // Retired rows stay forever (never delete, never reuse ids).
+    expect(catalog.cases.some((testCase) => testCase.status === "retired")).toBe(true);
   });
 });
 
 describe("validateCatalog", () => {
-  const tabs = ["Public Website", "PWA iOS", "PWA Android", "Admin Dashboard", "Cross Surface", "Docs"];
+  const tabs = ["Public Website", "PWA", "Admin Dashboard", "Docs"];
 
   it("accepts a well-formed catalog", () => {
-    const catalog: Catalog = { version: 1, tabs, cases: [makeCase()] };
+    const catalog: Catalog = { version: 2, tabs, cases: [makeCase()] };
     expect(validateCatalog(catalog)).toEqual([]);
   });
 
   it("rejects duplicate ids, wrong-tab prefixes, and empty steps", () => {
     const catalog: Catalog = {
-      version: 1,
+      version: 2,
       tabs,
       cases: [
         makeCase(),
@@ -74,20 +76,29 @@ describe("validateCatalog", () => {
     expect(problems.some((problem) => problem.includes("empty steps"))).toBe(true);
   });
 
-  it("requires a capability flag on every installed-PWA case", () => {
-    const unflagged = makeCase({ id: "PWA-IOS-099", tab: "PWA iOS" });
-    const flagged = makeCase({ id: "PWA-IOS-098", tab: "PWA iOS", requiresDevice: true });
-    const problems = validateCatalog({ version: 1, tabs, cases: [unflagged, flagged] });
+  it("requires a capability flag on installed-device rows but not desktop PWA journeys", () => {
+    const unflagged = makeCase({ id: "PWA-IOS-099", tab: "PWA" });
+    const flagged = makeCase({ id: "PWA-IOS-098", tab: "PWA", requiresDevice: true });
+    const desktopJourney = makeCase({ id: "PWA-099", tab: "PWA" });
+    const problems = validateCatalog({
+      version: 2,
+      tabs,
+      cases: [unflagged, flagged, desktopJourney],
+    });
     expect(problems).toHaveLength(1);
     expect(problems[0]).toMatch(/PWA-IOS-099.*requiresProduction or requiresDevice/);
   });
 
-  it("allows the PWA-ROLE- prefix on both PWA tabs only", () => {
-    const onIos = makeCase({ id: "PWA-ROLE-001", tab: "PWA iOS", requiresDevice: true });
-    const onAndroid = makeCase({ id: "PWA-ROLE-004", tab: "PWA Android", requiresDevice: true });
-    const onAdmin = makeCase({ id: "PWA-ROLE-009", tab: "Admin Dashboard" });
-    expect(validateCatalog({ version: 1, tabs, cases: [onIos, onAndroid] })).toEqual([]);
-    expect(validateCatalog({ version: 1, tabs, cases: [onAdmin] })).not.toEqual([]);
+  it("binds prefixes to the merged tabs and frees retired rows from tab checks", () => {
+    const onPwa = makeCase({ id: "PWA-ROLE-001", tab: "PWA", requiresDevice: true });
+    const onAdmin = makeCase({ id: "PWA-ROLE-009", tab: "Admin Dashboard", requiresDevice: true });
+    const retiredLegacy = makeCase({
+      id: "XPLAT-001",
+      tab: "Cross Surface",
+      status: "retired",
+    });
+    expect(validateCatalog({ version: 2, tabs, cases: [onPwa, retiredLegacy] })).toEqual([]);
+    expect(validateCatalog({ version: 2, tabs, cases: [onAdmin] })).not.toEqual([]);
   });
 });
 
@@ -217,10 +228,11 @@ describe("validateSelectors", () => {
 });
 
 describe("resolveSurfaceFilter", () => {
-  const tabs = ["Public Website", "PWA iOS", "PWA Android", "Admin Dashboard", "Cross Surface", "Docs"];
+  const tabs = ["Public Website", "PWA", "Admin Dashboard", "Docs"];
 
   it("resolves aliases and exact tab names", () => {
-    expect(resolveSurfaceFilter("pwa", tabs)).toEqual(["PWA iOS", "PWA Android"]);
+    expect(resolveSurfaceFilter("pwa", tabs)).toEqual(["PWA"]);
+    expect(resolveSurfaceFilter("ios", tabs)).toEqual(["PWA"]);
     expect(resolveSurfaceFilter("admin,docs", tabs)).toEqual(["Admin Dashboard", "Docs"]);
     expect(resolveSurfaceFilter("Public Website", tabs)).toEqual(["Public Website"]);
     expect(resolveSurfaceFilter("all", tabs)).toEqual(tabs);
