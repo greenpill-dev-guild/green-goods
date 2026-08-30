@@ -689,7 +689,7 @@ describe("checkout success no longer points to Fund", () => {
     const user = userEvent.setup();
     mocks.authMode = "wallet";
     mocks.primaryAddress = CONNECTED;
-    const { container } = renderContent([makeStableCampaign()]);
+    renderContent([makeStableCampaign()]);
 
     await user.click(screen.getByRole("button", { name: "Endow to Synthetic complete campaign" }));
     await user.type(screen.getByLabelText("Amount to endow"), "2.50");

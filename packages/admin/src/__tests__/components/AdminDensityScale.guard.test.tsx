@@ -54,7 +54,14 @@ describe("AdminDensityScale.guard (DL-011)", () => {
   });
 
   it("the inline field shares the 32px md-button axis", () => {
-    render(<AdminInlineField label="Action id" value="" onChange={() => {}} />);
+    render(
+      <AdminInlineField
+        label="Action id"
+        value=""
+        onChange={() => {}}
+        action={<button type="button">Register</button>}
+      />
+    );
     expect(screen.getByRole("textbox", { name: /Action id/ })).toHaveClass("h-8");
   });
 
