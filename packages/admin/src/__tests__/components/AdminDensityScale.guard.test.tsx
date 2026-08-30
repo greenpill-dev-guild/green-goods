@@ -59,7 +59,7 @@ describe("AdminDensityScale.guard (DL-011)", () => {
         label="Action id"
         value=""
         onChange={() => {}}
-        action={<button type="button">Add</button>}
+        action={<button type="button">Register</button>}
       />
     );
     expect(screen.getByRole("textbox", { name: /Action id/ })).toHaveClass("h-8");
