@@ -159,7 +159,6 @@
         ".plans/active/commitment-pooling/settlement-spec.md",
         ".plans/active/commitment-credit-follow-on/spec.md",
         "docs/docs/builders/architecture/erd.mdx",
-        "docs/docs/builders/specs/v1-0.mdx",
         "packages/contracts/script/DeployBadgeSchema.s.sol"
       ],
       "prefixes": [
@@ -212,9 +211,7 @@
         "scripts/quality/check-codex-docs.js",
         "scripts/quality/check-guidance-links.mjs",
         "scripts/quality/check-skill-behavior-contracts.mjs",
-        "docs/docs/builders/agentic/claude-code.mdx",
-        "docs/docs/builders/agentic/context-engineering.mdx",
-        "docs/docs/builders/agentic/spec-engineering.mdx"
+        ".plans/README.md"
       ],
       "prefixes": [".claude/skills/"]
     },
@@ -267,6 +264,8 @@
         "scripts/agents/qa-state.ts",
         "scripts/agents/qa-state.test.ts",
         "scripts/agents/qa-state-pull.ts",
+        "scripts/agents/qa-status.ts",
+        "scripts/agents/qa-status.test.ts",
         "scripts/agents/qa-app-parity.test.ts",
         "packages/qa/api/state.ts",
         "packages/qa/dev.mjs",
@@ -277,7 +276,10 @@
         "scripts/agents/qa-app-build.test.ts",
         "scripts/agents/qa-app-client.test.ts",
         "scripts/agents/qa-app-store.test.ts",
-        "scripts/agents/qa-state-pull.test.ts"
+        "scripts/agents/qa-state-pull.test.ts",
+        "scripts/agents/qa-app-auth.test.ts",
+        "packages/qa/auth.ts",
+        "packages/qa/api/auth.ts"
       ]
     }
   ],
@@ -579,6 +581,16 @@
       "capabilities": ["dependencies", "foundry"]
     },
     {
+      "id": "docs-authority",
+      "command": "node --test scripts/docs/generate.test.mjs && bun run docs:audit:ci && bun run check:docs-generated",
+      "risk": "documentation authorities, generated sources, or committed projections drift",
+      "expectedSignal": "generator fixtures, authority links, navigation targets, and committed projections are current",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 5,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
       "id": "docs-test",
       "command": "bun run test",
       "cwd": "docs",
@@ -597,7 +609,7 @@
       "risk": "MDX, links, or documentation navigation do not build",
       "expectedSignal": "documentation site builds successfully",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 75,
+      "budgetSeconds": 70,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -718,8 +730,8 @@
     {
       "id": "agent-tools-test",
       "command": "bun run test:agent-tools",
-      "risk": "agent query surfaces or the QA catalog/generator regress without a required gate",
-      "expectedSignal": "posthog-query and qa-workbook-build suites pass",
+      "risk": "agent query surfaces or the QA catalog, projections, and live-status report regress without a required gate",
+      "expectedSignal": "agent query and QA tooling suites pass",
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 60,
       "stopRule": "stop-dependent-checks",
@@ -875,12 +887,45 @@
     },
     "Docs": {
       "exact": [
+        ".mcp.json",
+        "AGENTS.md",
         "package.json",
         "bun.lock",
+        "scripts/data/qa-test-catalog.json",
+        "scripts/data/validation-policy.json",
+        "scripts/quality/check-ontology.mjs",
+        "scripts/quality/ontology-render.mjs",
+        "packages/admin/package.json",
+        "packages/admin/src/router.tsx",
+        "packages/admin/src/routes/views.tsx",
+        "packages/agent/package.json",
+        "packages/agent/src/api/routes/public-garden-impact.ts",
+        "packages/client/package.json",
+        "packages/client/src/config/routes.tsx",
+        "packages/client/src/config/pwaRouting.ts",
+        "packages/contracts/package.json",
+        "packages/contracts/config/schemas.json",
+        "packages/contracts/src/modules/CookieJar.sol",
+        "packages/contracts/src/modules/Gardens.sol",
+        "packages/contracts/src/modules/Hats.sol",
+        "packages/contracts/src/modules/Hypercerts.sol",
+        "packages/contracts/src/modules/Karma.sol",
+        "packages/contracts/src/modules/Octant.sol",
+        "packages/contracts/src/registries/ENS.sol",
+        "packages/indexer/package.json",
+        "packages/indexer/config.yaml",
+        "packages/shared/package.json",
+        "packages/shared/src/public-contracts/routes.ts",
         ".github/actions/setup-js/action.yml",
         ".github/workflows/docs.yml"
       ],
-      "prefixes": ["docs/"]
+      "prefixes": [
+        "docs/",
+        "scripts/docs/",
+        "packages/contracts/deployments/",
+        "packages/shared/src/ontology/",
+        ".github/workflows/"
+      ]
     },
     "Indexer": {
       "exact": [
@@ -923,7 +968,6 @@
         ".plans/active/commitment-pooling/settlement-spec.md",
         ".plans/active/commitment-credit-follow-on/spec.md",
         "docs/docs/builders/architecture/erd.mdx",
-        "docs/docs/builders/specs/v1-0.mdx",
         "packages/contracts/script/DeployBadgeSchema.s.sol"
       ],
       "prefixes": [

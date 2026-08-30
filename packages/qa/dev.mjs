@@ -178,11 +178,34 @@ async function readBody(request) {
   return Buffer.concat(chunks).toString("utf8");
 }
 
+/**
+ * Local identity, without a wallet.
+ *
+ * The deployment authenticates with Sign-In With Ethereum, but requiring a
+ * wallet to rehearse locally would put a hardware dependency in front of
+ * "prove the two-writer behaviour before deploying" — and a teammate should be
+ * able to try the app before anyone adds their address to an allowlist. This
+ * server is bound to 127.0.0.1, so the bypass cannot leave the machine.
+ *
+ *   http://127.0.0.1:4610/?as=Gui   → record as Gui for this tab
+ */
+const DEV_COOKIE = "qa_dev_person";
+
+export function devIdentity(request) {
+  const asked = new URL(request.url, "http://127.0.0.1").searchParams.get("as");
+  if (TEAM.includes(asked)) return asked;
+  for (const part of (request.headers.cookie || "").split(";")) {
+    const [key, ...rest] = part.trim().split("=");
+    if (key === DEV_COOKIE && TEAM.includes(rest.join("="))) return rest.join("=");
+  }
+  return TEAM[0];
+}
+
 export function handleState(request, response) {
   if (request.method === "GET") {
     try {
       const entries = mergeShards(TEAM.map(readShard));
-      return sendJson(response, 200, { team: TEAM, entries, readAt: new Date().toISOString() });
+      return sendJson(response, 200, { team: TEAM, you: devIdentity(request), entries, readAt: new Date().toISOString() });
     } catch (error) {
       return sendFailure(response, error, "session state could not be read");
     }
@@ -199,6 +222,9 @@ export function handleState(request, response) {
       if (!body || typeof body !== "object" || Array.isArray(body)) {
         return sendJson(response, 400, { error: "body must be a JSON object" });
       }
+      // Identity is the local session, never the body — the deployed server
+      // derives it from the signed cookie and this must not diverge.
+      body.person = devIdentity(request);
       if (!TEAM.includes(body.person)) {
         return sendJson(response, 400, { error: `unknown tester — expected one of ${TEAM.join(", ")}` });
       }
@@ -241,6 +267,23 @@ function main() {
   }
 
   const server = createServer((request, response) => {
+    // `?as=Gui` on any request pins this browser's local identity, the way the
+    // deployment pins it with a signed session cookie.
+    const asked = new URL(request.url, "http://127.0.0.1").searchParams.get("as");
+    if (TEAM.includes(asked)) {
+      response.setHeader("Set-Cookie", `${DEV_COOKIE}=${asked}; Path=/; SameSite=Lax; Max-Age=43200`);
+    }
+    if (request.url.split("?")[0] === "/api/auth") {
+      const person = devIdentity(request);
+      return sendJson(response, 200, {
+        domain: "127.0.0.1",
+        uri: `http://127.0.0.1:${port}`,
+        nonce: null,
+        message: null,
+        person,
+        address: null,
+      });
+    }
     if (request.url.split("?")[0] === "/api/state") return handleState(request, response);
     const file = resolveStatic(request.url);
     if (!file) {

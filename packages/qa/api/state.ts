@@ -26,6 +26,8 @@
 
 import { BlobPreconditionFailedError, get, put } from "@vercel/blob";
 
+import { SESSION_COOKIE, findAllowed, parseAllowlist, readCookie, readSession } from "../auth";
+
 export const TEAM = ["Afo", "Nansel", "Gui"] as const;
 type Person = (typeof TEAM)[number];
 
@@ -289,7 +291,75 @@ export async function applyDelta(person: Person, delta: Record<string, EntryPatc
   throw new StoreError(`${person}'s entries are being saved from elsewhere — try again`, "write contention");
 }
 
-export default async function handler(request: Request): Promise<Response> {
+/**
+ * Vercel resolves an `api/` module's shape from its exports. A DEFAULT export
+ * is read as the Node `(req, res) => void` signature, whose return value is
+ * ignored — so a default export returning a `Response` writes nothing to the
+ * socket and the request hangs until the platform kills it at 300s. That is a
+ * 504 with no error, which is exactly how this failed in production.
+ *
+ * Named method exports select the Web `fetch` signature instead, where the
+ * returned `Response` is the response. `handler` stays exported for the local
+ * server and the tests, which call it directly.
+ */
+export async function GET(request: Request): Promise<Response> {
+  return handler(request);
+}
+
+export async function POST(request: Request): Promise<Response> {
+  return handler(request);
+}
+
+/**
+ * Resolve who is calling from their signed session, never from the request.
+ *
+ * This is the whole point of wallet auth here. The previous model took the
+ * tester's NAME out of the request body, so anyone reaching the endpoint could
+ * record as anyone — and with no deployment password in front of it, "anyone"
+ * meant the internet. The signing address is the identity; the body no longer
+ * gets a vote.
+ */
+async function whoIsCalling(
+  request: Request,
+): Promise<{ person: Person } | { error: string; status: number }> {
+  const secret = process.env.QA_SESSION_SECRET;
+  if (!secret || secret.length < 32) {
+    return { error: "QA_SESSION_SECRET is missing or too short (needs 32+ characters)", status: 503 };
+  }
+  let allowlist: ReturnType<typeof parseAllowlist>;
+  try {
+    allowlist = parseAllowlist(process.env.QA_ALLOWLIST);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "QA_ALLOWLIST is invalid", status: 503 };
+  }
+  if (!allowlist.length) return { error: "QA_ALLOWLIST is empty — nobody can sign in", status: 503 };
+
+  const session = await readSession(
+    secret,
+    readCookie(request.headers.get("cookie"), SESSION_COOKIE),
+    Date.now(),
+  );
+  if (!session) return { error: "sign in with your wallet to record QA results", status: 401 };
+
+  const allowed = findAllowed(allowlist, session.address);
+  if (!allowed) return { error: "this address is no longer on the QA allowlist", status: 403 };
+  // The allowlist binds addresses to names in the fixed roster; a name outside
+  // it would mint a shard nothing else knows how to read.
+  if (!isPerson(allowed.person)) {
+    return { error: `allowlist maps to an unknown tester '${allowed.person}'`, status: 503 };
+  }
+  return { person: allowed.person };
+}
+
+export async function handler(request: Request): Promise<Response> {
+  // Method first: an unsupported verb is a 405 whether or not you are signed
+  // in, and answering that before the identity gate keeps the reply honest.
+  if (request.method !== "GET" && request.method !== "POST") {
+    return json({ error: "method not allowed" }, 405);
+  }
+  const caller = await whoIsCalling(request);
+  if ("error" in caller) return json({ error: caller.error }, caller.status);
+
   if (request.method === "GET") {
     let reads: Array<{ shard: Shard; etag: string } | null>;
     try {
@@ -307,35 +377,32 @@ export default async function handler(request: Request): Promise<Response> {
         (entries[caseId] ??= {})[read.shard.person] = entry;
       }
     }
-    return json({ team: TEAM, entries, readAt: new Date().toISOString() });
+    return json({ team: TEAM, you: caller.person, entries, readAt: new Date().toISOString() });
   }
 
   if (request.method === "POST") {
-    let body: { person?: unknown; entries?: unknown };
+    let body: { entries?: unknown };
     try {
       const text = await request.text();
       if (text.length > MAX_BODY_BYTES) return json({ error: "payload too large" }, 413);
       const parsed: unknown = JSON.parse(text);
       // `JSON.parse("null")` and `JSON.parse("[]")` both succeed; reading
-      // `.person` off them would throw or pass undefined straight through.
+      // fields off them would throw or pass undefined straight through.
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
         return json({ error: "body must be a JSON object" }, 400);
       }
-      body = parsed as { person?: unknown; entries?: unknown };
+      body = parsed as { entries?: unknown };
     } catch {
       return json({ error: "invalid JSON" }, 400);
     }
 
-    if (!isPerson(body.person)) {
-      return json({ error: `unknown tester — expected one of ${TEAM.join(", ")}` }, 400);
-    }
-
+    // `body.person` is ignored if present. Identity is the signed session.
     let shard: Shard;
     try {
-      shard = await applyDelta(body.person, sanitizeDelta(body.entries));
+      shard = await applyDelta(caller.person, sanitizeDelta(body.entries));
     } catch (error) {
       // The page keeps the unsent delta in localStorage and retries.
-      return fail(error, `${body.person}'s entries were not saved`);
+      return fail(error, `${caller.person}'s entries were not saved`);
     }
 
     return json({ ok: true, person: shard.person, count: Object.keys(shard.entries).length });

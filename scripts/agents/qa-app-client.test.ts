@@ -59,7 +59,7 @@ async function clientRaceHarness() {
     url: "http://localhost:4610/",
     virtualConsole,
     beforeParse(window) {
-      window.localStorage.setItem("qa-who", "Afo");
+      // Identity arrives as `you` in the state payload — see the mocks below.
       window.setTimeout = (callback, delay = 0) => {
         const id = ++timerId;
         timers.set(id, { callback, delay });
@@ -98,9 +98,9 @@ async function clientRaceHarness() {
 
         stateGetCount++;
         const snapshot = structuredClone(remote);
-        if (stateGetCount === 1) return response({ team: ["Afo"], entries: snapshot });
+        if (stateGetCount === 1) return response({ team: ["Afo"], you: "Afo", entries: snapshot });
         return new Promise((resolve) => {
-          releaseStalePoll = () => resolve(response({ team: ["Afo"], entries: snapshot }));
+          releaseStalePoll = () => resolve(response({ team: ["Afo"], you: "Afo", entries: snapshot }));
         });
       };
     },
@@ -200,7 +200,7 @@ async function outboxDurabilityHarness() {
       url: "http://localhost:4610/",
       virtualConsole,
       beforeParse(window) {
-        window.localStorage.setItem("qa-who", person);
+        // Identity arrives as `you` in the state payload.
         // Everything the previous page life left behind, and nothing more.
         if (carried) window.localStorage.setItem(seedKey, carried);
         window.setTimeout = (callback, delay = 0) => {
@@ -221,7 +221,7 @@ async function outboxDurabilityHarness() {
             return response({ ok: true, person, count: 1 });
           }
           // The store never received the note, so it has nothing to return.
-          return response({ team: ["Afo", "Gui"], entries: {} });
+          return response({ team: ["Afo", "Gui"], you: person, entries: {} });
         };
       },
     });
@@ -362,7 +362,7 @@ async function inFlightFieldHarness() {
     url: "http://localhost:4610/",
     virtualConsole,
     beforeParse(window) {
-      window.localStorage.setItem("qa-who", "Afo");
+      // Identity arrives as `you` in the state payload — see the mocks below.
       window.setTimeout = (callback, delay = 0) => {
         const id = ++timerId;
         timers.set(id, { callback, delay });
@@ -386,7 +386,7 @@ async function inFlightFieldHarness() {
           }
           return response({ ok: true, person: "Afo", count: 1 });
         }
-        return response({ team: ["Afo"], entries: {} });
+        return response({ team: ["Afo"], you: "Afo", entries: {} });
       };
     },
   });
