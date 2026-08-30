@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-04-25T05:11:42.581Z",
-    "updated_at": "2026-08-30T00:03:04.014Z"
+    "updated_at": "2026-08-30T01:31:37.572Z"
   },
   "links": {
     "brief": "brief.md",
@@ -37,12 +37,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "cd packages/client && bun run test src/__tests__/components/PublicFooter.test.tsx (before FOOTER_LINKS change)",
-          "evidence": "Round-3 fix pass footer wayfinding: 1 failed | 3 passed — new 'renders the public route wayfinding links first' test fails against the shipped footer (no Gardens/Impact/Fund/Actions links)"
+          "command": "cd packages/admin && bun run test src/__tests__/components/AdminTextField.test.tsx (AdminSelect tests written before the component)",
+          "evidence": "Design-critique fix pass: 2 failed | 3 passed — both new AdminSelect tests fail (no AdminSelect export exists)"
         },
         "green": {
-          "command": "cd packages/client && bun run test src/__tests__/components/PublicFooter.test.tsx && cd ../shared && bun run test src/__tests__/i18n/ && bun run test:stories:ci",
-          "evidence": "4/4 footer tests pass after FOOTER_LINKS + en/es/pt keys (commit 439196599); i18n gate 27/27; storybook vitest CI 193/193 play tests in headless chromium after the viewport codemod (be50446ca); typecheck:source clean on client+admin at 0d656b780"
+          "command": "cd packages/admin && bun run test src/__tests__/components/AdminTextField.test.tsx src/__tests__/views/PoolDialogs.test.tsx src/__tests__/views/SeedStepHowMuch.test.tsx src/__tests__/components/CreateAssessmentDialog.test.tsx && vitest storybook project SetupFlow.stories.tsx",
+          "evidence": "22/22 unit tests after AdminSelect + migrations (224636a2c); SetupFlow story 4/4 isolated after aria-hidden asterisk fix; storybook CI 192/193 with the single failure a rotating load flake passing isolated; check:design-tokens green with FabButton baseline entry burned"
         },
         "note": ""
       }
@@ -208,6 +208,14 @@
     },
     {
       "timestamp": "2026-08-30T00:03:04.014Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-08-30T01:31:37.572Z",
       "actor": "claude",
       "lane": "ui",
       "status": "tdd_recorded",
