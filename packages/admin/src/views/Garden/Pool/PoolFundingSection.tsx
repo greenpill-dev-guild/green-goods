@@ -10,7 +10,7 @@ import {
 } from "@remixicon/react";
 import { type RefObject, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
+import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { formatGdollar, fundingStateMessage, shortAddress } from "./poolFundingPresentation";
 
 export interface PoolFundingSectionProps {
@@ -66,24 +66,17 @@ export function PoolFundingSection({
             })}
           </p>
         </div>
-        <AdminButton
-          type="button"
-          variant="text"
-          size="sm"
-          className="!h-11 !w-11 !px-0"
-          aria-label={formatMessage({
-            id: "cockpit.garden.pool.funding.refresh",
-            defaultMessage: "Refresh Pool Funding",
-          })}
-          title={formatMessage({
+        <AdminIconButton
+          size="lg"
+          label={formatMessage({
             id: "cockpit.garden.pool.funding.refresh",
             defaultMessage: "Refresh Pool Funding",
           })}
           onClick={() => void handleRefresh()}
           loading={manualRefresh === "running"}
         >
-          {manualRefresh === "running" ? null : <RiRefreshLine className="h-4 w-4" aria-hidden />}
-        </AdminButton>
+          <RiRefreshLine />
+        </AdminIconButton>
       </div>
 
       {funding.isLoading && !snapshot ? (

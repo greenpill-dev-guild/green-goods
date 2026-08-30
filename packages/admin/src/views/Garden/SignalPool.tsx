@@ -15,12 +15,12 @@ import { RiDeleteBinLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
-import { AdminButton } from "@/components/AdminButton";
+import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminInlineField } from "@/components/AdminInlineField";
-import { EnsAddressText } from "@/components/EnsAddressText";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import { AdminTabRail } from "@/components/AdminTabRail";
+import { EnsAddressText } from "@/components/EnsAddressText";
 import {
   CanvasRouteContent,
   CanvasRouteFrame,
@@ -363,17 +363,14 @@ export default function GardenSignalPoolView({
                           </div>
                         </div>
                         {canManage && (
-                          <AdminButton
-                            type="button"
+                          <AdminIconButton
                             variant="danger"
-                            size="sm"
-                            className="h-9 w-9 min-w-0 rounded p-0"
                             onClick={() => setConfirmDeregister(itemId)}
                             disabled={deregisterMutation.isPending}
-                            aria-label={formatMessage({ id: "app.conviction.removeStrategy" })}
+                            label={formatMessage({ id: "app.conviction.removeStrategy" })}
                           >
-                            <RiDeleteBinLine className="h-4 w-4" />
-                          </AdminButton>
+                            <RiDeleteBinLine />
+                          </AdminIconButton>
                         )}
                       </div>
                     );

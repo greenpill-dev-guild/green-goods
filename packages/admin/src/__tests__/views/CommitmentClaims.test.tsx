@@ -27,8 +27,8 @@ describe("CommitmentClaims", () => {
     const user = userEvent.setup();
     const accept = screen.getByRole("button", { name: "Accept" });
     const decline = screen.getByRole("button", { name: /Decline/ });
-    expect(accept).toHaveClass("min-h-12");
-    expect(decline).toHaveClass("min-h-12");
+    expect(accept).toHaveClass("h-7");
+    expect(decline).toHaveClass("h-7");
 
     await user.click(accept);
     decline.focus();

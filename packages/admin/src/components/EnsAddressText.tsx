@@ -5,6 +5,7 @@ import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { AdminIconButton } from "./AdminButton";
 
 type EnsAddressVariant = "default" | "card" | "long";
 
@@ -63,21 +64,14 @@ export function EnsAddressWithCopy({
         variant={variant}
         className={labelClassName}
       />
-      <button
-        type="button"
+      <AdminIconButton
+        size="sm"
+        className={buttonClassName}
         onClick={() => copy(address)}
-        className={cn(
-          "rounded p-0.5 text-text-sub transition hover:bg-bg-weak hover:text-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
-          buttonClassName
-        )}
-        aria-label={formatMessage({ id: "app.common.copyAddress" })}
+        label={formatMessage({ id: "app.common.copyAddress" })}
       >
-        {copied ? (
-          <RiCheckLine className="h-3 w-3 text-success-dark" />
-        ) : (
-          <RiFileCopyLine className="h-3 w-3" />
-        )}
-      </button>
+        {copied ? <RiCheckLine className="text-success-dark" /> : <RiFileCopyLine />}
+      </AdminIconButton>
     </span>
   );
 }

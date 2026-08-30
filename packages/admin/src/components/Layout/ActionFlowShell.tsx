@@ -5,7 +5,8 @@ import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiArrowLeftLine } from "@remixicon/react";
 import type { ReactNode } from "react";
-import { ActionFlowStepper, type ActionFlowStep } from "./ActionFlowStepper";
+import { AdminIconButton } from "../AdminButton";
+import { type ActionFlowStep, ActionFlowStepper } from "./ActionFlowStepper";
 
 export interface ActionFlowShellProps {
   /** Sticky title (e.g. "Submit work"). */
@@ -100,23 +101,15 @@ export function ActionFlowShell({
         )}
       >
         {onBack ? (
-          <button
-            type="button"
+          <AdminIconButton
+            size="lg"
+            className="mt-0.5 flex-shrink-0"
             onClick={onBack}
             disabled={backDisabled}
-            aria-label={backLabel}
-            title={backLabel}
-            className={cn(
-              "mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg",
-              "border border-stroke-soft text-text-soft",
-              "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
-              "hover:text-text-sub active:scale-95",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-action)))]",
-              "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-text-soft disabled:active:scale-100"
-            )}
+            label={backLabel ?? ""}
           >
-            <RiArrowLeftLine className="h-5 w-5" aria-hidden />
-          </button>
+            <RiArrowLeftLine />
+          </AdminIconButton>
         ) : null}
 
         <div className="min-w-0 flex-1">

@@ -1,11 +1,10 @@
-import { NativeSelect, Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
-import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
 import type { useWorkForm } from "@green-goods/shared/hooks/work/useWorkForm";
 import type { WorkInput } from "@green-goods/shared/types/domain";
 import { Controller } from "react-hook-form";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
-import { AdminTextField } from "@/components/AdminTextField";
+import { AdminFieldGroup } from "@/components/AdminFieldGroup";
+import { AdminFilterChip } from "@/components/AdminFilterChip";
+import { AdminSelect, AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 
 export function SubmitWorkFields({
   inputs,
@@ -32,7 +31,6 @@ export function SubmitWorkFields({
               label={input.title}
               id={input.key}
               type={input.type}
-              variant="outlined"
               required={input.required}
               error={error}
               placeholder={input.placeholder}
@@ -43,54 +41,39 @@ export function SubmitWorkFields({
         }
         if (input.type === "textarea") {
           return (
-            <FormField
+            <AdminTextArea
               key={input.key}
               label={input.title}
-              htmlFor={input.key}
+              id={input.key}
+              rows={3}
               required={input.required}
               error={error}
-            >
-              <Textarea
-                surface="admin"
-                id={input.key}
-                rows={3}
-                placeholder={input.placeholder}
-                aria-invalid={!!error}
-                invalid={!!error}
-                className="resize-y"
-                {...register(input.key)}
-              />
-            </FormField>
+              placeholder={input.placeholder}
+              {...register(input.key)}
+            />
           );
         }
         if (input.type === "select" || input.type === "band") {
           const options = input.type === "band" ? (input.bands ?? []) : (input.options ?? []);
           return (
-            <FormField
+            <AdminSelect
               key={input.key}
               label={input.title}
-              htmlFor={input.key}
+              id={input.key}
               required={input.required}
               error={error}
+              {...register(input.key)}
             >
-              <NativeSelect
-                surface="admin"
-                id={input.key}
-                aria-invalid={!!error}
-                invalid={!!error}
-                {...register(input.key)}
-              >
-                <option value="">
-                  {input.placeholder ||
-                    formatMessage({ id: "app.admin.work.submit.selectActionPlaceholder" })}
+              <option value="">
+                {input.placeholder ||
+                  formatMessage({ id: "app.admin.work.submit.selectActionPlaceholder" })}
+              </option>
+              {options.map((option) => (
+                <option key={option} value={option}>
+                  {option}
                 </option>
-                {options.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </NativeSelect>
-            </FormField>
+              ))}
+            </AdminSelect>
           );
         }
         if (input.type !== "multi-select") return null;
@@ -101,34 +84,33 @@ export function SubmitWorkFields({
             control={control}
             defaultValue={[]}
             render={({ field }) => (
-              <FormField label={input.title} required={input.required} error={error}>
-                <div className="flex flex-wrap gap-2">
-                  {(input.options ?? []).map((option) => {
-                    const current = Array.isArray(field.value)
-                      ? field.value.filter((value): value is string => typeof value === "string")
-                      : [];
-                    const selected = current.includes(option);
-                    return (
-                      <AdminButton
-                        key={option}
-                        type="button"
-                        variant={selected ? "tonal" : "outlined"}
-                        size="sm"
-                        onClick={() =>
-                          field.onChange(
-                            selected
-                              ? current.filter((value: string) => value !== option)
-                              : [...current, option]
-                          )
-                        }
-                        className="rounded-full px-3 py-1"
-                      >
-                        {option}
-                      </AdminButton>
-                    );
-                  })}
-                </div>
-              </FormField>
+              <AdminFieldGroup
+                label={input.title}
+                required={input.required}
+                error={error}
+                contentClassName="flex flex-wrap gap-2"
+              >
+                {(input.options ?? []).map((option) => {
+                  const current = Array.isArray(field.value)
+                    ? field.value.filter((value): value is string => typeof value === "string")
+                    : [];
+                  const selected = current.includes(option);
+                  return (
+                    <AdminFilterChip
+                      key={option}
+                      label={option}
+                      selected={selected}
+                      onToggle={() =>
+                        field.onChange(
+                          selected
+                            ? current.filter((value: string) => value !== option)
+                            : [...current, option]
+                        )
+                      }
+                    />
+                  );
+                })}
+              </AdminFieldGroup>
             )}
           />
         );

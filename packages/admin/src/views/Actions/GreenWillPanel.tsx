@@ -1,4 +1,3 @@
-import { FormInput } from "@green-goods/shared/components/Form/FormInput";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenWillBadgeDefinitions } from "@green-goods/shared/hooks/greenwill/useGreenWillBadgeDefinitions";
@@ -6,11 +5,12 @@ import { useGreenWillBadges } from "@green-goods/shared/hooks/greenwill/useGreen
 import { useGreenWillRecentGrants } from "@green-goods/shared/hooks/greenwill/useGreenWillRecentGrants";
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatDate } from "@green-goods/shared/utils/time";
-import { AdminCard } from "@/components/AdminCard";
 import { RiAwardLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
+import { AdminCard } from "@/components/AdminCard";
+import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText, formatEnsAddressName } from "@/components/EnsAddressText";
 
 function badgeTitle(intl: ReturnType<typeof useIntl>, slug: string) {
@@ -293,7 +293,7 @@ export function GreenWillPanel() {
           })}
         </h3>
 
-        <FormInput
+        <AdminTextField
           id="greenwill-lookup-address"
           label={intl.formatMessage({
             id: "admin.greenWill.lookupLabel",
@@ -305,8 +305,10 @@ export function GreenWillPanel() {
             id: "admin.greenWill.lookupPlaceholder",
             defaultMessage: "0x...",
           })}
-          aria-describedby="greenwill-lookup-feedback"
-          aria-invalid={lookupAddressInvalid || undefined}
+          inputProps={{
+            "aria-describedby": "greenwill-lookup-feedback",
+            "aria-invalid": lookupAddressInvalid || undefined,
+          }}
         />
 
         <p

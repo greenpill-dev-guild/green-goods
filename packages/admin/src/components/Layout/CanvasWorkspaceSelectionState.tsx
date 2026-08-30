@@ -96,7 +96,7 @@ export function CanvasWorkspaceSelectionState({
                 key={garden.id}
                 type="button"
                 onClick={() => onSelectGarden(garden)}
-                className="flex items-center justify-between gap-3 rounded-xl border border-stroke-soft bg-bg-white px-4 py-3 text-left transition hover:border-primary-base hover:bg-bg-weak focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
+                className="flex items-center justify-between gap-3 rounded-xl border border-stroke-soft bg-bg-white px-4 py-3 text-left transition hover:bg-[rgb(var(--m3-on-surface)/0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
                 aria-label={formatMessage(
                   {
                     id: "cockpit.workspace.openGarden",
@@ -106,7 +106,7 @@ export function CanvasWorkspaceSelectionState({
                 )}
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-text-strong">{garden.name}</p>
+                  <p className="truncate label-md font-medium text-text-strong">{garden.name}</p>
                   {garden.location ? (
                     <p className="mt-0.5 truncate text-xs text-text-soft">{garden.location}</p>
                   ) : null}
