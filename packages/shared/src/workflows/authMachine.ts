@@ -12,6 +12,7 @@
  *
  * States:
  * - initializing: Checking for existing session (localStorage)
+ * - restoring.wallet / restoring.embedded: Waiting for a persisted wallet connector
  * - unauthenticated: No active session, ready for login
  * - registering: Creating new passkey (new user flow)
  * - authenticating: Logging in with existing passkey (returning user flow)
@@ -41,6 +42,11 @@ import { type P256Credential } from "viem/account-abstraction";
 import { assign, fromPromise, setup } from "xstate";
 import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 import { logger } from "../modules/app/logger";
+import type { AuthMode } from "../types/auth";
+import { authGlobalWalletEvents, authStartupStates } from "./authStartupState";
+
+export type WalletConnectionType = "wallet" | "embedded";
+type RestorableAuthMode = Extract<AuthMode, WalletConnectionType>;
 
 // ============================================================================
 // CONTEXT
@@ -63,6 +69,11 @@ export interface AuthContext {
   // This allows us to know a wallet is available for switching
   externalWalletConnected: boolean;
   externalWalletAddress: Hex | null;
+  externalWalletConnectionType: WalletConnectionType | null;
+
+  // Persisted intent captured when the actor starts. It selects the restoring
+  // state without treating a connector that has not hydrated as signed out.
+  restoreAuthMode: RestorableAuthMode | null;
 
   // Meta
   chainId: number;
@@ -90,8 +101,9 @@ export type AuthEvent =
   // ─────────────────────────────────────────────────────────────────────────
   // External events (from wagmi - always sent, machine decides what to do)
   // ─────────────────────────────────────────────────────────────────────────
-  | { type: "EXTERNAL_WALLET_CONNECTED"; address: Hex }
-  | { type: "EXTERNAL_WALLET_DISCONNECTED" }
+  | { type: "EXTERNAL_WALLET_CONNECTED"; address: Hex; connectionType?: WalletConnectionType }
+  | { type: "EXTERNAL_WALLET_DISCONNECTED"; connectionType?: WalletConnectionType }
+  | { type: "RESTORE_TIMEOUT" }
   | { type: "MODAL_CLOSED" } // Wallet modal was closed without connecting
   // ─────────────────────────────────────────────────────────────────────────
   // Internal (from services/actors)
@@ -134,6 +146,7 @@ export interface PasskeyOperationInput {
 
 export interface AuthInput {
   chainId: number;
+  restoreAuthMode?: RestorableAuthMode | null;
 }
 
 // ============================================================================
@@ -213,6 +226,12 @@ const authSetup = setup({
       };
     }),
 
+    /** Promote the tracked embedded connector to primary auth during restore. */
+    storeEmbeddedAuthFromExternal: assign({
+      embeddedAddress: ({ context }) => context.externalWalletAddress,
+      error: null,
+    }),
+
     /** Clear embedded wallet auth */
     clearEmbeddedAuth: assign({
       embeddedAddress: null,
@@ -252,12 +271,20 @@ const authSetup = setup({
         const e = event as { type: "EXTERNAL_WALLET_CONNECTED"; address: Hex };
         return e.address;
       },
+      externalWalletConnectionType: ({ event }) => {
+        const e = event as {
+          type: "EXTERNAL_WALLET_CONNECTED";
+          connectionType?: WalletConnectionType;
+        };
+        return e.connectionType ?? "wallet";
+      },
     }),
 
     /** Track external wallet disconnection */
     trackExternalWalletDisconnected: assign({
       externalWalletConnected: false,
       externalWalletAddress: null,
+      externalWalletConnectionType: null,
     }),
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -287,6 +314,19 @@ const authSetup = setup({
     /** External wallet is connected (can switch to wallet auth) */
     hasExternalWallet: ({ context }) => context.externalWalletConnected === true,
 
+    hasRestoringWallet: ({ context }) => context.restoreAuthMode === "wallet",
+
+    hasRestoringEmbedded: ({ context }) => context.restoreAuthMode === "embedded",
+
+    hasTrackedWalletConnector: ({ context }) =>
+      context.externalWalletConnected && context.externalWalletConnectionType === "wallet",
+
+    hasTrackedEmbeddedConnector: ({ context }) =>
+      context.externalWalletConnected && context.externalWalletConnectionType === "embedded",
+
+    isEmbeddedDisconnect: ({ event }) =>
+      (event as { connectionType?: WalletConnectionType }).connectionType === "embedded",
+
     /** Session was successfully restored */
     sessionRestored: ({ event }) => {
       const e = event as { output: RestoreSessionResult | null };
@@ -314,7 +354,6 @@ const authSetup = setup({
 export const authMachine = authSetup.createMachine({
   id: "auth",
   initial: "initializing",
-
   context: ({ input }) => ({
     credential: null,
     userName: null,
@@ -324,59 +363,17 @@ export const authMachine = authSetup.createMachine({
     embeddedAddress: null,
     externalWalletConnected: false,
     externalWalletAddress: null,
+    externalWalletConnectionType: null,
+    restoreAuthMode: input?.restoreAuthMode ?? null,
     chainId: input?.chainId ?? DEFAULT_CHAIN_ID,
     error: null,
     retryCount: 0,
   }),
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // GLOBAL EVENT HANDLERS
-  // These events are handled from ANY state - the machine decides what to do
-  // ═══════════════════════════════════════════════════════════════════════════
-  on: {
-    // External wallet events - ALWAYS track, but only change auth state when appropriate
-    EXTERNAL_WALLET_CONNECTED: {
-      // Always track the external wallet state
-      actions: "trackExternalWalletConnected",
-    },
-    EXTERNAL_WALLET_DISCONNECTED: {
-      // Always track disconnection
-      actions: "trackExternalWalletDisconnected",
-    },
-  },
+  on: authGlobalWalletEvents,
 
   states: {
-    // ═══════════════════════════════════════════════════════════════════════════
-    // INITIALIZING
-    // Check for existing session (passkey credential in localStorage)
-    // ═══════════════════════════════════════════════════════════════════════════
-    initializing: {
-      invoke: {
-        src: "restoreSession",
-        input: ({ context }): RestoreSessionInput => ({
-          chainId: context.chainId,
-        }),
-        onDone: [
-          {
-            // Session restored successfully → authenticated.passkey
-            guard: "sessionRestored",
-            target: "authenticated.passkey",
-            actions: "storePasskeySession",
-          },
-          {
-            // No stored session → unauthenticated
-            target: "unauthenticated",
-          },
-        ],
-        onError: {
-          // Restore failed → unauthenticated (don't show error for restore failures)
-          target: "unauthenticated",
-          actions: "clearError",
-        },
-      },
-
-      // EXTERNAL_WALLET_CONNECTED handled by global handler
-    },
+    ...authStartupStates,
 
     // ═══════════════════════════════════════════════════════════════════════════
     // UNAUTHENTICATED
@@ -600,9 +597,16 @@ export const authMachine = authSetup.createMachine({
             EXTERNAL_WALLET_CONNECTED: {
               actions: "trackExternalWalletConnected",
             },
-            EXTERNAL_WALLET_DISCONNECTED: {
-              actions: "trackExternalWalletDisconnected",
-            },
+            EXTERNAL_WALLET_DISCONNECTED: [
+              {
+                guard: "isEmbeddedDisconnect",
+                target: "#auth.restoring.embedded",
+                actions: "trackExternalWalletDisconnected",
+              },
+              {
+                actions: "trackExternalWalletDisconnected",
+              },
+            ],
           },
         },
 
@@ -614,12 +618,8 @@ export const authMachine = authSetup.createMachine({
           on: {
             // External wallet disconnected while using wallet auth → sign out
             EXTERNAL_WALLET_DISCONNECTED: {
-              target: "#auth.unauthenticated",
-              actions: [
-                "logWalletDisconnectedDuringWalletAuth",
-                "trackExternalWalletDisconnected",
-                "clearWalletAuth",
-              ],
+              target: "#auth.restoring.wallet",
+              actions: ["logWalletDisconnectedDuringWalletAuth", "trackExternalWalletDisconnected"],
             },
 
             // Sign out

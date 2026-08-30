@@ -31,6 +31,7 @@ import {
   trackOfflineEvent,
   trackSyncPerformance,
 } from "../../modules/app/posthog";
+import { trackAuthWalletRestore } from "../../modules/app/authWalletRestoreAnalytics";
 
 describe("modules/posthog", () => {
   beforeEach(() => {
@@ -56,6 +57,29 @@ describe("modules/posthog", () => {
         })
       );
       expect(sink.capture.mock.calls[0]?.[1]).not.toHaveProperty("session_id");
+      unregister();
+    });
+
+    it("replaces persisted user and session identity for anonymous diagnostics", () => {
+      const sink = { capture: vi.fn() };
+      const unregister = registerTelemetrySink(sink);
+
+      trackAuthWalletRestore({ authMode: "wallet", outcome: "delayed" });
+      trackAuthWalletRestore({ authMode: "wallet", outcome: "success" });
+
+      const firstProperties = sink.capture.mock.calls[0]?.[1];
+      const secondProperties = sink.capture.mock.calls[1]?.[1];
+      expect(firstProperties?.distinct_id).toMatch(/^anonymous_auth_wallet_restore_/);
+      expect(secondProperties?.distinct_id).toMatch(/^anonymous_auth_wallet_restore_/);
+      expect(firstProperties?.distinct_id).not.toBe(secondProperties?.distinct_id);
+      expect(firstProperties).toMatchObject({
+        $anon_distinct_id: undefined,
+        $device_id: undefined,
+        $session_id: undefined,
+        $user_id: undefined,
+        $window_id: undefined,
+      });
+      expect(firstProperties).not.toHaveProperty("session_id");
       unregister();
     });
 

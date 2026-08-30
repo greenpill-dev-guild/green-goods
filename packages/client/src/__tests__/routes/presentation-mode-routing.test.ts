@@ -189,15 +189,13 @@ describe("presentation-mode route guards", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("keeps the logo-led hydration fallback for installed app routes", () => {
+  it("leaves installed-app hydration to the static logo-led fallback", () => {
     setStandaloneMode();
     const rootRoute = findRouteById(appRoutes as RouteObject[], CLIENT_ROUTE_IDS.root);
 
     const { container } = render(createElement(() => rootRoute?.hydrateFallbackElement ?? null));
 
-    expect(container.querySelector('img[src="/icon.png"]')).toBeInTheDocument();
-    expect(container.querySelector("[aria-label='Loading Green Goods']")).not.toBeInTheDocument();
-    expect(container.querySelector("[role='status']")).toHaveAttribute("aria-busy", "true");
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("keeps production public routes on the website shell even in standalone mode", () => {

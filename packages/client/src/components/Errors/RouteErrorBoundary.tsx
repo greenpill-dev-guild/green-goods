@@ -206,7 +206,6 @@ export const RouteErrorBoundary: React.FC = () => {
   const [isAutoRecovering, setIsAutoRecovering] = useState(false);
   const copyResetTimer = useRef<number | null>(null);
   const trackedRef = useRef(false);
-
   const t = useCallback(
     (key: keyof Messages): string => messages[locale][key] || messages.en[key] || String(key),
     [locale]
@@ -215,6 +214,7 @@ export const RouteErrorBoundary: React.FC = () => {
   // Auto-recover chunk-load errors with a one-shot reload. This is the critical
   // path for the post-SW-update refresh failure mode.
   useEffect(() => {
+    (window as Window & { __GG_MARK_BOOT_FAILED?: () => void }).__GG_MARK_BOOT_FAILED?.();
     if (category !== "chunk") return;
     if (readSessionFlag(CHUNK_RELOAD_SESSION_KEY)) return;
 

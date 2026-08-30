@@ -79,8 +79,8 @@ root.render(
   </StrictMode>
 );
 
-const clearBootFallback = (window as Window & { __GG_CLEAR_BOOT_FALLBACK?: () => void })
-  .__GG_CLEAR_BOOT_FALLBACK;
-if (clearBootFallback) {
-  window.requestAnimationFrame(() => clearBootFallback());
+const markReactMounted = (window as Window & { __GG_MARK_REACT_MOUNTED?: () => void })
+  .__GG_MARK_REACT_MOUNTED;
+if (markReactMounted) {
+  window.requestAnimationFrame(() => markReactMounted());
 }

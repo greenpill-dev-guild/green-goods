@@ -7,6 +7,7 @@ import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const INDEX_HTML = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
+const MAIN_SOURCE = readFileSync(resolve(process.cwd(), "src/main.tsx"), "utf8");
 
 function inlineScript(id: string): string {
   const match = INDEX_HTML.match(
@@ -89,6 +90,8 @@ function detectPresentation(options: DetectOptions): string | undefined {
 
 type BootWindow = Pick<Window, "addEventListener" | "clearTimeout" | "setTimeout"> & {
   __GG_CLEAR_BOOT_FALLBACK?: () => void;
+  __GG_MARK_BOOT_FAILED?: () => void;
+  __GG_MARK_REACT_MOUNTED?: () => void;
   location: Pick<Location, "href" | "reload" | "replace">;
 };
 
@@ -218,6 +221,8 @@ function runController(
     pwaMessage: document.getElementById("boot-pwa-message") as HTMLElement,
     pwaReload: document.getElementById("boot-pwa-reload") as HTMLButtonElement,
     clearFallback: windowLike.__GG_CLEAR_BOOT_FALLBACK,
+    markBootFailed: windowLike.__GG_MARK_BOOT_FAILED,
+    markReactMounted: windowLike.__GG_MARK_REACT_MOUNTED,
   };
 }
 
@@ -238,6 +243,8 @@ describe("presentation-specific boot fallback", () => {
     document.body.innerHTML = "";
     delete document.documentElement.dataset.bootPresentation;
     delete (window as Window & { __GG_CLEAR_BOOT_FALLBACK?: () => void }).__GG_CLEAR_BOOT_FALLBACK;
+    delete (window as Window & { __GG_MARK_BOOT_FAILED?: () => void }).__GG_MARK_BOOT_FAILED;
+    delete (window as Window & { __GG_MARK_REACT_MOUNTED?: () => void }).__GG_MARK_REACT_MOUNTED;
   });
 
   it("keeps production public routes in website mode, including standalone windows", () => {
@@ -358,17 +365,25 @@ describe("presentation-specific boot fallback", () => {
       /\.boot-pwa-message-slot\s*{[^}]*block-size:\s*144px[^}]*overflow-y:\s*auto/s
     );
     expect(styles).toMatch(/\.boot-pwa-action-slot\s*{[^}]*block-size:\s*68px/s);
+    expect(styles).toMatch(
+      /html\[data-boot-presentation="pwa"\] body\s*{[^}]*height:\s*100%[^}]*margin:\s*0[^}]*overflow:\s*hidden/s
+    );
+  });
+
+  it("separates React mount from final PWA readiness", () => {
+    expect(MAIN_SOURCE).toContain("__GG_MARK_REACT_MOUNTED");
+    expect(MAIN_SOURCE).not.toContain("__GG_CLEAR_BOOT_FALLBACK");
   });
 
   it.each([
     ["es-MX", "Green Goods se está cargando."],
     ["pt-BR", "Green Goods está carregando."],
-  ])("publishes the %s loading copy for the React handoff", (language, message) => {
-    runController("pwa", {
+  ])("renders the %s loading copy on the static PWA surface", (language, message) => {
+    const { pwaMessage } = runController("pwa", {
       navigator: { language, onLine: true },
     });
 
-    expect(document.documentElement.dataset.bootLoadingMessage).toBe(message);
+    expect(pwaMessage).toHaveTextContent(message);
   });
 
   it("clears before the website delay when React mounts quickly", () => {
@@ -379,6 +394,35 @@ describe("presentation-specific boot fallback", () => {
     vi.advanceTimersByTime(200);
 
     expect(fallback).toHaveAttribute("hidden");
+  });
+
+  it("keeps one PWA surface through React mount until app readiness", () => {
+    const { clearFallback, fallback, markReactMounted, pwa } = runController("pwa");
+    document.getElementById("root")?.append(document.createElement("main"));
+
+    markReactMounted?.();
+    vi.advanceTimersByTime(4500);
+
+    expect(fallback).not.toHaveAttribute("hidden");
+    expect(fallback).toHaveAttribute("data-state", "loading");
+    expect(pwa).toHaveAttribute("aria-busy", "true");
+
+    clearFallback?.();
+
+    expect(fallback).toHaveAttribute("hidden");
+    expect(fallback).toHaveAttribute("data-state", "cleared");
+  });
+
+  it("reveals React error recovery after a mounted PWA boot fails", () => {
+    const { fallback, markBootFailed, markReactMounted } = runController("pwa");
+    document.getElementById("root")?.append(document.createElement("main"));
+
+    markReactMounted?.();
+    markBootFailed?.();
+    markReactMounted?.();
+
+    expect(fallback).toHaveAttribute("hidden");
+    expect(fallback).toHaveAttribute("data-state", "cleared");
   });
 
   it("turns a slow website load into an actionable editorial recovery state", () => {
@@ -572,12 +616,12 @@ describe("presentation-specific boot fallback", () => {
     expect(controller).not.toContain("sessionStorage.clear");
   });
 
-  it("removes update listeners when React mounts during recovery", async () => {
+  it("removes update listeners while preserving the PWA surface when React mounts", async () => {
     const { worker } = createWorker();
     const { registration } = createRegistration({ waiting: worker });
     const { dispatchControllerChange, serviceWorker } = createServiceWorkerContainer(registration);
     const { location, windowLike } = createBootWindow();
-    const { clearFallback, fallback, pwaReload } = runController("pwa", {
+    const { clearFallback, fallback, markReactMounted, pwaReload } = runController("pwa", {
       navigator: { language: "en", onLine: true, serviceWorker },
       window: windowLike,
     });
@@ -586,14 +630,18 @@ describe("presentation-specific boot fallback", () => {
     await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalledTimes(1));
 
     document.getElementById("root")?.append(document.createElement("main"));
-    clearFallback?.();
+    markReactMounted?.();
     dispatchControllerChange();
 
-    expect(fallback).toHaveAttribute("data-state", "cleared");
+    expect(fallback).not.toHaveAttribute("hidden");
+    expect(fallback).toHaveAttribute("data-state", "loading");
     expect(serviceWorker.removeEventListener).toHaveBeenCalledWith(
       "controllerchange",
       expect.any(Function)
     );
     expect(location.reload).not.toHaveBeenCalled();
+
+    clearFallback?.();
+    expect(fallback).toHaveAttribute("data-state", "cleared");
   });
 });

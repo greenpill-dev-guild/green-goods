@@ -7,23 +7,17 @@
  * - Adds consistent event enrichment
  * - Throttles only diagnostic events, not countable "fact" events
  *
- * Usage:
- * - track() for custom events
- * - identify() to set user identity (call on login)
- * - reset() to clear identity (call on logout)
- * - identifyWithProperties() to set identity + person properties
  */
 
 import { type CaptureResult, posthog } from "posthog-js";
 
 import { logger } from "./logger";
+import { createAnonymousTelemetryIdentity } from "./telemetryIdentity";
 
 const IS_DEV = import.meta.env.DEV;
 const IS_DEBUG = import.meta.env.VITE_POSTHOG_DEBUG === "true";
 
-// ============================================================================
 // EXCEPTION PAYLOAD COMPATIBILITY
-// ============================================================================
 
 /**
  * posthog-js >= 1.3xx emits exception-autocapture data in `$exception_list` (an
@@ -64,9 +58,7 @@ export function restoreExceptionTopLevelProps(event: CaptureResult | null): Capt
   return event;
 }
 
-// ============================================================================
 // APP VERSION AND ENVIRONMENT
-// ============================================================================
 
 export function getAppVersion(): string {
   return import.meta.env.VITE_APP_VERSION || "unknown";
@@ -247,6 +239,8 @@ function getSessionId(): string {
 // ============================================================================
 
 export interface TrackOptions {
+  /** Replace persisted PostHog identity with a one-event diagnostic identity. */
+  anonymizeIdentity?: boolean;
   includeSessionId?: boolean;
 }
 
@@ -295,6 +289,10 @@ export function track(
     return;
   }
 
+  const anonymousIdentity = options.anonymizeIdentity
+    ? createAnonymousTelemetryIdentity(event)
+    : {};
+
   // Enrich with context
   const enrichedProperties = {
     ...properties,
@@ -306,6 +304,7 @@ export function track(
         : "unknown",
     timestamp: Date.now(),
     ...(options.includeSessionId === false ? {} : { session_id: getSessionId() }),
+    ...anonymousIdentity,
   };
 
   if (IS_DEBUG) {

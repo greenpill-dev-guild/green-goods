@@ -168,7 +168,7 @@ describe("AppSettings", () => {
     expect(screen.queryByText("Update App")).not.toBeInTheDocument();
     expect(screen.queryByTestId("btn-Refresh")).not.toBeInTheDocument();
     expect(screen.queryByTestId("btn-Update")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("btn-Restart to update")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("btn-Restart to Update")).not.toBeInTheDocument();
   });
 
   it("renders the ready update card when a service worker update is waiting", () => {
@@ -179,7 +179,7 @@ describe("AppSettings", () => {
 
     expect(screen.getByText("Ready to restart")).toBeInTheDocument();
     expect(screen.getByText(/restart green goods to finish updating/i)).toBeInTheDocument();
-    expect(screen.getByTestId("btn-Restart to update")).toBeInTheDocument();
+    expect(screen.getByTestId("btn-Restart to Update")).toBeInTheDocument();
   });
 
   it("renders download progress without a restart button", () => {
@@ -189,7 +189,7 @@ describe("AppSettings", () => {
 
     expect(screen.getByText("Downloading update")).toBeInTheDocument();
     expect(screen.getByText(/latest version in the background/i)).toBeInTheDocument();
-    expect(screen.queryByTestId("btn-Restart to update")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("btn-Restart to Update")).not.toBeInTheDocument();
   });
 
   it("renders stalled guidance with a retry button", () => {
@@ -210,7 +210,7 @@ describe("AppSettings", () => {
 
     render(wrap(createElement(AppSettings)));
 
-    await user.click(screen.getByTestId("btn-Restart to update"));
+    await user.click(screen.getByTestId("btn-Restart to Update"));
 
     expect(mockServiceWorkerUpdateState.applyUpdate).toHaveBeenCalledTimes(1);
   });

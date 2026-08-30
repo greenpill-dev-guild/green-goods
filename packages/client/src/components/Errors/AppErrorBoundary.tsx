@@ -246,7 +246,7 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     const category = classifyError(error);
-
+    (window as Window & { __GG_MARK_BOOT_FAILED?: () => void }).__GG_MARK_BOOT_FAILED?.();
     // Auto-recover transient post-deploy chunk failures with a one-shot reload.
     if (category === "chunk" && !readSessionFlag(CHUNK_RELOAD_SESSION_KEY)) {
       writeSessionFlag(CHUNK_RELOAD_SESSION_KEY);

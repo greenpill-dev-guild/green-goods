@@ -251,6 +251,16 @@
         font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
 
+      html[data-boot-presentation="pwa"],
+      html[data-boot-presentation="pwa"] body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--color-static-white, #ffffff);
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
       [data-theme="dark"] #boot-fallback {
         --boot-canvas: var(--color-bg-weak-50, #161412);
         --boot-card: var(--color-bg-weak-50, #161412);
@@ -879,7 +889,6 @@
           },
         };
         var labels = copy[language] || copy.en;
-        document.documentElement.dataset.bootLoadingMessage = labels.loading;
         var timer;
         var updateTimer;
         var observer;
@@ -986,6 +995,19 @@
           pwaReload.hidden = false;
           pwaReload.setAttribute("aria-disabled", isApplying ? "true" : "false");
           pwaReload.textContent = isApplying ? labels.applyingAction : labels.retry;
+        }
+
+        function setPwaLoadingState() {
+          if (!fallback || !pwa || !pwaMessage || !pwaReload) return;
+          fallback.hidden = false;
+          fallback.dataset.state = "loading";
+          pwa.setAttribute("role", "status");
+          pwa.setAttribute("aria-live", "polite");
+          pwa.setAttribute("aria-busy", "true");
+          pwaMessage.textContent = labels.loading;
+          pwaReload.hidden = true;
+          pwaReload.setAttribute("aria-disabled", "false");
+          pwaReload.textContent = labels.updateAction;
         }
 
         function stallPwaRecovery(message) {
@@ -1120,6 +1142,28 @@
           }
         }
 
+        function markReactMounted() {
+          if (!hasAppContent()) return;
+          if (timer) window.clearTimeout(timer);
+          if (updateTimer) window.clearTimeout(updateTimer);
+          if (observer) observer.disconnect();
+
+          if (fallback && fallback.dataset.state === "cleared") return;
+
+          if (presentation === "website") {
+            clearFallback();
+            return;
+          }
+
+          removeRecoveryListeners();
+          recoveryInFlight = false;
+          setPwaLoadingState();
+        }
+
+        function markBootFailed() {
+          clearFallback();
+        }
+
         function reloadWithCacheBust() {
           try {
             var url = new URL(window.location.href);
@@ -1131,6 +1175,8 @@
         }
 
         window.__GG_CLEAR_BOOT_FALLBACK = clearFallback;
+        window.__GG_MARK_BOOT_FAILED = markBootFailed;
+        window.__GG_MARK_REACT_MOUNTED = markReactMounted;
 
         if (websiteReload) websiteReload.addEventListener("click", reloadWithCacheBust);
         if (pwaReload) pwaReload.addEventListener("click", recoverPwa);
@@ -1152,7 +1198,7 @@
 
         if (root && "MutationObserver" in window) {
           observer = new MutationObserver(function () {
-            if (hasAppContent()) clearFallback();
+            if (hasAppContent()) markReactMounted();
           });
           observer.observe(root, { childList: true });
         }
