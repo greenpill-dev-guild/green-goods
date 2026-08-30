@@ -133,6 +133,9 @@ scripts/
 | `qa-sheet-webhook-setup.md` | n/a | Repo-side pointer: tells you how to recreate `~/.config/qa-triage/setup.md` on a fresh machine. The canonical Apps Script source + both secrets live in that local file, never in git |
 | `qa-workbook-build.ts` | `bun run qa:workbook` (root package.json) / `qa-session` skill pre-flight | Projects `scripts/data/qa-test-catalog.json` (the upstream QA scenario source of truth) into a human-first Excel run sheet — Overview tab with run info + live counts, one tab per surface with plain-language columns grouped by area — in gitignored `tmp/qa/`. Definitions only; results live in Drive/the v1.1 Sheet, never in git |
 | `qa-workbook-build.test.ts` | `bun run test:agent-tools` (root package.json) | Catalog validation (unique IDs, prefix↔tab consistency, enums), output-path reservation, and projection coverage for the run-sheet generator |
+| `qa-state.ts` | `bun run qa:pull` (root package.json) / `qa-state.test.ts` | Pure merge and projection rules for QA app session state — folds each tester's shard into one case-keyed view, rolls up the standing verdict when testers disagree (most severe wins), and projects `results.csv` for the `qa-session` skill |
+| `qa-state.test.ts` | `bun run test:agent-tools` (root package.json) | Two testers on one case both survive the merge, verdict rollup ordering, and CSV quoting for dictated notes full of commas and quotes |
+| `qa-state-pull.ts` | `bun run qa:pull` (root package.json) / `qa-session` skill close-out | Pulls a QA app session (packages/qa-app) from its private Blob store into `tmp/qa-session/<slug>/` as `results.csv` + `qa-app-state.json`. Reads the store directly, so it works while the app is password-protected. Results stay in gitignored `tmp/` |
 
 ### `harness/` — skill and planning helpers
 | Script | Caller | Purpose |

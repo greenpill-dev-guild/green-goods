@@ -264,6 +264,9 @@
         "scripts/data/qa-test-catalog.json",
         "scripts/agents/qa-workbook-build.ts",
         "scripts/agents/qa-workbook-build.test.ts",
+        "scripts/agents/qa-state.ts",
+        "scripts/agents/qa-state.test.ts",
+        "scripts/agents/qa-state-pull.ts",
         "scripts/agents/posthog-query.ts",
         "scripts/agents/posthog-query.test.ts"
       ]

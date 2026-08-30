@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Green Goods QA</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  :root {
+    --paper:#FBF9F3; --surface:#FFFFFF; --linen:#F5F1E8; --ink:#26231C; --soft:#6E675A;
+    --green:#1A7544; --green-wash:#E8F1EA; --red:#A8402F; --red-wash:#F7E6E1;
+    --amber:#8F6516; --amber-wash:#F7EEDA; --line:#E2DBCC; --mono-bg:#F0EBDF;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --paper:#1B1914; --surface:#24211A; --linen:#2A261E; --ink:#EDE8DC; --soft:#A89F8E;
+    --green:#4CAE7A; --green-wash:#223A2C; --red:#E08A76; --red-wash:#422A24;
+    --amber:#D9A84E; --amber-wash:#3A3021; --line:#3A352A; --mono-bg:#2E2A21;
+  }}
+  :root[data-theme="dark"] {
+    --paper:#1B1914; --surface:#24211A; --linen:#2A261E; --ink:#EDE8DC; --soft:#A89F8E;
+    --green:#4CAE7A; --green-wash:#223A2C; --red:#E08A76; --red-wash:#422A24;
+    --amber:#D9A84E; --amber-wash:#3A3021; --line:#3A352A; --mono-bg:#2E2A21;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+    font-family:"Inter",system-ui,sans-serif; font-size:14px; line-height:1.45; }
+  header { position:sticky; top:0; z-index:5; background:var(--paper);
+    border-bottom:1px solid var(--line); padding:14px 18px 10px; }
+  h1 { font-family:"Plus Jakarta Sans",sans-serif; font-size:19px; font-weight:800;
+    margin:0 0 2px; letter-spacing:-0.01em; }
+  .runline { font-size:12px; color:var(--soft); }
+  .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+  .tab { border:1px solid var(--line); background:var(--surface); color:var(--ink);
+    border-radius:999px; padding:4px 12px; font-size:12.5px; font-weight:600; cursor:pointer; }
+  .tab.on { background:var(--green); border-color:var(--green); color:#fff; }
+  .tab small { font-weight:500; opacity:0.75; margin-left:4px; }
+  main { max-width:880px; margin:0 auto; padding:12px 18px 90px; }
+  .area { font-family:"Plus Jakarta Sans",sans-serif; font-weight:700; font-size:12.5px;
+    letter-spacing:0.05em; text-transform:uppercase; color:var(--soft);
+    background:var(--linen); border-radius:8px; padding:5px 12px; margin:16px 0 6px; }
+  .row { display:grid; grid-template-columns:86px 1fr auto; gap:10px; align-items:start;
+    padding:9px 4px; border-bottom:1px solid var(--line); }
+  .row.done { opacity:0.68; }
+  .rid { font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--soft); padding-top:3px; }
+  .rid b { display:block; color:var(--ink); font-weight:500; }
+  .rid .mark { display:inline-block; font-style:normal; font-size:9.5px; font-weight:600;
+    border-radius:999px; padding:0 5px; margin:2px 3px 0 0; background:var(--linen); color:var(--soft); }
+  .rid .mark.pass { background:var(--green-wash); color:var(--green); }
+  .rid .mark.fail { background:var(--red-wash); color:var(--red); }
+  .rid .mark.blocked { background:var(--amber-wash); color:var(--amber); }
+  .scen { font-size:13.5px; }
+  .scen .why { display:block; font-size:11.5px; color:var(--soft); margin-top:1px; }
+  .flag { display:inline-block; font-size:10px; font-weight:600; letter-spacing:0.05em;
+    text-transform:uppercase; color:var(--amber); background:var(--amber-wash);
+    border-radius:999px; padding:1px 7px; margin-left:6px; vertical-align:1px; }
+  .flag.txf { color:var(--green); background:var(--green-wash); }
+  .ctl { display:flex; gap:4px; align-items:center; }
+  .st { width:34px; height:28px; border-radius:7px; border:1px solid var(--line);
+    background:var(--surface); color:var(--soft); font-weight:700; font-size:11.5px; cursor:pointer; }
+  .st:focus-visible { outline:2px solid var(--green); outline-offset:1px; }
+  .st.pass.on { background:var(--green); border-color:var(--green); color:#fff; }
+  .st.fail.on { background:var(--red); border-color:var(--red); color:#fff; }
+  .st.blocked.on { background:var(--amber); border-color:var(--amber); color:#fff; }
+  .st.na.on { background:var(--soft); border-color:var(--soft); color:var(--paper); }
+  .st:disabled { opacity:0.4; cursor:not-allowed; }
+  .note { grid-column:2 / -1; }
+  .note textarea { width:100%; min-height:34px; border:1px solid var(--line); border-radius:7px;
+    background:var(--surface); color:var(--ink); font:inherit; font-size:12.5px; padding:5px 9px;
+    resize:none; overflow:hidden; }
+  .note textarea::placeholder { color:var(--soft); opacity:0.7; }
+  .onote { font-size:12px; color:var(--ink); background:var(--linen); border-radius:7px;
+    padding:5px 9px; margin-bottom:4px; }
+  .onote b { color:var(--soft); font-weight:600; margin-right:6px; }
+  .filters { display:flex; gap:6px; margin-top:8px; align-items:center; }
+  .filt, .scope-btn, .who-btn { border:1px solid var(--line); background:var(--surface);
+    color:var(--soft); border-radius:999px; padding:2px 10px; font-size:11.5px;
+    font-weight:600; cursor:pointer; }
+  .filt.on { color:var(--ink); border-color:var(--soft); }
+  .scope-btn.on { background:var(--ink); border-color:var(--ink); color:var(--paper); }
+  .scope-btn small { font-weight:500; opacity:0.7; margin-left:5px; }
+  .who-group { margin-left:auto; display:flex; gap:4px; align-items:center; }
+  .who-btn.on { background:var(--green); border-color:var(--green); color:#fff; }
+  .grouplabel { font-size:11px; color:var(--soft); letter-spacing:0.04em;
+    text-transform:uppercase; margin-right:2px; }
+  .scoperow { flex-wrap:wrap; }
+  .counts { font-size:11.5px; color:var(--soft); margin-top:6px; }
+  .counts b { color:var(--ink); }
+  .counts .warn { color:var(--amber); }
+  .empty { color:var(--soft); font-size:13px; padding:22px 4px; }
+  .savebar { position:fixed; right:14px; bottom:14px; z-index:6; font-size:12px; font-weight:600;
+    background:var(--surface); border:1px solid var(--line); border-radius:999px;
+    padding:6px 14px; color:var(--soft); }
+  .savebar.saving { color:var(--amber); }
+  .savebar.saved { color:var(--green); }
+  .savebar.ro { color:var(--red); }
+</style>
+</head>
+<body>
+<div id="mount"><main><p class="empty">Loading the checklist…</p></main></div>
+<div class="savebar" id="savebar">connecting…</div>
+<script>
+(() => {
+  "use strict";
+
+  const STATUSES = ["pass", "fail", "blocked", "na"];
+  const LABEL = { pass: "P", fail: "F", blocked: "B", na: "–" };
+  // Rollup when testers disagree on one case: the most severe verdict stands.
+  const RANK = { fail: 4, blocked: 3, pass: 2, na: 1 };
+  const POLL_MS = 4000;
+  const OUTBOX_KEY = "qa-outbox";
+
+  let CASES = [];
+  let TABS = [];
+  let TEAM = [];
+  /** caseId -> person -> { s, n, at }. This browser is authoritative for `who`. */
+  let entries = {};
+
+  let activeTab = "";
+  let filter = "all";
+  let scope = "all";
+  let who = "";
+  let dirty = false;
+  let saveTimer = null;
+  let pollTimer = null;
+  let saving = false;
+
+  const mount = document.getElementById("mount");
+  const savebar = document.getElementById("savebar");
+
+  let view = {};
+  try { view = JSON.parse(sessionStorage.getItem("qa-view") || "{}") || {}; } catch (e) {}
+  try { who = localStorage.getItem("qa-who") || ""; } catch (e) {}
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+  }
+
+  // ── Local durability ────────────────────────────────────────────────
+  // `outbox` is the pending DELTA — only the cases this tester changed since
+  // the last confirmed save. It lands in sessionStorage on every keystroke, so
+  // a reload, a crash, or a failed POST never costs anyone their notes. Sending
+  // a delta rather than the whole shard also means one person with two clients
+  // open (a phone on the PWA, a laptop on admin) can never have one client's
+  // stale snapshot roll back the other's work.
+  let outbox = {};
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(OUTBOX_KEY) || "null");
+    if (stored && stored.person && stored.delta) outbox = stored.person === who ? stored.delta : {};
+  } catch (e) {}
+
+  function saveOutbox() {
+    try {
+      if (!who) return;
+      sessionStorage.setItem(OUTBOX_KEY, JSON.stringify({ person: who, delta: outbox }));
+    } catch (e) {}
+  }
+  function clearOutbox() {
+    outbox = {};
+    try { sessionStorage.removeItem(OUTBOX_KEY); } catch (e) {}
+  }
+  /** A cleared case travels as an empty entry — the server reads it as a delete. */
+  function tombstone() {
+    return { s: "", n: "", at: new Date().toISOString() };
+  }
+  function sameEntry(a, b) {
+    if (!a && !b) return true;
+    if (!a || !b) return false;
+    return a.s === b.s && (a.n || "") === (b.n || "");
+  }
+
+  function entryFor(caseId, person) {
+    return (entries[caseId] || {})[person] || null;
+  }
+  function setMine(caseId, entry) {
+    entries[caseId] = entries[caseId] || {};
+    if (entry) entries[caseId][who] = entry;
+    else delete entries[caseId][who];
+    outbox[caseId] = entry || tombstone();
+    saveOutbox();
+  }
+
+  /** The case's standing verdict: the most severe entry any tester recorded. */
+  function verdict(caseId) {
+    const all = Object.values(entries[caseId] || {}).map((e) => e.s).filter(Boolean);
+    if (!all.length) return "";
+    return all.sort((a, b) => RANK[b] - RANK[a])[0];
+  }
+  function isIssue(caseId) {
+    return Object.values(entries[caseId] || {}).some((e) => e.s === "fail" || e.s === "blocked");
+  }
+  function hasEntry(caseId, person) { return Boolean(entryFor(caseId, person)); }
+
+  // ── Counts ──────────────────────────────────────────────────────────
+  function counts(tab) {
+    const rows = CASES.filter((c) => c.tab === tab);
+    return {
+      total: rows.length,
+      done: rows.filter((c) => verdict(c.id)).length,
+      fails: rows.filter((c) => isIssue(c.id)).length,
+    };
+  }
+  function scopeCount(tab, key) {
+    const rows = CASES.filter((c) => c.tab === tab);
+    return key === "all" ? rows.length : rows.filter((c) => hasEntry(c.id, key)).length;
+  }
+  function tally() {
+    const per = TEAM.map((n) => `${n} ${CASES.filter((c) => hasEntry(c.id, n)).length}`);
+    const undecided = CASES.filter((c) => !verdict(c.id)).length;
+    return `${per.join(" · ")} · <b>${undecided}</b> still undecided (all tabs)`;
+  }
+
+  // ── Render ──────────────────────────────────────────────────────────
+  function render() {
+    const head = `<header>
+      <h1>Green Goods QA</h1>
+      <div class="runline">${CASES.length} cases · two testers can record the same case — each keeps their own verdict and notes</div>
+      <div class="tabs">${TABS.map((t) => {
+        const k = counts(t);
+        return `<button class="tab ${t === activeTab ? "on" : ""}" data-tab="${esc(t)}">${esc(t)}<small>${k.done}/${k.total}${k.fails ? " · " + k.fails + "F" : ""}</small></button>`;
+      }).join("")}</div>
+      <div class="filters">${[["all", "All"], ["issues", "Issues"], ["open", "Undecided"]].map(([k, l]) =>
+        `<button class="filt ${filter === k ? "on" : ""}" data-f="${k}">${l}</button>`).join("")}<span class="who-group" role="group" aria-label="who is testing"><span class="grouplabel">testing as</span>${TEAM.map((n) =>
+        `<button class="who-btn ${who === n ? "on" : ""}" data-who="${esc(n)}" title="records entries as ${esc(n)}">${esc(n)}</button>`).join("")}</span></div>
+      <div class="filters scoperow" role="group" aria-label="whose entries to show"><span class="grouplabel">showing</span>${
+        [["all", "Everyone"]].concat(TEAM.map((n) => [n, n])).map(([k, l]) =>
+          `<button class="scope-btn ${scope === k ? "on" : ""}" data-scope="${esc(k)}">${esc(l)}<small>${scopeCount(activeTab, k)}</small></button>`).join("")
+      }</div>
+      <div class="counts">${tally()}${who ? "" : ' · <b class="warn">pick your name above to record</b>'}</div>
+    </header>`;
+
+    const rows = CASES.filter((c) => c.tab === activeTab).filter((c) => {
+      if (filter === "issues" && !isIssue(c.id)) return false;
+      if (filter === "open" && verdict(c.id)) return false;
+      if (scope !== "all" && !hasEntry(c.id, scope)) return false;
+      return true;
+    });
+
+    const areas = [...new Set(rows.map((c) => c.area))];
+    const body = areas.map((a) => `<div class="area">${esc(a)}</div>` + rows.filter((c) => c.area === a).map((c) => {
+      const ents = entries[c.id] || {};
+      const own = who ? ents[who] : null;
+      const flag = (c.rp ? '<span class="flag">prod</span>' : c.rd ? '<span class="flag">device</span>' : "")
+        + (c.tx ? '<span class="flag txf">tx</span>' : "");
+      const marks = Object.entries(ents).filter(([, e]) => e.s).map(([p, e]) =>
+        `<i class="mark ${esc(e.s)}" title="${esc(p)}: ${esc(e.s)}">${esc(p)} ${LABEL[e.s] || "?"}</i>`).join("");
+      // Other testers' notes stay visible and untouched while you write yours.
+      const others = Object.entries(ents).filter(([p, e]) => p !== who && e.n).map(([p, e]) =>
+        `<div class="onote"><b>${esc(p)}</b>${esc(e.n)}</div>`).join("");
+      return `<div class="row ${verdict(c.id) ? "done" : ""}">
+        <div class="rid"><b>${esc(c.id)}</b>${esc(c.pri)}${marks}</div>
+        <div class="scen">${esc(c.scenario)}${flag}<span class="why">${esc(c.expected)}</span></div>
+        <div class="ctl">${STATUSES.map((s) =>
+          `<button class="st ${s} ${own && own.s === s ? "on" : ""}" data-id="${esc(c.id)}" data-s="${s}" title="${who ? esc(who) + ": " + s : "pick your name first"}"${who ? "" : " disabled"}>${LABEL[s]}</button>`).join("")}</div>
+        <div class="note">${others}<textarea data-note="${esc(c.id)}" rows="1" placeholder="${who ? esc(who) + "'s notes — saves as you go…" : "pick your name above to add notes"}"${who ? "" : " disabled"}>${esc(own ? own.n || "" : "")}</textarea></div>
+      </div>`;
+    }).join("")).join("");
+
+    mount.innerHTML = head + (rows.length
+      ? `<main>${body}</main>`
+      : `<main><p class="empty">No cases match — ${scope === "all" ? "this filter" : esc(scope) + " has not recorded anything"} on the ${esc(activeTab)} tab.</p></main>`);
+
+    mount.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => {
+      activeTab = b.dataset.tab; saveView(); render();
+    }));
+    mount.querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => {
+      filter = b.dataset.f; saveView(); render();
+    }));
+    mount.querySelectorAll(".scope-btn").forEach((b) => b.addEventListener("click", () => {
+      scope = b.dataset.scope; saveView(); render();
+    }));
+    mount.querySelectorAll(".who-btn").forEach((b) => b.addEventListener("click", () => {
+      who = who === b.dataset.who ? "" : b.dataset.who;
+      try { localStorage.setItem("qa-who", who); } catch (e) {}
+      clearOutbox();
+      render();
+    }));
+    mount.querySelectorAll(".st").forEach((b) => b.addEventListener("click", () => {
+      if (!who) return;
+      const id = b.dataset.id;
+      const cur = entryFor(id, who) || { s: "", n: "" };
+      const next = cur.s === b.dataset.s ? "" : b.dataset.s;
+      if (!next && !(cur.n || "").trim()) setMine(id, null);
+      else setMine(id, { s: next, n: cur.n || "", at: new Date().toISOString() });
+      queueSave(); render();
+    }));
+    mount.querySelectorAll("[data-note]").forEach((i) => {
+      growEl(i);
+      i.addEventListener("input", () => {
+        if (!who) return;
+        growEl(i);
+        const id = i.dataset.note;
+        const cur = entryFor(id, who) || { s: "" };
+        if (!i.value.trim() && !cur.s) setMine(id, null);
+        else setMine(id, { s: cur.s || "", n: i.value, at: new Date().toISOString() });
+        queueSave(2500);
+      });
+    });
+  }
+
+  function growEl(t) {
+    t.style.height = "auto";
+    const h = t.scrollHeight;
+    t.style.height = (h > 0 ? Math.min(Math.max(h, 34), 180) : 34) + "px";
+  }
+  function growAll() { mount.querySelectorAll("[data-note]").forEach(growEl); }
+
+  function saveView() {
+    try {
+      sessionStorage.setItem("qa-view", JSON.stringify({
+        tab: activeTab, filter, scope, scroll: window.scrollY,
+      }));
+    } catch (e) {}
+  }
+
+  let scrollTimer = null;
+  addEventListener("scroll", () => {
+    clearTimeout(scrollTimer); scrollTimer = setTimeout(saveView, 200);
+  }, { passive: true });
+  let growTimer = null;
+  addEventListener("resize", () => { clearTimeout(growTimer); growTimer = setTimeout(growAll, 120); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) growAll(); });
+
+  // ── Save ────────────────────────────────────────────────────────────
+  function queueSave(delay) {
+    dirty = true;
+    saveView();
+    savebar.className = "savebar saving";
+    savebar.textContent = "saving…";
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(save, delay || 900);
+  }
+
+  async function save() {
+    if (!who || !dirty || saving) return;
+    const sent = { ...outbox };
+    if (!Object.keys(sent).length) { dirty = false; return; }
+    saving = true;
+    dirty = false;
+    try {
+      const response = await fetch("/api/state", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ person: who, entries: sent }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      // Throws on the password-protection HTML page, which is what turns an
+      // expired session into an honest "not saved" instead of silent loss.
+      await response.json();
+      // Clear only what was actually sent AND has not changed since — anything
+      // typed during the request stays pending for the next save.
+      for (const [caseId, entry] of Object.entries(sent)) {
+        const current = entryFor(caseId, who);
+        const settled = current ? sameEntry(entry, current) : !entry.s && !entry.n.trim();
+        if (settled && sameEntry(outbox[caseId], entry)) delete outbox[caseId];
+      }
+      saveOutbox();
+      savebar.className = "savebar saved";
+      savebar.textContent = "saved ✓";
+    } catch (e) {
+      // The work is already in sessionStorage; keep retrying rather than
+      // telling the tester it saved when it did not.
+      dirty = true;
+      savebar.className = "savebar ro";
+      savebar.textContent = "not saved — kept locally, retrying";
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(save, 5000);
+    } finally {
+      saving = false;
+    }
+  }
+
+  // ── Poll ────────────────────────────────────────────────────────────
+  // Adopt other testers' entries only. This browser stays authoritative for
+  // its own person, so a poll can never roll back what you just typed.
+  async function poll() {
+    // Never merge over unsent work, and never re-render between a keystroke
+    // and the save it belongs to.
+    if (dirty || saving) return;
+    try {
+      const response = await fetch("/api/state", { cache: "no-store" });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (Array.isArray(data.team) && data.team.length) TEAM = data.team;
+      let changed = false;
+      const remote = data.entries || {};
+      for (const caseId of new Set(Object.keys(remote).concat(Object.keys(entries)))) {
+        const remoteRow = remote[caseId] || {};
+        const localRow = entries[caseId] || {};
+        for (const person of TEAM) {
+          if (person === who) continue;
+          const before = JSON.stringify(localRow[person] || null);
+          const after = JSON.stringify(remoteRow[person] || null);
+          if (before === after) continue;
+          entries[caseId] = entries[caseId] || {};
+          if (remoteRow[person]) entries[caseId][person] = remoteRow[person];
+          else delete entries[caseId][person];
+          changed = true;
+        }
+      }
+      if (changed) {
+        const active = document.activeElement;
+        const focusedNote = active && active.dataset ? active.dataset.note : null;
+        const caret = focusedNote ? active.selectionStart : null;
+        render();
+        // A partner's update must never steal the cursor mid-sentence.
+        if (focusedNote) {
+          const el = mount.querySelector('[data-note="' + focusedNote + '"]');
+          if (el) {
+            el.focus({ preventScroll: true });
+            const p = Math.min(caret == null ? el.value.length : caret, el.value.length);
+            el.setSelectionRange(p, p);
+          }
+        }
+      }
+      if (!dirty && !saving) {
+        savebar.className = "savebar saved";
+        savebar.textContent = "live — two testers at once";
+      }
+    } catch (e) {
+      // A dropped poll is not worth alarming anyone about; the next one retries.
+    }
+  }
+
+  // ── Boot ────────────────────────────────────────────────────────────
+  (async () => {
+    try {
+      const [catalogResponse, stateResponse] = await Promise.all([
+        fetch("catalog.json"),
+        fetch("/api/state"),
+      ]);
+      if (!catalogResponse.ok) throw new Error(`catalog HTTP ${catalogResponse.status}`);
+      const catalog = await catalogResponse.json();
+      CASES = catalog.cases || [];
+      TABS = catalog.tabs || [...new Set(CASES.map((c) => c.tab))];
+
+      if (stateResponse.ok) {
+        const data = await stateResponse.json();
+        entries = data.entries || {};
+        if (Array.isArray(data.team) && data.team.length) TEAM = data.team;
+      } else {
+        savebar.className = "savebar ro";
+        savebar.textContent = "state unavailable — entries will not save";
+      }
+      if (!TEAM.length) TEAM = ["Afo", "Nansel", "Gui"];
+      if (!TEAM.includes(who)) who = "";
+
+      activeTab = TABS.includes(view.tab) ? view.tab : TABS[0];
+      filter = ["all", "issues", "open"].includes(view.filter) ? view.filter : "all";
+      scope = ["all"].concat(TEAM).includes(view.scope) ? view.scope : "all";
+
+      // Unsent work from a previous page life wins over the server copy.
+      if (who && Object.keys(outbox).length) {
+        for (const [caseId, entry] of Object.entries(outbox)) {
+          entries[caseId] = entries[caseId] || {};
+          if (!entry.s && !entry.n.trim()) delete entries[caseId][who];
+          else entries[caseId][who] = entry;
+        }
+        queueSave(400);
+      }
+
+      render();
+      try { if (view.scroll) window.scrollTo(0, view.scroll); } catch (e) {}
+      try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(growAll); } catch (e) {}
+
+      if (stateResponse.ok && !dirty) {
+        savebar.className = "savebar saved";
+        savebar.textContent = "live — two testers at once";
+      }
+      pollTimer = setInterval(poll, POLL_MS);
+    } catch (e) {
+      mount.innerHTML = `<main><p class="empty">Could not load the checklist: ${esc(e.message)}. Reload to retry.</p></main>`;
+      savebar.className = "savebar ro";
+      savebar.textContent = "failed to load";
+    }
+  })();
+})();
+</script>
+</body>
+</html>
