@@ -242,7 +242,6 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
           "bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))]",
           "shadow-[var(--admin-chrome-shadow)]",
           "m3-state-layer [--state-layer-color:var(--tone-on-action,var(--primary-action-foreground))]",
-          "active:scale-95 motion-reduce:active:scale-100",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2"
         )}
       >

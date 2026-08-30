@@ -5,6 +5,7 @@ import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAs
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
+import { AdminCheckbox } from "@/components/AdminCheckbox";
 import { LabeledField, resolveDomainLabel, Section } from "./shared";
 
 /**
@@ -178,26 +179,35 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {domainActions.map((action) => {
                 const isChecked = selectedUIDs.includes(action.id);
+                const checkboxId = `harvest-action-${action.id}`;
                 return (
-                  <label
+                  <div
                     key={action.id}
-                    aria-label={action.title}
                     className={cn(
-                      "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 text-sm transition",
+                      "flex items-start gap-2 rounded-lg border px-3 py-2.5 text-sm transition",
                       isChecked
                         ? "border-primary-base bg-primary-alpha-10 text-primary-dark"
                         : "border-stroke-soft bg-bg-white text-text-sub hover:border-primary-alpha-24 hover:bg-primary-alpha-10",
-                      isSubmitting && "cursor-not-allowed opacity-60"
+                      isSubmitting && "opacity-60"
                     )}
                   >
-                    <input
-                      type="checkbox"
+                    {/* Canonical M3 control (18px box, 40px target); negative
+                        margins absorb the target padding so the compact row
+                        keeps its height. */}
+                    <AdminCheckbox
+                      id={checkboxId}
                       checked={isChecked}
                       onChange={() => handleToggleAction(action.id)}
                       disabled={isSubmitting}
-                      className="mt-0.5 h-4 w-4 rounded border-stroke-sub accent-primary-base focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="-my-2 -ml-2.5"
                     />
-                    <div className="min-w-0 flex-1">
+                    <label
+                      htmlFor={checkboxId}
+                      className={cn(
+                        "min-w-0 flex-1 pt-0.5",
+                        isSubmitting ? "cursor-not-allowed" : "cursor-pointer"
+                      )}
+                    >
                       <span className="block truncate font-medium" title={action.title}>
                         {action.title}
                       </span>
@@ -206,8 +216,8 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
                           {action.slug}
                         </span>
                       )}
-                    </div>
-                  </label>
+                    </label>
+                  </div>
                 );
               })}
             </div>

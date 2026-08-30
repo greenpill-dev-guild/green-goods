@@ -2,8 +2,8 @@ import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitm
 import { Controller, type UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
-import { AdminTextField } from "@/components/AdminTextField";
-import { SELECT_CLASS, type SeedCycleOption, type SeedFieldError } from "./seedStepModel";
+import { AdminSelect, AdminTextArea, AdminTextField } from "@/components/AdminTextField";
+import { type SeedCycleOption, type SeedFieldError } from "./seedStepModel";
 
 export interface SeedStepWhatProps {
   form: UseFormReturn<CommitmentComposerValues>;
@@ -111,27 +111,20 @@ export function SeedStepWhat({
           />
         )}
       />
-      <div className="space-y-1.5">
-        <label htmlFor={`${noteId}-cycle`} className="label-md block text-text-strong">
-          {formatMessage({ id: "cockpit.garden.pool.seed.cycle", defaultMessage: "Cycle" })}
-        </label>
-        <select
-          id={`${noteId}-cycle`}
-          className={SELECT_CLASS}
-          value={values.cycleId}
-          onChange={(event) => form.setValue("cycleId", event.target.value, { shouldDirty: true })}
-          disabled={busy}
-        >
-          {cycleOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        {errorOf("cycleId") ? (
-          <p className="text-xs text-[rgb(var(--m3-error))]">{errorOf("cycleId")}</p>
-        ) : null}
-      </div>
+      <AdminSelect
+        id={`${noteId}-cycle`}
+        label={formatMessage({ id: "cockpit.garden.pool.seed.cycle", defaultMessage: "Cycle" })}
+        value={values.cycleId}
+        onChange={(event) => form.setValue("cycleId", event.target.value, { shouldDirty: true })}
+        disabled={busy}
+        error={errorOf("cycleId")}
+      >
+        {cycleOptions.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </AdminSelect>
       <AdminTextField
         label={formatMessage({
           id: "cockpit.garden.pool.seed.titleField",
@@ -148,20 +141,15 @@ export function SeedStepWhat({
         disabled={busy}
         required
       />
-      <div className="space-y-1.5">
-        <label htmlFor={noteId} className="label-md block text-text-strong">
-          {formatMessage({ id: "cockpit.garden.pool.seed.note", defaultMessage: "Note" })}
-        </label>
-        <textarea
-          id={noteId}
-          value={values.note ?? ""}
-          onChange={(event) => form.setValue("note", event.target.value, { shouldDirty: true })}
-          rows={3}
-          maxLength={2000}
-          disabled={busy}
-          className={`${SELECT_CLASS} resize-y`}
-        />
-      </div>
+      <AdminTextArea
+        id={noteId}
+        label={formatMessage({ id: "cockpit.garden.pool.seed.note", defaultMessage: "Note" })}
+        value={values.note ?? ""}
+        onChange={(event) => form.setValue("note", event.target.value, { shouldDirty: true })}
+        rows={3}
+        disabled={busy}
+        textareaProps={{ maxLength: 2000 }}
+      />
     </div>
   );
 }

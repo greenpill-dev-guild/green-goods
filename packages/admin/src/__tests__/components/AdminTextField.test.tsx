@@ -2,8 +2,8 @@
  * @vitest-environment jsdom
  */
 
-import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
-import { describe, expect, it } from "vitest";
+import { AdminSelect, AdminTextArea, AdminTextField } from "@/components/AdminTextField";
+import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "../test-utils";
 
 describe("AdminTextField", () => {
@@ -51,5 +51,58 @@ describe("AdminTextArea", () => {
     expect(screen.getByText("Reason")).toHaveClass("top-1/2");
     fireEvent.focus(control);
     expect(screen.getByText("Reason")).not.toHaveClass("top-1/2");
+  });
+});
+
+describe("AdminSelect", () => {
+  it("renders a native select with the shared field anatomy and a permanently floated label", () => {
+    const onChange = vi.fn();
+    render(
+      <AdminSelect label="Cycle" value="" onChange={onChange}>
+        <option value="">Choose a cycle</option>
+        <option value="c1">Season One</option>
+      </AdminSelect>
+    );
+
+    const control = screen.getByRole("combobox", { name: "Cycle" });
+    expect(control.tagName).toBe("SELECT");
+    // A native select always displays its selected option's text, so the
+    // label can never rest in the centered position without overlapping it.
+    expect(screen.getByText("Cycle")).toHaveClass("top-2");
+    expect(screen.getByText("Cycle")).not.toHaveClass("top-1/2");
+
+    fireEvent.change(control, { target: { value: "c1" } });
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("carries the error role, disabled state, selectProps, and a select ref", () => {
+    let captured: HTMLSelectElement | null = null;
+    render(
+      <AdminSelect
+        ref={(node) => {
+          captured = node;
+        }}
+        label="Action"
+        value="a1"
+        onChange={() => {}}
+        error="Pick an action"
+        selectProps={{ "data-component": "SeedRequirementAction" }}
+      >
+        <option value="a1">Turn soil</option>
+      </AdminSelect>
+    );
+
+    const control = screen.getByRole("combobox", { name: /Action/ });
+    expect(captured).toBe(control);
+    expect(control).toHaveAttribute("aria-invalid", "true");
+    expect(control).toHaveAttribute("data-component", "SeedRequirementAction");
+    expect(screen.getByRole("alert")).toHaveTextContent("Pick an action");
+
+    render(
+      <AdminSelect label="Disabled" value="" onChange={() => {}} disabled>
+        <option value="">None</option>
+      </AdminSelect>
+    );
+    expect(screen.getByRole("combobox", { name: "Disabled" })).toBeDisabled();
   });
 });

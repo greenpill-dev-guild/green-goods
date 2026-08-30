@@ -1,3 +1,4 @@
+import { RiArrowDownSLine } from "@remixicon/react";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as React from "react";
 import { type ComponentType, useCallback, useId, useRef, useState } from "react";
@@ -6,7 +7,7 @@ import { type ComponentType, useCallback, useId, useRef, useState } from "react"
 // Types
 // ============================================================================
 
-type AdminTextFieldControl = HTMLInputElement | HTMLTextAreaElement;
+type AdminTextFieldControl = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 
 interface AdminTextFieldCommonProps {
   label: string;
@@ -42,10 +43,21 @@ export interface AdminTextAreaProps extends AdminTextFieldCommonProps {
   };
 }
 
-// Internal shape the base renders from. The two public wrappers narrow the
+export interface AdminSelectProps extends AdminTextFieldCommonProps {
+  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLSelectElement>) => void;
+  /** The `<option>` elements. An empty-value option acts as the placeholder row. */
+  children: React.ReactNode;
+  selectProps?: React.ComponentPropsWithoutRef<"select"> & {
+    [key: `data-${string}`]: string | undefined;
+  };
+}
+
+// Internal shape the base renders from. The public wrappers narrow the
 // handler/ref types back to their concrete control element.
 interface AdminTextFieldBaseProps extends AdminTextFieldCommonProps {
   multiline?: boolean;
+  select?: boolean;
   rows?: number;
   type?: string;
   onChange?: (e: React.ChangeEvent<AdminTextFieldControl>) => void;
@@ -84,6 +96,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
       trailingIcon: TrailingIcon,
       variant = "filled",
       multiline = false,
+      select = false,
       rows = 3,
       type = "text",
       name,
@@ -127,7 +140,11 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
     // Determine if the label should be in floating position
     const hasValue = value !== undefined ? value.length > 0 : uncontrolledHasValue;
 
-    const isFloating = focused || hasValue || Boolean(defaultValue);
+    // A native <select> always displays its selected option's text (the
+    // empty-value option acts as the placeholder row), so a resting centered
+    // label would overlap it — the select label floats permanently, matching
+    // the M3 exposed-dropdown treatment.
+    const isFloating = select || focused || hasValue || Boolean(defaultValue);
 
     const hasError = Boolean(error);
     const supportingText = error ?? helperText;
@@ -171,6 +188,9 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
       // Push the control below the floating label space
       "pb-2 pt-6",
       multiline && "resize-y",
+      // Selects drop the native chrome; the chevron renders in the trailing
+      // icon slot and clicks fall through it to the control.
+      select && "appearance-none cursor-pointer disabled:cursor-not-allowed",
       LeadingIcon && "pl-9",
       TrailingIcon && "pr-9"
     );
@@ -182,7 +202,9 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
       defaultValue,
       disabled,
       required,
-      placeholder,
+      // `placeholder` is not a select attribute — the empty-value option row
+      // plays that role there.
+      placeholder: select ? undefined : placeholder,
       "aria-required": required,
       // Merged, not clobbered: a caller may mark the field against a
       // group-level error (AllocationEditor's sum) through controlProps,
@@ -201,7 +223,9 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
       className: controlClasses,
     };
 
-    const control = multiline ? (
+    const control = select ? (
+      <select {...controlProps} {...sharedControlProps} ref={mergeRef} />
+    ) : multiline ? (
       <textarea {...controlProps} {...sharedControlProps} ref={mergeRef} rows={rows} />
     ) : (
       <input {...controlProps} {...sharedControlProps} ref={mergeRef} type={type} />
@@ -210,7 +234,9 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
     const iconClasses = (position: "left" | "right") =>
       cn(
         position === "left" ? "absolute left-3 bottom-4" : "absolute right-3 bottom-4",
-        "h-6 w-6 shrink-0",
+        // Decorative only — clicks fall through (a select's chevron must not
+        // swallow the tap that opens it).
+        "pointer-events-none h-6 w-6 shrink-0",
         hasError ? "text-[rgb(var(--m3-error))]" : "text-[rgb(var(--m3-on-surface-variant))]",
         disabled && "text-[rgb(var(--m3-on-surface)/0.38)]"
       );
@@ -238,7 +264,9 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
         )}
       >
         {label}
-        {required ? " *" : null}
+        {/* Visual-only marker: aria-required already announces the state, and
+            hiding it keeps the accessible name equal to the label text. */}
+        {required ? <span aria-hidden="true">{" *"}</span> : null}
       </label>
     );
 
@@ -263,7 +291,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
     if (variant === "filled") {
       return (
         <div
-          data-component="AdminTextField"
+          data-component={select ? "AdminSelect" : "AdminTextField"}
           data-variant="filled"
           className={cn("flex flex-col", className)}
         >
@@ -340,7 +368,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
 
     return (
       <div
-        data-component="AdminTextField"
+        data-component={select ? "AdminSelect" : "AdminTextField"}
         data-variant="outlined"
         className={cn("flex flex-col pt-2", className)}
       >
@@ -444,3 +472,27 @@ export const AdminTextArea = React.forwardRef<HTMLTextAreaElement, AdminTextArea
 );
 
 AdminTextArea.displayName = "AdminTextArea";
+
+/**
+ * AdminSelect — the M3 form select. Same anatomy, indicator/ring, and
+ * supporting-text behavior as {@link AdminTextField}, wrapping a native
+ * `<select>`: the label floats permanently (a select always shows its
+ * selected option's text), the trailing slot carries a chevron by default,
+ * and an empty-value `<option>` plays the placeholder role. Added 2026-08-29
+ * so form flows stop hand-rolling `SELECT_CLASS` selects (the toolbar
+ * `AdminSortSelect` stays a separate, toolbar-only control).
+ */
+export const AdminSelect = React.forwardRef<HTMLSelectElement, AdminSelectProps>(
+  ({ selectProps, children, trailingIcon, ...props }, ref) => (
+    <AdminTextFieldBase
+      {...(props as AdminTextFieldBaseProps)}
+      select
+      trailingIcon={trailingIcon ?? RiArrowDownSLine}
+      controlProps={{ ...selectProps, children } as Record<string, unknown>}
+      // Safe narrowing: with select set the base always renders a <select>.
+      ref={ref as React.Ref<AdminTextFieldControl>}
+    />
+  )
+);
+
+AdminSelect.displayName = "AdminSelect";

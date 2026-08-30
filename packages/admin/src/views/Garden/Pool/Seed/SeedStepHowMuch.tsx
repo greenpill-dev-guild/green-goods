@@ -5,8 +5,8 @@ import { Controller, type UseFieldArrayReturn, type UseFormReturn } from "react-
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
-import { AdminTextField } from "@/components/AdminTextField";
-import { actionUIDOf, SELECT_CLASS, type SeedFieldError } from "./seedStepModel";
+import { AdminSelect, AdminTextField } from "@/components/AdminTextField";
+import { actionUIDOf, type SeedFieldError } from "./seedStepModel";
 
 export interface SeedStepHowMuchProps {
   form: UseFormReturn<CommitmentComposerValues>;
@@ -151,44 +151,37 @@ export function SeedStepHowMuch({
           </p>
           {requirements.fields.map((row, index) => (
             <div key={row.id} className="flex items-end gap-2">
-              <div className="min-w-0 flex-1 space-y-1.5">
-                <label
-                  htmlFor={`${noteId}-req-${index}`}
-                  className="label-md block text-text-strong"
-                >
+              <AdminSelect
+                id={`${noteId}-req-${index}`}
+                className="min-w-0 flex-1"
+                label={formatMessage({
+                  id: "cockpit.garden.pool.seed.requirementAction",
+                  defaultMessage: "Action",
+                })}
+                value={values.requirements[index]?.actionUID ?? ""}
+                onChange={(event) =>
+                  form.setValue(`requirements.${index}.actionUID`, event.target.value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+                disabled={busy}
+              >
+                <option value="">
                   {formatMessage({
-                    id: "cockpit.garden.pool.seed.requirementAction",
-                    defaultMessage: "Action",
+                    id: "cockpit.garden.pool.seed.requirementChoose",
+                    defaultMessage: "Choose an action",
                   })}
-                </label>
-                <select
-                  id={`${noteId}-req-${index}`}
-                  className={SELECT_CLASS}
-                  value={values.requirements[index]?.actionUID ?? ""}
-                  onChange={(event) =>
-                    form.setValue(`requirements.${index}.actionUID`, event.target.value, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    })
-                  }
-                  disabled={busy}
-                >
-                  <option value="">
-                    {formatMessage({
-                      id: "cockpit.garden.pool.seed.requirementChoose",
-                      defaultMessage: "Choose an action",
-                    })}
-                  </option>
-                  {actions.map((action) => {
-                    const uid = actionUIDOf(action.id, chainId);
-                    return uid === null ? null : (
-                      <option key={action.id} value={uid}>
-                        {action.title}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
+                </option>
+                {actions.map((action) => {
+                  const uid = actionUIDOf(action.id, chainId);
+                  return uid === null ? null : (
+                    <option key={action.id} value={uid}>
+                      {action.title}
+                    </option>
+                  );
+                })}
+              </AdminSelect>
               <AdminTextField
                 label={formatMessage({
                   id: "cockpit.garden.pool.seed.requirementCount",

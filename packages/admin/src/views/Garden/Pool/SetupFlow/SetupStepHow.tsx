@@ -1,5 +1,5 @@
 import { useIntl } from "react-intl";
-import { AdminTextField } from "@/components/AdminTextField";
+import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 
 export interface SetupStepHowProps {
   purposeId: string;
@@ -22,32 +22,24 @@ export function SetupStepHow({
   const { formatMessage } = useIntl();
   return (
     <div className="space-y-4">
-      <div className="space-y-1.5">
-        <label htmlFor={purposeId} className="label-md block text-text-strong">
-          {formatMessage({
-            id: "cockpit.garden.pool.settings.purpose",
-            defaultMessage: "What this pool is for",
-          })}
-          <span aria-hidden="true" className="ml-0.5 text-[rgb(var(--m3-error))]">
-            *
-          </span>
-        </label>
-        <textarea
-          id={purposeId}
-          value={purpose}
-          onChange={(event) => onPurposeChange(event.target.value)}
-          rows={4}
-          maxLength={2000}
-          required
-          disabled={disabled}
-          placeholder={formatMessage({
-            id: "cockpit.garden.pool.setup.purposePlaceholder",
-            defaultMessage:
-              "Neighbours offer help and ask for it: rides, tools, workshops, garden work. Commitments are kept in the open and confirmed by the person they were made to.",
-          })}
-          className="w-full resize-y rounded-[var(--m3-shape-sm)] bg-[rgb(var(--m3-surface-container-highest))] px-3 py-2 text-body-md text-[rgb(var(--m3-on-surface))] ring-1 ring-inset ring-[rgb(var(--m3-outline-variant))] placeholder:text-[rgb(var(--m3-on-surface-variant))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] disabled:opacity-[0.38]"
-        />
-      </div>
+      <AdminTextArea
+        id={purposeId}
+        label={formatMessage({
+          id: "cockpit.garden.pool.settings.purpose",
+          defaultMessage: "What this pool is for",
+        })}
+        value={purpose}
+        onChange={(event) => onPurposeChange(event.target.value)}
+        rows={4}
+        required
+        disabled={disabled}
+        placeholder={formatMessage({
+          id: "cockpit.garden.pool.setup.purposePlaceholder",
+          defaultMessage:
+            "Neighbours offer help and ask for it: rides, tools, workshops, garden work. Commitments are kept in the open and confirmed by the person they were made to.",
+        })}
+        textareaProps={{ maxLength: 2000 }}
+      />
       <AdminTextField
         label={formatMessage({
           id: "cockpit.garden.pool.settings.cap",
