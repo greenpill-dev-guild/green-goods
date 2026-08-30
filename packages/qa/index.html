@@ -73,6 +73,16 @@
     padding:5px 9px; margin-bottom:4px; }
   .onote b { color:var(--soft); font-weight:600; margin-right:6px; }
   .filters { display:flex; gap:6px; margin-top:8px; align-items:center; }
+  .signin { position:fixed; inset:0; z-index:50; display:grid; place-items:center;
+    background:var(--paper); padding:24px; }
+  .signin-card { max-width:400px; text-align:center; }
+  .signin-card h2 { margin:0 0 10px; font-size:20px; }
+  .signin-card p { color:var(--soft); margin:0 0 18px; font-size:14px; line-height:1.55; }
+  #signin-btn { border:1px solid var(--green); background:var(--green); color:#fff;
+    border-radius:8px; padding:11px 20px; font:inherit; font-weight:600; cursor:pointer; }
+  #signin-btn:disabled { opacity:.6; cursor:progress; }
+  .signin-err { color:var(--red); margin-top:14px !important; font-size:13px; }
+  .who-btn[disabled] { opacity:1; cursor:default; }
   .filt, .scope-btn, .who-btn { border:1px solid var(--line); background:var(--surface);
     color:var(--soft); border-radius:999px; padding:2px 10px; font-size:11.5px;
     font-weight:600; cursor:pointer; }
@@ -99,6 +109,14 @@
 <body>
 <div id="mount"><main><p class="empty">Loading the checklist…</p></main></div>
 <div class="savebar" id="savebar">connecting…</div>
+<div class="signin" id="signin" hidden>
+  <div class="signin-card">
+    <h2>Green Goods QA</h2>
+    <p id="signin-why">Sign in with the wallet on the QA allowlist. Your address is your identity here — nobody can record entries as you.</p>
+    <button type="button" id="signin-btn">Sign in with Ethereum</button>
+    <p class="signin-err" id="signin-err" hidden></p>
+  </div>
+</div>
 <script>
 (() => {
   "use strict";
@@ -142,7 +160,8 @@
 
   let view = {};
   try { view = JSON.parse(sessionStorage.getItem("qa-view") || "{}") || {}; } catch (e) {}
-  try { who = localStorage.getItem("qa-who") || ""; } catch (e) {}
+  // `who` is whoever the signed session says you are. It used to be a local
+  // preference, which is precisely what let anyone record as anyone.
 
   function esc(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
@@ -197,7 +216,11 @@
     return null;
   }
 
-  let outbox = storedOutboxFor(who) || {};
+  // Loaded once `who` is known. Identity now arrives from the server, so there
+  // is nobody to key the outbox by until the first state read comes back —
+  // reading it here would silently start every session with an empty one and
+  // strand whatever the last session failed to send.
+  let outbox = {};
   if (who) {
     // Re-home an adopted queue under this tester's key BEFORE dropping the old
     // copies, so a page that dies mid-adoption still has it somewhere.
@@ -214,6 +237,27 @@
         localStorage.removeItem(outboxKey(person));
       }
     } catch (e) {}
+  }
+
+  /**
+   * Drop a legacy queue once its contents are in memory.
+   *
+   * `storedOutboxFor` falls back to the pre-per-tester keys so nothing is
+   * stranded there. But the fallback is a READ, and a drained queue that still
+   * exists in the legacy slot is found again on the next lookup — so a migrated
+   * queue would resurrect forever, re-sending work the server already has.
+   * Retiring it here is the second half of the migration.
+   */
+  function retireLegacyOutbox(person) {
+    if (!person) return;
+    for (const store of [localStorage, sessionStorage]) {
+      try {
+        const stored = JSON.parse(store.getItem(LEGACY_OUTBOX_KEY) || "null");
+        // Only ever retire this tester's own queue — another tester's unsent
+        // work may be sitting in the same slot on a shared browser.
+        if (stored && stored.person === person) store.removeItem(LEGACY_OUTBOX_KEY);
+      } catch (e) {}
+    }
   }
 
   /**
@@ -389,7 +433,7 @@
       }).join("")}</div>
       <div class="filters">${[["all", "All"], ["issues", "Issues"], ["open", "Undecided"]].map(([k, l]) =>
         `<button class="filt ${filter === k ? "on" : ""}" data-f="${k}" aria-pressed="${filter === k ? "true" : "false"}">${l}</button>`).join("")}<span class="who-group" role="group" aria-label="who is testing"><span class="grouplabel">testing as</span>${TEAM.map((n) =>
-        `<button class="who-btn ${who === n ? "on" : ""}" data-who="${esc(n)}" aria-pressed="${who === n ? "true" : "false"}" title="records entries as ${esc(n)}">${esc(n)}</button>`).join("")}</span></div>
+        `<button class="who-btn ${who === n ? "on" : ""}" disabled aria-pressed="${who === n ? "true" : "false"}" title="${who === n ? "your signed-in identity" : "sign in as " + esc(n) + " to record as them"}">${esc(n)}</button>`).join("")}</span></div>
       <div class="filters scoperow" role="group" aria-label="whose entries to show"><span class="grouplabel">showing</span>${
         [["all", "Everyone"]].concat(TEAM.map((n) => [n, n])).map(([k, l]) =>
           `<button class="scope-btn ${scope === k ? "on" : ""}" data-scope="${esc(k)}" aria-pressed="${scope === k ? "true" : "false"}">${esc(l)}<small>${scopeCount(activeTab, k)}</small></button>`).join("")
@@ -436,9 +480,6 @@
     }));
     mount.querySelectorAll(".scope-btn").forEach((b) => b.addEventListener("click", () => {
       scope = b.dataset.scope; saveView(); render();
-    }));
-    mount.querySelectorAll(".who-btn").forEach((b) => b.addEventListener("click", () => {
-      switchWho(who === b.dataset.who ? "" : b.dataset.who);
     }));
     mount.querySelectorAll(".st").forEach((b) => b.addEventListener("click", () => {
       if (!who) return;
@@ -487,32 +528,66 @@
   document.addEventListener("visibilitychange", () => { if (!document.hidden) growAll(); });
 
   /**
-   * Change who this browser records as.
+   * Sign in with the wallet.
    *
-   * The outbox belongs to whoever filled it, so the switch waits for it to
-   * drain before `who` moves. Clearing it instead would throw away notes the
-   * tester had already typed, and switching first would file them under the
-   * wrong name. If the save will not go through, the switch simply does not
-   * happen and the tester is told why — their notes outrank the switch.
+   * No wallet library: this page has no bundler, and `personal_sign` through
+   * the injected provider is all that is needed. The message is fetched from
+   * the server rather than composed here, so the exact text the wallet signs is
+   * the exact text the server verifies.
    */
-  async function switchWho(next) {
-    const previous = who;
-    if (previous && Object.keys(outbox).length) {
-      await save(previous);
-      if (Object.keys(outbox).length) {
-        savebar.className = "savebar ro";
-        savebar.textContent = "still saving " + previous + "'s notes — not switching yet";
-        return;
-      }
+  async function signIn() {
+    const button = document.getElementById("signin-btn");
+    const problem = document.getElementById("signin-err");
+    const fail = (text) => {
+      problem.textContent = text;
+      problem.hidden = false;
+      button.disabled = false;
+      button.textContent = "Sign in with Ethereum";
+    };
+    problem.hidden = true;
+    button.disabled = true;
+    button.textContent = "check your wallet…";
+
+    if (!window.ethereum) {
+      return fail("No Ethereum wallet found in this browser. Open the QA app in a profile with your wallet extension.");
     }
-    clearOutbox(previous);
-    who = next;
-    try { localStorage.setItem("qa-who", who); } catch (e) {}
-    // This tester may have work of their own left unsent by an earlier session
-    // or another tab. Switching to them picks it back up rather than ignoring it.
-    outbox = storedOutboxFor(who) || {};
-    adoptRecoveredOutbox();
-    render();
+    try {
+      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      const address = accounts && accounts[0];
+      if (!address) return fail("No account was shared by the wallet.");
+
+      const prep = await fetch("/api/auth?address=" + encodeURIComponent(address), { cache: "no-store" });
+      const challenge = await prep.json();
+      if (!prep.ok || !challenge.message) {
+        return fail(challenge.error || "Could not start sign-in. Try again in a moment.");
+      }
+
+      const signature = await window.ethereum.request({
+        method: "personal_sign",
+        params: [challenge.message, address],
+      });
+
+      const response = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: challenge.message, signature }),
+      });
+      const result = await response.json();
+      if (!response.ok) return fail(result.error || "Sign-in was rejected.");
+      // Reload rather than patching state in place: the session decides what
+      // this page may read, so the cleanest next step is a fresh load with it.
+      location.reload();
+    } catch (error) {
+      // Code 4001 is the wallet's own "user rejected" — not an error to dress up.
+      if (error && error.code === 4001) return fail("Sign-in cancelled in the wallet.");
+      fail((error && error.message) || "Sign-in failed.");
+    }
+  }
+
+  function showSignIn(reason) {
+    const panel = document.getElementById("signin");
+    if (reason) document.getElementById("signin-why").textContent = reason;
+    panel.hidden = false;
   }
 
   // ── Save ────────────────────────────────────────────────────────────
@@ -527,7 +602,7 @@
 
   /**
    * One request at a time. A caller that arrives mid-flight gets the promise
-   * already running rather than a silent no-op, so `switchWho` can wait for a
+   * already running rather than a silent no-op, so callers can wait for a
    * real result instead of assuming the outbox drained.
    */
   function save(owner) {
@@ -549,6 +624,13 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ person: person, entries: sent }),
       });
+      if (response.status === 401 || response.status === 403) {
+        // The session lapsed mid-walk. The outbox is still on disk, so signing
+        // back in resumes exactly where this left off — but retrying against a
+        // closed door forever would just look like an app that stopped saving.
+        showSignIn("Your QA session expired. Sign in again — the notes you have typed are still here.");
+        throw new Error(`HTTP ${response.status}`);
+      }
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       // Throws on the password-protection HTML page, which is what turns an
       // expired session into an honest "not saved" instead of silent loss.
@@ -686,6 +768,8 @@
     }
   }
 
+  document.getElementById("signin-btn").addEventListener("click", signIn);
+
   // ── Boot ────────────────────────────────────────────────────────────
   (async () => {
     try {
@@ -702,12 +786,25 @@
         const data = await stateResponse.json();
         entries = data.entries || {};
         if (Array.isArray(data.team) && data.team.length) TEAM = data.team;
+        // The server names you from your signed session. The page never guesses.
+        who = typeof data.you === "string" ? data.you : "";
+      } else if (stateResponse.status === 401) {
+        showSignIn();
+        return;
+      } else if (stateResponse.status === 403) {
+        showSignIn("That wallet is not on the QA allowlist. Ask Afo to add your address, then sign in again.");
+        return;
       } else {
         savebar.className = "savebar ro";
         savebar.textContent = "state unavailable — entries will not save";
       }
       if (!TEAM.length) TEAM = ["Afo", "Nansel", "Gui"];
-      if (!TEAM.includes(who)) who = "";
+      // Now that the session has named this tester, pick up anything a previous
+      // page life left unsent for them.
+      outbox = storedOutboxFor(who) || {};
+      // The contents are in memory now; retire the legacy copy so a drained
+      // queue is not rediscovered on the next lookup.
+      retireLegacyOutbox(who);
 
       activeTab = TABS.includes(view.tab) ? view.tab : TABS[0];
       filter = ["all", "issues", "open"].includes(view.filter) ? view.filter : "all";

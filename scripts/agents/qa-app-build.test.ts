@@ -67,10 +67,13 @@ describe("QA app page", () => {
     // works when deployed and 404s locally — the worst kind of drift, because
     // the local run is what we use to rehearse.
     const served = readFileSync(path.join(appDir, "dev.mjs"), "utf8");
-    const fetched = [...page.matchAll(/fetch\("([^"]+)"/g)].map((m) => m[1]);
+    const fetched = [...page.matchAll(/fetch\("([^"]+)"/g)]
+      .map((m) => m[1])
+      // The sign-in call builds its query string, so match the route not the literal.
+      .map((target) => target.split("?")[0]);
     expect(fetched.length).toBeGreaterThan(0);
     for (const target of fetched) {
-      if (target === "/api/state") continue;
+      if (target === "/api/state" || target === "/api/auth") continue;
       expect(served).toContain(`"/${target.replace(/^\//, "")}"`);
     }
   });
@@ -85,6 +88,27 @@ describe("QA app page", () => {
     const names = (raw: string | undefined) =>
       (raw ?? "").split(",").map((part) => part.trim().replace(/^["']|["']$/g, ""));
     expect(names(pageTeam?.[1])).toEqual(names(apiTeam?.[1]));
+  });
+});
+
+describe("QA app deployment contract", () => {
+  it("exports named HTTP methods and no default", async () => {
+    // Vercel reads a DEFAULT export as the Node `(req, res) => void` signature
+    // and ignores its return value, so a default export returning a `Response`
+    // writes nothing and the request hangs until the platform kills it at 300s.
+    // That shipped once and read as a 504 with no error in the logs.
+    const module = await import("../../packages/qa/api/state");
+    expect(typeof (module as Record<string, unknown>).GET).toBe("function");
+    expect(typeof (module as Record<string, unknown>).POST).toBe("function");
+    expect((module as Record<string, unknown>).default).toBeUndefined();
+  });
+
+  it("routes both methods through one handler", async () => {
+    const module = await import("../../packages/qa/api/state");
+    const response = await module.GET(new Request("https://qa.test/api/state", { method: "DELETE" }));
+    // The shared handler owns method dispatch, so an unsupported verb is a 405
+    // rather than two divergent implementations.
+    expect(response.status).toBe(405);
   });
 });
 

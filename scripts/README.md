@@ -88,6 +88,15 @@ scripts/
 | `ontology-render.mjs` | `check-ontology.mjs` | Pure MDX renderers for the generated ontology reference page and entity matrix |
 | `check-ontology.test.mjs` | `node --test scripts/quality/check-ontology.test.mjs`, `ontology.yml` | Fixture tests for ontology extractors, baseline reconciliation, and renderers |
 
+### `docs/` — deterministic documentation projections
+| Script | Caller | Purpose |
+|---|---|---|
+| `generate.mjs` | `bun run docs:generate` / `check:docs-generated`, Docs CI | Generate or drift-check all committed builder projections, optionally scoped to package, integration, ontology, workflow, or QA inputs |
+| `generator-core.mjs` | `generate.mjs`, `check-ontology.mjs` | Stable text normalization, source hashing, generated frontmatter, output synchronization, and orphan detection |
+| `source-readers.mjs` | `generate.mjs` | Static allowlisted readers for manifests, routes, deployments, indexer configuration, and workflows; never imports application modules or reads environment files |
+| `renderers.mjs` | `generate.mjs` | Pure MDX renderers for package, integration, ontology, workflow, and QA builder projections |
+| `generate.test.mjs` | Docs CI | Fixture proof for deterministic hashing, parsing failures, safe fields, and stale/missing/extra output detection |
+
 ### `design/` — design system enforcement
 | Script | Caller | Purpose |
 |---|---|---|
@@ -95,7 +104,7 @@ scripts/
 | `check-guidance-examples.mjs` | `bun run check:design-tokens`, Design CI | Code-fence-aware guard against hardcoded motion, color, radius, and shadow values in design implementation examples |
 | `check-guidance-examples.test.mjs` | `bun run test:review-guardrails`, Design CI | Fixture tests for design-example token allowances and hardcoded-value failures |
 | `check-vocab.sh` | `bun run lint:vocab` | Banned-vocabulary scan over i18n strings |
-| `md-generate.mjs` | `bun run design:generate` / `check:design-generated` | Regenerate `design-md.generated.css` from DesignMD |
+| `md-generate.mjs` | `bun run design:generate` / `check:design-generated` | Regenerate committed DesignMD JSON/CSS projections and write the detailed client PWA token audit to the ignored `output/design/` CI-artifact path |
 | `check-css-custom-properties.mjs` | `check-tokens.sh` | Undefined `var(--*)` guard with audited baseline support |
 | `check-css-custom-properties.test.mjs` | `bun run test:review-guardrails` | Fixture tests for undefined custom-property guard behavior |
 
@@ -137,10 +146,13 @@ scripts/
 | `qa-state.test.ts` | `bun run test:agent-tools` (root package.json) | Two testers on one case both survive the merge, verdict rollup ordering, and CSV quoting for dictated notes full of commas and quotes |
 | `qa-state-pull.ts` | `bun run qa:pull` (root package.json) / `qa-session` skill close-out | Pulls a QA app session (packages/qa) from its private Blob store into `tmp/qa-session/<slug>/` as `results.csv` + `qa-state.json`. Reads the store directly, so it works while the app is password-protected. Refuses to land on an existing session unless `--force`, since severity and redactions live only in the pulled files, and fails on a malformed shard rather than dropping that tester from a complete-looking sheet. Results stay in gitignored `tmp/` |
 | `qa-state-pull.test.ts` | `bun run test:agent-tools` (root package.json) | Proves custom pull destinations cannot escape the repo's gitignored `tmp/` privacy boundary, that a rerun names what it would replace rather than overwriting a worked-on session, and that a malformed or misattributed shard fails the pull |
+| `qa-status.ts` | `bun run qa:status` (root package.json) | Reads the QA app's live private store and prints privacy-safe per-surface coverage, never-walked and stale Test IDs, and failing or blocked cases. Accepts an agent-produced Test ID → open Linear issue-key map without adding a Linear credential; never prints notes or tester names |
+| `qa-status.test.ts` | `bun run test:agent-tools` (root package.json) | Proves per-surface rollups, entry-timestamp recency, agent-fed issue linkage, and the output boundary that excludes notes and tester names |
 | `qa-app-parity.test.ts` | `bun run test:agent-tools` (root package.json) | Guards the one duplication the QA app accepts: the merge rules in the deployed function (`packages/qa/api/state.ts`) and the local server (`packages/qa/dev.mjs`) must agree, or a local two-tester run proves something the deployment would not do. Also proves the local server answers 503 on an unreadable request rather than dying on an unhandled rejection |
 | `qa-app-store.test.ts` | `bun run test:agent-tools` (root package.json) | Runs two first writers against a deterministic Blob fake and proves create-only retry merges both deltas |
 | `qa-app-client.test.ts` | `bun run test:agent-tools` (root package.json) | Executes the shipped inline page in Node-hosted JSDOM and proves field-level saves survive a stale in-flight poll, that a note left unsent when the tab closes is recovered and sent by the next page session, and that a verdict already stored is not resent alongside a later note |
 | `qa-app-build.test.ts` | `bun run test:agent-tools` (root package.json) | Guards the QA app's bundler-less page: proves the inline script parses, that its note cap and roster fallback match the API, that every path it fetches is one the local server serves, and that the build ships only active catalog cases |
+| `qa-app-auth.test.ts` | `bun run test:agent-tools` (root package.json) | Exercises the QA app's Sign-In With Ethereum end to end with a throwaway keypair: allowlist binding, nonce issue/expiry/forgery, domain binding, address spoofing, replay, and session forgery/expiry. The browser's `personal_sign` call is the only part not covered |
 
 ### `harness/` — skill and planning helpers
 | Script | Caller | Purpose |
@@ -174,7 +186,7 @@ scripts/
 ## Companion locations
 
 - `.claude/scripts/` — Claude harness scripts (skill frontmatter check, codex lane dispatch, agent gates)
-- `docs/scripts/` — Docusaurus generators (`docs-audit.mjs`, `generate-protocol-status.mjs`)
+- `docs/scripts/` — Docusaurus-specific audit tooling (`docs-audit.mjs`); builder projection generators live in `scripts/docs/`
 - `packages/*/scripts/` — package-local scripts (e.g. `packages/indexer/scripts/`)
 - `packages/contracts/script/` — Foundry scripts and their Bun CLIs. Commitment Pooling deploys in four ordered steps, each step's output being the next step's input: `deploy/commitment-schemas.ts` + `DeployCommitmentSchemas.s.sol` **preparation** (CREATE2-deploys the testimony resolver via `lib/TestimonyResolverDeployment.sol`, registers assessment v3, and PINS the community testimony UID while the resolver stays inert), `deploy/release.ts` + `DeployPooling.s.sol` (module + register, deployed paused), `deploy/pooling-configure.ts` + `ConfigurePooling.s.sol` (three resolver calls; without the work-approval bridge the module is inert), and the same `commitment-schemas` target with `--finalize-community-testimony` (**finalization**: registers the exact record, then activates the resolver against the artifact-recorded module as the last action). The ordering is enforced by `lib/CommitmentSchemaRecovery.sol`, a pure classifier over the five recovery states — preparation accepts two, finalization exactly the three ordered ones, everything else fails closed. Shared logic: `utils/pooling-release.ts` (deterministic schema UIDs, grouped upgrade keys, configuration planning, live `owner()` preflight), `lib/PoolingConfiguration.sol` (the re-runnable configure sequence, driven by both the deploy script and the fork rehearsal), and `lib/NetworkSelectors.sol` (the single CCIP selector parser). The release rehearsal is `test/fork/ArbitrumCommitmentPooling.t.sol` on an Arbitrum One fork, not a testnet; callers are the root `contracts:pooling:*` scripts. The settlement lane's transport check is `test/fork/CrossChainSettlementLane.t.sol` via `contracts:settlement:verify-lane` — read-only proof that the Arbitrum One ↔ Celo Mainnet CCIP lane is live, priced, and matches `deployments/networks.json`; no broadcast, no funds
 

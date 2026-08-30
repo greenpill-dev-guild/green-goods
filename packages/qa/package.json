@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Two-writer QA recording surface — deployed checklist backed by a private Blob store",
+  "description": "Two-writer QA recording surface \u2014 deployed checklist backed by a private Blob store",
   "scripts": {
     "build": "node build.mjs"
   },
   "dependencies": {
-    "@vercel/blob": "^2.3.0"
+    "@vercel/blob": "^2.3.0",
+    "viem": "^2.55.0"
   }
 }
