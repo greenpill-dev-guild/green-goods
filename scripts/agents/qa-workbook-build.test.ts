@@ -137,6 +137,14 @@ describe("howToCheck", () => {
     const cell = howToCheck(makeCase({ role: "none", preconditions: [], evidence: "" }));
     expect(cell).toBe("1. Open /hub\n2. Inspect shell");
   });
+
+  it("keeps multi-word roles verbatim instead of appending 'account'", () => {
+    const cell = howToCheck(
+      makeCase({ role: "wallet with funds", preconditions: [], evidence: "" }),
+    );
+    expect(cell).toContain("Needs: wallet with funds");
+    expect(cell).not.toContain("account");
+  });
 });
 
 describe("projectRow", () => {
@@ -156,6 +164,13 @@ describe("projectRow", () => {
   it("pre-fills the notes column for requiresProduction cases", () => {
     const row = projectRow(makeCase({ requiresProduction: true }));
     expect(row[7]).toContain("Can't run on localhost");
+  });
+
+  it("prefers a case-specific production reason over the generic note", () => {
+    const row = projectRow(
+      makeCase({ requiresProduction: true, requiresProductionReason: "Needs the public URL" }),
+    );
+    expect(row[7]).toBe("Needs the public URL");
   });
 
   it("pre-marks requiresProduction cases Blocked only in local runs", () => {

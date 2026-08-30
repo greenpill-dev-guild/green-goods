@@ -2,7 +2,7 @@
 name: qa-session
 user-invocable: true
 description: Live product-experience QA copilot — the user walks Green Goods flows locally against production data (dev:prod) while dictating observations, or supplies a recorded dictation transcript of such a walk. Captures each observation with a stable OBS ID, triages fix-now vs defer in real time, applies safe fixes in the same running checkout for immediate revalidation, hands deferred items to qa-triage, and locks design decisions at close. Fires on "QA session", "QA walk/walkthrough", "I'll walk the flows and call out issues", "fix live while I test", or a dictated-walk transcript. Not for triaging meeting notes (qa-triage), a single reported bug (debug), or reviewing a diff (review).
-argument-hint: "[<transcript-path>] [--surface admin|pwa|ios|android|website|docs|all] [--cases <IDs|area>]"
+argument-hint: "[<transcript-path>] [--surface admin|pwa|website|docs|all] [--cases <IDs|area>]"
 ---
 
 # QA Session Skill
@@ -35,7 +35,7 @@ duplicate them:
 |---------|--------|
 | `/qa-session` | Live copilot mode: run pre-flight, then capture dictated observations as they arrive |
 | `/qa-session <transcript-path>` | Batch mode: ingest a recorded dictation transcript of a completed walk |
-| `/qa-session --surface admin` | Scope the session (and the printed walk checklist) to one surface; aliases `admin\|pwa\|ios\|android\|website\|docs\|all` |
+| `/qa-session --surface admin` | Scope the session (and the printed walk checklist) to one surface; aliases `admin\|pwa\|website\|docs\|all` (catalog v2 merged the installed-PWA tabs; scope device rows with `--cases PWA-IOS-…`/`PWA-AND-…` instead) |
 | `/qa-session --cases ADM-012,ADM-013` | Scope to specific catalog Test IDs or an `Area` name |
 | Prose: "starting a QA session", "I'll walk the app and dictate", "fix these live while I test" | Same as `/qa-session` |
 

@@ -91,6 +91,8 @@ export interface CatalogCase {
   role: string;
   tags?: string[];
   requiresProduction?: boolean;
+  /** Case-specific reason shown when a --local sheet pre-blocks this row. */
+  requiresProductionReason?: string;
   requiresDevice?: boolean;
   status: "active" | "retired";
   source: string;
@@ -105,10 +107,15 @@ export interface Catalog {
 /** "How to check": needs line, numbered steps, capture line — one readable cell. */
 export function howToCheck(testCase: CatalogCase): string {
   const lines: string[] = [];
-  const needs = [
-    testCase.role !== "none" && testCase.role !== "any" ? `${testCase.role} account` : "",
-    ...testCase.preconditions,
-  ].filter(Boolean);
+  // Single-word roles are account types ("steward" -> "steward account");
+  // multi-word roles ("wallet with funds") already read as full requirements.
+  const roleNeed =
+    testCase.role === "none" || testCase.role === "any"
+      ? ""
+      : testCase.role.includes(" ")
+        ? testCase.role
+        : `${testCase.role} account`;
+  const needs = [roleNeed, ...testCase.preconditions].filter(Boolean);
   if (needs.length > 0) lines.push(`Needs: ${needs.join("; ")}`);
   testCase.steps.forEach((step, index) => lines.push(`${index + 1}. ${step}`));
   if (testCase.evidence.trim()) lines.push(`Capture: ${testCase.evidence}`);
@@ -127,7 +134,7 @@ export function projectRow(testCase: CatalogCase, options: { localRun?: boolean 
     options.localRun && (testCase.requiresProduction || testCase.requiresDevice),
   );
   const note = testCase.requiresProduction
-    ? REQUIRES_PRODUCTION_NOTE
+    ? (testCase.requiresProductionReason ?? REQUIRES_PRODUCTION_NOTE)
     : testCase.requiresDevice
       ? REQUIRES_DEVICE_NOTE
       : "";

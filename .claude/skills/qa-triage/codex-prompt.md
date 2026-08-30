@@ -115,7 +115,7 @@ For every item, include the verbatim quote from the notes that grounds the extra
 
 ## Test ID matching
 
-If a note explicitly references a Test ID from the QA workbook or repo catalog (pattern: `PUB-NNN`, `PWA-IOS-NNN`, `PWA-AND-NNN`, `ADM-NNN`, `XPLAT-NNN`, `PWA-ROLE-NNN`, `DOCS-NNN`), include it in the `linked_test_id` field. Otherwise leave that field empty.
+If a note explicitly references a Test ID from the QA workbook or repo catalog (pattern: `PUB-NNN`, `PWA-NNN`, `PWA-IOS-NNN`, `PWA-AND-NNN`, `PWA-ROLE-NNN`, `ADM-NNN`, `XPLAT-NNN`, `DOCS-NNN`), include it in the `linked_test_id` field. Otherwise leave that field empty.
 
 ## Output
 
