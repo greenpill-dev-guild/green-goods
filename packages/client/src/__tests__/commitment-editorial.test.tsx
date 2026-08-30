@@ -144,6 +144,15 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   usePublicCommitmentImpact: (...args: unknown[]) => mockUsePublicCommitmentImpact(...args),
 }));
 
+vi.mock("@green-goods/shared/commitment-pooling/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling/public")>()),
+  usePublicGardenPool: (...args: unknown[]) => mockUsePublicGardenPool(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicCommitmentImpact", () => ({
+  usePublicCommitmentImpact: (...args: unknown[]) => mockUsePublicCommitmentImpact(...args),
+}));
+
 import { EVIDENCE_KIND_LABELS } from "../components/Public/evidenceKinds";
 import { PublicCommitmentsBand } from "../components/Public/PublicCommitmentsBand";
 import { PublicEvidencePipeline } from "../components/Public/PublicEvidencePipeline";

@@ -7,7 +7,17 @@
  * @module hooks/app/useServiceWorkerUpdate
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  createElement,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { logger } from "../../modules/app/logger";
 import { track } from "../../modules/app/posthog";
 import { useTimeout } from "../utils/useTimeout";
@@ -16,9 +26,9 @@ export type ServiceWorkerUpdatePhase =
   | "idle"
   | "checking"
   | "downloading"
-  | "ready"
-  | "applying"
-  | "stalled";
+  | "waiting"
+  | "activating"
+  | "error";
 
 export interface ServiceWorkerUpdateState {
   /** Current user-facing update phase */
@@ -29,10 +39,14 @@ export interface ServiceWorkerUpdateState {
   isUpdating: boolean;
   /** Whether applyUpdate timed out waiting for the new worker to activate */
   updateStalled: boolean;
+  /** Long-lived clients wait before surfacing the restart action. */
+  shouldPrompt: boolean;
   /** Check for an update and return true when a waiting worker is ready */
   checkForUpdate: () => Promise<boolean>;
   /** Apply the update (reloads the page) */
   applyUpdate: () => void;
+  /** Activate the waiting worker and reload exactly once. */
+  activateNow: () => void;
   /** Dismiss the update notification (user can update later) */
   dismissUpdate: () => void;
   /** The waiting service worker registration, if any */
@@ -48,6 +62,7 @@ const WAITING_WORKER_TIMEOUT_MS = 10_000;
  * an indefinite "Updating…" state (PRD-500).
  */
 export const APPLY_UPDATE_TIMEOUT_MS = 60_000;
+export const LONG_SESSION_UPDATE_PROMPT_MS = 30 * 60 * 1000;
 
 /**
  * Minimum gap between automatic update checks triggered by `focus` /
@@ -102,16 +117,18 @@ function getServiceWorkerVersion(worker: ServiceWorker | null | undefined) {
  * }
  * ```
  */
-export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
+function useServiceWorkerUpdateController(): ServiceWorkerUpdateState {
   const [phase, setPhase] = useState<ServiceWorkerUpdatePhase>("idle");
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateStalled, setUpdateStalled] = useState(false);
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  const [shouldPrompt, setShouldPrompt] = useState(false);
 
   // Managed timeout for the apply path; cleared on activation and on unmount.
   const { set: scheduleApplyTimeout, clear: clearApplyTimeout } = useTimeout();
+  const { set: scheduleWaitingPrompt, clear: clearWaitingPrompt } = useTimeout();
 
   // Track registration for cleanup
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
@@ -120,6 +137,7 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
   const checkStartedAtRef = useRef<number | null>(null);
   const downloadStartedAtRef = useRef<number | null>(null);
   const applyStartedAtRef = useRef<number | null>(null);
+  const reloadGuardRef = useRef(false);
   // Timestamp of the last auto-check (focus/visibility-triggered). Used to
   // throttle network update checks; manual checks bypass this.
   const lastAutoCheckRef = useRef(0);
@@ -158,11 +176,14 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
       setUpdateAvailable(true);
       setUpdateStalled(false);
       setIsUpdating(false);
-      setPhase("ready");
+      setPhase("waiting");
+      setShouldPrompt(false);
+      clearWaitingPrompt();
+      scheduleWaitingPrompt(() => setShouldPrompt(true), LONG_SESSION_UPDATE_PROMPT_MS);
 
       const telemetry = buildTelemetry({
         source,
-        phase: "ready",
+        phase: "waiting",
         check_duration_ms: durationSince(checkStartedAtRef.current),
         install_duration_ms: durationSince(downloadStartedAtRef.current),
       });
@@ -171,7 +192,7 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
       checkStartedAtRef.current = null;
       downloadStartedAtRef.current = null;
     },
-    [buildTelemetry]
+    [buildTelemetry, clearWaitingPrompt, scheduleWaitingPrompt]
   );
 
   // Handler for when a new SW is found installing
@@ -216,7 +237,7 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
 
     const setup = async () => {
       try {
-        const registration = await navigator.serviceWorker.getRegistration();
+        const registration = await navigator.serviceWorker.getRegistration("/home/");
         if (!registration || !isMounted) return;
 
         registrationRef.current = registration;
@@ -248,7 +269,7 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
               buildTelemetry({
                 source: force ? "initial_check" : "auto_check",
                 phase: registration.waiting
-                  ? "ready"
+                  ? "waiting"
                   : registration.installing
                     ? "downloading"
                     : "idle",
@@ -327,10 +348,12 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
   const handleControllerChange = useCallback(() => {
     clearApplyTimeout();
     controllerChangeListenerRef.current = false;
+    if (reloadGuardRef.current) return;
+    reloadGuardRef.current = true;
     track(
       "sw_update_apply_completed",
       buildTelemetry({
-        phase: "applying",
+        phase: "activating",
         duration_ms: durationSince(applyStartedAtRef.current),
       })
     );
@@ -415,7 +438,7 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
 
     try {
       const registration =
-        registrationRef.current ?? (await navigator.serviceWorker.getRegistration());
+        registrationRef.current ?? (await navigator.serviceWorker.getRegistration("/home/"));
 
       if (!registration) {
         setPhase("idle");
@@ -493,10 +516,10 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
     waitingWorkerRef.current = worker;
     setUpdateStalled(false);
     setIsUpdating(true);
-    setPhase("applying");
+    setPhase("activating");
     applyStartedAtRef.current = now();
     const telemetry = buildTelemetry({
-      phase: "applying",
+      phase: "activating",
     });
     track("sw_update_applied", telemetry);
     track("sw_update_apply_started", telemetry);
@@ -521,7 +544,7 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
       }
       setIsUpdating(false);
       setUpdateStalled(true);
-      setPhase("stalled");
+      setPhase("error");
       logger.warn("Service worker update did not activate before timeout", {
         source: "useServiceWorkerUpdate.applyUpdate",
         timeoutMs: APPLY_UPDATE_TIMEOUT_MS,
@@ -529,7 +552,7 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
       track(
         "sw_update_apply_timeout",
         buildTelemetry({
-          phase: "stalled",
+          phase: "error",
           duration_ms: durationSince(applyStartedAtRef.current),
           timeout_ms: APPLY_UPDATE_TIMEOUT_MS,
         })
@@ -547,18 +570,21 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
   useEffect(() => {
     return () => {
       clearApplyTimeout();
+      clearWaitingPrompt();
       if (controllerChangeListenerRef.current) {
         navigator.serviceWorker?.removeEventListener("controllerchange", handleControllerChange);
         controllerChangeListenerRef.current = false;
       }
     };
-  }, [handleControllerChange, clearApplyTimeout]);
+  }, [handleControllerChange, clearApplyTimeout, clearWaitingPrompt]);
 
   const dismissUpdate = useCallback(() => {
     setDismissed(true);
     setUpdateAvailable(false);
     setUpdateStalled(false);
     setIsUpdating(false);
+    setShouldPrompt(false);
+    clearWaitingPrompt();
     setPhase("idle");
     track(
       "sw_update_dismissed",
@@ -566,16 +592,33 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
         phase: "idle",
       })
     );
-  }, [buildTelemetry]);
+  }, [buildTelemetry, clearWaitingPrompt]);
 
   return {
     phase,
     updateAvailable: updateAvailable && !dismissed,
     isUpdating,
     updateStalled,
+    shouldPrompt: shouldPrompt && !dismissed,
     checkForUpdate,
     applyUpdate,
+    activateNow: applyUpdate,
     dismissUpdate,
     waitingWorker,
   };
+}
+
+const ServiceWorkerUpdateContext = createContext<ServiceWorkerUpdateState | null>(null);
+
+export function ServiceWorkerUpdateProvider({ children }: { children: ReactNode }) {
+  const value = useServiceWorkerUpdateController();
+  return createElement(ServiceWorkerUpdateContext.Provider, { value }, children);
+}
+
+export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
+  const value = useContext(ServiceWorkerUpdateContext);
+  if (!value) {
+    throw new Error("useServiceWorkerUpdate must be used within ServiceWorkerUpdateProvider");
+  }
+  return value;
 }

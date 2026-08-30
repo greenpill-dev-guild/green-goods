@@ -9,7 +9,7 @@
  *
  */
 
-import { type CaptureResult, posthog } from "posthog-js";
+import type { CaptureResult } from "posthog-js";
 
 import { logger } from "./logger";
 import { createAnonymousTelemetryIdentity } from "./telemetryIdentity";
@@ -140,13 +140,7 @@ export function getAppContext(): {
  * PostHogProvider initializes PostHog - we just check if it's ready.
  */
 function isPostHogReady(): boolean {
-  try {
-    // PostHog is ready if it has a config with an api_host
-    const config = (posthog as unknown as { config?: { api_host?: string } }).config;
-    return typeof config !== "undefined" && typeof config.api_host === "string";
-  } catch {
-    return false;
-  }
+  return telemetrySink.isReady?.() ?? false;
 }
 
 // ============================================================================
@@ -246,21 +240,21 @@ export interface TrackOptions {
 
 export interface TelemetrySink {
   capture(event: string, properties: Record<string, unknown>): void;
+  identify?(distinctId: string, properties?: Record<string, unknown>): void;
+  reset?(): void;
+  getDistinctId?(): string;
+  register?(properties: Record<string, unknown>): void;
+  isReady?(): boolean;
 }
 
-const posthogTelemetrySink: TelemetrySink = {
-  capture(event, properties) {
-    if (IS_DEV || !isPostHogReady()) {
-      if (IS_DEBUG && !IS_DEV) {
-        logger.warn("[PostHog] Not ready, skipping capture");
-      }
-      return;
-    }
-    posthog.capture(event, properties);
+const noOpTelemetrySink: TelemetrySink = {
+  capture() {
+    if (IS_DEBUG && !IS_DEV) logger.warn("[PostHog] Not ready, skipping capture");
   },
+  isReady: () => false,
 };
 
-let telemetrySink: TelemetrySink = posthogTelemetrySink;
+let telemetrySink: TelemetrySink = noOpTelemetrySink;
 
 /** Replace the event transport while preserving tracking policy and enrichment. */
 export function registerTelemetrySink(sink: TelemetrySink): () => void {
@@ -329,7 +323,7 @@ export function identify(distinctId: string) {
     logger.info(`[PostHog] identify: ${distinctId}`);
   }
   if (IS_DEV || !isPostHogReady()) return;
-  posthog.identify(distinctId);
+  telemetrySink.identify?.(distinctId);
 }
 
 /**
@@ -356,7 +350,7 @@ export function identifyWithProperties(
   }
   if (IS_DEV || !isPostHogReady()) return;
 
-  posthog.identify(distinctId, {
+  telemetrySink.identify?.(distinctId, {
     // Standard person properties
     auth_mode: properties.auth_mode,
     app: properties.app,
@@ -378,7 +372,7 @@ export function reset() {
     logger.info("[PostHog] reset");
   }
   if (IS_DEV || !isPostHogReady()) return;
-  posthog.reset();
+  telemetrySink.reset?.();
 }
 
 /**
@@ -391,7 +385,7 @@ export function getDistinctId(): string {
   if (!isPostHogReady()) {
     return "not-initialized";
   }
-  return posthog.get_distinct_id();
+  return telemetrySink.getDistinctId?.() ?? "not-initialized";
 }
 
 // ============================================================================
@@ -555,7 +549,7 @@ export function registerGlobalProperties(): boolean {
   const context = getAppContext();
 
   // Register super properties - these are included in all events
-  posthog.register({
+  telemetrySink.register?.({
     app_version: context.app_version,
     environment: context.environment,
     chain_id: context.chain_id,

@@ -3,6 +3,7 @@ import { WorkProvider } from "@green-goods/shared/providers/Work";
 import { useLayoutEffect } from "react";
 import { Outlet, ScrollRestoration, useLocation } from "react-router-dom";
 import { OfflineIndicator } from "@/components/Communication";
+import { PwaBadgeCoordinator } from "@/components/Communication/PwaBadgeCoordinator";
 import { AppBar } from "@/components/Layout";
 import { ENSClaimReminder } from "./ENSClaimReminder";
 
@@ -18,6 +19,7 @@ export default function AppShell() {
 
   return (
     <JobQueueProvider>
+      <PwaBadgeCoordinator />
       <WorkProvider>
         <ENSClaimReminder />
         {/* Main content area with view-transition-name for SPA transitions */}

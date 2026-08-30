@@ -148,6 +148,11 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   usePublicGardenPool: (...args: unknown[]) => mockUsePublicGardenPool(...args),
 }));
 
+vi.mock("@green-goods/shared/commitment-pooling/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling/public")>()),
+  usePublicGardenPool: (...args: unknown[]) => mockUsePublicGardenPool(...args),
+}));
+
 import GardenDetail from "../../views/Public/GardenDetail";
 
 const messages: Record<string, string> = {

@@ -18,7 +18,7 @@ import type {
   QueueStats,
   WorkJobPayload,
 } from "../types/job-queue";
-import { trackStorageQuota } from "../utils/storage/quota";
+import { requestPersistentStorageOnce, trackStorageQuota } from "../utils/storage/quota";
 
 interface JobQueueContextValue {
   stats: QueueStats;
@@ -231,6 +231,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
 
     const handleJobAdded = (event: QueueEvent) => {
       void refreshStats(abortController.signal);
+      void requestPersistentStorageOnce("offline-job");
 
       if (event.job?.kind === "work") {
         const workPayload = event.job.payload as WorkJobPayload;

@@ -17,6 +17,7 @@ import { useMerged } from "../app/useMerged";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { queueKeys } from "../../config/query-keys/misc";
 import { worksKeys } from "../../config/query-keys/work";
+export { usePendingWorksCount } from "./usePendingWorksCount";
 
 // Throttle approval-fetch warnings to avoid console spam (at most once per 10s)
 let _lastApprovalWarnAt = 0;
@@ -321,36 +322,6 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       onlineOnlyQuery.refetch();
     },
   };
-}
-
-/**
- * Hook for getting pending work count across all gardens with event-driven updates
- * Scoped to the current authenticated primary address
- */
-export function usePendingWorksCount() {
-  const queryClient = useQueryClient();
-  const primaryAddress = usePrimaryAddress();
-
-  const query = useQuery({
-    queryKey: queueKeys.pendingCount(),
-    queryFn: async () => {
-      // Only count jobs for the current user
-      if (!primaryAddress) return 0;
-      // Count only unsynced work jobs to align with Uploading tab
-      const jobs = await jobQueue.getJobs(primaryAddress, { kind: "work", synced: false });
-      return jobs.length;
-    },
-    enabled: !!primaryAddress,
-    staleTime: STALE_TIMES.queue,
-    gcTime: GC_TIMES.queue,
-  });
-
-  // Listen to events to update count
-  useJobQueueEvents(["job:added", "job:completed", "job:failed"], () => {
-    queryClient.invalidateQueries({ queryKey: queueKeys.pendingCount() });
-  });
-
-  return query;
 }
 
 /**

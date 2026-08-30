@@ -1,7 +1,7 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { SyncStatusBar } from "@green-goods/shared/components/SyncStatusBar";
 import { useApp } from "@green-goods/shared/providers/App";
-import { usePendingWorksCount } from "@green-goods/shared/hooks/work/useWorks";
+import { usePendingWorksCount } from "@green-goods/shared/hooks/work/usePendingWorksCount";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import {
   type RemixiconComponentType,

@@ -14,6 +14,7 @@ const originalServiceWorker = Object.getOwnPropertyDescriptor(navigator, "servic
 
 afterEach(() => {
   vi.restoreAllMocks();
+  localStorage.clear();
   if (originalServiceWorker) {
     Object.defineProperty(navigator, "serviceWorker", originalServiceWorker);
   } else {
@@ -29,7 +30,7 @@ describe("service worker registration config", () => {
       legacyScopes: ["/"],
     });
 
-    expect(config.scriptUrl).toBe("/sw.js?gg_v=release-123456");
+    expect(config.scriptUrl).toBe("/sw.js");
     expect(config.options).toEqual({ scope: "/home", updateViaCache: "none" });
     expect(config.legacyScopes).toEqual(["/"]);
   });
@@ -40,7 +41,7 @@ describe("service worker registration config", () => {
       scope: "./",
     });
 
-    expect(config.scriptUrl).toBe("./sw.js?gg_v=release-123456");
+    expect(config.scriptUrl).toBe("./sw.js");
     expect(config.options).toEqual({ scope: "./", updateViaCache: "none" });
   });
 
@@ -86,6 +87,73 @@ describe("service worker registration config", () => {
     expect(
       isLegacyServiceWorkerRegistration("https://www.greengoods.app/home", "/home", ["/"])
     ).toBe(false);
+  });
+
+  it("registers on public production pages even without Background Sync", async () => {
+    const registration = {
+      scope: "https://www.greengoods.app/home/",
+    } as unknown as ServiceWorkerRegistration;
+    const legacyRegistration = {
+      scope: "https://www.greengoods.app/",
+      unregister: vi.fn().mockResolvedValue(true),
+    } as unknown as ServiceWorkerRegistration;
+    const register = vi.fn().mockResolvedValue(registration);
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: {
+        register,
+        getRegistrations: vi.fn().mockResolvedValue([legacyRegistration]),
+        ready: Promise.resolve(registration),
+      },
+    });
+    vi.spyOn(serviceWorkerManager, "canRegister").mockReturnValue(true);
+    vi.spyOn(serviceWorkerManager, "attachRegistration").mockImplementation(() => undefined);
+    vi.spyOn(serviceWorkerManager, "isBackgroundSyncSupported").mockReturnValue(false);
+
+    await expect(
+      registerServiceWorkerFromEnv(
+        { DEV: false, PROD: true, VITE_APP_VERSION: "0.4.0" },
+        { scriptUrl: "/sw.js", scope: "/home/", legacyScopes: ["/"] }
+      )
+    ).resolves.toBe(true);
+
+    expect(legacyRegistration.unregister).toHaveBeenCalledTimes(1);
+    expect(register).toHaveBeenCalledWith("/sw.js", {
+      scope: "/home/",
+      updateViaCache: "none",
+    });
+  });
+
+  it("only performs the legacy root-scope cleanup once", async () => {
+    const legacyRegistration = {
+      scope: "https://www.greengoods.app/",
+      unregister: vi.fn().mockResolvedValue(true),
+    } as unknown as ServiceWorkerRegistration;
+    const currentRegistration = {
+      scope: "https://www.greengoods.app/home/",
+    } as unknown as ServiceWorkerRegistration;
+    const getRegistrations = vi.fn().mockResolvedValue([legacyRegistration]);
+    const register = vi.fn().mockResolvedValue(currentRegistration);
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: {
+        register,
+        getRegistrations,
+        ready: Promise.resolve(currentRegistration),
+      },
+    });
+    vi.spyOn(serviceWorkerManager, "canRegister").mockReturnValue(true);
+    vi.spyOn(serviceWorkerManager, "attachRegistration").mockImplementation(() => undefined);
+    vi.spyOn(serviceWorkerManager, "isBackgroundSyncSupported").mockReturnValue(false);
+
+    const env = { DEV: false, PROD: true, VITE_APP_VERSION: "0.4.0" };
+    const config = { scriptUrl: "/sw.js", scope: "/home/", legacyScopes: ["/"] };
+    await registerServiceWorkerFromEnv(env, config);
+    await registerServiceWorkerFromEnv(env, config);
+
+    expect(getRegistrations).toHaveBeenCalledTimes(1);
+    expect(legacyRegistration.unregister).toHaveBeenCalledTimes(1);
+    expect(register).toHaveBeenCalledTimes(2);
   });
 
   it("normalizes long invalid scopes without a backtracking regular expression", () => {

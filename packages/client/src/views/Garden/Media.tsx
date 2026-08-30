@@ -11,7 +11,6 @@ import {
 import { prepareWorkSubmission } from "@green-goods/shared/modules/work/submission-flow";
 import type { Action } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
 import {
   RiCloseLine,
   RiImageFill,
@@ -356,6 +355,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
 
       // --- Process images: compress ---
       setProcessingPhase("compressing");
+      const { imageCompressor } = await import("@green-goods/shared/utils/work/image-compression");
       const toCompress = imageFiles.filter((f) => imageCompressor.shouldCompress(f, 1024));
       const noCompress = imageFiles.filter((f) => !imageCompressor.shouldCompress(f, 1024));
 

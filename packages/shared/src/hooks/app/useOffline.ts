@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { jobQueueEventBus } from "../../modules/job-queue/event-bus";
 import { useQueueFlush } from "../../providers/JobQueue";
-import { usePendingWorksCount } from "../work/useWorks";
+import { usePendingWorksCount } from "../work/usePendingWorksCount";
 
 /** Reports offline status and queue metrics derived from TanStack Query subscriptions. */
 export function useOffline() {

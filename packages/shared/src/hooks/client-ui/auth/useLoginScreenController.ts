@@ -22,15 +22,16 @@ export function useLoginScreenController(routes: { login: string; home: string }
   const intl = useIntl();
   const location = useLocation();
   const auth = useAuth();
-  const { platform, isMobile, isInstalled, isInstalling, wasInstalled, deferredPrompt } = useApp();
-  const guidance = useInstallGuidance(
+  const { platform, isMobile, isInstalling, wasInstalled, installedAppEvidence, deferredPrompt } =
+    useApp();
+  const guidance = useInstallGuidance({
     platform,
-    isInstalled,
+    installedAppEvidence,
     wasInstalled,
     deferredPrompt,
     isMobile,
-    isInstalling
-  );
+    isInstalling,
+  });
   const [loadingState, setLoadingState] = useState<"welcome" | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string>();
   const [loginError, setLoginError] = useState<string | null>(null);

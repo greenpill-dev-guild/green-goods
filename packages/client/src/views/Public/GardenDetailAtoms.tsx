@@ -1,6 +1,5 @@
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
-import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 // `getRelativeTimeParts` is not on the root barrel — only the declared
 // `./utils` subpath exports it (shared rule 11: narrowest declared path).
 import { getRelativeTimeParts } from "@green-goods/shared/utils/relativeTime";
@@ -30,8 +29,7 @@ import {
  * primitive where it is not nested — the note dialog and the stewards row.
  */
 export function NoteAuthor({ address }: { address: Address }) {
-  const { data: ensName } = useEnsName(address);
-  return <span>{formatAddress(address, { ensName, variant: "card" })}</span>;
+  return <span>{formatAddress(address, { variant: "card" })}</span>;
 }
 
 /**

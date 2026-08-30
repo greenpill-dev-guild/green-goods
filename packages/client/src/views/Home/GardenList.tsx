@@ -2,7 +2,8 @@ import type { GardenFilterScope } from "@green-goods/shared/hooks/garden/useFilt
 import type { Garden } from "@green-goods/shared/types/domain";
 import { RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { GardenCard, GardenCardSkeleton } from "@/components/Cards";
+import { GardenCard } from "@/components/Cards/Garden/GardenCard";
+import { GardenCardSkeleton } from "@/components/Cards/Garden/GardenCardSkeleton";
 
 interface GardenListProps {
   gardens: Garden[];

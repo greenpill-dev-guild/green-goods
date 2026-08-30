@@ -189,15 +189,18 @@ export const SiteHeader = () => {
 
                 {/* Desktop: Install App | Mobile: hamburger */}
                 <div className="flex items-center gap-3">
-                  <button
-                    type="button"
+                  <a
+                    href={href}
                     onClick={onClick}
-                    disabled={disabled}
+                    aria-disabled={disabled || undefined}
                     data-install-action={dataInstallAction}
-                    className="hidden cursor-pointer rounded-full bg-primary-action px-4 py-2 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 md:inline-flex"
+                    className={cn(
+                      "hidden cursor-pointer rounded-full bg-primary-action px-4 py-2 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 md:inline-flex",
+                      disabled && "cursor-not-allowed opacity-70"
+                    )}
                   >
                     {label}
-                  </button>
+                  </a>
 
                   {/* Mobile hamburger */}
                   <button

@@ -13,7 +13,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
 import type { OctantVaultPosition } from "@green-goods/shared/hooks/vault/useOctantVaultPositions";
-import VaultsPage, { VaultsPageContent } from "../../views/Public/Vaults";
+import VaultsWalletSurface, { VaultsPageContent } from "../../views/Public/VaultsWalletSurface";
 
 // Hoisted so vi.mock factories and the hoisted mock state can reference them.
 const { CONNECTED, CARD, VAULT, ASSET } = vi.hoisted(() => ({
@@ -75,29 +75,20 @@ function makePosition(over: Partial<OctantVaultPosition> = {}): OctantVaultPosit
   };
 }
 
-vi.mock("@green-goods/shared/hooks/auth/useAuth", async (importOriginal) => {
-  return {
-    ...(await importOriginal()),
-    useAuth: () => ({ loginWithWallet: mocks.loginWithWallet }),
-  };
-});
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuth: () => ({ loginWithWallet: mocks.loginWithWallet }),
+}));
 
-vi.mock("@green-goods/shared/hooks/auth/useUser", async (importOriginal) => {
-  return {
-    ...(await importOriginal()),
-    useUser: () => ({ authMode: mocks.authMode, primaryAddress: mocks.primaryAddress }),
-  };
-});
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ authMode: mocks.authMode, primaryAddress: mocks.primaryAddress }),
+}));
 
-vi.mock("@green-goods/shared/hooks/auth/useWalletModalOpen", async (importOriginal) => {
-  return {
-    ...(await importOriginal()),
-    useWalletConnectDismissGuard: () => ({
-      markConnecting: () => {},
-      shouldBlockDismiss: () => false,
-    }),
-  };
-});
+vi.mock("@green-goods/shared/hooks/auth/useWalletModalOpen", () => ({
+  useWalletConnectDismissGuard: () => ({
+    markConnecting: () => {},
+    shouldBlockDismiss: () => false,
+  }),
+}));
 
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", async (importOriginal) => {
   return {
@@ -118,56 +109,44 @@ vi.mock("@green-goods/shared/hooks/vault/useOctantVaultPositions", async (import
   };
 });
 
-vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWithdraw", async (importOriginal) => {
-  return {
-    ...(await importOriginal()),
-    useOctantVaultRedeem: () => ({
-      mutateAsync: mocks.redeemMutateAsync,
-      mutate: vi.fn(),
-      reset: mocks.redeemReset,
-      isPending: false,
-      error: null,
-    }),
-  };
-});
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWithdraw", () => ({
+  useOctantVaultRedeem: () => ({
+    mutateAsync: mocks.redeemMutateAsync,
+    mutate: vi.fn(),
+    reset: mocks.redeemReset,
+    isPending: false,
+    error: null,
+  }),
+}));
 
-vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWalletEndow", async (importOriginal) => {
-  return {
-    ...(await importOriginal()),
-    useOctantVaultWalletEndow: () => ({
-      mutate: mocks.walletEndowMutate,
-      reset: mocks.walletEndowReset,
-      error: null,
-      isPending: false,
-    }),
-  };
-});
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWalletEndow", () => ({
+  useOctantVaultWalletEndow: () => ({
+    mutate: mocks.walletEndowMutate,
+    reset: mocks.walletEndowReset,
+    error: null,
+    isPending: false,
+  }),
+}));
 
-vi.mock("@green-goods/shared/hooks/vault/useWrapEthToWeth", async (importOriginal) => {
-  return {
-    ...(await importOriginal()),
-    useWrapEthToWeth: () => ({
-      mutate: mocks.wrapEthToWethMutate,
-      reset: mocks.wrapEthToWethReset,
-      error: null,
-      isPending: false,
-    }),
-  };
-});
+vi.mock("@green-goods/shared/hooks/vault/useWrapEthToWeth", () => ({
+  useWrapEthToWeth: () => ({
+    mutate: mocks.wrapEthToWethMutate,
+    reset: mocks.wrapEthToWethReset,
+    error: null,
+    isPending: false,
+  }),
+}));
 
-vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWalletBalances", async (importOriginal) => {
-  return {
-    ...(await importOriginal()),
-    useOctantVaultWalletBalances: () => ({
-      nativeBalance: null,
-      assetBalance: null,
-      isLoading: false,
-      isError: false,
-      isFetching: false,
-      refetch: mocks.walletBalancesRefetch,
-    }),
-  };
-});
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWalletBalances", () => ({
+  useOctantVaultWalletBalances: () => ({
+    nativeBalance: null,
+    assetBalance: null,
+    isLoading: false,
+    isError: false,
+    isFetching: false,
+    refetch: mocks.walletBalancesRefetch,
+  }),
+}));
 
 vi.mock("@green-goods/shared/hooks/blockchain/useEthUsdPrice", async (importOriginal) => {
   return {
@@ -280,7 +259,7 @@ function renderPage(path = "/vaults") {
       createElement(
         IntlProvider,
         { locale: "en", messages: intlMessages },
-        createElement(VaultsPage)
+        createElement(VaultsWalletSurface)
       )
     )
   );
@@ -307,7 +286,7 @@ function renderPageWithLocationProbe(path: string, onLocationChange: (location: 
         createElement(
           Fragment,
           null,
-          createElement(VaultsPage),
+          createElement(VaultsWalletSurface),
           createElement(LocationProbe, { onChange: onLocationChange })
         )
       )

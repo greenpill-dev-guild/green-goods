@@ -34,6 +34,7 @@ vi.mock("../../utils/storage/quota", () => ({
     isLow: false,
     isCritical: false,
   }),
+  retryOnceAfterQuotaCleanup: <T>(operation: () => Promise<T>) => operation(),
 }));
 
 import { draftDB } from "../../modules/job-queue/draft-db";

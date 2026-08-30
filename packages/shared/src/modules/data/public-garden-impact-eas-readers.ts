@@ -1,6 +1,6 @@
 import { getEASConfig } from "../../config/blockchain";
 import type { PublicGardenImpactSource } from "../../public-contracts/garden-impact";
-import { isZeroBytes32 } from "../../utils/blockchain/vaults";
+import { isZeroBytes32 } from "../../utils/blockchain/bytes";
 import type { GraphQLReader } from "./graphql-client";
 import { resolveIPFSUrl } from "./ipfs/resolve";
 import {

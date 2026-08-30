@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { registerGlobalProperties } from "../../modules/app/posthog";
 
 export interface AppLifecycleOptions {
   posthogEnabled: boolean;
@@ -37,15 +36,16 @@ export function useAppLifecycle(options: AppLifecycleOptions): void {
     let isMounted = true;
     let timeoutId: ReturnType<typeof setTimeout>;
     let attemptCount = 0;
-    const tryRegister = () => {
+    const tryRegister = async () => {
       if (!isMounted) return;
+      const { registerGlobalProperties } = await import("../../modules/app/posthog");
       const success = registerGlobalProperties();
       if (success || attemptCount >= 10) return;
       const delay = Math.min(100 * 2 ** attemptCount, 2_000);
       attemptCount += 1;
-      timeoutId = setTimeout(tryRegister, delay);
+      timeoutId = setTimeout(() => void tryRegister(), delay);
     };
-    timeoutId = setTimeout(tryRegister, 100);
+    timeoutId = setTimeout(() => void tryRegister(), 100);
     return () => {
       isMounted = false;
       clearTimeout(timeoutId);

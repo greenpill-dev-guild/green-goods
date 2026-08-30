@@ -132,6 +132,10 @@ vi.mock("@green-goods/shared/hooks/public/usePublicVaultSummary", () => ({
   usePublicVaultSummary: (...args: unknown[]) => mockUsePublicVaultSummary(...args),
 }));
 
+vi.mock("@green-goods/shared/hooks/public/usePublicVaultCatalogSummary", () => ({
+  usePublicVaultCatalogSummary: (...args: unknown[]) => mockUsePublicVaultSummary(...args),
+}));
+
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: mockPrimaryAddress.current }),
 }));
@@ -416,7 +420,7 @@ describe("FundPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Manage Endowments" }));
 
-    expect(screen.getByTestId("public-endowment-panel")).toBeInTheDocument();
+    expect(await screen.findByTestId("public-endowment-panel")).toBeInTheDocument();
   });
 
   it("keeps Garden selection cards in a max two-column equal-row grid", () => {

@@ -22,20 +22,21 @@ export const InstallCta: React.FC = () => {
     isInstalled,
     isInstalling,
     wasInstalled,
+    installedAppEvidence,
     deferredPrompt,
     promptInstall,
     platform,
   } = useApp();
   const intl = useIntl();
 
-  const guidance = useInstallGuidance(
+  const guidance = useInstallGuidance({
     platform,
-    isInstalled,
+    installedAppEvidence,
     wasInstalled,
     deferredPrompt,
     isMobile,
-    isInstalling
-  );
+    isInstalling,
+  });
 
   const installDescription = useMemo(() => {
     if (guidance.scenario === "installing") {

@@ -2,7 +2,7 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { ImageWithFallback } from "@/components/Display";
+import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
 import { EditorialKicker, EditorialMetaRow } from "./atoms";
 import { GardenCoverFallback } from "./GardenCoverFallback";
 

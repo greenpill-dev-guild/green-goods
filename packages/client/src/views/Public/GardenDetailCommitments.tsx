@@ -4,7 +4,7 @@ import {
   type PublicGardenPoolData,
   selectPublicPromiseKeptRate,
   usePublicGardenPool,
-} from "@green-goods/shared/commitment-pooling";
+} from "@green-goods/shared/commitment-pooling/public";
 import { useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { formatKeptRate } from "@/components/Public/keptRate";
