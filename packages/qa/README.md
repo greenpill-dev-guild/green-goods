@@ -34,7 +34,7 @@ Two details that look like bugs if you get them wrong, and are handled here:
 | `index.html` | The whole UI — static, inline CSS/JS, no bundler |
 | `api/state.ts` | The only function: `GET` merges shards, `POST` merges one tester's delta |
 | `build.mjs` | Copies the page and projects the active catalog into `dist/catalog.json` |
-| `dev.mjs` | Local server with the same `/api/state` contract, backed by `tmp/qa-app/` |
+| `dev.mjs` | Local server with the same `/api/state` contract, backed by `tmp/qa/` |
 
 Case **definitions** come from `scripts/data/qa-test-catalog.json` at build time, so a deployment is
 pinned to the catalog revision it shipped with and a case cannot change shape mid-session. Only
@@ -43,17 +43,17 @@ active cases ship; retired rows stay in the catalog as an audit trail.
 ## Run it locally
 
 ```bash
-node packages/qa-app/build.mjs && node packages/qa-app/dev.mjs
+node packages/qa/build.mjs && node packages/qa/dev.mjs
 ```
 
-Serves <http://127.0.0.1:4610> with state in gitignored `tmp/qa-app/`. This is also the fallback if
+Serves <http://127.0.0.1:4610> with state in gitignored `tmp/qa/`. This is also the fallback if
 the deployment is unavailable mid-session.
 
 ## Deploy (one-time setup)
 
 1. **Create a private Blob store** — Vercel → Storage → Create → Blob → access **Private**. Private
    is required: results are internal QA notes and must never be reachable by URL.
-2. **Create the project** — import this repo, set **Root Directory** to `packages/qa-app`, and
+2. **Create the project** — import this repo, set **Root Directory** to `packages/qa`, and
    connect the Blob store to it (that injects `BLOB_READ_WRITE_TOKEN` automatically — never set it
    by hand).
 3. **Turn on Password Protection** — Settings → Deployment Protection. It covers `/api/*` too, which
@@ -69,7 +69,7 @@ bun run qa:pull
 ```
 
 Reads the shards straight from the Blob store (needs `BLOB_READ_WRITE_TOKEN` in the root `.env`) and
-writes `tmp/qa-session/<slug>/results.csv` plus `qa-app-state.json`, the artifacts the `qa-session`
+writes `tmp/qa-session/<slug>/results.csv` plus `qa-state.json`, the artifacts the `qa-session`
 skill closes out with. It reads the store rather than the app, so it works while the app is
 password-protected and still works if the deployment is down. Results stay in gitignored `tmp/` —
 definitions live in git, results never do.

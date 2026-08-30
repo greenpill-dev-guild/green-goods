@@ -2,7 +2,7 @@
 /**
  * Pull a QA app session into the repo's session workspace.
  *
- * The QA app (packages/qa-app) is where Afo and Gui record during a walk; this
+ * The QA app (packages/qa) is where Afo and Gui record during a walk; this
  * brings that back as the artifacts `.claude/skills/qa-session/SKILL.md`
  * expects, so a session that ran in the browser closes out exactly like one
  * driven from the terminal.
@@ -88,7 +88,7 @@ async function main(): Promise<void> {
 
   mkdirSync(options.outDir, { recursive: true });
   const csvPath = path.join(options.outDir, "results.csv");
-  const statePath = path.join(options.outDir, "qa-app-state.json");
+  const statePath = path.join(options.outDir, "qa-state.json");
   writeFileSync(csvPath, toResultsCsv(active, merged));
   writeFileSync(
     statePath,

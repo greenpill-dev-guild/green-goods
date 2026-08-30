@@ -2,7 +2,7 @@
 /**
  * QA app session state — pure merge and projection helpers.
  *
- * The QA app (packages/qa-app) stores one JSON shard per tester, so two people
+ * The QA app (packages/qa) stores one JSON shard per tester, so two people
  * can record the same case at the same moment without either overwriting the
  * other. This module turns those shards back into the artifacts the qa-session
  * skill expects, and holds every rule that decides what a case's standing
@@ -13,7 +13,7 @@
 
 import type { CatalogCase } from "./qa-workbook-build";
 
-/** The testers who can own a shard. Mirrors packages/qa-app/api/state.ts. */
+/** The testers who can own a shard. Mirrors packages/qa/api/state.ts. */
 export const ROSTER = ["Afo", "Nansel", "Gui"] as const;
 export type Person = (typeof ROSTER)[number];
 

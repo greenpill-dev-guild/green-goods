@@ -135,7 +135,7 @@ scripts/
 | `qa-workbook-build.test.ts` | `bun run test:agent-tools` (root package.json) | Catalog validation (unique IDs, prefix↔tab consistency, enums), output-path reservation, and projection coverage for the run-sheet generator |
 | `qa-state.ts` | `bun run qa:pull` (root package.json) / `qa-state.test.ts` | Pure merge and projection rules for QA app session state — folds each tester's shard into one case-keyed view, rolls up the standing verdict when testers disagree (most severe wins), and projects `results.csv` for the `qa-session` skill |
 | `qa-state.test.ts` | `bun run test:agent-tools` (root package.json) | Two testers on one case both survive the merge, verdict rollup ordering, and CSV quoting for dictated notes full of commas and quotes |
-| `qa-state-pull.ts` | `bun run qa:pull` (root package.json) / `qa-session` skill close-out | Pulls a QA app session (packages/qa-app) from its private Blob store into `tmp/qa-session/<slug>/` as `results.csv` + `qa-app-state.json`. Reads the store directly, so it works while the app is password-protected. Results stay in gitignored `tmp/` |
+| `qa-state-pull.ts` | `bun run qa:pull` (root package.json) / `qa-session` skill close-out | Pulls a QA app session (packages/qa) from its private Blob store into `tmp/qa-session/<slug>/` as `results.csv` + `qa-state.json`. Reads the store directly, so it works while the app is password-protected. Results stay in gitignored `tmp/` |
 
 ### `harness/` — skill and planning helpers
 | Script | Caller | Purpose |

@@ -243,8 +243,8 @@
         "typescript": "~7.0.2",
       },
     },
-    "packages/qa-app": {
-      "name": "@green-goods/qa-app",
+    "packages/qa": {
+      "name": "@green-goods/qa",
       "version": "0.1.0",
       "dependencies": {
         "@vercel/blob": "^2.3.0",
@@ -1128,7 +1128,7 @@
 
     "@green-goods/indexer": ["@green-goods/indexer@workspace:packages/indexer"],
 
-    "@green-goods/qa-app": ["@green-goods/qa-app@workspace:packages/qa-app"],
+    "@green-goods/qa": ["@green-goods/qa@workspace:packages/qa"],
 
     "@green-goods/shared": ["@green-goods/shared@workspace:packages/shared"],
 

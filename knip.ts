@@ -98,7 +98,7 @@ const config: KnipConfig = {
         "storybook",
       ],
     },
-    "packages/qa-app": {
+    "packages/qa": {
       // The build script and the Vercel function are both entry points reached
       // by platform convention (vercel.json buildCommand, the api/ directory),
       // never by an import from elsewhere in the monorepo.

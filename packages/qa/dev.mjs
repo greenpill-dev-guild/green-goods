@@ -3,12 +3,12 @@
  * Local QA app — the deployed app's behaviour, without Vercel or Blob.
  *
  * Serves dist/ and implements the same /api/state contract against per-tester
- * JSON files under tmp/qa-app/, so the sharded-by-writer model can be exercised
+ * JSON files under tmp/qa/, so the sharded-by-writer model can be exercised
  * (two browsers, same case, no clobbering) before anything is deployed. It is
  * also the offline fallback: if the deploy is unavailable mid-session, this
  * runs the same page against the same shape of state.
  *
- *   node packages/qa-app/dev.mjs [--port 4610]
+ *   node packages/qa/dev.mjs [--port 4610]
  *
  * Port 4610 sits in the free band above the dev stack's 3001-3009 block, so it
  * never contends with a running client/admin/docs surface.
@@ -21,7 +21,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const packageDir = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(packageDir, "dist");
-const stateDir = path.join(packageDir, "..", "..", "tmp", "qa-app");
+const stateDir = path.join(packageDir, "..", "..", "tmp", "qa");
 
 export const TEAM = ["Afo", "Nansel", "Gui"];
 const STATUSES = new Set(["pass", "fail", "blocked", "na", ""]);
@@ -158,7 +158,7 @@ function main() {
   const port = portFlag > -1 ? Number(process.argv[portFlag + 1]) : 4610;
 
   if (!existsSync(path.join(distDir, "index.html"))) {
-    console.error("qa-app dev: dist/ is empty — run `node packages/qa-app/build.mjs` first.");
+    console.error("qa dev: dist/ is empty — run `node packages/qa/build.mjs` first.");
     process.exit(1);
   }
 
@@ -178,7 +178,7 @@ function main() {
 
   server.listen(port, "127.0.0.1", () => {
     const shards = existsSync(stateDir) ? readdirSync(stateDir).filter((f) => f.endsWith(".json")).length : 0;
-    console.log(`qa-app dev: http://127.0.0.1:${port} — state in tmp/qa-app/ (${shards} shard(s))`);
+    console.log(`qa dev: http://127.0.0.1:${port} — state in tmp/qa/ (${shards} shard(s))`);
   });
 }
 

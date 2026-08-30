@@ -40,7 +40,7 @@ const catalog = JSON.parse(readFileSync(catalogPath, "utf8"));
 const active = catalog.cases.filter((testCase) => testCase.status !== "retired");
 
 if (active.length === 0) {
-  throw new Error(`qa-app build: no active cases found in ${catalogPath}`);
+  throw new Error(`qa build: no active cases found in ${catalogPath}`);
 }
 
 mkdirSync(outDir, { recursive: true });
@@ -51,4 +51,4 @@ writeFileSync(
 );
 
 const perTab = catalog.tabs.map((tab) => `${tab} ${active.filter((c) => c.tab === tab).length}`);
-console.log(`qa-app build: ${active.length} active cases (${perTab.join(", ")}) -> dist/`);
+console.log(`qa build: ${active.length} active cases (${perTab.join(", ")}) -> dist/`);
