@@ -2455,7 +2455,7 @@
       "scenario": "Boot performance: warm reload locally; cold-start budget on a production build",
       "preconditions": [
         "Local dev:prod stack",
-        "A production build (bun run build preview) or hosted origin for the cold measurement"
+        "For the cold measurement: a hosted origin, or a local production build (in packages/client: bun run build, then bun run preview)"
       ],
       "steps": [
         "Local dev:prod: warm-reload the app and confirm fast interactive with no re-optimization reload loop",

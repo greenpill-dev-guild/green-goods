@@ -498,12 +498,11 @@ export class ClientTestHelper {
     // wedges: toggling offline while AppShell.tsx is still a pending lazy
     // import (chunk-load error -> update-recovery loop instead of the offline
     // indicator), and CI cold-start transforms outrunning a spinner-only wait.
-    await this.page
-      .locator("#boot-fallback")
-      .waitFor({ state: "hidden", timeout: 30000 })
-      .catch(() => {
-        // Pages without the boot fallback (or already cleared) are fine.
-      });
+    // An absent or detached #boot-fallback already satisfies "hidden", so this
+    // only rejects when the fallback is genuinely stuck visible — i.e. the app
+    // failed to mount. Let that propagate: a URL- or body-only assertion must
+    // never pass against the boot fallback.
+    await this.page.locator("#boot-fallback").waitFor({ state: "hidden", timeout: 30000 });
     await this.page
       .locator('[data-testid="loading"], .loading, .spinner, .animate-spin')
       .waitFor({ state: "hidden", timeout: 10000 })
@@ -715,12 +714,11 @@ export class AdminTestHelper {
     // wedges: toggling offline while AppShell.tsx is still a pending lazy
     // import (chunk-load error -> update-recovery loop instead of the offline
     // indicator), and CI cold-start transforms outrunning a spinner-only wait.
-    await this.page
-      .locator("#boot-fallback")
-      .waitFor({ state: "hidden", timeout: 30000 })
-      .catch(() => {
-        // Pages without the boot fallback (or already cleared) are fine.
-      });
+    // An absent or detached #boot-fallback already satisfies "hidden", so this
+    // only rejects when the fallback is genuinely stuck visible — i.e. the app
+    // failed to mount. Let that propagate: a URL- or body-only assertion must
+    // never pass against the boot fallback.
+    await this.page.locator("#boot-fallback").waitFor({ state: "hidden", timeout: 30000 });
     await this.page
       .locator('[data-testid="loading"], .loading, .spinner, .animate-spin')
       .waitFor({ state: "hidden", timeout: 10000 })
