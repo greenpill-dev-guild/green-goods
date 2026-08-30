@@ -146,12 +146,3 @@ export function AdminCardBody({ className, ...props }: React.HTMLAttributes<HTML
   return <div data-component="AdminCardBody" className={cn("p-4", className)} {...props} />;
 }
 
-export function AdminCardFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      data-component="AdminCardFooter"
-      className={cn("flex items-center gap-3 border-t border-stroke-soft px-4 py-3", className)}
-      {...props}
-    />
-  );
-}
