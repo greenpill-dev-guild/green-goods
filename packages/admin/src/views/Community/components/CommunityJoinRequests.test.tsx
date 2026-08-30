@@ -65,7 +65,7 @@ const messages = {
   "cockpit.community.joinRequests.load": "Check Requests",
   "cockpit.community.joinRequests.membershipPending": "Membership pending.",
   "cockpit.community.joinRequests.reason": "Reason for declining",
-  "cockpit.community.joinRequests.title": "Join requests",
+  "cockpit.community.joinRequests.title": "Join Requests",
   "cockpit.community.joinRequests.updateFailed": "The request could not be updated.",
   "cockpit.community.joinRequests.welcome": "Welcome",
   "cockpit.community.joinRequests.welcomed": "The gardener was welcomed.",

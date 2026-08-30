@@ -20,7 +20,8 @@ export interface AdminSortSelectProps {
  * AdminSortSelect — the canonical "Sort by" pill.
  *
  * Extracted from Hub's inline control so Hub and Actions can't drift: an
- * `h-10` M3 pill (matching the `AdminSearchToolbar` search field height) with
+ * `h-9` M3 pill on the 36px toolbar tier (DL-011, matching the
+ * `AdminSearchToolbar` search field) with
  * a `whitespace-nowrap` label and a borderless `NativeSelect` at the same
  * `text-body-md` weight as the surrounding controls. Drop it inside an
  * `AdminSearchToolbar`'s children, alongside filter chips.
