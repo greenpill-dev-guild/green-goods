@@ -183,7 +183,7 @@ async function outboxDurabilityHarness() {
     await new Promise((resolve) => setImmediate(resolve));
   };
 
-  async function pageLife(carried, drive) {
+  async function pageLife({ seedKey = "qa-outbox:Afo", carried = null, person = "Afo" }, drive) {
     const posts = [];
     const timers = new Map();
     let timerId = 0;
@@ -198,9 +198,9 @@ async function outboxDurabilityHarness() {
       url: "http://localhost:4610/",
       virtualConsole,
       beforeParse(window) {
-        window.localStorage.setItem("qa-who", "Afo");
+        window.localStorage.setItem("qa-who", person);
         // Everything the previous page life left behind, and nothing more.
-        if (carried) window.localStorage.setItem("qa-outbox", carried);
+        if (carried) window.localStorage.setItem(seedKey, carried);
         window.setTimeout = (callback, delay = 0) => {
           const id = ++timerId;
           timers.set(id, { callback, delay });
@@ -216,10 +216,10 @@ async function outboxDurabilityHarness() {
           if (target !== "/api/state") throw new Error(`unexpected fetch ${target}`);
           if (init.method === "POST") {
             posts.push(JSON.parse(String(init.body)));
-            return response({ ok: true, person: "Afo", count: 1 });
+            return response({ ok: true, person, count: 1 });
           }
           // The store never received the note, so it has nothing to return.
-          return response({ team: ["Afo"], entries: {} });
+          return response({ team: ["Afo", "Gui"], entries: {} });
         };
       },
     });
@@ -238,15 +238,15 @@ async function outboxDurabilityHarness() {
         dom.window.document.querySelector('[data-note="PUB-001"]'),
         jsdomError || "the page did not render",
       );
-      await drive({ dom, posts, runTimer });
-      return dom.window.localStorage.getItem("qa-outbox");
+      await drive({ dom, posts, runTimer, storage: dom.window.localStorage });
+      return dom.window.localStorage.getItem("qa-outbox:Afo");
     } finally {
       dom.window.close();
     }
   }
 
   // Life one: type, then end the page session with the save still pending.
-  const carried = await pageLife(null, async ({ dom, posts }) => {
+  const carried = await pageLife({}, async ({ dom, posts }) => {
     const note = dom.window.document.querySelector('[data-note="PUB-001"]');
     note.value = "unsent when the tab closed";
     note.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
@@ -260,7 +260,7 @@ async function outboxDurabilityHarness() {
   });
 
   // Life two: a new page session recovers it and sends it as a field patch.
-  const drained = await pageLife(carried, async ({ dom, posts, runTimer }) => {
+  const recover = async ({ dom, posts, runTimer }) => {
     assert.equal(
       dom.window.document.querySelector('[data-note="PUB-001"]')?.value,
       "unsent when the tab closed",
@@ -269,11 +269,33 @@ async function outboxDurabilityHarness() {
     assert.deepEqual(posts, [
       { person: "Afo", entries: { "PUB-001": { n: "unsent when the tab closed" } } },
     ]);
-  });
+  };
+  const drained = await pageLife({ carried }, recover);
   assert.equal(drained, null, "a confirmed write should leave nothing pending");
+
+  // The same recovery from the single shared key this page used before it kept
+  // one queue per tester, so an upgrade in place does not strand pending work.
+  const migrated = await pageLife({ carried, seedKey: "qa-outbox" }, recover);
+  assert.equal(migrated, null, "a migrated queue should drain like any other");
+
+  // A DIFFERENT tester opening the same browser must not touch Afo's queue:
+  // localStorage is shared across tabs, so one key for everyone would let this
+  // delete the only copy of work Afo has not managed to save.
+  await pageLife({ carried, person: "Gui" }, async ({ storage, posts }) => {
+    assert.deepEqual(posts, [], "Gui's page should not post Afo's work");
+    assert.deepEqual(
+      JSON.parse(storage.getItem("qa-outbox:Afo") || "null"),
+      { person: "Afo", delta: { "PUB-001": { n: "unsent when the tab closed" } } },
+      "Afo's unsent work was discarded by another tester's page",
+    );
+  });
 }
 
 describe("QA app client races", () => {
+  // Each case spawns a Node subprocess and boots JSDOM once per page life, which
+  // runs past Vitest's 5s default — the cause of the intermittent timeout here.
+  const JSDOM_SUBPROCESS_TIMEOUT_MS = 120_000;
+
   it("does not let a stale poll roll back a note that already showed saved", () => {
     execFileSync(
       "node",
@@ -286,7 +308,7 @@ describe("QA app client races", () => {
       ],
       { cwd: repoRoot, stdio: "pipe" },
     );
-  });
+  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
 
   it("keeps an unsent note across a page session and sends it on the next open", () => {
     execFileSync(
@@ -300,5 +322,5 @@ describe("QA app client races", () => {
       ],
       { cwd: repoRoot, stdio: "pipe" },
     );
-  });
+  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
 });

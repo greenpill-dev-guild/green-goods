@@ -178,7 +178,7 @@ async function readBody(request) {
   return Buffer.concat(chunks).toString("utf8");
 }
 
-function handleState(request, response) {
+export function handleState(request, response) {
   if (request.method === "GET") {
     try {
       const entries = mergeShards(TEAM.map(readShard));
@@ -216,9 +216,17 @@ function handleState(request, response) {
         updatedAt: new Date().toISOString(),
         entries: mergeDelta(previous?.entries ?? {}, sanitizeDelta(body.entries)),
       };
-      writeShard(shard);
+      try {
+        writeShard(shard);
+      } catch (error) {
+        return sendFailure(response, error, `${body.person}'s entries were not saved`);
+      }
       return sendJson(response, 200, { ok: true, person: shard.person, count: Object.keys(shard.entries).length });
-    });
+      // A rejection here — an aborted request stream, or an unwritable tmp/qa —
+      // has no other handler: `createServer` ignores the promise this returns,
+      // and an unhandled rejection takes the whole rehearsal server down
+      // mid-session. Answer like the deployed function does instead.
+    }).catch((error) => sendFailure(response, error, "the request could not be read"));
   }
   return sendJson(response, 405, { error: "method not allowed" });
 }

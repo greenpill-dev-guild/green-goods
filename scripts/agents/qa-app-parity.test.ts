@@ -1,3 +1,5 @@
+import { Readable } from "node:stream";
+
 import { describe, expect, it } from "vitest";
 
 /**
@@ -15,7 +17,11 @@ import {
   mergeDelta as mergeDeployed,
   sanitizeDelta as sanitizeDeployed,
 } from "../../packages/qa/api/state";
-import { mergeDelta as mergeLocal, sanitizeDelta as sanitizeLocal } from "../../packages/qa/dev.mjs";
+import {
+  handleState,
+  mergeDelta as mergeLocal,
+  sanitizeDelta as sanitizeLocal,
+} from "../../packages/qa/dev.mjs";
 
 const EARLIER = "2026-08-30T10:00:00.000Z";
 const LATER = "2026-08-30T11:00:00.000Z";
@@ -101,5 +107,39 @@ describe("QA app merge rules — deployed function vs local server", () => {
     expect(sanitizeDeployed({ "PUB-001": entry("", "", EARLIER) })).toEqual({
       "PUB-001": { delete: true },
     });
+  });
+});
+
+describe("local server failure parity", () => {
+  function fakeResponse() {
+    return {
+      status: 0,
+      body: "",
+      writeHead(status: number) {
+        this.status = status;
+      },
+      end(payload: string) {
+        this.body = payload ?? "";
+      },
+    };
+  }
+
+  it("answers an unreadable request instead of taking the rehearsal server down", async () => {
+    // `createServer` ignores the promise handleState returns, so a rejection
+    // escaping it is an unhandled rejection — which ends the process on current
+    // Node and drops a live QA session. The deployed function answers 503 here;
+    // the local server has to do the same, so this must RESOLVE.
+    const request = Readable.from(
+      (async function* () {
+        throw new Error("client aborted mid-body");
+      })(),
+    ) as unknown as Parameters<typeof handleState>[0];
+    request.method = "POST";
+
+    const response = fakeResponse();
+    await handleState(request, response as unknown as Parameters<typeof handleState>[1]);
+
+    expect(response.status).toBe(503);
+    expect(JSON.parse(response.body)).toEqual({ error: "the request could not be read" });
   });
 });

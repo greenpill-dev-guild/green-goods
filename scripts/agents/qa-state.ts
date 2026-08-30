@@ -64,10 +64,22 @@ export function rollupVerdict(byPerson: Record<string, Entry> | undefined): stri
   return RESULT_LABEL[worst] ?? "";
 }
 
-/** RFC 4180: quote a field containing a comma, quote, or newline; double inner quotes. */
+/**
+ * RFC 4180: quote a field containing a comma, quote, or newline; double inner
+ * quotes. Fields that a spreadsheet would read as a formula are prefixed with
+ * an apostrophe first.
+ *
+ * That prefix is not decoration. `results.csv` is pasted into the run sheet by
+ * hand, and both columns it fills carry text this repo does not control: notes
+ * are free text, and an unknown case id is deliberately preserved rather than
+ * dropped, so anyone holding the deployment password can POST `=1+1` as one.
+ * Excel and Sheets execute a leading `=`, `+`, `-` or `@` on paste. The
+ * apostrophe makes the cell literal text and is not itself displayed.
+ */
 export function csvField(value: string): string {
   const text = value ?? "";
-  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  const literal = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  return /[",\n\r]/.test(literal) ? `"${literal.replace(/"/g, '""')}"` : literal;
 }
 
 /**

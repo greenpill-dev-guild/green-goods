@@ -112,7 +112,9 @@
   // Rollup when testers disagree on one case: the most severe verdict stands.
   const RANK = { fail: 4, blocked: 3, pass: 2, na: 1 };
   const POLL_MS = 4000;
-  const OUTBOX_KEY = "qa-outbox";
+  const OUTBOX_PREFIX = "qa-outbox:";
+  /** The single shared key this page used before it kept one queue per tester. */
+  const LEGACY_OUTBOX_KEY = "qa-outbox";
 
   let CASES = [];
   let TABS = [];
@@ -165,29 +167,60 @@
   // or dismisses the installed PWA during the debounce, or while saves are
   // failing, reopens to find the retry has nothing left to send. Entries leave
   // here only once the server has confirmed that write.
-  let outbox = {};
-  try {
-    // A tab open across the deploy that moved this store still holds its pending
-    // work in the old one. Adopt it once rather than stranding it there.
-    const stored = JSON.parse(localStorage.getItem(OUTBOX_KEY) || sessionStorage.getItem(OUTBOX_KEY) || "null");
-    if (stored && stored.person && stored.delta) outbox = stored.person === who ? stored.delta : {};
-  } catch (e) {}
-  try { sessionStorage.removeItem(OUTBOX_KEY); } catch (e) {}
+  function outboxKey(person) {
+    return OUTBOX_PREFIX + person;
+  }
+
+  /**
+   * The delta stored for one tester, or null.
+   *
+   * Keyed PER TESTER, because localStorage is shared by every tab on this
+   * origin. Under one shared key, a tab switching to Gui would delete Afo's
+   * unsent work, and a stored-vs-selected mismatch would look like something to
+   * discard — which is how a tester's only unsaved copy disappears. Under their
+   * own key, each tester's queue simply waits for them.
+   */
+  function storedOutboxFor(person) {
+    if (!person) return null;
+    for (const read of [
+      () => localStorage.getItem(outboxKey(person)),
+      // Written before this page keyed per tester, or before it moved off
+      // sessionStorage. Adopt it once rather than stranding it there.
+      () => localStorage.getItem(LEGACY_OUTBOX_KEY),
+      () => sessionStorage.getItem(LEGACY_OUTBOX_KEY),
+    ]) {
+      try {
+        const stored = JSON.parse(read() || "null");
+        if (stored && stored.delta && stored.person === person) return stored.delta;
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  let outbox = storedOutboxFor(who) || {};
+  if (who) {
+    // Re-home an adopted queue under this tester's key BEFORE dropping the old
+    // copies, so a page that dies mid-adoption still has it somewhere.
+    saveOutbox();
+    try { localStorage.removeItem(LEGACY_OUTBOX_KEY); } catch (e) {}
+    try { sessionStorage.removeItem(LEGACY_OUTBOX_KEY); } catch (e) {}
+  }
 
   function saveOutbox() {
     try {
       if (!who) return;
       if (Object.keys(outbox).length) {
-        localStorage.setItem(OUTBOX_KEY, JSON.stringify({ person: who, delta: outbox }));
+        localStorage.setItem(outboxKey(who), JSON.stringify({ person: who, delta: outbox }));
       } else {
-        localStorage.removeItem(OUTBOX_KEY);
+        localStorage.removeItem(outboxKey(who));
       }
     } catch (e) {}
   }
-  function clearOutbox() {
+  /** Drop one tester's queue. Never touches another tester's. */
+  function clearOutbox(person) {
     outbox = {};
     outboxVersions = {};
-    try { localStorage.removeItem(OUTBOX_KEY); } catch (e) {}
+    try { localStorage.removeItem(outboxKey(person || who)); } catch (e) {}
   }
   /** Clearing a case is explicit, so clearing one field never means deletion. */
   function tombstone() {
@@ -235,10 +268,18 @@
           normalized[caseId] = tombstone();
           continue;
         }
+        // Only NON-EMPTY fields migrate. The old format stored a whole entry,
+        // so an empty field there is ambiguous: "this tester had nothing here"
+        // and "this tester cleared it" look identical. Treating it as a change
+        // would send an empty note over one the other device saved in the
+        // meantime — reviving the whole-entry overwrite this format replaced.
+        // The asymmetry is deliberate: a clear that has to be redone by hand
+        // costs a click, an erased note is not recoverable. Both-empty is
+        // already an explicit delete above.
         const current = entryFor(caseId, who);
         const patch = {};
-        if (hasStatus && raw.s !== (current ? current.s || "" : "")) patch.s = raw.s;
-        if (hasNote && raw.n !== (current ? current.n || "" : "")) patch.n = raw.n;
+        if (hasStatus && raw.s && raw.s !== (current ? current.s || "" : "")) patch.s = raw.s;
+        if (hasNote && raw.n.trim() && raw.n !== (current ? current.n || "" : "")) patch.n = raw.n;
         if (Object.keys(patch).length) normalized[caseId] = patch;
         continue;
       }
@@ -248,6 +289,24 @@
       if (Object.keys(patch).length) normalized[caseId] = patch;
     }
     outbox = normalized;
+  }
+
+  /**
+   * Apply a recovered queue onto the rendered entries and schedule its send.
+   * Unsent work from an earlier page life wins over the server copy.
+   */
+  function adoptRecoveredOutbox() {
+    if (!who || !Object.keys(outbox).length) return;
+    normalizeLoadedOutbox();
+    for (const [caseId, patch] of Object.entries(outbox)) {
+      const entry = patchEntry(entryFor(caseId, who), patch);
+      entries[caseId] = entries[caseId] || {};
+      if (entry) entries[caseId][who] = entry;
+      else delete entries[caseId][who];
+      outboxVersions[caseId] = markLocalEdit(caseId, who);
+    }
+    saveOutbox();
+    if (Object.keys(outbox).length) queueSave(400);
   }
 
   function entryFor(caseId, person) {
@@ -426,9 +485,13 @@
         return;
       }
     }
+    clearOutbox(previous);
     who = next;
     try { localStorage.setItem("qa-who", who); } catch (e) {}
-    clearOutbox();
+    // This tester may have work of their own left unsent by an earlier session
+    // or another tab. Switching to them picks it back up rather than ignoring it.
+    outbox = storedOutboxFor(who) || {};
+    adoptRecoveredOutbox();
     render();
   }
 
@@ -607,19 +670,7 @@
       filter = ["all", "issues", "open"].includes(view.filter) ? view.filter : "all";
       scope = ["all"].concat(TEAM).includes(view.scope) ? view.scope : "all";
 
-      // Unsent work from a previous page life wins over the server copy.
-      if (who && Object.keys(outbox).length) {
-        normalizeLoadedOutbox();
-        for (const [caseId, patch] of Object.entries(outbox)) {
-          const entry = patchEntry(entryFor(caseId, who), patch);
-          entries[caseId] = entries[caseId] || {};
-          if (entry) entries[caseId][who] = entry;
-          else delete entries[caseId][who];
-          outboxVersions[caseId] = markLocalEdit(caseId, who);
-        }
-        saveOutbox();
-        if (Object.keys(outbox).length) queueSave(400);
-      }
+      adoptRecoveredOutbox();
 
       render();
       try { if (view.scroll) window.scrollTo(0, view.scroll); } catch (e) {}

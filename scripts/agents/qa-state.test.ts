@@ -88,6 +88,21 @@ describe("csvField", () => {
     expect(csvField('he said "broken"')).toBe('"he said ""broken"""');
     expect(csvField("line one\nline two")).toBe('"line one\nline two"');
   });
+
+  it("neutralizes fields a spreadsheet would run as a formula", () => {
+    // results.csv is pasted into the run sheet by hand, and both columns it
+    // fills carry text this repo does not control: notes are free text, and an
+    // unknown case id is preserved rather than dropped, so anyone holding the
+    // deployment password can POST one. A leading apostrophe makes the cell
+    // literal text and is not itself displayed.
+    expect(csvField("=1+1")).toBe("'=1+1");
+    expect(csvField("@SUM(A1:A9)")).toBe("'@SUM(A1:A9)");
+    expect(csvField("-2+3")).toBe("'-2+3");
+    // Still quoted when it also needs quoting, with the prefix inside.
+    expect(csvField("=HYPERLINK(\"x\",\"y\")")).toBe('"\'=HYPERLINK(""x"",""y"")"');
+    // An ordinary note that merely mentions one is left alone.
+    expect(csvField("total = 5")).toBe("total = 5");
+  });
 });
 
 describe("toResultsCsv", () => {
