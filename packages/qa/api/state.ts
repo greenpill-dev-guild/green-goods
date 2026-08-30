@@ -308,7 +308,7 @@ export default async function handler(request: Request): Promise<Response> {
     try {
       shard = await applyDelta(body.person, sanitizeDelta(body.entries));
     } catch (error) {
-      // The page keeps the unsent delta in sessionStorage and retries.
+      // The page keeps the unsent delta in localStorage and retries.
       return fail(error, `${body.person}'s entries were not saved`);
     }
 

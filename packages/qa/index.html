@@ -105,6 +105,10 @@
 
   const STATUSES = ["pass", "fail", "blocked", "na"];
   const LABEL = { pass: "P", fail: "F", blocked: "B", na: "–" };
+  // Each verdict button renders a single glyph, so "P" would be its whole
+  // accessible name. Screen readers get the word instead, and `aria-pressed`
+  // carries the selection that is otherwise only in the `on` class.
+  const SPOKEN = { pass: "pass", fail: "fail", blocked: "blocked", na: "not applicable" };
   // Rollup when testers disagree on one case: the most severe verdict stands.
   const RANK = { fail: 4, blocked: 3, pass: 2, na: 1 };
   const POLL_MS = 4000;
@@ -150,30 +154,40 @@
 
   // ── Local durability ────────────────────────────────────────────────
   // `outbox` is the pending FIELD-LEVEL delta — a status click carries only `s`
-  // and a note edit carries only `n`. It lands in sessionStorage on every
-  // keystroke, so a reload, crash, or failed POST never costs anyone their
+  // and a note edit carries only `n`. It lands in storage on every keystroke, so
+  // a reload, a crash, a closed tab, or a failed POST never costs anyone their
   // notes. Omitting the untouched field also prevents a phone's stale note from
   // replacing a laptop edit, or a laptop's stale status from clearing a verdict.
+  //
+  // localStorage, not sessionStorage. The savebar promises "kept locally,
+  // retrying", and sessionStorage is discarded when the page session ends —
+  // which is exactly the case the promise is for: a tester who closes the tab
+  // or dismisses the installed PWA during the debounce, or while saves are
+  // failing, reopens to find the retry has nothing left to send. Entries leave
+  // here only once the server has confirmed that write.
   let outbox = {};
   try {
-    const stored = JSON.parse(sessionStorage.getItem(OUTBOX_KEY) || "null");
+    // A tab open across the deploy that moved this store still holds its pending
+    // work in the old one. Adopt it once rather than stranding it there.
+    const stored = JSON.parse(localStorage.getItem(OUTBOX_KEY) || sessionStorage.getItem(OUTBOX_KEY) || "null");
     if (stored && stored.person && stored.delta) outbox = stored.person === who ? stored.delta : {};
   } catch (e) {}
+  try { sessionStorage.removeItem(OUTBOX_KEY); } catch (e) {}
 
   function saveOutbox() {
     try {
       if (!who) return;
       if (Object.keys(outbox).length) {
-        sessionStorage.setItem(OUTBOX_KEY, JSON.stringify({ person: who, delta: outbox }));
+        localStorage.setItem(OUTBOX_KEY, JSON.stringify({ person: who, delta: outbox }));
       } else {
-        sessionStorage.removeItem(OUTBOX_KEY);
+        localStorage.removeItem(OUTBOX_KEY);
       }
     } catch (e) {}
   }
   function clearOutbox() {
     outbox = {};
     outboxVersions = {};
-    try { sessionStorage.removeItem(OUTBOX_KEY); } catch (e) {}
+    try { localStorage.removeItem(OUTBOX_KEY); } catch (e) {}
   }
   /** Clearing a case is explicit, so clearing one field never means deletion. */
   function tombstone() {
@@ -295,11 +309,11 @@
         return `<button class="tab ${t === activeTab ? "on" : ""}" data-tab="${esc(t)}">${esc(t)}<small>${k.done}/${k.total}${k.fails ? " · " + k.fails + "F" : ""}</small></button>`;
       }).join("")}</div>
       <div class="filters">${[["all", "All"], ["issues", "Issues"], ["open", "Undecided"]].map(([k, l]) =>
-        `<button class="filt ${filter === k ? "on" : ""}" data-f="${k}">${l}</button>`).join("")}<span class="who-group" role="group" aria-label="who is testing"><span class="grouplabel">testing as</span>${TEAM.map((n) =>
-        `<button class="who-btn ${who === n ? "on" : ""}" data-who="${esc(n)}" title="records entries as ${esc(n)}">${esc(n)}</button>`).join("")}</span></div>
+        `<button class="filt ${filter === k ? "on" : ""}" data-f="${k}" aria-pressed="${filter === k ? "true" : "false"}">${l}</button>`).join("")}<span class="who-group" role="group" aria-label="who is testing"><span class="grouplabel">testing as</span>${TEAM.map((n) =>
+        `<button class="who-btn ${who === n ? "on" : ""}" data-who="${esc(n)}" aria-pressed="${who === n ? "true" : "false"}" title="records entries as ${esc(n)}">${esc(n)}</button>`).join("")}</span></div>
       <div class="filters scoperow" role="group" aria-label="whose entries to show"><span class="grouplabel">showing</span>${
         [["all", "Everyone"]].concat(TEAM.map((n) => [n, n])).map(([k, l]) =>
-          `<button class="scope-btn ${scope === k ? "on" : ""}" data-scope="${esc(k)}">${esc(l)}<small>${scopeCount(activeTab, k)}</small></button>`).join("")
+          `<button class="scope-btn ${scope === k ? "on" : ""}" data-scope="${esc(k)}" aria-pressed="${scope === k ? "true" : "false"}">${esc(l)}<small>${scopeCount(activeTab, k)}</small></button>`).join("")
       }</div>
       <div class="counts">${tally()}${who ? "" : ' · <b class="warn">pick your name above to record</b>'}</div>
     </header>`;
@@ -325,8 +339,8 @@
       return `<div class="row ${verdict(c.id) ? "done" : ""}">
         <div class="rid"><b>${esc(c.id)}</b>${esc(c.pri)}${marks}</div>
         <div class="scen">${esc(c.scenario)}${flag}<span class="why">${esc(c.expected)}</span></div>
-        <div class="ctl">${STATUSES.map((s) =>
-          `<button class="st ${s} ${own && own.s === s ? "on" : ""}" data-id="${esc(c.id)}" data-s="${s}" title="${who ? esc(who) + ": " + s : "pick your name first"}"${who ? "" : " disabled"}>${LABEL[s]}</button>`).join("")}</div>
+        <div class="ctl" role="group" aria-label="${esc(c.id)} verdict">${STATUSES.map((s) =>
+          `<button class="st ${s} ${own && own.s === s ? "on" : ""}" data-id="${esc(c.id)}" data-s="${s}" aria-pressed="${own && own.s === s ? "true" : "false"}" aria-label="${esc(SPOKEN[s])}" title="${who ? esc(who) + ": " + s : "pick your name first"}"${who ? "" : " disabled"}>${LABEL[s]}</button>`).join("")}</div>
         <div class="note">${others}<textarea data-note="${esc(c.id)}" rows="1" maxlength="4000" placeholder="${who ? esc(who) + "'s notes — saves as you go…" : "pick your name above to add notes"}"${who ? "" : " disabled"}>${esc(own ? own.n || "" : "")}</textarea></div>
       </div>`;
     }).join("")).join("");
@@ -482,7 +496,7 @@
         savebar.textContent = "saved ✓";
       }
     } catch (e) {
-      // The work is already in sessionStorage; keep retrying rather than
+      // The work is already in localStorage; keep retrying rather than
       // telling the tester it saved when it did not.
       dirty = true;
       savebar.className = "savebar ro";

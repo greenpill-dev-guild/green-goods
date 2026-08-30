@@ -149,6 +149,130 @@ async function clientRaceHarness() {
   }
 }
 
+/**
+ * A tester closes the tab (or dismisses the installed PWA) before the debounce
+ * fires. The page promises "kept locally, retrying", so the unsent note has to
+ * outlive the page session and go out on the next open.
+ *
+ * Two page lives, with only what a browser would actually carry between them:
+ * localStorage is seeded from the first window, sessionStorage starts empty.
+ */
+async function outboxDurabilityHarness() {
+  const dynamicImport = new Function("specifier", "return import(specifier)");
+  const assert = (await dynamicImport("node:assert/strict")).default;
+  const { readFileSync } = await dynamicImport("node:fs");
+  const path = await dynamicImport("node:path");
+  const { JSDOM, VirtualConsole } = await dynamicImport("jsdom");
+
+  const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
+  const testCase = {
+    id: "PUB-001",
+    tab: "Public Website",
+    area: "Funding",
+    pri: "P0",
+    scenario: "Donate end to end",
+    expected: "The donation completes",
+    rp: false,
+    rd: false,
+    tx: false,
+  };
+  const response = (body) => ({ ok: true, status: 200, json: async () => structuredClone(body) });
+  const flush = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+
+  async function pageLife(carried, drive) {
+    const posts = [];
+    const timers = new Map();
+    let timerId = 0;
+    let jsdomError = "";
+    const virtualConsole = new VirtualConsole();
+    virtualConsole.on("jsdomError", (error) => {
+      jsdomError = error.cause?.stack || error.cause?.message || error.message;
+    });
+
+    const dom = new JSDOM(page, {
+      runScripts: "dangerously",
+      url: "http://localhost:4610/",
+      virtualConsole,
+      beforeParse(window) {
+        window.localStorage.setItem("qa-who", "Afo");
+        // Everything the previous page life left behind, and nothing more.
+        if (carried) window.localStorage.setItem("qa-outbox", carried);
+        window.setTimeout = (callback, delay = 0) => {
+          const id = ++timerId;
+          timers.set(id, { callback, delay });
+          return id;
+        };
+        window.clearTimeout = (id) => timers.delete(id);
+        window.setInterval = () => 1;
+        window.fetch = async (input, init = {}) => {
+          const target = String(input);
+          if (target === "catalog.json") {
+            return response({ tabs: [testCase.tab], cases: [testCase] });
+          }
+          if (target !== "/api/state") throw new Error(`unexpected fetch ${target}`);
+          if (init.method === "POST") {
+            posts.push(JSON.parse(String(init.body)));
+            return response({ ok: true, person: "Afo", count: 1 });
+          }
+          // The store never received the note, so it has nothing to return.
+          return response({ team: ["Afo"], entries: {} });
+        };
+      },
+    });
+
+    const runTimer = async (delay) => {
+      const timer = [...timers.entries()].find(([, pending]) => pending.delay === delay);
+      assert.ok(timer, `expected a ${delay}ms timer`);
+      timers.delete(timer[0]);
+      await timer[1].callback();
+      await flush();
+    };
+
+    try {
+      await flush();
+      assert.ok(
+        dom.window.document.querySelector('[data-note="PUB-001"]'),
+        jsdomError || "the page did not render",
+      );
+      await drive({ dom, posts, runTimer });
+      return dom.window.localStorage.getItem("qa-outbox");
+    } finally {
+      dom.window.close();
+    }
+  }
+
+  // Life one: type, then end the page session with the save still pending.
+  const carried = await pageLife(null, async ({ dom, posts }) => {
+    const note = dom.window.document.querySelector('[data-note="PUB-001"]');
+    note.value = "unsent when the tab closed";
+    note.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+    await flush();
+    assert.deepEqual(posts, [], "the debounce should not have fired yet");
+  });
+  assert.ok(carried, "closing the tab left no recoverable copy of the unsent note");
+  assert.deepEqual(JSON.parse(carried), {
+    person: "Afo",
+    delta: { "PUB-001": { n: "unsent when the tab closed" } },
+  });
+
+  // Life two: a new page session recovers it and sends it as a field patch.
+  const drained = await pageLife(carried, async ({ dom, posts, runTimer }) => {
+    assert.equal(
+      dom.window.document.querySelector('[data-note="PUB-001"]')?.value,
+      "unsent when the tab closed",
+    );
+    await runTimer(400);
+    assert.deepEqual(posts, [
+      { person: "Afo", entries: { "PUB-001": { n: "unsent when the tab closed" } } },
+    ]);
+  });
+  assert.equal(drained, null, "a confirmed write should leave nothing pending");
+}
+
 describe("QA app client races", () => {
   it("does not let a stale poll roll back a note that already showed saved", () => {
     execFileSync(
@@ -159,6 +283,20 @@ describe("QA app client races", () => {
         "--input-type=module",
         "--eval",
         `await (${clientRaceHarness.toString()})()`,
+      ],
+      { cwd: repoRoot, stdio: "pipe" },
+    );
+  });
+
+  it("keeps an unsent note across a page session and sends it on the next open", () => {
+    execFileSync(
+      "node",
+      [
+        "scripts/dev/node-cli.js",
+        "node",
+        "--input-type=module",
+        "--eval",
+        `await (${outboxDurabilityHarness.toString()})()`,
       ],
       { cwd: repoRoot, stdio: "pipe" },
     );

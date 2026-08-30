@@ -7,7 +7,7 @@
  * expects, so a session that ran in the browser closes out exactly like one
  * driven from the terminal.
  *
- *   bun run qa:pull [--slug 2026-09-02] [--out tmp/qa-session/<slug>]
+ *   bun run qa:pull [--slug 2026-09-02] [--out tmp/qa-session/<slug>] [--force]
  *
  * Reads the per-tester shards straight from the Blob store with
  * BLOB_READ_WRITE_TOKEN, NOT through the deployed app — so ingestion works
@@ -16,7 +16,7 @@
  * Results never enter git: everything lands under gitignored tmp/.
  */
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -30,15 +30,24 @@ const privateOutputRoot = path.join(repoRoot, "tmp");
 interface Options {
   slug: string;
   outDir: string;
+  force: boolean;
 }
+
+/** What a completed pull leaves behind, and therefore what a rerun would replace. */
+export const SESSION_ARTIFACTS = ["results.csv", "qa-state.json"] as const;
 
 export function parseArgs(argv: string[]): Options {
   let slug = new Date().toISOString().slice(0, 10);
   let outDir = "";
+  let force = false;
   for (let index = 0; index < argv.length; index++) {
     const flag = argv[index];
+    if (flag === "--force") {
+      force = true;
+      continue;
+    }
     if (flag !== "--slug" && flag !== "--out") {
-      throw new Error(`unknown argument '${flag}' — expected --slug or --out`);
+      throw new Error(`unknown argument '${flag}' — expected --slug, --out or --force`);
     }
     const value = argv[index + 1];
     if (!value || value.startsWith("--")) throw new Error(`missing value for '${flag}'`);
@@ -55,7 +64,21 @@ export function parseArgs(argv: string[]): Options {
   if (escapesPrivateRoot) {
     throw new Error("--out must stay under the repo's gitignored tmp/ directory");
   }
-  return { slug, outDir: resolvedOutDir };
+  return { slug, outDir: resolvedOutDir, force };
+}
+
+/**
+ * Which session artifacts a pull would replace.
+ *
+ * A pulled run sheet is worked on AFTER the pull — severity gets assigned, a
+ * note gets redacted, a case caught outside the web app gets appended — and
+ * none of that exists in the Blob store. Rerunning the same slug to refresh
+ * remote results would project the store back over that work and silently drop
+ * it, so a pull that would land on an existing session refuses instead.
+ * `--force` is how the operator says the local copy is expendable.
+ */
+export function existingArtifacts(outDir: string, exists: (target: string) => boolean = existsSync): string[] {
+  return SESSION_ARTIFACTS.filter((name) => exists(path.join(outDir, name)));
 }
 
 /**
@@ -87,6 +110,16 @@ async function main(): Promise<void> {
     throw new Error(
       "BLOB_READ_WRITE_TOKEN is not set. Copy it from the QA app's Blob store " +
         "(Vercel > Storage > the private QA store > .env.local tab) into the repo root .env.",
+    );
+  }
+
+  // Before the store fan-out, so a refused pull costs nothing and reads clearly.
+  const clashes = existingArtifacts(options.outDir);
+  if (clashes.length && !options.force) {
+    throw new Error(
+      `${path.relative(repoRoot, options.outDir)} already has ${clashes.join(" and ")}. ` +
+        "Refusing to overwrite a pulled session — severity, redactions and hand-added rows " +
+        "live only there. Pull to a fresh --out, or pass --force to replace it.",
     );
   }
 

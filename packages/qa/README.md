@@ -35,9 +35,10 @@ Two more details that look like bugs if you get them wrong:
 - Private blob reads are CDN-cached for up to 60s, so every read passes `useCache: false` and goes
   to origin. Writes deliberately set no `cacheControlMaxAge` — the store's documented floor is 60s,
   and a rejected write is a lost verdict.
-- Every keystroke lands in `sessionStorage` before any network call, so a reload, a crash, or a
-  failed save never costs anyone their notes. The page says "not saved — kept locally, retrying"
-  rather than claiming success.
+- Every keystroke lands in `localStorage` before any network call, so a reload, a crash, a closed
+  tab, or a failed save never costs anyone their notes — a pending delta outlives the page session
+  and goes out on the next open, and is dropped only once the server confirms the write. The page
+  says "not saved — kept locally, retrying" rather than claiming success.
 
 ### The trust boundary
 
@@ -101,6 +102,10 @@ writes `tmp/qa-session/<slug>/results.csv` plus `qa-state.json`, the artifacts t
 skill closes out with. It reads the store rather than the app, so it works while the app is
 password-protected and still works if the deployment is down. Results stay in gitignored `tmp/` —
 definitions live in git, results never do.
+
+A pull that would land on an existing session **refuses**, because severity, redactions and rows
+added by hand live only in the pulled files and never in the store. Pull the refresh somewhere new
+with `--out`, or pass `--force` to say the local copy is expendable.
 
 ## Deliberately not here yet
 
