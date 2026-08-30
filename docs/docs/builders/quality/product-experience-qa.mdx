@@ -133,12 +133,15 @@ The executable form of this matrix is the versioned test-case catalog:
 Public Website, PWA, Admin Dashboard, Docs. Test IDs are `PUB-`, `PWA-`, `ADM-`, and `DOCS-`;
 installed-device rows keep their `PWA-IOS-`/`PWA-AND-`/`PWA-ROLE-` prefixes inside the merged
 PWA surface, and two legacy `XPLAT-` rows survive from the dissolved Cross Surface tab (retired
-rows keep their historical tabs as an audit trail). `bun run qa:workbook` projects the active
-cases into a simple human-first run sheet: an Overview tab (run info filled once, how-to, live
-per-surface counts) plus one tab per surface with plain-language columns — ID, priority, what we're checking,
-how to check, what should happen, result, severity, notes — grouped by area. Defect records stay
-in the private **Green Goods v1.1 QA** Sheet. Definitions are reviewed in git; results, owners,
-and defect links live only in the run sheet, the Sheet, and Linear — never in this public repo.
+rows keep their historical tabs as an audit trail). Those definitions feed two surfaces: the
+**QA app** (`packages/qa`), which is where testers record during a session, and
+`bun run qa:workbook`, which projects the active cases into a Sheet-compatible run sheet for
+production and installed-device passes — an Overview tab (run info filled once, how-to, live
+per-surface counts) plus one tab per surface with plain-language columns: ID, priority, what
+we're checking, how to check, what should happen, result, severity, notes, grouped by area.
+Defect records stay in the private **Green Goods v1.1 QA** Sheet. Definitions are reviewed in
+git; results, owners, and defect links live only in the QA app's private store, the run sheet,
+the Sheet, and Linear — never in this public repo.
 The journey tables below are the narrative contract those cases decompose.
 
 ### Admin console
@@ -239,14 +242,46 @@ dictating observations; the agent copilots. The loop:
    validatability, and reversibility; everything else defers.
 4. **Fix and revalidate** — accepted fixes are edited live, the founder revalidates through HMR
    in their open tab within the same session, and each fix commits with its OBS id.
-5. **Close** — deferred items hand off to `qa-triage` as a pre-structured session log; results
-   rows go to the run workbook and Sheet; dictated `decision` items pass through a lock gate
+5. **Close** — deferred items hand off to `qa-triage` as a pre-structured session log;
+   `bun run qa:pull` reads the recorded verdicts out of the QA app's store into
+   `results.csv`; dictated `decision` items pass through a lock gate
    into the design decision ledger (`.claude/skills/design/decision-log.md`) so polish rulings
    compound into guidance; a session receipt (results, fixes, environment notes, remaining
    risk) is stored in the private Drive QA folder — never committed.
 
 A recorded dictation transcript of a completed walk runs the same skill in batch mode, with a
 scope-lock gate before any edit and agent-side reproduction per the `debug` protocols.
+
+### Where results are recorded
+
+Verdicts and notes go into the **QA app** (`packages/qa`) — a password-protected deployment
+where each tester keeps their own verdict and their own notes on every case. It is the canonical
+record for any session with network access.
+
+Its one structural idea is worth knowing, because it is what makes a shared session safe: each
+tester writes only their own object in the store, so two people recording the same case at the
+same moment cannot overwrite each other. Disagreement is preserved rather than resolved — a case
+one tester passed and another failed rolls up as `Fail`, with both notes attributed, so the
+reason is visible rather than averaged away.
+
+At close, `bun run qa:pull --slug <slug>` reads the store directly and writes
+`tmp/qa-session/<slug>/results.csv` and `qa-state.json`. Nobody transcribes results by hand.
+Severity is deliberately left blank in that file: how much we care that a case gets walked is
+not how badly the product is broken when it fails, so severity is assigned during triage.
+
+`bun run qa:workbook` remains for the cases the app does not cover — production or
+installed-device passes, and anywhere a Sheet-compatible file is needed.
+
+### Paired sessions
+
+Two testers can walk different surfaces simultaneously, each dictating to their own agent, with
+the app as the shared record. Surfaces are divided up front and overlap is used deliberately —
+for a previously disputed case, a locked decision, or the smoke path — rather than by accident.
+
+Work is handed off a **section** at a time rather than an observation at a time: a tester
+finishes a surface or area, hands that slice to their agent, and keeps walking while the agent
+works. One constraint makes the parallelism safe: a fix touching `packages/shared` is never a
+fix-now in a paired session, because two agents editing common ground conflict at merge.
 
 ### Session environment recipe
 
@@ -378,7 +413,8 @@ one end-to-end experience acceptance contract.
 | Admin defect grammar | Converts observations into route/component/state/expected/actual reports | Admin-focused and defect-driven |
 | `qa-session` skill | Owns the live founder-led loop: pre-flight, OBS capture, fix-now/defer triage, HMR revalidation, decision locking, receipts | New; its autonomous agent-led sweep counterpart is deliberately deferred (see improvement sequence) |
 | `qa-triage` skill | Good intake, enrichment, deduplication, scope lock, and durable issue creation — now also the downstream consumer of qa-session logs | It triages reported signals; it does not execute tests |
-| Versioned test-case catalog | `scripts/data/qa-test-catalog.json` versions all scenario definitions in git (incl. a Docs surface and the absorbed 2025-12 Drive test-case archive); `bun run qa:workbook` generates a simple human-first run sheet | Results still round-trip manually into the private Sheet; the Sheet has no Docs test tab yet |
+| Versioned test-case catalog | `scripts/data/qa-test-catalog.json` versions all scenario definitions in git (incl. a Docs surface and the absorbed 2025-12 Drive test-case archive); `bun run qa:workbook` generates a Sheet-compatible run sheet for device and production passes | The Sheet has no Docs test tab yet |
+| QA app (`packages/qa`) | The recording surface: two testers record their own verdict and notes on the same case simultaneously, with `bun run qa:pull` reading results back into `tmp/` — no manual transcription | Access control is the deployment password only; the API cannot prove a caller is the tester they claim, which is acceptable for a small trusted roster and nothing more |
 | Validation selector | Chooses risk-aware test, build, design, story, and browser checks | It has no `audit` intent even though audit workflows refer to the selector |
 | Storybook | Broad shared/admin coverage, component states, play tests, and an accessibility add-on | Client coverage enforcement is narrow; the accessibility add-on is not a blocking gate; the interaction runner currently leaks live dependencies |
 | Playwright | Client and admin CI projects cover selected critical flows | Default CI is desktop Chromium; mobile is manual; public editorial journeys are lightly covered |

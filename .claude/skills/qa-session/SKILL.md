@@ -1,8 +1,8 @@
 ---
 name: qa-session
 user-invocable: true
-description: Live product-experience QA copilot — the user walks Green Goods flows locally against production data (dev:prod) while dictating observations, or supplies a recorded dictation transcript of such a walk. Captures each observation with a stable OBS ID, triages fix-now vs defer in real time, applies safe fixes in the same running checkout for immediate revalidation, hands deferred items to qa-triage, and locks design decisions at close. Fires on "QA session", "QA walk/walkthrough", "I'll walk the flows and call out issues", "fix live while I test", or a dictated-walk transcript. Not for triaging meeting notes (qa-triage), a single reported bug (debug), or reviewing a diff (review).
-argument-hint: "[<transcript-path>] [--surface admin|pwa|website|docs|all] [--cases <IDs|area>]"
+description: Live product-experience QA copilot — the user walks Green Goods flows locally against production data (dev:prod) while dictating observations, or supplies a recorded dictation transcript of such a walk. Captures each observation with a stable OBS ID, triages fix-now vs defer in real time, applies safe fixes in the same running checkout for immediate revalidation, hands deferred items to qa-triage, and locks design decisions at close. Records verdicts in the QA app (packages/qa) and pulls them back with qa:pull. Supports paired sessions where two testers walk different surfaces at once, each with their own agent. Fires on "QA session", "QA walk/walkthrough", "I'll walk the flows and call out issues", "fix live while I test", "we're QAing together", or a dictated-walk transcript. Not for triaging meeting notes (qa-triage), a single reported bug (debug), or reviewing a diff (review).
+argument-hint: "[<transcript-path>] [--surface admin|pwa|website|docs|all] [--cases <IDs|area>] [--paired]"
 ---
 
 # QA Session Skill
@@ -25,7 +25,9 @@ duplicate them:
 | Casual phrase → `data-component`/`data-region` resolution (admin) | [`design/defect-grammar.md`](../design/defect-grammar.md) |
 | Locked design decisions (DL-NNN ledger, graduation ladder) | [`design/decision-log.md`](../design/decision-log.md) |
 | In-session fast validation rungs (QA Speed Mode) | [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md) § Partial rungs |
-| Test-case definitions (the walk checklist) | `scripts/data/qa-test-catalog.json` + `bun run qa:workbook` |
+| Test-case definitions (the walk checklist) | `scripts/data/qa-test-catalog.json` |
+| **Recording surface** — where testers put verdicts and notes during the walk | [`packages/qa`](../../../packages/qa/README.md) (the QA app), pulled back with `bun run qa:pull` |
+| Sheet-compatible run sheet for production/installed-device passes | `bun run qa:workbook` |
 | Journey matrices, receipt fields, defect labels, evidence hierarchy | `docs/docs/builders/quality/product-experience-qa.mdx` |
 | Pre-merge gate at close | [`ship`](../ship/SKILL.md) |
 
@@ -37,7 +39,9 @@ duplicate them:
 | `/qa-session <transcript-path>` | Batch mode: ingest a recorded dictation transcript of a completed walk |
 | `/qa-session --surface admin` | Scope the session (and the printed walk checklist) to one surface; aliases `admin\|pwa\|website\|docs\|all` (catalog v2 merged the installed-PWA tabs; scope device rows with `--cases PWA-IOS-…`/`PWA-AND-…` instead) |
 | `/qa-session --cases ADM-012,ADM-013` | Scope to specific catalog Test IDs or an `Area` name |
+| `/qa-session --paired` | Two testers walking different surfaces at once, each with their own agent; section-scoped handoffs (§ Paired sessions) |
 | Prose: "starting a QA session", "I'll walk the app and dictate", "fix these live while I test" | Same as `/qa-session` |
+| Prose: "Gui and I are QAing together", "we're both walking", "I'll take PWA, he'll take the website" | Same as `--paired` |
 
 **Boundaries** — route away when:
 
@@ -48,8 +52,12 @@ duplicate them:
 
 ## Mode selection
 
-- **Live copilot** (default): the user is walking now and dictating into the session. Per-item
-  micro-consent — the user is watching, so each fix-now proposal is a one-line ask.
+- **Solo live copilot** (default): one walker, dictating now. Per-item micro-consent — the user
+  is watching, so each fix-now proposal is a one-line ask.
+- **Paired sectioned**: two testers walking different surfaces at once, each dictating to their
+  OWN agent, with the QA app as the shared record. The unit of work is a **section**, not an
+  observation: the walker finishes a surface or area, hands that slice to their agent, and keeps
+  walking while the agent works. See § Paired sessions.
 - **Batch transcript**: the walk already happened; the input is a transcript file. Same phases,
   three deltas (§ Batch mode): parse first, a **scope-lock gate before any edit**, and
   agent-side reproduction/validation per the `debug` protocols with asynchronous founder
@@ -115,11 +123,22 @@ Run before the user starts walking. Print the checklist results compactly; stop 
    current branch** — per `AGENTS.md § Multi-Agent Repo Safety`, never create or switch branches
    without the user explicitly asking for that branch action; branching is decided at the first
    accepted fix (Phase 3), not at session start.
-7. **Walk checklist (optional).** Read `scripts/data/qa-test-catalog.json`, print the in-scope
-   case IDs + scenarios as the walk checklist (`--surface`/`--cases` filters). A generated
-   run sheet (`bun run qa:workbook --local` for local sessions — pre-marks `requiresProduction`
-   cases `Blocked`; omit `--local` for production-run sheets) is the durable results artifact;
-   the checklist is the in-session view of the same rows.
+7. **Recording surface.** The [QA app](../../../packages/qa/README.md) is where verdicts and
+   notes go — it is the canonical record for any session with network access, and it is what
+   `bun run qa:pull` reads at close. Confirm before the walk starts:
+   - the deployment loads and every tester has the password;
+   - each tester has picked their own name under *testing as* — the app cannot prove who you
+     are, so an unpicked name means the work lands unattributed or, worse, under someone else;
+   - on first use after a deploy, the two-browser check from the README ran (both testers record
+     a verdict **and** a note on the same case, both survive).
+
+   The in-session walk checklist is the app itself. Read
+   `scripts/data/qa-test-catalog.json` only to print scope (`--surface`/`--cases`) or when the
+   app is unavailable.
+
+   **`bun run qa:workbook` is now the exception path**, not the default: use it for production
+   or installed-device passes where the app is not in play, and when a Sheet-compatible file is
+   needed. `--local` pre-marks `requiresProduction` cases `Blocked`.
 
 ## Phase 1 — Capture
 
@@ -202,10 +221,25 @@ Per accepted fix (or batched in a fix window):
    meeting notes; this input is agent-authored and structured. qa-triage's PostHog cross-ref,
    scope lock, Linear templates, and Sheet Defects flow run unchanged. If the user is out of
    time, the handoff command is the named next step in the receipt.
-3. **Results rows.** For every catalog case exercised, append to
-   `tmp/qa-session/<slug>/results.csv`: `Test ID, Result (Pass|Fail|Blocked|N/A), Severity,
-   Notes` — matching the run sheet's result columns (build/commit lives once in the receipt
-   header). The user pastes these into the run sheet / Sheet. Results never enter git.
+3. **Results rows — pulled, not transcribed.** Run `bun run qa:pull --slug <slug>`. It reads
+   every tester's shard straight from the Blob store and writes
+   `tmp/qa-session/<slug>/results.csv` (`Test ID, Result, Severity, Notes`) plus
+   `qa-state.json`. It reads the store rather than the app, so it works while the deployment is
+   password-protected and still works if the deployment is down. Nobody retypes anything.
+
+   Three properties of that file to know before reading it:
+   - **Severity is blank by design.** How much we care that a case gets walked is not how badly
+     the product is broken when it fails — severity is assigned in triage, per
+     [`qa-triage/sheet-schema.md`](../qa-triage/sheet-schema.md).
+   - **Notes are attributed** (`Afo: … | Gui: …`). Two testers disagreeing is signal; never
+     collapse it to one voice.
+   - **A case's Result is the most severe verdict any tester recorded** — fail > blocked > pass
+     > n/a. A case one tester passed and another failed reads `Fail`, and the attributed notes
+     are how you see why.
+
+   A recorded case that is no longer in the catalog appears as an `UNKNOWN CASE` row rather than
+   being dropped, so the run sheet and the catalog stay reconcilable. Results never enter git;
+   `tmp/` is gitignored and this repo is public.
 4. **Decision lock gate.** List all `decision` OBS verbatim and ask: *"Lock which of these as
    design decisions? (numbers / all / none)"*. Locked ones append to
    [`design/decision-log.md`](../design/decision-log.md) as `DL-NNN` rows (`Status: locked`),
@@ -220,7 +254,8 @@ Per accepted fix (or batched in a fix window):
    pixels, and Drive access restriction never replaces content inspection:
    - **Text artifacts** (`receipt.md`, `results.csv`, logs): qa-triage's privacy grep (replay
      URLs, session IDs, distinct IDs, `0x` addresses, reporter identifiers) — on a match,
-     redact or stop.
+     redact or stop. `results.csv` now carries tester names in its Notes column, which is
+     intended for the Drive folder and disqualifying for anywhere public.
    - **Media artifacts** (screenshots, recordings): explicit VISUAL inspection — the agent
      re-opens each captured image and checks its rendered content for wallet addresses,
      session/replay values, or reporter identity, listing anything found for redaction or
@@ -240,6 +275,50 @@ Per accepted fix (or batched in a fix window):
    `tmp/qa-session/<slug>/` only after the handoff completed AND every retained artifact
    (receipt, results, screenshots/recordings) is uploaded — deleting first destroys the visual
    proof behind filed defects. Keep the directory for resume on failure or interruption.
+
+## Paired sessions (two testers, two agents)
+
+Two people walk different surfaces at the same time, each dictating to their own agent. The QA
+app is the shared record; the OBS log and the fix branch are **per walker**. Nothing about this
+mode is shared between the two agents except the app — which is exactly why it works: each
+tester writes only their own shard, so simultaneous recording cannot collide.
+
+**Division of labour.** Split by surface, and use overlap deliberately rather than by accident:
+
+- Each tester owns whole surfaces for the session (e.g. one takes PWA, the other Public
+  Website). Agree the split in the session header before anyone starts.
+- Use the app's *showing* selector to check what your partner has already covered before walking
+  something outside your split — the point of the split is to spend the hour on breadth.
+- Deliberate overlap is for cases where a second opinion is worth more than a second surface:
+  anything previously disputed, anything a decision was locked on, and the smoke path. Recording
+  the same case twice is supported and is signal, not duplication.
+
+**The section is the unit.** Unlike solo mode's per-observation micro-consent, work is handed
+off a slice at a time:
+
+1. Walk a section — one surface, or one `Area` within it. Dictate observations as normal;
+   verdicts and short notes go in the app, narrative goes in the OBS log.
+2. When the section is done, say so. The agent restates the slice for confirmation: the section
+   name, its catalog case IDs, and the OBS items raised in it with proposed dispositions.
+3. On the walker's go, the agent works that slice while the walker starts the next section.
+   Phase 3's fix rules still bind (≤30 min, ≤3 files, presentation-level blast radius,
+   reversible) — the timebox is now per slice, not per observation.
+4. The walker revalidates when they return to that section, or at close. Fixes are no longer
+   HMR-immediate under the walker's eye, so **the agent states plainly what it could not verify
+   itself** rather than implying the walker watched it land.
+
+**Two agents, one codebase — the collision rule.** Each walker's agent works in that walker's own
+checkout and produces its own branch and PR. The surface split keeps most fixes disjoint, but
+`packages/shared` is common ground and two agents editing it in parallel conflict at merge.
+So: **a fix that touches `packages/shared` is not a fix-now in paired mode.** Defer it, name it
+in the handoff, and let one agent take it after the session with the other's slice merged. The
+same-checkout guard (Phase 0.1) applies per walker — a fix must land in the checkout serving
+that walker's ports.
+
+**Close is shared, once.** A single `bun run qa:pull` collects both testers' work; it does not
+need running per person. Each walker still produces their own OBS log, deferred handoff, and
+receipt, because dispositions and fixes are theirs. The decision lock gate (Phase 4.4) runs
+**once, together** — a design ruling is not per walker.
 
 ## Batch mode (recorded transcript)
 
@@ -273,8 +352,14 @@ close-out validation or its failure is recorded in the receipt.
   (e.g. an isolated sandbox vs Claude Code with the authenticated Brave profile vs human-only).
 - **Letting the timebox slide.** 30 minutes means abandon, revert, defer — the session's value
   is breadth with immediate validation, not one deep rabbit hole.
-- **Writing results into git.** Definitions live in the catalog; results live in the workbook,
-  Sheet, and Drive.
+- **Writing results into git.** Definitions live in the catalog; results live in the QA app's
+  private store, the pulled `tmp/` artifacts, and Drive. This repo is public.
+- **Transcribing results by hand.** `bun run qa:pull` reads the store. Retyping verdicts into a
+  sheet reintroduces the transcription errors the app exists to remove.
+- **Fixing shared code in a paired session.** Two agents editing `packages/shared` in parallel
+  conflict at merge. Defer it and name it in the handoff.
+- **Recording without picking a name.** The app cannot prove who a caller is. An unpicked
+  *testing as* means the walk lands unattributed or under the wrong person.
 
 ## Related Skills
 
