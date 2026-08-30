@@ -29,20 +29,16 @@ const NONCE_TTL_MS = 5 * 60 * 1000;
 export const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 export const SESSION_COOKIE = "qa_session";
 
-export interface Allowed {
-  address: string;
-  person: string;
-}
-
 /**
- * The address → tester map, from `QA_ALLOWLIST` as
- * `{"0xabc…":"Afo","0xdef…":"Gui"}`.
+ * The addresses allowed to record, from `QA_ALLOWLIST` as a JSON array:
+ * `["0xabc…","0xdef…"]`.
  *
- * It lives in the environment rather than in git on purpose. The addresses
- * themselves are public chain data, but binding them to teammates' names in a
- * public repository publishes a durable identity linkage nobody asked for.
+ * Addresses only, no names. A tester's display name is theirs to declare and
+ * lives inside their own shard — the allowlist answers "may this wallet
+ * record", which is a different question from "what should we call them", and
+ * keeping them apart means adding a teammate never means editing two things.
  */
-export function parseAllowlist(raw: string | undefined): Allowed[] {
+export function parseAllowlist(raw: string | undefined): string[] {
   if (!raw?.trim()) return [];
   let parsed: unknown;
   try {
@@ -50,26 +46,20 @@ export function parseAllowlist(raw: string | undefined): Allowed[] {
   } catch {
     throw new Error("QA_ALLOWLIST is not valid JSON");
   }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("QA_ALLOWLIST must be a JSON object of address -> name");
+  if (!Array.isArray(parsed)) {
+    throw new Error('QA_ALLOWLIST must be a JSON array of addresses, e.g. ["0xabc…","0xdef…"]');
   }
-  const entries: Allowed[] = [];
-  for (const [address, person] of Object.entries(parsed as Record<string, unknown>)) {
-    if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
-      throw new Error(`QA_ALLOWLIST key is not an address: ${address.slice(0, 12)}…`);
+  return parsed.map((address) => {
+    if (typeof address !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(address)) {
+      throw new Error(`QA_ALLOWLIST entry is not an address: ${String(address).slice(0, 16)}…`);
     }
-    if (typeof person !== "string" || !person.trim()) {
-      throw new Error(`QA_ALLOWLIST value for ${address.slice(0, 8)}… is not a name`);
-    }
-    entries.push({ address: address.toLowerCase(), person: person.trim() });
-  }
-  return entries;
+    return address.toLowerCase();
+  });
 }
 
 /** Case-insensitive because address casing is a checksum, not an identity. */
-export function findAllowed(allowlist: Allowed[], address: string): Allowed | null {
-  const wanted = address.toLowerCase();
-  return allowlist.find((entry) => entry.address === wanted) ?? null;
+export function isAllowed(allowlist: string[], address: string): boolean {
+  return allowlist.includes(address.toLowerCase());
 }
 
 async function hmac(secret: string, payload: string): Promise<string> {
@@ -166,7 +156,7 @@ export interface VerifyInput {
   message: string;
   signature: string;
   secret: string;
-  allowlist: Allowed[];
+  allowlist: string[];
   expectedDomain: string;
   now: number;
 }
@@ -177,7 +167,7 @@ export interface VerifyInput {
  * Every rejection returns the same shape so a caller cannot learn which check
  * failed beyond what the tester needs to act on.
  */
-export async function verifySignIn(input: VerifyInput): Promise<{ person: string; address: string } | { error: string }> {
+export async function verifySignIn(input: VerifyInput): Promise<{ address: string } | { error: string }> {
   const parsed = parseSiweMessage(input.message);
   if (!parsed) return { error: "malformed sign-in message" };
   // Domain binding: a signature captured on another site must not work here.
@@ -197,9 +187,10 @@ export async function verifySignIn(input: VerifyInput): Promise<{ person: string
   if (recovered.toLowerCase() !== parsed.address.toLowerCase()) {
     return { error: "signature does not match the stated address" };
   }
-  const allowed = findAllowed(input.allowlist, recovered);
-  if (!allowed) return { error: "this address is not on the QA allowlist" };
-  return { person: allowed.person, address: allowed.address };
+  if (!isAllowed(input.allowlist, recovered)) {
+    return { error: "this address is not on the QA allowlist" };
+  }
+  return { address: recovered.toLowerCase() };
 }
 
 /** `<address>.<expiry>.<hmac>` — self-describing, self-expiring, unforgeable. */

@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 
 import { existingArtifacts, parseArgs, parseShard, SESSION_ARTIFACTS } from "./qa-state-pull";
 
+/** Shards live at their owner address. */
+const PATH = "qa/entries/0x2aa64e6d80390f5c017f0313cb908051be2fd35e.json";
+
 const repoRoot = path.join(import.meta.dirname, "..", "..");
 
 describe("qa:pull output boundary", () => {
@@ -59,30 +62,37 @@ describe("qa:pull shard validation", () => {
   });
 
   it("accepts a well-formed shard", () => {
-    expect(parseShard("Afo", good).entries["PUB-014"].s).toBe("fail");
+    expect(parseShard(PATH, good).entries["PUB-014"].s).toBe("fail");
   });
 
   it("fails the pull rather than dropping a tester whose shard is malformed", () => {
     // mergeShards skips a shape it does not recognise, which is right for a
     // merge and wrong for ingestion: silently skipping here writes a
     // complete-LOOKING run sheet with somebody's whole session missing.
-    expect(() => parseShard("Afo", "not json")).toThrow(/not valid JSON/i);
-    expect(() => parseShard("Afo", "null")).toThrow(/not an object/i);
-    expect(() => parseShard("Afo", "[]")).toThrow(/not an object/i);
-    expect(() => parseShard("Afo", '{"person":"Afo"}')).toThrow(/no entries object/i);
-    expect(() => parseShard("Afo", '{"person":"Afo","entries":[]}')).toThrow(/no entries object/i);
+    expect(() => parseShard(PATH, "not json")).toThrow(/not valid JSON/i);
+    expect(() => parseShard(PATH, "null")).toThrow(/not an object/i);
+    expect(() => parseShard(PATH, "[]")).toThrow(/not an object/i);
+    expect(() => parseShard(PATH, '{"person":"Afo"}')).toThrow(/no entries object/i);
+    expect(() => parseShard(PATH, '{"address":"0x2aa64e6d80390f5c017f0313cb908051be2fd35e","entries":[]}')).toThrow(/no entries object/i);
   });
 
   it("refuses a shard filed under the wrong owner", () => {
-    expect(() => parseShard("Afo", '{"person":"Gui","entries":{}}')).toThrow(/owner as "Gui"/);
-    expect(() => parseShard("Afo", '{"entries":{}}')).toThrow(/owner as null/);
+    // The path names the owner. A shard claiming a different address is not
+    // what its path says it is, whatever display name it carries.
+    expect(() => parseShard(PATH, '{"address":"0x22682c3d3848294ff9bcbf3f0ddf48a605446b56","entries":{}}')).toThrow(/owner as/);
+  });
+
+  it("accepts a shard whose display name changed, since the name is not the key", () => {
+    expect(parseShard(PATH, '{"address":"0x2aa64e6d80390f5c017f0313cb908051be2fd35e","person":"Afo the second","entries":{}}').person).toBe(
+      "Afo the second",
+    );
   });
 
   it("refuses an entry that is not a verdict and a note", () => {
-    expect(() => parseShard("Afo", '{"person":"Afo","entries":{"PUB-014":null}}')).toThrow(
+    expect(() => parseShard(PATH, '{"address":"0x2aa64e6d80390f5c017f0313cb908051be2fd35e","entries":{"PUB-014":null}}')).toThrow(
       /PUB-014 is malformed/,
     );
-    expect(() => parseShard("Afo", '{"person":"Afo","entries":{"PUB-014":{"s":"fail"}}}')).toThrow(
+    expect(() => parseShard(PATH, '{"address":"0x2aa64e6d80390f5c017f0313cb908051be2fd35e","entries":{"PUB-014":{"s":"fail"}}}')).toThrow(
       /PUB-014 is malformed/,
     );
   });

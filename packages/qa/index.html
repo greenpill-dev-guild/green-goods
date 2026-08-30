@@ -78,6 +78,8 @@
   .signin-card { max-width:400px; text-align:center; }
   .signin-card h2 { margin:0 0 10px; font-size:20px; }
   .signin-card p { color:var(--soft); margin:0 0 18px; font-size:14px; line-height:1.55; }
+  #signin-name { display:block; width:100%; margin:0 0 14px; padding:10px 12px; font:inherit;
+    border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); }
   #signin-btn { border:1px solid var(--green); background:var(--green); color:#fff;
     border-radius:8px; padding:11px 20px; font:inherit; font-weight:600; cursor:pointer; }
   #signin-btn:disabled { opacity:.6; cursor:progress; }
@@ -584,6 +586,54 @@
     }
   }
 
+  /**
+   * Ask a newly allowlisted tester what to call them, once.
+   *
+   * The allowlist holds addresses only, so the first thing a new tester needs
+   * is a label for their own shard. Without it their entries would read as
+   * `0x2aa6…d35e` in the run sheet, which is legible to nobody triaging a
+   * defect at eight in the morning.
+   */
+  function askForName(address) {
+    const panel = document.getElementById("signin");
+    document.getElementById("signin-why").textContent =
+      "Signed in as " + address + ". What should your notes be attributed to?";
+    const button = document.getElementById("signin-btn");
+    button.textContent = "Save my name";
+    const field = document.createElement("input");
+    field.id = "signin-name";
+    field.type = "text";
+    field.maxLength = 32;
+    field.placeholder = "e.g. Afo";
+    field.autocomplete = "off";
+    button.parentNode.insertBefore(field, button);
+    panel.hidden = false;
+    field.focus();
+
+    const submit = async () => {
+      const chosen = field.value.trim();
+      if (!chosen) return;
+      button.disabled = true;
+      try {
+        const response = await fetch("/api/state", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ person: chosen, entries: {} }),
+        });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        location.reload();
+      } catch (error) {
+        const problem = document.getElementById("signin-err");
+        problem.textContent = "Could not save that name. Try again.";
+        problem.hidden = false;
+        button.disabled = false;
+      }
+    };
+    button.removeEventListener("click", signIn);
+    button.addEventListener("click", submit);
+    field.addEventListener("keydown", (event) => { if (event.key === "Enter") submit(); });
+  }
+
   function showSignIn(reason) {
     const panel = document.getElementById("signin");
     if (reason) document.getElementById("signin-why").textContent = reason;
@@ -788,6 +838,11 @@
         if (Array.isArray(data.team) && data.team.length) TEAM = data.team;
         // The server names you from your signed session. The page never guesses.
         who = typeof data.you === "string" ? data.you : "";
+        // Allowlisted but unnamed: ask once, then reload into a named session.
+        if (data.named === false && data.address) {
+          askForName(data.address);
+          return;
+        }
       } else if (stateResponse.status === 401) {
         showSignIn();
         return;

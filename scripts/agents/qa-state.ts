@@ -13,9 +13,19 @@
 
 import type { CatalogCase } from "./qa-workbook-build";
 
-/** The testers who can own a shard. Mirrors packages/qa/api/state.ts. */
-export const ROSTER = ["Afo", "Nansel", "Gui"] as const;
-export type Person = (typeof ROSTER)[number];
+/**
+ * Testers are discovered from the store, not declared here.
+ *
+ * Shards are keyed by owner address and carry a self-declared display name, so
+ * a fixed roster in code would go stale the moment somebody is added, removed,
+ * or renames themselves. `mergeShards` labels each shard by the name inside it.
+ */
+export type Person = string;
+
+/** What to call a tester who has not named themselves yet. Mirrors api/state.ts. */
+export function fallbackName(address: string): string {
+  return `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
 
 export interface Entry {
   s: string;
@@ -24,7 +34,10 @@ export interface Entry {
 }
 
 export interface Shard {
-  person: string;
+  /** Lowercase owner address — the identity the shard is keyed by. */
+  address?: string;
+  /** Self-declared display name; empty until the tester sets one. */
+  person?: string;
   updatedAt?: string;
   entries: Record<string, Entry>;
 }
@@ -45,10 +58,14 @@ const RESULT_LABEL: Record<string, string> = {
 export function mergeShards(shards: Array<Shard | null | undefined>): MergedEntries {
   const merged: MergedEntries = {};
   for (const shard of shards) {
-    if (!shard?.entries || typeof shard.person !== "string") continue;
+    if (!shard?.entries) continue;
+    // Label by the declared name, falling back to the short address so a tester
+    // who has not named themselves still appears rather than vanishing.
+    const label = shard.person?.trim() || (shard.address ? fallbackName(shard.address) : "");
+    if (!label) continue;
     for (const [caseId, entry] of Object.entries(shard.entries)) {
       if (!entry || (!entry.s && !(entry.n || "").trim())) continue;
-      (merged[caseId] ??= {})[shard.person] = entry;
+      (merged[caseId] ??= {})[label] = entry;
     }
   }
   return merged;
@@ -166,11 +183,11 @@ function summarizeVerdicts(cases: CatalogCase[], merged: MergedEntries): Verdict
 
 /** Per-tester, per-surface, and overall counts for receipts and privacy-safe coverage output. */
 export function summarize(cases: CatalogCase[], merged: MergedEntries) {
+  // Testers are whoever actually appears in the merged view, since the roster
+  // is discovered from the store rather than declared in code.
+  const people = [...new Set(Object.values(merged).flatMap((byPerson) => Object.keys(byPerson)))].sort();
   const perPerson = Object.fromEntries(
-    ROSTER.map((person) => [
-      person,
-      cases.filter((testCase) => merged[testCase.id]?.[person]).length,
-    ]),
+    people.map((person) => [person, cases.filter((testCase) => merged[testCase.id]?.[person]).length]),
   );
   const tabs = [...new Set(cases.map((testCase) => testCase.tab))];
   const perTab = Object.fromEntries(
