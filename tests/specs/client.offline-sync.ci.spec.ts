@@ -27,6 +27,17 @@ async function setupMockedEnvironment(page: import("@playwright/test").Page) {
   return setupAuthenticatedClient(page);
 }
 
+/**
+ * Wait until the PWA app shell (AppBar and its lazily imported route module)
+ * is actually mounted. The boot fallback clears before the router resolves
+ * the authed shell, so going offline any earlier turns the pending dynamic
+ * import of AppShell.tsx into a chunk-load error and the update-recovery
+ * screen — instead of the offline indicator these tests assert on.
+ */
+async function waitForAppShell(page: import("@playwright/test").Page) {
+  await page.getByTestId("authenticated-nav").waitFor({ timeout: 30000 });
+}
+
 async function waitForActiveServiceWorker(page: import("@playwright/test").Page) {
   const prerequisites = await page.evaluate(() => ({
     secureContext: window.isSecureContext,
@@ -90,6 +101,7 @@ test.describe("Offline Sync CI Tests", () => {
       const helper = await setupMockedEnvironment(page);
       await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
       await helper.waitForPageLoad();
+      await waitForAppShell(page);
 
       await context.setOffline(true);
       await expect(page.getByRole("status", { name: "App is in offline mode" })).toBeVisible({
@@ -104,6 +116,7 @@ test.describe("Offline Sync CI Tests", () => {
       const helper = await setupMockedEnvironment(page);
       await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
       await helper.waitForPageLoad();
+      await waitForAppShell(page);
 
       await context.setOffline(true);
       const offlineStatus = page.getByRole("status", { name: "App is in offline mode" });

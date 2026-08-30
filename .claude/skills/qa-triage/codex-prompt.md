@@ -91,6 +91,7 @@ For every item, fill the JSON schema at `schema.json` strictly. One item per JSO
 ## Surface vocabulary (use these exact strings)
 
 - `Public Website` — client editorial routes (/, /gardens, /fund, /impact, /actions, /cookies on the public site)
+- `PWA` — the client app as one merged surface: desktop PWA shell or device-unspecified observations (catalog v2's active tab; use the platform values below only when the notes name a device)
 - `PWA iOS` — installed PWA on iOS Safari
 - `PWA Android` — installed PWA on Android Chrome
 - `Admin Dashboard` — admin cockpit (Hub, MainSheet, AdminDialog overlays, AdminSideSheet, FabButton, /hub/*, /garden/*, /community/*)
@@ -115,7 +116,7 @@ For every item, include the verbatim quote from the notes that grounds the extra
 
 ## Test ID matching
 
-If a note explicitly references a Test ID from the QA workbook or repo catalog (pattern: `PUB-NNN`, `PWA-IOS-NNN`, `PWA-AND-NNN`, `ADM-NNN`, `XPLAT-NNN`, `PWA-ROLE-NNN`, `DOCS-NNN`), include it in the `linked_test_id` field. Otherwise leave that field empty.
+If a note explicitly references a Test ID from the QA workbook or repo catalog (pattern: `PUB-NNN`, `PWA-NNN`, `PWA-IOS-NNN`, `PWA-AND-NNN`, `PWA-ROLE-NNN`, `ADM-NNN`, `XPLAT-NNN`, `DOCS-NNN`), include it in the `linked_test_id` field. Otherwise leave that field empty.
 
 ## Output
 
@@ -173,6 +174,7 @@ property is required; optional fields stay optional by allowing `null`.
             "type": "string",
             "enum": [
               "Public Website",
+              "PWA",
               "PWA iOS",
               "PWA Android",
               "Admin Dashboard",

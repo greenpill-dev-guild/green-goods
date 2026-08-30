@@ -4,7 +4,7 @@ sidebar_label: Test Cases
 slug: /builders/quality/test-cases
 audience: developer
 owner: docs
-last_verified: 2026-08-28
+last_verified: 2026-08-30
 feature_status: In progress
 source_of_truth:
   - package.json
@@ -73,8 +73,9 @@ The future structured catalog should map test cases to source-backed scripts, wo
 
 :::info Canonical catalog
 Product-experience test cases are now maintained as a checked-in catalog:
-`scripts/data/qa-test-catalog.json` versions the scenario definitions across Public
-Website, PWA iOS, PWA Android, Admin Dashboard, Cross Surface, and Docs (the catalog itself is
+`scripts/data/qa-test-catalog.json` (v2) versions the scenario definitions across Public
+Website, PWA, Admin Dashboard, and Docs — the installed-PWA iOS/Android tabs merged into one
+PWA surface and Cross Surface dissolved into per-surface rows (the catalog itself is
 the count of record), and
 `bun run qa:workbook` generates per-run Excel workbooks from it. See
 [Product Experience QA](/builders/quality/product-experience-qa) for the journey matrices and

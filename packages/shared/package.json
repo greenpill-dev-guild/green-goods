@@ -241,6 +241,7 @@
     "./i18n/pt.json": "./src/i18n/pt.json",
     "./lib/hypercerts/constants": "./src/lib/hypercerts/constants.ts",
     "./lib/hypercerts/distribution": "./src/lib/hypercerts/distribution.ts",
+    "./modules/app/analytics-events": "./src/modules/app/analytics-events.ts",
     "./modules/app/error-events": "./src/modules/app/error-events.ts",
     "./modules/app/logger": "./src/modules/app/logger.ts",
     "./modules/data/hypercerts-filters": "./src/modules/data/hypercerts-filters.ts",
