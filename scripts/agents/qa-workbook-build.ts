@@ -54,14 +54,15 @@ export const TAB_PREFIXES: Record<string, readonly string[]> = {
 };
 
 /** Installed-device rows keep their platform-specific id prefix on the merged PWA tab. */
-export const INSTALLED_PWA_PREFIXES = ["PWA-IOS-", "PWA-AND-", "PWA-ROLE-"] as const;
+const INSTALLED_PWA_PREFIXES = ["PWA-IOS-", "PWA-AND-", "PWA-ROLE-"] as const;
 
+// ios/android aliases were removed with the tab merge: they can no longer
+// narrow to a platform, and silently returning the whole PWA tab would make a
+// device-specific run sheet misleading. An unknown surface fails loudly.
 const SURFACE_ALIASES: Record<string, string[]> = {
   website: ["Public Website"],
   public: ["Public Website"],
   pwa: ["PWA"],
-  ios: ["PWA"],
-  android: ["PWA"],
   admin: ["Admin Dashboard"],
   docs: ["Docs"],
 };
@@ -253,25 +254,31 @@ export function validateCatalog(catalog: Catalog): string[] {
     if (!["active", "retired"].includes(testCase.status)) {
       problems.push(`${testCase.id}: status '${testCase.status}' not active|retired`);
     }
+    // The immutable case definition stays valid forever, retired or not —
+    // retired rows are the historical audit record, not a validation escape.
+    const prefix = Object.keys(TAB_PREFIXES).find((candidate) =>
+      testCase.id.startsWith(candidate),
+    );
+    if (!prefix) {
+      problems.push(`${testCase.id}: id has no registered prefix`);
+    }
+    if (!testCase.steps.length || testCase.steps.some((step) => !step.trim())) {
+      problems.push(`${testCase.id}: empty steps`);
+    }
+    if (!testCase.expected.trim()) problems.push(`${testCase.id}: empty expected`);
+    if (!testCase.scenario.trim()) problems.push(`${testCase.id}: empty scenario`);
     if (testCase.status === "active") {
-      // Tab and prefix membership only bind active rows: retired rows freeze
-      // their historical tab (e.g. "PWA iOS", "Cross Surface") as an audit trail.
+      // Only current-tab membership and prefix→tab binding are active-scoped:
+      // retired rows freeze their historical tab (e.g. "PWA iOS", "Cross Surface").
       if (!catalog.tabs.includes(testCase.tab)) {
         problems.push(`${testCase.id}: unknown tab '${testCase.tab}'`);
       }
-      const prefix = Object.keys(TAB_PREFIXES).find((candidate) =>
-        testCase.id.startsWith(candidate),
-      );
-      if (!prefix) {
-        problems.push(`${testCase.id}: id has no registered prefix`);
-      } else if (!TAB_PREFIXES[prefix].includes(testCase.tab)) {
+      if (prefix && !TAB_PREFIXES[prefix].includes(testCase.tab)) {
         problems.push(`${testCase.id}: prefix ${prefix} does not belong on tab '${testCase.tab}'`);
       }
-      if (!testCase.steps.length || testCase.steps.some((step) => !step.trim())) {
-        problems.push(`${testCase.id}: empty steps`);
+      if (testCase.tags?.includes("transaction")) {
+        problems.push(`${testCase.id}: legacy tag 'transaction' — use 'tx'`);
       }
-      if (!testCase.expected.trim()) problems.push(`${testCase.id}: empty expected`);
-      if (!testCase.scenario.trim()) problems.push(`${testCase.id}: empty scenario`);
       // Installed-device rows (PWA-IOS-/PWA-AND-/PWA-ROLE-) can never pass on a
       // desktop-local walk, so each must carry a capability flag that pre-blocks
       // it in --local run sheets. Generic PWA- desktop-journey rows are exempt.

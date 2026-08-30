@@ -274,7 +274,7 @@
       "expected": "Queued item flushes once with no duplicate work",
       "evidence": "Screen recording plus queue/status screenshot",
       "role": "gardener",
-      "tags": ["offline", "sync", "queue"],
+      "tags": ["offline", "sync", "queue", "tx"],
       "requiresProduction": false,
       "requiresDevice": true,
       "status": "active",
@@ -310,7 +310,7 @@
       "expected": "Work leaves pending state and UI does not show stale status",
       "evidence": "Screen recording plus account role",
       "role": "steward",
-      "tags": ["review", "roles"],
+      "tags": ["review", "roles", "tx"],
       "requiresProduction": false,
       "requiresDevice": true,
       "status": "active",
@@ -328,7 +328,7 @@
       "expected": "Rejected state is visible and retry/review path remains clear",
       "evidence": "Screen recording plus account role",
       "role": "steward",
-      "tags": ["review", "roles"],
+      "tags": ["review", "roles", "tx"],
       "requiresProduction": false,
       "requiresDevice": true,
       "status": "active",
@@ -536,7 +536,7 @@
       "expected": "Queued item remains visible and flushes once",
       "evidence": "Screen recording plus queue/status screenshot",
       "role": "gardener",
-      "tags": ["offline", "sync", "queue"],
+      "tags": ["offline", "sync", "queue", "tx"],
       "requiresProduction": false,
       "requiresDevice": true,
       "status": "active",
@@ -572,7 +572,7 @@
       "expected": "Work leaves pending state and UI does not show stale status",
       "evidence": "Screen recording plus account role",
       "role": "steward",
-      "tags": ["review", "roles"],
+      "tags": ["review", "roles", "tx"],
       "requiresProduction": false,
       "requiresDevice": true,
       "status": "active",
@@ -590,7 +590,7 @@
       "expected": "Rejected state is visible and retry/review path remains clear",
       "evidence": "Screen recording plus account role",
       "role": "steward",
-      "tags": ["review", "roles"],
+      "tags": ["review", "roles", "tx"],
       "requiresProduction": false,
       "requiresDevice": true,
       "status": "active",
@@ -717,7 +717,7 @@
       "expected": "Disabled/loading/error states are explicit before transaction",
       "evidence": "Screenshot",
       "role": "steward",
-      "tags": ["certify", "transaction"],
+      "tags": ["certify", "tx"],
       "requiresProduction": false,
       "status": "active",
       "source": "sheet-v1.1"
@@ -946,7 +946,7 @@
       "expected": "Invalid fields are caught, review precedes any transaction, chain progress is honest, and completion or cancel lands somewhere usable",
       "evidence": "Screenshots of validation, review, and landing",
       "role": "deployer",
-      "tags": ["garden", "lifecycle", "transaction"],
+      "tags": ["garden", "lifecycle", "tx"],
       "requiresProduction": false,
       "status": "active",
       "source": "mdx-matrix"
@@ -991,7 +991,7 @@
       "expected": "A second decision is blocked or disabled; a failed approval transaction surfaces an error and the submission stays Pending — status never lies",
       "evidence": "Screenshots of the blocked second decision and the failure state",
       "role": "steward",
-      "tags": ["review", "transaction", "integrity"],
+      "tags": ["review", "tx", "integrity"],
       "requiresProduction": false,
       "status": "active",
       "source": "drive-test-cases-2025-12"
@@ -1236,7 +1236,7 @@
       "priority": "P1",
       "area": "Locale Quality",
       "scenario": "Portuguese/Spanish render dates, plurals, and diacritics on the client",
-      "preconditions": ["Production data"],
+      "preconditions": ["Production data (via local dev:prod or hosted)"],
       "steps": [
         "Switch the app to pt, then es",
         "Review dates, plurals, and diacritics on real records"
@@ -1311,7 +1311,10 @@
       "priority": "P0",
       "area": "Funding",
       "scenario": "Donate end to end from /fund: token pick, USD⇄WETH switch, connect-from-card, approve+deposit, reject recovery",
-      "preconditions": ["dev:prod or production", "Wallet with test funds"],
+      "preconditions": [
+        "Local dev:prod stack (production data) or hosted production",
+        "Wallet with test funds"
+      ],
       "steps": [
         "Open /fund and pick a garden row",
         "Choose token (DAI/WETH) and flip the USD⇄WETH denomination",
@@ -1334,7 +1337,10 @@
       "priority": "P0",
       "area": "Funding",
       "scenario": "Endow a garden from /fund incl. approval-reset path and no-vault message",
-      "preconditions": ["dev:prod or production", "Wallet with test funds"],
+      "preconditions": [
+        "Local dev:prod stack (production data) or hosted production",
+        "Wallet with test funds"
+      ],
       "steps": [
         "Open /fund, choose a garden with a vault, switch to Endow",
         "Submit an amount; sign reset/approve/deposit as prompted",
@@ -1376,7 +1382,10 @@
       "priority": "P0",
       "area": "Funding",
       "scenario": "Campaign vault checkout on /vaults: amount, connect, wrap ETH if needed, multi-step endow",
-      "preconditions": ["dev:prod or production", "Wallet with ETH"],
+      "preconditions": [
+        "Local dev:prod stack (production data) or hosted production",
+        "Wallet with ETH"
+      ],
       "steps": [
         "Open /vaults and pick an endow-enabled campaign",
         "Enter an amount, connect, follow the step counter through wrap/approve/deposit",
@@ -1524,7 +1533,7 @@
       "priority": "P1",
       "area": "Impact",
       "scenario": "Impact filters, pagination, evidence drawer, and Cite this record",
-      "preconditions": ["Production data"],
+      "preconditions": ["Production data (via local dev:prod or hosted)"],
       "steps": [
         "Open /impact",
         "Apply kind/domain/garden filters and page through results",
@@ -2256,7 +2265,7 @@
       "evidence": "List of drifted pages",
       "role": "gardener account",
       "tags": ["guide-truth"],
-      "requiresProduction": false,
+      "requiresProduction": true,
       "status": "active",
       "source": "qa-session-2026-08-29"
     },
@@ -2277,7 +2286,7 @@
       "evidence": "List of drifted pages",
       "role": "steward account",
       "tags": ["guide-truth"],
-      "requiresProduction": false,
+      "requiresProduction": true,
       "status": "active",
       "source": "qa-session-2026-08-29"
     },
@@ -2297,7 +2306,7 @@
       "evidence": "List of drifted pages",
       "role": "none",
       "tags": ["guide-truth"],
-      "requiresProduction": false,
+      "requiresProduction": true,
       "status": "active",
       "source": "qa-session-2026-08-29"
     },
@@ -2505,7 +2514,7 @@
       "evidence": "Screenshot of preview render",
       "role": "none",
       "tags": ["seo-and-meta"],
-      "requiresProduction": false,
+      "requiresProduction": true,
       "status": "active",
       "source": "qa-session-2026-08-29"
     },

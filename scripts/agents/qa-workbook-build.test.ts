@@ -100,6 +100,29 @@ describe("validateCatalog", () => {
     expect(validateCatalog({ version: 2, tabs, cases: [onPwa, retiredLegacy] })).toEqual([]);
     expect(validateCatalog({ version: 2, tabs, cases: [onAdmin] })).not.toEqual([]);
   });
+
+  it("still validates the immutable definition of retired rows", () => {
+    // Retirement frees a row from current-tab membership, never from content
+    // integrity — the audit record must stay readable.
+    const gutted = makeCase({
+      id: "XPLAT-002",
+      tab: "Cross Surface",
+      status: "retired",
+      steps: [],
+      expected: "",
+    });
+    const problems = validateCatalog({ version: 2, tabs, cases: [gutted] });
+    expect(problems.some((problem) => problem.includes("empty steps"))).toBe(true);
+    expect(problems.some((problem) => problem.includes("empty expected"))).toBe(true);
+  });
+
+  it("rejects the legacy 'transaction' tag on active rows", () => {
+    const legacy = makeCase({ tags: ["transaction"] });
+    const canonical = makeCase({ id: "ADM-002", tags: ["tx"] });
+    const problems = validateCatalog({ version: 2, tabs, cases: [legacy, canonical] });
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/legacy tag 'transaction'/);
+  });
 });
 
 describe("howToCheck", () => {
@@ -232,7 +255,6 @@ describe("resolveSurfaceFilter", () => {
 
   it("resolves aliases and exact tab names", () => {
     expect(resolveSurfaceFilter("pwa", tabs)).toEqual(["PWA"]);
-    expect(resolveSurfaceFilter("ios", tabs)).toEqual(["PWA"]);
     expect(resolveSurfaceFilter("admin,docs", tabs)).toEqual(["Admin Dashboard", "Docs"]);
     expect(resolveSurfaceFilter("Public Website", tabs)).toEqual(["Public Website"]);
     expect(resolveSurfaceFilter("all", tabs)).toEqual(tabs);
@@ -241,6 +263,13 @@ describe("resolveSurfaceFilter", () => {
   it("rejects unknown surfaces", () => {
     expect(() => resolveSurfaceFilter("phone", tabs)).toThrow(/unknown surface/);
     expect(() => resolveSurfaceFilter("all,phone", tabs)).toThrow(/unknown surface/);
+  });
+
+  it("fails loudly on the retired ios/android platform aliases", () => {
+    // Post tab-merge these cannot narrow to a platform; a silent whole-tab
+    // result would make a device run sheet misleading.
+    expect(() => resolveSurfaceFilter("ios", tabs)).toThrow(/unknown surface/);
+    expect(() => resolveSurfaceFilter("android", tabs)).toThrow(/unknown surface/);
   });
 });
 

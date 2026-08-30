@@ -4,7 +4,7 @@ sidebar_label: Product Experience QA
 slug: /builders/quality/product-experience-qa
 audience: developer
 owner: product
-last_verified: 2026-08-28
+last_verified: 2026-08-30
 feature_status: In progress
 source_of_truth:
   - AGENTS.md
@@ -129,10 +129,13 @@ Every release or substantial UI pass should mark each applicable row `Pass`, `Fa
 name the missing capability or data.
 
 The executable form of this matrix is the versioned test-case catalog:
-`scripts/data/qa-test-catalog.json` holds the scenario definitions (Test IDs `PUB-`, `PWA-IOS-`,
-`PWA-AND-`, `PWA-ROLE-`, `ADM-`, `XPLAT-`, `DOCS-`), and `bun run qa:workbook` projects them into
-a simple human-first run sheet: an Overview tab (run info filled once, how-to, live per-surface
-counts) plus one tab per surface with plain-language columns — ID, priority, what we're checking,
+`scripts/data/qa-test-catalog.json` (v2) holds the scenario definitions across four surfaces —
+Public Website, PWA, Admin Dashboard, Docs. Test IDs are `PUB-`, `PWA-`, `ADM-`, and `DOCS-`;
+installed-device rows keep their `PWA-IOS-`/`PWA-AND-`/`PWA-ROLE-` prefixes inside the merged
+PWA surface, and two legacy `XPLAT-` rows survive from the dissolved Cross Surface tab (retired
+rows keep their historical tabs as an audit trail). `bun run qa:workbook` projects the active
+cases into a simple human-first run sheet: an Overview tab (run info filled once, how-to, live
+per-surface counts) plus one tab per surface with plain-language columns — ID, priority, what we're checking,
 how to check, what should happen, result, severity, notes — grouped by area. Defect records stay
 in the private **Green Goods v1.1 QA** Sheet. Definitions are reviewed in git; results, owners,
 and defect links live only in the run sheet, the Sheet, and Linear — never in this public repo.
