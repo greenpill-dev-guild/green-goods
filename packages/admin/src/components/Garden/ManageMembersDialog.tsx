@@ -8,10 +8,10 @@ import {
   type GardenRole,
   getRoleColorClasses,
 } from "@green-goods/shared/utils/blockchain/garden-roles";
-import { RiDeleteBinLine, RiLoader4Line, RiUserAddLine, RiUserLine } from "@remixicon/react";
+import { RiDeleteBinLine, RiUserAddLine, RiUserLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "../AdminButton";
+import { AdminButton, AdminIconButton } from "../AdminButton";
 import { AdminConfirmDialog, AdminDialog, type AdminDialogProps } from "../AdminDialog";
 import { AdminFilterChip } from "../AdminFilterChip";
 import { getRoleLabel } from "./gardenUtils";
@@ -198,25 +198,23 @@ export function ManageMembersDialog({
                         </span>
                       </div>
                       {canManage ? (
-                        <button
-                          type="button"
+                        <AdminIconButton
+                          size="lg"
+                          variant="danger"
+                          className="shrink-0"
                           onClick={() => {
                             setRemoveErrorRole(null);
                             setPendingRemoval({ address, role });
                           }}
                           disabled={busy}
-                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--m3-shape-sm)] text-error-dark transition hover:bg-error-lighter disabled:opacity-50"
-                          aria-label={formatMessage(
+                          loading={isRemovingRow}
+                          label={formatMessage(
                             { id: "app.admin.roles.remove" },
                             { role: label.singular }
                           )}
                         >
-                          {isRemovingRow ? (
-                            <RiLoader4Line className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <RiDeleteBinLine className="h-4 w-4" />
-                          )}
-                        </button>
+                          <RiDeleteBinLine />
+                        </AdminIconButton>
                       ) : null}
                     </li>
                   );
