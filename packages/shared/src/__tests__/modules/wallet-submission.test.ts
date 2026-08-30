@@ -367,13 +367,15 @@ describe("wallet-submission", () => {
         "0xApprovalTxHash" as `0x${string}`
       );
       mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({} as any);
+      const onLifecycle = vi.fn();
 
       // Execute
       const result = await submitApprovalDirectly(
         mockApprovalDraft,
         "0xGardenAddress",
         "0xGardenerAddress",
-        mockChainId
+        mockChainId,
+        { onLifecycle } as any
       );
 
       // Verify
@@ -392,6 +394,11 @@ describe("wallet-submission", () => {
         {},
         { hash: "0xApprovalTxHash", chainId: mockChainId }
       );
+      expect(onLifecycle.mock.calls).toEqual([
+        [{ stage: "handoff" }],
+        [{ stage: "broadcast", txHash: "0xApprovalTxHash" }],
+        [{ stage: "confirmed", txHash: "0xApprovalTxHash" }],
+      ]);
     });
 
     it("reports an unconfirmed submission when the receipt helper times out", async () => {
@@ -403,16 +410,22 @@ describe("wallet-submission", () => {
         "0xApprovalTxHash" as `0x${string}`
       );
       mock(wagmiCore.waitForTransactionReceipt).mockImplementation(() => new Promise(() => {}));
+      const onLifecycle = vi.fn();
 
       const result = await submitApprovalDirectly(
         mockApprovalDraft,
         "0xGardenAddress",
         "0xGardenerAddress",
         mockChainId,
-        { txTimeout: 0 }
+        { onLifecycle, txTimeout: 0 }
       );
 
       expect(result).toEqual({ hash: "0xApprovalTxHash", confirmed: false });
+      expect(onLifecycle).toHaveBeenLastCalledWith({
+        stage: "broadcast",
+        txHash: "0xApprovalTxHash",
+        reason: "receipt-timeout",
+      });
     });
 
     it("rethrows receipt failures instead of recording an optimistic approval", async () => {

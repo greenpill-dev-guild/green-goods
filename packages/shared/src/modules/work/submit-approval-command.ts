@@ -2,6 +2,7 @@ import type { SmartAccountClient } from "permissionless";
 import type { Address, Work, WorkApprovalDraft } from "../../types/domain";
 import type { JobQueueHandle, ProcessJobResult } from "../job-queue/ports";
 import type { TransactionSender } from "../transactions/types";
+import type { ApprovalWalletLifecycleEvent } from "./wallet-submission/types";
 
 export interface SubmitApprovalCommand {
   authMode: "wallet" | "passkey" | "embedded" | null;
@@ -103,13 +104,18 @@ export async function submitBatchApprovals(
 
 export function createDefaultSubmitApprovalPorts(
   sender: TransactionSender | null,
-  dependencies: { jobQueue?: Pick<JobQueueHandle, "processJob"> } = {}
+  dependencies: {
+    jobQueue?: Pick<JobQueueHandle, "processJob">;
+    onWalletLifecycle?: (event: ApprovalWalletLifecycleEvent) => void;
+  } = {}
 ): SubmitApprovalPorts {
   return {
     connectivity: { isOnline: () => navigator.onLine },
     direct: async ({ draft, work, chainId }) => {
       const { submitApprovalDirectly } = await import("./wallet-submission");
-      return submitApprovalDirectly(draft, work.gardenAddress, work.gardenerAddress, chainId);
+      return submitApprovalDirectly(draft, work.gardenAddress, work.gardenerAddress, chainId, {
+        onLifecycle: dependencies.onWalletLifecycle,
+      });
     },
     queue: {
       enqueue: async ({ draft, work, chainId, userAddress }) => {

@@ -96,6 +96,7 @@ export const ANALYTICS_EVENTS = {
   WORK_APPROVAL_STARTED: "work_approval_started",
   WORK_APPROVAL_SUCCESS: "work_approval_success",
   WORK_APPROVAL_FAILED: "work_approval_failed",
+  WORK_APPROVAL_LIFECYCLE: "work_approval_lifecycle",
   WORK_REJECTION_SUCCESS: "work_rejection_success",
 
   // Admin: Garden Management
@@ -350,6 +351,13 @@ export const trackWorkApprovalFailed = createTracker<{
   error: string;
   authMode: AuthMode;
 }>(ANALYTICS_EVENTS.WORK_APPROVAL_FAILED);
+
+export const trackWorkApprovalLifecycle = createTracker<{
+  approved: boolean;
+  authMode: AuthMode;
+  stage: "handoff" | "broadcast" | "confirmed" | "indexing" | "completed" | "cancelled";
+  reason?: "receipt-timeout" | "indexer-delay" | "presentation-failed";
+}>(ANALYTICS_EVENTS.WORK_APPROVAL_LIFECYCLE);
 
 // ============================================================================
 // WALLET SUBMISSION TIMING

@@ -9,8 +9,10 @@
  */
 
 import { renderHook } from "@testing-library/react";
+import type { UseMutationResult } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useBeforeUnloadWhilePending } from "../../../hooks/utils/useBeforeUnloadWhilePending";
+import { useSafeMutation } from "../../../hooks/utils/useSafeMutation";
 
 type AddEventListenerCall = Parameters<Window["addEventListener"]>;
 type RemoveEventListenerCall = Parameters<Window["removeEventListener"]>;
@@ -97,5 +99,33 @@ describe("hooks/utils/useBeforeUnloadWhilePending", () => {
 
     expect(mockEvent.preventDefault).toHaveBeenCalled();
     expect(mockEvent.returnValue).toBe("");
+  });
+
+  it("keeps unload protection enabled for unrelated safe mutations", () => {
+    const mutation = {
+      isPending: true,
+      mutate: vi.fn(),
+      mutateAsync: vi.fn(),
+    } as unknown as UseMutationResult<unknown, Error, void, unknown>;
+
+    renderHook(() => useSafeMutation(mutation));
+
+    expect(
+      addSpy.mock.calls.filter((call: AddEventListenerCall) => call[0] === "beforeunload")
+    ).toHaveLength(1);
+  });
+
+  it("can suppress unload protection for an expected external handoff", () => {
+    const mutation = {
+      isPending: true,
+      mutate: vi.fn(),
+      mutateAsync: vi.fn(),
+    } as unknown as UseMutationResult<unknown, Error, void, unknown>;
+
+    renderHook(() => useSafeMutation(mutation, "approval-test", { warnBeforeUnload: false }));
+
+    expect(
+      addSpy.mock.calls.filter((call: AddEventListenerCall) => call[0] === "beforeunload")
+    ).toHaveLength(0);
   });
 });
