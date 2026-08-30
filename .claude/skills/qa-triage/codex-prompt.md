@@ -93,7 +93,7 @@ For every item, fill the JSON schema at `schema.json` strictly. One item per JSO
 - `Public Website` — client editorial routes (/, /gardens, /fund, /impact, /actions, /cookies on the public site)
 - `PWA iOS` — installed PWA on iOS Safari
 - `PWA Android` — installed PWA on Android Chrome
-- `Admin Dashboard` — admin cockpit (Hub, MainSheet, LeftSheet, RightSheet, AdminFab, /hub/*, /garden/*, /community/*)
+- `Admin Dashboard` — admin cockpit (Hub, MainSheet, AdminDialog overlays, AdminSideSheet, FabButton, /hub/*, /garden/*, /community/*)
 - `Cross Surface` — multi-surface or visual/copy/error regressions that aren't tied to one surface
 - `Docs` — Docusaurus documentation site
 - `unknown` — cannot infer from the notes

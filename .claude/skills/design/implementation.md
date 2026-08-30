@@ -10,7 +10,7 @@ Linear path from blank file to merge-ready.
 |---|------|-------------|--------|
 | 1 | Paradigm | Command / Ambient / Data Landscape / Conversational / Ritual. One-line comment at top of file. | [SKILL.md § Paradigm Selection](./SKILL.md) |
 | 2 | Material | Thickness by density: ultrathin/thin = glanceable, regular = default, thick/solid = text-dense. Admin dense = solid. | [surfaces.md](./surfaces.md) |
-| 3 | Shape | Fixed (badges), Capsule (primary CTA / icon button), Concentric (`child_radius = parent_radius − padding`). Shape alone = hierarchy. Admin carve-out: fixed 4/8/12/16/9999 scale — FAB-large (filled action) is 16px, not a capsule; `AdminButton` stays pill. | [language.md § Shape System](./language.md) |
+| 3 | Shape | Fixed (badges), Capsule (primary CTA / icon button), Concentric (`child_radius = parent_radius − padding`). Shape alone = hierarchy. Admin carve-out: fixed 4/8/12/16/9999 scale — the FAB is a capsule at both sizes (DL-010); `AdminButton` stays pill. | [language.md § Shape System](./language.md) |
 | 4 | Motion | `var(--spring-*)` only; never hardcode `cubic-bezier`/`duration`. Standard for admin; Expressive only for client hero moments. | [language.md § Motion System](./language.md) |
 | 5 | Primitive | Compose Radix + `tv()`. Dialogs → `DialogShell` (client/shared) or `AdminDialog` (admin). | Dialogs below |
 | 6 | Responsive | Container queries (`@container`, `@[480px]:`) for component-internal layout; `sm:`/`md:` for page-level. | — |

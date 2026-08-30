@@ -225,15 +225,19 @@ Private Storybook helpers live under `packages/shared/.storybook`. Prefer those 
 
 ### Viewport Patterns
 
-Stories for responsive components include viewport-specific stories:
+Stories for responsive components include viewport-specific stories. Storybook 10
+removed `parameters.viewport.defaultViewport` — a story selects one of the
+preview's viewports (`mobile` / `tablet` / `desktop`, defined in
+`packages/shared/.storybook/preview.tsx`) through `globals`:
 
 ```typescript
 export const Mobile: Story = {
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
 };
 ```
+
+A story that needs a non-standard size declares it via
+`parameters.viewport.options` and points `value` at its key.
 
 Admin components use standard responsive breakpoints (`sm:`, `md:`, `lg:`), while some client components use container queries (`@[480px]:`) for container-aware responsiveness.
 

@@ -107,7 +107,7 @@ This section is the anchor target for [`prompt-contract.md`](https://github.com/
 - **Personas** (Gardener, Steward, Evaluator, Funder, Community Member) — see [Personas](#personas).
 - **Surfaces** (Admin, Client PWA, Agent, Public browser) — see [Surfaces](#surfaces).
 
-Surface-specific component vocabulary (e.g. `CanvasLayout`, `MainSheet`, `RightSheet`, `AdminFab`, presentation-mode loaders, `PublicShell`, `AppShell`, `SiteHeader`) lives in the prompt-contracts themselves — those are admin / client component palettes, not cross-surface domain terms.
+Surface-specific component vocabulary (e.g. `CanvasLayout`, `MainSheet`, `AdminSideSheet`, `FabButton`, presentation-mode loaders, `PublicShell`, `AppShell`, `SiteHeader`) lives in the prompt-contracts themselves — those are admin / client component palettes, not cross-surface domain terms.
 
 The voice and tone framework (Grounded · Inviting · Honest · Active) lives in [`DESIGN.md § Voice & Copy`](https://github.com/greenpill-dev-guild/green-goods/blob/main/DESIGN.md) — the positive expression of this glossary.
 

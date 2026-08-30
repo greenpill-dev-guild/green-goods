@@ -31,7 +31,7 @@ typography:
 
 | Mode | Audiences | Metaphor | Paradigm | Navigation |
 |------|-----------|----------|----------|------------|
-| **Desktop cockpit** | Stewards, Evaluators | Tending the garden — clipboard in hand | Command Surface | AppBar (top) + NavigationBar (bottom) + AdminFab |
+| **Desktop cockpit** | Stewards, Evaluators | Tending the garden — clipboard in hand | Command Surface | AppBar (top) + NavigationBar (bottom) + FabButton |
 
 **Cockpit litmus test:** If inappropriate for Linear, GitHub, or Stripe's dashboard, it's inappropriate here.
 
@@ -78,7 +78,7 @@ CSS Grid with named areas:
 │      │                       │           │
 ├──────┴───────────────────────┴───────────┤
 │  canvas-area-bottom                      │  ← NavigationBar (Z3): workspace
-│  (NavigationBar + AdminFab)              │    switching + primary FAB action
+│  (NavigationBar + FabButton)             │    switching + primary FAB action
 └──────────────────────────────────────────┘
 ```
 
@@ -144,7 +144,7 @@ Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as
 
 - **AppBar** (top context bar, Z3): GardenChip selector, search, settings, notifications, avatar
 - **NavigationBar** (bottom, Z3): Workspace tabs — Hub, Garden, Community, Actions. Symbol-first. Role-adaptive visibility via permissions.
-- **FAB** (`Shell/FabButton`): Per-workspace primary action — M3 large FAB geometry with 16px radius; the in-dock nav FAB is circular. Integrated into NavigationBar via FabProvider.
+- **FAB** (`Shell/FabButton`): Per-workspace primary action — a capsule at both sizes (`rounded-full`): 48px circle in the dock, 56px extended capsule with label when floating on mobile (DL-010; capsule = the 9999 step of the admin radius set). Integrated into NavigationBar via FabProvider.
 - **Desktop profile**: On desktop, Profile redirects to Hub and opens the AdminSideSheet account inspector with profile content.
 - **Controlled Chrome**: only the NavigationBar/FAB dock is translucent — flat `rgb(var(--admin-surface-0) / 0.85)`, 12px blur, warm ambient shadow, 1px ink ring (every dialog surface and the account side sheet are solid M3). The AppBar root and MainSheet are transparent while child controls can carry their own solid/hover states. Page content, tables, forms, and route cards do not use glass.
 

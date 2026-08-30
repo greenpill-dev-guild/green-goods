@@ -84,8 +84,8 @@ bun run lint:vocab            # lint-enforced banned terms in i18n strings only
 AI design tools should map output to these exports. Full palette lives in the prompt contracts; here's the quick locator.
 
 **Admin** (`packages/admin/src/components/`):
-- Layout shell: `CanvasLayout`, `AppBar` (admin top context bar), `MainSheet`, `NavigationBar`, `AdminFab` (the old side-sheet renderers are deleted — every workspace overlay is a centered `AdminDialog`; the three global AppBar surfaces render in `AdminSideSheet`)
-- M3 wrappers (count derives from `packages/admin/src/components/Admin*.tsx` — 16 today): `AdminBadge`, `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminDialog`, `AdminFab`, `AdminFilterChip`, `AdminLinearProgress`, `AdminListItem`, `AdminSearchToolbar`, `AdminSideSheet`, `AdminSortSelect`, `AdminTabRail`, `AdminTextField`, `AdminTooltip`, `AdminViewActions`
+- Layout shell: `CanvasLayout`, `AppBar` (admin top context bar), `MainSheet`, `NavigationBar`, `FabButton` (the old side-sheet renderers are deleted — every workspace overlay is a centered `AdminDialog`; the three global AppBar surfaces render in `AdminSideSheet`)
+- M3 wrappers (the `packages/admin/src/components/Admin*.tsx` exports are the roster of record — 20 wrappers across 18 files today; `AdminConfirmDialog` lives in `AdminDialog.tsx`, `AdminTextArea` in `AdminTextField.tsx`): `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminChoiceGroup`, `AdminConfirmDialog`, `AdminDialog`, `AdminFilterChip`, `AdminInlineField`, `AdminLinearProgress`, `AdminReasonDialog`, `AdminSearchToolbar`, `AdminSelectableCard`, `AdminSettingRow`, `AdminSideSheet`, `AdminSortSelect`, `AdminTabRail`, `AdminTextArea`, `AdminTextField`, `AdminTooltip`, `AdminViewActions` (`AdminBadge`/`AdminFab`/`AdminListItem` deleted 2026-08-29)
 
 **Client / shared** (`packages/shared/src/components/`, exported from `@green-goods/shared`):
 - Shell: presentation-mode loaders, `PublicShell` (browser), `PwaRuntime` / `AppShell` (installed PWA), `SiteHeader` (browser), `AppBar` (installed PWA)

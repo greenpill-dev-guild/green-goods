@@ -2,7 +2,7 @@
 name: design
 user-invocable: false
 description: "Green Goods design direction — the Warm Earth design language (shape, motion, color, material tokens), admin cockpit vs client PWA surface identities, paradigm selection, layout composition, AI design-tool prompt contracts, and design review lenses. Use for design direction, visual language decisions, what paradigm or material a view should use, new views or components, UI polish passes, and preparing prompts for AI design tools."
-token_version: "2.7.0"
+token_version: "2.8.0"
 ---
 
 # Design Skill

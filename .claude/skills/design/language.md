@@ -101,7 +101,7 @@ Shape communicates emphasis level. This is the core Warm Earth principle for but
 
 **Rule**: When a capsule button sits next to a squircle button, the capsule reads as primary and the squircle as secondary — no color difference needed. Shape alone creates hierarchy.
 
-**Admin note**: cockpit buttons are pills (`AdminButton`, sentence case), but the admin **FAB-large is 16px**, not a capsule — admin radii are the fixed 4/8/12/16/9999 set with no 20/24/28px steps.
+**Admin note**: cockpit buttons are pills (`AdminButton`, sentence case), and the admin FAB follows the capsule rule at both sizes (`rounded-full` — 48px dock circle, 56px extended floating capsule; DL-010). Admin radii are the fixed 4/8/12/16/9999 set with no 20/24/28px steps — the capsule is that set's 9999 step.
 
 ### Shape Morphing
 
