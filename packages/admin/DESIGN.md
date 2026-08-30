@@ -124,7 +124,7 @@ Color roles:
 
 The M3 primitives are **Admin* adapter wrappers** following M3 v0.192 exactly — zero changes to the shared package. Around them sit admin-owned shell and layout families that intentionally do not carry the prefix: the Shell forks (`AppBar`, `NavigationBar`, `MainSheet`, `FabButton`), `CanvasLayout` and the `Canvas*` route-state surfaces, the `Account*` panels, the `ActionFlow*` flow chrome, and named singletons (`PageHeader`, `CommandPalette`, `ConnectShell`, `LeftInspectorDialog`).
 
-Wrappers (20): AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminConfirmDialog, AdminDialog, AdminFilterChip, AdminInlineField, AdminLinearProgress, AdminReasonDialog, AdminSearchToolbar, AdminSelectableCard, AdminSettingRow, AdminSideSheet, AdminSortSelect, AdminTabRail, AdminTextArea, AdminTextField, AdminTooltip, AdminViewActions. (AdminBadge, AdminFab, and AdminListItem were deleted 2026-08-29 — zero production consumers; the dock FAB is `Shell/FabButton`.)
+Wrappers (21): AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminConfirmDialog, AdminDialog, AdminFilterChip, AdminInlineField, AdminLinearProgress, AdminReasonDialog, AdminSearchToolbar, AdminSelect, AdminSelectableCard, AdminSettingRow, AdminSideSheet, AdminSortSelect, AdminTabRail, AdminTextArea, AdminTextField, AdminTooltip, AdminViewActions. (AdminSelect is the M3 form select added 2026-08-29 — it lives in `AdminTextField.tsx` beside AdminTextArea; the toolbar `AdminSortSelect` stays toolbar-only. AdminBadge, AdminFab, and AdminListItem were deleted 2026-08-29 — zero production consumers; the dock FAB is `Shell/FabButton`.)
 
 ### Card and selection grammar
 

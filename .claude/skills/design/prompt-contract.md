@@ -179,9 +179,11 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | `NavigationBar` | Bottom workspace tabs — Hub, Garden, Community, Actions (+ mobile-only Profile tab); symbol-first; role-adaptive |
 | `FabButton` (`Shell/FabButton`) | Per-workspace primary action in the nav shell — a capsule at both sizes (`rounded-full`): 48px dock circle, 56px extended floating capsule with label (DL-010); integrated via `FabProvider` |
 
-**M3 wrappers** (exported from `packages/admin/src/components/Admin*.tsx` — the filesystem is the roster of record; 20 wrappers across 18 files today, since `AdminConfirmDialog` lives in `AdminDialog.tsx` and `AdminTextArea` in `AdminTextField.tsx`):
+**M3 wrappers** (exported from `packages/admin/src/components/Admin*.tsx` — the filesystem is the roster of record; 21 wrappers across 18 files today, since `AdminConfirmDialog` lives in `AdminDialog.tsx` and `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`):
 
-`AdminButton` · `AdminCard` · `AdminCheckbox` · `AdminChoiceGroup` · `AdminConfirmDialog` · `AdminDialog` · `AdminFilterChip` · `AdminInlineField` · `AdminLinearProgress` · `AdminReasonDialog` · `AdminSearchToolbar` · `AdminSelectableCard` · `AdminSettingRow` · `AdminSideSheet` · `AdminSortSelect` · `AdminTabRail` · `AdminTextArea` · `AdminTextField` · `AdminTooltip` · `AdminViewActions`
+`AdminButton` · `AdminCard` · `AdminCheckbox` · `AdminChoiceGroup` · `AdminConfirmDialog` · `AdminDialog` · `AdminFilterChip` · `AdminInlineField` · `AdminLinearProgress` · `AdminReasonDialog` · `AdminSearchToolbar` · `AdminSelect` · `AdminSelectableCard` · `AdminSettingRow` · `AdminSideSheet` · `AdminSortSelect` · `AdminTabRail` · `AdminTextArea` · `AdminTextField` · `AdminTooltip` · `AdminViewActions`
+
+Form selects use `AdminSelect` (full field anatomy, permanently floated label, chevron slot, empty-value option as the placeholder row); `AdminSortSelect` is the toolbar sort pill only — never a form control.
 
 (`AdminBadge`, `AdminFab`, and `AdminListItem` were deleted 2026-08-29 — do not reintroduce them; the nav-shell FAB is `Shell/FabButton`.)
 

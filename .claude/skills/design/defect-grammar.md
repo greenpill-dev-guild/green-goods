@@ -38,6 +38,7 @@ Narrow candidates by:
 | "the search" / "search bar" | `data-component="AdminSearchToolbar"` |
 | "that button" / "the CTA" | `data-component="AdminButton"`; the nav-shell FAB is `data-component="FabButton"` |
 | "the input" / "the field" | `data-component="AdminTextField"` (+ `data-variant`) |
+| "the dropdown" / "the select" | `data-component="AdminSelect"` (form) or `AdminSortSelect` (toolbar sort pill) |
 | "the list item" / "the row" | `data-component="AdminSettingRow"` for settings/toggle rows; workbench queue rows are the card grammar above |
 | "the chip" / "filter" | `data-component="AdminFilterChip"` |
 | "the progress bar" | `data-component="AdminLinearProgress"` |
