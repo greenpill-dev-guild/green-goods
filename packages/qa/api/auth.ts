@@ -11,10 +11,9 @@
  */
 
 import {
-  type Allowed,
   SESSION_COOKIE,
   SESSION_TTL_MS,
-  findAllowed,
+  isAllowed,
   issueNonce,
   issueSession,
   parseAllowlist,
@@ -39,7 +38,7 @@ function json(body: unknown, status = 200, headers: Record<string, string> = {})
  * app that looks authenticated and is not — the failure this whole change
  * exists to prevent — so a missing secret refuses every request loudly.
  */
-function config(): { secret: string; allowlist: Allowed[] } | { error: string } {
+function config(): { secret: string; allowlist: string[] } | { error: string } {
   const secret = process.env.QA_SESSION_SECRET;
   if (!secret || secret.length < 32) {
     return { error: "QA_SESSION_SECRET is missing or too short (needs 32+ characters)" };
@@ -69,7 +68,10 @@ export async function GET(request: Request): Promise<Response> {
     readCookie(request.headers.get("cookie"), SESSION_COOKIE),
     now,
   );
-  const signedIn = session ? findAllowed(settings.allowlist, session.address) : null;
+  // Whether this caller is already signed in. What they are CALLED comes from
+  // their own shard via /api/state, not from here — the allowlist holds
+  // addresses only.
+  const signedIn = session && isAllowed(settings.allowlist, session.address) ? session.address : null;
 
   const nonce = await issueNonce(settings.secret, now);
   const issuedAt = new Date(now).toISOString();
@@ -90,8 +92,7 @@ export async function GET(request: Request): Promise<Response> {
     message,
     // Null rather than absent so the page can tell "signed out" from "the
     // request failed" without inspecting status codes.
-    person: signedIn?.person ?? null,
-    address: signedIn?.address ?? null,
+    address: signedIn,
   });
 }
 
@@ -127,7 +128,7 @@ export async function POST(request: Request): Promise<Response> {
 
   const token = await issueSession(settings.secret, result.address, Date.now());
   return json(
-    { person: result.person, address: result.address },
+    { address: result.address },
     200,
     { "Set-Cookie": sessionCookie(token, Math.floor(SESSION_TTL_MS / 1000)) },
   );

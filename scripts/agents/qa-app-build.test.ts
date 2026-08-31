@@ -103,6 +103,21 @@ describe("QA app deployment contract", () => {
     expect((module as Record<string, unknown>).default).toBeUndefined();
   });
 
+  it("loads every endpoint module, so a dead import cannot reach production", async () => {
+    // The endpoints were never imported by a test — only the modules they use.
+    // So `api/auth.ts` kept importing `findAllowed` after a refactor removed it,
+    // every local test passed, and the deployed function died at load with
+    // "does not provide an export named". Importing them here is the whole fix:
+    // a stale import fails at module evaluation, which is exactly what happened
+    // in production.
+    const state = await import("../../packages/qa/api/state");
+    const auth = await import("../../packages/qa/api/auth");
+    for (const [name, module] of [["state", state], ["auth", auth]] as const) {
+      expect(typeof (module as Record<string, unknown>).GET, `${name}.GET`).toBe("function");
+      expect(typeof (module as Record<string, unknown>).POST, `${name}.POST`).toBe("function");
+    }
+  });
+
   it("gives every relative import an explicit extension", () => {
     // Vercel compiles these to ESM, and Node's resolver will not guess an
     // extension on a relative import. Extensionless `../auth` compiled fine,
