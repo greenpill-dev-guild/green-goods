@@ -10,8 +10,7 @@ const meta: Meta = {
       description: {
         component:
           "Reference page for the Warm-Earth admin token aliases introduced in Tier 1a of the admin design handoff. " +
-          "Source-of-truth values: design_handoff_admin-revamp/screens/tokens.css. " +
-          "Decision log: docs/admin-revamp/audit.md §5.1. " +
+          "The values are projected by the admin runtime aliases and governed by packages/admin/DESIGN.md. " +
           "These tokens are additive — no existing runtime values changed.",
       },
     },

@@ -7,8 +7,8 @@
  * percent-diff → bigint-delta computation lives here too. Silently-wrong math
  * here = silently-wrong votes; this file is the testable single source of truth.
  *
- * Spec: design_handoff_admin-revamp/README.md § 7 (conviction voting).
- * Audit finding: docs/admin-revamp/audit.md §5.5 (decided), Tier-5 audit #3.
+ * The conversion invariants are executable in percent-points.test.ts; callers own
+ * the product-level voting policy.
  */
 
 import type { ConvictionAllocations, VoterAllocation } from "../../types/conviction";
