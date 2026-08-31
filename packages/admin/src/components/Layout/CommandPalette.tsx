@@ -18,7 +18,7 @@ import {
   RiPlantLine,
   RiSearchLine,
 } from "@remixicon/react";
-import { useEffect, useMemo, useRef, type ComponentType } from "react";
+import { useEffect, useId, useMemo, useRef, type ComponentType } from "react";
 import { AdminDialog } from "@/components/AdminDialog";
 
 interface CommandPaletteProps {
@@ -69,6 +69,10 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
   });
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  // Combobox wiring: DOM focus stays on the input; the active option is
+  // announced through aria-activedescendant against these stable ids.
+  const listboxId = useId();
+  const optionId = (index: number) => `${listboxId}-option-${index}`;
 
   // Scroll active item into view
   useEffect(() => {
@@ -111,6 +115,11 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
             ref={inputRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
+            role="combobox"
+            aria-expanded={results.length > 0}
+            aria-controls={listboxId}
+            aria-autocomplete="list"
+            aria-activedescendant={results.length > 0 ? optionId(activeIndex) : undefined}
             aria-label={formatMessage({
               id: "app.admin.nav.search",
               defaultMessage: "Search",
@@ -123,10 +132,20 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           />
         </div>
 
-        {/* Results */}
-        <div ref={listRef} className="max-h-72 overflow-y-auto p-2" role="listbox">
+        {/* Results — fixed height, scrolling inside: the panel must not resize
+            (and the input must not move) as the result set narrows. */}
+        <div
+          ref={listRef}
+          id={listboxId}
+          className="h-72 overflow-y-auto p-2"
+          role="listbox"
+          aria-label={formatMessage({
+            id: "app.admin.nav.search",
+            defaultMessage: "Search",
+          })}
+        >
           {results.length === 0 ? (
-            <p className="py-6 text-center text-sm text-text-soft">
+            <p className="flex h-full items-center justify-center text-sm text-text-soft">
               {formatMessage({
                 id: "app.admin.nav.searchNoResults",
                 defaultMessage: "No results found",
@@ -147,13 +166,18 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
                   return (
                     <button
                       key={result.id}
+                      id={optionId(index)}
                       role="option"
                       aria-selected={isActive}
                       data-index={index}
+                      // Focus stays on the combobox input; options are reached
+                      // via aria-activedescendant, so they leave the tab order.
+                      tabIndex={-1}
                       onClick={() => selectResult(result)}
                       onMouseMove={() => setActiveIndex(index)}
                       className={cn(
                         "flex w-full items-center rounded-sm px-3 py-2 text-body-md text-left transition-colors",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
                         isActive
                           ? "bg-primary-alpha-16 text-primary-darker"
                           : "text-text-sub hover:bg-bg-soft"

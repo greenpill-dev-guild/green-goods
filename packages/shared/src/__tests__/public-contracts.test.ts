@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildPublicGardenImpactPath,
   createProviderProofRegistry,
   createPublicImpactSlice,
   derivePublicGardenSlug,
@@ -51,6 +52,13 @@ describe("@green-goods/shared/public-contracts", () => {
     expect(PUBLIC_AGENT_ROUTES.fundingIntentProof).toBe("/public/funding-intents/proof");
     expect(PUBLIC_AGENT_ROUTES.fundingIntentProof).not.toBe(
       PUBLIC_AGENT_ROUTES.fundingIntentReceipt
+    );
+  });
+
+  it("publishes and builds the versioned public garden impact route", () => {
+    expect(PUBLIC_AGENT_ROUTES.gardenImpact).toBe("/public/gardens/:chainId/:gardenAddress/impact");
+    expect(buildPublicGardenImpactPath(11155111, gardenA)).toBe(
+      `/public/gardens/11155111/${gardenA}/impact`
     );
   });
 

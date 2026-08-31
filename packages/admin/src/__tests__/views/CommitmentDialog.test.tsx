@@ -294,6 +294,27 @@ describe("CommitmentDialogPanel (W10)", () => {
     expect(screen.getByText(/^created$/i)).toBeInTheDocument();
   });
 
+  it("keeps provider and confirmer names inline inside the facts list", () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mocks.controller = controller({
+      commitment: {
+        onchainState: "FULFILLED",
+        state: "FULFILLED",
+        derivedState: "FULFILLED",
+        confirmationPath: "ORDINARY",
+        fulfilledBy: TAKER,
+      },
+    });
+
+    renderPanel();
+
+    const facts = screen.getByRole("region", { name: "Facts" });
+    expect(facts.querySelector("span > div")).toBeNull();
+    expect(consoleError.mock.calls.flat().join(" ")).not.toMatch(
+      /cannot be a descendant|validateDOMNesting|hydration/i
+    );
+  });
+
   it("offers the accepted row's three separate acts and routes each through its own reason", async () => {
     mocks.controller = controller({
       can: can({ cancel: true, markReady: true, sendForConfirmation: true }),
@@ -655,7 +676,7 @@ describe("CommitmentDialogPanel (W10)", () => {
       },
     });
     renderPanel();
-    expect(screen.getByText(/not on this chain yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/isn't switched on in this app yet/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^retry$/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /back to pool/i })).toBeInTheDocument();
   });

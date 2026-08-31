@@ -52,7 +52,7 @@ export const Empty: Story = {
       icon={<RiSeedlingLine className="h-6 w-6" />}
       title="No gardens match your filters"
       description="Reset filters or broaden your search to see more results."
-      action={{ label: "Reset filters", onClick: () => undefined }}
+      action={{ label: "Reset Filters", onClick: () => undefined }}
     />
   ),
 };

@@ -1,12 +1,10 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
-import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
-import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
 import type { SubmitWorkController } from "@green-goods/shared/hooks/admin-ui/garden/useSubmitWorkController";
 import type { Domain } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 import { AdminTabRail } from "@/components/AdminTabRail";
-import { AdminTextField } from "@/components/AdminTextField";
+import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 import { FlowStepHeader } from "@/components/Layout/FlowStepHeader";
 import { ActionChooserGrid } from "./ActionChooserGrid";
 import { SubmitWorkFields } from "./SubmitWorkFields";
@@ -154,29 +152,20 @@ export function SubmitWorkStepContent({
           label={formatMessage({ id: "app.admin.work.submit.timeSpent" })}
           id="timeSpentMinutes"
           type="number"
-          variant="outlined"
           error={errors.timeSpentMinutes?.message}
           helperText={formatMessage({ id: "app.admin.work.submit.timeSpentHint" })}
           placeholder={formatMessage({ id: "app.admin.work.submit.timeSpentPlaceholder" })}
           inputProps={{ step: "0.25", min: 0 }}
           {...register("timeSpentMinutes")}
         />
-        <FormField
+        <AdminTextArea
           label={formatMessage({ id: "app.admin.work.submit.feedback" })}
-          htmlFor="feedback"
+          id="feedback"
+          rows={3}
           error={errors.feedback?.message}
-        >
-          <Textarea
-            surface="admin"
-            id="feedback"
-            rows={3}
-            placeholder={formatMessage({ id: "app.admin.work.submit.feedbackPlaceholder" })}
-            aria-invalid={!!errors.feedback}
-            invalid={!!errors.feedback}
-            className="resize-y"
-            {...register("feedback")}
-          />
-        </FormField>
+          placeholder={formatMessage({ id: "app.admin.work.submit.feedbackPlaceholder" })}
+          {...register("feedback")}
+        />
       </div>
     );
   }

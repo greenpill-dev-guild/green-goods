@@ -19,7 +19,7 @@ export interface CreateShouldDehydrateQueryOptions {
 
 type MaybePromise<T> = T | Promise<T>;
 
-interface PersistedClient {
+export interface PersistedClient {
   timestamp: number;
   buster: string;
   clientState: DehydratedState;

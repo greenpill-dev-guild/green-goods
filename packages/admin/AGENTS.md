@@ -10,7 +10,7 @@ foundations.
 
 ## UI Contract
 
-- Read `/Users/afo/Code/greenpill/green-goods/docs/docs/builders/packages/admin.mdx` before changing routes, layouts, or page structure.
+- Read this guide, `packages/admin/DESIGN.md`, the exported admin primitives, and the relevant guard tests before changing routes, layouts, or page structure. The public Builder page is a navigation aid for readers, not an implementation authority.
 - The canonical shell is `CanvasLayout`.
 - The Wave 3 shell is `AppBar + .workspace-canvas + MainSheet + NavigationBar`, with every workspace overlay rendering as a centered `AdminDialog` (the `LeftSheet`/`RightSheet`/`BottomSheet` renderers are deleted). The three global AppBar surfaces (Profile, Settings, Notifications) render in `AdminSideSheet` — right-docked within the canvas chrome bounds on desktop, bottom sheet on mobile.
 - In admin docs, `AppBar` means the admin-owned Canvas top context bar in `packages/admin/src/components/Shell/`: sticky `z-sticky h-14`, `GardenChip` on the left, and search plus the notifications / settings / profile icon actions on the right (settings and profile are desktop-only; mobile keeps the bell).
@@ -77,15 +77,15 @@ foundations.
   `useGardenPermissions`.
 - Wrap user-visible write actions in the shared toast workflow instead of ad-hoc transaction UI.
 - Use `AdminDialog` / `AdminConfirmDialog` for every workspace modal flow instead of ad-hoc shells (the old sheet renderers are deleted). The single exception is `AdminSideSheet`, reserved for the three global AppBar surfaces (Profile, Settings, Notifications) and rendered only by `CanvasLayout` — enforced by `AdminSideSheetStandard.guard`. `DialogShell` remains available for shared or non-admin surfaces, but admin dashboard dialogs should use the admin wrappers. Full-surface create/commit flows (Submit Work, Create Assessment, Create Hypercert) are centered `AdminDialog` (`variant="flow"` + `ADMIN_FLOW_DIALOG_CLASS`) modals hosting `ActionFlowShell` — not fullscreen takeovers or routes. Dialog sizes follow the three-tier scale (`sm` confirm · `md` single-purpose · `lg` rich single-view) enforced by the `AdminDialogStandard.guard` test.
-- Do not edit the admin UI standards (`admin.mdx`, `packages/admin/DESIGN.md`, `.claude/skills/design/*`) in the same commit as the code they govern. A change to an archetype rule — which surface is a modal vs a sheet vs a route, which primitive a flow uses — is its own commit/PR with its own review, so a wrong implementation cannot quietly rewrite the standard to bless itself. (Static gates check token hygiene, not whether a standard still describes good UI.)
+- Do not edit the admin UI standards (`packages/admin/AGENTS.md`, `packages/admin/DESIGN.md`, `.claude/skills/design/*`) in the same commit as the code they govern. A change to an archetype rule — which surface is a modal vs a sheet vs a route, which primitive a flow uses — is its own commit/PR with its own review, so a wrong implementation cannot quietly rewrite the standard to bless itself. (Static gates check token hygiene, not whether a standard still describes good UI.)
 - New user-facing strings must be translated in all three locale files.
 - New or changed shared admin primitives, major variants, or Storybook-covered surfaces must add or update stories in the same change. Run `bun run --filter @green-goods/shared check:stories`; run `bun run --filter @green-goods/shared test:stories:ci` when adding `storybook-ci` stories; run `bun run --filter @green-goods/shared build-storybook` for Storybook-impacting changes. Do not require Storybook checks for a route-local QA fix that does not touch a shared primitive, story, token, or Storybook-covered surface.
 
 ## Package Notes
 
-- Use `/Users/afo/Code/greenpill/green-goods/docs/docs/builders/packages/admin.mdx` as the single admin UI contract; do not recreate a package-local design doc.
+- Keep implementation rules in this package guide, `packages/admin/DESIGN.md`, exported primitives, and executable guard tests. Keep the Builder page thin and explanatory.
 - Keep reusable components and config helpers in `@green-goods/shared`. Admin owns only canvas shell, account surfaces, and admin-only workflows.
-- Keep admin routes canonical: primary surfaces `/hub`, `/garden`, `/community`, `/actions`; Hub deep links stay under `/hub/work/*`; secondary route families should match the contract in `admin.mdx`.
+- Keep admin routes canonical: primary surfaces `/hub`, `/garden`, `/community`, `/actions`; Hub deep links stay under `/hub/work/*`; route code and guards own secondary route families.
 - The default `bun run test` discovers the full admin Vitest suite, including `src/__tests__/views/**`.
   Use a targeted test for QA Speed Mode; add `bun run build` when route wiring, view imports, or
   production build output could break.
@@ -102,3 +102,11 @@ foundations.
 - Package loop: `bun run test && bun run build`.
 - Conditional proof: Storybook checks apply only when shared primitives, stories, or tokens move.
 - Broader impact: run the root Repo Quick Gate when shared hooks, permissions, or public contracts move.
+
+## Authenticated Browser QA
+
+Local agentic browser QA for this package uses the authenticated Brave QA profile.
+Codex sessions use the Codex browser-extension path and claim the already-open Brave tab/window.
+Claude Code sessions use the Claude Code Chrome/Chromium extension path and select the authenticated Brave profile/tab.
+Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA.
+If authenticated Brave access is blocked, stop and report QA as blocked.

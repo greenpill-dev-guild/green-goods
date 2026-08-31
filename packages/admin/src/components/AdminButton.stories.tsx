@@ -1,7 +1,7 @@
 import { RiAddLine, RiArrowRightLine, RiDeleteBinLine, RiSave3Line } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
-import { AdminButton } from "./AdminButton";
+import { AdminButton, AdminIconButton } from "./AdminButton";
 
 const meta: Meta<typeof AdminButton> = {
   title: "Admin/Primitives/AdminButton",
@@ -53,6 +53,48 @@ export const WithIcon: Story = {
 
 export const Loading: Story = {
   args: { variant: "filled", loading: true, children: "Submitting" },
+};
+
+/**
+ * AdminIconButton — glyph-only actions on the same DL-011 tiers (28/32/40).
+ * The `label` prop is the mandatory accessible name (aria-label + tooltip).
+ */
+export const IconButtons: Story = {
+  render: () => (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <AdminIconButton size="sm" label="Add (sm)">
+          <RiAddLine />
+        </AdminIconButton>
+        <AdminIconButton size="md" label="Add (md)">
+          <RiAddLine />
+        </AdminIconButton>
+        <AdminIconButton size="lg" label="Add (lg)">
+          <RiAddLine />
+        </AdminIconButton>
+      </div>
+      <div className="flex items-center gap-2">
+        <AdminIconButton variant="standard" label="Standard">
+          <RiAddLine />
+        </AdminIconButton>
+        <AdminIconButton variant="accent" label="Accent">
+          <RiArrowRightLine />
+        </AdminIconButton>
+        <AdminIconButton variant="tonal" label="Tonal">
+          <RiSave3Line />
+        </AdminIconButton>
+        <AdminIconButton variant="filled" label="Filled">
+          <RiAddLine />
+        </AdminIconButton>
+        <AdminIconButton variant="danger" label="Delete">
+          <RiDeleteBinLine />
+        </AdminIconButton>
+        <AdminIconButton label="Disabled" disabled>
+          <RiAddLine />
+        </AdminIconButton>
+      </div>
+    </div>
+  ),
 };
 
 export const StateCatalog: Story = {

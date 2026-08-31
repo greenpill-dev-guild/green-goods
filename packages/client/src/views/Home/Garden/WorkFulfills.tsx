@@ -6,8 +6,8 @@ import {
   useCommitmentWorkDecisions,
   useCommitmentWorkAttributionsForWork,
 } from "@green-goods/shared/commitment-pooling";
+import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import type { Address } from "@green-goods/shared/types/domain";
-import { formatCommitmentUnits } from "@green-goods/shared/i18n";
 import { RiHandHeartLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 

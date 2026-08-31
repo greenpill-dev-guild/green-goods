@@ -357,11 +357,12 @@ Spawn a teammate to run codex on the factory task.
 
 - Required args: `--lane`, `--base`, `--branch <type/work-description>`, and either `--prompt` or `--prompt-file`
 - Optional: `--schema` (default `.codex/output-schema.json`)
-- Side effects: creates `/tmp/gg-codex-<lane>` worktree on the caller-supplied work branch and runs `codex exec --full-auto` with a fixed non-secret environment; root `.env` is never linked, so secret-backed validation remains a parent-session or human-run gate
+- Side effects: creates `/tmp/gg-codex-<lane>` worktree on the caller-supplied work branch and runs `codex exec --approve-for-me` with a fixed non-secret environment and closed stdin; this flag already selects workspace-write and cannot be combined with `-s`; root `.env` is never linked, so secret-backed validation remains a parent-session or human-run gate
 - Stdout: JSON with `result_file`, `worktree`, `branch`, `dispatch_exit`
 - Does NOT clean up — that is the teammate's job after review and merge
 - Env overrides: `CODEX` (binary path), `CODEX_HOME` (configured Codex state directory),
   `CODEX_WORKTREE_PARENT` (default `/tmp`)
+- Re-check `codex exec --help` before changing these flags; the CLI surface changes between releases.
 
 ### File Ownership With Codex Lanes
 

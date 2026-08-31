@@ -119,7 +119,7 @@ export const Empty: Story = {
     const canvas = within(canvasElement);
     const createActions = await canvas.findAllByRole(
       "button",
-      { name: "Create cookie jar" },
+      { name: "Create Cookie Jar" },
       ADMIN_ROUTE_STORY_QUERY_OPTIONS
     );
     await expect(createActions).toHaveLength(1);
@@ -158,7 +158,5 @@ export const DeployRouteManyGardens: Story = {
 export const DeployRouteMobile: Story = {
   tags: ["visual-harness"],
   args: { initialPath: "/cookies/deploy" },
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
 };

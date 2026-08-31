@@ -1,4 +1,3 @@
-import { NativeSelect, TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import {
@@ -17,12 +16,13 @@ import {
   getVaultAssetSymbol,
 } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiCheckLine, RiCloseLine, RiCupLine, RiPencilLine } from "@remixicon/react";
-import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
-import { AdminConfirmDialog, AdminDialog } from "@/components/AdminDialog";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
+import { AdminButton, AdminIconButton } from "@/components/AdminButton";
+import { AdminCard } from "@/components/AdminCard";
+import { AdminConfirmDialog, AdminDialog } from "@/components/AdminDialog";
+import { AdminSelect, AdminTextField } from "@/components/AdminTextField";
 
 type EditingField = { jarAddress: Address; field: "maxWithdrawal" | "interval" };
 
@@ -202,70 +202,68 @@ export function CookieJarManageModal({
                 <div className="mt-2 space-y-1.5 text-xs text-text-sub">
                   {/* Max Withdrawal - inline editable */}
                   <div className="flex items-center gap-1.5">
-                    <span className="whitespace-nowrap">
-                      {formatMessage({
-                        id: "app.cookieJar.maxWithdrawal",
-                        defaultMessage: "Max Withdrawal",
-                      })}
-                      :{" "}
-                    </span>
                     {editing?.jarAddress === jar.jarAddress && editing.field === "maxWithdrawal" ? (
                       <span className="flex items-center gap-1">
-                        <TextInput
-                          surface="admin"
-                          type="text"
-                          inputMode="decimal"
+                        <AdminTextField
+                          className="w-36"
+                          label={formatMessage({
+                            id: "app.cookieJar.maxWithdrawal",
+                            defaultMessage: "Available now",
+                          })}
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") submitMaxWithdrawal(jar);
-                            if (e.key === "Escape") cancelEditing();
-                          }}
-                          className="w-20 rounded border border-stroke-soft bg-bg-white px-1.5 py-0.5 text-xs text-text-strong focus:border-primary-base focus:outline-none"
                           disabled={updateMaxWithdrawalMutation.isPending}
+                          inputProps={{
+                            inputMode: "decimal",
+                            onKeyDown: (e) => {
+                              if (e.key === "Enter") submitMaxWithdrawal(jar);
+                              if (e.key === "Escape") cancelEditing();
+                            },
+                          }}
                         />
-                        <AdminButton
-                          variant="text"
+                        <AdminIconButton
                           size="sm"
-                          className="h-5 w-5 min-w-0 rounded p-0"
                           onClick={() => submitMaxWithdrawal(jar)}
                           disabled={updateMaxWithdrawalMutation.isPending}
-                          aria-label={formatMessage({
+                          label={formatMessage({
                             id: "app.cookieJar.confirmMaxWithdrawal",
-                            defaultMessage: "Confirm max withdrawal",
+                            defaultMessage: "Confirm Max Withdrawal",
                           })}
                         >
-                          <RiCheckLine className="h-3.5 w-3.5 text-success-dark" />
-                        </AdminButton>
-                        <AdminButton
-                          variant="text"
+                          <RiCheckLine />
+                        </AdminIconButton>
+                        <AdminIconButton
                           size="sm"
-                          className="h-5 w-5 min-w-0 rounded p-0"
                           onClick={cancelEditing}
-                          aria-label={formatMessage({
+                          label={formatMessage({
                             id: "app.cookieJar.cancelEdit",
-                            defaultMessage: "Cancel edit",
+                            defaultMessage: "Cancel Edit",
                           })}
                         >
-                          <RiCloseLine className="h-3.5 w-3.5" />
-                        </AdminButton>
+                          <RiCloseLine />
+                        </AdminIconButton>
                       </span>
                     ) : (
                       <span className="flex items-center gap-1">
+                        <span className="whitespace-nowrap">
+                          {formatMessage({
+                            id: "app.cookieJar.maxWithdrawal",
+                            defaultMessage: "Available now",
+                          })}
+                          :{" "}
+                        </span>
                         <span>{formatTokenAmount(jar.maxWithdrawal, jar.decimals)}</span>
                         {canManage && (
-                          <AdminButton
-                            variant="text"
+                          <AdminIconButton
                             size="sm"
-                            className="h-5 w-5 min-w-0 rounded p-0"
                             onClick={() => startEditing(jar, "maxWithdrawal")}
-                            aria-label={formatMessage({
+                            label={formatMessage({
                               id: "app.cookieJar.editMaxWithdrawal",
-                              defaultMessage: "Edit max withdrawal",
+                              defaultMessage: "Edit Max Withdrawal",
                             })}
                           >
-                            <RiPencilLine className="h-3 w-3" />
-                          </AdminButton>
+                            <RiPencilLine />
+                          </AdminIconButton>
                         )}
                       </span>
                     )}
@@ -273,20 +271,16 @@ export function CookieJarManageModal({
 
                   {/* Withdrawal Cooldown - inline editable */}
                   <div className="flex items-center gap-1.5">
-                    <span className="whitespace-nowrap">
-                      {formatMessage({
-                        id: "app.cookieJar.withdrawalInterval",
-                        defaultMessage: "Withdrawal Cooldown",
-                      })}
-                      :{" "}
-                    </span>
                     {editing?.jarAddress === jar.jarAddress && editing.field === "interval" ? (
                       <span className="flex items-center gap-1">
-                        <NativeSelect
-                          surface="admin"
+                        <AdminSelect
+                          className="w-44"
+                          label={formatMessage({
+                            id: "app.cookieJar.withdrawalInterval",
+                            defaultMessage: "Withdrawal cooldown",
+                          })}
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
-                          className="rounded border border-stroke-soft bg-bg-white px-1.5 py-0.5 text-xs text-text-strong focus:border-primary-base focus:outline-none"
                           disabled={updateIntervalMutation.isPending}
                         >
                           {INTERVAL_PRESETS.map((preset) => (
@@ -299,49 +293,50 @@ export function CookieJarManageModal({
                               {cooldownDisplay(BigInt(editValue))} (custom)
                             </option>
                           )}
-                        </NativeSelect>
-                        <AdminButton
-                          variant="text"
+                        </AdminSelect>
+                        <AdminIconButton
                           size="sm"
-                          className="h-5 w-5 min-w-0 rounded p-0"
                           onClick={() => submitInterval(jar)}
                           disabled={updateIntervalMutation.isPending}
-                          aria-label={formatMessage({
+                          label={formatMessage({
                             id: "app.cookieJar.confirmWithdrawalCooldown",
-                            defaultMessage: "Confirm withdrawal cooldown",
+                            defaultMessage: "Confirm Withdrawal Cooldown",
                           })}
                         >
-                          <RiCheckLine className="h-3.5 w-3.5 text-success-dark" />
-                        </AdminButton>
-                        <AdminButton
-                          variant="text"
+                          <RiCheckLine />
+                        </AdminIconButton>
+                        <AdminIconButton
                           size="sm"
-                          className="h-5 w-5 min-w-0 rounded p-0"
                           onClick={cancelEditing}
-                          aria-label={formatMessage({
+                          label={formatMessage({
                             id: "app.cookieJar.cancelEdit",
-                            defaultMessage: "Cancel edit",
+                            defaultMessage: "Cancel Edit",
                           })}
                         >
-                          <RiCloseLine className="h-3.5 w-3.5" />
-                        </AdminButton>
+                          <RiCloseLine />
+                        </AdminIconButton>
                       </span>
                     ) : (
                       <span className="flex items-center gap-1">
+                        <span className="whitespace-nowrap">
+                          {formatMessage({
+                            id: "app.cookieJar.withdrawalInterval",
+                            defaultMessage: "Withdrawal cooldown",
+                          })}
+                          :{" "}
+                        </span>
                         <span>{cooldownDisplay(jar.withdrawalInterval)}</span>
                         {canManage && (
-                          <AdminButton
-                            variant="text"
+                          <AdminIconButton
                             size="sm"
-                            className="h-5 w-5 min-w-0 rounded p-0"
                             onClick={() => startEditing(jar, "interval")}
-                            aria-label={formatMessage({
+                            label={formatMessage({
                               id: "app.cookieJar.editWithdrawalCooldown",
-                              defaultMessage: "Edit withdrawal cooldown",
+                              defaultMessage: "Edit Withdrawal Cooldown",
                             })}
                           >
-                            <RiPencilLine className="h-3 w-3" />
-                          </AdminButton>
+                            <RiPencilLine />
+                          </AdminIconButton>
                         )}
                       </span>
                     )}
@@ -368,7 +363,7 @@ export function CookieJarManageModal({
                 icon={<RiCupLine className="h-6 w-6" />}
                 title={formatMessage({
                   id: "app.cookieJar.noJars",
-                  defaultMessage: "No cookie jars found for this garden",
+                  defaultMessage: "No Cookie Jars found for this garden",
                 })}
                 description={formatMessage({
                   id: "app.cookieJar.noJarsHint",

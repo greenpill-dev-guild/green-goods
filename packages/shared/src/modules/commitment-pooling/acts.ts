@@ -17,7 +17,7 @@ import type { CommitmentDerivedState, CommitmentReadModel } from "./types";
 import type { CommitmentSeat } from "./selectors";
 
 /** Mirrors CommitmentPoolingCommonLib: a roster the contract will not grow past. */
-export const MAX_CONTRIBUTORS_PER_COMMITMENT = 40;
+const MAX_CONTRIBUTORS_PER_COMMITMENT = 40;
 /** Mirrors CommitmentPoolingCommonLib: linked work, counted as required and as attached. */
 export const MAX_LINKED_WORKS_PER_COMMITMENT = 40;
 
@@ -38,6 +38,27 @@ const TERMINAL = new Set<CommitmentDerivedState>([
   "EXPIRED",
   "DISPUTED",
 ]);
+
+/**
+ * Whether the record has stopped moving (kept, withdrawn, lapsed, or held
+ * under review). Copy that urges the next step must not render on these.
+ */
+export function isTerminalCommitmentState(state: CommitmentDerivedState): boolean {
+  return TERMINAL.has(state);
+}
+
+/** Settled: nothing further happens on its own. Narrower than terminal — a
+ * disputed record is held, not settled, so it stays in every live list. */
+const SETTLED = new Set<CommitmentDerivedState>([
+  "FULFILLED",
+  "RECONCILED",
+  "CANCELLED",
+  "EXPIRED",
+]);
+
+export function isSettledCommitmentState(state: CommitmentDerivedState): boolean {
+  return SETTLED.has(state);
+}
 
 const PRE_ACCEPTANCE = new Set<CommitmentDerivedState>(["OFFERED", "REQUESTED"]);
 

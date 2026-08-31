@@ -134,6 +134,29 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   }),
 }));
 
+vi.mock("@green-goods/shared/commitment-pooling/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling/public")>()),
+  PUBLIC_HISTORY_PAGE_SIZE: 12,
+  usePublicGardenPool: () => ({
+    data: {
+      pool: null,
+      openSeason: null,
+      openCampaigns: [],
+      finishedCycles: [],
+      poolUnitSummaries: [],
+      cycleUnitSummaries: [],
+      finishedCycleTotal: 0,
+      hasCommitmentCertificates: false,
+      partialData: false,
+      unavailableSources: { commitmentPool: false, cycleMetadata: false },
+    },
+    isLoading: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+}));
+
 vi.mock("@/components/Display", () => ({
   ImageWithFallback: ({ alt }: { alt?: string }) => createElement("img", { alt: alt ?? "" }),
 }));
@@ -158,8 +181,8 @@ const messages: Record<string, string> = {
   "public.gardenDetail.backToGardens": "Browse Gardens",
   "public.gardenDetail.backToArchive": "All Gardens",
   "public.gardenDetail.place.empty": "Garden narrative will appear here.",
-  "public.gardenDetail.support": "Support this Garden",
-  "public.gardenDetail.evidence.cta": "View public evidence",
+  "public.gardenDetail.support": "Support This Garden",
+  "public.gardenDetail.evidence.cta": "View Public Evidence",
   "public.gardenDetail.stats.entries": "Entries",
   "public.gardenDetail.stats.handsAtWork": "Hands at work",
   "public.gardenDetail.stats.assessments": "Assessments",

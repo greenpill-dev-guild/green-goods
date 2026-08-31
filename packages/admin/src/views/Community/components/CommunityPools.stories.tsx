@@ -115,7 +115,7 @@ export const CurrentGarden: Story = {
     const canvas = within(canvasElement);
     await userEvent.click(await canvas.findByRole("tab", { name: "This garden" }));
     await expect(
-      await canvas.findByRole("button", { name: "Open the pool console" })
+      await canvas.findByRole("button", { name: "Open the Pool Console" })
     ).toBeVisible();
   },
 };

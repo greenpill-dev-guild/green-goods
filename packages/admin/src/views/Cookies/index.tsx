@@ -27,7 +27,7 @@ export default function CookiesView() {
         : [
             {
               id: "create-cookie-jar",
-              label: "Create cookie jar",
+              label: "Create Cookie Jar",
               labelId: "cockpit.community.cookies.create",
               icon: RiAddLine,
               onClick: () => navigate(adminRoutes.cookiesDeploy()),
@@ -48,7 +48,7 @@ export default function CookiesView() {
         <CanvasRouteHeader
           title={formatMessage({
             id: "cockpit.community.cookies.dialogTitle",
-            defaultMessage: "Create cookie jar",
+            defaultMessage: "Create Cookie Jar",
           })}
           description={formatMessage({
             id: "cockpit.community.cookies.deployDescription",

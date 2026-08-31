@@ -121,11 +121,11 @@ const messages: Record<string, string> = {
   "app.garden.submit.tab.review.instruction": "Check if the information is correct",
   "app.garden.review.timeSpent": "Time Spent",
   "app.garden.review.description": "Description",
-  "app.garden.review.audioNotes": "Audio Notes",
+  "app.garden.review.audioNotes": "Audio notes",
   "app.garden.review.previewFailedMessage":
     "{count, plural, one {Remove the broken item before submitting again. Your details will stay here.} other {Remove the broken items before submitting again. Your details will stay here.}}",
   "app.garden.review.previewFailedTitle": "Some media previews failed",
-  "app.garden.review.removeBrokenMedia": "Remove broken media",
+  "app.garden.review.removeBrokenMedia": "Remove Broken Media",
   "app.garden.review.video": "Video",
   "app.garden.commitment.fulfills": "Fulfills",
   "app.garden.commitment.fulfillsValue": "{commitment} · requirement {requirement}",
@@ -276,7 +276,7 @@ describe("WorkReview", () => {
     renderReview({ audioNotes: [audioFile] });
 
     expect(screen.getByTestId("audio-player-note.webm")).toBeInTheDocument();
-    expect(screen.getByText("Audio Notes")).toBeInTheDocument();
+    expect(screen.getByText("Audio notes")).toBeInTheDocument();
   });
 
   it("reports Review photo preview failures by file identity", () => {
@@ -304,7 +304,7 @@ describe("WorkReview", () => {
     expect(screen.getByText("Some media previews failed")).toBeInTheDocument();
     expect(screen.getByTestId("detail-Trees Planted")).toHaveTextContent("15");
 
-    fireEvent.click(screen.getByRole("button", { name: "Remove broken media" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove Broken Media" }));
 
     expect(onRemoveBrokenMedia).toHaveBeenCalledWith("review");
     expect(screen.getByTestId("detail-Trees Planted")).toHaveTextContent("15");

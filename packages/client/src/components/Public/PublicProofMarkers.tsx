@@ -1,4 +1,5 @@
 import { useIntl } from "react-intl";
+import { EditorialStatSkeleton } from "./atoms";
 
 /**
  * One cell of an editorial stat band: mono uppercase label, Fraunces numeral,
@@ -8,7 +9,7 @@ import { useIntl } from "react-intl";
  * The value is pre-formatted by the caller (number, percentage, or token
  * amount) so this stays a presentation atom. Three honest non-numeral states,
  * each with a screen-reader label so a dash is never read as silence:
- * `loading` paints a quiet dash, `unavailable` paints an em dash (a failed
+ * `loading` paints a quiet editorial skeleton, `unavailable` paints an em dash (a failed
  * source is never published as zero), and `phrase` swaps the numeral for a
  * short italic sentence when there is genuinely nothing to count yet.
  */
@@ -27,9 +28,10 @@ export interface PublicProofMarker {
 
 /**
  * `strip` is the § 01 proof-marker strip on the canvas: four across, the
- * page's largest numerals. `panel` is the same four markers inside an
- * `EditorialPanel`, at the panel numeral scale so the figures read as a
- * record beside prose rather than as a dashboard.
+ * page's largest numerals. `panel` is the same four markers at the smaller
+ * record scale, used where the figures read as a record beside prose rather
+ * than as a dashboard (§ 02 composes them directly on the linen since the
+ * 2026-08-25 panel supersession — the name keeps the scale, not a surface).
  */
 const LAYOUT_CLASS = {
   strip: {
@@ -58,10 +60,6 @@ export function PublicProofMarkers({
     id: "public.impact.proof.unavailable",
     defaultMessage: "Not available right now",
   });
-  const loadingLabel = formatMessage({
-    id: "public.impact.proof.loading",
-    defaultMessage: "Loading",
-  });
   const classes = LAYOUT_CLASS[layout];
   return (
     <dl className={classes.list}>
@@ -77,10 +75,9 @@ export function PublicProofMarkers({
                 <span className="sr-only">{unavailableLabel}</span>
               </>
             ) : loading ? (
-              <>
-                <span aria-hidden="true">—</span>
-                <span className="sr-only">{loadingLabel}</span>
-              </>
+              <EditorialStatSkeleton
+                className={layout === "strip" ? "h-12 w-20 md:h-14" : "h-9 w-16 md:h-10"}
+              />
             ) : phrase ? (
               <span className={classes.phrase}>{phrase}</span>
             ) : (

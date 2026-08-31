@@ -28,9 +28,18 @@ const VALIDATION_RECEIPT_DEBT_PATH = join(
 const STAGES = ["ideas", "backlog", "active"];
 const MOVE_STAGES = [...STAGES, "archive"];
 const VALIDATION_STAGES = [...STAGES, "archive"];
-const ALLOWED_PLAN_ROOT_ENTRIES = new Set(["README.md", "_templates", ...VALIDATION_STAGES]);
+const ALLOWED_PLAN_ROOT_ENTRIES = new Set(["README.md", "ARCHIVE.md", "_templates", ...VALIDATION_STAGES]);
+const ARCHIVE_LEDGER_PATH = join(PLANS_ROOT, "ARCHIVE.md");
+const ARCHIVE_LEDGER_HEADER = `# Archived Plan Ledger
+
+Closed feature hubs are deleted from the working tree; Git history is the only archive.
+Recover one with \`git log --oneline -- <historical path>\` and
+\`git checkout <sha>^ -- <historical path>\` against its closeout commit.
+
+| Archived (UTC) | Slug | Title | Resolution | Historical path | Closeout |
+|---|---|---|---|---|---|
+`;
 const REQUIRED_LINK_ROLES = ["brief", "spec", "plan", "eval"];
-const ARCHIVE_DOCUMENT_MARKER = "> **Archived record:** implementation is closed.";
 const ARCHIVE_STATUS_KEYS = new Set([
   "version",
   "feature",
@@ -154,12 +163,25 @@ const EXECUTION_SUB_LANE_PACKAGE_LABELS = {
   walkthrough_videos: "package:docs",
   community: "package:client",
 };
-const LANE_DISPLAY_NAMES = {
-  ui: "UI",
-  state_api: "State/API",
-  contracts: "Contracts",
-  qa_pass_1: "QA Pass 1",
-  qa_pass_2: "QA Pass 2",
+// Human titles for mirrored lane issues. Linear titles are read by teammates
+// scanning a board, so a lane mirror is titled by the work it covers, never by
+// its lane slug — see `.claude/context/linear-routing-rules.md`. Lanes absent
+// here fall back to "<Lane Name> for <Feature>", which still reads as a phrase.
+const LANE_TITLE_PHRASES = {
+  ui: "Build the interface for",
+  ui_admin: "Build the admin interface for",
+  ui_client: "Build the client interface for",
+  state_api: "Build the data and API layer for",
+  contracts: "Build the contracts for",
+  indexer: "Build the indexer for",
+  qa_pass_1: "Run the first QA pass on",
+  qa_pass_2: "Run the second QA pass on",
+  docs: "Write the documentation for",
+  docs_guides: "Write the guides for",
+  editorial: "Write the editorial surfaces for",
+  walkthrough_videos: "Record the walkthrough videos for",
+  community: "Run the community rollout for",
+  release_ops: "Run release ops for",
 };
 const TRACK_TO_PACKAGE_LABEL = {
   admin: "package:admin",
@@ -182,6 +204,7 @@ function usage() {
   console.log(`Usage:
   node scripts/harness/plan-hub.mjs scaffold <feature-slug> [--title "Feature Title"] [--stage backlog]
   node scripts/harness/plan-hub.mjs move --feature <feature-slug> --to <ideas|backlog|active|archive> [--reason "closeout reason"] [--resolution <completed|closed|closed_stale|superseded|paused|cancelled>]
+      (--to archive validates the hub, appends a row to .plans/ARCHIVE.md, and deletes the hub directory; git history is the only archive)
   node scripts/harness/plan-hub.mjs list --agent <claude|codex> --lane <lane> [--stage active] [--json]
   node scripts/harness/plan-hub.mjs set-lane --feature <feature-slug> --lane <lane> --status <status> [--actor human] [--branch <branch>] [--note "text"]
   node scripts/harness/plan-hub.mjs record-tdd --feature <feature-slug> --lane <ui|state-api|contracts> --red-command "..." --red-evidence "..." --green-command "..." --green-evidence "..." [--actor human]
@@ -189,7 +212,6 @@ function usage() {
   node scripts/harness/plan-hub.mjs record-linear --feature <feature-slug> [--parent PRD-123] [--lane ui=PRD-124] [--execution-lane contracts=PRD-125] [--lane-sync-mode <lane_issues|parent_only>] [--project <name-or-id>] [--initiative <name-or-id>] [--actor human]
   node scripts/harness/plan-hub.mjs summary [--initiative <initiative>] [--track <track>] [--json]
   node scripts/harness/plan-hub.mjs stale [--days 14] [--json]
-  node scripts/harness/plan-hub.mjs compact-archive
   node scripts/harness/plan-hub.mjs check-branch --feature <feature-slug> --lane <lane>
   node scripts/harness/plan-hub.mjs validate`);
 }
@@ -344,13 +366,6 @@ function ensureActiveHandoffFiles(destinationDir, replacements) {
   }
 }
 
-function archiveEntryNames(status) {
-  return new Set([
-    "status.json",
-    "reports",
-    ...Object.values(status.links || {}).filter((value) => typeof value === "string" && value.length > 0),
-  ]);
-}
 
 function isConfinedReportLink(link) {
   if (typeof link !== "string" || !link.startsWith("reports/") || link.includes("\\")) return false;
@@ -390,37 +405,18 @@ function reportsEntryError(featureDirPath) {
   return null;
 }
 
-function compactArchiveFeature(destinationDir, status) {
-  const allowedEntries = archiveEntryNames(status);
-  for (const entry of readdirSync(destinationDir)) {
-    if (!allowedEntries.has(entry)) {
-      rmSync(join(destinationDir, entry), { recursive: true, force: true });
-    }
-  }
+
+
+function ledgerCell(value) {
+  return String(value ?? "").replaceAll("|", "\\|").replaceAll(/\r?\n/g, " ").trim();
 }
 
-function markArchivedDocuments(destinationDir, status) {
-  const slug = status.feature.slug;
-  for (const relativePath of Object.values(status.links)) {
-    if (isConfinedReportLink(relativePath)) continue;
-    const documentPath = join(destinationDir, relativePath);
-    if (!relativePath.endsWith(".md") || !existsSync(documentPath)) {
-      continue;
-    }
-
-    let contents = readFileSync(documentPath, "utf8")
-      .replaceAll(`.plans/active/${slug}`, `.plans/archive/${slug}`)
-      .replaceAll(`.plans/backlog/${slug}`, `.plans/archive/${slug}`)
-      .replaceAll(`.plans/ideas/${slug}`, `.plans/archive/${slug}`);
-    if (!contents.includes(ARCHIVE_DOCUMENT_MARKER)) {
-      const firstLineEnd = contents.indexOf("\n");
-      contents =
-        firstLineEnd === -1
-          ? `${contents}\n\n${ARCHIVE_DOCUMENT_MARKER} Operational handoffs, artifacts, and lane files were removed; preserved reports and any references below describe historical execution, not live work.\n`
-          : `${contents.slice(0, firstLineEnd)}\n\n${ARCHIVE_DOCUMENT_MARKER} Operational handoffs, artifacts, and lane files were removed; preserved reports and any references below describe historical execution, not live work.\n${contents.slice(firstLineEnd + 1)}`;
-    }
-    writeFileSync(documentPath, contents);
-  }
+function appendArchiveLedgerEntry(status, historicalPath) {
+  const row = `| ${ledgerCell(status.workflow.archived_at)} | \`${ledgerCell(status.feature.slug)}\` | ${ledgerCell(status.feature.title)} | ${ledgerCell(status.workflow.resolution)} | \`${ledgerCell(historicalPath)}\` | ${ledgerCell(status.workflow.archive_reason)} |\n`;
+  const existing = existsSync(ARCHIVE_LEDGER_PATH)
+    ? readFileSync(ARCHIVE_LEDGER_PATH, "utf8")
+    : ARCHIVE_LEDGER_HEADER;
+  writeFileSync(ARCHIVE_LEDGER_PATH, `${existing.endsWith("\n") ? existing : `${existing}\n`}${row}`);
 }
 
 function compactArchiveStatus(status) {
@@ -627,7 +623,7 @@ function featureRecords(stage) {
 }
 
 function formalFeatureSlugs() {
-  return new Set(VALIDATION_STAGES.flatMap((stage) => featureRecords(stage).map((record) => record.status.feature.slug)));
+  return new Set(STAGES.flatMap((stage) => featureRecords(stage).map((record) => record.status.feature.slug)));
 }
 
 function validatePlanRootStructure(failures) {
@@ -653,6 +649,12 @@ function validateStageStructure(stage, failures) {
 
   for (const entry of readdirSync(stageDir)) {
     const entryPath = join(stageDir, entry);
+    if (stage === "archive") {
+      failures.push(
+        `${entryPath}: archived hubs must not exist in the working tree; close hubs with move --to archive (ledger + deletion) — git history is the only archive`,
+      );
+      continue;
+    }
     if (!statSync(entryPath).isDirectory()) {
       failures.push(`${entryPath}: unsupported loose file; plan stages contain feature directories only`);
       continue;
@@ -661,29 +663,6 @@ function validateStageStructure(stage, failures) {
     if (!existsSync(statusPathForDir(entryPath))) {
       failures.push(`${entryPath}: missing status.json`);
       continue;
-    }
-
-    if (stage === "archive") {
-      const { status } = readFeatureStatus(entryPath);
-      const allowedEntries = archiveEntryNames(status);
-      const reportsError = reportsEntryError(entryPath);
-      if (reportsError) failures.push(reportsError);
-      for (const child of readdirSync(entryPath)) {
-        const childPath = join(entryPath, child);
-        if (!allowedEntries.has(child)) {
-          failures.push(
-            `${childPath}: archived hubs retain only status.json, reports, and their four linked plan documents`,
-          );
-        } else if (child === "reports") {
-          if (!reportsError && !statSync(childPath).isDirectory()) {
-            failures.push(`${childPath}: archived reports must remain in the reports directory`);
-          }
-        } else if (!statSync(childPath).isFile()) {
-          failures.push(`${childPath}: archived plan documents must be top-level files`);
-        } else if (child !== "status.json" && !readFileSync(childPath, "utf8").includes(ARCHIVE_DOCUMENT_MARKER)) {
-          failures.push(`${childPath}: archived plan documents must include the archived-record marker`);
-        }
-      }
     }
   }
 }
@@ -882,39 +861,93 @@ function linearProjectForStatus(status, warnings) {
   return null;
 }
 
+// Mirror bodies are read cold by teammates in Linear, so they are plain
+// sentences, never a stack of `Key: value` lane metadata.
+//
+// Owner and blocked-ness still have to be said, because nothing else carries
+// them: the manifest emits no assignee or delegate, and `linearStateForLane`
+// maps everything except `in_progress` to the stage default, so a blocked,
+// human-owned lane would otherwise render as an unassigned Todo that looks
+// ready to pick up. Say it in a sentence rather than an `Owner/status:` line.
+// Shape and caps: `.claude/context/linear-routing-rules.md`.
+function laneOwnershipSentence(lane) {
+  const parts = [];
+  if (lane.status === "blocked") {
+    // The schema requires blocked_reason on synced blocked lanes, and the
+    // mirror is read cold — "blocked" without the why sends the reader
+    // hunting. Fall back to pointing at the handoff for legacy hubs.
+    const reason = hasText(lane.blocked_reason) ? lane.blocked_reason.trim() : null;
+    parts.push(
+      reason
+        ? `This lane is blocked: ${reason}${/[.!?]$/.test(reason) ? "" : "."}`
+        : "This lane is blocked; the handoff records what it is waiting on.",
+    );
+  }
+  if (lane.owner === "human") {
+    parts.push("A person owns it, not an agent.");
+  } else if (lane.owner) {
+    parts.push(`${lane.owner === "claude" ? "Claude" : lane.owner === "codex" ? "Codex" : lane.owner} owns it.`);
+  }
+  return parts.join(" ");
+}
 function buildLinearParentDescription(status, laneSyncMode = DEFAULT_LINEAR_LANE_SYNC_MODE) {
   const source = planRelativeDir(status);
-  const laneSyncPolicy = laneSyncMode === "parent_only"
-    ? "Plan-level tracker for Linear visibility. Keep execution detail, lane truth, and handoffs in `.plans`; this mirror intentionally does not create or update lane issues."
-    : "Plan-level tracker for Linear visibility. Keep execution detail and lane truth in `.plans/status.json`; child issues track actionable lanes.";
+  // Describe only what this record actually carries. The parent gets state and
+  // priority; milestone, due date, and blocker relations are emitted on lane
+  // records, and in parent_only mode those records do not exist at all — so a
+  // blanket "dates and dependencies live on this issue" would send a reader to
+  // a surface that does not have them. The parent's Linear state is
+  // stage-derived (`linearStateForParent` never reads
+  // `workflow.overall_status`), so the body must not claim this issue carries
+  // the overall status either — the hub owns it.
+  const whereTheRestLives = laneSyncMode === "parent_only"
+    ? "Lanes are not mirrored as child issues, so lane progress, dates, and dependencies live in the hub too."
+    : "Each lane's dates and dependencies sit on its own child issue.";
 
   return [
-    `Source plan: \`${source}\``,
-    `Status JSON: \`${source}status.json\``,
+    `Tracker for the ${status.feature.title} plan, mirrored into Linear for visibility. ` +
+      "The plan hub owns the overall status, scope, lane detail, and handoffs. " +
+      whereTheRestLives,
     "",
-    laneSyncPolicy,
+    `Plan hub: \`${source}\``,
   ].join("\n");
 }
 
-function buildLinearLaneDescription(status, laneName, lane) {
+// `lane.handoff` is stored plan-relative (`handoffs/codex-ui.md`), so the plan
+// directory has to be prefixed here. Emitting the bare value would leave a
+// Linear-dispatched agent unable to tell which of the many plan hubs owns the
+// handoff — the old body only got away with it because it carried a separate
+// `Source plan:` line.
+function buildLinearLaneDescription(status, lane) {
   const source = planRelativeDir(status);
+  const ownership = laneOwnershipSentence(lane);
   return [
-    `Source plan: \`${source}\``,
-    `Lane: \`${laneName}\``,
-    `Owner: \`${lane.owner || "unassigned"}\``,
-    `Handoff: \`${lane.handoff}\``,
+    ["The scope, acceptance criteria, and validation for this lane live in its handoff.", ownership]
+      .filter(Boolean)
+      .join(" "),
     "",
-    "This issue mirrors an actionable plan lane for Linear visibility. Keep implementation proof, lane state, and validation evidence in `.plans/status.json` and the lane handoff.",
-  ].join("\n");
-}
-
-function buildLinearExecutionSubLaneDescription(status, laneName, lane) {
-  const source = planRelativeDir(status);
-  return [
-    `Source: \`${source}status.json#execution_sub_lanes.${laneName}\``,
     `Handoff: \`${source}${lane.handoff}\``,
-    `Owner/status: \`${lane.owner}\` / \`${lane.status}\``,
   ].join("\n");
+}
+
+function buildLinearExecutionSubLaneDescription(status, lane) {
+  const source = planRelativeDir(status);
+  const ownership = laneOwnershipSentence(lane);
+  return [
+    ["The scope, acceptance criteria, and validation for this lane live in its handoff.", ownership]
+      .filter(Boolean)
+      .join(" "),
+    "",
+    `Handoff: \`${source}${lane.handoff}\``,
+  ].join("\n");
+}
+
+// A plain, human lane title: the work it covers, never the lane slug.
+function linearLaneTitle(status, laneName) {
+  const phrase = LANE_TITLE_PHRASES[laneName];
+  return phrase
+    ? `${phrase} ${status.feature.title}`
+    : `${titleFromSlug(laneName)} for ${status.feature.title}`;
 }
 
 function buildLinearSchedule(status, laneLinear) {
@@ -983,13 +1016,13 @@ function buildExecutionSubLaneLinearRecord(status, laneName, lane, project, team
     issue,
     parentId: parentIssue,
     parentRef: parentIssue ? null : null,
-    title: `${titleFromSlug(laneName)}: ${status.feature.title}`,
+    title: linearLaneTitle(status, laneName),
     team,
     state: linearStateForLane(status, lane),
     priority,
     labels: linearLabelsForExecutionSubLane(status, laneName, lane),
     project,
-    description: buildLinearExecutionSubLaneDescription(status, laneName, lane),
+    description: buildLinearExecutionSubLaneDescription(status, lane),
     handoff: lane.handoff,
     dependsOn: Array.isArray(lane.depends_on) ? lane.depends_on : [],
     blockedByIssues: resolveBlockedByIssues(status, lane.depends_on),
@@ -1039,7 +1072,7 @@ function buildLinearSyncManifest(status) {
   const parent = {
     action: parentIssue ? "update" : "create",
     issue: parentIssue,
-    title: `plan: ${normalized.feature.title}`,
+    title: `${normalized.feature.title} roadmap`,
     team,
     state: linearStateForParent(normalized, laneSyncMode),
     priority,
@@ -1071,7 +1104,7 @@ function buildLinearSyncManifest(status) {
           issue,
           parentId: parentIssue,
           parentRef: "parent",
-          title: `${LANE_DISPLAY_NAMES[laneName]}: ${normalized.feature.title}`,
+          title: linearLaneTitle(normalized, laneName),
           team,
           state: linearStateForLane(normalized, lane),
           priority,
@@ -1082,7 +1115,7 @@ function buildLinearSyncManifest(status) {
             lane,
           ),
           project,
-          description: buildLinearLaneDescription(normalized, laneName, lane),
+          description: buildLinearLaneDescription(normalized, lane),
           handoff: lane.handoff,
           dependsOn: Array.isArray(lane.depends_on) ? lane.depends_on : [],
           blockedByIssues: resolveBlockedByIssues(normalized, lane.depends_on),
@@ -2205,7 +2238,7 @@ function moveFeature(flags, archiveLockHeld = false) {
   }
 
   const destinationDir = featureDir(toStage, slug);
-  if (existsSync(destinationDir)) {
+  if (toStage !== "archive" && existsSync(destinationDir)) {
     fail(`Destination already exists: ${destinationDir}`);
   }
 
@@ -2242,6 +2275,17 @@ function moveFeature(flags, archiveLockHeld = false) {
     }
   }
 
+  if (toStage === "archive") {
+    const historicalPath = `.plans/${found.stage}/${slug}`;
+    compactArchiveStatus(status);
+    appendArchiveLedgerEntry(status, historicalPath);
+    rmSync(found.dir, { recursive: true, force: true });
+    console.log(
+      `Closed ${slug}: deleted ${historicalPath} and recorded it in .plans/ARCHIVE.md (git history is the archive).`,
+    );
+    return;
+  }
+
   mkdirSync(planStageDir(toStage), { recursive: true });
   renameSync(found.dir, destinationDir);
   if (toStage === "active") {
@@ -2252,11 +2296,6 @@ function moveFeature(flags, archiveLockHeld = false) {
       DATE: movedAt,
       WORKFLOW_STATUS: STAGE_TO_STATUS[toStage],
     });
-  }
-  if (toStage === "archive") {
-    compactArchiveFeature(destinationDir, status);
-    compactArchiveStatus(status);
-    markArchivedDocuments(destinationDir, status);
   }
   saveJson(statusPathForDir(destinationDir), status);
 
@@ -2371,44 +2410,6 @@ function stale(flags) {
   }
 }
 
-function compactArchive(archiveLockHeld = false) {
-  if (!archiveLockHeld) {
-    return withArchiveLock(() => compactArchive(true));
-  }
-  const records = featureRecords("archive");
-  const failures = [];
-  const knownSlugs = formalFeatureSlugs();
-
-  for (const record of records) {
-    const reportsError = reportsEntryError(record.dir);
-    if (reportsError) failures.push(reportsError);
-    const errors = validateFeatureStatus(record.status, record.dir, "archive", knownSlugs).filter(
-      (error) =>
-        !error.startsWith("archive status must fold notes") &&
-        !error.startsWith("archive status has noncanonical fields") &&
-        !error.startsWith("archive Linear metadata has noncanonical fields") &&
-        !error.startsWith("archive status history must contain") &&
-        !error.startsWith("archive lane ") &&
-        !error.startsWith("archive status must not reference live plan paths"),
-    );
-    for (const error of errors) {
-      failures.push(`${record.dir}: ${error}`);
-    }
-  }
-
-  if (failures.length > 0) {
-    fail(failures.join("\n"));
-  }
-
-  for (const record of records) {
-    const status = compactArchiveStatus(record.status);
-    compactArchiveFeature(record.dir, status);
-    markArchivedDocuments(record.dir, status);
-    saveJson(statusPathForDir(record.dir), status);
-  }
-
-  console.log(`Compacted ${records.length} archived feature hub${records.length === 1 ? "" : "s"}.`);
-}
 
 function setLane(flags) {
   const slug = requireFlag(flags, "feature");
@@ -2724,7 +2725,7 @@ function validate() {
   }
   validateFencedYaml(failures);
 
-  const records = VALIDATION_STAGES.flatMap((stage) => featureRecords(stage));
+  const records = STAGES.flatMap((stage) => featureRecords(stage));
   const knownSlugs = new Set(records.map((record) => record.status.feature.slug));
 
   for (const record of records) {
@@ -2807,9 +2808,6 @@ switch (command) {
     break;
   case "stale":
     stale(flags);
-    break;
-  case "compact-archive":
-    compactArchive();
     break;
   case "check-branch":
     checkBranch(flags);

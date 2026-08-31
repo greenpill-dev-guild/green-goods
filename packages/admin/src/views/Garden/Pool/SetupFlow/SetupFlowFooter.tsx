@@ -70,7 +70,7 @@ export function SetupFlowFooter({
             >
               {formatMessage({
                 id: "cockpit.garden.pool.setup.retry",
-                defaultMessage: "Try again",
+                defaultMessage: "Try Again",
               })}
             </AdminButton>
           ) : (
@@ -85,16 +85,16 @@ export function SetupFlowFooter({
               {intent === "first-run"
                 ? formatMessage({
                     id: "cockpit.garden.pool.setup.openAll",
-                    defaultMessage: "Open season",
+                    defaultMessage: "Open Season",
                   })
                 : isCampaign
                   ? formatMessage({
                       id: "cockpit.garden.pool.setup.openCampaign",
-                      defaultMessage: "Open campaign",
+                      defaultMessage: "Open Campaign",
                     })
                   : formatMessage({
                       id: "cockpit.garden.pool.setup.openSeason",
-                      defaultMessage: "Open to the garden",
+                      defaultMessage: "Open to the Garden",
                     })}
             </AdminButton>
           )

@@ -1,6 +1,6 @@
-import { logger } from "@green-goods/shared/modules/app/logger";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
+import { logger } from "@green-goods/shared/modules/app/logger";
 import type {
   PublicSubscribeRequest,
   PublicSubscribeResponse,
@@ -168,7 +168,7 @@ export function PublicGetInTouch() {
                   {submitState === "loading"
                     ? formatMessage({
                         id: "public.home.getInTouch.submitting",
-                        defaultMessage: "…",
+                        defaultMessage: "Subscribing…",
                       })
                     : formatMessage({
                         id: "public.home.getInTouch.submit",
@@ -237,7 +237,7 @@ export function PublicGetInTouch() {
               >
                 {formatMessage({
                   id: "public.home.getInTouch.scheduleCall",
-                  defaultMessage: "Schedule a call",
+                  defaultMessage: "Schedule a Call",
                 })}
                 <span aria-hidden="true">→</span>
               </a>

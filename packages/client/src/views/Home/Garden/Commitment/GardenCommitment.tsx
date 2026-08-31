@@ -1,7 +1,7 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { writeWorkLinkIntent } from "@green-goods/shared/commitment-pooling";
 import { useGardenCommitmentController } from "@green-goods/shared/hooks/client-ui/commitment/useGardenCommitmentController";
-import { formatCommitmentUnits } from "@green-goods/shared/i18n";
+import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
@@ -11,6 +11,7 @@ import { CommitmentActionBar } from "./CommitmentActionBar";
 import { commitmentActForKind } from "./commitmentActions";
 import { CommitmentClaims } from "./CommitmentClaims";
 import { CommitmentDetailShell, CommitmentDetailState } from "./CommitmentDetailShell";
+import { CommitmentEvidence } from "./CommitmentEvidence";
 import { CommitmentIdentity } from "./CommitmentIdentity";
 import { CommitmentProgress } from "./CommitmentProgress";
 import { CommitmentTeam } from "./CommitmentTeam";
@@ -219,6 +220,10 @@ export function GardenCommitment() {
           chainId={controller.chainId}
           commitment={commitment}
           requirements={requirements}
+        />
+        <CommitmentEvidence
+          attributions={controller.detail.evidenceAttributions}
+          recordedCount={commitment.evidenceCount}
         />
         <CommitmentWork
           commitment={commitment}

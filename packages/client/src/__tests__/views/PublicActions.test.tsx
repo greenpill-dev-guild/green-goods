@@ -116,8 +116,10 @@ describe("ActionsGallery", () => {
   it("shows loading skeletons", () => {
     mockUseActions.mockReturnValue({ data: [], isLoading: true });
     const { container } = renderView();
-    const pulsingElements = container.querySelectorAll(".animate-pulse");
-    expect(pulsingElements.length).toBeGreaterThanOrEqual(3);
+    expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
+      3
+    );
+    expect(container.querySelector(".animate-pulse")).toBeNull();
   });
 
   it("is read-only with no create/edit buttons", () => {

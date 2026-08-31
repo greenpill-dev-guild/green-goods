@@ -178,7 +178,7 @@ describe("Profile ENSSection", () => {
         "Choose a personal name tied to your work. Registration takes about 15-20 minutes."
       )
     ).toBeInTheDocument();
-    expect(screen.getByText("Claim name")).toBeInTheDocument();
+    expect(screen.getByText("Claim Name")).toBeInTheDocument();
     expect(mockUseENSRegistrationStatus).toHaveBeenCalledWith(undefined);
   });
 
@@ -190,16 +190,16 @@ describe("Profile ENSSection", () => {
 
     renderENSSection();
 
-    expect(screen.getByText("Claim name")).toBeInTheDocument();
+    expect(screen.getByText("Claim Name")).toBeInTheDocument();
 
-    await user.click(screen.getByText("Claim name"));
+    await user.click(screen.getByText("Claim Name"));
 
     await waitFor(() => {
       expect(mockMutateAsync).toHaveBeenCalledWith({ slug: "river" });
     });
     expect(mockReset).toHaveBeenCalled();
     expect(screen.getByTestId("ens-progress")).toHaveTextContent("river");
-    expect(screen.queryByText("Claim name")).not.toBeInTheDocument();
+    expect(screen.queryByText("Claim Name")).not.toBeInTheDocument();
   });
 
   it("hides claim form when registration is active", async () => {
@@ -210,12 +210,12 @@ describe("Profile ENSSection", () => {
 
     renderENSSection();
 
-    await user.click(screen.getByText("Claim name"));
+    await user.click(screen.getByText("Claim Name"));
 
     await waitFor(() => {
       expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
     });
-    expect(screen.queryByText("Claim name")).not.toBeInTheDocument();
+    expect(screen.queryByText("Claim Name")).not.toBeInTheDocument();
   });
 
   it("hides claim form when the address already has a Green Goods ENS name", () => {
@@ -226,9 +226,9 @@ describe("Profile ENSSection", () => {
 
     expect(mockUseENSRegistrationStatus).toHaveBeenCalledWith("forest");
     expect(screen.getAllByText("forest")).toHaveLength(2);
-    expect(screen.getByText("Release username")).toBeInTheDocument();
+    expect(screen.getByText("Release Username")).toBeInTheDocument();
     expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
-    expect(screen.queryByText("Claim name")).not.toBeInTheDocument();
+    expect(screen.queryByText("Claim Name")).not.toBeInTheDocument();
   });
 
   it("releases the current ENS name after confirmation", async () => {
@@ -239,7 +239,7 @@ describe("Profile ENSSection", () => {
 
     renderENSSection();
 
-    await user.click(screen.getByText("Release username"));
+    await user.click(screen.getByText("Release Username"));
 
     await waitFor(() => {
       expect(screen.getByTestId("confirm-release-dialog")).toBeInTheDocument();
@@ -262,7 +262,7 @@ describe("Profile ENSSection", () => {
 
     renderENSSection();
 
-    const requestButton = screen.getByText("Request username change");
+    const requestButton = screen.getByText("Request Username Change");
     expect(requestButton).not.toBeDisabled();
     expect(
       screen.getByText(

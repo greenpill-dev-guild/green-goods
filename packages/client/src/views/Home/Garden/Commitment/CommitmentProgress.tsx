@@ -2,6 +2,7 @@ import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import {
   type CommitmentReadModel,
   type CommitmentRequirementRecord,
+  isTerminalCommitmentState,
 } from "@green-goods/shared/commitment-pooling";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
@@ -40,7 +41,9 @@ export function CommitmentProgress({ chainId, commitment, requirements }: Commit
     );
 
   if (requirements.length === 0) {
-    // A service commitment names no garden actions, so proof is what moves it.
+    // A service commitment names no garden actions, so proof is what moves it —
+    // but a settled record has stopped moving, so its copy just counts.
+    const settled = isTerminalCommitmentState(commitment.derivedState);
     return (
       <section className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4">
         <h3 className="text-sm font-medium text-text-strong-950">
@@ -48,7 +51,11 @@ export function CommitmentProgress({ chainId, commitment, requirements }: Commit
         </h3>
         <p className="mt-1 text-sm text-text-sub-600">
           {formatMessage(
-            { id: "app.commitment.progress.proofOnly" },
+            {
+              id: settled
+                ? "app.commitment.progress.proofOnlySettled"
+                : "app.commitment.progress.proofOnly",
+            },
             { count: commitment.evidenceCount }
           )}
         </p>

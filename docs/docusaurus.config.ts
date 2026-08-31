@@ -4,6 +4,18 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
+// Code blocks sit on the DesignMD `code-surface` colors (docs/DESIGN.md) rather
+// than the stock Prism theme grounds, so dark code blocks stay on the warm
+// neutral ladder instead of Dracula's cold #282A36.
+const prismLight = {
+  ...prismThemes.github,
+  plain: {...prismThemes.github.plain, backgroundColor: '#F5F5F5'},
+};
+const prismDark = {
+  ...prismThemes.dracula,
+  plain: {...prismThemes.dracula.plain, backgroundColor: '#292929'},
+};
+
 const config: Config = {
   title: 'Green Goods Documentation',
   tagline: 'Bringing community and environmental actions on-chain',
@@ -20,16 +32,9 @@ const config: Config = {
     },
   },
 
-  // Set the production url of your site here
+  // Canonical production URL. Vercel owns deployment and the custom domain.
   url: 'https://docs.greengoods.app',
-  // Set the /<baseUrl>/ pathname under which your site is served
-  // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/',
-
-  // GitHub pages deployment config
-  organizationName: 'greenpill-dev-guild',
-  projectName: 'green-goods',
-  deploymentBranch: 'main',
   trailingSlash: false,
 
   onBrokenLinks: 'throw',
@@ -78,7 +83,7 @@ const config: Config = {
           },
           {
             from: ['/gardeners/tracking-contributions'],
-            to: '/community/gardener-guide/earning-badges',
+            to: '/community/gardener-guide/track-status-and-attestations',
           },
           {from: ['/gardeners/best-practices'], to: '/community/gardener-guide/uploading-your-work'},
           {
@@ -87,7 +92,7 @@ const config: Config = {
           },
           {from: ['/operators/managing-actions'], to: '/community/steward-guide/creating-a-garden'},
           {from: ['/operators/reviewing-work'], to: '/community/steward-guide/reviewing-work'},
-          {from: ['/operators/reporting-impact'], to: '/community/steward-guide/reporting-and-gap'},
+          {from: ['/operators/reporting-impact'], to: '/community/steward-guide/creating-impact-certificates'},
           {
             from: ['/welcome/quickstart-evaluator', '/evaluators/accessing-data'],
             to: '/community/how-it-works',
@@ -99,7 +104,7 @@ const config: Config = {
           },
           {
             from: ['/evaluators/external-frameworks'],
-            to: '/community/steward-guide/reporting-and-gap',
+            to: '/community/steward-guide/making-an-assessment',
           },
           {
             from: [
@@ -139,7 +144,6 @@ const config: Config = {
             ],
             to: '/builders/integrations/overview',
           },
-          {from: ['/developer/releasing'], to: '/builders/deployments/releasing'},
           {
             from: [
               '/developer/testing',
@@ -181,6 +185,14 @@ const config: Config = {
           {
             from: ['/community/welcome'],
             to: '/',
+          },
+          {
+            from: ['/community/green-goods-claims.generated'],
+            to: '/community/green-goods-claims',
+          },
+          {
+            from: ['/reference/ontology.generated'],
+            to: '/reference/ontology',
           },
           {
             from: [
@@ -256,8 +268,8 @@ const config: Config = {
           {from: ['/developers/getting-started'], to: '/builders/getting-started'},
           {from: ['/developers/architecture'], to: '/builders/architecture'},
           {from: ['/developers/integrations'], to: '/builders/integrations/overview'},
-          {from: ['/developers/build-patterns'], to: '/builders/build-patterns'},
-          {from: ['/developers/operations'], to: '/builders/operations'},
+          {from: ['/developers/build-patterns', '/builders/build-patterns'], to: '/builders/getting-started'},
+          {from: ['/developers/operations', '/builders/operations'], to: '/builders/getting-started'},
           {from: ['/developers/reference'], to: '/builders/getting-started'},
           {from: ['/developers/reference/entity-matrix'], to: '/builders/integrations/overview'},
           {from: ['/developers/reference/api-index'], to: '/builders/packages/api-index'},
@@ -265,57 +277,190 @@ const config: Config = {
           {from: ['/developers/reference/deployment-indexer-status'], to: '/builders/deployments/status'},
           {from: ['/developers/reference/agent-mcp-guide'], to: '/builders/agentic/mcp-guide'},
           {from: ['/developers/reference/docs-frontmatter-contract'], to: '/builders/how-to-contribute'},
+          {
+            from: ['/builders/deployments/admin-deploy'],
+            to: '/builders/packages/admin',
+          },
+          {
+            from: ['/builders/deployments/agent-deploy'],
+            to: '/builders/packages/agent',
+          },
+          {
+            from: ['/builders/deployments/client-deploy'],
+            to: '/builders/packages/client',
+          },
+          {
+            from: ['/builders/deployments/contracts-deploy'],
+            to: '/builders/packages/contracts',
+          },
+          {
+            from: ['/builders/deployments/indexer-deploy'],
+            to: '/builders/packages/indexer',
+          },
+
+          // Historical specifications now resolve to concise milestone notes. The
+          // original text remains available through Git history.
+          {from: ['/builders/specs/v0-1'], to: '/reference/product-history#v01'},
+          {from: ['/builders/specs/v0-4'], to: '/reference/product-history#v04'},
+          {from: ['/builders/specs/v1-0'], to: '/reference/product-history#v10'},
+          {
+            from: ['/builders/specs/did-ethr-modernization-proposal-2026-03'],
+            to: '/reference/product-history#did-ethr-modernization',
+          },
+          {
+            from: [
+              '/builders/specs/greenwill-badging-impact-framework-2026-03',
+              '/builders/specs/greenwill-gif-analysis-2026-03',
+              '/builders/specs/greenwill-gif-evaluation-plan-2026-03',
+              '/builders/specs/greenwill-gif-implementation-spec-2026-03',
+              '/builders/specs/greenwill-gif-one-pager-2026-03',
+            ],
+            to: '/reference/product-history#greenwill-research',
+          },
+          {
+            from: ['/builders/specs/opencred-vc-login-for-geographic-garden-access-2026-03'],
+            to: '/reference/product-history#opencred-vc-login',
+          },
+          {
+            from: ['/builders/specs/passkey-server-hardening-and-recovery-ready-auth-2026-03'],
+            to: '/reference/product-history#passkey-recovery-hardening',
+          },
 
           // concepts/ → community pillar pages
           {from: ['/concepts/impact-model'], to: '/community/how-it-works'},
-          {from: ['/concepts/strategy-and-goals'], to: '/community/where-were-headed'},
+          {from: ['/concepts/strategy-and-goals'], to: '/community/why-we-build'},
           {from: ['/concepts/mission-and-values'], to: '/community/why-we-build'},
           {from: ['/concepts/communities'], to: '/'},
 
           // Operator Guide was renamed to Steward Guide; the old URLs are live links.
-          {from: ['/community/operator-guide/cookie-jars'], to: '/community/steward-guide/cookie-jars'},
+          {from: ['/community/operator-guide/cookie-jars'], to: '/community/steward-guide/funding-and-governance'},
           {from: ['/community/operator-guide/creating-a-garden'], to: '/community/steward-guide/creating-a-garden'},
           {from: ['/community/operator-guide/creating-impact-certificates'], to: '/community/steward-guide/creating-impact-certificates'},
-          {from: ['/community/operator-guide/earning-recognition'], to: '/community/steward-guide/earning-recognition'},
+          {from: ['/community/operator-guide/earning-recognition'], to: '/community/steward-guide/creating-impact-certificates'},
           {from: ['/community/operator-guide'], to: '/community/steward-guide'},
           {from: ['/community/operator-guide/making-an-assessment'], to: '/community/steward-guide/making-an-assessment'},
           {from: ['/community/operator-guide/managing-actions'], to: '/community/steward-guide/managing-actions'},
-          {from: ['/community/operator-guide/managing-certificates'], to: '/community/steward-guide/managing-certificates'},
-          {from: ['/community/operator-guide/managing-endowments'], to: '/community/steward-guide/managing-endowments'},
-          {from: ['/community/operator-guide/managing-governance'], to: '/community/steward-guide/managing-governance'},
-          {from: ['/community/operator-guide/managing-payouts'], to: '/community/steward-guide/managing-payouts'},
-          {from: ['/community/operator-guide/reporting-and-gap'], to: '/community/steward-guide/reporting-and-gap'},
+          {from: ['/community/operator-guide/managing-certificates'], to: '/community/steward-guide/creating-impact-certificates'},
+          {from: ['/community/operator-guide/managing-endowments'], to: '/community/steward-guide/funding-and-governance'},
+          {from: ['/community/operator-guide/managing-governance'], to: '/community/steward-guide/funding-and-governance'},
+          {from: ['/community/operator-guide/managing-payouts'], to: '/community/steward-guide/funding-and-governance'},
+          {from: ['/community/operator-guide/reporting-and-gap'], to: '/community/steward-guide/making-an-assessment'},
           {from: ['/community/operator-guide/reviewing-work'], to: '/community/steward-guide/reviewing-work'},
-          {from: ['/community/operator-guide/troubleshooting'], to: '/community/steward-guide/troubleshooting'},
           // operator/ → community/steward-guide/
           {from: ['/operator/create-garden'], to: '/community/steward-guide/creating-a-garden'},
           {from: ['/operator/create-assessments'], to: '/community/steward-guide/making-an-assessment'},
           {from: ['/operator/review-work'], to: '/community/steward-guide/reviewing-work'},
           {from: ['/operator/mint-and-list-hypercerts'], to: '/community/steward-guide/creating-impact-certificates'},
-          {from: ['/operator/vaults-and-treasury'], to: '/community/steward-guide/managing-endowments'},
-          {from: ['/operator/conviction-and-signal-pools'], to: '/community/steward-guide/managing-governance'},
+          {from: ['/operator/vaults-and-treasury'], to: '/community/steward-guide/funding-and-governance'},
+          {from: ['/operator/conviction-and-signal-pools'], to: '/community/steward-guide/funding-and-governance'},
           {from: ['/operator/get-started-and-roles'], to: '/community/steward-guide/creating-a-garden'},
           {from: ['/operator/manage-actions'], to: '/community/steward-guide/managing-actions'},
-          {from: ['/operator/reporting-and-gap'], to: '/community/steward-guide/reporting-and-gap'},
-          {from: ['/operator/cookie-jars'], to: '/community/steward-guide/cookie-jars'},
-          {from: ['/operator/troubleshooting'], to: '/community/steward-guide/troubleshooting'},
+          {from: ['/operator/reporting-and-gap'], to: '/community/steward-guide/making-an-assessment'},
+          {from: ['/operator/cookie-jars'], to: '/community/steward-guide/funding-and-governance'},
 
           // gardener/ → community/gardener-guide/
           {from: ['/gardener/submit-work-mdr'], to: '/community/gardener-guide/uploading-your-work'},
           {from: ['/gardener/get-started'], to: '/community/gardener-guide/joining-a-garden'},
-          {from: ['/gardener/common-errors'], to: '/community/gardener-guide/common-errors'},
-          {from: ['/gardener/offline-sync-and-drafts'], to: '/community/gardener-guide/offline-sync-and-drafts'},
+          {from: ['/gardener/common-errors'], to: '/community/gardener-guide/recovery-and-sync'},
+          {from: ['/gardener/offline-sync-and-drafts'], to: '/community/gardener-guide/recovery-and-sync'},
           {from: ['/gardener/track-status-and-attestations'], to: '/community/gardener-guide/track-status-and-attestations'},
 
           // evaluator/ legacy routes now point to visible docs until evaluator flows return
           {from: ['/community/evaluator-guide'], to: '/community/how-it-works'},
           {from: ['/evaluator/verify-attestation-chains'], to: '/builders/integrations/eas'},
           {from: ['/evaluator/get-started'], to: '/community/how-it-works'},
-          {from: ['/evaluator/cross-framework-mapping'], to: '/community/steward-guide/reporting-and-gap'},
-          {from: ['/evaluator/export-and-analysis'], to: '/community/steward-guide/reporting-and-gap'},
+          {from: ['/evaluator/cross-framework-mapping'], to: '/community/steward-guide/making-an-assessment'},
+          {from: ['/evaluator/export-and-analysis'], to: '/community/steward-guide/making-an-assessment'},
           {from: ['/evaluator/query-eas'], to: '/builders/integrations/eas'},
           {from: ['/evaluator/query-indexer'], to: '/builders/packages/api-index'},
-          {from: ['/evaluator/troubleshooting'], to: '/community/steward-guide/troubleshooting'},
+          {from: ['/builders/glossary'], to: '/glossary'},
+          {from: ['/reference/changelog'], to: '/reference/product-history'},
+          {
+            from: ['/reference/regenerative-design-framework'],
+            to: '/reference/design-research#sources',
+          },
+          {
+            from: ['/reference/regenerative-design-principles'],
+            to: '/reference/design-research#seven-principles',
+          },
+          {
+            from: [
+              '/community/gardener-guide/common-errors',
+              '/community/gardener-guide/offline-sync-and-drafts',
+            ],
+            to: '/community/gardener-guide/recovery-and-sync',
+          },
+          {
+            from: [
+              '/community/gardener-guide/earning-badges',
+              '/community/gardener-guide/garden-payouts',
+              '/community/gardener-guide/voting-governance',
+            ],
+            to: '/community/how-it-works',
+          },
+          {
+            from: [
+              '/community/steward-guide/cookie-jars',
+              '/community/steward-guide/managing-endowments',
+              '/community/steward-guide/managing-governance',
+              '/community/steward-guide/managing-payouts',
+            ],
+            to: '/community/steward-guide/funding-and-governance',
+          },
+          {
+            from: [
+              '/community/steward-guide/earning-recognition',
+              '/community/steward-guide/managing-certificates',
+            ],
+            to: '/community/steward-guide/creating-impact-certificates',
+          },
+          {
+            from: ['/community/steward-guide/reporting-and-gap'],
+            to: '/community/steward-guide/making-an-assessment',
+          },
+          {
+            from: [
+              '/community/funder-guide/getting-started',
+              '/community/funder-guide/vaults-and-hypercerts',
+            ],
+            to: '/community/funder-guide',
+          },
+          {
+            from: ['/community/funder-guide/earning-recognition'],
+            to: '/community/how-it-works',
+          },
+          {
+            from: [
+              '/community/evaluator-guide/joining-a-garden',
+              '/community/evaluator-guide/making-assessments',
+              '/community/evaluator-guide/cross-framework-mapping',
+              '/community/evaluator-guide/export-and-analysis',
+            ],
+            to: '/community/steward-guide/making-an-assessment',
+          },
+          {
+            from: ['/community/evaluator-guide/query-eas'],
+            to: '/builders/integrations/eas',
+          },
+          {
+            from: [
+              '/community/evaluator-guide/query-indexer',
+              '/community/evaluator-guide/reporting-analytics',
+            ],
+            to: '/builders/packages/api-index',
+          },
+          {
+            from: ['/community/evaluator-guide/evaluating-certificates'],
+            to: '/community/steward-guide/creating-impact-certificates',
+          },
+          {
+            from: ['/community/community-member-guide/getting-involved'],
+            to: '/community/how-it-works',
+          },
+          {
+            from: ['/community/community-member-guide/conviction-voting'],
+            to: '/community/steward-guide/funding-and-governance',
+          },
         ],
       },
     ],
@@ -332,12 +477,11 @@ const config: Config = {
       {
         hashed: true,
         language: ['en'],
+        // The docs preset publishes at `/`; the search plugin defaults to `/docs`.
+        // Keep these aligned so postBuild indexes every live documentation route.
+        docsRouteBasePath: '/',
         highlightSearchTermsOnTargetPage: true,
         explicitSearchResultPath: true,
-        ignoreFiles: [
-          /^community\/evaluator-guide(?:\/.*)?$/,
-          /^community\/community-member-guide(?:\/.*)?$/,
-        ],
       },
     ],
   ],
@@ -440,7 +584,7 @@ const config: Config = {
             { label: 'How It Works', to: '/community/how-it-works' },
             { label: 'Why We Build', to: '/community/why-we-build' },
             { label: 'Gardener Guide', to: '/community/gardener-guide/joining-a-garden' },
-            { label: 'Operator Guide', to: '/community/steward-guide/' },
+            { label: 'Steward Guide', to: '/community/steward-guide/' },
             { label: 'Funder Guide', to: '/community/funder-guide/' },
           ],
         },
@@ -467,7 +611,7 @@ const config: Config = {
           items: [
             { label: 'FAQ', to: '/reference/faq' },
             { label: 'Glossary', to: '/glossary' },
-            { label: 'Changelog', to: '/reference/changelog' },
+            { label: 'Product History', to: '/reference/product-history' },
             { label: 'Credits', to: '/reference/credits' },
           ],
         },
@@ -480,8 +624,8 @@ const config: Config = {
       copyright: `Making grassroots conservation visible, verifiable, and funded.<br/>Copyright © ${new Date().getFullYear()} Greenpill Dev Guild.`,
     },
     prism: {
-      theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
+      theme: prismLight,
+      darkTheme: prismDark,
     },
   } satisfies Preset.ThemeConfig,
 };

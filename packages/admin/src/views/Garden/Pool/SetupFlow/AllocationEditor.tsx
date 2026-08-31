@@ -5,6 +5,7 @@ import {
   isValidCycleSplit,
 } from "@green-goods/shared/modules/commitment-pooling/pool-lifecycle";
 import { RiCheckLine, RiErrorWarningLine } from "@remixicon/react";
+import { useId } from "react";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminTextField } from "@/components/AdminTextField";
@@ -69,7 +70,7 @@ export function toAllocationBps(values: AllocationPercent): CommitmentAllocation
   return {
     gardeners: percentToBps(values.gardeners),
     treasury: percentToBps(values.treasury),
-    steward: percentToBps(values.steward),
+    operator: percentToBps(values.steward),
     evaluator: percentToBps(values.evaluator),
     community: percentToBps(values.community),
     funder: percentToBps(values.funder),
@@ -86,7 +87,7 @@ export function toRecognitionBps(values: RecognitionPercent): CommitmentRecognit
 function allocationSumPercent(values: AllocationPercent): number {
   const bps = toAllocationBps(values);
   const total =
-    bps.gardeners + bps.treasury + bps.steward + bps.evaluator + bps.community + bps.funder;
+    bps.gardeners + bps.treasury + bps.operator + bps.evaluator + bps.community + bps.funder;
   return Number.isFinite(total) ? total / 100 : Number.NaN;
 }
 
@@ -117,6 +118,8 @@ export function AllocationEditor({
   disabled = false,
 }: AllocationEditorProps) {
   const { formatMessage } = useIntl();
+  const sumId = useId();
+  const recognitionErrorId = useId();
   const valid = isValidCycleSplit({
     allocation: toAllocationBps(allocation),
     recognitionPolicy: toRecognitionBps(recognition),
@@ -145,7 +148,8 @@ export function AllocationEditor({
         defaultMessage: "Treasury",
       }),
     },
-    // The on-chain class is named `steward`; stewards read it as their own role.
+    // The on-chain class is named `operator`; this form key and the label stay
+    // `steward`, the word stewards read for their own role.
     {
       key: "steward",
       label: formatMessage({ id: "cockpit.garden.pool.split.steward", defaultMessage: "Steward" }),
@@ -234,14 +238,18 @@ export function AllocationEditor({
             label={field.label}
             value={allocation[field.key]}
             onChange={(event) => setShare(field.key, event.target.value)}
-            inputProps={{ inputMode: "decimal", "aria-describedby": "allocation-sum" }}
+            inputProps={{
+              inputMode: "decimal",
+              "aria-describedby": sumId,
+              "aria-invalid": valid.allocation ? undefined : true,
+            }}
             trailingIcon={PercentSign}
             disabled={disabled}
           />
         ))}
       </div>
 
-      <div id="allocation-sum" className="space-y-1 text-xs" aria-live="polite">
+      <div id={sumId} className="space-y-1 text-xs" aria-live="polite">
         {valid.allocation ? (
           <p className="flex items-center gap-1.5 text-[rgb(var(--tone-on-surface-accent))]">
             <RiCheckLine className="h-3.5 w-3.5" aria-hidden />
@@ -304,7 +312,11 @@ export function AllocationEditor({
             })}
             value={recognition.equal}
             onChange={(event) => onRecognitionChange({ ...recognition, equal: event.target.value })}
-            inputProps={{ inputMode: "decimal" }}
+            inputProps={{
+              inputMode: "decimal",
+              "aria-describedby": valid.recognitionPolicy ? undefined : recognitionErrorId,
+              "aria-invalid": valid.recognitionPolicy ? undefined : true,
+            }}
             trailingIcon={PercentSign}
             disabled={disabled}
           />
@@ -317,13 +329,21 @@ export function AllocationEditor({
             onChange={(event) =>
               onRecognitionChange({ ...recognition, verified: event.target.value })
             }
-            inputProps={{ inputMode: "decimal" }}
+            inputProps={{
+              inputMode: "decimal",
+              "aria-describedby": valid.recognitionPolicy ? undefined : recognitionErrorId,
+              "aria-invalid": valid.recognitionPolicy ? undefined : true,
+            }}
             trailingIcon={PercentSign}
             disabled={disabled}
           />
         </div>
         {valid.recognitionPolicy ? null : (
-          <p className="flex items-center gap-1.5 text-xs text-[rgb(var(--m3-error))]" role="alert">
+          <p
+            id={recognitionErrorId}
+            className="flex items-center gap-1.5 text-xs text-[rgb(var(--m3-error))]"
+            role="alert"
+          >
             <RiErrorWarningLine className="h-3.5 w-3.5" aria-hidden />
             {formatMessage({
               id: "cockpit.garden.pool.split.recognitionInvalid",

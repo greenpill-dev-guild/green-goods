@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-04-25T05:11:42.581Z",
-    "updated_at": "2026-06-27T00:28:08.421Z"
+    "updated_at": "2026-08-30T07:08:32.346Z"
   },
   "links": {
     "brief": "brief.md",
@@ -27,11 +27,25 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "todo",
+      "status": "in_progress",
       "branch": "claude/ui/design-system-alignment-review",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
-      "skill_tags": ["ui", "design", "review"]
+      "skill_tags": ["ui", "design", "review"],
+      "manual_blocked": false,
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun run --cwd packages/admin test -- AdminDensityScale CreateAssessmentDialog",
+          "evidence": "Pre-fix runs failed on legacy anatomy: DetailsConfigSection 3/3 failed on old FormField labels; CreateAssessmentDialog calendar test failed when the label wrapper anatomy changed (Unable to find role button name /Reporting period start/) — fixed via DatePicker label API"
+        },
+        "green": {
+          "command": "bun run --cwd packages/admin test; bun run --cwd packages/client test; bun run --cwd packages/shared test",
+          "evidence": "admin 817/817, client 974/974, shared 4450 passed/18 skipped; check:design-tokens 2.10.0 green with wrapper-adoption baseline burned 156-to-13"
+        },
+        "note": "Adoption remediation waves 1-5 + casing batch + Card retirement + typography pass"
+      }
     },
     "state_api": {
       "owner": "codex",
@@ -103,6 +117,126 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-08-29T20:42:23.969Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Round 1 (admin cockpit) delivered 2026-08-29: reports/2026-08-29-admin-cockpit-audit.md, score 72/100, 7 confirmed drift clusters; fix pass accepted by Afo as Round 2; client/docs rounds remain open"
+    },
+    {
+      "timestamp": "2026-08-29T20:42:24.509Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-08-29T20:55:37.862Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Round 2 guard step landed (14eef2880): four blind-spot guards in check-tokens.sh over the audited baseline; 85 debt lines baselined to 2026-12-31; RED/GREEN proof recorded in plan.todo.md"
+    },
+    {
+      "timestamp": "2026-08-29T21:24:32.440Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Round 2 shadow-ladder migration landed (99ef12b11): ladder deleted, 11 consumers on --m3-elevation-*, reappearance guard RED-proven, 11 baseline entries burned (198 rows remain), dist-verified"
+    },
+    {
+      "timestamp": "2026-08-29T22:00:53.015Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-08-29T22:00:53.512Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Round 2 focus pass landed (f66a13113): checkbox/search/palette keyboard focus, 13 alias rings converged on --tone-focus-ring, generic input --focus-ring re-pointed off shared blue, CommandPalette combobox wiring; AdminFocusRing guard test added"
+    },
+    {
+      "timestamp": "2026-08-29T22:22:45.037Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Round 2 item 4 landed (docs 830a7239f-parent pair): DESIGN.md canon re-trued to 22 wrappers + family map, admin.mdx aligned, AdminDialog/AdminFab JSDoc fixed; Cockpit Design System living reference published as artifact 7d1f5e6f"
+    },
+    {
+      "timestamp": "2026-08-29T22:52:01.196Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "DL-009 locked+shipped (790f8c762 tokens, b82fd591c codification, token_version 2.7.0): tonal dark filled actions; Storybook hosting resolved — already live at design.greengoods.app; reference artifact v3 updated"
+    },
+    {
+      "timestamp": "2026-08-29T23:03:27.548Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-08-29T23:03:28.079Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Round 2 COMPLETE (3496c5cc2/fbf5f9927): dead trio + WorkCard pair deleted, AdminTextArea shipped, AdminReasonDialog migrated, palette 20 wrappers, canon synced, reference page v4"
+    },
+    {
+      "timestamp": "2026-08-29T23:25:52.202Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Round 3 reviews delivered (client+browser / docs+storybook+guidance): validators all green incl. first lint:vocab; 7 confirmed clusters in reports/2026-08-29-round-3; sibling reference pages published (Field Tool 13bcde21, Living Record 05a6d12b); findings await triage"
+    },
+    {
+      "timestamp": "2026-08-30T00:03:04.014Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-08-30T01:31:37.572Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-08-30T02:31:51.070Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-08-30T07:08:32.346Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "claude/ui/design-system-alignment-review",
+      "note": "Adoption remediation waves 1-5 + casing batch + Card retirement + typography pass"
     }
   ],
   "taxonomy": {
@@ -114,8 +248,9 @@
   },
   "linear": {
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-06-27T00:28:08.421Z",
+    "lastSyncedAt": "2026-08-29T20:42:24.509Z",
     "parentIssue": "PRD-644",
-    "lanes": {}
+    "lanes": {},
+    "laneSyncMode": "parent_only"
   }
 }

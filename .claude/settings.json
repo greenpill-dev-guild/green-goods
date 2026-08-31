@@ -47,6 +47,16 @@
         ]
       },
       {
+        "matcher": "mcp__.*__save_issue",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/scripts/lint-linear-issue.sh\"",
+            "statusMessage": "Checking Linear issue shape..."
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {
@@ -107,7 +117,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '%s\\n' 'Green Goods Claude Code' '  /review /audit /clean /qa-triage /doc-feedback' '  planning, debugging: describe the intent (no slash)'",
+            "command": "printf '%s\\n' 'Green Goods Claude Code' '  /review /audit /clean /qa-triage /qa-session /doc-feedback' '  planning, debugging: describe the intent (no slash)'",
             "once": true
           }
         ]

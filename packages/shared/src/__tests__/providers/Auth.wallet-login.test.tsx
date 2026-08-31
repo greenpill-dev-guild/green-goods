@@ -30,6 +30,8 @@ const mocks = vi.hoisted(() => ({
   mockLoggerDebug: vi.fn(),
   mockLoggerWarn: vi.fn(),
   mockOpenAppKit: vi.fn(),
+  mockReconnect: vi.fn(async () => []),
+  mockTrackWalletRestore: vi.fn(),
   mockUseAccount: vi.fn(),
   mockUseConfig: vi.fn(() => ({ id: "wagmi-config" })),
 }));
@@ -41,6 +43,12 @@ vi.mock("wagmi", () => ({
 
 vi.mock("@wagmi/core", () => ({
   disconnect: () => mocks.mockDisconnect(),
+  reconnect: () => mocks.mockReconnect(),
+}));
+
+vi.mock("../../modules/app/authWalletRestoreAnalytics", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../modules/app/authWalletRestoreAnalytics")>()),
+  trackAuthWalletRestore: (...args: unknown[]) => mocks.mockTrackWalletRestore(...args),
 }));
 
 vi.mock("../../config/appkit", () => ({
@@ -98,7 +106,7 @@ const embeddedConnector = { id: "ID_AUTH", name: "Google" };
 let accountState: AccountState;
 let actor: ReturnType<typeof createAuthTestActor>;
 
-function createAuthTestActor() {
+function createAuthTestActor(restoreAuthMode: "wallet" | "embedded" | null = null) {
   return createActor(
     authMachine.provide({
       actors: {
@@ -116,6 +124,7 @@ function createAuthTestActor() {
     {
       input: {
         chainId: 11155111,
+        restoreAuthMode,
       },
     }
   );
@@ -143,6 +152,11 @@ describe("AuthProvider wallet login bridge", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible",
+    });
 
     setAccount(disconnectedAccount);
     mocks.mockUseAccount.mockImplementation(() => accountState);
@@ -277,5 +291,172 @@ describe("AuthProvider wallet login bridge", () => {
       expect(view.result.current.authMode).toBe("wallet");
     });
     expect(view.result.current.walletAddress).toBe(TEST_WALLET);
+    expect(mocks.mockTrackWalletRestore).toHaveBeenCalledWith({
+      authMode: "wallet",
+      outcome: "started",
+    });
+    expect(mocks.mockTrackWalletRestore).toHaveBeenCalledWith(
+      expect.objectContaining({ authMode: "wallet", outcome: "success" })
+    );
+  });
+
+  it("keeps a delayed wallet restore protected beyond two seconds", async () => {
+    vi.useFakeTimers();
+    try {
+      localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
+      actor.stop();
+      actor = createAuthTestActor("wallet");
+      actor.start();
+      mocks.mockGetAuthActor.mockReturnValue(actor);
+
+      const view = renderAuth();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(actor.getSnapshot().matches({ restoring: "wallet" })).toBe(true);
+      expect(view.result.current.isReady).toBe(false);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2_500);
+      });
+
+      expect(view.result.current.isReady).toBe(false);
+      expect(mocks.mockTrackWalletRestore).toHaveBeenCalledWith(
+        expect.objectContaining({ authMode: "wallet", outcome: "delayed" })
+      );
+
+      setAccount({
+        address: TEST_WALLET,
+        isConnected: true,
+        isConnecting: false,
+        connector: rabbyConnector,
+      });
+      view.rerender();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(view.result.current.isReady).toBe(true);
+      expect(view.result.current.authMode).toBe("wallet");
+      expect(mocks.mockTrackWalletRestore).toHaveBeenCalledWith(
+        expect.objectContaining({ authMode: "wallet", outcome: "success" })
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("ends a bounded restore with privacy-safe timeout telemetry", async () => {
+    vi.useFakeTimers();
+    try {
+      localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
+      actor.stop();
+      actor = createAuthTestActor("wallet");
+      actor.start();
+      mocks.mockGetAuthActor.mockReturnValue(actor);
+
+      const view = renderAuth();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15_000);
+      });
+
+      expect(actor.getSnapshot().matches("unauthenticated")).toBe(true);
+      expect(view.result.current.isReady).toBe(true);
+      expect(mocks.mockTrackWalletRestore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          authMode: "wallet",
+          outcome: "failed",
+          reason: "timeout",
+        })
+      );
+      expect(JSON.stringify(mocks.mockTrackWalletRestore.mock.calls)).not.toContain(TEST_WALLET);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not spend the restore deadline while the app is offline", async () => {
+    vi.useFakeTimers();
+    try {
+      Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
+      localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
+      actor.stop();
+      actor = createAuthTestActor("wallet");
+      actor.start();
+      mocks.mockGetAuthActor.mockReturnValue(actor);
+
+      const view = renderAuth();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(20_000);
+      });
+
+      expect(actor.getSnapshot().matches({ restoring: "wallet" })).toBe(true);
+      expect(view.result.current.isReady).toBe(false);
+      expect(mocks.mockTrackWalletRestore).not.toHaveBeenCalledWith(
+        expect.objectContaining({ outcome: "failed", reason: "timeout" })
+      );
+
+      Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
+      act(() => window.dispatchEvent(new Event("online")));
+
+      expect(mocks.mockReconnect).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not spend the restore deadline while the app is in the background", async () => {
+    vi.useFakeTimers();
+    try {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        value: "hidden",
+      });
+      localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
+      actor.stop();
+      actor = createAuthTestActor("wallet");
+      actor.start();
+      mocks.mockGetAuthActor.mockReturnValue(actor);
+
+      const view = renderAuth();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(20_000);
+      });
+
+      expect(actor.getSnapshot().matches({ restoring: "wallet" })).toBe(true);
+      expect(view.result.current.isReady).toBe(false);
+      expect(mocks.mockTrackWalletRestore).not.toHaveBeenCalledWith(
+        expect.objectContaining({ outcome: "failed", reason: "timeout" })
+      );
+
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        value: "visible",
+      });
+      act(() => document.dispatchEvent(new Event("visibilitychange")));
+
+      expect(mocks.mockReconnect).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("retries a restoring connector when the app comes back online", async () => {
+    localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
+    actor.stop();
+    actor = createAuthTestActor("wallet");
+    actor.start();
+    mocks.mockGetAuthActor.mockReturnValue(actor);
+
+    const view = renderAuth();
+    await waitFor(() => {
+      expect(actor.getSnapshot().matches({ restoring: "wallet" })).toBe(true);
+    });
+
+    window.dispatchEvent(new Event("online"));
+
+    expect(mocks.mockReconnect).toHaveBeenCalledTimes(1);
+    view.unmount();
   });
 });

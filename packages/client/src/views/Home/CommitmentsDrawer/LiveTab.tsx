@@ -94,8 +94,11 @@ export function LiveTab({ inbox, pools, gardens, onOpenCommitment }: LiveTabProp
         </Alert>
       ) : null}
 
+      {/* Same fact as the pool tab's calm dashed card, same register — a
+          queued creation is reassurance, never a warning (DESIGN.pwa warm
+          offline indicators). */}
       {inbox.hasPendingCreate ? (
-        <Alert variant="warning" className="p-3">
+        <Alert variant="info" className="p-3">
           {formatMessage({ id: "app.commitments.pendingCreate" })}
         </Alert>
       ) : null}

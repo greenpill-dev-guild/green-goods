@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import React from "react";
 import { IntlProvider } from "react-intl";
 import ptMessages from "@green-goods/shared/i18n/pt.json";
@@ -9,6 +9,11 @@ const mockUseWorks = vi.fn();
 const mockUseActions = vi.fn();
 const mockUseGardenPermissions = vi.fn();
 const mockSetSelectedGarden = vi.fn();
+const mockNavigate = vi.fn();
+const mockUseRouteBackedLeftSheetConfig = vi.fn();
+const mockTrackWorkApprovalPresentationFailed = vi.fn();
+let capturedReviewSuccess: ((approved: boolean) => void) | undefined;
+let mockAdminGardenContextError = false;
 let mockSelectedGarden: { id: string; name: string } | null = {
   id: "0xGarden",
   name: "Demo Garden",
@@ -22,53 +27,18 @@ vi.mock("@green-goods/shared/config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
-vi.mock("@green-goods/shared/hooks/admin-ui/garden/useResolvedWorkDetail", () => ({
-  useResolvedWorkDetail: (workId: string | undefined) => {
-    const gardenPermissions = mockUseGardenPermissions();
-    const { data: gardens = [], isLoading: gardensLoading = false } = mockUseGardens();
-    const matchedGarden = workId
-      ? (gardens.find((garden: { works?: Array<{ id: string }> }) =>
-          garden.works?.some((candidateWork) => candidateWork.id === workId)
-        ) ?? null)
-      : null;
-    const gardenId = matchedGarden?.id ?? mockSelectedGarden?.id ?? null;
-    const garden =
-      gardens.find((candidateGarden: { id: string }) => candidateGarden.id === gardenId) ??
-      matchedGarden;
-    const { works = [], isLoading: worksLoading = false } = mockUseWorks();
-    const work =
-      works.find((candidateWork: { id: string }) => candidateWork.id === workId) ??
-      matchedGarden?.works?.find((candidateWork: { id: string }) => candidateWork.id === workId);
-    const { data: actions = [] } = mockUseActions();
-    const action = actions.find(
-      (candidateAction: { id: string | number }) =>
-        work && Number(candidateAction.id) === work.actionUID
-    );
-
-    if (matchedGarden && matchedGarden.id !== mockSelectedGarden?.id) {
-      mockSetSelectedGarden(matchedGarden);
-    }
-
-    return {
-      garden,
-      gardenId,
-      work,
-      action,
-      canReview: garden ? gardenPermissions.canReviewGarden(garden) : false,
-      canApproveOrReject: garden
-        ? gardenPermissions.isStewardOfGarden(garden) || gardenPermissions.isOwnerOfGarden(garden)
-        : false,
-      isReviewed: work?.status === "approved" || work?.status === "rejected",
-      metadata: work?.metadata ? JSON.parse(work.metadata) : null,
-      audioNoteCids: undefined,
-      isLoading: gardensLoading || (gardenId ? worksLoading : false),
-    };
-  },
-}));
-
 vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
   useActions: () => mockUseActions(),
   useGardens: () => mockUseGardens(),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useAdminGardenContext", () => ({
+  useAdminGardenContext: () => ({
+    activeGarden: mockSelectedGarden,
+    activeGardenId: mockSelectedGarden?.id ?? null,
+    isError: mockAdminGardenContextError,
+    selectGarden: mockSetSelectedGarden,
+  }),
 }));
 
 vi.mock("@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
@@ -84,6 +54,11 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenPermissions", () => ({
 
 vi.mock("@green-goods/shared/hooks/work/useWorks", () => ({
   useWorks: () => mockUseWorks(),
+}));
+
+vi.mock("@green-goods/shared/modules/app/analytics-events", () => ({
+  trackWorkApprovalPresentationFailed: (properties: unknown) =>
+    mockTrackWorkApprovalPresentationFailed(properties),
 }));
 
 vi.mock("@green-goods/shared/stores/useAdminStore", () => ({
@@ -132,7 +107,12 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
 vi.mock("react-router-dom", () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) =>
     React.createElement("a", { href: to }, children),
+  useNavigate: () => mockNavigate,
   useParams: () => ({ workId: "0xWork" }),
+}));
+
+vi.mock("@/components/Layout", () => ({
+  useRouteBackedLeftSheetConfig: (config: unknown) => mockUseRouteBackedLeftSheetConfig(config),
 }));
 
 vi.mock("@/components/Layout/PageHeader", () => ({
@@ -159,7 +139,16 @@ vi.mock("@/views/Hub/components/WorkSubmissionDetails", () => ({
 }));
 
 vi.mock("@/views/Garden/WorkDetail/ReviewForm", () => ({
-  ReviewForm: ({ canReview, actionSlug }: { canReview: boolean; actionSlug?: string }) => {
+  ReviewForm: ({
+    canReview,
+    actionSlug,
+    onSuccess,
+  }: {
+    canReview: boolean;
+    actionSlug?: string;
+    onSuccess?: (approved: boolean) => void;
+  }) => {
+    capturedReviewSuccess = onSuccess;
     const actions = mockUseActions.mock.results.at(-1)?.value?.data ?? [];
     const permissions = mockUseGardenPermissions.mock.results.at(-1)?.value;
     const matchedAction = actions.find((action: { slug?: string }) => action.slug === actionSlug);
@@ -201,11 +190,14 @@ vi.mock("@/views/Garden/WorkDetail/SubmissionDetails", () => ({
 }));
 
 import WorkDetail, { WorkDetailPanel } from "@/views/Garden/WorkDetail";
+import { HubSheetDescriptor } from "@/views/Hub/components/HubSheetDescriptor";
 
 const messages = {
-  "app.garden.admin.backToGarden": "Back to garden",
+  "app.garden.admin.backToGarden": "Back to Garden",
   "app.work.detail.loading": "Loading work...",
   "app.work.detail.loadingDescription": "Fetching work details.",
+  "app.work.detail.loadError":
+    "Work details could not be loaded. Check your connection and try again.",
   "app.work.detail.title": "Work Detail",
   "app.work.detail.notFoundDescription": "The requested work submission could not be found.",
   "app.work.detail.notFound": "Work not found",
@@ -243,6 +235,11 @@ describe("WorkDetail view", () => {
       id: "0xGarden",
       name: "Demo Garden",
     };
+    mockAdminGardenContextError = false;
+    mockNavigate.mockReset();
+    mockUseRouteBackedLeftSheetConfig.mockReset();
+    mockTrackWorkApprovalPresentationFailed.mockReset();
+    capturedReviewSuccess = undefined;
 
     mockUseGardens.mockReturnValue({
       data: [
@@ -271,6 +268,9 @@ describe("WorkDetail view", () => {
         },
       ],
       isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
     });
 
     mockUseWorks.mockReturnValue({
@@ -287,6 +287,9 @@ describe("WorkDetail view", () => {
         },
       ],
       isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
     });
 
     mockUseActions.mockReturnValue({
@@ -388,6 +391,9 @@ describe("WorkDetail view", () => {
         },
       ],
       isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
     });
 
     mockUseWorks.mockReturnValue({
@@ -404,14 +410,242 @@ describe("WorkDetail view", () => {
         },
       ],
       isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
     });
 
     renderWithIntl();
 
     expect(screen.getByText("Mulching")).toBeInTheDocument();
     expect(mockSetSelectedGarden).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "0xAltGarden", name: "Alt Garden" })
+      expect.objectContaining({ id: "0xAltGarden", name: "Alt Garden" }),
+      { replace: true }
     );
+    expect(screen.queryByText("Work not found")).not.toBeInTheDocument();
+  });
+
+  it("keeps the rendered inspector stable when the reviewed work leaves the pending collection", () => {
+    const panel = React.createElement(WorkDetailPanel, {
+      workId: "0xWork",
+      layout: "sheet",
+    });
+    const rendered = renderWithIntl("en", panel);
+
+    expect(screen.getByTestId("submission-details")).toBeInTheDocument();
+
+    mockUseGardens.mockReturnValue({
+      data: [
+        {
+          id: "0xGarden",
+          name: "Demo Garden",
+          stewards: ["0xsteward"],
+          works: [],
+        },
+      ],
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
+    });
+    mockUseWorks.mockReturnValue({
+      works: [
+        {
+          id: "0xUnrelated",
+          title: "Plant windbreak",
+          actionUID: 1,
+          gardenAddress: "0xGarden",
+          gardenerAddress: "0xgardener",
+          metadata: "{}",
+          media: [],
+          status: "pending",
+        },
+      ],
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
+    });
+
+    rendered.rerender(
+      React.createElement(IntlProvider, {
+        locale: "en",
+        messages,
+        children: React.createElement(WorkDetailPanel, {
+          workId: "0xWork",
+          layout: "sheet",
+        }),
+      })
+    );
+
+    expect(screen.queryByText("Work not found")).not.toBeInTheDocument();
+    expect(screen.getByTestId("submission-details")).toBeInTheDocument();
+  });
+
+  it("closes the route-backed inspector exactly once after review success", () => {
+    const onBeforeClose = vi.fn();
+    const onNavigateToBase = vi.fn();
+
+    renderWithIntl(
+      "en",
+      React.createElement(HubSheetDescriptor, {
+        routeSheetContentId: "work-detail:0xWork",
+        routeWorkId: "0xWork",
+        routeCertificationId: undefined,
+        activeWorkDetailId: null,
+        selectedWork: mockUseWorks().works[0],
+        selectedCertification: undefined,
+        isResolvingSelection: false,
+        canManage: true,
+        hubContext: { gardenId: "0xGarden", sort: "newest" },
+        closeTo: "/hub/work?gardenId=0xGarden&sort=newest",
+        onNavigateToBase,
+        onBeforeClose,
+      })
+    );
+
+    const config = mockUseRouteBackedLeftSheetConfig.mock.calls.at(-1)?.[0] as {
+      content: React.ReactElement<{ onSuccess?: () => void }>;
+    };
+    act(() => config.content.props.onSuccess?.());
+
+    expect(onBeforeClose).toHaveBeenCalledTimes(1);
+    expect(onNavigateToBase).toHaveBeenCalledTimes(1);
+  });
+
+  it("records a privacy-safe presentation failure separately after transaction success", () => {
+    const onSuccess = vi.fn();
+    const rendered = renderWithIntl(
+      "en",
+      React.createElement(WorkDetailPanel, {
+        workId: "0xWork",
+        layout: "sheet",
+        onSuccess,
+      })
+    );
+    const completedReview = capturedReviewSuccess;
+
+    mockUseGardens.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isFetching: false,
+      isError: true,
+      error: new Error("Garden query failed"),
+    });
+    mockUseWorks.mockReturnValue({
+      works: [],
+      isLoading: false,
+      isFetching: false,
+      isError: true,
+      error: new Error("Works query failed"),
+    });
+    rendered.rerender(
+      React.createElement(IntlProvider, {
+        locale: "en",
+        messages,
+        children: React.createElement(WorkDetailPanel, {
+          workId: "0xUnexpected",
+          layout: "sheet",
+          onSuccess,
+        }),
+      })
+    );
+
+    act(() => completedReview?.(true));
+
+    expect(mockTrackWorkApprovalPresentationFailed).toHaveBeenCalledWith({
+      approved: true,
+      failureReason: "detail-resolution",
+      resolutionStatus: "error",
+    });
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(mockTrackWorkApprovalPresentationFailed.mock.calls[0]?.[0]).not.toHaveProperty(
+      "gardenAddress"
+    );
+    expect(mockTrackWorkApprovalPresentationFailed.mock.calls[0]?.[0]).not.toHaveProperty(
+      "walletAddress"
+    );
+    expect(mockTrackWorkApprovalPresentationFailed.mock.calls[0]?.[0]).not.toHaveProperty(
+      "workUID"
+    );
+  });
+
+  it("shows not found for an unknown work only after detail resolution settles", () => {
+    mockUseGardens.mockReturnValue({
+      data: [],
+      isLoading: true,
+      isFetching: true,
+      isError: false,
+      error: null,
+    });
+    mockUseWorks.mockReturnValue({
+      works: [],
+      isLoading: true,
+      isFetching: true,
+      isError: false,
+      error: null,
+    });
+    const panel = React.createElement(WorkDetailPanel, {
+      workId: "0xUnknown",
+      layout: "sheet",
+    });
+    const rendered = renderWithIntl("en", panel);
+
+    expect(screen.getByRole("status")).toHaveTextContent("Loading work...");
+    expect(screen.queryByText("Work not found")).not.toBeInTheDocument();
+
+    mockUseGardens.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
+    });
+    mockUseWorks.mockReturnValue({
+      works: [],
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
+    });
+    rendered.rerender(
+      React.createElement(IntlProvider, {
+        locale: "en",
+        messages,
+        children: React.createElement(WorkDetailPanel, {
+          workId: "0xUnknown",
+          layout: "sheet",
+        }),
+      })
+    );
+
+    expect(screen.getByText("Work not found")).toBeInTheDocument();
+  });
+
+  it("does not report a query failure as an unknown work", () => {
+    mockUseGardens.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isFetching: false,
+      isError: true,
+      error: new Error("Garden query failed"),
+    });
+    mockUseWorks.mockReturnValue({
+      works: [],
+      isLoading: false,
+      isFetching: false,
+      isError: true,
+      error: new Error("Works query failed"),
+    });
+
+    renderWithIntl(
+      "en",
+      React.createElement(WorkDetailPanel, { workId: "0xWork", layout: "sheet" })
+    );
+
+    expect(
+      screen.getByText("Work details could not be loaded. Check your connection and try again.")
+    ).toBeInTheDocument();
     expect(screen.queryByText("Work not found")).not.toBeInTheDocument();
   });
 

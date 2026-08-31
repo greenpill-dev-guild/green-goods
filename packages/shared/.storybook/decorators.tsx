@@ -175,6 +175,7 @@ const installedPwaContext = {
   isPwaPresentation: true,
   isStandalone: true,
   installState: "installed",
+  installedAppEvidence: { status: "installed", source: "standalone" },
   presentationMode: "pwa",
   wasInstalled: true,
   platform: "ios",

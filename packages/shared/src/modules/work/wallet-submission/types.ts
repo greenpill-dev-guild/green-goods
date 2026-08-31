@@ -13,6 +13,19 @@ export interface WalletSubmissionOptions {
   txTimeout?: number;
 }
 
+export type ApprovalWalletLifecycleEvent =
+  | { stage: "handoff" }
+  | {
+      stage: "broadcast";
+      txHash: `0x${string}`;
+      reason?: "receipt-timeout";
+    }
+  | { stage: "confirmed"; txHash: `0x${string}` };
+
+export interface ApprovalSubmissionOptions extends WalletSubmissionOptions {
+  onLifecycle?: (event: ApprovalWalletLifecycleEvent) => void;
+}
+
 export interface BatchApprovalOptions {
   onProgress?: OnProgressCallback;
   txTimeout?: number;

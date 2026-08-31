@@ -119,6 +119,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           assessmentCount30d={workspace.assessments.length}
           gardenerCount={workspace.garden.gardeners.length}
           treasuryBalance={workspace.treasuryBalance}
+          karmaIntegration={workspace.karmaIntegration}
         />
       ) : null}
 
@@ -221,7 +222,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
                 >
                   {formatMessage({
                     id: "app.garden.settings.saveChanges",
-                    defaultMessage: "Save changes",
+                    defaultMessage: "Save Changes",
                   })}
                 </AdminButton>
               </div>

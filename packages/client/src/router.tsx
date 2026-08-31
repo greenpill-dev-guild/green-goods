@@ -1,9 +1,9 @@
 import { createBrowserRouter, createHashRouter } from "react-router-dom";
-import { appRoutes } from "./config/routes";
+import { publicAppRoutes, pwaAppRoutes } from "./config/routes";
 
 // Use hash router for IPFS builds to ensure proper SPA routing on IPFS gateways
 const createRouter =
   import.meta.env.VITE_USE_HASH_ROUTER === "true" ? createHashRouter : createBrowserRouter;
 
-export { appRoutes };
-export const router = createRouter(appRoutes);
+export const createPublicRouter = () => createRouter(publicAppRoutes);
+export const createPwaRouter = () => createRouter(pwaAppRoutes);

@@ -44,6 +44,10 @@ export function CycleRail({ cycles, selectedCycleId, onSelect }: CycleRailProps)
     }
     const start = new Date(Number(cycle.startTime) * 1000);
     const end = new Date(Number(cycle.endTime) * 1000);
+    // A single-day campaign is one date, never "Apr 12 – Apr 12".
+    if (start.toDateString() === end.toDateString()) {
+      return formatDate(end, { month: "short", day: "numeric", year: "numeric" });
+    }
     const startLabel = formatDate(start, {
       month: "short",
       day: "numeric",

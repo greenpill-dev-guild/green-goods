@@ -4,6 +4,7 @@ import {
   type ComponentType,
   type KeyboardEventHandler,
   type ReactNode,
+  type RefObject,
   isValidElement,
   useEffect,
   useState,
@@ -33,14 +34,17 @@ export interface AdminDialogProps {
   preventClose?: boolean;
   role?: "dialog" | "alertdialog";
   onKeyDown?: KeyboardEventHandler<HTMLDivElement>;
+  /** Optional focus target for controlled dialogs opened without Dialog.Trigger. */
+  finalFocusRef?: RefObject<HTMLElement | null>;
   className?: string;
   /**
    * Workspace tone for the portaled surface. The dialog portals to <body>,
    * escaping CanvasLayout's `[data-tone]` scope, so the per-view accent
-   * (`--tone-*`) is otherwise unset inside the dialog and falls back to green.
-   * Setting it re-establishes the tone in-portal — the action flows pass their
-   * workspace so Hub flows read blue, Garden green, etc. Consumers must read
-   * `--tone-action` / `--tone-on-surface-accent` (not `--m3-primary`).
+   * (`--tone-*`) is otherwise unset inside the dialog; the component defaults
+   * to the neutral `home` (stone) tone so an untoned portal reads calm rather
+   * than brand green. Passing the workspace re-establishes its tone in-portal —
+   * the action flows do, so Hub flows read blue, Garden green, etc. Consumers
+   * must read `--tone-action` / `--tone-on-surface-accent` (not `--m3-primary`).
    */
   tone?: "hub" | "garden" | "community" | "actions" | "home";
 }
@@ -58,6 +62,9 @@ export interface AdminConfirmDialogProps {
   cancelLabel?: string;
   variant?: "default" | "warning" | "danger";
   isLoading?: boolean;
+  /** Disables only the confirm action (cancel/close stay usable), e.g. while
+   * the data the confirmation describes is still being refreshed. */
+  confirmDisabled?: boolean;
   icon?: ReactNode;
   /** Workspace tone, forwarded to the portaled surface (see AdminDialogProps.tone). */
   tone?: AdminDialogProps["tone"];
@@ -82,7 +89,10 @@ const sizeClasses: Record<NonNullable<AdminDialogProps["size"]>, string> = {
 const variantClasses: Record<NonNullable<AdminDialogProps["variant"]>, string> = {
   standard: "",
   confirm: "sm:max-w-md",
-  palette: "admin-dialog--palette sm:max-w-2xl p-0",
+  // Palette is top-anchored on desktop (not centered): with a fixed-height
+  // results list the input must never move while typing, and a centered,
+  // content-sized panel drifts its top edge as results narrow (AD-6).
+  palette: "admin-dialog--palette sm:max-w-2xl p-0 sm:top-24 sm:translate-y-0",
   // Full-surface action flow (Submit Work, Create Assessment, Create Hypercert):
   // the consumer (ActionFlowShell / wizard) owns the visible header + scrolling
   // body + pinned footer, so the structured header and inner padding are
@@ -159,6 +169,7 @@ export function AdminDialog({
   preventClose = false,
   role = "dialog",
   onKeyDown,
+  finalFocusRef,
   className,
   // Default to the neutral "home" tone so a dialog that omits `tone` still
   // renders a deliberate accent in-portal instead of falling back to green
@@ -261,6 +272,11 @@ export function AdminDialog({
             if (preventClose) event.preventDefault();
           }}
           onKeyDown={onKeyDown}
+          onCloseAutoFocus={(event) => {
+            if (!finalFocusRef?.current) return;
+            event.preventDefault();
+            finalFocusRef.current.focus();
+          }}
         >
           {/* Close button - absolute top-right */}
           {!hideCloseButton ? (
@@ -363,6 +379,7 @@ export function AdminConfirmDialog({
   cancelLabel,
   variant = "default",
   isLoading = false,
+  confirmDisabled = false,
   icon,
   tone,
 }: AdminConfirmDialogProps) {
@@ -429,7 +446,7 @@ export function AdminConfirmDialog({
             type="button"
             variant={isDanger ? "danger" : "filled"}
             onClick={handleConfirm}
-            disabled={isLoading}
+            disabled={isLoading || confirmDisabled}
             loading={isLoading}
           >
             {resolvedConfirmLabel}

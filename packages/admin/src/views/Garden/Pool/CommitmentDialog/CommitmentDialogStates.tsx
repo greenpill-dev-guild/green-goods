@@ -80,7 +80,7 @@ export function CommitmentDialogNotFound({
         >
           {formatMessage({
             id: "cockpit.garden.pool.commitment.notFound.back",
-            defaultMessage: "Back to pool",
+            defaultMessage: "Back to Pool",
           })}
         </AdminButton>
       </div>
@@ -105,7 +105,7 @@ export function CommitmentDialogUnavailable({ garden }: { garden: Address }) {
       <p className="label-md text-text-strong">
         {formatMessage({
           id: "cockpit.garden.pool.unavailable.title",
-          defaultMessage: "Commitment pooling is not on this chain yet",
+          defaultMessage: "Commitment pooling isn't switched on in this app yet",
         })}
       </p>
       <p className="max-w-sm text-sm text-text-soft">
@@ -122,7 +122,7 @@ export function CommitmentDialogUnavailable({ garden }: { garden: Address }) {
       >
         {formatMessage({
           id: "cockpit.garden.pool.commitment.notFound.back",
-          defaultMessage: "Back to pool",
+          defaultMessage: "Back to Pool",
         })}
       </AdminButton>
     </div>

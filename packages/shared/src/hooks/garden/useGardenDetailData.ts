@@ -116,6 +116,8 @@ export function useGardenDetailData(id: string | undefined) {
     works,
     isLoading: worksLoading,
     isFetching: worksFetching,
+    isError: isWorksError,
+    error: worksError,
     refetch: refreshWorks,
   } = useWorks(gardenId);
   const { hypercerts, isLoading: hypercertsLoading } = useHypercerts({ gardenId: id });
@@ -180,6 +182,8 @@ export function useGardenDetailData(id: string | undefined) {
     works,
     worksLoading,
     worksFetching,
+    isWorksError,
+    worksError,
     refreshWorks,
     hypercerts,
     hypercertsLoading,

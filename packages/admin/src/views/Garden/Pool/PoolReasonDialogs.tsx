@@ -30,7 +30,7 @@ export function PoolReasonDialogs({
         tone={tone}
         title={formatMessage({
           id: "cockpit.garden.pool.pause.title",
-          defaultMessage: "Pause this pool",
+          defaultMessage: "Pause This Pool",
         })}
         description={formatMessage(
           {
@@ -42,11 +42,11 @@ export function PoolReasonDialogs({
         )}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.pause.confirm",
-          defaultMessage: "Pause pool",
+          defaultMessage: "Pause Pool",
         })}
         cancelLabel={formatMessage({
           id: "cockpit.garden.pool.pause.keep",
-          defaultMessage: "Keep running",
+          defaultMessage: "Keep Running",
         })}
         suggestions={[
           formatMessage({
@@ -85,11 +85,11 @@ export function PoolReasonDialogs({
           reasonDialog?.kind === "cancel-cycle" && reasonDialog.cycle.cycleType === "CAMPAIGN"
             ? formatMessage({
                 id: "cockpit.garden.pool.cancelCycle.campaignTitle",
-                defaultMessage: "Cancel this campaign",
+                defaultMessage: "Cancel This Campaign",
               })
             : formatMessage({
                 id: "cockpit.garden.pool.cancelCycle.seasonTitle",
-                defaultMessage: "Cancel this season",
+                defaultMessage: "Cancel This Season",
               })
         }
         description={formatMessage(
@@ -109,16 +109,16 @@ export function PoolReasonDialogs({
           reasonDialog?.kind === "cancel-cycle" && reasonDialog.cycle.cycleType === "CAMPAIGN"
             ? formatMessage({
                 id: "cockpit.garden.pool.cancelCycle.confirmCampaign",
-                defaultMessage: "Cancel campaign",
+                defaultMessage: "Cancel Campaign",
               })
             : formatMessage({
                 id: "cockpit.garden.pool.cancelCycle.confirmSeason",
-                defaultMessage: "Cancel season",
+                defaultMessage: "Cancel Season",
               })
         }
         cancelLabel={formatMessage({
           id: "cockpit.garden.pool.cancelCycle.keep",
-          defaultMessage: "Keep it",
+          defaultMessage: "Keep It",
         })}
         suggestions={[
           formatMessage({
@@ -155,7 +155,7 @@ export function PoolReasonDialogs({
         tone={tone}
         title={formatMessage({
           id: "cockpit.garden.pool.declineClaim.title",
-          defaultMessage: "Decline this request",
+          defaultMessage: "Decline This Request",
         })}
         description={formatMessage({
           id: "cockpit.garden.pool.declineClaim.description",
@@ -164,11 +164,11 @@ export function PoolReasonDialogs({
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.declineClaim.confirm",
-          defaultMessage: "Decline request",
+          defaultMessage: "Decline Request",
         })}
         cancelLabel={formatMessage({
           id: "cockpit.garden.pool.declineClaim.keep",
-          defaultMessage: "Keep pending",
+          defaultMessage: "Keep Pending",
         })}
         suggestions={[
           formatMessage({

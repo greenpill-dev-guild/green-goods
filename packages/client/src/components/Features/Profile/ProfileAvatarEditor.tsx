@@ -54,8 +54,8 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
   const hasUnpublishedDraft = Boolean(selectedFile ?? draftFile);
   const saveLabel =
     resolved.source === "app"
-      ? formatMessage({ id: "profile.avatar.replace", defaultMessage: "Replace photo" })
-      : formatMessage({ id: "profile.avatar.save", defaultMessage: "Save photo" });
+      ? formatMessage({ id: "profile.avatar.replace", defaultMessage: "Replace Photo" })
+      : formatMessage({ id: "profile.avatar.save", defaultMessage: "Save Photo" });
 
   useEffect(() => {
     setSelectedPreview(null);
@@ -140,7 +140,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
         )}
         aria-label={formatMessage({
           id: "profile.avatar.edit",
-          defaultMessage: "Edit profile photo",
+          defaultMessage: "Edit Profile Photo",
         })}
       >
         <img
@@ -159,7 +159,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
       <DialogShell
         open={open}
         onOpenChange={setOpen}
-        title={formatMessage({ id: "profile.avatar.edit", defaultMessage: "Edit profile photo" })}
+        title={formatMessage({ id: "profile.avatar.edit", defaultMessage: "Edit Profile Photo" })}
         description={formatMessage({
           id: "profile.avatar.privacyNotice",
           defaultMessage:
@@ -184,7 +184,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
                 <p className="text-sm text-text-sub">
                   {formatMessage({
                     id: "profile.avatar.chooseFile",
-                    defaultMessage: "Choose photo",
+                    defaultMessage: "Choose Photo",
                   })}
                 </p>
               )}
@@ -201,7 +201,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
               accept="image/jpeg,image/png,image/webp"
               aria-label={formatMessage({
                 id: "profile.avatar.chooseFile",
-                defaultMessage: "Choose photo",
+                defaultMessage: "Choose Photo",
               })}
               className="sr-only"
               onChange={(event) => {
@@ -212,7 +212,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
               disabled={busy}
             />
             <RiImageAddLine className="h-4 w-4" aria-hidden="true" />
-            {formatMessage({ id: "profile.avatar.chooseFile", defaultMessage: "Choose photo" })}
+            {formatMessage({ id: "profile.avatar.chooseFile", defaultMessage: "Choose Photo" })}
           </label>
 
           {status ? (
@@ -282,7 +282,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
                 className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-error-base hover:bg-error-lighter disabled:opacity-50"
               >
                 <RiDeleteBinLine className="h-4 w-4" aria-hidden="true" />
-                {formatMessage({ id: "profile.avatar.remove", defaultMessage: "Remove photo" })}
+                {formatMessage({ id: "profile.avatar.remove", defaultMessage: "Remove Photo" })}
               </button>
             ) : null}
           </div>
@@ -322,7 +322,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
             disabled={busy}
             className="min-h-11 rounded-full bg-error-base px-4 py-2 text-sm font-medium text-static-white disabled:opacity-50"
           >
-            {formatMessage({ id: "profile.avatar.remove", defaultMessage: "Remove photo" })}
+            {formatMessage({ id: "profile.avatar.remove", defaultMessage: "Remove Photo" })}
           </button>
         </div>
       </DialogShell>

@@ -72,7 +72,7 @@ export function CampaignCreateReview(props: CampaignCookieJarCreateFormProps) {
             >
               {formatMessage({
                 id: "cockpit.community.cookies.create",
-                defaultMessage: "Create cookie jar",
+                defaultMessage: "Create Cookie Jar",
               })}
             </AdminButton>
             <AdminButton type="button" variant="text" className="mt-2 w-full" onClick={onCancel}>
@@ -110,7 +110,7 @@ export function CampaignCreateReview(props: CampaignCookieJarCreateFormProps) {
           >
             {formatMessage({
               id: "cockpit.community.cookies.create",
-              defaultMessage: "Create cookie jar",
+              defaultMessage: "Create Cookie Jar",
             })}
           </AdminButton>
         </div>

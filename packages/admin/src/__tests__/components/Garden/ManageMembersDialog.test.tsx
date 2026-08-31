@@ -85,7 +85,7 @@ describe("components/Garden/ManageMembersDialog", () => {
     expect(defaultProps.onRemoveMember).not.toHaveBeenCalled();
 
     const confirm = await screen.findByRole("alertdialog", {
-      name: "Confirm member removal",
+      name: "Confirm Member Removal",
     });
     expect(confirm).toHaveTextContent(OWNER.slice(0, 6));
 
@@ -93,7 +93,7 @@ describe("components/Garden/ManageMembersDialog", () => {
     expect(defaultProps.onRemoveMember).not.toHaveBeenCalled();
 
     await user.click(within(ownerRow).getByRole("button", { name: "Remove Owner" }));
-    await user.click(await screen.findByRole("button", { name: "Remove member" }));
+    await user.click(await screen.findByRole("button", { name: "Remove Member" }));
 
     expect(defaultProps.onRemoveMember).toHaveBeenCalledWith(OWNER, "owner");
   });
@@ -105,7 +105,7 @@ describe("components/Garden/ManageMembersDialog", () => {
 
     const ownerRow = screen.getByText(OWNER.slice(0, 10)).closest("li") as HTMLElement;
     await user.click(within(ownerRow).getByRole("button", { name: "Remove Owner" }));
-    await user.click(await screen.findByRole("button", { name: "Remove member" }));
+    await user.click(await screen.findByRole("button", { name: "Remove Member" }));
 
     expect(await screen.findByText("Failed to remove Owner")).toBeInTheDocument();
     expect(screen.getAllByTestId("address-display")).toHaveLength(3);
@@ -115,7 +115,7 @@ describe("components/Garden/ManageMembersDialog", () => {
     const user = userEvent.setup();
     render(createElement(ManageMembersDialog, defaultProps));
 
-    await user.click(screen.getByRole("button", { name: "Add members" }));
+    await user.click(screen.getByRole("button", { name: "Add Members" }));
     expect(defaultProps.onAddMembers).toHaveBeenCalledTimes(1);
   });
 
@@ -125,7 +125,7 @@ describe("components/Garden/ManageMembersDialog", () => {
     for (const closeButton of screen.getAllByRole("button", { name: "Close" })) {
       expect(closeButton).toBeDisabled();
     }
-    expect(screen.getByRole("button", { name: "Add members" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add Members" })).toBeDisabled();
 
     fireEvent.keyDown(screen.getByRole("dialog", { name: "Manage Members" }), { key: "Escape" });
 
@@ -135,7 +135,7 @@ describe("components/Garden/ManageMembersDialog", () => {
   it("hides write affordances for read-only viewers", () => {
     render(createElement(ManageMembersDialog, { ...defaultProps, canManage: false }));
 
-    expect(screen.queryByRole("button", { name: "Add members" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add Members" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Remove/ })).not.toBeInTheDocument();
   });
 });

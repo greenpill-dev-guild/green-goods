@@ -550,7 +550,6 @@ Produces:
 - Static HTML, CSS, JS files in `dist/`
 - Service worker for PWA functionality
 - Optimized assets with cache headers
-- Source maps for debugging
 
 ### Deployment Targets
 - **Vercel**: Zero-config deployment
@@ -559,9 +558,17 @@ Produces:
 - **Any CDN**: Standard static hosting
 
 ### Environment Configuration
-Production deployments require:
-- Environment variables for API endpoints
-- HTTPS for PWA functionality
-- Proper CORS configuration for API access
+Production deployments use the root environment only. `VITE_CHAIN_ID` selects the deployment
+artifact baked into the single-chain build, HTTPS is required for the installed PWA, and the
+deployed agent origin must allow browser API access.
+
+On the primary browser origin, public routes remain rooted at `/`, while the installed-app
+manifest, service worker, and app-shell fallback are scoped to `/home`. Preserve
+`packages/client/vercel.json` and verify that a new worker does not capture public/editorial
+navigations.
+
+The Vercel project runs the ordinary production build. PostHog source maps are produced, uploaded,
+and removed only by the trusted `client.yml` workflow on `main`. Do not set
+`GG_ENABLE_SOURCEMAPS` in Vercel, because that would publish browser source maps.
 
 For detailed deployment instructions, see the [main project README](../../README.md).

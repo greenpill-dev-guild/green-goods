@@ -24,7 +24,7 @@ dialect: public-browser
 - **Browser `/`** renders the editorial homepage under `PublicShell`.
 - **Installed PWA entry** is `/home`; presentation-mode loaders redirect app-mode visits away from the public shell before the PWA runtime renders.
 - **`/landing`** is a legacy compatibility redirect that loads back to `/`.
-- Public route table: `/`, `/gardens`, `/gardens/:id`, `/impact`, `/fund`, `/actions`, `/cookies`, `/glossary`. No new public route families beyond this list.
+- Public route table: `/`, `/gardens`, `/gardens/:id`, `/impact`, `/fund`, `/vaults`, `/actions`, `/cookies`, `/glossary`. No new public route families beyond this list.
 - Garden identifiers in URLs accept both raw `id`/`address` and the deterministic slug from `publicGardenHelpers.deriveSlug`. Stale, missing, zero-match, or ambiguous slugs render the normal page with a localized non-blocking message — never a hard 404 on `/fund?garden=…`.
 
 ## SiteHeader
@@ -39,7 +39,7 @@ dialect: public-browser
 
 ## Homepage (`/`)
 
-Composed of seven sections in this exact order:
+Composed of eight sections in this exact order (pinned by the section-order test in `PublicHome.test.tsx`):
 
 1. **`PublicEditorialHero`** — full-bleed curated Garden image plate. The linen content card sits as a **bottom-left overlay inside the hero image** (no negative overlap, no clipping, fully contained). The card carries the H1 (the tagline `From good intentions to green outcomes`), the one-sentence lede, and the hero CTAs.
    - **Desktop CTAs:** `Explore Gardens` only (single primary). The `Install App` CTA already lives in the header on desktop, so the hero stays focused on the editorial gesture.
@@ -49,9 +49,10 @@ Composed of seven sections in this exact order:
 2. **`PublicFeaturedGardens`** — **four featured Gardens in an editorial masonry column flow** (not a fake stagger). Image-backed Gardens are preferred so the grid feels alive rather than placeholder-heavy. Curation comes from `packages/client/src/content/publicCuration.ts` keyed by Garden id/address (canonical) — slugs are display aliases. Falls back to recent active Gardens when curation is empty or unmatched. The section uses standard vertical rhythm — no oversized top padding to absorb a hero overlap, since the hero is now self-contained.
 3. **`PublicProofBand`** — confirmed counts only (Gardens, Contributors, Work, Assessments). Links contextually to `/impact`. Unavailable carbon, water, species, and area metrics stay hidden. Renders on the warm linen surface in light mode and a warm walnut surface in dark mode (both via `--editorial-warm-rgb`); body text uses semantic tokens that auto-flip.
 4. **`PublicRecordLoop`** — visitor-facing four-step narrative: `Assess the place` → `Do the work` → `Verify impact` → `Fund what grows`. Links each step contextually. Body copy must stay grounded in the actual protocol: Gardens as community hubs, Work submissions, steward review, evaluator Assessments, Cookie Jars, and Vault endowments. This is narrative copy; it does **not** imply formal EAS Assessment happens before Work.
-5. **`PublicFundingBridge`** — cardless trust section explaining the two public support paths: `Donate` through a Garden Cookie Jar for direct support, or `Endow` through a Garden Vault designed so yield supports the Garden over time. One primary CTA routes to `/fund`; no wallet connect, amount form, or per-Garden funding selector lives on Home.
-6. **`PublicGetInTouch`** — closing module: email subscribe via `POST {VITE_API_BASE_URL}/public/subscribe` (single opt-in with explicit consent copy) plus a secondary Schedule-a-Call link from `VITE_GOOGLE_APPOINTMENT_URL`. The Schedule-a-Call link is inline after a divider, not inside its own card. **Honest UX**: success only when the public Agent route returns a confirmed `subscribed` / `already_subscribed`; Luma outages render a localized failure with the Schedule-a-Call fallback.
-7. **`PublicFooter`** — compact provenance row with restored living-public-record message, public route links, and contact. Footer links are neutral by default; green is a hover/focus affordance only.
+5. **`PublicWhoTendsAGarden`** — five persona portraits walking outward from the field: Gardener → Steward → Evaluator → Funder → Community Member, mirroring the canonical user-archetypes doc (personas themselves are canon in `v1-0.mdx` § 3.1). Gardener CTA is the install path; Steward and Evaluator CTAs route to docs because those roles are invited by an existing Garden, not open sign-ups.
+6. **`PublicFundingBridge`** — cardless trust section explaining the two public support paths: `Donate` through a Garden Cookie Jar for direct support, or `Endow` through a Garden Vault designed so yield supports the Garden over time. One primary CTA routes to `/fund`; no wallet connect, amount form, or per-Garden funding selector lives on Home.
+7. **`PublicGetInTouch`** — closing module: email subscribe via `POST {VITE_API_BASE_URL}/public/subscribe` (single opt-in with explicit consent copy) plus a secondary Schedule-a-Call link from `VITE_GOOGLE_APPOINTMENT_URL`. The Schedule-a-Call link is inline after a divider, not inside its own card. **Honest UX**: success only when the public Agent route returns a confirmed `subscribed` / `already_subscribed`; Luma outages render a localized failure with the Schedule-a-Call fallback.
+8. **`PublicFooter`** — compact provenance row with restored living-public-record message, public route links, and contact. Footer links are neutral by default; green is a hover/focus affordance only.
 
 No final sitemap-style "choose your path" route grid.
 
@@ -78,8 +79,8 @@ An ordinary editorial page, not a modal. It was briefly wired to a Radix dialog 
 - `PublicEditorialHero variant="banner"`. Image is the Garden's own `bannerImage`, falling back to `getPublicHeroImage("gardens")`. Location is the kicker, name is the H1, description is the lede. A quiet `← All Gardens` sits in the hero's `actions` slot.
 - Four-cell record strip under the hero: **Entries · Hands at work · Assessments · Certificates**. Do not widen it — the commitment-pooling section brings its own counts.
 - Single-column numbered sections: **§ 01 Field notes → § 02 Commitments → § 03 Impact Certificates → § 04 Stewards**. No side rail; only the transactional `/fund` carries one, and the dialect treats boxed rails as chrome.
-- § 02 Commitments is the Garden's record across seasons and campaigns. Its header sits on the canvas with its siblings; its body is one `EditorialPanel` — the `/fund` card grammar (hairline border, white surface, soft shadow, square corners) — holding the pool-state sentence beside the lifetime **Commitments made · Kept · Kept rate** (the rate only when `selectPublicPromiseKeptRate` publishes it), then the open Season and Campaigns beside the pool-wide exact-label units, then the finished cycles newest first, then the line that ties fulfilled commitments to § 03. A section body, not a rail. Never pause reasons, providers, addresses, cancelled or disputed counts, or rankings.
-- Field notes are an image-led grid in the `PublicGardenCard` restraint grammar — no border, radius, or shadow — twelve at a time with a local `Show more entries`. A tile opens `PublicSourceDialog` with the full media, the gardener's note, and an attestation link.
+- § 02 Commitments is the Garden's record across seasons and campaigns. Header and body both compose directly on the canvas in the page's own grammar — headers on linen, hairline dividers, § 01-style stat rows (the 2026-08-25 supersession of the PR-748 `EditorialPanel` body; no section on this page is card-wrapped). The record reads: the pool-state sentence beside the lifetime **Commitments made · Kept · Kept rate** (the rate only when `selectPublicPromiseKeptRate` publishes it), then the open Season and Campaigns beside the pool-wide exact-label units, then the finished cycles newest first, then the line that ties fulfilled commitments to § 03. A section body, not a rail. Never pause reasons, providers, addresses, cancelled or disputed counts, or rankings.
+- Field notes are an image-led grid in the `PublicGardenCard` restraint grammar — no border, radius, or shadow — twelve at a time with a local `Show more entries`. A tile opens the `PublicRecordDrawer` record view with the full media, the gardener's note, and an attestation link.
 - People (note authors, stewards) render through shared `AddressDisplay`, so an ENS name appears where one resolves.
 - **Every section always renders.** An absent thing says it is absent. Ordinals stay stable between Gardens, and a Garden with nothing published yet still reads as a record in progress.
 - **A failed read is not an empty one.** `usePublicGardenDetail` reports `partialData` / `unavailableSources`; a count whose source failed renders an em dash, never `0`, and its section says it could not load rather than claiming the Garden is empty.
@@ -89,8 +90,8 @@ An ordinary editorial page, not a modal. It was briefly wired to a Radix dialog 
 ## `/impact`
 
 - Aggregate counts (`Total Assessments` / `Total Gardens` / `Total Contributors`).
-- § 02 Commitments band between the proof markers and the cycle: header on the linen, then one `EditorialPanel` holding four protocol-wide aggregates — Gardens with open pools, commitments fulfilled (lifetime), commitments kept (a share only above the ≥ 5 due / ≥ 3 providers threshold, counts below it), and CCIP-confirmed G$ support — with the lifecycle sentence and `See the Gardens` as the panel's footer line. No per-garden table or ordering; a failed figure is an em dash, never `0`.
-- Evidence cards from `usePublicImpactEvidence`. Cards open `PublicSourceDialog` with a readable Assessment summary and an EAS reference link when available.
+- § 02 Commitments band between the proof markers and the cycle: header and record both on the linen (2026-08-25 panel supersession) — four protocol-wide aggregates — Gardens with open pools, commitments fulfilled (lifetime), commitments kept (a share only above the ≥ 5 due / ≥ 3 providers threshold, counts below it), and CCIP-confirmed G$ support — with the lifecycle sentence and `See the Gardens` as the record's hairline footer line. No per-garden table or ordering; a failed figure is an em dash, never `0`.
+- Evidence cards from `usePublicImpactEvidence`. Cards open `PublicEvidenceDialog` (a `PublicRecordDrawer` composition) with a readable Assessment summary and an EAS reference link when available.
 - Honest states: loading, empty, EAS-unavailable, `partialData`, `sourceLimitReached` (the v1 caps are 50 Gardens / 100 records, sliced locally page-by-page).
 - No Hypercert gallery placeholder, no Karma GAP claims.
 
@@ -112,6 +113,12 @@ Wallet Endow uses `PublicFundingCard` directly from each Garden row:
 Card Endow remains part of the project scope but hidden until recovered-wallet ownership, exact vault-share verification, public visibility, and successful withdrawal proof pass. Card Donate proof never reveals Card Endow, and public Donate/Card Donate do not appear on `/fund` during this sprint.
 
 Manage Endowments is the only public withdrawal surface in v1. It is wallet-owned only, opens a right-side panel on desktop and a bottom sheet on mobile, leads with what the funder has supported, groups positions by Garden, and expands each asset row inline for Withdraw / Max / confirm / pending / error / success. It does not include public address lookup, admin Vault management, auto-buy claims, custody claims, public Donate, Card Donate, or visible Card Endow.
+
+## `/vaults`
+
+- Octant vault campaign crowdfunding surface (also the WebMCP-registered description). Editorial hero + campaign records from `getOctantVaultCampaigns`, each with live stats (`useOctantVaultStats`), strategy APY, and harvestable-yield reads.
+- Endow opens `VaultCheckoutDialog`; managing positions opens `VaultManagePositionsPanel` (the `PublicEndowmentPanel` right-panel/bottom-sheet treatment).
+- Same honesty rules as `/fund`: em dash for a failed figure, never `0`; risk copy uses "designed to preserve" language.
 
 ## `/actions`
 
@@ -160,10 +167,10 @@ Pairing rule: keep Inter as the sans companion; **never** pair two serifs on the
 - **Route transitions:** soft fades (no morphs).
 - **Section reveals:** light stagger.
 - **Return position:** back and forward belong to `ScrollRestoration`. `PublicShell`'s scroll reset skips POP navigations so it cannot race and win; pages that were reached from a list also hand focus back to the item that was opened. Only PUSH and REPLACE start at the top.
-- **Record drawers** (`PublicRecordDrawer` — used by the Garden page's field notes and `/impact`'s evidence records): bottom sheet at `92vh` on mobile with a rounded top, right-side drawer at `sm:h-screen sm:max-w-[42rem]` on desktop. **Fixed height, never content-sized**: a persistent header bar (mono uppercase eyebrow + pill close) over a `flex-1 overflow-y-auto` body, so a long record scrolls inside the drawer instead of growing past the viewport. Use this for reading one published record.
+- **Record drawers** (`PublicRecordDrawer` — used directly by the Garden page's field notes and, wrapped as `PublicEvidenceDialog`, by `/impact`'s evidence records): bottom sheet at `92vh` on mobile with a rounded top, right-side drawer at `sm:h-screen sm:max-w-[42rem]` on desktop. **Fixed height, never content-sized**: a persistent header bar (mono uppercase eyebrow + pill close) over a `flex-1 overflow-y-auto` body, so a long record scrolls inside the drawer instead of growing past the viewport. Use this for reading one published record.
   - **Images inside a record are bounded and uncropped** — `max-h-[40vh]` with `object-contain` on `bg-editorial-warm`, one per row. These are evidence photos, usually shot portrait; cropping hides what was documented, and unbounded ones ran past 2,000px and pushed the record's own title and source link off screen.
-- **Source dialogs** (`PublicSourceDialog`, `PublicFundingMethodSelector`, `PublicFundingReceipt`, `PublicEndowmentPanel`):
-  - Desktop: centered, rounded sheet on `bg-static-black/40` overlay; `PublicEndowmentPanel` is the exception and opens as a right-side public panel.
+- **Source dialogs** (`PublicSourceDialog` on `/actions`, `PublicInstallDialog` from every Install CTA, `VaultCheckoutDialog` on `/vaults`, `PublicEndowmentPanel` on `/fund`, `VaultManagePositionsPanel` on `/vaults`):
+  - Desktop: centered, rounded sheet on `bg-static-black/40` overlay; `PublicEndowmentPanel` and `VaultManagePositionsPanel` are the exceptions and open as right-side public panels.
   - Mobile: bottom sheet with rounded top corners.
   - Labelled title (`aria-labelledby` → `<h2>` id), Escape close, overlay click close, focus moved to the close button on mount.
   - Mobile-safe width: `max-w-[calc(100vw-2rem)]` clamps the dialog under 375px viewports.

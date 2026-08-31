@@ -30,7 +30,8 @@ const meta: Meta<typeof CommitmentStateLadder> = {
   title: "Client/Commitments/CommitmentStateLadder",
   component: CommitmentStateLadder,
   tags: ["autodocs", "storybook-ci"],
-  parameters: { viewport: { defaultViewport: "mobile1" }, layout: "fullscreen" },
+  parameters: { layout: "fullscreen" },
+  globals: { viewport: { value: "mobile" } },
   decorators: [
     (Story) => (
       <div className="flex h-[560px] flex-col bg-bg-white-0">
@@ -77,7 +78,7 @@ export const ReadError: Story = {
   args: { isError: true },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    const retry = canvas.getByRole("button", { name: "Try again" });
+    const retry = canvas.getByRole("button", { name: "Try Again" });
     retry.click();
     await expect(args.onRetry).toHaveBeenCalled();
   },

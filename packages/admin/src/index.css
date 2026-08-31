@@ -397,56 +397,13 @@
  * ELEVATION — one ladder only.
  * The M3 ladder in admin-m3-tokens.css (--m3-elevation-0/1/2) is the single
  * elevation source; the old parallel --elevation-0..5 scale, its dark
- * overrides, and the .shadow-elevation-* utilities are deleted. The floating
- * navigation's warm ambient shadow lives on --admin-chrome-shadow above.
+ * overrides, the .shadow-elevation-* utilities, AND the Tailwind-named
+ * .shadow-xs..2xl override block are deleted (2026-08-29 audit, PRD-644).
+ * Depth is applied through the --m3-elevation-0/1/2 tokens as shadow-[…]
+ * arbitraries in component code; the floating navigation's warm ambient
+ * shadow lives on --admin-chrome-shadow above. check:design-tokens fails if
+ * a .shadow-* definition or a bare shadow-* utility reappears in admin.
  * ============================================================================ */
-
-@layer utilities {
-  .shadow-xs {
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  }
-
-  .shadow-sm {
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  }
-
-  .shadow-md {
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  }
-
-  .shadow-lg {
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  }
-
-  .shadow-xl {
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  }
-
-  .shadow-2xl {
-    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-  }
-
-  /* Dark mode - stronger shadows */
-  [data-theme="dark"] .shadow-sm {
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.5), 0 1px 2px -1px rgb(0 0 0 / 0.5);
-  }
-
-  [data-theme="dark"] .shadow-md {
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5);
-  }
-
-  [data-theme="dark"] .shadow-lg {
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.7), 0 4px 6px -4px rgb(0 0 0 / 0.7);
-  }
-
-  [data-theme="dark"] .shadow-xl {
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.7), 0 8px 10px -6px rgb(0 0 0 / 0.7);
-  }
-
-  [data-theme="dark"] .shadow-2xl {
-    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.8), 0 0 0 1px rgb(255 255 255 / 0.06);
-  }
-}
 
 /* ============================================================================
  * FORM INPUTS - Theme-Adaptive Styling (base layer)
@@ -1437,8 +1394,7 @@
 
 /* ============================================================================
  * WARM-EARTH ADMIN ALIASES (Tier 1a — additive, non-breaking)
- * Source-of-truth values: design_handoff_admin-revamp/screens/tokens.css
- * Decision log: docs/admin-revamp/audit.md §5.1
+ * Authority: packages/admin/DESIGN.md and the runtime aliases below.
  *
  * These aliases give admin code a stable Warm-Earth vocabulary
  * (--canvas / --ink / --stone / --g-* / --r-* / --e*) that points at our
@@ -1610,8 +1566,7 @@
 
 /* ============================================================================
  * STATUS PALETTE REMAP (Tier 1b — admin-scoped global remap)
- * Decision log: docs/admin-revamp/audit.md §5.5 (Global remap to handoff palette)
- * Source-of-truth: design_handoff_admin-revamp/screens/tokens.css
+ * Authority: packages/admin/DESIGN.md and the scoped runtime aliases below.
  *
  * Scope: .admin-m3 only — client PWA's --orange/--red/--sky scales unchanged.
  * Mechanism: redefine the base color RGB triplets inside admin scope; the

@@ -11,6 +11,7 @@ import {
   RiWallet3Line,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
 interface GardenMetadataProps {
@@ -76,7 +77,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
   return (
     <div
       className={cn(
-        "grid gap-3 rounded-xl border border-stroke-soft bg-bg-white p-3 shadow-sm transition-shadow duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:shadow-md sm:p-4 md:grid-cols-2 lg:grid-cols-3",
+        "grid gap-3 rounded-xl border border-stroke-soft bg-bg-white p-3 shadow-[var(--m3-elevation-1)] transition-shadow duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:shadow-[var(--m3-elevation-2)] sm:p-4 md:grid-cols-2 lg:grid-cols-3",
         className
       )}
     >
@@ -95,17 +96,12 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
           <code className="flex-1 truncate text-xs text-text-strong sm:text-sm">
             <EnsAddressText address={gardenId} />
           </code>
-          <button
+          <AdminIconButton
+            className="flex-shrink-0"
             onClick={() => copyGarden(gardenId)}
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-text-soft transition hover:bg-bg-weak hover:text-text-sub active:scale-95"
-            title={formatMessage({
-              id: "admin.gardenMetadata.copyAddress",
-              defaultMessage: "Copy address",
-            })}
-            type="button"
-            aria-label={formatMessage({
+            label={formatMessage({
               id: "admin.gardenMetadata.copyGardenAddress",
-              defaultMessage: "Copy garden address",
+              defaultMessage: "Copy Garden Address",
             })}
           >
             {copiedGarden ? (
@@ -113,24 +109,25 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
             ) : (
               <RiFileCopyLine className="h-4 w-4" />
             )}
-          </button>
+          </AdminIconButton>
           {blockExplorer && (
-            <a
-              href={getExplorerUrl(gardenId, "address") || "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-information-dark transition hover:bg-information-lighter active:scale-95"
-              title={formatMessage({
-                id: "admin.gardenMetadata.viewOnExplorer",
-                defaultMessage: "View on block explorer",
-              })}
-              aria-label={formatMessage({
+            <AdminIconButton
+              asChild
+              variant="accent"
+              className="flex-shrink-0"
+              label={formatMessage({
                 id: "admin.gardenMetadata.viewGardenOnExplorer",
-                defaultMessage: "View garden on block explorer",
+                defaultMessage: "View Garden on Block Explorer",
               })}
             >
-              <RiExternalLinkLine className="h-4 w-4" />
-            </a>
+              <a
+                href={getExplorerUrl(gardenId, "address") || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <RiExternalLinkLine />
+              </a>
+            </AdminIconButton>
           )}
         </div>
       </div>
@@ -147,17 +144,12 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
           <code className="flex-1 truncate text-xs text-text-strong sm:text-sm">
             <EnsAddressText address={tokenAddress} /> #{tokenId.toString()}
           </code>
-          <button
+          <AdminIconButton
+            className="flex-shrink-0"
             onClick={() => copyToken(`${tokenAddress}/${tokenId}`)}
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-text-soft transition hover:bg-bg-weak hover:text-text-sub active:scale-95"
-            title={formatMessage({
-              id: "admin.gardenMetadata.copyNFT",
-              defaultMessage: "Copy NFT identifier",
-            })}
-            type="button"
-            aria-label={formatMessage({
+            label={formatMessage({
               id: "admin.gardenMetadata.copyNFTId",
-              defaultMessage: "Copy NFT identifier",
+              defaultMessage: "Copy NFT Identifier",
             })}
           >
             {copiedToken ? (
@@ -165,24 +157,25 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
             ) : (
               <RiFileCopyLine className="h-4 w-4" />
             )}
-          </button>
+          </AdminIconButton>
           {blockExplorer && (
-            <a
-              href={getExplorerUrl(tokenAddress, "nft") || "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-information-dark transition hover:bg-information-lighter active:scale-95"
-              title={formatMessage({
+            <AdminIconButton
+              asChild
+              variant="accent"
+              className="flex-shrink-0"
+              label={formatMessage({
                 id: "admin.gardenMetadata.viewNFTOnExplorer",
-                defaultMessage: "View NFT on block explorer",
-              })}
-              aria-label={formatMessage({
-                id: "admin.gardenMetadata.viewNFTOnExplorer",
-                defaultMessage: "View NFT on block explorer",
+                defaultMessage: "View NFT on Block Explorer",
               })}
             >
-              <RiExternalLinkLine className="h-4 w-4" />
-            </a>
+              <a
+                href={getExplorerUrl(tokenAddress, "nft") || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <RiExternalLinkLine />
+              </a>
+            </AdminIconButton>
           )}
         </div>
       </div>
@@ -197,30 +190,24 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
         </div>
         <div className="flex flex-wrap gap-2">
           {blockExplorer && (
-            <a
-              href={getExplorerUrl(tokenAddress, "token") || "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-stroke-sub bg-bg-white px-4 py-2.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak active:scale-95"
-            >
-              <RiExternalLinkLine className="h-4 w-4 flex-shrink-0" />
-              <span className="whitespace-nowrap">
+            <AdminButton asChild variant="outlined" size="md" leadingIcon={<RiExternalLinkLine />}>
+              <a
+                href={getExplorerUrl(tokenAddress, "token") || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 {formatMessage({
                   id: "admin.gardenMetadata.tokenContract",
                   defaultMessage: "Token Contract",
                 })}
-              </span>
-            </a>
+              </a>
+            </AdminButton>
           )}
-          <a
-            href={getOpenSeaUrl()}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-information-light bg-information-lighter px-4 py-2.5 text-xs font-medium text-information-dark transition hover:bg-information-light active:scale-95"
-          >
-            <RiNftLine className="h-4 w-4 flex-shrink-0" />
-            <span className="whitespace-nowrap">OpenSea</span>
-          </a>
+          <AdminButton asChild variant="tonal" size="md" leadingIcon={<RiNftLine />}>
+            <a href={getOpenSeaUrl()} target="_blank" rel="noopener noreferrer">
+              OpenSea
+            </a>
+          </AdminButton>
         </div>
       </div>
     </div>

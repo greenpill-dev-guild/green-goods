@@ -147,7 +147,7 @@ export const Activity: Story = {
   decorators: gardenDecorators(),
 };
 
-// Members tab retired — "Manage members" now opens ManageMembersDialog from
+// Members tab retired — "Manage Members" now opens ManageMembersDialog from
 // the community workspace rather than a browsable Garden workspace tab.
 
 // The steward's pool console on the Garden workspace's Pool tab (W7), seeded
@@ -285,12 +285,12 @@ export const EmptyDomains: Story = {
     await expect(
       await canvas.findAllByRole(
         "button",
-        { name: "Edit domains" },
+        { name: "Edit Domains" },
         ADMIN_ROUTE_STORY_QUERY_OPTIONS
       )
     ).toHaveLength(1);
     await userEvent.click(
-      await canvas.findByRole("button", { name: "Edit domains" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+      await canvas.findByRole("button", { name: "Edit Domains" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
     );
     const page = within(canvasElement.ownerDocument.body);
     await expect(

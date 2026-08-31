@@ -67,7 +67,7 @@ Decide whether this run produces the full brief or exits quietly:
 ## Setup
 
 - Env vars are injected; do not read `.env`.
-- Read the canonical runbook live from the checkout: `docs/docs/builders/deployments/releasing.mdx`. Follow its cadence, naming, and versioning rules rather than hardcoding them — if the runbook changes, follow it.
+- Read the canonical runbook live from the checkout: `CONTRIBUTING.md` § Releases and hotfixes. Follow its cadence, naming, and versioning rules rather than hardcoding them.
 - Next version: read the root `package.json` version and bump the **minor** (`X.Y.0` → `X.(Y+1).0`).
 - **Ship month** = the current calendar month (we release at the start of it), per the runbook's ship-month naming.
 
@@ -86,8 +86,8 @@ State the commands `bun run version:bump X.Y.0` and `bun run version:check X.Y.0
 ## Phase 4 — Doc-freshness scan
 
 - Flag release-relevant docs whose `last_verified` is older than ~90 days.
-- Check changelog/tag drift: does `docs/docs/reference/changelog.md` reference the latest tag? Any tags with no GitHub Release?
-- Scan for dead links to `/builders/deployments/releasing` and any stragglers pointing at the old `/developer/releasing` path.
+- Check release/tag drift: does every published tag have a GitHub Release, and do major product milestones belong in Product History?
+- Scan for stale release guidance that bypasses `CONTRIBUTING.md`.
 
 ## Phase 5 — Risk surface
 
@@ -96,7 +96,7 @@ State the commands `bun run version:bump X.Y.0` and `bun run version:check X.Y.0
 
 ## Phase 6 — Draft gardener announcement
 
-Write 3-5 plain-language lines announcing the release. **Self-check the prose against the enforced term list** in `docs/docs/reference/banned-vocabulary.json` (`.linter_enforced.terms`) and list any hits. Note: `bun run lint:vocab` does **not** cover prose — it scans only `packages/{shared,client,admin}/src/i18n/*.json` — so this manual check is the gate for announcement copy.
+Write 3-5 plain-language lines announcing the release. **Self-check the prose against the enforced term list** in `scripts/data/banned-vocabulary.json` (`.linter_enforced.terms`) and list any hits. Note: `bun run lint:vocab` does **not** cover prose — it scans only `packages/{shared,client,admin}/src/i18n/*.json` — so this manual check is the gate for announcement copy.
 
 ## Phase 7 — Post and exit
 
@@ -112,7 +112,7 @@ Prefix the message with `<@${DISCORD_USER_ID_AFO}>` only when a Phase 5 risk nee
 
 | Don't | Why |
 | --- | --- |
-| Hardcode the cadence/naming | Read it live from `releasing.mdx` so the brief follows the runbook |
+| Hardcode the cadence/naming | Read it live from `CONTRIBUTING.md` § Releases and hotfixes so the brief follows the runbook |
 | Claim `lint:vocab` validated the announcement | It only scans i18n JSON; prose is a manual term-list check |
 | Commit, open PRs, or tag | Read + draft only; the human cuts the release |
 | Treat the first large commit range as a bug | The first cadenced release is a catch-up; flag it as expected |

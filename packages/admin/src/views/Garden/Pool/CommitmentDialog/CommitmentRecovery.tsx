@@ -1,11 +1,11 @@
 import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
-import { useIntl } from "react-intl";
 import {
   RiCheckboxCircleLine,
   RiErrorWarningLine,
   RiRefreshLine,
   RiTimeLine,
 } from "@remixicon/react";
+import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import type { OpenDialog } from "./commitmentDialogPresentation";
 
@@ -84,7 +84,7 @@ export function CommitmentRecovery({
           >
             {formatMessage({
               id: "cockpit.garden.pool.commitment.reconciliation.confirm",
-              defaultMessage: "Count linked work…",
+              defaultMessage: "Count linked work",
             })}
           </AdminButton>
           {blockedReason ? (
@@ -102,7 +102,7 @@ export function CommitmentRecovery({
           <RiTimeLine className="h-4 w-4 shrink-0" aria-hidden />
           {formatMessage({
             id: "cockpit.garden.pool.commitment.reconciliation.pending",
-            defaultMessage: "Waiting for the indexed commitment record to confirm the count.",
+            defaultMessage: "Waiting for indexed confirmation…",
           })}
         </p>
       ) : null}
@@ -116,7 +116,7 @@ export function CommitmentRecovery({
           <RiCheckboxCircleLine className="h-4 w-4 shrink-0" aria-hidden />
           {formatMessage({
             id: "cockpit.garden.pool.commitment.reconciliation.success",
-            defaultMessage: "The indexed record now includes the approved linked work.",
+            defaultMessage: "Approved linked work counted.",
           })}
         </p>
       ) : null}
@@ -147,8 +147,7 @@ export function CommitmentRecovery({
           <span>
             {formatMessage({
               id: "cockpit.garden.pool.commitment.reconciliation.unavailable",
-              defaultMessage:
-                "Current Work decisions could not be read, so nothing can be counted yet.",
+              defaultMessage: "Work decision readback is unavailable.",
             })}
           </span>
         </div>

@@ -8,13 +8,12 @@
     "dev": "node ../scripts/dev/node-cli.js docusaurus start --port 3003 --no-open",
     "start": "node ../scripts/dev/node-cli.js docusaurus start --port 3003 --no-open",
     "test": "bun test",
-    "build": "node ../scripts/dev/node-cli.js docusaurus build",
-    "protocol-status:generate": "node scripts/generate-protocol-status.mjs",
+    "build": "node ../scripts/dev/node-cli.js docusaurus build && node scripts/check-search-index.mjs",
+    "check:search-index": "node scripts/check-search-index.mjs",
     "audit": "node scripts/docs-audit.mjs",
     "audit:ci": "node scripts/docs-audit.mjs --ci",
     "swizzle": "docusaurus swizzle",
-    "deploy": "docusaurus deploy",
-    "clear": "docusaurus clear",
+    "clear": "node ../scripts/dev/node-cli.js docusaurus clear",
     "serve": "docusaurus serve",
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
@@ -53,6 +52,6 @@
     ]
   },
   "engines": {
-    "node": ">=20.0"
+    "node": ">=22.19.0 <23"
   }
 }

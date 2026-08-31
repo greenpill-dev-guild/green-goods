@@ -132,6 +132,10 @@ vi.mock("@green-goods/shared/hooks/public/usePublicVaultSummary", () => ({
   usePublicVaultSummary: (...args: unknown[]) => mockUsePublicVaultSummary(...args),
 }));
 
+vi.mock("@green-goods/shared/hooks/public/usePublicVaultCatalogSummary", () => ({
+  usePublicVaultCatalogSummary: (...args: unknown[]) => mockUsePublicVaultSummary(...args),
+}));
+
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: mockPrimaryAddress.current }),
 }));
@@ -174,7 +178,7 @@ vi.mock("@/components/Public/PublicEndowmentPanel", () => ({
     return open ? (
       <div role="dialog" aria-label="Your Endowments" data-testid="public-endowment-panel">
         <button type="button" onClick={() => onOpenChange(false)}>
-          Close endowments
+          Close Endowments
         </button>
       </div>
     ) : null;
@@ -416,7 +420,7 @@ describe("FundPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Manage Endowments" }));
 
-    expect(screen.getByTestId("public-endowment-panel")).toBeInTheDocument();
+    expect(await screen.findByTestId("public-endowment-panel")).toBeInTheDocument();
   });
 
   it("keeps Garden selection cards in a max two-column equal-row grid", () => {
@@ -481,7 +485,7 @@ describe("FundPage", () => {
 
     expect(screen.getByTestId("location-search")).toHaveTextContent("?manage=endowments");
 
-    await user.click(screen.getByRole("button", { name: "Close endowments" }));
+    await user.click(screen.getByRole("button", { name: "Close Endowments" }));
 
     expect(screen.queryByTestId("public-endowment-panel")).toBeNull();
     expect(screen.getByTestId("location-search")).toHaveTextContent("?manage=endowments");
@@ -621,6 +625,27 @@ describe("FundPage", () => {
     expect(screen.getByText("ETH endowment balance")).toBeInTheDocument();
     // The cards explain the absence of live figures rather than rendering blank.
     expect(screen.getAllByText(/No endowment activity on this network yet/i)).toHaveLength(2);
+  });
+
+  it("uses editorial skeletons while endowment metrics load", () => {
+    mockUsePublicVaultSummary.mockReturnValue({
+      hasVaults: false,
+      isLoading: true,
+      isError: false,
+      isYieldLoading: true,
+      isYieldError: false,
+      isAllocationLoading: true,
+      isAllocationError: false,
+      gardensByAddress: {},
+      assets: [],
+    });
+
+    const { container } = renderView();
+
+    expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
+      2
+    );
+    expect(container.querySelector(".animate-pulse")).toBeNull();
   });
 
   it("keeps the asset cards visible with an error message when the metrics fetch fails", () => {

@@ -85,7 +85,8 @@ const meta: Meta<typeof ConfirmSheet> = {
   title: "Client/Commitments/ConfirmSheet",
   component: ConfirmSheet,
   tags: ["autodocs", "storybook-ci"],
-  parameters: { viewport: { defaultViewport: "mobile1" }, layout: "fullscreen" },
+  parameters: { layout: "fullscreen" },
+  globals: { viewport: { value: "mobile" } },
   args: {
     open: true,
     onOpenChange: fn(),
@@ -112,10 +113,12 @@ type Story = StoryObj<typeof ConfirmSheet>;
 
 export const AskSupport: Story = {
   play: async () => {
-    await expect(await screen.findByRole("button", { name: "Confirm it was kept" })).toBeVisible();
-    await expect(screen.getByRole("button", { name: "Not yet" })).toBeVisible();
-    await expect(screen.getByText("No items yet")).toBeVisible();
-    await expect(screen.getByText("No proof has been attached yet.")).toBeVisible();
+    await expect(await screen.findByRole("button", { name: "Confirm It Was Kept" })).toBeVisible();
+    await expect(screen.getByRole("button", { name: "Not Yet" })).toBeVisible();
+    await expect(screen.getByText("2 items")).toBeVisible();
+    await expect(
+      screen.getByText("2 pieces of proof are recorded but cannot be shown right now.")
+    ).toBeVisible();
   },
 };
 
@@ -145,7 +148,7 @@ export const AskGardenWork: Story = {
   },
   play: async () => {
     await expect(
-      await screen.findByRole("button", { name: "Confirm the work was done" })
+      await screen.findByRole("button", { name: "Confirm the Work Was Done" })
     ).toBeVisible();
   },
 };
@@ -168,7 +171,7 @@ export const NamedGroup: Story = {
 export const NotYet: Story = {
   play: async () => {
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Not yet" }));
+    await user.click(await screen.findByRole("button", { name: "Not Yet" }));
     await expect(await screen.findByLabelText("What still needs doing?")).toBeVisible();
   },
 };
@@ -177,9 +180,9 @@ export const NotYetOffline: Story = {
   args: { isOnline: false },
   play: async () => {
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Not yet" }));
+    await user.click(await screen.findByRole("button", { name: "Not Yet" }));
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /Send to the stewards/ })).toBeDisabled()
+      expect(screen.getByRole("button", { name: /Send to the Stewards/ })).toBeDisabled()
     );
   },
 };

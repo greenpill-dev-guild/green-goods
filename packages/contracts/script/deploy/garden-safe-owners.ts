@@ -389,7 +389,7 @@ function validateInventory(filePath: string, manifest: ReleaseManifest, manifest
   if (inventory.releaseId !== manifest.releaseId || inventory.releaseManifestHash !== manifestHash) {
     throw new Error("Garden inventory is not bound to the current release manifest");
   }
-  const gardenToken = manifest.existingProxyUpgrades.find((upgrade) => upgrade.name === "GardenToken")?.proxy;
+  const gardenToken = deployment.gardenToken;
   if (
     !gardenToken ||
     getAddress(inventory.gardenToken) !== getAddress(gardenToken) ||

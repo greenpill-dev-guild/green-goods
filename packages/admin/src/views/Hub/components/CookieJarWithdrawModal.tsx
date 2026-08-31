@@ -1,10 +1,4 @@
 import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
-import {
-  NativeSelect,
-  Textarea,
-  TextInput,
-} from "@green-goods/shared/components/Form/ControlPrimitives";
-import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
 import { useCookieJarWithdraw } from "@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw";
 import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
 import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
@@ -14,11 +8,12 @@ import {
   getVaultAssetSymbol,
   validateDecimalInput,
 } from "@green-goods/shared/utils/blockchain/vaults";
-import { AdminButton } from "@/components/AdminButton";
-import { AdminDialog } from "@/components/AdminDialog";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminDialog } from "@/components/AdminDialog";
+import { AdminSelect, AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 
 interface CookieJarWithdrawModalProps {
   isOpen: boolean;
@@ -150,79 +145,63 @@ export function CookieJarWithdrawModal({
     >
       <div className="space-y-4">
         {/* Jar select */}
-        <FormField
-          label={formatMessage({ id: "app.cookieJar.title", defaultMessage: "Cookie Jar" })}
-          htmlFor="withdraw-jar-select"
+        <AdminSelect
+          id="withdraw-jar-select"
+          label={formatMessage({ id: "app.cookieJar.title", defaultMessage: "Cookie jar" })}
+          value={withdrawJar}
+          onChange={(e) => setWithdrawJar(e.target.value)}
         >
-          <NativeSelect
-            id="withdraw-jar-select"
-            surface="admin"
-            value={withdrawJar}
-            onChange={(e) => setWithdrawJar(e.target.value)}
-          >
-            <option value="">--</option>
-            {activeJars.map((jar) => (
-              <option key={jar.jarAddress} value={jar.jarAddress}>
-                {getVaultAssetSymbol(jar.assetAddress, undefined)} (
-                {formatTokenAmount(jar.balance, jar.decimals)})
-              </option>
-            ))}
-          </NativeSelect>
-        </FormField>
+          <option value="">--</option>
+          {activeJars.map((jar) => (
+            <option key={jar.jarAddress} value={jar.jarAddress}>
+              {getVaultAssetSymbol(jar.assetAddress, undefined)} (
+              {formatTokenAmount(jar.balance, jar.decimals)})
+            </option>
+          ))}
+        </AdminSelect>
 
         {/* Amount + Max */}
-        <FormField
-          label={formatMessage({ id: "app.cookieJar.amount", defaultMessage: "Amount" })}
-          htmlFor="withdraw-amount"
-          error={withdrawInputError ? formatMessage({ id: withdrawInputError }) : undefined}
-        >
-          <div className="flex items-center gap-2">
-            <TextInput
-              id="withdraw-amount"
-              surface="admin"
-              type="text"
-              inputMode="decimal"
-              value={withdrawAmount}
-              onChange={(e) => setWithdrawAmount(e.target.value)}
-              placeholder="0.00"
-              aria-invalid={Boolean(withdrawInputError)}
-              invalid={Boolean(withdrawInputError)}
-            />
-            <AdminButton
-              variant="outlined"
-              size="sm"
-              className="min-w-14"
-              onClick={() => {
-                if (!selectedWithdrawJar) return;
-                const max =
-                  selectedWithdrawJar.maxWithdrawal < selectedWithdrawJar.balance
-                    ? selectedWithdrawJar.maxWithdrawal
-                    : selectedWithdrawJar.balance;
-                setWithdrawAmount(formatUnits(max, withdrawDecimals));
-              }}
-            >
-              {formatMessage({ id: "app.treasury.max", defaultMessage: "Max" })}
-            </AdminButton>
-          </div>
-        </FormField>
+        <div className="flex items-start gap-2">
+          <AdminTextField
+            id="withdraw-amount"
+            className="min-w-0 flex-1"
+            label={formatMessage({ id: "app.cookieJar.amount", defaultMessage: "Amount" })}
+            type="text"
+            value={withdrawAmount}
+            onChange={(e) => setWithdrawAmount(e.target.value)}
+            placeholder="0.00"
+            error={withdrawInputError ? formatMessage({ id: withdrawInputError }) : undefined}
+            inputProps={{ inputMode: "decimal" }}
+          />
+          <AdminButton
+            variant="outlined"
+            size="sm"
+            className="mt-2 min-w-14"
+            onClick={() => {
+              if (!selectedWithdrawJar) return;
+              const max =
+                selectedWithdrawJar.maxWithdrawal < selectedWithdrawJar.balance
+                  ? selectedWithdrawJar.maxWithdrawal
+                  : selectedWithdrawJar.balance;
+              setWithdrawAmount(formatUnits(max, withdrawDecimals));
+            }}
+          >
+            {formatMessage({ id: "app.treasury.max", defaultMessage: "Max" })}
+          </AdminButton>
+        </div>
 
         {/* Purpose */}
-        <FormField
+        <AdminTextArea
+          id="withdraw-purpose"
           label={formatMessage({ id: "app.cookieJar.purpose", defaultMessage: "Purpose" })}
-          htmlFor="withdraw-purpose"
-        >
-          <Textarea
-            id="withdraw-purpose"
-            surface="admin"
-            value={withdrawPurpose}
-            onChange={(e) => setWithdrawPurpose(e.target.value)}
-            placeholder={formatMessage({
-              id: "app.cookieJar.purposePlaceholder",
-              defaultMessage: "Describe what these funds will be used for...",
-            })}
-            rows={2}
-          />
-        </FormField>
+          value={withdrawPurpose}
+          onChange={(e) => setWithdrawPurpose(e.target.value)}
+          placeholder={formatMessage({
+            id: "app.cookieJar.purposePlaceholder",
+            defaultMessage: "What will you use this for?",
+          })}
+          rows={2}
+        />
 
         {/* Error feedback */}
         <TxInlineFeedback

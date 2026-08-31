@@ -3,7 +3,6 @@ import { usePublicStats } from "@green-goods/shared/hooks/public/usePublicStats"
 import { useIntl } from "react-intl";
 import {
   EditorialGhostLink,
-  EditorialPrimaryButton,
   EditorialPrimaryLink,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
@@ -26,7 +25,7 @@ import { publicCuration } from "@/content/publicCuration";
  *
  * Composition order matches the editorial dialect:
  *   Hero → Featured Gardens → Living Public Record → Regenerative Loop →
- *   Funding Bridge → Get In Touch → Footer.
+ *   Who Tends a Garden → Funding Bridge → Get In Touch → Footer.
  */
 export default function Home() {
   const { formatMessage } = useIntl();
@@ -51,14 +50,16 @@ export default function Home() {
   const heroActions = isMobile ? (
     <>
       <PublicInstallAction>
-        {({ label, onClick, disabled, dataInstallAction }) => (
-          <EditorialPrimaryButton
+        {({ label, href, onClick, disabled, dataInstallAction }) => (
+          <a
+            href={href}
             onClick={onClick}
-            disabled={disabled}
+            aria-disabled={disabled || undefined}
             data-install-action={dataInstallAction}
+            className={`inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 ${disabled ? "cursor-not-allowed opacity-70" : ""}`}
           >
             {label}
-          </EditorialPrimaryButton>
+          </a>
         )}
       </PublicInstallAction>
       <EditorialGhostLink to="/gardens">{exploreLabel}</EditorialGhostLink>

@@ -439,7 +439,7 @@ describe("GardenPoolTab (W7)", () => {
     );
   });
 
-  it("offers Expire now on a live past-due row and nothing else until the index says Expired", async () => {
+  it("offers Expire now on a live past-due row, confirms the blast radius first, and nothing else until the index says Expired", async () => {
     mocks.controller = controller({
       commitments: [commitment({ dueDate: NOW - 10n })],
     });
@@ -447,6 +447,11 @@ describe("GardenPoolTab (W7)", () => {
     const row = screen.getByTestId("pool-commitment-1");
     expect(within(row).getByText(/past due/i)).toBeInTheDocument();
     fireEvent.click(within(row).getByRole("button", { name: /expire now/i }));
+    // A governing act never fires from a bare row act: the confirm names the
+    // blast radius before anything reaches the chain.
+    const dialog = await screen.findByRole("alertdialog");
+    expect(mocks.controller!.acts.expire).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole("button", { name: /^expire now$/i }));
     await waitFor(() => expect(mocks.controller!.acts.expire).toHaveBeenCalledWith(1n));
     // Still listed as live: past due alone never renders Expired.
     expect(within(row).queryByText(/^expired$/i)).not.toBeInTheDocument();
@@ -603,12 +608,13 @@ describe("Garden workspace Pool tab visibility", () => {
     expect(screen.queryByRole("tab", { name: /pool/i })).not.toBeInTheDocument();
   });
 
-  it("keeps the whole console from a member who reaches the route directly", () => {
+  it("keeps management controls from a reader who reaches the route directly while retaining funding facts", () => {
     // The rail hides the tab, but a deep link is the other way in: every write
     // control here would otherwise invite a call the contract refuses.
     renderTab({ canManage: false });
 
     expect(screen.getByText(/pool console is for this garden.s stewards/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /pool funding/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /pause/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /close pool/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /set up commitments/i })).not.toBeInTheDocument();

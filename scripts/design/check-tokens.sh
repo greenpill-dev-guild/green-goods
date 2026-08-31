@@ -258,8 +258,84 @@ collect_usage_hits() {
     | sort -u
 }
 
+# ----------------------------------------------------------------------------
+# Admin cockpit invariant sweep (Cockpit M3 1a
+# packages/admin/DESIGN.md § Invariants; audited 2026-08-29, PRD-644 round 2)
+#
+# Four invariants the raw-literal pattern cannot see because they ride semantic
+# aliases or bare utilities, found broken at scale by the 2026-08-29 admin
+# audit (.plans/backlog/design-system-alignment-review/reports/):
+#   1. Shadows — the single elevation ladder (--m3-elevation-0/1/2 plus
+#      --admin-chrome-shadow) is the only depth source; bare Tailwind
+#      shadow-xs..2xl / shadow-regular-* utilities are off-ladder.
+#   2. Hover/press physics — state feedback is an elevation step or the 8% ink
+#      layer, never scale/translate/rotate transforms.
+#   3. Focus rings — --tone-focus-ring is the only focus-ring role; semantic
+#      palette aliases (ring-primary-base, border-error-base…) never flip in
+#      dark mode and miss the 3:1 non-text threshold there.
+#   4. State text — text/icons take -dark steps; text-*-base only renders
+#      safely via an unlayered index.css backstop nothing else protects.
+# Scope is packages/admin/src only: the client PWA legitimately uses lift/press
+# card physics and its own shadows — these are cockpit rules. Hits merge into
+# the same audited baseline (expiry + stale detection) as the raw sweep.
+# ----------------------------------------------------------------------------
+ADMIN_OFF_LADDER_SHADOW="(^|[^[:alnum:]_-])${TW_VARIANT_PREFIX}shadow-(xs|sm|md|lg|xl|2xl|inner|regular-[a-z0-9-]+)${TW_CLASS_BOUNDARY}"
+ADMIN_PRESS_TRANSFORM='(^|[^[:alnum:]-])(group-)?(hover|active)(/[[:alnum:]_-]+)?:!?-?(scale|translate|rotate)-'
+ADMIN_ALIAS_FOCUS_RING='(focus|focus-visible|focus-within):(ring|border)-(primary|error|success|warning|information)-'
+ADMIN_STATE_TEXT_BASE="(^|[^[:alnum:]_-])${TW_VARIANT_PREFIX}text-(primary|error|success|warning|information)-base${TW_CLASS_BOUNDARY}"
+ADMIN_INVARIANT_PATTERN="${ADMIN_OFF_LADDER_SHADOW}|${ADMIN_PRESS_TRANSFORM}|${ADMIN_ALIAS_FOCUS_RING}|${ADMIN_STATE_TEXT_BASE}"
+
+collect_admin_invariant_hits() {
+  grep -RInE --include='*.ts' --include='*.tsx' \
+    --exclude='*.test.tsx' --exclude='*.test.ts' \
+    --exclude-dir=__tests__ --exclude-dir=node_modules --exclude-dir=dist \
+    --exclude-dir=build --exclude-dir=storybook-static --exclude-dir=coverage \
+    "$ADMIN_INVARIANT_PATTERN" packages/admin/src 2>/dev/null \
+    | grep -Ev "$USAGE_ALLOWLIST_REGEX" \
+    | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
+    | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
+    | sort -u
+}
+
+# ----------------------------------------------------------------------------
+# Admin wrapper-adoption sweep (DL-011/012 adoption program, 2026-08-30 audit)
+#
+# The cockpit control surface is the 21-wrapper Admin* family. Three bypass
+# classes were found at scale by the post-DL-011/012 adoption audit
+# (.plans/backlog/design-system-alignment-review/reports/) and burn down
+# through the same audited baseline as the raw sweep:
+#   1. Shared field primitives rendered directly (TextInput/Textarea/
+#      NativeSelect/FormField and local FormInput/FormTextarea re-wraps) —
+#      the canonical anatomy is AdminTextField/AdminTextArea/AdminSelect/
+#      AdminInlineField.
+#   2. Raw <button> elements — actions ride AdminButton/AdminIconButton,
+#      choices ride AdminFilterChip/AdminChoiceGroup/AdminSelectableCard,
+#      tabs ride AdminTabRail. (m3-state-layer row/card buttons are folded
+#      into the baseline until a dedicated row primitive exists.)
+#   3. Legacy shared Card renders — cockpit surfaces are AdminCard.
+# Scope is packages/admin/src production code only; tests and stories are
+# exercise scaffolding, not adoption surface. The wrapper implementations
+# themselves (components/Admin*.tsx) and the shell chrome (components/Shell —
+# DL-011 exempt) legitimately render raw elements and are excluded.
+# ----------------------------------------------------------------------------
+ADMIN_WRAPPER_BYPASS_PATTERN='<(TextInput|Textarea|NativeSelect|FormField|FormInput|FormTextarea|button|Card(\.[A-Za-z]+)?)([[:space:]/>]|$)'
+
+collect_admin_wrapper_bypass_hits() {
+  grep -RInE --include='*.ts' --include='*.tsx' \
+    --exclude='*.test.tsx' --exclude='*.test.ts' \
+    --exclude='*.stories.tsx' --exclude='*.stories.ts' \
+    --exclude='Admin*.tsx' \
+    --exclude-dir=__tests__ --exclude-dir=node_modules --exclude-dir=dist \
+    --exclude-dir=build --exclude-dir=storybook-static --exclude-dir=coverage \
+    --exclude-dir=Shell \
+    "$ADMIN_WRAPPER_BYPASS_PATTERN" packages/admin/src 2>/dev/null \
+    | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
+    | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
+    | sort -u
+}
+
 validate_usage_baseline
-USAGE_HITS="$(collect_usage_hits || true)"
+USAGE_HITS="$({ collect_usage_hits || true; collect_admin_invariant_hits || true; collect_admin_wrapper_bypass_hits || true; } | sort -u)"
 BASELINE_HITS=""
 if [[ -f "$USAGE_BASELINE" ]]; then
   BASELINE_HITS="$(awk -F '\t' '!/^[[:space:]]*(#|$)/ {print $1}' "$USAGE_BASELINE" | sort -u || true)"
@@ -282,6 +358,7 @@ if [[ -n "$NEW_USAGE" ]]; then
   echo "$NEW_USAGE" | sed 's/^/  /'
   echo
   echo "Use Warm Earth tokens instead: --spring-*, --color-*, --radius-*, --color-material-*, --blur-material-*, and semantic utility aliases."
+  echo "For packages/admin hits, the cockpit invariants also apply: depth via --m3-elevation-0/1/2 (never bare shadow-*), hover/press via elevation or the 8% ink layer (never scale/translate), focus rings via --tone-focus-ring only, and state text via text-*-dark (never text-*-base)."
   echo "If this is intentional legacy debt, migrate it or add an audited baseline entry in $USAGE_BASELINE."
   exit 1
 fi
@@ -474,6 +551,19 @@ if grep -qE '^[[:space:]]*--elevation-[0-9]:' "$ADMIN_INDEX_CSS"; then
   exit 1
 fi
 
+# The Tailwind-named .shadow-xs..2xl override block — a second ladder wearing
+# Tailwind's own class names, invisible to the --elevation-N guard above — was
+# deleted 2026-08-29 (admin audit, PRD-644 round 2). Fail if any shadow-*
+# class definition reappears in admin-owned CSS.
+SHADOW_CLASS_REDEFINITION="$(grep -RnE '^[[:space:]]*(\[[^]]+\][[:space:]]*)*\.shadow-(xs|sm|md|lg|xl|2xl|elevation)' \
+  "$ADMIN_INDEX_CSS" "$ADMIN_M3_TOKENS" packages/admin/src/styles/admin-m3-components.css 2>/dev/null || true)"
+if [[ -n "$SHADOW_CLASS_REDEFINITION" ]]; then
+  echo "❌ Parallel shadow ladder reintroduced — .shadow-* class definitions found in admin CSS:"
+  echo "$SHADOW_CLASS_REDEFINITION" | sed 's/^/  /'
+  echo "   Depth in the cockpit is shadow-[var(--m3-elevation-0/1/2)] plus --admin-chrome-shadow on floating nav/FAB chrome; do not redefine Tailwind shadow utility classes."
+  exit 1
+fi
+
 node scripts/design/check-css-custom-properties.mjs
 node scripts/design/check-guidance-examples.mjs
 
@@ -484,6 +574,8 @@ echo "✅ DesignMD radius outputs present in $GENERATED_CSS."
 echo "✅ admin M3 variable usages resolve to defined tokens."
 echo "✅ no new raw cubic-bezier, duration, color, radius literals, or primitive palette utilities outside token-definition or audited baseline files."
 echo "✅ admin Controlled Chrome guard passed: glass/blur/gradients stay in approved shell CSS."
+echo "✅ admin cockpit invariant sweep passed: off-ladder shadows, hover/press transforms, alias focus rings, and text-*-base stay within the audited baseline."
+echo "✅ admin wrapper-adoption sweep passed: shared field primitives, raw <button> elements, and legacy Card renders stay within the audited baseline."
 echo "✅ admin focus-ring guard passed: focus indicators use --tone-focus-ring."
 echo "✅ action-flow modality guard passed: no retired AdminDialog size=\"fullscreen\" usage."
 echo "✅ token_version declared in design skill (${DESIGN_VER})."

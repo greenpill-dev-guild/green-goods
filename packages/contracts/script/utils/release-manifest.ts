@@ -76,14 +76,12 @@ export interface ReleaseManifest {
       owners: string[];
       ownerDecisionDate: string;
       contractsGuideMinimumThreshold: string;
-      contractsGuideMinimumOwnerCount: string;
       guidePolicyStatus: "satisfied";
     };
     /**
      * The protocol Safe address is the same on both chains but is a different Safe on each. This
-     * is the approved Celo configuration the executor hands over to; `liveThresholdAtFreeze`
-     * records that the live Safe was still below the floor when frozen, so the Celo ownership
-     * boundary stays blocked until the threshold is raised to exactly this configuration.
+     * records the observed configuration for the executor handover. Owner membership remains an
+     * operational record; release readiness depends only on the live threshold floor.
      */
     celoProtocolSafeConfiguration: {
       threshold: string;
@@ -345,16 +343,8 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
     "ownership.protocolSafeConfiguration.contractsGuideMinimumThreshold",
     16,
   );
-  requireUintString(
-    safeConfiguration.contractsGuideMinimumOwnerCount,
-    "ownership.protocolSafeConfiguration.contractsGuideMinimumOwnerCount",
-    16,
-  );
   if (!/^\d{4}-\d{2}-\d{2}$/u.test(safeConfiguration.ownerDecisionDate)) {
     throw new Error("ownership.protocolSafeConfiguration.ownerDecisionDate must be an exact YYYY-MM-DD date");
-  }
-  if (safeConfiguration.owners.length === 0) {
-    throw new Error("ownership.protocolSafeConfiguration.owners must freeze the exact non-empty owner set");
   }
   const safeOwners = new Set<string>();
   for (const [index, owner] of safeConfiguration.owners.entries()) {
@@ -363,15 +353,10 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
     if (safeOwners.has(normalized)) throw new Error(`Duplicate protocol Safe owner: ${owner}`);
     safeOwners.add(normalized);
   }
-  if (BigInt(safeConfiguration.threshold) > BigInt(safeConfiguration.owners.length)) {
-    throw new Error("Protocol Safe threshold exceeds the frozen owner count");
-  }
   const guideMinimum = BigInt(safeConfiguration.contractsGuideMinimumThreshold);
-  const guideMinimumOwners = BigInt(safeConfiguration.contractsGuideMinimumOwnerCount);
   const targetThreshold = BigInt(safeConfiguration.threshold);
-  const targetOwnerCount = BigInt(safeConfiguration.owners.length);
-  if (targetThreshold < guideMinimum || targetOwnerCount < guideMinimumOwners) {
-    throw new Error(`Protocol Safe must have threshold >= ${guideMinimum} and owner count >= ${guideMinimumOwners}`);
+  if (targetThreshold < guideMinimum) {
+    throw new Error(`Protocol Safe must have threshold >= ${guideMinimum}`);
   }
   if (safeConfiguration.guidePolicyStatus !== "satisfied") {
     throw new Error("Protocol Safe guide policy status must be satisfied");
@@ -380,25 +365,15 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
   if (!celoSafe) throw new Error("ownership.celoProtocolSafeConfiguration must freeze the approved Celo Safe");
   requireUintString(celoSafe.threshold, "ownership.celoProtocolSafeConfiguration.threshold", 8);
   requireUintString(celoSafe.liveThresholdAtFreeze, "ownership.celoProtocolSafeConfiguration.liveThresholdAtFreeze", 8);
-  const approvedSigners = new Set(safeConfiguration.owners.map((owner) => getAddress(owner)));
   const celoOwners = new Set<string>();
   for (const owner of celoSafe.owners) {
     requireAddress(owner, "ownership.celoProtocolSafeConfiguration.owners[]");
     const normalized = getAddress(owner);
     if (celoOwners.has(normalized)) throw new Error(`Celo protocol Safe owner ${owner} is duplicated`);
     celoOwners.add(normalized);
-    // The Celo Safe may only be signed by people already approved for the protocol Safe.
-    if (!approvedSigners.has(normalized)) {
-      throw new Error(`Celo protocol Safe owner ${owner} is not an approved protocol Safe signer`);
-    }
   }
-  if (BigInt(celoSafe.threshold) < guideMinimum || BigInt(celoOwners.size) < guideMinimumOwners) {
-    throw new Error(
-      `Celo protocol Safe must have threshold >= ${guideMinimum} and owner count >= ${guideMinimumOwners}`,
-    );
-  }
-  if (BigInt(celoSafe.threshold) > BigInt(celoOwners.size)) {
-    throw new Error("Celo protocol Safe threshold may not exceed its owner count");
+  if (BigInt(celoSafe.threshold) < guideMinimum) {
+    throw new Error(`Celo protocol Safe must have threshold >= ${guideMinimum}`);
   }
   if (celoSafe.guidePolicyStatus !== "satisfied" && celoSafe.guidePolicyStatus !== "pending-live-threshold-raise") {
     throw new Error("Celo protocol Safe guide policy status must be satisfied or pending-live-threshold-raise");
@@ -662,7 +637,7 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
       requireAddress(argument, `existingProxyUpgrades.${upgrade.name}.constructorArguments.${index}`);
     });
   }
-  for (const required of ["AssessmentResolver", "GardenToken", "WorkApprovalResolver"]) {
+  for (const required of ["AssessmentResolver", "KarmaGAPModule", "WorkApprovalResolver"]) {
     if (!upgradeNames.has(required)) throw new Error(`Missing existing proxy upgrade manifest for ${required}`);
   }
 

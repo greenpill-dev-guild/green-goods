@@ -77,11 +77,13 @@ verifiers remain available for historical evidence and current-state checks.
 
 - A signed paused-deployment checklist covering the shared blocking security requirements and the ordered
   `AssessmentResolver` upgrade/schema preparation, pooling module/register/schema finalization,
-  and `GardenToken`/`WorkApprovalResolver` upgrades and reverse wiring. Its terminal state is
-  paused and deployment-sender owned.
-- A current-release deployer-owned, root-Protocol-first paused backfill with eighteen verified
-  registration receipts, plus a separately authorized pooling unpause command.
-- The protocol-Safe ownership transfer, eight Arbitrum boundaries and one Celo boundary, each with
+  and KarmaGAPModule/`WorkApprovalResolver` upgrades plus WorkApproval reverse wiring. Its terminal
+  state is paused and deployment-sender owned. GardenToken stays deferred until a compatible
+  GardenAccount implementation can ship in the same separately reviewed release.
+- A follow-up deployer-owned, root-Protocol-first paused backfill with eighteen verified
+  registration receipts, plus a separately authorized pooling unpause command after the
+  GardenAccount/GardenToken compatibility release establishes both reverse links.
+- The protocol-Safe ownership transfer, nine Arbitrum boundaries and one Celo boundary, each with
   the destination Safe verified live against its per-chain frozen configuration.
 - A separate signed value-tier checklist for Arbitrum `SettlementModule`, Celo `CeloSettlementExecutor`, and every enabled Safe/Zodiac configuration.
 - For every authorized broadcast: signer set, transaction hash, block, artifact diff,
@@ -135,18 +137,19 @@ A replacement owner must be named in PRD-686/PRD-731 and this handoff before exe
       verified module only after its UID and record are exact; set the final non-zero,
       pairwise-distinct schema UIDs; verify dependency/schema/proxy state; and keep the pooling
       module paused through the integration upgrades.
-   3. **Integration upgrades and paused handoff**: upgrade the existing `GardenToken` and
-      `WorkApprovalResolver` proxies in place; wire `setCommitmentPoolingModule` and
-      `setCommitmentModule`; prove updater preservation plus post-upgrade storage, ownership,
-      both-direction wiring, and rollback state while pooling remains paused. Stop with every
-      touched proxy owned by `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6`.
+   3. **Integration upgrades and paused handoff**: upgrade KarmaGAPModule before the existing
+      `WorkApprovalResolver` proxy; wire `setCommitmentModule`; prove updater preservation plus
+      post-upgrade storage, ownership, WorkApproval wiring, and rollback state while pooling
+      remains paused. Do not upgrade or wire GardenToken in this release: its constructor must be
+      bound to a compatible GardenAccount implementation in a separately reviewed release first.
+      Stop with every touched proxy owned by `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6`.
 
    **Activation correction (updated 2026-08-12).** Protocol-Safe transfer is deferred beyond this
-   release. While the module remains deployment-sender owned and paused, the current release may
-   execute the exact root-Protocol-first plus seventeen-Garden registration plan through the
-   reviewed deployer path. It must prove every direct transaction receipt, pool ID, finalized
-   inventory, owner, implementation, reverse integration link, and paused state, and stop after
-   registration boundary 18. Core unpause remains separately authorized. The later ownership
+   release. The root-Protocol-first plus seventeen-Garden registration plan remains blocked until
+   the GardenAccount/GardenToken compatibility release establishes and verifies the missing
+   GardenToken reverse link. That follow-up must prove every direct transaction receipt, pool ID,
+   finalized inventory, owner, implementation, both reverse integration links, and paused state,
+   and stop after registration boundary 18. Core unpause remains separately authorized. The later ownership
    issue must reread the complete Safe owner set and threshold on each target chain and verify each
    transfer independently; it does not block this release's registration backfill.
    Rehearse the exact sequence locally and on pinned forks. Ethereum Sepolia may prove an endpoint
@@ -376,13 +379,10 @@ the `release:verify:safe:*` variants; those belong to the later ownership-transf
 
 ## Current deployment gates and deferred activation facts
 
-- The protocol Safe at `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19` was re-read as the exact
-  approved **2-of-6** owner set. Repository policy now requires threshold >= 2 and owner count >= 3,
-  so this exact set satisfies the guide. As of the 2026-08-21 decision it is the verified
-  destination for the Arbitrum ownership boundaries; the ownership dry run re-reads it live and
-  passes. The Celo Safe at the same address is a different Safe: the release target is frozen as
-  2-of-4, while the 2026-08-23 live dry run resolved it as 1-of-4 and failed closed until its
-  threshold is raised.
+- The protocol Safe at `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19` uses threshold 2 on both
+  Arbitrum and Celo. Repository policy requires only a live threshold >= 2; owner membership is
+  operationally managed and does not block the release. The Celo owner inventory intentionally
+  includes `0x04D60647836bcA09c37B379550038BdaaFD82503` as a fifth owner.
 - The approved GardenToken release inventory is all **18** finalized accounts (IDs 0–17), with
   protocol root token 0. The root-first Protocol plus seventeen-Garden backfill is complete and the
   separate boundary 19 has unpaused Commitment Pooling.
@@ -428,23 +428,23 @@ Peer wiring is a tier-3 boundary under "Mainnet Requirements by Activation Risk"
 the route is wired. That is why the ceremony now includes the transfer rather than deferring it.
 
 The ownership tooling reads the destination Safe live on the target chain before any dry run or
-broadcast and requires the repository floor (threshold at least 2, at least 3 owners) and the exact
-frozen owner set. The same address is a different Safe on each chain:
+broadcast and requires threshold at least 2. Owner count and membership are not release gates. The
+same address is a different Safe on each chain:
 
-- On Arbitrum it is the approved 2-of-6. The dry run passes and all eight boundaries report ready.
-- On Celo it is 1-of-4, below the floor, so the dry run fails closed with the threshold named. Raise
-  the Celo Safe to at least 2-of-4 in the Safe UI before running the Celo boundary. That is a
-  separate Safe transaction and it does not move any Garden Safe address.
+- On Arbitrum the threshold is 2. The dry run passes and all nine boundaries report ready.
+- On Celo the threshold is 2. The owner inventory is intentionally different from Arbitrum and
+  does not block the Celo boundary.
 
-1. Arbitrum, eight boundaries in order through the release operator:
-   `bun run contracts:release:ownership:dry:arbitrum`, then the broadcast form one boundary at a
-   time with `--step <index> --expected-nonce <n>`. Each boundary re-reads the Safe's exact frozen
-   configuration at its receipt block and at head before it checkpoints, so a Safe that changed
-   between the pre-send read and mining cannot complete the boundary. Verify afterwards with
-   `bun run contracts:release:verify:arbitrum --owner-phase safe`, which checks all eight
-   ownership targets (including AssessmentResolver, TestimonyResolver, GardenToken, and
+1. Arbitrum, nine boundaries in order through the release operator:
+   `bun run contracts:release:ownership:dry:arbitrum`, then
+   `bun run contracts:release:ownership:arbitrum`. The release operator prompts for the deployer
+   password once, executes every remaining boundary in order with a freshly verified nonce, and
+   stops on the first failure. Each boundary re-reads the Safe threshold at its receipt block and
+   at head before it checkpoints. Verify afterwards with
+   `bun run contracts:release:verify:safe:arbitrum`, which checks all nine ownership targets
+   (including AssessmentResolver, TestimonyResolver, KarmaGAPModule, GardenToken, and
    WorkApprovalResolver, which are not deterministic lock identities) and re-asserts the Safe's
-   threshold and exact owner set.
+   threshold.
 2. Celo, one boundary, only after the threshold is raised:
    `bun run contracts:release:ownership:dry:celo`, then the same broadcast form, then
    `bun run contracts:release:verify:celo --owner-phase safe`. The Celo source peer is already

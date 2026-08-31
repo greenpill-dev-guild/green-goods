@@ -165,7 +165,7 @@ export function PoolCyclesCard({
               >
                 {formatMessage({
                   id: "cockpit.garden.pool.cycle.act.openSeason",
-                  defaultMessage: "Open to the garden",
+                  defaultMessage: "Open to the Garden",
                 })}
               </AdminButton>
             ) : null}
@@ -220,7 +220,7 @@ export function PoolCyclesCard({
           >
             {formatMessage({
               id: "cockpit.garden.pool.cycle.act.startSeason",
-              defaultMessage: "Start season",
+              defaultMessage: "Start Season",
             })}
           </AdminButton>
         </div>
@@ -264,7 +264,7 @@ export function PoolCyclesCard({
           >
             {formatMessage({
               id: "cockpit.garden.pool.cycle.act.startCampaign",
-              defaultMessage: "Start campaign",
+              defaultMessage: "Start Campaign",
             })}
           </AdminButton>
         </div>

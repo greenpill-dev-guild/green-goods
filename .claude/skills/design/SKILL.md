@@ -2,7 +2,7 @@
 name: design
 user-invocable: false
 description: "Green Goods design direction — the Warm Earth design language (shape, motion, color, material tokens), admin cockpit vs client PWA surface identities, paradigm selection, layout composition, AI design-tool prompt contracts, and design review lenses. Use for design direction, visual language decisions, what paradigm or material a view should use, new views or components, UI polish passes, and preparing prompts for AI design tools."
-token_version: "2.6.0"
+token_version: "2.10.0"
 ---
 
 # Design Skill
@@ -22,7 +22,7 @@ Design philosophy and visual direction for building spatial-ready, AI-driven int
 - You need the **admin** AI prompt contract (stable core, vocabulary, never-use list) → [prompt-contract.md](./prompt-contract.md).
 - You need the **client** AI prompt contract → [client-prompt-contract.md](./client-prompt-contract.md).
 - You need to **report a UI defect** on an admin surface (grammar, component identifiers, browser workflow) → [defect-grammar.md](./defect-grammar.md).
-- You just need a scannable token cheat sheet → [quick-reference.md](./quick-reference.md).
+- You need the **locked design decisions** (the `DL-NNN` ledger, its graduation ladder, or where a decision was codified) → [decision-log.md](./decision-log.md).
 - You are doing a **design-system alignment review** — full-repo, or stack-only when the target is just the `design/` skill stack → [system-alignment-review.md](./system-alignment-review.md).
 
 ## Token version
@@ -43,16 +43,17 @@ This skill's frontmatter `token_version` reflects the current Warm Earth token s
 | **Admin Prompt Contract** | admin stable core, banned terms, workspace vocabulary for AI design tools | [prompt-contract.md](./prompt-contract.md) |
 | **Client Prompt Contract** | client stable core, banned terms, PWA shell vocabulary | [client-prompt-contract.md](./client-prompt-contract.md) |
 | **Defect Grammar** | "this looks broken", describe UI bug, component identifier lookup, defect types, browser inspect workflow | [defect-grammar.md](./defect-grammar.md) |
-| **Quick Reference** | cheat sheet, radii, springs, colors, materials, paradigms at a glance | [quick-reference.md](./quick-reference.md) |
+| **Decision Log** | locked decision, DL-NNN, design ruling, "what did we decide about", decision ledger, codification | [decision-log.md](./decision-log.md) |
 | **Design Philosophy** | design direction, paradigm, adaptive surface, spatial, vision, progressive immersion | This file |
 | **Surfaces** | Z-axis, depth, glass pane, elevation, material, blur, adaptive density, progressive disclosure, multimodal | [surfaces.md](./surfaces.md) |
 | **View Transitions** | view transition API, entity morphing, spatial navigation | [implementation.md § View Transitions](./implementation.md) |
 | **Ecosystem** | ecosystem, relational, cascade, multi-user, surrogate, autonomic, archetype | [ecosystem.md](./ecosystem.md) |
-| **Regenerative** | regenerative, regen, degen, mycofi, commons, biomimicry, succession, growth-agnostic, capability | [regenerative.md](./regenerative.md) |
+| **Regenerative** | regenerative, succession, growth-agnostic, capability, value flow | [review-checklist.md § Lens 1](./review-checklist.md#lens-1-regenerative-design) |
 | **Review Checklist** | review, PR, audit, compliance, checklist, design review, before merging | [review-checklist.md](./review-checklist.md) |
 | **System Alignment Review** | design system alignment, UI drift, Storybook alignment, full repo design-system review, stack review, meta-review of the design skill stack | [system-alignment-review.md](./system-alignment-review.md) |
 
 When invoked:
+0. Check [decision-log.md](./decision-log.md) for `locked` rows touching your surface — locked decisions bind immediately, before codification
 1. Establish design paradigm and material metaphor before writing code
 2. Apply Inclusive Design lens — every decision raises or lowers barriers
 3. Apply Ecosystem lens for multi-user surfaces — whose experience composes with whose? ([ecosystem.md](./ecosystem.md))
@@ -83,7 +84,7 @@ Three principles woven throughout — not a checklist, a lens:
 
 ### Regenerative Design
 
-Does this design regenerate or extract? Seven principles — make the mycelium visible, design for succession, enrich the edges, failure is succession, be growth-agnostic, capability is the deliverable, regen not degen. Full framework: [regenerative.md](./regenerative.md). PR checks live in the unified [review-checklist.md](./review-checklist.md) § Lens 1.
+Does this design regenerate or extract? Make value flows visible, match complexity to community maturity, enrich stakeholder boundaries, make failure recoverable, reject manufactured engagement, build community capability, and keep the visual language grounded rather than financialized. The executable PR checks live in [review-checklist.md § Lens 1](./review-checklist.md#lens-1-regenerative-design); public rationale and sources live in `docs/docs/reference/design-research.md`.
 
 ### User Ecosystem Thinking
 

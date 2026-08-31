@@ -77,7 +77,7 @@ const meta: Meta<typeof CycleRail> = {
   title: "Client/Commitments/CycleRail",
   component: CycleRail,
   tags: ["autodocs", "storybook-ci"],
-  parameters: { viewport: { defaultViewport: "mobile1" } },
+  globals: { viewport: { value: "mobile" } },
   decorators: [
     withSeededQueryClient([
       [cycleNameKey(SPRING_CID), { status: "resolved", name: "Spring 2026" }],

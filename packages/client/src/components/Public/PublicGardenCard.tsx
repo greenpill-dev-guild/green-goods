@@ -2,7 +2,7 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { ImageWithFallback } from "@/components/Display";
+import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
 import { EditorialKicker, EditorialMetaRow } from "./atoms";
 import { GardenCoverFallback } from "./GardenCoverFallback";
 
@@ -68,7 +68,7 @@ export function PublicGardenCard({
         <ImageWithFallback
           src={garden.bannerImage}
           alt={garden.name}
-          className="h-full w-full object-cover transition-transform duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)] group-hover:scale-[1.03]"
+          className="h-full w-full object-cover"
           backgroundFallback={<GardenCoverFallback name={garden.name} slug={garden.slug} />}
           onErrorCallback={onImageError}
         />

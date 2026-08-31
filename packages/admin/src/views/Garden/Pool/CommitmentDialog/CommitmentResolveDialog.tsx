@@ -40,7 +40,7 @@ export function CommitmentResolveDialog({
       tone={tone}
       title={formatMessage({
         id: "cockpit.garden.pool.commitment.resolve.title",
-        defaultMessage: "Resolve the dispute",
+        defaultMessage: "Resolve the Dispute",
       })}
       description={
         can.resolveFulfilled
@@ -90,7 +90,7 @@ export function CommitmentResolveDialog({
             value: "RESTORE_PREVIOUS",
             label: formatMessage({
               id: "cockpit.garden.pool.commitment.resolve.restore",
-              defaultMessage: "Restore previous state",
+              defaultMessage: "Restore Previous State",
             }),
             description: formatMessage({
               id: "cockpit.garden.pool.commitment.resolve.restoreHint",

@@ -9,7 +9,7 @@ import { usePublicInstallHandler } from "@green-goods/shared/hooks/app/usePublic
 import { useTunnelUrl } from "@green-goods/shared/hooks/app/useTunnelUrl";
 import { type MouseEventHandler, type ReactNode, useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { PUBLIC_PWA_ORIGIN, createPwaLaunchUrl } from "@/config/pwaRouting";
+import { APP_ROUTES, PUBLIC_PWA_ORIGIN, createPwaLaunchUrl } from "@/config/pwaRouting";
 import { PublicInstallDialog, type PublicInstallDialogMode } from "./PublicInstallDialog";
 
 export interface PublicInstallActionRenderProps {
@@ -47,17 +47,18 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
     isInstalled,
     isInstalling,
     wasInstalled,
+    installedAppEvidence,
     deferredPrompt,
     promptInstall,
   } = useApp();
-  const guidance = useInstallGuidance(
+  const guidance = useInstallGuidance({
     platform,
-    isInstalled,
+    installedAppEvidence,
     wasInstalled,
     deferredPrompt,
     isMobile,
-    isInstalling
-  );
+    isInstalling,
+  });
   const dispatchInstallAction = usePublicInstallHandler(guidance, promptInstall);
   const isBrave = useIsBraveBrowser();
   // Android intent that reopens the current page in Chrome. Brave can't mint a
@@ -83,7 +84,7 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
     Boolean(guidance.manualInstructions?.length);
   const fallbackLabel = formatMessage({
     id: "public.nav.installAgain",
-    defaultMessage: "Install again",
+    defaultMessage: "Install Again",
   });
   const dataInstallAction = isInstallPending
     ? "installing"
@@ -101,22 +102,22 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
 
   const handleClick = useCallback<MouseEventHandler<HTMLElement>>(
     async (event) => {
-      event.preventDefault();
-
-      if (isInstallPending) return;
+      if (isInstallPending) {
+        event.preventDefault();
+        return;
+      }
 
       if (isOpenApp) {
         // Brave does not mint a WebAPK on Android, so navigating to the scoped URL
         // stays in the browser tab instead of launching the installed app.
         if (isBrave) {
+          event.preventDefault();
           setDialogMode("braveLaunch");
-          return;
-        }
-        if (typeof window !== "undefined") {
-          window.location.assign(launchUrl);
         }
         return;
       }
+
+      event.preventDefault();
 
       if (!isMobile) {
         setDialogMode("desktopQr");
@@ -145,7 +146,6 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
       isInstallPending,
       isMobile,
       isOpenApp,
-      launchUrl,
       platform,
     ]
   );
@@ -169,7 +169,7 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
     <>
       {children({
         label,
-        href: isOpenApp ? launchUrl : "#install",
+        href: isOpenApp ? APP_ROUTES.home : "#install",
         isOpenApp,
         disabled: isInstallPending,
         dataInstallAction,

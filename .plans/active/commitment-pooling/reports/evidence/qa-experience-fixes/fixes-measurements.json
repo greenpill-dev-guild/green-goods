@@ -75,15 +75,8 @@
       "effective": 54
     }
   ],
-  "hubTabOrder": [
-    "Confirm",
-    "Work",
-    "Certify"
-  ],
-  "hubConfirmLabels": [
-    "Confirm kept",
-    "Confirm kept…"
-  ],
+  "hubTabOrder": ["Confirm", "Work", "Certify"],
+  "hubConfirmLabels": ["Confirm kept", "Confirm kept…"],
   "commandPalette": {
     "empty": {
       "inputY": 96,
@@ -103,42 +96,42 @@
   },
   "allocationEditor": [
     {
-      "invalid": "false",
+      "invalid": null,
+      "describedResolves": true,
+      "containsAlert": false
+    },
+    {
+      "invalid": null,
+      "describedResolves": true,
+      "containsAlert": false
+    },
+    {
+      "invalid": null,
+      "describedResolves": true,
+      "containsAlert": false
+    },
+    {
+      "invalid": null,
+      "describedResolves": true,
+      "containsAlert": false
+    },
+    {
+      "invalid": null,
+      "describedResolves": true,
+      "containsAlert": false
+    },
+    {
+      "invalid": null,
+      "describedResolves": true,
+      "containsAlert": false
+    },
+    {
+      "invalid": null,
       "describedResolves": false,
       "containsAlert": false
     },
     {
-      "invalid": "false",
-      "describedResolves": false,
-      "containsAlert": false
-    },
-    {
-      "invalid": "false",
-      "describedResolves": false,
-      "containsAlert": false
-    },
-    {
-      "invalid": "false",
-      "describedResolves": false,
-      "containsAlert": false
-    },
-    {
-      "invalid": "false",
-      "describedResolves": false,
-      "containsAlert": false
-    },
-    {
-      "invalid": "false",
-      "describedResolves": false,
-      "containsAlert": false
-    },
-    {
-      "invalid": "false",
-      "describedResolves": false,
-      "containsAlert": false
-    },
-    {
-      "invalid": "false",
+      "invalid": null,
       "describedResolves": false,
       "containsAlert": false
     }

@@ -79,6 +79,19 @@
       "rules": {
         "no-console": "off"
       }
+    },
+    {
+      "files": ["packages/admin/src/components/Layout/CommandPalette.tsx"],
+      "rules": {
+        // oxlint's implicit-role table maps a bare <input type="text"> to
+        // combobox, so it flags the explicit role="combobox" that the ARIA 1.2
+        // combobox pattern requires — while its own role-supports-aria-props
+        // maps the same element to textbox and then rejects aria-expanded.
+        // Per ARIA-in-HTML the implicit role without a `list` attribute is
+        // textbox: the explicit role is correct and required here, so the
+        // redundancy rule is the one that is wrong on this file.
+        "jsx-a11y/no-redundant-roles": "off"
+      }
     }
   ],
   "settings": {

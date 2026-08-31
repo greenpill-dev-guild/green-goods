@@ -1,6 +1,6 @@
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import type { Garden, Work } from "@green-goods/shared/types/domain";
 import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import type { Garden, Work } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiArrowLeftFill,
   RiBankLine,
@@ -11,7 +11,7 @@ import {
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { ModalDrawer } from "@/components/Dialogs";
-import { pwaStatusStyles, type PwaStatusTone } from "@/components/Pwa/statusStyles";
+import { type PwaStatusTone, pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 
 type TopNavProps = {
@@ -108,8 +108,7 @@ const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({ works,
             ? formatMessage(
                 {
                   id: "app.home.notifications.pendingCount",
-                  defaultMessage:
-                    "{count, plural, one {# pending review} other {# pending reviews}}",
+                  defaultMessage: "{count, plural, one {# pending} other {# pending}}",
                 },
                 { count: workNotifications.length }
               )

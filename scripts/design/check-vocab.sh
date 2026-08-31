@@ -2,8 +2,8 @@
 # check-vocab.sh
 # Enforces the Lens 1 (Regenerative) banned-vocabulary rule on user-facing strings.
 #
-# Source of truth: docs/docs/reference/banned-vocabulary.json (.linter_enforced)
-# Human-readable mirror: docs/docs/reference/glossary-community.md § Banned Vocabulary
+# Source of truth: scripts/data/banned-vocabulary.json (.linter_enforced)
+# Human-readable projection: docs/docs/reference/glossary.generated.mdx § Language policy
 # Framework: .claude/skills/design/review-checklist.md § Lens 1
 #
 # Exits 1 if any banned term appears in translated message values.
@@ -13,7 +13,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$REPO_ROOT"
 
-VOCAB_JSON="docs/docs/reference/banned-vocabulary.json"
+VOCAB_JSON="scripts/data/banned-vocabulary.json"
 
 if [[ ! -f "$VOCAB_JSON" ]]; then
   echo "❌ check-vocab: missing canonical glossary sidecar at $VOCAB_JSON"
@@ -110,8 +110,8 @@ if HITS="$("${SEARCH_CMD[@]}" || true)"; [[ -n "$HITS" ]]; then
   echo "$HITS"
   echo
   echo "These terms signal growth-hacking / FOMO patterns. See:"
-  echo "  docs/docs/reference/glossary-community.md § Banned Vocabulary"
-  echo "  docs/docs/reference/banned-vocabulary.json (.linter_enforced)"
+  echo "  docs/docs/reference/glossary.generated.mdx § Language policy"
+  echo "  scripts/data/banned-vocabulary.json (.linter_enforced)"
   echo "  .claude/skills/design/review-checklist.md § Lens 1: Regenerative Design"
   exit 1
 fi
@@ -177,8 +177,8 @@ if [[ ${#RENAMED_TERMS[@]} -gt 0 ]]; then
     echo
     echo "The garden role is a Steward. The deployed contracts keep the Operator wire"
     echo "name, but no string a person reads should. See:"
-    echo "  docs/docs/reference/banned-vocabulary.json (.renamed_terms)"
-    echo "  docs/docs/reference/glossary-community.md § Personas"
+    echo "  scripts/data/banned-vocabulary.json (.renamed_terms)"
+    echo "  packages/shared/src/ontology/green-goods-ontology.json § personas"
     exit 1
   fi
 fi
@@ -222,7 +222,7 @@ if [[ -n "$LOCALE_HITS" ]]; then
   echo "$LOCALE_HITS"
   echo
   echo "Locked visible terms: es Responsable, pt Responsável. See:"
-  echo "  docs/docs/reference/banned-vocabulary.json (.renamed_terms.locale_terms)"
+  echo "  scripts/data/banned-vocabulary.json (.renamed_terms.locale_terms)"
   exit 1
 fi
 

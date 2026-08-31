@@ -7,6 +7,10 @@ import { closeDB, getDB, initDB } from "../services/db";
 import { createSavedOfferCipher } from "../services/saved-offers";
 import type { SavedOfferCipher } from "../services/saved-offers";
 import {
+  createGardenJoinRequestCipher,
+  createSqliteGardenJoinRequestStore,
+} from "../services/garden-join-requests";
+import {
   canonicalSavedOfferPayload,
   type SavedOfferPayloadV1,
 } from "@green-goods/shared/public-contracts";
@@ -41,13 +45,15 @@ describe("agent storage with real bun:sqlite", () => {
       expect.arrayContaining([
         "chat_message_attachments",
         "chat_messages",
+        "garden_join_request_proofs",
+        "garden_join_requests",
         "pending_works",
         "saved_offers",
         "sessions",
         "users",
       ])
     );
-    expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 5 });
+    expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 7 });
     expect(sqlite.query("PRAGMA foreign_keys").get()).toEqual({ foreign_keys: 1 });
 
     expect(() =>
@@ -59,6 +65,143 @@ describe("agent storage with real bun:sqlite", () => {
         )
         .run("orphan", "missing-message", 0, "photo", "file-id", Date.now())
     ).toThrow(/FOREIGN KEY constraint failed/i);
+  });
+
+  it("persists join-request personal fields only as ciphertext", async () => {
+    const cipher = createGardenJoinRequestCipher("cd".repeat(32));
+    const store = createSqliteGardenJoinRequestStore(cipher, {
+      id: () => "0198f665-9a00-7000-8000-000000000002",
+    });
+    const garden = `0x${"5".repeat(40)}` as const;
+    const account = `0x${"6".repeat(40)}` as const;
+    await store.create({
+      gardenAddress: garden,
+      accountAddress: account,
+      displayName: "Private gardener",
+      note: "Private joining note",
+      requestedVia: "garden_detail",
+      requestedAt: "2026-08-27T12:00:00.000Z",
+      expiresAt: "2026-09-26T12:00:00.000Z",
+    });
+
+    const raw = rawDatabase()
+      .query("SELECT accountAddressKey, ciphertext FROM garden_join_requests")
+      .get() as { accountAddressKey: string; ciphertext: string };
+    expect(raw.accountAddressKey).not.toContain(account);
+    expect(raw.ciphertext).not.toContain("Private gardener");
+    expect(raw.ciphertext).not.toContain("Private joining note");
+
+    await closeDB();
+    initDB(databasePath);
+    await expect(store.getMine(garden, account)).resolves.toMatchObject({
+      displayName: "Private gardener",
+      note: "Private joining note",
+    });
+  });
+
+  it("persists replay nonces only as keyed digests", async () => {
+    const cipher = createGardenJoinRequestCipher("ef".repeat(32));
+    const store = createSqliteGardenJoinRequestStore(cipher);
+    const proofNonce = `0x${"cD".repeat(32)}`;
+    const caseVariant = `0x${proofNonce.slice(2).toUpperCase()}`;
+
+    expect(await store.claimProof(proofNonce, "2026-09-26T12:00:00.000Z")).toBe(true);
+    const raw = rawDatabase()
+      .query("SELECT nonce FROM garden_join_request_proofs ORDER BY expiresAt DESC LIMIT 1")
+      .get() as { nonce: string };
+
+    expect(raw.nonce).toBe(cipher.proofKey(proofNonce));
+    expect(raw.nonce).not.toBe(proofNonce);
+    expect(await store.claimProof(caseVariant, "2026-09-26T12:00:00.000Z")).toBe(false);
+  });
+
+  it("replaces expired pending rows and removes decline reasons when welcoming", async () => {
+    const cipher = createGardenJoinRequestCipher("ac".repeat(32));
+    let requestId = 0;
+    const store = createSqliteGardenJoinRequestStore(cipher, {
+      id: () => `sqlite-join-request-${++requestId}`,
+    });
+    const garden = `0x${"8".repeat(40)}` as const;
+    const account = `0x${"9".repeat(40)}` as const;
+    await store.create({
+      gardenAddress: garden,
+      accountAddress: account,
+      displayName: "Expired request",
+      requestedVia: "garden_detail",
+      requestedAt: "2026-07-01T12:00:00.000Z",
+      expiresAt: "2026-08-01T12:00:00.000Z",
+    });
+
+    const fresh = await store.create({
+      gardenAddress: garden,
+      accountAddress: account,
+      displayName: "Fresh request",
+      requestedVia: "garden_detail",
+      requestedAt: "2026-08-02T12:00:00.000Z",
+      expiresAt: "2026-09-01T12:00:00.000Z",
+    });
+    expect(fresh).toMatchObject({ created: true, request: { displayName: "Fresh request" } });
+    if (fresh.created !== true) throw new Error("Expected a fresh request");
+
+    await store.resolve({
+      gardenAddress: garden,
+      requestId: fresh.request.id,
+      expectedRevision: 0,
+      state: "declined",
+      reason: "Private decline reason",
+      resolvedAt: "2026-08-03T12:00:00.000Z",
+    });
+    const welcomed = await store.reconcileWelcomed(
+      garden,
+      fresh.request.id,
+      "2026-08-04T12:00:00.000Z"
+    );
+    expect(welcomed).toMatchObject({ state: "welcomed", revision: 2 });
+    expect(welcomed).not.toHaveProperty("reason");
+
+    const raw = rawDatabase()
+      .query(
+        "SELECT ciphertext, nonce FROM garden_join_requests WHERE gardenAddress = ? AND id = ?"
+      )
+      .get(garden, fresh.request.id) as { ciphertext: string; nonce: string };
+    expect(cipher.decrypt(raw)).not.toContain("Private decline reason");
+    expect(
+      rawDatabase()
+        .query("SELECT COUNT(*) AS count FROM garden_join_requests WHERE gardenAddress = ?")
+        .get(garden)
+    ).toEqual({ count: 1 });
+  });
+
+  it("deletes expired join requests on self and queue reads", async () => {
+    const cipher = createGardenJoinRequestCipher("ad".repeat(32));
+    let requestId = 0;
+    const store = createSqliteGardenJoinRequestStore(cipher, {
+      id: () => `sqlite-expired-request-${++requestId}`,
+    });
+    const garden = `0x${"a".repeat(40)}` as const;
+    const account = `0x${"b".repeat(40)}` as const;
+    const expiredInput = {
+      gardenAddress: garden,
+      accountAddress: account,
+      displayName: "Expired request",
+      requestedVia: "garden_detail" as const,
+      requestedAt: "2026-07-01T12:00:00.000Z",
+      expiresAt: "2026-08-01T12:00:00.000Z",
+    };
+    await store.create(expiredInput);
+
+    await expect(
+      store.getMine(garden, account, "2026-08-02T12:00:00.000Z")
+    ).resolves.toBeUndefined();
+    await store.create(expiredInput);
+    await expect(
+      store.listPending(garden, { nowIso: "2026-08-02T12:00:00.000Z" })
+    ).resolves.toEqual({ items: [] });
+    expect(
+      rawDatabase()
+        .query("SELECT COUNT(*) AS count FROM garden_join_requests WHERE gardenAddress = ?")
+        .get(garden)
+    ).toEqual({ count: 0 });
   });
 
   it("persists encrypted users and retrieves them after reopening the database", async () => {

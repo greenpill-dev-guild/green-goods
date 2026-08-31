@@ -6,19 +6,20 @@
  * card-funding rollout — see .plans/archive/nyc-vault-crowdfunding/brief.md. Do not
  * remove as "dead code".
  */
-import type { Address } from "@green-goods/shared/types/domain";
-import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
-import { getOctantVaultCampaignBySlug } from "@green-goods/shared/modules/vault-crowdfunding/copy";
+
+import {
+  type OctantVaultPosition,
+  useOctantVaultPositions,
+} from "@green-goods/shared/hooks/vault/useOctantVaultPositions";
 import {
   getOctantVaultPendingFundedCardWalletRefs,
   type OctantVaultCardWalletPositionRef,
   rememberOctantVaultCardWalletPosition,
 } from "@green-goods/shared/modules/octant-vault-card-wallet-cache";
-import {
-  type OctantVaultPosition,
-  useOctantVaultPositions,
-} from "@green-goods/shared/hooks/vault/useOctantVaultPositions";
+import { getOctantVaultCampaignBySlug } from "@green-goods/shared/modules/vault-crowdfunding/copy";
+import type { Address } from "@green-goods/shared/types/domain";
 import { truncateAddress } from "@green-goods/shared/utils/blockchain/address";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { type FormEvent, useCallback, useId, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import {
@@ -38,8 +39,9 @@ import {
 } from "thirdweb/react";
 import { inAppWallet, preAuthenticate } from "thirdweb/wallets/in-app";
 import { EditorialGhostButton } from "../atoms";
-import { prepareCardWalletRedeem, readCardWalletMaxRedeemable } from "./vaultCardWalletManageCalls";
 import { PositionsList, VaultPositionRowView } from "./VaultManagePositionsPanel";
+import { prepareCardWalletRedeem, readCardWalletMaxRedeemable } from "./vaultCardWalletManageCalls";
+
 function getThirdwebClientId(): string {
   return import.meta.env.VITE_THIRDWEB_CLIENT_ID?.trim() ?? "";
 }
@@ -451,7 +453,7 @@ function PendingFundedDepositCard({
       })
     : formatMessage({
         id: "public.vaults.manage.card.pendingFinishCta",
-        defaultMessage: "Finish endowment",
+        defaultMessage: "Finish Endowment",
       });
 
   return (
@@ -630,7 +632,7 @@ function RestoreEmailWallet({
           >
             {formatMessage({
               id: "public.vaults.manage.card.sendCode",
-              defaultMessage: "Send email code",
+              defaultMessage: "Send Email Code",
             })}
           </EditorialGhostButton>
         ) : null}
@@ -642,7 +644,7 @@ function RestoreEmailWallet({
             {formatMessage(
               {
                 id: "public.vaults.manage.card.codeSent",
-                defaultMessage: "Code sent. Check {email} and enter the 6-digit code.",
+                defaultMessage: "Code sent. Check {email} and enter the 6 digit code.",
               },
               { email: email.trim() }
             )}
@@ -676,7 +678,7 @@ function RestoreEmailWallet({
           >
             {formatMessage({
               id: "public.vaults.manage.card.verify",
-              defaultMessage: "Restore access",
+              defaultMessage: "Restore Access",
             })}
           </EditorialGhostButton>
         </form>

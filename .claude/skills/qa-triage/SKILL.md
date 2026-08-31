@@ -1,7 +1,7 @@
 ---
 name: qa-triage
 user-invocable: true
-description: Turn build sync QA meeting notes (the meeting formerly called product sync) into triaged Linear records + QA-sheet rows. Fires on any mention of a QA call/sync/session, build sync, product sync (legacy name), or filing/triaging bugs from a recent meeting — even without the word "qa-triage". Pulls the latest Gemini notes from Drive (~/Downloads fallback), cross-references PostHog + existing Linear/Sheet records, scope-locks, then writes Customer Needs/Issues and QA Sheet rows.
+description: Turn Build Sync QA notes or a qa-session deferred handoff into scope-locked Linear records and private QA Sheet rows. Fires on a QA call/sync/meeting, Build Sync, Product Sync (legacy name), or a request to file or triage recent meeting bugs. Pulls notes from Drive (Downloads fallback), enriches against PostHog and existing Linear/Sheet records, requires exact Test IDs for qa-session issues, then writes only after confirmation. For a live or dictated walkthrough, use qa-session instead.
 argument-hint: "[<notes-path|slug|qa-sync:YYYY-MM-DD>] [--dry-run] [--no-codex] [--no-sheet] [--fixture]"
 ---
 
@@ -9,14 +9,20 @@ argument-hint: "[<notes-path|slug|qa-sync:YYYY-MM-DD>] [--dry-run] [--no-codex] 
 
 Interactive sibling of the `bug-intake` cron'd routine. Pulls the latest **Build Sync** QA notes from Drive (with `~/Downloads` fallback), extracts bugs, ideas, and feedback, cross-references each item against PostHog telemetry and existing Linear + QA-sheet records, gates the triage with an explicit scope lock, then writes Linear records and appends rows to the **Green Goods v1.1 QA** Sheet.
 
-Mirror [`docs/routines/bug-intake.md`](../../../docs/routines/bug-intake.md) for the Linear protocol, label scheme, and privacy boundary — this skill is its **interactive, on-demand, single-source** sibling, not a replacement.
+Mirror [`docs/routines/bug-intake.md`](../../../docs/routines/bug-intake.md) for the Linear protocol
+and label scheme — this skill is its **interactive, on-demand, single-source** sibling, not a
+replacement.
+
+The system-wide QA layers, artifact ownership, result/privacy boundary, state queries, and Test ID
+linkage live in [`.claude/context/qa.md`](../../context/qa.md). This skill owns intake through the
+confirmed Linear and Sheet writes only.
 
 ## Activation
 
 | Trigger | Action |
 |---------|--------|
 | `/qa-triage` | Discover the latest Build Sync notes (Drive → Downloads). If the [`qa-triage-pulse`](../../../docs/routines/qa-triage-pulse.md) routine has pre-staged Customer Needs for the latest sync, offer to resume from those instead. |
-| `/qa-triage <path>` | Use the supplied notes path (absolute, relative, or `~/Downloads/...`) |
+| `/qa-triage <path>` | Use the supplied notes path (absolute, relative, or `~/Downloads/...`). A `tmp/qa-session/<slug>/deferred-<slug>.md` extract from the qa-session skill is a supported source — it contains only deferred observations (never fixed/answered/dropped ones), the slugged filename keeps each handoff's workspace distinct, its numbered, typed, verbatim-quoted items parse directly, and its exact `case:` Test IDs bypass fuzzy matching. For session-log inputs, use `source:qa-session` (resolve-or-create) instead of `source:drive` in Phase 6 |
 | `/qa-triage <slug>` | Resume an incomplete run from `tmp/qa-triage/<slug>/notes.md` |
 | `/qa-triage qa-sync:<YYYY-MM-DD>` | Resume from routine-pre-staged Customer Needs carrying that `qa-sync:*` label. Phases 1-3 are skipped (already done by `qa-triage-pulse`); triage gate fires immediately. |
 | `/qa-triage … --dry-run` | Print payloads instead of writing to Linear; still emit Sheet CSVs |
@@ -78,7 +84,7 @@ All deviations from a real run, in one place:
 2. **Resolve Linear handles by name** at the start of every run:
    - Team: `Product` (fallback `Research` only when the user asks).
    - Workflow states: expect `Backlog`, `Todo`.
-   - Label families: `protocol:green-goods`, `package:*`, `activity:qa`, `activity:maintenance`, `source:drive`, `source:qa-triage-pulse`, `ai:claude`, `ai:codex`, `ai:routine`. The per-week label `qa-sync:YYYY-MM-DD` is resolve-or-created on each run that needs it.
+   - Label families: `protocol:green-goods`, `package:*`, `activity:qa`, `activity:maintenance`, `source:drive`, `source:qa-triage-pulse`, `source:qa-session` (resolve-or-create; for qa-session handoff inputs), `ai:claude`, `ai:codex`, `ai:routine`. The per-week label `qa-sync:YYYY-MM-DD` is resolve-or-created on each run that needs it.
    - If any required label family is missing, fail loud and stop — do not invent records under a different label.
 3. **Probe PostHog reachability** with a single-event query against both `POSTHOG_PROJECT_ID_APP` (`163591`) and `POSTHOG_PROJECT_ID_ADMIN` (`262122`). If either is unreachable, mark the affected surface as `enrichment: unavailable` and continue. (Skipped in fixture mode.)
 
@@ -153,11 +159,11 @@ Show the candidate list (max 5, last 14 days) with title + modified date. Confir
 
    Item types: `bug` → eligible for a main `activity:qa` Issue. `idea` / `feedback` → track-only by default, meaning Customer Need + lightweight Backlog tracking Issue.
 
-3. **Dispatch Codex automatically (required unless `--no-codex` or `--fixture` is set).** Fire the worktree dispatch on every real run that carries neither flag — no judgment override, no "skipped to keep the flow tight". The parallel extraction pass exists specifically to catch what a single-agent extraction misses; skipping defeats the dual-extraction design. Dispatch mechanics (worktree add, fixed non-secret child environment, notes/schema copy, `codex exec` invocation, prompt rendering) live in [codex-prompt.md § Dispatch mechanics](./codex-prompt.md). Copy the resolved notes into the temporary worktree and render that absolute copy path into the prompt; a primary-checkout-relative `tmp/qa-triage/.../notes.md` path is not reachable from the separate checkout. The root `.env` is never linked because this pass needs only the copied notes and schema; a configured `CODEX_HOME` is preserved so the CLI keeps its own authentication and installed skills. Fire via `Bash` with `run_in_background: true` and continue to Phase 3 immediately. When the result lands, process it through the idempotent completion handler below; never merge the file ad hoc.
+3. **Dispatch Codex automatically (required unless `--no-codex` or `--fixture` is set).** Fire the worktree dispatch on every real run that carries neither flag — no judgment override, no "skipped to keep the flow tight". The parallel extraction pass exists specifically to catch what a single-agent extraction misses; skipping defeats the dual-extraction design. Dispatch mechanics (worktree add, fixed non-secret child environment, notes/schema copy, `codex exec -s read-only --ephemeral … < /dev/null` invocation, prompt rendering) live in [codex-prompt.md § Dispatch mechanics](./codex-prompt.md); `--full-auto` no longer exists on `codex exec`, and an open stdin makes it wait forever, so use the snippet as written. Copy the resolved notes into the temporary worktree and render that absolute copy path into the prompt; a primary-checkout-relative `tmp/qa-triage/.../notes.md` path is not reachable from the separate checkout. The root `.env` is never linked because this pass needs only the copied notes and schema; a configured `CODEX_HOME` is preserved so the CLI keeps its own authentication and installed skills. Fire via `Bash` with `run_in_background: true` and continue to Phase 3 immediately. When the result lands, process it through the idempotent completion handler below; never merge the file ad hoc.
 
    Fallbacks, in order:
    - `--no-codex`: skip dispatch; still write `codex-prompt.md` to the workspace as an optional manual run.
-   - Dispatch failure (missing binary, dirty tree, branch collision): log to `report.md`'s `⚠ Codex failures` block and surface `codex-prompt.md` for manual copy-paste. Never block on Codex.
+   - Dispatch failure (missing binary, dirty tree, branch collision, a CLI flag or output-schema rejection): log to `report.md`'s `⚠ Codex failures` block and surface `codex-prompt.md` for manual copy-paste. Never block on Codex.
 
    Cleanup at Phase 7: if this run successfully recorded `WORKTREE` and `BRANCH`, remove only that current-run worktree/branch with `git worktree remove --force "$WORKTREE" && git branch -D "$BRANCH"`. Skip cleanup on `--dry-run` so the worktree can be inspected. Do not clean older `/tmp/gg-codex-qa-*` paths automatically.
 
@@ -171,7 +177,7 @@ Use the merge contract in [codex-prompt.md § Idempotent completion handler](./c
 2. after Phase 3 enrichment, before first presenting the Phase 4 triage gate; and
 3. immediately before Phase 7 finalization and current-run worktree cleanup.
 
-The handler validates the result, computes its digest and stable item keys, and records them in `codex-merge.json`. A digest already recorded as handled is a no-op. Net-new items are added once to `extraction.md`, then enriched or replaced by item key in `cross-ref.md`; never append a second copy of an existing item or block.
+The handler reads the `items` array out of the result object, validates the records, computes the file digest and stable item keys, and records them in `codex-merge.json`. A digest already recorded as handled is a no-op. Net-new items are added once to `extraction.md`, then enriched or replaced by item key in `cross-ref.md`; never append a second copy of an existing item or block.
 
 If completion arrives after Phase 3, reopen Phase 3 only for net-new Codex items. If the Phase 4 list was already shown or `triage.md` already contains a scope lock, present an additive triage gate for only those new item numbers and append the response to `triage.md`; preserve every earlier disposition. Do not let late Codex output silently enter Phase 5 payloads.
 
@@ -267,12 +273,18 @@ Hard rules:
 
 For each locked item, draft payloads using [`linear-templates.md`](./linear-templates.md).
 
+For a `source:qa-session` input, resolve every locked item's exact catalog Test ID from its
+`case:` field before drafting. If an item has no exact ID, pause that item and ask the user to
+select the case; do not invent or fuzzy-guess one. Put the ID in the Issue source line and the
+Sheet's `Linked Test ID` field. Apply the same source-line rule to every accepted
+`[derived:test-fail]` item. See [`.claude/context/qa.md § Test ID linkage`](../../context/qa.md#test-id-linkage).
+
 ### Linear API constraints
 
 Three hard constraints shape every payload — full detail, including the Codex-ready and autonomous-confident delegation bars, lives in [linear-templates.md § Linear API constraints](./linear-templates.md):
 
-1. **`ai:*` is single-value-per-Issue** — the delegate-to agent wins the label; the originating agent goes in the body's `## Provenance` section.
-2. **`package:*` is single-value-per-Issue** — the primary surface wins; secondary packages go in the body's `## Surface` section.
+1. **`ai:*` is single-value-per-Issue** — the delegate-to agent wins the label; the originating agent goes in a comment, not the body (the `## Provenance` section was retired 2026-08-27).
+2. **`package:*` is single-value-per-Issue** — the primary surface wins; secondary packages are named in the problem sentence (the `## Surface` block is retired).
 3. **Customer Needs cannot be standalone** — every Need links to an Issue via the `issue` parameter; `track-only` = Need + lightweight Backlog tracking Issue.
 
 ### Disposition rules (no standalone Need path)
@@ -285,7 +297,7 @@ Three hard constraints shape every payload — full detail, including the Codex-
 | Question / "me too" / no actionable content | Skip both | Skip both |
 | Duplicate of existing record | No new Issue; link via `relatedTo` | Optional — comment on existing if user wants the verbatim quote preserved |
 
-Title shape for track-only Issues: prefix `[tracking]`, then use an action-verb-led title (e.g., "[tracking] Bring back public-site Positions UI", not "Positions UI missing"). Body: shorter than a bug Issue — Summary + Surface + Suggested fix + Source.
+Title shape for track-only Issues: a plain action-verb-led sentence, no prefix — "Bring back the Positions section on the public site", not "[tracking] Positions UI missing". The `[tracking]` prefix is retired (2026-08-27); the `maintenance` label plus `Backlog` state carry that meaning, and a `PreToolUse` hook rejects the prefix. Body: shorter than a bug Issue — the ask in prose, then one source line. Full contract: [`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md) § Issue structure.
 
 **Assignee dialog (bulk-default + exceptions-only review)**:
 
@@ -296,7 +308,7 @@ Single bulk prompt up front, then surface only the items where the proposed assi
 
 Then, before writing, the assistant surfaces a **proposed exceptions list** for the user to ratify — items where the bulk default seems wrong given context (e.g., an admin bug when the default is Gui, a PWA architectural bug when the default is `ai:claude`). The user sees only items that need a decision, not the whole list.
 
-Recall `ai:*` is single-value: when delegate (`ai:claude` / `ai:codex`) is chosen, the originating agent is implicit and goes in the body's `## Provenance` section. The interactive skill running in Claude Code is the origin by default.
+Recall `ai:*` is single-value: when delegate (`ai:claude` / `ai:codex`) is chosen, the originating agent is implicit and goes in a comment when it matters — never in the body, whose `## Provenance` section was retired 2026-08-27. The interactive skill running in Claude Code is the origin by default.
 
 **Per-item preference capture (subtle)**:
 
@@ -317,7 +329,7 @@ The next run reads this file at Phase 0 and uses it to *propose* better defaults
 **Sheet payloads**:
 
 - `sheet-rows.csv` — one Defects row per filed item (skip `tracker-known` items). Match the Sheet's actual column order from `~/.config/qa-triage/cache.json`. Auto-generate `Defect ID` as `D-NNN` from the highest existing ID + 1.
-- `sheet-test-backfill.csv` — one row per Defects row that has a non-empty `Linked Test ID`, shaped `<tab>,<Test ID>,<Defect ID>`. Phase 6 fills the matching test row's `Defect Link` column **only** — never touches `Result`, `Severity`, `QA Owner`, or any other test column.
+- `sheet-test-backfill.csv` — one row per Defects row whose non-empty `Linked Test ID` exactly matches an ID in the live Sheet `test_catalog` cached during Phase 0, shaped `<tab>,<Test ID>,<Defect ID>`. Keep the Test ID on the Defects row but emit no backfill when the ID is absent from that cache; this covers `DOCS-*` and other repo-catalog-only cases until their rows exist in the live Sheet. Phase 6 fills the matching test row's `Defect Link` column **only** — never touches `Result`, `Severity`, `QA Owner`, or any other test column.
 
 Severity defaults for the Defects row:
 - `P0` — PostHog confirms ≥50 sessions in 30d OR the call flagged it as release-blocking.
@@ -329,7 +341,7 @@ Surface vocabulary on the Defects row: `Public Website | PWA iOS | PWA Android |
 
 ## Phase 6 — Confirm & write to Linear + QA Sheet
 
-1. **Privacy grep** across every Linear body for `replay`, `session_id`, `distinct_id`, `0x`, and any reporter identifiers seen this run. Hits → redact in place and re-confirm. The grep **does NOT apply to `sheet-rows.csv`** — the Sheet is the explicit private-internal exception (Phase 0 verified its access mode is tight).
+1. **Privacy grep** across every Linear body **and every comment this run drafted or posted** for `replay`, `session_id`, `distinct_id`, `0x`, and any reporter identifiers seen this run. Evidence that moves out of a description and into the first comment stays inside the privacy boundary (`.claude/context/linear-routing-rules.md` § Invariant rules) — a grep that skips comments is not a redaction gate. Hits → redact in place and re-confirm. The grep **does NOT apply to `sheet-rows.csv`** — the Sheet is the explicit private-internal exception (Phase 0 verified its access mode is tight).
 
 2. Show the final draft payloads as a single review block — Linear records + Sheet rows side-by-side, with the Sheet's `PostHog Session ID` and `PostHog Replay URL` columns visibly flagged so the privacy exception is re-acknowledged before the write.
 
@@ -341,7 +353,7 @@ Surface vocabulary on the Defects row: `Public Website | PWA iOS | PWA Android |
    - Issues first (Customer Needs require an `issue` parameter — Linear API rejects standalone Needs).
    - **`save_issue` `labels` is REPLACE, not append.** When adding a single new label to an existing Issue, always read the current label list first and pass `[...existing, newLabel]`. Passing `["activity:qa"]` alone will strip every other label off the Issue.
    - **Snapshot before in-place edits.** When updating Customer Need bodies or Issue descriptions in bulk on already-filed records, write a JSON dump of every record's pre-edit `{id, title, description, body, labels, priority, status}` to `tmp/qa-triage/<slug>/pre-edit-snapshot.json` first. Cheap safety net if the bulk write goes sideways.
-   - Issue labels: `protocol:green-goods` + ONE `package:*` (primary surface) + `activity:qa` (bug) or `activity:maintenance` (polish) or `activity:architecture` (strategic) + `source:drive` + ONE `ai:*` (delegate-to wins). Translate every one to its **bare child name** before calling `save_issue` (`["green-goods", "client", "qa", "drive", "claude"]`): the API rejects the `group:child` display form, and one unresolvable entry rejects the whole array and files nothing.
+   - Issue labels: `protocol:green-goods` + ONE `package:*` (primary surface) + `activity:qa` (bug) or `activity:maintenance` (polish) or `activity:architecture` (strategic) + the source label matching the resolved input (`source:drive` for Drive/Downloads notes; `source:qa-session` for qa-session handoff extracts; keep `source:qa-triage-pulse` on records resumed from a `qa-sync:<date>` pre-stage — never stamp Drive provenance on a live-session input or strip the pulse's provenance on resume) + ONE `ai:*` (delegate-to wins). Translate every one to its **bare child name** before calling `save_issue` (`["green-goods", "client", "qa", "drive", "claude"]`): the API rejects the `group:child` display form, and one unresolvable entry rejects the whole array and files nothing.
    - Then Customer Needs, each linked to its Issue via the `issue` parameter. Customer Needs accept `body` and `issue`/`project` only — no labels per the API surface.
    - Track-only Issues are created in the same pass as the main Issues, before the Customer Needs that reference them.
 
@@ -410,16 +422,6 @@ Then run Codex worktree cleanup for the current run only if dispatched (unless
 `tmp/qa-triage/<slug>/`; for dry runs, failed writes, or incomplete runs, keep it and
 surface the resume path.
 
-## Privacy boundary — one explicit exception
-
-The canonical boundary from [`bug-intake.md`](../../../docs/routines/bug-intake.md) and [`posthog-questions.md`](../../../docs/routines/posthog-questions.md) keeps replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers out of every shared surface.
-
-This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Session ID` and `PostHog Replay URL` columns. Conditions:
-
-1. Sheet permissions are tight (not `anyoneWithLink`, not `public`). Phase 0 hard-aborts if not.
-2. Every other surface still enforces the strict boundary. The Phase 6 privacy grep runs on Linear bodies but skips `sheet-rows.csv` by design.
-3. Distinct IDs and wallet addresses remain private-only **everywhere**, including the Sheet — the exception is narrow to session ID + replay URL.
-
 ## Anti-Patterns
 
 | Don't | Why |
@@ -431,14 +433,16 @@ This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Ses
 | Overwrite QA-owner-managed columns on Test rows | Only `Defect Link` may be backfilled; `Result`, `Severity`, `QA Owner` are sacred |
 | Edit prior-session Defects rows | Append only; manual edits to existing rows are sacred |
 | Block on Codex failure | Codex is auxiliary — log it and continue with manual prompt fallback |
+| Hand `codex exec` a `--full-auto` flag or a bare-array output schema | codex 0.149+ rejects the flag outright, and strict structured output rejects a top-level array or a `required` list that omits a property; use the snippet and the object-wrapped schema in `codex-prompt.md` |
 | Treat the Drive MCP's natural-language flatten as authoritative for Sheet column order | Cache the actual column order to `~/.config/qa-triage/cache.json` on first read |
 | Run without the Sheet permission check | Skipping that check is how session IDs leak |
-| Apply multiple `ai:*` or `package:*` labels to one Issue | Linear enforces single-value-per-group on these families; the API silently drops the second label OR rejects the write entirely. Pick the most actionable label and put the secondary in the body's `## Provenance` / `## Surface` section |
+| Apply multiple `ai:*` or `package:*` labels to one Issue | Linear enforces single-value-per-group on these families; the API silently drops the second label OR rejects the write entirely. Pick the most actionable label; name the secondary package in the problem sentence, and put a delegation note in a comment. The `## Provenance` and `## Surface` sections were retired 2026-08-27 |
 | Create a Customer Need without an `issue` (or `project`) parameter | Linear API rejects with `Exactly one of projectId or issueId must be defined`. If the extracted item has no actionable Issue, create a lightweight `activity:maintenance` Backlog Issue first as the attach point |
 | Request workspace-level label-group config changes from inside the skill | The single-value-per-group constraint is a workspace setting in Linear. Changing it (to multi-value) is a config decision for the workspace owner, not a skill change. Document the constraint and work within it |
 
 ## Related Skills
 
+- [`qa-session`](../qa-session/SKILL.md) — the live founder-led walkthrough copilot. Its close phase hands deferred observations to this skill as a pre-structured `session.md`; this skill owns everything downstream (PostHog cross-ref, scope lock, Linear + Sheet writes).
 - [qa-triage-pulse routine](../../../docs/routines/qa-triage-pulse.md) — cron'd async sibling routine that pre-stages Customer Needs every Wednesday after the 10am PST Build Sync. The skill's Phase 1 step 0 resumes from those pre-stages when present, cutting interactive triage time to ~5 minutes.
 - [bug-intake routine](../../../docs/routines/bug-intake.md) — cron'd async sibling routine for Discord + Telegram + Drive bug-source intake (M/W/F). Shares the Linear protocol and privacy boundary. This skill is the interactive single-source counterpart for QA-sync notes specifically.
 - [`posthog-questions`](../../../docs/routines/posthog-questions.md) — named PostHog questions this skill calls.
@@ -449,5 +453,5 @@ This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Ses
 - **Read-only until Phase 6** — phases 0–4 never write to Linear or the Sheet.
 - **Scope lock is the contract** — recorded in `triage.md`, referenced through Phase 7.
 - **Every write needs evidence** — Linear payloads ride PostHog safe-summaries when available; Sheet rows carry the same plus the privacy-excepted private fields.
-- **The Sheet is the only exception** — never paint elsewhere.
+- **The privacy boundary is shared** — apply [`.claude/context/qa.md`](../../context/qa.md) before every write.
 - **One invocation, one build sync** — single-source by design. The async multi-source path is `bug-intake`'s job.

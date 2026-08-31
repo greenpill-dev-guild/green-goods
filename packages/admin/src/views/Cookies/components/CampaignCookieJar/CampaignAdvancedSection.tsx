@@ -1,6 +1,5 @@
-import { Textarea, TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
-import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm";
 
 export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps) {
@@ -65,13 +64,15 @@ export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps)
               ) : null}
             </div>
             {selectedAssetId === "custom" ? (
-              <FormField
+              <AdminTextField
+                id="campaign-cookie-jar-custom-token"
                 label={formatMessage({
                   id: "cockpit.community.cookies.tokenAddress",
                   defaultMessage: "ERC20 token address",
                 })}
-                htmlFor="campaign-cookie-jar-custom-token"
-                hint={
+                value={customTokenAddress}
+                onChange={(event) => setCustomTokenAddress(event.target.value)}
+                helperText={
                   tokenSymbol
                     ? formatMessage(
                         {
@@ -101,21 +102,16 @@ export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps)
                         })
                       : undefined
                 }
-              >
-                <TextInput
-                  id="campaign-cookie-jar-custom-token"
-                  surface="admin"
-                  value={customTokenAddress}
-                  onChange={(event) => setCustomTokenAddress(event.target.value)}
-                />
-              </FormField>
+              />
             ) : null}
-            <FormField
+            <AdminTextField
+              id="campaign-cookie-jar-owner"
               label={formatMessage({
                 id: "cockpit.community.cookies.owner",
                 defaultMessage: "Jar owner",
               })}
-              htmlFor="campaign-cookie-jar-owner"
+              value={jarOwner}
+              onChange={(event) => setJarOwner(event.target.value)}
               error={
                 jarOwner && !normalizedJarOwner
                   ? formatMessage({
@@ -124,35 +120,29 @@ export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps)
                     })
                   : undefined
               }
-            >
-              <TextInput
-                id="campaign-cookie-jar-owner"
-                surface="admin"
-                value={jarOwner}
-                onChange={(event) => setJarOwner(event.target.value)}
-              />
-            </FormField>
-            <FormField
+            />
+            <AdminTextField
+              id="campaign-cookie-jar-cooldown"
               label={formatMessage({
                 id: "cockpit.community.cookies.cooldownDays",
                 defaultMessage: "Cooldown days",
               })}
-              htmlFor="campaign-cookie-jar-cooldown"
-            >
-              <TextInput
-                id="campaign-cookie-jar-cooldown"
-                surface="admin"
-                inputMode="numeric"
-                value={withdrawalIntervalDays}
-                onChange={(event) => setWithdrawalIntervalDays(event.target.value)}
-              />
-            </FormField>
-            <FormField
+              value={withdrawalIntervalDays}
+              onChange={(event) => setWithdrawalIntervalDays(event.target.value)}
+              inputProps={{ inputMode: "numeric" }}
+            />
+            <AdminTextArea
+              id="campaign-cookie-jar-extra-addresses"
               label={formatMessage({
                 id: "cockpit.community.cookies.extraAddresses",
                 defaultMessage: "Extra allowlist addresses",
               })}
-              htmlFor="campaign-cookie-jar-extra-addresses"
+              value={extraAddresses}
+              onChange={(event) => setExtraAddresses(event.target.value)}
+              placeholder={formatMessage({
+                id: "cockpit.community.cookies.extraPlaceholder",
+                defaultMessage: "Paste addresses separated by commas, spaces, or new lines",
+              })}
               error={
                 aggregation.invalidAddresses.length > 0
                   ? formatMessage(
@@ -164,18 +154,7 @@ export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps)
                     )
                   : undefined
               }
-            >
-              <Textarea
-                id="campaign-cookie-jar-extra-addresses"
-                surface="admin"
-                value={extraAddresses}
-                onChange={(event) => setExtraAddresses(event.target.value)}
-                placeholder={formatMessage({
-                  id: "cockpit.community.cookies.extraPlaceholder",
-                  defaultMessage: "Paste addresses separated by commas, spaces, or new lines",
-                })}
-              />
-            </FormField>
+            />
           </div>
         ) : null}
       </details>

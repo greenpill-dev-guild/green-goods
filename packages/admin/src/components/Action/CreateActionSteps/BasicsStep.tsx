@@ -1,8 +1,7 @@
-import { NativeSelect, TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
-import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
 import type { CreateActionFormData } from "@green-goods/shared/hooks/action/useActionForm";
 import type { UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
+import { AdminSelect, AdminTextField } from "../../AdminTextField";
 
 interface DomainOption {
   value: number;
@@ -19,110 +18,76 @@ export function BasicsStep({ form, domainOptions }: BasicsStepProps) {
 
   return (
     <div className="space-y-4">
-      <FormField
+      <AdminTextField
+        id="create-action-title"
         label={formatMessage({
           id: "app.admin.actions.create.titleLabel",
           defaultMessage: "Title",
         })}
-        htmlFor="create-action-title"
         error={form.formState.errors.title?.message}
-      >
-        <TextInput
-          id="create-action-title"
-          surface="admin"
-          {...form.register("title")}
-          type="text"
-          className="w-full rounded-md border border-stroke-soft px-3 py-2"
-          placeholder={formatMessage({
-            id: "app.admin.actions.create.titlePlaceholder",
-            defaultMessage: "Action title",
-          })}
-        />
-      </FormField>
+        {...form.register("title")}
+        placeholder={formatMessage({
+          id: "app.admin.actions.create.titlePlaceholder",
+          defaultMessage: "Action title",
+        })}
+      />
 
-      <FormField
+      <AdminTextField
+        id="create-action-slug"
         label={formatMessage({
           id: "app.admin.actions.create.slugLabel",
           defaultMessage: "Slug",
         })}
-        htmlFor="create-action-slug"
-        hint={formatMessage({
+        helperText={formatMessage({
           id: "app.admin.actions.create.slugHint",
           defaultMessage: "Format: domain.action_name (lowercase).",
         })}
         error={form.formState.errors.slug?.message}
-      >
-        <TextInput
-          id="create-action-slug"
-          surface="admin"
-          {...form.register("slug")}
-          type="text"
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck={false}
-          className="w-full rounded-md border border-stroke-soft px-3 py-2"
-          placeholder={formatMessage({
-            id: "app.admin.actions.create.slugPlaceholder",
-            defaultMessage: "e.g., waste.repair_event",
-          })}
-        />
-      </FormField>
+        {...form.register("slug")}
+        inputProps={{ autoCapitalize: "none", autoCorrect: "off", spellCheck: false }}
+        placeholder={formatMessage({
+          id: "app.admin.actions.create.slugPlaceholder",
+          defaultMessage: "e.g., waste.repair_event",
+        })}
+      />
 
-      <FormField
+      <AdminSelect
+        id="create-action-domain"
         label={formatMessage({
           id: "app.admin.actions.create.domainLabel",
           defaultMessage: "Domain",
         })}
-        htmlFor="create-action-domain"
         error={form.formState.errors.domain?.message}
+        {...form.register("domain", { valueAsNumber: true })}
       >
-        <NativeSelect
-          id="create-action-domain"
-          surface="admin"
-          {...form.register("domain", { valueAsNumber: true })}
-          className="w-full rounded-md border border-stroke-soft px-3 py-2"
-        >
-          {domainOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </NativeSelect>
-      </FormField>
+        {domainOptions.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </AdminSelect>
 
-      <FormField
+      <AdminTextField
+        id="create-action-starttime"
+        type="date"
         label={formatMessage({
           id: "app.admin.actions.create.startDateLabel",
-          defaultMessage: "Start Date",
+          defaultMessage: "Start date",
         })}
-        htmlFor="create-action-starttime"
         error={form.formState.errors.startTime?.message}
-      >
-        <TextInput
-          id="create-action-starttime"
-          surface="admin"
-          {...form.register("startTime", { valueAsDate: true })}
-          type="date"
-          className="w-full rounded-md border border-stroke-soft px-3 py-2"
-        />
-      </FormField>
+        {...form.register("startTime", { valueAsDate: true })}
+      />
 
-      <FormField
+      <AdminTextField
+        id="create-action-endtime"
+        type="date"
         label={formatMessage({
           id: "app.admin.actions.create.endDateLabel",
-          defaultMessage: "End Date",
+          defaultMessage: "End date",
         })}
-        htmlFor="create-action-endtime"
         error={form.formState.errors.endTime?.message}
-      >
-        <TextInput
-          id="create-action-endtime"
-          surface="admin"
-          {...form.register("endTime", { valueAsDate: true })}
-          type="date"
-          className="w-full rounded-md border border-stroke-soft px-3 py-2"
-        />
-      </FormField>
+        {...form.register("endTime", { valueAsDate: true })}
+      />
     </div>
   );
 }

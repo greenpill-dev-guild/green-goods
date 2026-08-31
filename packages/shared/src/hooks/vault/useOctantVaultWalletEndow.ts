@@ -14,10 +14,10 @@ import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import {
   isRecoverableAllowanceReadError,
-  shouldShowLifecycleToast,
   shouldShowErrorToast,
-  VaultDepositStageError,
+  shouldShowLifecycleToast,
   type VaultDepositFailureReason,
+  VaultDepositStageError,
   type VaultMutationOptions,
 } from "./vault-helpers";
 
@@ -144,7 +144,8 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
             "deposit",
             formatMessage({
               id: "public.vaults.walletEndow.insufficientWeth",
-              defaultMessage: "Connected wallet holds insufficient WETH to complete this deposit",
+              defaultMessage:
+                "This wallet needs more WETH for this endowment. Wrap ETH to WETH first, then try again.",
             }),
             "insufficientBalance"
           );

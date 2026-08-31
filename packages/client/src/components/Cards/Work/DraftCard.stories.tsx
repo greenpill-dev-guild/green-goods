@@ -62,9 +62,7 @@ const meta: Meta<typeof DraftCard> = {
   title: "Client/Cards/DraftCard",
   component: DraftCard,
   tags: ["autodocs"],
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
   argTypes: {
     draft: {
       control: "object",
@@ -219,7 +217,5 @@ export const Mobile: Story = {
     onResume: () => {},
     onDelete: () => {},
   },
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
 };

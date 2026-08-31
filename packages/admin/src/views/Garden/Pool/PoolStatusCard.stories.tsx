@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { PoolStatusCard } from "./PoolStatusCard";
+import { storyPoolFunding } from "./poolStoryControllers";
 import { storyNotReadyPool, storyPool, storyPoolConsole } from "./poolStoryFixtures";
 
 const noop = () => undefined;
@@ -12,7 +13,7 @@ const meta: Meta<typeof PoolStatusCard> = {
     docs: {
       description: {
         component:
-          "The pool is the container; this card is its one home in the pool tab's rail: status, the setup checklist while a garden is being set up, the commitment limit and charter once it runs, the pause reason, and the lifecycle acts.",
+          "The pool is the container; this card is its one home in the pool tab's rail: status, funding, the setup checklist while a garden is being set up, the commitment limit and charter once it runs, the pause reason, and the lifecycle acts.",
       },
     },
   },
@@ -23,6 +24,7 @@ const meta: Meta<typeof PoolStatusCard> = {
     onCompostPool: noop,
     onReopenPool: noop,
     onReviewLive: noop,
+    onOpenFundingDetails: noop,
   },
   decorators: [
     (Story) => (
@@ -86,4 +88,48 @@ export const Archived: Story = {
 
 export const Offline: Story = {
   args: { console: storyPoolConsole({ isOnline: false }) },
+};
+
+export const FundingLow: Story = {
+  args: {
+    console: storyPoolConsole({
+      funding: storyPoolFunding({
+        snapshot: {
+          ...storyPoolFunding().snapshot!,
+          available: 0n,
+          suggestedTopUp: 300n * 10n ** 18n,
+          fundingState: "low",
+        },
+      }),
+    }),
+  },
+};
+
+export const FundingUnavailable: Story = {
+  args: {
+    console: storyPoolConsole({
+      funding: storyPoolFunding({
+        snapshot: {
+          ...storyPoolFunding().snapshot!,
+          safe: null,
+          routeAddresses: { account: null, indexed: null, live: null },
+          balance: null,
+          committed: null,
+          available: null,
+          fundingState: "unavailable",
+          fundingUnavailableReasons: ["missing_account", "balance_unreadable"],
+          settlementReadiness: "unavailable",
+          settlementUnavailableReasons: ["missing_account", "balance_unreadable"],
+        },
+      }),
+    }),
+  },
+};
+
+export const FundingLoading: Story = {
+  args: {
+    console: storyPoolConsole({
+      funding: storyPoolFunding({ snapshot: null, isLoading: true, isFetching: true }),
+    }),
+  },
 };

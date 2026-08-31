@@ -1,9 +1,3 @@
-import {
-  NativeSelect,
-  Textarea,
-  TextInput,
-} from "@green-goods/shared/components/Form/ControlPrimitives";
-import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
 import type { ActionInstructionConfig, WorkInput } from "@green-goods/shared/types/domain";
 import {
   RiAddLine,
@@ -14,8 +8,10 @@ import {
 } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "../AdminButton";
+import { AdminButton, AdminIconButton } from "../AdminButton";
 import { AdminCheckbox } from "../AdminCheckbox";
+import { AdminFieldGroup } from "../AdminFieldGroup";
+import { AdminSelect, AdminTextArea, AdminTextField } from "../AdminTextField";
 
 interface DetailsConfigSectionProps {
   config: ActionInstructionConfig["uiConfig"]["details"];
@@ -66,76 +62,56 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
   return (
     <div className="space-y-6">
       {/* Section Settings */}
-      <FormField
+      <AdminTextField
+        id="section-title"
         label={formatMessage({
           id: "app.admin.actions.detailsConfig.sectionTitle",
-          defaultMessage: "Section Title",
+          defaultMessage: "Section title",
         })}
-        htmlFor="section-title"
-      >
-        <TextInput
-          id="section-title"
-          surface="admin"
-          type="text"
-          value={config.title}
-          onChange={(e) => onChange({ ...config, title: e.target.value })}
-          className="w-full rounded-md border border-stroke-soft px-3 py-2"
-          placeholder={formatMessage({
-            id: "app.admin.actions.detailsConfig.sectionTitlePlaceholder",
-            defaultMessage: "e.g., Enter Details",
-          })}
-        />
-      </FormField>
+        value={config.title}
+        onChange={(e) => onChange({ ...config, title: e.target.value })}
+        placeholder={formatMessage({
+          id: "app.admin.actions.detailsConfig.sectionTitlePlaceholder",
+          defaultMessage: "e.g., Enter Details",
+        })}
+      />
 
-      <FormField
+      <AdminTextArea
+        id="section-description"
         label={formatMessage({
           id: "app.admin.actions.detailsConfig.description",
           defaultMessage: "Description",
         })}
-        htmlFor="section-description"
-      >
-        <Textarea
-          id="section-description"
-          surface="admin"
-          value={config.description}
-          onChange={(e) => onChange({ ...config, description: e.target.value })}
-          className="w-full rounded-md border border-stroke-soft px-3 py-2"
-          rows={2}
-          placeholder={formatMessage({
-            id: "app.admin.actions.detailsConfig.descriptionPlaceholder",
-            defaultMessage: "Instructions for this section...",
-          })}
-        />
-      </FormField>
+        value={config.description}
+        onChange={(e) => onChange({ ...config, description: e.target.value })}
+        rows={2}
+        placeholder={formatMessage({
+          id: "app.admin.actions.detailsConfig.descriptionPlaceholder",
+          defaultMessage: "Instructions for this section...",
+        })}
+      />
 
-      <FormField
+      <AdminTextField
+        id="feedback-placeholder"
         label={formatMessage({
           id: "app.admin.actions.detailsConfig.feedbackPlaceholder",
-          defaultMessage: "Feedback Placeholder",
+          defaultMessage: "Feedback placeholder",
         })}
-        htmlFor="feedback-placeholder"
-      >
-        <TextInput
-          id="feedback-placeholder"
-          surface="admin"
-          type="text"
-          value={config.feedbackPlaceholder}
-          onChange={(e) => onChange({ ...config, feedbackPlaceholder: e.target.value })}
-          className="w-full rounded-md border border-stroke-soft px-3 py-2"
-          placeholder={formatMessage({
-            id: "app.admin.actions.detailsConfig.feedbackPlaceholderPlaceholder",
-            defaultMessage: "e.g., Provide feedback or observations...",
-          })}
-        />
-      </FormField>
+        value={config.feedbackPlaceholder}
+        onChange={(e) => onChange({ ...config, feedbackPlaceholder: e.target.value })}
+        placeholder={formatMessage({
+          id: "app.admin.actions.detailsConfig.feedbackPlaceholderPlaceholder",
+          defaultMessage: "e.g., Provide feedback or observations...",
+        })}
+      />
 
       {/* Dynamic Form Inputs */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-text-strong">
+          <h3 className="label-lg font-semibold text-text-strong">
             {formatMessage({
               id: "app.admin.actions.detailsConfig.formInputs",
-              defaultMessage: "Form Inputs",
+              defaultMessage: "Form inputs",
             })}
           </h3>
           <AdminButton type="button" size="sm" onClick={addInput} leadingIcon={<RiAddLine />}>
@@ -161,22 +137,16 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
 
           {config.inputs.length === 0 && (
             <div className="text-center py-8 border border-dashed border-stroke-soft rounded-lg">
-              <p className="text-text-sub mb-2">
+              <p className="body-md text-text-sub mb-2">
                 {formatMessage({
                   id: "app.admin.actions.detailsConfig.noInputs",
                   defaultMessage: "No form inputs yet",
                 })}
               </p>
-              <AdminButton
-                type="button"
-                variant="text"
-                size="sm"
-                onClick={addInput}
-                className="h-auto min-w-0 text-sm"
-              >
+              <AdminButton type="button" variant="text" size="sm" onClick={addInput}>
                 {formatMessage({
                   id: "app.admin.actions.detailsConfig.addFirstInput",
-                  defaultMessage: "Add your first input field",
+                  defaultMessage: "Add Your First Input Field",
                 })}
               </AdminButton>
             </div>
@@ -221,7 +191,7 @@ function InputFieldEditor({
     <div className="border border-stroke-soft rounded-lg p-4 bg-bg-soft">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-text-strong">
+          <span className="label-md font-medium text-text-strong">
             {formatMessage(
               {
                 id: "app.admin.actions.detailsConfig.inputNumber",
@@ -232,160 +202,123 @@ function InputFieldEditor({
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <AdminButton
-            type="button"
-            variant="text"
-            size="sm"
+          <AdminIconButton
             onClick={() => onMove("up")}
             disabled={index === 0}
-            className="h-8 w-8 min-w-0 px-0 text-text-soft hover:text-text-strong disabled:opacity-30"
-            title={formatMessage({
+            label={formatMessage({
               id: "app.admin.actions.detailsConfig.moveUp",
-              defaultMessage: "Move up",
+              defaultMessage: "Move Up",
             })}
           >
-            <RiArrowUpLine className="h-4 w-4" />
-          </AdminButton>
-          <AdminButton
-            type="button"
-            variant="text"
-            size="sm"
+            <RiArrowUpLine />
+          </AdminIconButton>
+          <AdminIconButton
             onClick={() => onMove("down")}
             disabled={index === totalInputs - 1}
-            className="h-8 w-8 min-w-0 px-0 text-text-soft hover:text-text-strong disabled:opacity-30"
-            title={formatMessage({
+            label={formatMessage({
               id: "app.admin.actions.detailsConfig.moveDown",
-              defaultMessage: "Move down",
+              defaultMessage: "Move Down",
             })}
           >
-            <RiArrowDownLine className="h-4 w-4" />
-          </AdminButton>
-          <AdminButton
-            type="button"
-            variant="text"
-            size="sm"
+            <RiArrowDownLine />
+          </AdminIconButton>
+          <AdminIconButton
+            variant="danger"
+            className="ml-2"
             onClick={onRemove}
-            className="ml-2 h-8 w-8 min-w-0 px-0 text-error-base hover:bg-error-lighter"
-            title={formatMessage({
+            label={formatMessage({
               id: "app.admin.actions.detailsConfig.delete",
               defaultMessage: "Delete",
             })}
           >
-            <RiDeleteBinLine className="h-4 w-4" />
-          </AdminButton>
+            <RiDeleteBinLine />
+          </AdminIconButton>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <FormField
+        <AdminTextField
+          id={`field-key-${input.key}`}
           label={formatMessage({
             id: "app.admin.actions.detailsConfig.fieldKey",
-            defaultMessage: "Field Key",
+            defaultMessage: "Field key",
           })}
-          htmlFor={`field-key-${input.key}`}
-        >
-          <TextInput
-            id={`field-key-${input.key}`}
-            surface="admin"
-            type="text"
-            value={input.key}
-            onChange={(e) => onUpdate({ key: e.target.value })}
-            className="w-full rounded-md border border-stroke-soft px-2 py-1.5 text-sm"
-            placeholder={formatMessage({
-              id: "app.admin.actions.detailsConfig.fieldKeyPlaceholder",
-              defaultMessage: "e.g., plantCount",
-            })}
-          />
-        </FormField>
+          value={input.key}
+          onChange={(e) => onUpdate({ key: e.target.value })}
+          placeholder={formatMessage({
+            id: "app.admin.actions.detailsConfig.fieldKeyPlaceholder",
+            defaultMessage: "e.g., plantCount",
+          })}
+        />
 
-        <FormField
+        <AdminSelect
+          id={`field-type-${input.key}`}
           label={formatMessage({
             id: "app.admin.actions.detailsConfig.fieldType",
-            defaultMessage: "Field Type",
+            defaultMessage: "Field type",
           })}
-          htmlFor={`field-type-${input.key}`}
+          value={input.type}
+          onChange={(e) => onUpdate({ type: e.target.value as WorkInput["type"], options: [] })}
         >
-          <NativeSelect
-            id={`field-type-${input.key}`}
-            surface="admin"
-            value={input.type}
-            onChange={(e) => onUpdate({ type: e.target.value as WorkInput["type"], options: [] })}
-            className="w-full rounded-md border border-stroke-soft px-2 py-1.5 text-sm"
-          >
-            <option value="text">
-              {formatMessage({
-                id: "app.admin.actions.detailsConfig.typeText",
-                defaultMessage: "Text",
-              })}
-            </option>
-            <option value="textarea">
-              {formatMessage({
-                id: "app.admin.actions.detailsConfig.typeTextArea",
-                defaultMessage: "Text Area",
-              })}
-            </option>
-            <option value="number">
-              {formatMessage({
-                id: "app.admin.actions.detailsConfig.typeNumber",
-                defaultMessage: "Number",
-              })}
-            </option>
-            <option value="select">
-              {formatMessage({
-                id: "app.admin.actions.detailsConfig.typeSelect",
-                defaultMessage: "Select Dropdown",
-              })}
-            </option>
-            <option value="multi-select">
-              {formatMessage({
-                id: "app.admin.actions.detailsConfig.typeMultiSelect",
-                defaultMessage: "Multi-select",
-              })}
-            </option>
-          </NativeSelect>
-        </FormField>
+          <option value="text">
+            {formatMessage({
+              id: "app.admin.actions.detailsConfig.typeText",
+              defaultMessage: "Text",
+            })}
+          </option>
+          <option value="textarea">
+            {formatMessage({
+              id: "app.admin.actions.detailsConfig.typeTextArea",
+              defaultMessage: "Text area",
+            })}
+          </option>
+          <option value="number">
+            {formatMessage({
+              id: "app.admin.actions.detailsConfig.typeNumber",
+              defaultMessage: "Number",
+            })}
+          </option>
+          <option value="select">
+            {formatMessage({
+              id: "app.admin.actions.detailsConfig.typeSelect",
+              defaultMessage: "Select dropdown",
+            })}
+          </option>
+          <option value="multi-select">
+            {formatMessage({
+              id: "app.admin.actions.detailsConfig.typeMultiSelect",
+              defaultMessage: "Multi-select",
+            })}
+          </option>
+        </AdminSelect>
 
-        <FormField
+        <AdminTextField
+          id={`field-label-${input.key}`}
           label={formatMessage({
             id: "app.admin.actions.detailsConfig.label",
             defaultMessage: "Label",
           })}
-          htmlFor={`field-label-${input.key}`}
-        >
-          <TextInput
-            id={`field-label-${input.key}`}
-            surface="admin"
-            type="text"
-            value={input.title}
-            onChange={(e) => onUpdate({ title: e.target.value })}
-            className="w-full rounded-md border border-stroke-soft px-2 py-1.5 text-sm"
-            placeholder={formatMessage({
-              id: "app.admin.actions.detailsConfig.labelPlaceholder",
-              defaultMessage: "e.g., Number of Plants",
-            })}
-          />
-        </FormField>
+          value={input.title}
+          onChange={(e) => onUpdate({ title: e.target.value })}
+          placeholder={formatMessage({
+            id: "app.admin.actions.detailsConfig.labelPlaceholder",
+            defaultMessage: "e.g., Number of Plants",
+          })}
+        />
 
-        <FormField
+        <AdminTextField
+          id={`field-placeholder-${input.key}`}
           label={formatMessage({
             id: "app.admin.actions.detailsConfig.placeholder",
             defaultMessage: "Placeholder",
           })}
-          htmlFor={`field-placeholder-${input.key}`}
-        >
-          <TextInput
-            id={`field-placeholder-${input.key}`}
-            surface="admin"
-            type="text"
-            value={input.placeholder}
-            onChange={(e) => onUpdate({ placeholder: e.target.value })}
-            className="w-full rounded-md border border-stroke-soft px-2 py-1.5 text-sm"
-            placeholder={formatMessage({
-              id: "app.admin.actions.detailsConfig.placeholderPlaceholder",
-              defaultMessage: "e.g., Enter count",
-            })}
-          />
-        </FormField>
+          value={input.placeholder}
+          onChange={(e) => onUpdate({ placeholder: e.target.value })}
+          placeholder={formatMessage({
+            id: "app.admin.actions.detailsConfig.placeholderPlaceholder",
+            defaultMessage: "e.g., Enter count",
+          })}
+        />
       </div>
 
       <div className="mt-3">
@@ -403,70 +336,81 @@ function InputFieldEditor({
       {/* Options for Select type */}
       {(input.type === "select" || input.type === "multi-select") && (
         <div className="mt-3 pt-3 border-t border-stroke-soft">
-          <FormField
+          <AdminFieldGroup
+            id={`field-options-${input.key}`}
             label={formatMessage({
               id: "app.admin.actions.detailsConfig.options",
               defaultMessage: "Options",
             })}
+            contentClassName="space-y-1.5"
           >
-            <div id={`field-options-${input.key}`} className="space-y-1.5">
-              {input.options.map((option, optIndex) => (
-                <div key={optIndex} className="flex items-center gap-2">
-                  <TextInput
-                    surface="admin"
-                    type="text"
-                    value={option}
-                    onChange={(e) => {
-                      const updated = [...input.options];
-                      updated[optIndex] = e.target.value;
-                      onUpdate({ options: updated });
-                    }}
-                    className="flex-1 rounded-md border border-stroke-soft px-2 py-1 text-sm"
-                  />
-                  <AdminButton
-                    type="button"
-                    variant="text"
-                    size="sm"
-                    onClick={() => removeOption(optIndex)}
-                    className="h-8 w-8 min-w-0 px-0 text-error-base hover:bg-error-lighter"
-                  >
-                    <RiCloseLine className="h-4 w-4" />
-                  </AdminButton>
-                </div>
-              ))}
-              <div className="flex gap-2">
-                <TextInput
-                  surface="admin"
-                  type="text"
-                  value={newOption}
-                  onChange={(e) => setNewOption(e.target.value)}
-                  onKeyDown={(e) => {
+            {input.options.map((option, optIndex) => (
+              <div key={optIndex} className="flex items-center gap-2">
+                <AdminTextField
+                  className="flex-1"
+                  label={formatMessage(
+                    {
+                      id: "app.admin.actions.detailsConfig.optionNumber",
+                      defaultMessage: "Option #{number}",
+                    },
+                    { number: optIndex + 1 }
+                  )}
+                  value={option}
+                  onChange={(e) => {
+                    const updated = [...input.options];
+                    updated[optIndex] = e.target.value;
+                    onUpdate({ options: updated });
+                  }}
+                />
+                <AdminIconButton
+                  variant="danger"
+                  onClick={() => removeOption(optIndex)}
+                  label={formatMessage(
+                    {
+                      id: "app.admin.actions.detailsConfig.removeOption",
+                      defaultMessage: "Remove Option #{number}",
+                    },
+                    { number: optIndex + 1 }
+                  )}
+                >
+                  <RiCloseLine />
+                </AdminIconButton>
+              </div>
+            ))}
+            <div className="flex items-center gap-2">
+              <AdminTextField
+                className="flex-1"
+                label={formatMessage({
+                  id: "app.admin.actions.detailsConfig.addOptionLabel",
+                  defaultMessage: "Add option",
+                })}
+                value={newOption}
+                onChange={(e) => setNewOption(e.target.value)}
+                inputProps={{
+                  onKeyDown: (e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
                       addOption();
                     }
-                  }}
-                  placeholder={formatMessage({
-                    id: "app.admin.actions.detailsConfig.addOptionPlaceholder",
-                    defaultMessage: "Add option...",
-                  })}
-                  className="flex-1 rounded-md border border-stroke-soft px-2 py-1 text-sm"
-                />
-                <AdminButton
-                  type="button"
-                  size="sm"
-                  onClick={addOption}
-                  className="h-8 w-8 px-0"
-                  aria-label={formatMessage({
-                    id: "app.admin.actions.detailsConfig.addOptionPlaceholder",
-                    defaultMessage: "Add option...",
-                  })}
-                >
-                  <RiAddLine className="h-3.5 w-3.5" />
-                </AdminButton>
-              </div>
+                  },
+                }}
+                placeholder={formatMessage({
+                  id: "app.admin.actions.detailsConfig.addOptionPlaceholder",
+                  defaultMessage: "Add option...",
+                })}
+              />
+              <AdminIconButton
+                variant="filled"
+                onClick={addOption}
+                label={formatMessage({
+                  id: "app.admin.actions.detailsConfig.addOptionPlaceholder",
+                  defaultMessage: "Add option...",
+                })}
+              >
+                <RiAddLine />
+              </AdminIconButton>
             </div>
-          </FormField>
+          </AdminFieldGroup>
         </div>
       )}
     </div>

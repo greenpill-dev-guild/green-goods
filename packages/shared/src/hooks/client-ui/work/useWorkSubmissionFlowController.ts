@@ -1,6 +1,24 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useIntl } from "react-intl";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { toastService } from "../../../components/Toast/toast.service";
+import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { logger } from "../../../modules/app/logger";
 import { track } from "../../../modules/app/posthog";
+import {
+  consumeShareTarget,
+  loadShareTarget,
+  type LoadedShareTarget,
+} from "../../../modules/app/share-target";
+import {
+  hasWorkLinkIntentParams,
+  parseWorkLinkIntent,
+  type WorkLinkIntent,
+  workLinkReturnGarden,
+  writeWorkLinkIntent,
+} from "../../../modules/commitment-pooling/work-link-intent";
+import { canProceedWithWorkSubmission } from "../../../modules/work/submission-flow";
+import { normalizeWorkMediaFiles } from "../../../modules/work/media-processing";
 import { useWorkFormContext, useWorkSelection } from "../../../providers/Work";
 import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
 import { WorkTab } from "../../../stores/workFlowTypes";
@@ -8,27 +26,15 @@ import { findActionByUID } from "../../../utils/action/parsers";
 import { parseContractError } from "../../../utils/errors/contract-errors";
 import { useOffline } from "../../app/useOffline";
 import { useUser } from "../../auth/useUser";
+import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
+import { useWorkLinkChoices } from "../../commitment-pooling/useWorkLinkChoices";
 import { useJoinGarden } from "../../garden/useJoinGarden";
 import { useAudioRecording } from "../../utils/useAudioRecording";
 import { useTimeout } from "../../utils/useTimeout";
 import { useDraftAutoSave } from "../../work/useDraftAutoSave";
 import { useDraftResume } from "../../work/useDraftResume";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useIntl } from "react-intl";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { canProceedWithWorkSubmission } from "../../../modules/work/submission-flow";
-import {
-  hasWorkLinkIntentParams,
-  parseWorkLinkIntent,
-  workLinkReturnGarden,
-  writeWorkLinkIntent,
-  type WorkLinkIntent,
-} from "../../../modules/commitment-pooling/work-link-intent";
 import { useWorkMediaLifecycle } from "./useWorkMediaLifecycle";
 import { useWorkSubmissionPresentationModel } from "./useWorkSubmissionPresentationModel";
-import { useWorkLinkChoices } from "../../commitment-pooling/useWorkLinkChoices";
-import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
-import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 
 type MediaJourneyEvent =
   | "work_media_preview_failed"
@@ -74,6 +80,8 @@ export function useWorkSubmissionFlowController({
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const searchParamsRef = useRef(searchParams);
+  searchParamsRef.current = searchParams;
   const selection = useWorkSelection();
   const form = useWorkFormContext();
   const { authMode, primaryAddress } = useUser();
@@ -99,11 +107,22 @@ export function useWorkSubmissionFlowController({
     gardenAddress,
     setGardenAddress,
   } = selection;
-  const { workMutation, images, setImages, feedback, timeSpentMinutes } = form;
+  const { workMutation, images, setImages, setValue, feedback, timeSpentMinutes } = form;
   const commitmentJobs = useCommitmentJobs({ chainId: DEFAULT_CHAIN_ID });
   const parsedLinkIntent = useMemo(() => parseWorkLinkIntent(searchParams), [searchParams]);
   const hasLinkIntentParams = useMemo(() => hasWorkLinkIntentParams(searchParams), [searchParams]);
   const [pendingLinkRecovery, setPendingLinkRecovery] = useState<PendingLinkRecovery | null>(null);
+  const [pendingShare, setPendingShare] = useState<LoadedShareTarget | null>(null);
+  const pendingShareRef = useRef<LoadedShareTarget | null>(null);
+  const appliedShareTokenRef = useRef<string | null>(null);
+  const shareLoadGenerationRef = useRef(0);
+  const shareSaveInFlightRef = useRef(false);
+  const shareSaveRetryRef = useRef<{ token: string | null; count: number }>({
+    token: null,
+    count: 0,
+  });
+  const [shareLoadRetryNonce, setShareLoadRetryNonce] = useState(0);
+  const [shareSaveRetryNonce, setShareSaveRetryNonce] = useState(0);
   const [isSchedulingDependentLink, setIsSchedulingDependentLink] = useState(false);
   const [linkSchedulingSucceeded, setLinkSchedulingSucceeded] = useState(false);
   const linkChoices = useWorkLinkChoices({
@@ -166,6 +185,141 @@ export function useWorkSubmissionFlowController({
     { gardenAddress, actionUID, feedback, timeSpentMinutes },
     images
   );
+
+  const clearShareParams = useCallback(
+    (keys: string[], expected?: { key: string; value: string }) => {
+      const current = searchParamsRef.current;
+      if (expected && current.get(expected.key) !== expected.value) return;
+      const next = new URLSearchParams(current);
+      keys.forEach((key) => next.delete(key));
+      setSearchParams(next, { replace: true });
+    },
+    [setSearchParams]
+  );
+
+  useEffect(() => {
+    const shareError = searchParams.get("shareTargetError");
+    if (!shareError) return;
+    toastService.error({
+      title: intl.formatMessage({
+        id: "app.shareTarget.invalid.title",
+        defaultMessage: "That share could not be imported",
+      }),
+      message: intl.formatMessage({
+        id: "app.shareTarget.invalid.message",
+        defaultMessage: "Try sharing up to five supported photos again.",
+      }),
+    });
+    clearShareParams(["shareTargetError"]);
+  }, [clearShareParams, intl, searchParams]);
+
+  useEffect(() => {
+    const token = searchParams.get("shareTarget");
+    if (!token || appliedShareTokenRef.current === token) return;
+    const pendingToken = pendingShareRef.current?.envelope.token;
+    if (shareSaveInFlightRef.current || (pendingToken && pendingToken !== token)) return;
+    const generation = ++shareLoadGenerationRef.current;
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const loaded = await loadShareTarget(token);
+        if (!loaded) throw new Error("Shared payload is missing or expired");
+        const normalized = await normalizeWorkMediaFiles(loaded.files);
+        if (normalized.rejected.length > 0) {
+          throw new Error("Shared payload contains unsupported media");
+        }
+        if (cancelled || generation !== shareLoadGenerationRef.current) return;
+        setValue("feedback", loaded.feedback, { shouldDirty: true });
+        setImages(normalized.accepted.map((entry) => entry.file));
+        pendingShareRef.current = loaded;
+        setPendingShare(loaded);
+        appliedShareTokenRef.current = token;
+      } catch (error) {
+        if (cancelled || generation !== shareLoadGenerationRef.current) return;
+        logger.warn("Share Target import failed", { source: "GardenFlow", error });
+        toastService.error({
+          title: intl.formatMessage({
+            id: "app.shareTarget.invalid.title",
+            defaultMessage: "That share could not be imported",
+          }),
+          message: intl.formatMessage({
+            id: "app.shareTarget.invalid.message",
+            defaultMessage: "Try sharing up to five supported photos again.",
+          }),
+        });
+        try {
+          await consumeShareTarget(token);
+        } catch (cleanupError) {
+          logger.warn("Share Target cleanup failed", {
+            source: "GardenFlow",
+            error: cleanupError,
+          });
+        }
+        clearShareParams(["shareTarget"], { key: "shareTarget", value: token });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [clearShareParams, intl, searchParams, setImages, setValue, shareLoadRetryNonce]);
+
+  useEffect(() => {
+    if (!pendingShare || !gardenAddress || actionUID === null || shareSaveInFlightRef.current) {
+      return;
+    }
+    const shareToken = pendingShare.envelope.token;
+    if (shareSaveRetryRef.current.token !== shareToken) {
+      shareSaveRetryRef.current = { token: shareToken, count: 0 };
+    }
+    shareSaveInFlightRef.current = true;
+    void (async () => {
+      let shouldRetry = false;
+      try {
+        const draftId = await saveOnExit();
+        if (!draftId) {
+          shouldRetry = true;
+          return;
+        }
+        await consumeShareTarget(shareToken);
+        shareSaveRetryRef.current = { token: null, count: 0 };
+        if (pendingShareRef.current?.envelope.token === shareToken) {
+          pendingShareRef.current = null;
+          setPendingShare(null);
+        }
+        clearShareParams(["shareTarget"], { key: "shareTarget", value: shareToken });
+        toastService.success({
+          title: intl.formatMessage({
+            id: "app.shareTarget.imported.title",
+            defaultMessage: "Shared work added to your draft",
+          }),
+        });
+      } catch (error) {
+        shouldRetry = true;
+        logger.warn("Share Target draft save failed", { source: "GardenFlow", error });
+      } finally {
+        shareSaveInFlightRef.current = false;
+        setShareLoadRetryNonce((current) => current + 1);
+        if (
+          shouldRetry &&
+          shareSaveRetryRef.current.token === shareToken &&
+          shareSaveRetryRef.current.count < 1
+        ) {
+          shareSaveRetryRef.current.count += 1;
+          setShareSaveRetryNonce((current) => current + 1);
+        }
+      }
+    })();
+  }, [
+    actionUID,
+    clearShareParams,
+    gardenAddress,
+    intl,
+    pendingShare,
+    saveOnExit,
+    shareSaveRetryNonce,
+  ]);
   const { showDraftDialog, handleContinueDraft, handleStartFresh, clearActiveDraft } =
     useDraftResume({
       formState: {
@@ -243,7 +397,7 @@ export function useWorkSubmissionFlowController({
           result === "already-member"
             ? intl.formatMessage({
                 id: "app.garden.alreadyMember",
-                defaultMessage: "You're already a member of this garden",
+                defaultMessage: "You are already a member of this garden",
               })
             : intl.formatMessage({
                 id: "app.garden.joinSuccess",

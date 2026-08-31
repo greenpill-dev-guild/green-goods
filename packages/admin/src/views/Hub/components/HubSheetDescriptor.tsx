@@ -1,6 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
-import type { ActivityEvent } from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
 import { resolveHubSheetSelection } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
 import type { Work } from "@green-goods/shared/types/domain";
 import {
@@ -14,13 +13,11 @@ import { useRouteBackedLeftSheetConfig } from "@/components/Layout";
 import { WorkDetailPanel } from "@/views/Garden/WorkDetail";
 import { localizeCanonicalActionTitle } from "../actionDisplay";
 import { HubCertificationInspector } from "./HubCertificationInspector";
-import { HubHistoryInspector } from "./HubHistoryInspector";
 
 interface HubSheetDescriptorProps {
   routeSheetContentId: string | null;
   routeWorkId: string | undefined;
   routeCertificationId: string | undefined;
-  routeHistoryEventId: string | undefined;
   activeWorkDetailId: string | null;
   selectedWork: Work | undefined;
   selectedCertification:
@@ -32,7 +29,6 @@ interface HubSheetDescriptorProps {
         createdAt: number;
       }
     | undefined;
-  selectedHistoryEvent: ActivityEvent | undefined;
   isResolvingSelection: boolean;
   canManage: boolean;
   hubContext: AdminHubRouteContext;
@@ -77,11 +73,9 @@ function SheetResolutionState({
 export function HubSheetDescriptor({
   routeWorkId,
   routeCertificationId,
-  routeHistoryEventId,
   activeWorkDetailId,
   selectedWork,
   selectedCertification,
-  selectedHistoryEvent,
   isResolvingSelection,
   canManage,
   hubContext,
@@ -101,25 +95,16 @@ export function HubSheetDescriptor({
       resolveHubSheetSelection({
         routeWorkId,
         routeCertificationId,
-        routeHistoryEventId,
         activeWorkDetailId,
         hasSelectedCertification: Boolean(selectedCertification),
-        hasSelectedHistoryEvent: Boolean(selectedHistoryEvent),
       }),
-    [
-      activeWorkDetailId,
-      routeCertificationId,
-      routeHistoryEventId,
-      routeWorkId,
-      selectedCertification,
-      selectedHistoryEvent,
-    ]
+    [activeWorkDetailId, routeCertificationId, routeWorkId, selectedCertification]
   );
 
   const sheetDescriptor = useMemo(() => {
     // Submit Work is no longer a Hub inspector sheet — it owns its own route
     // (/hub/work/submit → submitWorkView). This descriptor only resolves the
-    // read/review inspectors (work detail, certification, history).
+    // read/review inspectors (work detail, certification).
     if (sheetSelection?.kind === "work") {
       return {
         title:
@@ -163,31 +148,6 @@ export function HubSheetDescriptor({
       };
     }
 
-    if (sheetSelection?.kind === "history") {
-      return {
-        title:
-          (selectedHistoryEvent?.title
-            ? localizeCanonicalActionTitle(selectedHistoryEvent.title, formatMessage)
-            : undefined) ??
-          formatMessage({ id: "cockpit.hub.tab.history", defaultMessage: "History" }),
-        content: selectedHistoryEvent ? (
-          <HubHistoryInspector event={selectedHistoryEvent} />
-        ) : (
-          <SheetResolutionState
-            isResolving={isResolvingSelection}
-            loadingLabel={formatMessage({
-              id: "cockpit.hub.sheet.resolving",
-              defaultMessage: "Loading selection...",
-            })}
-            message={formatMessage({
-              id: "cockpit.hub.sheet.historyNotFound",
-              defaultMessage: "History event could not be found.",
-            })}
-          />
-        ),
-      };
-    }
-
     return null;
   }, [
     canManage,
@@ -198,7 +158,6 @@ export function HubSheetDescriptor({
     navigate,
     sheetSelection,
     selectedCertification,
-    selectedHistoryEvent,
     selectedWork,
   ]);
 

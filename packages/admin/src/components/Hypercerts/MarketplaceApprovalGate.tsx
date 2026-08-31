@@ -112,7 +112,7 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
             <ApprovalStep
               label={formatMessage({
                 id: "app.marketplace.grantExchange",
-                defaultMessage: "Grant exchange approval",
+                defaultMessage: "Grant Exchange Approval",
               })}
               description={formatMessage({
                 id: "app.marketplace.grantExchangeDesc",
@@ -123,7 +123,7 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
             <ApprovalStep
               label={formatMessage({
                 id: "app.marketplace.approveTransfer",
-                defaultMessage: "Approve transfer manager",
+                defaultMessage: "Approve Transfer Manager",
               })}
               description={formatMessage({
                 id: "app.marketplace.approveTransferDesc",

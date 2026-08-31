@@ -10,7 +10,7 @@
 
 ## 0. Component naming and one chrome supersession
 
-This spec names only canonical components per `.claude/skills/design/prompt-contract.md` and `client-prompt-contract.md`. One correction to the session plan's vocabulary: the admin `LeftSheet` / `RightSheet` / `BottomSheet` renderers are **retired**. Every admin overlay is a centered `AdminDialog` (detail/inspection) or an `AdminDialog` `variant="flow"` + `ActionFlowShell` (create/commit flows), per `.claude/skills/design/prompt-contract.md` Layout shell table and `.claude/skills/design/quick-reference.md § Sheet Slot Anatomy` (landed in PRs #610/#613). Flow-to-surface mappings below therefore use: **MainSheet route section** vs **AdminDialog detail** vs **flow AdminDialog**. Admin views compose `CanvasRouteFrame` + `CanvasRouteHeader` + `CanvasRouteContent` (mandated by `.claude/rules/frontend-design.md` Rule 1; verified in `packages/admin/src/views/Garden/Vault.tsx:28-31,151-158`).
+This spec names only canonical components per `.claude/skills/design/prompt-contract.md` and `client-prompt-contract.md`. One correction to the session plan's vocabulary: the admin `LeftSheet` / `RightSheet` / `BottomSheet` renderers are **retired**. Every admin overlay is a centered `AdminDialog` (detail/inspection) or an `AdminDialog` `variant="flow"` + `ActionFlowShell` (create/commit flows), per `.claude/skills/design/prompt-contract.md` § Overlays and its Layout shell table (landed in PRs #610/#613). Flow-to-surface mappings below therefore use: **MainSheet route section** vs **AdminDialog detail** vs **flow AdminDialog**. Admin views compose `CanvasRouteFrame` + `CanvasRouteHeader` + `CanvasRouteContent` (mandated by `.claude/rules/frontend-design.md` Rule 1; verified in `packages/admin/src/views/Garden/Vault.tsx:28-31,151-158`).
 
 Admin wrapper palette (15, filesystem is the count of record, `packages/admin/src/components/`): AdminBadge, AdminButton, AdminCard, AdminCheckbox, AdminDialog, AdminFab, AdminFilterChip, AdminLinearProgress, AdminListItem, AdminSearchToolbar, AdminSortSelect, AdminTabRail, AdminTextField, AdminTooltip, AdminViewActions. Client shared primitives per `client-prompt-contract.md`: DialogShell, Card, StatCard, StatusBadge, Alert, Skeleton, Spinner, HydrationFallback, FileUploadField, ListPrimitives, DatePicker, Surface, SyncStatusBar, AddressDisplay, DomainBadge. Missing primitives are flagged in §9, never invented.
 
@@ -18,7 +18,7 @@ Admin wrapper palette (15, filesystem is the count of record, `packages/admin/sr
 
 ## 1. Personas and roles recap (hat-based)
 
-Roles are Hats-tree roles, not app accounts (`IHatsModule.GardenRole`: Owner, Operator, Evaluator, Gardener, Funder, Community; corrections-log §6). Canonical personas per `docs/docs/builders/specs/v1-0.mdx § 3.1`: Gardener, Operator, Evaluator, Funder, Community.
+Roles are Hats-tree roles, not app accounts (`IHatsModule.GardenRole`: Owner, Operator, Evaluator, Gardener, Funder, Community; corrections-log §6). Canonical personas come from `packages/shared/src/ontology/green-goods-ontology.json`: Gardener, Steward, Evaluator, Funder, and Community Member.
 
 | Persona (hat) | Pool powers (per locked layer permissions) |
 |---|---|
@@ -39,7 +39,7 @@ One pool UX across capability levels (UX Brief, locked). The base surface every 
 
 **Use**: offer, request, promise, promise kept, fulfilled, steward, season, campaign, readiness, confirmation, "take this up", "recorded on your behalf".
 **Avoid** (UX Brief): debt, owed, leaderboard, balance-shaming, market-first or swap-first framing.
-**Banned-vocab lint** (`bun run lint:vocab`, canonical list `docs/docs/reference/glossary-community.md § Banned Vocabulary`): no streak, countdown, leaderboard, FOMO anywhere; admin copy additionally bans hero language; client user copy bans dashboard/KPI/operator-cockpit words.
+**Banned-vocab lint** (`bun run lint:vocab`, canonical list `scripts/data/banned-vocabulary.json`): no streak, countdown, leaderboard, FOMO anywhere; admin copy additionally bans hero language; client user copy bans dashboard/KPI/operator-cockpit words.
 Practical consequences baked into this spec: due dates render as calm dates ("runs through March 12"), never ticking timers; per-garden stats never render as ranked lists (cross-garden overview sorts alphabetically, §6.8); small-community rate suppression (§7.2); admin celebration is a quiet confirmation row, only the client PWA gets hero moments (register #27).
 
 i18n: every new user-facing string ships as en + es + pt keys in `packages/shared/src/i18n/` (en.json verified; a 4-part locale coverage gate enforces parity). This spec proposes key families in §10 and writes no literal strings into code sections.
@@ -550,7 +550,7 @@ Privacy boundary: no counterparty addresses, commitment titles, or reason texts 
 - **State never by color alone**: all state chips use `StatusBadge` (icon + color, `.claude/rules/frontend-design.md` Rule 12); the state timeline pairs icons with text labels.
 - **Progress meters** always carry text equivalents (for one commitment, units approved of target; confirmations recorded of required). Pool/cycle summaries use state counts and separate exact-label rows rather than a mixed-unit meter.
 - **Hero moments** respect `prefers-reduced-motion` (static celebratory frame) and never trap focus; dismissible by any input.
-- **Admin rail and tabs** inherit roving tabindex from `AdminTabRail` (quick-reference Tabs table); the new Confirm stage and Pool tab add no custom key handling.
+- **Admin rail and tabs** inherit roving tabindex from `AdminTabRail` (`packages/admin/src/components/AdminTabRail.tsx`); the new Confirm stage and Pool tab add no custom key handling.
 - **Touch targets**: claim/confirm CTAs and every other interactive control meet the 44px minimum on touch surfaces; queued/failed badges are not the tap target, the card or adjacent named action is.
 
 ## 13. Open UX questions from the brief, answered
@@ -3394,3 +3394,46 @@ recommendation). A steward needs to see who is over-committing; the caption argu
 Build: 44 screens / 519 states / 736 hotspots / 56 flows / 329 scenes, 0 warnings; closure validator
 green. (Receipt as taken. The state count is 517 from 2026-08-19: `WFLOW@details-linked` and
 `WFLOW@fulfills-pick` retired, both of which this section had already ordered retired.)
+
+## Appendix G: editorial record and cycle supersessions (2026-08-25, experience audit AD-8…AD-11)
+
+Afo's Wave-2 decisions from the 2026-08-25 experience audit, built in
+`feat/editorial-record-and-cycle`. Each entry supersedes the cited earlier text;
+nothing above this appendix was edited in place.
+
+**§7 editorial § 02 leaves the panel (AD-8, supersedes the PR-748 `EditorialPanel`
+body and §7.1/§7.3's "one `EditorialPanel`" sentences).** On `/gardens/:id` and the
+`/impact` band the commitments record composes directly on the canvas in the page's
+own grammar — headers on linen, hairline dividers, § 01-style stat rows. § 02 had
+been the only card-wrapped section on either page. Every §1/§3 copy rule and honest
+state survives unchanged: em-dash-not-zero, the kept-rate threshold and its
+definitional sentence, absence copy, no providers/addresses/rankings. The
+`EditorialPanel` atom is retired (no consumers remain); with the panel gone, the
+dark-mode panel-darker-than-canvas deviation retires with it — the record renders
+on the canvas tokens in both modes.
+
+**§7.3 the cycle becomes four steps (AD-9, supersedes the five-node
+`PublicEvidencePipeline`).** Needs · Commitment · Work · Learnings, heading "From
+need to learning, season after season.", using the audit § 10 draft as the
+shipping copy. Confirmation fuses into Work ("The person it was for, or another
+eligible confirmer, records that it was kept."); the certificate step becomes
+Learnings with "Impact Certificate" surviving inside the step's body (term-tooltip,
+shared `public.pool.terms.certificate` definition), never as a stage name. The
+loop-line is a full-width footer under all four columns. Four equal columns level
+at every width; descriptions in one length band; number chips aligned with their
+titles. New `public.impact.pipeline.step.*` key family en/es/pt; the fresh es/pt
+translations use "el fondo común del Jardín" / "o fundo comum do Jardim" (no new
+"el pool"/"o pool" instances — that noun stays an open Wave-2 call). "Learnings"
+and the loop-line wording are Afo's naming to confirm at PR review.
+
+**§7 imagery loses the hover zoom (AD-10).** `group-hover:scale-[1.03]` and its
+now-dead `transition-transform` classes are removed at all six sites — the four
+the audit recorded (`PublicGardenCard`, `PublicActionCard`, `PublicEvidenceCard`,
+`PublicGardenRow`) plus `GardenDetailNoteRecord` and `GardenDetailFieldNotes`,
+honoring the decision's "across the editorial site" scope.
+
+**§7 empty and error sections hold their space (AD-11).** `SectionEmpty`, the
+section-level `SectionNotice` default, the § 02 record bodies, and `/impact`'s
+evidence-ledger empty and error casts carry a minimum body height (`min-h-40`),
+so absence reads as a kept place in the record rather than a footnote under the
+header. Inline asides that pass their own className opt out.

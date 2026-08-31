@@ -1,13 +1,17 @@
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
-import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 // `getRelativeTimeParts` is not on the root barrel — only the declared
 // `./utils` subpath exports it (shared rule 11: narrowest declared path).
 import { getRelativeTimeParts } from "@green-goods/shared/utils/relativeTime";
 import { RiImageLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { type IntlShape, useIntl } from "react-intl";
-import { EditorialLede } from "@/components/Public/atoms";
+import {
+  EditorialLede,
+  EditorialMediaCardSkeleton,
+  EditorialSkeleton,
+  EditorialStatSkeleton,
+} from "@/components/Public/atoms";
 
 /**
  * Small pieces of the public Garden page. Split out of `GardenDetail.tsx` to
@@ -25,8 +29,7 @@ import { EditorialLede } from "@/components/Public/atoms";
  * primitive where it is not nested — the note dialog and the stewards row.
  */
 export function NoteAuthor({ address }: { address: Address }) {
-  const { data: ensName } = useEnsName(address);
-  return <span>{formatAddress(address, { ensName, variant: "card" })}</span>;
+  return <span>{formatAddress(address, { variant: "card" })}</span>;
 }
 
 /**
@@ -35,7 +38,7 @@ export function NoteAuthor({ address }: { address: Address }) {
  * page is not entitled to publish that as zero.
  *
  * `strip` is the hero's four-up strip under the title; `panel` is the larger
- * numeral used inside an `EditorialPanel`, where the number sits beside a
+ * numeral used in a section record, where the number sits beside a
  * sentence and carries the line on its own.
  */
 const STAT_VALUE_CLASS = {
@@ -44,9 +47,9 @@ const STAT_VALUE_CLASS = {
     "mt-2 font-serif text-3xl font-normal leading-none tracking-[-0.018em] tabular-nums text-text-strong-950 md:text-4xl",
 } as const;
 
-const STAT_PULSE_CLASS = {
-  strip: "inline-block h-7 w-10 animate-pulse rounded-sm bg-stroke-soft-200",
-  panel: "inline-block h-9 w-14 animate-pulse rounded-sm bg-stroke-soft-200",
+const STAT_SKELETON_CLASS = {
+  strip: "h-7 w-10",
+  panel: "h-9 w-14",
 } as const;
 
 export function StatCell({
@@ -81,7 +84,7 @@ export function StatCell({
             <span className="sr-only">{unknownLabel}</span>
           </>
         ) : loading || value === undefined ? (
-          <span className={STAT_PULSE_CLASS[size]} />
+          <EditorialStatSkeleton className={STAT_SKELETON_CLASS[size]} />
         ) : (
           value
         )}
@@ -90,8 +93,17 @@ export function StatCell({
   );
 }
 
+/**
+ * An absent thing says it is absent — and holds its place while saying so
+ * (AD-11): the minimum body height keeps an empty section reading as a kept
+ * place in the record rather than a footnote under its header.
+ */
 export function SectionEmpty({ message }: { message: string }) {
-  return <p className="mt-8 font-serif text-xl italic text-text-soft-400">{message}</p>;
+  return (
+    <p className="mt-8 flex min-h-40 items-center font-serif text-xl italic text-text-soft-400">
+      {message}
+    </p>
+  );
 }
 
 /**
@@ -103,7 +115,9 @@ export function SectionEmpty({ message }: { message: string }) {
 export function SectionNotice({
   message,
   onRetry = () => window.location.reload(),
-  className = "mt-8 text-sm text-text-sub-600",
+  // Section-level failures hold the section's space (AD-11); an inline aside
+  // passes its own className and opts out of the held height.
+  className = "mt-8 min-h-40 text-sm text-text-sub-600",
 }: {
   message: string;
   onRetry?: () => void;
@@ -125,7 +139,7 @@ export function SectionNotice({
 
 function RetryLabel() {
   const { formatMessage } = useIntl();
-  return <>{formatMessage({ id: "public.gardenDetail.retry", defaultMessage: "Try again" })}</>;
+  return <>{formatMessage({ id: "public.gardenDetail.retry", defaultMessage: "Try Again" })}</>;
 }
 
 /**
@@ -145,11 +159,7 @@ export function TileSkeletonGrid() {
   return (
     <div aria-hidden="true" className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
       {[0, 1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="flex flex-col gap-4">
-          <div className="aspect-[3/2] w-full animate-pulse bg-editorial-warm" />
-          <div className="h-5 w-3/4 animate-pulse rounded-sm bg-stroke-soft-200" />
-          <div className="h-3 w-1/2 animate-pulse rounded-sm bg-stroke-soft-200" />
-        </div>
+        <EditorialMediaCardSkeleton key={i} />
       ))}
     </div>
   );
@@ -165,7 +175,7 @@ export function ListSkeleton({
   return (
     <div aria-hidden="true" className={className}>
       {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="h-5 w-2/3 animate-pulse rounded-sm bg-stroke-soft-200" />
+        <EditorialSkeleton key={i} className="h-5 w-2/3" />
       ))}
     </div>
   );

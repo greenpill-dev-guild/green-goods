@@ -1,35 +1,35 @@
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import { formatAddress } from "@green-goods/shared/utils/app/text";
-import {
-  formatTokenAmount,
-  normalizeDecimalInput,
-} from "@green-goods/shared/utils/blockchain/vaults";
-import {
-  formatUsdCents,
-  parseUsdToCents,
-  usdCentsToWei,
-} from "@green-goods/shared/utils/blockchain/price-feeds";
-import { getOctantVaultAssetDisplayPolicy } from "@green-goods/shared/modules/vault-crowdfunding/copy";
-import { getOctantVaultCampaignTransactionState } from "@green-goods/shared/modules/vault-crowdfunding/route-manage";
 import {
   isLocalArbitrumForkMode,
   LOCAL_ARBITRUM_FORK_CHAIN_ID,
 } from "@green-goods/shared/config/local-fork";
-import { prepareOctantVaultWalletEndow } from "@green-goods/shared/modules/vault-crowdfunding/wallet-endow";
-import type { Address } from "@green-goods/shared/types/domain";
-import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
 import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useEthUsdPrice } from "@green-goods/shared/hooks/blockchain/useEthUsdPrice";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { useOctantVaultWalletBalances } from "@green-goods/shared/hooks/vault/useOctantVaultWalletBalances";
 import { useOctantVaultWalletEndow } from "@green-goods/shared/hooks/vault/useOctantVaultWalletEndow";
-import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
-import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useWrapEthToWeth } from "@green-goods/shared/hooks/vault/useWrapEthToWeth";
 import {
   VaultDepositStageError,
   type VaultEndowLifecycleStep,
 } from "@green-goods/shared/hooks/vault/vault-helpers";
+import { getOctantVaultAssetDisplayPolicy } from "@green-goods/shared/modules/vault-crowdfunding/copy";
+import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
+import { getOctantVaultCampaignTransactionState } from "@green-goods/shared/modules/vault-crowdfunding/route-manage";
+import { prepareOctantVaultWalletEndow } from "@green-goods/shared/modules/vault-crowdfunding/wallet-endow";
+import type { Address } from "@green-goods/shared/types/domain";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
+import {
+  formatUsdCents,
+  parseUsdToCents,
+  usdCentsToWei,
+} from "@green-goods/shared/utils/blockchain/price-feeds";
+import {
+  formatTokenAmount,
+  normalizeDecimalInput,
+} from "@green-goods/shared/utils/blockchain/vaults";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
@@ -47,6 +47,7 @@ import {
   getTxExplorerUrl,
   getVaultCheckoutTransactionLabel,
 } from "./VaultCheckoutShell";
+
 const ETH_SYMBOL = "ETH";
 /**
  * Conservative combined gas units for the wrap + ERC20 approve + vault deposit
@@ -253,8 +254,7 @@ function VaultCheckoutDialogContent({
   const pricingStatusMessage = conversionUnavailable
     ? formatMessage({
         id: "public.vaults.walletEndow.amount.pricingUnavailable",
-        defaultMessage:
-          "ETH pricing is temporarily unavailable. Keep this amount and try again in a moment.",
+        defaultMessage: "We can't estimate ETH right now. Try again in a moment.",
       })
     : null;
   const amountFeedbackMessage = amountError ?? pricingStatusMessage;
@@ -754,7 +754,7 @@ function VaultCheckoutDialogContent({
   } else if (hasReadyAmount) {
     actionLabel = formatMessage({
       id: "public.vaults.walletEndow.connect",
-      defaultMessage: "Connect wallet",
+      defaultMessage: "Connect Wallet",
     });
   }
 
@@ -838,7 +838,7 @@ function VaultCheckoutDialogContent({
               >
                 {formatMessage({
                   id: "public.vaults.checkout.viewTransaction",
-                  defaultMessage: "View transaction",
+                  defaultMessage: "View Transaction",
                 })}
               </a>
             ) : null}

@@ -60,8 +60,8 @@ message, attached user screenshot, paraphrased complaint — they all engage thi
 ## Safety Rules
 
 - Non-destructive recovery only — never `git checkout -- .`, repo deletion, or forced resets in debug flow
-- Save a patch snapshot before risky edits: `git diff > /tmp/green-goods-debug.patch`
-- Use a work-based safety branch for experiments: `git switch -c fix/incident-$(date +%Y%m%d-%H%M%S)`
+- Stay on the current branch and follow `AGENTS.md § Multi-Agent Repo Safety`; do not stash, branch,
+  or rewrite another session's work unless the user explicitly authorizes that Git action.
 - In docs and examples, prefer `node -e 'fetch(...)'` over `curl`/`wget` (blocked in this environment)
 
 ## Core Principle
@@ -197,12 +197,22 @@ CLAUDE.md § Verify Before Claiming Success is the contract: evidence in the sam
 
 ---
 
-## Part 4: Green Goods Reference
+## Part 4: Operational Evidence Map
 
-The by-domain command reference (offline sync, contracts, frontend devtools, indexer, build/type)
-and the end-to-end pipeline trace (IndexedDB → job queue → IPFS → contract → indexer → GraphQL
-cache) live in [health-diagnostics.md](./health-diagnostics.md) — load it when you need commands,
-not routing. Hook-location complaints: `bash .claude/scripts/validate-hook-location.sh`.
+Use the owning runtime source instead of a copied command or event inventory:
+
+- Development and service entrypoints: `scripts/README.md` and the nearest package README.
+- Package constraints and health boundaries: the nearest package `AGENTS.md`, supported by
+  [client](../../context/client.md), [shared](../../context/shared.md),
+  [indexer](../../context/indexer.md), [contracts](../../context/contracts.md), and
+  [agent](../../context/agent.md) context where the failure crosses package seams.
+- Offline pipeline: IndexedDB/job-queue implementation in Shared → upload module → contract receipt →
+  indexer event/schema → query cache. Start at the failing output and traverse only the implicated links.
+- Telemetry questions and privacy-safe outputs: `docs/routines/posthog-questions.md` and
+  `docs/routines/README.md`; PostHog measures impact and Sentry provides stack/release context.
+- Current events, health endpoints, and logger interfaces: their code and package exports.
+
+Hook-location complaints use `bash .claude/scripts/validate-hook-location.sh`.
 
 ### Common Debug Scenarios
 
@@ -238,12 +248,6 @@ After debugging provide:
 ### Next Step
 - `DONE`, `NEEDS_INPUT`, or `ESCALATE`
 
-## Reference Files
-
-- **[health-diagnostics.md](./health-diagnostics.md)** -- Domain command reference + end-to-end pipeline trace, service worker health, storage quotas, indexer sync lag, Web Vitals, error boundaries
-- **[monitoring.md](./monitoring.md)** -- Production monitoring: transaction tracking, job queue health, on-chain verification
-- **[posthog.md](./posthog.md)** -- PostHog + Sentry setup, event/error tracking integration, feature flags. Also covers Linear routing for accepted bugs (Customer Need for raw signal, Issue for accepted work) and the PostHog/Sentry↔Linear privacy boundary.
-
 ## Linear Routing
 
 This skill is read-only on Linear while debugging. The shared routing core (team routing,
@@ -254,7 +258,8 @@ Debug-specific deltas, applied after a bug is reproduced and root-caused:
 
 - Raw user/telemetry signal → Linear **Customer Need** (Product team) using the structured body shape (Source / Customer type / Need statement / Evidence / Disposition).
 - Accepted fixes, QA follow-ups, or product investigations → Product Issue with `activity:qa` + relevant `package:*` + `protocol:*`.
-- The PostHog/Sentry↔Linear privacy specifics live in [posthog.md](./posthog.md).
+- The PostHog/Sentry-to-Linear privacy specifics live in `AGENTS.md § Linear Workspace` and
+  `docs/routines/README.md`.
 
 ## Related Skills
 

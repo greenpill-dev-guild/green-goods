@@ -149,7 +149,7 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
                 { count: proposals.length }
               )}
             </span>
-            <AdminButton asChild variant="text" size="sm" className="h-auto rounded p-0">
+            <AdminButton asChild variant="text" size="sm">
               <Link to={adminRoutes.communityCoordinationSignalPool("hypercert", { gardenId })}>
                 {formatMessage({ id: "cockpit.community.coordination.openPool" })}
                 <RiArrowRightSLine className="h-4 w-4" />
@@ -232,7 +232,7 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
           <p className="text-sm font-medium text-text-strong">
             {formatMessage({
               id: "cockpit.community.governance.signIn.title",
-              defaultMessage: "Sign in to allocate conviction",
+              defaultMessage: "Sign In to Allocate Conviction",
             })}
           </p>
           <p className="mt-1 body-sm text-text-sub">

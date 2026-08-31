@@ -154,18 +154,27 @@ describe("createAuthServices", () => {
   });
 
   describe("restoreSession", () => {
-    it("does not restore after explicit sign-out or over a wallet session", async () => {
+    it("does not restore after explicit sign-out", async () => {
       harness.state.credential = CREDENTIAL;
       harness.state.signedOut = true;
       await expect(
         invoke(harness.services.restoreSession, { chainId: CHAIN_ID })
       ).resolves.toBeNull();
 
-      harness.state.signedOut = false;
-      harness.state.authMode = "wallet";
+      expect(harness.calls.buildSmartAccount).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      "wallet",
+      "embedded",
+    ] as const)("does not let a cached passkey override %s session intent", async (authMode) => {
+      harness.state.credential = CREDENTIAL;
+      harness.state.authMode = authMode;
+
       await expect(
         invoke(harness.services.restoreSession, { chainId: CHAIN_ID })
       ).resolves.toBeNull();
+
       expect(harness.calls.buildSmartAccount).not.toHaveBeenCalled();
     });
 

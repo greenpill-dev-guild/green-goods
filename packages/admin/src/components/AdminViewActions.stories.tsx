@@ -79,7 +79,7 @@ export const WithGhostLink: Story = {
     items: [
       {
         id: "view-public",
-        label: "View public",
+        label: "View Public",
         labelId: "cockpit.garden.action.viewPublic",
         icon: RiExternalLinkLine,
         onClick: fn(),

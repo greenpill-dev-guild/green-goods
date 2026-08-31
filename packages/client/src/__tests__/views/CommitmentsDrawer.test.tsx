@@ -239,7 +239,7 @@ describe("CommitmentsDrawer", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("opens settled commitments from the Over time tab the same way", async () => {
+  it("opens settled commitments from the History tab the same way", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     mockUseCommitmentsInbox.mockReturnValue(
@@ -255,7 +255,7 @@ describe("CommitmentsDrawer", () => {
     );
 
     render(<CommitmentsDrawer isOpen onClose={onClose} />);
-    await user.click(screen.getByRole("tab", { name: /over time/i }));
+    await user.click(screen.getByRole("tab", { name: /history/i }));
     await user.click(screen.getByRole("button", { name: /3 hours/ }));
 
     expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`);
@@ -311,7 +311,7 @@ describe("CommitmentsDrawer", () => {
       screen.getByText("We could not load what is still moving. Your commitments are safe.")
     ).toBeInTheDocument();
 
-    await userEvent.setup().click(screen.getByRole("button", { name: "Try again" }));
+    await userEvent.setup().click(screen.getByRole("button", { name: "Try Again" }));
     expect(refetch).toHaveBeenCalledTimes(1);
   });
 
@@ -436,7 +436,9 @@ describe("CommitmentsDrawer", () => {
     mockUseCommitmentsInbox.mockReturnValue(inbox({ hasPendingCreate: true }));
 
     render(<CommitmentsDrawer isOpen onClose={() => {}} />);
-    expect(screen.getByText(/still waiting to send from this phone/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/saved on this phone\. It sends when you are connected/i)
+    ).toBeInTheDocument();
   });
 
   it("counts acts per tab, and never inventory", () => {

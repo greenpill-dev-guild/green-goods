@@ -6,6 +6,7 @@ import { expect, within } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../../shared/.storybook/adminFixtures";
 import {
   withAdminIdentity,
+  withRouter,
   withSeededQueryClient,
 } from "../../../../../../shared/.storybook/decorators";
 import { POOL_STORY_SEEDS, STORY_GARDEN, storyCommitmentDialog } from "../poolStoryFixtures";
@@ -52,6 +53,9 @@ const meta: Meta<typeof CommitmentDialogPanel> = {
         <Story />
       </div>
     ),
+    // The panel's state casts navigate (retry/back), so the story needs a
+    // router — without one the Detail and NotFound stories crash on mount.
+    withRouter(["/garden"]),
   ],
 };
 

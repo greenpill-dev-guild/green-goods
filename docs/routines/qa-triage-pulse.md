@@ -52,7 +52,7 @@ Write Customer Needs on the **Linear Product team**. Mirror [`bug-intake`](./bug
 
 1. **Customer Needs cannot be standalone.** Linear rejects `save_customer_need` calls without an `issue` (or `project`) parameter — `Exactly one of projectId or issueId must be defined`. Every Customer Need this routine creates must link to a Backlog tracking Issue. The routine never creates standalone "raw signal only" Needs.
 2. **`ai:*` is single-value-per-Issue.** Use `ai:routine` on every Issue this routine creates (cron'd provenance). When a track-only item is later promoted to a delegate (`ai:codex` or `ai:claude`), the interactive `/qa-triage` skill swaps the label — this routine doesn't.
-3. **`package:*` is single-value-per-Issue.** When the bug spans more than one package, pick the primary surface as the label; name the secondary package(s) in the Issue body's `## Surface` block.
+3. **`package:*` is single-value-per-Issue.** When the bug spans more than one package, pick the primary surface as the label; name the secondary package(s) in the problem sentence (the `## Surface` block is retired).
 
 ### Labels applied to the Backlog tracking Issues this routine creates
 
@@ -142,14 +142,14 @@ For each extracted item:
    - PostHog error hash (if matched)
 
    If duplicate:
-   - **Existing Customer Need**: append a comment with today's sync date + the verbatim quote; do NOT create a duplicate.
+   - **Existing Customer Need**: append a comment with today's sync date + the verbatim quote; do NOT create a duplicate. Grep the drafted comment with the Phase 5 string list **before** posting — a comment is public the moment it lands, and a post-hoc edit does not unpublish it.
    - **Existing Issue**: link as `relates to` if a Customer Need is being created; skip the new Customer Need if the Issue already covers the same behavior.
 
 ## Phase 4: Pre-stage Customer Needs with Backlog tracking Issues
 
-Linear requires every Customer Need to link to an Issue. For each non-duplicate item:
+Linear requires every Customer Need to link to an Issue. Grep every drafted body with the Phase 5 string list **before** each write — Phase 5 is the backstop, not the gate. For each non-duplicate item:
 
-1. **First, create the Backlog tracking Issue** on the Product team. Title: prefix with `[tracking]`, then use an action-verb-led one-line distillation (e.g., "[tracking] Investigate PWA install hang on Android" rather than "Install hangs"). Body: Summary + Surface + Suggested fix + Source + safe evidence — no Reproduction/Expected/Actual sections at this routine stage.
+1. **First, create the Backlog tracking Issue** on the Product team. Title: a plain action-verb-led sentence with **no prefix** — "Investigate the PWA install hang on Android", not "[tracking] Install hangs". The `[tracking]` prefix is retired (2026-08-27): the `maintenance` label plus `Backlog` state already say the work is uncommitted, and a `PreToolUse` hook now rejects the prefix. Body: the problem in one or two plain paragraphs, then one source line — **no headings unless the item genuinely needs them (cap 3), ~150 words, 300 ceiling**, and no Reproduction/Expected/Actual at this routine stage. Drop any section you cannot fill rather than writing "—" or a paragraph reporting that PostHog matched nothing; note tooling gaps in the Discord summary instead. Full contract: [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md) § Issue structure.
    - Labels: `protocol:green-goods` + ONE `package:*` (primary surface; omit if unknown) + `activity:qa` (clear bug) or `activity:maintenance` (idea / polish / unclear actionability) + `source:drive` + `source:qa-triage-pulse` + `ai:routine` + `qa-sync:<YYYY-MM-DD>`. Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
    - Status: `Backlog` for all. The routine never claims work as `Todo`; the interactive `/qa-triage` skill promotes selected tracking Issues to `Todo` during the human triage gate.
    - Priority: P3 (Low) by default. P2 (Medium) when PostHog confirms ≥50 sessions in 30d. The routine never sets P0/P1 — humans decide release-blocker status.
@@ -173,7 +173,7 @@ Apply a per-run cap: at most **15 Customer Need + Issue pairs**. If the notes co
 
 ## Phase 5: Privacy grep
 
-Before posting, grep every Customer Need body created this run for `replay`, `session_id`, `distinct_id`, `0x`, and any reporter identifier seen this run. Hits → fail loud in the Discord summary's `⚠ Failures this run` block, redact in place, and re-verify.
+The backstop for the pre-write greps in Phases 3–4: re-grep everything this run wrote to Linear — every Customer Need body, every tracking Issue body, and every comment — for `replay`, `session_id`, `distinct_id`, `0x`, and any reporter identifier seen this run. Comments are inside the privacy boundary exactly like bodies (`.claude/context/linear-routing-rules.md` § Invariant rules), so a grep that skips them is not a redaction gate. A hit here means the value was already published: redact in place, re-verify, and fail loud in the Discord summary's `⚠ Failures this run` block, reporting it as an exposure rather than a save.
 
 ## Phase 6: Discord summary to #product
 

@@ -1,0 +1,55 @@
+---
+title: Product Experience QA
+sidebar_label: Product Experience QA
+slug: /builders/quality/product-experience-qa
+audience: developer
+owner: product
+last_verified: 2026-08-30
+feature_status: In progress
+source_of_truth:
+  - AGENTS.md
+  - packages/admin/AGENTS.md
+  - packages/client/AGENTS.md
+  - packages/admin/src/routes/views.tsx
+  - packages/client/src/config/routes.tsx
+  - scripts/data/qa-test-catalog.json
+  - scripts/agents/qa-workbook-build.ts
+  - .claude/context/qa.md
+  - .claude/skills/debug/SKILL.md
+  - .claude/skills/design/review-checklist.md
+  - .claude/skills/design/interaction-patterns.md
+  - .claude/skills/design/decision-log.md
+  - .claude/context/validation-pipeline.md
+  - playwright.config.ts
+  - .github/workflows/design.yml
+  - .github/workflows/client.yml
+  - .github/workflows/admin.yml
+keywords: [QA, product experience, UI regression, admin, PWA, editorial website, accessibility]
+---
+
+# Product Experience QA
+
+Product-experience QA asks whether a person can understand, complete, recover from, and trust a
+real flow. Passing unit tests and builds is necessary but does not prove that experience.
+
+## What every journey must prove
+
+- The entrypoint, role, and selected Garden or chain are clear.
+- Loading, empty, disabled, error, offline, and recovery states are usable.
+- A visible interaction changes state and provides legible feedback.
+- Keyboard, focus, labels, touch targets, contrast, and reduced motion remain accessible.
+- Protocol confirmation, indexed data, and local queue state are not conflated.
+- Private identities, wallets, session data, and defect evidence stay out of public artifacts.
+
+## Session loop
+
+1. Walk the real surface with the intended identity and environment.
+2. Capture each observation before diagnosing it.
+3. Reproduce visible defects from the rendered surface inward.
+4. Fix only bounded, reversible work that fits the agreed session scope.
+5. Revalidate in the same surface and record the remaining risk.
+6. Hand deferred findings to the private QA and Linear workflow.
+
+The generated [test-case catalog](./test-cases) owns public scenario definitions only.
+`.claude/context/qa.md` owns recording, attribution, privacy, result rollup, and artifact locations;
+the QA skills own session and triage mechanics.

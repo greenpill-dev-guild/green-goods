@@ -4,10 +4,9 @@ import {
   type PublicGardenPoolData,
   selectPublicPromiseKeptRate,
   usePublicGardenPool,
-} from "@green-goods/shared/commitment-pooling";
+} from "@green-goods/shared/commitment-pooling/public";
 import { useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
-import { EditorialPanel } from "@/components/Public/atoms";
 import { formatKeptRate } from "@/components/Public/keptRate";
 import {
   ListSkeleton,
@@ -28,16 +27,16 @@ import { Section } from "./GardenDetailSections";
  * `§ 02 Commitments` on the public Garden page (uiux-spec §7.1).
  *
  * The section is the Garden's record across seasons and campaigns, not one
- * live cycle. Its header sits on the canvas with the page's other sections;
- * its body is one `EditorialPanel` — the `/fund` card grammar — so the record
- * reads as a composed object at any width rather than loose text hugging the
- * left edge. Inside the panel: the pool-state sentence beside the lifetime
- * record (commitments made, kept, and the one sanctioned percentage when
- * `selectPublicPromiseKeptRate` publishes it); then the open Season and
- * Campaigns beside the pool-wide exact-label units; then the finished cycles
- * newest first; then the line that ties fulfilled commitments to § 03. A
- * Garden with no pool keeps the same panel with readiness copy, which keeps
- * the ordinals stable.
+ * live cycle. Header and body both sit on the canvas in the page's own
+ * grammar — headers on linen, hairline dividers, § 01-style stat rows — the
+ * 2026-08-25 supersession of the PR-748 `EditorialPanel` choice (§ 02 was the
+ * only card-wrapped section on either page). The record reads top to bottom:
+ * the pool-state sentence beside the lifetime record (commitments made, kept,
+ * and the one sanctioned percentage when `selectPublicPromiseKeptRate`
+ * publishes it); then the open Season and Campaigns beside the pool-wide
+ * exact-label units; then the finished cycles newest first; then the line
+ * that ties fulfilled commitments to § 03. A Garden with no pool keeps the
+ * same body with readiness copy, which keeps the ordinals stable.
  *
  * What it never shows: pause reasons, metadata CIDs, provider rows, wallet
  * addresses, cancelled or disputed counts, cancelled cycles, rankings, or any
@@ -84,7 +83,11 @@ export function CommitmentsSection({
             })
       }
     >
-      <EditorialPanel className="mt-8">
+      {/* The record composes directly on the canvas (AD-8): the section header
+          already closes with a hairline, and the body's own groups carry their
+          dividers, so no bounded surface wraps it. min-h keeps absence reading
+          as a held place in the record, not a footnote (AD-11). */}
+      <div className="mt-8 min-h-40">
         {loading ? (
           <PanelLead lede={<ListSkeleton rows={2} className="flex flex-col gap-4" />}>
             <RecordStats loading />
@@ -100,7 +103,7 @@ export function CommitmentsSection({
             onShowMore={() => setHistoryLimit((limit) => limit + PUBLIC_HISTORY_PAGE_SIZE)}
           />
         )}
-      </EditorialPanel>
+      </div>
     </Section>
   );
 }

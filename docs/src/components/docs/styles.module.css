@@ -35,28 +35,23 @@
   opacity: 0.72;
 }
 
-.roleCard[data-role-accent="gardener"],
-.guideOpener[data-role-accent="gardener"] {
+.roleCard[data-role-accent="gardener"] {
   --docs-role-accent: var(--docs-role-gardener);
 }
 
-.roleCard[data-role-accent="steward"],
-.guideOpener[data-role-accent="steward"] {
+.roleCard[data-role-accent="steward"] {
   --docs-role-accent: var(--docs-role-steward);
 }
 
-.roleCard[data-role-accent="assessment"],
-.guideOpener[data-role-accent="assessment"] {
+.roleCard[data-role-accent="assessment"] {
   --docs-role-accent: var(--docs-role-assessment);
 }
 
-.roleCard[data-role-accent="funder"],
-.guideOpener[data-role-accent="funder"] {
+.roleCard[data-role-accent="funder"] {
   --docs-role-accent: var(--docs-role-funder);
 }
 
-.roleCard[data-role-accent="builder"],
-.guideOpener[data-role-accent="builder"] {
+.roleCard[data-role-accent="builder"] {
   --docs-role-accent: var(--docs-role-builder);
 }
 
@@ -141,57 +136,6 @@
   gap: 0.2rem;
   color: var(--docs-role-accent);
   font-weight: 700;
-}
-
-.guideOpener {
-  --docs-role-accent: var(--ifm-color-primary);
-
-  margin: 0.75rem 0 1.35rem;
-  border: 1px solid var(--ifm-color-emphasis-200);
-  border-radius: 8px;
-  background: var(--ifm-background-surface-color);
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: minmax(12rem, 18rem) 1fr;
-  align-items: stretch;
-}
-
-.guideOpenerImage {
-  display: block;
-  width: 100%;
-  height: 100%;
-  max-height: 12rem;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
-}
-
-.guideOpenerCaption {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem 0.65rem;
-  padding: 0.7rem 0.85rem;
-  border-left: 3px solid var(--docs-role-accent);
-  color: var(--ifm-font-color-secondary);
-  font-size: 0.9rem;
-}
-
-.guideOpenerLabel {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid color-mix(in srgb, var(--docs-role-accent) 35%, transparent);
-  border-radius: 999px;
-  padding: 0.18rem 0.55rem;
-  color: var(--docs-role-accent);
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.guideOpenerText {
-  min-width: 0;
-  flex: 1 1 16rem;
 }
 
 .pathNav {
@@ -450,233 +394,6 @@
   margin-top: 0.6rem;
 }
 
-.queryBlock {
-  border: 1px solid var(--ifm-color-emphasis-200);
-  border-radius: 12px;
-  padding: 0.9rem;
-  background: var(--ifm-background-surface-color);
-}
-
-.queryTitle {
-  margin-top: 0;
-}
-
-.queryEndpoint,
-.queryVariablesLabel {
-  margin: 0.5rem 0;
-  color: var(--ifm-font-color-secondary);
-}
-
-.queryPre {
-  border-radius: 10px;
-  padding: 0.75rem;
-  overflow: auto;
-  margin: 0.25rem 0;
-  background: var(--ifm-color-emphasis-100);
-  border: 1px solid var(--ifm-color-emphasis-200);
-}
-
-.chainBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  border: 1px solid var(--ifm-color-emphasis-300);
-  border-radius: 999px;
-  padding: 0.18rem 0.55rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.atAGlance {
-  border: 1px solid var(--ifm-color-emphasis-200);
-  border-radius: 14px;
-  padding: 1rem;
-  background: var(--ifm-background-surface-color);
-}
-
-.atAGlanceHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.atAGlanceTitle {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.difficultyBadge {
-  border: 1px solid var(--ifm-color-primary);
-  border-radius: 999px;
-  padding: 0.15rem 0.55rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.atAGlanceGrid {
-  margin: 0.85rem 0 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 0.75rem;
-}
-
-.atAGlanceGrid dt {
-  margin: 0;
-  font-size: 0.74rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--ifm-color-emphasis-700);
-}
-
-.atAGlanceGrid dd {
-  margin: 0.2rem 0 0;
-  font-weight: 600;
-  color: var(--ifm-font-color-base);
-}
-
-.journeyMap {
-  border: 1px solid var(--ifm-color-emphasis-200);
-  border-radius: 14px;
-  padding: 1rem;
-  background: var(--ifm-background-surface-color);
-}
-
-.journeyTitle {
-  margin: 0;
-}
-
-.journeyList {
-  list-style: none;
-  margin: 0.85rem 0 0;
-  padding: 0;
-  display: grid;
-  gap: 0.6rem;
-}
-
-.journeyItem {
-  border: 1px solid var(--ifm-color-emphasis-200);
-  border-radius: 10px;
-  padding: 0.65rem;
-  display: grid;
-  grid-template-columns: 1.8rem 1fr;
-  gap: 0.6rem;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
-}
-
-.journeyItem:hover {
-  border-color: var(--ifm-color-primary-light);
-  box-shadow: 0 2px 12px color-mix(in srgb, var(--ifm-color-primary) 8%, transparent);
-}
-
-.journeyComplete {
-  border-left: 4px solid #16a34a;
-}
-
-.journeyCurrent {
-  border-left: 4px solid var(--ifm-color-primary);
-  background: color-mix(in srgb, var(--ifm-color-primary) 8%, transparent);
-}
-
-.journeyUpcoming {
-  border-left: 4px solid var(--ifm-color-emphasis-300);
-}
-
-.journeyIndex {
-  width: 1.6rem;
-  height: 1.6rem;
-  border-radius: 999px;
-  background: var(--ifm-color-emphasis-200);
-  font-size: 0.78rem;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.journeyIndexComplete {
-  background: #16a34a;
-  color: #fff;
-}
-
-.journeyIndexCurrent {
-  background: var(--ifm-color-primary);
-  color: #fff;
-}
-
-.journeyIndexUpcoming {
-  background: var(--ifm-color-emphasis-200);
-}
-
-.journeyLink,
-.journeyText {
-  margin: 0;
-  font-weight: 700;
-}
-
-.journeyNote {
-  margin: 0.2rem 0 0;
-  color: var(--ifm-font-color-secondary);
-  font-size: 0.9rem;
-}
-
-.decisionGuide {
-  border: 1px solid var(--ifm-color-emphasis-200);
-  border-radius: 14px;
-  padding: 1rem;
-  background: var(--ifm-background-surface-color);
-}
-
-.decisionTitle {
-  margin: 0;
-}
-
-.decisionRows {
-  margin-top: 0.75rem;
-  display: grid;
-  gap: 0.6rem;
-}
-
-.decisionRow {
-  border-radius: 10px;
-  border: 1px solid var(--ifm-color-emphasis-200);
-  padding: 0.7rem;
-  background: var(--ifm-color-emphasis-100);
-}
-
-.decisionRow p {
-  margin: 0;
-}
-
-.decisionRow p + p {
-  margin-top: 0.4rem;
-}
-
-.decisionLabelWhen {
-  color: #92400e;
-  font-weight: 700;
-}
-
-.decisionLabelDo {
-  color: var(--ifm-color-primary-dark);
-  font-weight: 700;
-}
-
-.decisionLabelThen {
-  color: #1d4ed8;
-  font-weight: 700;
-}
-
-:global([data-theme="dark"]) .decisionLabelWhen {
-  color: #fcd34d;
-}
-
-:global([data-theme="dark"]) .decisionLabelThen {
-  color: #93c5fd;
-}
-
 .quickAnswer {
   border: 1px solid var(--ifm-color-emphasis-200);
   border-radius: 10px;
@@ -754,7 +471,6 @@
 /* Keyboard accessibility: focus-visible mirrors hover states */
 .roleCard:focus-visible,
 .stepFlowItem:focus-visible,
-.journeyItem:focus-visible,
 .featureState:focus-visible,
 .nextAction:focus-visible {
   border-color: var(--ifm-color-primary-light);
@@ -799,10 +515,6 @@
     animation: cardEnter 300ms ease both;
   }
 
-  .journeyItem {
-    animation: cardEnter 300ms ease both;
-  }
-
   .roleCard {
     animation: cardEnter 300ms ease both;
   }
@@ -831,9 +543,6 @@
     animation-delay: 400ms;
   }
 
-  .journeyIndexCurrent {
-    animation: pulse 2s ease-in-out infinite;
-  }
 }
 
 /* ── Hero Section ────────────────────────────────────────────────────── */
@@ -896,19 +605,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .guideOpener {
-    grid-template-columns: 1fr;
-  }
-
-  .guideOpenerImage {
-    max-height: 9rem;
-  }
-
-  .guideOpenerCaption {
-    border-left: 0;
-    border-top: 3px solid var(--docs-role-accent);
-  }
-
   .pathNav {
     align-items: flex-start;
     flex-direction: column;
@@ -939,9 +635,6 @@
     padding: 0.9rem;
   }
 
-  .atAGlanceGrid {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 560px) {

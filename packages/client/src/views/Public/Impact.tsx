@@ -1,16 +1,16 @@
 import {
+  type PublicGardenSummary,
+  usePublicGardens,
+} from "@green-goods/shared/hooks/public/usePublicGardens";
+import { usePublicImpactEvidence } from "@green-goods/shared/hooks/public/usePublicImpactEvidence";
+import { usePublicStats } from "@green-goods/shared/hooks/public/usePublicStats";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
+import { selectPublicSurfaceState } from "@green-goods/shared/public";
+import {
   PUBLIC_IMPACT_RECORD_FETCH_CAP,
   type PublicImpactEvidenceKind,
   type PublicImpactEvidenceRecord,
 } from "@green-goods/shared/public-contracts/public-impact";
-import {
-  type PublicGardenSummary,
-  usePublicGardens,
-} from "@green-goods/shared/hooks/public/usePublicGardens";
-import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
-import { usePublicImpactEvidence } from "@green-goods/shared/hooks/public/usePublicImpactEvidence";
-import { usePublicStats } from "@green-goods/shared/hooks/public/usePublicStats";
-import { selectPublicSurfaceState } from "@green-goods/shared/public";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import {
@@ -18,6 +18,7 @@ import {
   EditorialDomainChip,
   EditorialHeading,
   EditorialKicker,
+  EditorialMediaCardSkeleton,
   EditorialSelect,
   type EditorialSelectOption,
   EditorialTitleAccent,
@@ -31,6 +32,7 @@ import { PublicFooter } from "@/components/Public/PublicFooter";
 import { type PublicProofMarker, PublicProofMarkers } from "@/components/Public/PublicProofMarkers";
 import { PublicSurfaceState } from "@/components/Public/PublicSurfaceState";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
+
 type KindFilter = "all" | PublicImpactEvidenceKind;
 interface KindEntry {
   id: KindFilter;
@@ -340,13 +342,13 @@ export default function ImpactPage() {
         })}
         title={formatMessage({
           id: "public.impact.pipeline.title",
-          defaultMessage: "From plan to public proof, season after season.",
+          defaultMessage: "From need to learning, season after season.",
         })}
         titleId="public-impact-pipeline-title"
         intro={formatMessage({
           id: "public.impact.pipeline.intro",
           defaultMessage:
-            "Each Garden moves through five stages of evidence and starts again. The cycle is what turns a place's intentions into something the public can verify.",
+            "Each Garden moves through four stages and starts again. The cycle is what turns a place's needs into something the public can verify.",
         })}
       />
 
@@ -374,7 +376,7 @@ export default function ImpactPage() {
               {formatMessage({
                 id: "public.impact.ledger.intro",
                 defaultMessage:
-                  "Filter by record kind or domain. Each card opens its source: the full assessment, work entry, or certificate behind the line.",
+                  "Filter by record kind or domain. Each row links to the source: the full assessment, work entry, or certificate behind the line.",
               })}
             </p>
           </header>
@@ -460,17 +462,12 @@ export default function ImpactPage() {
                 aria-hidden="true"
               >
                 {[0, 1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex flex-col gap-4">
-                    <div className="aspect-[3/2] w-full animate-pulse bg-bg-weak-50" />
-                    <div className="h-3 w-24 animate-pulse bg-stroke-soft-200/60" />
-                    <div className="h-5 w-3/4 animate-pulse bg-stroke-soft-200/60" />
-                    <div className="h-3 w-1/2 animate-pulse bg-stroke-soft-200/40" />
-                  </div>
+                  <EditorialMediaCardSkeleton key={i} />
                 ))}
               </div>
             }
             error={
-              <p className="mt-12 max-w-2xl border-l-2 border-text-soft-400 bg-bg-white-0 px-4 py-3 text-sm text-text-sub-600">
+              <p className="mt-12 flex min-h-40 max-w-2xl items-center border-l-2 border-text-soft-400 bg-bg-white-0 px-4 py-3 text-sm text-text-sub-600">
                 {formatMessage({
                   id: "public.impact.evidence.error",
                   defaultMessage:
@@ -479,7 +476,7 @@ export default function ImpactPage() {
               </p>
             }
             empty={
-              <div className="mt-12 max-w-2xl border-t border-stroke-soft-200 pt-6">
+              <div className="mt-12 min-h-40 max-w-2xl border-t border-stroke-soft-200 pt-6">
                 <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
                   {formatMessage({
                     id: "public.impact.evidence.emptyKicker",
@@ -507,7 +504,7 @@ export default function ImpactPage() {
                     >
                       {formatMessage({
                         id: "public.impact.evidence.resetFilters",
-                        defaultMessage: "Reset filters",
+                        defaultMessage: "Reset Filters",
                       })}
                       <span aria-hidden="true">→</span>
                     </button>

@@ -39,7 +39,7 @@ const meta: Meta<typeof CommunityCanvasStory> = {
     docs: {
       description: {
         component:
-          "Seeded Community workspace coverage through the real CanvasLayout shell, including members, coordination pools, endowment vaults, payouts, and route-backed detail entry points.",
+          "Seeded Community workspace coverage through the real CanvasLayout shell, including members, coordination (governance and the pooling surface), endowment vaults, payouts, and route-backed detail entry points.",
       },
     },
   },
@@ -63,10 +63,11 @@ function communityDecorators(
   ];
 }
 
-// Community → Pools (W12): the protocol pool and this garden's pool.
-export const Pools: Story = {
+// Coordination with the folded W12 pooling surface seeded (2026-08-25 AD-5):
+// the protocol pool and this garden's pool render beneath the governance grid.
+export const CoordinationWithPooling: Story = {
   tags: ["visual-harness"],
-  args: { initialPath: "/community/pools" },
+  args: { initialPath: "/community/coordination" },
   decorators: communityDecorators([...STORYBOOK_ADMIN_SHELL_SEEDS, ...POOL_STORY_SEEDS]),
 };
 

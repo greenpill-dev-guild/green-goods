@@ -126,16 +126,16 @@ export function setupFlowTitle(
   return intent === "first-run"
     ? formatMessage({
         id: "cockpit.garden.pool.setup.title",
-        defaultMessage: "Set up commitments",
+        defaultMessage: "Set Up Commitments",
       })
     : isCampaign
       ? formatMessage({
           id: "cockpit.garden.pool.setup.campaignTitle",
-          defaultMessage: "Start a campaign",
+          defaultMessage: "Start a Campaign",
         })
       : formatMessage({
           id: "cockpit.garden.pool.setup.seasonTitle",
-          defaultMessage: "Start a season",
+          defaultMessage: "Start a Season",
         });
 }
 

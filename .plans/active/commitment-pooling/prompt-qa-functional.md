@@ -206,9 +206,9 @@ for editorial.
 10. Admin a11y knowns: validation errors not linked via `aria-describedby`; `AdminButton
     size="sm"` row acts (59 uses) under the 44px touch target; light mode proven only through
     the Storybook build. Measure and report; do not fix.
-11. `bun run check:design-generated` is red on a stale
-    `docs/docs/builders/packages/client-pwa-token-audit.generated.md` from #749. Pre-existing;
-    record, don't chase.
+11. `bun run check:design-generated` may report drift in the generated
+    `output/design/client-pwa-token-audit.md` artifact from #749. It is an executable design
+    check, not a public builder page; record the result without editing the artifact by hand.
 12. 23 unresolved review threads remain across the merged PRs (#748: 5, #749: 10, #752: 8).
     Skim them once; where a thread names testable behavior, fold it into your checks; list
     the rest for Afo (decision 4).

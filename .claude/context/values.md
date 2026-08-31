@@ -57,6 +57,17 @@ Apply this compact contract whenever writing or reviewing production code:
 - **Final simplification pass**: after behavior is green, delete redundancy, flatten avoidable
   branching, improve names, and remove comments or abstractions that no longer earn their cost.
 
+### Authority and judgment routing
+
+- Current behavior, routes, exports, endpoints, deployment state, and workflows are authoritative
+  in code and configuration. Do not create prose inventories that must be kept in sync by hand.
+- The ontology owns cross-package entities, vocabulary, relationships, schemas, and lifecycle
+  semantics. Plan Hubs own rationale, rejected alternatives, and accepted execution decisions.
+- Authored documentation explains stable concepts, user flows, recovery, and navigation. Project
+  volatile facts deterministically from their owning sources.
+- Automate repeatable mechanical checks. Preserve human review for irreversible operations,
+  security boundaries, product tradeoffs, and claims whose truth cannot be derived mechanically.
+
 When agent values conflict, resolve in this order (highest priority first):
 
 ## Priority Stack

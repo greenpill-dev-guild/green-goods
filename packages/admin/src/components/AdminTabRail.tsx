@@ -152,7 +152,7 @@ export function AdminTabRail({
             }}
             onKeyDown={(event) => handleKeyDown(event, tab.id)}
             className={cn(
-              "relative -mb-px inline-flex shrink-0 cursor-pointer items-center gap-2 border-b-2 bg-transparent px-4 py-2.5",
+              "relative -mb-px inline-flex shrink-0 cursor-pointer items-center gap-2 border-b-2 bg-transparent px-4 py-2",
               "text-label-lg leading-5",
               "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] motion-reduce:transition-none",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",

@@ -151,8 +151,8 @@ const meta: Meta<typeof ModalDrawer> = {
   title: "Client/Dialogs/ModalDrawer",
   component: ModalDrawer,
   tags: ["autodocs"],
+  globals: { viewport: { value: "mobile" } },
   parameters: {
-    viewport: { defaultViewport: "mobile1" },
     layout: "fullscreen",
   },
   argTypes: {
@@ -345,10 +345,10 @@ export const MobileGeometry: Story = {
   tags: ["storybook-ci"],
   parameters: {
     viewport: {
-      defaultViewport: "modalDrawerMobile390x844",
-      viewports: MODAL_DRAWER_MOBILE_VIEWPORT,
+      options: MODAL_DRAWER_MOBILE_VIEWPORT,
     },
   },
+  globals: { viewport: { value: "modalDrawerMobile390x844" } },
   render: () => (
     <ModalDrawerDemo
       header={{ title: "Mobile drawer geometry", description: "Full-width bottom sheet" }}
@@ -418,7 +418,5 @@ export const Mobile: Story = {
       </div>
     </ModalDrawerDemo>
   ),
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
 };

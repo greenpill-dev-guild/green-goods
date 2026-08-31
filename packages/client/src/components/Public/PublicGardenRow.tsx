@@ -8,7 +8,7 @@ import type {
 import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts/core";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { ImageWithFallback } from "@/components/Display";
+import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
 import { EditorialGhostButton, EditorialKicker, EditorialPrimaryButton } from "./atoms";
 import { GardenCoverFallback } from "./GardenCoverFallback";
 
@@ -100,7 +100,7 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
           <ImageWithFallback
             src={garden.bannerImage}
             alt=""
-            className="h-full w-full object-cover transition-transform group-hover:scale-[1.03]"
+            className="h-full w-full object-cover"
             backgroundFallback={
               <GardenCoverFallback
                 name={garden.name}

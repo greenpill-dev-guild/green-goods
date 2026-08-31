@@ -21,8 +21,8 @@ vi.mock("react-intl", () => ({
         "nav.actions": "Actions",
         "nav.gardens": "Gardens",
         "cockpit.nav.profile": "Profile",
-        "cockpit.fab.openActions": "Open actions",
-        "actions.submit": "Submit work",
+        "cockpit.fab.openActions": "Open Actions",
+        "actions.submit": "Submit Work",
         "actions.disabled": "Disabled action",
       };
       return messages[id] ?? id;
@@ -398,7 +398,7 @@ describe("NavigationBar", () => {
         {
           id: "submit-work",
           icon: StubIcon,
-          label: "Submit work",
+          label: "Submit Work",
           labelId: "actions.submit",
         },
         {
@@ -446,7 +446,7 @@ describe("NavigationBar", () => {
         {
           id: "submit-work",
           icon: StubIcon,
-          label: "Submit work",
+          label: "Submit Work",
           labelId: "actions.submit",
         },
         {
@@ -492,7 +492,7 @@ describe("NavigationBar", () => {
         {
           id: "submit-work",
           icon: StubIcon,
-          label: "Submit work",
+          label: "Submit Work",
           labelId: "actions.submit",
         },
       ],

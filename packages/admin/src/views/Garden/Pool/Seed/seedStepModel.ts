@@ -26,9 +26,6 @@ export const STEP_FIELDS: Record<StepId, Array<keyof CommitmentComposerValues>> 
   review: [],
 };
 
-export const SELECT_CLASS =
-  "w-full rounded-[var(--m3-shape-sm)] bg-[rgb(var(--m3-surface-container-highest))] px-3 py-2 text-body-md text-[rgb(var(--m3-on-surface))] ring-1 ring-inset ring-[rgb(var(--m3-outline-variant))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] disabled:opacity-[0.38]";
-
 /**
  * A confirmer entry is only addable once it is a well-formed 20-byte address,
  * and never the zero address: `CreditLib.eligibleNamedConfirmerCount` skips

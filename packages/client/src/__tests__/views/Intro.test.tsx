@@ -147,9 +147,9 @@ import { type Action, type Address, Domain, type Garden } from "@green-goods/sha
 import { WorkIntro } from "../../views/Garden/Intro";
 
 const messages: Record<string, string> = {
-  "app.garden.selectYourAction": "Select your action",
+  "app.garden.selectYourAction": "Select Your Action",
   "app.garden.whatTypeOfWork": "What type of work are you submitting?",
-  "app.garden.selectYourGarden": "Select your garden",
+  "app.garden.selectYourGarden": "Select Your Garden",
   "app.garden.whichGarden": "Which garden are you submitting for?",
   "app.garden.noActiveActions": "No active actions at this time.",
   "app.garden.noActionsConfigured": "No actions have been configured for this garden yet.",
@@ -168,7 +168,7 @@ const messages: Record<string, string> = {
     "Eligible commitments could not be read. Try again or continue without one.",
   "app.garden.commitment.invalid":
     "That commitment link is no longer eligible. Choose another commitment or continue without one.",
-  "app.garden.commitment.retry": "Try again",
+  "app.garden.commitment.retry": "Try Again",
   "app.garden.commitment.empty": "No eligible commitments match this garden and action.",
   "app.domain.tab.solar": "Solar",
   "app.domain.tab.agro": "Agroforestry",
@@ -242,8 +242,8 @@ describe("WorkIntro", () => {
   it("renders action and garden form info sections", () => {
     renderIntro();
 
-    expect(screen.getByText("Select your action")).toBeInTheDocument();
-    expect(screen.getByText("Select your garden")).toBeInTheDocument();
+    expect(screen.getByText("Select Your Action")).toBeInTheDocument();
+    expect(screen.getByText("Select Your Garden")).toBeInTheDocument();
   });
 
   it("renders action cards for active actions", () => {
@@ -377,7 +377,7 @@ describe("WorkIntro", () => {
     });
 
     expect(screen.getByRole("alert")).toHaveTextContent(/could not be read/i);
-    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
     expect(onRetryCommitmentChoices).toHaveBeenCalledTimes(1);
   });
 

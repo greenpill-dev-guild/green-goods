@@ -1,8 +1,8 @@
-import { formatAddress, formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
+import { WorkCard as SharedWorkCard } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import type { Work } from "@green-goods/shared/types/domain";
-import { WorkCard as SharedWorkCard } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
+import { formatAddress, formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
 import React from "react";
 import { useIntl } from "react-intl";
 
@@ -31,7 +31,7 @@ function getWorkCardLabels(formatMessage: ReturnType<typeof useIntl>["formatMess
       uploading: formatMessage({ id: "app.status.uploading", defaultMessage: "Uploading" }),
       sync_failed: formatMessage({
         id: "app.status.syncFailed",
-        defaultMessage: "Sync Failed",
+        defaultMessage: "Sync failed",
       }),
       offline: formatMessage({ id: "app.status.offline", defaultMessage: "Offline" }),
     },

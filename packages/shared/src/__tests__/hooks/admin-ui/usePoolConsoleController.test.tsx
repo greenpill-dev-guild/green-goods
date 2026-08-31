@@ -60,6 +60,7 @@ const mocks = vi.hoisted(() => ({
   poolPending: false,
   commitmentPending: false,
   pinPoolCharter: vi.fn(),
+  fundingRefetch: vi.fn(),
 }));
 
 vi.mock("../../../ontology/query", () => ({
@@ -101,6 +102,20 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentQueueState", () => ({
 
 vi.mock("../../../hooks/commitment-pooling/useCommitmentReason", () => ({
   useCommitmentReason: mocks.reason,
+}));
+
+vi.mock("../../../hooks/commitment-pooling/usePoolFunding", () => ({
+  usePoolFunding: () => ({
+    snapshot: null,
+    isLoading: false,
+    isFetching: false,
+    isRefetching: false,
+    isError: false,
+    hasStaleBalance: false,
+    lastReadAt: null,
+    ledgerReadAt: null,
+    refetch: mocks.fundingRefetch,
+  }),
 }));
 
 vi.mock("../../../hooks/commitment-pooling/usePoolCharter", () => ({

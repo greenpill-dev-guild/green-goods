@@ -30,7 +30,7 @@ interface CommitmentsDrawerProps {
  * relationship that moves, needs an act, and belongs to a garden.
  *
  * Tabs split by tense rather than by object, so the container word and the
- * object words are never the same: "Commitments" holds "Live" and "Over time".
+ * object words are never the same: "Commitments" holds "Live" and "History".
  * A steward gets a third, "To confirm", for what reaches them through their
  * garden's Hat rather than through their own account.
  */

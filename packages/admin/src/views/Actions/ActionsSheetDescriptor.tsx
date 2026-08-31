@@ -63,7 +63,7 @@ export function ActionsSheetDescriptor({
           ? formatMessage({ id: "app.actions.edit.title" }, { name: action.title })
           : formatMessage({
               id: "app.actions.edit",
-              defaultMessage: "Edit action",
+              defaultMessage: "Edit",
             }),
         content: action ? (
           <EditAction layout="sheet" />

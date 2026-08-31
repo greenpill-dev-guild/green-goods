@@ -49,7 +49,7 @@ const messages = {
   "app.draft.untitled": "Untitled Draft",
   "app.draft.status": "Draft",
   "app.draft.stepProgress": "Step {step}/4",
-  "app.draft.delete": "Delete draft",
+  "app.draft.delete": "Delete Draft",
 };
 
 const wrap = (el: React.ReactElement) =>
@@ -200,7 +200,7 @@ describe("DraftCard", () => {
       )
     );
 
-    await user.click(screen.getByLabelText("Delete draft"));
+    await user.click(screen.getByLabelText("Delete Draft"));
     expect(onDelete).toHaveBeenCalledTimes(1);
     expect(onResume).not.toHaveBeenCalled();
   });
@@ -216,7 +216,7 @@ describe("DraftCard", () => {
       )
     );
 
-    const deleteBtn = screen.getByLabelText("Delete draft");
+    const deleteBtn = screen.getByLabelText("Delete Draft");
     // Class assertion proxies for the actual tap target dimension.
     expect(deleteBtn.className).toContain("h-11");
     expect(deleteBtn.className).toContain("w-11");

@@ -48,7 +48,7 @@ export function WorkCommitmentSelection({
       <FormInfo
         title={intl.formatMessage({
           id: "app.garden.commitment.label",
-          defaultMessage: "Commitment (optional)",
+          defaultMessage: "Commitment",
         })}
         info={description}
         Icon={RiHandHeartLine}
@@ -101,7 +101,7 @@ export function WorkCommitmentSelection({
               <RiRefreshLine className="h-4 w-4" aria-hidden="true" />
               {intl.formatMessage({
                 id: "app.garden.commitment.retry",
-                defaultMessage: "Try again",
+                defaultMessage: "Try Again",
               })}
             </button>
           ) : null}
@@ -120,7 +120,7 @@ export function WorkCommitmentSelection({
           <label htmlFor="work-commitment-selection" className="sr-only">
             {intl.formatMessage({
               id: "app.garden.commitment.label",
-              defaultMessage: "Commitment (optional)",
+              defaultMessage: "Commitment",
             })}
           </label>
           <p id="work-commitment-selection-description" className="sr-only">
@@ -136,7 +136,7 @@ export function WorkCommitmentSelection({
             <option value="">
               {intl.formatMessage({
                 id: "app.garden.commitment.none",
-                defaultMessage: "No commitment",
+                defaultMessage: "Not for a Commitment",
               })}
             </option>
             {choices.map((choice) => (

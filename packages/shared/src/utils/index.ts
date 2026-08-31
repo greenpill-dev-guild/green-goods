@@ -399,14 +399,23 @@ export { clearFormDraft, loadFormDraft, saveFormDraft } from "./storage/form";
 // ============================================================================
 // STORAGE QUOTA
 // ============================================================================
-export type { StorageQuotaInfo, StorageQuotaThresholds } from "./storage/quota";
+export type {
+  PersistentStorageReason,
+  RefetchableStorageCleanupResult,
+  StorageQuotaInfo,
+  StorageQuotaThresholds,
+} from "./storage/quota";
 export {
+  cleanupRefetchableStorage,
   DEFAULT_CRITICAL_THRESHOLD,
   DEFAULT_LOW_THRESHOLD,
   formatBytes,
   getStorageQuota,
   hasEnoughStorage,
   isStorageQuotaSupported,
+  isQuotaExceededError,
+  requestPersistentStorageOnce,
+  retryOnceAfterQuotaCleanup,
   trackStorageErrorWithQuota,
   trackStorageQuota,
 } from "./storage/quota";

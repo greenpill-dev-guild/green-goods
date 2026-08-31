@@ -122,8 +122,8 @@ describe("Community coordination status actions", () => {
 
     expect(actionRow).toBe(manageStrategies.parentElement);
     expect(actionRow).toHaveClass("flex", "items-center", "gap-2");
-    expect(connectedStatus).toHaveClass("h-8", "items-center");
-    expect(manageStrategies).toHaveClass("h-8");
+    expect(connectedStatus).toHaveClass("h-7", "items-center");
+    expect(manageStrategies).toHaveClass("h-7");
     expect(manageStrategies).not.toHaveClass("h-auto");
   });
 });

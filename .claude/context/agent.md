@@ -307,7 +307,7 @@ The test setup (`src/__tests__/setup.ts`) provides:
 
 Read these docs pages when you need domain context for bot responses or user guidance:
 
-- Domain glossary and maturity links: `docs/docs/reference/glossary-community.md`
+- Domain terminology: `packages/shared/src/ontology/green-goods-ontology.json`; public projection: `docs/docs/reference/glossary.generated.mdx`
 - Impact model and evidence loop: `docs/docs/community/how-it-works.mdx`
 - Gardener getting started: `docs/docs/community/gardener-guide/index.mdx`
 - Communities and localization context: `docs/docs/community/welcome.mdx`

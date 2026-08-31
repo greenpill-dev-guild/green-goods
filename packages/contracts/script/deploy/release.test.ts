@@ -11,6 +11,7 @@ import {
   assertCheckpointReceiptBlock,
   type OwnershipCheckpoint,
   type OwnershipTransferPlan,
+  ownershipBroadcastWalletArgs,
   poolingPauseStateForRecovery,
   poolingPauseStateForStageArtifact,
   predictedSide,
@@ -188,6 +189,19 @@ describe("release CLI real entrypoints", () => {
     );
   });
 
+  it("reuses the release operator password lease for ownership boundaries", () => {
+    expect(ownershipBroadcastWalletArgs("green-goods-deployer", "/tmp/operator-password")).toEqual([
+      "--account",
+      "green-goods-deployer",
+      "--password-file",
+      "/tmp/operator-password",
+    ]);
+    expect(ownershipBroadcastWalletArgs("green-goods-deployer", undefined)).toEqual([
+      "--account",
+      "green-goods-deployer",
+    ]);
+  });
+
   it("requires a durable exact proxy receipt before producing an indexer start block", () => {
     expect(
       releaseReceiptForIndexer(
@@ -327,10 +341,16 @@ describe("release CLI real entrypoints", () => {
     expect(transfer).toContain("ownershipTransferTargets(network, manifest, lock");
     const verifier = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/release-verify.ts"), "utf8");
     expect(verifier).toContain("export function ownershipTransferTargets(");
-    for (const target of ["AssessmentResolver", "TestimonyResolver", "GardenToken", "WorkApprovalResolver"]) {
+    for (const target of [
+      "AssessmentResolver",
+      "TestimonyResolver",
+      "KarmaGAPModule",
+      "GardenToken",
+      "WorkApprovalResolver",
+    ]) {
       expect(verifier).toContain(`["${target}",`);
     }
-    expect(verifier).toContain("protocolSafe.${network}.exact-owner-set");
+    expect(verifier).toContain("protocolSafe.${network}.threshold-minimum");
   });
 
   it("freezes ownership transfer as the tier-3 gate in front of peer wiring", () => {

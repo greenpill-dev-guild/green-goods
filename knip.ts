@@ -98,6 +98,12 @@ const config: KnipConfig = {
         "storybook",
       ],
     },
+    "packages/qa": {
+      // The build script and the Vercel function are both entry points reached
+      // by platform convention (vercel.json buildCommand, the api/ directory),
+      // never by an import from elsewhere in the monorepo.
+      entry: ["build.mjs", "dev.mjs", "api/*.ts"],
+    },
     "packages/agent": {
       entry: ["src/index.ts"],
       ignoreDependencies: [
@@ -134,11 +140,7 @@ const config: KnipConfig = {
     },
     docs: {
       // Docusaurus site — skip TS analysis
-      entry: ["docusaurus.config.ts", "src/**/*.{ts,tsx}"],
-      ignoreDependencies: [
-        // Re-exported by @docusaurus/preset-classic, not declared directly
-        "@docusaurus/plugin-content-docs",
-      ],
+      entry: ["src/**/*.{ts,tsx}"],
     },
   },
   ignore: [

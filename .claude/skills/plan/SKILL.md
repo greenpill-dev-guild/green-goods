@@ -108,7 +108,8 @@ test.
 
 ### Phase 2: Plan Structure
 
-Use a foldered feature hub in `.plans/{ideas|backlog|active|archive}/<feature-slug>/`.
+Use a foldered feature hub in `.plans/{ideas|backlog|active}/<feature-slug>/`. Closed hubs are
+deleted at closeout and indexed in `.plans/ARCHIVE.md`; Git history is the only archive.
 Prefer kebab-case slugs.
 
 Minimum files:
@@ -311,15 +312,15 @@ BLOCKED → ACTIVE        (dependency resolved)
 
 ### Lifecycle Rules
 
-1. **Supersedes header**: When a new plan replaces an old one, the new plan MUST include `**Supersedes**: [old-plan-name.md]` in its header. Delete a superseded standalone plan only when it has no immutable report evidence. Move a report-bearing feature hub to `.plans/archive/` so its reports are preserved.
+1. **Supersedes header**: When a new plan replaces an old one, the new plan MUST include `**Supersedes**: [old-plan-name.md]` in its header. Close a superseded feature hub with `plan-hub.mjs move --to archive --resolution superseded` — the hub is validated, recorded in `.plans/ARCHIVE.md`, and deleted; its reports stay recoverable from Git history.
 
 2. **One canonical plan per feature**: Never have 2+ active plans for the same feature area. If you're writing a v2 plan, delete or archive v1 first.
 
-3. **Status updates on implementation**: When work ships that partially or fully implements a plan, update the plan's `**Status**` and `**Last Updated**` headers and the feature hub's `status.json`. If fully implemented, move the hub to `.plans/archive/`.
+3. **Status updates on implementation**: When work ships that partially or fully implements a plan, update the plan's `**Status**` and `**Last Updated**` headers and the feature hub's `status.json`. If fully implemented, close the hub with `plan-hub.mjs move --to archive --resolution completed` (ledger row + deletion; Git history is the archive).
 
 4. **Divergence notes**: If implementation diverges from the plan (different approach, dropped scope), add a `## Implementation Notes` section explaining what changed and why. Don't leave the plan as-if it was followed when it wasn't.
 
-5. **Stale plan cleanup**: Periodically audit `.plans/` — any plan untouched for 14+ days should be reviewed. Either update its status, confirm it's still active, delete it only when it has no immutable report evidence, or archive its feature hub when reports must survive.
+5. **Stale plan cleanup**: Periodically audit `.plans/` — any plan untouched for 14+ days should be reviewed. Either update its status, confirm it's still active, or close its feature hub via `move --to archive` with an honest resolution (`closed_stale`, `paused`, …). Closeout deletes the hub after recording it in `.plans/ARCHIVE.md`; never hand-delete report-bearing hubs outside that command.
 
 6. **No meeting notes in `.plans/`**: Raw transcripts and meeting notes go in `notes/`, Customer Needs, or safe comments on linked Linear/PR records, not `.plans/`. Plans must be actionable specs.
 
@@ -337,7 +338,7 @@ Plans with >15 locked decisions likely need splitting. Separate **vision/archite
 
 | Document Type | Decision Count | Location |
 |---------------|---------------|----------|
-| Architecture spec | Unlimited | `docs/specs/` or Linear project/issue document |
+| Architecture spec | Unlimited | Linear project/issue document or the owning `.plans/<feature-slug>/spec.md` |
 | Implementation plan | 5-15 decisions | `.plans/active/<feature-slug>/plan.todo.md` |
 | Task checklist | 0 decisions | `.plans/active/<feature-slug>/plan.todo.md` |
 | Evaluation plan | 0-10 gates | `.plans/active/<feature-slug>/eval.md` |

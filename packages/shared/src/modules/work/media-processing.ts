@@ -1,5 +1,3 @@
-import { heicTo, isHeic } from "heic-to/csp";
-
 export type WorkMediaSource = "camera" | "gallery";
 export type WorkMediaKind = "image" | "video" | "unknown";
 export type MediaRejectedReason = "unsupported" | "heic_conversion_failed";
@@ -136,6 +134,7 @@ function toJpegFileName(file: File): string {
 async function canConvertHeic(file: File): Promise<boolean> {
   if (!isLikelyHeic(file)) return false;
   try {
+    const { isHeic } = await import("heic-to/csp");
     return await isHeic(file);
   } catch {
     return isLikelyHeic(file);
@@ -143,6 +142,7 @@ async function canConvertHeic(file: File): Promise<boolean> {
 }
 
 async function convertHeicToJpeg(file: File, quality: number): Promise<File> {
+  const { heicTo } = await import("heic-to/csp");
   const convertedBlob = await heicTo({
     blob: file,
     type: "image/jpeg",

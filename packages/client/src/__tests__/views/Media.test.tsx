@@ -439,7 +439,7 @@ describe("WorkMedia", () => {
     fireEvent.error(images[1]);
 
     expect(await screen.findByText("Some media previews failed")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Remove broken media" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove Broken Media" }));
 
     await waitFor(() => {
       expect(screen.getAllByRole("img")).toHaveLength(1);

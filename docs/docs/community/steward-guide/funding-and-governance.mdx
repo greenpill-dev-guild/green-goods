@@ -1,0 +1,68 @@
+---
+title: Funding and Governance
+sidebar_label: Funding and Governance
+slug: /community/steward-guide/funding-and-governance
+audience: steward
+owner: docs
+last_verified: 2026-08-30
+feature_status: Live
+goal: "Choose and operate the live Garden funding or governance flow without mixing their purposes."
+difficulty: "advanced"
+estimated_time: "15-40 minutes per operation."
+prereqs: "An active Garden, the required steward permissions, and a connected account on the selected network."
+next_steps: "/community/steward-guide/index"
+persona_context: "Stewards managing long-term funding, bounded payouts, and community allocation decisions."
+source_of_truth:
+  - packages/admin/src/views/Garden/Vault.tsx
+  - packages/admin/src/views/Garden/Strategies.tsx
+  - packages/admin/src/views/Garden/SignalPool.tsx
+  - packages/admin/src/views/Community/components/CommunityPayoutsTab.tsx
+  - packages/admin/src/views/Cookies/index.tsx
+  - packages/shared/src/hooks/vault/useVaultDeposit.ts
+  - packages/shared/src/hooks/vault/useVaultWithdraw.ts
+  - packages/shared/src/hooks/conviction/useGardenPools.ts
+  - packages/shared/src/hooks/cookie-jar/useGardenCookieJars.ts
+  - packages/contracts/deployments/42161-latest.json
+---
+
+# Funding and Governance
+
+Use the mechanism that matches the decision. A Vault holds long-term Garden funding. A Cookie Jar supports bounded operational withdrawals. Signal and conviction pools help a community express or accumulate support before allocation.
+
+## Choose the flow
+
+| Need | Use | First check |
+|---|---|---|
+| Long-term principal with later yield routing | Garden Vault | Confirm the Garden, network, asset, signer, and withdrawal policy. |
+| Small recurring operational payouts | Cookie Jar | Confirm the eligible members, interval, cap, and current balance. |
+| Community preference before allocation | Signal or conviction pool | Confirm the initialized community, strategy, voting-power mapping, and eligible claims. |
+
+These mechanisms are not interchangeable. A deployment record proves that code is recorded for a network; it does not prove that every Garden is configured or that an external service is healthy. Check [Deployment Status](/builders/deployments/status) when availability is uncertain.
+
+## Run a funding action
+
+1. Open the Garden and select its funding surface.
+2. Verify the selected network, account, asset, amount, and destination.
+3. Review the Garden's approval and reporting policy before signing.
+4. Submit once and wait for confirmation. Do not repeat the action merely because indexing is delayed.
+5. Reopen the Garden and confirm the resulting balance or transaction state.
+
+Vault withdrawals return principal according to the active position and permissions. Cookie Jar withdrawals remain limited by the configured allowance and interval. Payout records and indexed views may lag the transaction that created them.
+
+## Run a governance action
+
+1. Confirm the strategy and voting-power source.
+2. Add only eligible claims or proposals to the pool.
+3. Explain whether the signal is advisory or produces a binding allocation.
+4. Monitor participation and role mappings before acting on the result.
+5. Keep the allocation decision and its evidence legible to the Garden community.
+
+## Recovery
+
+- **The control is missing:** confirm the Garden is configured for that mechanism and that your current account has the required role.
+- **The wrong network is selected:** stop, switch to the supported network, and recheck every value.
+- **A transaction is pending:** inspect the account history before retrying; delayed indexing is not a failed transaction.
+- **A pool cannot be created:** verify community initialization, strategy addresses, and voting-power configuration.
+- **A withdrawal is blocked:** check the balance, allowance, interval, and pause state.
+
+Keep troubleshooting beside the action: record the Garden, network, transaction reference when available, visible error, and selected mechanism before asking for help. Never share secret credentials.

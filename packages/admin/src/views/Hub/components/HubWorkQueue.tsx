@@ -116,7 +116,7 @@ export function HubWorkQueue({
           action={{
             label: formatMessage({
               id: "cockpit.hub.clearSearch",
-              defaultMessage: "Clear search",
+              defaultMessage: "Clear Search",
             }),
             variant: "ghost",
             size: "sm",

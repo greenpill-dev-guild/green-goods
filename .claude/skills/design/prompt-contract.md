@@ -15,7 +15,7 @@ Paste this sentence (or a trimmed version) into every AI design prompt for admin
 The admin cockpit and the client PWA are both Warm Earth. The difference is expressiveness, not foundation:
 
 - **Shared baseline**: concentric geometry, spring motion tokens, role hierarchy (canvas/ink/stone/green accent), 4 disclosure layers, 5 Z-layers, material system.
-- **Admin subset**: Standard motion scheme (never Expressive); translucency restricted to the Navigation/FAB **Controlled Chrome** — flat 85% surface + 12px blur + warm ambient shadow + 1px ink ring (rules in `admin-m3-tokens.css`), never "liquid glass" — while every dialog and side-sheet surface is solid and `MainSheet` is transparent; transparent admin `AppBar` root over the workspace canvas; the reduced admin radius scale 4/8/12/16/9999 — every button is a pill, the large FAB is 16px; solid surfaces over blur everywhere else; no organic/hero shapes; no decorative color.
+- **Admin subset**: Standard motion scheme (never Expressive); translucency restricted to the Navigation/FAB **Controlled Chrome** — flat 85% surface + 12px blur + warm ambient shadow + 1px ink ring (rules in `admin-m3-tokens.css`), never "liquid glass" — while every dialog and side-sheet surface is solid and `MainSheet` is transparent; transparent admin `AppBar` root over the workspace canvas; the reduced admin radius scale 4/8/12/16/9999 — every button is a pill and the FAB is a capsule at both sizes (DL-010); the compact control metric 28/32/36/40/44 (DL-011 — buttons 28/32/40, fields 44, toolbar pills 36); Title Case action labels in en (DL-012); solid surfaces over blur everywhere else; no organic/hero shapes; no decorative color.
 - **Why**: stewards scanning a queue need motion that aids, not entertains. The cockpit inherits warmth; it does not perform it.
 
 If you would not ship a move on Linear, GitHub, or Stripe Dashboard, it does not belong in the cockpit — regardless of what the Warm Earth language permits in client flows.
@@ -25,7 +25,7 @@ If you would not ship a move on Linear, GitHub, or Stripe Dashboard, it does not
 The canonical admin overlay is the centered **`AdminDialog`** (M3 basic dialog: surface-container-high, a 32% scrim covering the **full viewport**, right-aligned M3 action row, bottom-sheet on mobile). It hosts **every** workspace action *and* every detail/inspection flow — work review, assessment, hypercert, action create/edit/detail, garden settings, member management, cookie jar, vault.
 
 - **Workspace side sheets stay retired.** The old `LeftSheet` / `RightSheet` / `BottomSheet` canvas inspectors are not a pattern. Never propose a slide-in side panel for a workspace detail or creation flow — propose an `AdminDialog`. Because the dialog portals to `<body>` (out of the `[data-tone]` scope), always pass the workspace `tone`.
-- **Controlled Chrome stays on Navigation/FAB only.** The only translucent chrome in the cockpit is the `NavigationBar` dock and `AdminFab`: a flat 85% surface with 12px blur, a warm ambient shadow, and a 1px ink ring — the Controlled Chrome contract in `admin-m3-tokens.css`, not "liquid glass". The `AppBar` root and `MainSheet` are transparent; every dialog surface and the side sheet are solid M3 — never frosted.
+- **Controlled Chrome stays on Navigation/FAB only.** The only translucent chrome in the cockpit is the `NavigationBar` dock with its `FabButton`: a flat 85% surface with 12px blur, a warm ambient shadow, and a 1px ink ring — the Controlled Chrome contract in `admin-m3-tokens.css`, not "liquid glass". The `AppBar` root and `MainSheet` are transparent; every dialog surface and the side sheet are solid M3 — never frosted.
 - **`AdminDialog` is still a mobile bottom-sheet** in its responsive presentation (it slides up from the bottom on narrow viewports). That is the dialog adapting — not the retired side-sheet system. `SheetBody` / `SheetFooter` / `SheetDivider` survive as layout primitives *inside* a dialog or side-sheet body.
 - Full-surface action flows (Submit Work, Create Assessment, Create Hypercert, Create/Edit Action) use `AdminDialog variant="flow"` + `className={ADMIN_FLOW_DIALOG_CLASS}` wrapping `ActionFlowShell` — see the size standard below (`xl`/`2xl` tiers no longer exist).
 
@@ -76,7 +76,7 @@ If a design tool emits a hero treatment in an admin screen, reject and regenerat
 
 ## Required Vocabulary
 
-> **Canonical glossary**: cross-surface domain terms (Garden, Action, Work, Assessment, Hypercert, Vault, Cookie Jar, Attestation, Hat, Season) and personas (Gardener, Steward, Evaluator, Funder, Community Member) live in [`docs/docs/reference/glossary-community.md § Design Vocabulary`](../../../docs/docs/reference/glossary-community.md#design-vocabulary). The table below is admin-specific component / cockpit vocabulary that does not live there.
+> **Terminology authority**: cross-surface domain terms and personas live in [`green-goods-ontology.json`](../../../packages/shared/src/ontology/green-goods-ontology.json). The generated public [glossary](../../../docs/docs/reference/glossary.generated.mdx) explains that vocabulary. The table below is admin-specific component and cockpit vocabulary.
 
 Use these terms when describing admin UI:
 
@@ -97,7 +97,7 @@ Use these terms when describing admin UI:
 
 ## Never Use (in admin prompts)
 
-> **Canonical source**: the full admin-banned phrase list lives in [`docs/docs/reference/glossary-community.md § Admin-Only Banned (AI Prompt Vocabulary)`](../../../docs/docs/reference/glossary-community.md#admin-only-banned-ai-prompt-vocabulary) and in [`docs/docs/reference/banned-vocabulary.json`](../../../docs/docs/reference/banned-vocabulary.json) (`prompt_vocabulary_admin_banned`). Lint-enforced cross-surface bans live in the same glossary § Lint-Enforced section — `bun run lint:vocab` parses the JSON.
+> **Machine policy**: the full admin-banned phrase list lives in [`scripts/data/banned-vocabulary.json`](../../../scripts/data/banned-vocabulary.json) (`prompt_vocabulary_admin_banned`). `bun run lint:vocab` reads the same file for lint-enforced cross-surface terms.
 
 The categories below are contract-specific framing — *why* admin output should reject these patterns. The exact phrase set is the glossary's job:
 
@@ -177,11 +177,17 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | `AdminDialog` | Centered overlay — **every** workspace action and detail/inspection flow (config, alerts, work/assessment/hypercert/action detail, create/edit). Full-viewport scrim; bottom-sheet on mobile; pass workspace `tone`. Replaces the retired `LeftSheet`/`RightSheet`/`BottomSheet` for workspace flows. |
 | `AdminSideSheet` | Right-docked modal side sheet — **only** the three global AppBar surfaces (Profile, Settings, Notifications). Bottom-sheet presentation on mobile (bell only); `tone="hub"`; scope enforced by `AdminSideSheetStandard.guard`. |
 | `NavigationBar` | Bottom workspace tabs — Hub, Garden, Community, Actions (+ mobile-only Profile tab); symbol-first; role-adaptive |
-| `AdminFab` | Per-workspace primary action in the nav shell — circular FAB (`rounded-full`, 48px; 56px floating with label) or 16px large variant; integrated via `FabProvider` |
+| `FabButton` (`Shell/FabButton`) | Per-workspace primary action in the nav shell — a capsule at both sizes (`rounded-full`): 48px dock circle, 56px extended floating capsule with label (DL-010); integrated via `FabProvider` |
 
-**M3 wrappers** (`packages/admin/src/components/Admin*.tsx` — the filesystem is the count of record; 20 today):
+**M3 wrappers** (exported from `packages/admin/src/components/Admin*.tsx` — the filesystem is the roster of record; 21 wrappers across 18 files today, since `AdminConfirmDialog` lives in `AdminDialog.tsx` and `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`):
 
-`AdminBadge` · `AdminButton` · `AdminCard` · `AdminCheckbox` · `AdminChoiceGroup` · `AdminDialog` · `AdminFab` · `AdminFilterChip` · `AdminInlineField` · `AdminLinearProgress` · `AdminListItem` · `AdminSearchToolbar` · `AdminSelectableCard` · `AdminSettingRow` · `AdminSideSheet` · `AdminSortSelect` · `AdminTabRail` · `AdminTextField` · `AdminTooltip` · `AdminViewActions`
+`AdminButton` · `AdminCard` · `AdminCheckbox` · `AdminChoiceGroup` · `AdminConfirmDialog` · `AdminDialog` · `AdminFilterChip` · `AdminInlineField` · `AdminLinearProgress` · `AdminReasonDialog` · `AdminSearchToolbar` · `AdminSelect` · `AdminSelectableCard` · `AdminSettingRow` · `AdminSideSheet` · `AdminSortSelect` · `AdminTabRail` · `AdminTextArea` · `AdminTextField` · `AdminTooltip` · `AdminViewActions`
+
+Form selects use `AdminSelect` (full field anatomy, permanently floated label, chevron slot, empty-value option as the placeholder row); `AdminSortSelect` is the toolbar sort pill only — never a form control.
+
+**Field anatomy**: the filled variant with its bottom underline is the cockpit's default field look ("the line"); use `variant="outlined"` only when a field sits ON a filled surface (e.g. inside a container-highest panel) where the underline would vanish. All fields share the 44px compact height, 14px text, and one error anatomy — label + indicator/ring recolor to `--m3-error`, supporting text in the family slot (`AdminInlineField` included).
+
+(`AdminBadge`, `AdminFab`, and `AdminListItem` were deleted 2026-08-29 — do not reintroduce them; the nav-shell FAB is `Shell/FabButton`.)
 
 All follow M3 v0.192 anatomy exactly, on the reduced admin shape scale — 4/8/12/16/9999 (`--m3-shape-xs/sm/md/lg/full`) — do not override dimensions, state layers, or shape scale.
 

@@ -22,7 +22,6 @@ const baseInput = {
   canManage: true,
   canAssess: true,
   canCertify: true,
-  canBrowseHistory: true,
 };
 
 describe("buildHubStageModel stageCounts", () => {
@@ -37,7 +36,6 @@ describe("buildHubStageModel stageCounts", () => {
     expect(stageCounts.work).toBe(2); // two pending submissions
     expect(stageCounts.assess).toBe(1); // one approved submission awaiting assessment
     expect(stageCounts.certify).toBe(2); // three assessments minus one already certified
-    expect(stageCounts.history).toBeUndefined();
   });
 
   it("reports the full pipeline regardless of which stage is requested", () => {
@@ -68,11 +66,10 @@ describe("buildHubStageModel stageCounts", () => {
     expect(steward.stageCounts.confirm).toBe(3);
     expect(steward.stageVisibility.confirm).toBe(true);
     expect(steward.stages.map((stage) => stage.id)).toEqual([
+      "confirm",
       "work",
       "assess",
       "certify",
-      "confirm",
-      "history",
     ]);
 
     const evaluator = buildHubStageModel({
@@ -97,7 +94,6 @@ describe("Hub workbench routing policy", () => {
     "assess",
     "confirm",
     "certify",
-    "history",
   ] as const)("routes the %s stage to its matching queue", (stage) => {
     expect(selectHubStageContent(stage)).toBe(stage);
   });
@@ -109,7 +105,6 @@ describe("Hub workbench routing policy", () => {
         routeCertificationId: "certification",
         activeWorkDetailId: "active-work",
         hasSelectedCertification: true,
-        hasSelectedHistoryEvent: true,
       })
     ).toEqual({ kind: "work", id: "route-work" });
   });
@@ -119,7 +114,6 @@ describe("Hub workbench routing policy", () => {
       resolveHubSheetSelection({
         activeWorkDetailId: "active-work",
         hasSelectedCertification: true,
-        hasSelectedHistoryEvent: true,
       })
     ).toEqual({ kind: "work", id: "active-work" });
   });
@@ -127,14 +121,11 @@ describe("Hub workbench routing policy", () => {
   it.each([
     ["certification route", { routeCertificationId: "certification" }, "certification"],
     ["selected certification", { hasSelectedCertification: true }, "certification"],
-    ["history route", { routeHistoryEventId: "history" }, "history"],
-    ["selected history", { hasSelectedHistoryEvent: true }, "history"],
   ] as const)("resolves a %s inspector", (_label, overrides, kind) => {
     expect(
       resolveHubSheetSelection({
         activeWorkDetailId: null,
         hasSelectedCertification: false,
-        hasSelectedHistoryEvent: false,
         ...overrides,
       })
     ).toEqual({ kind });
@@ -145,7 +136,6 @@ describe("Hub workbench routing policy", () => {
       resolveHubSheetSelection({
         activeWorkDetailId: null,
         hasSelectedCertification: false,
-        hasSelectedHistoryEvent: false,
       })
     ).toBeNull();
   });
@@ -166,7 +156,6 @@ describe("Hub create-route stage resolution (two-click investigation)", () => {
       sortParam: null,
       routedWorkIdParam: undefined,
       routedAssessmentIdParam: undefined,
-      routedHistoryEventIdParam: undefined,
       activeContentId: null,
     });
 
@@ -182,7 +171,6 @@ describe("Hub create-route stage resolution (two-click investigation)", () => {
       canManage: true,
       canAssess: true,
       canCertify: true,
-      canBrowseHistory: true,
       works: [],
       assessments: [],
       hypercerts: [],
@@ -199,7 +187,6 @@ describe("Hub create-route stage resolution (two-click investigation)", () => {
       canManage: true,
       canAssess: false,
       canCertify: true,
-      canBrowseHistory: true,
       works: [],
       assessments: [],
       hypercerts: [],

@@ -10,32 +10,13 @@ const REACT_QUERY_PERSISTENCE_KEY = "__rq_pc__";
  */
 class ServiceWorkerManager {
   private registration: ServiceWorkerRegistration | null = null;
-  private isSupported = false;
-  private hasController = false;
-  private hasReloadedForUpdate = false;
   private readonly boundMessageHandler = this.handleMessage.bind(this);
-
-  constructor() {
-    const hasNavigator = typeof navigator !== "undefined";
-    const hasWindow = typeof window !== "undefined";
-
-    this.isSupported =
-      hasNavigator &&
-      hasWindow &&
-      "serviceWorker" in navigator &&
-      "ServiceWorkerRegistration" in window &&
-      // Background Sync support check — not in standard types yet
-      "sync" in ServiceWorkerRegistration.prototype;
-
-    this.hasController =
-      hasNavigator && "serviceWorker" in navigator && navigator.serviceWorker.controller !== null;
-  }
 
   /**
    * Whether the current browser can register the Green Goods service worker.
    */
   canRegister(): boolean {
-    return this.isSupported;
+    return isServiceWorkerSupported();
   }
 
   /**
@@ -48,34 +29,14 @@ class ServiceWorkerManager {
 
     // Set up message handler for background sync notifications
     navigator.serviceWorker.removeEventListener("message", this.boundMessageHandler);
-    navigator.serviceWorker.removeEventListener("controllerchange", this.handleControllerChange);
     navigator.serviceWorker.addEventListener("message", this.boundMessageHandler);
-    navigator.serviceWorker.addEventListener("controllerchange", this.handleControllerChange);
   }
-
-  /**
-   * Reload the page once a new service worker takes control
-   */
-  private handleControllerChange = () => {
-    // Avoid reloading on the very first install when there was no controller
-    if (!this.hasController) {
-      this.hasController = true;
-      return;
-    }
-
-    if (this.hasReloadedForUpdate) {
-      return;
-    }
-
-    this.hasReloadedForUpdate = true;
-    window.location.reload();
-  };
 
   /**
    * Check if Background Sync is supported
    */
   isBackgroundSyncSupported(): boolean {
-    return this.isSupported && this.registration !== null;
+    return isBackgroundSyncSupported(this.registration);
   }
 
   /**
@@ -186,7 +147,7 @@ class ServiceWorkerManager {
    */
   getStatus() {
     return {
-      isSupported: this.isSupported,
+      isSupported: this.canRegister(),
       isRegistered: this.registration !== null,
       canBackgroundSync: this.isBackgroundSyncSupported(),
       scope: this.registration?.scope || null,
@@ -195,3 +156,14 @@ class ServiceWorkerManager {
 }
 
 export const serviceWorkerManager = new ServiceWorkerManager();
+
+function isServiceWorkerSupported(): boolean {
+  return typeof navigator !== "undefined" && "serviceWorker" in navigator;
+}
+
+export function isBackgroundSyncSupported(
+  registration?: ServiceWorkerRegistration | null
+): boolean {
+  if (!isServiceWorkerSupported() || !registration) return false;
+  return "sync" in registration;
+}

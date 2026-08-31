@@ -19,7 +19,7 @@ on:
       - "docs/DESIGN.md"
       - "docs/docs/builders/packages/admin.mdx"
       - "docs/docs/builders/testing/storybook.mdx"
-      - "docs/docs/reference/banned-vocabulary.json"
+      - "scripts/data/banned-vocabulary.json"
       - "packages/admin/AGENTS.md"
       - "packages/admin/DESIGN.md"
       - "packages/admin/src/**"
@@ -57,7 +57,7 @@ on:
       - "docs/DESIGN.md"
       - "docs/docs/builders/packages/admin.mdx"
       - "docs/docs/builders/testing/storybook.mdx"
-      - "docs/docs/reference/banned-vocabulary.json"
+      - "scripts/data/banned-vocabulary.json"
       - "packages/admin/AGENTS.md"
       - "packages/admin/DESIGN.md"
       - "packages/admin/src/**"
@@ -139,6 +139,9 @@ jobs:
       - name: Check story quality
         run: bun run --filter @green-goods/shared check:story-quality
 
+      - name: Produce client PWA token audit
+        run: bun run check:design-tokens
+
       - name: Install Playwright Chromium
         timeout-minutes: 15
         uses: ./.github/actions/setup-playwright
@@ -153,7 +156,9 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: storybook-static
-          path: packages/shared/storybook-static
+          path: |
+            packages/shared/storybook-static
+            output/design/client-pwa-token-audit.md
 
       - name: Publish Storybook to Chromatic
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_chromatic && env.CHROMATIC_PROJECT_TOKEN != '' }}

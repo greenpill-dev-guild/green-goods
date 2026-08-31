@@ -343,7 +343,7 @@ Jobs sync automatically on:
 
 Read these docs pages when you need user journey context or error diagnostics:
 
-- Gardener common errors (error-to-fix lookup): `docs/docs/community/gardener-guide/common-errors.mdx`
+- Gardener recovery and sync: `docs/docs/community/gardener-guide/recovery-and-sync.mdx`
 - Evidence capture workflow: `docs/docs/community/gardener-guide/uploading-your-work.mdx`
 - Work submission flow: `docs/docs/community/gardener-guide/uploading-your-work.mdx`
 - Gardener getting started: `docs/docs/community/gardener-guide/index.mdx`

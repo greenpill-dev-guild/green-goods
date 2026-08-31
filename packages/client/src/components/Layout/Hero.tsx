@@ -4,12 +4,12 @@ import { type FC, useCallback, useEffect, useState } from "react";
 import { DeviceFrameset } from "react-device-frameset";
 import "react-device-frameset/styles/marvel-devices.min.css";
 
-import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
-import { useApp } from "@green-goods/shared/providers/App";
 import { useInstallGuidance } from "@green-goods/shared/hooks/app/useInstallGuidance";
+import { useTunnelUrl } from "@green-goods/shared/hooks/app/useTunnelUrl";
 import { useIsDarkMode } from "@green-goods/shared/hooks/ui/useIsDarkMode";
 import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
-import { useTunnelUrl } from "@green-goods/shared/hooks/app/useTunnelUrl";
+import { useApp } from "@green-goods/shared/providers/App";
+import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
 import {
   RiAddBoxLine,
   RiAlertLine,
@@ -23,7 +23,6 @@ import {
   RiUploadLine,
 } from "@remixicon/react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { createPwaLaunchUrl } from "@/config/pwaRouting";
 
 interface HeroProps {
   handleSubscribe: (e: React.FormEvent<HTMLFormElement>) => void;
@@ -36,9 +35,9 @@ export const Hero: FC<HeroProps> = () => {
     platform,
     deferredPrompt,
     promptInstall,
-    isInstalled,
     isInstalling,
     wasInstalled,
+    installedAppEvidence,
   } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -51,14 +50,14 @@ export const Hero: FC<HeroProps> = () => {
   const qrValue = tunnelUrl || window.location.origin;
 
   // Get smart installation guidance based on current browser/platform
-  const guidance = useInstallGuidance(
+  const guidance = useInstallGuidance({
     platform,
-    isInstalled,
+    installedAppEvidence,
     wasInstalled,
     deferredPrompt,
     isMobile,
-    isInstalling
-  );
+    isInstalling,
+  });
 
   // Auto-reset copy states after 2 seconds (auto-cleared on unmount)
   const { set: scheduleCopyReset } = useTimeout();
@@ -105,13 +104,9 @@ export const Hero: FC<HeroProps> = () => {
       case "copy-url":
         handleCopyUrl();
         break;
+      // The installed case renders a native anchor below so Chrome receives a
+      // trusted navigation it can capture for the Android WebAPK.
       case "open-app":
-        // Real (full-document) navigation to the absolute in-scope start URL, not
-        // a client-side navigate(). The landing page is outside the "/home" WebAPK
-        // scope, so this "/" -> "/home" scope crossing is what Chrome/Android
-        // link-capturing can hand off to the installed app. A React Router
-        // navigate() stays in the tab and Android never sees it.
-        window.location.assign(createPwaLaunchUrl(window.location.origin));
         break;
       default:
         break;
@@ -128,7 +123,7 @@ export const Hero: FC<HeroProps> = () => {
           <h2 className="font-bold lg:text-6xl lg:tracking-wide text-primary-dark capitalize">
             {intl.formatMessage({
               id: "app.hero.title",
-              defaultMessage: "From Good Intentions to Green\u00a0Outcomes",
+              defaultMessage: "From Good Intentions to Green Outcomes",
             })}
           </h2>
           <p className="text-xl lg:text-2xl">
@@ -195,11 +190,11 @@ export const Hero: FC<HeroProps> = () => {
                       {guidance.scenario === "in-app-browser"
                         ? intl.formatMessage({
                             id: "app.hero.inapp.title",
-                            defaultMessage: "Open in Browser",
+                            defaultMessage: "Open in browser",
                           })
                         : intl.formatMessage({
                             id: "app.hero.wrongbrowser.title",
-                            defaultMessage: "Switch Browser",
+                            defaultMessage: "Unsupported browser",
                           })}
                     </p>
                     <p className="text-sm text-warning-dark/80 mt-1">
@@ -245,7 +240,7 @@ export const Hero: FC<HeroProps> = () => {
                   : copyError
                     ? intl.formatMessage({
                         id: "app.hero.copyFailed",
-                        defaultMessage: "Copy failed",
+                        defaultMessage: "Failed to copy",
                       })
                     : guidance.primaryAction.type === "installing"
                       ? intl.formatMessage({
@@ -296,7 +291,7 @@ export const Hero: FC<HeroProps> = () => {
                           {intl.formatMessage(
                             {
                               id: "app.hero.install.browser",
-                              defaultMessage: "Detected: {browser} on {platform}",
+                              defaultMessage: "Open in Browser",
                             },
                             {
                               browser: guidance.browserInfo.displayName,
@@ -358,7 +353,7 @@ export const Hero: FC<HeroProps> = () => {
                         >
                           {intl.formatMessage({
                             id: "app.hero.install.continue",
-                            defaultMessage: "Continue in browser instead",
+                            defaultMessage: "Continue",
                           })}
                           <RiArrowRightLine className="w-4 h-4" />
                         </a>

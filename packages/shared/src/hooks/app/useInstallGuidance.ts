@@ -59,6 +59,29 @@ export interface InstallGuidance {
   openInBrowserUrl: string | null;
 }
 
+export type InstalledAppEvidenceStatus = "checking" | "installed" | "not-installed" | "unknown";
+
+export type InstalledAppEvidenceSource =
+  | "standalone"
+  | "related-app"
+  | "appinstalled"
+  | "history"
+  | "unsupported";
+
+export interface InstalledAppEvidence {
+  status: InstalledAppEvidenceStatus;
+  source: InstalledAppEvidenceSource;
+}
+
+export interface InstallGuidanceOptions {
+  platform: Platform;
+  installedAppEvidence: InstalledAppEvidence;
+  wasInstalled: boolean;
+  deferredPrompt: InstallPromptEvent | null;
+  isMobile: boolean;
+  isInstalling?: boolean;
+}
+
 /**
  * Possible installation scenarios
  */
@@ -101,14 +124,14 @@ export interface ManualInstallStep {
 /**
  * Generate installation guidance based on platform, browser, and app state
  */
-export function useInstallGuidance(
-  platform: Platform,
-  isInstalled: boolean,
-  wasInstalled: boolean,
-  deferredPrompt: InstallPromptEvent | null,
-  isMobile: boolean,
-  isInstalling = false
-): InstallGuidance {
+export function useInstallGuidance({
+  platform,
+  installedAppEvidence,
+  wasInstalled,
+  deferredPrompt,
+  isMobile,
+  isInstalling = false,
+}: InstallGuidanceOptions): InstallGuidance {
   return useMemo(() => {
     // Desktop scenario
     if (!isMobile) {
@@ -145,7 +168,7 @@ export function useInstallGuidance(
     }
 
     // Already installed
-    if (isInstalled) {
+    if (installedAppEvidence.status === "installed") {
       return {
         browserInfo: detectMobileBrowser(platform),
         scenario: "already-installed",
@@ -267,7 +290,7 @@ export function useInstallGuidance(
     // WebAPK, so keep manual reinstall guidance attached as a secondary path.
     // iOS has no link capturing (and no WebAPK), so it keeps the manual reinstall
     // guidance as the primary path below.
-    if (wasInstalled && platform === "android") {
+    if (wasInstalled && platform === "android" && installedAppEvidence.status !== "not-installed") {
       return {
         browserInfo,
         scenario: "already-installed",
@@ -277,7 +300,7 @@ export function useInstallGuidance(
         },
         secondaryAction: {
           type: "show-manual-steps",
-          label: "Install again",
+          label: "Install Again",
           description: "If the app was removed",
         },
         showBrowserOption: true,
@@ -325,7 +348,7 @@ export function useInstallGuidance(
       browserSwitchReason: null,
       openInBrowserUrl: null,
     };
-  }, [platform, isInstalled, wasInstalled, deferredPrompt, isMobile, isInstalling]);
+  }, [platform, installedAppEvidence, wasInstalled, deferredPrompt, isMobile, isInstalling]);
 }
 
 /**

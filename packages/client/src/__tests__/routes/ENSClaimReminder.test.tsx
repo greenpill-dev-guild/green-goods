@@ -80,7 +80,7 @@ describe("ENSClaimReminder", () => {
       expect.objectContaining({
         id: "ens-claim-reminder",
         title: "Claim your Green Goods name",
-        action: expect.objectContaining({ label: "Claim name" }),
+        action: expect.objectContaining({ label: "Claim Name" }),
       })
     );
 

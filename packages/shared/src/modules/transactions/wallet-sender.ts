@@ -103,11 +103,12 @@ export class WalletSender implements TransactionSender {
     // waiting and treat this as successfully submitted for off-chain Safe
     // execution flow.
     if (!isCanonicalTxHash(hash)) {
+      // No address or hash material in the log context: aggregated logs must
+      // stay free of identifying transaction data (short Safe identifiers
+      // would otherwise be logged in full via a "preview").
       logger.info("Skipping receipt wait for non-canonical wallet transaction hash", {
         source: "WalletSender",
         functionName: call.functionName,
-        address: call.address,
-        hashPreview: hash.slice(0, 18),
         hashLength: hash.length,
       });
       return { hash: hash as Hex, sponsored: false };

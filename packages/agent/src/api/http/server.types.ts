@@ -1,5 +1,7 @@
 import type {
   createProviderProofRegistry,
+  Address,
+  PublicGardenImpactResponseV1,
   PublicUploadSignRequest,
 } from "@green-goods/shared/public-contracts";
 import type { Hono } from "hono";
@@ -23,6 +25,11 @@ import type {
   SavedOffersSessionStore,
   SavedOffersSignatureVerifier,
 } from "../../services/saved-offers";
+import type {
+  GardenJoinRequestRateLimitPressure,
+  GardenJoinRequestStore,
+} from "../../services/garden-join-requests";
+import type { GardenJoinRequestChainReader } from "../../services/garden-join-requests-chain";
 
 export interface ServerConfig {
   port: number;
@@ -55,6 +62,12 @@ export interface ServerDeps {
   /** Defaults to 30 days. */
   chatMessageRetentionMs?: number;
   publicRateLimiter?: InMemoryPublicRateLimiter;
+  publicGardenImpactChainSupported?: (chainId: number) => boolean;
+  publicGardenImpactLoader?: (input: {
+    chainId: number;
+    gardenAddress: Address;
+    recentLimit: number;
+  }) => Promise<PublicGardenImpactResponseV1>;
   providerProofRegistry?: ReturnType<typeof createProviderProofRegistry>;
   allowedOrigins?: Set<string>;
   trustedProxy?: TrustedProxyConfig;
@@ -84,6 +97,14 @@ export interface ServerDeps {
   savedOffersSignatureVerifier?: SavedOffersSignatureVerifier;
   savedOffersAudience?: string;
   savedOffersChainIds?: readonly number[];
+  gardenJoinRequestStore?: GardenJoinRequestStore;
+  gardenJoinRequestRateLimitPressure?: GardenJoinRequestRateLimitPressure;
+  gardenJoinRequestsEnabled?: boolean;
+  gardenJoinRequestChainId?: number;
+  gardenJoinRequestChainReader?: GardenJoinRequestChainReader;
+  gardenJoinRequestSignatureVerifier?: ProfileAvatarSignatureVerifier;
+  /** Defaults to 24 hours; zero disables the retention sweep. */
+  gardenJoinRequestSweepIntervalMs?: number;
   now?: () => number;
 }
 

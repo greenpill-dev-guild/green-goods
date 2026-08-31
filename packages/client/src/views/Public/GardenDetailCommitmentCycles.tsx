@@ -2,7 +2,7 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   type CommitmentUnitSummaryRecord,
   type PublicCommitmentCycleRecord,
-} from "@green-goods/shared/commitment-pooling";
+} from "@green-goods/shared/commitment-pooling/public";
 import { useEffect, useRef } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { EditorialHeading, EditorialKicker } from "@/components/Public/atoms";
@@ -292,7 +292,7 @@ export function FinishedCycles({
           >
             {formatMessage({
               id: "public.pool.garden.history.loadMore",
-              defaultMessage: "Show more seasons",
+              defaultMessage: "Show More Seasons",
             })}
           </button>
         ) : null}
@@ -320,7 +320,7 @@ export function CertificatesTieIn() {
       <a href="#public-garden-detail-certificates" className={ARROW_LINK_CLASS}>
         {formatMessage({
           id: "public.pool.garden.certificatesLink",
-          defaultMessage: "See the certificates",
+          defaultMessage: "See the Certificates",
         })}
         <span
           aria-hidden="true"

@@ -1,11 +1,14 @@
-import { Button } from "@green-goods/shared/components/Button";
-import { Card } from "@green-goods/shared/components/Cards/CardBase";
+import { Alert } from "@green-goods/shared/components/Alert";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { Meta, StoryObj } from "@storybook/react";
+import { useIntl } from "react-intl";
 import { fn } from "storybook/test";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminCard } from "@/components/AdminCard";
 
 // ⚠ VISUAL HARNESS — not the real PositionCard.
-// The real component wires `useUser`, `useVaultPreview`, `useHarvest`,
+// The real component wires `useUser`, `useVaultPreview`, `useYieldStatus`,
+// `useHarvestDistribution`,
 // `useEmergencyPause`, `useEnableAutoAllocate`, and wagmi
 // `useReadContracts` reads for the shutdown / deposit-limit diagnostic.
 // All of those are driven by wagmi's internal query cache, which we
@@ -29,6 +32,7 @@ interface PositionCardHarnessProps {
   isHarvesting?: boolean;
   isPausing?: boolean;
   isEnablingAutoAllocate?: boolean;
+  distributionState?: "empty" | "ready" | "waiting" | "submitted" | "pending" | "complete";
 }
 
 function PositionCardHarness({
@@ -45,30 +49,34 @@ function PositionCardHarness({
   isHarvesting = false,
   isPausing = false,
   isEnablingAutoAllocate = false,
+  distributionState = "empty",
 }: PositionCardHarnessProps) {
+  const { formatMessage } = useIntl();
   return (
-    <Card padding="compact" className="sm:p-5">
+    <AdminCard>
       <div className="mb-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold text-text-strong sm:text-lg">{symbol}</h3>
+          <h3 className="text-title-sm font-semibold text-text-strong sm:text-title-md">
+            {symbol}
+          </h3>
           {!vaultAcceptingDeposits && (
-            <span className="rounded-full bg-warning-lighter px-2 py-1 text-xs font-medium text-warning-dark">
+            <span className="rounded-full bg-warning-lighter px-2 py-1 text-label-sm font-medium text-warning-dark">
               Deposits disabled
             </span>
           )}
         </div>
         <button
           type="button"
-          className="mt-1 inline-block text-left text-xs text-primary-base hover:underline"
+          className="mt-1 inline-flex items-center gap-1 text-body-sm text-primary-dark hover:underline"
           onClick={() => {}}
         >
           View vault: 0xAaaa…aaa1
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 text-sm">
+      <div className="grid grid-cols-2 gap-3 text-body-md">
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
-          <p className="text-xs text-text-soft">Net deposited</p>
+          <p className="text-label-sm text-text-soft">Net deposited</p>
           <p className="mt-1 font-semibold text-text-strong">
             {formatTokenAmount(netDeposited, 18)} {symbol}
           </p>
@@ -76,41 +84,44 @@ function PositionCardHarness({
         <div
           className={`rounded-md border p-3 ${unharvestedYield > 0n ? "border-success-light bg-success-lighter" : "border-stroke-soft bg-bg-weak"}`}
         >
-          <p className="text-xs text-text-soft">Current yield</p>
+          <p className="text-label-sm text-text-soft">Current yield</p>
           <p
             className={`mt-1 font-semibold ${unharvestedYield > 0n ? "text-success-dark" : "text-text-strong"}`}
           >
             {formatTokenAmount(unharvestedYield, 18)} {symbol}
-            {unharvestedYield > 0n && <span className="ml-1 text-xs font-normal">accruing</span>}
+            {unharvestedYield > 0n && (
+              <span className="ml-1 text-body-sm font-normal">accruing</span>
+            )}
           </p>
         </div>
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
-          <p className="text-xs text-text-soft">Depositors</p>
+          <p className="text-label-sm text-text-soft">Depositors</p>
           <p className="mt-1 font-semibold text-text-strong">{depositorCount}</p>
         </div>
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
-          <p className="text-xs text-text-soft">Harvests</p>
+          <p className="text-label-sm text-text-soft">Harvests</p>
           <p className="mt-1 font-semibold text-text-strong">{harvestCount}</p>
         </div>
       </div>
 
-      <p className="mt-3 text-xs text-text-sub">
-        Accrued yield automatically compounds until harvested.
+      <p className="mt-3 text-body-sm text-text-sub">
+        Depositor share value is expected to stay near flat by design. Harvested yield is routed to
+        garden impact, not compounded into depositor returns.
       </p>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <Button variant="secondary" size="sm" onClick={fn()} disabled={!vaultAcceptingDeposits}>
+        <AdminButton variant="filled" size="sm" onClick={fn()} disabled={!vaultAcceptingDeposits}>
           Deposit
-        </Button>
-        <Button variant="secondary" size="sm" onClick={fn()}>
+        </AdminButton>
+        <AdminButton variant="outlined" size="sm" onClick={fn()}>
           Withdraw
-        </Button>
+        </AdminButton>
       </div>
 
       {isLegacyMisconfiguration && isModuleOwner && (
         <div className="mt-2">
-          <Button
-            variant="secondary"
+          <AdminButton
+            variant="outlined"
             size="sm"
             className="w-full border-warning-base bg-warning-lighter text-warning-dark hover:bg-warning-light"
             onClick={fn()}
@@ -118,17 +129,68 @@ function PositionCardHarness({
             loading={isEnablingAutoAllocate}
           >
             Enable auto-allocate
-          </Button>
+          </AdminButton>
         </div>
       )}
 
       {canManage && (
-        <div className="mt-2">
-          <div className="grid grid-cols-2 gap-2">
-            <Button size="sm" onClick={fn()} disabled={isHarvesting} loading={isHarvesting}>
-              Harvest
-            </Button>
-            <Button
+        <div className="mt-3 space-y-3">
+          {distributionState === "waiting" && (
+            <Alert variant="info" className="p-3">
+              2 {symbol} is waiting until the 7 {symbol} minimum is reached.
+            </Alert>
+          )}
+          {distributionState === "submitted" && (
+            <Alert variant="info" className="p-3">
+              Harvest was submitted for execution. Distribution will become available after the
+              harvest is confirmed.
+            </Alert>
+          )}
+          {distributionState === "pending" && (
+            <Alert
+              variant="warning"
+              className="p-3"
+              action={
+                <AdminButton variant="outlined" size="sm" onClick={fn()}>
+                  Retry distribution
+                </AdminButton>
+              }
+            >
+              Harvest confirmed, but distribution is still pending. The harvested funds remain in
+              the Yield Resolver.
+            </Alert>
+          )}
+          {distributionState === "complete" && (
+            <Alert variant="success" className="p-3">
+              4 {symbol} reached the Cookie Jar. 4 {symbol} went to hypercert funding. 2 {symbol}{" "}
+              went to the protocol treasury.
+            </Alert>
+          )}
+          {/* Mirrors the shipping component: for a registered vault the action
+              stays available in empty/waiting states too (harvest-first), and
+              split-only appears only when registered yield is ready. */}
+          {distributionState !== "pending" &&
+            distributionState !== "complete" &&
+            distributionState !== "submitted" && (
+              <div className="flex justify-end">
+                <AdminButton
+                  variant="filled"
+                  size="sm"
+                  onClick={fn()}
+                  disabled={isHarvesting}
+                  loading={isHarvesting}
+                >
+                  {formatMessage({
+                    id:
+                      unharvestedYield > 0n || distributionState !== "ready"
+                        ? "app.yield.harvestDistribution.action.harvest"
+                        : "app.yield.harvestDistribution.action.distribute",
+                  })}
+                </AdminButton>
+              </div>
+            )}
+          <div className="flex justify-end border-t border-stroke-soft pt-3">
+            <AdminButton
               variant="danger"
               size="sm"
               onClick={fn()}
@@ -136,11 +198,11 @@ function PositionCardHarness({
               loading={isPausing}
             >
               Emergency pause
-            </Button>
+            </AdminButton>
           </div>
         </div>
       )}
-    </Card>
+    </AdminCard>
   );
 }
 
@@ -197,6 +259,26 @@ export const LegacyMisconfiguration: Story = {
 
 export const Harvesting: Story = {
   args: { isHarvesting: true },
+};
+
+export const ReadyToDistribute: Story = {
+  args: { unharvestedYield: 0n, distributionState: "ready" },
+};
+
+export const WaitingForMinimum: Story = {
+  args: { unharvestedYield: 0n, distributionState: "waiting" },
+};
+
+export const HarvestSubmitted: Story = {
+  args: { unharvestedYield: 0n, distributionState: "submitted" },
+};
+
+export const DistributionPending: Story = {
+  args: { unharvestedYield: 0n, distributionState: "pending" },
+};
+
+export const DistributionComplete: Story = {
+  args: { unharvestedYield: 0n, distributionState: "complete" },
 };
 
 export const ReadOnly: Story = {

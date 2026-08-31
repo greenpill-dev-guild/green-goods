@@ -15,7 +15,7 @@ import { AdminConfirmDialog } from "../AdminDialog";
 //   app.treasury.emergencyPauseTitle / .emergencyPauseDescription /
 //   .emergencyPause (confirm) and app.wizard.cancel (cancel).
 
-const PAUSE_TITLE = "Confirm emergency pause";
+const PAUSE_TITLE = "Confirm Emergency Pause";
 const PAUSE_DESCRIPTION =
   "This action will block all new deposits to the vault strategy. Existing depositors can still withdraw their funds.";
 const CONFIRM_LABEL = "Emergency pause";

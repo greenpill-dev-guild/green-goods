@@ -1,7 +1,6 @@
-import { Textarea, TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
-import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
-import { CampaignImageInput } from "./CampaignImageInput";
+import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm";
+import { CampaignImageInput } from "./CampaignImageInput";
 
 export function CampaignDetailsSection(props: CampaignCookieJarCreateFormProps) {
   const {
@@ -29,34 +28,24 @@ export function CampaignDetailsSection(props: CampaignCookieJarCreateFormProps) 
         </h2>
       </div>
       <div className="grid gap-4">
-        <FormField
+        <AdminTextField
+          id="campaign-cookie-jar-title"
           label={formatMessage({
             id: "cockpit.community.cookies.campaignName",
             defaultMessage: "Campaign name",
           })}
-          htmlFor="campaign-cookie-jar-title"
-        >
-          <TextInput
-            id="campaign-cookie-jar-title"
-            surface="admin"
-            value={campaignTitle}
-            onChange={(event) => setCampaignTitle(event.target.value)}
-          />
-        </FormField>
-        <FormField
+          value={campaignTitle}
+          onChange={(event) => setCampaignTitle(event.target.value)}
+        />
+        <AdminTextArea
+          id="campaign-cookie-jar-description"
           label={formatMessage({
             id: "cockpit.community.cookies.campaignDescription",
             defaultMessage: "Campaign description",
           })}
-          htmlFor="campaign-cookie-jar-description"
-        >
-          <Textarea
-            id="campaign-cookie-jar-description"
-            surface="admin"
-            value={campaignDescription}
-            onChange={(event) => setCampaignDescription(event.target.value)}
-          />
-        </FormField>
+          value={campaignDescription}
+          onChange={(event) => setCampaignDescription(event.target.value)}
+        />
         <CampaignImageInput
           value={campaignImage}
           onChange={setCampaignImage}

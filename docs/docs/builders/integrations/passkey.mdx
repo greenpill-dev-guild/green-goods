@@ -4,7 +4,7 @@ sidebar_label: Authentication
 slug: /builders/integrations/passkey
 audience: developer
 owner: docs
-last_verified: 2026-03-10
+last_verified: 2026-08-30
 feature_status: Live
 source_of_truth:
   - packages/shared/src/config/passkeyServer.ts
@@ -15,48 +15,20 @@ source_of_truth:
 
 # Authentication
 
-Green Goods supports three authentication methods, each creating an independent on-chain identity.
+The client supports passkey-backed accounts and wallet-aware recovery through shared auth modules.
+The implementation and provider configuration own ceremony details; this page explains the user
+boundary.
 
-## Auth Modes
+## Flow
 
-| Mode | Mechanism | Gas Sponsorship | Offline Signing | Target User |
-|------|-----------|----------------|----------------|-------------|
-| **Email/Social** | AppKit embedded wallet (Reown) | Yes — EIP-5792 + Pimlico ERC-7677 proxy | No (server-assisted signing) | Web2 users, lowest friction |
-| **Passkey** | WebAuthn + Kernel v0.3.1 smart account | Yes — Pimlico paymaster (bundler) | Yes (client-side P256 signing) | Mobile-first field workers |
-| **Wallet** | External wallet (MetaMask, Rainbow, etc.) | Best-effort via EIP-5792, fallback to user-paid | Yes (local signer) | Crypto-native power users |
+1. The client establishes the intended presentation and chain context.
+2. Shared auth hooks start sign-in or registration with the configured relying party.
+3. The resulting account/session becomes the identity used by application and transaction flows.
+4. Recovery paths must preserve account continuity and make failure states explicit.
 
-## Architecture: TransactionSender
+## Testing boundary
 
-All auth modes use a unified `TransactionSender` abstraction. Mutation hooks call `sender.sendContractCall()` instead of branching on `authMode`:
-
-```
-TransactionSender (interface)
-├── PasskeySender     → smartAccountClient.sendTransaction()
-├── EmbeddedSender    → EIP-5792 sendCalls() with paymasterService
-└── WalletSender      → writeContractAsync (EIP-5792 sponsorship planned)
-```
-
-The `useTransactionSender()` hook returns the correct implementation based on current auth state.
-
-## Address Continuity
-
-Each auth method produces a **different on-chain address**:
-
-- **Passkey** → Kernel smart account derived from P256 public key
-- **Email/Social** → Reown-managed embedded wallet smart account
-- **Wallet** → User's existing EOA address
-
-These addresses are independent. On-chain entities (Hats roles, attestations, Hypercert claims, ENS names, vault shares) are tied to a specific address. Switching auth methods means a new identity on-chain.
-
-## Offline Support
-
-All auth modes support offline work queuing via IndexedDB. The difference is when transactions can be signed:
-
-- **Passkey/Wallet**: Can sign offline (credential stored locally)
-- **Email/Social**: Queue offline, sign when back online (requires Reown server round-trip)
-
-The job queue handles this transparently — submissions are queued regardless of connectivity and processed when both online and authenticated.
-
-## Admin Isolation
-
-The admin dashboard is **wallet-only**. Email and social login are disabled in the admin AppKit configuration. Stewards and stewards are expected to have existing wallets.
+Passkey ceremonies depend on the configured relying-party domain and cannot be treated as proven by
+localhost mocks. Use mocks for deterministic component and state tests; use the authenticated Brave
+profile on the appropriate deployed origin for real ceremony proof. Never log credentials,
+challenge material, wallet state, or session identifiers.

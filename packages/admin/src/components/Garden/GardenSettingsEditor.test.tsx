@@ -208,7 +208,7 @@ describe("GardenSettingsEditor explicit save", () => {
       expect(mutation).not.toHaveBeenCalled();
     }
     expect(screen.getByText("1 unsaved change")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Save Changes" })).toBeEnabled();
   });
 
   it("saves only the dirty fields with trimmed values", async () => {
@@ -223,7 +223,7 @@ describe("GardenSettingsEditor explicit save", () => {
     await user.clear(locationInput);
     await user.type(locationInput, "Lisbon, Portugal");
 
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
     await waitFor(() => {
       expect(mockUpdateName).toHaveBeenCalledWith({
@@ -264,7 +264,7 @@ describe("GardenSettingsEditor explicit save", () => {
     expect(mockUploadFileToIPFS).not.toHaveBeenCalled();
     expect(mockUpdateBannerImage).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
     await waitFor(() => {
       expect(mockUploadFileToIPFS).toHaveBeenCalledTimes(1);
@@ -291,7 +291,7 @@ describe("GardenSettingsEditor explicit save", () => {
       );
     });
 
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
     await waitFor(() => {
       expect(mockUpdateBannerImage).toHaveBeenCalledWith({ gardenAddress, value: "" });
     });
@@ -323,7 +323,7 @@ describe("GardenSettingsEditor explicit save", () => {
     await user.click(screen.getByRole("switch", { name: "Open joining" }));
     expect(mockSetOpenJoining).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
     await waitFor(() => {
       expect(mockSetOpenJoining).toHaveBeenCalledWith({ gardenAddress, value: true });
     });
@@ -340,7 +340,7 @@ describe("GardenSettingsEditor explicit save", () => {
     const capInput = screen.getByLabelText("Maximum gardeners");
     await user.type(capInput, "25");
 
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
     await waitFor(() => {
       expect(mockSetMaxGardeners).toHaveBeenCalledWith({ gardenAddress, value: 25 });
     });
@@ -354,7 +354,7 @@ describe("GardenSettingsEditor explicit save", () => {
     expect(screen.getByLabelText("Maximum gardeners")).toHaveValue(50);
 
     await user.click(screen.getByRole("switch", { name: "Limit gardeners" }));
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
     await waitFor(() => {
       expect(mockSetMaxGardeners).toHaveBeenCalledWith({ gardenAddress, value: 0 });
     });
@@ -366,7 +366,7 @@ describe("GardenSettingsEditor explicit save", () => {
 
     await user.click(screen.getByRole("button", { name: /Solar/ }));
 
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
     await waitFor(() => {
       expect(mockSetGardenDomains).toHaveBeenCalledWith({
         gardenAddress,
@@ -401,7 +401,7 @@ describe("GardenSettingsEditor explicit save", () => {
     const nameInput = screen.getByLabelText(/Name/);
     await user.clear(nameInput);
     await user.type(nameInput, "Renamed Garden");
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
     await waitFor(() => {
       expect(onDirtyStateChange).toHaveBeenCalledWith(
@@ -422,13 +422,13 @@ describe("GardenSettingsEditor explicit save", () => {
     await user.clear(screen.getByLabelText(/Name/));
 
     expect(screen.getByText("Garden name is required")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save Changes" })).toBeDisabled();
   });
 
   it("renders read-only without a footer when the viewer cannot edit", () => {
     renderEditor({ canManage: false, isOwner: false });
 
-    expect(screen.queryByRole("button", { name: "Save changes" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save Changes" })).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Name/)).toBeDisabled();
     expect(screen.getByLabelText("Location")).toBeDisabled();
   });

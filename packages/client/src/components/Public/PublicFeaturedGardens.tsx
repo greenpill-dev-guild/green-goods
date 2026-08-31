@@ -1,4 +1,3 @@
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   type PublicGardenSummary,
   usePublicGardens,
@@ -7,7 +6,12 @@ import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { publicCuration } from "@/content/publicCuration";
-import { EditorialHeading, EditorialKicker, EditorialLinkArrow } from "./atoms";
+import {
+  EditorialHeading,
+  EditorialKicker,
+  EditorialLinkArrow,
+  EditorialMediaCardSkeleton,
+} from "./atoms";
 import { PublicGardenCard } from "./PublicGardenCard";
 
 const FEATURED_FALLBACK_LIMIT = 4;
@@ -110,7 +114,7 @@ export function PublicFeaturedGardens() {
           <EditorialLinkArrow to="/gardens">
             {formatMessage({
               id: "public.home.featured.cta",
-              defaultMessage: "Browse all Gardens",
+              defaultMessage: "Browse All Gardens",
             })}
           </EditorialLinkArrow>
         </header>
@@ -127,11 +131,8 @@ export function PublicFeaturedGardens() {
                 key={index}
                 className="mb-10 break-inside-avoid last:mb-0 sm:mb-12"
               >
-                <div
-                  className={cn(
-                    "w-full animate-pulse bg-editorial-warm",
-                    index === 0 || index === 3 ? "aspect-[4/3]" : "aspect-[3/2]"
-                  )}
+                <EditorialMediaCardSkeleton
+                  mediaClassName={index === 0 || index === 3 ? "aspect-[4/3]" : "aspect-[3/2]"}
                 />
               </div>
             ))}

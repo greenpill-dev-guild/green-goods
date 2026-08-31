@@ -21,6 +21,7 @@
 
 import en from "@green-goods/shared/i18n/en";
 import es from "@green-goods/shared/i18n/es";
+import pt from "@green-goods/shared/i18n/pt";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement, type ReactElement } from "react";
 import { IntlProvider } from "react-intl";
@@ -143,10 +144,20 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   usePublicCommitmentImpact: (...args: unknown[]) => mockUsePublicCommitmentImpact(...args),
 }));
 
+vi.mock("@green-goods/shared/commitment-pooling/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling/public")>()),
+  usePublicGardenPool: (...args: unknown[]) => mockUsePublicGardenPool(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicCommitmentImpact", () => ({
+  usePublicCommitmentImpact: (...args: unknown[]) => mockUsePublicCommitmentImpact(...args),
+}));
+
 import { EVIDENCE_KIND_LABELS } from "../components/Public/evidenceKinds";
 import { PublicCommitmentsBand } from "../components/Public/PublicCommitmentsBand";
 import { PublicEvidencePipeline } from "../components/Public/PublicEvidencePipeline";
 import GardenDetail from "../views/Public/GardenDetail";
+import { SectionNotice } from "../views/Public/GardenDetailAtoms";
 import ImpactPage from "../views/Public/Impact";
 
 // ---------------------------------------------------------------------------
@@ -444,7 +455,7 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("PublicEvidencePipeline", () => {
-  it("renders the five stages as an ordered list in the required order", () => {
+  it("renders the four steps as an ordered list with the loop as a full-width footer", () => {
     withProviders(
       createElement(PublicEvidencePipeline, { title: "The cycle", titleId: "pipeline-title" })
     );
@@ -453,20 +464,38 @@ describe("PublicEvidencePipeline", () => {
     const titles = within(list)
       .getAllByRole("listitem")
       .map((item) => within(item).getByRole("heading", { level: 3 }).textContent?.trim());
-    expect(titles).toEqual([
-      "Assessment",
-      "Commitment",
-      "Work",
-      "Confirmation",
-      "Impact Certificate",
-    ]);
-    // The loop closes on the last node, not somewhere in the middle.
-    const items = within(list).getAllByRole("listitem");
-    expect(items[4]).toHaveTextContent(en["public.impact.pipeline.closesCycle"]);
-    expect(items[1]).not.toHaveTextContent(en["public.impact.pipeline.closesCycle"]);
+    expect(titles).toEqual(["Needs", "Commitment", "Work", "Learnings"]);
+    for (const heading of within(list).getAllByRole("heading", { level: 3 })) {
+      expect(heading).toHaveClass("relative", "z-10", "bg-bg-weak-50");
+    }
+    // The loop closes the whole figure, never inside a column (AD-9).
+    for (const item of within(list).getAllByRole("listitem")) {
+      expect(item).not.toHaveTextContent(en["public.impact.pipeline.loop"]);
+    }
+    expect(screen.getByText(en["public.impact.pipeline.loop"])).toBeInTheDocument();
+    // Impact Certificate survives inside step 4's body, not as a stage name.
+    expect(within(list).getAllByRole("listitem")[3]).toHaveTextContent("Impact Certificate");
   });
 
-  it("localizes every node title, description, and definition rather than hardcoding English", () => {
+  it("keeps every localized step description within the 25–30 word band", () => {
+    const catalogs: ReadonlyArray<Record<string, string>> = [en, es, pt];
+    const steps = ["needs", "commitment", "work", "learnings"];
+
+    for (const catalog of catalogs) {
+      for (const step of steps) {
+        const description = catalog[`public.impact.pipeline.step.${step}.description`];
+        const wordCount = description
+          .replaceAll("<certificate>", "")
+          .replaceAll("</certificate>", "")
+          .trim()
+          .split(/\s+/).length;
+        expect(wordCount).toBeGreaterThanOrEqual(25);
+        expect(wordCount).toBeLessThanOrEqual(30);
+      }
+    }
+  });
+
+  it("localizes every step title and description rather than hardcoding English", () => {
     withProviders(
       createElement(PublicEvidencePipeline, { title: "El ciclo", titleId: "pipeline-title" }),
       { locale: "es", messages: es as Record<string, string> }
@@ -475,17 +504,11 @@ describe("PublicEvidencePipeline", () => {
     const titles = within(list)
       .getAllByRole("listitem")
       .map((item) => within(item).getByRole("heading", { level: 3 }).textContent?.trim());
-    expect(titles).toEqual([
-      "Evaluación",
-      "Compromiso",
-      "Trabajo",
-      "Confirmación",
-      "Certificado de Impacto",
-    ]);
-    expect(list).toHaveTextContent(es["public.impact.pipeline.node.commitment.description"]);
-    expect(list).toHaveTextContent(es["public.impact.pipeline.node.confirmation.description"]);
+    expect(titles).toEqual(["Necesidades", "Compromiso", "Trabajo", "Aprendizajes"]);
+    expect(list).toHaveTextContent(es["public.impact.pipeline.step.commitment.description"]);
+    expect(list).toHaveTextContent(es["public.impact.pipeline.step.work.description"]);
     expect(list).not.toHaveTextContent("Work begins as a commitment to someone");
-    expect(list).toHaveTextContent(es["public.impact.pipeline.closesCycle"]);
+    expect(screen.getByText(es["public.impact.pipeline.loop"])).toBeInTheDocument();
 
     // Tooltip definitions come from the shared first-exposure family.
     fireEvent.click(within(list).getByRole("button", { name: "Compromiso" }));
@@ -572,6 +595,26 @@ describe("PublicEvidencePipeline", () => {
     expect(window).toHaveTextContent(/nov/i);
     expect(window).not.toHaveTextContent(/Nov 14, 2023/);
     expect(window).not.toHaveTextContent("→");
+  });
+});
+
+describe("SectionNotice", () => {
+  it("keeps the retry action in readable inline flow while holding section height", () => {
+    const onRetry = vi.fn();
+    withProviders(
+      createElement(SectionNotice, {
+        message: "Field notes could not be loaded right now.",
+        onRetry,
+      })
+    );
+
+    const notice = screen.getByRole("status");
+    expect(notice).toHaveClass("min-h-40");
+    expect(notice).not.toHaveClass("flex", "items-center");
+    expect(notice).toHaveTextContent("Field notes could not be loaded right now. Try Again");
+
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(onRetry).toHaveBeenCalledOnce();
   });
 });
 
@@ -789,7 +832,7 @@ describe("GardenDetail § 02 Commitments", () => {
     expect(within(campaignRow).getByText("rides").nextElementSibling).toHaveTextContent("9 of 16");
 
     // One block kicker over both rows, and it does not repeat each row's
-    // own "Open now" so neither reading doubles the other.
+    // own "Open Now" so neither reading doubles the other.
     expect(within(section).getAllByText(en["public.pool.garden.openKicker"])).toHaveLength(1);
     expect(en["public.pool.garden.openKicker"]).not.toBe(en["public.pool.garden.cycle.openNow"]);
 

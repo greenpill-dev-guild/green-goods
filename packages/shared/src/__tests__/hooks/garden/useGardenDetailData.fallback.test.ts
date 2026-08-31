@@ -80,14 +80,21 @@ vi.mock("../../../hooks/yield/useYieldAllocations", () => ({
   useYieldAllocations: () => ({ allocations: [], isLoading: false }),
 }));
 
+const mockUseWorks = vi.fn();
 vi.mock("../../../hooks/work/useWorks", () => ({
-  useWorks: () => ({
+  useWorks: () => mockUseWorks(),
+}));
+
+function defaultWorksResult() {
+  return {
     works: [],
     isLoading: false,
     isFetching: false,
+    isError: false,
+    error: null,
     refetch: vi.fn(),
-  }),
-}));
+  };
+}
 
 vi.mock("../../../hooks/hypercerts/useHypercerts", () => ({
   useHypercerts: () => ({ hypercerts: [], isLoading: false }),
@@ -128,6 +135,7 @@ describe("useGardenDetailData eligible garden fallback", () => {
       hasStaleBaseList: false,
       isError: false,
     });
+    mockUseWorks.mockReturnValue(defaultWorksResult());
     mockUseGardenPermissions.mockReturnValue({
       canManageGarden: vi.fn((garden) => garden.stewards.includes(ADDR_USER)),
       canReviewGarden: vi.fn(() => false),
@@ -157,5 +165,26 @@ describe("useGardenDetailData eligible garden fallback", () => {
     expect(result.current.hasStaleBaseList).toBe(true);
     expect(result.current.baseListError).toBeInstanceOf(Error);
     expect(result.current.canManage).toBe(true);
+  });
+
+  it("exposes a work collection failure separately from garden resolution", () => {
+    const worksError = new Error("Work service unavailable");
+    mockUseGardens.mockReturnValue({
+      data: [recoveredGarden],
+      isLoading: false,
+      error: null,
+      isError: false,
+    });
+    mockUseWorks.mockReturnValue({
+      ...defaultWorksResult(),
+      isError: true,
+      error: worksError,
+    });
+
+    const { result } = renderHook(() => useGardenDetailData(recoveredGarden.id));
+
+    expect(result.current.garden).toBe(recoveredGarden);
+    expect(result.current.isWorksError).toBe(true);
+    expect(result.current.worksError).toBe(worksError);
   });
 });

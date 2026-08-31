@@ -196,14 +196,29 @@ describe("DraftsTab", () => {
 
   it("navigates to garden route on resume", async () => {
     const user = userEvent.setup();
+    const onBeforeNavigate = vi.fn();
+    mockDraftsState.drafts = [
+      { id: "d1", actionUID: 1, gardenAddress: "0xgarden1", createdAt: Date.now() },
+    ];
+
+    render(wrap(createElement(DraftsTab, { onBeforeNavigate })));
+
+    await user.click(screen.getByTestId("resume-d1"));
+    expect(onBeforeNavigate).toHaveBeenCalledOnce();
+    expect(mockNavigate).toHaveBeenCalledWith("/home/garden?draftId=d1", { viewTransition: true });
+    expect(onBeforeNavigate.mock.invocationCallOrder[0]).toBeLessThan(
+      mockNavigate.mock.invocationCallOrder[0]
+    );
+  });
+
+  it("lets populated draft content contribute to the dashboard scroll owner", () => {
     mockDraftsState.drafts = [
       { id: "d1", actionUID: 1, gardenAddress: "0xgarden1", createdAt: Date.now() },
     ];
 
     render(wrap(createElement(DraftsTab)));
 
-    await user.click(screen.getByTestId("resume-d1"));
-    expect(mockNavigate).toHaveBeenCalledWith("/home/garden?draftId=d1", { viewTransition: true });
+    expect(screen.getByTestId("draft-card-d1").closest(".overflow-y-auto")).toBeNull();
   });
 
   it("shows confirm dialog on delete and confirms", async () => {

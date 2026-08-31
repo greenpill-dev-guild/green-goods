@@ -65,7 +65,7 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   pattern: start page → steps → confirmation.)
 - **Steps follow the client composer's grammar** where the same job exists on both surfaces:
   what → how much → proof/protection → sectioned review, with an Advanced detour for infrequent
-  options — admin gets denser fields, not different steps (Decision Log #64: reuse shipping
+  options — admin gets denser fields, not different steps (DL-007: reuse shipping
   rhythms, never parallel patterns).
 - **Completion lands somewhere real**: the workspace that owns the result, showing the result.
   Success is visible state change plus a quiet confirmation, never a dead end. (Brief: success
@@ -77,7 +77,7 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   side navigation rails.** Within a workspace tab, use a **two-column split** when the tab earns
   it: left column (majority width) carries focused actions and high-level objects; a right rail
   (~300–340px) carries container status, quick actions, and activity/updates. Decided for the
-  pool tab 2026-08-16. Collapse to one column below ~900px — rail content stacks after the left
+  pool tab 2026-08-16 (DL-008). Collapse to one column below ~900px — rail content stacks after the left
   column, nothing disappears. (web.dev responsive; brief: no hidden critical data.)
 - **Group by proximity, not by boxes.** Cards contain one coherent subject each; don't wrap
   every list in nested containers. Information density is a feature on operational screens —
@@ -126,11 +126,15 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   primary. A text + outlined + filled trio in one row reads as three unrelated controls.
 - **Stacked action groups are equal width.** Buttons in a rail or sheet stack go full-bleed;
   three ragged widths read as three unrelated things.
-- **Title Case for titles, sentence case for actions.** Card titles, section headings, dialog
-  and flow titles, and step-rail titles take Title Case ("Season & Campaigns", "Pool Status",
-  "Quick Actions", "How It Works"). Buttons, banners, meta, and body copy stay sentence case
-  ("Close season…", "Start a campaign"). A card title also never repeats its container's name —
-  the Pool tab's status card is "Pool Status", not "Pool — the container".
+- **Title Case for titles AND action labels (DL-012/DL-013, en only).** Card titles, section
+  headings, dialog and flow titles, step-rail titles, and button/action labels — including
+  aria-only action labels on icon buttons — take Title Case ("Season & Campaigns", "Pool
+  Status", "Start a Campaign", "Close This Pool"). The boundary is *named things and named
+  acts*: status and outcome copy ("Connection lost"), empty/connect-state titles, kickers,
+  placeholders, banners, meta, field labels, helper text, and body copy stay sentence case even
+  when a title-shaped i18n key holds them; es/pt keep their native casing throughout. A card
+  title also never repeats its container's name — the Pool tab's status card is "Pool Status",
+  not "Pool — the container".
 - **Banners teach once; chips carry state.** Repeating per-row conditions (past due, expired,
   lapsed) as info banners is a defect — encode them in chips + meta. Reserve banners for one-time
   context the user genuinely lacks. (Refactoring UI: emphasis is a budget.)

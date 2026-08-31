@@ -156,7 +156,7 @@ const TEST_WORK: Work = {
   status: "pending",
 };
 
-function renderReviewForm(work = TEST_WORK) {
+function renderReviewForm(work = TEST_WORK, onSuccess?: () => void) {
   return render(
     <IntlProvider locale="en" messages={messages}>
       <ReviewForm
@@ -165,6 +165,7 @@ function renderReviewForm(work = TEST_WORK) {
         canReview
         canApproveOrReject
         isReviewed={false}
+        onSuccess={onSuccess}
       />
     </IntlProvider>
   );
@@ -230,6 +231,50 @@ describe("ReviewForm", () => {
           "You cannot review your own work submission. Ask another garden steward to approve or reject this work",
       });
     });
+  });
+
+  it("keeps failed approvals available for retry", async () => {
+    const onSuccess = vi.fn();
+    mockApprovalMutation.mutateAsync.mockRejectedValue(new Error("Transaction failed"));
+
+    renderReviewForm(TEST_WORK, onSuccess);
+    fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Approve" })).toBeEnabled();
+    });
+    expect(onSuccess).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    await waitFor(() => expect(mockApprovalMutation.mutateAsync).toHaveBeenCalledTimes(2));
+  });
+
+  it("keeps cancelled approvals available for retry", async () => {
+    const onSuccess = vi.fn();
+    mockApprovalMutation.mutateAsync.mockRejectedValue(new Error("User rejected the request"));
+
+    renderReviewForm(TEST_WORK, onSuccess);
+    fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Approve" })).toBeEnabled();
+    });
+    expect(onSuccess).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    await waitFor(() => expect(mockApprovalMutation.mutateAsync).toHaveBeenCalledTimes(2));
+  });
+
+  it("signals a successful approval exactly once", async () => {
+    const onSuccess = vi.fn();
+
+    renderReviewForm(TEST_WORK, onSuccess);
+    fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
   });
 
   it("blocks a steward from reviewing their own submission", () => {

@@ -1,39 +1,56 @@
 ---
-title: Gardens Conviction Voting
-sidebar_label: Gardens V2
+title: Gardens
 slug: /builders/integrations/gardens
 audience: developer
 owner: docs
-last_verified: 2026-04-25
-feature_status: Implemented (activation pending indexing)
-source_of_truth:
+feature_status: Live
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
   - packages/contracts/src/modules/Gardens.sol
-  - packages/contracts/src/interfaces/IGardensModule.sol
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
   - packages/shared/src/config/gardens-subgraph.ts
-  - packages/shared/src/utils/blockchain/abis/conviction.ts
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
+source_digest: "sha256:90db3bf530105787f97abda1db852eea8c71f8b495643dce7fed90ec04cd52d6"
+source_of_truth:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
+  - packages/contracts/src/modules/Gardens.sol
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
+  - packages/shared/src/config/gardens-subgraph.ts
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+# Gardens
 
-# Gardens Conviction Voting
+The Gardens module connects a Green Goods Garden to governance communities and signal pools.
 
-<StatusBadge status="Implemented (activation pending indexing)" />
+## Checked-in deployment projection
 
-## Overview
-Gardens V2 and conviction-voting support exists in contract interfaces/modules, shared ABI utilities, and configuration helpers. Arbitrum and Sepolia artifacts have non-zero Gardens module addresses; Celo does not. Treat governance event history as indexing-gated until `GardensModule` events are configured.
+| Network | Status | Recorded components |
+|---|---|---|
+| Sepolia Testnet (`11155111`) | Deployed | `gardensModule` |
+| Arbitrum One (`42161`) | Deployed | `gardensModule` |
 
-## Builder notes
+Networks without recorded components are omitted; per-network state lives in the [deployment status projection](/builders/deployments/status).
 
-- Keep Gardens V2 reads behind shared config/utilities.
-- Avoid claiming a live governance flow unless the admin/client surface and deployment artifacts prove it for the target chain.
-- Keep signal-pool docs tied to the actual active route or module before publishing end-user guidance.
+## Indexer boundary
 
-<NextBestAction
-  title="Next best action"
-  why="Deployment status separates implemented code from active chain surfaces."
-  actionLabel="Deployment status"
-  actionHref="../deployments/status"
-  alternatives={[
-    {label: "Integrations overview", href: "./overview"},
-  ]}
-/>
+No integration-specific contract is declared in the checked-in indexer configuration.
+
+A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. Follow the owning package runbook for operational verification.

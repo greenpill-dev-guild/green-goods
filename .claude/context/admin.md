@@ -4,7 +4,7 @@ Loaded when working in `packages/admin/`. Extends CLAUDE.md.
 
 **Primary persona**: David (Steward). For tone guidance and UX constraints, see `.claude/context/product.md` § Persona & Tone Quick-Reference.
 
-**Design routing**: surface spec `packages/admin/DESIGN.md` · AI prompt contract `.claude/skills/design/prompt-contract.md` · docs page `docs/docs/builders/packages/admin.mdx`.
+**Design routing**: surface authority `packages/admin/DESIGN.md` · package rules `packages/admin/AGENTS.md` · AI prompt procedure `.claude/skills/design/prompt-contract.md` · public explanation `docs/docs/builders/packages/admin.mdx`.
 
 ## Quick Reference
 
@@ -275,5 +275,5 @@ Read these docs pages when you need steward workflow context or garden managemen
 - Manage gardeners: `docs/docs/community/steward-guide/index.mdx`
 - Review work submissions: `docs/docs/community/steward-guide/reviewing-work.mdx`
 - Configure actions: `docs/docs/community/steward-guide/managing-actions.mdx`
-- Impact reporting: `docs/docs/community/steward-guide/reporting-and-gap.mdx`
+- Assessment and reporting context: `docs/docs/community/steward-guide/making-an-assessment.mdx`
 - Steward getting started: `docs/docs/community/steward-guide/index.mdx`

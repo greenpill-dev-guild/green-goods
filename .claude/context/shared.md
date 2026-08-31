@@ -453,6 +453,6 @@ The a11y addon runs automatically:
 Read these docs pages when you need domain context beyond code patterns:
 
 - System architecture with Mermaid diagrams: `docs/docs/builders/architecture.mdx`
-- Domain glossary: `docs/docs/reference/glossary-community.md`
+- Domain authority: `packages/shared/src/ontology/green-goods-ontology.json`; public projection: `docs/docs/reference/glossary.generated.mdx`
 - Impact model & Eight Forms of Capital: `docs/docs/reference/design-research.md`
 - Cross-protocol entity matrix (draft/vocab aid): `docs/docs/builders/integrations/entity-matrix.mdx`

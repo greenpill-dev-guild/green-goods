@@ -7,23 +7,17 @@
  * - Adds consistent event enrichment
  * - Throttles only diagnostic events, not countable "fact" events
  *
- * Usage:
- * - track() for custom events
- * - identify() to set user identity (call on login)
- * - reset() to clear identity (call on logout)
- * - identifyWithProperties() to set identity + person properties
  */
 
-import { type CaptureResult, posthog } from "posthog-js";
+import type { CaptureResult } from "posthog-js";
 
 import { logger } from "./logger";
+import { createAnonymousTelemetryIdentity } from "./telemetryIdentity";
 
 const IS_DEV = import.meta.env.DEV;
 const IS_DEBUG = import.meta.env.VITE_POSTHOG_DEBUG === "true";
 
-// ============================================================================
 // EXCEPTION PAYLOAD COMPATIBILITY
-// ============================================================================
 
 /**
  * posthog-js >= 1.3xx emits exception-autocapture data in `$exception_list` (an
@@ -64,49 +58,7 @@ export function restoreExceptionTopLevelProps(event: CaptureResult | null): Capt
   return event;
 }
 
-/**
- * Drop `$exception` events that a browser extension raised, not Green Goods code.
- *
- * A visitor's third-party extension can crash on our pages, and posthog-js
- * exception autocapture reports the crash as our error. The `window.onerror`
- * handler in `error-events.ts` already ignores these, but `capture_exceptions`
- * installs a second autocapture path that does not.
- *
- * Two signatures mark an extension error, and they match the test in
- * `error-events.ts`:
- * - a frame filename that contains `extension://`
- * - no stack frames at all — the posthog-js shape for a bare `window.onerror`
- *   string, which only a cross-origin or extension script produces
- *
- * This `before_send` step returns `null` for those events to drop them. It
- * passes every other event through, and it is a no-op for non-exception events.
- * It leaves the event untouched when `$exception_list` is absent, because then
- * the frame signatures cannot be read.
- */
-export function dropExtensionExceptions(event: CaptureResult | null): CaptureResult | null {
-  if (!event || event.event !== "$exception" || !event.properties) return event;
-
-  const list = event.properties.$exception_list;
-  if (!Array.isArray(list)) return event;
-
-  const frames = list.flatMap((entry) => {
-    const stack = (entry as { stacktrace?: { frames?: unknown } } | null)?.stacktrace;
-    return Array.isArray(stack?.frames) ? stack.frames : [];
-  });
-
-  if (frames.length === 0) return null;
-
-  const fromExtension = frames.some((frame) => {
-    const filename = (frame as { filename?: unknown } | null)?.filename;
-    return typeof filename === "string" && filename.includes("extension://");
-  });
-
-  return fromExtension ? null : event;
-}
-
-// ============================================================================
 // APP VERSION AND ENVIRONMENT
-// ============================================================================
 
 export function getAppVersion(): string {
   return import.meta.env.VITE_APP_VERSION || "unknown";
@@ -188,13 +140,7 @@ export function getAppContext(): {
  * PostHogProvider initializes PostHog - we just check if it's ready.
  */
 function isPostHogReady(): boolean {
-  try {
-    // PostHog is ready if it has a config with an api_host
-    const config = (posthog as unknown as { config?: { api_host?: string } }).config;
-    return typeof config !== "undefined" && typeof config.api_host === "string";
-  } catch {
-    return false;
-  }
+  return telemetrySink.isReady?.() ?? false;
 }
 
 // ============================================================================
@@ -287,26 +233,28 @@ function getSessionId(): string {
 // ============================================================================
 
 export interface TrackOptions {
+  /** Replace persisted PostHog identity with a one-event diagnostic identity. */
+  anonymizeIdentity?: boolean;
   includeSessionId?: boolean;
 }
 
 export interface TelemetrySink {
   capture(event: string, properties: Record<string, unknown>): void;
+  identify?(distinctId: string, properties?: Record<string, unknown>): void;
+  reset?(): void;
+  getDistinctId?(): string;
+  register?(properties: Record<string, unknown>): void;
+  isReady?(): boolean;
 }
 
-const posthogTelemetrySink: TelemetrySink = {
-  capture(event, properties) {
-    if (IS_DEV || !isPostHogReady()) {
-      if (IS_DEBUG && !IS_DEV) {
-        logger.warn("[PostHog] Not ready, skipping capture");
-      }
-      return;
-    }
-    posthog.capture(event, properties);
+const noOpTelemetrySink: TelemetrySink = {
+  capture() {
+    if (IS_DEBUG && !IS_DEV) logger.warn("[PostHog] Not ready, skipping capture");
   },
+  isReady: () => false,
 };
 
-let telemetrySink: TelemetrySink = posthogTelemetrySink;
+let telemetrySink: TelemetrySink = noOpTelemetrySink;
 
 /** Replace the event transport while preserving tracking policy and enrichment. */
 export function registerTelemetrySink(sink: TelemetrySink): () => void {
@@ -335,6 +283,10 @@ export function track(
     return;
   }
 
+  const anonymousIdentity = options.anonymizeIdentity
+    ? createAnonymousTelemetryIdentity(event)
+    : {};
+
   // Enrich with context
   const enrichedProperties = {
     ...properties,
@@ -346,6 +298,7 @@ export function track(
         : "unknown",
     timestamp: Date.now(),
     ...(options.includeSessionId === false ? {} : { session_id: getSessionId() }),
+    ...anonymousIdentity,
   };
 
   if (IS_DEBUG) {
@@ -370,7 +323,7 @@ export function identify(distinctId: string) {
     logger.info(`[PostHog] identify: ${distinctId}`);
   }
   if (IS_DEV || !isPostHogReady()) return;
-  posthog.identify(distinctId);
+  telemetrySink.identify?.(distinctId);
 }
 
 /**
@@ -397,7 +350,7 @@ export function identifyWithProperties(
   }
   if (IS_DEV || !isPostHogReady()) return;
 
-  posthog.identify(distinctId, {
+  telemetrySink.identify?.(distinctId, {
     // Standard person properties
     auth_mode: properties.auth_mode,
     app: properties.app,
@@ -419,7 +372,7 @@ export function reset() {
     logger.info("[PostHog] reset");
   }
   if (IS_DEV || !isPostHogReady()) return;
-  posthog.reset();
+  telemetrySink.reset?.();
 }
 
 /**
@@ -432,7 +385,7 @@ export function getDistinctId(): string {
   if (!isPostHogReady()) {
     return "not-initialized";
   }
-  return posthog.get_distinct_id();
+  return telemetrySink.getDistinctId?.() ?? "not-initialized";
 }
 
 // ============================================================================
@@ -596,7 +549,7 @@ export function registerGlobalProperties(): boolean {
   const context = getAppContext();
 
   // Register super properties - these are included in all events
-  posthog.register({
+  telemetrySink.register?.({
     app_version: context.app_version,
     environment: context.environment,
     chain_id: context.chain_id,

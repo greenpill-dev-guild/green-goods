@@ -69,8 +69,8 @@ const messages: Record<string, string> = {
   "public.fund.receipt.endowRecovery":
     "Your Endow position stays with your wallet. You can review endowments from the Fund page whenever you need them.",
   "public.fund.receipt.manageEndowments": "Manage Endowments",
-  "public.fund.receipt.supportAnother": "Support another Garden",
-  "public.fund.receipt.viewImpact": "View public evidence",
+  "public.fund.receipt.supportAnother": "Support Another Garden",
+  "public.fund.receipt.viewImpact": "View Public Evidence",
 };
 
 const baseReceipt = {
@@ -171,7 +171,7 @@ describe("PublicFundingReceipt success state", () => {
       "public.fund.receipt.error.network":
         "Couldn't reach the receipt service. Check your connection and try again.",
       "public.fund.receipt.errorTitle": "We couldn't load this receipt",
-      "public.fund.receipt.tryAgain": "Try again",
+      "public.fund.receipt.tryAgain": "Try Again",
       "public.fund.receipt.backToFund": "Back to Fund",
     };
 

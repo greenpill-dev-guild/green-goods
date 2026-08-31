@@ -131,8 +131,8 @@ export const Default: Story = {
 
 export const MobileBottomSheet: Story = {
   tags: ["storybook-ci"],
+  globals: { viewport: { value: "mobile" } },
   parameters: {
-    viewport: { defaultViewport: "mobile1" },
     docs: {
       description: {
         story:

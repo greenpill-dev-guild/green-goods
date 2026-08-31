@@ -362,7 +362,7 @@ export const NoDomainRecovery: Story = {
     await expect(
       await canvas.findByText("No actions available for this garden's domains")
     ).toBeVisible();
-    await expect(await canvas.findByRole("button", { name: "Configure domains" })).toBeVisible();
+    await expect(await canvas.findByRole("button", { name: "Configure Domains" })).toBeVisible();
   },
 };
 

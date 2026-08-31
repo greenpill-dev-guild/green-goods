@@ -1,0 +1,180 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "karma-gap-integration-repair",
+    "title": "Karma GAP Integration Repair",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p1",
+    "created_at": "2026-08-26T04:44:11.922Z",
+    "updated_at": "2026-08-26T07:02:28.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-839",
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "laneSyncMode": "parent_only",
+    "lastSyncedAt": "2026-08-26T07:02:27.688Z",
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "protocol-readiness",
+    "tracks": ["contracts", "indexer", "shared", "admin"],
+    "work_types": ["implementation"],
+    "surfaces": [
+      "packages/contracts/src",
+      "packages/contracts/test",
+      "packages/indexer",
+      "packages/shared/src/hooks",
+      "packages/shared/src/i18n",
+      "packages/admin/src"
+    ],
+    "depends_on_features": ["celo-garden-account-safe-ownership"]
+  },
+  "notes": [
+    "GardenAccount authority compatibility with the active Celo ownership plan must be reviewed before completion.",
+    "Implementation validation is unverified at this commit; fresh command receipts are required before completion.",
+    "Existing Arbitrum GardenAccounts are immutable ERC-6551 delegates created from the implementation rather than AccountProxy-backed UUPS instances; production repair requires a separately reviewed compatibility design.",
+    "Authenticated Brave UI proof is blocked because the ChatGPT browser extension connection is unavailable in this session.",
+    "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",
+    "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": null,
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Panel implementation, route wiring, tests, Storybook state matrix, i18n, agentic readiness, and production build pass. Authenticated Brave proof and a clean commit receipt remain pending."
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": null,
+      "depends_on": ["contracts"],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Indexer projections and shared status/reconcile hooks pass selected tests, codegen, build, and type checks. The unsafe legacy-account upgrade mutation was intentionally removed after faithful proxy testing. A clean commit receipt remains pending."
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Focused reconciliation, payload, GardenAccount, KarmaModule, WorkApproval, upgrade-behavior, storage-layout, format/lint, source-structure, and EIP-170 checks pass. Existing legacy accounts remain a production migration blocker."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-08-26T04:44:11.924Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-08-26T04:44:23.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Locked the approved authority, data-format, indexer, shared, admin, and no-broadcast implementation scope; contract RED proof starts first. The inherited polish/karma-integration-issues branch is intentionally not recorded because it predates the current branch-name contract and must not be renamed without user approval."
+    },
+    {
+      "timestamp": "2026-08-26T04:49:05.967Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-08-26T06:59:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "implementation_checkpoint_blocked_on_external_proof",
+      "branch": null,
+      "note": "Contracts, indexer, shared, and admin implementation checks pass in the working tree. Terminal closure is blocked on authenticated Brave proof and a separately reviewed compatibility path for immutable legacy GardenAccounts; no deployment, broadcast, upgrade, or reconciliation was performed."
+    },
+    {
+      "timestamp": "2026-08-26T07:02:27.688Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_synced",
+      "branch": null,
+      "note": "Mirrored the implementation checkpoint, immutable legacy-account blocker, authenticated Brave blocker, and no-broadcast boundary to PRD-839."
+    }
+  ]
+}

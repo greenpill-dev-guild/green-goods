@@ -1,42 +1,77 @@
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
-import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { useArrivalState } from "@green-goods/shared/hooks/app/useArrivalState";
-import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNavigation";
-import { useFilteredGardens } from "@green-goods/shared/hooks/garden/useFilteredGardens";
-import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useLoadingWithMinDuration } from "@green-goods/shared/hooks/app/useLoadingWithMinDuration";
-import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import {
+  type GardenFiltersState,
+  useFilteredGardens,
+} from "@green-goods/shared/hooks/garden/useFilteredGardens";
 import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
-import {
-  useCommitmentsInbox,
-  useCommitmentsToConfirm,
-} from "@green-goods/shared/commitment-pooling";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiFilterLine } from "@remixicon/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { Outlet, useLocation, useMatch } from "react-router-dom";
+import { Outlet, useLocation, useMatch, useNavigate } from "react-router-dom";
 
-import { PullToRefresh } from "@/components/Inputs";
-import { APP_ROUTES } from "@/config/pwaRouting";
+import { PullToRefresh } from "@/components/Inputs/PullToRefresh";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import { APP_ROUTES } from "@/config/pwaRouting";
 import { ARRIVAL_TOASTS, type ArrivalActionKind } from "./arrivalToast";
-import { CommitmentsDrawer } from "./CommitmentsDrawer";
 import { CommitmentsDrawerIcon } from "./CommitmentsDrawer/Icon";
-import { type GardenFiltersState, GardensFilterDrawer } from "./GardenFilters";
 import { GardenList } from "./GardenList";
-import { WalletDrawer } from "./WalletDrawer";
 import { WalletDrawerIcon } from "./WalletDrawer/Icon";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 
+const CommitmentsDrawer = lazy(() =>
+  import("./CommitmentsDrawer").then(({ CommitmentsDrawer }) => ({ default: CommitmentsDrawer }))
+);
+const CommitmentsDrawerLauncher = lazy(() =>
+  import("./CommitmentsDrawer/Launcher").then(({ CommitmentsDrawerLauncher }) => ({
+    default: CommitmentsDrawerLauncher,
+  }))
+);
+const GardensFilterDrawer = lazy(() =>
+  import("./GardenFilters").then(({ GardensFilterDrawer }) => ({ default: GardensFilterDrawer }))
+);
+const WalletDrawer = lazy(() =>
+  import("./WalletDrawer").then(({ WalletDrawer }) => ({ default: WalletDrawer }))
+);
+
+function DeferredCommitmentsDrawerLauncher({ onClick }: { onClick: () => void }) {
+  const [loadCounts, setLoadCounts] = useState(false);
+
+  useEffect(() => {
+    const idleCallback =
+      window.requestIdleCallback ??
+      ((callback: IdleRequestCallback) => window.setTimeout(callback, 1_000));
+    const handle = idleCallback(() => setLoadCounts(true));
+    return () => {
+      if (window.cancelIdleCallback) window.cancelIdleCallback(handle);
+      else window.clearTimeout(handle);
+    };
+  }, []);
+
+  if (!loadCounts) return <CommitmentsDrawerIcon onClick={onClick} actCount={0} />;
+  return (
+    <Suspense fallback={<CommitmentsDrawerIcon onClick={onClick} actCount={0} />}>
+      <CommitmentsDrawerLauncher onClick={onClick} />
+    </Suspense>
+  );
+}
+
 const Home: React.FC = () => {
-  const navigate = useNavigateToTop();
+  const routerNavigate = useNavigate();
+  const navigate = useCallback(
+    (path: string) => routerNavigate(path, { viewTransition: true }),
+    [routerNavigate]
+  );
   const location = useLocation();
   const queryClient = useQueryClient();
   const intl = useIntl();
@@ -77,17 +112,6 @@ const Home: React.FC = () => {
   const isWalletDrawerOpen = useUIStore((s) => s.isWalletDrawerOpen);
   const openWalletDrawer = useUIStore((s) => s.openWalletDrawer);
   const closeWalletDrawer = useUIStore((s) => s.closeWalletDrawer);
-  const { totalActCount: inboxActCount } = useCommitmentsInbox({
-    chainId: DEFAULT_CHAIN_ID,
-    viewer: primaryAddress ?? undefined,
-  });
-  // The header control counts every tab of the sheet, so a steward's garden
-  // confirmations raise the same number as their own acts.
-  const { count: toConfirmCount } = useCommitmentsToConfirm({
-    chainId: DEFAULT_CHAIN_ID,
-    viewer: primaryAddress ?? undefined,
-  });
-  const commitmentActCount = inboxActCount + toConfirmCount;
   const isCommitmentsDrawerOpen = useUIStore((s) => s.isCommitmentsDrawerOpen);
   const openCommitmentsDrawer = useUIStore((s) => s.openCommitmentsDrawer);
   const closeCommitmentsDrawer = useUIStore((s) => s.closeCommitmentsDrawer);
@@ -249,7 +273,7 @@ const Home: React.FC = () => {
           disabled={!isOnline}
           refreshLabel={intl.formatMessage({
             id: "app.home.pullToRefresh",
-            defaultMessage: "Pull to refresh gardens",
+            defaultMessage: "Pull to refresh",
           })}
         >
           <div className="flex items-center justify-between w-full py-6 px-4 sm:px-6 md:px-12">
@@ -286,10 +310,7 @@ const Home: React.FC = () => {
                 )}
               </button>
               <WalletDrawerIcon onClick={openWalletDrawer} />
-              <CommitmentsDrawerIcon
-                onClick={openCommitmentsDrawer}
-                actCount={commitmentActCount}
-              />
+              <DeferredCommitmentsDrawerLauncher onClick={openCommitmentsDrawer} />
               <WorkDashboardIcon />
             </div>
           </div>
@@ -309,22 +330,34 @@ const Home: React.FC = () => {
               onBrowseAll={() => handleScopeChange("all")}
             />
           </div>
-          <GardensFilterDrawer
-            isOpen={isGardenFilterOpen}
-            onClose={closeGardenFilter}
-            filters={filters}
-            onScopeChange={handleScopeChange}
-            onSortChange={handleSortChange}
-            onReset={handleResetFilters}
-            canFilterMine={Boolean(normalizedAddress)}
-            myGardensCount={myGardensCount}
-            isFilterActive={isFilterActive}
-          />
+          {isGardenFilterOpen ? (
+            <Suspense fallback={null}>
+              <GardensFilterDrawer
+                isOpen
+                onClose={closeGardenFilter}
+                filters={filters}
+                onScopeChange={handleScopeChange}
+                onSortChange={handleSortChange}
+                onReset={handleResetFilters}
+                canFilterMine={Boolean(normalizedAddress)}
+                myGardensCount={myGardensCount}
+                isFilterActive={isFilterActive}
+              />
+            </Suspense>
+          ) : null}
         </PullToRefresh>
       )}
       <Outlet />
-      <WalletDrawer isOpen={isWalletDrawerOpen} onClose={closeWalletDrawer} />
-      <CommitmentsDrawer isOpen={isCommitmentsDrawerOpen} onClose={closeCommitmentsDrawer} />
+      {isWalletDrawerOpen ? (
+        <Suspense fallback={null}>
+          <WalletDrawer isOpen onClose={closeWalletDrawer} />
+        </Suspense>
+      ) : null}
+      {isCommitmentsDrawerOpen ? (
+        <Suspense fallback={null}>
+          <CommitmentsDrawer isOpen onClose={closeCommitmentsDrawer} />
+        </Suspense>
+      ) : null}
     </article>
   );
 };

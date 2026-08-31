@@ -50,7 +50,7 @@ const meta: Meta<typeof CommitmentRow> = {
   title: "Client/Commitments/CommitmentRow",
   component: CommitmentRow,
   tags: ["autodocs", "storybook-ci"],
-  parameters: { viewport: { defaultViewport: "mobile1" } },
+  globals: { viewport: { value: "mobile" } },
   decorators: [
     (Story) => (
       <div className="max-w-sm space-y-2 p-4">

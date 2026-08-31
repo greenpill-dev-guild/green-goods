@@ -1,5 +1,3 @@
-import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
-import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
 import { useCampaignCookieJar } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar";
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
@@ -13,6 +11,7 @@ import {
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
+import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText } from "@/components/EnsAddressText";
 import { publicJarLink } from "./helpers";
 import { ReviewLine } from "./ReviewLine";
@@ -86,14 +85,14 @@ export function CampaignCookieJarCreatedState({
             <AdminButton type="button" leadingIcon={<RiArrowLeftLine />} onClick={onBackToList}>
               {formatMessage({
                 id: "cockpit.community.cookies.backToJars",
-                defaultMessage: "Back to cookie jars",
+                defaultMessage: "Back to Cookie Jars",
               })}
             </AdminButton>
             <AdminButton type="button" variant="outlined" asChild>
               <a href={publicUrl} target="_blank" rel="noreferrer">
                 {formatMessage({
                   id: "cockpit.community.cookies.openPublicLink",
-                  defaultMessage: "Open public link",
+                  defaultMessage: "Open Public Link",
                 })}
               </a>
             </AdminButton>
@@ -105,7 +104,7 @@ export function CampaignCookieJarCreatedState({
             >
               {formatMessage({
                 id: "cockpit.community.cookies.createAnother",
-                defaultMessage: "Create another",
+                defaultMessage: "Create Another",
               })}
             </AdminButton>
           </div>
@@ -233,12 +232,15 @@ export function CampaignCookieJarSubmittedState({
         </div>
 
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-          <FormField
+          <AdminTextField
+            id="campaign-cookie-jar-created-address"
+            className="min-w-0"
             label={formatMessage({
               id: "cockpit.community.cookies.createdJarAddressInput",
               defaultMessage: "Created jar address",
             })}
-            htmlFor="campaign-cookie-jar-created-address"
+            value={manualInput}
+            onChange={(event) => onManualInputChange(event.target.value)}
             error={
               manualInput && !manualAddress
                 ? formatMessage({
@@ -247,14 +249,7 @@ export function CampaignCookieJarSubmittedState({
                   })
                 : undefined
             }
-          >
-            <TextInput
-              id="campaign-cookie-jar-created-address"
-              surface="admin"
-              value={manualInput}
-              onChange={(event) => onManualInputChange(event.target.value)}
-            />
-          </FormField>
+          />
           <AdminButton type="button" onClick={onUseManualAddress} disabled={!manualAddress}>
             {formatMessage({
               id: "cockpit.community.cookies.useCreatedJar",
@@ -267,7 +262,7 @@ export function CampaignCookieJarSubmittedState({
           <AdminButton type="button" variant="outlined" onClick={onBackToList}>
             {formatMessage({
               id: "cockpit.community.cookies.backToJars",
-              defaultMessage: "Back to cookie jars",
+              defaultMessage: "Back to Cookie Jars",
             })}
           </AdminButton>
         </div>

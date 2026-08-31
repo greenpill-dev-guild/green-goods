@@ -1,39 +1,54 @@
 ---
 title: Karma GAP
-sidebar_label: Karma
 slug: /builders/integrations/karma
 audience: developer
 owner: docs
-last_verified: 2026-04-25
-feature_status: Implemented (activation pending indexing)
-source_of_truth:
+feature_status: Live
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
   - packages/contracts/src/modules/Karma.sol
-  - packages/contracts/src/lib/Karma.sol
-  - packages/contracts/src/interfaces/IKarma.sol
-  - packages/shared/src/utils/errors/contract-errors.ts
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
+source_digest: "sha256:78d859c98113548a97637d556564bef21500a278c323639488328e332c90d32e"
+source_of_truth:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
+  - packages/contracts/src/modules/Karma.sol
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
-
+<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
 # Karma GAP
 
-<StatusBadge status="Implemented (activation pending indexing)" />
+Karma GAP connects Garden activity with project reporting and milestone records.
 
-## Overview
-Karma GAP support exists in deployed Arbitrum/Sepolia contract modules, libraries, interfaces, and shared error handling. Celo artifacts keep the module at the zero address. Dedicated Karma GAP module events are not currently configured in the indexer, so reporting claims should remain indexing- and UI-gated.
+## Checked-in deployment projection
 
-## Builder notes
+| Network | Status | Recorded components |
+|---|---|---|
+| Sepolia Testnet (`11155111`) | Deployed | `karmaGAPModule` |
+| Arbitrum One (`42161`) | Deployed | `karmaGAPModule` |
 
-- Treat Karma GAP as non-blocking around core garden/work flows.
-- Keep GAP errors mapped through shared contract-error utilities.
-- Do not claim automatic reporting is live unless a deployed chain and UI path are verified.
+Networks without recorded components are omitted; per-network state lives in the [deployment status projection](/builders/deployments/status).
 
-<NextBestAction
-  title="Next best action"
-  why="Use deployment status before treating external reporting surfaces as live."
-  actionLabel="Deployment status"
-  actionHref="../deployments/status"
-  alternatives={[
-    {label: "Integrations overview", href: "./overview"},
-  ]}
-/>
+## Indexer boundary
+
+Configured indexer contracts: `KarmaGAPModule`.
+
+A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. Follow the owning package runbook for operational verification.

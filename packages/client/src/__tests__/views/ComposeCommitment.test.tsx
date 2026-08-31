@@ -212,7 +212,7 @@ describe("ComposeCommitment", () => {
     await user.click(within(rows).getAllByRole("button", { name: "× 4" })[1]!);
     await user.click(next());
     await user.click(next());
-    await place(user, "Make this offer");
+    await place(user, "Make This Offer");
 
     const call = mockEnqueue.mock.calls[0]?.[0] as {
       payload: {
@@ -274,7 +274,7 @@ describe("ComposeCommitment", () => {
     await user.click(screen.getByRole("radio", { name: /Stewards review who takes it/ }));
     await user.click(next());
     await user.click(next());
-    await place(user, "Make this request");
+    await place(user, "Make This Request");
 
     const call = mockEnqueue.mock.calls[0]?.[0] as {
       payload: { direction: number; claimMode: number; commitmentType: number };
@@ -295,16 +295,19 @@ describe("ComposeCommitment", () => {
     });
     render("offer");
 
-    const where = screen.getByLabelText("Where it runs");
-    expect(where).toHaveValue("0");
-    await user.selectOptions(where, "8");
+    // Running on its own stays the default; the season card is one tap.
+    expect(screen.getByRole("button", { name: /On its own/ })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    await user.click(screen.getByRole("button", { name: "Season" }));
 
     await user.type(screen.getByLabelText("Name it"), "Prune the north beds");
     await user.click(next());
     await user.click(screen.getByRole("button", { name: /Prune/ }));
     await user.click(next());
     await user.click(next());
-    await place(user, "Make this offer");
+    await place(user, "Make This Offer");
     expect(
       (mockEnqueue.mock.calls[0]?.[0] as { payload: { cycleId: bigint } }).payload.cycleId
     ).toBe(8n);
@@ -324,7 +327,7 @@ describe("ComposeCommitment", () => {
     await user.click(screen.getByRole("button", { name: /Prune/ }));
     await user.click(next());
     await user.click(next());
-    await place(user, "Make this offer");
+    await place(user, "Make This Offer");
     expect(
       (mockEnqueue.mock.calls[0]?.[0] as { payload: { cycleId: bigint } }).payload.cycleId
     ).toBe(0n);
@@ -340,13 +343,18 @@ describe("ComposeCommitment", () => {
     });
     render("offer");
 
-    const where = screen.getByLabelText("Where it runs") as HTMLSelectElement;
+    const where = screen.getByRole("group", { name: "Where it runs" });
     // Nothing is bound for the member: running on its own stays the default.
     // The season leads the list, the campaign follows, and none comes last.
-    expect(where).toHaveValue("0");
-    expect(Array.from(where.options).map((option) => option.value)).toEqual(["8", "9", "0"]);
-    await user.selectOptions(where, "9");
-    expect(where).toHaveValue("9");
+    const cards = within(where).getAllByRole("button");
+    expect(cards.map((card) => card.textContent)).toEqual([
+      "Season",
+      "Campaign",
+      "On its own, outside any season or campaign",
+    ]);
+    expect(cards[2]).toHaveAttribute("aria-pressed", "true");
+    await user.click(cards[1]!);
+    expect(cards[1]).toHaveAttribute("aria-pressed", "true");
   });
 
   it("keeps the note and links as the commitment's own words, under the schema's names", async () => {
@@ -361,7 +369,7 @@ describe("ComposeCommitment", () => {
     await user.type(screen.getByLabelText("Add a link"), "https://example.org/plan");
     await user.click(screen.getByRole("button", { name: "Add" }));
     await user.click(next());
-    await place(user, "Make this offer");
+    await place(user, "Make This Offer");
 
     const call = mockEnqueue.mock.calls[0]?.[0] as {
       payload: { metadataCID: string; metadata: Record<string, unknown> };
@@ -408,9 +416,9 @@ describe("ComposeCommitment", () => {
       await walkServiceToReview(user);
 
       expect(observed).toBe(true);
-      expect(screen.getByRole("button", { name: "Make this offer" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Make This Offer" })).toBeDisabled();
       await user.click(screen.getByRole("button", { name: "Read to the end" }));
-      expect(screen.getByRole("button", { name: "Make this offer" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Make This Offer" })).toBeEnabled();
     } finally {
       vi.unstubAllGlobals();
     }
@@ -432,7 +440,7 @@ describe("ComposeCommitment", () => {
     await walkServiceToReview(user);
 
     expect(screen.getByText(/no pool to place it in yet/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Make this offer" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Make This Offer" })).toBeDisabled();
   });
 
   it("holds placement while the pool is paused, whatever route led here", async () => {
@@ -446,7 +454,7 @@ describe("ComposeCommitment", () => {
     render("offer");
     await walkServiceToReview(user);
 
-    expect(screen.getByRole("button", { name: "Make this offer" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Make This Offer" })).toBeDisabled();
     expect(mockEnqueue).not.toHaveBeenCalled();
   });
 
@@ -454,7 +462,7 @@ describe("ComposeCommitment", () => {
     const user = userEvent.setup();
     render("offer");
     await walkServiceToReview(user);
-    await place(user, "Make this offer");
+    await place(user, "Make This Offer");
 
     expect(mockEnqueue).toHaveBeenCalledTimes(1);
     const call = mockEnqueue.mock.calls[0]?.[0] as {
@@ -482,9 +490,9 @@ describe("ComposeCommitment", () => {
     mockUseOffline.mockReturnValue({ isOnline: false });
     render("offer");
     await walkServiceToReview(user);
-    await place(user, "Make this offer");
+    await place(user, "Make This Offer");
 
-    expect(await screen.findByText("Saved on this phone")).toBeInTheDocument();
+    expect(await screen.findByText(/is saved on this phone/)).toBeInTheDocument();
   });
 
   it("stays on the review when the commitment could not be queued", async () => {
@@ -492,10 +500,10 @@ describe("ComposeCommitment", () => {
     mockEnqueue.mockRejectedValue(new Error("no sender"));
     render("offer");
     await walkServiceToReview(user);
-    await place(user, "Make this offer");
+    await place(user, "Make This Offer");
 
     // A failed enqueue must not read as success; the member keeps their draft.
-    expect(screen.queryByText("It is on its way")).not.toBeInTheDocument();
+    expect(screen.queryByText(/is on its way/)).not.toBeInTheDocument();
     expect(screen.getByText("Before you place this")).toBeInTheDocument();
   });
 
@@ -511,8 +519,8 @@ describe("ComposeCommitment", () => {
     first.unmount();
 
     render("offer");
-    expect(screen.getByText("Resume your draft?")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Resume draft" }));
+    expect(screen.getByText("Resume Your Draft?")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Resume Draft" }));
     expect(screen.getByLabelText("Name it")).toHaveValue("Prune the north beds");
     // The same creation identity: a resumed draft never mints a second commitment.
     expect(
@@ -527,7 +535,7 @@ describe("ComposeCommitment", () => {
     first.unmount();
 
     render("offer");
-    await user.click(screen.getByRole("button", { name: "Start fresh" }));
+    await user.click(screen.getByRole("button", { name: "Start Fresh" }));
     expect(screen.getByLabelText("Name it")).toHaveValue("");
     expect(Object.keys(useCommitmentComposerDraftStore.getState().drafts)).toHaveLength(0);
   });
@@ -536,8 +544,8 @@ describe("ComposeCommitment", () => {
     const user = userEvent.setup();
     render("offer");
     await walkServiceToReview(user);
-    await place(user, "Make this offer");
-    expect(await screen.findByText("It is on its way")).toBeInTheDocument();
+    await place(user, "Make This Offer");
+    expect(await screen.findByText(/is on its way/)).toBeInTheDocument();
 
     expect(Object.keys(useCommitmentComposerDraftStore.getState().drafts)).toHaveLength(0);
   });

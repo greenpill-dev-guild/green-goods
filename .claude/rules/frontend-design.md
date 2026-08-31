@@ -77,12 +77,12 @@ View-level actions in the `CanvasRouteHeader` `actions` slot / `AdminViewActions
 
 Use `flex-1` on cards that should expand vertically within a flex container.
 
-## Rule 7: Filter Alignment (legacy shared Card only)
+## Rule 7: Filter Alignment (card header rows)
 
-When using `flex-col` inside the legacy shared `Card.Header`, always add `items-start` to override the base `items-center`. This applies only to remaining shared `Card` usage — admin cards are `AdminCard` / `WorkbenchCard` / `AdminSelectableCard` and don't carry this footgun.
+`AdminCardHeader` (and the legacy shared `Card.Header`, now client-only — admin retired shared `Card` on 2026-08-30) defaults to `items-center`; when stacking with `flex-col`, always add `items-start`.
 
 ```tsx
-<Card.Header className="flex-col items-start gap-3">
+<AdminCardHeader className="flex-col items-start gap-3">
 ```
 
 ## Rule 8: Thumbnails
@@ -130,17 +130,22 @@ modal (avoid building these) needs `max-w-[calc(100vw-2rem)] sm:max-w-lg` to sur
 
 ## Rule 15: Form Fields
 
-Use the `FormField` component from `@green-goods/shared` for label+input+error patterns
-(admin-local `components/ui` shims are forbidden — admin.mdx Migration Rules). Mark required
-fields. For an inline **setting row** (field title on the left, a `Switch` or compact control on
-the right), use the admin `AdminSettingRow` primitive — it carries the same label token as
-`FormField`, so a toggle row never reads smaller or greyer than the stacked fields beside it.
+**Admin**: fields ride the admin field family — `AdminTextField` / `AdminTextArea` /
+`AdminSelect` for single controls, `AdminInlineField` for the 32px inline axis, and
+`AdminFieldGroup` for group-shaped fields (checkbox grids, repeating rows, upload wells).
+Shared `FormField`/`TextInput`/`Textarea`/`NativeSelect` renders in `packages/admin/src` fail
+the wrapper-adoption sweep in `check:design-tokens`. For an inline **setting row** (field title
+left, `Switch` or compact control right), use `AdminSettingRow`.
+
+**Client**: use the `FormField` component from `@green-goods/shared` for label+input+error
+patterns. Mark required fields in both surfaces (the admin family renders its own aria-hidden
+asterisk from `required` — never hardcode `" *"` into label strings).
 
 **A field-input label is never a hand-rolled eyebrow.** Labelling an input, toggle, or
 selectable-card group with `label-xs text-text-soft` (the eyebrow/metadata token) makes that
-field read visibly smaller and greyer than the `FormField` labels next to it — the Garden Profile
-dialog regressed exactly this way. Route every field label through `FormField` or
-`AdminSettingRow`.
+field read visibly smaller and greyer than the family labels next to it — the Garden Profile
+dialog regressed exactly this way. Route every admin field label through the field family
+(`AdminTextField`/`AdminFieldGroup`/`AdminSettingRow`); client labels go through `FormField`.
 
 ```tsx
 // Bad — hand-rolled eyebrow token as a field label
@@ -151,13 +156,16 @@ dialog regressed exactly this way. Route every field label through `FormField` o
 <input {...register('name')} />
 {errors.name && <p>{errors.name.message}</p>}
 
-// Good — canonical label primitives
-import { FormField } from "@green-goods/shared";
+// Good — canonical admin field family
+import { AdminFieldGroup } from "@/components/AdminFieldGroup";
 import { AdminSettingRow } from "@/components/AdminSettingRow";
+import { AdminTextField } from "@/components/AdminTextField";
 
-<FormField label="Name" required error={errors.name?.message}>
-  <input {...register('name')} />
-</FormField>
+<AdminTextField label="Name" required error={errors.name?.message} {...register("name")} />
+
+<AdminFieldGroup label="Forms of capital" required error={error} contentClassName="grid grid-cols-2 gap-2">
+  {options.map(...)}
+</AdminFieldGroup>
 
 <AdminSettingRow labelId="open-joining" label="Open joining" description="…">
   <Switch aria-labelledby="open-joining" ... />
@@ -221,6 +229,6 @@ The five enforceable invariants of the admin cockpit finish — treat violations
 - **Admin radius set** — 4/8/12/16/9999px only; no 20/24/28px radii (`rounded-xl`/`rounded-2xl` remap to 16px in admin).
 - **Four-use tone budget** — workspace tone appears only in the active tab underline/label, the active nav pill, one filled `--tone-action` header action, and the nav-shell FAB fill (plus the faint canvas wash).
 - **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`; never translate/scale lifts or hue shifts.
-- **AdminButton only** — pill shape, sentence case; the shared `Button` (`gg-button`) must not appear in admin.
+- **AdminButton only** — pill shape, Title Case action labels (en; DL-012); the shared `Button` (`gg-button`) must not appear in admin. Control heights ride the DL-011 compact metric (buttons 28/32/40, fields 44, pills 36).
 
 > Full surface context: [.claude/context/client.md](../context/client.md) / [.claude/context/admin.md](../context/admin.md); implementation runbook: [.claude/skills/design/implementation.md](../skills/design/implementation.md).

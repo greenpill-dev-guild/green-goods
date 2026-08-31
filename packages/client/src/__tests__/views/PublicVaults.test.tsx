@@ -4,16 +4,18 @@
  * @vitest-environment jsdom
  */
 
+import { VaultDepositStageError } from "@green-goods/shared/hooks/vault/vault-helpers";
+import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Fragment, createElement, useEffect } from "react";
+import { createElement, Fragment, useEffect } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
-import { VaultDepositStageError } from "@green-goods/shared/hooks/vault/vault-helpers";
-import VaultsPage, { CampaignCard, VaultsPageContent } from "../../views/Public/Vaults";
+import VaultsWalletSurface, {
+  CampaignCard,
+  VaultsPageContent,
+} from "../../views/Public/VaultsWalletSurface";
 
 const sharedHookMocks = vi.hoisted(() => ({
   loginWithWallet: vi.fn(),
@@ -72,24 +74,25 @@ const sharedHookMocks = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("@green-goods/shared/hooks/auth/useAuth", async (importOriginal) => {
-  return {
-    ...(await importOriginal()),
-    useAuth: () => ({
-      loginWithWallet: sharedHookMocks.loginWithWallet,
-    }),
-  };
-});
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuth: () => ({
+    loginWithWallet: sharedHookMocks.loginWithWallet,
+  }),
+}));
 
-vi.mock("@green-goods/shared/hooks/auth/useUser", async (importOriginal) => {
-  return {
-    ...(await importOriginal()),
-    useUser: () => ({
-      primaryAddress: sharedHookMocks.primaryAddress,
-      authMode: sharedHookMocks.authMode,
-    }),
-  };
-});
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({
+    primaryAddress: sharedHookMocks.primaryAddress,
+    authMode: sharedHookMocks.authMode,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useWalletModalOpen", () => ({
+  useWalletConnectDismissGuard: () => ({
+    markConnecting: () => {},
+    shouldBlockDismiss: () => false,
+  }),
+}));
 
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", async (importOriginal) => {
   return {
@@ -110,39 +113,30 @@ vi.mock("@green-goods/shared/config/local-fork", async (importOriginal) => {
   };
 });
 
-vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWalletEndow", async (importOriginal) => {
-  return {
-    ...(await importOriginal()),
-    useOctantVaultWalletEndow: (options?: { onLifecycleStep?: (step: string) => void }) => {
-      sharedHookMocks.octantVaultWalletEndowOptions = options ?? null;
-      return {
-        mutate: sharedHookMocks.octantVaultWalletEndowMutate,
-        reset: sharedHookMocks.octantVaultWalletEndowReset,
-        error: sharedHookMocks.octantVaultWalletEndowError,
-        isPending: false,
-      };
-    },
-  };
-});
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWalletEndow", () => ({
+  useOctantVaultWalletEndow: (options?: { onLifecycleStep?: (step: string) => void }) => {
+    sharedHookMocks.octantVaultWalletEndowOptions = options ?? null;
+    return {
+      mutate: sharedHookMocks.octantVaultWalletEndowMutate,
+      reset: sharedHookMocks.octantVaultWalletEndowReset,
+      error: sharedHookMocks.octantVaultWalletEndowError,
+      isPending: false,
+    };
+  },
+}));
 
-vi.mock("@green-goods/shared/hooks/vault/useWrapEthToWeth", async (importOriginal) => {
-  return {
-    ...(await importOriginal()),
-    useWrapEthToWeth: () => ({
-      mutate: sharedHookMocks.wrapEthToWethMutate,
-      reset: sharedHookMocks.wrapEthToWethReset,
-      error: sharedHookMocks.wrapEthToWethError,
-      isPending: sharedHookMocks.wrapEthToWethIsPending,
-    }),
-  };
-});
+vi.mock("@green-goods/shared/hooks/vault/useWrapEthToWeth", () => ({
+  useWrapEthToWeth: () => ({
+    mutate: sharedHookMocks.wrapEthToWethMutate,
+    reset: sharedHookMocks.wrapEthToWethReset,
+    error: sharedHookMocks.wrapEthToWethError,
+    isPending: sharedHookMocks.wrapEthToWethIsPending,
+  }),
+}));
 
-vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWalletBalances", async (importOriginal) => {
-  return {
-    ...(await importOriginal()),
-    useOctantVaultWalletBalances: () => sharedHookMocks.walletBalances,
-  };
-});
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWalletBalances", () => ({
+  useOctantVaultWalletBalances: () => sharedHookMocks.walletBalances,
+}));
 
 vi.mock("@green-goods/shared/hooks/blockchain/useEthUsdPrice", async (importOriginal) => {
   return {
@@ -199,18 +193,15 @@ vi.mock("@green-goods/shared/hooks/vault/useOctantVaultPositions", async (import
   };
 });
 
-vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWithdraw", async (importOriginal) => {
-  return {
-    ...(await importOriginal()),
-    useOctantVaultRedeem: () => ({
-      mutateAsync: vi.fn(async () => "0xhash"),
-      mutate: vi.fn(),
-      reset: vi.fn(),
-      isPending: false,
-      error: null,
-    }),
-  };
-});
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWithdraw", () => ({
+  useOctantVaultRedeem: () => ({
+    mutateAsync: vi.fn(async () => "0xhash"),
+    mutate: vi.fn(),
+    reset: vi.fn(),
+    isPending: false,
+    error: null,
+  }),
+}));
 
 vi.mock("@/routes/WalletRuntimeProviders", async () => {
   const { createElement } = await import("react");
@@ -263,7 +254,7 @@ function renderView(path = "/vaults") {
       createElement(
         IntlProvider,
         { locale: "en", messages: { "app.common.close": "Close" } },
-        createElement(VaultsPage)
+        createElement(VaultsWalletSurface)
       )
     )
   );
@@ -290,7 +281,7 @@ function renderViewWithLocationProbe(path: string, onLocationChange: (location: 
         createElement(
           Fragment,
           null,
-          createElement(VaultsPage),
+          createElement(VaultsWalletSurface),
           createElement(LocationProbe, { onChange: onLocationChange })
         )
       )
@@ -541,7 +532,7 @@ describe("VaultsPage", () => {
     expect(screen.queryByText(/Card Endow/i)).not.toBeInTheDocument();
     expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
     expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Connect wallet" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Connect Wallet" })).not.toBeInTheDocument();
   });
 
   it("offers a complete non-production campaign Wallet checkout only, never Card", async () => {
@@ -570,10 +561,10 @@ describe("VaultsPage", () => {
     expect(
       screen.queryByText("Enter a dollar amount first to choose a payment method.")
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Connect wallet" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Connect Wallet" })).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Amount to endow"), "2.50");
-    expect(screen.getByRole("button", { name: "Connect wallet" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Connect Wallet" })).toBeEnabled();
 
     // Card stays gated to the production campaign; this fixture exposes Wallet only.
     expect(screen.getByTestId("vault-wallet-endow-path")).toBeInTheDocument();
@@ -598,7 +589,7 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
     expect(screen.queryByText("How would you like to pay?")).not.toBeInTheDocument();
     await user.type(screen.getByLabelText("Amount to endow"), "25");
-    expect(screen.getByRole("button", { name: "Connect wallet" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Connect Wallet" })).toBeEnabled();
 
     expect(await screen.findByTestId("vault-wallet-endow-path")).toBeInTheDocument();
     expect(screen.queryByTestId("vault-card-endow-flow")).not.toBeInTheDocument();
@@ -825,7 +816,8 @@ describe("VaultsPage", () => {
     renderView();
 
     const yieldRow = screen.getByTestId("vault-campaign-yield-row-greenpill-nyc");
-    expect(within(yieldRow).getAllByText("Reading")).toHaveLength(2);
+    expect(yieldRow.querySelectorAll("[data-editorial-skeleton]")).toHaveLength(2);
+    expect(within(yieldRow).queryByText("Reading")).toBeNull();
   });
 
   it("renders a desktop dialog and a mobile bottom sheet for checkout setup", async () => {
@@ -978,9 +970,7 @@ describe("VaultsPage", () => {
     );
     expect(screen.queryByText("Enter a valid dollar amount.")).not.toBeInTheDocument();
     expect(
-      screen.getByText(
-        "ETH pricing is temporarily unavailable. Keep this amount and try again in a moment."
-      )
+      screen.getByText("We can't estimate ETH right now. Try again in a moment.")
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Enter an amount" })).toBeDisabled();
   });
@@ -1002,7 +992,7 @@ describe("VaultsPage", () => {
       )
     ).not.toBeInTheDocument();
     expect(amountInput).toHaveAttribute("aria-invalid", "false");
-    expect(screen.getByRole("button", { name: "Connect wallet" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Connect Wallet" })).toBeEnabled();
   });
 
   it("uses one connected-aware checkout surface while amount stays editable", async () => {
@@ -1010,7 +1000,7 @@ describe("VaultsPage", () => {
 
     renderContent([makeCompleteCampaign()]);
 
-    expect(screen.queryByRole("button", { name: "Connect wallet" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Connect Wallet" })).not.toBeInTheDocument();
     expect(sharedHookMocks.walletRuntimeProviderRender).not.toHaveBeenCalled();
 
     await user.click(
@@ -1031,7 +1021,7 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("vault-checkout-amount-feedback")).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Amount to endow"), "2.50");
-    expect(screen.getByRole("button", { name: "Connect wallet" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Connect Wallet" })).toBeEnabled();
     expect(screen.getByDisplayValue("2.50")).toBeInTheDocument();
     expect(screen.getByText(/Prepared as .* USDC for the campaign vault/)).toBeInTheDocument();
 
@@ -1041,7 +1031,7 @@ describe("VaultsPage", () => {
     expect(screen.getByDisplayValue("3.25")).toBeInTheDocument();
     expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Connect wallet" }));
+    await user.click(screen.getByRole("button", { name: "Connect Wallet" }));
 
     expect(sharedHookMocks.loginWithWallet).toHaveBeenCalledTimes(1);
     expect(sharedHookMocks.octantVaultWalletEndowMutate).not.toHaveBeenCalled();
@@ -1050,7 +1040,7 @@ describe("VaultsPage", () => {
 
     expect(screen.getByTestId("vault-wallet-endow-path")).toBeInTheDocument();
     expect(screen.getByDisplayValue("3.25")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Connect wallet" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Connect Wallet" })).toBeInTheDocument();
   });
 
   it("unlocks the wallet checkout sheet when wallet connection is cancelled", async () => {
@@ -1065,11 +1055,11 @@ describe("VaultsPage", () => {
       })
     );
     await user.type(screen.getByLabelText("Amount to endow"), "2.50");
-    await user.click(screen.getByRole("button", { name: "Connect wallet" }));
+    await user.click(screen.getByRole("button", { name: "Connect Wallet" }));
 
     expect(sharedHookMocks.loginWithWallet).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument());
-    expect(screen.getByRole("button", { name: "Connect wallet" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Connect Wallet" })).toBeEnabled();
   });
 
   it("does not treat restored passkey auth as Wallet Endow readiness", async () => {
@@ -1085,7 +1075,7 @@ describe("VaultsPage", () => {
       })
     );
     await user.type(screen.getByLabelText("Amount to endow"), "2.50");
-    await user.click(screen.getByRole("button", { name: "Connect wallet" }));
+    await user.click(screen.getByRole("button", { name: "Connect Wallet" }));
 
     expect(sharedHookMocks.loginWithWallet).toHaveBeenCalledTimes(1);
     expect(sharedHookMocks.octantVaultWalletEndowMutate).not.toHaveBeenCalled();
@@ -1451,14 +1441,14 @@ describe("VaultsPage", () => {
       createElement(
         IntlProvider,
         { locale: "en", messages: { "app.common.close": "Close" } },
-        createElement(VaultsPage)
+        createElement(VaultsWalletSurface)
       )
     );
     const { rerender } = render(ui);
 
     await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
     await user.type(screen.getByLabelText("Amount to endow"), "30");
-    await user.click(screen.getByRole("button", { name: "Connect wallet" }));
+    await user.click(screen.getByRole("button", { name: "Connect Wallet" }));
     // Committed at $30 with ETH at $3,000 => 0.01 WETH.
     expect(screen.getByText("Prepared as 0.01 WETH for the campaign vault")).toBeInTheDocument();
 
@@ -1496,7 +1486,7 @@ describe("VaultsPage", () => {
     expect(await screen.findByTestId("vault-wallet-endow-success")).toBeInTheDocument();
     expect(screen.getByText("Endowment submitted")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "View transaction" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View Transaction" })).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Approve vault access (1/2)" })
     ).not.toBeInTheDocument();
@@ -1554,7 +1544,7 @@ describe("VaultsPage", () => {
       expect(screen.queryByText(/return through Manage Endowments/i)).not.toBeInTheDocument();
       // The slow state no longer points to the Fund page; vault positions are
       // managed route-locally from /vaults.
-      expect(screen.queryByRole("link", { name: "View on Fund page" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "View on Fund Page" })).not.toBeInTheDocument();
       expect(screen.queryByText(/Fund page/i)).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();

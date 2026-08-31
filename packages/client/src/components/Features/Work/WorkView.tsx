@@ -131,7 +131,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
           <h6>
             {intl.formatMessage({
               id: "app.home.work.audioNotes",
-              defaultMessage: "Audio Notes",
+              defaultMessage: "Audio notes",
             })}
           </h6>
           <div className="flex flex-col gap-2">

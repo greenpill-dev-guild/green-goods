@@ -2,7 +2,11 @@
 pragma solidity >=0.8.25;
 
 import { Test } from "forge-std/Test.sol";
+import { Vm } from "forge-std/Vm.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { AccountGuardian } from "@tokenbound/AccountGuardian.sol";
+import { AccountProxy } from "@tokenbound/AccountProxy.sol";
+import { IERC6551Registry } from "../../src/interfaces/IERC6551Registry.sol";
 
 import { GardenToken } from "../../src/tokens/Garden.sol";
 import { GardenAccount } from "../../src/accounts/Garden.sol";
@@ -24,13 +28,20 @@ import { MockHatsModule } from "../helpers/MockHatsModule.sol";
 import { ERC6551Helper } from "../helpers/ERC6551Helper.sol";
 import { IGardensModule } from "../../src/interfaces/IGardensModule.sol";
 import { MockRegistryCommunity } from "../../src/mocks/GardensV2.sol";
+import { SALT, TOKENBOUND_REGISTRY } from "../../src/lib/TBA.sol";
 
 /// @notice Minimal KarmaGAP mock for testing GAP view delegation
 contract MockKarmaGAPForAccount is IKarmaGAPModule {
     mapping(address garden => bytes32 uid) public projectUIDs;
+    bool public shouldRevert;
+    bool public projectUpdateMigrationComplete = true;
 
     function setProjectUID(address garden, bytes32 uid) external {
         projectUIDs[garden] = uid;
+    }
+
+    function setShouldRevert(bool value) external {
+        shouldRevert = value;
     }
 
     function createProject(
@@ -51,9 +62,35 @@ contract MockKarmaGAPForAccount is IKarmaGAPModule {
     function addProjectAdmin(address, address) external { }
     function removeProjectAdmin(address, address) external { }
 
+    function reconcileProject(address garden) external view returns (bytes32) {
+        if (shouldRevert) revert("Karma unavailable");
+        return projectUIDs[garden];
+    }
+
+    function reconcileProjectAccess(address, address) external pure returns (bool, bool) {
+        return (false, false);
+    }
+
+    function migrateProjectUpdates(bytes32[] calldata, bytes32[] calldata) external { }
+
     function createImpact(
         address,
         uint256,
+        string calldata,
+        string calldata,
+        string calldata,
+        bytes32,
+        string calldata
+    )
+        external
+        pure
+        returns (bytes32)
+    {
+        return bytes32(0);
+    }
+
+    function createProjectUpdate(
+        address,
         string calldata,
         string calldata,
         string calldata,
@@ -206,6 +243,9 @@ contract GardenAccountTest is Test, ERC6551Helper {
     event MetadataUpdated(address indexed updater, string newMetadata);
     event OpenJoiningUpdated(address indexed updater, bool openJoining);
     event MemberAutoRegistered(address indexed member, address indexed community);
+    event KarmaHookFailed(
+        address indexed garden, address indexed account, IKarmaGAPModule.KarmaSyncOperation indexed operation, string reason
+    );
 
     function setUp() public {
         _deployERC6551Registry();
@@ -684,6 +724,83 @@ contract GardenAccountTest is Test, ERC6551Helper {
         gardenToken.setKarmaGAPModule(address(0));
 
         assertEq(gardenAccount.getGAPProjectUID(), bytes32(0));
+    }
+
+    function testGardenAccount_metadataUpdatePersistsAndEmitsWhenKarmaCallReverts() public {
+        karmaModule.setShouldRevert(true);
+        vm.expectEmit(true, true, true, true, gardenAddress);
+        emit KarmaHookFailed(gardenAddress, address(0), IKarmaGAPModule.KarmaSyncOperation.Details, "module_call_reverted");
+
+        vm.prank(operator);
+        gardenAccount.updateDescription("updated despite Karma outage");
+
+        assertEq(gardenAccount.description(), "updated despite Karma outage");
+    }
+
+    function testGardenAccount_metadataUpdateSkipsFailureEventWhenKarmaModuleIsUnset() public {
+        vm.prank(multisig);
+        gardenToken.setKarmaGAPModule(address(0));
+        vm.recordLogs();
+
+        vm.prank(operator);
+        gardenAccount.updateDescription("updated without Karma configured");
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bytes32 failureSignature = keccak256("KarmaHookFailed(address,address,uint8,string)");
+        for (uint256 index = 0; index < logs.length; index++) {
+            assertTrue(logs[index].topics.length == 0 || logs[index].topics[0] != failureSignature);
+        }
+        assertEq(gardenAccount.description(), "updated without Karma configured");
+    }
+
+    function testGardenAccount_currentProxyCannotUseUupsUpgrade() public {
+        GardenAccount nextImplementation = new GardenAccount(
+            address(0x001), address(0x002), address(0x003), address(0x004), address(0x2001), address(0x2002)
+        );
+
+        vm.prank(multisig);
+        vm.expectRevert("Function must be called through active proxy");
+        gardenAccount.upgradeTo(address(nextImplementation));
+    }
+
+    function testGardenAccount_accountProxyRejectsStewardUpgrade() public {
+        (GardenAccount upgradeableAccount, GardenAccount nextImplementation,) = _deployUpgradeableGardenAccount();
+
+        vm.prank(operator);
+        vm.expectRevert();
+        upgradeableAccount.upgradeTo(address(nextImplementation));
+    }
+
+    function testGardenAccount_accountProxyAllowsGardenNftOwnerUpgrade() public {
+        (GardenAccount upgradeableAccount, GardenAccount nextImplementation,) = _deployUpgradeableGardenAccount();
+        bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
+
+        vm.prank(multisig);
+        upgradeableAccount.upgradeTo(address(nextImplementation));
+
+        assertEq(
+            address(uint160(uint256(vm.load(address(upgradeableAccount), implementationSlot)))), address(nextImplementation)
+        );
+    }
+
+    function _deployUpgradeableGardenAccount()
+        internal
+        returns (GardenAccount account, GardenAccount nextImplementation, AccountGuardian guardian)
+    {
+        guardian = new AccountGuardian(address(this));
+        GardenAccount implementation = new GardenAccount(
+            address(0x001), address(0x002), TOKENBOUND_REGISTRY, address(guardian), address(0x2001), address(0x2002)
+        );
+        AccountProxy accountProxy = new AccountProxy(address(guardian), address(implementation));
+        address accountAddress = IERC6551Registry(TOKENBOUND_REGISTRY)
+            .createAccount(address(accountProxy), SALT, block.chainid, address(gardenToken), 0);
+        AccountProxy(payable(accountAddress)).initialize(address(implementation));
+
+        account = GardenAccount(payable(accountAddress));
+        nextImplementation = new GardenAccount(
+            address(0x001), address(0x002), TOKENBOUND_REGISTRY, address(guardian), address(0x2001), address(0x2002)
+        );
+        guardian.setTrustedImplementation(address(nextImplementation), true);
     }
 
     // =========================================================================

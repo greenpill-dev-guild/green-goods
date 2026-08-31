@@ -1,6 +1,4 @@
 import { Alert } from "@green-goods/shared/components/Alert";
-import { NativeSelect, TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
-import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import {
   type ListingStep,
@@ -10,14 +8,15 @@ import { logger } from "@green-goods/shared/modules/app/logger";
 import type { Address } from "@green-goods/shared/types/domain";
 import { type CreateListingParams, LISTING_DEFAULTS } from "@green-goods/shared/types/hypercerts";
 import { RiCheckLine, RiExchangeDollarLine, RiLoader4Line } from "@remixicon/react";
-import { AdminButton } from "../AdminButton";
-import { AdminCheckbox } from "../AdminCheckbox";
-import { AdminDialog } from "../AdminDialog";
-import { DiscardChangesDialog } from "../DiscardChangesDialog";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { parseEther, zeroAddress } from "viem";
+import { AdminButton } from "../AdminButton";
+import { AdminCheckbox } from "../AdminCheckbox";
+import { AdminDialog } from "../AdminDialog";
+import { AdminSelect, AdminTextField } from "../AdminTextField";
+import { DiscardChangesDialog } from "../DiscardChangesDialog";
 
 interface CreateListingDialogProps {
   open: boolean;
@@ -189,80 +188,56 @@ export function CreateListingDialog({
         {phase === "configure" ? (
           <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Price per unit */}
-            <FormField
+            <AdminTextField
+              id="listing-price-per-unit"
               label={formatMessage({
                 id: "app.listing.pricePerUnit",
-                defaultMessage: "Price per Unit (ETH)",
+                defaultMessage: "Price per unit (ETH)",
               })}
-              htmlFor="listing-price-per-unit"
               error={formErrors.pricePerUnit?.message}
-            >
-              <TextInput
-                id="listing-price-per-unit"
-                surface="admin"
-                type="text"
-                {...register("pricePerUnit", {
-                  required: formatMessage({
-                    id: "app.listing.priceRequired",
-                    defaultMessage: "Price is required",
-                  }),
-                })}
-                invalid={Boolean(formErrors.pricePerUnit)}
-                placeholder="0.00001"
-              />
-            </FormField>
+              placeholder="0.00001"
+              {...register("pricePerUnit", {
+                required: formatMessage({
+                  id: "app.listing.priceRequired",
+                  defaultMessage: "Price is required",
+                }),
+              })}
+            />
 
             {/* Min / Max units row */}
             <div className="grid grid-cols-2 gap-3">
-              <FormField
-                label={formatMessage({ id: "app.listing.minUnits", defaultMessage: "Min Units" })}
-                htmlFor="listing-min-units"
-              >
-                <TextInput
-                  id="listing-min-units"
-                  surface="admin"
-                  type="text"
-                  {...register("minUnits")}
-                  placeholder="1"
-                />
-              </FormField>
-              <FormField
-                label={formatMessage({ id: "app.listing.maxUnits", defaultMessage: "Max Units" })}
-                htmlFor="listing-max-units"
-              >
-                <TextInput
-                  id="listing-max-units"
-                  surface="admin"
-                  type="text"
-                  {...register("maxUnits")}
-                  placeholder={formatMessage({
-                    id: "app.listing.maxUnitsPlaceholder",
-                    defaultMessage: "Unlimited",
-                  })}
-                />
-              </FormField>
+              <AdminTextField
+                id="listing-min-units"
+                label={formatMessage({ id: "app.listing.minUnits", defaultMessage: "Min units" })}
+                placeholder="1"
+                {...register("minUnits")}
+              />
+              <AdminTextField
+                id="listing-max-units"
+                label={formatMessage({ id: "app.listing.maxUnits", defaultMessage: "Max units" })}
+                placeholder={formatMessage({
+                  id: "app.listing.maxUnitsPlaceholder",
+                  defaultMessage: "Unlimited",
+                })}
+                {...register("maxUnits")}
+              />
             </div>
 
             {/* Duration */}
-            <FormField
+            <AdminSelect
+              id="listing-duration"
               label={formatMessage({ id: "app.listing.duration", defaultMessage: "Duration" })}
-              htmlFor="listing-duration"
+              {...register("durationDays", { valueAsNumber: true })}
             >
-              <NativeSelect
-                id="listing-duration"
-                surface="admin"
-                {...register("durationDays", { valueAsNumber: true })}
-              >
-                {DURATION_VALUES.map((days) => (
-                  <option key={days} value={days}>
-                    {formatMessage(
-                      { id: "app.listing.durationDays", defaultMessage: "{days} days" },
-                      { days }
-                    )}
-                  </option>
-                ))}
-              </NativeSelect>
-            </FormField>
+              {DURATION_VALUES.map((days) => (
+                <option key={days} value={days}>
+                  {formatMessage(
+                    { id: "app.listing.durationDays", defaultMessage: "{days} days" },
+                    { days }
+                  )}
+                </option>
+              ))}
+            </AdminSelect>
 
             {/* Sell leftover toggle */}
             <AdminCheckbox

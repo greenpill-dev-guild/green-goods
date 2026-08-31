@@ -15,7 +15,7 @@ function DetailField({ label, children }: { label: string; children: ReactNode }
   return (
     <div>
       <dt className="label-xs text-text-soft">{label}</dt>
-      <dd className="mt-1 text-sm font-semibold text-text-strong">{children}</dd>
+      <dd className="mt-1 text-body-md font-semibold text-text-strong">{children}</dd>
     </div>
   );
 }
@@ -54,9 +54,11 @@ export function ActionDetailPanel({
     return (
       <div className="p-4">
         <AdminCard className="space-y-3 text-center">
-          <p className="text-sm text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
+          <p className="text-body-md text-text-sub">
+            {formatMessage({ id: "app.actions.notFound" })}
+          </p>
           <AdminButton size="sm" variant="outlined" onClick={onClose}>
-            {formatMessage({ id: "app.actions.backToActions", defaultMessage: "Back to actions" })}
+            {formatMessage({ id: "app.actions.backToActions", defaultMessage: "Back to Actions" })}
           </AdminButton>
         </AdminCard>
       </div>
@@ -96,7 +98,7 @@ export function ActionDetailPanel({
         <section className="space-y-3 xl:order-2">
           <div className="flex items-center gap-2">
             <RiImageLine className="h-4 w-4 text-text-soft" />
-            <h3 className="text-sm font-semibold text-text-strong">
+            <h3 className="text-body-md font-semibold text-text-strong">
               {formatMessage({ id: "app.actions.detail.media" })}
             </h3>
           </div>
@@ -116,7 +118,7 @@ export function ActionDetailPanel({
               ))}
             </div>
           ) : (
-            <p className="text-sm text-text-sub">
+            <p className="text-body-md text-text-sub">
               {formatMessage({
                 id: "cockpit.actions.noMedia",
                 defaultMessage: "No media attached",
@@ -126,7 +128,7 @@ export function ActionDetailPanel({
         </section>
 
         <div className="space-y-5 xl:order-1">
-          <p className="text-sm text-text-sub">
+          <p className="text-body-md text-text-sub">
             {displayAction.description || formatMessage({ id: "admin.actions.noDescription" })}
           </p>
           <dl className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
@@ -167,7 +169,7 @@ export function ActionDetailPanel({
                     ))}
                   </div>
                 ) : (
-                  <span className="text-sm text-text-sub">—</span>
+                  <span className="text-body-md text-text-sub">—</span>
                 )}
               </dd>
             </div>
@@ -176,7 +178,7 @@ export function ActionDetailPanel({
           <section className="space-y-2">
             <div className="flex items-center gap-2">
               <RiFileListLine className="h-4 w-4 text-text-soft" />
-              <h3 className="text-sm font-semibold text-text-strong">
+              <h3 className="text-body-md font-semibold text-text-strong">
                 {formatMessage({
                   id: "cockpit.actions.requirements",
                   defaultMessage: "Submission requirements",
@@ -190,13 +192,13 @@ export function ActionDetailPanel({
                     key={input.key}
                     className="flex items-center justify-between gap-2 px-3 py-2.5"
                   >
-                    <span className="text-sm font-medium text-text-strong">{input.title}</span>
-                    <span className="text-xs text-text-soft">{input.type}</span>
+                    <span className="text-body-md font-medium text-text-strong">{input.title}</span>
+                    <span className="text-label-sm text-text-soft">{input.type}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-text-sub">
+              <p className="text-body-md text-text-sub">
                 {formatMessage({
                   id: "cockpit.actions.noInputs",
                   defaultMessage: "No form fields configured",

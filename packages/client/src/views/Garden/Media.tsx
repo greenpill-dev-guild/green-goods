@@ -1,7 +1,6 @@
-import type { Action } from "@green-goods/shared/types/domain";
 import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { track } from "@green-goods/shared/modules/app/posthog";
 import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
 import {
   getSafeMediaBatchMetadata,
@@ -10,8 +9,8 @@ import {
   isVideoFile,
 } from "@green-goods/shared/modules/work/media-processing";
 import { prepareWorkSubmission } from "@green-goods/shared/modules/work/submission-flow";
-import { toastService } from "@green-goods/shared/components/Toast/toast.service";
-import { track } from "@green-goods/shared/modules/app/posthog";
+import type { Action } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiCloseLine,
   RiImageFill,
@@ -337,7 +336,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               : intl.formatMessage(
                   {
                     id: "app.garden.upload.videoTooLong",
-                    defaultMessage: "Video must be {max} seconds or shorter (yours is {actual}s)",
+                    defaultMessage: "Video is too long. Maximum {max} seconds.",
                   },
                   { max: MAX_VIDEO_DURATION_SECONDS, actual: Math.round(duration) }
                 );
@@ -356,6 +355,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
 
       // --- Process images: compress ---
       setProcessingPhase("compressing");
+      const { imageCompressor } = await import("@green-goods/shared/utils/work/image-compression");
       const toCompress = imageFiles.filter((f) => imageCompressor.shouldCompress(f, 1024));
       const noCompress = imageFiles.filter((f) => !imageCompressor.shouldCompress(f, 1024));
 
@@ -646,7 +646,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           >
             {intl.formatMessage({
               id: "app.garden.upload.removeBrokenMedia",
-              defaultMessage: "Remove broken media",
+              defaultMessage: "Remove Broken Media",
             })}
           </button>
         </div>

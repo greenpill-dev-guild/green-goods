@@ -9,7 +9,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDirectory, "../..");
 const defaultPolicyPath = resolve(projectRoot, "scripts/data/validation-policy.json");
-const GIT_OUTPUT_MAX_BUFFER = 16 * 1024 * 1024;
+// Documentation and asset migrations can legitimately produce binary patches larger than
+// Node's default child-process buffer. Keep enough headroom for a full working-copy
+// fingerprint without weakening the selector's path or content checks.
+const GIT_OUTPUT_MAX_BUFFER = 64 * 1024 * 1024;
 
 export function loadPolicy(policyPath = defaultPolicyPath) {
   const policy = JSON.parse(readFileSync(policyPath, "utf8"));
@@ -249,7 +252,10 @@ function addSurfaceChecks(select, surface, { includeBuilds, intent }) {
     client: ["client-test"],
     admin: ["admin-test"],
     agent: ["agent-typecheck", "agent-test"],
-    docs: intent === "qa" ? ["docs-build"] : ["docs-test", "docs-build"],
+    docs:
+      intent === "qa"
+        ? ["docs-authority", "docs-build"]
+        : ["docs-authority", "docs-test", "docs-build"],
   };
   const builds = {
     shared: "shared-build",

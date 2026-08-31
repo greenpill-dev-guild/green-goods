@@ -98,7 +98,7 @@ describe("SeedStepHowMuch", () => {
       expect(screen.getByTestId("validation-result")).toHaveTextContent("invalid")
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Add action" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Action" }));
 
     const actionSelect = screen.getByLabelText("Action");
     expect(screen.queryByRole("option", { name: "Invalid hex" })).not.toBeInTheDocument();
@@ -110,7 +110,7 @@ describe("SeedStepHowMuch", () => {
 
   it("adds and removes requirement rows and switches contributor policy", async () => {
     renderWithProviders(<Harness />);
-    fireEvent.click(screen.getByRole("button", { name: "Add action" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Action" }));
     expect(screen.getByTestId("seed-requirements")).toBeInTheDocument();
     expect(screen.getByLabelText("Count")).toHaveValue("1");
     fireEvent.click(screen.getByRole("radio", { name: /^Lead-managed team/ }));

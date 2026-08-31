@@ -120,7 +120,7 @@ export function PoolDialogs({
         variant="danger"
         title={formatMessage({
           id: "cockpit.garden.pool.close.title",
-          defaultMessage: "Close this pool",
+          defaultMessage: "Close This Pool",
         })}
         description={formatMessage({
           id: "cockpit.garden.pool.close.description",
@@ -129,11 +129,11 @@ export function PoolDialogs({
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.close.confirm",
-          defaultMessage: "Close pool",
+          defaultMessage: "Close Pool",
         })}
         cancelLabel={formatMessage({
           id: "cockpit.garden.pool.close.keep",
-          defaultMessage: "Keep open",
+          defaultMessage: "Keep Open",
         })}
         isLoading={pool.isActing}
         onConfirm={async () => {
@@ -149,7 +149,7 @@ export function PoolDialogs({
         variant="warning"
         title={formatMessage({
           id: "cockpit.garden.pool.compost.title",
-          defaultMessage: "Archive this pool",
+          defaultMessage: "Archive This Pool",
         })}
         description={formatMessage({
           id: "cockpit.garden.pool.compost.description",
@@ -158,11 +158,11 @@ export function PoolDialogs({
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.compost.confirm",
-          defaultMessage: "Archive pool",
+          defaultMessage: "Archive Pool",
         })}
         cancelLabel={formatMessage({
           id: "cockpit.garden.pool.compost.keep",
-          defaultMessage: "Keep closed",
+          defaultMessage: "Keep Closed",
         })}
         isLoading={pool.isActing}
         onConfirm={async () => {
@@ -177,7 +177,7 @@ export function PoolDialogs({
         tone={tone}
         title={formatMessage({
           id: "cockpit.garden.pool.reopen.title",
-          defaultMessage: "Reopen this pool",
+          defaultMessage: "Reopen This Pool",
         })}
         description={formatMessage({
           id: "cockpit.garden.pool.reopen.description",
@@ -186,11 +186,11 @@ export function PoolDialogs({
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.reopen.confirm",
-          defaultMessage: "Reopen to set-up",
+          defaultMessage: "Reopen to Set-Up",
         })}
         cancelLabel={formatMessage({
           id: "cockpit.garden.pool.reopen.keep",
-          defaultMessage: "Keep archived",
+          defaultMessage: "Keep Archived",
         })}
         isLoading={pool.isActing}
         onConfirm={async () => {

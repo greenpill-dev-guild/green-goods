@@ -31,7 +31,7 @@ typography:
 
 | Mode | Audiences | Metaphor | Paradigm | Navigation |
 |------|-----------|----------|----------|------------|
-| **Desktop cockpit** | Stewards, Evaluators | Tending the garden — clipboard in hand | Command Surface | AppBar (top) + NavigationBar (bottom) + AdminFab |
+| **Desktop cockpit** | Stewards, Evaluators | Tending the garden — clipboard in hand | Command Surface | AppBar (top) + NavigationBar (bottom) + FabButton |
 
 **Cockpit litmus test:** If inappropriate for Linear, GitHub, or Stripe's dashboard, it's inappropriate here.
 
@@ -78,7 +78,7 @@ CSS Grid with named areas:
 │      │                       │           │
 ├──────┴───────────────────────┴───────────┤
 │  canvas-area-bottom                      │  ← NavigationBar (Z3): workspace
-│  (NavigationBar + AdminFab)              │    switching + primary FAB action
+│  (NavigationBar + FabButton)             │    switching + primary FAB action
 └──────────────────────────────────────────┘
 ```
 
@@ -90,7 +90,7 @@ CSS Grid with named areas:
 ## Typography
 
 - **Plus Jakarta Sans** across everything — titles (600), body (400), labels (500)
-- Compressed cockpit scale: 22px/28px title-large for page and dialog titles · 14px body and labels · 12px meta · 11px inside chips only. No display or headline ramp — the route header title is title-large, never a display size.
+- Compressed cockpit scale: 22px/28px title-large for dialog and flow titles and the app bar · 16px/24px title-medium (weight 600) for the route header title — the chrome already declares the workspace, so the header is a waypoint, not a headline (2026-08-25) · 14px body and labels · 12px meta · 11px inside chips only. No display or headline ramp — nothing in the cockpit takes a display size.
 - Utility copy, status language, task framing — not marketing copy
 - Labels and timestamps are the most important typographic element (stewards scan metadata)
 
@@ -122,13 +122,15 @@ Color roles:
 
 ## Admin Component Pattern
 
-All admin-specific components use **Admin* adapter wrappers** following M3 v0.192 exactly. Zero changes to the shared package.
+The M3 primitives are **Admin* adapter wrappers** following M3 v0.192 exactly — zero changes to the shared package. Around them sit admin-owned shell and layout families that intentionally do not carry the prefix: the Shell forks (`AppBar`, `NavigationBar`, `MainSheet`, `FabButton`), `CanvasLayout` and the `Canvas*` route-state surfaces, the `Account*` panels, the `ActionFlow*` flow chrome, and named singletons (`PageHeader`, `CommandPalette`, `ConnectShell`, `LeftInspectorDialog`).
 
-Components (20): AdminBadge, AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminDialog, AdminFab, AdminFilterChip, AdminInlineField, AdminLinearProgress, AdminListItem, AdminSearchToolbar, AdminSelectableCard, AdminSettingRow, AdminSideSheet, AdminSortSelect, AdminTabRail, AdminTextField, AdminTooltip, AdminViewActions.
+Wrappers (23): AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminConfirmDialog, AdminDialog, AdminFieldGroup, AdminFilterChip, AdminIconButton, AdminInlineField, AdminLinearProgress, AdminReasonDialog, AdminSearchToolbar, AdminSelect, AdminSelectableCard, AdminSettingRow, AdminSideSheet, AdminSortSelect, AdminTabRail, AdminTextArea, AdminTextField, AdminTooltip, AdminViewActions. (AdminSelect is the M3 form select added 2026-08-29 — it lives in `AdminTextField.tsx` beside AdminTextArea; the toolbar `AdminSortSelect` stays toolbar-only. AdminIconButton — glyph-only actions on the DL-011 tiers with a mandatory accessible name — lives in `AdminButton.tsx`; AdminFieldGroup carries the family's label/hint/error anatomy for group-shaped fields (checkbox grids, repeating rows, upload wells). AdminCard also exports AdminCardHeader/Body/Footer slots, which retired the legacy shared `Card` from admin production code (2026-08-30). AdminBadge, AdminFab, and AdminListItem were deleted 2026-08-29 — zero production consumers; the dock FAB is `Shell/FabButton`.)
+
+**Adoption is enforced**: the wrapper-adoption sweep in `check:design-tokens` fails any new shared field primitive (`TextInput`/`Textarea`/`NativeSelect`/`FormField`/local re-wraps), raw `<button>`, or legacy `Card` render in `packages/admin/src` outside the audited baseline (13 sanctioned residue sites: state-layer row/card buttons, the avatar identity tile, stepper dots). Typography follows as-touched: raw `text-{xs,sm,base,lg,xl,2xl}` migrates to the M3 aliases (`text-label-*`, `text-body-*`, `text-title-*`, `text-headline-*`) whenever a line is edited; new admin code never adds raw sizes.
 
 ### Card and selection grammar
 
-- `WorkbenchCard` is for workbench records and action/assessment queue items that stewards scan, compare, and act on in a grid or list.
+- `WorkbenchCard` (a shared Canvas primitive from `@green-goods/shared`, not an Admin* wrapper) is for workbench records and action/assessment queue items that stewards scan, compare, and act on in a grid or list.
 - `AdminCard` is for compact modules, stats, settings, status panels, and supporting detail regions.
 - `AdminSelectableCard` is for richer exclusive or multi-select choices where the option needs a title, description, icon, or metadata.
 - `AdminChoiceGroup` is for compact single-select preferences and context switches inside dense panels.
@@ -144,7 +146,7 @@ Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as
 
 - **AppBar** (top context bar, Z3): GardenChip selector, search, settings, notifications, avatar
 - **NavigationBar** (bottom, Z3): Workspace tabs — Hub, Garden, Community, Actions. Symbol-first. Role-adaptive visibility via permissions.
-- **AdminFab**: Per-workspace primary action — M3 large FAB with 16px radius; the in-dock nav FAB is circular. Integrated into NavigationBar via FabProvider.
+- **FAB** (`Shell/FabButton`): Per-workspace primary action — a capsule at both sizes (`rounded-full`): 48px circle in the dock, 56px extended capsule with label when floating on mobile (DL-010; capsule = the 9999 step of the admin radius set). Integrated into NavigationBar via FabProvider.
 - **Desktop profile**: On desktop, Profile redirects to Hub and opens the AdminSideSheet account inspector with profile content.
 - **Controlled Chrome**: only the NavigationBar/FAB dock is translucent — flat `rgb(var(--admin-surface-0) / 0.85)`, 12px blur, warm ambient shadow, 1px ink ring (every dialog surface and the account side sheet are solid M3). The AppBar root and MainSheet are transparent while child controls can carry their own solid/hover states. Page content, tables, forms, and route cards do not use glass.
 
@@ -156,7 +158,8 @@ Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as
 - **Radius set** — 4/8/12/16/9999px only; no 20/24/28px shapes anywhere in admin.
 - **Four-use tone budget** — workspace tone appears only in the active tab, the active nav pill, one filled header action, and the nav-shell FAB fill (plus the faint canvas wash).
 - **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`; never translate/scale lifts or hue shifts.
-- **AdminButton only** — pill-shaped, sentence case; the shared `Button` (`gg-button`) does not appear in admin.
+- **AdminButton only** — pill-shaped, Title Case action labels in en (DL-012; es/pt keep native casing); the shared `Button` (`gg-button`) does not appear in admin.
+- **Compact cockpit metric (DL-011)** — control heights ride the 28/32/36/40/44 scale: buttons 28/32/40 (sm/md/lg, 44px hit targets preserved), fields 44 with 14px text, inline field 32 on the md-button axis, toolbar pills and tabs 36, chips 32, identity pill 36. Shell chrome (AppBar 56, FAB 48/56 per DL-010, nav dock) sits deliberately outside this scale.
 
 ---
 

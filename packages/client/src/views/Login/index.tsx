@@ -4,7 +4,6 @@ import { Navigate, Outlet } from "react-router-dom";
 
 import { Splash } from "@/components/Layout";
 import { APP_ROUTES } from "@/config/pwaRouting";
-import { LoadingSplash } from "@/views/Login/components/LoadingSplash";
 
 export function Login() {
   const {
@@ -42,7 +41,9 @@ export function Login() {
   const goToRecover = () => goTo("recover");
 
   if (isNestedRoute) return <Outlet />;
-  if (!isReady) return <LoadingSplash loadingState="welcome" />;
+  // The pre-React PWA surface stays mounted until auth restoration resolves.
+  // Rendering another full-screen loader here creates a visible second scene.
+  if (!isReady) return null;
   if (isAuthenticated) return <Navigate to={redirectTo} replace />;
   // In-flight passkey attempts never swap the tree: each screen's Splash stays
   // mounted and shows the spinner inside the primary button (loadingState and
@@ -89,7 +90,7 @@ export function Login() {
           message={loadingMessage}
           buttonLabel={intl.formatMessage({
             id: "app.login.button.createAccount",
-            defaultMessage: "Create account",
+            defaultMessage: "Create Account",
           })}
           errorMessage={!isAuthenticating ? loginError : null}
           usernameInput={{
@@ -142,7 +143,7 @@ export function Login() {
           message={loadingMessage}
           buttonLabel={intl.formatMessage({
             id: "app.login.button.recoverPasskey",
-            defaultMessage: "Recover with passkey",
+            defaultMessage: "Recover with Passkey",
           })}
           errorMessage={!isAuthenticating ? loginError : null}
           usernameInput={{
@@ -190,11 +191,11 @@ export function Login() {
             ? (personalizedLabel ??
               intl.formatMessage({
                 id: "app.login.button.loginPasskey",
-                defaultMessage: "Sign in with passkey",
+                defaultMessage: "Sign in with Passkey",
               }))
             : intl.formatMessage({
                 id: "app.login.button.createAccount",
-                defaultMessage: "Create account",
+                defaultMessage: "Create Account",
               })
         }
         buttonTitle={personalizedLabel}
@@ -202,7 +203,7 @@ export function Login() {
         secondaryAction={{
           label: intl.formatMessage({
             id: "app.login.button.connectWallet",
-            defaultMessage: "Sign in with a wallet",
+            defaultMessage: "Sign in with a Wallet",
           }),
           onSelect: walletLogin,
         }}
@@ -219,7 +220,7 @@ export function Login() {
                 label: hasExistingAccount
                   ? intl.formatMessage({
                       id: "app.login.button.recoverWithUsername",
-                      defaultMessage: "Recover with username",
+                      defaultMessage: "Recover with Username",
                     })
                   : intl.formatMessage({
                       id: "app.login.button.haveAccount",

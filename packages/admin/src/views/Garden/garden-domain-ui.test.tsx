@@ -91,6 +91,26 @@ vi.mock("@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController"
         hypercertId: undefined,
         hypercerts: [],
         hypercertSheetCloseTo: "/garden",
+        karmaIntegration: {
+          status: {
+            status: "synced",
+            chainId: 42161,
+            gardenAddress,
+            projectUID: null,
+            profileUrl: "https://www.karmahq.org/project/no-domain-garden",
+            syncVersion: 1,
+            requiredSyncVersion: 1,
+            reason: null,
+          },
+          profileUrl: "https://www.karmahq.org/project/no-domain-garden",
+          canReconcile: true,
+          isLoading: false,
+          isFetching: false,
+          isReconciling: false,
+          isPending: false,
+          error: null,
+          reconcile: vi.fn(),
+        },
         isOwner: true,
         openSection: vi.fn(),
         range: "30d",
@@ -337,7 +357,7 @@ describe("garden domain recovery UI", () => {
 
     expect(await screen.findByText("Discard Changes?")).toBeVisible();
 
-    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    await user.click(screen.getByRole("button", { name: "Keep Editing" }));
 
     expect(screen.getByRole("dialog", { name: "Garden Profile" })).toBeVisible();
     expect(screen.queryByText("Health route")).not.toBeInTheDocument();
@@ -395,7 +415,7 @@ describe("garden domain recovery UI", () => {
 
     expect(screen.getByText("No actions available for this garden's domains")).toBeVisible();
 
-    await user.click(screen.getByRole("button", { name: "Configure domains" }));
+    await user.click(screen.getByRole("button", { name: "Configure Domains" }));
 
     expect(screen.getByText("Garden settings route")).toBeVisible();
   });

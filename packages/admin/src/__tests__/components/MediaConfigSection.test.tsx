@@ -40,14 +40,14 @@ describe("MediaConfigSection", () => {
   it("edits copy, image limits, and required state", () => {
     render(<MediaHarness />);
 
-    fireEvent.change(screen.getByLabelText("Section Title"), {
+    fireEvent.change(screen.getByLabelText("Section title"), {
       target: { value: "Evidence photos" },
     });
     fireEvent.change(screen.getByLabelText("Description"), {
       target: { value: "Show the completed work" },
     });
-    fireEvent.change(screen.getByLabelText("Min Images"), { target: { value: "" } });
-    fireEvent.change(screen.getByLabelText("Max Images"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("Min images"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("Max images"), { target: { value: "" } });
     fireEvent.click(screen.getByLabelText("Media is required"));
 
     expect(currentConfig()).toMatchObject({

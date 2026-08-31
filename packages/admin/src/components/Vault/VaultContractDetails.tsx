@@ -1,4 +1,3 @@
-import { Card } from "@green-goods/shared/components/Cards/CardBase";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -9,6 +8,7 @@ import { getBlockExplorerAddressUrl } from "@green-goods/shared/utils/eas/explor
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { EnsAddressText } from "@/components/EnsAddressText";
+import { AdminCard, AdminCardBody, AdminCardHeader } from "../AdminCard";
 
 interface VaultContractDetailsProps {
   gardenAddress: Address;
@@ -31,16 +31,16 @@ export function VaultContractDetails({ gardenAddress }: VaultContractDetailsProp
 
   const rowClass = "rounded-md border border-stroke-soft bg-bg-weak px-3 py-2";
   const linkClass =
-    "mt-0.5 inline-flex items-center gap-1 body-xs text-primary-base hover:underline";
+    "mt-0.5 inline-flex items-center gap-1 body-xs text-primary-dark hover:underline";
 
   return (
-    <Card>
-      <Card.Header>
+    <AdminCard density="none">
+      <AdminCardHeader>
         <h3 className="label-md text-text-strong">
           {formatMessage({ id: "app.explorer.contractDetails" })}
         </h3>
-      </Card.Header>
-      <Card.Body className="space-y-2">
+      </AdminCardHeader>
+      <AdminCardBody className="space-y-2">
         {vaults.map((vault) => (
           <div key={`contract-${vault.id}`} className={rowClass}>
             <p className="body-xs text-text-soft">
@@ -90,7 +90,7 @@ export function VaultContractDetails({ gardenAddress }: VaultContractDetailsProp
             </a>
           </div>
         )}
-      </Card.Body>
-    </Card>
+      </AdminCardBody>
+    </AdminCard>
   );
 }

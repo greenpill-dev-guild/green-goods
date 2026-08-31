@@ -97,7 +97,7 @@ export const NotReady: Story = {
   decorators: decorators(NOT_READY_SEEDS),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("button", { name: "Set up commitments" })).toBeVisible();
+    await expect(await canvas.findByRole("button", { name: "Set Up Commitments" })).toBeVisible();
   },
 };
 

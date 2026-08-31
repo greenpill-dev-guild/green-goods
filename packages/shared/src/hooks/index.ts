@@ -1,5 +1,4 @@
-// Hooks — EXPLICIT EXPORTS for tree-shaking
-// ============================================================================
+// Hooks — EXPLICIT EXPORTS for tree-shaking ==================================
 // QUERY KEYS
 // ============================================================================
 export type { QueryKey, QueueQueryKey, WorksQueryKey } from "../config/query-keys";
@@ -287,6 +286,7 @@ export { useGardenInvites } from "./garden/useGardenInvites";
 export { useGardenOperations } from "./garden/useGardenOperations";
 export type { GardenPermissions } from "./garden/useGardenPermissions";
 export { useGardenPermissions } from "./garden/useGardenPermissions";
+export * from "./garden/useKarmaIntegration";
 export { GardenTab, useGardenTabs } from "./garden/useGardenTabs";
 export {
   checkGardenOpenJoining,
@@ -586,15 +586,15 @@ export {
   useQueueStatistics,
   useWorks,
 } from "./work/useWorks";
-// ============================================================================
 // YIELD
-// ============================================================================
 export { useAllocateYield } from "./yield/useAllocateYield";
 export {
   type GardenYieldSummary,
   useGardenYieldSummary,
 } from "./yield/useGardenYieldSummary";
 export { useGardenYieldWiringState } from "./yield/useGardenYieldWiringState";
+// useHarvestDistribution and useYieldStatus are deliberately not re-exported
+// here: consumers import their declared leaf subpaths (package.json#exports).
 export { usePendingYield } from "./yield/usePendingYield";
 export {
   type ProtocolYieldSummary,

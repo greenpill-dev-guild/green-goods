@@ -93,6 +93,10 @@ Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09
 - **Comments are updates, not changelogs.** Say what changed and what it means for the reader. Don't narrate your process.
 - **Don't rewrite history.** A `Done` issue's description stays as it was; add a comment, or open a successor and link it.
 
+- **No prefixes in titles.** Not `plan:`, `[tracking]`, `UI:`, `QA Pass 2:`, or a category marker. Labels, state, and project fields already carry that. (`[tracking]` was retired 2026-08-27; promotion is now a label and state change, with no title edit.)
+
+The shape those principles produce — the three-block body, the heading and word caps, and the worked example — is the **Accepted Product Work** structure in `.claude/context/linear-routing-rules.md § Issue structure`. `.claude/scripts/lint-linear-issue.sh` enforces it as a `PreToolUse` hook on `save_issue`; a blocked write returns the specific rule it broke, and the agent rewrites before anything reaches Linear. It is registered in both `.claude/settings.json` and `.codex/hooks.json`, so it covers Claude Code sessions, the cloud routines, and Codex — but a hook is a backstop, not the contract: write to the structure directly rather than relying on a rejection to tell you. Linear's own issue templates cannot cover agent writes at all, because `save_issue` takes no template parameter.
+
 Issue references use native `<issue>` mentions rather than markdown links. Fuller conventions and the routing contract: `.claude/context/linear-routing-rules.md`.
 
 **Privacy boundary** (PostHog evidence in Linear bodies): error message + hash + counts OK; replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers stay out.
@@ -118,11 +122,12 @@ When you are dispatched from a Linear issue (delegated/assigned, labeled `ai:cod
 ## Agent Workflow
 
 1. Read the nearest `AGENTS.md`.
-2. Apply [the Implementation Quality Contract](.claude/context/values.md#implementation-quality-contract)
+2. For specialized work, route through [`.claude/context/task-routing.json`](.claude/context/task-routing.json); it defines each core task's skill, mutation boundary, output, and handoff.
+3. Apply [the Implementation Quality Contract](.claude/context/values.md#implementation-quality-contract)
    while planning, writing, and reviewing code.
-3. Keep the change inside the smallest sensible package boundary.
-4. Run the lightest validation loop that still proves the change.
-5. Escalate to cross-package verification when shared contracts, shared types, or public APIs move.
+4. Keep the change inside the smallest sensible package boundary.
+5. Run the lightest validation loop that still proves the change.
+6. Escalate to cross-package verification when shared contracts, shared types, or public APIs move.
 
 **Two-phase rhythm for ambiguous or multi-issue work**: investigate (read-only) → present numbered findings → wait for explicit scope lock from the human → fix only locked items → run the validation ladder. This paragraph is the canonical spec (the former `audit-then-ship` skill folded into it; Claude gets the same gate from plan mode + CLAUDE.md § Scope Discipline). Do not invent a parallel Codex-specific protocol.
 
@@ -219,7 +224,7 @@ browser or DOM evidence proves otherwise.
 
 ## Admin UI Defaults
 
-- For `packages/admin`, read `docs/docs/builders/packages/admin.mdx` alongside `packages/admin/AGENTS.md`; it is the active UI contract.
+- For `packages/admin`, the nearest `AGENTS.md`, `packages/admin/DESIGN.md`, exported admin primitives, and guard tests own UI behavior. The public Builder page is an explanatory map, not an implementation contract.
 - The canonical admin shell is `CanvasLayout`.
 - Use `/hub` as the reference admin canvas surface; `/work` is retired.
 - New admin UI should not start from `DashboardLayout`, `Sidebar`, or `Header`; treat them as legacy migration references only.
@@ -229,14 +234,14 @@ browser or DOM evidence proves otherwise.
 
 Single design language across frontend packages, with distinct admin, installed PWA, public browser, and docs surfaces. Full detail in `.claude/skills/design/`. One-page map: `.claude/skills/design/ARCHITECTURE.md`.
 
-**Admin** (`packages/admin`) — restrained steward cockpit. M3 strict anatomy (v0.192). Plus Jakarta Sans. The admin `AppBar` root stays transparent over the workspace canvas; glass is reserved for Navigation/FAB chrome only. Dialogs, side sheets, route cards, forms, tables, lists, and dense content stay solid. Use `Admin*` wrappers from `packages/admin/src/components/Admin*.tsx` (count derives from the filesystem; 16 today). Litmus: Linear / GitHub / Stripe-appropriate?
+**Admin** (`packages/admin`) — restrained steward cockpit. M3 strict anatomy (v0.192). Plus Jakarta Sans. The admin `AppBar` root stays transparent over the workspace canvas; glass is reserved for Navigation/FAB chrome only. Dialogs, side sheets, route cards, forms, tables, lists, and dense content stay solid. Use `Admin*` wrappers from `packages/admin/src/components/Admin*.tsx` (the exports are the roster of record — 21 wrappers across 18 files today; `AdminConfirmDialog` lives in `AdminDialog.tsx`, `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`). Litmus: Linear / GitHub / Stripe-appropriate?
 
 **Client** (`packages/client`) — adaptive shell. Browser = `SiteHeader` + hamburger. Installed PWA = bottom `AppBar` (Home / Garden / Profile). Never mix. Inter across PWA; editorial serif only on public browser site. Hero moments (garden creation, first submission, hypercert mint, vault deposit, seasonal transitions, assessment completion, role milestone) live here, never in admin.
 
 **Tokens** — root `DESIGN.md` front matter is the canonical DesignMD token source; generated `--gg-*` tokens and runtime aliases live in `packages/shared/src/styles/theme.css`. Never hardcode `cubic-bezier`, `duration`, or raw color / radius values. Use `--spring-*` (6 tokens), `--color-*`, `--radius-*`, `--color-material-*`, `--blur-material-*`. Concentricity: `child_radius = parent_radius − padding`. 4-role volume hierarchy: canvas 80–90% / ink 8–15% / stone 3–5% / accent green 1–3%.
 
 **Banned vocabulary and prompt-only wording**:
-- Lint-enforced i18n terms (`bun run lint:vocab`, from `docs/docs/reference/banned-vocabulary.json` → `linter_enforced.terms`): `streak`, `countdown`, `leaderboard`, `FOMO`, `urgent`, `limited time`, `re-engagement`, `retention hook`.
+- Lint-enforced i18n terms (`bun run lint:vocab`, from `scripts/data/banned-vocabulary.json` → `linter_enforced.terms`): `streak`, `countdown`, `leaderboard`, `FOMO`, `urgent`, `limited time`, `re-engagement`, `retention hook`.
 - Admin prompt-only vocabulary (not parsed by `lint:vocab`): `hero moment`, `gallery`, `decorative gradient`, AppBar glass, glass outside Navigation/FAB chrome.
 - Client prompt-only vocabulary (not parsed by `lint:vocab`): `operator cockpit`, `utility copy`, `Plus Jakarta Sans`, `KPI tile`, `dashboard`.
 
@@ -278,7 +283,7 @@ When Codex is running unattended maintenance work:
 
 - Project config: `.codex/config.toml`
 - Environment and actions: `.codex/environments/environment.toml`
-- Reference doc: `docs/docs/builders/agentic/codex.mdx`
+- Shared skills: `.agents/skills` → `.claude/skills`
 
 ## Shared Skill Surface
 

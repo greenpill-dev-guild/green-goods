@@ -41,6 +41,7 @@ import {
   useState,
 } from "react";
 import { useMediaQuery } from "../../hooks/ui/useMediaQuery";
+import { useDocumentScrollLock } from "../../hooks/ui/useDocumentScrollLock";
 import { useFocusTrap } from "../../hooks/utils/useFocusTrap";
 import { cn } from "../../utils/styles/cn";
 import { DISMISS_VELOCITY_THRESHOLD } from "../Canvas/springConfig";
@@ -114,6 +115,7 @@ export function PwaSheet({
   const sheetState = open ? "open" : "closed";
 
   useFocusTrap(dialogRef, { enabled: mounted && open, autoFocusSelector });
+  useDocumentScrollLock(open);
 
   // Mount on open, keep mounted during the close keyframe so the slide-out
   // animation can play, then unmount after the animation completes.
@@ -122,23 +124,29 @@ export function PwaSheet({
       setMounted(true);
       return;
     }
-    if (prefersReducedMotion) {
-      setMounted(false);
+
+    const finishClose = () => setMounted(false);
+    if (prefersReducedMotion || document.visibilityState === "hidden") {
+      finishClose();
       return;
     }
-    const duration = readCssDurationMs("--spring-spatial-duration");
-    const timer = window.setTimeout(() => setMounted(false), duration + 40);
-    return () => window.clearTimeout(timer);
-  }, [open, prefersReducedMotion]);
 
-  // Body scroll lock while open.
-  useEffect(() => {
-    if (!mounted) return;
-    document.documentElement.classList.add("modal-open");
-    return () => {
-      document.documentElement.classList.remove("modal-open");
+    const handlePageHide = () => finishClose();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") finishClose();
     };
-  }, [mounted]);
+    const duration = readCssDurationMs("--spring-spatial-duration");
+    const timer = window.setTimeout(finishClose, duration + 40);
+
+    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [open, prefersReducedMotion]);
 
   // Escape closes.
   useEffect(() => {

@@ -6,7 +6,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { createInterface } from "node:readline/promises";
 import * as dotenv from "dotenv";
-import { getAddress, keccak256, toUtf8Bytes } from "ethers";
+import { getAddress, JsonRpcProvider, keccak256, toUtf8Bytes } from "ethers";
 import {
   buildFinalDeploymentArtifact,
   type Checkpoint,
@@ -14,6 +14,8 @@ import {
   validateFinalSafePlan,
 } from "./deploy/garden-safe-owners";
 import { buildReleaseLock, loadReleaseManifest, type ReleaseLock, type ReleaseStage } from "./utils/release-manifest";
+import { NetworkManager } from "./utils/network";
+import { retryRpcAvailability } from "./utils/rpc-retry";
 
 const CONTRACTS_ROOT = path.join(__dirname, "..");
 const REPOSITORY_ROOT = path.join(CONTRACTS_ROOT, "../..");
@@ -33,6 +35,8 @@ const INTERACTIVE_ARTIFACT_MUTATIONS = new Set([
 ]);
 
 export const RELEASE_OPERATOR_COMMANDS = new Map<string, string>([
+  ["release:ownership:arbitrum", "one protocol ownership-transfer boundary"],
+  ["release:ownership:celo", "one protocol ownership-transfer boundary"],
   ["settlement:garden-accounts:deploy:celo", "one exact GardenAccount coordinator boundary"],
   ["settlement:garden-safes:deploy:celo", "one final native/G$-clear 2-of-3 Garden Safe boundary"],
   ["settlement:garden-relay:deploy", "one zero-value Garden-bound relay boundary"],
@@ -53,6 +57,8 @@ const FORBIDDEN_ARGUMENTS = new Set([
 ]);
 
 const RELEASE_OPERATOR_ARGUMENTS = new Map<string, ReadonlySet<string>>([
+  ["release:ownership:arbitrum", new Set(["--step", "--expected-nonce"])],
+  ["release:ownership:celo", new Set(["--step", "--expected-nonce"])],
   ["settlement:garden-accounts:deploy:celo", new Set(["--plan", "--step", "--receipt"])],
   ["settlement:garden-safes:deploy:celo", new Set(["--plan", "--inventory", "--step", "--receipt"])],
   ["settlement:garden-relay:deploy", new Set(["--plan", "--safe-plan", "--step", "--receipt"])],
@@ -68,6 +74,8 @@ const RELEASE_OPERATOR_ARGUMENTS = new Map<string, ReadonlySet<string>>([
  * for the lane instead of one per boundary.
  */
 export type CeremonyStage =
+  | "ownership-arbitrum"
+  | "ownership-celo"
   | "garden-accounts"
   | "garden-safes"
   | "relay"
@@ -76,6 +84,22 @@ export type CeremonyStage =
   | "garden-routes";
 
 export const CEREMONY_STAGES = new Map<CeremonyStage, { script: string; boundaries: number; label: string }>([
+  [
+    "ownership-arbitrum",
+    {
+      script: "release:ownership:arbitrum",
+      boundaries: 9,
+      label: "Arbitrum protocol ownership handover",
+    },
+  ],
+  [
+    "ownership-celo",
+    {
+      script: "release:ownership:celo",
+      boundaries: 1,
+      label: "Celo protocol ownership handover",
+    },
+  ],
   [
     "garden-accounts",
     {
@@ -279,7 +303,7 @@ Usage:
 
 The session verifies the exact candidate plus any receipt-backed deployment artifacts, prompts for
 the Foundry keystore password, verifies that it unlocks the frozen deployment sender, and accepts
-one explicit Garden Safe boundary. It never accepts a private key, password argument, RPC override,
+only allowlisted release boundaries. It never accepts a private key, password argument, RPC override,
 network override, sender override, raw Forge command, or arbitrary shell command.
 
 Inside the session:
@@ -290,11 +314,13 @@ Inside the session:
 Stage mode runs one lane's complete ordered boundary set from a single password entry. The exact
 candidate checkout is still reasserted before and after every boundary and the first failure stops
 the run, so the per-boundary safety properties are unchanged; only the number of password prompts
-differs. The Garden Safe stage resumes from its checkpoint rather than replaying a mined boundary.
+differs. Checkpointed stages resume from their receipt ledger rather than replaying a mined boundary.
 The GardenAccount stage always runs both boundaries and binds step 2 to the captured step-1 receipt;
 if step 1 already broadcast, recover through the interactive mode with an explicit --receipt.
 
 Ceremony stages:
+  ownership-arbitrum                       9 boundaries
+  ownership-celo                           1 boundary
   garden-accounts                          2 boundaries
   garden-safes                             18 boundaries
   relay                                    4 boundaries
@@ -731,11 +757,78 @@ const ROLES_PLAN_PATH = path.join(CONTRACTS_ROOT, ".generated/runtime/42220-gard
 
 /** Checkpoint-resumed stages read their progress from their own reviewed plan. */
 const STAGE_PLAN_PATHS: Readonly<Partial<Record<CeremonyStage, string>>> = {
+  "ownership-arbitrum": path.join(
+    CONTRACTS_ROOT,
+    ".generated/release/commitment-pooling-settlement-credit-v1/arbitrum/ownership-transfer-transaction-plan.json",
+  ),
+  "ownership-celo": path.join(
+    CONTRACTS_ROOT,
+    ".generated/release/commitment-pooling-settlement-credit-v1/celo/ownership-transfer-transaction-plan.json",
+  ),
   "garden-safes": GARDEN_SAFE_PLAN_PATH,
   "garden-roles": ROLES_PLAN_PATH,
   "garden-roles-enable": path.join(CONTRACTS_ROOT, ".generated/runtime/42220-garden-roles-enable.json"),
   "garden-routes": path.join(CONTRACTS_ROOT, ".generated/runtime/42220-garden-routes.json"),
 };
+
+const STAGE_CHECKPOINT_PATHS: Readonly<Partial<Record<CeremonyStage, string>>> = {
+  "ownership-arbitrum": path.join(
+    CONTRACTS_ROOT,
+    ".generated/release/commitment-pooling-settlement-credit-v1/arbitrum/ownership-transfer-checkpoint.json",
+  ),
+  "ownership-celo": path.join(
+    CONTRACTS_ROOT,
+    ".generated/release/commitment-pooling-settlement-credit-v1/celo/ownership-transfer-checkpoint.json",
+  ),
+};
+
+export function ownershipBoundaryArguments(boundary: number, pendingNonce: number): string[] {
+  if (!Number.isSafeInteger(boundary) || boundary <= 0) throw new Error(`Ownership requires a positive boundary`);
+  if (!Number.isSafeInteger(pendingNonce) || pendingNonce < 0) {
+    throw new Error(`Ownership requires a non-negative nonce`);
+  }
+  return ["--step", String(boundary), "--expected-nonce", String(pendingNonce)];
+}
+
+export async function executeOwnershipBoundaries(
+  boundaries: readonly number[],
+  readPendingNonce: () => Promise<number>,
+  executeBoundary: (boundary: number, args: string[]) => void | Promise<void>,
+  options: {
+    attempts?: number;
+    wait?: (milliseconds: number) => Promise<void>;
+    onStaleNonce?: (lastSubmittedNonce: number, attempt: number) => void;
+  } = {},
+): Promise<void> {
+  let lastSubmittedNonce: number | undefined;
+  for (const boundary of boundaries) {
+    const pendingNonce = await retryRpcAvailability(
+      async () => {
+        const observed = await readPendingNonce();
+        return lastSubmittedNonce === undefined || observed > lastSubmittedNonce ? observed : undefined;
+      },
+      {
+        attempts: options.attempts,
+        wait: options.wait,
+        onRetry: (attempt) => {
+          if (lastSubmittedNonce === undefined) return;
+          if (options.onStaleNonce) options.onStaleNonce(lastSubmittedNonce, attempt);
+          else {
+            console.log(
+              `Pending nonce has not advanced beyond ${lastSubmittedNonce}; waiting for RPC propagation (attempt ${attempt}).`,
+            );
+          }
+        },
+        unavailableMessage:
+          lastSubmittedNonce === undefined
+            ? "Pending nonce remained unavailable after the bounded retry window"
+            : `Pending nonce did not advance beyond ${lastSubmittedNonce} after the bounded retry window`,
+      },
+    );
+    await executeBoundary(boundary, ownershipBoundaryArguments(boundary, pendingNonce));
+    lastSubmittedNonce = pendingNonce;
+  }
+}
 
 /**
  * Resolves which boundaries a stage still has to run. Kept pure and separate from execution so the
@@ -833,6 +926,38 @@ async function runCeremonyStage(
       const output = runStageBoundary(definition.script, args, environment, candidateCommit, true);
       receipt = transactionHashFromBoundaryOutput(output, boundary);
       if (boundary < definition.boundaries) console.log(`Binding boundary ${boundary + 1} to receipt ${receipt}.`);
+    }
+    console.log(`Stage ${stage} completed all ${definition.boundaries} boundaries.`);
+    return;
+  }
+
+  if (stage === "ownership-arbitrum" || stage === "ownership-celo") {
+    const planPath = STAGE_PLAN_PATHS[stage];
+    if (!planPath) throw new Error(`Stage ${stage} has no reviewed plan to resume from`);
+    const completed = completedBoundaries(planPath, STAGE_CHECKPOINT_PATHS[stage]);
+    const boundaries = plannedStageBoundaries(stage, completed);
+    if (boundaries.length === 0) {
+      console.log(`Stage ${stage} is already complete with ${completed} checkpointed boundaries.`);
+      return;
+    }
+    if (completed > 0) console.log(`Resuming stage ${stage} after ${completed} checkpointed boundaries.`);
+    const manifest = loadReleaseManifest();
+    const network = stage === "ownership-arbitrum" ? "arbitrum" : "celo";
+    const chainId = stage === "ownership-arbitrum" ? 42161 : 42220;
+    const provider = new JsonRpcProvider(new NetworkManager().getRpcUrl(network), chainId, {
+      staticNetwork: true,
+    });
+    try {
+      await executeOwnershipBoundaries(
+        boundaries,
+        async () => provider.getTransactionCount(manifest.ownership.deploymentSender, "pending"),
+        (boundary, args) => {
+          console.log(`--- boundary ${boundary} of ${definition.boundaries} ---`);
+          runStageBoundary(definition.script, args, environment, candidateCommit, false);
+        },
+      );
+    } finally {
+      provider.destroy();
     }
     console.log(`Stage ${stage} completed all ${definition.boundaries} boundaries.`);
     return;

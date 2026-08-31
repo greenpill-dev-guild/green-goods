@@ -40,7 +40,7 @@ export default function CreateAction() {
 
   const title = formatMessage({
     id: "admin.actions.createAction",
-    defaultMessage: "Create action",
+    defaultMessage: "Create Action",
   });
 
   const stepRegistry = {
@@ -85,7 +85,7 @@ export default function CreateAction() {
           >
             {formatMessage({
               id: "admin.actions.createAction",
-              defaultMessage: "Create action",
+              defaultMessage: "Create Action",
             })}
           </AdminButton>
         ) : (

@@ -180,7 +180,7 @@ function ErrorCard({
   return (
     <div className="flex flex-1 items-center justify-center px-6 py-24">
       <div className="w-full max-w-md animate-fade-in-up" role="alert">
-        <div className="rounded-xl border border-stroke-soft bg-bg-white p-8 text-center shadow-sm">
+        <div className="rounded-xl border border-stroke-soft bg-bg-white p-8 text-center shadow-[var(--m3-elevation-1)]">
           <div
             className={`mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full ${iconBg}`}
           >

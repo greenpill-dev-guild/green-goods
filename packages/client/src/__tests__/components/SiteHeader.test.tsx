@@ -66,8 +66,8 @@ const messages: Record<string, string> = {
   "public.nav.fund": "Fund",
   "public.nav.installApp": "Install App",
   "public.nav.openApp": "Open App",
-  "public.nav.openMenu": "Open menu",
-  "public.nav.closeMenu": "Close menu",
+  "public.nav.openMenu": "Open Menu",
+  "public.nav.closeMenu": "Close Menu",
 };
 
 function renderHeader(initialRoute = "/gardens") {
@@ -123,14 +123,14 @@ describe("SiteHeader", () => {
     expect(screen.getAllByText("Install App").length).toBeGreaterThanOrEqual(1);
     // Vaults is intentionally not in the header nav.
     expect(screen.queryByText("Vaults")).toBeNull();
-    expect(mockUseInstallGuidance).toHaveBeenCalledWith(
-      "unknown",
-      false,
-      false,
-      null,
-      false,
-      false
-    );
+    expect(mockUseInstallGuidance).toHaveBeenCalledWith({
+      platform: "unknown",
+      installedAppEvidence: undefined,
+      wasInstalled: false,
+      deferredPrompt: null,
+      isMobile: false,
+      isInstalling: false,
+    });
     // No wallet CTA in public header.
     expect(screen.queryByText("Connect Wallet")).toBeNull();
   });
@@ -210,7 +210,7 @@ describe("SiteHeader", () => {
 
   it("desktop install CTA opens the QR handoff dialog", () => {
     renderHeader();
-    const desktopCta = screen.getByRole("button", { name: "Install App" });
+    const desktopCta = screen.getByRole("link", { name: "Install App" });
     expect(desktopCta.getAttribute("data-install-action")).toBe("continue-in-browser");
     expect(desktopCta.className).toMatch(/cursor-pointer/);
     fireEvent.click(desktopCta);

@@ -26,7 +26,7 @@ Every surface, component, and interaction in Green Goods expresses:
 
 2. **Clarity** — Concentricity, functional layer separation, content-forward hierarchy, scroll edge effects. Structure is self-evident, never decorated into existence.
 
-3. **Purpose** — Every element serves the mission. No engagement hacking. No dark patterns. The regenerative design lens ([regenerative.md](./regenerative.md)) applies to visual expression too — solarpunk warmth, not trading-floor urgency.
+3. **Purpose** — Every element serves the mission. No engagement hacking. No dark patterns. The regenerative checks in [review-checklist.md § Lens 1](./review-checklist.md#lens-1-regenerative-design) apply to visual expression too — solarpunk warmth, not trading-floor urgency.
 
 ### What We Do NOT Take
 
@@ -101,7 +101,7 @@ Shape communicates emphasis level. This is the core Warm Earth principle for but
 
 **Rule**: When a capsule button sits next to a squircle button, the capsule reads as primary and the squircle as secondary — no color difference needed. Shape alone creates hierarchy.
 
-**Admin note**: cockpit buttons are pills (`AdminButton`, sentence case), but the admin **FAB-large is 16px**, not a capsule — admin radii are the fixed 4/8/12/16/9999 set with no 20/24/28px steps.
+**Admin note**: cockpit buttons are pills (`AdminButton`, Title Case action labels per DL-012), sized on the DL-011 compact metric (28/32/40 with preserved 44px hit targets), and the admin FAB follows the capsule rule at both sizes (`rounded-full` — 48px dock circle, 56px extended floating capsule; DL-010). Admin radii are the fixed 4/8/12/16/9999 set with no 20/24/28px steps — the capsule is that set's 9999 step.
 
 ### Shape Morphing
 
@@ -345,17 +345,17 @@ Admin dark mode is a **deliberate palette, not a light inversion**. Three rules 
 
 **2 — Ring-forward elevation.** Depth is a warm-white hairline ring (`--neutral-50` at low opacity, stepping across the single `--m3-elevation-0/1/2` ladder) plus a small black blur only for chrome floating over content — never a black drop shadow as the primary cue. The dark canvas stays constant; the only workspace atmosphere is the same faint `--tone-surface-tint-color` top wash as light (10% in dark, fading to transparent by 320px) — the per-workspace canvas hue wash is retired.
 
-**3 — Per-view accents (dual-use-safe).** `--tone-primary` feeds `--m3-primary`, which components consume **both** as a white-text fill **and** as on-surface text/icon/link color. So `--tone-primary` stays **light** (the `-200` step, readable as text on the dark card); saturation lives in `--tone-action` (deep, white-text filled CTA) and vividness in the wash + bright accent text. Never set `--tone-primary` to a deep step — it would make tone-colored links/icons unreadable.
+**3 — Per-view accents (tonal, DL-009).** `--tone-primary` feeds `--m3-primary`, which components consume **both** as a fill **and** as on-surface text/icon/link color, so it stays **light** (the `-200` step). Since DL-009 (2026-08-29), dark **filled actions are tonal too**: `--tone-action` is the same `-200` step carrying `-900` ink (`--tone-on-action`), with hover one step *lighter* (`-100`) — the M3-dark convention (filled surfaces go light, text goes deep; higher = lighter). The pre-DL-009 dark strategy (deep fill + white text) is retired. Never set `--tone-primary` to a deep step — it would make tone-colored links/icons unreadable.
 
-| Tone | Filled action (white-safe) | Accent text on card | Container / on |
+| Tone | Filled action (`-200` fill / `-900` ink) | Accent text on card | Container / on |
 |---|---|---|---|
-| hub (blue) | `blue-700` · 7.3:1 | `blue-200` · 11.7:1 | `blue-900` / `blue-100` |
-| garden (green) | `green-800` · 5.7:1 | `green-200` · 14.4:1 | `green-900` / `green-100` |
-| community (amber/gold) | `orange-700` · 5.0:1 (deep amber — gold identity from wash/accent, not the fill) | `yellow-200` · 14.9:1 | `yellow-900` / `yellow-100` |
-| actions (red) | `red-700` · 6.5:1 | `red-200` · 12.0:1 | `red-900` / `red-100` |
-| home (stone) | `neutral-600` · 7.6:1 | `neutral-300` · 11.7:1 | `neutral-700` / `neutral-100` |
+| hub (blue) | `blue-200`/`blue-900` · 7.81:1 (hover `blue-100` · 8.88) | `blue-200` · 11.7:1 | `blue-900` / `blue-100` |
+| garden (green) | `green-200`/`green-900` · 5.95:1 (hover 6.39) | `green-200` · 14.4:1 | `green-900` / `green-100` |
+| community (amber/gold) | `yellow-200`/`yellow-900` · 4.58:1 (tightest; hover 4.70) | `yellow-200` · 14.9:1 | `yellow-900` / `yellow-100` |
+| actions (red) | `red-200`/`red-900` · 6.04:1 (hover 7.00) | `red-200` · 12.0:1 | `red-900` / `red-100` |
+| home (stone) | `neutral-300`/`neutral-900` · 11.74:1 (hover `neutral-200` · 13.93) | `neutral-300` · 11.7:1 | `neutral-700` / `neutral-100` |
 
-**Contrast invariant:** filled actions carry white text and MUST clear AA (≥4.5:1) — this forces *deep* steps, so "vivid" can never come from brightening the fill. Accent-text `-200` steps clear AA on the `surface-container` card (≥11.7:1). A `check:design-tokens` dark-parity guard enforces light/dark tone-block parity and the single 2-level `--m3-elevation-0/1/2` ladder.
+**Contrast invariant:** dark filled actions carry `-900` ink on `-200` tonal fills and MUST clear AA (≥4.5:1) — measured 4.58–11.74 above. The light-mode invariant is unchanged: deep fills with white text, ≥4.5. Accent-text `-200` steps clear AA on the `surface-container` card (≥11.7:1). A `check:design-tokens` dark-parity guard enforces light/dark tone-block parity and the single 2-level `--m3-elevation-0/1/2` ladder.
 
 **Light mode follows the same discipline** (applied 2026-07-03 after a 190-pair audit):
 
@@ -385,7 +385,7 @@ Three sizes, shape-as-emphasis hierarchy:
 
 **Color variants** (from M3): Filled, Tonal, Outlined, Ghost. Combined with shape, these give sufficient hierarchy without introducing more sizes.
 
-**Admin carve-out**: the size/morph table above is client canon. Cockpit buttons are `AdminButton` — pill at every size, sentence-case labels, no press-morph; the filled variant is `--tone-action` stepping elevation 1→2.
+**Admin carve-out**: the size/morph table above is client canon. Cockpit buttons are `AdminButton` — pill at every size on the 28/32/40 compact metric (DL-011), Title Case labels (DL-012), no press-morph; the filled variant is `--tone-action` stepping elevation 1→2.
 
 ### Floating Toolbar
 
@@ -623,7 +623,7 @@ Hero moments are designated places where all style dimensions amplify simultaneo
 
 ### Succession-Aware Expression
 
-Match expressiveness to garden maturity (see [regenerative.md](./regenerative.md) § Succession-Stage Awareness):
+Match expressiveness to garden maturity (see [review-checklist.md § Lens 1](./review-checklist.md#lens-1-regenerative-design)):
 
 | Garden Stage | Hero Moment Level | Why |
 |-------------|-------------------|-----|
@@ -637,7 +637,9 @@ This prevents over-designing for communities that need onboarding simplicity, wh
 
 ## Design Decisions Log
 
-Decisions made during the Warm Earth synthesis (2026-04-07):
+Decisions made during the Warm Earth synthesis (2026-04-07). This table is a frozen historical
+snapshot, mirrored as DL-001–DL-006 in [decision-log.md](./decision-log.md) — the living
+append-only ledger where all ongoing design decisions land:
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
@@ -654,7 +656,7 @@ Decisions made during the Warm Earth synthesis (2026-04-07):
 
 - [SKILL.md](./SKILL.md) — Adaptive Surface paradigm, material metaphors, decision tree
 - [surfaces.md](./surfaces.md) — Z-layer model, material thickness system, glass pane, adaptive density, progressive disclosure, scroll-linked depth
-- [regenerative.md](./regenerative.md) — Seven principles, succession stages, growth-agnostic design
+- [review-checklist.md](./review-checklist.md) — Regenerative, spatial, ecosystem, and compliance checks
 - [ecosystem.md](./ecosystem.md) — 15 user archetypes, cascade awareness
 - Warm Earth's sources are recorded in § Philosophy above; the former SKILL.md reading-list appendix (books, designers, studios) was removed in the 2026-07 round-2 consolidation
 - [review-checklist.md](./review-checklist.md) — Unified 4-lens PR review (Regenerative + Spatial + Ecosystem + Compliance)

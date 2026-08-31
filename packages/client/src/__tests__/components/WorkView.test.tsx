@@ -148,7 +148,7 @@ describe("WorkView", () => {
     it("does not show audio section when no audioNoteCids provided", () => {
       render(createElement(WorkView, defaultProps));
 
-      expect(screen.queryByText("Audio Notes")).not.toBeInTheDocument();
+      expect(screen.queryByText("Audio notes")).not.toBeInTheDocument();
     });
 
     it("renders AudioPlayer for each audio CID", () => {
@@ -159,7 +159,7 @@ describe("WorkView", () => {
         })
       );
 
-      expect(screen.getByText("Audio Notes")).toBeInTheDocument();
+      expect(screen.getByText("Audio notes")).toBeInTheDocument();
       const players = screen.getAllByTestId("audio-player");
       expect(players).toHaveLength(2);
       expect(players[0]).toHaveAttribute("data-src", "https://gateway.test/ipfs/bafyabc123");

@@ -10,12 +10,15 @@ in this file.
 - Path-scoped rules in `.claude/rules/*.md` load by file glob and point to their canonical context.
 - `.claude/skills/` is the shared Claude/Codex skill source. `.agents/skills` is its symlinked Codex
   discovery path; never create a second copy.
-- Feature execution truth lives in `.plans/{ideas|backlog|active|archive}/<feature-slug>/`; the
-  passive `plan` skill owns lifecycle and Linear mirroring.
+- Feature execution truth lives in `.plans/{ideas|backlog|active}/<feature-slug>/`; the passive
+  `plan` skill owns lifecycle and Linear mirroring. Closed hubs are deleted at closeout and
+  indexed in `.plans/ARCHIVE.md` — Git history is the only archive.
 - Use [`.claude/context/codebase-architecture.md`](.claude/context/codebase-architecture.md) for
   architecture opportunities, structural review, and deep-module or seam vocabulary.
 - Use [`.claude/context/validation-pipeline.md`](.claude/context/validation-pipeline.md) for the
   intent ladder, commands, receipt freshness, conditional gates, and stop conditions.
+- Use [`.claude/context/task-routing.json`](.claude/context/task-routing.json) to select the
+  smallest specialized workflow and follow its mutation boundary and handoff.
 
 ## Claude Commands
 
@@ -34,10 +37,15 @@ commands live in the nearest package guide. Service variants and operational ent
 
 ## Claude Tool Routing
 
-- For authenticated local UI QA, use the Claude Code Chrome/Chromium extension to claim the
-  already-open authenticated Brave profile or tab. If the extension cannot reach it, use visible
-  computer control of that Brave window. Do not substitute an isolated browser profile; report the
-  proof as `BLOCKED` when neither path is available.
+- For authenticated local UI QA, use the authenticated Brave QA profile.
+  Take the Claude Code Chrome/Chromium extension path and claim the already-open authenticated Brave profile/tab.
+  (Codex sessions take the Codex browser-extension path for the same window.)
+  Probe reachability behaviorally with a tab-context call (`tabs_context_mcp`), never the
+  connected-browsers listing — the roster registers lazily and reads empty while the extension
+  is fully working (observed 2026-08-28); only a failed tab-context call is disconnection evidence.
+  If the extension cannot reach it, use visible computer control of that Brave window.
+  Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA.
+  If authenticated Brave access is blocked, stop and report QA as blocked.
 - Linear MCP is the visibility and coordination surface. Follow `AGENTS.md § Linear Workspace` and
   [`.claude/context/linear-routing-rules.md`](.claude/context/linear-routing-rules.md); keep Plan Hub
   lane truth in `.plans`.

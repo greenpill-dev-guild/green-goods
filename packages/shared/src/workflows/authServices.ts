@@ -276,7 +276,10 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
 
   const restoreSession = fromPromise<RestoreSessionResult | null, RestoreInput>(
     async ({ input }) => {
-      if (session.hasSignedOutSentinel() || session.getAuthMode() === "wallet") return null;
+      const authMode = session.getAuthMode();
+      if (session.hasSignedOutSentinel() || authMode === "wallet" || authMode === "embedded") {
+        return null;
+      }
       const credential = session.getStoredCredential();
       if (!credential) return null;
       try {

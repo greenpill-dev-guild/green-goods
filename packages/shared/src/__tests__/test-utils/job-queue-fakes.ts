@@ -45,8 +45,9 @@ export function createInMemoryJobQueueStore(initial: Job[] = []): JobQueueStore 
     async markJobSynced(id, txHash) {
       const job = jobs.get(id);
       if (!job) return;
+      const { lastError: _lastError, ...completedJob } = job;
       jobs.set(id, {
-        ...job,
+        ...completedJob,
         synced: true,
         meta: { ...(job.meta ?? {}), ...(txHash ? { txHash } : {}) },
       });
@@ -77,7 +78,7 @@ export function createInMemoryJobQueueStore(initial: Job[] = []): JobQueueStore 
       return {
         total: selected.length,
         pending: selected.filter((job) => !job.synced && !job.lastError).length,
-        failed: selected.filter((job) => Boolean(job.lastError)).length,
+        failed: selected.filter((job) => !job.synced && Boolean(job.lastError)).length,
         synced: selected.filter((job) => job.synced).length,
       };
     },

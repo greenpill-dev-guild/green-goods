@@ -8,8 +8,8 @@ import {
   type PublicGardenVaultSummary,
   type PublicVaultSummary,
   type PublicVaultSummaryAsset,
-  usePublicVaultSummary,
 } from "@green-goods/shared/hooks/public/usePublicVaultSummary";
+import { usePublicVaultCatalogSummary } from "@green-goods/shared/hooks/public/usePublicVaultCatalogSummary";
 import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { selectPublicSurfaceState } from "@green-goods/shared/public";
 import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts/core";
@@ -17,26 +17,33 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
 import {
+  EditorialGhostButton,
   EditorialHeading,
   EditorialKicker,
+  EditorialListRowSkeleton,
   EditorialLinkArrow,
   EditorialNumeral,
+  EditorialSkeleton,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
-import { PublicEndowmentPanel } from "@/components/Public/PublicEndowmentPanel";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicFundingReceipt } from "@/components/Public/PublicFundingReceipt";
 import { PublicGardenRow } from "@/components/Public/PublicGardenRow";
 import { PublicSurfaceState } from "@/components/Public/PublicSurfaceState";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
-import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
 import { resolveGardenQuery } from "@/views/Public/gardenQueryResolution";
 const PublicFundingCard = lazy(() =>
   import("@/components/Public/PublicFundingCard").then((module) => ({
     default: module.PublicFundingCard,
   }))
 );
+const PublicEndowmentPanel = lazy(() =>
+  import("@/components/Public/PublicEndowmentPanel").then((module) => ({
+    default: module.PublicEndowmentPanel,
+  }))
+);
+const WalletRuntimeProviders = lazy(() => import("@/routes/WalletRuntimeProviders"));
 interface SupportPathProps {
   numeral: string;
   titleId: string;
@@ -156,13 +163,13 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
                 key={index}
                 className="border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-[var(--shadow-editorial-card)]"
               >
-                <div className="h-3 w-28 animate-pulse bg-stroke-soft-200/60" />
-                <div className="mt-4 h-8 w-36 animate-pulse bg-stroke-soft-200/60" />
+                <EditorialSkeleton className="h-3 w-28" />
+                <EditorialSkeleton className="mt-4 h-8 w-36" />
                 <div className="mt-5 grid grid-cols-2 gap-3">
-                  <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
-                  <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
-                  <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
-                  <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
+                  <EditorialSkeleton className="h-4" />
+                  <EditorialSkeleton className="h-4" />
+                  <EditorialSkeleton className="h-4" />
+                  <EditorialSkeleton className="h-4" />
                 </div>
               </div>
             ))}
@@ -349,7 +356,7 @@ function getGardenVaultSummary(
 function FundPageContent() {
   const { formatMessage } = useIntl();
   const { data: gardens = [], isLoading, isError } = usePublicGardens();
-  const vaultSummary = usePublicVaultSummary();
+  const vaultSummary = usePublicVaultCatalogSummary();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const intentId = searchParams.get("intent");
@@ -625,18 +632,18 @@ function FundPageContent() {
                   })}
                 </EditorialHeading>
               </div>
-              <button
-                type="button"
+              <EditorialGhostButton
+                variant="warm"
                 onClick={handleManageEndowmentsClick}
                 aria-expanded={isEndowmentPanelOpen}
                 aria-haspopup="dialog"
-                className="inline-flex min-h-11 w-fit items-center border-b border-primary-action/35 text-left text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-4 focus-visible:ring-offset-bg-weak-50 sm:mt-1"
+                className="w-fit sm:mt-1"
               >
                 {formatMessage({
                   id: "public.fund.manageEndowments.cta",
                   defaultMessage: "Manage Endowments",
                 })}
-              </button>
+              </EditorialGhostButton>
             </div>
           </header>
 
@@ -648,17 +655,7 @@ function FundPageContent() {
                 aria-hidden="true"
               >
                 {[0, 1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-stretch gap-4 py-4 sm:gap-5">
-                    <div className="h-20 w-28 shrink-0 animate-pulse bg-editorial-warm sm:h-24 sm:w-36" />
-                    <div className="flex flex-1 flex-col justify-center gap-2">
-                      <div className="h-3 w-24 animate-pulse bg-stroke-soft-200/60" />
-                      <div className="h-5 w-3/4 animate-pulse bg-stroke-soft-200/60" />
-                      <div className="h-3 w-1/2 animate-pulse bg-stroke-soft-200/40" />
-                    </div>
-                    <div className="flex shrink-0 flex-col justify-center gap-2">
-                      <div className="h-9 w-20 animate-pulse rounded-full bg-stroke-soft-200/60" />
-                    </div>
-                  </div>
+                  <EditorialListRowSkeleton key={i} />
                 ))}
               </div>
             }
@@ -684,13 +681,13 @@ function FundPageContent() {
                   <EditorialLinkArrow to="/gardens">
                     {formatMessage({
                       id: "public.fund.empty.browseGardens",
-                      defaultMessage: "Browse all Gardens",
+                      defaultMessage: "Browse All Gardens",
                     })}
                   </EditorialLinkArrow>
                   <EditorialLinkArrow to="/impact">
                     {formatMessage({
                       id: "public.fund.empty.viewImpact",
-                      defaultMessage: "View public evidence",
+                      defaultMessage: "View Public Evidence",
                     })}
                   </EditorialLinkArrow>
                 </div>
@@ -747,29 +744,33 @@ function FundPageContent() {
           }
         >
           {selectorState ? (
-            <PublicFundingCard
-              open
-              garden={selectorState.garden}
-              intent={selectorState.intent}
-              onClose={closeSelector}
-            />
+            <WalletRuntimeProviders>
+              <PublicFundingCard
+                open
+                garden={selectorState.garden}
+                intent={selectorState.intent}
+                onClose={closeSelector}
+              />
+            </WalletRuntimeProviders>
           ) : null}
         </Suspense>
       ) : null}
 
-      <PublicEndowmentPanel
-        open={isEndowmentPanelOpen}
-        onExitComplete={handleEndowmentPanelExitComplete}
-        onOpenChange={handleEndowmentPanelOpenChange}
-      />
+      {isEndowmentPanelOpen ? (
+        <Suspense fallback={null}>
+          <WalletRuntimeProviders>
+            <PublicEndowmentPanel
+              open
+              onExitComplete={handleEndowmentPanelExitComplete}
+              onOpenChange={handleEndowmentPanelOpenChange}
+            />
+          </WalletRuntimeProviders>
+        </Suspense>
+      ) : null}
     </>
   );
 }
 
 export default function FundPage() {
-  return (
-    <WalletRuntimeProviders>
-      <FundPageContent />
-    </WalletRuntimeProviders>
-  );
+  return <FundPageContent />;
 }

@@ -40,7 +40,7 @@ const IntroSkeleton: React.FC = () => {
       <FormInfo
         title={intl.formatMessage({
           id: "app.garden.selectYourAction",
-          defaultMessage: "Select your action",
+          defaultMessage: "Select Your Action",
         })}
         info={intl.formatMessage({
           id: "app.garden.whatTypeOfWork",
@@ -58,7 +58,7 @@ const IntroSkeleton: React.FC = () => {
       <FormInfo
         title={intl.formatMessage({
           id: "app.garden.selectYourGarden",
-          defaultMessage: "Select your garden",
+          defaultMessage: "Select Your Garden",
         })}
         info={intl.formatMessage({
           id: "app.garden.whichGarden",
@@ -250,7 +250,7 @@ const Work: React.FC = () => {
       primaryLabel: isWalletRequestExpired
         ? intl.formatMessage({
             id: "app.garden.submit.tab.review.retryLabel",
-            defaultMessage: "Submit again",
+            defaultMessage: "Submit Again",
           })
         : intl.formatMessage({
             id: "app.garden.submit.tab.review.label",
@@ -440,7 +440,7 @@ const Work: React.FC = () => {
                   <RiRefreshLine className="h-4 w-4" aria-hidden="true" />
                   {intl.formatMessage({
                     id: "app.garden.commitment.retryLink",
-                    defaultMessage: "Retry link",
+                    defaultMessage: "Retry Link",
                   })}
                 </button>
               </div>

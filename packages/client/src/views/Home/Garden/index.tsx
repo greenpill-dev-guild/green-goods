@@ -1,30 +1,30 @@
-import type { Address } from "@green-goods/shared/types/domain";
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useCommitmentPools } from "@green-goods/shared/commitment-pooling";
 import { GardenBannerFallback } from "@green-goods/shared/components/Display/GardenBannerFallback";
-import { GardenTab, useGardenTabs } from "@green-goods/shared/hooks/garden/useGardenTabs";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
-import {
-  isGardenMember,
-  useJoinGarden,
-  usePendingJoinsVersion,
-} from "@green-goods/shared/hooks/garden/useJoinGarden";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNavigation";
+import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
+import { useScrollToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import {
   useActions,
   useGardeners,
   useGardens,
 } from "@green-goods/shared/hooks/blockchain/useBaseLists";
-import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNavigation";
 import { useConvictionStrategies } from "@green-goods/shared/hooks/conviction/useConvictionStrategies";
-import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
+import { GardenTab, useGardenTabs } from "@green-goods/shared/hooks/garden/useGardenTabs";
+import {
+  isGardenMember,
+  useJoinGarden,
+  usePendingJoinsVersion,
+} from "@green-goods/shared/hooks/garden/useJoinGarden";
 import { useHasRole } from "@green-goods/shared/hooks/roles/useHasRole";
-import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
-import { useScrollToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
-import { useUIStore } from "@green-goods/shared/stores/useUIStore";
-import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
 import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposits";
 import { useWorks } from "@green-goods/shared/hooks/work/useWorks";
-import { useCommitmentPools } from "@green-goods/shared/commitment-pooling";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
+import type { Address } from "@green-goods/shared/types/domain";
 import {
   RiCalendarEventFill,
   RiErrorWarningLine,
@@ -42,6 +42,7 @@ import { GardenErrorBoundary } from "@/components/Errors";
 import {
   GardenAssessments,
   GardenGardeners,
+  GardenJoinRequestDialog,
   type GardenMember,
   GardenWork,
 } from "@/components/Features";
@@ -187,6 +188,13 @@ export const Garden: React.FC = () => {
     "evaluator"
   );
   const canReview = isSteward || canReviewOnChain;
+  const canManageRequests = useMemo(() => {
+    if (!primaryAddress || !garden) return false;
+    const account = primaryAddress.toLowerCase();
+    return [...(garden.stewards ?? []), ...(garden.owners ?? [])].some(
+      (address) => address.toLowerCase() === account
+    );
+  }, [garden, primaryAddress]);
 
   // Gate header drawers behind steward/funder roles. Default gardeners should not see
   // governance or endowment chrome — those drawers expose protocol-shaped surfaces (signal pool,
@@ -196,17 +204,15 @@ export const Garden: React.FC = () => {
   const showEndowmentButton = gardenVaults.length > 0 && (canReview || hasOwnEndowmentDeposit);
   const hasGovernance = showGovernanceButton;
 
-  // Check if current user is already a member of this garden.
-  // pendingJoinsVersion subscribes to in-tab pending-join changes so the
-  // header re-renders the moment a join confirms or expires (the header
-  // would otherwise stay on the stale `Join` button until an unrelated
-  // dep change forced a re-memo).
+  // The version counter refreshes membership as in-tab joins confirm or expire,
+  // so the header does not keep showing stale join controls.
   const pendingJoinsVersion = usePendingJoinsVersion();
   const isMember = useMemo(() => {
     if (!garden) return false;
-    return isGardenMember(primaryAddress, garden.gardeners, garden.stewards, garden.id);
+    const { gardeners, stewards, id } = garden;
+    return canManageRequests || isGardenMember(primaryAddress, gardeners, stewards, id);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
-  }, [primaryAddress, garden, pendingJoinsVersion]);
+  }, [primaryAddress, garden, canManageRequests, pendingJoinsVersion]);
 
   // Join garden functionality
   const { joinGarden, isJoining } = useJoinGarden();
@@ -220,14 +226,14 @@ export const Garden: React.FC = () => {
         toastService.success({
           title: intl.formatMessage({
             id: "app.garden.alreadyMember",
-            defaultMessage: "You're already a member of this garden",
+            defaultMessage: "You are already a member of this garden",
           }),
         });
       } else {
         toastService.success({
           title: intl.formatMessage({
             id: "app.garden.joinSuccess",
-            defaultMessage: "Successfully joined the garden!",
+            defaultMessage: "Successfully joined garden",
           }),
         });
       }
@@ -235,7 +241,7 @@ export const Garden: React.FC = () => {
       toastService.error({
         title: intl.formatMessage({
           id: "app.garden.joinError",
-          defaultMessage: "Failed to join garden. Please try again.",
+          defaultMessage: "Failed to join garden",
         }),
       });
     }
@@ -248,6 +254,7 @@ export const Garden: React.FC = () => {
     if (!garden?.openJoining) return false;
     return true;
   }, [primaryAddress, isMember, garden?.openJoining]);
+  const showJoinRequestButton = Boolean(primaryAddress && !isMember && !garden?.openJoining);
 
   if (!garden) {
     if (gardensInitialLoading) {
@@ -282,7 +289,7 @@ export const Garden: React.FC = () => {
             onClick={() => refetchGardens()}
             label={intl.formatMessage({
               id: "app.garden.loadRetry",
-              defaultMessage: "Try again",
+              defaultMessage: "Try Again",
             })}
           />
         </div>
@@ -338,7 +345,13 @@ export const Garden: React.FC = () => {
           />
         );
       case GardenTab.Gardeners:
-        return <GardenGardeners members={members} garden={garden} />;
+        return (
+          <GardenGardeners
+            members={members}
+            garden={garden}
+            canManageRequests={canManageRequests}
+          />
+        );
     }
   };
 
@@ -405,7 +418,7 @@ export const Garden: React.FC = () => {
                     <Button
                       label={intl.formatMessage({
                         id: "app.garden.join",
-                        defaultMessage: "Join",
+                        defaultMessage: "Join Garden",
                       })}
                       leadingIcon={<RiUserAddLine className="w-4 h-4" />}
                       variant="primary"
@@ -415,6 +428,9 @@ export const Garden: React.FC = () => {
                       disabled={isJoining}
                     />
                   )}
+                  {showJoinRequestButton ? (
+                    <GardenJoinRequestDialog gardenAddress={garden.id as Address} />
+                  ) : null}
                 </div>
               </div>
 
@@ -424,6 +440,10 @@ export const Garden: React.FC = () => {
                   tabs={tabs}
                   activeTab={activeTab}
                   onTabChange={(tabId) => setActiveTab(tabId as GardenTab)}
+                  ariaLabel={intl.formatMessage({
+                    id: "app.garden.tabs.label",
+                    defaultMessage: "Garden sections",
+                  })}
                   variant="compact"
                   isLoading={gardensLoading || worksFetching}
                 />

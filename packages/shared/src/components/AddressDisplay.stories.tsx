@@ -106,7 +106,7 @@ export const Interactive: Story = {
     const canvas = within(canvasElement);
 
     // Find the copy button by its title
-    const copyButton = canvas.getByTitle("Copy address");
+    const copyButton = canvas.getByTitle("Copy Address");
     await expect(copyButton).toBeVisible();
 
     // Click the copy button — the icon should swap to a checkmark

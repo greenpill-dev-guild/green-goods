@@ -13,7 +13,7 @@ function FabContextPreview({ hidden = false }: { hidden?: boolean }) {
             {
               id: "submit-work",
               icon: RiLeafLine,
-              label: "Submit work",
+              label: "Submit Work",
               labelId: "story.fab.submitWork",
             },
           ],

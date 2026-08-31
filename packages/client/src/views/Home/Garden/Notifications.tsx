@@ -1,15 +1,15 @@
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import { formatAddress } from "@green-goods/shared/utils/app/text";
-import type { Garden, Work } from "@green-goods/shared/types/domain";
-import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import type { Garden, Work } from "@green-goods/shared/types/domain";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiAlertFill, RiSeedlingFill } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { EmptyState } from "@/components/Communication";
-import { APP_ROUTES } from "@/config/pwaRouting";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import { APP_ROUTES } from "@/config/pwaRouting";
 
 interface GardenNotificationsProps {
   garden: Garden;
@@ -54,7 +54,7 @@ function GardenNotificationItem({ garden, work }: { garden: Garden; work: Work }
         </span>{" "}
         {intl.formatMessage({
           id: "app.home.notifications.completedWorkApproval",
-          defaultMessage: "completed work on",
+          defaultMessage: "Completed work on",
         })}{" "}
         <span className="font-medium" title={garden.name}>
           {garden.name}
@@ -80,12 +80,11 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
           icon={<RiSeedlingFill />}
           title={intl.formatMessage({
             id: "app.home.notifications.noWork",
-            defaultMessage: "Your garden is waiting!",
+            defaultMessage: "No work submitted yet",
           })}
           description={intl.formatMessage({
             id: "app.home.notifications.encourageWork",
-            defaultMessage:
-              "No new work to review yet. Why not explore your garden and see what's growing?",
+            defaultMessage: "Start documenting your regenerative work!",
           })}
           action={
             <button
@@ -98,7 +97,7 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
               <RiSeedlingFill className="w-4 h-4" />
               {intl.formatMessage({
                 id: "app.home.notifications.visitGarden",
-                defaultMessage: "Visit Garden",
+                defaultMessage: "Visit Your Garden",
               })}
             </button>
           }

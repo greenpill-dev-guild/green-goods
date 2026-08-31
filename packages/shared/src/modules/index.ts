@@ -1,5 +1,4 @@
 // Modules — EXPLICIT EXPORTS for tree-shaking
-
 export * from "./commitment-pooling";
 
 export {
@@ -37,7 +36,6 @@ export {
   trackAuthWalletConnectSuccess,
   trackGardenJoinAlreadyMember,
   trackGardenJoinFailed,
-  // Garden join events
   trackGardenJoinStarted,
   trackGardenJoinSuccess,
   trackWorkApprovalFailed,
@@ -55,6 +53,7 @@ export {
   trackWorkWalletRequestFailed,
   trackWorkWalletRequestStarted,
 } from "./app/analytics-events";
+// harvestDistributionAnalytics is not re-exported: its only consumer imports it directly.
 // ============================================================================
 // APP / ERROR TRACKING
 // ============================================================================
@@ -146,14 +145,14 @@ export {
   USERNAME_STORAGE_KEY,
 } from "./auth/session";
 // ============================================================================
-// DATA / EAS
-// ============================================================================
+// DATA / EAS =================================================================
 export {
   getGardenAssessments,
   getWorkApprovals,
   getWorks,
   getWorksByGardener,
 } from "./data/eas";
+export { getKarmaGardenProjection } from "./data/karma";
 // ============================================================================
 // DATA / GARDENS (Gardens V2 Subgraph)
 // ============================================================================
@@ -181,6 +180,7 @@ export {
   greenGoodsIndexer,
   withTimeout,
 } from "./data/graphql-client";
+export * from "./data/public-garden-impact-readers";
 // ============================================================================
 // DATA / GREENGOODS
 // ============================================================================

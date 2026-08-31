@@ -73,7 +73,7 @@ export function MediaEvidence({ media, audioNoteCids, actionTitle }: MediaEviden
       {audioNoteCids && audioNoteCids.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-xs font-medium text-text-sub">
-            {formatMessage({ id: "admin.work.audioNotes", defaultMessage: "Audio Notes" })}
+            {formatMessage({ id: "admin.work.audioNotes", defaultMessage: "Audio notes" })}
           </h4>
           {audioNoteCids.map((cid) => (
             <AudioPlayer key={cid} src={resolveIPFSUrl(cid)} compact={false} className="w-full" />

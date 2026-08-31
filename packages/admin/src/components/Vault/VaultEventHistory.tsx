@@ -11,6 +11,7 @@ import {
 import { formatDateTime } from "@green-goods/shared/utils/time";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
 interface VaultEventHistoryProps {
@@ -49,7 +50,7 @@ export function VaultEventHistory({
   const visibleEvents = useMemo(() => events.slice(0, visibleCount), [events, visibleCount]);
 
   return (
-    <section className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+    <section className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-6">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-semibold text-text-strong sm:text-lg">
           {formatMessage({ id: "app.treasury.events" })}
@@ -195,13 +196,13 @@ export function VaultEventHistory({
 
           {visibleCount < events.length && (
             <div className="mt-4">
-              <button
-                type="button"
+              <AdminButton
+                variant="text"
+                size="sm"
                 onClick={() => setVisibleCount((count) => count + initialVisibleCount)}
-                className="rounded-md border border-stroke-sub bg-bg-white px-3 py-1.5 text-sm font-medium text-text-sub hover:bg-bg-weak"
               >
                 {formatMessage({ id: "app.treasury.loadMore" })}
-              </button>
+              </AdminButton>
             </div>
           )}
         </>

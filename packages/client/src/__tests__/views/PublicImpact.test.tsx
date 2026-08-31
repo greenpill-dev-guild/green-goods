@@ -89,6 +89,10 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   usePublicCommitmentImpact: () => mockUsePublicCommitmentImpact(),
 }));
 
+vi.mock("@green-goods/shared/hooks/public/usePublicCommitmentImpact", () => ({
+  usePublicCommitmentImpact: () => mockUsePublicCommitmentImpact(),
+}));
+
 import ImpactPage from "../../views/Public/Impact";
 
 const messages: Record<string, string> = {
@@ -103,7 +107,7 @@ const messages: Record<string, string> = {
   "public.impact.evidence.error": "Evidence is temporarily unavailable.",
   "public.impact.evidence.partialData": "Showing partial evidence.",
   "public.impact.evidence.sourceLimitReached": "Capped slice.",
-  "public.impact.evidence.viewSource": "View source",
+  "public.impact.evidence.viewSource": "View Source",
   "public.impact.evidence.noSource": "Source pending",
   "public.impact.evidence.thumbnailFallback": "no image",
   "public.impact.proof.notPublicYet": "Not public yet",
@@ -190,7 +194,10 @@ describe("ImpactPage", () => {
   it("shows loading skeletons while evidence is loading", () => {
     mockUsePublicImpactEvidence.mockReturnValue({ data: undefined, isLoading: true });
     const { container } = renderView();
-    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThanOrEqual(1);
+    expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
+      3
+    );
+    expect(container.querySelector(".animate-pulse")).toBeNull();
   });
 
   it("shows the empty evidence state when no records load", () => {

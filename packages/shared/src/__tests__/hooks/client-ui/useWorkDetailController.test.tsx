@@ -10,6 +10,10 @@ const mocks = vi.hoisted(() => ({
   canManageGarden: vi.fn(),
   isUserAddress: vi.fn(),
   navigateToTop: vi.fn(),
+  approvalParams: null as null | {
+    onApprovalComplete?: (gardenId: string) => void;
+    viewingMode: string;
+  },
   userId: "0x1111111111111111111111111111111111111111" as string | undefined,
 }));
 
@@ -81,7 +85,13 @@ vi.mock("../../../hooks/auth/useUser", () => ({
 }));
 
 vi.mock("../../../hooks/work/useWorkApprovalActions", () => ({
-  useWorkApprovalActions: ({ viewingMode }: { viewingMode: string }) => ({ viewingMode }),
+  useWorkApprovalActions: (params: {
+    onApprovalComplete?: (gardenId: string) => void;
+    viewingMode: string;
+  }) => {
+    mocks.approvalParams = params;
+    return { viewingMode: params.viewingMode };
+  },
 }));
 
 vi.mock("../../../hooks/work/useWorkMetadata", () => ({
@@ -130,6 +140,7 @@ describe("useWorkDetailController", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.userId = "0x1111111111111111111111111111111111111111";
+    mocks.approvalParams = null;
     mocks.canManageGarden.mockReturnValue(false);
     mocks.isUserAddress.mockReturnValue(false);
   });
@@ -155,6 +166,14 @@ describe("useWorkDetailController", () => {
     const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
 
     result.current.back();
+
+    expect(mocks.navigateToTop).toHaveBeenCalledWith("/home/garden-1");
+  });
+
+  it("uses the garden route as the final approval navigation", () => {
+    renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+
+    mocks.approvalParams?.onApprovalComplete?.("garden-1");
 
     expect(mocks.navigateToTop).toHaveBeenCalledWith("/home/garden-1");
   });

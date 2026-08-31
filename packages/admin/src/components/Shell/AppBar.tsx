@@ -1,3 +1,6 @@
+import { useRefreshActionValue } from "@green-goods/shared/components/Canvas/RefreshActionContext";
+import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiArrowLeftLine,
   RiNotification3Line,
@@ -8,9 +11,6 @@ import {
 } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
-import { useRefreshActionValue } from "@green-goods/shared/components/Canvas/RefreshActionContext";
-import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 
 // ----------------------------------------------------------------------------
 // Admin fork of the shared Canvas AppBar (Cockpit M3, finished — 1a).
@@ -221,7 +221,7 @@ export function AppBar({
               slot="settings-button"
               tooltip={formatMessage({
                 id: "cockpit.topBar.openSettings",
-                defaultMessage: "Settings",
+                defaultMessage: "Open Settings",
               })}
               onClick={onOpenSettings}
             >

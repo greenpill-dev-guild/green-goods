@@ -15,8 +15,10 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
+  type CommitmentDerivedState,
   type CommitmentPoolRecord,
   commitmentNeedsSeat,
+  isSettledCommitmentState,
   selectCommitmentSeat,
 } from "@green-goods/shared/commitment-pooling";
 import { renderWithProviders, screen } from "../test-utils";
@@ -94,7 +96,7 @@ function commitment(overrides: Record<string, unknown> = {}) {
     commitmentId: 9n,
     creationSeen: true,
     onchainState: "ACCEPTED",
-    derivedState: "ACTIVE",
+    derivedState: "ACTIVE" as CommitmentDerivedState,
     state: "ACCEPTED",
     approvedUnits: 0n,
     evidenceCount: 0,
@@ -129,6 +131,7 @@ function commitmentsResult(overrides: Record<string, unknown> = {}) {
 function useGardenPoolControllerMock(targetPool: CommitmentPoolRecord) {
   const [selectedCycleId, setSelectedCycleId] = useState<bigint | null>(null);
   const [direction, setDirection] = useState<"all" | "OFFER" | "REQUEST">("all");
+  const [liveness, setLiveness] = useState<"live" | "settled">("live");
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
   const { cycles } = mockUseCommitmentCycles();
   const queue = mockUseQueueState();
@@ -138,22 +141,30 @@ function useGardenPoolControllerMock(targetPool: CommitmentPoolRecord) {
   const ownCreations = queue.pendingCreates.filter(
     (entry: { poolId: string }) => entry.poolId === targetPool.poolId.toString()
   );
-  const rows = commitments.commitments
-    .filter(
-      (entry: ReturnType<typeof commitment>) => direction === "all" || entry.direction === direction
-    )
-    .map((entry: ReturnType<typeof commitment>) => {
-      const seat = selectCommitmentSeat({
-        commitment: entry as never,
-        contributors: [],
-        viewer: VIEWER,
-      });
-      return {
-        commitment: entry,
-        seat,
-        needsYou: commitmentNeedsSeat({ commitment: entry as never, seat }),
-      };
+  const inDirection = commitments.commitments.filter(
+    (entry: ReturnType<typeof commitment>) => direction === "all" || entry.direction === direction
+  );
+  const settledInDirection = inDirection.filter((entry: ReturnType<typeof commitment>) =>
+    isSettledCommitmentState(entry.derivedState)
+  );
+  const rows = (
+    liveness === "settled"
+      ? settledInDirection
+      : inDirection.filter(
+          (entry: ReturnType<typeof commitment>) => !isSettledCommitmentState(entry.derivedState)
+        )
+  ).map((entry: ReturnType<typeof commitment>) => {
+    const seat = selectCommitmentSeat({
+      commitment: entry as never,
+      contributors: [],
+      viewer: VIEWER,
     });
+    return {
+      commitment: entry,
+      seat,
+      needsYou: commitmentNeedsSeat({ commitment: entry as never, seat }),
+    };
+  });
   const poolState = targetPool.state ?? "UNKNOWN";
   const runBusy = async (jobId: string, action: () => Promise<unknown>) => {
     setBusyJobId(jobId);
@@ -173,6 +184,9 @@ function useGardenPoolControllerMock(targetPool: CommitmentPoolRecord) {
     setSelectedCycleId,
     direction,
     setDirection,
+    liveness,
+    setLiveness,
+    settledCount: settledInDirection.length,
     busyJobId,
     ownCreations,
     rows,
@@ -314,7 +328,7 @@ describe("GardenPool", () => {
     render(<GardenPool pool={pool()} />);
 
     expect(screen.getByText("Didn't send")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Try again" }));
+    await user.click(screen.getByRole("button", { name: "Try Again" }));
     expect(mockRetryJob).toHaveBeenCalledWith("job-1");
     expect(mockFlush).toHaveBeenCalledTimes(1);
 
@@ -337,7 +351,7 @@ describe("GardenPool", () => {
 
     render(<GardenPool pool={pool()} />);
 
-    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try Again" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
   });
 
@@ -556,6 +570,37 @@ describe("GardenPool", () => {
     expect(screen.queryByText("3 hours")).not.toBeInTheDocument();
   });
 
+  it("keeps the settled scope available when a direction has no settled rows", async () => {
+    const user = userEvent.setup();
+    mockUseCommitments.mockReturnValue(
+      commitmentsResult({
+        commitments: [
+          commitment({ id: "42161-10", direction: "REQUEST", unitLabel: "rides" }),
+          commitment({
+            id: "42161-11",
+            commitmentId: 11n,
+            derivedState: "FULFILLED",
+            onchainState: "FULFILLED",
+            state: "FULFILLED",
+            direction: "OFFER",
+            unitLabel: "meals",
+          }),
+        ],
+      })
+    );
+
+    render(<GardenPool pool={pool()} />);
+    await user.click(screen.getByRole("button", { name: "Settled (1)" }));
+    expect(screen.getByText("3 meals")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Requests" }));
+    const settled = screen.getByRole("button", { name: "Settled (0)" });
+    expect(settled).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(settled);
+    expect(screen.getByText("3 rides")).toBeInTheDocument();
+  });
+
   it("marks a row that is waiting on the reader, and only that row", () => {
     mockUseCommitments.mockReturnValue(
       commitmentsResult({
@@ -596,7 +641,7 @@ describe("GardenPool", () => {
 
     // Closed: one entry, no doors, and no form.
     expect(screen.queryByRole("button", { name: "Offer" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Offer or request" }));
+    await user.click(screen.getByRole("button", { name: "Offer or Request" }));
     expect(screen.getByRole("button", { name: "Request" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Offer" }));
@@ -611,12 +656,12 @@ describe("GardenPool", () => {
     const protocol = pool({ poolType: "PROTOCOL", garden: OTHER });
 
     const { unmount } = render(<GardenPool pool={protocol} />);
-    expect(screen.queryByRole("button", { name: "Offer or request" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Offer or Request" })).not.toBeInTheDocument();
     unmount();
 
     mockUseHasRole.mockReturnValue({ hasRole: true, isLoading: false });
     render(<GardenPool pool={protocol} />);
-    expect(screen.getByRole("button", { name: "Offer or request" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Offer or Request" })).toBeInTheDocument();
   });
 
   it("closes the doors without starting anything", async () => {
@@ -624,7 +669,7 @@ describe("GardenPool", () => {
     mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: [commitment()] }));
 
     render(<GardenPool pool={pool()} />);
-    await user.click(screen.getByRole("button", { name: "Offer or request" }));
+    await user.click(screen.getByRole("button", { name: "Offer or Request" }));
     await user.click(screen.getByRole("button", { name: "Close" }));
 
     expect(screen.queryByRole("button", { name: "Offer" })).not.toBeInTheDocument();
@@ -637,7 +682,7 @@ describe("GardenPool", () => {
     render(<GardenPool pool={pool()} />);
 
     expect(screen.getByText("No commitments yet")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Offer or request" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Offer or Request" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Make a request" }));
     expect(mockNavigate).toHaveBeenCalledWith("commitments/new?direction=request");
   });
@@ -647,7 +692,7 @@ describe("GardenPool", () => {
 
     render(<GardenPool pool={pool({ state: "PAUSED" })} />);
 
-    expect(screen.queryByRole("button", { name: "Offer or request" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Offer or Request" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Offer support" })).not.toBeInTheDocument();
   });
 

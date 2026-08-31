@@ -81,7 +81,7 @@ export function HubConfirmQueue({
         <AdminButton type="button" variant="filled" onClick={() => void toConfirm.refetch()}>
           {formatMessage({
             id: "cockpit.garden.pool.readError.retry",
-            defaultMessage: "Try again",
+            defaultMessage: "Try Again",
           })}
         </AdminButton>
       </EmptyStateShell>
@@ -220,7 +220,7 @@ export function HubConfirmQueue({
                       >
                         {formatMessage({
                           id: "cockpit.hub.confirm.act.confirm",
-                          defaultMessage: "Confirm",
+                          defaultMessage: "Confirm Kept",
                         })}
                       </AdminButton>
                     ) : (
@@ -232,7 +232,7 @@ export function HubConfirmQueue({
                       >
                         {formatMessage({
                           id: "cockpit.hub.confirm.act.confirmFallback",
-                          defaultMessage: "Confirm…",
+                          defaultMessage: "Confirm kept…",
                         })}
                       </AdminButton>
                     )}
@@ -274,7 +274,7 @@ export function HubConfirmQueue({
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.commitment.dispute.confirm",
-          defaultMessage: "Raise dispute",
+          defaultMessage: "Raise Dispute",
         })}
         suggestions={[
           formatMessage({

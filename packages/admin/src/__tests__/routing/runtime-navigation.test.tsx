@@ -252,17 +252,17 @@ describe("admin canvas runtime navigation", () => {
 
     const cases = [
       {
-        label: "Submit work",
+        label: "Submit Work",
         expectedPath: "/hub/work/submit",
         expectedLeaf: "work/submit",
       },
       {
-        label: "Create assessment",
+        label: "Create Assessment",
         expectedPath: "/hub/assess/create",
         expectedLeaf: "assess/create",
       },
       {
-        label: "Create hypercert",
+        label: "Create Hypercert",
         expectedPath: "/hub/certify/create",
         expectedLeaf: "certify/create",
       },
@@ -279,7 +279,7 @@ describe("admin canvas runtime navigation", () => {
         </FabProvider>
       );
 
-      await user.click(await screen.findByRole("button", { name: "Open actions" }));
+      await user.click(await screen.findByRole("button", { name: "Open Actions" }));
       await user.click(await screen.findByRole("menuitem", { name: label }));
 
       await waitFor(() => {

@@ -1,9 +1,8 @@
-import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
-import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
 import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
 import type { Garden } from "@green-goods/shared/types/domain";
 import type { IntlShape } from "react-intl";
 import { AdminCard } from "@/components/AdminCard";
+import { AdminTextField } from "@/components/AdminTextField";
 import { CampaignJarListRow } from "./CampaignJarListRow";
 
 interface CampaignCookieJarPanelListProps {
@@ -54,24 +53,20 @@ export function CampaignCookieJarPanelList({
               )}
             </p>
           </div>
-          <FormField
+          <AdminTextField
+            id="campaign-cookie-jar-search"
+            className="min-w-0"
             label={formatMessage({
               id: "cockpit.community.cookies.searchCampaigns",
               defaultMessage: "Search cookie jars",
             })}
-            htmlFor="campaign-cookie-jar-search"
-          >
-            <TextInput
-              id="campaign-cookie-jar-search"
-              surface="admin"
-              value={campaignSearch}
-              onChange={(event) => setCampaignSearch(event.target.value)}
-              placeholder={formatMessage({
-                id: "cockpit.community.cookies.searchCampaignsPlaceholder",
-                defaultMessage: "Search by name, slug, or address",
-              })}
-            />
-          </FormField>
+            value={campaignSearch}
+            onChange={(event) => setCampaignSearch(event.target.value)}
+            placeholder={formatMessage({
+              id: "cockpit.community.cookies.searchCampaignsPlaceholder",
+              defaultMessage: "Search by name, slug, or address",
+            })}
+          />
         </div>
       </div>
       {campaignsLoading ? (

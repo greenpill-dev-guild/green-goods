@@ -1,5 +1,5 @@
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { Address, Work } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { TimeFilter } from "@green-goods/shared/utils/time";
 import { RiCheckLine, RiTimeLine } from "@remixicon/react";
 import React from "react";
@@ -36,7 +36,7 @@ const PENDING_MESSAGES = {
   emptyTitle: { id: "app.workDashboard.pending.noPending", defaultMessage: "No pending work" },
   emptyDescription: {
     id: "app.workDashboard.pending.description",
-    defaultMessage: "Submitted work waiting to sync or review will appear here",
+    defaultMessage: "Submitted work waiting to send or be reviewed will appear here",
   },
 };
 

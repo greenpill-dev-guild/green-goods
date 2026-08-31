@@ -180,7 +180,7 @@ export function useWorkDetailController() {
       toastService.error({
         title: intl.formatMessage({
           id: "app.home.work.shareFailed",
-          defaultMessage: "Failed to share work",
+          defaultMessage: "Couldn't share work",
         }),
         message: error instanceof Error ? error.message : "Unknown error",
         context: "work sharing",

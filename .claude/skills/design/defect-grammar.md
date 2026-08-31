@@ -36,14 +36,15 @@ Narrow candidates by:
 | "the card" | `data-component="AdminCard"` (also `HubWorkCard` / `WorkbenchCard`) + visible rect |
 | "the tabs" | `data-component="AdminTabRail"` |
 | "the search" / "search bar" | `data-component="AdminSearchToolbar"` |
-| "that button" / "the CTA" | `data-component="AdminButton"` or `AdminFab` |
+| "that button" / "the CTA" | `data-component="AdminButton"`; the nav-shell FAB is `data-component="FabButton"` |
 | "the input" / "the field" | `data-component="AdminTextField"` (+ `data-variant`) |
-| "the list item" / "the row" | `data-component="AdminListItem"` |
+| "the dropdown" / "the select" | `data-component="AdminSelect"` (form) or `AdminSortSelect` (toolbar sort pill) |
+| "the list item" / "the row" | `data-component="AdminSettingRow"` for settings/toggle rows; workbench queue rows are the card grammar above |
 | "the chip" / "filter" | `data-component="AdminFilterChip"` |
 | "the progress bar" | `data-component="AdminLinearProgress"` |
 | "the modal" / "the dialog" | `data-component="AdminDialog"` |
 | "the tooltip" | `data-component="AdminTooltip"` |
-| "the badge" / "notification dot" | `data-component="AdminBadge"` |
+| "the badge" / "status chip" | shared `StatusBadge` (no `data-component` tag — narrow by visible text/rect) |
 | "the toggle row" / "the setting row" | `data-component="AdminSettingRow"` |
 | "the choice chips" / "the option group" | `data-component="AdminChoiceGroup"` |
 | "the selectable card" / "the picker card" | `data-component="AdminSelectableCard"` |

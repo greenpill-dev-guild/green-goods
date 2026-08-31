@@ -7,25 +7,125 @@ on:
       - develop
     paths:
       - "docs/**"
+      - ".mcp.json"
+      - ".claude/context/task-routing.json"
+      - ".claude/skills/*/SKILL.md"
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "DESIGN.md"
       - "package.json"
       - "bun.lock"
+      - "scripts/docs/**"
+      - "scripts/mcp/**"
+      - "scripts/data/banned-vocabulary.json"
+      - "scripts/data/qa-test-catalog.json"
+      - "scripts/data/validation-policy.json"
+      - "scripts/quality/check-ontology.mjs"
+      - "scripts/quality/ontology-render.mjs"
+      - "scripts/quality/task-routing-contract.mjs"
+      - "packages/admin/DESIGN.md"
+      - "packages/admin/package.json"
+      - "packages/admin/src/router.tsx"
+      - "packages/admin/src/routes/views.tsx"
+      - "packages/admin/vitest.config.ts"
+      - "packages/agent/package.json"
+      - "packages/agent/src/api/**"
+      - "packages/agent/vitest.config.ts"
+      - "packages/client/package.json"
+      - "packages/client/DESIGN.browser.md"
+      - "packages/client/DESIGN.pwa.md"
+      - "packages/client/src/config/routes.tsx"
+      - "packages/client/src/config/pwaRouting.ts"
+      - "packages/client/vitest.config.ts"
+      - "packages/contracts/package.json"
+      - "packages/contracts/config/schemas.json"
+      - "packages/contracts/deployments/networks.json"
+      - "packages/contracts/deployments/*-latest.json"
+      - "packages/contracts/src/modules/CookieJar.sol"
+      - "packages/contracts/src/modules/Gardens.sol"
+      - "packages/contracts/src/modules/Hats.sol"
+      - "packages/contracts/src/modules/Hypercerts.sol"
+      - "packages/contracts/src/modules/Karma.sol"
+      - "packages/contracts/src/modules/Octant.sol"
+      - "packages/contracts/src/registries/ENS.sol"
+      - "packages/indexer/package.json"
+      - "packages/indexer/config.yaml"
+      - "packages/indexer/schema.graphql"
+      - "packages/shared/package.json"
+      - "packages/shared/vitest.config.ts"
+      - "packages/shared/src/config/chains.ts"
+      - "packages/shared/src/config/gardens-subgraph.ts"
+      - "packages/shared/src/ontology/**"
+      - "packages/shared/src/public-contracts/routes.ts"
+      - "packages/shared/src/utils/blockchain/ens.ts"
+      - "playwright.config.ts"
       - ".github/actions/setup-js/action.yml"
-      - ".github/workflows/docs.yml"
+      - ".github/workflows/**"
   pull_request:
     paths:
       - "docs/**"
+      - ".mcp.json"
+      - ".claude/context/task-routing.json"
+      - ".claude/skills/*/SKILL.md"
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "DESIGN.md"
       - "package.json"
       - "bun.lock"
+      - "scripts/docs/**"
+      - "scripts/mcp/**"
+      - "scripts/data/banned-vocabulary.json"
+      - "scripts/data/qa-test-catalog.json"
+      - "scripts/data/validation-policy.json"
+      - "scripts/quality/check-ontology.mjs"
+      - "scripts/quality/ontology-render.mjs"
+      - "scripts/quality/task-routing-contract.mjs"
+      - "packages/admin/DESIGN.md"
+      - "packages/admin/package.json"
+      - "packages/admin/src/router.tsx"
+      - "packages/admin/src/routes/views.tsx"
+      - "packages/admin/vitest.config.ts"
+      - "packages/agent/package.json"
+      - "packages/agent/src/api/**"
+      - "packages/agent/vitest.config.ts"
+      - "packages/client/package.json"
+      - "packages/client/DESIGN.browser.md"
+      - "packages/client/DESIGN.pwa.md"
+      - "packages/client/src/config/routes.tsx"
+      - "packages/client/src/config/pwaRouting.ts"
+      - "packages/client/vitest.config.ts"
+      - "packages/contracts/package.json"
+      - "packages/contracts/config/schemas.json"
+      - "packages/contracts/deployments/networks.json"
+      - "packages/contracts/deployments/*-latest.json"
+      - "packages/contracts/src/modules/CookieJar.sol"
+      - "packages/contracts/src/modules/Gardens.sol"
+      - "packages/contracts/src/modules/Hats.sol"
+      - "packages/contracts/src/modules/Hypercerts.sol"
+      - "packages/contracts/src/modules/Karma.sol"
+      - "packages/contracts/src/modules/Octant.sol"
+      - "packages/contracts/src/registries/ENS.sol"
+      - "packages/indexer/package.json"
+      - "packages/indexer/config.yaml"
+      - "packages/indexer/schema.graphql"
+      - "packages/shared/package.json"
+      - "packages/shared/vitest.config.ts"
+      - "packages/shared/src/config/chains.ts"
+      - "packages/shared/src/config/gardens-subgraph.ts"
+      - "packages/shared/src/ontology/**"
+      - "packages/shared/src/public-contracts/routes.ts"
+      - "packages/shared/src/utils/blockchain/ens.ts"
+      - "playwright.config.ts"
       - ".github/actions/setup-js/action.yml"
-      - ".github/workflows/docs.yml"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: docs-validation-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -40,29 +140,26 @@ jobs:
       - name: Setup JavaScript toolchain and dependencies
         uses: ./.github/actions/setup-js
 
+      - name: Test deterministic docs generators
+        run: node --test scripts/docs/generate.test.mjs docs/scripts/docs-audit.test.mjs docs/scripts/check-search-index.test.mjs scripts/quality/task-routing-contract.test.mjs
+
+      - name: Audit documentation authority
+        run: bun run docs:audit:ci
+
+      - name: Check generated documentation
+        run: bun run check:docs-generated
+
+      - name: Check ontology projections
+        run: bun run check:ontology
+
+      - name: Check task-to-skill routing
+        run: bun run check:skill-behavior
+
+      - name: Test docs
+        run: bun run test:docs
+
       - name: Build docs
         run: bun run build:docs
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
-        with:
-          path: docs/build
-
-  deploy:
-    name: Deploy Docs
-    if: >
-      (github.event_name == 'workflow_dispatch' || github.event_name == 'push') &&
-      (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128
+      - name: Verify search index
+        run: bun run --cwd docs check:search-index

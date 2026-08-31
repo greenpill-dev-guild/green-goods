@@ -4,7 +4,7 @@ sidebar_label: Indexer
 slug: /builders/packages/indexer
 audience: developer
 owner: docs
-last_verified: 2026-07-27
+last_verified: 2026-08-30
 feature_status: Live
 source_of_truth:
   - packages/indexer/AGENTS.md
@@ -13,72 +13,19 @@ source_of_truth:
   - packages/indexer/src/EventHandlers.ts
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
-
 # Indexer Package
 
-<StatusBadge status="Live" />
+The Envio indexer turns configured contract events into queryable read models. It does not own
+EAS-only records or protocol truth.
 
-```mermaid
-graph LR
-    subgraph Events["On-Chain Events"]
-        E1["ActionRegistry"]
-        E2["GardenToken"]
-        E3["HatsModule"]
-        E4["OctantVault"]
-        E5["YieldSplitter"]
-    end
+## Boundary
 
-    Chain["Blockchain\nArbitrum / Sepolia"] --> Events
-    Events --> Envio["Envio Indexer\nv3.2.1"]
-    Envio -->|handlers| PG[("PostgreSQL")]
-    PG -->|query| GQL["GraphQL API"]
-    GQL -->|fetch| Client["Client PWA"]
-    GQL -->|fetch| Admin["Admin Dashboard"]
-```
+- `config.yaml` owns indexed contracts, events, networks, and start points.
+- `schema.graphql` owns the read-model shape.
+- `src/EventHandlers.ts` owns deterministic event-to-entity projection.
+- Contract artifacts and ABIs must match the configured deployment context.
+- Work and other attestation-only records are read through EAS unless explicitly indexed.
 
-The indexer package runs the Envio indexing pipeline for Green Goods protocol events. It indexes protocol entities such as gardens, roles, actions, vault events, Hypercert transfers, and GreenWill badge events. It does not index EAS attestations; those stay in shared's EAS data layer.
-
-## Current chain coverage
-
-`packages/indexer/config.yaml` currently defines indexed chains for:
-
-| Chain | Chain ID | Notes |
-| --- | --- | --- |
-| Arbitrum | 42161 | Production mainnet indexer configuration |
-| Sepolia | 11155111 | Testnet/development indexer configuration |
-
-Celo may have contract deployment artifacts, but it is not currently listed as an indexed chain in `config.yaml`.
-
-## Builder contract
-
-- Keep EAS attestation reads out of the indexer; use shared EAS data modules for work, approval, and assessment attestations.
-- Every persisted entity must include `chainId`.
-- Use composite IDs that include `chainId` to avoid cross-chain collisions.
-- When schema or config changes, regenerate `.envio/` declarations and rebuild before trusting tests.
-- Update both sides of relationships when entity links change.
-- Preserve GardenAccount and OctantVault factory discovery through `indexer.contractRegister`.
-- Keep local replay explicit: `envio dev` preserves the database, while `envio dev --restart` resets it.
-
-## Commands
-
-```bash
-cd packages/indexer
-bun run check:indexing-boundary
-bun run test
-bun run build
-
-# After schema/config changes:
-bun run codegen
-```
-
-<NextBestAction
-  title="Next best action"
-  why="Deployment status explains which chain surfaces are active across contracts, frontend builds, EAS, and indexer coverage."
-  actionLabel="Open deployment status"
-  actionHref="../deployments/status"
-  alternatives={[
-    {label: "API index", href: "./api-index"},
-    {label: "EAS integration", href: "../integrations/eas"},
-  ]}
-/>
+Read `packages/indexer/AGENTS.md` and `packages/indexer/README.md` before editing or operating the
+service. An indexed entity may lag chain state; consumers must handle unavailable and partial data
+without inventing a default.

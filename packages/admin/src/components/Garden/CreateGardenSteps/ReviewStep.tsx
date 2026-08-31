@@ -1,5 +1,5 @@
 import { useCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
-import { type Address, Domain, DOMAIN_COLORS } from "@green-goods/shared/types/domain";
+import { type Address, DOMAIN_COLORS, Domain } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
@@ -21,13 +21,13 @@ export function ReviewStep() {
             <dt className="label-xs text-text-soft">
               {formatMessage({ id: "app.garden.create.gardenName", defaultMessage: "Garden name" })}
             </dt>
-            <dd className="mt-1 text-sm text-text-strong">{form.name}</dd>
+            <dd className="mt-1 text-body-md text-text-strong">{form.name}</dd>
           </div>
           <div>
             <dt className="label-xs text-text-soft">
               {formatMessage({ id: "app.garden.create.location", defaultMessage: "Location" })}
             </dt>
-            <dd className="mt-1 text-sm text-text-strong">{form.location}</dd>
+            <dd className="mt-1 text-body-md text-text-strong">{form.location}</dd>
           </div>
           {form.slug && (
             <div>
@@ -37,7 +37,7 @@ export function ReviewStep() {
                   defaultMessage: "ENS subdomain",
                 })}
               </dt>
-              <dd className="mt-1 font-mono text-xs text-text-strong">
+              <dd className="mt-1 font-mono text-body-sm text-text-strong">
                 {form.slug}.greengoods.eth
               </dd>
             </div>
@@ -49,7 +49,7 @@ export function ReviewStep() {
                 defaultMessage: "Description",
               })}
             </dt>
-            <dd className="mt-1 text-sm text-text-strong">{form.description}</dd>
+            <dd className="mt-1 text-body-md text-text-strong">{form.description}</dd>
           </div>
           {form.bannerImage && (
             <div className="md:col-span-2">
@@ -79,7 +79,7 @@ export function ReviewStep() {
               {form.domains.map((domain) => (
                 <span
                   key={domain}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-stroke-soft bg-bg-white px-2.5 py-0.5 text-xs text-text-strong"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-stroke-soft bg-bg-white px-2.5 py-0.5 text-body-sm text-text-strong"
                 >
                   <span
                     className="h-2 w-2 rounded-full"
@@ -99,7 +99,7 @@ export function ReviewStep() {
                 defaultMessage: "Open joining",
               })}
             </dt>
-            <dd className="mt-1 text-sm text-text-strong">
+            <dd className="mt-1 text-body-md text-text-strong">
               {form.openJoining
                 ? formatMessage({
                     id: "app.garden.create.openJoining.enabled",
@@ -120,7 +120,7 @@ export function ReviewStep() {
             </dt>
             <dd>
               {form.gardeners.length === 0 ? (
-                <p className="mt-2 text-xs text-text-soft">
+                <p className="mt-2 text-label-sm text-text-soft">
                   {formatMessage({
                     id: "app.garden.create.noGardenersYet",
                     defaultMessage: "No gardeners added yet.",
@@ -129,7 +129,7 @@ export function ReviewStep() {
               ) : (
                 <ul className="mt-2 space-y-1">
                   {form.gardeners.map((gardener) => (
-                    <li key={gardener} className="text-xs text-text-strong">
+                    <li key={gardener} className="text-body-sm text-text-strong">
                       <EnsAddressText address={gardener as Address} />
                     </li>
                   ))}
@@ -146,7 +146,7 @@ export function ReviewStep() {
             </dt>
             <dd>
               {form.stewards.length === 0 ? (
-                <p className="mt-2 text-xs text-text-soft">
+                <p className="mt-2 text-label-sm text-text-soft">
                   {formatMessage({
                     id: "app.garden.create.noStewardsYet",
                     defaultMessage: "No stewards assigned yet.",
@@ -155,7 +155,7 @@ export function ReviewStep() {
               ) : (
                 <ul className="mt-2 space-y-1">
                   {form.stewards.map((steward) => (
-                    <li key={steward} className="text-xs text-text-strong">
+                    <li key={steward} className="text-body-sm text-text-strong">
                       <EnsAddressText address={steward as Address} />
                     </li>
                   ))}
@@ -164,7 +164,7 @@ export function ReviewStep() {
             </dd>
           </div>
         </dl>
-        <p className="rounded-md border border-stroke-soft bg-bg-soft px-3 py-2.5 text-xs text-text-sub">
+        <p className="rounded-md border border-stroke-soft bg-bg-soft px-3 py-2.5 text-body-sm text-text-sub">
           {formatMessage({
             id: "app.garden.create.teamAssignmentNotice",
             defaultMessage:

@@ -46,12 +46,12 @@ export function CommitmentActions({
             type="button"
             variant="danger"
             size="sm"
-            onClick={() => void acts.expire()}
+            onClick={() => onOpenDialog("expire")}
             disabled={actDisabled}
           >
             {formatMessage({
               id: "cockpit.garden.pool.row.act.expire",
-              defaultMessage: "Expire now",
+              defaultMessage: "Expire now…",
             })}
           </AdminButton>
         ) : null}
@@ -112,7 +112,7 @@ export function CommitmentActions({
           >
             {formatMessage({
               id: "cockpit.garden.pool.commitment.act.confirm",
-              defaultMessage: "Confirm, commitment kept",
+              defaultMessage: "Confirm, Commitment Kept",
             })}
           </AdminButton>
         ) : null}
@@ -126,7 +126,7 @@ export function CommitmentActions({
           >
             {formatMessage({
               id: "cockpit.garden.pool.commitment.act.send",
-              defaultMessage: "Send for confirmation",
+              defaultMessage: "Send for Confirmation",
             })}
           </AdminButton>
         ) : null}

@@ -85,7 +85,7 @@
 >
 > **Verified 2026-08-08.** Top-level storage layout identical across all 46 entries with every `__gap` untouched (the `Commitment` struct lives in a mapping, so the new field consumes no top-level slot; only the generated baseline is regenerated). Module 21,198 → 21,205 bytes against the 24,576 limit, all weight in libraries per Decision Log #55. Offer acceptance costs a measured +20,352 gas for the new cold SSTORE; a Request pays that write at creation instead. 1,805 package tests green. Plan Decision Log #56 / register #90; `reports/corrections-log.md` 2026-08-08.
 
-Every technical claim below carries a repo file path (relative to repo root) or a NET-NEW marker. All contract names, functions, events, and entities introduced here are NET-NEW unless a path says otherwise. Format mirrors the house implementation-spec style of `docs/docs/builders/specs/greenwill-gif-implementation-spec-2026-03.md` (Purpose, Scope, Canonical Implementation Decisions, System Components, per-contract Contract Work, Package-Level Backlog, Launch Milestones).
+Every technical claim below carries a repo file path (relative to repo root) or a NET-NEW marker. All contract names, functions, events, and entities introduced here are NET-NEW unless a path says otherwise. The implementation spec is organized as purpose, scope, canonical decisions, system components, contract work, package backlog, and launch milestones.
 
 ---
 
@@ -1430,10 +1430,10 @@ queued-callback retry.
 | Module pause admin | `setPaused` | module owner | initialize paused; pausing is always allowed; unpause requires all six dependencies plus all four non-zero, pairwise-distinct schema UIDs and emits old/new pause state |
 | Module limiting admin | `setProviderOpenCommitmentCap` | pool steward | non-zero concurrent commitment count; module forwards to the register; required before Ready |
 | Register | `registerClass` / `setProviderOpenCommitmentCap` / `commitUnits` / `releaseUnits` / `fulfillUnits` | CommitmentPoolingModule only (`NotModule`) | class quota is immutable at creation (`targetUnits`); only the accountable lead provider is the exposure/count subject (§6.2) |
-| Register admin | `setModule` | register owner, subject to the mainnet activation tier below; protocol-authority use requires the exact approved Safe satisfying threshold >= 2 and owner count >= 3 | new module rejects zero; initial zero → non-zero wiring is allowed once; every later replacement requires the current module to be paused and emits `ModuleUpdated(old,new)` |
+| Register admin | `setModule` | register owner, subject to the mainnet activation tier below; protocol-authority use requires the protocol Safe with live threshold >= 2 | new module rejects zero; initial zero → non-zero wiring is allowed once; every later replacement requires the current module to be paused and emits `ModuleUpdated(old,new)` |
 | Assessment config | existing `setSchemaUID` / existing `setKarmaGAPModule` / new `setAssessmentV3SchemaUID` | existing AssessmentResolver owner, subject to the mainnet activation tier below; protocol-authority use requires the exact approved Safe | v2 selector/event and deployment-window zero value remain compatible; KarmaGAP zero disables its optional hook; v2/v3 UID equality is rejected; v3 UID rejects zero and emits old/new |
 | Community Testimony config | `setSchemaUID` / `setCommitmentModule` | TestimonyResolver owner, subject to the mainnet activation tier below; protocol-authority use requires the exact approved Safe | UID rejects zero, pins once, treats an exact repeat as a no-op, and rejects conflict; module rejects zero and an unpinned UID; preparation pins the deterministic UID while module is zero, finalization reconciles the exact EAS record, and verified module activation is last |
-| Upgrades | `_authorizeUpgrade` on module, register, upgraded AssessmentResolver, and net-new TestimonyResolver | current proxy owner, subject to the mainnet activation tier below; protocol-authority use requires the exact approved Safe satisfying threshold >= 2 and owner count >= 3 | UUPS convention repo-wide; existing Assessment initializer is never re-run |
+| Upgrades | `_authorizeUpgrade` on module, register, upgraded AssessmentResolver, and net-new TestimonyResolver | current proxy owner, subject to the mainnet activation tier below; protocol-authority use requires the protocol Safe with live threshold >= 2 | UUPS convention repo-wide; existing Assessment initializer is never re-run |
 
 **Ownership and release gate (amended 2026-08-14; supersedes the living all-or-nothing gate while
 preserving its history).** Every mainnet boundary requires passing required tests, explicit human
@@ -1446,8 +1446,8 @@ accepts that bounded risk, the exact current and rollback owner are verified, em
 remains available, and the selected committed-range review is clear of unresolved Critical/High
 findings. Custody, transferability, peer wiring, allowances, value movement, or any exercise of
 protocol upgrade/administrative authority other than emergency pause is tier 3 and requires the
-exact approved protocol Safe satisfying
-threshold >= 2 and owner count >= 3. External audit, the 48-hour mainnet timelock, and minimum
+protocol Safe with live threshold >= 2. Owner count and membership are operationally managed and
+do not block the release. External audit, the 48-hour mainnet timelock, and minimum
 two-week testnet operation are tier-3 defaults; only an explicit dated, release-scoped human
 disposition naming substitute evidence may replace or waive one. No agent, passing test, or
 deployment artifact grants a waiver. Per-garden Celo settlement Safes and settlement value
@@ -2119,12 +2119,17 @@ GardenToken on 42161 is a live UUPS proxy at `0xe1Da335110b1ed48e7df63209f5D424d
 - Upgrade preserves state test extended (`testGardenTokenUpgradePreservesState`, `packages/contracts/test/StorageLayout.t.sol:270-289`) to set and survive `commitmentPoolingModule`.
 - Broadcast via the named root `contracts:*` scripts only (keystore + sender encoding per root CLAUDE.md; never raw forge, `.claude/rules/contracts.md`).
 
-Post-upgrade ops sequence (one-shot, lives in `.plans/`, not `scripts/`): after both the
-`GardenToken` and `WorkApprovalResolver` upgrades, call
-`gardenToken.setCommitmentPoolingModule(module)` and
-`workApprovalResolver.setCommitmentModule(module)`; verify both reverse links, updater
-preservation, storage, ownership, and every chain-2/chain-3 readiness fact while the pooling
-module remains paused; register the protocol pool on the root garden first, enumerate the live
+The current pooling release excludes this GardenToken upgrade. Its constructor would otherwise
+bind newly minted gardens to the legacy GardenAccount implementation, which lacks the required
+Karma access callback. A separately reviewed compatibility release must first deploy a compatible
+GardenAccount implementation, bind the new GardenToken implementation to it, upgrade GardenToken,
+call `gardenToken.setCommitmentPoolingModule(module)`, and verify that reverse link while pooling
+remains paused.
+
+Post-upgrade ops sequence after that compatibility release (one-shot, lives in `.plans/`, not
+`scripts/`): verify both reverse links, updater preservation, storage, ownership, and every
+chain-2/chain-3 readiness fact while the pooling module remains paused; register the protocol pool
+on the root garden first, enumerate the live
 GardenToken gardens at execution (18 at the 2026-08-08 census),
 skip the normalized root GardenAccount
 because it already owns the Protocol pool, submit `registerPool(garden, Garden)` for every
@@ -2589,14 +2594,15 @@ as named deliverables.
    evidence passes. Ethereum
    Sepolia (`11155111`) remains a legacy regression lane and does not substitute for the
    protocol's target-chain rehearsal.
-3. PR chain 3 (upgrades): upgrade GardenToken implementation (6.3) and
-   WorkApprovalResolver implementation (6.5); `setCommitmentPoolingModule` /
-   `setCommitmentModule`; verify updater preservation, post-upgrade storage/ownership, and
-   both-direction wiring; keep the pooling module paused while registering the protocol pool on the root garden
-   (`deployments/42161-latest.json:40-43`), enumerate all live gardens at execution (18 at the
-   2026-08-08 census), skip that normalized
-   root address, and backfill `registerPool(garden, Garden)` for every non-root garden. Verify the
-   complete inventory, then perform the separately authorized unpause.
+3. PR chain 3 (current upgrades): upgrade KarmaGAPModule before WorkApprovalResolver (6.5), then
+   call `setCommitmentModule`; verify updater preservation, post-upgrade storage/ownership, and the
+   WorkApproval reverse link. GardenToken (6.3), `setCommitmentPoolingModule`, the live-garden
+   backfill, and unpause remain blocked behind a separately reviewed GardenAccount/GardenToken
+   compatibility release. That follow-up binds GardenToken to a compatible GardenAccount
+   implementation, verifies both reverse links, registers the protocol pool on the root garden,
+   enumerates all live gardens at execution (18 at the 2026-08-08 census), skips that normalized
+   root address, and backfills `registerPool(garden, Garden)` for every non-root garden before the
+   separately authorized unpause.
 4. Update `packages/indexer/config.yaml` addresses from zero-address placeholders and bump
    `start_block` (8.1).
 
@@ -2674,7 +2680,7 @@ bun script/upgrade.ts commitment-pooling --network arbitrum --tx-plan --sender 0
 
 # One-shot backfill stays in the plan hub, not scripts/. It reads the deployment
 # artifact, prints one Protocol call for the root plus 12 Garden calls for the non-root
-# members of the verified 13-garden set, records the root as SKIPPED_PROTOCOL_ROOT, and
+# members of the live-enumerated 18-garden set, records the root as SKIPPED_PROTOCOL_ROOT, and
 # writes no chain state in dry-run mode.
 bun ../../.plans/active/commitment-pooling/backfill-pools.ts --network arbitrum --dry-run
 
@@ -2699,21 +2705,22 @@ must fail before plan persistence rather than defaulting.
 Both angle-bracketed `421614` senders are mandatory future artifact inputs, not optional
 placeholders or inferred defaults. The grouped `commitment-pooling` upgrade target is likewise
 NET-NEW — it is not a current `upgrade.ts` contract name — and ships with its own owner check: it
-verifies that GardenToken and WorkApprovalResolver report the same live owner before persisting
-one transaction plan; differing owners require separately named targets and plans rather than an
-inferred sender.
+verifies that KarmaGAPModule and WorkApprovalResolver report the same live owner
+before persisting one transaction plan; differing owners require separately named targets and
+plans rather than an inferred sender.
 Each chain-connected command above is illegal until the preceding stage's separately authorized
 receipt, post-action verification, and persisted artifact pass. No dry-run relies on state from a
 separate pure-simulation process. The complete sequence is rehearsed first on deterministic local
 chains and Arbitrum Sepolia. `--finalize-community-testimony` requires the verified
 module/register artifact, never accepts an address override, and proves the pinned UID plus exact
 registry record before activating the verified module last. `upgrade.ts commitment-pooling`
-upgrades exactly GardenToken and
-WorkApprovalResolver, verifies implementation slots and storage baselines, wires both module
-setters, and merges no schema keys. `backfill-pools.ts` persists a resumable result artifact at
+upgrades exactly KarmaGAPModule and WorkApprovalResolver in that dependency order, verifies
+implementation slots and storage baselines, wires the WorkApproval module setter, and merges no
+schema keys. It deliberately excludes GardenToken until a compatible GardenAccount implementation
+can be deployed and bound in a separate reviewed release. `backfill-pools.ts` persists a resumable result artifact at
 `.plans/active/commitment-pooling/artifacts/{chainId}-pool-backfill.json` keyed by garden. It
 normalizes every enumerated address, records the exact root as `SKIPPED_PROTOCOL_ROOT`, and emits
-no Garden-type call for it; the remaining 12 entries record their Garden registration plan or
+no Garden-type call for it; the remaining 17 entries record their Garden registration plan or
 receipt. Dry-run produces a simulation artifact under `.generated/runtime` only, while an
 explicitly authorized broadcast records tx hash, receipt block, and resulting poolId per submitted
 garden. Deploy dry-runs write simulation output only; broadcasts merge only the named append-only
@@ -4034,16 +4041,19 @@ authorization.
 
 ### `packages/contracts` PR chain 3: live upgrades + backfill
 
-Deliverables: GardenToken change set (6.3), WorkApprovalResolver bridge (6.5), 42161 broadcast runbook (one-shot ops doc in `.plans/active/commitment-pooling/`, not `scripts/`), protocol pool registration, and a verified live-garden enumeration that records the root skip and submits every non-root Garden registration (18 gardens / 17 non-root at the 2026-08-08 census; no count frozen).
+Deliverables: KarmaGAPModule prerequisite upgrade, WorkApprovalResolver bridge (6.5), and a 42161
+broadcast runbook (one-shot ops doc in `.plans/active/commitment-pooling/`, not `scripts/`). The
+GardenToken change set (6.3), compatible GardenAccount implementation, protocol pool registration,
+and verified live-garden enumeration remain a separately reviewed follow-up (18 gardens / 17
+non-root at the 2026-08-08 census; execution still enumerates live state).
 
-Acceptance: storage-layout gates green pre-broadcast; GardenToken and WorkApprovalResolver are
-upgraded and both reverse links are verified while pooling remains paused; the root receives
-exactly one owner-registered Protocol pool first, the backfill proves `SKIPPED_PROTOCOL_ROOT` for
-that address, and every enumerated non-root garden receives a Garden pool without a `PoolExists`
-abort while the module remains paused. Unpause is a separate authorization only after every
-chain-2/chain-3 and backfill-readiness fact passes; a scripted offer -> fulfilled smoke passes; the
-post-broadcast artifact shows both new addresses and non-zero pool count; and a live approval on an
-existing garden emits `ApprovedWorkCounted` for a linked work.
+Acceptance: storage-layout gates green pre-broadcast; KarmaGAPModule is upgraded before
+WorkApprovalResolver, the WorkApproval reverse link is verified, and pooling remains paused. The
+current release performs no GardenToken upgrade, garden backfill, or unpause. The compatibility
+follow-up must bind GardenToken to a compatible GardenAccount implementation, verify both reverse
+links, register exactly one owner-created Protocol pool first, prove `SKIPPED_PROTOCOL_ROOT`, and
+register every enumerated non-root garden without a `PoolExists` abort before a separately
+authorized unpause and operational smoke.
 
 ### `packages/indexer`
 
@@ -4093,8 +4103,10 @@ Exit criteria, in dependency order:
 1. Schemas registered on Sepolia + Arbitrum with resolvers live (PR chain 1); baselines attestable before cycle 1 opens.
 2. Module + register deployed with module-side wiring verified, storage baselines committed, and
    pooling still paused (PR chain 2).
-3. GardenToken + WorkApprovalResolver upgraded on 42161; reverse links verified; pooling unpaused;
-   protocol pool + every non-root Garden pool registered (census-derived count; 17 at the 2026-08-08 read); operational smoke passed (PR chain 3).
+3. KarmaGAPModule upgraded before WorkApprovalResolver on 42161 and the WorkApproval reverse link
+   verified while pooling remains paused. A separately reviewed GardenAccount/GardenToken
+   compatibility release must establish the GardenToken link before unpause, protocol-pool plus
+   every non-root Garden registration, and operational smoke (PR chain 3 plus follow-up).
 4. Indexer serving the four core aggregates plus settlement/disbursement status from Green Goods core events alone.
 5. Shared substrate (types, signed saved-Offer persistence, hooks, six offline queue job kinds including `commitmentSeries` plus online wallet `transfer`, settlement selectors) consumed by admin + client + editorial surfaces.
 6. First cycle is ready to seed and open with an allocation preset; the non-value deployments have persisted post-deploy and rollback proof; and the commitment, confirmation, consideration, and settlement paths have deployment-grade proof without treating the July broadcast as a user-facing release or value-tier authorization.
@@ -4142,7 +4154,7 @@ repeats the schema-key pattern; nothing may ever rewrite an existing key (the
     `Fulfilled`; its units argument does not imply partial-fulfillment readiness. A module v1.1
     must separately specify remaining-slot semantics, register transitions, events, and indexer
     deltas before permitting partial conversion.
-12. **Register upgrade authority.** The register is UUPS-owned by the protocol upgrade owner — the exact approved Safe satisfying §6.1's threshold >= 2 and owner count >= 3 before mainnet activation — while mutations are module-gated (6.2). Anyone proposing owner==module must answer who upgrades the register.
+12. **Register upgrade authority.** The register is UUPS-owned by the protocol upgrade owner — the protocol Safe satisfying §6.1's live threshold >= 2 before mainnet activation — while mutations are module-gated (6.2). Anyone proposing owner==module must answer who upgrades the register.
 13. **No address-less member path for steward capture** (open question, surfaced by the 2026-08-16 admin prototype review / Decision Log #66). "Device-free" means no device to sign with, never no wallet: every `StewardCaptured` path requires `onBehalfOf` to be an address holding a garden role Hat (`CreationChecksLib.sol:38-45`, re-checked at acceptance per §5's `NotEligibleContributor` rule), and no name-string, registry-entry, or placeholder identity exists anywhere in the spec. Onboarding therefore has to provision an address and mint the Hat *before* capture, and that step appears in no flow; captured members are additionally locked out of exchanges (`ExchangeCreatorConsentRequired` — a steward cannot consent for a represented gardener) and standing series (standing-commitments-spec §"initial version" exclusion). The prototype now says this plainly (W9's not-a-member empty state), but the provisioning story — who creates the address, who custodies it, and whether a garden-held identity is acceptable for a member who will never touch a device — is undecided. Decide before pilot gardens onboard genuinely address-less members; until then, capture requires prior membership.
 
 ---

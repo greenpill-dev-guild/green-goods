@@ -9,14 +9,14 @@
   ideas/              # rough concepts and one-pagers
   backlog/            # approved but not yet active
   active/             # active feature hubs that automations scan
-  archive/            # shipped, superseded, or paused work
+  ARCHIVE.md          # ledger of closed hubs; git history is the only archive
   _templates/         # scaffold source for new feature hubs
 ```
 
 No other top-level entries are supported. Architecture belongs in current package
 guides or `docs/`; point-in-time audit and cleanup results stay in the session until
 accepted into Linear; operational scratch belongs in ignored `tmp/`; release history
-belongs in Git tags, releases, and the relevant archived feature hub.
+belongs in Git tags, releases, and the closed hub's Git history (indexed by `ARCHIVE.md`).
 
 ## Feature Hub Contract
 
@@ -40,9 +40,10 @@ Lane handoff files are created when the hub moves to `active`; `reports/` and
 
 `status.json` is the machine-readable source of truth for explicit lane state. Queue readiness is computed by `node scripts/harness/plan-hub.mjs list` from `status.json` plus any required branch trigger.
 
-Every direct child of `ideas/`, `backlog/`, `active/`, and `archive/` must be a
+Every direct child of `ideas/`, `backlog/`, and `active/` must be a
 feature directory with `status.json`. Loose files and invisible status-less
-directories fail validation. `links.brief`, `links.spec`, `links.plan`, and
+directories fail validation, and any hub left under `.plans/archive/` fails
+validation outright — closed hubs live only in Git history. `links.brief`, `links.spec`, `links.plan`, and
 `links.eval` are required and must resolve.
 
 The Markdown files are the human-readable context:
@@ -67,6 +68,9 @@ active feature hub.
   environment-local unless an explicit freshness, expiry, and ownership policy says otherwise
 - Do not promote a repo-level `.claude/agent-memory/` surface into committed truth by default
 - When the hub and a local memory artifact disagree, fix the hub or record the blocker in the hub
+- Keep decisions, acceptance criteria, evidence, ownership, and unresolved judgment in the hub.
+  Do not copy route, export, endpoint, deployment, or workflow inventories from code; cite their
+  owning source instead.
 
 ### Validation Posture
 
@@ -122,18 +126,18 @@ than creating a second plan-history surface.
 3. Move the hub to `.plans/active/<feature-slug>/` when it is ready for automation
 4. Mark unused lanes as `n/a` in `status.json`
 5. Let lane automations claim work from `.plans/active/`
-6. Archive the hub when the work is completed, superseded, closed, cancelled,
-   or intentionally paused. Record `workflow.archived_at`,
-   `workflow.archive_reason`, and `workflow.resolution`; do not label unfinished
-   stale work as completed.
+6. Close the hub when the work is completed, superseded, closed, cancelled,
+   or intentionally paused: `move --to archive` validates the hub and the
+   requested `--resolution`, appends one row to `ARCHIVE.md`, and deletes the
+   hub directory. Do not label unfinished stale work as completed.
 
-Archive records keep the final plan/spec/eval, dated reports, and a compact status history.
-Intermediate chronology remains available in Git history. Dated report contents remain byte-for-byte
-unchanged during archival. Do not create parallel
-audit, review, cleanup, ADR, or meeting-note folders under `.plans/`.
-The archive command removes operational handoffs, scripts, artifacts, and lane files after validating
-the requested resolution; it preserves `reports/` as immutable audit evidence. Archived documents are
-marked as historical records so old checklist language cannot be mistaken for live work.
+Git history is the only archive. The `ARCHIVE.md` ledger records each closed hub's
+slug, title, resolution, closeout reason, and historical path; recover full contents
+with `git log --oneline -- <historical path>` and `git checkout <sha>^ -- <historical path>`
+against the closeout commit. Dated reports under `reports/` remain byte-for-byte
+immutable while a hub is live and may only leave the tree with their whole hub at
+closeout. Do not create parallel audit, review, cleanup, ADR, or meeting-note
+folders under `.plans/`.
 
 ## Backlog Quality Bar
 
@@ -142,9 +146,9 @@ Backlog is for execution candidates, not general storage.
 - Keep only work that is realistic for the next execution cycle or two
 - Move strategic research that could become work to `.plans/ideas/`; keep durable
   architecture in current package guides or `docs/`
-- Keep agent instructions beside their active caller in `.claude/`; archive only
+- Keep agent instructions beside their active caller in `.claude/`; close only
   feature implementation records, not generic prompt packs
-- Archive broad legacy hubs once the remaining work can be expressed as a smaller follow-up hub
+- Close broad legacy hubs once the remaining work can be expressed as a smaller follow-up hub
 
 Every hub that remains in `.plans/active/` or `.plans/backlog/` must include real `brief.md`, `spec.md`, `plan.todo.md`, and `eval.md` content. Migration placeholder text is not allowed in the live queue.
 
@@ -158,7 +162,6 @@ node scripts/harness/plan-hub.mjs move --feature my-feature --to active
 node scripts/harness/plan-hub.mjs list --agent claude --lane ui
 node scripts/harness/plan-hub.mjs summary --json
 node scripts/harness/plan-hub.mjs stale --days 14 --json
-node scripts/harness/plan-hub.mjs compact-archive
 node scripts/harness/plan-hub.mjs set-lane --feature my-feature --lane ui --status in_progress --actor claude
 node scripts/harness/plan-hub.mjs move --feature my-feature --to archive --resolution completed --reason "Merged and verified."
 node scripts/harness/plan-hub.mjs validate
@@ -168,4 +171,4 @@ node scripts/harness/plan-hub.mjs validate
 
 The foldered feature hub layout is the only supported plan surface. Do not create new flat files in `.plans/`, `.plans/_backlog/`, or `.claude/plans/`. If a legacy plan artifact appears, migrate it into a feature hub immediately.
 
-Published product and developer specifications under `docs/docs/builders/specs/` remain where they are. They are public docs, not the live automation queue.
+The one retained published specification, `docs/docs/builders/specs/revenue-explorer.mdx`, remains where it is. It is a public doc, not part of the live automation queue.

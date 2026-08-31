@@ -405,7 +405,7 @@ export function PositionsList({
           >
             {formatMessage({
               id: "public.vaults.manage.empty.cta",
-              defaultMessage: "Endow a campaign",
+              defaultMessage: "Endow a Campaign",
             })}
           </EditorialGhostButton>
         ) : null}
@@ -760,7 +760,7 @@ export function VaultPositionRowView({
           >
             {formatMessage({
               id: "public.vaults.manage.position.tech.explorer",
-              defaultMessage: "View vault on explorer",
+              defaultMessage: "View Vault on Explorer",
             })}
           </a>
         ) : null}

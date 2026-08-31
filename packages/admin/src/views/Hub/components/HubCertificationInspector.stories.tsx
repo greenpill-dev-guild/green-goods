@@ -49,7 +49,7 @@ export const Mintable: Story = {
 
     await expect(body).not.toBeNull();
     await expect(footer).not.toBeNull();
-    await expect(await canvas.findByRole("button", { name: "Open mint flow" })).toBeVisible();
+    await expect(await canvas.findByRole("button", { name: "Open Mint Flow" })).toBeVisible();
   },
 };
 

@@ -148,7 +148,7 @@ function StorybookRouteContent({ title }: { title: string }) {
     <section className="space-y-4 p-6" data-testid="storybook-route-content">
       <div>
         <p className="text-label-sm text-text-soft">Storybook route</p>
-        <h1 className="text-title-lg text-text-strong">{title}</h1>
+        <h1 className="text-title-md font-semibold text-text-strong">{title}</h1>
       </div>
       <div className="surface-section p-4">
         <p className="text-body-md text-text-sub">
@@ -271,7 +271,7 @@ export const RealProviderShell: Story = {
     await expect(await canvas.findByRole("heading", { name: "Hub workbench" })).toBeVisible();
     await expect(await canvas.findByRole("button", { name: "Botanic Commons" })).toBeVisible();
 
-    const searchButton = canvas.queryByRole("button", { name: "Open search" });
+    const searchButton = canvas.queryByRole("button", { name: "Open Search" });
     if (searchButton) {
       await userEvent.click(searchButton);
       const body = within(document.body);
@@ -289,7 +289,7 @@ export const RealProviderShell: Story = {
       await waitFor(() => expect(canvasElement).not.toHaveAttribute("aria-hidden"));
     }
 
-    const settingsTrigger = canvas.queryByRole("button", { name: "Open settings" });
+    const settingsTrigger = canvas.queryByRole("button", { name: "Open Settings" });
     const sheetHeading = settingsTrigger ? "Settings" : "Notifications";
     await userEvent.click(settingsTrigger ?? canvas.getByRole("button", { name: "Notifications" }));
     // The right sheet is retired — account/notification content now renders in
@@ -406,7 +406,5 @@ export const Mobile: Story = {
   args: {
     activePath: "/garden",
   },
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
 };

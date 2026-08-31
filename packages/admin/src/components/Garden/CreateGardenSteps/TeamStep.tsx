@@ -1,10 +1,10 @@
-import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { useAddressInput } from "@green-goods/shared/hooks/utils/useAddressInput";
 import { useCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
+import { AdminButton, AdminIconButton } from "@/components/AdminButton";
+import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
 export function TeamStep() {
@@ -21,8 +21,8 @@ export function TeamStep() {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-lg border border-primary-light bg-primary-lighter/40 p-3.5 text-xs text-text-sub">
-        <p className="font-semibold text-text-strong">
+      <div className="rounded-lg border border-primary-light bg-primary-lighter/40 p-3.5 body-sm text-text-sub">
+        <p className="label-md font-semibold text-text-strong">
           {formatMessage({
             id: "app.admin.garden.create.teamAdvisory.title",
             defaultMessage: "Planned team members",
@@ -46,30 +46,27 @@ export function TeamStep() {
 
       {/* Stewards section — shown first since they have broader permissions */}
       <div>
-        <label
-          className="mb-2 block text-sm font-medium text-text-strong"
-          htmlFor="create-garden-steward-address"
-        >
-          {formatMessage({ id: "app.roles.steward.plural", defaultMessage: "Garden stewards" })}
-        </label>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <TextInput
-            surface="admin"
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+          <AdminTextField
             id="create-garden-steward-address"
+            className="min-w-0 flex-1 font-mono"
+            label={formatMessage({
+              id: "app.roles.steward.plural",
+              defaultMessage: "Stewards",
+            })}
             value={stewardInput.input}
             onChange={(event) => stewardInput.setInput(event.target.value)}
             placeholder={formatMessage({
               id: "admin.team.addressPlaceholder",
               defaultMessage: "0x... or vitalik.eth",
             })}
-            aria-invalid={!!stewardInput.error}
-            invalid={!!stewardInput.error}
-            aria-describedby="steward-error"
-            className="flex-1 font-mono"
+            error={stewardInput.error || undefined}
+            helperText={" "}
           />
           <AdminButton
             variant="tonal"
             size="sm"
+            className="mt-1.5"
             onClick={stewardInput.handleAdd}
             disabled={stewardInput.shouldResolveEns && stewardInput.resolvingEns}
             leadingIcon={<RiAddLine />}
@@ -78,7 +75,7 @@ export function TeamStep() {
           </AdminButton>
         </div>
         {stewardInput.shouldResolveEns && (
-          <p className="mt-2 text-xs text-text-soft">
+          <p className="mt-1 body-sm text-text-soft">
             {stewardInput.resolvingEns ? (
               formatMessage({
                 id: "app.admin.garden.create.resolvingEns",
@@ -100,29 +97,21 @@ export function TeamStep() {
             )}
           </p>
         )}
-        {/* Always render to reserve space and prevent layout shift */}
-        <p
-          id="steward-error"
-          role="alert"
-          className="mt-1 block min-h-[1.25rem] text-xs text-error-dark"
-        >
-          {stewardInput.error || "\u00A0"}
-        </p>
         <ul className="mt-1.5 space-y-1.5">
           {form.stewards.map((steward) => (
             <li
               key={steward}
-              className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-xs font-mono text-text-sub"
+              className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-1.5 label-sm font-mono text-text-sub"
             >
               <EnsAddressText address={steward as Address} />
-              <button
-                type="button"
+              <AdminIconButton
+                size="sm"
+                variant="danger"
                 onClick={() => removeSteward(form.stewards.indexOf(steward))}
-                className="min-h-11 min-w-11 flex items-center justify-center rounded-md text-text-soft transition hover:bg-bg-white hover:text-error-dark"
-                aria-label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
+                label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
               >
-                <RiDeleteBinLine className="h-4 w-4" />
-              </button>
+                <RiDeleteBinLine />
+              </AdminIconButton>
             </li>
           ))}
         </ul>
@@ -130,30 +119,24 @@ export function TeamStep() {
 
       {/* Gardeners section */}
       <div>
-        <label
-          className="mb-2 block text-sm font-medium text-text-strong"
-          htmlFor="create-garden-gardener-address"
-        >
-          {formatMessage({ id: "app.roles.gardener.plural", defaultMessage: "Gardeners" })}
-        </label>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <TextInput
-            surface="admin"
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+          <AdminTextField
             id="create-garden-gardener-address"
+            className="min-w-0 flex-1 font-mono"
+            label={formatMessage({ id: "app.roles.gardener.plural", defaultMessage: "Gardeners" })}
             value={gardenerInput.input}
             onChange={(event) => gardenerInput.setInput(event.target.value)}
             placeholder={formatMessage({
               id: "admin.team.addressPlaceholder",
               defaultMessage: "0x... or vitalik.eth",
             })}
-            aria-invalid={!!gardenerInput.error}
-            invalid={!!gardenerInput.error}
-            aria-describedby="gardener-error"
-            className="flex-1 font-mono"
+            error={gardenerInput.error || undefined}
+            helperText={" "}
           />
           <AdminButton
             variant="tonal"
             size="sm"
+            className="mt-1.5"
             onClick={gardenerInput.handleAdd}
             disabled={gardenerInput.shouldResolveEns && gardenerInput.resolvingEns}
             leadingIcon={<RiAddLine />}
@@ -162,7 +145,7 @@ export function TeamStep() {
           </AdminButton>
         </div>
         {gardenerInput.shouldResolveEns && (
-          <p className="mt-2 text-xs text-text-soft">
+          <p className="mt-1 body-sm text-text-soft">
             {gardenerInput.resolvingEns ? (
               formatMessage({
                 id: "app.admin.garden.create.resolvingEns",
@@ -184,29 +167,21 @@ export function TeamStep() {
             )}
           </p>
         )}
-        {/* Always render to reserve space and prevent layout shift */}
-        <p
-          id="gardener-error"
-          role="alert"
-          className="mt-1 block min-h-[1.25rem] text-xs text-error-dark"
-        >
-          {gardenerInput.error || "\u00A0"}
-        </p>
         <ul className="mt-1.5 space-y-1.5">
           {form.gardeners.map((gardener) => (
             <li
               key={gardener}
-              className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-xs font-mono text-text-sub"
+              className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-1.5 label-sm font-mono text-text-sub"
             >
               <EnsAddressText address={gardener as Address} />
-              <button
-                type="button"
+              <AdminIconButton
+                size="sm"
+                variant="danger"
                 onClick={() => removeGardener(form.gardeners.indexOf(gardener))}
-                className="min-h-11 min-w-11 flex items-center justify-center rounded-md text-text-soft transition hover:bg-bg-white hover:text-error-dark"
-                aria-label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
+                label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
               >
-                <RiDeleteBinLine className="h-4 w-4" />
-              </button>
+                <RiDeleteBinLine />
+              </AdminIconButton>
             </li>
           ))}
         </ul>

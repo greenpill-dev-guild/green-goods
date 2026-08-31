@@ -21,6 +21,7 @@ import { useMutationLock } from "./useMutationLock";
  *
  * @param mutation - The TanStack Query mutation to wrap
  * @param lockKey - Optional shared lock key (e.g. "approval" for single + batch hooks)
+ * @param options.warnBeforeUnload - Disable only when leaving the page is an expected handoff
  *
  * @example
  * ```tsx
@@ -33,11 +34,12 @@ import { useMutationLock } from "./useMutationLock";
  */
 export function useSafeMutation<TData, TError, TVariables, TContext>(
   mutation: UseMutationResult<TData, TError, TVariables, TContext>,
-  lockKey?: string
+  lockKey?: string,
+  options: { warnBeforeUnload?: boolean } = {}
 ) {
   const { runWithLock, isPending: isLockPending } = useMutationLock(lockKey);
   const isPending = mutation.isPending || isLockPending;
-  useBeforeUnloadWhilePending(isPending);
+  useBeforeUnloadWhilePending(isPending && options.warnBeforeUnload !== false);
 
   const mutateAsync = useCallback(
     (...args: Parameters<typeof mutation.mutateAsync>) =>

@@ -84,7 +84,7 @@ export const Default: Story = {
 
 export const WithValue: Story = {
   args: {
-    label: "Start Date",
+    label: "Start date",
     value: JUNE_15_2025,
     id: "date-with-value",
   },

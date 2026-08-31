@@ -100,7 +100,7 @@ export default function CreateAssessment() {
             >
               {formatMessage({
                 id: "app.assessment.retrySubmission",
-                defaultMessage: "Retry submission",
+                defaultMessage: "Retry Submission",
               })}
             </AdminButton>
             <AdminButton
@@ -111,7 +111,7 @@ export default function CreateAssessment() {
             >
               {formatMessage({
                 id: "app.assessment.editDetails",
-                defaultMessage: "Edit details",
+                defaultMessage: "Edit Details",
               })}
             </AdminButton>
           </div>
@@ -150,7 +150,7 @@ export default function CreateAssessment() {
             >
               {formatMessage({
                 id: "app.assessment.submitAssessment",
-                defaultMessage: "Submit assessment",
+                defaultMessage: "Submit Assessment",
               })}
             </AdminButton>
           ) : (

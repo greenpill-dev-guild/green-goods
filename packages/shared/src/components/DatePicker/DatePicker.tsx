@@ -121,7 +121,7 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
     }, [minDateObj, maxDateObj]);
 
     return (
-      <div className={cn("flex flex-col gap-1", error && "shake-error")}>
+      <div className={cn("flex flex-col gap-1")}>
         {label && (
           <label className="font-semibold text-text-strong-950 text-label-sm" htmlFor={id}>
             {label}

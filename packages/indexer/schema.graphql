@@ -1357,6 +1357,27 @@ type GardenDomains {
   updatedAt: Int!
 }
 
+enum KarmaSyncOperation {
+  PROJECT
+  DETAILS
+  MEMBERSHIP
+  ACCESS
+  PROJECT_UPDATE
+}
+
+enum KarmaSyncOutcome {
+  NOOP
+  SUCCEEDED
+  FAILED
+}
+
+enum KarmaProjectionState {
+  UNKNOWN
+  PENDING
+  SYNCED
+  FAILED
+}
+
 type Garden {
   id: ID! # Address
   chainId: Int!
@@ -1379,6 +1400,61 @@ type Garden {
 
   # Karma GAP Integration
   gapProjectUID: String # Karma GAP project attestation UID (bytes32)
+  karmaProjectState: KarmaProjectionState
+  karmaProjectReason: String
+  karmaProjectUpdatedAt: Int
+  karmaDetailsState: KarmaProjectionState
+  karmaDetailsReason: String
+  karmaDetailsUpdatedAt: Int
+  karmaMembershipState: KarmaProjectionState
+  karmaMembershipReason: String
+  karmaMembershipUpdatedAt: Int
+  karmaAccessState: KarmaProjectionState
+  karmaAccessReason: String
+  karmaAccessUpdatedAt: Int
+  karmaProjectUpdateState: KarmaProjectionState
+  karmaProjectUpdateReason: String
+  karmaProjectUpdateUpdatedAt: Int
+  karmaMembershipPendingAccounts: [String!]
+  karmaMembershipFailedAccounts: [String!]
+  karmaAccessPendingAccounts: [String!]
+  karmaAccessFailedAccounts: [String!]
+  karmaTrackedAccessAccounts: [String!]
+  karmaLastFailureReason: String
+  karmaLastSyncAt: Int
+}
+
+type KarmaSyncRecord {
+  id: ID! # chainId-transactionHash-logIndex
+  chainId: Int!
+  garden: String!
+  projectUID: String!
+  account: String!
+  operation: KarmaSyncOperation!
+  outcome: KarmaSyncOutcome!
+  sourceUID: String!
+  resultUID: String!
+  reason: String!
+  txHash: String!
+  logIndex: Int!
+  blockNumber: Int!
+  createdAt: Int!
+}
+
+type KarmaProjectAccess {
+  id: ID! # chainId-garden-account
+  chainId: Int!
+  garden: String!
+  account: String!
+  projectUID: String
+  membershipState: KarmaProjectionState!
+  membershipOutcome: KarmaSyncOutcome
+  membershipReason: String
+  membershipUpdatedAt: Int
+  accessState: KarmaProjectionState!
+  accessOutcome: KarmaSyncOutcome
+  accessReason: String
+  accessUpdatedAt: Int
 }
 
 enum VaultEventType {

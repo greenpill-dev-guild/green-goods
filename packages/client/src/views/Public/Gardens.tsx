@@ -11,6 +11,7 @@ import {
   EditorialDivider,
   EditorialHeading,
   EditorialKicker,
+  EditorialMediaCardSkeleton,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
@@ -111,7 +112,7 @@ export default function GardensGallery() {
               <span className="sr-only">
                 {formatMessage({
                   id: "public.gardens.searchLabel",
-                  defaultMessage: "Search Gardens",
+                  defaultMessage: "Search gardens",
                 })}
               </span>
               <input
@@ -162,11 +163,7 @@ export default function GardensGallery() {
               loading={
                 <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
                   {[0, 1, 2, 3, 4, 5].map((i) => (
-                    <div
-                      key={i}
-                      className="aspect-[3/2] w-full animate-pulse bg-editorial-warm"
-                      aria-hidden="true"
-                    />
+                    <EditorialMediaCardSkeleton key={i} />
                   ))}
                 </div>
               }

@@ -301,10 +301,9 @@ describe("components/Hypercerts/DistributionConfig", () => {
         })
       );
 
-      // Verify address inputs exist and are editable (not disabled)
-      const addressInputs = screen
-        .getAllByRole("textbox")
-        .filter((input) => input.getAttribute("aria-label")?.toLowerCase().includes("recipient"));
+      // Verify address inputs exist and are editable (not disabled).
+      // AdminTextField names the control via its visible label element.
+      const addressInputs = screen.getAllByRole("textbox", { name: /recipient/i });
 
       expect(addressInputs.length).toBeGreaterThan(0);
 
@@ -367,10 +366,9 @@ describe("components/Hypercerts/DistributionConfig", () => {
         })
       );
 
-      const unitsInputs = screen
-        .getAllByRole("textbox")
-        .filter((input) => input.getAttribute("aria-label")?.toLowerCase().includes("units"));
+      const unitsInputs = screen.getAllByRole("textbox", { name: /units/i });
 
+      expect(unitsInputs.length).toBeGreaterThan(0);
       unitsInputs.forEach((input) => {
         expect(input).toBeDisabled();
       });
@@ -521,9 +519,7 @@ describe("components/Hypercerts/DistributionConfig", () => {
         })
       );
 
-      const unitsInputs = screen
-        .getAllByRole("textbox")
-        .filter((input) => input.getAttribute("aria-label")?.toLowerCase().includes("units"));
+      const unitsInputs = screen.getAllByRole("textbox", { name: /units/i });
 
       expect(unitsInputs.length).toBeGreaterThan(0);
     });
@@ -536,9 +532,7 @@ describe("components/Hypercerts/DistributionConfig", () => {
         })
       );
 
-      const addressInputs = screen
-        .getAllByRole("textbox")
-        .filter((input) => input.getAttribute("aria-label")?.toLowerCase().includes("recipient"));
+      const addressInputs = screen.getAllByRole("textbox", { name: /recipient/i });
 
       expect(addressInputs.length).toBeGreaterThan(0);
     });

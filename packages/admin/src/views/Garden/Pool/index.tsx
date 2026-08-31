@@ -3,7 +3,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { RiSeedlingLine } from "@remixicon/react";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
@@ -12,6 +12,8 @@ import { PoolClaimsCard } from "./PoolClaimsCard";
 import { type PoolCommitmentScope, PoolCommitmentsCard } from "./PoolCommitmentsCard";
 import { PoolCyclesCard } from "./PoolCyclesCard";
 import { PoolDialogs } from "./PoolDialogs";
+import { PoolFundingDialog } from "./PoolFundingDialog";
+import { PoolFundingSection } from "./PoolFundingSection";
 import { PoolStatusCard } from "./PoolStatusCard";
 import { PoolStatusCasts } from "./PoolStatusCasts";
 import type { ConfirmDialog, FlowState, ReasonDialog } from "./poolDialogState";
@@ -59,6 +61,8 @@ export function GardenPoolTab({
   const [reasonDialog, setReasonDialog] = useState<ReasonDialog>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [fundingOpen, setFundingOpen] = useState(false);
+  const fundingDetailsButtonRef = useRef<HTMLButtonElement>(null);
   const { model } = pool;
 
   const openCommitment = useCallback(
@@ -88,7 +92,32 @@ export function GardenPoolTab({
   };
 
   const casts = <PoolStatusCasts pool={pool} canManage={canManage} />;
-  if (!canManage) return casts;
+  const fundingDialog = (
+    <PoolFundingDialog
+      open={fundingOpen}
+      onOpenChange={setFundingOpen}
+      funding={pool.funding}
+      protocolContext={presentation.protocolContext}
+      tone={tone}
+      returnFocusRef={fundingDetailsButtonRef}
+    />
+  );
+  if (!canManage) {
+    return (
+      <div className="space-y-4" data-component="GardenPoolReaderView">
+        {casts}
+        <AdminCard variant="elevated">
+          <PoolFundingSection
+            funding={pool.funding}
+            protocolContext={presentation.protocolContext}
+            onOpenDetails={() => setFundingOpen(true)}
+            detailsButtonRef={fundingDetailsButtonRef}
+          />
+        </AdminCard>
+        {fundingDialog}
+      </div>
+    );
+  }
   if (pool.isLoading || pool.isError || model.status === "unregistered") return casts;
   if (pool.availability.status !== "available" && pool.pool === null) return casts;
 
@@ -111,6 +140,9 @@ export function GardenPoolTab({
         setScope("open");
         jumpTo("pool-commitments");
       }}
+      onOpenFundingDetails={() => setFundingOpen(true)}
+      protocolContext={presentation.protocolContext}
+      fundingDetailsButtonRef={fundingDetailsButtonRef}
     />
   );
 
@@ -209,7 +241,7 @@ export function GardenPoolTab({
             >
               {formatMessage({
                 id: "cockpit.garden.pool.act.setUp",
-                defaultMessage: "Set up commitments",
+                defaultMessage: "Set Up Commitments",
               })}
             </AdminButton>
           </AdminCard>
@@ -241,6 +273,7 @@ export function GardenPoolTab({
             onOpenCommitment={openCommitment}
             onSeed={openSeed}
             canSeed={canSeed}
+            tone={tone}
           />
         ) : null}
       </div>
@@ -266,6 +299,7 @@ export function GardenPoolTab({
         confirmDialog={confirmDialog}
         setConfirmDialog={setConfirmDialog}
       />
+      {fundingDialog}
     </div>
   );
 }

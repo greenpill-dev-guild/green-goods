@@ -49,6 +49,7 @@ vi.mock("../../modules/app/analytics-events", () => ({
   trackWorkApprovalStarted: vi.fn(),
   trackWorkApprovalSuccess: vi.fn(),
   trackWorkApprovalFailed: vi.fn(),
+  trackWorkApprovalLifecycle: vi.fn(),
   trackWorkRejectionSuccess: vi.fn(),
 }));
 
@@ -83,6 +84,10 @@ import { toastService } from "../../components/toast";
 import { queryKeys } from "../../config/query-keys";
 import { useWorkApproval } from "../../hooks/work/useWorkApproval";
 import en from "../../i18n/en.json";
+import {
+  trackWorkApprovalFailed,
+  trackWorkApprovalLifecycle,
+} from "../../modules/app/analytics-events";
 import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
 import { submitApprovalToQueue } from "../../modules/work/work-submission";
 import { Confidence, VerificationMethod } from "../../types/domain";
@@ -119,6 +124,7 @@ describe("hooks/work/useWorkApproval", () => {
       },
     });
     vi.clearAllMocks();
+    localStorage.clear();
 
     // Default: online
     Object.defineProperty(navigator, "onLine", {
@@ -136,9 +142,61 @@ describe("hooks/work/useWorkApproval", () => {
 
   afterEach(() => {
     queryClient.clear();
+    vi.restoreAllMocks();
   });
 
   describe("Wallet mode", () => {
+    it("does not install a leave-page warning during an intentional wallet handoff", async () => {
+      let releaseSubmission: (() => void) | undefined;
+      (submitApprovalDirectly as any).mockImplementation(async () => {
+        await new Promise<void>((resolve) => {
+          releaseSubmission = resolve;
+        });
+        return MOCK_CONFIRMED_APPROVAL_RESULT;
+      });
+      const addEventListenerSpy = vi.spyOn(window, "addEventListener");
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+
+      let approvalPromise!: ReturnType<typeof result.current.mutateAsync>;
+      act(() => {
+        approvalPromise = result.current.mutateAsync({
+          draft: createMockWorkApprovalDraft({ approved: true }),
+          work: createMockWork(),
+        });
+      });
+
+      await waitFor(() => expect(submitApprovalDirectly).toHaveBeenCalled());
+      const beforeUnloadCalls = addEventListenerSpy.mock.calls.filter(
+        ([eventName]) => eventName === "beforeunload"
+      ).length;
+
+      await act(async () => {
+        releaseSubmission?.();
+        await approvalPromise;
+      });
+      expect(beforeUnloadCalls).toBe(0);
+    });
+
+    it("invokes the shared completion callback after direct wallet confirmation", async () => {
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
+      const onApprovalComplete = vi.fn();
+      const { result } = renderHook(() => useWorkApproval({ onApprovalComplete } as any), {
+        wrapper: createWrapper(),
+      });
+      const work = createMockWork();
+      const draft = createMockWorkApprovalDraft({ approved: true, workUID: work.id });
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      expect(onApprovalComplete).toHaveBeenCalledWith({
+        approved: true,
+        gardenId: work.gardenAddress,
+        workUID: work.id,
+      });
+    });
+
     it("calls submitApprovalDirectly for wallet users", async () => {
       (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
 
@@ -160,7 +218,8 @@ describe("hooks/work/useWorkApproval", () => {
         draft,
         work.gardenAddress,
         work.gardenerAddress,
-        11155111
+        11155111,
+        expect.objectContaining({ onLifecycle: expect.any(Function) })
       );
       expect(submitApprovalToQueue).not.toHaveBeenCalled();
     });
@@ -209,6 +268,101 @@ describe("hooks/work/useWorkApproval", () => {
       expect(queryClient.getQueryData<Array<{ status: string }>>(workQueryKey)?.[0]?.status).toBe(
         "rejected"
       );
+    });
+
+    it("does not roll the visible work collection back when approval cancels an active refetch", async () => {
+      let releaseSubmission: (() => void) | undefined;
+      (submitApprovalDirectly as any).mockImplementation(async () => {
+        await new Promise<void>((resolve) => {
+          releaseSubmission = resolve;
+        });
+        return MOCK_CONFIRMED_APPROVAL_RESULT;
+      });
+
+      const work = createMockWork({ id: "work-reviewed", status: "pending" });
+      const unrelatedWork = createMockWork({ id: "work-unrelated", status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: false,
+      });
+      const workQueryKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      const cancelQueriesSpy = vi.spyOn(queryClient, "cancelQueries");
+
+      queryClient.setQueryData(workQueryKey, []);
+      const activeRefetch = queryClient.fetchQuery({
+        queryKey: workQueryKey,
+        queryFn: () => new Promise<never>(() => {}),
+      });
+      void activeRefetch.catch(() => {});
+      await waitFor(() =>
+        expect(queryClient.getQueryState(workQueryKey)?.fetchStatus).toBe("fetching")
+      );
+
+      queryClient.setQueryData(workQueryKey, [work, unrelatedWork]);
+
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+      let approvalPromise!: ReturnType<typeof result.current.mutateAsync>;
+      act(() => {
+        approvalPromise = result.current.mutateAsync({ draft, work });
+      });
+
+      try {
+        await waitFor(() => expect(submitApprovalDirectly).toHaveBeenCalled());
+        expect(queryClient.getQueryData(workQueryKey)).toEqual([work, unrelatedWork]);
+        expect(cancelQueriesSpy).toHaveBeenCalledWith(
+          { queryKey: workQueryKey },
+          { revert: false }
+        );
+        queryClient.setQueryData(workQueryKey, []);
+      } finally {
+        await act(async () => {
+          releaseSubmission?.();
+          await approvalPromise;
+        });
+      }
+
+      const reconciled =
+        queryClient.getQueryData<Array<{ id: string; status: string }>>(workQueryKey);
+      expect(reconciled?.map(({ id, status }) => [id, status])).toEqual([
+        [work.id, "rejected"],
+        [unrelatedWork.id, "pending"],
+      ]);
+    });
+
+    it("reconciles a confirmed wallet decision when durable approval storage is unavailable", async () => {
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
+
+      const work = createMockWork({ id: "work-reviewed", status: "pending" });
+      const unrelatedWork = createMockWork({ id: "work-unrelated", status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: false,
+      });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      const onlineKey = queryKeys.works.online(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work, unrelatedWork]);
+      queryClient.setQueryData(onlineKey, [work, unrelatedWork]);
+      const setItemSpy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+        throw new DOMException("Storage unavailable", "QuotaExceededError");
+      });
+
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      expect(setItemSpy).toHaveBeenCalled();
+      for (const queryKey of [mergedKey, onlineKey]) {
+        const reconciled =
+          queryClient.getQueryData<Array<{ id: string; status: string }>>(queryKey);
+        expect(reconciled?.map(({ id, status }) => [id, status])).toEqual([
+          [work.id, "rejected"],
+          [unrelatedWork.id, "pending"],
+        ]);
+      }
     });
 
     it("records wallet decisions when receipt confirmation times out", async () => {
@@ -351,6 +505,12 @@ describe("hooks/work/useWorkApproval", () => {
 
       expect(queryClient.getQueryData(mergedKey)).toEqual([work]);
       expect(queryClient.getQueryData(onlineKey)).toEqual([work]);
+      expect(trackWorkApprovalFailed).not.toHaveBeenCalled();
+      expect(trackWorkApprovalLifecycle).toHaveBeenCalledWith(
+        expect.objectContaining({ stage: "cancelled" })
+      );
+      expect(localStorage.getItem("gg:pending-work-approval:v1")).toBeNull();
+      expect(result.current.approvalLifecycleStage).toBe("cancelled");
     });
 
     it("invalidates recipient-scoped approval reads after wallet approval succeeds", async () => {
@@ -467,7 +627,8 @@ describe("hooks/work/useWorkApproval", () => {
         expect.objectContaining({ feedback: "" }),
         work.gardenAddress,
         work.gardenerAddress,
-        11155111
+        11155111,
+        expect.objectContaining({ onLifecycle: expect.any(Function) })
       );
     });
 
@@ -495,7 +656,8 @@ describe("hooks/work/useWorkApproval", () => {
         }),
         work.gardenAddress,
         work.gardenerAddress,
-        11155111
+        11155111,
+        expect.objectContaining({ onLifecycle: expect.any(Function) })
       );
     });
   });
@@ -670,7 +832,8 @@ describe("hooks/work/useWorkApproval", () => {
         }),
         work.gardenAddress,
         work.gardenerAddress,
-        11155111
+        11155111,
+        expect.objectContaining({ onLifecycle: expect.any(Function) })
       );
     });
 
