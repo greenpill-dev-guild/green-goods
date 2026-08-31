@@ -32,6 +32,9 @@ function makeCase(overrides: Partial<CatalogCase> = {}): CatalogCase {
 
 function shard(person: string, entries: Record<string, { s: string; n: string }>): Shard {
   return {
+    address: person === "Gui"
+      ? "0x22682c3d3848294ff9bcbf3f0ddf48a605446b56"
+      : "0x2aa64e6d80390f5c017f0313cb908051be2fd35e",
     person,
     updatedAt: "2026-08-30T10:00:00.000Z",
     entries: Object.fromEntries(
@@ -63,6 +66,17 @@ describe("mergeShards", () => {
     expect(merged["PUB-001"]).toBeUndefined();
     expect(merged["PUB-002"].Gui.s).toBe("pass");
   });
+
+  it("keeps address-owned shards distinct when display names collide", () => {
+    const first = shard("Afo", { "PUB-014": { s: "fail", n: "first" } });
+    const second = {
+      ...shard("afo", { "PUB-014": { s: "pass", n: "second" } }),
+      address: "0x22682c3d3848294ff9bcbf3f0ddf48a605446b56",
+    };
+    const merged = mergeShards([first, second]);
+    expect(Object.keys(merged["PUB-014"])).toHaveLength(2);
+    expect(Object.values(merged["PUB-014"]).map((entry) => entry.n).sort()).toEqual(["first", "second"]);
+  });
 });
 
 describe("rollupVerdict", () => {
@@ -93,7 +107,7 @@ describe("csvField", () => {
     // results.csv is pasted into the run sheet by hand, and both columns it
     // fills carry text this repo does not control: notes are free text, and an
     // unknown case id is preserved rather than dropped, so anyone holding the
-    // deployment password can POST one. A leading apostrophe makes the cell
+    // allowlisted tester can POST one. A leading apostrophe makes the cell
     // literal text and is not itself displayed.
     expect(csvField("=1+1")).toBe("'=1+1");
     expect(csvField("@SUM(A1:A9)")).toBe("'@SUM(A1:A9)");

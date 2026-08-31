@@ -14,9 +14,11 @@ import { describe, expect, it } from "vitest";
  */
 
 import {
+  displayLabels as displayDeployed,
   mergeDelta as mergeDeployed,
   sanitizeDelta as sanitizeDeployed,
 } from "../../packages/qa/api/state";
+import { displayLabels as displayPulled } from "./qa-state";
 import {
   handleState,
   mergeDelta as mergeLocal,
@@ -107,6 +109,15 @@ describe("QA app merge rules — deployed function vs local server", () => {
     expect(sanitizeDeployed({ "PUB-001": entry("", "", EARLIER) })).toEqual({
       "PUB-001": { delete: true },
     });
+  });
+
+  it("disambiguates colliding display names the same way in the app and pull", () => {
+    const shards = [
+      { address: "0x2aa64e6d80390f5c017f0313cb908051be2fd35e", person: "Afo" },
+      { address: "0x22682c3d3848294ff9bcbf3f0ddf48a605446b56", person: "afo" },
+    ];
+    expect(displayDeployed(shards)).toEqual(displayPulled(shards));
+    expect(new Set(displayDeployed(shards).map((label) => label.toLowerCase())).size).toBe(2);
   });
 });
 

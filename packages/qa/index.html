@@ -23,6 +23,7 @@
     --amber:#D9A84E; --amber-wash:#3A3021; --line:#3A352A; --mono-bg:#2E2A21;
   }
   * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
   body { margin:0; background:var(--paper); color:var(--ink);
     font-family:"Inter",system-ui,sans-serif; font-size:14px; line-height:1.45; }
   header { position:sticky; top:0; z-index:5; background:var(--paper);
@@ -78,6 +79,7 @@
   .signin-card { max-width:400px; text-align:center; }
   .signin-card h2 { margin:0 0 10px; font-size:20px; }
   .signin-card p { color:var(--soft); margin:0 0 18px; font-size:14px; line-height:1.55; }
+  .signin-card label { display:block; text-align:left; margin-bottom:5px; font-size:12px; font-weight:600; }
   #signin-name { display:block; width:100%; margin:0 0 14px; padding:10px 12px; font:inherit;
     border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); }
   #signin-btn { border:1px solid var(--green); background:var(--green); color:#fff;
@@ -85,6 +87,8 @@
   #signin-btn:disabled { opacity:.6; cursor:progress; }
   .signin-err { color:var(--red); margin-top:14px !important; font-size:13px; }
   .who-btn[disabled] { opacity:1; cursor:default; }
+  .signout-btn { border:0; background:transparent; color:var(--soft); padding:2px 4px; font:inherit;
+    font-size:11.5px; text-decoration:underline; cursor:pointer; }
   .filt, .scope-btn, .who-btn { border:1px solid var(--line); background:var(--surface);
     color:var(--soft); border-radius:999px; padding:2px 10px; font-size:11.5px;
     font-weight:600; cursor:pointer; }
@@ -111,12 +115,12 @@
 <body>
 <div id="mount"><main><p class="empty">Loading the checklist…</p></main></div>
 <div class="savebar" id="savebar">connecting…</div>
-<div class="signin" id="signin" hidden>
+<div class="signin" id="signin" role="dialog" aria-modal="true" aria-labelledby="signin-title" hidden>
   <div class="signin-card">
-    <h2>Green Goods QA</h2>
+    <h2 id="signin-title">Green Goods QA</h2>
     <p id="signin-why">Sign in with the wallet on the QA allowlist. Your address is your identity here — nobody can record entries as you.</p>
     <button type="button" id="signin-btn">Sign in with Ethereum</button>
-    <p class="signin-err" id="signin-err" hidden></p>
+    <p class="signin-err" id="signin-err" role="alert" aria-live="assertive" hidden></p>
   </div>
 </div>
 <script>
@@ -146,6 +150,9 @@
   let filter = "all";
   let scope = "all";
   let who = "";
+  // Stable signing address in production; the loopback development bypass
+  // falls back to its fixed name. Display names are never durable identifiers.
+  let identity = "";
   let dirty = false;
   let saveTimer = null;
   let pollTimer = null;
@@ -188,8 +195,8 @@
   // or dismisses the installed PWA during the debounce, or while saves are
   // failing, reopens to find the retry has nothing left to send. Entries leave
   // here only once the server has confirmed that write.
-  function outboxKey(person) {
-    return OUTBOX_PREFIX + person;
+  function outboxKey(owner) {
+    return OUTBOX_PREFIX + owner;
   }
 
   /**
@@ -201,10 +208,13 @@
    * discard — which is how a tester's only unsaved copy disappears. Under their
    * own key, each tester's queue simply waits for them.
    */
-  function storedOutboxFor(person) {
-    if (!person) return null;
+  function storedOutboxFor(owner, legacyPerson) {
+    if (!owner) return null;
     for (const read of [
-      () => localStorage.getItem(outboxKey(person)),
+      () => localStorage.getItem(outboxKey(owner)),
+      // The first wallet-auth page keyed by display name. Migrate that queue
+      // after the authenticated response supplies the stable owner address.
+      () => owner !== legacyPerson && legacyPerson ? localStorage.getItem(outboxKey(legacyPerson)) : null,
       // Written before this page keyed per tester, or before it moved off
       // sessionStorage. Adopt it once rather than stranding it there.
       () => localStorage.getItem(LEGACY_OUTBOX_KEY),
@@ -212,7 +222,9 @@
     ]) {
       try {
         const stored = JSON.parse(read() || "null");
-        if (stored && stored.delta && stored.person === person) return stored.delta;
+        if (stored && stored.delta && (stored.owner === owner || (!stored.owner && stored.person === legacyPerson))) {
+          return stored.delta;
+        }
       } catch (e) {}
     }
     return null;
@@ -223,20 +235,12 @@
   // reading it here would silently start every session with an empty one and
   // strand whatever the last session failed to send.
   let outbox = {};
-  if (who) {
-    // Re-home an adopted queue under this tester's key BEFORE dropping the old
-    // copies, so a page that dies mid-adoption still has it somewhere.
-    saveOutbox();
-    try { localStorage.removeItem(LEGACY_OUTBOX_KEY); } catch (e) {}
-    try { sessionStorage.removeItem(LEGACY_OUTBOX_KEY); } catch (e) {}
-  }
-
-  function writeOutbox(person, delta) {
+  function writeOutbox(owner, person, delta) {
     try {
       if (Object.keys(delta).length) {
-        localStorage.setItem(outboxKey(person), JSON.stringify({ person, delta }));
+        localStorage.setItem(outboxKey(owner), JSON.stringify({ owner, person, delta }));
       } else {
-        localStorage.removeItem(outboxKey(person));
+        localStorage.removeItem(outboxKey(owner));
       }
     } catch (e) {}
   }
@@ -250,14 +254,20 @@
    * queue would resurrect forever, re-sending work the server already has.
    * Retiring it here is the second half of the migration.
    */
-  function retireLegacyOutbox(person) {
-    if (!person) return;
+  function retireLegacyOutbox(owner, person) {
+    if (!owner) return;
     for (const store of [localStorage, sessionStorage]) {
       try {
         const stored = JSON.parse(store.getItem(LEGACY_OUTBOX_KEY) || "null");
         // Only ever retire this tester's own queue — another tester's unsent
         // work may be sitting in the same slot on a shared browser.
         if (stored && stored.person === person) store.removeItem(LEGACY_OUTBOX_KEY);
+      } catch (e) {}
+    }
+    if (person && owner !== person) {
+      try {
+        const stored = JSON.parse(localStorage.getItem(outboxKey(person)) || "null");
+        if (stored && !stored.owner && stored.person === person) localStorage.removeItem(outboxKey(person));
       } catch (e) {}
     }
   }
@@ -274,8 +284,8 @@
    * silent about every other.
    */
   function saveOutbox() {
-    if (!who) return;
-    writeOutbox(who, { ...storedOutboxFor(who), ...outbox });
+    if (!identity || !who) return;
+    writeOutbox(identity, who, { ...storedOutboxFor(identity, who), ...outbox });
   }
 
   /**
@@ -283,11 +293,11 @@
    * stored queue only when the tab that sent it has a confirmation for it —
    * merging alone would otherwise keep resurrecting what was already saved.
    */
-  function forgetStoredCases(person, caseIds) {
-    if (!person || !caseIds.length) return;
-    const stored = storedOutboxFor(person) || {};
+  function forgetStoredCases(owner, caseIds) {
+    if (!owner || !caseIds.length) return;
+    const stored = storedOutboxFor(owner, who) || {};
     for (const caseId of caseIds) delete stored[caseId];
-    writeOutbox(person, { ...stored, ...outbox });
+    writeOutbox(owner, who, { ...stored, ...outbox });
   }
 
   /** Drop this tab's queue. Never touches another tab's or another tester's. */
@@ -295,7 +305,7 @@
     const owned = Object.keys(outbox);
     outbox = {};
     outboxVersions = {};
-    forgetStoredCases(person || who, owned);
+    forgetStoredCases(person || identity, owned);
   }
   /** Clearing a case is explicit, so clearing one field never means deletion. */
   function tombstone() {
@@ -435,7 +445,7 @@
       }).join("")}</div>
       <div class="filters">${[["all", "All"], ["issues", "Issues"], ["open", "Undecided"]].map(([k, l]) =>
         `<button class="filt ${filter === k ? "on" : ""}" data-f="${k}" aria-pressed="${filter === k ? "true" : "false"}">${l}</button>`).join("")}<span class="who-group" role="group" aria-label="who is testing"><span class="grouplabel">testing as</span>${TEAM.map((n) =>
-        `<button class="who-btn ${who === n ? "on" : ""}" disabled aria-pressed="${who === n ? "true" : "false"}" title="${who === n ? "your signed-in identity" : "sign in as " + esc(n) + " to record as them"}">${esc(n)}</button>`).join("")}</span></div>
+        `<button class="who-btn ${who === n ? "on" : ""}" disabled aria-pressed="${who === n ? "true" : "false"}" title="${who === n ? "your signed-in identity " + esc(identity) : "sign in as " + esc(n) + " to record as them"}">${esc(n)}</button>`).join("")}${who ? '<button type="button" class="signout-btn">Sign out</button>' : ""}</span></div>
       <div class="filters scoperow" role="group" aria-label="whose entries to show"><span class="grouplabel">showing</span>${
         [["all", "Everyone"]].concat(TEAM.map((n) => [n, n])).map(([k, l]) =>
           `<button class="scope-btn ${scope === k ? "on" : ""}" data-scope="${esc(k)}" aria-pressed="${scope === k ? "true" : "false"}">${esc(l)}<small>${scopeCount(activeTab, k)}</small></button>`).join("")
@@ -483,6 +493,7 @@
     mount.querySelectorAll(".scope-btn").forEach((b) => b.addEventListener("click", () => {
       scope = b.dataset.scope; saveView(); render();
     }));
+    mount.querySelector(".signout-btn")?.addEventListener("click", signOut);
     mount.querySelectorAll(".st").forEach((b) => b.addEventListener("click", () => {
       if (!who) return;
       const id = b.dataset.id;
@@ -557,6 +568,9 @@
       const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
       const address = accounts && accounts[0];
       if (!address) return fail("No account was shared by the wallet.");
+      if (identity && Object.keys(outbox).length && address.toLowerCase() !== identity.toLowerCase()) {
+        return fail("Select the wallet that started this QA walk before signing in again. Its unsaved notes are still here.");
+      }
 
       const prep = await fetch("/api/auth?address=" + encodeURIComponent(address), { cache: "no-store" });
       const challenge = await prep.json();
@@ -586,6 +600,29 @@
     }
   }
 
+  async function signOut() {
+    const button = mount.querySelector(".signout-btn");
+    if (button) button.disabled = true;
+    if (Object.keys(outbox).length) {
+      await save();
+      if (Object.keys(outbox).length) {
+        savebar.className = "savebar ro";
+        savebar.textContent = "still saving your notes — not signing out yet";
+        if (button) button.disabled = false;
+        return;
+      }
+    }
+    try {
+      const response = await fetch("/api/auth", { method: "DELETE" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      location.reload();
+    } catch (error) {
+      savebar.className = "savebar ro";
+      savebar.textContent = "could not sign out — try again";
+      if (button) button.disabled = false;
+    }
+  }
+
   /**
    * Ask a newly allowlisted tester what to call them, once.
    *
@@ -600,13 +637,19 @@
       "Signed in as " + address + ". What should your notes be attributed to?";
     const button = document.getElementById("signin-btn");
     button.textContent = "Save my name";
+    const label = document.createElement("label");
+    label.htmlFor = "signin-name";
+    label.textContent = "Display name for QA notes";
     const field = document.createElement("input");
     field.id = "signin-name";
     field.type = "text";
     field.maxLength = 32;
     field.placeholder = "e.g. Afo";
     field.autocomplete = "off";
+    button.parentNode.insertBefore(label, button);
     button.parentNode.insertBefore(field, button);
+    mount.inert = true;
+    savebar.inert = true;
     panel.hidden = false;
     field.focus();
 
@@ -620,6 +663,10 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ person: chosen, entries: {} }),
         });
+        if (response.status === 401 || response.status === 403) {
+          location.reload();
+          return;
+        }
         if (!response.ok) throw new Error("HTTP " + response.status);
         location.reload();
       } catch (error) {
@@ -637,7 +684,10 @@
   function showSignIn(reason) {
     const panel = document.getElementById("signin");
     if (reason) document.getElementById("signin-why").textContent = reason;
+    mount.inert = true;
+    savebar.inert = true;
     panel.hidden = false;
+    document.getElementById("signin-btn").focus();
   }
 
   // ── Save ────────────────────────────────────────────────────────────
@@ -672,7 +722,7 @@
       const response = await fetch("/api/state", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ person: person, entries: sent }),
+        body: JSON.stringify({ entries: sent }),
       });
       if (response.status === 401 || response.status === 403) {
         // The session lapsed mid-walk. The outbox is still on disk, so signing
@@ -682,8 +732,8 @@
         throw new Error(`HTTP ${response.status}`);
       }
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      // Throws on the password-protection HTML page, which is what turns an
-      // expired session into an honest "not saved" instead of silent loss.
+      // Throws on a non-JSON gateway or platform error page, which turns an
+      // unavailable write into an honest "not saved" instead of silent loss.
       await response.json();
       // Confirm the exact local version this response represents. Anything
       // typed during the request has a later version and remains pending.
@@ -717,7 +767,7 @@
           settled.push(caseId);
         }
       }
-      forgetStoredCases(person, settled);
+      forgetStoredCases(identity, settled);
       saveOutbox();
       // Anything typed while the request was in flight is still pending. The
       // debounce that would have flushed it already fired and found a save
@@ -765,6 +815,11 @@
     const startedConfirmedVersions = { ...confirmedVersions };
     try {
       const response = await fetch("/api/state", { cache: "no-store" });
+      if (response.status === 401 || response.status === 403) {
+        clearInterval(pollTimer);
+        showSignIn("Your QA session expired. Sign in again to keep recording.");
+        return;
+      }
       if (!response.ok) return;
       const data = await response.json();
       // A slower, older GET must never apply after a newer poll already did.
@@ -838,6 +893,7 @@
         if (Array.isArray(data.team) && data.team.length) TEAM = data.team;
         // The server names you from your signed session. The page never guesses.
         who = typeof data.you === "string" ? data.you : "";
+        identity = typeof data.address === "string" && data.address ? data.address.toLowerCase() : who;
         // Allowlisted but unnamed: ask once, then reload into a named session.
         if (data.named === false && data.address) {
           askForName(data.address);
@@ -856,10 +912,12 @@
       if (!TEAM.length) TEAM = ["Afo", "Nansel", "Gui"];
       // Now that the session has named this tester, pick up anything a previous
       // page life left unsent for them.
-      outbox = storedOutboxFor(who) || {};
+      outbox = storedOutboxFor(identity, who) || {};
+      // Persist the migrated copy before removing any legacy name-based key.
+      saveOutbox();
       // The contents are in memory now; retire the legacy copy so a drained
       // queue is not rediscovered on the next lookup.
-      retireLegacyOutbox(who);
+      retireLegacyOutbox(identity, who);
 
       activeTab = TABS.includes(view.tab) ? view.tab : TABS[0];
       filter = ["all", "issues", "open"].includes(view.filter) ? view.filter : "all";

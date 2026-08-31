@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { Script } from "node:vm";
 import { describe, expect, it } from "vitest";
 
@@ -16,6 +17,8 @@ import { describe, expect, it } from "vitest";
 
 const repoRoot = path.join(import.meta.dirname, "..", "..");
 const appDir = path.join(repoRoot, "packages", "qa");
+const apiDir = path.join(appDir, "api");
+const endpointFiles = readdirSync(apiDir).filter((file) => file.endsWith(".ts")).sort();
 const page = readFileSync(path.join(appDir, "index.html"), "utf8");
 
 function inlineScript(): string {
@@ -92,15 +95,20 @@ describe("QA app page", () => {
 });
 
 describe("QA app deployment contract", () => {
-  it("exports named HTTP methods and no default", async () => {
+  it("exports named HTTP methods and no default from every endpoint", async () => {
     // Vercel reads a DEFAULT export as the Node `(req, res) => void` signature
     // and ignores its return value, so a default export returning a `Response`
     // writes nothing and the request hangs until the platform kills it at 300s.
     // That shipped once and read as a 504 with no error in the logs.
-    const module = await import("../../packages/qa/api/state");
-    expect(typeof (module as Record<string, unknown>).GET).toBe("function");
-    expect(typeof (module as Record<string, unknown>).POST).toBe("function");
-    expect((module as Record<string, unknown>).default).toBeUndefined();
+    for (const file of endpointFiles) {
+      const source = readFileSync(path.join(apiDir, file), "utf8");
+      expect(source, `${file} has a default export`).not.toMatch(/export\s+default\b/);
+      const module = await import(pathToFileURL(path.join(apiDir, file)).href);
+      expect(typeof (module as Record<string, unknown>).GET, `${file}.GET`).toBe("function");
+      expect(typeof (module as Record<string, unknown>).POST, `${file}.POST`).toBe("function");
+      if (file === "auth.ts") expect(typeof (module as Record<string, unknown>).DELETE).toBe("function");
+      expect((module as Record<string, unknown>).default).toBeUndefined();
+    }
   });
 
   it("loads every endpoint module, so a dead import cannot reach production", async () => {
@@ -110,11 +118,8 @@ describe("QA app deployment contract", () => {
     // "does not provide an export named". Importing them here is the whole fix:
     // a stale import fails at module evaluation, which is exactly what happened
     // in production.
-    const state = await import("../../packages/qa/api/state");
-    const auth = await import("../../packages/qa/api/auth");
-    for (const [name, module] of [["state", state], ["auth", auth]] as const) {
-      expect(typeof (module as Record<string, unknown>).GET, `${name}.GET`).toBe("function");
-      expect(typeof (module as Record<string, unknown>).POST, `${name}.POST`).toBe("function");
+    for (const file of endpointFiles) {
+      await expect(import(pathToFileURL(path.join(apiDir, file)).href), file).resolves.toBeTypeOf("object");
     }
   });
 
@@ -124,9 +129,13 @@ describe("QA app deployment contract", () => {
     // passed every local test, and crashed the deployed function at load with
     // ERR_MODULE_NOT_FOUND. TypeScript wants `.js` here even though the source
     // is `.ts`.
-    for (const file of ["state.ts", "auth.ts"]) {
-      const source = readFileSync(path.join(appDir, "api", file), "utf8");
-      const relative = [...source.matchAll(/from\s+"(\.[^"]*)"/g)].map((match) => match[1]);
+    for (const file of endpointFiles) {
+      const source = readFileSync(path.join(apiDir, file), "utf8");
+      const relative = [
+        ...source.matchAll(/(?:from\s+|import\s+|import\()\s*(["'`])(\.[^"'`]+)\1/g),
+      ].map(
+        (match) => match[2],
+      );
       for (const specifier of relative) {
         expect(specifier, `${file} imports ${specifier}`).toMatch(/\.(js|mjs|json)$/);
       }
@@ -139,6 +148,18 @@ describe("QA app deployment contract", () => {
     // The shared handler owns method dispatch, so an unsupported verb is a 405
     // rather than two divergent implementations.
     expect(response.status).toBe(405);
+  });
+
+  it("keeps the loopback identity bypass out of deployment inputs", () => {
+    const vercel = JSON.parse(readFileSync(path.join(appDir, "vercel.json"), "utf8"));
+    expect(vercel.outputDirectory).toBe("dist");
+    const dev = readFileSync(path.join(appDir, "dev.mjs"), "utf8");
+    expect(dev).toContain('server.listen(port, "127.0.0.1"');
+    for (const file of endpointFiles) {
+      const source = readFileSync(path.join(apiDir, file), "utf8");
+      expect(source).not.toContain("qa_dev_person");
+      expect(source).not.toContain('searchParams.get("as")');
+    }
   });
 });
 

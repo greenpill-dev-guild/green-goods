@@ -1,10 +1,20 @@
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { existingArtifacts, parseArgs, parseShard, SESSION_ARTIFACTS } from "./qa-state-pull";
+const blob = { get: vi.fn(), list: vi.fn() };
+
+import {
+  existingArtifacts,
+  parseArgs,
+  parseShard,
+  readShard,
+  readShards,
+  SESSION_ARTIFACTS,
+} from "./qa-state-pull";
 
 /** Shards live at their owner address. */
 const PATH = "qa/entries/0x2aa64e6d80390f5c017f0313cb908051be2fd35e.json";
+const OTHER_PATH = "qa/entries/0x22682c3d3848294ff9bcbf3f0ddf48a605446b56.json";
 
 const repoRoot = path.join(import.meta.dirname, "..", "..");
 
@@ -56,6 +66,7 @@ describe("qa:pull overwrite guard", () => {
 
 describe("qa:pull shard validation", () => {
   const good = JSON.stringify({
+    address: "0x2aa64e6d80390f5c017f0313cb908051be2fd35e",
     person: "Afo",
     updatedAt: "2026-08-30T10:00:00.000Z",
     entries: { "PUB-014": { s: "fail", n: "approve never fired", at: "2026-08-30T10:00:00.000Z" } },
@@ -72,28 +83,63 @@ describe("qa:pull shard validation", () => {
     expect(() => parseShard(PATH, "not json")).toThrow(/not valid JSON/i);
     expect(() => parseShard(PATH, "null")).toThrow(/not an object/i);
     expect(() => parseShard(PATH, "[]")).toThrow(/not an object/i);
-    expect(() => parseShard(PATH, '{"person":"Afo"}')).toThrow(/no entries object/i);
-    expect(() => parseShard(PATH, '{"address":"0x2aa64e6d80390f5c017f0313cb908051be2fd35e","entries":[]}')).toThrow(/no entries object/i);
+    expect(() => parseShard(PATH, '{"person":"Afo","entries":{}}')).toThrow(/owner address/i);
+    expect(() => parseShard(PATH, '{"address":"0x2aa64e6d80390f5c017f0313cb908051be2fd35e","person":"Afo","updatedAt":"2026-08-30T10:00:00.000Z","entries":[]}')).toThrow(/no entries object/i);
   });
 
   it("refuses a shard filed under the wrong owner", () => {
     // The path names the owner. A shard claiming a different address is not
     // what its path says it is, whatever display name it carries.
-    expect(() => parseShard(PATH, '{"address":"0x22682c3d3848294ff9bcbf3f0ddf48a605446b56","entries":{}}')).toThrow(/owner as/);
+    expect(() => parseShard(PATH, '{"address":"0x22682c3d3848294ff9bcbf3f0ddf48a605446b56","person":"Gui","updatedAt":"2026-08-30T10:00:00.000Z","entries":{}}')).toThrow(/owner as/);
   });
 
   it("accepts a shard whose display name changed, since the name is not the key", () => {
-    expect(parseShard(PATH, '{"address":"0x2aa64e6d80390f5c017f0313cb908051be2fd35e","person":"Afo the second","entries":{}}').person).toBe(
+    expect(parseShard(PATH, '{"address":"0x2aa64e6d80390f5c017f0313cb908051be2fd35e","person":"Afo the second","updatedAt":"2026-08-30T10:00:00.000Z","entries":{}}').person).toBe(
       "Afo the second",
     );
   });
 
   it("refuses an entry that is not a verdict and a note", () => {
-    expect(() => parseShard(PATH, '{"address":"0x2aa64e6d80390f5c017f0313cb908051be2fd35e","entries":{"PUB-014":null}}')).toThrow(
+    expect(() => parseShard(PATH, '{"address":"0x2aa64e6d80390f5c017f0313cb908051be2fd35e","person":"Afo","updatedAt":"2026-08-30T10:00:00.000Z","entries":{"PUB-014":null}}')).toThrow(
       /PUB-014 is malformed/,
     );
-    expect(() => parseShard(PATH, '{"address":"0x2aa64e6d80390f5c017f0313cb908051be2fd35e","entries":{"PUB-014":{"s":"fail"}}}')).toThrow(
+    expect(() => parseShard(PATH, '{"address":"0x2aa64e6d80390f5c017f0313cb908051be2fd35e","person":"Afo","updatedAt":"2026-08-30T10:00:00.000Z","entries":{"PUB-014":{"s":"fail"}}}')).toThrow(
       /PUB-014 is malformed/,
     );
+  });
+});
+
+describe("qa:pull store enumeration", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("follows every Blob listing page", async () => {
+    blob.list
+      .mockResolvedValueOnce({ blobs: [{ pathname: PATH }], hasMore: true, cursor: "next" })
+      .mockResolvedValueOnce({ blobs: [{ pathname: OTHER_PATH }], hasMore: false });
+    blob.get.mockImplementation(async (pathname: string) => {
+      const address = pathname === PATH
+        ? "0x2aa64e6d80390f5c017f0313cb908051be2fd35e"
+        : "0x22682c3d3848294ff9bcbf3f0ddf48a605446b56";
+      const body = JSON.stringify({
+        address,
+        person: pathname === PATH ? "Afo" : "Gui",
+        updatedAt: "2026-08-30T10:00:00.000Z",
+        entries: {},
+      });
+      return { statusCode: 200, stream: new Response(body).body };
+    });
+
+    await expect(readShards("token", blob)).resolves.toHaveLength(2);
+    expect(blob.list).toHaveBeenNthCalledWith(1, { prefix: "qa/entries/", token: "token" });
+    expect(blob.list).toHaveBeenNthCalledWith(2, {
+      prefix: "qa/entries/",
+      token: "token",
+      cursor: "next",
+    });
+  });
+
+  it("does not treat a failed Blob read as an absent shard", async () => {
+    blob.get.mockResolvedValue({ statusCode: 503, stream: null });
+    await expect(readShard(PATH, "token", blob)).rejects.toThrow(/unexpected status 503/);
   });
 });

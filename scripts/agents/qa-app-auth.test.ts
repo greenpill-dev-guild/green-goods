@@ -15,11 +15,13 @@ import {
   isAllowed,
   issueNonce,
   issueSession,
+  isSameOriginMutation,
   nonceError,
   parseAllowlist,
   parseSiweMessage,
   readCookie,
   readSession,
+  sessionCookie,
   siweMessage,
   verifySignIn,
 } from "../../packages/qa/auth";
@@ -48,7 +50,14 @@ async function signedRequest(
 }
 
 const verify = (input: { message: string; signature: string }, now = NOW) =>
-  verifySignIn({ ...input, secret: SECRET, allowlist: ALLOWLIST, expectedDomain: DOMAIN, now });
+  verifySignIn({
+    ...input,
+    secret: SECRET,
+    allowlist: ALLOWLIST,
+    expectedDomain: DOMAIN,
+    expectedUri: `https://${DOMAIN}`,
+    now,
+  });
 
 describe("QA allowlist", () => {
   it("admits an address case-insensitively, and nobody else", () => {
@@ -65,6 +74,12 @@ describe("QA allowlist", () => {
     expect(() => parseAllowlist('["0xabc"]')).toThrow(/not an address/);
     expect(() => parseAllowlist("[42]")).toThrow(/not an address/);
     expect(parseAllowlist(undefined)).toEqual([]);
+  });
+
+  it("refuses a duplicate address rather than reading one shard twice", () => {
+    expect(() => parseAllowlist(JSON.stringify([TESTER.address, TESTER.address.toLowerCase()]))).toThrow(
+      /more than once/,
+    );
   });
 });
 
@@ -86,8 +101,14 @@ describe("QA nonce", () => {
   it("rejects a hand-made value and a tampered one", async () => {
     expect(await nonceError(SECRET, "deadbeef", NOW)).toMatch(/malformed/);
     const nonce = await issueNonce(SECRET, NOW);
-    const tampered = `${nonce.slice(0, 59)}${nonce.endsWith("a") ? "b" : "a"}`;
+    const tampered = `${nonce.slice(0, -1)}${nonce.endsWith("a") ? "b" : "a"}`;
     expect(await nonceError(SECRET, tampered, NOW)).toMatch(/not issued by this server/);
+  });
+
+  it("requires the full SHA-256 authentication tag", async () => {
+    const nonce = await issueNonce(SECRET, NOW);
+    expect(nonce).toHaveLength(92);
+    expect(await nonceError(SECRET, nonce.slice(0, -32), NOW)).toMatch(/malformed/);
   });
 });
 
@@ -104,6 +125,9 @@ describe("SIWE message", () => {
     expect(parseSiweMessage(message)).toEqual({
       domain: DOMAIN,
       address: TESTER.address,
+      uri: `https://${DOMAIN}`,
+      version: "1",
+      chainId: 1,
       nonce,
       issuedAt: new Date(NOW).toISOString(),
     });
@@ -130,6 +154,33 @@ describe("QA sign-in verification", () => {
     expect(result).toEqual({ error: "sign-in was issued for another site" });
   });
 
+  it("refuses a valid signature over a different URI or non-canonical SIWE text", async () => {
+    const request = await signedRequest(TESTER);
+    const otherUri = request.message.replace(`URI: https://${DOMAIN}`, "URI: https://qa.greengoods.app/other");
+    expect(await verify({ message: otherUri, signature: await TESTER.signMessage({ message: otherUri }) })).toEqual({
+      error: "sign-in was issued for another resource",
+    });
+
+    const trailing = `${request.message}\nIgnored: yes`;
+    expect(await verify({ message: trailing, signature: await TESTER.signMessage({ message: trailing }) })).toEqual({
+      error: "malformed sign-in message",
+    });
+  });
+
+  it("binds the signed issue time to the authenticated nonce", async () => {
+    const nonce = await issueNonce(SECRET, NOW, "0011223344556677");
+    const message = siweMessage({
+      domain: DOMAIN,
+      address: TESTER.address,
+      uri: `https://${DOMAIN}`,
+      nonce,
+      issuedAt: new Date(NOW + 1_000).toISOString(),
+    });
+    expect(await verify({ message, signature: await TESTER.signMessage({ message }) })).toEqual({
+      error: "sign-in timing does not match its challenge",
+    });
+  });
+
   it("refuses a message claiming an address it was not signed by", async () => {
     // The outsider signs, but the message names the allowlisted tester.
     const result = await verify(await signedRequest(OUTSIDER, { address: TESTER.address }));
@@ -141,6 +192,12 @@ describe("QA sign-in verification", () => {
     expect(await verify(request)).toHaveProperty("address");
     const late = await verify(request, NOW + 6 * 60 * 1000);
     expect(late).toEqual({ error: "nonce expired — reload and sign in again" });
+  });
+
+  it("documents the accepted stateless replay window", async () => {
+    const request = await signedRequest(TESTER);
+    expect(await verify(request)).toHaveProperty("address");
+    expect(await verify(request, NOW + 4 * 60 * 1000)).toHaveProperty("address");
   });
 
   it("refuses a mangled signature", async () => {
@@ -178,6 +235,11 @@ describe("QA session token", () => {
     expect(await readSession(SECRET, null, NOW)).toBeNull();
     expect(await readSession(SECRET, "nonsense", NOW)).toBeNull();
   });
+
+  it("rejects a truncated authentication tag", async () => {
+    const token = await issueSession(SECRET, TESTER.address, NOW);
+    expect(await readSession(SECRET, token.slice(0, -32), NOW)).toBeNull();
+  });
 });
 
 describe("cookie reading", () => {
@@ -185,5 +247,39 @@ describe("cookie reading", () => {
     expect(readCookie("a=1; qa_session=abc.def.ghi; b=2", "qa_session")).toBe("abc.def.ghi");
     expect(readCookie("a=1", "qa_session")).toBeNull();
     expect(readCookie(null, "qa_session")).toBeNull();
+  });
+
+  it("sets the production session protections and clears the same cookie path", async () => {
+    expect(sessionCookie("token", 43_200)).toBe(
+      "qa_session=token; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=43200",
+    );
+    const { DELETE } = await import("../../packages/qa/api/auth");
+    const response = await DELETE(
+      new Request(`https://${DOMAIN}/api/auth`, { method: "DELETE", headers: { Origin: `https://${DOMAIN}` } }),
+    );
+    expect(response.headers.get("set-cookie")).toBe(
+      "qa_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0",
+    );
+  });
+});
+
+describe("mutation origin", () => {
+  it("accepts the app origin and refuses a same-site sibling or an absent Origin header", async () => {
+    const sameOrigin = new Request(`https://${DOMAIN}/api/state`, {
+      method: "POST",
+      headers: { Origin: `https://${DOMAIN}` },
+    });
+    const sibling = new Request(`https://${DOMAIN}/api/state`, {
+      method: "POST",
+      headers: { Origin: "https://evil.greengoods.app" },
+    });
+    expect(isSameOriginMutation(sameOrigin)).toBe(true);
+    expect(isSameOriginMutation(sibling)).toBe(false);
+    expect(isSameOriginMutation(new Request(`https://${DOMAIN}/api/state`, { method: "POST" }))).toBe(false);
+
+    const state = await import("../../packages/qa/api/state");
+    expect((await state.POST(sibling)).status).toBe(403);
+    const auth = await import("../../packages/qa/api/auth");
+    expect((await auth.DELETE(sibling)).status).toBe(403);
   });
 });

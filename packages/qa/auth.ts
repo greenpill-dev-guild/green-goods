@@ -11,17 +11,23 @@
  *
  * Two deliberate constraints shape the implementation:
  *
- * 1. **No wallet library.** The page is a static file with no bundler, which is
- *    load-bearing (a syntax error is the only build risk). Browser-side signing
- *    is plain `window.ethereum`; only signature RECOVERY needs a library, and
- *    that runs server-side where a dependency costs nothing.
+ * 1. **No browser wallet library.** The page is a static file with no bundler,
+ *    which is load-bearing. Browser-side signing is plain `window.ethereum`;
+ *    SIWE parsing, canonical message creation, and signature recovery use the
+ *    existing server-side viem dependency.
  * 2. **No session store.** Nonces and sessions are HMAC-signed values carrying
  *    their own expiry, so neither needs a database, and a restarted function
- *    keeps working. The cost is that a nonce is replayable inside its short
- *    window, which for a three-person internal tool is the right trade.
+ *    keeps working. The cost is that a signed nonce is replayable inside its
+ *    five-minute window. That accepted internal-tool risk is documented in the
+ *    README; making a challenge one-shot requires a consumption store.
  */
 
 import { recoverMessageAddress } from "viem";
+import {
+  createSiweMessage,
+  parseSiweMessage as parseViemSiweMessage,
+  type SiweMessage,
+} from "viem/siwe";
 
 /** Nonces are short-lived: long enough to sign, short enough not to matter. */
 const NONCE_TTL_MS = 5 * 60 * 1000;
@@ -31,7 +37,7 @@ export const SESSION_COOKIE = "qa_session";
 
 /**
  * The addresses allowed to record, from `QA_ALLOWLIST` as a JSON array:
- * `["0xabc…","0xdef…"]`.
+ * `["0x1111111111111111111111111111111111111111"]`.
  *
  * Addresses only, no names. A tester's display name is theirs to declare and
  * lives inside their own shard — the allowlist answers "may this wallet
@@ -47,14 +53,20 @@ export function parseAllowlist(raw: string | undefined): string[] {
     throw new Error("QA_ALLOWLIST is not valid JSON");
   }
   if (!Array.isArray(parsed)) {
-    throw new Error('QA_ALLOWLIST must be a JSON array of addresses, e.g. ["0xabc…","0xdef…"]');
+    throw new Error(
+      'QA_ALLOWLIST must be a JSON array of addresses, e.g. ["0x1111111111111111111111111111111111111111"]',
+    );
   }
-  return parsed.map((address) => {
+  const addresses = parsed.map((address) => {
     if (typeof address !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(address)) {
       throw new Error(`QA_ALLOWLIST entry is not an address: ${String(address).slice(0, 16)}…`);
     }
     return address.toLowerCase();
   });
+  if (new Set(addresses).size !== addresses.length) {
+    throw new Error("QA_ALLOWLIST contains the same address more than once");
+  }
+  return addresses;
 }
 
 /** Case-insensitive because address casing is a checksum, not an identity. */
@@ -74,17 +86,23 @@ async function hmac(secret: string, payload: string): Promise<string> {
   return [...new Uint8Array(signature)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-/** Constant-time compare so a forged token cannot be discovered byte by byte. */
-function sameSecret(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let differing = 0;
-  for (let index = 0; index < a.length; index++) differing |= a.charCodeAt(index) ^ b.charCodeAt(index);
-  return differing === 0;
+/** Verify a full SHA-256 HMAC inside WebCrypto rather than timing a JS loop. */
+async function validHmac(secret: string, payload: string, signature: string): Promise<boolean> {
+  if (!/^[0-9a-f]{64}$/.test(signature)) return false;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["verify"],
+  );
+  const bytes = Uint8Array.from(signature.match(/.{2}/g) ?? [], (pair) => Number.parseInt(pair, 16));
+  return crypto.subtle.verify("HMAC", key, bytes, new TextEncoder().encode(payload));
 }
 
 /**
  * EIP-4361 requires the nonce to be at least 8 alphanumeric characters, so the
- * whole value is hex: issue time, randomness, and the HMAC that makes it
+ * whole value is hex: issue time, randomness, and the full SHA-256 HMAC that makes it
  * unforgeable, concatenated. Carrying its own timestamp is what removes the
  * need to remember issued nonces anywhere.
  */
@@ -93,15 +111,15 @@ export async function issueNonce(secret: string, now: number, random?: string): 
   const entropy =
     random ??
     [...crypto.getRandomValues(new Uint8Array(8))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  if (!/^[0-9a-f]{16}$/.test(entropy)) throw new Error("nonce entropy must be 16 lowercase hex characters");
   const payload = `${issuedAt}${entropy}`;
-  return `${payload}${(await hmac(secret, payload)).slice(0, 32)}`;
+  return `${payload}${await hmac(secret, payload)}`;
 }
 
 export async function nonceError(secret: string, nonce: string, now: number): Promise<string | null> {
-  if (!/^[0-9a-f]{60}$/.test(nonce)) return "malformed nonce";
+  if (!/^[0-9a-f]{92}$/.test(nonce)) return "malformed nonce";
   const payload = nonce.slice(0, 28);
-  const expected = (await hmac(secret, payload)).slice(0, 32);
-  if (!sameSecret(nonce.slice(28), expected)) return "nonce was not issued by this server";
+  if (!(await validHmac(secret, payload, nonce.slice(28)))) return "nonce was not issued by this server";
   const issuedAt = Number.parseInt(payload.slice(0, 12), 16);
   if (!Number.isFinite(issuedAt)) return "malformed nonce";
   if (now - issuedAt > NONCE_TTL_MS) return "nonce expired — reload and sign in again";
@@ -120,36 +138,58 @@ export function siweMessage(fields: {
   issuedAt: string;
   chainId?: number;
 }): string {
-  return [
-    `${fields.domain} wants you to sign in with your Ethereum account:`,
-    fields.address,
-    "",
-    "Sign in to record Green Goods QA results.",
-    "",
-    `URI: ${fields.uri}`,
-    "Version: 1",
-    `Chain ID: ${fields.chainId ?? 1}`,
-    `Nonce: ${fields.nonce}`,
-    `Issued At: ${fields.issuedAt}`,
-  ].join("\n");
+  return createSiweMessage({
+    address: fields.address as `0x${string}`,
+    chainId: fields.chainId ?? 1,
+    domain: fields.domain,
+    issuedAt: new Date(fields.issuedAt),
+    nonce: fields.nonce,
+    statement: "Sign in to record Green Goods QA results.",
+    uri: fields.uri,
+    version: "1",
+  });
 }
 
 export interface ParsedMessage {
   domain: string;
   address: string;
+  uri: string;
+  version: "1";
+  chainId: number;
   nonce: string;
   issuedAt: string;
 }
 
 export function parseSiweMessage(message: string): ParsedMessage | null {
-  const lines = message.split("\n");
-  const domain = lines[0]?.match(/^(\S+) wants you to sign in with your Ethereum account:$/)?.[1];
-  const address = lines[1]?.trim();
-  const nonce = message.match(/^Nonce: (.+)$/m)?.[1]?.trim();
-  const issuedAt = message.match(/^Issued At: (.+)$/m)?.[1]?.trim();
-  if (!domain || !address || !nonce || !issuedAt) return null;
-  if (!/^0x[0-9a-fA-F]{40}$/.test(address)) return null;
-  return { domain, address, nonce, issuedAt };
+  try {
+    const parsed = parseViemSiweMessage(message);
+    if (
+      !parsed.domain ||
+      !parsed.address ||
+      !parsed.uri ||
+      parsed.version !== "1" ||
+      !Number.isSafeInteger(parsed.chainId) ||
+      !parsed.nonce ||
+      !parsed.issuedAt
+    ) {
+      return null;
+    }
+    // viem parses the ERC-4361 fields. Rebuilding them and requiring byte-for-
+    // byte equality also rejects duplicated, reordered, or trailing fields that
+    // a permissive field extractor could otherwise ignore.
+    if (createSiweMessage(parsed as SiweMessage) !== message) return null;
+    return {
+      domain: parsed.domain,
+      address: parsed.address,
+      uri: parsed.uri,
+      version: parsed.version,
+      chainId: parsed.chainId,
+      nonce: parsed.nonce,
+      issuedAt: parsed.issuedAt.toISOString(),
+    };
+  } catch {
+    return null;
+  }
 }
 
 export interface VerifyInput {
@@ -158,6 +198,7 @@ export interface VerifyInput {
   secret: string;
   allowlist: string[];
   expectedDomain: string;
+  expectedUri: string;
   now: number;
 }
 
@@ -172,8 +213,15 @@ export async function verifySignIn(input: VerifyInput): Promise<{ address: strin
   if (!parsed) return { error: "malformed sign-in message" };
   // Domain binding: a signature captured on another site must not work here.
   if (parsed.domain !== input.expectedDomain) return { error: "sign-in was issued for another site" };
+  if (parsed.uri !== input.expectedUri || parsed.version !== "1" || parsed.chainId !== 1) {
+    return { error: "sign-in was issued for another resource" };
+  }
   const nonceProblem = await nonceError(input.secret, parsed.nonce, input.now);
   if (nonceProblem) return { error: nonceProblem };
+  const nonceIssuedAt = Number.parseInt(parsed.nonce.slice(0, 12), 16);
+  if (Date.parse(parsed.issuedAt) !== nonceIssuedAt) {
+    return { error: "sign-in timing does not match its challenge" };
+  }
 
   let recovered: string;
   try {
@@ -209,8 +257,9 @@ export async function readSession(
   const parts = token.split(".");
   if (parts.length !== 3) return null;
   const [address, expiresAt, signature] = parts;
-  if (!sameSecret(signature, await hmac(secret, `${address}.${expiresAt}`))) return null;
-  if (!Number.isFinite(Number(expiresAt)) || Number(expiresAt) <= now) return null;
+  if (!/^0x[0-9a-f]{40}$/.test(address) || !/^\d{1,16}$/.test(expiresAt)) return null;
+  if (!(await validHmac(secret, `${address}.${expiresAt}`, signature))) return null;
+  if (!Number.isSafeInteger(Number(expiresAt)) || Number(expiresAt) <= now) return null;
   return { address };
 }
 
@@ -221,6 +270,24 @@ export function readCookie(header: string | null, name: string): string | null {
     if (key === name) return rest.join("=") || null;
   }
   return null;
+}
+
+/**
+ * CSRF boundary for state-changing browser requests.
+ *
+ * SameSite is a registrable-domain boundary, so a compromised sibling such as
+ * `evil.greengoods.app` is still same-site with `qa.greengoods.app`. Browsers
+ * forbid script from forging this header; requiring the exact origin closes
+ * that sibling-origin gap while preserving the app's same-origin fetches.
+ */
+export function isSameOriginMutation(request: Request): boolean {
+  const submitted = request.headers.get("origin");
+  if (!submitted) return false;
+  try {
+    return new URL(submitted).origin === new URL(request.url).origin;
+  } catch {
+    return false;
+  }
 }
 
 export function sessionCookie(token: string, maxAgeSeconds: number): string {

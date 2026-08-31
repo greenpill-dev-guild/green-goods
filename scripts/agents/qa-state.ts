@@ -27,6 +27,29 @@ export function fallbackName(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
+/** Collision-safe labels for address-owned shards. Mirrors packages/qa/api/state.ts. */
+export function displayLabels(shards: Array<Pick<Shard, "address" | "person">>): string[] {
+  const bases = shards.map(
+    (shard, index) => shard.person?.trim() || (shard.address ? fallbackName(shard.address) : `Tester ${index + 1}`),
+  );
+  const baseCounts = new Map<string, number>();
+  for (const base of bases) baseCounts.set(base.toLocaleLowerCase(), (baseCounts.get(base.toLocaleLowerCase()) ?? 0) + 1);
+  const provisional = bases.map((base, index) =>
+    (baseCounts.get(base.toLocaleLowerCase()) ?? 0) > 1
+      ? `${base} (${shards[index].address ? fallbackName(shards[index].address) : `tester ${index + 1}`})`
+      : base,
+  );
+  const labelCounts = new Map<string, number>();
+  for (const label of provisional) {
+    labelCounts.set(label.toLocaleLowerCase(), (labelCounts.get(label.toLocaleLowerCase()) ?? 0) + 1);
+  }
+  return provisional.map((label, index) =>
+    (labelCounts.get(label.toLocaleLowerCase()) ?? 0) > 1
+      ? `${bases[index]} (${shards[index].address ?? `tester ${index + 1}`})`
+      : label,
+  );
+}
+
 export interface Entry {
   s: string;
   n: string;
@@ -56,16 +79,14 @@ const RESULT_LABEL: Record<string, string> = {
 
 /** Fold every tester's shard into one case-keyed view. Shards never collide by construction. */
 export function mergeShards(shards: Array<Shard | null | undefined>): MergedEntries {
-  const merged: MergedEntries = {};
-  for (const shard of shards) {
-    if (!shard?.entries) continue;
-    // Label by the declared name, falling back to the short address so a tester
-    // who has not named themselves still appears rather than vanishing.
-    const label = shard.person?.trim() || (shard.address ? fallbackName(shard.address) : "");
-    if (!label) continue;
+  const present = shards.filter((shard): shard is Shard => Boolean(shard?.entries));
+  const labels = displayLabels(present);
+  const merged = Object.create(null) as MergedEntries;
+  for (const [index, shard] of present.entries()) {
+    const label = labels[index];
     for (const [caseId, entry] of Object.entries(shard.entries)) {
       if (!entry || (!entry.s && !(entry.n || "").trim())) continue;
-      (merged[caseId] ??= {})[label] = entry;
+      (merged[caseId] ??= Object.create(null) as Record<string, Entry>)[label] = entry;
     }
   }
   return merged;
@@ -89,7 +110,7 @@ export function rollupVerdict(byPerson: Record<string, Entry> | undefined): stri
  * That prefix is not decoration. `results.csv` is pasted into the run sheet by
  * hand, and both columns it fills carry text this repo does not control: notes
  * are free text, and an unknown case id is deliberately preserved rather than
- * dropped, so anyone holding the deployment password can POST `=1+1` as one.
+ * dropped, so an allowlisted tester can still POST `=1+1` as one.
  * Excel and Sheets execute a leading `=`, `+`, `-` or `@` on paste. The
  * apostrophe makes the cell literal text and is not itself displayed.
  */

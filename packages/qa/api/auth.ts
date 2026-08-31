@@ -3,7 +3,7 @@
  *
  *   GET    /api/auth  → a nonce to sign, plus who you already are (if anyone)
  *   POST   /api/auth  → { message, signature } → sets the session cookie
- *   DELETE /api/auth  → signs out
+ *   DELETE /api/auth  → signs out by expiring the session cookie
  *
  * Named method exports, not a default export: Vercel reads a default export as
  * the Node `(req, res)` signature and discards a returned `Response`, which
@@ -14,6 +14,7 @@ import {
   SESSION_COOKIE,
   SESSION_TTL_MS,
   isAllowed,
+  isSameOriginMutation,
   issueNonce,
   issueSession,
   parseAllowlist,
@@ -34,7 +35,7 @@ function json(body: unknown, status = 200, headers: Record<string, string> = {})
 }
 
 /**
- * Both secrets are required. Falling back to a default would mean shipping an
+ * The secret and allowlist are required. Falling back to defaults would ship an
  * app that looks authenticated and is not — the failure this whole change
  * exists to prevent — so a missing secret refuses every request loudly.
  */
@@ -97,6 +98,7 @@ export async function GET(request: Request): Promise<Response> {
 }
 
 export async function POST(request: Request): Promise<Response> {
+  if (!isSameOriginMutation(request)) return json({ error: "cross-origin request refused" }, 403);
   const settings = config();
   if ("error" in settings) return json({ error: settings.error }, 503);
 
@@ -122,6 +124,7 @@ export async function POST(request: Request): Promise<Response> {
     secret: settings.secret,
     allowlist: settings.allowlist,
     expectedDomain: origin(request).domain,
+    expectedUri: origin(request).uri,
     now: Date.now(),
   });
   if ("error" in result) return json({ error: result.error }, 401);
@@ -134,6 +137,7 @@ export async function POST(request: Request): Promise<Response> {
   );
 }
 
-export async function DELETE(): Promise<Response> {
+export async function DELETE(request: Request): Promise<Response> {
+  if (!isSameOriginMutation(request)) return json({ error: "cross-origin request refused" }, 403);
   return json({ ok: true }, 200, { "Set-Cookie": sessionCookie("", 0) });
 }
