@@ -40,7 +40,7 @@ vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: () => mockUseApp(),
 }));
 
-vi.mock("@green-goods/shared/hooks/work/useWorks", () => ({
+vi.mock("@green-goods/shared/hooks/work/usePendingWorksCount", () => ({
   usePendingWorksCount: () => mockUsePendingWorksCount(),
 }));
 

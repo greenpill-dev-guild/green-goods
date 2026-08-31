@@ -14,11 +14,15 @@ vi.mock("@green-goods/shared/providers/Work", () => ({
   WorkProvider: ({ children }: { children: ReactNode }) => children,
 }));
 
-vi.mock("@/components/Communication", () => ({
+vi.mock("@/components/Communication/Offline/OfflineIndicator", () => ({
   OfflineIndicator: () => null,
 }));
 
-vi.mock("@/components/Layout", () => ({
+vi.mock("@/components/Communication/PwaBadgeCoordinator", () => ({
+  PwaBadgeCoordinator: () => null,
+}));
+
+vi.mock("@/components/Layout/AppBar", () => ({
   AppBar: () => null,
 }));
 
