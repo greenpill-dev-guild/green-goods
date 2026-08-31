@@ -53,11 +53,12 @@ to the request origin and URI, verifies the wallet signature, and stores a 12-ho
 session in an `HttpOnly; Secure; SameSite=Lax` cookie. The endpoint rechecks the allowlist on every
 request, so removing an address revokes its existing session. Every state-changing request must also
 carry the app's exact `Origin`; `SameSite` alone would still admit a compromised sibling subdomain.
-Nonces are stateless and expire after
-five minutes. A captured signed challenge can therefore be replayed during that window; making it
-strictly one-shot would require a server-side consumption store. That residual risk is accepted for
-this small internal tool, where challenges and signatures travel over HTTPS and are never written to
-the Blob store.
+Nonces carry an HMAC-authenticated five-minute expiry. After the signature and allowlist checks pass,
+the server hashes the nonce and creates a private Blob marker with overwrite disabled. Only the first
+request can create that marker, so the same signed challenge cannot mint a second session. If the
+marker write fails and the server cannot prove another request already created it, sign-in returns
+`503` and does not set a cookie. Markers contain only `used`; wallet addresses, messages, and
+signatures are not written there.
 
 This proves control of an allowlisted externally owned account at sign-in. It does not verify a
 person's real-world name, support ERC-1271 contract-wallet signatures, protect a compromised wallet or
@@ -70,7 +71,7 @@ read the shared run and change only their own address-owned shard.
 |---|---|
 | `index.html` | The whole UI — static, inline CSS/JS, no bundler |
 | `auth.ts` | SIWE message, nonce, allowlist, cookie, and session verification |
-| `api/auth.ts` | `GET` issues a challenge, `POST` creates a session, `DELETE` signs out |
+| `api/auth.ts` | `GET` issues a challenge, `POST` consumes it once and creates a session, `DELETE` signs out |
 | `api/state.ts` | Authenticated `GET` merges shards; authenticated `POST` merges the caller's delta |
 | `build.mjs` | Copies the page and projects the active catalog into `dist/catalog.json` |
 | `dev.mjs` | Loopback-only rehearsal server with a local identity bypass and state in `tmp/qa/` |
@@ -106,7 +107,7 @@ or the repository root `.env`; do not add a package-level `.env`.
 |---|---|
 | `QA_SESSION_SECRET` | A private random value of at least 32 characters. A missing or shorter value makes every auth and state request fail closed with `503`; there is no fallback secret. |
 | `QA_ALLOWLIST` | A JSON array of unique Ethereum addresses, for example `["0x1111111111111111111111111111111111111111","0x2222222222222222222222222222222222222222"]`. Names do not belong here. Missing, empty, duplicate, or malformed values admit nobody. |
-| `BLOB_READ_WRITE_TOKEN` | Token for the private QA Blob store. Vercel injects it when the store is connected; `qa:pull` and `qa:status` need it locally. |
+| `BLOB_READ_WRITE_TOKEN` | Token for the private QA Blob store. State reads/writes and one-shot nonce markers require it; if unavailable, no session is minted. Vercel injects it when the store is connected; `qa:pull` and `qa:status` need it locally. |
 
 ## Deploy (one-time setup)
 
@@ -147,5 +148,5 @@ with `--out`, or pass `--force` to say the local copy is expendable.
 ## Deliberately not here yet
 
 Dev-stack/PM2 registration, named per-release runs (storage is keyed so adding them is additive),
-ERC-1271 contract-wallet authentication, one-shot nonce storage, severity capture in the UI, and
+ERC-1271 contract-wallet authentication, severity capture in the UI, nonce-marker cleanup, and
 screenshot upload.

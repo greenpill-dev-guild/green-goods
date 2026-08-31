@@ -25,6 +25,7 @@ import {
   siweMessage,
   verifySignIn,
 } from "../../packages/qa/auth";
+import { DELETE, handlePost, type NonceStore } from "../../packages/qa/api/auth";
 
 const SECRET = "test-secret-that-is-long-enough-to-pass-the-length-check";
 const TESTER = privateKeyToAccount("0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d");
@@ -47,6 +48,45 @@ async function signedRequest(
     issuedAt: new Date(NOW).toISOString(),
   });
   return { message, signature: await account.signMessage({ message }) };
+}
+
+function requestFor(body: { message: string; signature: string }): Request {
+  return new Request(`https://${DOMAIN}/api/auth`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Origin: `https://${DOMAIN}` },
+    body: JSON.stringify(body),
+  });
+}
+
+function memoryNonceStore() {
+  const markers = new Set<string>();
+  const writes: Array<{ pathname: string; body: string; options: Record<string, unknown> }> = [];
+  const store: NonceStore = {
+    async put(pathname, body, options) {
+      if (markers.has(pathname)) throw new Error("marker already exists");
+      markers.add(pathname);
+      writes.push({ pathname, body, options });
+    },
+    async get(pathname) {
+      return markers.has(pathname) ? { statusCode: 200 } : null;
+    },
+  };
+  return { store, writes };
+}
+
+async function withAuthConfig<T>(run: () => Promise<T>): Promise<T> {
+  const previousSecret = process.env.QA_SESSION_SECRET;
+  const previousAllowlist = process.env.QA_ALLOWLIST;
+  process.env.QA_SESSION_SECRET = SECRET;
+  process.env.QA_ALLOWLIST = JSON.stringify([TESTER.address]);
+  try {
+    return await run();
+  } finally {
+    if (previousSecret === undefined) delete process.env.QA_SESSION_SECRET;
+    else process.env.QA_SESSION_SECRET = previousSecret;
+    if (previousAllowlist === undefined) delete process.env.QA_ALLOWLIST;
+    else process.env.QA_ALLOWLIST = previousAllowlist;
+  }
 }
 
 const verify = (input: { message: string; signature: string }, now = NOW) =>
@@ -141,7 +181,8 @@ describe("SIWE message", () => {
 describe("QA sign-in verification", () => {
   it("admits an allowlisted tester who signed the message", async () => {
     const result = await verify(await signedRequest(TESTER));
-    expect(result).toEqual({ address: TESTER.address.toLowerCase() });
+    expect(result).toMatchObject({ address: TESTER.address.toLowerCase() });
+    expect(result).toHaveProperty("nonce");
   });
 
   it("refuses an address that is not on the allowlist", async () => {
@@ -194,7 +235,7 @@ describe("QA sign-in verification", () => {
     expect(late).toEqual({ error: "nonce expired — reload and sign in again" });
   });
 
-  it("documents the accepted stateless replay window", async () => {
+  it("keeps cryptographic verification pure before the endpoint consumes the nonce", async () => {
     const request = await signedRequest(TESTER);
     expect(await verify(request)).toHaveProperty("address");
     expect(await verify(request, NOW + 4 * 60 * 1000)).toHaveProperty("address");
@@ -253,13 +294,82 @@ describe("cookie reading", () => {
     expect(sessionCookie("token", 43_200)).toBe(
       "qa_session=token; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=43200",
     );
-    const { DELETE } = await import("../../packages/qa/api/auth");
     const response = await DELETE(
       new Request(`https://${DOMAIN}/api/auth`, { method: "DELETE", headers: { Origin: `https://${DOMAIN}` } }),
     );
     expect(response.headers.get("set-cookie")).toBe(
       "qa_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0",
     );
+  });
+});
+
+describe("one-shot sign-in", () => {
+  it("mints one session when the same signed challenge races twice", async () => {
+    await withAuthConfig(async () => {
+      const signed = await signedRequest(TESTER);
+      const { store, writes } = memoryNonceStore();
+      const responses = await Promise.all([
+        handlePost(requestFor(signed), store, NOW),
+        handlePost(requestFor(signed), store, NOW),
+      ]);
+
+      expect(responses.map((response) => response.status).sort()).toEqual([200, 401]);
+      const accepted = responses.find((response) => response.status === 200);
+      const refused = responses.find((response) => response.status === 401);
+      expect(accepted?.headers.get("set-cookie")).toContain("qa_session=");
+      expect(refused?.headers.get("set-cookie")).toBeNull();
+      await expect(refused?.json()).resolves.toEqual({
+        error: "sign-in challenge was already used — start again",
+      });
+      expect(writes).toHaveLength(1);
+      expect(writes[0]).toMatchObject({
+        pathname: expect.stringMatching(/^qa\/auth\/nonces\/[0-9a-f]{64}\.txt$/),
+        body: "used",
+        options: {
+          access: "private",
+          addRandomSuffix: false,
+          allowOverwrite: false,
+          contentType: "text/plain",
+        },
+      });
+    });
+  });
+
+  it("does not burn a challenge until its signature passes", async () => {
+    await withAuthConfig(async () => {
+      const signed = await signedRequest(TESTER);
+      const { store, writes } = memoryNonceStore();
+      const malformed = {
+        ...signed,
+        signature: `${signed.signature.slice(0, -2)}${signed.signature.endsWith("00") ? "01" : "00"}`,
+      };
+
+      expect((await handlePost(requestFor(malformed), store, NOW)).status).toBe(401);
+      expect(writes).toHaveLength(0);
+      expect((await handlePost(requestFor(signed), store, NOW)).status).toBe(200);
+      expect(writes).toHaveLength(1);
+    });
+  });
+
+  it("fails closed when nonce consumption cannot be established", async () => {
+    await withAuthConfig(async () => {
+      const signed = await signedRequest(TESTER);
+      const unavailable: NonceStore = {
+        async put() {
+          throw new Error("write unavailable");
+        },
+        async get() {
+          throw new Error("read unavailable");
+        },
+      };
+
+      const response = await handlePost(requestFor(signed), unavailable, NOW);
+      expect(response.status).toBe(503);
+      expect(response.headers.get("set-cookie")).toBeNull();
+      await expect(response.json()).resolves.toEqual({
+        error: "sign-in state is unavailable — try again",
+      });
+    });
   });
 });
 

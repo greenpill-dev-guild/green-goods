@@ -15,11 +15,10 @@
  *    which is load-bearing. Browser-side signing is plain `window.ethereum`;
  *    SIWE parsing, canonical message creation, and signature recovery use the
  *    existing server-side viem dependency.
- * 2. **No session store.** Nonces and sessions are HMAC-signed values carrying
- *    their own expiry, so neither needs a database, and a restarted function
- *    keeps working. The cost is that a signed nonce is replayable inside its
- *    five-minute window. That accepted internal-tool risk is documented in the
- *    README; making a challenge one-shot requires a consumption store.
+ * 2. **No session store.** Sessions are HMAC-signed values carrying their own
+ *    expiry, so a restarted function keeps working. Nonces carry the same
+ *    authenticated expiry, but a successful sign-in also creates a private,
+ *    create-only Blob marker. That marker makes each challenge one-shot.
  */
 
 import { recoverMessageAddress } from "viem";
@@ -103,8 +102,8 @@ async function validHmac(secret: string, payload: string, signature: string): Pr
 /**
  * EIP-4361 requires the nonce to be at least 8 alphanumeric characters, so the
  * whole value is hex: issue time, randomness, and the full SHA-256 HMAC that makes it
- * unforgeable, concatenated. Carrying its own timestamp is what removes the
- * need to remember issued nonces anywhere.
+ * unforgeable, concatenated. Carrying its own timestamp means the server does
+ * not store every challenge it issues; it records only successful consumption.
  */
 export async function issueNonce(secret: string, now: number, random?: string): Promise<string> {
   const issuedAt = now.toString(16).padStart(12, "0");
@@ -208,7 +207,9 @@ export interface VerifyInput {
  * Every rejection returns the same shape so a caller cannot learn which check
  * failed beyond what the tester needs to act on.
  */
-export async function verifySignIn(input: VerifyInput): Promise<{ address: string } | { error: string }> {
+export async function verifySignIn(
+  input: VerifyInput,
+): Promise<{ address: string; nonce: string } | { error: string }> {
   const parsed = parseSiweMessage(input.message);
   if (!parsed) return { error: "malformed sign-in message" };
   // Domain binding: a signature captured on another site must not work here.
@@ -238,7 +239,7 @@ export async function verifySignIn(input: VerifyInput): Promise<{ address: strin
   if (!isAllowed(input.allowlist, recovered)) {
     return { error: "this address is not on the QA allowlist" };
   }
-  return { address: recovered.toLowerCase() };
+  return { address: recovered.toLowerCase(), nonce: parsed.nonce };
 }
 
 /** `<address>.<expiry>.<hmac>` — self-describing, self-expiring, unforgeable. */
