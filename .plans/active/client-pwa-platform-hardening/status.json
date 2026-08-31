@@ -10,7 +10,7 @@
     "overall_status": "implementation_checkpoint_blocked_on_external_proof",
     "priority": "p2",
     "created_at": "2026-08-30T19:17:02.663Z",
-    "updated_at": "2026-08-30T21:14:30Z"
+    "updated_at": "2026-08-31T21:45:24.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -56,17 +56,17 @@
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
       "tdd": {
-        "mode": "required",
+        "mode": "proof_limit",
         "status": "green_recorded",
         "red": {
           "command": "",
           "evidence": "Focused regression tests were added before and during implementation; individual failing snapshots were not retained in the shared checkout."
         },
         "green": {
-          "command": "cd packages/client && bun run test -- <13 focused PWA test files>",
-          "evidence": "13 test files passed; 101 assertions passed on 2026-08-30."
+          "command": "cd packages/client && bun run test",
+          "evidence": "Full client suite at d788fa2e8 on 2026-08-31: 120/120 test files, 1021/1021 tests passed, exit 0."
         },
-        "note": "Authenticated Brave rendered the public and installed shells and loaded the funding wallet surface only after interaction. Physical Android evidence remains outside this lane's local proof."
+        "note": "Authenticated Brave rendered the public and installed shells and loaded the funding wallet surface only after interaction. Physical Android evidence remains outside this lane's local proof. Proof limit: RED failing snapshots were not retained from the shared dirty checkout; fallback validation is the full client suite re-run green at a clean committed SHA (see Validation Receipt, 2026-08-31)."
       },
       "skill_tags": ["ui", "frontend-design", "react"]
     },
@@ -77,17 +77,17 @@
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
       "tdd": {
-        "mode": "required",
+        "mode": "proof_limit",
         "status": "green_recorded",
         "red": {
           "command": "",
           "evidence": "Focused regression tests were added before and during implementation; individual failing snapshots were not retained in the shared checkout."
         },
         "green": {
-          "command": "cd packages/shared && bun run test -- <7 focused PWA/storage test files>",
-          "evidence": "7 test files passed; 44 assertions passed on 2026-08-30."
+          "command": "cd packages/shared && bun run test",
+          "evidence": "Full shared suite at d788fa2e8 on 2026-08-31: 414 test files passed (2 skipped), 4474 tests passed (18 skipped), exit 0."
         },
-        "note": "Direct Vite production build and PWA budget checker pass. Full Client typecheck remains blocked by unrelated concurrent address-typing changes."
+        "note": "Direct Vite production build and PWA budget checker pass. Full Client typecheck remains blocked by unrelated concurrent address-typing changes. Proof limit: RED failing snapshots were not retained from the shared dirty checkout; fallback validation is the full shared suite re-run green at a clean committed SHA (see Validation Receipt, 2026-08-31)."
       },
       "skill_tags": ["react", "tanstack-query", "data-layer"]
     },
@@ -158,6 +158,14 @@
       "status": "completed",
       "branch": null,
       "note": "Service-worker lifecycle, offline shell, persistence/quota protection, Share Target envelope, and shared leaf boundaries completed."
+    },
+    {
+      "timestamp": "2026-08-31T21:45:24.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "receipts_rerecorded",
+      "branch": "chore/documentation-authority-migration",
+      "note": "Re-recorded lane receipts with fresh commit-attributable evidence at d788fa2e8: repaired three test harnesses that still mocked the retired hooks/work/useWorks path for usePendingWorksCount (display-mode, AppShell, useOffline), then re-ran the full client (1021 passed) and shared (4474 passed, 18 skipped) suites at a clean checkout. TDD mode set to proof_limit because the original RED snapshots were not retained from the shared dirty checkout."
     }
   ]
 }
