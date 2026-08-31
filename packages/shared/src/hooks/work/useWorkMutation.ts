@@ -39,6 +39,7 @@ import {
 import { useUIStore } from "../../stores/useUIStore";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import type { Work, WorkDraft } from "../../types/domain";
+import { ZERO_ADDRESS } from "../../utils/blockchain/address-constants";
 import { getActionTitle } from "../../utils/action/parsers";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
@@ -239,7 +240,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
             id: `0xoffline_optimistic_${Date.now()}`,
             title: actionTitle || "",
             actionUID: actionUID ?? 0,
-            gardenerAddress: userAddress ?? "",
+            gardenerAddress: userAddress ?? ZERO_ADDRESS,
             gardenAddress,
             feedback: variables.draft.feedback || "",
             metadata: JSON.stringify({

@@ -5,7 +5,7 @@ import { logger } from "../../modules/app/logger";
 import { parseWorkApprovalAttestation } from "../../modules/data/eas";
 import { easGraphQL } from "../../modules/data/graphql";
 import { createEasClient } from "../../modules/data/graphql-client";
-import { type WorkApproval } from "../../types/domain";
+import { type Address, type WorkApproval } from "../../types/domain";
 import { STALE_TIME_MEDIUM, STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { workApprovalsKeys } from "../../config/query-keys/work";
 
@@ -65,8 +65,8 @@ async function getWorkApprovalsByAttester(
     try {
       const att = attestation as {
         id: string;
-        attester: string;
-        recipient: string;
+        attester: Address;
+        recipient: Address;
         timeCreated: number;
         decodedDataJson: string;
       };

@@ -1,5 +1,5 @@
 import type { Address, Work } from "@green-goods/shared/types/domain";
-import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
+import { compareAddresses, ZERO_ADDRESS } from "@green-goods/shared/utils/blockchain/address";
 
 /**
  * Build a lookup map of work by ID for efficient access.
@@ -74,8 +74,8 @@ export function approvalsToCompletedWorks(approvals: CompletedApproval[]): Work[
       id: approval.workUID,
       title: approval.title || `Work ${String(approval.workUID || "").slice(0, 8)}...`,
       actionUID: toActionUID(approval.actionUID),
-      gardenerAddress: approval.gardenerAddress,
-      gardenAddress: approval.gardenId || "",
+      gardenerAddress: approval.gardenerAddress as Address,
+      gardenAddress: (approval.gardenId || ZERO_ADDRESS) as Address,
       feedback: approval.feedback || "",
       metadata: "",
       media: [],
@@ -97,8 +97,8 @@ export function receivedApprovalsToWorks(
       id: a.workUID,
       title: originalWork?.title || `Work ${String(a.workUID || "").slice(0, 8)}...`,
       actionUID: originalWork?.actionUID ?? toActionUID(a.actionUID),
-      gardenerAddress: originalWork?.gardenerAddress ?? a.gardenerAddress,
-      gardenAddress: originalWork?.gardenAddress ?? "",
+      gardenerAddress: (originalWork?.gardenerAddress ?? a.gardenerAddress) as Address,
+      gardenAddress: originalWork?.gardenAddress ?? ZERO_ADDRESS,
       feedback: a.feedback ?? "",
       metadata: originalWork?.metadata ?? "",
       media: originalWork?.media ?? [],

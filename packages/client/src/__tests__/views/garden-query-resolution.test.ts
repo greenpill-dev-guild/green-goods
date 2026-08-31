@@ -88,7 +88,7 @@ describe("resolveGardenQuery", () => {
     const twin: PublicGardenSummary = {
       ...solar,
       id: solar.id.slice(0, 8) + "9999999999999999999999999999999999",
-      address: solar.id.slice(0, 8) + "9999999999999999999999999999999999",
+      address: (solar.id.slice(0, 8) + "9999999999999999999999999999999999") as `0x${string}`,
       name: solar.name,
     };
     const slug = fakeDeriveSlug(solar.name, solar.id);

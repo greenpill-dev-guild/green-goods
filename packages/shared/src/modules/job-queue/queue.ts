@@ -1,3 +1,4 @@
+import type { Address } from "../../types/domain";
 import type { Job, JobKindMap } from "../../types/job-queue";
 import { canonicalJobPayload, commitmentJobIdentity } from "../commitment-pooling/job-identity";
 import { JobMaintenance } from "./job-maintenance";
@@ -65,7 +66,7 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
     async addJob<K extends keyof JobKindMap>(
       kind: K,
       payload: JobKindMap[K],
-      userAddress: string,
+      userAddress: Address,
       meta?: Record<string, unknown>
     ): Promise<string> {
       if (!userAddress) throw new Error("userAddress is required when adding a job");

@@ -1,3 +1,4 @@
+import type { Address } from "../../../types/domain";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -344,7 +345,7 @@ export function useWorkSubmissionFlowController({
   }, [linkIntent, setGardenAddressStable]);
   useEffect(() => {
     const state = location.state as { gardenId?: string } | null;
-    if (state?.gardenId && gardens.length > 0) setGardenAddressStable(state.gardenId);
+    if (state?.gardenId && gardens.length > 0) setGardenAddressStable(state.gardenId as Address);
   }, [gardens.length, location.state, setGardenAddressStable]);
   useEffect(() => {
     if (!submissionCompleted || isSchedulingDependentLink || pendingLinkRecovery) return;
@@ -391,7 +392,7 @@ export function useWorkSubmissionFlowController({
     try {
       const result = await join.joinGarden(joinableCommunityGarden.id);
       if (result === "already-joining") return;
-      setGardenAddress(joinableCommunityGarden.id);
+      setGardenAddress(joinableCommunityGarden.id as Address);
       toastService.success({
         title:
           result === "already-member"

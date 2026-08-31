@@ -8,6 +8,7 @@
  */
 
 import { type IDBPDatabase, openDB } from "idb";
+import type { Address } from "../../types/domain";
 import type {
   DraftImage,
   DraftStep,
@@ -93,7 +94,7 @@ class DraftDatabase {
    * Create a new draft. Returns the draft ID.
    */
   async createDraft(
-    userAddress: string,
+    userAddress: Address,
     chainId: number,
     data: Partial<
       Omit<WorkDraftRecord, "id" | "userAddress" | "chainId" | "createdAt" | "updatedAt">

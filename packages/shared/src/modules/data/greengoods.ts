@@ -438,7 +438,7 @@ export async function getGardeners(
     return data.Gardener.map((gardener) => ({
       id: gardener.id,
       registeredAt: gardener.createdAt ? (gardener.createdAt as number) * 1000 : Date.now(),
-      account: gardener.id, // Smart account address is the ID
+      account: gardener.id as Address, // Smart account address is the ID
       email: undefined,
       phone: undefined,
       location: "",

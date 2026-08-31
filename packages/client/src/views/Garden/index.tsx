@@ -1,3 +1,4 @@
+import type { Address } from "@green-goods/shared/types/domain";
 import { useWorkSubmissionFlowController } from "@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowController";
 import { WorkTab } from "@green-goods/shared/stores/workFlowTypes";
 import {
@@ -283,7 +284,7 @@ const Work: React.FC = () => {
               if (linkIntent && value !== linkIntent.actionUID) clearLinkIntent();
             }}
             setGardenAddress={(value) => {
-              setGardenAddress(value);
+              setGardenAddress(value as Address | null);
               if (linkIntent && value?.toLowerCase() !== linkIntent.garden.toLowerCase()) {
                 clearLinkIntent();
               }
