@@ -42,6 +42,7 @@ const SANITIZE_CASES: Array<[string, unknown]> = [
   ["a legacy tombstone", { "PUB-001": entry("", "") }],
   ["an unknown status", { "PUB-001": entry("maybe", "note") }],
   ["a non-object entry", { "PUB-001": "nope" }],
+  ["an empty case id", { "": entry("pass", "note") }],
   ["an over-long case id", { ["X".repeat(80)]: entry("pass", "note") }],
   ["a missing timestamp", { "PUB-001": { s: "fail", n: "no at" } }],
   ["a null payload", null],
@@ -60,6 +61,15 @@ const MERGE_CASES: Array<[string, Record<string, Entry>, Record<string, EntryPat
 describe("QA app merge rules — deployed function vs local server", () => {
   it.each(SANITIZE_CASES)("sanitizeDelta agrees on %s", (_label, payload) => {
     expect(sanitizeLocal(payload)).toEqual(sanitizeDeployed(payload));
+  });
+
+  it("rejects an empty case id and safely retains a prototype-shaped id", () => {
+    expect(Object.keys(sanitizeDeployed({ "": { s: "pass" } }))).toEqual([]);
+    expect(Object.keys(sanitizeLocal({ "": { s: "pass" } }))).toEqual([]);
+
+    const prototypeCase = JSON.parse('{"__proto__":{"s":"pass"}}');
+    expect(Object.keys(sanitizeDeployed(prototypeCase))).toEqual(["__proto__"]);
+    expect(Object.keys(sanitizeLocal(prototypeCase))).toEqual(["__proto__"]);
   });
 
   it.each(MERGE_CASES)("mergeDelta agrees when it %s", (_label, existing, delta) => {

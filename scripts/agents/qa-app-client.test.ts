@@ -541,6 +541,141 @@ async function authRecoveryHarness() {
   }
 }
 
+/**
+ * Display labels are untrusted, mutable presentation. A late collision must
+ * replace the old labels without duplicating entries, and a JavaScript
+ * prototype-shaped name must behave like any other tester name.
+ */
+async function displayLabelHarness() {
+  const dynamicImport = new Function("specifier", "return import(specifier)");
+  const assert = (await dynamicImport("node:assert/strict")).default;
+  const { readFileSync } = await dynamicImport("node:fs");
+  const path = await dynamicImport("node:path");
+  const { JSDOM } = await dynamicImport("jsdom");
+
+  const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
+  const testCase = {
+    id: "PUB-001",
+    tab: "Public Website",
+    area: "Funding",
+    pri: "P0",
+    scenario: "Donate end to end",
+    expected: "The donation completes",
+    rp: false,
+    rd: false,
+    tx: false,
+  };
+  const response = (body) => ({ ok: true, status: 200, json: async () => structuredClone(body) });
+  const flush = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+
+  async function openPage(initial, next = initial) {
+    let pollCallback = null;
+    let reads = 0;
+    const dom = new JSDOM(page, {
+      runScripts: "dangerously",
+      url: "http://localhost:4610/",
+      beforeParse(window) {
+        window.setTimeout = () => 1;
+        window.clearTimeout = () => {};
+        window.setInterval = (callback) => {
+          pollCallback = callback;
+          return 1;
+        };
+        window.fetch = async (input, init = {}) => {
+          const target = String(input);
+          if (target === "catalog.json") return response({ tabs: [testCase.tab], cases: [testCase] });
+          if (target === "/api/state" && init.method === "POST") {
+            return response({ ok: true, person: initial.you, count: 1 });
+          }
+          if (target === "/api/state") return response(reads++ === 0 ? initial : next);
+          throw new Error(`unexpected fetch ${target}`);
+        };
+      },
+    });
+    await flush();
+    return { dom, poll: pollCallback };
+  }
+
+  const owner = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e";
+  const at = "2026-08-30T10:00:00.000Z";
+  const initial = {
+    team: ["Afo", "Gui"],
+    you: "Afo",
+    address: owner,
+    named: true,
+    entries: {
+      "PUB-001": {
+        Afo: { s: "pass", n: "mine", at },
+        Gui: { s: "fail", n: "theirs", at },
+      },
+    },
+  };
+  const ownLabel = "Afo (0x2aa6…d35e)";
+  const otherLabel = "afo (0x2268…6b56)";
+  const relabelled = {
+    ...initial,
+    team: [ownLabel, otherLabel],
+    you: ownLabel,
+    entries: {
+      "PUB-001": Object.fromEntries([
+        [ownLabel, initial.entries["PUB-001"].Afo],
+        [otherLabel, initial.entries["PUB-001"].Gui],
+      ]),
+    },
+  };
+
+  const collision = await openPage(initial, relabelled);
+  try {
+    assert.ok(collision.poll, "poll interval was not registered");
+    const pendingNote = collision.dom.window.document.querySelector('[data-note="PUB-001"]');
+    assert.ok(pendingNote, "note input did not render");
+    pendingNote.value = "mine, still pending during relabel";
+    pendingNote.dispatchEvent(new collision.dom.window.Event("input", { bubbles: true }));
+    await flush();
+    await collision.poll();
+    await flush();
+    const buttons = [...collision.dom.window.document.querySelectorAll(".who-btn")];
+    assert.equal(buttons.find((button) => button.textContent === ownLabel)?.getAttribute("aria-pressed"), "true");
+    assert.equal(collision.dom.window.document.querySelectorAll(".mark").length, 2);
+    assert.deepEqual(
+      [...collision.dom.window.document.querySelectorAll(".onote b")].map((node) => node.textContent),
+      [otherLabel],
+    );
+    assert.equal(
+      collision.dom.window.document.querySelector('[data-note="PUB-001"]')?.value,
+      "mine, still pending during relabel",
+    );
+  } finally {
+    collision.dom.window.close();
+  }
+
+  const prototypeName = "__proto__";
+  const prototype = await openPage({
+    team: [prototypeName],
+    you: prototypeName,
+    address: owner,
+    named: true,
+    entries: {},
+  });
+  try {
+    prototype.dom.window.document.querySelector('[data-id="PUB-001"][data-s="pass"]')?.click();
+    await flush();
+    assert.equal(
+      prototype.dom.window.document.querySelector('[data-id="PUB-001"][data-s="pass"]')?.getAttribute("aria-pressed"),
+      "true",
+    );
+    assert.equal(prototype.dom.window.document.querySelector(".row")?.classList.contains("done"), true);
+    assert.equal(prototype.dom.window.document.querySelectorAll(".mark").length, 1);
+    assert.equal(prototype.dom.window.document.querySelector(".tab small")?.textContent, "1/1");
+  } finally {
+    prototype.dom.window.close();
+  }
+}
+
 describe("QA app client races", () => {
   // Each case spawns a Node subprocess and boots JSDOM once per page life, which
   // runs past Vitest's 5s default — the cause of the intermittent timeout here.
@@ -597,6 +732,20 @@ describe("QA app client races", () => {
         "--input-type=module",
         "--eval",
         `await (${authRecoveryHarness.toString()})()`,
+      ],
+      { cwd: repoRoot, stdio: "pipe" },
+    );
+  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
+
+  it("keeps mutable and prototype-shaped display labels presentation-only", () => {
+    execFileSync(
+      "node",
+      [
+        "scripts/dev/node-cli.js",
+        "node",
+        "--input-type=module",
+        "--eval",
+        `await (${displayLabelHarness.toString()})()`,
       ],
       { cwd: repoRoot, stdio: "pipe" },
     );

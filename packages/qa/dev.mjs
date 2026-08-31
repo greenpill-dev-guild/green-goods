@@ -47,10 +47,10 @@ function shardPath(person) {
  * explicit; the legacy two-empty-fields shape remains compatible.
  */
 export function sanitizeDelta(raw) {
-  const delta = {};
+  const delta = Object.create(null);
   if (!raw || typeof raw !== "object") return delta;
   for (const [caseId, value] of Object.entries(raw)) {
-    if (typeof caseId !== "string" || caseId.length > 64) continue;
+    if (!caseId || caseId.length > 64) continue;
     if (!value || typeof value !== "object") continue;
     const hasStatus =
       Object.prototype.hasOwnProperty.call(value, "s") && typeof value.s === "string" && STATUSES.has(value.s);
@@ -72,7 +72,7 @@ export function sanitizeDelta(raw) {
  * ordering — see packages/qa/api/state.ts, which this must match exactly.
  */
 export function mergeDelta(existing, delta, now = new Date().toISOString()) {
-  const merged = { ...existing };
+  const merged = Object.assign(Object.create(null), existing);
   for (const [caseId, incoming] of Object.entries(delta)) {
     if (incoming.delete) {
       delete merged[caseId];
@@ -92,11 +92,11 @@ export function mergeDelta(existing, delta, now = new Date().toISOString()) {
 
 /** caseId -> person -> entry, merged across every tester's shard. */
 export function mergeShards(shards) {
-  const entries = {};
+  const entries = Object.create(null);
   for (const shard of shards) {
     if (!shard || !shard.entries) continue;
     for (const [caseId, entry] of Object.entries(shard.entries)) {
-      (entries[caseId] ??= {})[shard.person] = entry;
+      (entries[caseId] ??= Object.create(null))[shard.person] = entry;
     }
   }
   return entries;

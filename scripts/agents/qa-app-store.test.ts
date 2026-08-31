@@ -14,7 +14,13 @@ vi.mock("@vercel/blob", () => {
   };
 });
 
-import { applyDelta, displayLabels, shardShapeError } from "../../packages/qa/api/state";
+import {
+  applyDelta,
+  displayLabels,
+  mergeDelta,
+  sanitizeDelta,
+  shardShapeError,
+} from "../../packages/qa/api/state";
 
 /** Shards are keyed by owner address; the display name inside is only a label. */
 const ADDRESS = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e";
@@ -123,6 +129,12 @@ describe("shard shape validation", () => {
     expect(shardShapeError(ADDRESS, shard({ updatedAt: "not-a-date" }))).toMatch(/update timestamp/);
     expect(shardShapeError(ADDRESS, shard({ entries: null }))).toMatch(/no entries object/);
     expect(shardShapeError(ADDRESS, shard({ entries: [] }))).toMatch(/no entries object/);
+  });
+
+  it("does not write a case id the shard reader would later reject", () => {
+    const delta = sanitizeDelta({ "": { s: "pass" } });
+    expect(Object.keys(delta)).toEqual([]);
+    expect(shardShapeError(ADDRESS, shard({ entries: mergeDelta({}, delta) }))).toBeNull();
   });
 });
 

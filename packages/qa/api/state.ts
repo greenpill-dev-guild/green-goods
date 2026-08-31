@@ -248,10 +248,10 @@ export function shardShapeError(address: string, parsed: unknown): string | null
  * previous page version. Explicit deletes use `{ delete: true }`.
  */
 export function sanitizeDelta(raw: unknown): Record<string, EntryPatch> {
-  const delta: Record<string, EntryPatch> = {};
+  const delta = Object.create(null) as Record<string, EntryPatch>;
   if (!raw || typeof raw !== "object") return delta;
   for (const [caseId, value] of Object.entries(raw as Record<string, unknown>)) {
-    if (typeof caseId !== "string" || caseId.length > 64) continue;
+    if (!caseId || caseId.length > 64) continue;
     const incoming = value as Partial<Entry> & { delete?: unknown };
     if (!incoming || typeof incoming !== "object") continue;
     const hasStatus =
@@ -288,7 +288,7 @@ export function mergeDelta(
   delta: Record<string, EntryPatch>,
   now: string = new Date().toISOString(),
 ): Record<string, Entry> {
-  const merged: Record<string, Entry> = { ...existing };
+  const merged = Object.assign(Object.create(null) as Record<string, Entry>, existing);
   for (const [caseId, incoming] of Object.entries(delta)) {
     if (incoming.delete) {
       delete merged[caseId];

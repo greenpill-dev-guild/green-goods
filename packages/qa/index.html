@@ -144,7 +144,7 @@
   let TABS = [];
   let TEAM = [];
   /** caseId -> person -> { s, n, at }. This browser is authoritative for `who`. */
-  let entries = {};
+  let entries = Object.create(null);
 
   let activeTab = "";
   let filter = "all";
@@ -160,9 +160,9 @@
   let versionClock = 0;
   let pollSequence = 0;
   let lastAppliedPoll = 0;
-  let outboxVersions = {};
-  const localVersions = {};
-  const confirmedVersions = {};
+  let outboxVersions = Object.create(null);
+  const localVersions = Object.create(null);
+  const confirmedVersions = Object.create(null);
 
   const mount = document.getElementById("mount");
   const savebar = document.getElementById("savebar");
@@ -177,6 +177,33 @@
   }
   function hasOwn(value, key) {
     return Boolean(value) && Object.prototype.hasOwnProperty.call(value, key);
+  }
+  function dictionary(source) {
+    const result = Object.create(null);
+    if (!source || typeof source !== "object") return result;
+    for (const [key, value] of Object.entries(source)) result[key] = value;
+    return result;
+  }
+  function entryRows(source) {
+    const result = Object.create(null);
+    if (!source || typeof source !== "object") return result;
+    for (const [caseId, row] of Object.entries(source)) result[caseId] = dictionary(row);
+    return result;
+  }
+  function mergedDictionary(...sources) {
+    const result = Object.create(null);
+    for (const source of sources) {
+      if (!source || typeof source !== "object") continue;
+      for (const [key, value] of Object.entries(source)) result[key] = value;
+    }
+    return result;
+  }
+  function ensureEntryRow(caseId) {
+    if (!hasOwn(entries, caseId)) entries[caseId] = Object.create(null);
+    return entries[caseId];
+  }
+  function rowEntry(row, person) {
+    return hasOwn(row, person) ? row[person] : null;
   }
   function versionKey(person, caseId) {
     return person + "|" + caseId;
@@ -234,7 +261,7 @@
   // is nobody to key the outbox by until the first state read comes back —
   // reading it here would silently start every session with an empty one and
   // strand whatever the last session failed to send.
-  let outbox = {};
+  let outbox = Object.create(null);
   function writeOutbox(owner, person, delta) {
     try {
       if (Object.keys(delta).length) {
@@ -285,7 +312,7 @@
    */
   function saveOutbox() {
     if (!identity || !who) return;
-    writeOutbox(identity, who, { ...storedOutboxFor(identity, who), ...outbox });
+    writeOutbox(identity, who, mergedDictionary(storedOutboxFor(identity, who), outbox));
   }
 
   /**
@@ -295,16 +322,16 @@
    */
   function forgetStoredCases(owner, caseIds) {
     if (!owner || !caseIds.length) return;
-    const stored = storedOutboxFor(owner, who) || {};
+    const stored = dictionary(storedOutboxFor(owner, who));
     for (const caseId of caseIds) delete stored[caseId];
-    writeOutbox(owner, who, { ...stored, ...outbox });
+    writeOutbox(owner, who, mergedDictionary(stored, outbox));
   }
 
   /** Drop this tab's queue. Never touches another tab's or another tester's. */
   function clearOutbox(person) {
     const owned = Object.keys(outbox);
-    outbox = {};
-    outboxVersions = {};
+    outbox = Object.create(null);
+    outboxVersions = Object.create(null);
     forgetStoredCases(person || identity, owned);
   }
   /** Clearing a case is explicit, so clearing one field never means deletion. */
@@ -321,13 +348,15 @@
     return !next.s && !next.n.trim() ? null : next;
   }
   function markLocalEdit(caseId, person) {
-    const key = versionKey(person, caseId);
+    // The display label may change when another tester chooses the same name;
+    // the signing address remains stable across that relabel.
+    const key = versionKey(identity || person, caseId);
     const version = ++versionClock;
     localVersions[key] = version;
     return version;
   }
   function normalizeLoadedOutbox() {
-    const normalized = {};
+    const normalized = Object.create(null);
     for (const [caseId, raw] of Object.entries(outbox)) {
       if (!raw || typeof raw !== "object") continue;
       if (raw.delete === true) {
@@ -376,9 +405,9 @@
     normalizeLoadedOutbox();
     for (const [caseId, patch] of Object.entries(outbox)) {
       const entry = patchEntry(entryFor(caseId, who), patch);
-      entries[caseId] = entries[caseId] || {};
-      if (entry) entries[caseId][who] = entry;
-      else delete entries[caseId][who];
+      const row = ensureEntryRow(caseId);
+      if (entry) row[who] = entry;
+      else delete row[who];
       outboxVersions[caseId] = markLocalEdit(caseId, who);
     }
     saveOutbox();
@@ -386,12 +415,12 @@
   }
 
   function entryFor(caseId, person) {
-    return (entries[caseId] || {})[person] || null;
+    return rowEntry(hasOwn(entries, caseId) ? entries[caseId] : null, person);
   }
   function setMine(caseId, entry, patch) {
-    entries[caseId] = entries[caseId] || {};
-    if (entry) entries[caseId][who] = entry;
-    else delete entries[caseId][who];
+    const row = ensureEntryRow(caseId);
+    if (entry) row[who] = entry;
+    else delete row[who];
     const pending = outbox[caseId];
     if (patch.delete) outbox[caseId] = tombstone();
     // Once a pending delete is followed by a new entry, send the complete new
@@ -714,8 +743,8 @@
   }
 
   async function postDelta(person) {
-    const sent = { ...outbox };
-    const sentVersions = { ...outboxVersions };
+    const sent = dictionary(outbox);
+    const sentVersions = dictionary(outboxVersions);
     if (!Object.keys(sent).length) { dirty = false; return; }
     dirty = false;
     try {
@@ -747,7 +776,7 @@
       // to send.
       const settled = [];
       for (const [caseId, patch] of Object.entries(sent)) {
-        const key = versionKey(person, caseId);
+        const key = versionKey(identity || person, caseId);
         confirmedVersions[key] = Math.max(confirmedVersions[key] || 0, sentVersions[caseId] || 0);
         const pending = outbox[caseId];
         if (!pending) {
@@ -811,8 +840,8 @@
     // early; the re-render restores focus and caret.
     if (saving) return;
     const sequence = ++pollSequence;
-    const startedLocalVersions = { ...localVersions };
-    const startedConfirmedVersions = { ...confirmedVersions };
+    const startedLocalVersions = dictionary(localVersions);
+    const startedConfirmedVersions = dictionary(confirmedVersions);
     try {
       const response = await fetch("/api/state", { cache: "no-store" });
       if (response.status === 401 || response.status === 403) {
@@ -825,30 +854,40 @@
       // A slower, older GET must never apply after a newer poll already did.
       if (sequence < lastAppliedPoll) return;
       lastAppliedPoll = sequence;
-      if (Array.isArray(data.team) && data.team.length) TEAM = data.team;
-      let changed = false;
-      const remote = data.entries || {};
+      const previousWho = who;
+      const nextWho = typeof data.you === "string" && data.you ? data.you : previousWho;
+      const nextTeam = Array.isArray(data.team) && data.team.length ? data.team : TEAM;
+      const remote = entryRows(data.entries);
+      const before = JSON.stringify({ team: TEAM, who, entries });
+
+      // The server may relabel the roster when a newly named tester collides
+      // with an existing display name. Its response is one complete snapshot,
+      // so replace old labels rather than merging the new names beside them.
+      // Only this browser's unconfirmed own entry survives over that snapshot.
+      const versionOwner = identity || previousWho;
       for (const caseId of new Set(Object.keys(remote).concat(Object.keys(entries)))) {
-        const remoteRow = remote[caseId] || {};
-        const localRow = entries[caseId] || {};
-        for (const person of TEAM) {
-          // Never overwrite a case this browser has not yet managed to save.
-          if (person === who && Object.prototype.hasOwnProperty.call(outbox, caseId)) continue;
-          const key = versionKey(person, caseId);
-          const started = startedLocalVersions[key] || 0;
-          // A GET that began before this browser's edit—or while that edit was
-          // still unconfirmed—cannot prove its snapshot contains the edit.
-          if (started > (startedConfirmedVersions[key] || 0)) continue;
-          if ((localVersions[key] || 0) > started) continue;
-          const before = JSON.stringify(localRow[person] || null);
-          const after = JSON.stringify(remoteRow[person] || null);
-          if (before === after) continue;
-          entries[caseId] = entries[caseId] || {};
-          if (remoteRow[person]) entries[caseId][person] = remoteRow[person];
-          else delete entries[caseId][person];
-          changed = true;
-        }
+        const key = versionKey(versionOwner, caseId);
+        const started = startedLocalVersions[key] || 0;
+        const keepLocal =
+          hasOwn(outbox, caseId) ||
+          started > (startedConfirmedVersions[key] || 0) ||
+          (localVersions[key] || 0) > started;
+        if (!keepLocal) continue;
+
+        const local = entryFor(caseId, previousWho);
+        const row = hasOwn(remote, caseId) ? remote[caseId] : Object.create(null);
+        if (local) row[nextWho] = local;
+        else delete row[nextWho];
+        if (Object.keys(row).length) remote[caseId] = row;
+        else delete remote[caseId];
       }
+
+      TEAM = nextTeam;
+      who = nextWho;
+      if (scope === previousWho && previousWho !== nextWho) scope = nextWho;
+      else if (scope !== "all" && !TEAM.includes(scope)) scope = "all";
+      entries = remote;
+      const changed = before !== JSON.stringify({ team: TEAM, who, entries });
       if (changed) {
         const active = document.activeElement;
         const focusedNote = active && active.dataset ? active.dataset.note : null;
@@ -889,7 +928,7 @@
 
       if (stateResponse.ok) {
         const data = await stateResponse.json();
-        entries = data.entries || {};
+        entries = entryRows(data.entries);
         if (Array.isArray(data.team) && data.team.length) TEAM = data.team;
         // The server names you from your signed session. The page never guesses.
         who = typeof data.you === "string" ? data.you : "";
@@ -912,7 +951,7 @@
       if (!TEAM.length) TEAM = ["Afo", "Nansel", "Gui"];
       // Now that the session has named this tester, pick up anything a previous
       // page life left unsent for them.
-      outbox = storedOutboxFor(identity, who) || {};
+      outbox = dictionary(storedOutboxFor(identity, who));
       // Persist the migrated copy before removing any legacy name-based key.
       saveOutbox();
       // The contents are in memory now; retire the legacy copy so a drained
