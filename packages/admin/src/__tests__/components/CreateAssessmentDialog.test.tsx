@@ -8,7 +8,7 @@ import { del as idbDel, get as idbGet } from "idb-keyval";
 import type { ComponentProps } from "react";
 import { IntlProvider } from "react-intl";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { AuthContext } from "@green-goods/shared/providers/Auth";
@@ -146,21 +146,8 @@ function renderCreateAssessment() {
 // debounced write to it, which can land during a later test and make a
 // "pristine" form look dirty. Clear it on both sides of each test.
 const DRAFT_KEY = `assessment_draft_${SELECTED_GARDEN.id}_${OPERATOR}`;
-const ORIGINAL_TZ = process.env.TZ;
 
 describe("CreateAssessment dialog", () => {
-  beforeAll(() => {
-    process.env.TZ = "America/Los_Angeles";
-  });
-
-  afterAll(() => {
-    if (ORIGINAL_TZ === undefined) {
-      delete process.env.TZ;
-    } else {
-      process.env.TZ = ORIGINAL_TZ;
-    }
-  });
-
   beforeEach(async () => {
     await idbDel(DRAFT_KEY);
     useCreateAssessmentStore.getState().reset();
@@ -211,7 +198,6 @@ describe("CreateAssessment dialog", () => {
     // — real timers keep findBy*/waitFor and the debounced draft save working.
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-07-27T12:00:00Z"));
-    expect(new Date().getTimezoneOffset()).toBeGreaterThan(0);
 
     useCreateAssessmentStore.setState({ currentStep: 2 });
 

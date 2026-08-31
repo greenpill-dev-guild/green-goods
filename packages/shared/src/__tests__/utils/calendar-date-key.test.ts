@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { fromCalendarDateKey, toCalendarDateKey } from "../../utils/calendar-date";
 import { fromDateInputValue, toDateInputValue } from "../../utils/time";
@@ -109,6 +110,23 @@ describe("calendar date key helpers", () => {
   });
 
   describe("basis separation", () => {
+    it("round-trips on a non-UTC runtime without changing the test worker timezone", () => {
+      const helperUrl = new URL("../../utils/calendar-date.ts", import.meta.url).href;
+      const script = `
+        import { fromCalendarDateKey, toCalendarDateKey } from ${JSON.stringify(helperUrl)};
+        const key = "2026-07-27";
+        const seconds = fromCalendarDateKey(key);
+        if (new Date(seconds * 1000).getTimezoneOffset() <= 0) process.exit(2);
+        if (toCalendarDateKey(seconds) !== key) process.exit(3);
+      `;
+      const result = spawnSync(process.execPath, ["-e", script], {
+        env: { ...process.env, TZ: "America/Los_Angeles" },
+        encoding: "utf8",
+      });
+
+      expect(result.status, result.stderr).toBe(0);
+    });
+
     it("stays distinct from the UTC pair away from UTC, and agrees on UTC", () => {
       const key = "2026-07-27";
       const localSeconds = fromCalendarDateKey(key) as number;
