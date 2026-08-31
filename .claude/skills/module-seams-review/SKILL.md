@@ -38,9 +38,9 @@ Resolve the candidate before interpreting code:
 2. Pin the exact `base..head` range when supplied. Never replace it with a newer checkout, PR head,
    `origin/develop`, or an inferred merge base without saying the requested candidate changed.
 3. Establish authoritative requirements in the ordering defined by `review`. For the completed
-   Module Seams and Velocity program, use the four canonical files under
-   `.plans/archive/module-seams-and-velocity/` and treat their historical claims as evidence to
-   verify, not established truth.
+   Module Seams and Velocity program, recover the four canonical files from Git history at the
+   historical path `.plans/archive/module-seams-and-velocity/` (see the `.plans/ARCHIVE.md`
+   ledger) and treat their historical claims as evidence to verify, not established truth.
 4. If the candidate exceeds 800 changed LOC, declare review batches before analysis. Maintain a
    coverage ledger with every changed file assigned to exactly one reviewed or explicitly remaining
    batch. Do not infer completeness from representative sampling.

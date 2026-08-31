@@ -17,6 +17,8 @@ export const CORE_TASK_IDS = [
   "qa-notes-and-backlog",
   "pr-feedback",
   "pre-merge-readiness",
+  "design-direction",
+  "doc-review-feedback",
 ];
 
 export const EXPECTED_MUTATION_BOUNDARIES = Object.freeze({
@@ -33,6 +35,8 @@ export const EXPECTED_MUTATION_BOUNDARIES = Object.freeze({
   "qa-notes-and-backlog": "authorized-product-records-and-private-qa-rows",
   "pr-feedback": "current-actionable-feedback-and-bounded-siblings",
   "pre-merge-readiness": "readiness-and-user-authorized-publish-actions",
+  "design-direction": "advisory-until-explicit-polish-scope",
+  "doc-review-feedback": "triage-then-scope-locked-edits",
 });
 
 function isNonEmptyString(value) {

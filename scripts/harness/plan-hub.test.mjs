@@ -564,7 +564,7 @@ test("summary preserves an explicit lifecycle blocker when all lanes are termina
     assert.equal(item.overall_status, "blocked");
   }));
 
-test("archive hubs retain taxonomy for closed-work discovery", () =>
+test("archive closeouts append a ledger row and delete the hub", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "archived-hub", "--stage", "active"]).status, 0);
     const moved = runPlanHub(root, [
@@ -579,14 +579,37 @@ test("archive hubs retain taxonomy for closed-work discovery", () =>
       "Fixture closeout.",
     ]);
     assert.equal(moved.status, 0, moved.stderr);
+    assert.match(moved.stdout, /git history is the archive/);
 
-    const status = readStatus(root, "archive", "archived-hub");
-    delete status.taxonomy;
-    writeStatus(root, "archive", "archived-hub", status);
+    assert.equal(existsSync(join(root, ".plans", "active", "archived-hub")), false);
+    assert.equal(existsSync(join(root, ".plans", "archive", "archived-hub")), false);
+    const ledger = readFileSync(join(root, ".plans", "ARCHIVE.md"), "utf8");
+    assert.match(ledger, /# Archived Plan Ledger/);
+    const row = ledger.split("\n").find((line) => line.includes("`archived-hub`"));
+    assert.ok(row, ledger);
+    assert.match(row, /\| closed \|/);
+    assert.match(row, /`\.plans\/active\/archived-hub`/);
+    assert.match(row, /Fixture closeout\./);
+    assert.equal(runPlanHub(root, ["validate"]).status, 0);
 
-    const result = runPlanHub(root, ["validate"]);
-    assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /taxonomy is required/);
+    assert.equal(runPlanHub(root, ["scaffold", "second-hub", "--stage", "backlog"]).status, 0);
+    assert.equal(
+      runPlanHub(root, [
+        "move",
+        "--feature",
+        "second-hub",
+        "--to",
+        "archive",
+        "--resolution",
+        "closed",
+        "--reason",
+        "Second closeout.",
+      ]).status,
+      0,
+    );
+    const appended = readFileSync(join(root, ".plans", "ARCHIVE.md"), "utf8");
+    assert.ok(appended.indexOf("`archived-hub`") < appended.indexOf("`second-hub`"));
+    assert.equal((appended.match(/# Archived Plan Ledger/g) || []).length, 1);
   }));
 
 test("linear-sync manifest keeps backlog hubs parent-only", () =>
@@ -1258,14 +1281,12 @@ test("validate requires the four canonical plan document roles", () =>
     assert.match(result.stderr, /links\.eval is required/);
   }));
 
-test("archive moves record explicit closeout metadata and remain valid", () =>
+test("archive closeouts record explicit metadata in the ledger", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "closed-fixture", "--stage", "active"]).status, 0);
     const reportDir = join(root, ".plans", "active", "closed-fixture", "reports");
-    const reportContents =
-      "# Review 2026-08-11\n\nImmutable evidence containing a rejected fixture:\n\n```yaml\nroot:\n  - valid\n    - invalid\n```\n";
     mkdirSync(reportDir, { recursive: true });
-    writeFileSync(join(reportDir, "review-2026-08-11.md"), reportContents);
+    writeFileSync(join(reportDir, "review-2026-08-11.md"), "# Review 2026-08-11\n\nImmutable evidence.\n");
     const activeStatus = readStatus(root, "active", "closed-fixture");
     activeStatus.links.review = "reports/review-2026-08-11.md";
     writeStatus(root, "active", "closed-fixture", activeStatus);
@@ -1283,27 +1304,15 @@ test("archive moves record explicit closeout metadata and remain valid", () =>
     ]);
     assert.equal(moved.status, 0, moved.stderr);
 
-    const status = readStatus(root, "archive", "closed-fixture");
-    assert.equal(status.feature.stage, "archive");
-    assert.equal(status.workflow.overall_status, "done");
-    assert.equal(status.workflow.resolution, "closed_stale");
-    assert.equal(status.workflow.archive_reason, "No remaining live scope.");
-    assert.ok(!Number.isNaN(Date.parse(status.workflow.archived_at)));
-    assert.deepEqual(Object.keys(status.lanes.ui).sort(), ["owner", "status"]);
-    assert.equal(status.history.length, 1);
-    assert.equal(status.notes, undefined);
-    assert.equal(existsSync(join(root, ".plans", "archive", "closed-fixture", "handoffs")), false);
-    assert.equal(
-      readFileSync(
-        join(root, ".plans", "archive", "closed-fixture", "reports", "review-2026-08-11.md"),
-        "utf8",
-      ),
-      reportContents,
-    );
-    assert.match(
-      readFileSync(join(root, ".plans", "archive", "closed-fixture", "brief.md"), "utf8"),
-      /> \*\*Archived record:\*\* implementation is closed\./,
-    );
+    assert.equal(existsSync(join(root, ".plans", "active", "closed-fixture")), false);
+    assert.equal(existsSync(join(root, ".plans", "archive", "closed-fixture")), false);
+    const ledger = readFileSync(join(root, ".plans", "ARCHIVE.md"), "utf8");
+    const row = ledger.split("\n").find((line) => line.includes("`closed-fixture`"));
+    assert.ok(row, ledger);
+    assert.match(row, /\| closed_stale \|/);
+    assert.match(row, /No remaining live scope\./);
+    const archivedAt = row.split("|")[1].trim();
+    assert.ok(!Number.isNaN(Date.parse(archivedAt)), row);
     assert.equal(runPlanHub(root, ["validate"]).status, 0);
   }));
 
@@ -1491,150 +1500,19 @@ test("archive moves keep canonical document links at the top level", () =>
     assert.equal(existsSync(join(root, ".plans", "archive", "nested-canonical-link")), false);
   }));
 
-test("compact-archive rejects a malformed reports entry before mutation", () =>
+
+
+
+test("validate rejects any hub left under .plans/archive", () =>
   withFixture((root) => {
-    assert.equal(runPlanHub(root, ["scaffold", "legacy-archive", "--stage", "active"]).status, 0);
-    assert.equal(
-      runPlanHub(root, [
-        "move",
-        "--feature",
-        "legacy-archive",
-        "--to",
-        "archive",
-        "--resolution",
-        "closed_stale",
-        "--reason",
-        "No remaining live scope.",
-      ]).status,
-      0,
-    );
-    writeFileSync(join(root, ".plans", "archive", "legacy-archive", "reports"), "not a directory\n");
-
-    const compacted = runPlanHub(root, ["compact-archive"]);
-    assert.notEqual(compacted.status, 0);
-    assert.match(compacted.stderr, /reports must be a real directory inside the feature hub/);
-    assert.equal(
-      readFileSync(join(root, ".plans", "archive", "legacy-archive", "reports"), "utf8"),
-      "not a directory\n",
-    );
-  }));
-
-test("compact-archive rejects nested report symlinks before mutation", () =>
-  withFixture((root) => {
-    assert.equal(runPlanHub(root, ["scaffold", "linked-legacy-archive", "--stage", "active"]).status, 0);
-    assert.equal(
-      runPlanHub(root, [
-        "move",
-        "--feature",
-        "linked-legacy-archive",
-        "--to",
-        "archive",
-        "--resolution",
-        "closed_stale",
-        "--reason",
-        "No remaining live scope.",
-      ]).status,
-      0,
-    );
-    const reportsDir = join(root, ".plans", "archive", "linked-legacy-archive", "reports");
-    const externalReport = join(root, "external-legacy-report.md");
-    mkdirSync(reportsDir);
-    writeFileSync(externalReport, "# Mutable external evidence\n");
-    symlinkSync(externalReport, join(reportsDir, "review-2026-08-11.md"), "file");
-
-    const compacted = runPlanHub(root, ["compact-archive"]);
-    assert.notEqual(compacted.status, 0);
-    assert.match(compacted.stderr, /reports must not contain symlinks/);
-    assert.equal(lstatSync(join(reportsDir, "review-2026-08-11.md")).isSymbolicLink(), true);
-  }));
-
-test("compact-archive revalidates reports after waiting for the archive lock", () =>
-  withFixture((root) => {
-    assert.equal(runPlanHub(root, ["scaffold", "locked-archive-compact", "--stage", "active"]).status, 0);
-    assert.equal(
-      runPlanHub(root, [
-        "move",
-        "--feature",
-        "locked-archive-compact",
-        "--to",
-        "archive",
-        "--resolution",
-        "closed_stale",
-        "--reason",
-        "No remaining live scope.",
-      ]).status,
-      0,
-    );
-    const reportsPath = join(root, ".plans", "archive", "locked-archive-compact", "reports");
-    const externalReports = join(root, "external-compact-reports");
-    const lockPath = join(root, ".plans", "_templates", ".archive.lock");
-    mkdirSync(reportsPath);
-    writeFileSync(join(reportsPath, "review.md"), "# Original evidence\n");
-    mkdirSync(externalReports);
-    mkdirSync(lockPath);
-    spawn(
-      process.execPath,
-      [
-        "-e",
-        "const fs=require('node:fs');setTimeout(()=>{fs.rmSync(process.env.REPORTS,{recursive:true});fs.symlinkSync(process.env.EXTERNAL,process.env.REPORTS,'dir');fs.rmSync(process.env.LOCK,{recursive:true});},25);",
-      ],
-      {
-        env: { ...process.env, REPORTS: reportsPath, EXTERNAL: externalReports, LOCK: lockPath },
-        stdio: "ignore",
-      },
-    );
-
-    const compacted = runPlanHub(root, ["compact-archive"]);
-    assert.notEqual(compacted.status, 0);
-    assert.match(compacted.stderr, /reports must be a real directory inside the feature hub/);
-  }));
-
-test("validate rejects dangling report symlinks in archived hubs", () =>
-  withFixture((root) => {
-    assert.equal(runPlanHub(root, ["scaffold", "linked-archive-validation", "--stage", "active"]).status, 0);
-    assert.equal(
-      runPlanHub(root, [
-        "move",
-        "--feature",
-        "linked-archive-validation",
-        "--to",
-        "archive",
-        "--resolution",
-        "closed_stale",
-        "--reason",
-        "No remaining live scope.",
-      ]).status,
-      0,
-    );
-    const reportsPath = join(root, ".plans", "archive", "linked-archive-validation", "reports");
-    symlinkSync(join(root, "missing-external-reports"), reportsPath, "dir");
-
-    const validated = runPlanHub(root, ["validate"]);
-    assert.notEqual(validated.status, 0);
-    assert.match(validated.stderr, /reports must be a real directory inside the feature hub/);
-  }));
-
-test("validate rejects noncanonical files inside archived hubs", () =>
-  withFixture((root) => {
-    assert.equal(runPlanHub(root, ["scaffold", "archive-residue", "--stage", "backlog"]).status, 0);
-    assert.equal(
-      runPlanHub(root, [
-        "move",
-        "--feature",
-        "archive-residue",
-        "--to",
-        "archive",
-        "--resolution",
-        "closed",
-      ]).status,
-      0,
-    );
-    writeFileSync(join(root, ".plans", "archive", "archive-residue", "legacy-report.md"), "# Old report\n");
+    mkdirSync(join(root, ".plans", "archive", "legacy-hub"), { recursive: true });
+    writeFileSync(join(root, ".plans", "archive", "legacy-hub", "status.json"), "{}\n");
 
     const result = runPlanHub(root, ["validate"]);
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /legacy-report\.md: archived hubs retain only status\.json/);
+    assert.match(result.stderr, /archived hubs must not exist in the working tree/);
   }));
+
 
 test("stale reports live hubs whose status has not been refreshed", () =>
   withFixture((root) => {

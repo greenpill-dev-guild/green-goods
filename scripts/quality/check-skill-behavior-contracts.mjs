@@ -382,8 +382,8 @@ const contracts = [
       {
         file: ".claude/skills/plan/SKILL.md",
         section: "Part 5: Plan Lifecycle Management",
-        pattern: /If fully implemented, move the hub to `\.plans\/archive\/`/i,
-        marker: "completed-plan archive transition",
+        pattern: /If fully implemented, close the hub with `plan-hub\.mjs move --to archive/i,
+        marker: "completed-plan closeout transition",
       },
     ],
   },

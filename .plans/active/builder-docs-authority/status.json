@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-08-30T21:38:50.325Z",
-    "updated_at": "2026-08-30T23:27:20.000Z"
+    "updated_at": "2026-08-31T20:17:06.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -207,6 +207,14 @@
       "status": "tdd_recorded",
       "branch": null,
       "note": "Recorded post-review RED/GREEN proof; lane remains open for sequential delivery coordination and deployed sitemap evidence."
+    },
+    {
+      "timestamp": "2026-08-31T20:17:06.000Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "landed_recorded",
+      "branch": null,
+      "note": "Migration landed on develop as five rebased commits (cfa4f2272, 104bc3a9c, b5652c7d1, dae4fe1ad, 3562fd9c8); the planned five sequential independently green merges were superseded by this batch landing. The batch left the api-index and persona-surfaces projections stale (Docs workflow red at 0086993ca); repaired by 8190dc240 with docs audit, generated-output, ontology, guidance, and docs test gates re-run green. Remaining: production Vercel sitemap verification, tracked in documentation-agent-guidance-authority."
     }
   ]
 }

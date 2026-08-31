@@ -170,6 +170,30 @@
       "output": "Fresh gate evidence, branch/commit readiness, and explicit blockers.",
       "handoff": "Return failures to the owning implementation task; never redesign during the gate.",
       "mustNotSwallow": ["implementation", "change-review", "release-design"]
+    },
+    {
+      "id": "design-direction",
+      "label": "Design direction",
+      "skill": "design",
+      "mutationBoundary": "advisory-until-explicit-polish-scope",
+      "requiredAuthorities": [
+        "owning surface DESIGN.md dialect",
+        "design skill prompt contracts",
+        "shared design tokens"
+      ],
+      "output": "A grounded paradigm, material, or layout decision, design review findings, or an AI design-tool prompt contract.",
+      "handoff": "Send cross-surface token or dialect changes to planning; send implementation defects to debugging.",
+      "mustNotSwallow": ["change-review", "live-product-qa", "planning"]
+    },
+    {
+      "id": "doc-review-feedback",
+      "label": "Doc review feedback",
+      "skill": "doc-feedback",
+      "mutationBoundary": "triage-then-scope-locked-edits",
+      "requiredAuthorities": ["the reviewed .docx export", "the target document's owning surface"],
+      "output": "A triaged feedback record and each accepted item addressed in the agreed in-repo or out-of-repo mode.",
+      "handoff": "Route discovered product defects to debugging and net-new scope to planning.",
+      "mustNotSwallow": ["qa-notes-and-backlog", "planning", "debugging"]
     }
   ]
 }

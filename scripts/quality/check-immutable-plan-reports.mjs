@@ -66,12 +66,32 @@ function isCanonicalArchiveMove(entry) {
   );
 }
 
+const hubPrefixPattern = /^(\.plans\/[^/]+\/[^/]+)\//;
+
+function hubOfStatusDeletion(entryPath) {
+  const segments = entryPath.split("/");
+  if (segments.length === 4 && segments[0] === ".plans" && segments[3] === "status.json") {
+    return segments.slice(0, 3).join("/");
+  }
+  return null;
+}
+
 export function immutableReportViolations(entries) {
+  const retiredHubs = new Set();
+  for (const entry of entries) {
+    if (entry.status !== "D") continue;
+    const hub = hubOfStatusDeletion(entry.path);
+    if (hub) retiredHubs.add(hub);
+  }
   const failures = [];
   for (const entry of entries) {
     if (entry.status === "A" || entry.status === "C") continue;
     const historicalPath = entry.oldPath ?? entry.path;
     if (isCanonicalArchiveMove(entry)) continue;
+    if (entry.status === "D") {
+      const hubOfEntry = hubPrefixPattern.exec(historicalPath);
+      if (hubOfEntry && retiredHubs.has(hubOfEntry[1])) continue;
+    }
     if (datedReportPattern.test(historicalPath)) {
       failures.push(`${entry.status}: ${historicalPath}`);
     }
