@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-08-31T01:28:28.764Z",
-    "updated_at": "2026-08-31T04:05:00.000Z"
+    "updated_at": "2026-08-31T06:31:17.311Z"
   },
   "links": {
     "brief": "brief.md",
@@ -19,12 +19,17 @@
     "eval": "eval.md"
   },
   "linear": {
-    "parentIssue": null,
+    "parentIssue": "PRD-858",
     "project": null,
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": null,
-    "lanes": {}
+    "lastSyncedAt": "2026-08-31T06:12:49.050Z",
+    "lanes": {
+      "state_api": {
+        "issue": "PRD-859"
+      }
+    },
+    "laneSyncMode": "lane_issues"
   },
   "taxonomy": {
     "initiative": "engineering-quality",
@@ -72,11 +77,11 @@
         "status": "green_recorded",
         "red": {
           "command": "node --test docs/scripts/docs-audit.test.mjs scripts/docs/generate.test.mjs scripts/quality/check-ontology.test.mjs scripts/quality/task-routing-contract.test.mjs",
-          "evidence": "New fixtures initially exposed stale anchors, ontology table bleed, unresolved generated aliases, and missing downstream-authority enforcement."
+          "evidence": "New fixtures initially exposed stale anchors, ontology table bleed, unresolved generated aliases, and missing downstream-authority enforcement. The later search checker also exited nonzero because docs/build/search-index.json was missing under the prior /docs route-base configuration."
         },
         "green": {
-          "command": "bun run docs:audit:ci && bun run check:docs-generated && bun run check:ontology && bun run check:skill-behavior && bun run test:docs && bun run build:docs",
-          "evidence": "Review findings are closed locally: authority, generation, exact routing boundaries, ontology, CI selection, guidance retirements, 36 docs tests, strict dead-code scan, clean Docusaurus build, and the 79-route sitemap pass under Node 22.22.1 and Bun 1.3.14. Live Vercel verification still requires the green-goods-docs Root Directory correction and a clean committed main revision."
+          "command": "bun run docs:audit:ci && bun run check:docs-generated && bun run check:ontology && bun run check:skill-behavior && bun run test:docs && bun run build:docs && bun run --cwd docs check:search-index",
+          "evidence": "Authority, generation, routing, ontology, CI selection, guidance retirements, docs tests, dead-code checks, and the 79-route sitemap passed. The search closeout added seven passing fixtures, 70-of-70 source-route coverage, and a successful local browser confidence journey. Live Vercel verification remains required before archive."
         },
         "note": ""
       },
@@ -196,6 +201,22 @@
       "status": "in_progress",
       "branch": "chore/documentation-authority-migration",
       "note": "Created the scoped documentation migration branch for review and Vercel preview verification."
+    },
+    {
+      "timestamp": "2026-08-31T06:12:49.050Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-08-31T06:31:17.311Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ]
 }

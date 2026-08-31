@@ -141,7 +141,7 @@ jobs:
         uses: ./.github/actions/setup-js
 
       - name: Test deterministic docs generators
-        run: node --test scripts/docs/generate.test.mjs docs/scripts/docs-audit.test.mjs scripts/quality/task-routing-contract.test.mjs
+        run: node --test scripts/docs/generate.test.mjs docs/scripts/docs-audit.test.mjs docs/scripts/check-search-index.test.mjs scripts/quality/task-routing-contract.test.mjs
 
       - name: Audit documentation authority
         run: bun run docs:audit:ci
@@ -160,3 +160,6 @@ jobs:
 
       - name: Build docs
         run: bun run build:docs
+
+      - name: Verify search index
+        run: bun run --cwd docs check:search-index

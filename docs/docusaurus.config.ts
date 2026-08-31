@@ -477,6 +477,9 @@ const config: Config = {
       {
         hashed: true,
         language: ['en'],
+        // The docs preset publishes at `/`; the search plugin defaults to `/docs`.
+        // Keep these aligned so postBuild indexes every live documentation route.
+        docsRouteBasePath: '/',
         highlightSearchTermsOnTargetPage: true,
         explicitSearchResultPath: true,
       },
