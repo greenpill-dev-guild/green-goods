@@ -3,12 +3,16 @@ title: Frequently Asked Questions
 slug: /reference/faq
 audience: all
 owner: docs
-last_verified: 2026-07-03
+last_verified: 2026-08-30
 feature_status: Live
 source_of_truth:
   - docs/docs/community/welcome.mdx
   - docs/docs/builders/packages/api-index.mdx
   - docs/docs/builders/deployments/status.mdx
+  - packages/client/src/config/routes.tsx
+  - packages/client/src/config/pwaRouting.ts
+  - packages/admin/src/router.tsx
+  - packages/admin/src/routes/views.tsx
 ---
 
 import {QuickAnswer, StatusBadge} from "@site/src/components/docs";
@@ -37,12 +41,13 @@ Yes. Gardener workflows support offline drafts and queued sync when connectivity
 
 </QuickAnswer>
 
-<QuickAnswer question="Which app do I use: the mobile app or the admin dashboard?">
+<QuickAnswer question="Which Green Goods experience should I use?">
 
-- The **Green Goods app** ([greengoods.app](https://greengoods.app), installable on your phone) is for doing the work: joining a garden, documenting work, and tracking your submissions.
-- The **admin dashboard** ([admin.greengoods.app](https://admin.greengoods.app), best on a computer) is for running a garden: reviewing and approving work, making assessments, and managing actions, funding, and roles.
+- The **public website** ([greengoods.app](https://greengoods.app)) is for exploring public gardens, actions, impact, funding information, and shared terminology.
+- The **installed app** is for signing in, joining gardens, documenting work, working offline, syncing, and tracking submissions.
+- The **admin dashboard** ([admin.greengoods.app](https://admin.greengoods.app), best on a computer) is for operating gardens: reviewing work, creating assessments, and managing actions, funding, governance, and roles.
 
-Many stewards also garden, so they use both: submitting their own work in the app, and reviewing everyone's work in the dashboard.
+Many stewards use both the installed app and the admin dashboard: they document their own work in the app and review garden work in admin.
 
 </QuickAnswer>
 

@@ -5,7 +5,7 @@ slug: /community/steward-guide/reviewing-work
 description: "Review gardener submissions, approve good evidence, or reject with useful feedback."
 audience: steward
 owner: docs
-last_verified: 2026-05-01
+last_verified: 2026-08-30
 feature_status: Live
 goal: "Walk a steward through approving or rejecting a gardener's submission, with the exact on-screen steps."
 difficulty: "standard"
@@ -56,7 +56,7 @@ If you can see the submission but not the approve/reject controls, you do not ha
 
 ## Step-by-step flow
 
-### Option A: Review in the app/PWA
+### Option A: Review in the installed app
 
 Use this when you are on mobile or already looking at the garden.
 
@@ -64,9 +64,9 @@ Use this when you are on mobile or already looking at the garden.
 2. Open the garden that owns the submission.
 3. Open the **Work** tab and select a pending submission.
 4. Review the action, details, media, and gardener notes.
-5. Tap **Approve** if the evidence is enough.
-6. Tap **Reject** if the gardener needs to fix or resubmit something.
-7. Add concise feedback, submit, and sign when prompted.
+5. Tap **Approve** if the evidence is enough, or **Reject** if the gardener needs to fix or resubmit something.
+6. Follow the confidence and feedback steps below.
+7. Submit the decision and sign when prompted.
 
 ### Option B: Review in admin
 
@@ -92,15 +92,25 @@ Use this when you are clearing a larger queue or need desktop context.
 
 To approve:
 
-1. Add a short verification note if it helps future reviewers.
-2. Click **Approve**.
-3. Sign the transaction.
+1. In the installed app, tap **Approve** to open the decision panel. In admin, the confidence controls are already visible.
+2. Choose **Low**, **Medium**, or **High** confidence. **None** cannot be used for an approval.
+3. Add a short verification note if it helps the gardener or future reviewers. This note is optional for an approval.
+4. Tap **Submit** in the installed app or click **Approve** in admin, then sign when prompted.
+
+Use the confidence level that matches the evidence:
+
+- **Low:** Evidence is limited or primarily trust-based.
+- **Medium:** You reviewed relevant photo or document evidence.
+- **High:** The submission has strong corroborating evidence, such as a receipt, witness, or verifiable record.
+
+For an approval, Green Goods records the verification method as **Human** automatically. You do not need to choose a method.
 
 To reject:
 
-1. Explain exactly what needs to change: the field, photo, count, action, or garden. If the evidence is inconclusive, ask for the missing proof here.
-2. Click **Reject**.
-3. Sign the transaction.
+1. Explain exactly what needs to change: the field, photo, count, action, or garden. The installed app requires feedback; in admin, always provide it so the gardener knows how to recover.
+2. Tap or click **Reject**, then submit and sign when prompted.
+
+A rejection records **None** confidence automatically.
 
 :::tip
 Specific rejection feedback saves time. "Photo is too dark to verify tree count; retake in daylight and resubmit against this action" is better than "insufficient evidence."

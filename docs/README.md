@@ -23,9 +23,11 @@ bun run docs:audit:ci
 bun run check:docs-generated
 bun run test:docs
 bun run build:docs
+bun run --cwd docs check:search-index
 ```
 
-The static build is written to `docs/build`.
+The static build is written to `docs/build`. `bun run build:docs` also fails unless the generated
+search index contains every live documentation source route.
 
 ## Content map
 
