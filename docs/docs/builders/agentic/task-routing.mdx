@@ -11,6 +11,8 @@ generated_from:
   - .claude/skills/audit/SKILL.md
   - .claude/skills/clean/SKILL.md
   - .claude/skills/debug/SKILL.md
+  - .claude/skills/design/SKILL.md
+  - .claude/skills/doc-feedback/SKILL.md
   - .claude/skills/module-seams-review/SKILL.md
   - .claude/skills/plan/SKILL.md
   - .claude/skills/qa-session/SKILL.md
@@ -20,12 +22,14 @@ generated_from:
   - .claude/skills/review/SKILL.md
   - .claude/skills/ship/SKILL.md
   - scripts/quality/task-routing-contract.mjs
-source_digest: "sha256:2c8e504b07565370a3ead510e668f2ce51f975f55b73335d5e9493347fbf4113"
+source_digest: "sha256:a1905c69057a63ac2cbdb0af2de1249d486c2ca260291d4daa474176b4a3222e"
 source_of_truth:
   - .claude/context/task-routing.json
   - .claude/skills/audit/SKILL.md
   - .claude/skills/clean/SKILL.md
   - .claude/skills/debug/SKILL.md
+  - .claude/skills/design/SKILL.md
+  - .claude/skills/doc-feedback/SKILL.md
   - .claude/skills/module-seams-review/SKILL.md
   - .claude/skills/plan/SKILL.md
   - .claude/skills/qa-session/SKILL.md
@@ -57,6 +61,8 @@ Use the smallest workflow that matches the task. Skill frontmatter decides activ
 | QA notes and backlog | `qa-triage` | `authorized-product-records-and-private-qa-rows` | Scoped Product records and private QA rows. | Send live product fixes to qa-session and unclear failures to debug. |
 | PR feedback | `resolve-pr-comments` | `current-actionable-feedback-and-bounded-siblings` | Validated comment resolution, bounded sibling sweep, and fresh proof. | Return product or architecture decisions to the user or owning Plan Hub. |
 | Pre-merge readiness | `ship` | `readiness-and-user-authorized-publish-actions` | Fresh gate evidence, branch/commit readiness, and explicit blockers. | Return failures to the owning implementation task; never redesign during the gate. |
+| Design direction | `design` | `advisory-until-explicit-polish-scope` | A grounded paradigm, material, or layout decision, design review findings, or an AI design-tool prompt contract. | Send cross-surface token or dialect changes to planning; send implementation defects to debugging. |
+| Doc review feedback | `doc-feedback` | `triage-then-scope-locked-edits` | A triaged feedback record and each accepted item addressed in the agreed in-repo or out-of-repo mode. | Route discovered product defects to debugging and net-new scope to planning. |
 
 ## Authority order
 
