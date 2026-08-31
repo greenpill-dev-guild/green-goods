@@ -26,14 +26,16 @@
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: none; work remains uncommitted in a shared dirty checkout
-- Run at (UTC): 2026-08-30T21:14:30Z
-- Exact command(s): focused Client Vitest; Client lint; direct Vite production build; PWA budget
-  checker; authenticated Brave browser inspection
-- Result: implementation checks pass; external/full-checkout gates remain
-- Validated paths: `packages/client`, relevant Shared provider/hooks/components, and generated `dist`
-- Worktree identity command and result: `git status --short`; shared `develop` checkout contains
-  unrelated concurrent changes that were preserved
+- Tested implementation commit SHA: `d788fa2e8d9f9555dcb80c94422d08a3ac0786c2`
+- Run at (UTC): 2026-08-31T21:45:24.000Z
+- Exact command(s): `cd packages/client && bun run test` (full client Vitest suite)
+- Result: 120/120 test files, 1021/1021 tests passed; exit 0
+- Validated paths: `packages/client` and the shared provider/hook/component surfaces the PWA shell
+  consumes
+- Worktree identity command and result: `git rev-parse HEAD` =
+  `d788fa2e8d9f9555dcb80c94422d08a3ac0786c2`;
+  `git status --porcelain=v1 --untracked-files=all -- packages/client packages/shared` returned
+  empty (clean)
 - Evidence-only diff command and result (if applicable): not applicable
 - Evidence-only worktree-status command and result (if applicable): not applicable
 
