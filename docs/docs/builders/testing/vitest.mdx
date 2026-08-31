@@ -4,7 +4,7 @@ sidebar_label: Vitest
 slug: /builders/testing/vitest
 audience: developer
 owner: docs
-last_verified: 2026-08-23
+last_verified: 2026-08-30
 feature_status: Live
 source_of_truth:
   - packages/shared/package.json
@@ -20,228 +20,19 @@ keywords:
   - msw
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+# Vitest Unit Testing
 
-# Vitest
+Vitest owns fast TypeScript and React behavior proof across shared, client, admin, and agent.
 
-<StatusBadge status="Live" />
+## Test at the narrowest honest seam
 
-```mermaid
-graph TB
-    CMD["bun run test"] -->|vitest projects| Runner["Vitest Runner\nNode + DOM, isolated threads"]
+- Pure functions: inputs, outputs, boundaries, and failure cases.
+- Hooks and providers: state transitions, cleanup, recovery, and dependency seams.
+- Components: accessible behavior and visible state, not implementation snapshots.
+- Modules: real subject code with controlled external boundaries; do not self-mock the behavior
+  under test.
 
-    subgraph Packages
-        S["shared\nhooks, modules, utils"]
-        A["admin\ncomponents, views"]
-        C["client\ncards, PWA"]
-        AG["agent\nservices, handlers"]
-    end
-
-    Runner --> Packages
-
-    subgraph Support
-        MF["Mock Factories"]
-        MSW["MSW API Mocks"]
-        TW["Test Wrappers\nQueryClient + Intl"]
-    end
-
-    Support --> Packages
-    Packages --> Coverage["V8 Coverage\nnightly package floors"]
-```
-
-Unit and integration testing framework for all TypeScript packages. Each package has its own `vitest.config.ts` with package-specific aliases, environment settings, and coverage thresholds.
-
-## How To Approach Tests
-
-Vitest is the standard test runner for all TypeScript packages in the monorepo. The key philosophy: each package owns its test configuration, but shared utilities and mock factories live in `@green-goods/shared` to keep tests consistent and resilient to schema changes.
-
-### Critical: `bun run test` not `bun test`
-
-`bun test` invokes Bun's built-in test runner, which **ignores vitest configuration entirely** (setup files, aliases, environment, coverage thresholds). Always use `bun run test`, which runs the `test` script from `package.json` and properly invokes vitest.
-
-### Workspace Configuration
-
-Each package has its own `vitest.config.ts`:
-
-| Package | Environment | Setup File | Key Aliases |
-|---------|-------------|------------|-------------|
-| **shared** | Node + `jsdom` projects | `src/__tests__/setupTests.ts` | Curated DOM-free Node globs; DOM owns the remainder |
-| **admin** | Node + `jsdom` projects | `src/__tests__/setup.ts` | `.ts` tests in Node; `.tsx`/`.jsx` tests in DOM |
-| **client** | Node + `jsdom` projects | `src/__tests__/setupTests.ts` | `.ts` tests in Node; `.tsx`/`.jsx` tests in DOM |
-| **agent** | `node` | `src/__tests__/setup.ts` | Node-specific mocks |
-
-All packages use:
-- **Thread pool** (`pool: "threads"`) for parallel test execution
-- **V8 coverage** provider with package-specific thresholds
-- **10-second timeout** per test
-
-The `agent` package is the exception: it runs in the `node` environment with `fileParallelism: false`, and its coverage thresholds are intentionally lower than the frontend/shared packages.
-
-Shared, admin, and client keep `isolate: true` and split DOM-free tests into Node projects so pure
-module proof does not pay for browser globals. Shared uses a curated Node allowlist because some
-`.ts` tests still depend on DOM setup; admin and client route `.ts` to Node and `.tsx`/`.jsx` to DOM.
-Project discovery must preserve the intended union exactly once.
-
-### React Deduplication
-
-A critical configuration detail: vitest aliases force all React imports (including those from `@green-goods/shared` and its transitive dependencies) to resolve to a single React instance. Without this, hooks fail with "Invalid hook call" errors due to multiple React runtimes.
-
-## Completing Test Coverage
-
-### Mock Factories
-
-The shared package provides typed mock factories in `packages/shared/src/__tests__/test-utils/mock-factories.ts`:
-
-```typescript
-import { createMockGarden, createMockWork, createMockAction } from '@green-goods/shared/testing';
-
-const garden = createMockGarden({ name: 'Test Garden' });
-const work = createMockWork({ gardenAddress: garden.address });
-```
-
-These factories produce complete domain objects with sensible defaults, so tests only need to override the fields they care about.
-
-### Query Client Wrapper for Hook Testing
-
-Hook tests use a shared wrapper that provides `QueryClientProvider` and `IntlProvider`:
-
-```typescript
-import { createTestWrapper, createTestQueryClient } from '@green-goods/shared/testing';
-
-const queryClient = createTestQueryClient(); // retry: false, gcTime: 0
-const wrapper = createTestWrapper(queryClient);
-
-const { result } = renderHook(() => useMyHook(), { wrapper });
-```
-
-The test query client disables retries and garbage collection to make tests deterministic.
-
-### MSW for API Mocking
-
-API calls (EAS GraphQL, Envio GraphQL, IPFS) are mocked using MSW (Mock Service Worker) with handlers defined in test setup files. The shared package's mock server intercepts network requests at the handler level rather than mocking individual fetch calls.
-
-### Module Mocking with `vi.mock`
-
-Most hook tests use `vi.mock` with factory functions to isolate the unit under test:
-
-```typescript
-const mockUseQuery = vi.fn();
-vi.mock("@tanstack/react-query", () => ({
-  useQuery: (options: any) => mockUseQuery(options),
-}));
-```
-
-This pattern lets tests verify exact query keys, enabled conditions, and queryFn behavior without hitting real APIs.
-
-Do not mock a test's own subject. A direct subject test imports the subject outside every mock
-factory through its real relative or declared package specifier, while mocks isolate only its
-dependencies. `bun run check:test-quality` enforces this rule and reconciles certified critical
-seams with `scripts/data/module-seam-registry.json`.
-
-Keep these proof types separate:
-
-- **Direct test**: exercises the subject's interface without mocking the subject.
-- **Conformance test**: proves production and local/test adapters obey the same observable contract.
-- **Consumer wiring**: proves a real caller uses the declared interface.
-- **Production composition**: proves defaults and runtime identity are assembled at the intended root.
-- **Coverage floor**: catches broad execution regressions; it does not certify interface depth,
-  adapter fidelity, consumer reachability, or production composition.
-
-### Per-Package Notes
-
-#### shared (largest test suite)
-
-Covers hooks, modules, utilities, stores, workflows, and providers. Tests live in `src/__tests__/` mirroring the source directory structure. Key areas:
-- **Hook tests** (`hooks/`): action, assessment, blockchain, conviction, cookie-jar, ENS, garden, gardener, hypercerts, vault, work, utility hooks
-- **Module tests** (`modules/`): EAS data layer, GraphQL client, job queue (core, DB, event bus), marketplace, media resource manager, PostHog analytics, service worker
-- **Utility tests** (`utils/`): encoders, error handling (5 test files), compression, date/time, ENS, transaction builder, vaults
-- **Workflow tests** (`workflows/`): auth machine, create assessment, create garden, mint hypercert state machines
-
-#### admin (component tests)
-
-Component tests with a custom render wrapper that provides routing, query client, and intl. Tests focus on:
-- Form wizard behavior, modal interactions, position cards
-- Hypercert workflow steps (attestation selector, distribution config, preview, mint progress)
-- Route guards (RequireDeployer)
-- View-level tests (Dashboard, Actions, ActionDetail)
-
-#### client (component tests)
-
-Similar to admin but includes PWA-specific concerns:
-- Card components (ActionCard, GardenCard, WorkCard, DraftCard, FormCard)
-- Error boundary behavior
-- Offline-aware component behavior
-
-#### agent (service tests)
-
-Node environment tests for:
-- Crypto operations, rate limiting, storage
-- Handler logic (help command)
-- Mock utilities and factories
-
-## Running Tests
-
-```bash
-# All packages
-bun run test                        # Run the root test script across the workspace
-
-# Per package
-cd packages/shared && bun run test  # Shared package only
-cd packages/shared && bun run test:live  # Shared live RPC checks (explicit opt-in)
-cd packages/admin && bun run test   # Admin package only
-cd packages/client && bun run test  # Client package only
-cd packages/agent && bun run test   # Agent package only
-
-# Watch mode
-cd packages/shared && bun run test:watch
-cd packages/admin && bun run test:watch
-cd packages/agent && bun run test:watch
-
-# Specific test file
-cd packages/shared && bun run test src/__tests__/hooks/work/useWorkMutation.test.ts
-
-# Coverage report
-cd packages/shared && bun run coverage
-cd packages/admin && bun run test:coverage
-cd packages/client && bun run coverage
-cd packages/agent && bun run test:coverage
-
-# Contracts (Forge, not vitest)
-cd packages/contracts && bun run test       # Unit tests
-cd packages/contracts && bun run test:fork  # Fork tests (needs RPC URLs)
-```
-
-The default shared test command is intentionally hermetic. Live RPC coverage is excluded from `bun run test` and only runs through `bun run test:live`.
-
-## Coverage thresholds
-
-Coverage is enforced per package, not with one monorepo-wide threshold. Pull request Test jobs run
-plain `bun run test` for fast feedback. The Coverage Nightly workflow runs on a daily schedule, after
-every push to `main`, and by manual dispatch; that workflow runs the package coverage scripts with
-`CI=true` and enforces the floors below.
-
-| Package | Branches | Functions | Lines | Statements |
-|---------|----------|-----------|-------|------------|
-| **shared** | 52 | 59 | 62 | 61 |
-| **admin** | 47 | 44 | 53 | 51 |
-| **client** | 56 | 62 | 64 | 63 |
-| **agent** | 10 | 20 | 20 | 20 |
-
-The first ratchet review is scheduled for 2026-09-22. Once the measured coverage supports the
-change, raise each configured metric by two percentage points and update its parity-test array in
-the same commit. A floor change is incomplete if the Vitest config and parity fixture disagree.
-
-## Resources
-
-- [Vitest Documentation](https://vitest.dev/) -- Official Vitest docs
-- [Vitest API Reference](https://vitest.dev/api/) -- Test API reference
-- Mock factories: `packages/shared/src/__tests__/test-utils/mock-factories.ts`
-- Shared test utilities: `packages/shared/src/__tests__/test-utils/`
-- Per-package vitest configs: `packages/*/vitest.config.ts`
-
-<NextBestAction
-  title="Next: React Testing Library"
-  why="Learn how to test React components and hooks with React Testing Library patterns."
-  actionLabel="React Testing Library"
-  actionHref="/builders/testing/rtl"
-/>
+Package manifests and Vitest configs own scripts, setup, reporters, and thresholds. Use the root
+validation selector to choose targeted, package, or cross-package proof. The generated [test-case
+catalog](../quality/test-cases) is a product scenario inventory, not a substitute for executable
+unit and integration tests.

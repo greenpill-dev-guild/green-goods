@@ -12,7 +12,7 @@ Paste this sentence (or a trimmed version) into every AI design prompt for clien
 
 ## Required Vocabulary
 
-> **Canonical glossary**: cross-surface domain terms (Garden, Action, Work, Assessment, Hypercert, Vault, Cookie Jar, Attestation, Hat, Season) and personas (Gardener, Steward, Evaluator, Funder, Community Member) live in [`docs/docs/reference/glossary-community.md § Design Vocabulary`](../../../docs/docs/reference/glossary-community.md#design-vocabulary). The table below is client-specific shell / journal vocabulary that does not live there.
+> **Terminology authority**: cross-surface domain terms and personas live in [`green-goods-ontology.json`](../../../packages/shared/src/ontology/green-goods-ontology.json). The generated public [glossary](../../../docs/docs/reference/glossary.generated.mdx) explains that vocabulary. The table below is client-specific shell and journal vocabulary.
 
 Use these terms when describing client UI:
 
@@ -33,7 +33,7 @@ Use these terms when describing client UI:
 
 ## Never Use (in client prompts)
 
-> **Canonical source**: the full client-banned phrase list lives in [`docs/docs/reference/glossary-community.md § Client-Only Banned (AI Prompt Vocabulary)`](../../../docs/docs/reference/glossary-community.md#client-only-banned-ai-prompt-vocabulary) and in [`docs/docs/reference/banned-vocabulary.json`](../../../docs/docs/reference/banned-vocabulary.json) (`prompt_vocabulary_client_banned`). Lint-enforced cross-surface bans live in the same glossary § Lint-Enforced section — `bun run lint:vocab` parses the JSON.
+> **Machine policy**: the full client-banned phrase list lives in [`scripts/data/banned-vocabulary.json`](../../../scripts/data/banned-vocabulary.json) (`prompt_vocabulary_client_banned`). `bun run lint:vocab` reads the same file for lint-enforced cross-surface terms.
 
 The categories below are contract-specific framing — *why* client output should reject these patterns. The exact phrase set is the glossary's job:
 

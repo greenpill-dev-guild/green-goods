@@ -53,7 +53,6 @@
       "packages/shared/src/workflows/authMachine.ts",
       ".env.schema",
       "packages/client",
-      "docs/docs/builders/specs/passkey-server-hardening-and-recovery-ready-auth-2026-03.md",
       "docs/docs/builders/architecture/sequence-diagrams.mdx",
       "docs/docs/builders/journeys/onboarding.mdx",
       "docs/docs/builders/integrations/passkey.mdx"

@@ -1,6 +1,6 @@
 # Design Implementation
 
-Execution companion to the `design` skill: how to express Warm Earth *in code*. Direction lives in [SKILL.md](./SKILL.md) / [language.md](./language.md); runtime tokens in `packages/shared/src/styles/theme.css`. Generic Tailwind v4 / Radix / WCAG mechanics are model-known — this file holds only the repo-specific parts. Tailwind's shared-scan gotcha is in root `CLAUDE.md § Known Gotchas`; token roles + the 13 sins in `CLAUDE.md § Design System` and [quick-reference.md](./quick-reference.md).
+Execution companion to the `design` skill: how to express Warm Earth *in code*. Direction lives in [SKILL.md](./SKILL.md) / [language.md](./language.md); runtime tokens in `packages/shared/src/styles/theme.css`. Generic Tailwind v4 / Radix / WCAG mechanics are model-known — this file holds only the repo-specific parts. Tailwind's shared-scan gotcha is in root `AGENTS.md § Known Gotchas`; token roles and anti-patterns live in [language.md](./language.md) and [SKILL.md](./SKILL.md).
 
 ## New Component Runbook
 

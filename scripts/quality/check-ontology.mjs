@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Ontology drift gate: cross-checks packages/shared/src/ontology/green-goods-ontology.json
 // against Solidity enums, the indexer GraphQL schema, shared TypeScript vocabularies,
-// the EAS schema config, projection evidence, and glossary tables; regenerates five artifacts
+// the EAS schema config, projection evidence, and generated glossary; regenerates three artifacts
 // with --generate. Zero dependencies beyond the Node standard library on purpose —
 // the CI workflow runs it without installing anything, and the ci-gate matcher relies
 // on that by excluding package.json/bun.lock from its path filter.
@@ -16,8 +16,6 @@ import { fileURLToPath } from "node:url";
 
 import {
   renderAgentManifest,
-  renderEntityMatrixMdx,
-  renderHumanOntologyMdx,
   renderMarketingClaimsMdx,
   renderOntologyMdx,
 } from "./ontology-render.mjs";
@@ -30,10 +28,9 @@ const PROJECTIONS_PATH = "packages/shared/src/ontology/green-goods-projections.j
 const AGENT_MANIFEST_PATH = "packages/shared/src/ontology/agent-manifest.generated.json";
 const BASELINE_PATH = "scripts/data/ontology-drift-baseline.json";
 const SCHEMAS_JSON_PATH = "packages/contracts/config/schemas.json";
-const GLOSSARY_PATH = "docs/docs/reference/glossary-community.md";
+const QA_CATALOG_PATH = "scripts/data/qa-test-catalog.json";
+const GLOSSARY_PATH = "docs/docs/reference/glossary.generated.mdx";
 const GENERATED_REFERENCE_PATH = "docs/docs/reference/ontology.generated.mdx";
-const GENERATED_MATRIX_PATH = "docs/docs/builders/integrations/entity-matrix.mdx";
-const GENERATED_HUMAN_PATH = "docs/docs/reference/ontology-human.generated.mdx";
 const GENERATED_CLAIMS_PATH = "docs/docs/community/green-goods-claims.generated.mdx";
 const CLIENT_GLOSSARY_PATH = "packages/client/src/views/Public/Glossary.tsx";
 
@@ -233,7 +230,8 @@ export function parseGlossaryTable(source, sectionHeading) {
   const headingMatch = new RegExp(`^## ${sectionHeading}\\s*$`, "m").exec(source);
   if (!headingMatch) return null;
   const rest = source.slice(headingMatch.index);
-  const sectionEnd = rest.indexOf("\n---");
+  const nextHeading = /\n## (?!#)/.exec(rest.slice(1));
+  const sectionEnd = nextHeading ? nextHeading.index + 1 : -1;
   const section = sectionEnd === -1 ? rest : rest.slice(0, sectionEnd);
   const rows = [];
   for (const line of section.split("\n")) {
@@ -268,7 +266,10 @@ export function slugifyHeading(text) {
 export function parseTermReferenceHeadings(source) {
   const headingMatch = /^## Term Reference[^\n]*$/m.exec(source);
   if (!headingMatch) return null;
-  const section = source.slice(headingMatch.index);
+  const rest = source.slice(headingMatch.index);
+  const nextHeading = /\n## (?!#)/.exec(rest.slice(1));
+  const sectionEnd = nextHeading ? nextHeading.index + 1 : -1;
+  const section = sectionEnd === -1 ? rest : rest.slice(0, sectionEnd);
   const out = [];
   for (const line of section.split("\n")) {
     const match = /^### (.+?)\s*$/.exec(line);
@@ -290,6 +291,9 @@ export function parseGlossaryAnchors(source) {
     anchors.add(
       explicit ? explicit[1] : slugifyHeading(match[1].replace(/\s*\{#[A-Za-z0-9_-]+\}\s*$/, ""))
     );
+  }
+  for (const match of source.matchAll(/<a\s+id=["']([A-Za-z0-9_-]+)["']\s*><\/a>/g)) {
+    anchors.add(match[1]);
   }
   return anchors;
 }
@@ -447,6 +451,10 @@ function readRepoFile(relPath, fatal) {
 
 export function collectAnchorFiles(ontology) {
   const files = new Set();
+  for (const integration of ontology.integrations ?? []) {
+    files.add(integration.contract_source);
+    for (const file of integration.additional_sources ?? []) files.add(file);
+  }
   for (const entity of ontology.entities) {
     for (const file of entity.layers?.solidity ?? []) files.add(file);
     if (entity.layers?.indexer) files.add(entity.layers.indexer.file);
@@ -652,6 +660,19 @@ export function checkProjectionIntegrity(ontology, projections, fileExists) {
   return errors;
 }
 
+export function checkQaCatalogRoles(ontology, catalog) {
+  const errors = [];
+  const allowed = new Set(["any", "none", ...ontology.personas.map((persona) => persona.id)]);
+  for (const qaCase of catalog.cases ?? []) {
+    if (!allowed.has(qaCase.role)) {
+      errors.push(
+        `QA case ${qaCase.id}: role "${qaCase.role}" is not an ontology persona or the any/none sentinel`
+      );
+    }
+  }
+  return errors;
+}
+
 export function checkSidecarIntegrity(ontology, fileExists) {
   const errors = [];
   const validSymbol = (symbol) => typeof symbol === "string" && /^[A-Za-z_$][\w$]*$/.test(symbol);
@@ -670,6 +691,7 @@ export function checkSidecarIntegrity(ontology, fileExists) {
   uniq("pattern_watches", ontology.pattern_watches.map((w) => w.id));
   uniq("known_issues", ontology.known_issues.map((i) => i.id));
   uniq("supporting_terms", ontology.supporting_terms.map((t) => t.id));
+  uniq("integrations", (ontology.integrations ?? []).map((integration) => integration.id));
   uniq("integration_matrix rows", ontology.integration_matrix.rows.map((r) => r.ref));
 
   const vocabularyIds = new Set(ontology.vocabularies.map((v) => v.id));
@@ -706,6 +728,34 @@ export function checkSidecarIntegrity(ontology, fileExists) {
   for (const term of ontology.supporting_terms) {
     for (const field of ["id", "display", "reason"]) {
       if (!term[field]?.trim()) errors.push(`supporting term ${term.id ?? "?"}: ${field} is required`);
+    }
+  }
+
+  for (const integration of ontology.integrations ?? []) {
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(integration.id ?? "")) {
+      errors.push(`integration ${integration.id ?? "?"}: id must be kebab-case`);
+    }
+    for (const field of ["display", "definition", "contract_source"]) {
+      if (typeof integration[field] !== "string" || integration[field].trim() === "") {
+        errors.push(`integration ${integration.id ?? "?"}: ${field} is required`);
+      }
+    }
+    if (!Array.isArray(integration.deployment_fields) || integration.deployment_fields.length === 0) {
+      errors.push(`integration ${integration.id ?? "?"}: deployment_fields must not be empty`);
+    } else if (new Set(integration.deployment_fields).size !== integration.deployment_fields.length) {
+      errors.push(`integration ${integration.id}: deployment_fields contains duplicates`);
+    }
+    for (const key of ["indexer_contracts", "additional_sources"]) {
+      if (!Array.isArray(integration[key])) {
+        errors.push(`integration ${integration.id ?? "?"}: ${key} must be an array`);
+      } else if (new Set(integration[key]).size !== integration[key].length) {
+        errors.push(`integration ${integration.id}: ${key} contains duplicates`);
+      }
+    }
+    for (const source of [integration.contract_source, ...(integration.additional_sources ?? [])]) {
+      if (typeof source === "string" && source && !fileExists(source)) {
+        errors.push(`integration ${integration.id}: source does not exist: ${source}`);
+      }
     }
   }
 
@@ -1440,8 +1490,6 @@ function checkGeneratedArtifacts(ontology, projections) {
   const errors = [];
   const renderAll = () => ({
     reference: renderOntologyMdx(ontology, projections),
-    matrix: renderEntityMatrixMdx(ontology),
-    human: renderHumanOntologyMdx(ontology, projections),
     claims: renderMarketingClaimsMdx(projections),
     agent: renderAgentManifest(ontology, projections),
   });
@@ -1453,8 +1501,6 @@ function checkGeneratedArtifacts(ontology, projections) {
   }
   for (const [relPath, expected] of [
     [GENERATED_REFERENCE_PATH, first.reference],
-    [GENERATED_MATRIX_PATH, first.matrix],
-    [GENERATED_HUMAN_PATH, first.human],
     [GENERATED_CLAIMS_PATH, first.claims],
     [AGENT_MANIFEST_PATH, first.agent],
   ]) {
@@ -1500,10 +1546,24 @@ function main() {
     process.exit(2);
   }
 
+  const qaCatalogAbs = path.join(REPO_ROOT, QA_CATALOG_PATH);
+  if (!existsSync(qaCatalogAbs)) {
+    console.error(`check-ontology: missing QA catalog ${QA_CATALOG_PATH}`);
+    process.exit(2);
+  }
+  let qaCatalog;
+  try {
+    qaCatalog = JSON.parse(readFileSync(qaCatalogAbs, "utf8"));
+  } catch (error) {
+    console.error(`check-ontology: could not parse ${QA_CATALOG_PATH}: ${error.message}`);
+    process.exit(2);
+  }
+
   const fileExists = (file) => existsSync(path.join(REPO_ROOT, file));
   const integrityErrors = [
     ...checkSidecarIntegrity(ontology, fileExists),
     ...checkProjectionIntegrity(ontology, projections, fileExists),
+    ...checkQaCatalogRoles(ontology, qaCatalog),
   ];
   if (integrityErrors.length > 0) {
     console.error("check-ontology: sidecar integrity failed:\n");
@@ -1513,16 +1573,12 @@ function main() {
 
   if (generateMode) {
     const reference = renderOntologyMdx(ontology, projections);
-    const matrix = renderEntityMatrixMdx(ontology);
-    const human = renderHumanOntologyMdx(ontology, projections);
     const claims = renderMarketingClaimsMdx(projections);
     const agent = renderAgentManifest(ontology, projections);
     writeFileSync(path.join(REPO_ROOT, GENERATED_REFERENCE_PATH), reference);
-    writeFileSync(path.join(REPO_ROOT, GENERATED_MATRIX_PATH), matrix);
-    writeFileSync(path.join(REPO_ROOT, GENERATED_HUMAN_PATH), human);
     writeFileSync(path.join(REPO_ROOT, GENERATED_CLAIMS_PATH), claims);
     writeFileSync(path.join(REPO_ROOT, AGENT_MANIFEST_PATH), agent);
-    console.log("Generated 5 ontology projections (reference, matrix, human, claims, agent manifest).");
+    console.log("Generated 3 ontology projections (reference, claims, agent manifest).");
     return;
   }
 
@@ -1570,7 +1626,7 @@ function main() {
   console.log(`✅ pattern-watch: ${counts["pattern-watch"]} watches evaluated`);
   console.log(`✅ docs-term-reference: ${counts["docs-term-reference"]} glossary term entries resolved`);
   console.log(`✅ client-glossary: ${counts["client-glossary"]} client terms and deep links resolved`);
-  console.log("✅ generated-staleness: 5 artifacts current and deterministic");
+  console.log("✅ generated-staleness: 3 artifacts current and deterministic");
   console.log(`✅ baseline: ${matched} finding(s) baselined`);
   for (const warning of warnings) console.log(`⚠️ ${warning}`);
   console.log(`check-ontology: all guards passed, ${matched} baselined finding(s).`);

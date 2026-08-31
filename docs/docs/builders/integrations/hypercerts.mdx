@@ -1,46 +1,54 @@
 ---
 title: Hypercerts
-sidebar_label: Hypercerts
 slug: /builders/integrations/hypercerts
 audience: developer
 owner: docs
-last_verified: 2026-04-25
-feature_status: Implemented (activation pending indexing)
-source_of_truth:
+feature_status: Live
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
   - packages/contracts/src/modules/Hypercerts.sol
-  - packages/contracts/src/markets/HypercertMarketplaceAdapter.sol
-  - packages/shared/src/hooks/hypercerts
-  - packages/admin/src/components/Hypercerts
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
+source_digest: "sha256:9088e07d29def8ad3d3e850d2bb4f374d5403353bb7f42a3d33d8c882a93f13a"
+source_of_truth:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
+  - packages/contracts/src/modules/Hypercerts.sol
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
-
+<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
 # Hypercerts
 
-<StatusBadge status="Implemented (activation pending indexing)" />
+Hypercerts represent certified impact claims and their fraction ownership.
 
-## Overview
-Hypercert support exists across deployed contract modules, marketplace adapter code, shared mint/listing hooks, metadata helpers, and admin wizard surfaces. Arbitrum and Sepolia artifacts have non-zero module and marketplace adapter addresses; Celo does not. Marketplace adapter events are not currently configured in the Green Goods indexer, so listing/trade claims should stay indexing-aware.
+## Checked-in deployment projection
 
-## Current surfaces
+| Network | Status | Recorded components |
+|---|---|---|
+| Ethereum Mainnet (`1`) | Not deployed | none |
+| Sepolia Testnet (`11155111`) | Partial | `hypercertsModule` |
+| Arbitrum One (`42161`) | Deployed | `hypercertExchange`, `hypercertMinter`, `hypercertsModule` |
+| Celo (`42220`) | Not deployed | none |
 
-- Admin Hypercert wizard and preview components.
-- Shared hooks for minting, allowlists, drafts, listings, approvals, trade history, and marketplace services.
-- Shared metadata, validation, distribution, and Merkle helpers.
-- Indexer events for Hypercert transfers and stored claims.
+## Indexer boundary
 
-## Builder notes
+Configured indexer contracts: `HypercertMinter`.
 
-- Keep certificate copy aligned with steward guide language.
-- Use shared Hypercert hooks for data and transaction workflows.
-- Treat marketplace-derived support badges and listings as chain- and indexer-aware; do not imply universal marketplace support.
-
-<NextBestAction
-  title="Next best action"
-  why="The steward-facing certificate guide explains the current user journey this integration supports."
-  actionLabel="Create impact certificates"
-  actionHref="../../community/steward-guide/creating-impact-certificates"
-  alternatives={[
-    {label: "Integrations overview", href: "./overview"},
-  ]}
-/>
+A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. Follow the owning package runbook for operational verification.

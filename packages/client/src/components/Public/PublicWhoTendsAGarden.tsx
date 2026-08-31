@@ -72,8 +72,11 @@ const PERSONAS: readonly PersonaEntry[] = [
     defaultBody:
       "Evaluators strengthen the public record by shaping Assessments, methods, and impact claims. Stewards, not Evaluators, approve or reject submitted Work.",
     ctaId: "public.home.personas.evaluator.cta",
-    defaultCta: "Read the evaluator guide",
-    cta: { type: "external", href: "https://docs.greengoods.app/community/evaluator-guide" },
+    defaultCta: "Read the assessment guide",
+    cta: {
+      type: "external",
+      href: "https://docs.greengoods.app/community/steward-guide/making-an-assessment",
+    },
   },
   {
     id: "funder",

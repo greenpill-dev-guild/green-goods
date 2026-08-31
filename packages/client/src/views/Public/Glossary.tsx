@@ -24,12 +24,11 @@ interface GlossaryTerm {
 /**
  * Editorial glossary — short, scannable definitions for the public site.
  *
- * Curated from `docs/docs/reference/glossary-community.md` (the canonical
- * vocabulary). Each entry is a one-sentence plain-language gloss with a
+ * Curated from the machine-readable ontology. Each entry is a one-sentence plain-language gloss with a
  * deeper link into the docs glossary for full definition + cross-references.
  *
  * Order: alphabetical so the visitor can skim. Term names use the canonical
- * casing from the docs glossary.
+ * casing from the ontology.
  */
 const TERMS: readonly GlossaryTerm[] = [
   {
@@ -131,7 +130,7 @@ const DOCS_BASE = "https://docs.greengoods.app";
  *
  * Short, scannable definitions that lower the barrier for non-web3 visitors
  * who hit terms like "Hypercert", "Vault", "Attestation". Each entry links
- * to the canonical docs glossary for fuller definition and cross-references.
+ * to the generated docs glossary for fuller definition and cross-references.
  *
  * Linked from PublicFooter and from PublicReadDeeper instances that touch
  * vocabulary-heavy surfaces.
@@ -221,14 +220,14 @@ export default function Glossary() {
             <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
               {formatMessage({
                 id: "public.glossary.canonicalKicker",
-                defaultMessage: "Canonical source",
+                defaultMessage: "Vocabulary authority",
               })}
             </p>
             <p className="mt-2 max-w-2xl text-sm leading-[1.6] text-text-sub-600 md:text-base">
               {formatMessage({
                 id: "public.glossary.canonicalBody",
                 defaultMessage:
-                  "The docs glossary is the source of truth for vocabulary across code, copy, and design prompts. Builder terms (Allowlist, Bundler, ERC-4337) live there too.",
+                  "Green Goods generates the docs glossary from its machine-readable ontology and language policy, keeping public definitions aligned with code, copy, and design guidance.",
               })}
             </p>
             <div className="mt-4">

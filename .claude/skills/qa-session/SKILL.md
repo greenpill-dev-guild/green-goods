@@ -1,7 +1,7 @@
 ---
 name: qa-session
 user-invocable: true
-description: Live product-experience QA copilot — the user walks Green Goods flows locally against production data (dev:prod) while dictating observations, or supplies a recorded dictation transcript of such a walk. Captures each observation with a stable OBS ID, triages fix-now vs defer in real time, applies safe fixes in the same running checkout for immediate revalidation, hands deferred items to qa-triage, and locks design decisions at close. Records verdicts in the QA app (packages/qa) and pulls them back with qa:pull. Supports paired sessions where two testers walk different surfaces at once, each with their own agent. Fires on "QA session", "QA walk/walkthrough", "I'll walk the flows and call out issues", "fix live while I test", "we're QAing together", or a dictated-walk transcript. Not for triaging meeting notes (qa-triage), a single reported bug (debug), or reviewing a diff (review).
+description: Run a live, paired, or transcript-based Green Goods product-experience QA walk. Capture stable OBS records, triage bounded fix-now work, revalidate in the serving checkout, hand deferred findings to qa-triage with exact Test IDs, and lock user-approved design decisions at close. Fires on "QA session", "QA walk/walkthrough", "I'll walk the flows and call out issues", "fix live while I test", "we're QAing together", or a dictated-walk transcript. Not for meeting-notes triage (qa-triage), a single reported bug (debug), or diff review (review).
 argument-hint: "[<transcript-path>] [--surface admin|pwa|website|docs|all] [--cases <IDs|area>] [--paired]"
 ---
 
@@ -18,6 +18,7 @@ duplicate them:
 
 | Need | Owner |
 |---|---|
+| QA layers, artifact ownership, privacy, verdict rollup, roster, state queries, Test ID linkage, workbook exception | [`.claude/context/qa.md`](../../context/qa.md) |
 | Retrospective meeting-notes triage, PostHog cross-ref, Linear + Sheet writes | [`qa-triage`](../qa-triage/SKILL.md) (this skill hands off to it) |
 | Linear payload templates, label scheme, disposition rules | [`qa-triage/linear-templates.md`](../qa-triage/linear-templates.md) |
 | Sheet/workbook schemas, surface vocabulary, severity defaults | [`qa-triage/sheet-schema.md`](../qa-triage/sheet-schema.md) |
@@ -25,9 +26,6 @@ duplicate them:
 | Casual phrase → `data-component`/`data-region` resolution (admin) | [`design/defect-grammar.md`](../design/defect-grammar.md) |
 | Locked design decisions (DL-NNN ledger, graduation ladder) | [`design/decision-log.md`](../design/decision-log.md) |
 | In-session fast validation rungs (QA Speed Mode) | [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md) § Partial rungs |
-| Test-case definitions (the walk checklist) | `scripts/data/qa-test-catalog.json` |
-| **Recording surface** — where testers put verdicts and notes during the walk | [`packages/qa`](../../../packages/qa/README.md) (the QA app), pulled back with `bun run qa:pull` |
-| Sheet-compatible run sheet for production/installed-device passes | `bun run qa:workbook` |
 | Journey matrices, receipt fields, defect labels, evidence hierarchy | `docs/docs/builders/quality/product-experience-qa.mdx` |
 | Pre-merge gate at close | [`ship`](../ship/SKILL.md) |
 
@@ -123,22 +121,9 @@ Run before the user starts walking. Print the checklist results compactly; stop 
    current branch** — per `AGENTS.md § Multi-Agent Repo Safety`, never create or switch branches
    without the user explicitly asking for that branch action; branching is decided at the first
    accepted fix (Phase 3), not at session start.
-7. **Recording surface.** The [QA app](../../../packages/qa/README.md) is where verdicts and
-   notes go — it is the canonical record for any session with network access, and it is what
-   `bun run qa:pull` reads at close. Confirm before the walk starts:
-   - the deployment loads and every tester has the password;
-   - each tester has picked their own name under *testing as* — the app cannot prove who you
-     are, so an unpicked name means the work lands unattributed or, worse, under someone else;
-   - on first use after a deploy, the two-browser check from the README ran (both testers record
-     a verdict **and** a note on the same case, both survive).
-
-   The in-session walk checklist is the app itself. Read
-   `scripts/data/qa-test-catalog.json` only to print scope (`--surface`/`--cases`) or when the
-   app is unavailable.
-
-   **`bun run qa:workbook` is now the exception path**, not the default: use it for production
-   or installed-device passes where the app is not in play, and when a Sheet-compatible file is
-   needed. `--local` pre-marks `requiresProduction` cases `Blocked`.
+7. **Recording readiness.** Apply the recording, attribution, and workbook-exception contract in
+   [`.claude/context/qa.md`](../../context/qa.md). Confirm its app pre-flight before the walk; use
+   the app as the checklist and read the catalog only to print requested scope.
 
 ## Phase 1 — Capture
 
@@ -221,25 +206,9 @@ Per accepted fix (or batched in a fix window):
    meeting notes; this input is agent-authored and structured. qa-triage's PostHog cross-ref,
    scope lock, Linear templates, and Sheet Defects flow run unchanged. If the user is out of
    time, the handoff command is the named next step in the receipt.
-3. **Results rows — pulled, not transcribed.** Run `bun run qa:pull --slug <slug>`. It reads
-   every tester's shard straight from the Blob store and writes
-   `tmp/qa-session/<slug>/results.csv` (`Test ID, Result, Severity, Notes`) plus
-   `qa-state.json`. It reads the store rather than the app, so it works while the deployment is
-   password-protected and still works if the deployment is down. Nobody retypes anything.
-
-   Three properties of that file to know before reading it:
-   - **Severity is blank by design.** How much we care that a case gets walked is not how badly
-     the product is broken when it fails — severity is assigned in triage, per
-     [`qa-triage/sheet-schema.md`](../qa-triage/sheet-schema.md).
-   - **Notes are attributed** (`Afo: … | Gui: …`). Two testers disagreeing is signal; never
-     collapse it to one voice.
-   - **A case's Result is the most severe verdict any tester recorded** — fail > blocked > pass
-     > n/a. A case one tester passed and another failed reads `Fail`, and the attributed notes
-     are how you see why.
-
-   A recorded case that is no longer in the catalog appears as an `UNKNOWN CASE` row rather than
-   being dropped, so the run sheet and the catalog stay reconcilable. Results never enter git;
-   `tmp/` is gitignored and this repo is public.
+3. **Pull results.** Run `bun run qa:pull --slug <slug>` and inspect the close-out artifacts under
+   `tmp/qa-session/<slug>/`. Apply the result, rollup, severity, and privacy contract in
+   [`.claude/context/qa.md`](../../context/qa.md); never transcribe app results by hand.
 4. **Decision lock gate.** List all `decision` OBS verbatim and ask: *"Lock which of these as
    design decisions? (numbers / all / none)"*. Locked ones append to
    [`design/decision-log.md`](../design/decision-log.md) as `DL-NNN` rows (`Status: locked`),
@@ -249,23 +218,9 @@ Per accepted fix (or batched in a fix window):
    header (commit, branch, surfaces, gardens, identities, write boundary), catalog cases
    exercised with result counts, OBS totals by disposition, fix list (OBS → commit SHA →
    revalidated), deferred list, locked DL IDs, environment notes (watchdog trips,
-   dep-optimization reloads, restarts), remaining risk. Before ANY upload, every artifact
-   leaving the machine passes a **media-appropriate** privacy check — the text grep cannot see
-   pixels, and Drive access restriction never replaces content inspection:
-   - **Text artifacts** (`receipt.md`, `results.csv`, logs): qa-triage's privacy grep (replay
-     URLs, session IDs, distinct IDs, `0x` addresses, reporter identifiers) — on a match,
-     redact or stop. `results.csv` now carries tester names in its Notes column, which is
-     intended for the Drive folder and disqualifying for anywhere public.
-   - **Media artifacts** (screenshots, recordings): explicit VISUAL inspection — the agent
-     re-opens each captured image and checks its rendered content for wallet addresses,
-     session/replay values, or reporter identity, listing anything found for redaction or
-     exclusion; media it cannot inspect (e.g. video it cannot review) is named to the user for
-     manual review before upload.
-   Any artifact with an unresolved finding fails closed — no upload. Then verify the
-   destination **Drive QA folder next to the Green Goods v1.1 QA Sheet** is access-restricted
-   (not link-public — same check as qa-triage Phase 0) and upload the receipt, results, and
-   cleared evidence files there. These artifacts carry per-case results and identities:
-   **never commit them to the public repo.**
+   dep-optimization reloads, restarts), remaining risk. Apply the text, media, destination, and
+   public-repository boundary in [`.claude/context/qa.md`](../../context/qa.md). An unresolved
+   privacy finding fails closed; do not upload or delete the local evidence.
 6. **Ship — only when the session changed the repo.** If the session produced commits, run the
    full `bun run validation:plan -- --intent review` on the accumulated branch, then the
    [`ship`](../ship/SKILL.md) skill for the push/PR decision. A session with no repository
@@ -352,14 +307,8 @@ close-out validation or its failure is recorded in the receipt.
   (e.g. an isolated sandbox vs Claude Code with the authenticated Brave profile vs human-only).
 - **Letting the timebox slide.** 30 minutes means abandon, revert, defer — the session's value
   is breadth with immediate validation, not one deep rabbit hole.
-- **Writing results into git.** Definitions live in the catalog; results live in the QA app's
-  private store, the pulled `tmp/` artifacts, and Drive. This repo is public.
-- **Transcribing results by hand.** `bun run qa:pull` reads the store. Retyping verdicts into a
-  sheet reintroduces the transcription errors the app exists to remove.
 - **Fixing shared code in a paired session.** Two agents editing `packages/shared` in parallel
   conflict at merge. Defer it and name it in the handoff.
-- **Recording without picking a name.** The app cannot prove who a caller is. An unpicked
-  *testing as* means the walk lands unattributed or under the wrong person.
 
 ## Related Skills
 

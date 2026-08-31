@@ -12,7 +12,7 @@
 
 **Source keys** (same-folder unless pathed): `SPEC` = spec.md · `WF` = wireframes.md · `JN` = journeys.md · `DG` = diagrams.md · `CL` = corrections-log.md · `RP` = research-plan.md · `ST` = status.json · `PT` = plan.todo.md · `CP-CS` / `CP-UX` / `CP-WF` / `CP-XB` / `CP-XC` / `CP-AM` / `CP-PT` = ../commitment-pooling/{contract-spec,uiux-spec,wireframes,external-brief,external-communications,acceptance-matrix,plan.todo}.md. `SPEC §4` means spec.md section 4; `WF W5` and `DG D8` identify stable frame/diagram anchors. Exact line numbers are reserved for external files without named anchors.
 
-**Per-storyboard anatomy**: a **meta line** (persona = `docs/docs/builders/specs/v1-0.mdx` §3.1 archetype + named research persona `docs/docs/reference/design-research.md` · journey · surfaces · owning spec §) → a **mermaid `flowchart LR`** screen-flow graph (screens as nodes, user actions as edge labels) → a **numbered steps table**: `# | Screen (frame cite) | User action | System response (schema write / job kind) | State (moderation/progress; on-chain vs derived) | If it fails`. A finding surfaced by the walk is tagged **(finding →)** pointing at §17.
+**Per-storyboard anatomy**: a **meta line** (persona = canonical ontology persona in `packages/shared/src/ontology/green-goods-ontology.json` + named research persona in `docs/docs/reference/design-research.md` · journey · surfaces · owning spec §) → a **mermaid `flowchart LR`** screen-flow graph (screens as nodes, user actions as edge labels) → a **numbered steps table**: `# | Screen (frame cite) | User action | System response (schema write / job kind) | State (moderation/progress; on-chain vs derived) | If it fails`. A finding surfaced by the walk is tagged **(finding →)** pointing at §17.
 
 **Frame vs micro-frame**: an existing frame is cited by W-id and never re-drawn. A moment with no frame gets an inline micro-frame marked `NEW — proposed lo-fi, not a locked design` and an §14 MF row.
 
@@ -42,7 +42,7 @@ Grouping: member SB-1–8 · operator SB-9–11 · evaluator SB-12 · funder SB-
 
 ## SB-1 — Lazy-join by QR → browse → first action waits
 
-**Persona**: Community member — v1-0.mdx §3.1 Persona E + Kwame (`design-research.md:160`). **Journey**: J1 Discover + Join (JN:58,61). **Surfaces**: Community PWA, public browser → optional install. **Owning spec**: §7 onboarding (SPEC §7), §8 IA (SPEC §8).
+**Persona**: Community Member (ontology) + Kwame (`design-research.md:160`). **Journey**: J1 Discover + Join (JN:58,61). **Surfaces**: Community PWA, public browser → optional install. **Owning spec**: §7 onboarding (SPEC §7), §8 IA (SPEC §8).
 
 ```mermaid
 flowchart LR
@@ -245,7 +245,7 @@ flowchart LR
 
 ## SB-9 — Operator triage: acknowledge / merge / hide / decline
 
-**Persona**: Operator — v1-0.mdx §3.1 Persona B + David (`design-research.md:118`). **Journey**: J3 Triage (JN:85). **Surfaces**: Admin `/community/needs`. **Owning spec**: §9, D9, D4.
+**Persona**: Steward (ontology) + David (`design-research.md:118`). **Journey**: J3 Triage (JN:85). **Surfaces**: Admin `/community/needs`. **Owning spec**: §9, D9, D4.
 
 ```mermaid
 flowchart LR
@@ -319,7 +319,7 @@ flowchart LR
 
 ## SB-12 — Evaluator lineage + export + completeness Retry
 
-**Persona**: Evaluator — v1-0.mdx §3.1 Persona C + Dr. Chen (`design-research.md:132`). **Journey**: J4 (JN:96-100). **Surfaces**: Admin `/community/needs`. **Owning spec**: §11 export, D11.
+**Persona**: Evaluator (ontology) + Dr. Chen (`design-research.md:132`). **Journey**: J4 (JN:96-100). **Surfaces**: Admin `/community/needs`. **Owning spec**: §11 export, D11.
 
 ```mermaid
 flowchart LR
@@ -343,7 +343,7 @@ flowchart LR
 
 ## SB-13 — Funder discovery + FundingAttribution states
 
-**Persona**: Funder — v1-0.mdx §3.1 Persona D + Amara (`design-research.md:146`). **Journey**: J5 (JN:107-112). **Surfaces**: **existing client public surfaces** (no new app, no new route). **Owning spec**: §10, D10.
+**Persona**: Funder (ontology) + Amara (`design-research.md:146`). **Journey**: J5 (JN:107-112). **Surfaces**: **existing client public surfaces** (no new app, no new route). **Owning spec**: §10, D10.
 
 ```mermaid
 flowchart LR

@@ -54,7 +54,7 @@ test("docs-only QA stays on the docs surface", () => {
   });
 
   assert.equal(plan.status, "ready");
-  assert.deepEqual(ids(plan), ["format", "docs-build"]);
+  assert.deepEqual(ids(plan), ["format", "docs-authority", "docs-build"]);
   assert.equal(
     plan.checks[0].command,
     "bunx @biomejs/biome format --no-errors-on-unmatched 'docs/docs/builders/getting-started.mdx'",
@@ -66,7 +66,7 @@ test("skill and documented skill-inventory changes select direct guidance contra
   for (const changedPath of [
     ".claude/skills/module-seams-review/SKILL.md",
     "scripts/quality/check-skill-behavior-contracts.mjs",
-    "docs/docs/builders/agentic/claude-code.mdx",
+    "AGENTS.md",
   ]) {
     const plan = selectValidation({ intent: "qa", changedPaths: [changedPath] });
     const guidance = plan.checks.find((check) => check.id === "agent-guidance");
@@ -146,7 +146,7 @@ test("architecture ship intent retains mandatory repository gates", () => {
 // on the most common lightweight edit in this repository.
 test("scoped format tolerates paths Biome does not handle", () => {
   for (const changedPath of [
-    "docs/docs/reference/glossary-community.md",
+    "docs/docs/reference/glossary.generated.mdx",
     "packages/contracts/src/Garden.sol",
     ".github/workflows/client.yml",
   ]) {
@@ -254,7 +254,7 @@ test("workspace package manifests stay on their owning surfaces", () => {
   }
   assert.deepEqual(
     selectExpectedWorkflows({ changedPaths, intent: "merge", ci: true }),
-    ["Admin", "Client", "Supply Chain Guardrails"],
+    ["Admin", "Client", "Docs", "Supply Chain Guardrails"],
   );
 });
 
@@ -812,7 +812,7 @@ test("ship scopes docs-only work to the exact impacted strict surface", () => {
   assert.equal(plan.requestedCheckpointScope, "lane");
   assert.equal(plan.checkpointScope, "workspace");
   assert.deepEqual(plan.surfaces, ["docs"]);
-  assert.deepEqual(ids(plan), ["format", "lint", "docs-test", "docs-build"]);
+  assert.deepEqual(ids(plan), ["format", "lint", "docs-authority", "docs-test", "docs-build"]);
   assert.equal(plan.checks.find((check) => check.id === "format").command, "bun format");
   assert.ok(plan.checks.every((check) => check.mandatory));
 });
@@ -1069,6 +1069,7 @@ test("readiness and release remain full scope while empty ship falls back to ful
     "contracts-build",
     "contracts-test",
     "contracts-verify-fast",
+    "docs-authority",
     "docs-test",
     "docs-build",
   ];
@@ -1401,6 +1402,16 @@ test("workflow mapping includes global formatting ownership for ordinary source"
   );
 });
 
+test("banned vocabulary authority changes require both Design and Docs", () => {
+  const workflows = selectExpectedWorkflows({
+    changedPaths: ["scripts/data/banned-vocabulary.json"],
+    intent: "merge",
+    ci: true,
+  });
+  assert.ok(workflows.includes("Design"));
+  assert.ok(workflows.includes("Docs"));
+});
+
 test("shared JS setup changes select every dependent workflow", () => {
   assert.deepEqual(
     selectExpectedWorkflows({
@@ -1444,15 +1455,15 @@ test("workflow mapping preserves exact live and intended trigger parity", () => 
     ["scripts/data/design-token-usage-baseline.tsv", ["Design"]],
     ["scripts/quality/check-story-quality.ts", ["Design", "Supply Chain Guardrails"]],
     ["vercel.json", ["Design", "Supply Chain Guardrails"]],
-    ["packages/contracts/config/schemas.json", ["Contracts", "Ontology", "Supply Chain Guardrails"]],
+    ["packages/contracts/config/schemas.json", ["Contracts", "Docs", "Ontology", "Supply Chain Guardrails"]],
     ["packages/client/src/views/Home/Garden/Assessment.tsx", ["Client", "Design", "Ontology", "Supply Chain Guardrails"]],
-    ["packages/indexer/schema.graphql", ["Indexer", "Ontology"]],
+    ["packages/indexer/schema.graphql", ["Docs", "Indexer", "Ontology"]],
     [
       "packages/indexer/src/handlers/commitment-pool-claims.ts",
       ["Indexer", "Ontology", "Supply Chain Guardrails"],
     ],
     ["docs/docs/reference/ontology.generated.mdx", ["Docs", "Ontology", "Supply Chain Guardrails"]],
-    ["scripts/quality/ontology-render.mjs", ["Ontology", "Supply Chain Guardrails"]],
+    ["scripts/quality/ontology-render.mjs", ["Docs", "Ontology", "Supply Chain Guardrails"]],
     ["scripts/data/ontology-drift-baseline.json", ["Ontology", "Supply Chain Guardrails"]],
     [".plans/active/commitment-pooling/contract-spec.md", ["Ontology", "Supply Chain Guardrails"]],
     ["docs/docs/builders/architecture/erd.mdx", ["Docs", "Ontology", "Supply Chain Guardrails"]],

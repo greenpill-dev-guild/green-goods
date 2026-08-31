@@ -37,7 +37,7 @@ Implement a passkey-server-first auth path for Green Goods using Pimlico's hoste
 - Local package state includes `permissionless@0.2.57`; installed types expose `createPasskeyServerClient`, `startRegistration`, `verifyRegistration`, `getCredentials`, `startAuthentication`, and `verifyAuthentication`.
 - Pimlico docs now recommend a passkey server for sharing the same credential across multiple devices and document the hosted server client flow.
 - ZeroDev docs support Kernel guardian recovery, but that is a separate permissions/plugin layer and should not be promised as a June 10 ship item.
-- The existing unlisted builder spec `docs/docs/builders/specs/passkey-server-hardening-and-recovery-ready-auth-2026-03.md` already captures canonical RP/origin, browser-context, and account-first recovery constraints; this active hub must carry the release-critical subset forward.
+- The March 2026 proposal established the RP/origin, browser-context, and account-first recovery questions. Its exact text remains in Git history; this archived hub carries the release-critical decisions that survived implementation.
 
 ## Remaining Human Judgment Points
 

@@ -16,6 +16,8 @@ in this file.
   architecture opportunities, structural review, and deep-module or seam vocabulary.
 - Use [`.claude/context/validation-pipeline.md`](.claude/context/validation-pipeline.md) for the
   intent ladder, commands, receipt freshness, conditional gates, and stop conditions.
+- Use [`.claude/context/task-routing.json`](.claude/context/task-routing.json) to select the
+  smallest specialized workflow and follow its mutation boundary and handoff.
 
 ## Claude Commands
 

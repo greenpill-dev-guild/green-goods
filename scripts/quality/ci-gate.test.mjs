@@ -105,6 +105,7 @@ test("ABI and deployment artifacts fan out to actual contract consumers", () => 
     "Admin",
     "Client",
     "Contracts",
+    "Docs",
     "Indexer",
     "Ontology",
     "Shared",
@@ -125,16 +126,18 @@ test("ontology-scoped changes require the ontology workflow", () => {
     "Agent",
     "Client",
     "Design",
+    "Docs",
     "Ontology",
     "Shared",
     "Supply Chain Guardrails",
   ]);
-  assert.deepEqual(expectedWorkflowNames(["docs/docs/reference/glossary-community.md"]), [
+  assert.deepEqual(expectedWorkflowNames(["docs/docs/reference/glossary.generated.mdx"]), [
     "Docs",
     "Ontology",
     "Supply Chain Guardrails",
   ]);
   assert.deepEqual(expectedWorkflowNames(["packages/indexer/schema.graphql"]), [
+    "Docs",
     "Indexer",
     "Ontology",
   ]);
@@ -200,6 +203,7 @@ test("workflow changes require their workflow and supply-chain checks", () => {
 test("package and toolchain changes match every live workflow trigger", () => {
   assert.deepEqual(expectedWorkflowNames(["packages/client/package.json"]), [
     "Client",
+    "Docs",
     "Supply Chain Guardrails",
   ]);
   assert.deepEqual(expectedWorkflowNames(["biome.json"]), [

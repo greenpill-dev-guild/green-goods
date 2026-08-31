@@ -409,7 +409,7 @@ Sequence: `--dry-run` (preflight) → `--tx-plan --sender <address>` (persisted,
 
 Named targets: `action-registry`, `garden-token`, `yield-resolver`, `gardens-module`, `signal-pool-yield-wiring`, `yield-gardens-wiring`, `octant-module`, `karma-gap-module`, `work-resolver`, `work-approval-resolver`, `assessment-resolver`, `deployment-registry`, `greenwill`, `all`. **`all` intentionally excludes the funds-adjacent `greenwill` target** — upgrade GreenWill only as its explicit target with its own reviewed tx-plan (root wrappers: `contracts:upgrade:greenwill:dry:arbitrum` / `contracts:upgrade:greenwill:arbitrum`).
 
-Arbitrum and Celo broadcasts enforce the **Sepolia deployment gate**; do not pass `--override-sepolia-gate` without release-owner approval. The reviewer-led manual path for a verified garden-proxy rollback is `Upgrade.s.sol`'s `upgradeGardenProxy` with the known previous implementation — it is not a reason to run raw Foundry commands. Release sequencing: `docs/docs/builders/deployments/releasing.mdx`.
+Arbitrum and Celo broadcasts enforce the **Sepolia deployment gate**; do not pass `--override-sepolia-gate` without release-owner approval. The reviewer-led manual path for a verified garden-proxy rollback is `Upgrade.s.sol`'s `upgradeGardenProxy` with the known previous implementation — it is not a reason to run raw Foundry commands. Release sequencing: `CONTRIBUTING.md` § Releases and hotfixes.
 
 ## Access Control (Hats Protocol)
 
@@ -431,7 +431,7 @@ Access is gated via Hats, checked with `IHats.isWearerOfHat` (see `registries/Po
 
 Read these docs pages when you need deployment context or protocol details:
 
-- Deployment runbook (3-chain CLI commands): `docs/docs/builders/operations.mdx`
+- Deployment runbook: `packages/contracts/deployments/README.md`
 - System architecture and contract relationships: `docs/docs/builders/architecture.mdx`
 - Cross-protocol entity matrix: `docs/docs/builders/integrations/entity-matrix.mdx`
 - EAS integration reference: `docs/docs/builders/integrations/eas.mdx`

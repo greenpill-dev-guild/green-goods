@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "description": "Machine-readable source for Green Goods vocabulary enforcement. The linter reads linter_enforced and renamed_terms. Prompt-only lists guide design agents and are projected into the public glossary.",
+  "linter_enforced": {
+    "scope": "user-facing strings in i18n JSON message values",
+    "globs": [
+      "packages/shared/src/i18n/*.json",
+      "packages/client/src/i18n/*.json",
+      "packages/admin/src/i18n/*.json"
+    ],
+    "terms": [
+      "streak",
+      "countdown",
+      "leaderboard",
+      "FOMO",
+      "urgent",
+      "limited time",
+      "re-engagement",
+      "retention hook"
+    ],
+    "rationale": "These terms signal growth-hacking or FOMO patterns that conflict with the regenerative design review lens. See DESIGN.md and .claude/skills/design/review-checklist.md."
+  },
+  "renamed_terms": {
+    "scope": "user-facing strings and keys in i18n JSON message catalogs",
+    "globs": [
+      "packages/shared/src/i18n/*.json",
+      "packages/client/src/i18n/*.json",
+      "packages/admin/src/i18n/*.json"
+    ],
+    "terms": ["operator", "operators", "operador", "operadores", "operadora"],
+    "exempt_keys": [
+      "app.admin.assessment.strategyKernel.diagnosisPlaceholder.edu",
+      "app.admin.assessment.strategyKernel.smartOutcomeExample.edu"
+    ],
+    "replacement": "steward",
+    "rationale": "The garden role is a Steward. Deployed GardenRole and isOperator wire names remain code identifiers; visible role copy uses Steward. The exempt keys refer to literal solar field technicians.",
+    "locale_terms": {
+      "packages/shared/src/i18n/es.json": ["steward", "stewards"],
+      "packages/shared/src/i18n/pt.json": ["steward", "stewards"]
+    },
+    "locale_terms_rationale": "Locked visible terms: es Responsable, pt Responsável. ICU argument names are code and are skipped."
+  },
+  "prompt_vocabulary_admin_banned": {
+    "scope": "AI-prompt vocabulary for admin-cockpit screens; guidance only",
+    "terms": [
+      "hero moment",
+      "hero section",
+      "celebration",
+      "gallery",
+      "masonry gallery",
+      "decorative gradient",
+      "ambient gradient wash",
+      "marketing banner",
+      "promo band",
+      "landing-page",
+      "dashboard card mosaic",
+      "feature cards",
+      "floating stats",
+      "stat chips floating above content",
+      "liquid",
+      "glass",
+      "frosted"
+    ],
+    "rationale": "Admin is a restrained steward cockpit. Hero moments belong to the client PWA. Glass is restricted to Navigation and FAB chrome; dense surfaces remain solid."
+  },
+  "prompt_vocabulary_client_banned": {
+    "scope": "AI-prompt vocabulary for client PWA screens; guidance only",
+    "terms": [
+      "operator cockpit",
+      "steward cockpit",
+      "workbench row",
+      "inspector pattern",
+      "utility copy",
+      "dashboard",
+      "KPI tile",
+      "metric grid",
+      "Plus Jakarta Sans",
+      "trading floor",
+      "financial terminal",
+      "gamification",
+      "dark pattern"
+    ],
+    "rationale": "The client PWA is a garden journal, not a steward cockpit. It uses warm narrative copy and Inter; cockpit and KPI language belongs to admin."
+  },
+  "consumers": [
+    {
+      "path": "scripts/design/check-vocab.sh",
+      "reads": "linter_enforced and renamed_terms"
+    },
+    {
+      "path": "scripts/docs/renderers.mjs",
+      "reads": "all sections for the generated glossary"
+    },
+    {
+      "path": ".claude/skills/design/prompt-contract.md",
+      "reads": "prompt_vocabulary_admin_banned"
+    },
+    {
+      "path": ".claude/skills/design/client-prompt-contract.md",
+      "reads": "prompt_vocabulary_client_banned"
+    }
+  ]
+}

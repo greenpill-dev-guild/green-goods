@@ -396,7 +396,8 @@ Paid implementation work is grant-dependent and must be clearly scoped with main
 - [Developer Getting Started](https://docs.greengoods.app/builders/getting-started) - setup, env bootstrap, local services, and first-run workflow
 - [Architecture](https://docs.greengoods.app/builders/architecture) - system design, boundaries, and diagrams
 - [Builder API Index](https://docs.greengoods.app/builders/packages/api-index) - package APIs, contracts, and shared surfaces
-- [Operations](https://docs.greengoods.app/builders/operations) - build, deploy, environment, and workflow references
+- [Contributor and release workflow](CONTRIBUTING.md) - branch, validation, release, and hotfix guidance
+- [Contract deployment runbook](packages/contracts/deployments/README.md) - simulation, broadcast, artifacts, and verification
 - [How to Contribute](https://docs.greengoods.app/builders/how-to-contribute) - contributor workflow and expectations
 
 ### Agent References

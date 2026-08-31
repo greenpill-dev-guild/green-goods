@@ -168,7 +168,7 @@ const INPUT_KEYS: RevenueFieldKey[] = [
   "revenueMultiple",
 ];
 
-export const DEFAULT_PRESET_ID: RevenuePresetId = "bootstrap";
+const DEFAULT_PRESET_ID: RevenuePresetId = "bootstrap";
 
 export const REVENUE_PRESETS: Record<RevenuePresetId, RevenuePresetDefinition> = {
   bootstrap: {

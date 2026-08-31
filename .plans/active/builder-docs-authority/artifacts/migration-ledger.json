@@ -1,0 +1,818 @@
+{
+  "version": 1,
+  "original_page_count": 84,
+  "approved_totals": {
+    "keep": 1,
+    "shrink": 26,
+    "generate": 17,
+    "move": 15,
+    "archive": 11,
+    "delete": 14
+  },
+  "pages": [
+    {
+      "path": "docs/docs/builders/agentic/claude-code.mdx",
+      "action": "delete",
+      "destination": null,
+      "authority": ["CLAUDE.md", "AGENTS.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/agentic/codex.mdx",
+      "action": "delete",
+      "destination": null,
+      "authority": ["AGENTS.md", ".codex/config.toml", ".codex/environments/environment.toml"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/agentic/context-engineering.mdx",
+      "action": "move",
+      "destination": ["AGENTS.md", "CLAUDE.md", ".claude/context"],
+      "authority": ["AGENTS.md", "CLAUDE.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/agentic/core-philosophies.mdx",
+      "action": "move",
+      "destination": [".claude/context/values.md"],
+      "authority": [".claude/context/values.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/agentic/friction-engineering.mdx",
+      "action": "move",
+      "destination": [".claude/context/values.md"],
+      "authority": [".claude/context/values.md", "AGENTS.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/agentic/gemini.mdx",
+      "action": "delete",
+      "destination": null,
+      "authority": ["AGENTS.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/agentic/intent-engineering.mdx",
+      "action": "delete",
+      "destination": null,
+      "authority": [".claude/skills/plan/SKILL.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/agentic/mcp-guide.mdx",
+      "action": "generate",
+      "destination": "docs/docs/builders/agentic/mcp-guide.mdx",
+      "authority": [".mcp.json", "scripts/mcp/brave-devtools.mjs", "AGENTS.md"],
+      "redirect": null,
+      "generator": "package",
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/agentic/openclaw.mdx",
+      "action": "delete",
+      "destination": null,
+      "authority": ["AGENTS.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/agentic/prompt-engineering.mdx",
+      "action": "delete",
+      "destination": null,
+      "authority": ["AGENTS.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/agentic/prompting-green-goods.mdx",
+      "action": "delete",
+      "destination": null,
+      "authority": ["AGENTS.md", ".claude/skills"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/agentic/spec-engineering.mdx",
+      "action": "move",
+      "destination": [".plans/README.md", ".claude/skills/plan/SKILL.md"],
+      "authority": [".plans/README.md", ".claude/skills/plan/SKILL.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/architecture.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/architecture.mdx",
+      "authority": ["AGENTS.md", ".claude/context/codebase-architecture.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/architecture/erd.mdx",
+      "action": "generate",
+      "destination": "docs/docs/builders/architecture/erd.mdx",
+      "authority": [
+        "packages/shared/src/ontology/green-goods-ontology.json",
+        "packages/indexer/schema.graphql"
+      ],
+      "redirect": null,
+      "generator": "ontology",
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/architecture/local-vs-global.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/architecture/local-vs-global.mdx",
+      "authority": ["packages/shared/src/config", "packages/contracts/deployments"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/architecture/modular-approach.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/architecture/modular-approach.mdx",
+      "authority": ["AGENTS.md", "packages/shared/package.json"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/architecture/sequence-diagrams.mdx",
+      "action": "generate",
+      "destination": "docs/docs/builders/architecture/sequence-diagrams.mdx",
+      "authority": ["packages/shared/src/ontology/green-goods-ontology.json"],
+      "redirect": null,
+      "generator": "workflow",
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/build-patterns.mdx",
+      "action": "delete",
+      "destination": null,
+      "authority": ["AGENTS.md", "packages/shared/AGENTS.md"],
+      "redirect": "/builders/getting-started",
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/deployments/admin-deploy.mdx",
+      "action": "move",
+      "destination": "packages/admin/README.md",
+      "authority": ["packages/admin/package.json", "packages/admin/vercel.json"],
+      "redirect": "/builders/packages/admin",
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/deployments/agent-deploy.mdx",
+      "action": "move",
+      "destination": "packages/agent/README.md",
+      "authority": ["packages/agent/package.json", "packages/agent/README.md"],
+      "redirect": "/builders/packages/agent",
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/deployments/client-deploy.mdx",
+      "action": "move",
+      "destination": "packages/client/README.md",
+      "authority": ["packages/client/package.json", "packages/client/vercel.json"],
+      "redirect": "/builders/packages/client",
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/deployments/contracts-deploy.mdx",
+      "action": "move",
+      "destination": "packages/contracts/deployments/README.md",
+      "authority": ["packages/contracts/package.json", "packages/contracts/deployments/README.md"],
+      "redirect": "/builders/packages/contracts",
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/deployments/indexer-deploy.mdx",
+      "action": "move",
+      "destination": "packages/indexer/README.md",
+      "authority": ["packages/indexer/package.json", "packages/indexer/config.yaml"],
+      "redirect": "/builders/packages/indexer",
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/deployments/releasing.mdx",
+      "action": "move",
+      "destination": ["CONTRIBUTING.md", "scripts/README.md"],
+      "authority": ["CONTRIBUTING.md", "scripts/ops/bump-version.mjs"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/deployments/status.mdx",
+      "action": "generate",
+      "destination": "docs/docs/builders/deployments/status.mdx",
+      "authority": [
+        "packages/contracts/deployments",
+        "packages/indexer/config.yaml",
+        "packages/shared/src/config/chains.ts"
+      ],
+      "redirect": null,
+      "generator": "integration",
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/env-management.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/env-management.mdx",
+      "authority": [".env.schema", "scripts/dev"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/ethereum-alignment.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/ethereum-alignment.mdx",
+      "authority": ["packages/contracts/src", "packages/shared/src/modules/app/posthog.ts"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/getting-started.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/getting-started.mdx",
+      "authority": ["README.md", "ONBOARDING.md", "AGENTS.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/glossary.mdx",
+      "action": "redirect",
+      "destination": "docs/docs/reference/glossary.generated.mdx",
+      "authority": [
+        "packages/shared/src/ontology/green-goods-ontology.json",
+        "packages/shared/src/ontology/green-goods-projections.json",
+        "scripts/data/banned-vocabulary.json"
+      ],
+      "redirect": "/glossary",
+      "generator": "ontology",
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/how-to-contribute.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/how-to-contribute.mdx",
+      "authority": ["CONTRIBUTING.md", "AGENTS.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/integrations/cookie-jar.mdx",
+      "action": "generate",
+      "destination": "docs/docs/builders/integrations/cookie-jar.mdx",
+      "authority": ["packages/contracts/src/modules/CookieJar.sol", "packages/indexer/config.yaml"],
+      "redirect": null,
+      "generator": "integration",
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/integrations/eas.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/integrations/eas.mdx",
+      "authority": ["packages/contracts/config/schemas.json", "packages/contracts/src/resolvers"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/integrations/ens.mdx",
+      "action": "generate",
+      "destination": "docs/docs/builders/integrations/ens.mdx",
+      "authority": [
+        "packages/contracts/src/registries/ENS.sol",
+        "packages/shared/src/utils/blockchain/ens.ts"
+      ],
+      "redirect": null,
+      "generator": "integration",
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/integrations/entity-matrix.mdx",
+      "action": "generate",
+      "destination": "docs/docs/builders/integrations/entity-matrix.mdx",
+      "authority": ["packages/shared/src/ontology/green-goods-ontology.json"],
+      "redirect": null,
+      "generator": "ontology",
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/integrations/gardens.mdx",
+      "action": "generate",
+      "destination": "docs/docs/builders/integrations/gardens.mdx",
+      "authority": [
+        "packages/contracts/src/modules/Gardens.sol",
+        "packages/shared/src/config/gardens-subgraph.ts"
+      ],
+      "redirect": null,
+      "generator": "integration",
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/integrations/greenwill.mdx",
+      "action": "move",
+      "destination": [
+        ".plans/ideas/reputation-badging",
+        ".plans/ideas/yield-to-impact-codification"
+      ],
+      "authority": ["packages/contracts/src/GreenWill.sol", "packages/shared/src/hooks/greenwill"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/integrations/hats.mdx",
+      "action": "generate",
+      "destination": "docs/docs/builders/integrations/hats.mdx",
+      "authority": ["packages/contracts/src/modules/Hats.sol", "packages/indexer/config.yaml"],
+      "redirect": null,
+      "generator": "integration",
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/integrations/hypercerts.mdx",
+      "action": "generate",
+      "destination": "docs/docs/builders/integrations/hypercerts.mdx",
+      "authority": [
+        "packages/contracts/src/modules/Hypercerts.sol",
+        "packages/indexer/config.yaml"
+      ],
+      "redirect": null,
+      "generator": "integration",
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/integrations/karma.mdx",
+      "action": "generate",
+      "destination": "docs/docs/builders/integrations/karma.mdx",
+      "authority": ["packages/contracts/src/modules/Karma.sol", "packages/indexer/config.yaml"],
+      "redirect": null,
+      "generator": "integration",
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/integrations/octant.mdx",
+      "action": "generate",
+      "destination": "docs/docs/builders/integrations/octant.mdx",
+      "authority": ["packages/contracts/src/modules/Octant.sol", "packages/indexer/config.yaml"],
+      "redirect": null,
+      "generator": "integration",
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/integrations/overview.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/integrations/overview.mdx",
+      "authority": ["packages/shared/src/ontology/green-goods-ontology.json"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/integrations/passkey.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/integrations/passkey.mdx",
+      "authority": ["packages/shared/src/providers/Auth.tsx", "packages/shared/src/hooks/auth"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/integrations/silvi.mdx",
+      "action": "delete",
+      "destination": null,
+      "authority": [],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/integrations/tokenbound.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/integrations/tokenbound.mdx",
+      "authority": ["packages/contracts/src/accounts", "packages/shared/src/utils/blockchain"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/integrations/unlock.mdx",
+      "action": "delete",
+      "destination": null,
+      "authority": [".plans/ideas/reputation-badging"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/journeys/evaluation.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/journeys/evaluation.mdx",
+      "authority": [
+        "packages/admin/src/routes/views.tsx",
+        "packages/contracts/src/resolvers/Assessment.sol"
+      ],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/journeys/funding.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/journeys/funding.mdx",
+      "authority": [
+        "packages/client/src/views/Public/Fund.tsx",
+        "packages/contracts/src/modules/Octant.sol"
+      ],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/journeys/harvest.mdx",
+      "action": "move",
+      "destination": ".plans/active/harvest-distribution-ux",
+      "authority": ["packages/shared/src/hooks/yield/useHarvestDistribution.ts"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/journeys/onboarding.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/journeys/onboarding.mdx",
+      "authority": [
+        "packages/client/src/config/routes.tsx",
+        "packages/shared/src/providers/Auth.tsx"
+      ],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/journeys/persona-surfaces.mdx",
+      "action": "generate",
+      "destination": "docs/docs/builders/journeys/persona-surfaces.mdx",
+      "authority": [
+        "packages/shared/src/ontology/green-goods-ontology.json",
+        "packages/client/src/config/routes.tsx",
+        "packages/admin/src/router.tsx"
+      ],
+      "redirect": null,
+      "generator": "package",
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/journeys/work-submission.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/journeys/work-submission.mdx",
+      "authority": ["packages/shared/src/modules/work", "packages/client/src/views/Garden"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/operations.mdx",
+      "action": "move",
+      "destination": ["README.md", "scripts/README.md", "packages/contracts/README.md"],
+      "authority": ["README.md", "scripts/README.md"],
+      "redirect": "/builders/getting-started",
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/packages/admin.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/packages/admin.mdx",
+      "authority": ["packages/admin/AGENTS.md", "packages/admin/README.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/packages/agent.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/packages/agent.mdx",
+      "authority": ["packages/agent/AGENTS.md", "packages/agent/README.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/packages/api-index.mdx",
+      "action": "generate",
+      "destination": "docs/docs/builders/packages/api-index.mdx",
+      "authority": [
+        "packages/shared/package.json",
+        "packages/shared/src/public-contracts/routes.ts",
+        "packages/agent/src/api"
+      ],
+      "redirect": null,
+      "generator": "package",
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/packages/client-pwa-token-audit.generated.md",
+      "action": "move",
+      "destination": "output/design/client-pwa-token-audit.md",
+      "authority": ["scripts/design/md-generate.mjs"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/packages/client.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/packages/client.mdx",
+      "authority": ["packages/client/AGENTS.md", "packages/client/README.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/packages/contracts.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/packages/contracts.mdx",
+      "authority": ["packages/contracts/AGENTS.md", "packages/contracts/README.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/packages/indexer.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/packages/indexer.mdx",
+      "authority": ["packages/indexer/AGENTS.md", "packages/indexer/README.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/packages/shared.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/packages/shared.mdx",
+      "authority": ["packages/shared/AGENTS.md", "packages/shared/package.json"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/quality/agentic-eval.mdx",
+      "action": "move",
+      "destination": ["scripts/README.md", "scripts/harness/skill-trigger-eval.mjs"],
+      "authority": ["scripts/data/skill-trigger-eval.json", "CLAUDE.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/quality/gh-actions.mdx",
+      "action": "generate",
+      "destination": "docs/docs/builders/quality/gh-actions.mdx",
+      "authority": [".github/workflows", "package.json"],
+      "redirect": null,
+      "generator": "workflow",
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/quality/husky.mdx",
+      "action": "delete",
+      "destination": null,
+      "authority": [".husky", "package.json"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/quality/product-experience-qa.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/quality/product-experience-qa.mdx",
+      "authority": ["scripts/data/qa-test-catalog.json", ".claude/skills/qa-session/SKILL.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/quality/regression.mdx",
+      "action": "delete",
+      "destination": null,
+      "authority": [".github/workflows", "scripts/data/qa-test-catalog.json"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/quality/test-cases.mdx",
+      "action": "generate",
+      "destination": "docs/docs/builders/quality/test-cases.mdx",
+      "authority": ["scripts/data/qa-test-catalog.json", "playwright.config.ts", "package.json"],
+      "redirect": null,
+      "generator": "qa",
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/specs/did-ethr-modernization-proposal-2026-03.md",
+      "action": "archive",
+      "destination": "git-history",
+      "authority": [],
+      "redirect": "/reference/product-history#did-ethr-modernization",
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/specs/greenwill-badging-impact-framework-2026-03.md",
+      "action": "archive",
+      "destination": [
+        "git-history",
+        ".plans/ideas/reputation-badging",
+        ".plans/ideas/yield-to-impact-codification"
+      ],
+      "authority": [".plans/ideas/reputation-badging", ".plans/ideas/yield-to-impact-codification"],
+      "redirect": "/reference/product-history#greenwill-research",
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/specs/greenwill-gif-analysis-2026-03.md",
+      "action": "archive",
+      "destination": ["git-history", ".plans/ideas/yield-to-impact-codification"],
+      "authority": [".plans/ideas/yield-to-impact-codification"],
+      "redirect": "/reference/product-history#greenwill-research",
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/specs/greenwill-gif-evaluation-plan-2026-03.md",
+      "action": "archive",
+      "destination": ["git-history", ".plans/ideas/yield-to-impact-codification"],
+      "authority": [".plans/ideas/yield-to-impact-codification"],
+      "redirect": "/reference/product-history#greenwill-research",
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/specs/greenwill-gif-implementation-spec-2026-03.md",
+      "action": "archive",
+      "destination": ["git-history", ".plans/ideas/reputation-badging"],
+      "authority": [".plans/ideas/reputation-badging"],
+      "redirect": "/reference/product-history#greenwill-research",
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/specs/greenwill-gif-one-pager-2026-03.md",
+      "action": "archive",
+      "destination": ["git-history", ".plans/ideas/yield-to-impact-codification"],
+      "authority": [".plans/ideas/yield-to-impact-codification"],
+      "redirect": "/reference/product-history#greenwill-research",
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/specs/opencred-vc-login-for-geographic-garden-access-2026-03.md",
+      "action": "archive",
+      "destination": "git-history",
+      "authority": [],
+      "redirect": "/reference/product-history#opencred-vc-login",
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/specs/passkey-server-hardening-and-recovery-ready-auth-2026-03.md",
+      "action": "archive",
+      "destination": ["git-history", ".plans/archive/account-recovery-hardening"],
+      "authority": [".plans/archive/account-recovery-hardening/spec.md"],
+      "redirect": "/reference/product-history#passkey-recovery-hardening",
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/specs/revenue-explorer.mdx",
+      "action": "keep",
+      "destination": "docs/docs/builders/specs/revenue-explorer.mdx",
+      "authority": ["docs/src/components/docs/protocolRevenueModel.ts"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/specs/v0-1.mdx",
+      "action": "archive",
+      "destination": ["git-history", "docs/docs/reference/product-history.mdx"],
+      "authority": [],
+      "redirect": "/reference/product-history#v01",
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/specs/v0-4.mdx",
+      "action": "archive",
+      "destination": ["git-history", "docs/docs/reference/product-history.mdx"],
+      "authority": [],
+      "redirect": "/reference/product-history#v04",
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/specs/v1-0.mdx",
+      "action": "archive",
+      "destination": ["git-history", "docs/docs/reference/product-history.mdx"],
+      "authority": [],
+      "redirect": "/reference/product-history#v10",
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/testing/forge.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/testing/forge.mdx",
+      "authority": ["packages/contracts/package.json", "packages/contracts/AGENTS.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/testing/playwright.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/testing/playwright.mdx",
+      "authority": ["playwright.config.ts", "tests/AGENTS.md"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/testing/rtl.mdx",
+      "action": "delete",
+      "destination": null,
+      "authority": ["packages/client/src/__tests__", "packages/admin/src/__tests__"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/testing/storybook.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/testing/storybook.mdx",
+      "authority": ["packages/shared/.storybook", "packages/shared/package.json"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/testing/vitest.mdx",
+      "action": "shrink",
+      "destination": "docs/docs/builders/testing/vitest.mdx",
+      "authority": [
+        "packages/client/vitest.config.ts",
+        "packages/admin/vitest.config.ts",
+        "packages/shared/vitest.config.ts"
+      ],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    },
+    {
+      "path": "docs/docs/builders/trust-inventory.mdx",
+      "action": "delete",
+      "destination": null,
+      "authority": ["docs/scripts/docs-audit.mjs", "scripts/docs/generate.mjs"],
+      "redirect": null,
+      "generator": null,
+      "status": "completed"
+    }
+  ]
+}

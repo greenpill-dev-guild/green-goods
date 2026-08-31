@@ -85,7 +85,7 @@
 >
 > **Verified 2026-08-08.** Top-level storage layout identical across all 46 entries with every `__gap` untouched (the `Commitment` struct lives in a mapping, so the new field consumes no top-level slot; only the generated baseline is regenerated). Module 21,198 → 21,205 bytes against the 24,576 limit, all weight in libraries per Decision Log #55. Offer acceptance costs a measured +20,352 gas for the new cold SSTORE; a Request pays that write at creation instead. 1,805 package tests green. Plan Decision Log #56 / register #90; `reports/corrections-log.md` 2026-08-08.
 
-Every technical claim below carries a repo file path (relative to repo root) or a NET-NEW marker. All contract names, functions, events, and entities introduced here are NET-NEW unless a path says otherwise. Format mirrors the house implementation-spec style of `docs/docs/builders/specs/greenwill-gif-implementation-spec-2026-03.md` (Purpose, Scope, Canonical Implementation Decisions, System Components, per-contract Contract Work, Package-Level Backlog, Launch Milestones).
+Every technical claim below carries a repo file path (relative to repo root) or a NET-NEW marker. All contract names, functions, events, and entities introduced here are NET-NEW unless a path says otherwise. The implementation spec is organized as purpose, scope, canonical decisions, system components, contract work, package backlog, and launch milestones.
 
 ---
 

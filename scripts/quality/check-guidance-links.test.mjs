@@ -27,12 +27,12 @@ test("finds an untagged opening fence but accepts a tagged fence", () => {
 
 test("checks root-relative Markdown paths written as inline code", () => {
   const text = [
-    "Read `docs/docs/reference/glossary-community.md`.",
+    "Read `docs/docs/reference/glossary.generated.mdx`.",
     "Do not read `docs/docs/missing.mdx`.",
   ].join("\n");
   assert.deepEqual(
     findBrokenRootCodePaths(text, ".claude/context/agent.md", (target) =>
-      target.endsWith("glossary-community.md")
+      target.endsWith("glossary.generated.mdx")
     ),
     [".claude/context/agent.md: broken code path -> docs/docs/missing.mdx"]
   );

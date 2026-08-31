@@ -26,6 +26,8 @@ Cookie Jar funds that have not moved yet.
   localized copy, privacy-safe telemetry, focused tests, Storybook states, and authenticated QA.
 - Out of scope: contract changes, deployment, client/indexer changes, presets, treasury governance,
   automatic background execution, and production transactions.
+- This hub owns the vault harvest-to-distribution operator flow only. Hypercert minting remains a
+  separate workflow, and Green Goods has no canonical Season-close mutation or read model today.
 - Related backlog: `.plans/backlog/yield-split-ui/` and Linear `PRD-351` remain parked.
 
 ## Success Signal

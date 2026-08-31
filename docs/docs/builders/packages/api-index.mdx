@@ -3,84 +3,501 @@ title: API Index
 slug: /builders/packages/api-index
 audience: developer
 owner: docs
-last_verified: 2026-08-28
 feature_status: Live
-goal: "Locate canonical endpoints and schema sources without ambiguity."
-difficulty: "advanced"
-estimated_time: "10-20 minutes"
-prereqs: "Chain-aware deployment context."
-next_steps: "../deployments/status"
-persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
-source_of_truth:
-  - docs/src/data/endpoints.ts
-  - packages/indexer/config.yaml
-  - packages/shared/src/public-contracts/garden-impact.ts
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - packages/admin/package.json
+  - packages/agent/package.json
+  - packages/agent/src/api/funding/routes.ts
   - packages/agent/src/api/routes/public-garden-impact.ts
-  - packages/contracts/deployments/42161-latest.json
+  - packages/agent/src/api/routes/subscribe.ts
+  - packages/agent/src/api/routes/upload-sign.ts
+  - packages/client/package.json
+  - packages/contracts/package.json
+  - packages/indexer/package.json
+  - packages/shared/package.json
+  - packages/shared/src/public-contracts/routes.ts
+source_digest: "sha256:054e4f4e7356d57280d4219a6a04919c4add379a9ec076c27c5602906400b9ee"
+source_of_truth:
+  - packages/admin/package.json
+  - packages/agent/package.json
+  - packages/agent/src/api/funding/routes.ts
+  - packages/agent/src/api/routes/public-garden-impact.ts
+  - packages/agent/src/api/routes/subscribe.ts
+  - packages/agent/src/api/routes/upload-sign.ts
+  - packages/client/package.json
+  - packages/contracts/package.json
+  - packages/indexer/package.json
+  - packages/shared/package.json
+  - packages/shared/src/public-contracts/routes.ts
 ---
 
-import {NextBestAction} from "@site/src/components/docs";
-import {INDEXER_ENDPOINT, EAS_GRAPHQL_ENDPOINTS} from "@site/src/data/endpoints";
-
+<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
 # API Index
 
-## Primary data endpoints
+Use package export specifiers and public route constants as the stable entrypoints. Source-file imports bypass package boundaries and are not public APIs.
 
-| Surface | Endpoint | Notes |
-| --- | --- | --- |
-| Green Goods Indexer | <code>{INDEXER_ENDPOINT}</code> | Gardens, actions, memberships |
-| EAS GraphQL (Arbitrum) | <code>{EAS_GRAPHQL_ENDPOINTS[42161]}</code> | Work/approval/assessment attestations |
-| EAS GraphQL (Celo) | <code>{EAS_GRAPHQL_ENDPOINTS[42220]}</code> | Chain-specific attestations |
-| EAS GraphQL (Sepolia) | <code>{EAS_GRAPHQL_ENDPOINTS[11155111]}</code> | Testnet attestations |
+## Public Agent routes
 
-## Contract and deployment sources
+| Name | Path | Registered methods |
+|---|---|---|
+| fundingIntentProof | `/public/funding-intents/proof` | `OPTIONS`, `POST` |
+| fundingIntentReceipt | `/public/funding-intents/:id` | `GET`, `OPTIONS` |
+| fundingIntents | `/public/funding-intents` | `OPTIONS`, `POST` |
+| gardenImpact | `/public/gardens/:chainId/:gardenAddress/impact` | `GET`, `OPTIONS` |
+| subscribe | `/public/subscribe` | `OPTIONS`, `POST` |
+| thirdwebWebhook | `/webhooks/thirdweb` | `POST` |
+| uploadSign | `/api/uploads/sign` | `OPTIONS`, `POST` |
 
-- `packages/contracts/deployments/42161-latest.json`
-- `packages/contracts/deployments/42220-latest.json`
-- `packages/contracts/deployments/11155111-latest.json`
-- `packages/contracts/config/schemas.json` (read-only source)
+## Package exports
 
-## Public garden impact
-
-`GET /public/gardens/:chainId/:gardenAddress/impact?recentLimit=3`
-
-The Agent aggregates one publicly visible garden's Work, Work Approval, Action, Assessment, and
-Hypercert records. The response contract is versioned independently from the frontend impact
-archive. Supported chains are Arbitrum (`42161`) and Sepolia (`11155111`). Celo (`42220`) remains
-unsupported until its public Garden, Action, and Hypercert indexer sources are available. Values
-above 12 for `recentLimit` are clamped to 12.
-
-The response's `garden.url` is a canonical self-link keyed by chain ID and checksummed Garden
-address. Garden identity is verified against the chain's token-bound account registry, so the same
-address on another chain cannot resolve through an indexer collision. Consumers should use the URL
-instead of deriving an identity from the nullable Garden name.
-
-An approved Work count means **protocol-approved**: at least one positive, nonrevoked Work Approval
-exists. It does not assess submission quality or independently validate the supporting material.
-
-Counts are `null` when their required source or schema is unavailable. Check `provenance.status`,
-`partialData`, and `unavailableSources` before interpreting a partial response. A successful empty
-source returns zero instead. The endpoint is implemented in the Agent source; deploying it is a
-separate release step.
-
-## Shared package integration entry points
-
-- `packages/shared/src/modules/data/eas.ts`
-- `packages/shared/src/modules/data/public-garden-impact-readers.ts`
-- `packages/shared/src/hooks/index.ts`
-
-## Notes
-
-1. Always select chain context before querying schema-scoped data.
-2. Work and approval schema IDs must come from deployment artifacts for the same chain.
-3. Do not substitute an unsupported chain with a default chain when resolving public impact.
-
-<NextBestAction
-  title="Next best action"
-  why="After selecting endpoints, confirm whether each module is actually live, indexing-pending, or deployment-pending."
-  actionLabel="Open deployment status"
-  actionHref="../deployments/status"
-  alternatives={[
-    {label: "Agent and MCP guide", href: "../agentic/mcp-guide"},
-  ]}
-/>
+| Package | Specifier | Target |
+|---|---|---|
+| @green-goods/contracts | `./abis/*.json` | `./abis/*.json` |
+| @green-goods/contracts | `./deployments/*.json` | `./deployments/*.json` |
+| @green-goods/shared | `.` | `./src/index.ts` |
+| @green-goods/shared | `./__mocks__/server/server` | `./src/__mocks__/server/server.ts` |
+| @green-goods/shared | `./__tests__/setupTests.base` | `./src/__tests__/setupTests.base.ts` |
+| @green-goods/shared | `./__tests__/test-utils` | `./src/__tests__/test-utils/index.ts` |
+| @green-goods/shared | `./__tests__/test-utils/commitment-pooling-fixtures` | `./src/__tests__/test-utils/commitment-pooling-fixtures.ts` |
+| @green-goods/shared | `./__tests__/test-utils/controller-fixtures` | `./src/__tests__/test-utils/controller-fixtures.ts` |
+| @green-goods/shared | `./__tests__/test-utils/query-client` | `./src/__tests__/test-utils/query-client.ts` |
+| @green-goods/shared | `./badge` | `./src/components/Badge/index.ts` |
+| @green-goods/shared | `./cards` | `./src/components/Cards/index.ts` |
+| @green-goods/shared | `./commitment-pooling` | `./src/commitment-pooling/index.ts` |
+| @green-goods/shared | `./components` | `./src/components/index.ts` |
+| @green-goods/shared | `./components/AddressDisplay` | `./src/components/AddressDisplay.tsx` |
+| @green-goods/shared | `./components/Alert` | `./src/components/Alert.tsx` |
+| @green-goods/shared | `./components/Audio/AudioPlayer` | `./src/components/Audio/AudioPlayer.tsx` |
+| @green-goods/shared | `./components/Audio/AudioRecorder` | `./src/components/Audio/AudioRecorder.tsx` |
+| @green-goods/shared | `./components/Badge/Badge` | `./src/components/Badge/Badge.tsx` |
+| @green-goods/shared | `./components/Button` | `./src/components/Button.tsx` |
+| @green-goods/shared | `./components/Canvas/AppBar` | `./src/components/Canvas/AppBar.tsx` |
+| @green-goods/shared | `./components/Canvas/EmptyStateShell` | `./src/components/Canvas/EmptyStateShell.tsx` |
+| @green-goods/shared | `./components/Canvas/FabContext` | `./src/components/Canvas/FabContext.tsx` |
+| @green-goods/shared | `./components/Canvas/GardenChip` | `./src/components/Canvas/GardenChip.tsx` |
+| @green-goods/shared | `./components/Canvas/MainSheet` | `./src/components/Canvas/MainSheet.tsx` |
+| @green-goods/shared | `./components/Canvas/MetaStrip` | `./src/components/Canvas/MetaStrip.tsx` |
+| @green-goods/shared | `./components/Canvas/NavigationBar` | `./src/components/Canvas/NavigationBar.tsx` |
+| @green-goods/shared | `./components/Canvas/NotificationPanel` | `./src/components/Canvas/NotificationPanel.tsx` |
+| @green-goods/shared | `./components/Canvas/RefreshActionContext` | `./src/components/Canvas/RefreshActionContext.tsx` |
+| @green-goods/shared | `./components/Canvas/SheetBody` | `./src/components/Canvas/SheetBody.tsx` |
+| @green-goods/shared | `./components/Canvas/SheetDivider` | `./src/components/Canvas/SheetDivider.tsx` |
+| @green-goods/shared | `./components/Canvas/SheetFooter` | `./src/components/Canvas/SheetFooter.tsx` |
+| @green-goods/shared | `./components/Canvas/useCanvasMobileChromeHidden` | `./src/components/Canvas/useCanvasMobileChromeHidden.ts` |
+| @green-goods/shared | `./components/Canvas/useViewActions` | `./src/components/Canvas/useViewActions.ts` |
+| @green-goods/shared | `./components/Canvas/viewActions.types` | `./src/components/Canvas/viewActions.types.ts` |
+| @green-goods/shared | `./components/Canvas/WorkbenchCard` | `./src/components/Canvas/WorkbenchCard.tsx` |
+| @green-goods/shared | `./components/Canvas/WorkbenchList` | `./src/components/Canvas/WorkbenchList.tsx` |
+| @green-goods/shared | `./components/Cards/CardBase` | `./src/components/Cards/CardBase.tsx` |
+| @green-goods/shared | `./components/Cards/GardenCard/GardenCard` | `./src/components/Cards/GardenCard/GardenCard.tsx` |
+| @green-goods/shared | `./components/Cards/WorkCard/WorkCard` | `./src/components/Cards/WorkCard/WorkCard.tsx` |
+| @green-goods/shared | `./components/Conviction/ConvictionMeter` | `./src/components/Conviction/ConvictionMeter.tsx` |
+| @green-goods/shared | `./components/Conviction/WeightAllocator` | `./src/components/Conviction/WeightAllocator.tsx` |
+| @green-goods/shared | `./components/DatePicker/DatePicker` | `./src/components/DatePicker/DatePicker.tsx` |
+| @green-goods/shared | `./components/Dialog/ConfirmDialog` | `./src/components/Dialog/ConfirmDialog.tsx` |
+| @green-goods/shared | `./components/Dialog/ImagePreviewDialog` | `./src/components/Dialog/ImagePreviewDialog.tsx` |
+| @green-goods/shared | `./components/Dialog/PwaSheet` | `./src/components/Dialog/PwaSheet.tsx` |
+| @green-goods/shared | `./components/Display/ActionBannerFallback` | `./src/components/Display/ActionBannerFallback.tsx` |
+| @green-goods/shared | `./components/Display/GardenBannerFallback` | `./src/components/Display/GardenBannerFallback.tsx` |
+| @green-goods/shared | `./components/Display/ImageWithFallback` | `./src/components/Display/ImageWithFallback.tsx` |
+| @green-goods/shared | `./components/DomainBadge` | `./src/components/DomainBadge.tsx` |
+| @green-goods/shared | `./components/ErrorBoundary/ErrorBoundary` | `./src/components/ErrorBoundary/ErrorBoundary.tsx` |
+| @green-goods/shared | `./components/feedback/TransactionSuccessAffordance` | `./src/components/feedback/TransactionSuccessAffordance.tsx` |
+| @green-goods/shared | `./components/feedback/TxInlineFeedback` | `./src/components/feedback/TxInlineFeedback.tsx` |
+| @green-goods/shared | `./components/FileUploadField` | `./src/components/FileUploadField.tsx` |
+| @green-goods/shared | `./components/Form/ConfidenceSelector` | `./src/components/Form/ConfidenceSelector.tsx` |
+| @green-goods/shared | `./components/Form/ControlPrimitives` | `./src/components/Form/ControlPrimitives.tsx` |
+| @green-goods/shared | `./components/Form/FormattedAmountInput` | `./src/components/Form/FormattedAmountInput.tsx` |
+| @green-goods/shared | `./components/Form/FormFieldWrapper` | `./src/components/Form/FormFieldWrapper.tsx` |
+| @green-goods/shared | `./components/Form/FormInput` | `./src/components/Form/FormInput.tsx` |
+| @green-goods/shared | `./components/Form/FormTextarea` | `./src/components/Form/FormTextarea.tsx` |
+| @green-goods/shared | `./components/Form/Select/FormSelect` | `./src/components/Form/Select/FormSelect.tsx` |
+| @green-goods/shared | `./components/Form/Select/Select` | `./src/components/Form/Select/Select.tsx` |
+| @green-goods/shared | `./components/Form/StepIndicator` | `./src/components/Form/StepIndicator.tsx` |
+| @green-goods/shared | `./components/HydrationFallback` | `./src/components/HydrationFallback.tsx` |
+| @green-goods/shared | `./components/ListPrimitives` | `./src/components/ListPrimitives.tsx` |
+| @green-goods/shared | `./components/Progress/ENSProgressTimeline` | `./src/components/Progress/ENSProgressTimeline.tsx` |
+| @green-goods/shared | `./components/Progress/SubmissionProgress` | `./src/components/Progress/SubmissionProgress.tsx` |
+| @green-goods/shared | `./components/Progress/SyncIndicator` | `./src/components/Progress/SyncIndicator.tsx` |
+| @green-goods/shared | `./components/Skeleton` | `./src/components/Skeleton.tsx` |
+| @green-goods/shared | `./components/Spinner` | `./src/components/Spinner.tsx` |
+| @green-goods/shared | `./components/StatusBadge` | `./src/components/StatusBadge.tsx` |
+| @green-goods/shared | `./components/Surface/Surface` | `./src/components/Surface/Surface.tsx` |
+| @green-goods/shared | `./components/SyncStatusBar` | `./src/components/SyncStatusBar.tsx` |
+| @green-goods/shared | `./components/Toast/presets/update` | `./src/components/Toast/presets/update.ts` |
+| @green-goods/shared | `./components/Toast/presets/validation` | `./src/components/Toast/presets/validation.ts` |
+| @green-goods/shared | `./components/Toast/toast.service` | `./src/components/Toast/toast.service.tsx` |
+| @green-goods/shared | `./components/Toast/ToastViewport` | `./src/components/Toast/ToastViewport.tsx` |
+| @green-goods/shared | `./components/Vault/AssetSelector` | `./src/components/Vault/AssetSelector.tsx` |
+| @green-goods/shared | `./config` | `./src/config/index.ts` |
+| @green-goods/shared | `./config/app` | `./src/config/app.ts` |
+| @green-goods/shared | `./config/blockchain` | `./src/config/blockchain.ts` |
+| @green-goods/shared | `./config/chains` | `./src/config/chains.ts` |
+| @green-goods/shared | `./config/default-chain` | `./src/config/default-chain.ts` |
+| @green-goods/shared | `./config/domain` | `./src/config/domain.ts` |
+| @green-goods/shared | `./config/local-fork` | `./src/config/local-fork.ts` |
+| @green-goods/shared | `./config/passkeyServer` | `./src/config/passkeyServer.ts` |
+| @green-goods/shared | `./config/pimlico` | `./src/config/pimlico.ts` |
+| @green-goods/shared | `./config/query-keys/constants` | `./src/config/query-keys/constants.ts` |
+| @green-goods/shared | `./config/query-keys/registry` | `./src/config/query-keys/registry.ts` |
+| @green-goods/shared | `./config/query-persistence` | `./src/config/query-persistence.ts` |
+| @green-goods/shared | `./config/react-query` | `./src/config/react-query.ts` |
+| @green-goods/shared | `./config/sdg` | `./src/config/sdg.ts` |
+| @green-goods/shared | `./display` | `./src/components/Display/index.ts` |
+| @green-goods/shared | `./hooks` | `./src/hooks/index.ts` |
+| @green-goods/shared | `./hooks/action/useActionForm` | `./src/hooks/action/useActionForm.ts` |
+| @green-goods/shared | `./hooks/action/useActionOperations` | `./src/hooks/action/useActionOperations.ts` |
+| @green-goods/shared | `./hooks/admin-ui/actions/actionDrafts` | `./src/hooks/admin-ui/actions/actionDrafts.ts` |
+| @green-goods/shared | `./hooks/admin-ui/actions/actions.utils` | `./src/hooks/admin-ui/actions/actions.utils.ts` |
+| @green-goods/shared | `./hooks/admin-ui/actions/actions.workspaceModel` | `./src/hooks/admin-ui/actions/actions.workspaceModel.ts` |
+| @green-goods/shared | `./hooks/admin-ui/actions/createAction.utils` | `./src/hooks/admin-ui/actions/createAction.utils.ts` |
+| @green-goods/shared | `./hooks/admin-ui/actions/useActionEditorController` | `./src/hooks/admin-ui/actions/useActionEditorController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/actions/useActionsController` | `./src/hooks/admin-ui/actions/useActionsController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/actions/useCreateActionController` | `./src/hooks/admin-ui/actions/useCreateActionController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/community/community.utils` | `./src/hooks/admin-ui/community/community.utils.ts` |
+| @green-goods/shared | `./hooks/admin-ui/community/useCommunityWorkspaceController` | `./src/hooks/admin-ui/community/useCommunityWorkspaceController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/garden/garden.utils` | `./src/hooks/admin-ui/garden/garden.utils.ts` |
+| @green-goods/shared | `./hooks/admin-ui/garden/useCreateGardenController` | `./src/hooks/admin-ui/garden/useCreateGardenController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/garden/useGardenWorkspaceController` | `./src/hooks/admin-ui/garden/useGardenWorkspaceController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/garden/useResolvedWorkDetail` | `./src/hooks/admin-ui/garden/useResolvedWorkDetail.ts` |
+| @green-goods/shared | `./hooks/admin-ui/garden/useSubmitWorkController` | `./src/hooks/admin-ui/garden/useSubmitWorkController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/hub/hub.utils` | `./src/hooks/admin-ui/hub/hub.utils.ts` |
+| @green-goods/shared | `./hooks/admin-ui/hub/hub.workbenchModel` | `./src/hooks/admin-ui/hub/hub.workbenchModel.ts` |
+| @green-goods/shared | `./hooks/admin-ui/hub/useCreateAssessmentController` | `./src/hooks/admin-ui/hub/useCreateAssessmentController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/hub/useCreateHypercertController` | `./src/hooks/admin-ui/hub/useCreateHypercertController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/hub/useHubWorkbenchController` | `./src/hooks/admin-ui/hub/useHubWorkbenchController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/hypercerts/types` | `./src/hooks/admin-ui/hypercerts/types.ts` |
+| @green-goods/shared | `./hooks/admin-ui/hypercerts/useWizardData` | `./src/hooks/admin-ui/hypercerts/useWizardData.ts` |
+| @green-goods/shared | `./hooks/admin-ui/layout/accountSheet.events` | `./src/hooks/admin-ui/layout/accountSheet.events.ts` |
+| @green-goods/shared | `./hooks/admin-ui/layout/commandPalette.results` | `./src/hooks/admin-ui/layout/commandPalette.results.ts` |
+| @green-goods/shared | `./hooks/admin-ui/layout/useAccountProfileController` | `./src/hooks/admin-ui/layout/useAccountProfileController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/layout/useAdminRightSheetDescriptor` | `./src/hooks/admin-ui/layout/useAdminRightSheetDescriptor.tsx` |
+| @green-goods/shared | `./hooks/admin-ui/layout/useCanvasShellController` | `./src/hooks/admin-ui/layout/useCanvasShellController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/layout/useCommandPaletteController` | `./src/hooks/admin-ui/layout/useCommandPaletteController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/layout/useCommandPaletteData` | `./src/hooks/admin-ui/layout/useCommandPaletteData.ts` |
+| @green-goods/shared | `./hooks/admin-ui/navigation/sheetRegistry` | `./src/hooks/admin-ui/navigation/sheetRegistry.ts` |
+| @green-goods/shared | `./hooks/admin-ui/navigation/workspaceNavigation` | `./src/hooks/admin-ui/navigation/workspaceNavigation.ts` |
+| @green-goods/shared | `./hooks/admin-ui/pool/controller.types` | `./src/hooks/admin-ui/pool/controller.types.ts` |
+| @green-goods/shared | `./hooks/admin-ui/pool/useCommitmentDialogController` | `./src/hooks/admin-ui/pool/useCommitmentDialogController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/pool/useHubConfirmQueueController` | `./src/hooks/admin-ui/pool/useHubConfirmQueueController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/pool/usePoolConsoleController` | `./src/hooks/admin-ui/pool/usePoolConsoleController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/useAdminAccessState` | `./src/hooks/admin-ui/useAdminAccessState.ts` |
+| @green-goods/shared | `./hooks/admin-ui/useCanvasChromeProbe` | `./src/hooks/admin-ui/useCanvasChromeProbe.ts` |
+| @green-goods/shared | `./hooks/admin-ui/useDirtyClose` | `./src/hooks/admin-ui/useDirtyClose.ts` |
+| @green-goods/shared | `./hooks/analytics/useAnalyticsIdentity` | `./src/hooks/analytics/useAnalyticsIdentity.ts` |
+| @green-goods/shared | `./hooks/analytics/usePageView` | `./src/hooks/analytics/usePageView.ts` |
+| @green-goods/shared | `./hooks/app/useArrivalState` | `./src/hooks/app/useArrivalState.ts` |
+| @green-goods/shared | `./hooks/app/useBrowserNavigation` | `./src/hooks/app/useBrowserNavigation.ts` |
+| @green-goods/shared | `./hooks/app/useCarousel` | `./src/hooks/app/useCarousel.ts` |
+| @green-goods/shared | `./hooks/app/useInstallGuidance` | `./src/hooks/app/useInstallGuidance.ts` |
+| @green-goods/shared | `./hooks/app/useIsBraveBrowser` | `./src/hooks/app/useIsBraveBrowser.ts` |
+| @green-goods/shared | `./hooks/app/useLoadingWithMinDuration` | `./src/hooks/app/useLoadingWithMinDuration.ts` |
+| @green-goods/shared | `./hooks/app/useLocalizedRelativeTime` | `./src/hooks/app/useLocalizedRelativeTime.ts` |
+| @green-goods/shared | `./hooks/app/useNavigateToTop` | `./src/hooks/app/useNavigateToTop.ts` |
+| @green-goods/shared | `./hooks/app/useOffline` | `./src/hooks/app/useOffline.ts` |
+| @green-goods/shared | `./hooks/app/useOnlineStatus` | `./src/hooks/app/useOnlineStatus.ts` |
+| @green-goods/shared | `./hooks/app/usePublicInstallHandler` | `./src/hooks/app/usePublicInstallHandler.ts` |
+| @green-goods/shared | `./hooks/app/useScrollToTop` | `./src/hooks/app/useScrollToTop.ts` |
+| @green-goods/shared | `./hooks/app/useServiceWorkerUpdate` | `./src/hooks/app/useServiceWorkerUpdate.ts` |
+| @green-goods/shared | `./hooks/app/useTheme` | `./src/hooks/app/useTheme.ts` |
+| @green-goods/shared | `./hooks/app/useTunnelUrl` | `./src/hooks/app/useTunnelUrl.ts` |
+| @green-goods/shared | `./hooks/assessment/useAllAssessments` | `./src/hooks/assessment/useAllAssessments.ts` |
+| @green-goods/shared | `./hooks/auth/useAuth` | `./src/hooks/auth/useAuth.ts` |
+| @green-goods/shared | `./hooks/auth/usePrimaryAddress` | `./src/hooks/auth/usePrimaryAddress.ts` |
+| @green-goods/shared | `./hooks/auth/useUser` | `./src/hooks/auth/useUser.ts` |
+| @green-goods/shared | `./hooks/auth/useWalletModalOpen` | `./src/hooks/auth/useWalletModalOpen.ts` |
+| @green-goods/shared | `./hooks/blockchain/prefetch` | `./src/hooks/blockchain/prefetch.ts` |
+| @green-goods/shared | `./hooks/blockchain/useBaseLists` | `./src/hooks/blockchain/useBaseLists.ts` |
+| @green-goods/shared | `./hooks/blockchain/useChainConfig` | `./src/hooks/blockchain/useChainConfig.ts` |
+| @green-goods/shared | `./hooks/blockchain/useEnsAddress` | `./src/hooks/blockchain/useEnsAddress.ts` |
+| @green-goods/shared | `./hooks/blockchain/useEnsAvatar` | `./src/hooks/blockchain/useEnsAvatar.ts` |
+| @green-goods/shared | `./hooks/blockchain/useEnsName` | `./src/hooks/blockchain/useEnsName.ts` |
+| @green-goods/shared | `./hooks/blockchain/useEthUsdPrice` | `./src/hooks/blockchain/useEthUsdPrice.ts` |
+| @green-goods/shared | `./hooks/blockchain/useRecentRecipients` | `./src/hooks/blockchain/useRecentRecipients.ts` |
+| @green-goods/shared | `./hooks/blockchain/useSendableTokens` | `./src/hooks/blockchain/useSendableTokens.ts` |
+| @green-goods/shared | `./hooks/blockchain/useSendToken` | `./src/hooks/blockchain/useSendToken.ts` |
+| @green-goods/shared | `./hooks/client-ui/auth/useLoginScreenController` | `./src/hooks/client-ui/auth/useLoginScreenController.ts` |
+| @green-goods/shared | `./hooks/client-ui/commitment/composerBeats` | `./src/hooks/client-ui/commitment/composerBeats.ts` |
+| @green-goods/shared | `./hooks/client-ui/commitment/controller.types` | `./src/hooks/client-ui/commitment/controller.types.ts` |
+| @green-goods/shared | `./hooks/client-ui/commitment/proof-controller.types` | `./src/hooks/client-ui/commitment/proof-controller.types.ts` |
+| @green-goods/shared | `./hooks/client-ui/commitment/proofReadiness` | `./src/hooks/client-ui/commitment/proofReadiness.ts` |
+| @green-goods/shared | `./hooks/client-ui/commitment/useCommitmentComposerController` | `./src/hooks/client-ui/commitment/useCommitmentComposerController.ts` |
+| @green-goods/shared | `./hooks/client-ui/commitment/useGardenCommitmentController` | `./src/hooks/client-ui/commitment/useGardenCommitmentController.ts` |
+| @green-goods/shared | `./hooks/client-ui/commitment/useProofComposerController` | `./src/hooks/client-ui/commitment/useProofComposerController.ts` |
+| @green-goods/shared | `./hooks/client-ui/pool/useGardenPoolController` | `./src/hooks/client-ui/pool/useGardenPoolController.ts` |
+| @green-goods/shared | `./hooks/client-ui/wallet/useSendFlowController` | `./src/hooks/client-ui/wallet/useSendFlowController.ts` |
+| @green-goods/shared | `./hooks/client-ui/work/useWorkDetailController` | `./src/hooks/client-ui/work/useWorkDetailController.ts` |
+| @green-goods/shared | `./hooks/client-ui/work/useWorkSubmissionFlowController` | `./src/hooks/client-ui/work/useWorkSubmissionFlowController.ts` |
+| @green-goods/shared | `./hooks/commitment-pooling/useCommitmentComposerForm` | `./src/hooks/commitment-pooling/useCommitmentComposerForm.ts` |
+| @green-goods/shared | `./hooks/commitment-pooling/useCommitmentCycleNames` | `./src/hooks/commitment-pooling/useCommitmentCycleNames.ts` |
+| @green-goods/shared | `./hooks/commitment-pooling/useCommitmentJobs` | `./src/hooks/commitment-pooling/useCommitmentJobs.ts` |
+| @green-goods/shared | `./hooks/commitment-pooling/useCommitmentPooling` | `./src/hooks/commitment-pooling/useCommitmentPooling.ts` |
+| @green-goods/shared | `./hooks/commitment-pooling/useCommitmentPoolSetupSequence` | `./src/hooks/commitment-pooling/useCommitmentPoolSetupSequence.ts` |
+| @green-goods/shared | `./hooks/commitment-pooling/useCommitmentsToConfirm` | `./src/hooks/commitment-pooling/useCommitmentsToConfirm.ts` |
+| @green-goods/shared | `./hooks/commitment-pooling/usePoolFunding` | `./src/hooks/commitment-pooling/usePoolFunding.ts` |
+| @green-goods/shared | `./hooks/commitment-pooling/useProtocolPool` | `./src/hooks/commitment-pooling/useProtocolPool.ts` |
+| @green-goods/shared | `./hooks/commitment-pooling/useSettlementQueries` | `./src/hooks/commitment-pooling/useSettlementQueries.ts` |
+| @green-goods/shared | `./hooks/conviction/useAllocateHypercertSupport` | `./src/hooks/conviction/useAllocateHypercertSupport.ts` |
+| @green-goods/shared | `./hooks/conviction/useConvictionProposalsForPool` | `./src/hooks/conviction/useConvictionProposalsForPool.ts` |
+| @green-goods/shared | `./hooks/conviction/useConvictionStrategies` | `./src/hooks/conviction/useConvictionStrategies.ts` |
+| @green-goods/shared | `./hooks/conviction/useConvictionWeightAllocator` | `./src/hooks/conviction/useConvictionWeightAllocator.ts` |
+| @green-goods/shared | `./hooks/conviction/useDeregisterHypercert` | `./src/hooks/conviction/useDeregisterHypercert.ts` |
+| @green-goods/shared | `./hooks/conviction/useGardenCommunity` | `./src/hooks/conviction/useGardenCommunity.ts` |
+| @green-goods/shared | `./hooks/conviction/useGardenPools` | `./src/hooks/conviction/useGardenPools.ts` |
+| @green-goods/shared | `./hooks/conviction/useHypercertConviction` | `./src/hooks/conviction/useHypercertConviction.ts` |
+| @green-goods/shared | `./hooks/conviction/useMemberVotingPower` | `./src/hooks/conviction/useMemberVotingPower.ts` |
+| @green-goods/shared | `./hooks/conviction/useRegisteredHypercerts` | `./src/hooks/conviction/useRegisteredHypercerts.ts` |
+| @green-goods/shared | `./hooks/conviction/useRegisterHypercert` | `./src/hooks/conviction/useRegisterHypercert.ts` |
+| @green-goods/shared | `./hooks/conviction/useSetConvictionStrategies` | `./src/hooks/conviction/useSetConvictionStrategies.ts` |
+| @green-goods/shared | `./hooks/cookie-jar/useAccessibleCookieJars` | `./src/hooks/cookie-jar/useAccessibleCookieJars.ts` |
+| @green-goods/shared | `./hooks/cookie-jar/useCampaignCookieJar` | `./src/hooks/cookie-jar/useCampaignCookieJar.ts` |
+| @green-goods/shared | `./hooks/cookie-jar/useCampaignCookieJarCampaigns` | `./src/hooks/cookie-jar/useCampaignCookieJarCampaigns.ts` |
+| @green-goods/shared | `./hooks/cookie-jar/useCookieJarAdmin` | `./src/hooks/cookie-jar/useCookieJarAdmin.ts` |
+| @green-goods/shared | `./hooks/cookie-jar/useCookieJarDeposit` | `./src/hooks/cookie-jar/useCookieJarDeposit.ts` |
+| @green-goods/shared | `./hooks/cookie-jar/useCookieJarFactoryAddress` | `./src/hooks/cookie-jar/useCookieJarFactoryAddress.ts` |
+| @green-goods/shared | `./hooks/cookie-jar/useCookieJarWithdraw` | `./src/hooks/cookie-jar/useCookieJarWithdraw.ts` |
+| @green-goods/shared | `./hooks/cookie-jar/useGardenCookieJars` | `./src/hooks/cookie-jar/useGardenCookieJars.ts` |
+| @green-goods/shared | `./hooks/ens/useENSClaim` | `./src/hooks/ens/useENSClaim.ts` |
+| @green-goods/shared | `./hooks/ens/useENSRegistrationStatus` | `./src/hooks/ens/useENSRegistrationStatus.ts` |
+| @green-goods/shared | `./hooks/ens/useENSReleaseName` | `./src/hooks/ens/useENSReleaseName.ts` |
+| @green-goods/shared | `./hooks/ens/useGreenGoodsEnsName` | `./src/hooks/ens/useGreenGoodsEnsName.ts` |
+| @green-goods/shared | `./hooks/ens/useProtocolMemberStatus` | `./src/hooks/ens/useProtocolMemberStatus.ts` |
+| @green-goods/shared | `./hooks/ens/useSlugAvailability` | `./src/hooks/ens/useSlugAvailability.ts` |
+| @green-goods/shared | `./hooks/ens/useSlugForm` | `./src/hooks/ens/useSlugForm.ts` |
+| @green-goods/shared | `./hooks/garden/useAdminGardenContext` | `./src/hooks/garden/useAdminGardenContext.ts` |
+| @green-goods/shared | `./hooks/garden/useAdminGardenWorkspaceSelection` | `./src/hooks/garden/useAdminGardenWorkspaceSelection.ts` |
+| @green-goods/shared | `./hooks/garden/useCreateGardenForm` | `./src/hooks/garden/useCreateGardenForm.ts` |
+| @green-goods/shared | `./hooks/garden/useEligibleAdminGardens` | `./src/hooks/garden/useEligibleAdminGardens.ts` |
+| @green-goods/shared | `./hooks/garden/useFilteredGardens` | `./src/hooks/garden/useFilteredGardens.ts` |
+| @green-goods/shared | `./hooks/garden/useGardenDerivedState` | `./src/hooks/garden/useGardenDerivedState.ts` |
+| @green-goods/shared | `./hooks/garden/useGardenDetailData` | `./src/hooks/garden/useGardenDetailData.ts` |
+| @green-goods/shared | `./hooks/garden/useGardenDomains` | `./src/hooks/garden/useGardenDomains.ts` |
+| @green-goods/shared | `./hooks/garden/useGardenJoinRequests` | `./src/hooks/garden/useGardenJoinRequests.ts` |
+| @green-goods/shared | `./hooks/garden/useGardenOperations` | `./src/hooks/garden/useGardenOperations.ts` |
+| @green-goods/shared | `./hooks/garden/useGardenPermissions` | `./src/hooks/garden/useGardenPermissions.ts` |
+| @green-goods/shared | `./hooks/garden/useGardenTabs` | `./src/hooks/garden/useGardenTabs.ts` |
+| @green-goods/shared | `./hooks/garden/useJoinGarden` | `./src/hooks/garden/useJoinGarden.ts` |
+| @green-goods/shared | `./hooks/garden/useKarmaIntegration` | `./src/hooks/garden/useKarmaIntegration.ts` |
+| @green-goods/shared | `./hooks/garden/useSetGardenDomains` | `./src/hooks/garden/useSetGardenDomains.ts` |
+| @green-goods/shared | `./hooks/garden/useUpdateGarden` | `./src/hooks/garden/useUpdateGarden.ts` |
+| @green-goods/shared | `./hooks/gardener/useGardenerProfile` | `./src/hooks/gardener/useGardenerProfile.ts` |
+| @green-goods/shared | `./hooks/gardener/useRole` | `./src/hooks/gardener/useRole.ts` |
+| @green-goods/shared | `./hooks/greenwill/useClaimGreenWillBadge` | `./src/hooks/greenwill/useClaimGreenWillBadge.ts` |
+| @green-goods/shared | `./hooks/greenwill/useGreenWillBadgeDefinitions` | `./src/hooks/greenwill/useGreenWillBadgeDefinitions.ts` |
+| @green-goods/shared | `./hooks/greenwill/useGreenWillBadges` | `./src/hooks/greenwill/useGreenWillBadges.ts` |
+| @green-goods/shared | `./hooks/greenwill/useGreenWillRecentGrants` | `./src/hooks/greenwill/useGreenWillRecentGrants.ts` |
+| @green-goods/shared | `./hooks/hypercerts/useCancelListing` | `./src/hooks/hypercerts/useCancelListing.ts` |
+| @green-goods/shared | `./hooks/hypercerts/useCreateListing` | `./src/hooks/hypercerts/useCreateListing.ts` |
+| @green-goods/shared | `./hooks/hypercerts/useHypercertListings` | `./src/hooks/hypercerts/useHypercertListings.ts` |
+| @green-goods/shared | `./hooks/hypercerts/useHypercerts` | `./src/hooks/hypercerts/useHypercerts.ts` |
+| @green-goods/shared | `./hooks/hypercerts/useMarketplaceApprovals` | `./src/hooks/hypercerts/useMarketplaceApprovals.ts` |
+| @green-goods/shared | `./hooks/hypercerts/useTradeHistory` | `./src/hooks/hypercerts/useTradeHistory.ts` |
+| @green-goods/shared | `./hooks/navigation/useCanvasSearchParams` | `./src/hooks/navigation/useCanvasSearchParams.ts` |
+| @green-goods/shared | `./hooks/navigation/useGardenUrlSync` | `./src/hooks/navigation/useGardenUrlSync.ts` |
+| @green-goods/shared | `./hooks/navigation/useSheetOrchestrator` | `./src/hooks/navigation/useSheetOrchestrator.ts` |
+| @green-goods/shared | `./hooks/profile/useProfileAvatar` | `./src/hooks/profile/useProfileAvatar.ts` |
+| @green-goods/shared | `./hooks/public/usePublicEndowmentPositions` | `./src/hooks/public/usePublicEndowmentPositions.ts` |
+| @green-goods/shared | `./hooks/public/usePublicGardenDetail` | `./src/hooks/public/usePublicGardenDetail.ts` |
+| @green-goods/shared | `./hooks/public/usePublicGardens` | `./src/hooks/public/usePublicGardens.ts` |
+| @green-goods/shared | `./hooks/public/usePublicImpactEvidence` | `./src/hooks/public/usePublicImpactEvidence.ts` |
+| @green-goods/shared | `./hooks/public/usePublicStats` | `./src/hooks/public/usePublicStats.ts` |
+| @green-goods/shared | `./hooks/public/usePublicVaultSummary` | `./src/hooks/public/usePublicVaultSummary.ts` |
+| @green-goods/shared | `./hooks/roles/useEffectiveToolbarPermissions` | `./src/hooks/roles/useEffectiveToolbarPermissions.ts` |
+| @green-goods/shared | `./hooks/roles/useHasRole` | `./src/hooks/roles/useHasRole.ts` |
+| @green-goods/shared | `./hooks/ui/useDocumentScrollLock` | `./src/hooks/ui/useDocumentScrollLock.ts` |
+| @green-goods/shared | `./hooks/ui/useFormWizardStepValidation` | `./src/hooks/ui/useFormWizardStepValidation.ts` |
+| @green-goods/shared | `./hooks/ui/useInViewReveal` | `./src/hooks/ui/useInViewReveal.ts` |
+| @green-goods/shared | `./hooks/ui/useIsDarkMode` | `./src/hooks/ui/useIsDarkMode.ts` |
+| @green-goods/shared | `./hooks/ui/useMediaQuery` | `./src/hooks/ui/useMediaQuery.ts` |
+| @green-goods/shared | `./hooks/useSheetWidth` | `./src/hooks/useSheetWidth.ts` |
+| @green-goods/shared | `./hooks/utils/useAddressInput` | `./src/hooks/utils/useAddressInput.ts` |
+| @green-goods/shared | `./hooks/utils/useAsyncEffect` | `./src/hooks/utils/useAsyncEffect.ts` |
+| @green-goods/shared | `./hooks/utils/useBeforeUnloadWhilePending` | `./src/hooks/utils/useBeforeUnloadWhilePending.ts` |
+| @green-goods/shared | `./hooks/utils/useCopyToClipboard` | `./src/hooks/utils/useCopyToClipboard.ts` |
+| @green-goods/shared | `./hooks/utils/useDebouncedValue` | `./src/hooks/utils/useDebouncedValue.ts` |
+| @green-goods/shared | `./hooks/utils/useEventListener` | `./src/hooks/utils/useEventListener.ts` |
+| @green-goods/shared | `./hooks/utils/useFocusTrap` | `./src/hooks/utils/useFocusTrap.ts` |
+| @green-goods/shared | `./hooks/utils/useStepFocus` | `./src/hooks/utils/useStepFocus.ts` |
+| @green-goods/shared | `./hooks/utils/useTimeout` | `./src/hooks/utils/useTimeout.ts` |
+| @green-goods/shared | `./hooks/utils/useTxErrorMessages` | `./src/hooks/utils/useTxErrorMessages.ts` |
+| @green-goods/shared | `./hooks/vault/useDepositForm` | `./src/hooks/vault/useDepositForm.ts` |
+| @green-goods/shared | `./hooks/vault/useEmergencyPause` | `./src/hooks/vault/useEmergencyPause.ts` |
+| @green-goods/shared | `./hooks/vault/useEnableAutoAllocate` | `./src/hooks/vault/useEnableAutoAllocate.ts` |
+| @green-goods/shared | `./hooks/vault/useFunderLeaderboard` | `./src/hooks/vault/useFunderLeaderboard.ts` |
+| @green-goods/shared | `./hooks/vault/useGardenVaults` | `./src/hooks/vault/useGardenVaults.ts` |
+| @green-goods/shared | `./hooks/vault/useHarvest` | `./src/hooks/vault/useHarvest.ts` |
+| @green-goods/shared | `./hooks/vault/useMyVaultDeposits` | `./src/hooks/vault/useMyVaultDeposits.ts` |
+| @green-goods/shared | `./hooks/vault/useOctantVaultHarvestableYield` | `./src/hooks/vault/useOctantVaultHarvestableYield.ts` |
+| @green-goods/shared | `./hooks/vault/useOctantVaultPositions` | `./src/hooks/vault/useOctantVaultPositions.ts` |
+| @green-goods/shared | `./hooks/vault/useOctantVaultStats` | `./src/hooks/vault/useOctantVaultStats.ts` |
+| @green-goods/shared | `./hooks/vault/useOctantVaultStrategyApy` | `./src/hooks/vault/useOctantVaultStrategyApy.ts` |
+| @green-goods/shared | `./hooks/vault/useOctantVaultWalletBalances` | `./src/hooks/vault/useOctantVaultWalletBalances.ts` |
+| @green-goods/shared | `./hooks/vault/useOctantVaultWalletEndow` | `./src/hooks/vault/useOctantVaultWalletEndow.ts` |
+| @green-goods/shared | `./hooks/vault/useOctantVaultWithdraw` | `./src/hooks/vault/useOctantVaultWithdraw.ts` |
+| @green-goods/shared | `./hooks/vault/useVaultDeposit` | `./src/hooks/vault/useVaultDeposit.ts` |
+| @green-goods/shared | `./hooks/vault/useVaultDeposits` | `./src/hooks/vault/useVaultDeposits.ts` |
+| @green-goods/shared | `./hooks/vault/useVaultEvents` | `./src/hooks/vault/useVaultEvents.ts` |
+| @green-goods/shared | `./hooks/vault/useVaultPreview` | `./src/hooks/vault/useVaultPreview.ts` |
+| @green-goods/shared | `./hooks/vault/useVaultWithdraw` | `./src/hooks/vault/useVaultWithdraw.ts` |
+| @green-goods/shared | `./hooks/vault/useWrapEthToWeth` | `./src/hooks/vault/useWrapEthToWeth.ts` |
+| @green-goods/shared | `./hooks/vault/vault-helpers` | `./src/hooks/vault/vault-helpers.ts` |
+| @green-goods/shared | `./hooks/work/useAggregatedApprovals` | `./src/hooks/work/useAggregatedApprovals.ts` |
+| @green-goods/shared | `./hooks/work/useDrafts` | `./src/hooks/work/useDrafts.ts` |
+| @green-goods/shared | `./hooks/work/useMyWorks` | `./src/hooks/work/useMyWorks.ts` |
+| @green-goods/shared | `./hooks/work/useReviewerGardenIds` | `./src/hooks/work/useReviewerGardenIds.ts` |
+| @green-goods/shared | `./hooks/work/useReviewerWorks` | `./src/hooks/work/useReviewerWorks.ts` |
+| @green-goods/shared | `./hooks/work/useWorkApproval` | `./src/hooks/work/useWorkApproval.ts` |
+| @green-goods/shared | `./hooks/work/useWorkApprovals` | `./src/hooks/work/useWorkApprovals.ts` |
+| @green-goods/shared | `./hooks/work/useWorkForm` | `./src/hooks/work/useWorkForm.ts` |
+| @green-goods/shared | `./hooks/work/useWorkMutation` | `./src/hooks/work/useWorkMutation.ts` |
+| @green-goods/shared | `./hooks/work/useWorks` | `./src/hooks/work/useWorks.ts` |
+| @green-goods/shared | `./hooks/yield/useGardenYieldWiringState` | `./src/hooks/yield/useGardenYieldWiringState.ts` |
+| @green-goods/shared | `./hooks/yield/useHarvestDistribution` | `./src/hooks/yield/useHarvestDistribution.ts` |
+| @green-goods/shared | `./hooks/yield/useYieldAllocations` | `./src/hooks/yield/useYieldAllocations.ts` |
+| @green-goods/shared | `./hooks/yield/useYieldStatus` | `./src/hooks/yield/useYieldStatus.ts` |
+| @green-goods/shared | `./i18n` | `./src/i18n/index.ts` |
+| @green-goods/shared | `./i18n/commitmentUnits` | `./src/i18n/commitmentUnits.ts` |
+| @green-goods/shared | `./i18n/en` | `./src/i18n/en.json` |
+| @green-goods/shared | `./i18n/en.json` | `./src/i18n/en.json` |
+| @green-goods/shared | `./i18n/es` | `./src/i18n/es.json` |
+| @green-goods/shared | `./i18n/es.json` | `./src/i18n/es.json` |
+| @green-goods/shared | `./i18n/pt` | `./src/i18n/pt.json` |
+| @green-goods/shared | `./i18n/pt.json` | `./src/i18n/pt.json` |
+| @green-goods/shared | `./lib/env` | `./src/lib/env.ts` |
+| @green-goods/shared | `./lib/hypercerts/constants` | `./src/lib/hypercerts/constants.ts` |
+| @green-goods/shared | `./lib/hypercerts/distribution` | `./src/lib/hypercerts/distribution.ts` |
+| @green-goods/shared | `./mocks` | `./src/__mocks__/index.ts` |
+| @green-goods/shared | `./mocks/browser` | `./src/__mocks__/browser/index.ts` |
+| @green-goods/shared | `./mocks/server` | `./src/__mocks__/server/index.ts` |
+| @green-goods/shared | `./modules` | `./src/modules/index.ts` |
+| @green-goods/shared | `./modules/app/analytics-events` | `./src/modules/app/analytics-events.ts` |
+| @green-goods/shared | `./modules/app/error-categories` | `./src/modules/app/error-categories.ts` |
+| @green-goods/shared | `./modules/app/error-events` | `./src/modules/app/error-events.ts` |
+| @green-goods/shared | `./modules/app/logger` | `./src/modules/app/logger.ts` |
+| @green-goods/shared | `./modules/app/posthog` | `./src/modules/app/posthog.ts` |
+| @green-goods/shared | `./modules/auth/session` | `./src/modules/auth/session.ts` |
+| @green-goods/shared | `./modules/commitment-pooling/cycle-metadata` | `./src/modules/commitment-pooling/cycle-metadata.ts` |
+| @green-goods/shared | `./modules/commitment-pooling/disclosure` | `./src/modules/commitment-pooling/disclosure.ts` |
+| @green-goods/shared | `./modules/commitment-pooling/pool-charter` | `./src/modules/commitment-pooling/pool-charter.ts` |
+| @green-goods/shared | `./modules/commitment-pooling/pool-console` | `./src/modules/commitment-pooling/pool-console.ts` |
+| @green-goods/shared | `./modules/commitment-pooling/pool-funding` | `./src/modules/commitment-pooling/pool-funding.ts` |
+| @green-goods/shared | `./modules/commitment-pooling/pool-lifecycle` | `./src/modules/commitment-pooling/pool-lifecycle.ts` |
+| @green-goods/shared | `./modules/commitment-pooling/pool-setup` | `./src/modules/commitment-pooling/pool-setup.ts` |
+| @green-goods/shared | `./modules/commitment-pooling/types-core` | `./src/modules/commitment-pooling/types-core.ts` |
+| @green-goods/shared | `./modules/data/hypercerts-filters` | `./src/modules/data/hypercerts-filters.ts` |
+| @green-goods/shared | `./modules/data/ipfs/client` | `./src/modules/data/ipfs/client.ts` |
+| @green-goods/shared | `./modules/data/ipfs/resolve` | `./src/modules/data/ipfs/resolve.ts` |
+| @green-goods/shared | `./modules/data/ipfs/upload` | `./src/modules/data/ipfs/upload.ts` |
+| @green-goods/shared | `./modules/garden-join-requests` | `./src/modules/garden-join-requests/index.ts` |
+| @green-goods/shared | `./modules/job-queue/default-instance` | `./src/modules/job-queue/default-instance.ts` |
+| @green-goods/shared | `./modules/job-queue/media-resource-manager` | `./src/modules/job-queue/media-resource-manager.ts` |
+| @green-goods/shared | `./modules/job-queue/queue` | `./src/modules/job-queue/queue.ts` |
+| @green-goods/shared | `./modules/job-queue/queue-policy` | `./src/modules/job-queue/queue-policy.ts` |
+| @green-goods/shared | `./modules/octant-vault-card-wallet-cache` | `./src/modules/octant-vault-card-wallet-cache.ts` |
+| @green-goods/shared | `./modules/profile-avatar/editor-messages` | `./src/modules/profile-avatar/editor-messages.ts` |
+| @green-goods/shared | `./modules/translation/browser-translator` | `./src/modules/translation/browser-translator.ts` |
+| @green-goods/shared | `./modules/vault-crowdfunding/card-endow` | `./src/modules/vault-crowdfunding/card-endow.ts` |
+| @green-goods/shared | `./modules/vault-crowdfunding/copy` | `./src/modules/vault-crowdfunding/copy.ts` |
+| @green-goods/shared | `./modules/vault-crowdfunding/manifest` | `./src/modules/vault-crowdfunding/manifest.ts` |
+| @green-goods/shared | `./modules/vault-crowdfunding/route-manage` | `./src/modules/vault-crowdfunding/route-manage.ts` |
+| @green-goods/shared | `./modules/vault-crowdfunding/wallet-endow` | `./src/modules/vault-crowdfunding/wallet-endow.ts` |
+| @green-goods/shared | `./modules/wallet/barcode-scanner` | `./src/modules/wallet/barcode-scanner.ts` |
+| @green-goods/shared | `./modules/wallet/send-flow` | `./src/modules/wallet/send-flow.ts` |
+| @green-goods/shared | `./modules/work/bot-submission` | `./src/modules/work/bot-submission.ts` |
+| @green-goods/shared | `./modules/work/media-processing` | `./src/modules/work/media-processing.ts` |
+| @green-goods/shared | `./modules/work/submission-flow` | `./src/modules/work/submission-flow.ts` |
+| @green-goods/shared | `./modules/work/submit-work-command` | `./src/modules/work/submit-work-command.ts` |
+| @green-goods/shared | `./modules/work/work-submission` | `./src/modules/work/work-submission.ts` |
+| @green-goods/shared | `./ontology/types` | `./src/ontology/types.ts` |
+| @green-goods/shared | `./profile-avatar` | `./src/profile-avatar/index.ts` |
+| @green-goods/shared | `./profile-avatar/protocol` | `./src/profile-avatar/protocol.ts` |
+| @green-goods/shared | `./providers` | `./src/providers/index.ts` |
+| @green-goods/shared | `./providers/App` | `./src/providers/App.tsx` |
+| @green-goods/shared | `./providers/AppKitProvider` | `./src/providers/AppKitProvider.tsx` |
+| @green-goods/shared | `./providers/Auth` | `./src/providers/Auth.tsx` |
+| @green-goods/shared | `./providers/AuthGate` | `./src/providers/AuthGate.tsx` |
+| @green-goods/shared | `./providers/JobQueue` | `./src/providers/JobQueue.tsx` |
+| @green-goods/shared | `./providers/Work` | `./src/providers/Work.tsx` |
+| @green-goods/shared | `./public` | `./src/hooks/public/publicSurfaceState.ts` |
+| @green-goods/shared | `./public-contracts` | `./src/public-contracts/index.ts` |
+| @green-goods/shared | `./public-contracts/core` | `./src/public-contracts/core.ts` |
+| @green-goods/shared | `./public-contracts/garden-slug` | `./src/public-contracts/garden-slug.ts` |
+| @green-goods/shared | `./public-contracts/join-requests` | `./src/public-contracts/join-requests.ts` |
+| @green-goods/shared | `./public-contracts/public-impact` | `./src/public-contracts/public-impact.ts` |
+| @green-goods/shared | `./public-contracts/routes` | `./src/public-contracts/routes.ts` |
+| @green-goods/shared | `./sentry` | `./src/modules/app/sentry.ts` |
+| @green-goods/shared | `./sentry-redaction` | `./src/modules/app/sentry-redaction.ts` |
+| @green-goods/shared | `./service-worker` | `./src/modules/app/service-worker-registration.ts` |
+| @green-goods/shared | `./stores` | `./src/stores/index.ts` |
+| @green-goods/shared | `./stores/useAdminStore` | `./src/stores/useAdminStore.ts` |
+| @green-goods/shared | `./stores/useCommitmentComposerDraftStore` | `./src/stores/useCommitmentComposerDraftStore.ts` |
+| @green-goods/shared | `./stores/useCreateAssessmentStore` | `./src/stores/useCreateAssessmentStore.ts` |
+| @green-goods/shared | `./stores/useCreateGardenStore` | `./src/stores/useCreateGardenStore.ts` |
+| @green-goods/shared | `./stores/useGardenStateStore` | `./src/stores/useGardenStateStore.ts` |
+| @green-goods/shared | `./stores/useHypercertWizardStore` | `./src/stores/useHypercertWizardStore.ts` |
+| @green-goods/shared | `./stores/useSheetOrchestratorStore` | `./src/stores/useSheetOrchestratorStore.ts` |
+| @green-goods/shared | `./stores/useUIStore` | `./src/stores/useUIStore.ts` |
+| @green-goods/shared | `./stores/workFlowTypes` | `./src/stores/workFlowTypes.ts` |
+| @green-goods/shared | `./styles` | `./src/styles/theme.css` |
+| @green-goods/shared | `./styles/design-md.generated.json` | `./src/styles/design-md.generated.json` |
+| @green-goods/shared | `./styles/theme.css` | `./src/styles/theme.css` |
+| @green-goods/shared | `./styles/utilities.css` | `./src/styles/utilities.css` |
+| @green-goods/shared | `./testing` | `./src/__tests__/test-utils/index.ts` |
+| @green-goods/shared | `./testing/query-client` | `./src/__tests__/test-utils/query-client.ts` |
+| @green-goods/shared | `./toast` | `./src/components/toast.ts` |
+| @green-goods/shared | `./types` | `./src/types/index.ts` |
+| @green-goods/shared | `./types/conviction` | `./src/types/conviction.ts` |
+| @green-goods/shared | `./types/cookie-jar` | `./src/types/cookie-jar.ts` |
+| @green-goods/shared | `./types/domain` | `./src/types/domain.ts` |
+| @green-goods/shared | `./types/eas-responses` | `./src/types/eas-responses.ts` |
+| @green-goods/shared | `./types/garden-detail` | `./src/types/garden-detail.ts` |
+| @green-goods/shared | `./types/gardens-community` | `./src/types/gardens-community.ts` |
+| @green-goods/shared | `./types/greenwill` | `./src/types/greenwill.ts` |
+| @green-goods/shared | `./types/hypercerts` | `./src/types/hypercerts.ts` |
+| @green-goods/shared | `./types/vaults` | `./src/types/vaults.ts` |
+| @green-goods/shared | `./utils` | `./src/utils/index.ts` |
+| @green-goods/shared | `./utils/action/parsers` | `./src/utils/action/parsers.ts` |
+| @green-goods/shared | `./utils/action/templates` | `./src/utils/action/templates.ts` |
+| @green-goods/shared | `./utils/action/translations` | `./src/utils/action/translations.ts` |
+| @green-goods/shared | `./utils/app/browser` | `./src/utils/app/browser.ts` |
+| @green-goods/shared | `./utils/app/clipboard` | `./src/utils/app/clipboard.ts` |
+| @green-goods/shared | `./utils/app/haptics` | `./src/utils/app/haptics.ts` |
+| @green-goods/shared | `./utils/app/pwa` | `./src/utils/app/pwa.ts` |
+| @green-goods/shared | `./utils/app/recursive-clone-children` | `./src/utils/app/recursive-clone-children.tsx` |
+| @green-goods/shared | `./utils/app/send-recipients` | `./src/utils/app/send-recipients.ts` |
+| @green-goods/shared | `./utils/app/text` | `./src/utils/app/text.ts` |
+| @green-goods/shared | `./utils/blockchain/aave` | `./src/utils/blockchain/aave.ts` |
+| @green-goods/shared | `./utils/blockchain/abis/erc20` | `./src/utils/blockchain/abis/erc20.ts` |
+| @green-goods/shared | `./utils/blockchain/abis/garden` | `./src/utils/blockchain/abis/garden.ts` |
+| @green-goods/shared | `./utils/blockchain/abis/octant` | `./src/utils/blockchain/abis/octant.ts` |
+| @green-goods/shared | `./utils/blockchain/address` | `./src/utils/blockchain/address.ts` |
+| @green-goods/shared | `./utils/blockchain/chain-registry` | `./src/utils/blockchain/chain-registry.ts` |
+| @green-goods/shared | `./utils/blockchain/contracts` | `./src/utils/blockchain/contracts.ts` |
+| @green-goods/shared | `./utils/blockchain/ens` | `./src/utils/blockchain/ens.ts` |
+| @green-goods/shared | `./utils/blockchain/garden-roles` | `./src/utils/blockchain/garden-roles.ts` |
+| @green-goods/shared | `./utils/blockchain/octant-vault-redeem` | `./src/utils/blockchain/octant-vault-redeem.ts` |
+| @green-goods/shared | `./utils/blockchain/price-feeds` | `./src/utils/blockchain/price-feeds.ts` |
+| @green-goods/shared | `./utils/blockchain/vaults` | `./src/utils/blockchain/vaults.ts` |
+| @green-goods/shared | `./utils/cookie-jar-campaign` | `./src/utils/cookie-jar-campaign.ts` |
+| @green-goods/shared | `./utils/debug` | `./src/utils/debug.ts` |
+| @green-goods/shared | `./utils/domain` | `./src/utils/domain.ts` |
+| @green-goods/shared | `./utils/eas/explorers` | `./src/utils/eas/explorers.ts` |
+| @green-goods/shared | `./utils/errors/blockchain-errors` | `./src/utils/errors/blockchain-errors.ts` |
+| @green-goods/shared | `./utils/errors/contract-errors` | `./src/utils/errors/contract-errors.ts` |
+| @green-goods/shared | `./utils/errors/extract-message` | `./src/utils/errors/extract-message.ts` |
+| @green-goods/shared | `./utils/errors/tx-error-classifier` | `./src/utils/errors/tx-error-classifier.ts` |
+| @green-goods/shared | `./utils/form/normalizers` | `./src/utils/form/normalizers.ts` |
+| @green-goods/shared | `./utils/garden-detail` | `./src/utils/garden-detail.ts` |
+| @green-goods/shared | `./utils/navigation/admin-routes` | `./src/utils/navigation/admin-routes.ts` |
+| @green-goods/shared | `./utils/relativeTime` | `./src/utils/relativeTime.ts` |
+| @green-goods/shared | `./utils/styles/cn` | `./src/utils/styles/cn.ts` |
+| @green-goods/shared | `./utils/styles/polymorphic` | `./src/utils/styles/polymorphic.ts` |
+| @green-goods/shared | `./utils/styles/theme` | `./src/utils/styles/theme.ts` |
+| @green-goods/shared | `./utils/time` | `./src/utils/time.ts` |
+| @green-goods/shared | `./utils/work/image-compression` | `./src/utils/work/image-compression.ts` |
+| @green-goods/shared | `./utils/work/pending-review` | `./src/utils/work/pending-review.ts` |
+| @green-goods/shared | `./utils/work/workTitles` | `./src/utils/work/workTitles.ts` |
+| @green-goods/shared | `./workflows` | `./src/workflows/index.ts` |
+| @green-goods/shared | `./workflows/createGarden` | `./src/workflows/createGarden.ts` |

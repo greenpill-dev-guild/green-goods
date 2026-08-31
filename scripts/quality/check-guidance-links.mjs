@@ -28,6 +28,11 @@ const PERSISTENT_RETIRED_PATHS = [
   ".claude/skills/design/spatial.md",
   ".claude/skills/design/materials.md",
   ".claude/skills/design/interaction.md",
+  ".claude/skills/debug/health-diagnostics.md",
+  ".claude/skills/debug/monitoring.md",
+  ".claude/skills/debug/posthog.md",
+  ".claude/skills/design/quick-reference.md",
+  ".claude/skills/design/regenerative.md",
 ];
 const CONSUMER_EXTENSIONS = new Set([
   ".css",
@@ -316,7 +321,8 @@ function shouldScanConsumer(file) {
     (file.startsWith(".plans/") && !file.startsWith(".plans/active/")) ||
     (file.startsWith(".plans/active/") && file.includes("/reports/")) ||
     file.includes("/generated/") ||
-    file.includes("/dist/")
+    file.includes("/dist/") ||
+    file.endsWith("/artifacts/migration-ledger.json")
   ) {
     return false;
   }

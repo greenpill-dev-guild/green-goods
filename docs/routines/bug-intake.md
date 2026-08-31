@@ -149,7 +149,7 @@ Issue these against the PostHog connector and keep the responses in private rout
 2. **Error detail for the matching hash** — top-line message, normalized stack frame, first/last seen, affected-session count, affected-user count, app surface inferred from URL host (`client` vs `admin`), and the replay link (private).
 3. **Reporter session lookup** — only when the reporter identifier is known and consented. Returns recent sessions (private), distinct ID (private), and any errors observed in those sessions.
 4. **Recurring-pattern probe** — for each candidate match, ask "how many distinct sessions has this error hit in the last 30 days?" Used by Phase 4 below.
-5. **Free-text fuzzy match** — when there is no stack trace, match the verbatim quote against recent error messages and against `event` names (`work_submitted`, `sync_failed`, etc.) from `.claude/skills/debug/posthog.md`.
+5. **Free-text fuzzy match** — when there is no stack trace, match the verbatim quote against recent error messages and current event names in the owning PostHog module.
 
 ### Privacy boundary (strict)
 
