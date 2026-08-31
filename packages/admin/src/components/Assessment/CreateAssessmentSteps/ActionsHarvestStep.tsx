@@ -2,7 +2,7 @@ import { DatePicker } from "@green-goods/shared/components/DatePicker/DatePicker
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
-import { fromCalendarDateKey, toCalendarDateKey } from "@green-goods/shared/utils/calendar-date";
+import { fromCalendarDateKey, toCalendarDateKey } from "@green-goods/shared/utils/time";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";

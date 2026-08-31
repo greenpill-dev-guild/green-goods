@@ -56,7 +56,6 @@
     "./toast": "./src/components/toast.ts",
     "./types": "./src/types/index.ts",
     "./utils": "./src/utils/index.ts",
-    "./utils/calendar-date": "./src/utils/calendar-date.ts",
     "./utils/blockchain/abis/garden": "./src/utils/blockchain/abis/garden.ts",
     "./workflows": "./src/workflows/index.ts",
     "./__tests__/setupTests.base": "./src/__tests__/setupTests.base.ts",
