@@ -221,11 +221,27 @@ const collectMarkdownHrefs = (markdown) => {
     .filter(Boolean);
 };
 
+const stripMdxTags = (value) => {
+  let result = "";
+  let insideTag = false;
+  for (const character of value) {
+    if (character === "<") {
+      insideTag = true;
+      continue;
+    }
+    if (character === ">" && insideTag) {
+      insideTag = false;
+      continue;
+    }
+    if (!insideTag) result += character;
+  }
+  return result;
+};
+
 const headingSlug = (value) =>
-  value
+  stripMdxTags(value)
     .replace(/\{#[^}]+\}\s*$/, "")
     .replace(/\[([^\]]+)]\([^)]+\)/g, "$1")
-    .replace(/<[^>]+>/g, "")
     .replace(/[`*_~]/g, "")
     .trim()
     .toLowerCase()

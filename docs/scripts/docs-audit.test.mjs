@@ -67,6 +67,21 @@ test("accepts existing authority and redirect-fragment targets", () => {
   }
 });
 
+test("ignores unterminated MDX tags when deriving heading anchors", () => {
+  const root = fixture();
+  try {
+    const file = path.join(root, "docs/docs/reference/product-history.mdx");
+    writeFileSync(
+      file,
+      readFileSync(file, "utf8").replace("## Version 1.0 {#version-1-0}", "## Version 1-0 <script"),
+    );
+    const result = runAudit(root);
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("broken authored authority exits nonzero", () => {
   const root = fixture();
   try {
