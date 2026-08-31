@@ -74,6 +74,8 @@ function applyOptimisticUpdate(
 }
 
 export function useGardenOperations(gardenId: string) {
+  // Garden ids are token-bound account addresses; callers still pass them as route strings.
+  const gardenAddress = gardenId as Address;
   const chainId = DEFAULT_CHAIN_ID;
   const [isLoading, setIsLoading] = useState(false);
   const { executeWithToast } = useToastAction();
@@ -213,7 +215,7 @@ export function useGardenOperations(gardenId: string) {
     return {
       addGardener: createOperationWrapper(
         createGardenOperation(
-          gardenId,
+          gardenAddress,
           {
             ...GARDEN_OPERATIONS.addGardener,
             messages: buildMessages("gardener", "add"),
@@ -230,7 +232,7 @@ export function useGardenOperations(gardenId: string) {
       ),
       removeGardener: createOperationWrapper(
         createGardenOperation(
-          gardenId,
+          gardenAddress,
           {
             ...GARDEN_OPERATIONS.removeGardener,
             messages: buildMessages("gardener", "remove"),
@@ -247,7 +249,7 @@ export function useGardenOperations(gardenId: string) {
       ),
       addSteward: createOperationWrapper(
         createGardenOperation(
-          gardenId,
+          gardenAddress,
           {
             ...GARDEN_OPERATIONS.addSteward,
             messages: buildMessages("steward", "add"),
@@ -264,7 +266,7 @@ export function useGardenOperations(gardenId: string) {
       ),
       removeSteward: createOperationWrapper(
         createGardenOperation(
-          gardenId,
+          gardenAddress,
           {
             ...GARDEN_OPERATIONS.removeSteward,
             messages: buildMessages("steward", "remove"),
@@ -281,7 +283,7 @@ export function useGardenOperations(gardenId: string) {
       ),
       addEvaluator: createOperationWrapper(
         createGardenOperation(
-          gardenId,
+          gardenAddress,
           {
             ...GARDEN_OPERATIONS.addEvaluator,
             messages: buildMessages("evaluator", "add"),
@@ -298,7 +300,7 @@ export function useGardenOperations(gardenId: string) {
       ),
       removeEvaluator: createOperationWrapper(
         createGardenOperation(
-          gardenId,
+          gardenAddress,
           {
             ...GARDEN_OPERATIONS.removeEvaluator,
             messages: buildMessages("evaluator", "remove"),
@@ -315,7 +317,7 @@ export function useGardenOperations(gardenId: string) {
       ),
       addOwner: createOperationWrapper(
         createGardenOperation(
-          gardenId,
+          gardenAddress,
           {
             ...GARDEN_OPERATIONS.addOwner,
             messages: buildMessages("owner", "add"),
@@ -332,7 +334,7 @@ export function useGardenOperations(gardenId: string) {
       ),
       removeOwner: createOperationWrapper(
         createGardenOperation(
-          gardenId,
+          gardenAddress,
           {
             ...GARDEN_OPERATIONS.removeOwner,
             messages: buildMessages("owner", "remove"),
@@ -349,7 +351,7 @@ export function useGardenOperations(gardenId: string) {
       ),
       addFunder: createOperationWrapper(
         createGardenOperation(
-          gardenId,
+          gardenAddress,
           {
             ...GARDEN_OPERATIONS.addFunder,
             messages: buildMessages("funder", "add"),
@@ -366,7 +368,7 @@ export function useGardenOperations(gardenId: string) {
       ),
       removeFunder: createOperationWrapper(
         createGardenOperation(
-          gardenId,
+          gardenAddress,
           {
             ...GARDEN_OPERATIONS.removeFunder,
             messages: buildMessages("funder", "remove"),
@@ -383,7 +385,7 @@ export function useGardenOperations(gardenId: string) {
       ),
       addCommunity: createOperationWrapper(
         createGardenOperation(
-          gardenId,
+          gardenAddress,
           {
             ...GARDEN_OPERATIONS.addCommunity,
             messages: buildMessages("community", "add"),
@@ -400,7 +402,7 @@ export function useGardenOperations(gardenId: string) {
       ),
       removeCommunity: createOperationWrapper(
         createGardenOperation(
-          gardenId,
+          gardenAddress,
           {
             ...GARDEN_OPERATIONS.removeCommunity,
             messages: buildMessages("community", "remove"),

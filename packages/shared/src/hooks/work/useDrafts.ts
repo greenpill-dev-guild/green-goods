@@ -7,6 +7,7 @@
  * @module hooks/work/useDrafts
  */
 
+import type { Address } from "../../types/domain";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { computeFirstIncompleteStep, draftDB } from "../../modules/job-queue/draft-db";
@@ -210,7 +211,7 @@ export function useDrafts() {
 
       // Create new draft
       const draftId = await createDraftMutation.mutateAsync({
-        gardenAddress,
+        gardenAddress: gardenAddress as Address | null,
         actionUID,
         currentStep: "intro",
         firstIncompleteStep: "intro",

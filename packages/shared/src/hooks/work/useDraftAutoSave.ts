@@ -8,6 +8,7 @@
  * @module hooks/work/useDraftAutoSave
  */
 
+import type { Address } from "../../types/domain";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { trackStorageError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
@@ -111,7 +112,7 @@ export function useDraftAutoSave(
       // Create a new draft if we don't have one
       if (!draftId) {
         draftId = await createDraft({
-          gardenAddress: currentFormData.gardenAddress,
+          gardenAddress: currentFormData.gardenAddress as Address | null,
           actionUID: currentFormData.actionUID,
           feedback: currentFormData.feedback,
           timeSpentMinutes: currentFormData.timeSpentMinutes,
@@ -123,7 +124,7 @@ export function useDraftAutoSave(
         await updateDraft({
           draftId,
           data: {
-            gardenAddress: currentFormData.gardenAddress,
+            gardenAddress: currentFormData.gardenAddress as Address | null,
             actionUID: currentFormData.actionUID,
             feedback: currentFormData.feedback,
             timeSpentMinutes: currentFormData.timeSpentMinutes,

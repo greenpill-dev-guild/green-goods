@@ -139,7 +139,7 @@ export const Garden: React.FC = () => {
 
       return {
         id: match?.id || address,
-        account: address,
+        account: address as Address,
         username: match?.username || undefined,
         email: match?.email || undefined,
         phone: match?.phone || undefined,
@@ -151,10 +151,10 @@ export const Garden: React.FC = () => {
     });
   }, [allGardeners, garden]);
 
-  const { vaults: gardenVaults = [] } = useGardenVaults(garden?.id, {
+  const { vaults: gardenVaults = [] } = useGardenVaults(garden?.id as Address | undefined, {
     enabled: Boolean(garden?.id),
   });
-  const { deposits: myVaultDeposits = [] } = useVaultDeposits(garden?.id, {
+  const { deposits: myVaultDeposits = [] } = useVaultDeposits(garden?.id as Address | undefined, {
     userAddress: primaryAddress ?? undefined,
     enabled: Boolean(garden?.id && primaryAddress),
   });
@@ -478,7 +478,7 @@ export const Garden: React.FC = () => {
           <EndowmentDrawer
             isOpen={isEndowmentOpen}
             onClose={closeEndowmentDrawer}
-            gardenAddress={garden.id}
+            gardenAddress={garden.id as Address}
             gardenName={garden.name}
           />
         )}
@@ -486,7 +486,7 @@ export const Garden: React.FC = () => {
           <ConvictionDrawer
             isOpen={isGovernanceOpen}
             onClose={() => setIsGovernanceOpen(false)}
-            gardenAddress={garden.id}
+            gardenAddress={garden.id as Address}
             gardenName={garden.name}
           />
         )}

@@ -32,12 +32,13 @@
 
 import type { SmartAccountClient } from "permissionless";
 import { useAuth } from "./useAuth";
+import type { Address } from "../../types/domain";
 import { getPrimaryAddress } from "./usePrimaryAddress";
 
 export interface User {
-  id: string;
+  id: Address;
   wallet: {
-    address: string;
+    address: Address;
   };
 }
 
@@ -63,7 +64,7 @@ export interface UseUserReturn {
   /** External wallet address (may differ from walletAddress in passkey mode) */
   externalWalletAddress: string | null;
   /** Primary address based on current auth mode */
-  primaryAddress: string | null;
+  primaryAddress: Address | null;
 }
 
 export function useUser(): UseUserReturn {

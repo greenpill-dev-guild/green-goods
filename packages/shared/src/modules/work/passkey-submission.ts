@@ -1,7 +1,7 @@
 import type { SmartAccountClient } from "permissionless";
 import { getEASConfig, type EASConfig } from "../../config/blockchain";
 import { assertLocalArbitrumForkSmartAccountsDisabled } from "../transactions/local-fork-safety";
-import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
+import type { Address, WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { debugError, debugLog } from "../../utils/debug";
 import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
 import {
@@ -34,7 +34,7 @@ function assertSmartAccount(
 export interface PasskeyWorkSubmissionParams {
   client: SmartAccountClient | null;
   draft: WorkDraft;
-  gardenAddress: string;
+  gardenAddress: Address;
   actionUID: number;
   actionTitle: string;
   chainId: number;
@@ -121,7 +121,7 @@ export async function submitWorkWithPasskey(
 export interface PasskeyApprovalSubmissionParams {
   client: SmartAccountClient | null;
   draft: WorkApprovalDraft;
-  gardenAddress: string;
+  gardenAddress: Address;
   chainId: number;
 }
 
@@ -169,7 +169,7 @@ export interface PasskeyBatchApprovalParams {
   client: SmartAccountClient | null;
   approvals: Array<{
     draft: WorkApprovalDraft;
-    gardenAddress: string;
+    gardenAddress: Address;
   }>;
   chainId: number;
   /** Optional AbortSignal for cancellation support */
