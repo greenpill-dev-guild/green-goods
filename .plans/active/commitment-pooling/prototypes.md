@@ -62,7 +62,7 @@
 
 **State names** follow the §4 tables — pool/cycle/commitment (UX:53-108), claim-request §4.4 (UX:101-108), disbursement (SS:62); `None`/`UNKNOWN` sentinels are never user-visible (UX:51).
 
-**Copy discipline** — authored placeholder copy uses the mutual-aid vocabulary (UX:40-43) and banned-vocabulary rules (`docs/docs/reference/glossary-community.md:114-121`); settlement copy never says "arrived" before Confirmed (SS:398, AM:20-25).
+**Copy discipline** — authored placeholder copy uses the mutual-aid vocabulary (UX:40-43) and banned-vocabulary rules (`scripts/data/banned-vocabulary.json`); settlement copy never says "arrived" before Confirmed (SS:398, AM:20-25).
 
 ## Storyboard index
 

@@ -46,7 +46,7 @@ This plan is paired with `domain-coherence` (its own plan) — yield-to-impact h
   - This Plan Hub retains the durable yield-to-impact framing from the March 2026 GreenWill/GIF proposal set; the exact proposal text remains recoverable through Git history.
   - `packages/shared/src/ontology/green-goods-ontology.json` defines the four production action domains and their cross-layer representations.
   - `docs/docs/builders/architecture/erd.mdx` and `docs/docs/builders/integrations/entity-matrix.mdx` — current entity model references.
-  - `docs/docs/reference/glossary-community.md` — canonical vocabulary reference.
+  - `docs/docs/reference/glossary.generated.mdx` — generated vocabulary reference (authority: `packages/shared/src/ontology/green-goods-ontology.json`).
 - **Missing**:
   - First-class impact dimensions (community / environmental / social / cultural / ecological) as types in shared.
   - Mapping from action domains × work output → dimensional impact vectors.
@@ -86,7 +86,7 @@ This plan is paired with `domain-coherence` (its own plan) — yield-to-impact h
 
 ## Success
 
-- Documented dimension model + domain-to-dimension mapping in `docs/docs/builders/specs/yield-to-impact.mdx`.
+- Documented dimension model + domain-to-dimension mapping in this hub's `spec.md` (authored docs spec pages were retired; public projections generate from the ontology).
 - Typed `ImpactDimension` / `ImpactVector` / `YieldImpactCurve` in `@green-goods/shared`.
 - Indexer schema additions land deterministically on existing events (no new contracts in v1).
 - `useYieldImpactCurve` and `useNetworkImpactCurve` hooks ship with tests.
@@ -103,7 +103,7 @@ This plan is paired with `domain-coherence` (its own plan) — yield-to-impact h
 
 ## Checklist
 
-- [ ] Discovery doc summarizing GIF proposal alignment + dimension definitions in `docs/docs/builders/specs/yield-to-impact.mdx`.
+- [ ] Discovery doc summarizing GIF proposal alignment + dimension definitions in this hub's `spec.md`.
 - [ ] Domain × dimension mapping matrix (paired with `domain-coherence` plan).
 - [ ] Types in `@green-goods/shared` (`ImpactDimension`, `ImpactVector`, `YieldImpactCurve`).
 - [ ] Indexer schema extension if deterministic; design doc for any contract anchor needed.

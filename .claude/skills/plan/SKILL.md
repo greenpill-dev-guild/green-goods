@@ -337,7 +337,7 @@ Plans with >15 locked decisions likely need splitting. Separate **vision/archite
 
 | Document Type | Decision Count | Location |
 |---------------|---------------|----------|
-| Architecture spec | Unlimited | `docs/specs/` or Linear project/issue document |
+| Architecture spec | Unlimited | Linear project/issue document or the owning `.plans/<feature-slug>/spec.md` |
 | Implementation plan | 5-15 decisions | `.plans/active/<feature-slug>/plan.todo.md` |
 | Task checklist | 0 decisions | `.plans/active/<feature-slug>/plan.todo.md` |
 | Evaluation plan | 0-10 gates | `.plans/active/<feature-slug>/eval.md` |
