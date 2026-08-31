@@ -55,7 +55,7 @@ describe("QA app page", () => {
     const script = inlineScript();
     // Selection lived only in the `on` class, which a screen reader cannot see.
     // Every group that renders `on` has to render the matching state as well.
-    const selectable = ["tab", "filt", "who-btn", "scope-btn", "st"];
+    const selectable = ["tab", "filt", "scope-btn", "st"];
     for (const control of selectable) {
       const rendered = script.slice(script.indexOf(`class="${control} `));
       expect(rendered.slice(0, 400), `${control} has no selected state`).toContain("aria-pressed");
@@ -64,6 +64,32 @@ describe("QA app page", () => {
     expect(script).toMatch(/data-note="\$\{esc\(c\.id\)\}"[^>]*aria-label=/);
     // The verdict glyphs need a spoken name; "P" is not one.
     expect(script).toContain('const SPOKEN = { pass: "pass", fail: "fail", blocked: "blocked", na: "not applicable" }');
+  });
+
+  it("does not render the obsolete testing-as selector", () => {
+    // The session cookie fixes the writer to the wallet that signed in. A row
+    // of tester-shaped controls implies that attribution can be changed even
+    // when every button is disabled, and duplicates the roster beside the
+    // real showing filter.
+    expect(page).not.toContain('class="who-btn');
+    expect(page).not.toContain('class="who-group');
+    expect(page).not.toContain('>testing as<');
+  });
+
+  it("keeps tabs and showing controls together, then filters and summary together", () => {
+    // These are the two scan lines a tester uses throughout a walk. Keep each
+    // pair in one flex row so wide screens do not spend four lines on controls.
+    expect(page).toMatch(/class="header-row tab-row"[\s\S]*class="tabs"[\s\S]*class="scoperow"/);
+    expect(page).toMatch(/class="header-row filter-row"[\s\S]*class="filters"[\s\S]*class="counts"/);
+  });
+
+  it("stacks case controls before they can overflow a phone viewport", () => {
+    // At 375px the desktop three-column row put the final verdict button and
+    // note field beyond the viewport. The phone layout keeps the scenario in
+    // column two, then gives controls and notes their own rows.
+    expect(page).toMatch(/@media \(max-width:720px\)[\s\S]*\.row\s*\{[^}]*grid-template-columns:72px minmax\(0,1fr\)/);
+    expect(page).toMatch(/@media \(max-width:720px\)[\s\S]*\.ctl\s*\{[^}]*grid-column:2/);
+    expect(page).toMatch(/@media \(max-width:720px\)[\s\S]*\.note\s*\{[^}]*grid-column:1 \/ -1/);
   });
 
   it("caps notes at the length the API stores", () => {
