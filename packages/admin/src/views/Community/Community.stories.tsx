@@ -14,6 +14,8 @@ import {
   ADMIN_ROUTE_STORY_QUERY_OPTIONS,
   StorybookAdminCanvasRoute,
 } from "../storybookCanvasHarness";
+import type { QueryKey } from "@tanstack/react-query";
+import { POOL_STORY_SEEDS } from "../Garden/Pool/poolStoryFixtures";
 import {
   expectAdminShellDarkPalette,
   expectAllVisibleSelectorContrast,
@@ -37,7 +39,7 @@ const meta: Meta<typeof CommunityCanvasStory> = {
     docs: {
       description: {
         component:
-          "Seeded Community workspace coverage through the real CanvasLayout shell, including members, coordination pools, endowment vaults, payouts, and route-backed detail entry points.",
+          "Seeded Community workspace coverage through the real CanvasLayout shell, including members, coordination (governance and the pooling surface), endowment vaults, payouts, and route-backed detail entry points.",
       },
     },
   },
@@ -46,10 +48,12 @@ const meta: Meta<typeof CommunityCanvasStory> = {
 export default meta;
 type Story = StoryObj<typeof CommunityCanvasStory>;
 
-function communityDecorators() {
+function communityDecorators(
+  seeds: ReadonlyArray<readonly [QueryKey, unknown]> = STORYBOOK_ADMIN_SHELL_SEEDS
+) {
   return [
     withAdminIdentity,
-    withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
+    withSeededQueryClient(seeds),
     withSelectedAdminGarden(STORYBOOK_PRIMARY_ADMIN_GARDEN),
     withCanvasFrame({
       className: "p-0",
@@ -58,6 +62,14 @@ function communityDecorators() {
     }),
   ];
 }
+
+// Coordination with the folded W12 pooling surface seeded (2026-08-25 AD-5):
+// the protocol pool and this garden's pool render beneath the governance grid.
+export const CoordinationWithPooling: Story = {
+  tags: ["visual-harness"],
+  args: { initialPath: "/community/coordination" },
+  decorators: communityDecorators([...STORYBOOK_ADMIN_SHELL_SEEDS, ...POOL_STORY_SEEDS]),
+};
 
 export const Endowment: Story = {
   // Not in storybook-ci: the endowment play needs live indexer/vault + analytics data the
@@ -177,7 +189,5 @@ export const YieldPayouts: Story = {
   decorators: communityDecorators(),
 };
 
-// People tab retired — "Manage members" now opens ManageMembersDialog from
-// CommunityTab rather than a browsable Community tab. /community/members
-// still resolves (legacy path, see routes/views.tsx) and renders CommunityView
-// with that dialog, so the dialog carries the story instead of this route.
+// Member-directory and member-dialog states live in their focused component
+// stories; this route catalog keeps only the payout and inspector journeys.

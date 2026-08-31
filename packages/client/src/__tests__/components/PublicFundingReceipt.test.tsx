@@ -20,12 +20,19 @@ const { mockLoggerWarn } = vi.hoisted(() => ({
   mockLoggerWarn: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-  logger: { warn: mockLoggerWarn, info: vi.fn(), error: vi.fn() },
 }));
 
-vi.mock("@/routes/receipt-token", () => ({
+vi.mock("@green-goods/shared/modules/app/logger", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared/modules/app/logger")>();
+  return {
+    ...actual,
+    logger: { ...actual.logger, warn: mockLoggerWarn, info: vi.fn(), error: vi.fn() },
+  };
+});
+
+vi.mock("@/routes/receiptToken", () => ({
   RECEIPT_TOKEN_SESSION_KEY: "gg.receiptToken",
   scrubReceiptTokenFragmentFromLocation: vi.fn(),
 }));
@@ -62,14 +69,14 @@ const messages: Record<string, string> = {
   "public.fund.receipt.endowRecovery":
     "Your Endow position stays with your wallet. You can review endowments from the Fund page whenever you need them.",
   "public.fund.receipt.manageEndowments": "Manage Endowments",
-  "public.fund.receipt.supportAnother": "Support another Garden",
-  "public.fund.receipt.viewImpact": "View public evidence",
+  "public.fund.receipt.supportAnother": "Support Another Garden",
+  "public.fund.receipt.viewImpact": "View Public Evidence",
 };
 
 const baseReceipt = {
   id: "intent-123",
   status: "confirmed_onchain",
-  garden: { id: "0xabc", name: "Aiyeloja Family Garden", location: "Lagos, NG" },
+  garden: { id: "0xabc", name: "AgroforestDAO", location: "Bias Fortes, BR" },
   destination: { type: "vault", address: "0xdef" },
   fundingIntent: "endow",
   amount: {
@@ -125,7 +132,7 @@ describe("PublicFundingReceipt success state", () => {
 
     await waitFor(
       () => {
-        expect(container.textContent).toContain("Aiyeloja Family Garden");
+        expect(container.textContent).toContain("AgroforestDAO");
       },
       { timeout: 3000 }
     );
@@ -164,7 +171,7 @@ describe("PublicFundingReceipt success state", () => {
       "public.fund.receipt.error.network":
         "Couldn't reach the receipt service. Check your connection and try again.",
       "public.fund.receipt.errorTitle": "We couldn't load this receipt",
-      "public.fund.receipt.tryAgain": "Try again",
+      "public.fund.receipt.tryAgain": "Try Again",
       "public.fund.receipt.backToFund": "Back to Fund",
     };
 
@@ -187,7 +194,7 @@ describe("PublicFundingReceipt success state", () => {
 
     await waitFor(
       () => {
-        expect(container.textContent).toContain("Aiyeloja Family Garden");
+        expect(container.textContent).toContain("AgroforestDAO");
       },
       { timeout: 3000 }
     );

@@ -25,6 +25,16 @@ The skill **always** uses the column order read from the Sheet, not the order in
 
 Phase 0 confirms all tabs above exist. If any is missing, fail loud — don't write to a partial workbook.
 
+A `Docs` surface exists upstream in the catalog and in generated run sheets; it is **not yet Phase 0-required** here. If this Sheet gains a `Docs` test tab, create it in this Sheet's own 20-column schema from the catalog definitions (the generated run sheet uses a simplified 8-column layout — do not paste it here), then add it to the table above. **Until that tab exists, Phase 5 must not emit `sheet-test-backfill.csv` rows targeting `Docs`** — a backfill against a missing tab cannot be applied. For a Defects row whose `Linked Test ID` is a `DOCS-*` case, keep the Test ID on the Defects row and skip the test-tab backfill.
+
+---
+
+## Catalog relationship
+
+Test-scenario **definitions** are versioned in the repo: `scripts/data/qa-test-catalog.json` is the upstream source of truth (Test IDs, areas, scenarios, steps, expected results, roles). This Sheet is the **live defect log and team run ledger**; its test tabs are downstream. `bun run qa:workbook` projects the catalog into a simplified human-first run sheet (Overview + surface tabs, 8 columns) used for walkthroughs — Test ID / Area / Scenario stay verbatim, so this skill's matching keeps working. When definitions change, reconcile this Sheet by appending new rows or marking retired ones — never rewrite historical result columns. Results, owners, defect links, and PostHog data live only here and in run sheets stored in Drive, never in the public repo.
+
+Catalog **v2** (2026-08-29) merged the active tab model to four surfaces: `Public Website | PWA | Admin Dashboard | Docs`. The installed-PWA iOS/Android split and the `Cross Surface` tab exist only on retired rows now; device-specific cases keep their `PWA-IOS-` / `PWA-AND-` / `PWA-ROLE-` id prefixes (and their `[iOS]` / `[Android]` scenario markers) inside the merged `PWA` surface. When reconciling this Sheet against v2, route by prefix so platform identity survives: `PWA-IOS-*` rows go to the `PWA iOS` tab, `PWA-AND-*` rows to `PWA Android`, and `PWA-ROLE-*` rows to the legacy tab matching their `[iOS]`/`[Android]` scenario marker. Generic `PWA-*` rows have no legacy home — like the Docs rule above, **do not emit backfill rows targeting them until this Sheet gains a merged `PWA` tab** (create it from the catalog definitions in this Sheet's own 20-column schema, then add it to the tab table). Historical tabs and result columns stay untouched.
+
 ---
 
 ## Defects tab schema
@@ -128,13 +138,14 @@ The skill's surface vocabulary matches the Sheet's `Surface` column values, plus
 | Vocabulary | Source surface | Test tab | PostHog project |
 |---|---|---|---|
 | `Public Website` | Client editorial (`packages/client` in website mode) | `Public Website` | App `163591` |
+| `PWA` | Client app (merged surface; desktop shell or device-unspecified) | — route by prefix; merged tab pending | App `163591` |
 | `PWA iOS` | Installed PWA on iOS | `PWA iOS` | App `163591` |
 | `PWA Android` | Installed PWA on Android | `PWA Android` | App `163591` |
 | `Admin Dashboard` | Admin cockpit (`packages/admin`) | `Admin Dashboard` | Admin `262122` |
 | `Cross Surface` | Multi-surface / cross-cutting | `Cross Surface` | App + Admin (per-surface) |
 | `Docs` | Docusaurus (`docs/`) | — (no test tab) | none |
 
-The PWA iOS / PWA Android split is platform-specific. When the extraction's notes don't name a device, default to `PWA iOS`; if the call discussed Android specifically, use `PWA Android`; if it's universal across platforms, use `Cross Surface` rather than picking one.
+Platform assignment: when the notes name a device, use `PWA iOS` or `PWA Android`; when they discuss the client app without naming a device (or the desktop shell), use the merged `PWA` surface — never default to iOS. `Cross Surface` is only for observations genuinely spanning client and admin.
 
 ---
 
@@ -151,6 +162,6 @@ If the access mode changes between runs and a subsequent run detects `anyoneWith
 
 ## Read-modify-write conflict policy
 
-V0.1.0 uses guided paste (the Drive MCP doesn't expose Sheets `values.append`), so this section applies to v0.2.0 when `scripts/agents/qa-sheet-append.ts` exists.
+Appends go through the Apps Script webhook client `scripts/agents/qa-sheet-append.ts` (ops: `bootstrap`, `defectRows`, `testBackfills`; setup in `scripts/agents/qa-sheet-webhook-setup.md`). Guided paste remains the fallback when the webhook is unavailable — the Drive MCP doesn't expose Sheets `values.append`.
 
 Before any append, re-read the Defects body row count. If it differs from the count captured in Phase 0, abort the Sheet write and surface the conflict — another run or a manual edit landed mid-flight. Re-running `/qa-triage <slug>` after the conflict resolves picks up where it left off because the workspace is durable.

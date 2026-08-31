@@ -1,10 +1,12 @@
+import { MetaStrip } from "@green-goods/shared/components/Canvas/MetaStrip";
 import {
   buildHubHeaderStats,
   HUB_STAGE_RAIL_ID,
-  MetaStrip,
-  useHubWorkbenchController,
-  useMediaQuery,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
+import { useHubWorkbenchController } from "@green-goods/shared/hooks/admin-ui/hub/useHubWorkbenchController";
+import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
+import { useMemo } from "react";
+import { useIntl } from "react-intl";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminSortSelect } from "@/components/AdminSortSelect";
 import { AdminTabRail } from "@/components/AdminTabRail";
@@ -15,8 +17,6 @@ import {
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
 import { CanvasWorkspaceSelectionState } from "@/components/Layout/CanvasWorkspaceSelectionState";
-import { useMemo } from "react";
-import { useIntl } from "react-intl";
 import { HubSheetDescriptor, HubStageContent } from "./components";
 
 export default function HubView() {
@@ -55,11 +55,9 @@ export default function HubView() {
         routeSheetContentId={hub.routeSheetContentId}
         routeWorkId={hub.routeWorkId}
         routeCertificationId={hub.routeCertificationId}
-        routeHistoryEventId={hub.routeHistoryEventId}
         activeWorkDetailId={hub.activeWorkDetailId}
         selectedWork={hub.selectedWork}
         selectedCertification={hub.selectedCertification}
-        selectedHistoryEvent={hub.selectedHistoryEvent}
         isResolvingSelection={
           hub.worksLoading ||
           hub.fetchingAssessments ||
@@ -90,8 +88,7 @@ export default function HubView() {
             title={formatMessage({ id: "cockpit.hub.title", defaultMessage: "Hub" })}
             description={formatMessage({
               id: "cockpit.hub.description",
-              defaultMessage:
-                "Review submitted work, run assessments, and certify impact across your gardens.",
+              defaultMessage: "Review and triage pending submissions.",
             })}
             metadata={
               headerStats.length > 0 ? (
@@ -113,7 +110,7 @@ export default function HubView() {
                 onSearchChange={hub.setSearchTerm}
                 placeholder={hub.searchPlaceholder}
               >
-                {(hub.stage === "work" || hub.stage === "history") && (
+                {hub.stage === "work" && (
                   <AdminSortSelect
                     value={hub.sortDirection}
                     onChange={(value) => hub.updateSearch({ sort: value }, false)}
@@ -167,11 +164,9 @@ export default function HubView() {
                   pendingWorks={hub.pendingWorks}
                   assessmentQueue={hub.assessmentQueue}
                   certificationQueue={hub.certificationQueue}
-                  historyEvents={hub.historyEvents}
                   worksLoading={hub.worksLoading}
                   fetchingAssessments={hub.fetchingAssessments}
                   hypercertsLoading={hub.hypercertsLoading}
-                  allocationsLoading={hub.allocationsLoading}
                   hasDataError={hub.hasDataError}
                   normalizedSearch={hub.normalizedSearch}
                   debouncedSearch={hub.debouncedSearch}
@@ -179,12 +174,16 @@ export default function HubView() {
                   selectedGardenName={hub.selectedGarden?.name}
                   selectedWorkId={hub.selectedWork?.id}
                   selectedCertificationId={hub.selectedCertification?.id}
-                  selectedHistoryEventId={hub.selectedHistoryEvent?.id}
                   canManage={hub.canManage}
+                  toConfirm={hub.toConfirm}
+                  chainId={hub.chainId}
+                  viewer={hub.viewer}
+                  selectedCommitmentId={hub.routeCommitmentId}
+                  onOpenCommitment={hub.handleOpenCommitment}
+                  onCloseCommitment={hub.handleCloseCommitment}
                   onOpenWorkDetail={hub.handleOpenWorkDetail}
                   onClearSearch={hub.handleClearSearch}
                   onOpenCertification={hub.handleOpenCertification}
-                  onOpenHistoryEvent={hub.handleOpenHistoryEvent}
                 />
               </div>
             </section>

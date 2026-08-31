@@ -13,8 +13,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { zeroAddress } from "viem";
 
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { queryKeys, STALE_TIME_FAST } from "../../config/query-keys";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { STALE_TIME_FAST } from "../../config/query-keys/constants";
+import { ensKeys } from "../../config/query-keys/identity";
 import { logger } from "../../modules/app/logger";
 import { createClients, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { useDebouncedValue } from "../utils/useDebouncedValue";
@@ -31,7 +32,7 @@ export function useSlugAvailability(slug: string | undefined) {
   const ensAddress = contracts.greenGoodsENS;
 
   return useQuery<boolean>({
-    queryKey: queryKeys.ens.availability(debouncedSlug ?? ""),
+    queryKey: ensKeys.availability(debouncedSlug ?? ""),
     queryFn: async () => {
       if (!debouncedSlug || !ensAddress || ensAddress === zeroAddress) return false;
 

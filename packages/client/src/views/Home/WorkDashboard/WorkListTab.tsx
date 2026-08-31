@@ -1,4 +1,4 @@
-import type { Work } from "@green-goods/shared";
+import type { Work } from "@green-goods/shared/types/domain";
 import { RiErrorWarningLine, RiRefreshLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
@@ -42,7 +42,7 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
   const intl = useIntl();
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="min-h-full flex flex-col">
       <div className="mb-4 px-4 pt-4 flex items-center justify-between gap-3">
         <div>
           {isLoading ? null : hasError ? (
@@ -61,7 +61,7 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
         {headerContent}
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 pb-4">
+      <div className="flex-1 px-4 pb-4">
         {isLoading ? (
           <div className="h-full flex flex-col items-center justify-center pb-12">
             <Loader />

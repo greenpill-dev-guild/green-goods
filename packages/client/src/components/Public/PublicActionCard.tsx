@@ -1,6 +1,7 @@
-import { type Action, cn } from "@green-goods/shared";
+import type { Action } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useIntl } from "react-intl";
-import { ImageWithFallback } from "@/components/Display";
+import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
 import type { EditorialDomain } from "./atoms";
 
 export interface PublicActionCardProps {
@@ -43,7 +44,7 @@ export function PublicActionCard({ action, onOpen }: PublicActionCardProps) {
         <ImageWithFallback
           src={action.media[0] ?? "/images/no-image-placeholder.png"}
           alt={action.title}
-          className="h-full w-full object-cover transition-transform duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)] group-hover:scale-[1.03]"
+          className="h-full w-full object-cover"
         />
       </div>
       <span
@@ -72,7 +73,8 @@ export function PublicActionCard({ action, onOpen }: PublicActionCardProps) {
   );
 }
 
-function domainSlug(domain: number | string): EditorialDomain | null {
+function domainSlug(domain: number | string | null): EditorialDomain | null {
+  if (domain === null) return null;
   if (typeof domain === "string") {
     const lower = domain.toLowerCase();
     if (["solar", "agro", "education", "waste"].includes(lower)) {

@@ -172,7 +172,7 @@ bun run test:e2e:celo       # Fork and test Celo mainnet
 bun run test:e2e:arbitrum   # Fork and test Arbitrum mainnet
 
 # 🔧 DEVELOPMENT
-bun build               # Adaptive compile (changed Solidity targets)
+bun run build           # Adaptive compile (changed Solidity targets)
 bun build:changed       # Compile changed Solidity in src/test/script
 bun build:target -- src/registries/ENS.sol  # Compile a specific Solidity target
 bun build:fast          # Compile src only (skip Foundry test/script)
@@ -206,8 +206,8 @@ bun script/deploy.ts core --network sepolia --broadcast --force
 ---
 
 **📖 For detailed documentation, see:**
-- Full Deployment Guide: [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy)
-- Upgrade Guide: [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy)
+- Full deployment guide: [Deployment runbook](deployments/README.md)
+- Upgrade guidance: [Deployment runbook](deployments/README.md)
 - Environment Setup: [Environment Management](https://docs.greengoods.app/builders/env-management)
 - Troubleshooting: [Getting Started](https://docs.greengoods.app/builders/getting-started)
 
@@ -323,7 +323,7 @@ Green Goods integrates with the **Karma Grantee Accountability Protocol (GAP)** 
 **Documentation:**
 - User Guide: [Karma GAP Integration](https://docs.greengoods.app/builders/integrations/karma)
 - Implementation: [Karma GAP Integration](https://docs.greengoods.app/builders/integrations/karma)
-- Upgrade Guide: [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy)
+- Upgrade guide: [Deployment runbook](deployments/README.md)
 - KarmaLib Source: `src/lib/Karma.sol`
 - Interfaces: `src/interfaces/IKarmaGap.sol`
 
@@ -356,7 +356,7 @@ bun script/deploy.ts core --network sepolia --broadcast --update-schemas
 bun script/deploy.ts core --network sepolia --broadcast --force
 ```
 
-See the [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy) for schema versioning strategy and deployment troubleshooting.
+See the [deployment runbook](deployments/README.md) for schema and artifact rules.
 
 ## Configuration
 
@@ -492,7 +492,7 @@ bun script/upgrade.ts work-approval-resolver --network arbitrum
 # Do not run raw forge commands from this README.
 ```
 
-See the [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy) for the complete upgrade guide.
+See the [deployment runbook](deployments/README.md) for the maintained deployment and verification entrypoints.
 
 ### When to Deploy vs Upgrade
 
@@ -508,7 +508,7 @@ See the [Contracts Handbook](https://docs.greengoods.app/builders/deployments/co
 
 ### Documentation
 
-See the [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy) for the complete upgrade guide including:
+See the [deployment runbook](deployments/README.md) for the maintained upgrade entrypoints and gates, including:
 - Deploy vs Upgrade decision matrix
 - Storage gap usage
 - Multisig upgrade process
@@ -545,7 +545,7 @@ See the [Contracts Handbook](https://docs.greengoods.app/builders/deployments/co
 bun install
 
 # Build contracts with IR optimization
-bun build
+bun run build
 
 # Run comprehensive test suite
 bun run test
@@ -843,7 +843,7 @@ bun run status
 📖 **[Contracts Documentation](https://docs.greengoods.app/builders/packages/contracts)** — Complete contracts architecture guide
 
 **Essential Guides:**
-- 📘 [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy) — Deployment, upgrades, schema management
+- 📘 [Deployment runbook](deployments/README.md) — deployment, upgrades, schema management
 - 🏗️ [Architecture Overview](https://docs.greengoods.app/builders/architecture) — System design and package relationships
 - ✅ [Testing Guide](https://docs.greengoods.app/builders/testing/forge) — Testing strategy and best practices
 

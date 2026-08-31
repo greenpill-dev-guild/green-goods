@@ -1,12 +1,11 @@
+import { TOTAL_UNITS } from "@green-goods/shared/lib/hypercerts/constants";
 import {
   type Address,
-  type AllowlistEntry,
   CynefinPhase,
   Domain,
   type GardenAssessment,
-  type HypercertMetadata,
-  TOTAL_UNITS,
-} from "@green-goods/shared";
+} from "@green-goods/shared/types/domain";
+import type { AllowlistEntry, HypercertMetadata } from "@green-goods/shared/types/hypercerts";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { withRouter } from "../../../../../shared/.storybook/decorators";
@@ -21,12 +20,28 @@ const METADATA: HypercertMetadata = {
     "Bundled attestations from the March planting cohort and aggregated survival checks.",
   image: FIXTURE_IMAGE_AGROFORESTRY,
   hypercert: {
-    work_scope: { value: ["planting", "survival-check"], excludes: [] },
-    impact_scope: { value: ["carbon-sequestration", "biodiversity"], excludes: [] },
-    work_timeframe: { value: [1_704_067_200, 1_711_843_200], display_value: "Jan 2026 – Mar 2026" },
-    impact_timeframe: { value: [1_704_067_200, 0], display_value: "" },
-    contributors: { value: ["0x1111…", "0x2222…"], excludes: [] },
-    rights: { value: ["Public Display", "Transfer"], excludes: [] },
+    work_scope: { name: "Work Scope", value: ["planting", "survival-check"], excludes: [] },
+    impact_scope: {
+      name: "Impact Scope",
+      value: ["carbon-sequestration", "biodiversity"],
+      excludes: [],
+    },
+    work_timeframe: {
+      name: "Work Timeframe",
+      value: [1_704_067_200, 1_711_843_200],
+      display_value: "Jan 2026 – Mar 2026",
+    },
+    impact_timeframe: {
+      name: "Impact Timeframe",
+      value: [1_704_067_200, 0],
+      display_value: "",
+    },
+    contributors: {
+      name: "Contributors",
+      value: ["0x1111…", "0x2222…"],
+      excludes: [],
+    },
+    rights: { name: "Rights", value: ["Public Display", "Transfer"], excludes: [] },
   },
 };
 
@@ -39,7 +54,7 @@ const ALLOWLIST: AllowlistEntry[] = [
   {
     address: "0x2222222222222222222222222222222222222222" as Address,
     units: 30_000_000n,
-    label: "Operator",
+    label: "Steward",
   },
   {
     address: "0x3333333333333333333333333333333333333333" as Address,

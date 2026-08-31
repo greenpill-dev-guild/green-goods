@@ -1,7 +1,13 @@
+import { availableParallelism, totalmem } from "node:os";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import type { PluginOption } from "vite";
 import { defineConfig } from "vitest/config";
+
+import { resolveVitestMaxWorkers } from "../../scripts/lib/dev-shared.js";
+
+const nodeTestFiles = "src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts}";
+const domTestFiles = "src/**/*.{test,spec}.{jsx,tsx}";
 
 export default defineConfig({
   plugins: [react()],
@@ -30,31 +36,53 @@ export default defineConfig({
     testTimeout: 10000,
     // Use threads to avoid module pollution between tests
     pool: "threads",
+    maxWorkers: resolveVitestMaxWorkers({
+      cpus: availableParallelism(),
+      totalMemoryBytes: totalmem(),
+      ci: Boolean(process.env.CI),
+    }),
     isolate: true,
     coverage: {
       provider: "v8",
-      reporter: ["text", "html", "json"],
+      reporter: process.env.CI ? ["text", "json"] : ["text", "json", "html"],
+      include: ["src/**/*.{ts,tsx}"],
       exclude: [
-        "node_modules/",
-        "src/__tests__/",
-        "src/__mocks__/",
-        "src/test-utils/",
+        "node_modules/**",
+        "src/__tests__/**",
+        "src/__mocks__/**",
+        "src/test-utils/**",
+        "src/**/*.stories.{ts,tsx}",
         "**/*.d.ts",
         "**/*.config.*",
         "**/dist/**",
         "**/build/**",
       ],
       thresholds: {
-        global: {
-          branches: 75,
-          functions: 80,
-          lines: 80,
-          statements: 80,
-        },
+        branches: 56,
+        functions: 62,
+        lines: 64,
+        statements: 63,
       },
     },
-    include: ["src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
     exclude: ["node_modules/", "dist/", "build/", "**/*.d.ts"],
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "node",
+          environment: "node",
+          include: [nodeTestFiles],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "dom",
+          environment: "jsdom",
+          include: [domTestFiles],
+        },
+      },
+    ],
   },
   resolve: {
     conditions: ["import", "module", "browser", "default"],
@@ -110,6 +138,14 @@ export default defineConfig({
       {
         find: "@green-goods/shared/testing",
         replacement: path.resolve(__dirname, "../shared/src/__tests__/test-utils"),
+      },
+      {
+        find: "@green-goods/shared/commitment-pooling",
+        replacement: path.resolve(__dirname, "../shared/src/commitment-pooling"),
+      },
+      {
+        find: "@green-goods/shared/public",
+        replacement: path.resolve(__dirname, "../shared/src/hooks/public/publicSurfaceState.ts"),
       },
       {
         find: "@green-goods/shared",

@@ -1,12 +1,7 @@
-import {
-  type CapitalType,
-  cn,
-  DatePicker,
-  FormInput,
-  FormTextarea,
-  type GardenAssessment,
-  type HypercertDraft,
-} from "@green-goods/shared";
+import { DatePicker } from "@green-goods/shared/components/DatePicker/DatePicker";
+import type { GardenAssessment } from "@green-goods/shared/types/domain";
+import type { EASGardenAssessment } from "@green-goods/shared/types/eas-responses";
+import type { CapitalType, HypercertDraft } from "@green-goods/shared/types/hypercerts";
 import {
   RiAddLine,
   RiCalendarLine,
@@ -14,8 +9,13 @@ import {
   RiFileTextLine,
   RiSparklingLine,
 } from "@remixicon/react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminFieldGroup } from "@/components/AdminFieldGroup";
+import { AdminFilterChip } from "@/components/AdminFilterChip";
+import { AdminSelectableCard } from "@/components/AdminSelectableCard";
+import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 
 /** Get localized SDG name for accessibility */
 function getSdgName(id: number, intl: IntlShape): string {
@@ -42,7 +42,7 @@ interface MetadataEditorProps {
   suggestedStart: number | null;
   suggestedEnd: number | null;
   /** Assessment used to prefill metadata fields (if any) */
-  selectedAssessment?: GardenAssessment | null;
+  selectedAssessment?: GardenAssessment | EASGardenAssessment | null;
 }
 
 const CAPITALS: CapitalType[] = [
@@ -76,8 +76,14 @@ export function MetadataEditor({
   const intl = useIntl();
   const { formatMessage } = intl;
 
-  const workScopesText = draft.workScopes.join(", ");
-  const impactScopesText = draft.impactScopes.join(", ");
+  const [workScopesText, setWorkScopesText] = useState(() => draft.workScopes.join(", "));
+  const [impactScopesText, setImpactScopesText] = useState(() => draft.impactScopes.join(", "));
+  const [isEditingWorkScopes, setIsEditingWorkScopes] = useState(false);
+  const [isEditingImpactScopes, setIsEditingImpactScopes] = useState(false);
+  const workScopesValue = isEditingWorkScopes ? workScopesText : draft.workScopes.join(", ");
+  const impactScopesValue = isEditingImpactScopes
+    ? impactScopesText
+    : draft.impactScopes.join(", ");
 
   // Date validation
   const workDateError = useMemo(() => {
@@ -139,24 +145,16 @@ export function MetadataEditor({
         </div>
       )}
 
-      <FormInput
+      <AdminTextField
         id="hypercert-title"
-        label={
-          <>
-            {formatMessage({ id: "app.hypercerts.metadata.title" })}
-            <span className="ml-0.5 text-error-base" aria-hidden="true">
-              *
-            </span>
-            <span className="sr-only">{formatMessage({ id: "app.form.required" })}</span>
-          </>
-        }
+        label={formatMessage({ id: "app.hypercerts.metadata.title" })}
+        required
         value={draft.title}
         onChange={(event) => onUpdate({ title: event.target.value })}
         placeholder={formatMessage({ id: "app.hypercerts.metadata.title.placeholder" })}
-        aria-required="true"
       />
 
-      <FormTextarea
+      <AdminTextArea
         id="hypercert-description"
         label={formatMessage({ id: "app.hypercerts.metadata.description" })}
         value={draft.description}
@@ -167,46 +165,48 @@ export function MetadataEditor({
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-1">
-          <FormInput
+          <AdminTextField
             id="hypercert-work-scope"
-            label={
-              <>
-                {formatMessage({ id: "app.hypercerts.metadata.workScope" })}
-                <span className="ml-0.5 text-error-base" aria-hidden="true">
-                  *
-                </span>
-                <span className="sr-only">{formatMessage({ id: "app.form.required" })}</span>
-              </>
-            }
-            value={workScopesText}
-            onChange={(event) => onUpdate({ workScopes: parseCommaList(event.target.value) })}
+            label={formatMessage({ id: "app.hypercerts.metadata.workScope" })}
+            required
+            value={workScopesValue}
+            onChange={(event) => {
+              // The first keystroke opens the editing session (the family has no
+              // focus hook); the local text keeps trailing commas while typing.
+              setWorkScopesText(event.target.value);
+              setIsEditingWorkScopes(true);
+              onUpdate({ workScopes: parseCommaList(event.target.value) });
+            }}
+            onBlur={() => setIsEditingWorkScopes(false)}
             placeholder={formatMessage({ id: "app.hypercerts.metadata.scope.placeholder" })}
-            aria-required="true"
           />
           {availableSuggestedScopes.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs text-text-sub">
+              <span className="body-sm text-text-sub">
                 {formatMessage({ id: "app.hypercerts.metadata.workScope.suggestedLabel" })}
               </span>
               {availableSuggestedScopes.map((scope) => (
-                <button
+                <AdminFilterChip
                   key={scope}
-                  type="button"
-                  onClick={() => handleAddSuggestedScope(scope)}
-                  className="inline-flex items-center gap-0.5 rounded-full border border-dashed border-primary-light px-2 py-0.5 text-xs text-primary-base transition hover:border-primary-base hover:bg-primary-lighter"
-                >
-                  <RiAddLine className="h-3 w-3" />
-                  {scope}
-                </button>
+                  label={scope}
+                  selected={false}
+                  onToggle={() => handleAddSuggestedScope(scope)}
+                  leadingIcon={RiAddLine}
+                />
               ))}
             </div>
           )}
         </div>
-        <FormInput
+        <AdminTextField
           id="hypercert-impact-scope"
           label={formatMessage({ id: "app.hypercerts.metadata.impactScope" })}
-          value={impactScopesText}
-          onChange={(event) => onUpdate({ impactScopes: parseCommaList(event.target.value) })}
+          value={impactScopesValue}
+          onChange={(event) => {
+            setImpactScopesText(event.target.value);
+            setIsEditingImpactScopes(true);
+            onUpdate({ impactScopes: parseCommaList(event.target.value) });
+          }}
+          onBlur={() => setIsEditingImpactScopes(false)}
           placeholder={formatMessage({ id: "app.hypercerts.metadata.scope.placeholder" })}
         />
       </div>
@@ -227,19 +227,20 @@ export function MetadataEditor({
             </p>
           </div>
           {suggestedStart && suggestedEnd && (
-            <button
+            <AdminButton
               type="button"
+              variant="outlined"
+              size="sm"
               onClick={() => {
                 onUpdate({
                   workTimeframeStart: suggestedStart,
                   workTimeframeEnd: suggestedEnd,
                 });
               }}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-primary-light bg-primary-lighter/50 px-3 py-1.5 text-xs font-medium text-primary-base transition hover:border-primary-base hover:bg-primary-lighter"
+              leadingIcon={<RiSparklingLine />}
             >
-              <RiSparklingLine className="h-3.5 w-3.5" />
               {formatMessage({ id: "app.hypercerts.metadata.useSuggested" })}
-            </button>
+            </AdminButton>
           )}
         </div>
 
@@ -330,104 +331,61 @@ export function MetadataEditor({
         </div>
       </div>
 
-      <div className="space-y-3">
-        <div>
-          <p className="text-sm font-semibold text-text-strong">
-            {formatMessage({ id: "app.hypercerts.metadata.sdgs" })}
-          </p>
-          <p className="text-xs text-text-sub">
-            {formatMessage({ id: "app.hypercerts.metadata.sdgs.helper" })}
-          </p>
-        </div>
-        <div
-          className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
-          role="group"
-          aria-label={formatMessage({ id: "app.hypercerts.metadata.sdgs" })}
-        >
-          {SDG_VALUES.map((value) => {
-            const isSelected = draft.sdgs.includes(value);
-            const sdgName = getSdgName(value, intl);
-            return (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={isSelected}
-                onClick={() =>
-                  onUpdate({
-                    sdgs: isSelected
-                      ? draft.sdgs.filter((sdg) => sdg !== value)
-                      : [...draft.sdgs, value],
-                  })
-                }
-                className={cn(
-                  "flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition text-left",
-                  isSelected
-                    ? "border-primary-base bg-primary-lighter text-primary-dark"
-                    : "border-stroke-sub text-text-sub hover:border-primary-light"
-                )}
-              >
-                <span
-                  className={cn(
-                    "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold",
-                    isSelected
-                      ? "bg-primary-base text-primary-foreground"
-                      : "bg-bg-soft text-text-sub"
-                  )}
-                >
+      <AdminFieldGroup
+        label={formatMessage({ id: "app.hypercerts.metadata.sdgs" })}
+        hint={formatMessage({ id: "app.hypercerts.metadata.sdgs.helper" })}
+        contentClassName="grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
+      >
+        {SDG_VALUES.map((value) => {
+          const isSelected = draft.sdgs.includes(value);
+          const sdgName = getSdgName(value, intl);
+          return (
+            <AdminSelectableCard
+              key={value}
+              selected={isSelected}
+              onClick={() =>
+                onUpdate({
+                  sdgs: isSelected
+                    ? draft.sdgs.filter((sdg) => sdg !== value)
+                    : [...draft.sdgs, value],
+                })
+              }
+              title={sdgName}
+              leadingVisual={
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--m3-surface-container-high))] text-label-sm font-bold text-[rgb(var(--m3-on-surface-variant))]">
                   {value}
                 </span>
-                <span className="flex-1 line-clamp-2">{sdgName}</span>
-                {isSelected && <RiCheckLine className="h-4 w-4 flex-shrink-0" />}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+              }
+            />
+          );
+        })}
+      </AdminFieldGroup>
 
-      <div className="space-y-3">
-        <div>
-          <p className="text-sm font-semibold text-text-strong">
-            {formatMessage({ id: "app.hypercerts.metadata.capitals" })}
-          </p>
-          <p className="text-xs text-text-sub">
-            {formatMessage({ id: "app.hypercerts.metadata.capitals.helper" })}
-          </p>
-        </div>
-        <div
-          className="grid gap-2 sm:grid-cols-2"
-          role="group"
-          aria-label={formatMessage({ id: "app.hypercerts.metadata.capitals" })}
-        >
-          {CAPITALS.map((capital) => {
-            const isSelected = draft.capitals.includes(capital);
-            const capitalLabel = formatMessage({ id: `app.hypercerts.capital.${capital}` });
-            return (
-              <button
-                key={capital}
-                type="button"
-                aria-pressed={isSelected}
-                aria-label={capitalLabel}
-                onClick={() =>
-                  onUpdate({
-                    capitals: isSelected
-                      ? draft.capitals.filter((item) => item !== capital)
-                      : [...draft.capitals, capital],
-                  })
-                }
-                className={cn(
-                  "flex items-center justify-between rounded-lg border px-3 py-2 text-xs font-medium transition",
-                  isSelected
-                    ? "border-primary-base bg-primary-lighter text-primary-dark"
-                    : "border-stroke-sub text-text-sub hover:border-primary-light"
-                )}
-              >
-                <span>{capitalLabel}</span>
-                {isSelected && <RiCheckLine className="h-4 w-4" />}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <AdminFieldGroup
+        label={formatMessage({ id: "app.hypercerts.metadata.capitals" })}
+        hint={formatMessage({ id: "app.hypercerts.metadata.capitals.helper" })}
+        contentClassName="grid gap-2 sm:grid-cols-2"
+      >
+        {CAPITALS.map((capital) => {
+          const isSelected = draft.capitals.includes(capital);
+          const capitalLabel = formatMessage({ id: `app.hypercerts.capital.${capital}` });
+          return (
+            <AdminSelectableCard
+              key={capital}
+              selected={isSelected}
+              aria-label={capitalLabel}
+              onClick={() =>
+                onUpdate({
+                  capitals: isSelected
+                    ? draft.capitals.filter((item) => item !== capital)
+                    : [...draft.capitals, capital],
+                })
+              }
+              title={capitalLabel}
+            />
+          );
+        })}
+      </AdminFieldGroup>
     </div>
   );
 }

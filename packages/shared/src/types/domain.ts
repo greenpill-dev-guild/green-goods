@@ -79,13 +79,13 @@ export enum CynefinPhase {
 }
 
 /**
- * 4-value verification confidence — simple for field operators.
+ * 4-value verification confidence — simple for field stewards.
  * On-chain as uint8. Off-chain scoring maps these to numeric weights.
  */
 export enum Confidence {
   NONE = 0, // not assessed (valid only for rejections)
   LOW = 1, // minimal evidence, trust-based
-  MEDIUM = 2, // photo/document evidence reviewed by operator
+  MEDIUM = 2, // photo/document evidence reviewed by steward
   HIGH = 3, // strong proof (receipt, IoT, on-chain tx, witness)
 }
 
@@ -135,10 +135,8 @@ export interface GardenCard {
   name: string;
   location: string;
   bannerImage: string;
-  /**
-   * Operator Ethereum addresses.
-   */
-  operators: Address[];
+  /** Steward addresses. The indexer field is `operators`; parseGarden renames it. */
+  stewards: Address[];
 }
 
 /** Full garden entity with all related data (assessments, works, gardeners) */
@@ -286,7 +284,7 @@ export interface ActionCard {
   instructions?: string;
   capitals: Capital[];
   media: string[];
-  domain: Domain;
+  domain: Domain | null; // null = unrecognized indexer domain — render "Other", never coerce
   createdAt: number;
 }
 
@@ -448,6 +446,7 @@ export interface WorkMetadata {
  * Kept for backward compatibility with existing attestations.
  */
 export interface WorkMetadataV1 {
+  clientWorkId?: string;
   plantCount: number;
   plantSelection: string[];
   timeSpentMinutes?: number;
@@ -474,8 +473,8 @@ export interface WorkApproval extends WorkApprovalDraft {
   id: string;
   /** Gardener's Ethereum address */
   gardenerAddress: Address;
-  /** Operator's Ethereum address */
-  operatorAddress: Address;
+  /** Steward's Ethereum address */
+  stewardAddress: Address;
   createdAt: number;
 }
 

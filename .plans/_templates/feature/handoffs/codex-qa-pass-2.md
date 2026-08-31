@@ -3,7 +3,7 @@
 ## Lane
 
 - Owner: Codex
-- Branch: `codex/qa-pass-2/{{FEATURE_SLUG}}`
+- Branch: set when work begins using `<type>/<work-description>`
 - Status: blocked until QA Pass 1 completes
 
 ## Scope
@@ -13,6 +13,17 @@
 ## Validation
 
 - Pending QA pass.
+
+## Validation Receipt
+
+- Tested implementation commit SHA: pending
+- Run at (UTC): pending
+- Exact command(s): pending
+- Result: pending
+- Validated paths: pending
+- Worktree identity command and result: pending
+- Evidence-only diff command and result (if applicable): not applicable
+- Evidence-only worktree-status command and result (if applicable): not applicable
 
 ## Risks / Blockers
 

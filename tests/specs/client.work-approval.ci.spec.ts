@@ -2,7 +2,7 @@
  * Client Work Approval CI Tests
  *
  * Lightweight CI-runnable tests that validate work approval UI flows
- * WITHOUT requiring real operator auth or pending work in the indexer.
+ * WITHOUT requiring real steward auth or pending work in the indexer.
  *
  * Strategy:
  * - Mock GraphQL responses to simulate pending work data

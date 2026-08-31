@@ -30,13 +30,9 @@ const mockOrchestrator = vi.hoisted(() => ({
   onNavigateArrive: vi.fn().mockReturnValue(null),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    useSheetOrchestrator: () => mockOrchestrator,
-  };
-});
+vi.mock("@green-goods/shared/hooks/navigation/useSheetOrchestrator", () => ({
+  useSheetOrchestrator: () => mockOrchestrator,
+}));
 
 // Stub document.startViewTransition for jsdom
 const mockStartViewTransition = vi.fn((callback: () => void) => {
@@ -302,7 +298,10 @@ describe("PageTransition", () => {
     });
   });
 
-  it("restores Hub history sheets when the target URL owns the sheet", async () => {
+  it("never restores retired Hub history sheets from stale persisted state", async () => {
+    // The History stage retired 2026-08-25: its routes redirect and the
+    // inspector is gone, but workspace state persisted before the release can
+    // still carry hub:history:* ids. Restoring one would open an empty sheet.
     mockOrchestrator.onNavigateArrive.mockReturnValue({
       sheetOpen: "left",
       sheetContentId: "hub:history:allocation-1",
@@ -316,25 +315,7 @@ describe("PageTransition", () => {
     await user.click(screen.getByTestId("nav-/hub/history/allocation-1"));
 
     await waitFor(() => {
-      expect(mockOrchestrator.openSheet).toHaveBeenCalledWith("left", "hub:history:allocation-1");
-    });
-  });
-
-  it("does not restore Hub history sheets from legacy item query state", async () => {
-    mockOrchestrator.onNavigateArrive.mockReturnValue({
-      sheetOpen: "left",
-      sheetContentId: "hub:history:allocation-1",
-      formState: {},
-      scrollPosition: 0,
-    });
-
-    renderPageTransition("/page-a", ["/page-a", "/hub/history?item=allocation-1"]);
-    const user = userEvent.setup();
-
-    await user.click(screen.getByTestId("nav-/hub/history?item=allocation-1"));
-
-    await waitFor(() => {
-      expect(mockOrchestrator.onNavigateArrive).toHaveBeenCalledWith("/hub/history");
+      expect(mockOrchestrator.onNavigateArrive).toHaveBeenCalled();
     });
     expect(mockOrchestrator.openSheet).not.toHaveBeenCalled();
   });
@@ -374,16 +355,21 @@ describe("PageTransition", () => {
   });
 
   it("keeps persistent navigation active-state changes motionless", () => {
-    const css = readFileSync(resolve(__dirname, "../../styles/admin-m3-overrides.css"), "utf-8");
+    // The dock's material + motionless contract lives in admin-m3-tokens.css
+    // (the shell fork owns geometry in JSX; see Shell/NavigationBar.tsx).
+    const css = readFileSync(resolve(__dirname, "../../styles/admin-m3-tokens.css"), "utf-8");
 
-    expect(css).toMatch(/\.admin-m3 \.canvas-navigation-bar button\s*{[^}]*transition:\s*none;/s);
-    expect(css).toMatch(/\.admin-m3 \.canvas-navigation-bar\s*{[^}]*transition:\s*none;/s);
-    expect(css).not.toMatch(/\.admin-m3 \.canvas-navigation-bar\s*{[^}]*transition:\s*all/s);
+    // Anchored to line start: an unanchored pattern also matches a re-scoped
+    // `.admin-m3 .canvas-navigation-bar`, which is the regression this guards
+    // against for portaled surfaces.
+    expect(css).toMatch(/^\.canvas-navigation-bar button\s*{[^}]*transition:\s*none;/m);
+    expect(css).toMatch(/^\.canvas-navigation-bar\s*{[^}]*transition:\s*none;/m);
+    expect(css).not.toMatch(/^\.canvas-navigation-bar\s*{[^}]*transition:\s*all/m);
     expect(css).toMatch(
-      /\.admin-m3 \.canvas-navigation-bar button > span:first-child\s*{[^}]*transition:\s*none;/s
+      /^\.canvas-navigation-bar button > span:first-child\s*{[^}]*transition:\s*none;/m
     );
     expect(css).toMatch(
-      /\.admin-m3 \.canvas-navigation-bar button > span:last-child\s*{[^}]*transition:\s*none;/s
+      /^\.canvas-navigation-bar button > span:last-child\s*{[^}]*transition:\s*none;/m
     );
   });
 

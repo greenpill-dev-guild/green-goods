@@ -34,6 +34,10 @@ vi.mock("../../../config/blockchain", () => ({
   }),
 }));
 
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 vi.mock("../../../config/app", () => ({
   ONBOARDED_STORAGE_KEY,
 }));

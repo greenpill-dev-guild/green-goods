@@ -1,6 +1,6 @@
 # Green Goods Indexer
 
-The Green Goods indexer uses Envio HyperIndex `3.2.1` to process protocol events into PostgreSQL
+The Green Goods indexer uses Envio HyperIndex `3.6.1` to process protocol events into PostgreSQL
 and expose them through Hasura GraphQL. It indexes protocol state, not EAS attestations.
 
 See the [Indexer package guide](https://docs.greengoods.app/builders/packages/indexer) for the

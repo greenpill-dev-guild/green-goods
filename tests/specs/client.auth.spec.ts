@@ -22,7 +22,7 @@ test.describe("Client Authentication Flows", () => {
   test.use({ baseURL: CLIENT_URL });
 
   test.describe("Passkey Registration", () => {
-    // SKIP: #338 owner:afo expiry:2026-08-17 — needs real Pimlico API
+    // SKIP: #338 owner:afo expiry:2026-09-17 — needs real Pimlico API
     test.skip(!RUN_REAL_PASSKEY_E2E, "Set RUN_REAL_PASSKEY_E2E=true to run against real Pimlico.");
 
     test.fixme(
@@ -201,7 +201,7 @@ test.describe("Client Authentication Flows", () => {
 
   test.describe("Auth State Persistence", () => {
     test.describe("Passkey", () => {
-      // SKIP: #338 owner:afo expiry:2026-08-17 — needs real Pimlico API
+      // SKIP: #338 owner:afo expiry:2026-09-17 — needs real Pimlico API
       test.skip(
         !RUN_REAL_PASSKEY_E2E,
         "Set RUN_REAL_PASSKEY_E2E=true to run against real Pimlico."
@@ -240,7 +240,7 @@ test.describe("Client Authentication Flows", () => {
 
   test.describe("Sign Out", () => {
     test.describe("Passkey", () => {
-      // SKIP: #338 owner:afo expiry:2026-08-17 — needs real Pimlico API
+      // SKIP: #338 owner:afo expiry:2026-09-17 — needs real Pimlico API
       test.skip(
         !RUN_REAL_PASSKEY_E2E,
         "Set RUN_REAL_PASSKEY_E2E=true to run against real Pimlico."
@@ -261,40 +261,16 @@ test.describe("Client Authentication Flows", () => {
       await helper.waitForPageLoad();
 
       const url = page.url();
-      if (url.includes("/home/login")) {
-        console.log("Auth injection not persisted - skipping sign out test");
-        return;
-      }
+      // SKIP: #338 owner:afo expiry:2026-09-15 — wallet injection may not persist in this manual lane
+      test.skip(url.includes("/home/login"), "Wallet authentication did not persist");
 
-      // Find and click sign out button (may be in profile menu or nav)
-      const signOutSelectors = [
-        'button:has-text("Sign out")',
-        'button:has-text("Log out")',
-        'button:has-text("Logout")',
-        '[data-testid="sign-out-button"]',
-        'a:has-text("Sign out")',
-      ];
+      await page.goto("/home/profile");
+      await helper.waitForPageLoad();
 
-      let signOutButton;
-      for (const selector of signOutSelectors) {
-        const element = page.locator(selector).first();
-        if (await element.isVisible({ timeout: 3000 }).catch(() => false)) {
-          signOutButton = element;
-          break;
-        }
-      }
-
-      if (signOutButton) {
-        await signOutButton.click();
-        await page.waitForTimeout(2000);
-
-        // Should redirect to login
-        expect(page.url()).toContain("/home/login");
-      } else {
-        // Sign out button may be hidden in menu - test passes if page loaded
-        console.log("Sign out button not immediately visible - may be in menu");
-        expect(true).toBeTruthy();
-      }
+      const signOutButton = page.getByRole("button", { name: /logout|log out|sign out/i });
+      await expect(signOutButton).toBeVisible();
+      await signOutButton.click();
+      await expect(page).toHaveURL(/\/home\/login/);
     });
   });
 

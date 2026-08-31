@@ -9,8 +9,13 @@
  */
 
 import { renderHook } from "@testing-library/react";
+import type { UseMutationResult } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useBeforeUnloadWhilePending } from "../../../hooks/utils/useBeforeUnloadWhilePending";
+import { useSafeMutation } from "../../../hooks/utils/useSafeMutation";
+
+type AddEventListenerCall = Parameters<Window["addEventListener"]>;
+type RemoveEventListenerCall = Parameters<Window["removeEventListener"]>;
 
 describe("hooks/utils/useBeforeUnloadWhilePending", () => {
   let addSpy: ReturnType<typeof vi.spyOn>;
@@ -29,14 +34,18 @@ describe("hooks/utils/useBeforeUnloadWhilePending", () => {
   it("does not register handler when isPending is false", () => {
     renderHook(() => useBeforeUnloadWhilePending(false));
 
-    const beforeUnloadCalls = addSpy.mock.calls.filter(([event]) => event === "beforeunload");
+    const beforeUnloadCalls = addSpy.mock.calls.filter(
+      (call: AddEventListenerCall) => call[0] === "beforeunload"
+    );
     expect(beforeUnloadCalls).toHaveLength(0);
   });
 
   it("registers handler when isPending is true", () => {
     renderHook(() => useBeforeUnloadWhilePending(true));
 
-    const beforeUnloadCalls = addSpy.mock.calls.filter(([event]) => event === "beforeunload");
+    const beforeUnloadCalls = addSpy.mock.calls.filter(
+      (call: AddEventListenerCall) => call[0] === "beforeunload"
+    );
     expect(beforeUnloadCalls).toHaveLength(1);
   });
 
@@ -46,14 +55,18 @@ describe("hooks/utils/useBeforeUnloadWhilePending", () => {
     });
 
     // Handler should be registered
-    const addCalls = addSpy.mock.calls.filter(([event]) => event === "beforeunload");
+    const addCalls = addSpy.mock.calls.filter(
+      (call: AddEventListenerCall) => call[0] === "beforeunload"
+    );
     expect(addCalls).toHaveLength(1);
 
     // Switch to not pending
     rerender({ pending: false });
 
     // Handler should be removed
-    const removeCalls = removeSpy.mock.calls.filter(([event]) => event === "beforeunload");
+    const removeCalls = removeSpy.mock.calls.filter(
+      (call: RemoveEventListenerCall) => call[0] === "beforeunload"
+    );
     expect(removeCalls).toHaveLength(1);
   });
 
@@ -62,16 +75,18 @@ describe("hooks/utils/useBeforeUnloadWhilePending", () => {
 
     unmount();
 
-    const removeCalls = removeSpy.mock.calls.filter(([event]) => event === "beforeunload");
+    const removeCalls = removeSpy.mock.calls.filter(
+      (call: RemoveEventListenerCall) => call[0] === "beforeunload"
+    );
     expect(removeCalls).toHaveLength(1);
   });
 
   it("handler calls preventDefault and sets returnValue", () => {
     renderHook(() => useBeforeUnloadWhilePending(true));
 
-    const handler = addSpy.mock.calls.find(([event]) => event === "beforeunload")?.[1] as
-      | ((e: BeforeUnloadEvent) => void)
-      | undefined;
+    const handler = addSpy.mock.calls.find(
+      (call: AddEventListenerCall) => call[0] === "beforeunload"
+    )?.[1] as ((e: BeforeUnloadEvent) => void) | undefined;
     expect(handler).toBeDefined();
 
     // Create a mock BeforeUnloadEvent
@@ -84,5 +99,33 @@ describe("hooks/utils/useBeforeUnloadWhilePending", () => {
 
     expect(mockEvent.preventDefault).toHaveBeenCalled();
     expect(mockEvent.returnValue).toBe("");
+  });
+
+  it("keeps unload protection enabled for unrelated safe mutations", () => {
+    const mutation = {
+      isPending: true,
+      mutate: vi.fn(),
+      mutateAsync: vi.fn(),
+    } as unknown as UseMutationResult<unknown, Error, void, unknown>;
+
+    renderHook(() => useSafeMutation(mutation));
+
+    expect(
+      addSpy.mock.calls.filter((call: AddEventListenerCall) => call[0] === "beforeunload")
+    ).toHaveLength(1);
+  });
+
+  it("can suppress unload protection for an expected external handoff", () => {
+    const mutation = {
+      isPending: true,
+      mutate: vi.fn(),
+      mutateAsync: vi.fn(),
+    } as unknown as UseMutationResult<unknown, Error, void, unknown>;
+
+    renderHook(() => useSafeMutation(mutation, "approval-test", { warnBeforeUnload: false }));
+
+    expect(
+      addSpy.mock.calls.filter((call: AddEventListenerCall) => call[0] === "beforeunload")
+    ).toHaveLength(0);
   });
 });

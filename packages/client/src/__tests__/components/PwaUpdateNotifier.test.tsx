@@ -8,6 +8,7 @@ import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const sharedMocks = vi.hoisted(() => ({
+  activateNow: vi.fn(),
   applyUpdate: vi.fn(),
   dismissUpdate: vi.fn(),
   checking: vi.fn(),
@@ -19,8 +20,7 @@ const sharedMocks = vi.hoisted(() => ({
   useServiceWorkerUpdate: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", () => ({
-  // The notifier binds i18n-aware toasts via createUpdateToasts(formatMessage).
+vi.mock("@green-goods/shared/components/Toast/presets/update", () => ({
   createUpdateToasts: () => ({
     checking: sharedMocks.checking,
     downloading: sharedMocks.downloading,
@@ -28,7 +28,13 @@ vi.mock("@green-goods/shared", () => ({
     applying: sharedMocks.applying,
     stalled: sharedMocks.stalled,
   }),
+}));
+
+vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: sharedMocks.useApp,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useServiceWorkerUpdate", () => ({
   useServiceWorkerUpdate: sharedMocks.useServiceWorkerUpdate,
 }));
 
@@ -49,6 +55,8 @@ describe("PwaUpdateNotifier", () => {
       updateAvailable: false,
       isUpdating: false,
       updateStalled: false,
+      shouldPrompt: false,
+      activateNow: sharedMocks.activateNow,
       applyUpdate: sharedMocks.applyUpdate,
       dismissUpdate: sharedMocks.dismissUpdate,
     });
@@ -70,6 +78,8 @@ describe("PwaUpdateNotifier", () => {
       updateAvailable: false,
       isUpdating: false,
       updateStalled: false,
+      shouldPrompt: false,
+      activateNow: sharedMocks.activateNow,
       applyUpdate: sharedMocks.applyUpdate,
       dismissUpdate: sharedMocks.dismissUpdate,
     });
@@ -81,27 +91,48 @@ describe("PwaUpdateNotifier", () => {
     expect(sharedMocks.downloading).not.toHaveBeenCalled();
   });
 
-  it("shows the downloading toast in PWA presentation", () => {
+  it("keeps passive update downloads quiet in PWA presentation", () => {
     sharedMocks.useServiceWorkerUpdate.mockReturnValue({
       phase: "downloading",
       updateAvailable: false,
       isUpdating: false,
       updateStalled: false,
+      shouldPrompt: false,
+      activateNow: sharedMocks.activateNow,
       applyUpdate: sharedMocks.applyUpdate,
       dismissUpdate: sharedMocks.dismissUpdate,
     });
 
     renderNotifier();
 
-    expect(sharedMocks.downloading).toHaveBeenCalledTimes(1);
+    expect(sharedMocks.downloading).not.toHaveBeenCalled();
   });
 
-  it("shows the ready-to-restart toast in PWA presentation", () => {
+  it("keeps a newly waiting update quiet", () => {
     sharedMocks.useServiceWorkerUpdate.mockReturnValue({
-      phase: "ready",
+      phase: "waiting",
       updateAvailable: true,
       isUpdating: false,
       updateStalled: false,
+      shouldPrompt: false,
+      activateNow: sharedMocks.activateNow,
+      applyUpdate: sharedMocks.applyUpdate,
+      dismissUpdate: sharedMocks.dismissUpdate,
+    });
+
+    renderNotifier();
+
+    expect(sharedMocks.ready).not.toHaveBeenCalled();
+  });
+
+  it("shows the restart action after the long-session threshold", () => {
+    sharedMocks.useServiceWorkerUpdate.mockReturnValue({
+      phase: "waiting",
+      updateAvailable: true,
+      isUpdating: false,
+      updateStalled: false,
+      shouldPrompt: true,
+      activateNow: sharedMocks.activateNow,
       applyUpdate: sharedMocks.applyUpdate,
       dismissUpdate: sharedMocks.dismissUpdate,
     });
@@ -109,17 +140,19 @@ describe("PwaUpdateNotifier", () => {
     renderNotifier();
 
     expect(sharedMocks.ready).toHaveBeenCalledWith(
-      sharedMocks.applyUpdate,
+      sharedMocks.activateNow,
       sharedMocks.dismissUpdate
     );
   });
 
   it("shows the applying toast in PWA presentation", () => {
     sharedMocks.useServiceWorkerUpdate.mockReturnValue({
-      phase: "applying",
+      phase: "activating",
       updateAvailable: false,
       isUpdating: true,
       updateStalled: false,
+      shouldPrompt: false,
+      activateNow: sharedMocks.activateNow,
       applyUpdate: sharedMocks.applyUpdate,
       dismissUpdate: sharedMocks.dismissUpdate,
     });
@@ -131,10 +164,12 @@ describe("PwaUpdateNotifier", () => {
 
   it("shows the stalled toast in PWA presentation", () => {
     sharedMocks.useServiceWorkerUpdate.mockReturnValue({
-      phase: "stalled",
+      phase: "error",
       updateAvailable: false,
       isUpdating: false,
       updateStalled: true,
+      shouldPrompt: false,
+      activateNow: sharedMocks.activateNow,
       applyUpdate: sharedMocks.applyUpdate,
       dismissUpdate: sharedMocks.dismissUpdate,
     });
@@ -146,10 +181,12 @@ describe("PwaUpdateNotifier", () => {
 
   it("uses the explicit phase instead of legacy boolean precedence", () => {
     sharedMocks.useServiceWorkerUpdate.mockReturnValue({
-      phase: "applying",
+      phase: "activating",
       updateAvailable: true,
       isUpdating: true,
       updateStalled: false,
+      shouldPrompt: false,
+      activateNow: sharedMocks.activateNow,
       applyUpdate: sharedMocks.applyUpdate,
       dismissUpdate: sharedMocks.dismissUpdate,
     });

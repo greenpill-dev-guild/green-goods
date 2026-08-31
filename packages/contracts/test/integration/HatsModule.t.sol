@@ -36,11 +36,25 @@ contract RevertingHatsModuleFactory is IHatsModuleFactory {
     }
 }
 
+contract MockKarmaAdminSync {
+    mapping(address garden => mapping(address account => uint256 count)) public addCalls;
+    mapping(address garden => mapping(address account => uint256 count)) public removeCalls;
+
+    function addProjectAdmin(address garden, address account) external {
+        addCalls[garden][account]++;
+    }
+
+    function removeProjectAdmin(address garden, address account) external {
+        removeCalls[garden][account]++;
+    }
+}
+
 /// @title HatsModuleTest
 /// @notice Tests for the HatsModule contract
 contract HatsModuleTest is Test {
     HatsModule public adapter;
     MockHats public mockHats;
+    MockKarmaAdminSync public karmaAdminSync;
 
     address public owner;
     address public garden1;
@@ -91,6 +105,7 @@ contract HatsModuleTest is Test {
 
         // Deploy mock Hats
         mockHats = new MockHats();
+        karmaAdminSync = new MockKarmaAdminSync();
 
         // Deploy adapter with proxy
         HatsModule impl = new HatsModule();
@@ -175,8 +190,7 @@ contract HatsModuleTest is Test {
             uint256 evaluatorHat,
             uint256 gardenerHat,
             uint256 funderHat,
-            uint256 communityHat,
-            ,
+            uint256 communityHat,,
             bool configured
         ) = adapter.gardenHats(garden1);
         assertEq(ownerHat, GARDEN1_OWNER_HAT, "Owner hat should match");
@@ -350,8 +364,7 @@ contract HatsModuleTest is Test {
             uint256 evaluatorHat,
             uint256 gardenerHat,
             uint256 funderHat,
-            uint256 communityHat,
-            ,
+            uint256 communityHat,,
             bool configured
         ) = adapter.gardenHats(garden1);
         assertEq(ownerHat, GARDEN2_OWNER_HAT, "Owner hat should use new IDs");
@@ -696,6 +709,43 @@ contract HatsModuleTest is Test {
         assertTrue(adapter.isEvaluatorOf(garden1, user2), "User2 should be evaluator");
     }
 
+    function testIntegration_Hats_grantOwnerSyncsKarmaProjectAdmin() public {
+        _configureGarden1WithOwner();
+        adapter.setKarmaGAPModule(address(karmaAdminSync));
+
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Owner);
+
+        assertEq(karmaAdminSync.addCalls(garden1, user1), 1);
+    }
+
+    function testIntegration_Hats_grantRolesSyncsEveryInitialStewardToKarma() public {
+        _configureGarden1WithOwner();
+        adapter.setKarmaGAPModule(address(karmaAdminSync));
+        address[] memory accounts = new address[](2);
+        IHatsModule.GardenRole[] memory roles = new IHatsModule.GardenRole[](2);
+        accounts[0] = user1;
+        accounts[1] = user2;
+        roles[0] = IHatsModule.GardenRole.Steward;
+        roles[1] = IHatsModule.GardenRole.Steward;
+
+        adapter.grantRoles(garden1, accounts, roles);
+
+        assertEq(karmaAdminSync.addCalls(garden1, user1), 1);
+        assertEq(karmaAdminSync.addCalls(garden1, user2), 1);
+    }
+
+    function testIntegration_Hats_revokeOwnerOrStewardReconcilesKarmaProjectAdmin() public {
+        _configureGarden1WithOwner();
+        adapter.setKarmaGAPModule(address(karmaAdminSync));
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Owner);
+
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Owner);
+        assertEq(karmaAdminSync.removeCalls(garden1, user1), 1);
+
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Steward);
+        assertEq(karmaAdminSync.removeCalls(garden1, user1), 2);
+    }
+
     function test_grantRoles_revertsOnArrayMismatch() public {
         adapter.configureGarden(
             garden1,
@@ -824,8 +874,7 @@ contract HatsModuleTest is Test {
             uint256 evaluatorHatId,
             uint256 gardenerHatId,
             uint256 funderHatId,
-            uint256 communityHatId,
-            ,
+            uint256 communityHatId,,
             bool configured
         ) = adapter.gardenHats(garden2);
 
@@ -1002,7 +1051,7 @@ contract HatsModuleTest is Test {
         mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
 
         // Grant Operator to user1 — should cascade to Evaluator, Gardener
-        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Operator);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Steward);
 
         assertTrue(adapter.isOperatorOf(garden1, user1), "User1 should be operator");
         assertTrue(adapter.isEvaluatorOf(garden1, user1), "User1 should auto-get evaluator");

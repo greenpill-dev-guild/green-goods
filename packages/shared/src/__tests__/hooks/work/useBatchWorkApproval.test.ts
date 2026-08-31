@@ -17,20 +17,19 @@ import {
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
 } from "../../test-utils/mock-factories";
+import {
+  createFakeSmartAccountClient,
+  type FakeSmartAccountClient,
+} from "../../test-utils/transaction-fakes";
 
 // ============================================
 // Mocks
 // ============================================
 
 const mockSubmitBatchDirectly = vi.fn();
-const mockSubmitBatchWithPasskey = vi.fn();
 
 vi.mock("../../../modules/work/wallet-submission", () => ({
   submitBatchApprovalsDirectly: (...args: unknown[]) => mockSubmitBatchDirectly(...args),
-}));
-
-vi.mock("../../../modules/work/passkey-submission", () => ({
-  submitBatchApprovalsWithPasskey: (...args: unknown[]) => mockSubmitBatchWithPasskey(...args),
 }));
 
 vi.mock("../../../components/toast", () => ({
@@ -76,11 +75,19 @@ vi.mock("../../../utils/debug", () => ({
 
 vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
+  getEASConfig: () => ({
+    EAS: { address: "0x1111111111111111111111111111111111111111" },
+    WORK_APPROVAL: { uid: `0x${"22".repeat(32)}`, schema: "" },
+  }),
+}));
+
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 // Auth mode mock state
 let mockAuthMode: "wallet" | "passkey" | "embedded" | null = "wallet";
-let mockSmartAccountClient: any = null;
+let mockSmartAccountClient: FakeSmartAccountClient | null = null;
 
 vi.mock("../../../hooks/auth/useUser", () => ({
   useUser: () => ({
@@ -101,6 +108,7 @@ import { useBatchWorkApproval } from "../../../hooks/work/useBatchWorkApproval";
 // ============================================
 
 const TEST_CHAIN_ID = 11155111;
+const TEST_GARDEN = MOCK_ADDRESSES.gardener;
 
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -120,13 +128,13 @@ function createQueryClient() {
 function createBatchItems(count: number, approved = true) {
   return Array.from({ length: count }, (_, i) => ({
     draft: createMockWorkApprovalDraft({
-      workUID: `work-${i}`,
+      workUID: `0x${i.toString(16).padStart(64, "0")}`,
       actionUID: i + 1,
       approved,
     }),
     work: createMockWork({
       id: `work-${i}`,
-      gardenAddress: MOCK_ADDRESSES.garden,
+      gardenAddress: TEST_GARDEN,
       gardenerAddress: MOCK_ADDRESSES.gardener,
       actionUID: i + 1,
     }),
@@ -146,7 +154,6 @@ describe("useBatchWorkApproval", () => {
     mockAuthMode = "wallet";
     mockSmartAccountClient = null;
     mockSubmitBatchDirectly.mockResolvedValue(MOCK_TX_HASH);
-    mockSubmitBatchWithPasskey.mockResolvedValue(MOCK_TX_HASH);
   });
 
   // ------------------------------------------
@@ -194,7 +201,6 @@ describe("useBatchWorkApproval", () => {
       });
 
       expect(mockSubmitBatchDirectly).toHaveBeenCalledOnce();
-      expect(mockSubmitBatchWithPasskey).not.toHaveBeenCalled();
 
       await waitFor(() => {
         expect(result.current.data?.count).toBe(3);
@@ -216,7 +222,7 @@ describe("useBatchWorkApproval", () => {
       const callArgs = mockSubmitBatchDirectly.mock.calls[0][0];
       expect(callArgs).toHaveLength(2);
       expect(callArgs[0]).toHaveProperty("draft");
-      expect(callArgs[0]).toHaveProperty("gardenAddress", MOCK_ADDRESSES.garden);
+      expect(callArgs[0]).toHaveProperty("gardenAddress", TEST_GARDEN);
       expect(callArgs[0]).toHaveProperty("gardenerAddress", MOCK_ADDRESSES.gardener);
     });
   });
@@ -228,11 +234,7 @@ describe("useBatchWorkApproval", () => {
   describe("passkey mode", () => {
     beforeEach(() => {
       mockAuthMode = "passkey";
-      mockSmartAccountClient = {
-        account: { address: MOCK_ADDRESSES.smartAccount },
-        chain: { id: TEST_CHAIN_ID },
-        sendTransaction: vi.fn(),
-      };
+      mockSmartAccountClient = createFakeSmartAccountClient();
     });
 
     it("submits batch approvals via passkey submission module", async () => {
@@ -246,12 +248,12 @@ describe("useBatchWorkApproval", () => {
         await result.current.mutateAsync(items);
       });
 
-      expect(mockSubmitBatchWithPasskey).toHaveBeenCalledOnce();
+      expect(mockSmartAccountClient!.sendTransaction).toHaveBeenCalledOnce();
       expect(mockSubmitBatchDirectly).not.toHaveBeenCalled();
       expect(result.current.data?.count).toBe(2);
     });
 
-    it("passes smart account client to passkey submission", async () => {
+    it("submits with the active smart account client", async () => {
       const items = createBatchItems(1);
 
       const { result } = renderHook(() => useBatchWorkApproval(), {
@@ -262,10 +264,10 @@ describe("useBatchWorkApproval", () => {
         await result.current.mutateAsync(items);
       });
 
-      const callArgs = mockSubmitBatchWithPasskey.mock.calls[0][0];
-      expect(callArgs.client).toBe(mockSmartAccountClient);
-      expect(callArgs.chainId).toBe(TEST_CHAIN_ID);
-      expect(callArgs.approvals).toHaveLength(1);
+      expect(mockSmartAccountClient!.sendTransaction).toHaveBeenCalledOnce();
+      expect(mockSmartAccountClient!.sendTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({ account: mockSmartAccountClient!.account })
+      );
     });
 
     it("throws when smart account client is unavailable", async () => {
@@ -300,7 +302,7 @@ describe("useBatchWorkApproval", () => {
       // Seed the cache with existing works
       const existingWorks: Work[] = [
         createMockWork({
-          id: "work-0",
+          id: items[0].draft.workUID,
           gardenAddress: gardenAddr,
           status: "pending",
         }),
@@ -332,7 +334,7 @@ describe("useBatchWorkApproval", () => {
         );
 
         if (cached) {
-          const updatedWork = cached.find((w: any) => w.id === "work-0");
+          const updatedWork = cached.find((w: any) => w.id === items[0].draft.workUID);
           expect(updatedWork?.status).toBe("approved");
           expect(updatedWork?._isPending).toBe(true);
         }
@@ -358,7 +360,7 @@ describe("useBatchWorkApproval", () => {
       // Seed cache
       const originalWorks: Work[] = [
         createMockWork({
-          id: "work-0",
+          id: items[0].draft.workUID,
           gardenAddress: gardenAddr,
           status: "pending",
         }),
@@ -434,12 +436,8 @@ describe("useBatchWorkApproval", () => {
 
       // Should invalidate works.online, works.merged, workApprovals.all, and recipient-scoped approvals.
       const invalidatedKeys = invalidateSpy.mock.calls.map((c) => c[0]?.queryKey);
-      expect(invalidatedKeys).toContainEqual(
-        queryKeys.works.online(MOCK_ADDRESSES.garden, TEST_CHAIN_ID)
-      );
-      expect(invalidatedKeys).toContainEqual(
-        queryKeys.works.merged(MOCK_ADDRESSES.garden, TEST_CHAIN_ID)
-      );
+      expect(invalidatedKeys).toContainEqual(queryKeys.works.online(TEST_GARDEN, TEST_CHAIN_ID));
+      expect(invalidatedKeys).toContainEqual(queryKeys.works.merged(TEST_GARDEN, TEST_CHAIN_ID));
       expect(invalidatedKeys).toContainEqual(queryKeys.workApprovals.all);
       expect(invalidatedKeys).toContainEqual(queryKeys.approvals.all);
 

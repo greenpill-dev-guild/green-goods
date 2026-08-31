@@ -1,9 +1,7 @@
-import {
-  adminRoutes,
-  localizeAction,
-  type Action,
-  type ActionsRouteState,
-} from "@green-goods/shared";
+import type { ActionsRouteState } from "@green-goods/shared/hooks/admin-ui/actions/actions.workspaceModel";
+import type { Action } from "@green-goods/shared/types/domain";
+import { localizeAction } from "@green-goods/shared/utils/action/translations";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -65,7 +63,7 @@ export function ActionsSheetDescriptor({
           ? formatMessage({ id: "app.actions.edit.title" }, { name: action.title })
           : formatMessage({
               id: "app.actions.edit",
-              defaultMessage: "Edit action",
+              defaultMessage: "Edit",
             }),
         content: action ? (
           <EditAction layout="sheet" />

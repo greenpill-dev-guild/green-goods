@@ -1,6 +1,6 @@
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import { cn } from "@green-goods/shared";
 
 // ============================================================================
 // Variant System
@@ -17,8 +17,9 @@ export const adminCardVariants = tv({
     variant: {
       // Filled — surface-container-highest, no outline, elevation 0→1 on hover
       filled: ["bg-[rgb(var(--m3-surface-container-highest))]", "shadow-[var(--m3-elevation-0)]"],
-      // Elevated — surface-container-low, elevation 1 base
-      elevated: ["bg-[rgb(var(--m3-surface-container-low))]", "shadow-[var(--m3-elevation-1)]"],
+      // Elevated — the white card on the linen canvas (--admin-surface-0 flips
+      // to the warm container step in dark), elevation 1 base
+      elevated: ["bg-[rgb(var(--admin-surface-0))]", "shadow-[var(--m3-elevation-1)]"],
       // Outlined — surface, no elevation, ring outline
       outlined: [
         "bg-[rgb(var(--m3-surface))]",
@@ -117,3 +118,30 @@ export function AdminCard({
 }
 
 AdminCard.displayName = "AdminCard";
+
+// ============================================================================
+// Slots
+// ============================================================================
+
+/**
+ * Sectioned-card slots for surfaces migrating off the legacy shared `Card`
+ * (Header/Body/Footer). Use with `<AdminCard density="none">` so the slots
+ * own the padding; hairlines ride the warm stroke step. Header rows default
+ * to `items-center` — pass `items-start` when stacking with `flex-col`.
+ */
+export function AdminCardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      data-component="AdminCardHeader"
+      className={cn(
+        "flex items-center justify-between gap-3 border-b border-stroke-soft px-4 py-3",
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+export function AdminCardBody({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div data-component="AdminCardBody" className={cn("p-4", className)} {...props} />;
+}

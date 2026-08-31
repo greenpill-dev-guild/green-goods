@@ -1,4 +1,6 @@
-import { Alert, getMarketplaceReadiness, useMarketplaceApprovals } from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { useMarketplaceApprovals } from "@green-goods/shared/hooks/hypercerts/useMarketplaceApprovals";
+import { getMarketplaceReadiness } from "@green-goods/shared/utils/blockchain/contracts";
 import { RiAlertLine, RiCheckLine, RiLoader4Line, RiShieldCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "../AdminButton";
@@ -11,7 +13,7 @@ interface MarketplaceApprovalGateProps {
 
 /**
  * Gates marketplace features behind deployment-artifact readiness AND
- * one-time operator approvals. State matrix:
+ * one-time steward approvals. State matrix:
  *
  * - unavailable: deployment-artifact marketplace addresses are missing/zero
  *                on the active chain. Renders a warning alert and refuses
@@ -110,7 +112,7 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
             <ApprovalStep
               label={formatMessage({
                 id: "app.marketplace.grantExchange",
-                defaultMessage: "Grant exchange approval",
+                defaultMessage: "Grant Exchange Approval",
               })}
               description={formatMessage({
                 id: "app.marketplace.grantExchangeDesc",
@@ -121,7 +123,7 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
             <ApprovalStep
               label={formatMessage({
                 id: "app.marketplace.approveTransfer",
-                defaultMessage: "Approve transfer manager",
+                defaultMessage: "Approve Transfer Manager",
               })}
               description={formatMessage({
                 id: "app.marketplace.approveTransferDesc",

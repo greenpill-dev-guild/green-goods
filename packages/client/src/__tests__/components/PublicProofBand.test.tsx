@@ -15,8 +15,11 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useInViewReveal", () => ({
   useInViewReveal: () => ({ ref: () => undefined, revealed: true }),
 }));
 
@@ -27,7 +30,7 @@ const messages: Record<string, string> = {
   "public.home.proof.title": "Quantifiable restoration.",
   "public.home.proof.body":
     "This isn't a dashboard. These are confirmed counts: gardens tended, hands at work, entries logged, assessments recorded. Public, verifiable.",
-  "public.home.proof.cta": "View public evidence",
+  "public.home.proof.cta": "View Public Evidence",
   "public.home.proof.emptyKicker": "Reading the record",
   "public.home.proof.empty":
     "The first records will appear here as Gardens publish their work, season by season.",
@@ -86,8 +89,16 @@ describe("PublicProofBand", () => {
   });
 
   it("shows the four markers while loading even when counts are zero", () => {
-    renderBand({ gardens: 0, contributors: 0, works: 0, assessments: 0, isLoading: true });
+    const { container } = renderBand({
+      gardens: 0,
+      contributors: 0,
+      works: 0,
+      assessments: 0,
+      isLoading: true,
+    });
     expect(screen.getByText("Gardens tended")).toBeInTheDocument();
     expect(screen.queryByText(/first records will appear here/)).toBeNull();
+    expect(container.querySelectorAll("[data-editorial-skeleton]")).toHaveLength(4);
+    expect(screen.queryByText("...")).not.toBeInTheDocument();
   });
 });

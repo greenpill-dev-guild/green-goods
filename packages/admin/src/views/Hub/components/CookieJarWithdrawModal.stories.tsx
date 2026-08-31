@@ -1,13 +1,13 @@
 import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
+import { Button } from "@green-goods/shared/components/Button";
+import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import {
-  Button,
-  formatTokenAmount,
   NativeSelect,
   Textarea,
   TextInput,
-  TxInlineFeedback,
-} from "@green-goods/shared";
+} from "@green-goods/shared/components/Form/ControlPrimitives";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { fn } from "storybook/test";

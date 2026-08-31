@@ -16,6 +16,33 @@ describe("tx-error-classifier", () => {
     expect(isCancelledTxError({ code: 4001 })).toBe(true);
   });
 
+  it("classifies a dismissed WebAuthn prompt as cancelled by error name", () => {
+    // WebAuthn raises NotAllowedError for a dismissal, and its message ("The
+    // operation either timed out or was not allowed") carries no cancellation
+    // keyword. `authServices.ts` already treats both names as cancellation.
+    const notAllowed = new Error("The operation either timed out or was not allowed.");
+    notAllowed.name = "NotAllowedError";
+    expect(classifyTxError(notAllowed).kind).toBe("cancelled");
+    expect(isCancelledTxError(notAllowed)).toBe(true);
+
+    const aborted = new Error("signal is aborted without reason");
+    aborted.name = "AbortError";
+    expect(isCancelledTxError(aborted)).toBe(true);
+  });
+
+  it("finds a WebAuthn cancellation wrapped in a cause chain", () => {
+    const cause = new Error("The operation either timed out or was not allowed.");
+    cause.name = "NotAllowedError";
+    const wrapped = new Error("Failed to request credential.");
+    (wrapped as Error & { cause?: unknown }).cause = cause;
+
+    expect(isCancelledTxError(wrapped)).toBe(true);
+  });
+
+  it("does not treat an ordinary failure as cancelled", () => {
+    expect(isCancelledTxError(new Error("Connector not connected."))).toBe(false);
+  });
+
   it("classifies insufficient funds as reverted", () => {
     const result = classifyTxError("insufficient funds for intrinsic transaction cost");
     expect(result.kind).toBe("reverted");

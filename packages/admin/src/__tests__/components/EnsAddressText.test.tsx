@@ -2,7 +2,8 @@
  * @vitest-environment jsdom
  */
 
-import { en as enMessages, type Address } from "@green-goods/shared";
+import { default as enMessages } from "@green-goods/shared/i18n/en.json";
+import type { Address } from "@green-goods/shared/types/domain";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IntlProvider } from "react-intl";
@@ -13,18 +14,17 @@ const { mockCopy, mockUseEnsName } = vi.hoisted(() => ({
   mockUseEnsName: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    useCopyToClipboard: () => ({
-      copied: false,
-      copy: mockCopy,
-      reset: vi.fn(),
-    }),
-    useEnsName: (address: Address | null | undefined) => mockUseEnsName(address),
-  };
-});
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: (address: Address | null | undefined) => mockUseEnsName(address),
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useCopyToClipboard", () => ({
+  useCopyToClipboard: () => ({
+    copied: false,
+    copy: mockCopy,
+    reset: vi.fn(),
+  }),
+}));
 
 import {
   EnsAddressText,

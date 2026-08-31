@@ -90,46 +90,6 @@ export function sortByCreatedAt<T extends { createdAt: number }>(items: T[]): T[
 }
 
 /**
- * Format a timestamp to relative time (e.g., "2 hours ago", "3 days ago")
- *
- * Accepts seconds or milliseconds. Falls back to "just now" for very recent events.
- */
-export function formatRelativeTime(timestamp: number | string | Date): string {
-  let ms: number;
-
-  if (timestamp instanceof Date) {
-    ms = timestamp.getTime();
-  } else if (typeof timestamp === "string") {
-    ms = new Date(timestamp).getTime();
-  } else {
-    ms = normalizeTimestamp(timestamp);
-  }
-
-  if (Number.isNaN(ms)) return "just now";
-
-  const diffMs = Date.now() - ms;
-
-  if (diffMs < 0 || Number.isNaN(diffMs)) return "just now";
-
-  const seconds = Math.floor(diffMs / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  const weeks = Math.floor(days / 7);
-  const months = Math.floor(days / 30);
-  const years = Math.floor(days / 365);
-
-  if (years > 0) return `${years} year${years > 1 ? "s" : ""} ago`;
-  if (months > 0) return `${months} month${months > 1 ? "s" : ""} ago`;
-  if (weeks > 0) return `${weeks} week${weeks > 1 ? "s" : ""} ago`;
-  if (days > 0) return `${days} day${days > 1 ? "s" : ""} ago`;
-  if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
-  if (minutes > 0) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
-  if (seconds > 10) return `${seconds} second${seconds > 1 ? "s" : ""} ago`;
-  return "just now";
-}
-
-/**
  * Creates a valid Temporal.Instant or returns null if the value is invalid.
  *
  * Handles seconds and milliseconds timestamps automatically.
@@ -319,82 +279,6 @@ export function fromDateInputValue(value: string): number {
   if (day > daysInMonth) return 0;
 
   return Math.floor(Date.UTC(year, month - 1, day) / 1000);
-}
-
-/**
- * Calendar-date helpers for widget boundaries that work in **local** time.
- *
- * There are two self-consistent bases for a "YYYY-MM-DD" calendar date in this
- * codebase, and mixing them shifts the day for anyone not sitting on UTC:
- *
- * - **UTC basis** — {@link toDateInputValue} / {@link fromDateInputValue}. Use for
- *   `<input type="date">` (timezone-agnostic by spec) and for anything persisted
- *   or written on-chain, where the stored instant must not depend on where the
- *   operator sat.
- * - **Local basis** — {@link toCalendarDateKey} / {@link fromCalendarDateKey}. Use at
- *   the `DatePicker` boundary: react-day-picker builds local-midnight `Date`s and
- *   the trigger renders with `toLocaleDateString`, so a UTC parse here echoes the
- *   previous day back to operators behind UTC.
- *
- * Pick the pair that matches the widget, and never cross them for one value.
- */
-
-/**
- * Formats an instant as a "YYYY-MM-DD" key using **local** calendar parts.
- *
- * The local-basis counterpart to {@link toDateInputValue}. Use for values that
- * came out of a `DatePicker`; `toISOString().slice(0, 10)` would serialize the
- * previous day for operators ahead of UTC.
- *
- * A non-positive timestamp reads as "no date" at this boundary (the pickers use
- * `?? 0` for a cleared field), so it yields "" rather than 1970-01-01. This is
- * deliberately unlike {@link toDateInputValue}, which treats 0 as the epoch.
- *
- * @param value - Unix timestamp (seconds), Date, or null/undefined
- * @returns "YYYY-MM-DD", or empty string if invalid or cleared
- */
-export function toCalendarDateKey(value: number | Date | null | undefined): string {
-  if (value === null || value === undefined) return "";
-  if (typeof value === "number" && value <= 0) return "";
-
-  const date = value instanceof Date ? value : new Date(value * 1000);
-  if (!Number.isFinite(date.getTime())) return "";
-
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${date.getFullYear()}-${month}-${day}`;
-}
-
-/**
- * Parses a "YYYY-MM-DD" key to Unix seconds at **local** midnight.
- *
- * The local-basis counterpart to {@link fromDateInputValue}. Feeding this to a
- * `DatePicker` highlights the day the operator actually picked; `new Date(key)`
- * parses as UTC and lands on the previous day for operators behind UTC.
- *
- * @param value - Date string in "YYYY-MM-DD" format
- * @returns Unix timestamp in seconds, or null if the string is not a valid date
- */
-export function fromCalendarDateKey(value: string | null | undefined): number | null {
-  if (!value) return null;
-
-  const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
-  if (!parts) return null;
-
-  const year = Number(parts[1]);
-  const month = Number(parts[2]);
-  const day = Number(parts[3]);
-  if (month < 1 || month > 12 || day < 1) return null;
-
-  const date = new Date(year, month - 1, day);
-  if (!Number.isFinite(date.getTime())) return null;
-
-  // Reject overflow like "2026-02-31", which Date silently rolls into March.
-  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-    return null;
-  }
-
-  return Math.floor(date.getTime() / 1000);
 }
 
 /**

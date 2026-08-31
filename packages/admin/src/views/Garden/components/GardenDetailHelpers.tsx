@@ -1,19 +1,10 @@
-import {
-  Button,
-  Card,
-  DOMAIN_COLORS,
-  DOMAIN_LABEL_IDS,
-  type Domain,
-  expandDomainMask,
-  GardenBannerFallback,
-  ImageWithFallback,
-  resolveIPFSUrl,
-  type TabBadgeSeverity,
-  type TabBadgeState,
-} from "@green-goods/shared";
-import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
-import { AdminTooltip } from "@/components/AdminTooltip";
+import { GardenBannerFallback } from "@green-goods/shared/components/Display/GardenBannerFallback";
+import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { DOMAIN_COLORS, type Domain } from "@green-goods/shared/types/domain";
+import type { TabBadgeSeverity, TabBadgeState } from "@green-goods/shared/types/garden-detail";
+import { expandDomainMask } from "@green-goods/shared/utils/domain";
+import { DOMAIN_LABEL_IDS } from "@green-goods/shared/utils/garden-detail";
 import {
   RiAlertLine,
   RiArrowLeftLine,
@@ -24,6 +15,9 @@ import {
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminCard, AdminCardBody } from "@/components/AdminCard";
+import { AdminTooltip } from "@/components/AdminTooltip";
 import { ALERT_LABEL_CLASSES, BADGE_TONE_CLASSES } from "./gardenDetail.constants";
 
 export function TabBadge({ badge }: { badge: TabBadgeState }) {
@@ -33,7 +27,7 @@ export function TabBadge({ badge }: { badge: TabBadgeState }) {
 
   return (
     <span
-      className={`ml-2 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${BADGE_TONE_CLASSES[badge.severity]}`}
+      className={`ml-2 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-label-sm font-semibold ${BADGE_TONE_CLASSES[badge.severity]}`}
     >
       {badge.count}
     </span>
@@ -122,8 +116,8 @@ export function GardenHeroBanner({
                   className="mt-1 text-xs text-static-white/70 hover:text-static-white/90"
                 >
                   {descExpanded
-                    ? formatMessage({ id: "app.common.showLess", defaultMessage: "Show less" })
-                    : formatMessage({ id: "app.common.showMore", defaultMessage: "Show more" })}
+                    ? formatMessage({ id: "app.common.showLess", defaultMessage: "Show Less" })
+                    : formatMessage({ id: "app.common.showMore", defaultMessage: "Show More" })}
                 </AdminButton>
               ) : null}
             </div>
@@ -174,17 +168,17 @@ interface SectionStateProps {
 
 export function SectionStateCard({ title, description, closeLabel, onClose }: SectionStateProps) {
   return (
-    <Card colorAccent="info">
-      <Card.Body className="flex items-start justify-between gap-3">
+    <AdminCard density="none" className="border-l-2 border-l-information-dark">
+      <AdminCardBody className="flex items-start justify-between gap-3">
         <div>
           <h3 className="label-md text-text-strong">{title}</h3>
           <p className="mt-1 text-sm text-text-sub">{description}</p>
         </div>
-        <Button variant="ghost" size="sm" onClick={onClose} aria-label={closeLabel}>
+        <AdminButton variant="text" size="sm" onClick={onClose} aria-label={closeLabel}>
           <RiCloseLine className="h-4 w-4" />
-        </Button>
-      </Card.Body>
-    </Card>
+        </AdminButton>
+      </AdminCardBody>
+    </AdminCard>
   );
 }
 

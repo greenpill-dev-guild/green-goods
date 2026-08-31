@@ -93,12 +93,12 @@ const handlers = [
     });
   }),
 
-  // Mock GetOperatorGardens query
-  graphql.query("GetOperatorGardens", ({ variables }) => {
+  // Mock GetStewardGardens query
+  graphql.query("GetStewardGardens", ({ variables }) => {
     const operator = variables.operator as string[];
 
     // Return gardens where the operator is listed
-    const operatorGardens = [
+    const stewardGardens = [
       {
         id: "0x2345678901234567890123456789012345678901",
         name: "Test Garden 2",
@@ -108,7 +108,7 @@ const handlers = [
     // Only return gardens if the operator address matches our test operator
     if (operator[0]?.toLowerCase() === "0x04d60647836bca09c37b379550038bdaafd82503") {
       return HttpResponse.json({
-        data: { Garden: operatorGardens },
+        data: { Garden: stewardGardens },
       });
     }
 

@@ -1,32 +1,25 @@
-import {
-  type Address,
-  Alert,
-  ConfirmDialog,
-  cn,
-  formatAddress,
-  formatTokenAmount,
-  type SendableTokenBalance,
-  useCurrentChain,
-  useEnsName,
-  useOffline,
-  useSendableTokens,
-  useSendToken,
-  useUser,
-} from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useSendFlowController } from "@green-goods/shared/hooks/client-ui/wallet/useSendFlowController";
+import { useSendableTokens } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
+import { useSendToken } from "@green-goods/shared/hooks/blockchain/useSendToken";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import type { WalletMode } from "@green-goods/shared/modules/wallet/send-flow";
 import { RiArrowLeftLine, RiLoader4Line, RiPencilLine } from "@remixicon/react";
-import React, { useEffect, useMemo, useState } from "react";
+import React from "react";
 import { useIntl } from "react-intl";
-import { formatUnits } from "viem";
-import { WALLET_DRAWER_SCROLL_CLASSNAME } from "./classnames";
+import { PWA_DRAWER_SCROLL_CLASSNAME } from "@/components/Pwa/drawerScrollStyles";
 import { AmountStep } from "./Send/AmountStep";
 import { BalanceView } from "./Send/BalanceView";
 import { ReceiveView } from "./Send/ReceiveView";
 import { RecipientPicker } from "./Send/RecipientPicker";
 import { ReviewStep } from "./Send/ReviewStep";
-import type { SelectedRecipient, SendStep } from "./Send/types";
-import { validateSendAmount } from "./Send/validation";
-
-type WalletMode = "balance" | "send" | "receive";
 
 const WALLET_MODES: ReadonlyArray<{ value: WalletMode; labelId: string }> = [
   { value: "balance", labelId: "app.send.mode.balance" },
@@ -52,92 +45,25 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
     chainId
   );
   const sendMutation = useSendToken();
+  const [recipientAddress, setRecipientAddress] = React.useState<Address | undefined>();
+  const { data: resolvedEnsName } = useEnsName(recipientAddress);
+  const {
+    acts,
+    amountInput,
+    canAdvance,
+    isSending,
+    mode,
+    note,
+    primaryLabel,
+    recipient,
+    recipientDisplayName,
+    selectedToken,
+    showConfirm,
+    step,
+    validation,
+  } = useSendFlowController({ isOnline, resolvedEnsName, resetNonce, sendMutation });
 
-  const [mode, setMode] = useState<WalletMode>("balance");
-  const [step, setStep] = useState<SendStep>("recipient");
-  const [recipient, setRecipient] = useState<SelectedRecipient | null>(null);
-  const [selectedToken, setSelectedToken] = useState<SendableTokenBalance | null>(null);
-  const [amountInput, setAmountInput] = useState("");
-  const [note, setNote] = useState("");
-  const [showConfirm, setShowConfirm] = useState(false);
-
-  // Re-tapping the Tokens tab returns to the Balance home (keeping any chosen
-  // recipient so a resumed send isn't destroyed).
-  useEffect(() => {
-    if (resetNonce === undefined) return;
-    setMode("balance");
-    setStep("recipient");
-  }, [resetNonce]);
-
-  // Always resolve the recipient's ENS name for display — garden members carry no
-  // pre-resolved name, so without this the "Sending to" line shows a raw address.
-  const { data: resolvedEnsName } = useEnsName(recipient?.address ?? undefined);
-  const recipientDisplayName = recipient
-    ? resolvedEnsName || recipient.ensName || formatAddress(recipient.address)
-    : "";
-
-  const validation = useMemo(
-    () => validateSendAmount(selectedToken, amountInput),
-    [selectedToken, amountInput]
-  );
-
-  // After a completed send, land on Balance: the updated holdings sit next to
-  // the success toast, closing the loop.
-  const resetForm = () => {
-    setMode("balance");
-    setStep("recipient");
-    setRecipient(null);
-    setSelectedToken(null);
-    setAmountInput("");
-    setNote("");
-  };
-
-  const handleMax = () => {
-    if (selectedToken?.balance) {
-      setAmountInput(formatUnits(selectedToken.balance, selectedToken.decimals));
-    }
-  };
-
-  // From the Balance list: jump into the send flow with the token pre-selected.
-  const startSendWithToken = (token: SendableTokenBalance) => {
-    setSelectedToken(token);
-    setStep("recipient");
-    setMode("send");
-  };
-
-  const executeSend = () => {
-    if (!recipient || !selectedToken) return;
-    sendMutation.mutate(
-      { token: selectedToken, to: recipient.address, amount: validation.parsedAmount, note },
-      { onSuccess: () => resetForm() }
-    );
-  };
-
-  // Action-bar enabled state per step.
-  const canAdvance =
-    step === "recipient"
-      ? Boolean(recipient)
-      : step === "amount"
-        ? validation.valid
-        : isOnline && !sendMutation.isPending;
-
-  const primaryLabel =
-    step === "recipient"
-      ? formatMessage({ id: "app.send.continue" })
-      : step === "amount"
-        ? formatMessage({ id: "app.send.reviewCta" })
-        : formatMessage({ id: "app.send.sendCta" });
-
-  const onPrimary = () => {
-    if (step === "recipient") setStep("amount");
-    else if (step === "amount") setStep("review");
-    else setShowConfirm(true);
-  };
-
-  const onBack = () => {
-    if (step === "amount") setStep("recipient");
-    else if (step === "review") setStep("amount");
-  };
+  React.useEffect(() => setRecipientAddress(recipient?.address), [recipient?.address]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -154,7 +80,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
               type="button"
               role="tab"
               aria-selected={mode === value}
-              onClick={() => setMode(value)}
+              onClick={() => acts.selectMode(value)}
               className={cn(
                 "min-h-11 flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
                 mode === value
@@ -169,23 +95,23 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
       </div>
 
       {mode === "balance" ? (
-        <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
+        <div className={PWA_DRAWER_SCROLL_CLASSNAME}>
           <BalanceView
             tokens={tokens}
             isLoading={isLoading}
             isError={isError}
             isOnline={isOnline}
             onRetry={refetch}
-            onSend={startSendWithToken}
+            onSend={acts.startSend}
           />
         </div>
       ) : mode === "receive" ? (
-        <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
+        <div className={PWA_DRAWER_SCROLL_CLASSNAME}>
           <ReceiveView />
         </div>
       ) : (
         <>
-          <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
+          <div className={PWA_DRAWER_SCROLL_CLASSNAME}>
             {!isOnline ? (
               <div className="px-4 pt-4">
                 <Alert variant="warning">{formatMessage({ id: "app.send.review.offline" })}</Alert>
@@ -194,7 +120,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
             {step !== "recipient" && recipient ? (
               <button
                 type="button"
-                onClick={() => setStep("recipient")}
+                onClick={acts.editRecipient}
                 title={recipient.address}
                 className="flex w-full items-center gap-1 px-4 pt-4 text-left text-xs text-text-soft-400 hover:text-text-sub-600"
               >
@@ -208,10 +134,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
             {step === "recipient" ? (
               <RecipientPicker
                 selectedAddress={recipient?.address}
-                onSelect={(next) => {
-                  setRecipient(next);
-                  setStep("amount");
-                }}
+                onSelect={acts.selectRecipient}
               />
             ) : null}
 
@@ -220,11 +143,11 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
                 tokens={tokens}
                 isLoading={isLoading}
                 selectedToken={selectedToken}
-                onSelectToken={setSelectedToken}
+                onSelectToken={acts.selectToken}
                 amountInput={amountInput}
-                onAmountChange={setAmountInput}
+                onAmountChange={acts.changeAmount}
                 validation={validation}
-                onMax={handleMax}
+                onMax={acts.max}
               />
             ) : null}
 
@@ -235,9 +158,9 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
                 token={selectedToken}
                 parsedAmount={validation.parsedAmount}
                 note={note}
-                onNoteChange={setNote}
-                onEditRecipient={() => setStep("recipient")}
-                onEditAmount={() => setStep("amount")}
+                onNoteChange={acts.changeNote}
+                onEditRecipient={acts.editRecipient}
+                onEditAmount={acts.editAmount}
               />
             ) : null}
           </div>
@@ -245,7 +168,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
             {step !== "recipient" ? (
               <button
                 type="button"
-                onClick={onBack}
+                onClick={acts.back}
                 className="flex min-h-11 items-center gap-1 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2 text-sm font-medium text-text-sub-600 hover:bg-bg-weak-50"
               >
                 <RiArrowLeftLine className="h-4 w-4" aria-hidden />
@@ -254,17 +177,15 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
             ) : null}
             <button
               type="button"
-              onClick={onPrimary}
+              onClick={acts.primary}
               disabled={!canAdvance}
-              aria-busy={sendMutation.isPending || undefined}
+              aria-busy={isSending || undefined}
               className={cn(
                 "inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] disabled:cursor-not-allowed disabled:opacity-60",
                 "bg-primary-base text-primary-accent-foreground hover:bg-primary-darker"
               )}
             >
-              {sendMutation.isPending ? (
-                <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden />
-              ) : null}
+              {isSending ? <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden /> : null}
               {primaryLabel}
             </button>
           </div>
@@ -274,7 +195,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
       {recipient && selectedToken ? (
         <ConfirmDialog
           isOpen={showConfirm}
-          onClose={() => setShowConfirm(false)}
+          onClose={acts.closeConfirm}
           title={formatMessage({ id: "app.send.confirm.title" })}
           description={formatMessage(
             {
@@ -290,10 +211,10 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
           )}
           confirmLabel={formatMessage({ id: "app.send.sendCta" })}
           variant={selectedToken.confersGovernance ? "warning" : "default"}
-          isLoading={sendMutation.isPending}
+          isLoading={isSending}
           onConfirm={() => {
-            setShowConfirm(false);
-            executeSend();
+            acts.closeConfirm();
+            acts.executeSend();
           }}
         />
       ) : null}

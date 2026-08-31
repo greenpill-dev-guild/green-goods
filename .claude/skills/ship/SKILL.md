@@ -51,21 +51,23 @@ Before running any validation, confirm the branch is safe to ship:
 
 ```bash
 git rev-parse --abbrev-ref HEAD              # Not main/master/develop
+node scripts/quality/branch-name-policy.mjs "$(git branch --show-current)"
 git status --short                            # Know what's staged vs modified
 git log --oneline origin/main..HEAD -20       # Commits diverging from main
 git diff --stat origin/main...HEAD | tail -5  # Size of the change
 ```
 
 **Abort conditions:**
-- On `main`, `master`, or `develop` → refuse, tell user to branch first
+- On detached HEAD, `main`, `master`, or `develop` → refuse, tell user to create a work branch first
+- Branch fails `scripts/quality/branch-name-policy.mjs` → refuse. Branches describe the work; user, agent, Linear-ID, and lane-only names are invalid.
 - Unstaged changes to `.env`, `*.env.*`, or files matching `credentials*`, `*.pem`, `*.key` → refuse, flag
 - Staged file larger than 5MB → warn, ask user to confirm (likely unintended binary)
 - No commits ahead of `origin/main` and no staged changes → nothing to ship; exit
 
-**Linear linkage check** (note, do not abort):
-- If branch matches `<user>/<team-key>-<id>-<slug>` (e.g., `afo/prd-370-...`, `afo/resr-3-...`), Linear's GitHub integration will auto-link the PR to the Issue and auto-transition status (Backlog → In Progress on PR open, → Done on merge). No manual linking needed.
-- If the branch does NOT match the convention (e.g., `chore/...`, `codex/...`, `fix/...`), Linear will surface the PR but will not auto-link to an Issue. In PR-creation mode, prompt the user for the related Linear ID and include `Refs PRD-NNN` (or `Refs RESR-NNN`) on its own line in the PR body — Linear's mention-detection picks it up.
-- If the user declines a Linear ID for a non-matching branch, accept and proceed — some branches (chore, dependabot, infra) legitimately have no Linear Issue.
+**Linear linkage check** (PR-creation mode):
+- Never derive Linear linkage from the branch name.
+- If the work has a Linear issue, require one explicit magic-word reference on its own line in the PR body: `Fixes PRD-NNN` when merge completes the issue, `Refs PRD-NNN` for partial or stacked work, or `Relates to PRD-NNN` for context.
+- If no Linear issue is associated with the work, proceed without inventing one.
 
 ### 2. Validation gate
 

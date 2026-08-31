@@ -1,4 +1,6 @@
-import { type Address, formatTokenAmount, useFunderLeaderboard } from "@green-goods/shared";
+import { useFunderLeaderboard } from "@green-goods/shared/hooks/vault/useFunderLeaderboard";
+import type { Address } from "@green-goods/shared/types/domain";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { useIntl } from "react-intl";
 import { FunderRow } from "./FunderRow";
 
@@ -12,7 +14,7 @@ export function GardenSupporters({ gardenAddress }: GardenSupportersProps) {
 
   if (isLoading) {
     return (
-      <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
+      <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-5">
         <div className="h-5 w-40 rounded skeleton-shimmer" />
         <div className="mt-3 space-y-2">
           {[0, 1].map((i) => (
@@ -34,7 +36,7 @@ export function GardenSupporters({ gardenAddress }: GardenSupportersProps) {
   const maxYield = funders[0]?.totalYieldGenerated ?? 0n;
 
   return (
-    <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
+    <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="font-heading text-lg font-semibold text-text-strong">

@@ -6,17 +6,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock GraphQL client
 const mockQuery = vi.fn();
-vi.mock("../../modules/data/graphql-client", () => ({
-  createEasClient: vi.fn(() => ({
-    query: mockQuery,
-  })),
-  greenGoodsIndexer: {
-    query: vi.fn(),
-  },
-  GQLClient: vi.fn(),
-}));
 
 // Mock config (barrel and direct import path — eas.ts imports from config/blockchain)
 const mockEASConfig = {
@@ -28,8 +18,13 @@ vi.mock("../../config", () => ({
   getEASConfig: vi.fn(() => mockEASConfig),
   DEFAULT_CHAIN_ID: 11155111,
 }));
-vi.mock("../../config/blockchain", () => ({
+vi.mock("../../config/blockchain", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../config/blockchain")>()),
   getEASConfig: vi.fn(() => mockEASConfig),
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
@@ -44,7 +39,20 @@ vi.mock("../../modules/data/graphql", () => ({
   easGraphQL: vi.fn((query) => query),
 }));
 
-import { getGardenAssessments, getWorkApprovals, getWorks } from "../../modules/data/eas";
+import {
+  getGardenAssessments,
+  getWorkApprovals,
+  getWorkApprovalsForWork,
+  getWorks,
+} from "../../modules/data/eas";
+import type { GraphQLReader } from "../../modules/data/graphql-client";
+import {
+  gardenAssessmentAttestation,
+  workApprovalAttestation,
+  workAttestation,
+} from "../fixtures/data/eas-attestations";
+
+const reader = { query: mockQuery } as GraphQLReader;
 
 describe("modules/data/eas", () => {
   beforeEach(() => {
@@ -53,29 +61,11 @@ describe("modules/data/eas", () => {
 
   describe("getGardenAssessments", () => {
     it("returns parsed assessments on success", async () => {
-      const mockAttestations = [
-        {
-          id: "0xAssessment1",
-          attester: "0xAttester",
-          recipient: "0xGarden",
-          time: 1700000000,
-          decodedDataJson: JSON.stringify([
-            { name: "title", value: { value: "Test Assessment" } },
-            { name: "description", value: { value: "Test Description" } },
-            { name: "assessmentConfigCID", value: { value: "bafyConfigCID123" } },
-            { name: "domain", value: { value: { hex: "0x03" } } },
-            { name: "startDate", value: { value: { hex: "0x65B8D800" } } },
-            { name: "endDate", value: { value: { hex: "0x660D5800" } } },
-            { name: "location", value: { value: "Austin TX" } },
-          ]),
-        },
-      ];
-
       mockQuery.mockResolvedValue({
-        data: { attestations: mockAttestations },
+        data: { attestations: [gardenAssessmentAttestation] },
       });
 
-      const result = await getGardenAssessments();
+      const result = await getGardenAssessments(undefined, undefined, undefined, reader);
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -86,7 +76,7 @@ describe("modules/data/eas", () => {
         error: { message: "Network error" },
       });
 
-      await expect(getGardenAssessments()).rejects.toThrow(
+      await expect(getGardenAssessments(undefined, undefined, undefined, reader)).rejects.toThrow(
         "Failed to fetch garden assessments: Network error"
       );
     });
@@ -96,7 +86,7 @@ describe("modules/data/eas", () => {
         data: { attestations: [] },
       });
 
-      const result = await getGardenAssessments();
+      const result = await getGardenAssessments(undefined, undefined, undefined, reader);
 
       expect(result).toEqual([]);
     });
@@ -105,25 +95,11 @@ describe("modules/data/eas", () => {
   describe("getWorks", () => {
     it("filters works by garden address", async () => {
       const gardenAddress = "0xGardenAddress";
-      const mockAttestations = [
-        {
-          id: "0xWork1",
-          attester: "0xGardener",
-          recipient: gardenAddress,
-          time: 1700000000,
-          decodedDataJson: JSON.stringify([
-            { name: "feedback", value: { value: "Great work" } },
-            { name: "media", value: { value: ["QmWorkImage"] } },
-            { name: "actionUID", value: { value: { hex: "0x1" } } },
-          ]),
-        },
-      ];
-
       mockQuery.mockResolvedValue({
-        data: { attestations: mockAttestations },
+        data: { attestations: [workAttestation] },
       });
 
-      const result = await getWorks(gardenAddress, 11155111);
+      const result = await getWorks(gardenAddress, 11155111, reader);
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -134,7 +110,7 @@ describe("modules/data/eas", () => {
         error: { message: "Query failed" },
       });
 
-      await expect(getWorks("0xGarden", 11155111)).rejects.toThrow(
+      await expect(getWorks("0xGarden", 11155111, reader)).rejects.toThrow(
         "Failed to fetch works: Query failed"
       );
     });
@@ -142,26 +118,11 @@ describe("modules/data/eas", () => {
 
   describe("getWorkApprovals", () => {
     it("fetches work approvals for a garden", async () => {
-      const mockAttestations = [
-        {
-          id: "0xApproval1",
-          attester: "0xOperator",
-          recipient: "0xGardener",
-          time: 1700000000,
-          decodedDataJson: JSON.stringify([
-            { name: "workUID", value: { value: "0xWork1" } },
-            { name: "approved", value: { value: true } },
-            { name: "feedback", value: { value: "Approved!" } },
-            { name: "actionUID", value: { value: { hex: "0x1" } } },
-          ]),
-        },
-      ];
-
       mockQuery.mockResolvedValue({
-        data: { attestations: mockAttestations },
+        data: { attestations: [workApprovalAttestation] },
       });
 
-      const result = await getWorkApprovals("0xGarden", 11155111);
+      const result = await getWorkApprovals("0xGarden", 11155111, reader);
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -172,9 +133,48 @@ describe("modules/data/eas", () => {
         data: { attestations: [] },
       });
 
-      const result = await getWorkApprovals("0xGarden", 11155111);
+      const result = await getWorkApprovals("0xGarden", 11155111, reader);
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe("getWorkApprovalsForWork", () => {
+    it("bounds the production query by exact Work content without a recipient filter", async () => {
+      mockQuery.mockResolvedValue({ data: { attestations: [workApprovalAttestation] } });
+
+      const result = await getWorkApprovalsForWork("0xWork1", 11155111, reader);
+
+      expect(result).toHaveLength(1);
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.anything(),
+        {
+          where: {
+            schemaId: { equals: mockEASConfig.WORK_APPROVAL.uid },
+            decodedDataJson: { contains: "0xWork1" },
+            revoked: { equals: false },
+          },
+        },
+        "getWorkApprovalsForWork"
+      );
+      expect(mockQuery.mock.calls[0][1].where).not.toHaveProperty("recipient");
+    });
+
+    it("exact-filters false-positive decoded-content candidates", async () => {
+      mockQuery.mockResolvedValue({ data: { attestations: [workApprovalAttestation] } });
+      await expect(getWorkApprovalsForWork("0xWork", 11155111, reader)).resolves.toEqual([]);
+    });
+
+    it("preserves a mismatched historical recipient for the classifier to reject", async () => {
+      const historical = {
+        ...workApprovalAttestation,
+        recipient: "0xHistoricalGardener",
+      };
+      mockQuery.mockResolvedValue({ data: { attestations: [historical] } });
+
+      const [approval] = await getWorkApprovalsForWork("0xWork1", 11155111, reader);
+
+      expect(approval.gardenerAddress).toBe("0xHistoricalGardener");
     });
   });
 });

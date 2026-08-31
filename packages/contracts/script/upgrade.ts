@@ -4,15 +4,28 @@ import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as dotenv from "dotenv";
+import { getCreateAddress, Interface, getAddress, keccak256, toUtf8Bytes, ZeroAddress } from "ethers";
 import { NetworkManager } from "./utils/network";
 import { CONTRACTS_ROOT, getFoundryBroadcastPath } from "./utils/paths";
+import {
+  POOLING_INTEGRATION_UPGRADE_KEYS,
+  assertProxyOwnership,
+  type ProxyOwnerObservation,
+} from "./utils/pooling-release";
 import { assertSepoliaGate } from "./utils/release-gate";
-import { redactSensitiveArgs } from "./utils/cli-parser";
+import { writeReleaseJsonAtomic } from "./utils/release-artifacts";
+import { buildReadOnlyCastEnv, execCastCaptured, parseCastTransactionHash } from "./utils/cast-env";
+import {
+  buildReleaseLock,
+  loadReleaseManifest,
+  type ReleaseLock,
+  type ReleaseManifest,
+} from "./utils/release-manifest";
 
 // Load environment variables from root .env
 dotenv.config({ path: path.join(__dirname, "../../../", ".env") });
 
-type ContractName =
+export type ContractName =
   | "action-registry"
   | "garden-token"
   | "yield-resolver"
@@ -25,8 +38,10 @@ type ContractName =
   | "work-resolver"
   | "work-approval-resolver"
   | "assessment-resolver"
+  | "testimony-resolver"
   | "deployment-registry"
   | "greenwill"
+  | "commitment-pooling"
   | "all";
 
 const CONTRACT_FUNCTIONS: Record<ContractName, string> = {
@@ -42,8 +57,10 @@ const CONTRACT_FUNCTIONS: Record<ContractName, string> = {
   "work-resolver": "upgradeWorkResolver()",
   "work-approval-resolver": "upgradeWorkApprovalResolver()",
   "assessment-resolver": "upgradeAssessmentResolver()",
+  "testimony-resolver": "upgradeTestimonyResolver()",
   "deployment-registry": "upgradeDeployment()",
   greenwill: "upgradeGreenWill()",
+  "commitment-pooling": "upgradeCommitmentPoolingIntegrations()",
   all: "upgradeAll()",
 };
 
@@ -62,6 +79,17 @@ const ALL_CONTRACTS_FOR_UPGRADE_ALL: readonly ContractName[] = [
   // Intentionally exclude HatsModule and GreenWill: both must be upgraded as explicit targets.
 ];
 
+/**
+ * Targets that resolve to more than one proxy. The two existing Commitment Pooling integrations
+ * share the release cutover and owner preflight; the yield/gardens pair is grouped for the same
+ * reason and additionally cross-wires afterwards.
+ */
+const GROUPED_DEPLOYMENT_KEYS: Partial<Record<ContractName, readonly string[]>> = {
+  "signal-pool-yield-wiring": ["yieldSplitter", "gardensModule"],
+  "yield-gardens-wiring": ["yieldSplitter", "gardensModule"],
+  "commitment-pooling": POOLING_INTEGRATION_UPGRADE_KEYS,
+};
+
 const DEPLOYMENT_KEYS: Partial<Record<Exclude<ContractName, "all">, string>> = {
   "action-registry": "actionRegistry",
   "garden-token": "gardenToken",
@@ -73,6 +101,7 @@ const DEPLOYMENT_KEYS: Partial<Record<Exclude<ContractName, "all">, string>> = {
   "work-resolver": "workResolver",
   "work-approval-resolver": "workApprovalResolver",
   "assessment-resolver": "assessmentResolver",
+  "testimony-resolver": "testimonyResolver",
   "deployment-registry": "deploymentRegistry",
   greenwill: "greenWill",
 };
@@ -86,6 +115,10 @@ interface UpgradeOptions {
   txPlan: boolean;
   overrideSepoliaGate: boolean;
   sender?: string;
+  expectedNonce?: number;
+  planPath?: string;
+  releaseStep?: number;
+  receiptHash?: string;
 }
 
 interface ForgeBroadcastTransaction {
@@ -106,10 +139,100 @@ interface ForgeBroadcastTransaction {
 
 interface ForgeBroadcastArtifact {
   transactions?: ForgeBroadcastTransaction[];
+  libraries?: string[];
+}
+
+export interface PersistedUpgradeTransaction {
+  index: number;
+  transactionType?: string | null;
+  contractName?: string | null;
+  from: string | null;
+  to: string | null;
+  nonce: string | null;
+  value: string | null;
+  data: string | null;
+  contractAddress: string | null;
+  function: string | null;
+}
+
+export interface PersistedUpgradePlan {
+  generatedAt?: string;
+  network: string;
+  chainId: number;
+  contract: ContractName;
+  functionSignature?: string;
+  sender: string;
+  expectedNonce: number;
+  releaseManifestHash?: string;
+  releaseSourceCommit?: string;
+  transactionCount?: number;
+  transactions: PersistedUpgradeTransaction[];
+  upgrades: Array<{
+    deploymentKey: string;
+    proxy: string;
+    ownerAtPlan: string;
+    previousImplementation: string;
+    previousImplementationCodeHash?: string;
+    newImplementation: string;
+    newImplementationCreationCodeHash?: string;
+    deployTransactionIndex?: number;
+    upgradeTransactionIndex: number;
+  }>;
+  wiring: Array<{
+    proxy: string;
+    function: string;
+    module: string;
+    transactionIndex: number;
+  }>;
+  assessmentSchemaPin?: {
+    proxy: string;
+    expectedSchemaUID: string;
+    transactionIndex: number;
+    resumableState: string;
+  };
+  transactionBoundaryRule?: string;
+}
+
+export interface UpgradeCheckpoint {
+  schemaVersion: 1;
+  planHash: string;
+  completed: Array<{
+    step: number;
+    transactionHash: string;
+    blockNumber: string;
+    verifiedAt: string;
+  }>;
+}
+
+export const UPGRADE_TRANSACTION_BOUNDARY_RULE =
+  "Verify the receipt and post-state for one transaction before authorizing the next.";
+
+export interface UpgradePreState {
+  contractName: ContractName;
+  deploymentKey: string;
+  proxy: string;
+  owner: string;
+  implementation: string;
+  implementationCodeHash: string;
+}
+
+const EIP1967_IMPLEMENTATION_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
+const upgradeInterface = new Interface(["function upgradeTo(address)"]);
+const assessmentSchemaInterface = new Interface([
+  "function schemaUID() view returns (bytes32)",
+  "function setSchemaUID(bytes32 uid)",
+]);
+const poolingIntegrationInterface = new Interface([
+  "function setCommitmentPoolingModule(address)",
+  "function setCommitmentModule(address)",
+]);
+
+export function isAddressOrZero(value: unknown): value is string {
+  return typeof value === "string" && /^0x[a-fA-F0-9]{40}$/.test(value);
 }
 
 function isAddress(value: unknown): value is string {
-  return typeof value === "string" && /^0x[a-fA-F0-9]{40}$/.test(value) && !/^0x0+$/i.test(value);
+  return isAddressOrZero(value) && !/^0x0+$/i.test(value);
 }
 
 function resolveDeploymentOutputDir(): string {
@@ -122,24 +245,33 @@ function resolveDeploymentArtifactPath(fileName: string): string {
   return path.join(resolveDeploymentOutputDir(), fileName);
 }
 
-function resolveUpgradeTargets(contract: ContractName, deployment: Record<string, unknown>) {
+function resolveUpgradePlanOutputDir(): string {
+  const configured = process.env.UPGRADE_PLAN_OUTPUT_DIR?.trim();
+  if (!configured) return path.join(resolveDeploymentOutputDir(), "tx-plans");
+  return path.isAbsolute(configured) ? configured : path.join(CONTRACTS_ROOT, configured);
+}
+
+function stable(value: unknown): string {
+  return `${JSON.stringify(value, null, 2)}\n`;
+}
+
+export function resolveUpgradeTargets(contract: ContractName, deployment: Record<string, unknown>) {
   const contractsToResolve = contract === "all" ? ALL_CONTRACTS_FOR_UPGRADE_ALL : [contract];
   const resolved: Array<{ contractName: ContractName; deploymentKey: string; address: string }> = [];
   const missing: Array<{ contractName: ContractName; deploymentKey: string }> = [];
 
   contractsToResolve.forEach((contractName) => {
-    if (contractName === "signal-pool-yield-wiring" || contractName === "yield-gardens-wiring") {
-      const pairs = [
-        { deploymentKey: "yieldSplitter", address: deployment.yieldSplitter },
-        { deploymentKey: "gardensModule", address: deployment.gardensModule },
-      ];
-
-      pairs.forEach((pair) => {
-        if (!isAddress(pair.address)) {
-          missing.push({ contractName, deploymentKey: pair.deploymentKey });
+    // Grouped targets resolve several proxies at once; every half must be present, because a
+    // partial upgrade of a pair that shares an invariant is worse than no upgrade.
+    const groupedKeys = GROUPED_DEPLOYMENT_KEYS[contractName as keyof typeof GROUPED_DEPLOYMENT_KEYS];
+    if (groupedKeys) {
+      groupedKeys.forEach((deploymentKey) => {
+        const address = deployment[deploymentKey];
+        if (!isAddress(address)) {
+          missing.push({ contractName, deploymentKey });
           return;
         }
-        resolved.push({ contractName, deploymentKey: pair.deploymentKey, address: pair.address });
+        resolved.push({ contractName, deploymentKey, address });
       });
       return;
     }
@@ -195,7 +327,7 @@ function runPureSimulation(contract: ContractName, network: string, networkManag
     });
   }
 
-  console.log("\n🔨 Running forge build preflight...");
+  console.log("\n🔨 Running the Bun-wrapped production build preflight...");
   execFileSync("forge", ["build", "--skip", "test"], {
     stdio: "inherit",
     cwd: CONTRACTS_ROOT,
@@ -205,24 +337,87 @@ function runPureSimulation(contract: ContractName, network: string, networkManag
     },
   });
 
-  const command = [
-    "forge",
-    "script",
-    "script/Upgrade.s.sol:Upgrade",
-    "--sig",
-    CONTRACT_FUNCTIONS[contract],
-    "--rpc-url",
-    "<resolved at runtime>",
-    "--chain-id",
-    chainId,
-    "--broadcast",
-    "--account",
-    "<keystore>",
-  ].join(" ");
-
-  console.log("\nWould execute upgrade command:");
-  console.log(command);
+  console.log(`\nReviewed target function: ${CONTRACT_FUNCTIONS[contract]}`);
+  console.log("Transaction planning requires the matching package --tx-plan target and an explicit sender.");
   console.log("\n✅ Pure simulation preflight completed successfully");
+}
+
+/**
+ * Read the live `owner()` of every proxy this run would upgrade and prove the declared sender
+ * owns all of them, before a single transaction is built. Uses `cast call` so it needs nothing
+ * beyond the RPC the run already resolved.
+ */
+function readStorageAddress(proxy: string, rpcUrl: string): string {
+  const raw = execFileSync("cast", ["storage", proxy, EIP1967_IMPLEMENTATION_SLOT, "--rpc-url", rpcUrl], {
+    cwd: CONTRACTS_ROOT,
+    env: buildReadOnlyCastEnv(),
+    encoding: "utf8",
+  }).trim();
+  if (!/^0x[0-9a-fA-F]{64}$/.test(raw)) throw new Error(`Unreadable ERC-1967 implementation slot for ${proxy}`);
+  return getAddress(`0x${raw.slice(-40)}`);
+}
+
+function readCodeHash(address: string, rpcUrl: string): string {
+  const code = execFileSync("cast", ["code", address, "--rpc-url", rpcUrl], {
+    cwd: CONTRACTS_ROOT,
+    env: buildReadOnlyCastEnv(),
+    encoding: "utf8",
+  }).trim();
+  if (!/^0x[0-9a-fA-F]+$/.test(code) || code === "0x") throw new Error(`No code at ${address}`);
+  return keccak256(code as `0x${string}`);
+}
+
+function readUpgradePreState(
+  options: UpgradeOptions,
+  rpcUrl: string,
+  networkManager: NetworkManager,
+): UpgradePreState[] {
+  const chainId = networkManager.getChainIdString(options.network);
+  const deploymentPath = resolveDeploymentArtifactPath(`${chainId}-latest.json`);
+  if (!fs.existsSync(deploymentPath)) {
+    throw new Error(`Deployment artifact not found: ${deploymentPath}`);
+  }
+
+  const deployment = JSON.parse(fs.readFileSync(deploymentPath, "utf8")) as Record<string, unknown>;
+  const { resolved } = resolveUpgradeTargets(options.contract, deployment);
+
+  const snapshots = resolved.map((target) => {
+    const owner = execFileSync("cast", ["call", target.address, "owner()(address)", "--rpc-url", rpcUrl], {
+      cwd: CONTRACTS_ROOT,
+      env: buildReadOnlyCastEnv(),
+      encoding: "utf8",
+    }).trim();
+    if (!isAddress(owner)) throw new Error(`Unreadable live owner for ${target.deploymentKey} (${target.address})`);
+    const implementation = readStorageAddress(target.address, rpcUrl);
+    return {
+      contractName: target.contractName,
+      deploymentKey: target.deploymentKey,
+      proxy: getAddress(target.address),
+      owner: getAddress(owner),
+      implementation,
+      implementationCodeHash: readCodeHash(implementation, rpcUrl),
+    };
+  });
+  const observations: ProxyOwnerObservation[] = snapshots.map((snapshot) => ({
+    label: snapshot.deploymentKey,
+    address: snapshot.proxy,
+    owner: snapshot.owner,
+  }));
+
+  console.log("🔑 Live owner preflight:");
+  observations.forEach((observation) => {
+    console.log(`  - ${observation.label} (${observation.address}) owner: ${observation.owner ?? "unreadable"}`);
+  });
+
+  assertProxyOwnership(observations, options.sender ?? process.env.SENDER_ADDRESS);
+  console.log("✅ Every proxy owner matches the declared sender");
+  snapshots.forEach((snapshot) => {
+    console.log(
+      `  - ${snapshot.deploymentKey} implementation: ${snapshot.implementation} (${snapshot.implementationCodeHash})`,
+    );
+  });
+  console.log("");
+  return snapshots;
 }
 
 function showHelp(): void {
@@ -245,9 +440,12 @@ Contracts:
   work-resolver           Upgrade WorkResolver
   work-approval-resolver  Upgrade WorkApprovalResolver
   assessment-resolver     Upgrade AssessmentResolver
+  testimony-resolver      Upgrade TestimonyResolver (explicit target; excluded from all)
   deployment-registry     Upgrade Deployment
   greenwill               Upgrade GreenWill (funds-adjacent; explicit target only)
-  all                     Upgrade standard contracts (excludes HatsModule and GreenWill)
+  commitment-pooling      Plan KarmaGAPModule and WorkApprovalResolver as one owner-bound group
+  all                     Upgrade standard contracts (excludes HatsModule, TestimonyResolver,
+                          GreenWill, and commitment-pooling)
 
 Options:
   --network <name>        Network to upgrade on (default: localhost)
@@ -255,43 +453,30 @@ Options:
   --dry-run               Run preflight checks without RPC calls
   --pure-simulation       Run compile + deployment preflight only (no RPC calls)
   --tx-plan               Simulate upgrade and persist a transaction plan artifact
+  --expected-nonce <n>    Pin and verify the sender nonce for a release-owned upgrade plan
+  --plan <path>           Exact reviewed transaction plan required for release-owned broadcast
+  --step <index>          Execute exactly one plan transaction boundary
+  --receipt <tx-hash>     Recover a mined boundary after local checkpoint persistence failed
   --broadcast             Execute upgrade
   --override-sepolia-gate  Bypass Sepolia gate for Arbitrum/Celo broadcast
   --help                  Show this help
 
 Available networks: ${networkManager.getAvailableNetworks().join(", ")}
 
-Rollback (manual):
-  # Get current implementation address first
-  cast call <PROXY> "0x5c60da1b" --rpc-url <RPC>
-  
-  # Then upgrade to previous implementation
-  forge script script/Upgrade.s.sol:Upgrade \\
-    --sig "upgradeGardenProxy(address,address)" \\
-    <PROXY> <PREVIOUS_IMPL> \\
-    --network <network> --broadcast
+Rollback:
+  A --tx-plan records every live implementation and code hash plus exact rollback calldata.
+  Rollback still requires separate authorization and a fresh live-owner check.
 
 Examples:
-  # Dry run on Sepolia
-  bun script/upgrade.ts action-registry --network sepolia --dry-run
-  
-  # Generate transaction plan
-  bun script/upgrade.ts action-registry --network sepolia --tx-plan --sender 0x1234...
+  # Phase A plans
+  bun run assessment:upgrade:dry:arbitrum
+  bun run assessment:upgrade:plan:arbitrum --expected-nonce <fresh-pending-nonce>
+  bun run pooling:upgrade:dry:arbitrum
+  bun run pooling:upgrade:plan:arbitrum --expected-nonce <fresh-pending-nonce>
 
-  # Prepare the isolated HatsModule upgrade
-  bun script/upgrade.ts hats-module --network sepolia --tx-plan --sender 0x1234...
-
-  # Execute upgrade
-  bun script/upgrade.ts action-registry --network sepolia --broadcast
-
-  # Upgrade all contracts
-  bun script/upgrade.ts all --network sepolia --broadcast
-
-  # Cross-wire YieldResolver and GardensModule only
-  bun script/upgrade.ts yield-gardens-wiring --network sepolia --tx-plan --sender 0x1234...
-
-  # Upgrade and wire the signal-pool/yield lane
-  bun script/upgrade.ts signal-pool-yield-wiring --network arbitrum --broadcast --sender 0xFBAf...
+  # Phase B form only; each invocation executes and verifies one reviewed boundary
+  bun run assessment:upgrade:arbitrum --plan <reviewed-plan.json> --step <index> \
+    --expected-nonce <boundary-nonce> --override-sepolia-gate
   `);
 }
 
@@ -304,6 +489,10 @@ function parseOptions(args: string[]): UpgradeOptions {
   let pureSimulation = false;
   let txPlan = false;
   let overrideSepoliaGate = false;
+  let expectedNonce: number | undefined;
+  let planPath: string | undefined;
+  let releaseStep: number | undefined;
+  let receiptHash: string | undefined;
 
   for (let i = 1; i < args.length; i++) {
     const arg = args[i];
@@ -339,6 +528,36 @@ function parseOptions(args: string[]): UpgradeOptions {
       case "--tx-plan":
         txPlan = true;
         break;
+      case "--expected-nonce": {
+        const value = args[i + 1];
+        if (!value || !/^\d+$/.test(value)) throw new Error("--expected-nonce requires a non-negative integer");
+        expectedNonce = Number(value);
+        if (!Number.isSafeInteger(expectedNonce))
+          throw new Error("--expected-nonce exceeds JavaScript safe integer range");
+        i++;
+        break;
+      }
+      case "--plan": {
+        const value = args[i + 1];
+        if (!value || value.startsWith("-")) throw new Error("--plan requires a file path");
+        planPath = value;
+        i++;
+        break;
+      }
+      case "--step": {
+        const value = args[i + 1];
+        if (!value || !/^[1-9]\d*$/.test(value)) throw new Error("--step requires a positive integer");
+        releaseStep = Number(value);
+        i++;
+        break;
+      }
+      case "--receipt": {
+        const value = args[i + 1];
+        if (!value || !/^0x[0-9a-fA-F]{64}$/.test(value)) throw new Error("--receipt requires a tx hash");
+        receiptHash = value;
+        i++;
+        break;
+      }
       case "--override-sepolia-gate":
         overrideSepoliaGate = true;
         break;
@@ -359,6 +578,10 @@ function parseOptions(args: string[]): UpgradeOptions {
     txPlan,
     overrideSepoliaGate,
     sender,
+    expectedNonce,
+    planPath,
+    releaseStep,
+    receiptHash,
   };
 }
 
@@ -395,7 +618,7 @@ function findLatestUpgradeArtifact(chainId: number, functionSignature: string): 
   return findLatestUpgradeArtifactIn(baseDir, functionSignature);
 }
 
-function persistTxPlan(options: UpgradeOptions, chainId: number): string {
+function persistTxPlan(options: UpgradeOptions, chainId: number, preState: UpgradePreState[]): string {
   const artifactPath = findLatestUpgradeArtifact(chainId, CONTRACT_FUNCTIONS[options.contract]);
   const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8")) as ForgeBroadcastArtifact;
   const transactions = (artifact.transactions ?? []).map((entry, index) => ({
@@ -411,9 +634,136 @@ function persistTxPlan(options: UpgradeOptions, chainId: number): string {
     nonce: entry.transaction?.nonce ?? null,
     data: entry.transaction?.input ?? null,
   }));
+  if (options.expectedNonce !== undefined) {
+    const firstNonce = transactions[0]?.nonce;
+    const parsedNonce =
+      typeof firstNonce === "string" && /^0x[0-9a-f]+$/iu.test(firstNonce)
+        ? Number(BigInt(firstNonce))
+        : Number(firstNonce);
+    if (parsedNonce !== options.expectedNonce) {
+      throw new Error(
+        `Simulation nonce drift: expected ${options.expectedNonce}, first planned transaction is ${String(firstNonce)}`,
+      );
+    }
+  }
+  const upgrades = preState.map((snapshot) => {
+    const upgradeTransaction = transactions.find(
+      (transaction) =>
+        isAddress(transaction.to) &&
+        getAddress(transaction.to) === snapshot.proxy &&
+        typeof transaction.data === "string" &&
+        transaction.data.startsWith(upgradeInterface.getFunction("upgradeTo")!.selector),
+    );
+    if (!upgradeTransaction || typeof upgradeTransaction.data !== "string") {
+      throw new Error(`Upgrade simulation did not contain upgradeTo(address) for ${snapshot.deploymentKey}`);
+    }
+    const decoded = upgradeInterface.decodeFunctionData("upgradeTo", upgradeTransaction.data);
+    const newImplementation = getAddress(decoded[0] as string);
+    const createTransaction = transactions.find(
+      (transaction) =>
+        isAddress(transaction.contractAddress) && getAddress(transaction.contractAddress) === newImplementation,
+    );
+    if (!createTransaction || typeof createTransaction.data !== "string") {
+      throw new Error(`Upgrade simulation did not contain the implementation deployment for ${snapshot.deploymentKey}`);
+    }
+    return {
+      deploymentKey: snapshot.deploymentKey,
+      proxy: snapshot.proxy,
+      ownerAtPlan: snapshot.owner,
+      previousImplementation: snapshot.implementation,
+      previousImplementationCodeHash: snapshot.implementationCodeHash,
+      newImplementation,
+      newImplementationCreationCodeHash: keccak256(createTransaction.data as `0x${string}`),
+      deployTransactionIndex: createTransaction.index,
+      upgradeTransactionIndex: upgradeTransaction.index,
+      rollback: {
+        requiredLiveOwner: snapshot.owner,
+        to: snapshot.proxy,
+        function: "upgradeTo(address)",
+        calldata: upgradeInterface.encodeFunctionData("upgradeTo", [snapshot.implementation]),
+        preconditions: [
+          `code hash at ${snapshot.implementation} equals ${snapshot.implementationCodeHash}`,
+          "live proxy owner still equals requiredLiveOwner",
+          "current implementation equals newImplementation",
+        ],
+      },
+    };
+  });
+  const wiring =
+    options.contract === "commitment-pooling"
+      ? [{ deploymentKey: "workApprovalResolver", function: "setCommitmentModule" }].map((expected) => {
+          const snapshot = preState.find((candidate) => candidate.deploymentKey === expected.deploymentKey);
+          if (!snapshot) throw new Error(`Missing pre-state for ${expected.deploymentKey}`);
+          const selector = poolingIntegrationInterface.getFunction(expected.function)!.selector;
+          const transaction = transactions.find(
+            (candidate) =>
+              isAddress(candidate.to) &&
+              getAddress(candidate.to) === snapshot.proxy &&
+              typeof candidate.data === "string" &&
+              candidate.data.startsWith(selector),
+          );
+          if (!transaction || typeof transaction.data !== "string") {
+            throw new Error(`Upgrade simulation did not contain ${expected.function} for ${expected.deploymentKey}`);
+          }
+          const decoded = poolingIntegrationInterface.decodeFunctionData(expected.function, transaction.data);
+          const module = getAddress(decoded[0] as string);
+          const frozenModule = buildReleaseLock(loadReleaseManifest()).identities.find(
+            (identity) => identity.kind === "proxy" && identity.name === "CommitmentPoolingModule",
+          )?.address;
+          if (!frozenModule || module !== getAddress(frozenModule)) {
+            throw new Error(`${expected.function} does not target the frozen CommitmentPoolingModule proxy`);
+          }
+          return {
+            deploymentKey: expected.deploymentKey,
+            proxy: snapshot.proxy,
+            function: `${expected.function}(address)`,
+            module,
+            transactionIndex: transaction.index,
+            resumableState: "An exact existing module link is satisfied; any different non-zero link is a conflict.",
+          };
+        })
+      : [];
+  let assessmentSchemaPin: PersistedUpgradePlan["assessmentSchemaPin"];
+  if (options.contract === "assessment-resolver") {
+    const snapshot = preState.find((candidate) => candidate.deploymentKey === "assessmentResolver");
+    if (!snapshot) throw new Error("Missing AssessmentResolver pre-state for the v2 schema pin");
+    const deployment = JSON.parse(
+      fs.readFileSync(resolveDeploymentArtifactPath(`${chainId}-latest.json`), "utf8"),
+    ) as Record<string, unknown>;
+    const schemas = deployment.schemas as Record<string, unknown> | undefined;
+    const expectedSchemaUID = schemas?.assessmentSchemaUID;
+    if (typeof expectedSchemaUID !== "string" || !/^0x[0-9a-f]{64}$/iu.test(expectedSchemaUID)) {
+      throw new Error("Canonical deployment artifact has no exact Assessment v2 schema UID");
+    }
+    const selector = assessmentSchemaInterface.getFunction("setSchemaUID")!.selector;
+    const transaction = transactions.find(
+      (candidate) =>
+        isAddress(candidate.to) &&
+        getAddress(candidate.to) === snapshot.proxy &&
+        typeof candidate.data === "string" &&
+        candidate.data.startsWith(selector),
+    );
+    if (transaction && typeof transaction.data === "string") {
+      const decoded = assessmentSchemaInterface.decodeFunctionData("setSchemaUID", transaction.data);
+      if (String(decoded[0]).toLowerCase() !== expectedSchemaUID.toLowerCase()) {
+        throw new Error("AssessmentResolver schema-pin transaction differs from the canonical v2 UID");
+      }
+      assessmentSchemaPin = {
+        proxy: snapshot.proxy,
+        expectedSchemaUID,
+        transactionIndex: transaction.index,
+        resumableState:
+          "The upgraded proxy has the exact v2 UID. Zero requires this pin; the exact UID is satisfied; any other non-zero UID is a conflict.",
+      };
+    }
+  }
 
-  const plansDir = path.join(resolveDeploymentOutputDir(), "tx-plans");
+  const plansDir = resolveUpgradePlanOutputDir();
   fs.mkdirSync(plansDir, { recursive: true });
+  const releaseOwned = ["assessment-resolver", "garden-token", "work-approval-resolver", "commitment-pooling"].includes(
+    options.contract,
+  );
+  const releaseLock = releaseOwned ? buildReleaseLock(loadReleaseManifest()) : undefined;
 
   const plan = {
     generatedAt: new Date().toISOString(),
@@ -422,9 +772,17 @@ function persistTxPlan(options: UpgradeOptions, chainId: number): string {
     contract: options.contract,
     functionSignature: CONTRACT_FUNCTIONS[options.contract],
     sender: options.sender ?? process.env.SENDER_ADDRESS ?? null,
+    expectedNonce: options.expectedNonce ?? null,
+    releaseManifestHash: releaseLock?.manifestHash ?? null,
+    releaseSourceCommit: releaseLock?.sourceCommit ?? null,
     sourceArtifact: path.relative(CONTRACTS_ROOT, artifactPath),
     transactionCount: transactions.length,
     transactions,
+    libraries: artifact.libraries ?? [],
+    upgrades,
+    wiring,
+    assessmentSchemaPin,
+    transactionBoundaryRule: UPGRADE_TRANSACTION_BOUNDARY_RULE,
   };
 
   const runDate = new Date().toISOString().slice(0, 10);
@@ -444,9 +802,549 @@ function persistTxPlan(options: UpgradeOptions, chainId: number): string {
     fileName = `${chainId}-${options.contract}-${Date.now()}-plan.json`;
   }
   const planPath = path.join(plansDir, fileName);
-  fs.writeFileSync(planPath, `${JSON.stringify(plan, null, 2)}\n`, "utf8");
+  writeReleaseJsonAtomic(planPath, plan);
 
   return planPath;
+}
+
+function parsePlannedNonce(value: string | null): number {
+  if (typeof value !== "string") throw new Error("Planned transaction is missing its nonce");
+  const parsed = /^0x[0-9a-f]+$/iu.test(value) ? Number(BigInt(value)) : Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 0) throw new Error(`Invalid planned nonce: ${value}`);
+  return parsed;
+}
+
+function parsePlannedValue(value: string | null): bigint {
+  if (typeof value !== "string" || !/^(?:0x[0-9a-f]+|[0-9]+)$/iu.test(value)) {
+    throw new Error(`Invalid planned transaction value: ${String(value)}`);
+  }
+  return BigInt(value);
+}
+
+function sameAddress(actual: unknown, expected: string, label: string): void {
+  if (!isAddress(actual) || getAddress(actual) !== getAddress(expected)) {
+    throw new Error(`${label} differs from the frozen release`);
+  }
+}
+
+function assertCanonicalUpgradeTransaction(
+  transaction: PersistedUpgradeTransaction | undefined,
+  plan: PersistedUpgradePlan,
+  expectedIndex: number,
+): PersistedUpgradeTransaction {
+  if (!transaction || transaction.index !== expectedIndex) {
+    throw new Error(`Upgrade transaction ${expectedIndex + 1} is missing or out of order`);
+  }
+  sameAddress(transaction.from, plan.sender, `Upgrade transaction ${expectedIndex + 1} sender`);
+  if (parsePlannedNonce(transaction.nonce) !== plan.expectedNonce + expectedIndex) {
+    throw new Error(`Upgrade transaction ${expectedIndex + 1} nonce is not contiguous`);
+  }
+  if (parsePlannedValue(transaction.value) !== 0n) {
+    throw new Error(`Upgrade transaction ${expectedIndex + 1} may not move value`);
+  }
+  if (typeof transaction.data !== "string" || !/^0x[0-9a-f]*$/iu.test(transaction.data)) {
+    throw new Error(`Upgrade transaction ${expectedIndex + 1} has invalid calldata`);
+  }
+  return transaction;
+}
+
+export function validateReleaseOwnedUpgradePlan(
+  plan: PersistedUpgradePlan,
+  manifest: ReleaseManifest,
+  lock: ReleaseLock,
+  deployment: Record<string, unknown>,
+): void {
+  const expectedNames: Record<string, readonly string[]> = {
+    "assessment-resolver": ["AssessmentResolver"],
+    "garden-token": ["GardenToken"],
+    "work-approval-resolver": ["WorkApprovalResolver"],
+    "commitment-pooling": ["KarmaGAPModule", "WorkApprovalResolver"],
+  };
+  const names = expectedNames[plan.contract];
+  if (!names) throw new Error(`No frozen release-owned plan validator exists for ${plan.contract}`);
+  if (
+    plan.network !== "arbitrum" ||
+    plan.chainId !== Number(manifest.chains.arbitrum.evmChainId) ||
+    plan.releaseManifestHash !== lock.manifestHash ||
+    plan.releaseSourceCommit !== lock.sourceCommit ||
+    plan.functionSignature !== CONTRACT_FUNCTIONS[plan.contract] ||
+    plan.transactionBoundaryRule !== UPGRADE_TRANSACTION_BOUNDARY_RULE ||
+    !Number.isSafeInteger(plan.expectedNonce) ||
+    plan.expectedNonce < 0
+  ) {
+    throw new Error("Upgrade plan header differs from the freshly derived frozen release");
+  }
+  sameAddress(plan.sender, manifest.ownership.deploymentSender, "Upgrade plan sender");
+  if (plan.transactionCount !== plan.transactions.length) {
+    throw new Error("Upgrade plan transaction count differs from its transaction sequence");
+  }
+
+  const manifestUpgrades = new Map(manifest.existingProxyUpgrades.map((upgrade) => [upgrade.name, upgrade]));
+  const deploymentKeys: Record<string, string> = {
+    AssessmentResolver: "assessmentResolver",
+    KarmaGAPModule: "karmaGAPModule",
+    GardenToken: "gardenToken",
+    WorkApprovalResolver: "workApprovalResolver",
+  };
+  if (plan.upgrades.length !== names.length) {
+    throw new Error("Upgrade plan changes the frozen release-owned proxy set");
+  }
+  const usedTransactions = new Set<number>();
+
+  for (const [ordinal, name] of names.entries()) {
+    const expected = manifestUpgrades.get(name);
+    if (!expected) throw new Error(`Frozen release has no existing-proxy entry for ${name}`);
+    const deploymentKey = deploymentKeys[name];
+    sameAddress(deployment[deploymentKey], expected.proxy, `${name} deployment proxy`);
+    const upgrade = plan.upgrades.find((candidate) => candidate.deploymentKey === deploymentKey);
+    if (!upgrade) throw new Error(`Upgrade plan omits ${name}`);
+    sameAddress(upgrade.proxy, expected.proxy, `${name} plan proxy`);
+    sameAddress(upgrade.ownerAtPlan, expected.currentOwner, `${name} plan owner`);
+    sameAddress(upgrade.previousImplementation, expected.currentImplementation, `${name} prior implementation`);
+    if (
+      upgrade.previousImplementationCodeHash !== expected.currentImplementationCodeHash ||
+      upgrade.newImplementationCreationCodeHash !== expected.expectedImplementationCreationCodeHash
+    ) {
+      throw new Error(`${name} implementation hashes differ from the frozen release`);
+    }
+
+    const deployIndex = ordinal * 2;
+    const upgradeIndex = deployIndex + 1;
+    if (upgrade.deployTransactionIndex !== deployIndex || upgrade.upgradeTransactionIndex !== upgradeIndex) {
+      throw new Error(`${name} deployment and upgrade boundaries are out of order`);
+    }
+    const deployTransaction = assertCanonicalUpgradeTransaction(plan.transactions[deployIndex], plan, deployIndex);
+    if (deployTransaction.to !== null || deployTransaction.transactionType !== "CREATE") {
+      throw new Error(`${name} implementation boundary is not the reviewed CREATE transaction`);
+    }
+    if (deployTransaction.contractName !== name) {
+      throw new Error(`${name} implementation boundary changes the reviewed contract artifact`);
+    }
+    if (keccak256(deployTransaction.data as `0x${string}`) !== expected.expectedImplementationCreationCodeHash) {
+      throw new Error(`${name} implementation creation code differs from the frozen release`);
+    }
+    const predictedImplementation = getCreateAddress({
+      from: plan.sender,
+      nonce: plan.expectedNonce + deployIndex,
+    });
+    sameAddress(deployTransaction.contractAddress, predictedImplementation, `${name} predicted implementation`);
+    sameAddress(upgrade.newImplementation, predictedImplementation, `${name} upgrade implementation`);
+
+    const upgradeTransaction = assertCanonicalUpgradeTransaction(plan.transactions[upgradeIndex], plan, upgradeIndex);
+    sameAddress(upgradeTransaction.to, expected.proxy, `${name} upgrade target`);
+    if (
+      upgradeTransaction.data!.toLowerCase() !==
+      upgradeInterface.encodeFunctionData("upgradeTo", [predictedImplementation]).toLowerCase()
+    ) {
+      throw new Error(`${name} upgrade calldata differs from the freshly derived boundary`);
+    }
+    usedTransactions.add(deployIndex);
+    usedTransactions.add(upgradeIndex);
+  }
+
+  if (plan.contract === "commitment-pooling") {
+    const frozenModule = lock.identities.find(
+      (identity) => identity.kind === "proxy" && identity.name === "CommitmentPoolingModule",
+    )?.address;
+    if (!frozenModule) throw new Error("Frozen release has no CommitmentPoolingModule proxy");
+    const expectedWiring = [
+      { deploymentKey: "workApprovalResolver", functionName: "setCommitmentModule", index: names.length * 2 },
+    ];
+    if (plan.wiring.length !== expectedWiring.length) {
+      throw new Error("Commitment Pooling upgrade changes the frozen wiring set");
+    }
+    for (const expected of expectedWiring) {
+      const wiring = plan.wiring.find((candidate) => candidate.function === `${expected.functionName}(address)`);
+      if (!wiring || wiring.transactionIndex !== expected.index) {
+        throw new Error(`Upgrade plan omits the ${expected.functionName} boundary`);
+      }
+      sameAddress(wiring.proxy, deployment[expected.deploymentKey] as string, `${expected.functionName} target`);
+      sameAddress(wiring.module, frozenModule, `${expected.functionName} module`);
+      const transaction = assertCanonicalUpgradeTransaction(plan.transactions[expected.index], plan, expected.index);
+      sameAddress(transaction.to, wiring.proxy, `${expected.functionName} transaction target`);
+      if (
+        transaction.data!.toLowerCase() !==
+        poolingIntegrationInterface.encodeFunctionData(expected.functionName, [frozenModule]).toLowerCase()
+      ) {
+        throw new Error(`${expected.functionName} calldata differs from the freshly derived boundary`);
+      }
+      usedTransactions.add(expected.index);
+    }
+  } else if (plan.wiring.length !== 0) {
+    throw new Error("Upgrade plan adds wiring outside the frozen Commitment Pooling upgrade");
+  }
+
+  if (plan.contract === "assessment-resolver") {
+    const schemas = deployment.schemas as Record<string, unknown> | undefined;
+    const expectedUid = schemas?.assessmentSchemaUID;
+    if (typeof expectedUid !== "string" || !/^0x[0-9a-f]{64}$/iu.test(expectedUid)) {
+      throw new Error("Canonical deployment has no exact Assessment v2 schema UID");
+    }
+    const pinIndex = names.length * 2;
+    const pin = plan.assessmentSchemaPin;
+    if (
+      !pin ||
+      pin.transactionIndex !== pinIndex ||
+      pin.expectedSchemaUID.toLowerCase() !== expectedUid.toLowerCase()
+    ) {
+      throw new Error("Assessment upgrade omits the frozen schema-pin boundary");
+    }
+    sameAddress(pin.proxy, deployment.assessmentResolver as string, "Assessment schema-pin proxy");
+    const transaction = assertCanonicalUpgradeTransaction(plan.transactions[pinIndex], plan, pinIndex);
+    sameAddress(transaction.to, pin.proxy, "Assessment schema-pin target");
+    if (
+      transaction.data!.toLowerCase() !==
+      assessmentSchemaInterface.encodeFunctionData("setSchemaUID", [expectedUid]).toLowerCase()
+    ) {
+      throw new Error("Assessment schema-pin calldata differs from the canonical deployment UID");
+    }
+    usedTransactions.add(pinIndex);
+  } else if (plan.assessmentSchemaPin) {
+    throw new Error("Upgrade plan adds an Assessment schema pin to another target");
+  }
+
+  if (usedTransactions.size !== plan.transactions.length) {
+    throw new Error("Upgrade plan contains an unreviewed or missing transaction boundary");
+  }
+}
+
+export function validateUpgradeCheckpointPrefix(
+  checkpoint: UpgradeCheckpoint,
+  plan: PersistedUpgradePlan,
+  requestedStep: number,
+): void {
+  if (checkpoint.schemaVersion !== 1) throw new Error("Upgrade checkpoint schema is unsupported");
+  if (requestedStep < 1 || requestedStep > plan.transactions.length) {
+    throw new Error(`Upgrade plan has no boundary ${requestedStep}`);
+  }
+  const steps = checkpoint.completed.map((entry) => entry.step);
+  if (new Set(steps).size !== steps.length) throw new Error("Upgrade checkpoint contains duplicate boundaries");
+  const alreadyVerified = steps.includes(requestedStep);
+  const requiredLength = alreadyVerified ? requestedStep : requestedStep - 1;
+  if (steps.length !== requiredLength) {
+    throw new Error(`Upgrade boundary ${requestedStep} is not the next boundary in the verified prefix`);
+  }
+  for (let index = 0; index < checkpoint.completed.length; index += 1) {
+    const evidence = checkpoint.completed[index];
+    if (evidence.step !== index + 1 || !/^0x[0-9a-f]{64}$/iu.test(evidence.transactionHash)) {
+      throw new Error("Upgrade checkpoint is not one contiguous receipt-backed prefix");
+    }
+    if (!/^(?:0x[0-9a-f]+|[1-9][0-9]*)$/iu.test(evidence.blockNumber)) {
+      throw new Error(`Upgrade checkpoint boundary ${evidence.step} has no valid block number`);
+    }
+    if (Number.isNaN(Date.parse(evidence.verifiedAt))) {
+      throw new Error(`Upgrade checkpoint boundary ${evidence.step} has no valid verification time`);
+    }
+  }
+}
+
+export function buildCastJsonArgs(args: string[], rpcUrl: string): string[] {
+  const [command, ...commandArgs] = args;
+  if (!command) throw new Error("Cast command is required");
+  return [command, "--rpc-url", rpcUrl, "--json", ...commandArgs];
+}
+
+export function buildUpgradeBoundarySendArgs(
+  transaction: PersistedUpgradeTransaction,
+  chainId: string,
+  plannedNonce: number,
+  account: string,
+): string[] {
+  const sharedArgs = ["send", "--chain", chainId, "--nonce", String(plannedNonce), "--account", account];
+  return transaction.to
+    ? [...sharedArgs, transaction.to, transaction.data ?? "0x"]
+    : [...sharedArgs, "--create", transaction.data ?? "0x"];
+}
+
+function runCastJson(args: string[], rpcUrl: string): Record<string, unknown> {
+  const raw = execCastCaptured(
+    buildCastJsonArgs(args, rpcUrl),
+    {
+      cwd: CONTRACTS_ROOT,
+      env: args[0] === "send" ? process.env : buildReadOnlyCastEnv(),
+      inputStdio: "inherit",
+    },
+    `Cast ${args[0] ?? "command"}`,
+  ).trim();
+  return JSON.parse(raw) as Record<string, unknown>;
+}
+
+function assertReceiptAndTransaction(
+  plan: PersistedUpgradePlan,
+  transaction: PersistedUpgradeTransaction,
+  transactionHash: string,
+  rpcUrl: string,
+): { transactionHash: string; blockNumber: string } {
+  const receipt = runCastJson(["receipt", transactionHash], rpcUrl);
+  const liveTransaction = runCastJson(["tx", transactionHash], rpcUrl);
+  const status = String(receipt.status ?? "").toLowerCase();
+  if (status !== "0x1" && status !== "1") throw new Error(`Transaction ${transactionHash} did not succeed`);
+  if (!isAddress(liveTransaction.from) || getAddress(liveTransaction.from) !== getAddress(plan.sender)) {
+    throw new Error(`Receipt sender mismatch for ${transactionHash}`);
+  }
+  const liveNonce = Number(liveTransaction.nonce);
+  if (liveNonce !== parsePlannedNonce(transaction.nonce))
+    throw new Error(`Receipt nonce mismatch for ${transactionHash}`);
+  const liveInput = String(liveTransaction.input ?? liveTransaction.data ?? "").toLowerCase();
+  if (liveInput !== String(transaction.data).toLowerCase())
+    throw new Error(`Receipt calldata mismatch for ${transactionHash}`);
+  const plannedValue = parsePlannedValue(transaction.value);
+  if (plannedValue !== 0n)
+    throw new Error(`Release-owned upgrade boundary ${transaction.index + 1} has non-zero value`);
+  if (BigInt(String(liveTransaction.value ?? "0x0")) !== plannedValue) {
+    throw new Error(`Receipt value mismatch for ${transactionHash}`);
+  }
+  if (transaction.to) {
+    if (!isAddress(liveTransaction.to) || getAddress(liveTransaction.to) !== getAddress(transaction.to)) {
+      throw new Error(`Receipt target mismatch for ${transactionHash}`);
+    }
+  } else if (
+    !isAddress(receipt.contractAddress) ||
+    !transaction.contractAddress ||
+    getAddress(receipt.contractAddress) !== getAddress(transaction.contractAddress)
+  ) {
+    throw new Error(`Receipt CREATE address mismatch for ${transactionHash}`);
+  }
+  const blockNumber = String(receipt.blockNumber ?? "");
+  if (!blockNumber) throw new Error(`Receipt ${transactionHash} has no block number`);
+  return { transactionHash, blockNumber };
+}
+
+function verifyUpgradeBoundary(
+  plan: PersistedUpgradePlan,
+  transaction: PersistedUpgradeTransaction,
+  rpcUrl: string,
+): void {
+  if (!transaction.to) {
+    if (!transaction.contractAddress) throw new Error("CREATE boundary has no predicted contract address");
+    readCodeHash(transaction.contractAddress, rpcUrl);
+    return;
+  }
+  const upgrade = plan.upgrades.find((candidate) => candidate.upgradeTransactionIndex === transaction.index);
+  if (upgrade) {
+    const implementation = readStorageAddress(upgrade.proxy, rpcUrl);
+    if (implementation !== getAddress(upgrade.newImplementation)) {
+      throw new Error(`Post-upgrade implementation mismatch for ${upgrade.deploymentKey}`);
+    }
+    return;
+  }
+  const wiring = plan.wiring.find((candidate) => candidate.transactionIndex === transaction.index);
+  if (wiring) {
+    const getter = wiring.function.startsWith("setCommitmentPoolingModule")
+      ? "commitmentPoolingModule()(address)"
+      : "commitmentModule()(address)";
+    const value = execFileSync("cast", ["call", wiring.proxy, getter, "--rpc-url", rpcUrl], {
+      cwd: CONTRACTS_ROOT,
+      env: buildReadOnlyCastEnv(),
+      encoding: "utf8",
+    }).trim();
+    if (!isAddressOrZero(value) || getAddress(value) !== getAddress(wiring.module)) {
+      throw new Error(`Post-wiring mismatch for ${wiring.function}`);
+    }
+    return;
+  }
+  const assessmentSchemaPin =
+    plan.assessmentSchemaPin?.transactionIndex === transaction.index ? plan.assessmentSchemaPin : undefined;
+  if (assessmentSchemaPin) {
+    const value = execFileSync(
+      "cast",
+      ["call", assessmentSchemaPin.proxy, "schemaUID()(bytes32)", "--rpc-url", rpcUrl],
+      { cwd: CONTRACTS_ROOT, env: buildReadOnlyCastEnv(), encoding: "utf8" },
+    ).trim();
+    if (value.toLowerCase() !== assessmentSchemaPin.expectedSchemaUID.toLowerCase()) {
+      throw new Error("AssessmentResolver v2 schema UID does not match the reviewed post-upgrade pin");
+    }
+    return;
+  }
+  throw new Error(`No post-action verifier is defined for transaction boundary ${transaction.index + 1}`);
+}
+
+function assertUpgradeBoundaryPreconditions(
+  plan: PersistedUpgradePlan,
+  transaction: PersistedUpgradeTransaction,
+  rpcUrl: string,
+): void {
+  if (parsePlannedValue(transaction.value) !== 0n) {
+    throw new Error(`Release-owned upgrade boundary ${transaction.index + 1} may not move value`);
+  }
+  if (typeof transaction.data !== "string" || !/^0x[0-9a-f]*$/iu.test(transaction.data)) {
+    throw new Error(`Release-owned upgrade boundary ${transaction.index + 1} has invalid calldata`);
+  }
+  if (!transaction.to) {
+    if (!transaction.contractAddress) throw new Error("CREATE boundary has no predicted contract address");
+    try {
+      readCodeHash(transaction.contractAddress, rpcUrl);
+      throw new Error(
+        `Predicted implementation ${transaction.contractAddress} already has code; recover with the exact mined receipt instead of redeploying`,
+      );
+    } catch (error) {
+      if (error instanceof Error && !error.message.startsWith("No code at ")) throw error;
+    }
+    return;
+  }
+  const upgrade = plan.upgrades.find((candidate) => candidate.upgradeTransactionIndex === transaction.index);
+  const wiring = plan.wiring.find((candidate) => candidate.transactionIndex === transaction.index);
+  const assessmentSchemaPin =
+    plan.assessmentSchemaPin?.transactionIndex === transaction.index ? plan.assessmentSchemaPin : undefined;
+  if (!upgrade && !wiring && !assessmentSchemaPin) {
+    throw new Error(`No reviewed release action owns transaction boundary ${transaction.index + 1}`);
+  }
+  const owner = execFileSync("cast", ["call", transaction.to, "owner()(address)", "--rpc-url", rpcUrl], {
+    cwd: CONTRACTS_ROOT,
+    env: buildReadOnlyCastEnv(),
+    encoding: "utf8",
+  }).trim();
+  if (!isAddress(owner) || getAddress(owner) !== getAddress(plan.sender)) {
+    throw new Error(`Live owner changed before boundary ${transaction.index + 1}`);
+  }
+  if (upgrade) {
+    const implementation = readStorageAddress(upgrade.proxy, rpcUrl);
+    if (implementation !== getAddress(upgrade.previousImplementation)) {
+      throw new Error(
+        implementation === getAddress(upgrade.newImplementation)
+          ? `Upgrade boundary ${transaction.index + 1} already changed state; recover with its exact receipt`
+          : `Upgrade boundary ${transaction.index + 1} has unexpected live implementation ${implementation}`,
+      );
+    }
+  }
+  if (wiring) {
+    const getter = wiring.function.startsWith("setCommitmentPoolingModule")
+      ? "commitmentPoolingModule()(address)"
+      : "commitmentModule()(address)";
+    const current = execFileSync("cast", ["call", wiring.proxy, getter, "--rpc-url", rpcUrl], {
+      cwd: CONTRACTS_ROOT,
+      env: buildReadOnlyCastEnv(),
+      encoding: "utf8",
+    }).trim();
+    if (!isAddressOrZero(current)) {
+      throw new Error(`Unreadable live wiring before boundary ${transaction.index + 1}`);
+    }
+    if (getAddress(current) !== ZeroAddress) {
+      throw new Error(
+        getAddress(current) === getAddress(wiring.module)
+          ? `Wiring boundary ${transaction.index + 1} already changed state; recover with its exact receipt`
+          : `Wiring boundary ${transaction.index + 1} has conflicting live module ${current}`,
+      );
+    }
+  }
+  if (assessmentSchemaPin) {
+    const liveImplementation = readStorageAddress(assessmentSchemaPin.proxy, rpcUrl);
+    const upgradePlan = plan.upgrades.find((candidate) => candidate.proxy === assessmentSchemaPin.proxy);
+    if (!upgradePlan || liveImplementation !== getAddress(upgradePlan.newImplementation)) {
+      throw new Error("AssessmentResolver schema pin requires the reviewed target implementation to be live first");
+    }
+    const current = execFileSync(
+      "cast",
+      ["call", assessmentSchemaPin.proxy, "schemaUID()(bytes32)", "--rpc-url", rpcUrl],
+      { cwd: CONTRACTS_ROOT, env: buildReadOnlyCastEnv(), encoding: "utf8" },
+    ).trim();
+    if (!/^0x[0-9a-f]{64}$/iu.test(current)) throw new Error("Unreadable AssessmentResolver v2 schema UID");
+    if (current.toLowerCase() !== `0x${"0".repeat(64)}`) {
+      throw new Error(
+        current.toLowerCase() === assessmentSchemaPin.expectedSchemaUID.toLowerCase()
+          ? `Assessment schema-pin boundary ${transaction.index + 1} already changed state; recover with its exact receipt`
+          : `AssessmentResolver has conflicting live v2 schema UID ${current}`,
+      );
+    }
+  }
+}
+
+function executeUpgradeBoundary(
+  options: UpgradeOptions,
+  rpcUrl: string,
+  chainId: number,
+  networkManager: NetworkManager,
+): void {
+  if (
+    !options.planPath ||
+    options.releaseStep === undefined ||
+    options.expectedNonce === undefined ||
+    !options.sender
+  ) {
+    throw new Error("Release-owned broadcast requires --plan, --step, --expected-nonce, and --sender");
+  }
+  const planPath = path.resolve(CONTRACTS_ROOT, options.planPath);
+  if (!fs.existsSync(planPath)) throw new Error(`Upgrade plan not found: ${planPath}`);
+  const plan = JSON.parse(fs.readFileSync(planPath, "utf8")) as PersistedUpgradePlan;
+  if (
+    plan.contract !== options.contract ||
+    plan.network !== options.network ||
+    plan.chainId !== chainId ||
+    getAddress(plan.sender) !== getAddress(options.sender)
+  ) {
+    throw new Error("Upgrade plan does not match the exact contract, network, chain, or sender");
+  }
+  const manifest = loadReleaseManifest();
+  const lock = buildReleaseLock(manifest);
+  const deployment = JSON.parse(
+    fs.readFileSync(resolveDeploymentArtifactPath(`${chainId}-latest.json`), "utf8"),
+  ) as Record<string, unknown>;
+  validateReleaseOwnedUpgradePlan(plan, manifest, lock, deployment);
+  const transaction = plan.transactions[options.releaseStep - 1];
+  if (!transaction || transaction.index !== options.releaseStep - 1) {
+    throw new Error(`Upgrade plan has no boundary ${options.releaseStep}`);
+  }
+  const plannedNonce = parsePlannedNonce(transaction.nonce);
+  if (plannedNonce !== options.expectedNonce)
+    throw new Error(`Boundary nonce is ${plannedNonce}, not ${options.expectedNonce}`);
+
+  const checkpointPath = planPath.replace(/\.json$/u, ".checkpoint.json");
+  const planHash = keccak256(toUtf8Bytes(stable(plan)));
+  const checkpoint = fs.existsSync(checkpointPath)
+    ? (JSON.parse(fs.readFileSync(checkpointPath, "utf8")) as UpgradeCheckpoint)
+    : { schemaVersion: 1 as const, planHash, completed: [] };
+  if (checkpoint.planHash !== planHash) throw new Error("Upgrade checkpoint belongs to a different transaction plan");
+  validateUpgradeCheckpointPrefix(checkpoint, plan, options.releaseStep);
+  const replay = checkpoint.completed.find((entry) => entry.step === options.releaseStep);
+  if (replay) {
+    assertReceiptAndTransaction(plan, transaction, replay.transactionHash, rpcUrl);
+    verifyUpgradeBoundary(plan, transaction, rpcUrl);
+    console.log(`Boundary ${options.releaseStep} is already verified; no replay transaction was sent`);
+    return;
+  }
+
+  const pendingNonce = Number(
+    execFileSync("cast", ["nonce", options.sender, "--block", "pending", "--rpc-url", rpcUrl], {
+      cwd: CONTRACTS_ROOT,
+      env: buildReadOnlyCastEnv(),
+      encoding: "utf8",
+    }).trim(),
+  );
+  let transactionHash = options.receiptHash;
+  if (!transactionHash) {
+    if (pendingNonce !== plannedNonce) {
+      throw new Error(
+        `Nonce drift: boundary expects ${plannedNonce}, live pending nonce is ${pendingNonce}. ` +
+          "If the boundary mined before local persistence failed, retry this Bun target with --receipt <tx-hash>.",
+      );
+    }
+    assertUpgradeBoundaryPreconditions(plan, transaction, rpcUrl);
+    const account = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
+    const output = execCastCaptured(
+      buildCastJsonArgs(
+        buildUpgradeBoundarySendArgs(
+          transaction,
+          networkManager.getChainIdString(options.network),
+          plannedNonce,
+          account,
+        ),
+        rpcUrl,
+      ),
+      { cwd: CONTRACTS_ROOT, env: process.env, inputStdio: "inherit" },
+      "Bun-wrapped upgrade boundary",
+    );
+    transactionHash = parseCastTransactionHash(output, "Bun-wrapped upgrade boundary");
+  }
+
+  const evidence = assertReceiptAndTransaction(plan, transaction, transactionHash, rpcUrl);
+  verifyUpgradeBoundary(plan, transaction, rpcUrl);
+  checkpoint.completed.push({
+    step: options.releaseStep,
+    ...evidence,
+    verifiedAt: new Date().toISOString(),
+  });
+  writeReleaseJsonAtomic(checkpointPath, checkpoint);
+  console.log(`Boundary ${options.releaseStep} receipt and post-state verified; checkpoint written atomically`);
 }
 
 function main(): void {
@@ -488,6 +1386,31 @@ function main(): void {
     process.exit(1);
   }
 
+  if (options.txPlan && !options.sender) {
+    console.error("--tx-plan requires an explicit --sender address");
+    process.exit(1);
+  }
+
+  const releaseOwnedUpgrade = [
+    "assessment-resolver",
+    "garden-token",
+    "work-approval-resolver",
+    "commitment-pooling",
+  ].includes(options.contract);
+  if ((options.txPlan || options.broadcast) && releaseOwnedUpgrade && options.expectedNonce === undefined) {
+    console.error("Release-owned upgrade planning/broadcast requires --expected-nonce <n>");
+    process.exit(1);
+  }
+
+  if (options.broadcast && releaseOwnedUpgrade && !options.sender) {
+    console.error("Release-owned upgrade broadcast requires an explicit --sender address");
+    process.exit(1);
+  }
+  if (options.broadcast && releaseOwnedUpgrade && (!options.planPath || options.releaseStep === undefined)) {
+    console.error("Release-owned upgrade broadcast requires --plan <path> and --step <index>");
+    process.exit(1);
+  }
+
   const networkManager = new NetworkManager();
 
   if (options.pureSimulation) {
@@ -519,6 +1442,43 @@ function main(): void {
     process.exit(1);
   }
 
+  if (options.broadcast && releaseOwnedUpgrade) {
+    try {
+      executeUpgradeBoundary(options, rpcUrl, chainId, networkManager);
+      process.exit(0);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`❌ ${errorMsg}`);
+      process.exit(1);
+    }
+  }
+
+  // Anything that will produce a real transaction proves the sender owns every target first.
+  // A plain simulation stays runnable without a sender.
+  let preState: UpgradePreState[] = [];
+  if (options.broadcast || options.txPlan) {
+    try {
+      preState = readUpgradePreState(options, rpcUrl, networkManager);
+      if (releaseOwnedUpgrade && options.expectedNonce !== undefined && options.sender) {
+        const pendingNonce = Number(
+          execFileSync("cast", ["nonce", options.sender, "--block", "pending", "--rpc-url", rpcUrl], {
+            cwd: CONTRACTS_ROOT,
+            env: buildReadOnlyCastEnv(),
+            encoding: "utf8",
+          }).trim(),
+        );
+        if (pendingNonce !== options.expectedNonce) {
+          throw new Error(`Nonce drift: expected ${options.expectedNonce}, live pending nonce is ${pendingNonce}`);
+        }
+        console.log(`✅ Pending nonce matches the pinned plan: ${pendingNonce}\n`);
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`❌ ${errorMsg}`);
+      process.exit(1);
+    }
+  }
+
   const forgeArgs = [
     "script",
     "script/Upgrade.s.sol:Upgrade",
@@ -535,6 +1495,9 @@ function main(): void {
   } else if (process.env.SENDER_ADDRESS) {
     forgeArgs.push("--sender", process.env.SENDER_ADDRESS);
   }
+  if (options.broadcast && options.expectedNonce !== undefined) {
+    forgeArgs.push("--nonce", String(options.expectedNonce));
+  }
 
   if (options.broadcast) {
     forgeArgs.push("--broadcast");
@@ -550,27 +1513,55 @@ function main(): void {
     console.log("🔍 Simulation mode - no transactions will be broadcast\n");
   }
 
-  console.log(`Executing: forge ${redactSensitiveArgs(forgeArgs).join(" ")}\n`);
+  console.log(
+    `Running Bun-wrapped ${options.contract} ` +
+      `${options.txPlan ? "transaction-plan simulation" : options.broadcast ? "upgrade" : "simulation"}\n`,
+  );
 
   try {
-    execFileSync("forge", forgeArgs, {
-      stdio: "inherit",
-      cwd: CONTRACTS_ROOT,
-      env: {
-        ...process.env,
-        FOUNDRY_PROFILE: "production",
-        FORGE_BROADCAST: options.broadcast || options.txPlan ? "true" : "false",
-      },
-    });
+    const poolingModule =
+      options.contract === "commitment-pooling"
+        ? buildReleaseLock(loadReleaseManifest()).identities.find(
+            (identity) => identity.kind === "proxy" && identity.name === "CommitmentPoolingModule",
+          )?.address
+        : undefined;
+    if (options.contract === "commitment-pooling" && !poolingModule) {
+      throw new Error("Frozen release lock is missing the CommitmentPoolingModule proxy identity");
+    }
+    const environment = {
+      ...(options.broadcast ? process.env : buildReadOnlyCastEnv()),
+      FOUNDRY_PROFILE: "production",
+      FORGE_BROADCAST: options.broadcast || options.txPlan ? "true" : "false",
+      UPGRADE_REQUIRE_LIVE_DEPENDENCIES: options.broadcast ? "true" : "false",
+      ...(poolingModule ? { COMMITMENT_POOLING_MODULE: poolingModule } : {}),
+    };
+    if (options.txPlan) {
+      // The plan artifact contains the reviewable transactions. Suppress Foundry's generated raw
+      // command suggestion so the operator surface remains Bun-only.
+      execFileSync("forge", forgeArgs, {
+        stdio: ["ignore", "pipe", "pipe"],
+        cwd: CONTRACTS_ROOT,
+        env: environment,
+        encoding: "utf8",
+      });
+    } else {
+      execFileSync("forge", forgeArgs, { stdio: "inherit", cwd: CONTRACTS_ROOT, env: environment });
+    }
 
     if (options.txPlan) {
-      const planPath = persistTxPlan(options, chainId);
+      const planPath = persistTxPlan(options, chainId, preState);
       console.log(`\n✅ Upgrade transaction plan saved to ${planPath}`);
     } else {
       console.log("\n✅ Upgrade completed successfully");
     }
   } catch (error) {
-    console.error("\n❌ Upgrade failed", error);
+    const stderr = (error as { stderr?: Buffer | string }).stderr?.toString() ?? "";
+    const diagnostic = stderr
+      .split("\n")
+      .map((line) => line.trim())
+      .find((line) => /^(error|failed|unexpected)/iu.test(line) && !line.includes("forge script"));
+    if (diagnostic) console.error(`\n❌ ${diagnostic}`);
+    console.error(`\n❌ Bun-wrapped ${options.contract} upgrade path failed`);
     process.exit(1);
   }
 }

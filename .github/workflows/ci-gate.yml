@@ -9,16 +9,23 @@ name: CI Gate
 # forever on a check that never reports.
 #
 # This gate derives the workflows expected from the PR's changed files, then
-# waits for every expected workflow run to register and report success. A
-# missing workflow is a failure, so trigger drift and workflow-name typos cannot
-# silently weaken branch protection.
+# fails as soon as a registered expected workflow completes without success. It
+# otherwise waits for every expected workflow run to register and report
+# success. A missing workflow is a failure, so trigger drift and workflow-name
+# typos cannot silently weaken branch protection.
 #
-# Maintenance: keep scripts/quality/ci-gate.mjs in sync with workflow path
-# filters. Its fixture tests run before the live gate.
+# Maintenance: workflow selection lives in scripts/data/validation-policy.json
+# and is rendered by scripts/quality/select-validation.mjs. Standard-library
+# selector, local-runner, and polling fixtures run before the live gate.
+#
+# Base branches are deliberately unfiltered: stacked pull requests target
+# another feature branch as their base, and a base filter here (and in the
+# per-package workflows) used to leave stacked layers with no CI at all —
+# required checks then showed blocked forever. Push triggers keep their
+# main/develop filters; PR-triggered CI runs for every layer of a stack.
 
 on:
   pull_request:
-    branches: [main, develop]
 
 permissions:
   actions: read
@@ -38,8 +45,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      - name: Test CI Gate path mappings
-        run: node --test scripts/quality/ci-gate.test.mjs
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22.22.1"
+
+      - name: Test validation selection, architecture rules, and polling
+        run: node --test scripts/quality/select-validation.test.mjs scripts/dev/ci-local.test.mjs scripts/dev/surface-leases.test.mjs scripts/quality/ci-gate.test.mjs scripts/quality/check-react-patterns.test.mjs
+
+      - name: Check package and source architecture rules
+        run: node scripts/quality/check-react-patterns.js
 
       - name: Verify all expected CI workflows pass
         env:

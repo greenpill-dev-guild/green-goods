@@ -1,4 +1,4 @@
-import type { Address } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { withAdminIdentity } from "../../../../shared/.storybook/decorators";
 import { FIXTURE_IMAGE_BANNER } from "../../../../shared/.storybook/fixtures";
@@ -78,7 +78,7 @@ export const EmptyFields: Story = {
 };
 
 // PRD-513: a saved banner renders as a live preview above the uploader, not as
-// a bare URL link. Read-only operators see the preview without the upload control.
+// a bare URL link. Read-only stewards see the preview without the upload control.
 export const WithBannerImage: Story = {
   args: {
     garden: { ...POPULATED_GARDEN, bannerImage: FIXTURE_IMAGE_BANNER },

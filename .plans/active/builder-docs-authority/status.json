@@ -1,0 +1,220 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "builder-docs-authority",
+    "title": "Builder Documentation Authority",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-08-30T21:38:50.325Z",
+    "updated_at": "2026-08-31T20:17:06.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": [],
+    "work_types": ["implementation"],
+    "surfaces": [],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Mark unused lanes as n/a before promoting QA.",
+    "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",
+    "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react"],
+      "manual_blocked": false
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "node --test scripts/docs/generate.test.mjs docs/scripts/docs-audit.test.mjs",
+          "evidence": "Review found undeclared projection authorities, malformed deployment values reported as deployed, redirect fragments ignored by the audit, and missing docs-audit failure fixtures."
+        },
+        "green": {
+          "command": "node --test scripts/docs/generate.test.mjs docs/scripts/docs-audit.test.mjs && bun run docs:audit:ci && bun run check:docs-generated && bun run build:docs && bun run check:ontology && bun run test:validation-system",
+          "evidence": "Seventeen generator/audit fixtures, 31 docs tests, 17 deterministic projections, the production docs build, 62 ontology fixtures plus every ontology guard, and all 175 validation-system fixtures passed. Local sitemap proof contains exactly 44 unique builder routes."
+        },
+        "note": ""
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"],
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["contracts"],
+      "manual_blocked": false
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "n/a",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "n/a",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-08-30T21:38:50.330Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-08-30T21:39:20.815Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "n/a",
+      "branch": null,
+      "note": "No runtime UI behavior changes; documentation rendering is covered by docs build QA."
+    },
+    {
+      "timestamp": "2026-08-30T21:39:21.409Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "n/a",
+      "branch": null,
+      "note": "No Solidity, deployment, or on-chain behavior changes."
+    },
+    {
+      "timestamp": "2026-08-30T21:39:22.034Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Owns documentation authority migration, deterministic projection tooling, and CI enforcement."
+    },
+    {
+      "timestamp": "2026-08-30T22:26:35.754Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-08-30T22:27:48.794Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": null,
+      "note": "Completed the five documentation authority changes and verified 44 live builder routes."
+    },
+    {
+      "timestamp": "2026-08-30T22:27:49.873Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "n/a",
+      "branch": null,
+      "note": "No runtime UI lane; documentation rendering and first-pass QA are covered by the state/API validation receipt."
+    },
+    {
+      "timestamp": "2026-08-30T22:27:51.790Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "n/a",
+      "branch": null,
+      "note": "No separate runtime regression lane; deterministic generation, audit, build, and local sitemap proof are recorded in the implementation receipt."
+    },
+    {
+      "timestamp": "2026-08-30T23:17:50.000Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Review reopened the lane for projection-authority, deployment-validation, redirect-audit, retired-consumer, and delivery-status findings."
+    },
+    {
+      "timestamp": "2026-08-30T23:27:20.000Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded post-review RED/GREEN proof; lane remains open for sequential delivery coordination and deployed sitemap evidence."
+    },
+    {
+      "timestamp": "2026-08-31T20:17:06.000Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "landed_recorded",
+      "branch": null,
+      "note": "Migration landed on develop as five rebased commits (cfa4f2272, 104bc3a9c, b5652c7d1, dae4fe1ad, 3562fd9c8); the planned five sequential independently green merges were superseded by this batch landing. The batch left the api-index and persona-surfaces projections stale (Docs workflow red at 0086993ca); repaired by 8190dc240 with docs audit, generated-output, ontology, guidance, and docs test gates re-run green. Remaining: production Vercel sitemap verification, tracked in documentation-agent-guidance-authority."
+    }
+  ]
+}

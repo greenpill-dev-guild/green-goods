@@ -361,6 +361,12 @@ contract GreenGoodsENSTest is Test {
         assertEq(ens.slugOwner(keccak256(bytes("alice"))), user1);
     }
 
+    function test_ReleaseNameSponsored_RevertNoName() public {
+        vm.prank(user2);
+        vm.expectRevert(abi.encodeWithSignature("NoNameToRelease()"));
+        ens.releaseNameSponsored();
+    }
+
     function test_ReleaseName_RevertNoName() public {
         vm.deal(user2, 1 ether);
         vm.prank(user2);

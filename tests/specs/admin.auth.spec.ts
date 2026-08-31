@@ -31,7 +31,7 @@ test.describe("Admin Authentication", () => {
     test("maintains mock auth state across page reloads", async ({ page }) => {
       const helper = new AdminTestHelper(page);
 
-      await page.goto(helper.buildMockAuthPath("/hub", "operator"), {
+      await page.goto(helper.buildMockAuthPath("/hub", "steward"), {
         waitUntil: "domcontentloaded",
         timeout: 45000,
       });
@@ -39,7 +39,7 @@ test.describe("Admin Authentication", () => {
       await expect(page.getByText("Connect to continue")).toHaveCount(0);
 
       // DevAuthProvider persists the URL role, so the unparameterized reload
-      // remains authenticated as the mocked operator.
+      // remains authenticated as the mocked steward.
       await page.goto("/hub", { waitUntil: "domcontentloaded", timeout: 45000 });
       await helper.waitForPageLoad();
       await page.reload({ waitUntil: "domcontentloaded", timeout: 45000 });
@@ -66,7 +66,7 @@ test.describe("Admin Authentication", () => {
     test("can disconnect mock auth through the dev-auth URL", async ({ page }) => {
       const helper = new AdminTestHelper(page);
 
-      await page.goto(helper.buildMockAuthPath("/hub", "operator"), {
+      await page.goto(helper.buildMockAuthPath("/hub", "steward"), {
         waitUntil: "domcontentloaded",
         timeout: 45000,
       });
@@ -94,7 +94,7 @@ test.describe("Admin Authentication", () => {
       const helper1 = new AdminTestHelper(page1, context);
 
       // Context-level mock auth applies to every page created in this context.
-      await helper1.enableMockAuth("operator");
+      await helper1.enableMockAuth("steward");
 
       await page1.goto("/hub", { waitUntil: "domcontentloaded", timeout: 45000 });
       await helper1.waitForPageLoad();
@@ -117,6 +117,6 @@ test.describe("Admin Authentication", () => {
   // A wrong-chain assertion needs an actual wagmi connector and chain fork, so
   // it belongs in an `*.fork.spec.ts` selected by the anvil-fork project. This
   // two-file CI integration scope cannot introduce that fork fixture.
-  // SKIP: #564 owner:afo expiry:2026-08-12 — anvil-fork owns real wagmi wrong-network coverage
+  // SKIP: #564 owner:afo expiry:2026-11-12 — anvil-fork owns real wagmi wrong-network coverage
   test.skip("defers real wagmi wrong-network coverage to anvil-fork", () => {});
 });

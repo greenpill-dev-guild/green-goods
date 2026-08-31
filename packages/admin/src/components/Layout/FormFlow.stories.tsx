@@ -1,4 +1,4 @@
-import { Button } from "@green-goods/shared";
+import { Button } from "@green-goods/shared/components/Button";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { FormFlow, type FormFlowSection } from "./FormFlow";

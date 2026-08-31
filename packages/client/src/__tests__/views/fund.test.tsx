@@ -31,7 +31,7 @@ const mockGardens = [
     contributorCount: 2,
     actionCount: 1,
     lastActivityAt: 1700000000,
-    operators: [],
+    stewards: [],
     evaluators: [],
   },
   {
@@ -45,7 +45,7 @@ const mockGardens = [
     contributorCount: 1,
     actionCount: 0,
     lastActivityAt: 1690000000,
-    operators: [],
+    stewards: [],
     evaluators: [],
   },
 ];
@@ -54,19 +54,29 @@ const {
   mockUseInViewReveal,
   mockUsePublicGardens,
   mockUsePublicVaultSummary,
-  mockOpenWalletModal,
   mockPrimaryAddress,
   mockLastEndowmentExitComplete,
 } = vi.hoisted(() => ({
   mockUseInViewReveal: vi.fn(),
   mockUsePublicGardens: vi.fn(),
   mockUsePublicVaultSummary: vi.fn(),
-  mockOpenWalletModal: vi.fn(),
   mockPrimaryAddress: { current: null as Address | null },
   mockLastEndowmentExitComplete: { current: null as (() => void) | null },
 }));
 
-vi.mock("@green-goods/shared", () => {
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/aave", () => ({
+  formatApy: (value: number) => `${value.toFixed(2)}%`,
+}));
+
+vi.mock("@green-goods/shared/utils/relativeTime", () => ({
+  formatRelativeTime: () => "recently",
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/vaults", () => {
   const formatMockTokenAmount = (value: bigint, decimals = 18, maximumFractionDigits = 4) => {
     const scale = 10n ** BigInt(decimals);
     const whole = value / scale;
@@ -76,45 +86,59 @@ vi.mock("@green-goods/shared", () => {
       maximumFractionDigits,
     }).format(normalized);
   };
-
   return {
-    cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
-    formatApy: (value: number) => `${value.toFixed(2)}%`,
-    formatRelativeTime: () => "recently",
     formatTokenAmount: formatMockTokenAmount,
-    ImageWithFallback: ({
-      alt = "",
-      className,
-      backgroundFallback,
-      src,
-    }: {
-      alt?: string;
-      className?: string;
-      backgroundFallback?: ReactNode;
-      src?: string;
-    }) =>
-      src ? (
-        <img alt={alt} className={className} src={src} />
-      ) : backgroundFallback ? (
-        <>{backgroundFallback}</>
-      ) : (
-        <div aria-hidden="true" className={className} />
-      ),
-    publicGardenHelpers: {
-      deriveSlug: (name: string, id: string) =>
-        name
-          .trim()
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "") || id.toLowerCase(),
-    },
-    useAppKit: () => ({ open: mockOpenWalletModal }),
-    useInViewReveal: (...args: unknown[]) => mockUseInViewReveal(...args),
-    usePublicGardens: (...args: unknown[]) => mockUsePublicGardens(...args),
-    usePublicVaultSummary: (...args: unknown[]) => mockUsePublicVaultSummary(...args),
-    useUser: () => ({ primaryAddress: mockPrimaryAddress.current }),
   };
 });
+
+vi.mock("@green-goods/shared/components/Display/ImageWithFallback", () => ({
+  ImageWithFallback: ({
+    alt = "",
+    className,
+    backgroundFallback,
+    src,
+  }: {
+    alt?: string;
+    className?: string;
+    backgroundFallback?: ReactNode;
+    src?: string;
+  }) =>
+    src ? (
+      <img alt={alt} className={className} src={src} />
+    ) : backgroundFallback ? (
+      <>{backgroundFallback}</>
+    ) : (
+      <div aria-hidden="true" className={className} />
+    ),
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicGardens", () => ({
+  publicGardenHelpers: {
+    deriveSlug: (name: string, id: string) =>
+      name
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || id.toLowerCase(),
+  },
+  usePublicGardens: (...args: unknown[]) => mockUsePublicGardens(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useInViewReveal", () => ({
+  useInViewReveal: (...args: unknown[]) => mockUseInViewReveal(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicVaultSummary", () => ({
+  usePublicVaultSummary: (...args: unknown[]) => mockUsePublicVaultSummary(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicVaultCatalogSummary", () => ({
+  usePublicVaultCatalogSummary: (...args: unknown[]) => mockUsePublicVaultSummary(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: mockPrimaryAddress.current }),
+}));
 
 vi.mock("@/components/Public/PublicFundingCard", () => ({
   PublicFundingCard: ({
@@ -154,7 +178,7 @@ vi.mock("@/components/Public/PublicEndowmentPanel", () => ({
     return open ? (
       <div role="dialog" aria-label="Your Endowments" data-testid="public-endowment-panel">
         <button type="button" onClick={() => onOpenChange(false)}>
-          Close endowments
+          Close Endowments
         </button>
       </div>
     ) : null;
@@ -396,7 +420,7 @@ describe("FundPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Manage Endowments" }));
 
-    expect(screen.getByTestId("public-endowment-panel")).toBeInTheDocument();
+    expect(await screen.findByTestId("public-endowment-panel")).toBeInTheDocument();
   });
 
   it("keeps Garden selection cards in a max two-column equal-row grid", () => {
@@ -461,7 +485,7 @@ describe("FundPage", () => {
 
     expect(screen.getByTestId("location-search")).toHaveTextContent("?manage=endowments");
 
-    await user.click(screen.getByRole("button", { name: "Close endowments" }));
+    await user.click(screen.getByRole("button", { name: "Close Endowments" }));
 
     expect(screen.queryByTestId("public-endowment-panel")).toBeNull();
     expect(screen.getByTestId("location-search")).toHaveTextContent("?manage=endowments");
@@ -555,7 +579,7 @@ describe("FundPage", () => {
     const defaultSummary = mockUsePublicVaultSummary();
     mockUsePublicVaultSummary.mockReturnValue({
       ...defaultSummary,
-      assets: defaultSummary.assets.map((asset) =>
+      assets: defaultSummary.assets.map((asset: (typeof defaultSummary.assets)[number]) =>
         asset.symbol === "DAI" ? { ...asset, accruingYield: undefined } : asset
       ),
     });
@@ -601,6 +625,27 @@ describe("FundPage", () => {
     expect(screen.getByText("ETH endowment balance")).toBeInTheDocument();
     // The cards explain the absence of live figures rather than rendering blank.
     expect(screen.getAllByText(/No endowment activity on this network yet/i)).toHaveLength(2);
+  });
+
+  it("uses editorial skeletons while endowment metrics load", () => {
+    mockUsePublicVaultSummary.mockReturnValue({
+      hasVaults: false,
+      isLoading: true,
+      isError: false,
+      isYieldLoading: true,
+      isYieldError: false,
+      isAllocationLoading: true,
+      isAllocationError: false,
+      gardensByAddress: {},
+      assets: [],
+    });
+
+    const { container } = renderView();
+
+    expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
+      2
+    );
+    expect(container.querySelector(".animate-pulse")).toBeNull();
   });
 
   it("keeps the asset cards visible with an error message when the metrics fetch fails", () => {

@@ -5,11 +5,24 @@ on:
     branches: [main, develop]
     paths:
       - "packages/shared/src/**"
+      - "!packages/shared/src/**/__tests__/**"
+      - "!packages/shared/src/**/*.test.*"
+      - "!packages/shared/src/**/*.spec.*"
+      - "!packages/shared/src/**/*.stories.*"
       - "packages/contracts/src/**"
+      - "packages/contracts/deployments/**"
       - "packages/contracts/config/schemas.json"
+      - "packages/contracts/test/unit/CreditRegistry.t.sol"
+      - "packages/client/src/components/Public/**"
+      - "packages/client/src/views/Public/**"
+      - "packages/client/src/views/Home/Garden/Assessment.tsx"
+      - "packages/client/src/views/Home/Garden/Work.tsx"
       - "packages/indexer/schema.graphql"
-      - "docs/docs/reference/glossary-community.md"
+      - "packages/indexer/test/credit-registry.test.ts"
+      - "packages/indexer/src/handlers/**"
+      - "docs/docs/reference/glossary.generated.mdx"
       - "docs/docs/reference/ontology.generated.mdx"
+      - "docs/docs/community/green-goods-claims.generated.mdx"
       - "docs/docs/builders/integrations/entity-matrix.mdx"
       - "scripts/quality/check-ontology.mjs"
       - "scripts/quality/ontology-render.mjs"
@@ -17,20 +30,35 @@ on:
       - "scripts/data/ontology-drift-baseline.json"
       - ".github/workflows/ontology.yml"
       - ".plans/active/commitment-pooling/contract-spec.md"
+      - ".plans/active/commitment-pooling/status.json"
+      - ".plans/active/commitment-pooling/standing-commitments-spec.md"
       - ".plans/active/community-interface/spec.md"
+      - ".plans/active/community-interface/status.json"
       - ".plans/active/commitment-pooling/settlement-spec.md"
+      - ".plans/active/commitment-credit-follow-on/spec.md"
       - "docs/docs/builders/architecture/erd.mdx"
-      - "docs/docs/builders/specs/v1-0.mdx"
       - "packages/contracts/script/DeployBadgeSchema.s.sol"
   pull_request:
-    branches: [main, develop]
     paths:
       - "packages/shared/src/**"
+      - "!packages/shared/src/**/__tests__/**"
+      - "!packages/shared/src/**/*.test.*"
+      - "!packages/shared/src/**/*.spec.*"
+      - "!packages/shared/src/**/*.stories.*"
       - "packages/contracts/src/**"
+      - "packages/contracts/deployments/**"
       - "packages/contracts/config/schemas.json"
+      - "packages/contracts/test/unit/CreditRegistry.t.sol"
+      - "packages/client/src/components/Public/**"
+      - "packages/client/src/views/Public/**"
+      - "packages/client/src/views/Home/Garden/Assessment.tsx"
+      - "packages/client/src/views/Home/Garden/Work.tsx"
       - "packages/indexer/schema.graphql"
-      - "docs/docs/reference/glossary-community.md"
+      - "packages/indexer/test/credit-registry.test.ts"
+      - "packages/indexer/src/handlers/**"
+      - "docs/docs/reference/glossary.generated.mdx"
       - "docs/docs/reference/ontology.generated.mdx"
+      - "docs/docs/community/green-goods-claims.generated.mdx"
       - "docs/docs/builders/integrations/entity-matrix.mdx"
       - "scripts/quality/check-ontology.mjs"
       - "scripts/quality/ontology-render.mjs"
@@ -38,10 +66,13 @@ on:
       - "scripts/data/ontology-drift-baseline.json"
       - ".github/workflows/ontology.yml"
       - ".plans/active/commitment-pooling/contract-spec.md"
+      - ".plans/active/commitment-pooling/status.json"
+      - ".plans/active/commitment-pooling/standing-commitments-spec.md"
       - ".plans/active/community-interface/spec.md"
+      - ".plans/active/community-interface/status.json"
       - ".plans/active/commitment-pooling/settlement-spec.md"
+      - ".plans/active/commitment-credit-follow-on/spec.md"
       - "docs/docs/builders/architecture/erd.mdx"
-      - "docs/docs/builders/specs/v1-0.mdx"
       - "packages/contracts/script/DeployBadgeSchema.s.sol"
 
 permissions:
@@ -65,7 +96,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: "22"
+          node-version: "22.22.1"
 
       # No dependency install on purpose: check-ontology.mjs uses only the Node
       # standard library, which keeps this gate sub-minute and lets the ci-gate

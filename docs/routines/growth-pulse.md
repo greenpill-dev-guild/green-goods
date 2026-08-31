@@ -79,7 +79,9 @@ The funnel HogQL was rewritten in `posthog-questions.md` v1.1.0 to:
 1. **Join by `person_id`** instead of `distinct_id`. PostHog assigns an anonymous UUID `distinct_id` before `posthog.identify()` and switches to the wallet/passkey identifier after auth. The previous SKILL joined by raw `distinct_id` and produced 0% conversion across the auth boundary even when conversions were happening (verified empirically 2026-05-09: 7 person registers + 6 person joins in 30d, 0 overlap with the old query, correct numbers with the new one).
 2. **Document the cohort caveat**: `funnel.onboarding` legitimately reports 0% when the new-user cohort within `{window}` hasn't completed the next step yet, even though returning users (registered > window ago) are joining gardens fine. Verify against raw `garden_join_success` counts before filing a "funnel breakage" anomaly — see Phase 2 thresholds below.
 
-The new `failures.conversion-kill` question makes the failure-rate signal first-class. Production data on the App project (2026-05-09 verified) shows `garden_join` ~75% failure rate, `work_submission` ~70%, `work_approval` 100% (zero successes on App; some successes likely on Admin). These are the strongest growth signals and the new primary anomaly threshold.
+The new `failures.conversion-kill` question makes the failure-rate signal first-class. It is the primary anomaly threshold.
+
+> **The 2026-05-09 rates quoted here previously (`garden_join` ~75%, `work_submission` ~70%, `auth_passkey_register` ~27%) were inflated** — they counted user cancellations as failures. `posthog-questions.md` v1.3.0 (2026-08-10) splits `cancelled` out of `failed`. Re-measure before citing a baseline; do not carry the old numbers forward. `work_approval` still reports ~100% on App because its successes fire on Admin, which is a merge artifact, not a breakage.
 
 ### Curated questions
 
@@ -87,7 +89,7 @@ This routine references the following curated questions from `docs/routines/post
 
 - `funnel.onboarding` — passkey register → garden join → first work submission. Drives the conversion narrative. (Person_id-stitched as of SKILL v1.1.0.)
 - `funnel.work-repeat` — first work → second work within 7d. Drives the early-retention signal. (Person_id-stitched.)
-- `failures.conversion-kill` — per-step failure rate for `garden_join_*`, `work_submission_*`, `work_approval_*`, `auth_passkey_register_*`. **The strongest growth signal in production today** — surfaces conversion breakage that the success-only funnel misses. Drives the bulk of anomaly Issues.
+- `failures.conversion-kill` — per-step failure rate for `garden_join_*`, `work_submission_*`, `work_approval_*`, `auth_passkey_register_*`, **excluding user cancellations** (v1.3.0). Surfaces conversion breakage that the success-only funnel misses. Drives the bulk of anomaly Issues, so its precision matters more than any other question here.
 - `gardens.engagement-summary` — per-garden 7d active members + 7d work submitted/approved. Drives the per-garden table.
 - `gardens.dormant` — gardens with zero work in 7d/14d/30d. Drives the dormancy alert and any anomaly Linear Issues.
 - `gardens.operator-activity` — work approvals per operator per week, aggregated. Drives the operator-load section.
@@ -103,45 +105,39 @@ If the PostHog connector is unavailable or the expected project ID env vars are 
 
 ### Discord post to `#growth` (primary)
 
-```
-{if any_anomaly_red OR any_novel_failure: "<@${DISCORD_USER_ID_AFO}> "}**📈 Growth Pulse — Week {YYYY-WW}**
+**House style v2** (see [`routines/claude/README.md` in `.github`](https://github.com/greenpill-dev-guild/.github/blob/main/routines/claude/README.md#house-style-v2-applies-to-every-posting-routine)): ONE message (~900 chars target, ~1,500 ceiling — cut content rather than chunk), a lede before any bullets, and only metrics that **moved** appear as bullets. The Linear status update carries every full table; Discord carries what changed and what it means.
 
-{if any_anomaly_red OR a top conversion-kill is above threshold — this block LEADS; omit it entirely on a clean week:}
+```text
+{if any_anomaly_red OR any_novel_failure: "<@${DISCORD_USER_ID_AFO}> "}**📈 Growth Pulse · week {YYYY-WW}**
+
+{Lede: 1–2 plain sentences on what the week means — e.g. "Steady week: onboarding held and no anomalies fired." or "Work submissions jumped after the template fix; one retention signal is worth watching." Not a metrics recital.}
+
+{if any_anomaly_red OR a top conversion-kill is above threshold — this block leads; omit entirely on a clean week:}
 **🔴 Watch**
-- **{red anomaly or worst conversion-kill step}** — {1-line what it is} → {Linear URL}
+- **{red anomaly or worst conversion-kill step}** · {1-line what it is} → <{Linear URL}>
 
-**Onboarding funnel** ({window})
-- Registered: **{N}** ({±N% WoW})
-- Joined a garden: **{M}** ({register_to_join_pct}%)
-- First work submitted: **{F}** ({join_to_first_work_pct}%)
+**Moved this week** {only metrics that moved (threshold crossed, >10% relative WoW on the headline number, or feeding 🔴 Watch) · max 3 bullets · fold the number and the delta into one line each}
+- {e.g. "First work submitted: **12** (+50% WoW) · the template fix landed Tuesday"}
 
-**🔁 Early retention**
-- First-time users (30d): **{N}**  ·  repeat within 7d: **{M}** ({repeat_pct}%)
+{if anomaly_count > 0: "**📋 Anomalies** · {anomaly_count} new{, {open_count} open} · {IDs with <Linear URLs>}"}
+{if funnel_thin OR any advisory delta (Phase 2, bootstrapped/absent baseline): "**🔎 Context** · {when open P0 defects plausibly explain it: '{step(s)} thin; {N} open P0 defect(s) on {surface} ({PRD-ids}) likely suppress conversion.' · otherwise the plain reading: '{step} moved {delta} on a {bootstrapped|absent} baseline — advisory, no Issue filed.'}"}
+{if intent_verdict != "coherent": "**🧭 Intent** · {drifting|unclear}: {underserved_stage or 'plans glance unavailable'}"}
 
-**🌱 Garden engagement** (7d)
-- Active: **{A}** of {T}  ·  dormant ≥7d **{D7}** · ≥14d **{D14}** · ≥30d **{D30}**
-- Top by work: {garden_name} ({N}), {garden_name} ({N}), {garden_name} ({N})
-
-**🛠 Action templates** (on-chain · indexer `Action`)
-- Created last week: **{N}**  ·  4-week trend {↑ / → / ↓}
-{if newest Action.createdAt ≥ 21d ago: "- ⚠ no new template in {weeks}w (last {YYYY-MM-DD})"}
-
-**⚠️ Conversion-kill (7d)** — top 3 by failure rate
-- {step}: **{failure_pct}%** ({failed_count}/{total_attempts})
-
-**📋 Anomalies** — {anomaly_count} new · {open_count} open (`activity:qa` + `protocol:green-goods`)
-{bullets — at most 3 — new anomalies with Linear URL. Omit this whole block when zero new AND zero open.}
-
-{if funnel_thin AND open_p0_qa: "**🔎 Funnel context** — {step(s)} thin; {N} open P0 `activity:qa` defect(s) on {surface} ({PRD-ids}) likely suppress conversion before instrumented steps."}
-{if intent_verdict != "coherent": "**🧭 Intent** — {drifting|unclear}: {underserved_stage or 'plans glance unavailable'}"}
-
-**📄 Full digest** → {linear_status_update_url}
-{if any_failure: "⚠ Failures this run: {short list}"}
+**📄 Full digest** → {linear_status_update_url or the degraded line below}
+{if any_failure: "⚠ {short failure list}"}
 ```
 
-Caps: 3 anomaly bullets, 3 top-garden bullets, 3 conversion-kill bullets. Prose paragraphs forbidden — bulleted only.
+Everything that did NOT move stays out of the post entirely — no funnel block, no retention block, no engagement block, no per-section skeleton. The reader who wants the steady numbers clicks the digest link.
 
-**Unchanged-week fold (noise control):** a metrics block (Onboarding funnel / Early retention / Garden engagement / Action templates / Conversion-kill) appears in full ONLY when it moved — a threshold crossed, a WoW delta beyond noise (> 10% relative on its headline number), or it feeds the 🔴 Watch block. Blocks that did not move fold into one combined line — `**Steady** — funnel {headline}, retention {headline}, gardens {A}/{T} active — within normal range` — so a quiet week's post is a few lines, not a dashboard. The Linear status update still carries every full table; Discord carries what changed.
+**Conditional lines are part of the schema, not optional extras.** "Only what moved" governs the *metrics* bullets; the 🔴 Watch, 📋 Anomalies, 🔎 Context, 🧭 Intent, and ⚠ failure lines each render whenever their own condition is true, on a steady week too.
+
+**When the Linear status update failed** (Phase 3 says post anyway): there is no digest URL to link, so replace the `📄 Full digest` line with `⚠ Full digest unavailable · Linear status update failed this run ({reason}) — numbers below are this run's only record.` and keep the moved-metrics bullets in the post even if they would otherwise have been folded away. This is the one case where the post carries more, not less: the durable artifact does not exist.
+
+**Steady week (nothing moved, no anomalies, no failures, digest written):** exactly one line —
+
+```text
+📈 Growth Pulse · week {YYYY-WW}: steady · funnel {headline}, {A}/{T} gardens active, no anomalies. Full digest → {linear_status_update_url}
+```
 
 ### Cross-post to `#funding` (only when grant-relevant)
 
@@ -192,7 +188,7 @@ _Generated by the `growth-pulse` weekly routine on YYYY-MM-DD (UTC)._
 {persistent environment/wiring gaps already flagged in prior runs, carried forward so the mention rule can tell novel from known — e.g. "PostHog connector not provisioned in green-goods-routines-extended; bridged via direct API (since 2026-W21)". New gaps this run are added here AND trigger the @mention.}
 
 ## Intent check (core loop coherence)
-{Read the 5-stage loop at runtime from `docs/docs/community/how-it-works.mdx` and the current-season thesis from `docs/docs/community/where-were-headed.mdx` — never hardcode them here. Stages: document → verify/approve → assess/certify → fund → community-signal.}
+{Read the 5-stage loop at runtime from `docs/docs/community/how-it-works.mdx` and current capability wording from `docs/docs/community/green-goods-claims.generated.mdx` — never hardcode capability claims here. Stages: document → verify/approve → assess/certify → fund → community-signal.}
 
 - **Active work map**: {one line per `.plans/active` hub — intent (≤6 words) · priority · mapped stage}; or "plans glance unavailable — verdict from Linear + PostHog only".
 - **Signal map**: open P0/P1 `activity:qa` Issues by stage {stage: N} (from the Phase 2b fetch); anomalies opened this run by stage.
@@ -210,31 +206,29 @@ The status update carries the routine's health read: `onTrack` on a healthy/quie
 
 When a growth-side metric crosses an anomaly threshold, the anomaly is **accepted** — open a Linear Issue **unprojected** on the Product team with `protocol:green-goods` + `activity:qa` + `package:<inferred>` (e.g., `package:client` for funnel/retention; `package:admin` for action-template stalls) + `ai:routine`. **Codex hand-off:** swap `ai:routine`→`ai:codex` when the anomaly Issue clears the Codex-ready bar (clear surface + concrete suggested fix + validation; see [`README.md` § Codex hand-off](README.md)), and delegate to Codex when it also clears the autonomous-confident bar — a telemetry-emit gap is the canonical example. Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing. Body:
 
+Title is a plain sentence naming what moved — "Onboarding funnel broke at the wallet step", not "Anomaly type: funnel breakage". No `<category>:` prefix and no emoji; the labels carry the category. Body follows the shared contract in [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md) § Issue structure — **cap 3 headings, ~150 words, 300 ceiling** — which a `PreToolUse` hook enforces on every `save_issue` call:
+
 ```markdown
-## Anomaly type
-{e.g. "Onboarding funnel breakage", "Dormant-garden surge", "Retention cliff"}
+{What moved, over what window, and why it matters — two or three plain
+sentences. Name the affected surface and gardens inside them.}
 
-## Signal
-- Question: `{question_name}` (curated `posthog-questions` library)
-- Current value: {value}
-- Prior value: {value}
-- Delta: {±N% / N units}
-- Window: {7d / 30d / cohort week}
+{One signal line naming the curated question, so later runs can recognise the
+same anomaly: "`funnel.onboarding`: 18% conversion, down from 41% over 7d."}
 
-## Affected scope
-- Surface: {client | admin}
-- Gardens: {N gardens affected, listed by address — public on-chain so safe to include}
+{One sentence on the suspected cause or next step; say plainly when it needs
+investigation.}
 
-## Suggested fix
-{one paragraph; "needs investigation" only when truly opaque}
-
-## Linked PostHog evidence
-- Saved Insight ID: {id, if a tunable Insight exists}
-- Question name + bind variables: `{question_name}({...})`
-- Sample timestamp: {YYYY-MM-DDTHH:MM:SSZ}
+**Done when**
+- {the observable outcome that closes this — a restored metric, a shipped fix,
+  or a written explanation of a benign cause}
+- {second outcome, when the anomaly has two halves}
 ```
 
-The Issue body **never** carries replay URLs, session IDs, distinct IDs, wallet addresses, or any other field marked private in `posthog-questions.md`. The privacy grep in Phase 4 catches violations before the body is saved.
+**`Done when` is required whenever the anomaly is filed as `Todo` or delegated under the Codex hand-off above.** Without acceptance criteria a dispatched agent must stop at the Codex-ready gate, so an anomaly with no checkable outcome belongs in `Backlog` until someone can name one.
+
+**The full evidence goes in the first comment, not the description** — saved Insight ID, question name with bind variables, sample timestamp, and the per-garden list. The check still gathers all of it; it just lands where a reader can skip it. **Privacy-grep the drafted comment (the Phase 4 string list) before posting it** — a comment is public the moment it lands, and a post-hoc edit does not unpublish it.
+
+Neither the Issue body **nor the evidence comment** carries replay URLs, session IDs, distinct IDs, wallet addresses, or any other field marked private in `posthog-questions.md`. Moving detail out of the description does not move it outside the privacy boundary — a comment is just as public. The Phase 4 privacy grep covers both.
 
 ## Phase 0: Load prior baseline
 
@@ -270,7 +264,12 @@ Apply these thresholds to the question outputs:
 
 **Baseline (Phase 0):** use the prior-digest numbers loaded in Phase 0 for every WoW/MoM comparison below. When the baseline is **bootstrapped or absent** (first run, or a skipped week), the three delta-based thresholds (funnel breakage, retention cliff, dormant-garden surge) are **advisory only** — surface them in the digest body and the Discord `Funnel context` line, but do **not** file Linear Issues. This is what keeps a first or post-gap run from firing false positives.
 
-- **Conversion-kill failure (PRIMARY signal — replaces the old success-only funnel breakage threshold)**: any step in `failures.conversion-kill` with `failure_pct > 50%` AND `failed_count >= 5` over the 7d window opens one Linear anomaly Issue per failing step. `failure_pct >= 100%` with `failed_count >= 5` is P2/urgent. This is the threshold that catches real product breakage; the success-only funnel can show flat numbers while the failure rate is exploding.
+- **Conversion-kill failure (PRIMARY signal — replaces the old success-only funnel breakage threshold)**: any step in `failures.conversion-kill` with `failure_pct > 50%` AND `failed_count >= 5` AND `failing_persons >= 3` over the 7d window opens one Linear anomaly Issue per failing step. `failure_pct >= 100%` meeting the same floors is P2/urgent. This is the threshold that catches real product breakage; the success-only funnel can show flat numbers while the failure rate is exploding.
+  - **The `failing_persons >= 3` floor is load-bearing** (added 2026-08-10 with `posthog-questions.md` v1.3.0). PRD-717 fired at 66.7% / 8 failures and turned out to be **two** people retrying — 5 of the 8 were wallet aborts, not breakage. A count floor alone cannot tell a cohort-wide break from one stuck session; the person floor can.
+  - **Never quote a raw `error` property into the Issue body.** Client errors from viem embed the signer's wallet address, which the privacy boundary below excludes. Use `parsed_error_family`, or the counts, and describe the error family in prose.
+  - **`failing_persons` is a threshold input, not a publishable number.** Below 5 it is private-only per the question library's boundary (public aggregations need ≥ 5 users). Use it to decide whether to file; keep it out of the digest, the Discord post, and the Issue body unless it is ≥ 5.
+  - **Apply the person floor per project, never to a merged row.** `failing_persons` is a distinct count, so the App and Admin `work_approval` rows cannot be summed or maxed without double-counting or undercounting operators. Merge only the raw counts; evaluate the person floor on each project separately and file if either crosses.
+  - `cancelled_count` is reported alongside but is **not** part of the threshold — a user declining a wallet prompt is a conversion loss worth narrating in the digest, not a product defect worth filing. Note its detection coverage is partial (see the coverage table in the question definition); `work_approval` cannot distinguish cancellations at all today.
 - **Funnel breakage (secondary, success-side)**: `register_to_join_pct` drops > 25% absolute WoW OR `join_to_first_work_pct` drops > 25% absolute WoW. Before filing, **verify against raw counts** — `funnel.onboarding` legitimately reports 0% when the new-user cohort within the window hasn't completed the next step yet, even though returning users are doing fine. If the raw `garden_join_success` count is non-zero but the funnel pct is zero, the signal is "new-user cohort hasn't progressed yet" not "product is broken" — surface in the digest commentary, do not file an Issue.
 - **Retention cliff**: `repeat_pct` drops > 15% absolute MoM. Use the 30-day window comparison; opens one Linear anomaly.
 - **Dormant-garden surge**: number of gardens in the `30d+` dormancy band increases by ≥ 3 since last week. Opens one Linear anomaly summarizing the affected gardens.
@@ -278,7 +277,7 @@ Apply these thresholds to the question outputs:
 
 For each anomaly:
 
-1. **Dedupe** against existing open Linear Customer Needs/Issues on the Product team filtered by `protocol:green-goods` + `activity:qa`. Match by `## Anomaly type` + affected scope. If a duplicate exists, **append a comment** with the new numbers and refresh the date — do not create a parallel Issue.
+1. **Dedupe** against existing open Linear Customer Needs/Issues on the Product team filtered by `protocol:green-goods` + `activity:qa`. Match by the **curated question name** carried in the signal line (`funnel.onboarding` and the like) plus the affected surface — that pair is stable across runs and survives the prose body shape, whereas the old `## Anomaly type` heading was retired with the section scaffolding on 2026-08-27. If a duplicate exists, **append a comment** with the new numbers and refresh the date — do not create a parallel Issue.
 2. **Create** the Linear Issue per the body schema above, **unprojected** on the Product team. Status: `Backlog` (exploratory) or `Todo` (well-scoped, e.g., funnel breakage with a clear culprit step).
 3. **Cap**: at most **3 new Linear Issues per run**. If more anomalies exist, surface them in the digest body and let the human triage which to escalate next week.
 
@@ -296,7 +295,7 @@ PRD ids are public Linear identifiers and safe to include; never add a reporter 
 
 Reuse data already in hand — do not issue new PostHog or Linear queries:
 
-1. **Load doctrine at runtime.** Read the 5-stage loop from `docs/docs/community/how-it-works.mdx` and the season thesis from `docs/docs/community/where-were-headed.mdx`. If a doc is unreadable, fall back to the loop `document → verify/approve → assess/certify → fund → community-signal` and note the doc-read gap in `⚠ Failures this run`.
+1. **Load doctrine at runtime.** Read the 5-stage loop from `docs/docs/community/how-it-works.mdx` and current capability wording from `docs/docs/community/green-goods-claims.generated.mdx`. If a doc is unreadable, fall back to the loop `document → verify/approve → assess/certify → fund → community-signal` and note the doc-read gap in `⚠ Failures this run`.
 2. **Glance `.plans/active` (graceful-degrade).** For each `.plans/active/*/` hub read `status.json` (intent, priority, lane status) + the first lines of `brief.md`; map each to a loop stage. One line per hub. If the repo isn't readable, skip and mark the glance failed.
 3. **Map signals to stages.** Assign each open `activity:qa` + `protocol:green-goods` Issue (from the Phase 2b fetch; P0/P1 = Linear `priority` 1/2) and each anomaly opened this run to a stage via `package:*` + surface: `package:client`/onboarding/work-submission → document; `package:admin`/work-approval/operator → verify; contracts/hypercert linkage → certify; vault/yield/`/fund` → fund; governance → community-signal.
 4. **Compute the verdict (deterministic).**
@@ -319,12 +318,12 @@ Before posting:
 
 1. List every Linear Issue this run created/refreshed and confirm: unprojected on the Product team, expected canonical labels (`protocol:green-goods`, `activity:qa`, `package:*`, one `ai:*` value — `ai:routine` by default or `ai:codex` when the Issue clears the Codex-ready bar), body matches schema, no private fields.
 2. Confirm the weekly digest status update: posted to the resolved initiative, body matches the schema, health set, no private fields. Confirm NO GitHub PR, branch, or `docs/metrics/` file was created.
-3. **Privacy grep** across every Linear body (anomaly Issues + the weekly digest status update) and the Discord post for the strings `replay`, `session_id`, `distinct_id`, `0x` (wallet addresses are public on-chain, but treat as suspect — confirm each one is a deliberate `garden_address` reference, not a `distinct_id`), full stack URLs with query strings, and any reporter identifiers. Any unintended hit means the routine leaked private context — fail loud in the `⚠ Failures this run` block and edit the offending body in place to redact before saving.
+3. **Privacy grep** across every Linear body (anomaly Issues + the weekly digest status update), **every evidence comment this run drafted or posted** (drafts are checked before Phase 2 posts them; this pass is the backstop), and the Discord post for the strings `replay`, `session_id`, `distinct_id`, `0x` (wallet addresses are public on-chain, but treat as suspect — confirm each one is a deliberate `garden_address` reference, not a `distinct_id`), full stack URLs with query strings, and any reporter identifiers. Any unintended hit means the routine leaked private context — fail loud in the `⚠ Failures this run` block and edit the offending body or comment in place to redact before saving.
 4. Confirm the Discord post and `#funding` cross-post fit the schema. Drop excess content rather than expanding sections.
 
 ## Phase 5: Discord post + cross-post
 
-Post the primary message to `#growth` per the schema — it carries the week's **highlights inline** (funnel, retention, garden engagement, action templates, conversion-kill, anomalies) **and** the `📄 Full digest (Linear)` line linking the Phase 3 status-update URL. Never reduce the post to a bare link, and never drop the link — highlights live in Discord, the full digest lives in the linked Linear status update. If grant-relevance criteria are met, post the cross-post to `#funding`. Channel guard at every post: if the env var is unset, log and skip; never pick an alternate channel.
+Post the primary message to `#growth` per the schema — a lede saying what the week means, then the metrics that moved (max 3 bullets), plus every conditional schema line whose condition is true this run (🔴 Watch, 📋 Anomalies, 🔎 Context, 🧭 Intent, ⚠ failures) and the `📄 Full digest (Linear)` line linking the Phase 3 status-update URL. On a steady week the post is the single steady-week line. Never drop the digest link when a status update exists; when the Phase 3 write failed, use the degraded `⚠ Full digest unavailable` line from the schema instead of omitting it silently. If grant-relevance criteria are met, post the cross-post to `#funding`. Channel guard at every post: if the env var is unset, log and skip; never pick an alternate channel.
 
 `<@${DISCORD_USER_ID_AFO}>` mention only on (a) a **red/P2 anomaly**, or (b) a **novel** setup failure — one not already listed in the prior digest's `## Known setup failures` (loaded in Phase 0). A known, persistent gap (e.g. an unprovisioned connector already flagged in a prior run) is listed in `⚠ Failures this run` **without** a ping, to avoid weekly alert fatigue. Healthy weeks post without mention.
 

@@ -41,13 +41,10 @@ const mockActions = [
 
 const mockUseActions = vi.fn();
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
-
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal()),
     useActions: (...args: unknown[]) => mockUseActions(...args),
-    Domain: { SOLAR: 0, AGRO: 1, EDU: 2, WASTE: 3 },
   };
 });
 
@@ -119,8 +116,10 @@ describe("ActionsGallery", () => {
   it("shows loading skeletons", () => {
     mockUseActions.mockReturnValue({ data: [], isLoading: true });
     const { container } = renderView();
-    const pulsingElements = container.querySelectorAll(".animate-pulse");
-    expect(pulsingElements.length).toBeGreaterThanOrEqual(3);
+    expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
+      3
+    );
+    expect(container.querySelector(".animate-pulse")).toBeNull();
   });
 
   it("is read-only with no create/edit buttons", () => {

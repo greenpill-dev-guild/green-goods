@@ -1,4 +1,9 @@
-import type { ActivityFilter, GardenActivityEvent, GardenRange } from "@green-goods/shared";
+import type {
+  ActivityFilter,
+  GardenActivityEvent,
+  GardenRange,
+} from "@green-goods/shared/types/garden-detail";
+import type { KarmaIntegrationController } from "@green-goods/shared/hooks/garden/useKarmaIntegration";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { hoursAgo } from "../../../../../shared/.storybook/fixtures";
@@ -30,6 +35,27 @@ const MOCK_ACTIVITY: GardenActivityEvent[] = [
   },
 ];
 
+const KARMA_INTEGRATION = {
+  status: {
+    status: "synced",
+    chainId: 42161,
+    gardenAddress: "0x0000000000000000000000000000000000000001",
+    projectUID: null,
+    profileUrl: "https://www.karmahq.org/project/rio-rainforest-lab",
+    syncVersion: 1,
+    requiredSyncVersion: 1,
+    reason: null,
+  },
+  profileUrl: "https://www.karmahq.org/project/rio-rainforest-lab",
+  canReconcile: true,
+  isLoading: false,
+  isFetching: false,
+  isReconciling: false,
+  isPending: false,
+  error: null,
+  reconcile: async () => "0x1" as const,
+} satisfies KarmaIntegrationController;
+
 const meta: Meta<typeof OverviewTab> = {
   title: "Admin/Workflows/Garden/OverviewTab",
   component: OverviewTab,
@@ -45,13 +71,13 @@ const meta: Meta<typeof OverviewTab> = {
     },
   },
   args: {
+    mode: "health",
     section: undefined,
     selectedItem: undefined,
     selectedRange: "30d" as GardenRange,
     clearSection: fn(),
     openSection: fn(),
     updateQueryState: fn(),
-    setTab: fn(),
     overviewAlerts: [],
     gardenHealthLabel: "Healthy",
     approvedInRangeCount: 14,
@@ -65,6 +91,7 @@ const meta: Meta<typeof OverviewTab> = {
     assessmentCount30d: 3,
     gardenerCount: 22,
     treasuryBalance: "$12,400",
+    karmaIntegration: KARMA_INTEGRATION,
   },
 };
 
@@ -76,8 +103,8 @@ export const Healthy: Story = {};
 export const WithAlerts: Story = {
   args: {
     overviewAlerts: [
-      { key: "pending-work", severity: "medium", label: "5 pending work items", onAction: fn() },
-      { key: "vault-paused", severity: "high", label: "USDC vault paused", onAction: fn() },
+      { key: "pending-work", severity: "warn", label: "5 pending work items", onAction: fn() },
+      { key: "vault-paused", severity: "critical", label: "USDC vault paused", onAction: fn() },
     ],
   },
 };

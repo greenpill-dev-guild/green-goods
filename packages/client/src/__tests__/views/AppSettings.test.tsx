@@ -21,31 +21,27 @@ const mockAppState = {
 const mockServiceWorkerUpdateState = {
   phase: "idle",
   updateAvailable: false,
-  isUpdating: false,
-  updateStalled: false,
-  applyUpdate: vi.fn(),
+  activateNow: vi.fn(),
 };
 
 // Mock @green-goods/shared
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/app/text", () => ({
   capitalize: (s: string) => s.charAt(0).toUpperCase() + s.slice(1),
-  ConfirmDialog: ({
-    isOpen,
-    title,
-    children,
-  }: {
-    isOpen: boolean;
-    title?: string;
-    children?: React.ReactNode;
-  }) =>
-    isOpen
-      ? createElement("div", { role: "dialog", "data-testid": "confirm-dialog" }, title, children)
-      : null,
+}));
+
+vi.mock("@green-goods/shared/utils/app/haptics", () => ({
   hapticLight: vi.fn(),
-  logger: { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() },
-  toastService: { info: vi.fn(), loading: vi.fn(), success: vi.fn(), error: vi.fn() },
+}));
+
+vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: () => mockAppState,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useServiceWorkerUpdate", () => ({
   useServiceWorkerUpdate: () => mockServiceWorkerUpdateState,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useTheme", () => ({
   useTheme: () => mockThemeState,
 }));
 
@@ -123,8 +119,6 @@ describe("AppSettings", () => {
     mockThemeState.theme = "system";
     mockServiceWorkerUpdateState.phase = "idle";
     mockServiceWorkerUpdateState.updateAvailable = false;
-    mockServiceWorkerUpdateState.isUpdating = false;
-    mockServiceWorkerUpdateState.updateStalled = false;
   });
 
   afterEach(() => {
@@ -167,21 +161,21 @@ describe("AppSettings", () => {
     render(wrap(createElement(AppSettings)));
 
     expect(screen.queryByText("Refresh app")).not.toBeInTheDocument();
-    expect(screen.queryByText("Update app")).not.toBeInTheDocument();
+    expect(screen.queryByText("Update App")).not.toBeInTheDocument();
     expect(screen.queryByTestId("btn-Refresh")).not.toBeInTheDocument();
     expect(screen.queryByTestId("btn-Update")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("btn-Restart to update")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("btn-Restart to Update")).not.toBeInTheDocument();
   });
 
   it("renders the ready update card when a service worker update is waiting", () => {
-    mockServiceWorkerUpdateState.phase = "ready";
+    mockServiceWorkerUpdateState.phase = "waiting";
     mockServiceWorkerUpdateState.updateAvailable = true;
 
     render(wrap(createElement(AppSettings)));
 
     expect(screen.getByText("Ready to restart")).toBeInTheDocument();
     expect(screen.getByText(/restart green goods to finish updating/i)).toBeInTheDocument();
-    expect(screen.getByTestId("btn-Restart to update")).toBeInTheDocument();
+    expect(screen.getByTestId("btn-Restart to Update")).toBeInTheDocument();
   });
 
   it("renders download progress without a restart button", () => {
@@ -191,29 +185,28 @@ describe("AppSettings", () => {
 
     expect(screen.getByText("Downloading update")).toBeInTheDocument();
     expect(screen.getByText(/latest version in the background/i)).toBeInTheDocument();
-    expect(screen.queryByTestId("btn-Restart to update")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("btn-Restart to Update")).not.toBeInTheDocument();
   });
 
   it("renders stalled guidance with a retry button", () => {
-    mockServiceWorkerUpdateState.phase = "stalled";
-    mockServiceWorkerUpdateState.updateStalled = true;
+    mockServiceWorkerUpdateState.phase = "error";
 
     render(wrap(createElement(AppSettings)));
 
     expect(screen.getByText("Update needs a restart")).toBeInTheDocument();
     expect(screen.getByText(/close and reopen the app/i)).toBeInTheDocument();
-    expect(screen.getByTestId("btn-Try again")).toBeInTheDocument();
+    expect(screen.getByTestId("btn-Try Again")).toBeInTheDocument();
   });
 
   it("applies the waiting service worker update from the update card", async () => {
-    mockServiceWorkerUpdateState.phase = "ready";
+    mockServiceWorkerUpdateState.phase = "waiting";
     mockServiceWorkerUpdateState.updateAvailable = true;
     const user = userEvent.setup();
 
     render(wrap(createElement(AppSettings)));
 
-    await user.click(screen.getByTestId("btn-Restart to update"));
+    await user.click(screen.getByTestId("btn-Restart to Update"));
 
-    expect(mockServiceWorkerUpdateState.applyUpdate).toHaveBeenCalledTimes(1);
+    expect(mockServiceWorkerUpdateState.activateNow).toHaveBeenCalledTimes(1);
   });
 });

@@ -2,6 +2,7 @@
 pragma solidity >=0.8.25;
 
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
+import { IKarmaGAPModule } from "../../src/interfaces/IKarmaGAPModule.sol";
 
 /// @title MockHatsModule
 /// @notice Shared mock for IHatsModule used across test files
@@ -23,6 +24,7 @@ contract MockHatsModule is IHatsModule {
     CreateCall public lastCreate;
     bool public created;
     GrantCall[] public grantCalls;
+    IKarmaGAPModule public karmaGAPModule;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Configurable return values for role queries
@@ -67,6 +69,10 @@ contract MockHatsModule is IHatsModule {
         return grantCalls.length;
     }
 
+    function setKarmaGAPModule(address module) external {
+        karmaGAPModule = IKarmaGAPModule(module);
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // IHatsModule Implementation
     // ═══════════════════════════════════════════════════════════════════════════
@@ -87,10 +93,18 @@ contract MockHatsModule is IHatsModule {
     function grantRole(address garden, address account, GardenRole role) external {
         grantCalls.push(GrantCall({ garden: garden, account: account, role: role }));
         _setRole(garden, account, role, true);
+        if (address(karmaGAPModule) != address(0) && (role == GardenRole.Owner || role == GardenRole.Steward)) {
+            // solhint-disable-next-line no-empty-blocks
+            try karmaGAPModule.addProjectAdmin(garden, account) { } catch { }
+        }
     }
 
     function revokeRole(address garden, address account, GardenRole role) external {
         _setRole(garden, account, role, false);
+        if (address(karmaGAPModule) != address(0) && (role == GardenRole.Owner || role == GardenRole.Steward)) {
+            // solhint-disable-next-line no-empty-blocks
+            try karmaGAPModule.removeProjectAdmin(garden, account) { } catch { }
+        }
     }
 
     function grantRoles(address garden, address[] calldata accounts, GardenRole[] calldata roles) external {
@@ -149,7 +163,7 @@ contract MockHatsModule is IHatsModule {
 
     function _setRole(address garden, address account, GardenRole role, bool value) internal {
         if (role == GardenRole.Owner) ownerOf[garden][account] = value;
-        else if (role == GardenRole.Operator) operatorOf[garden][account] = value;
+        else if (role == GardenRole.Steward) operatorOf[garden][account] = value;
         else if (role == GardenRole.Evaluator) evaluatorOf[garden][account] = value;
         else if (role == GardenRole.Gardener) gardenerOf[garden][account] = value;
         else if (role == GardenRole.Funder) funderOf[garden][account] = value;

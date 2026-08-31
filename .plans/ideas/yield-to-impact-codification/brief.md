@@ -42,13 +42,11 @@ This plan is paired with `domain-coherence` (its own plan) — yield-to-impact h
   - Work attestations (EAS) with action domain references.
   - Assessments (EAS) with structured impact data.
   - Hypercerts (minimal linkage / claims indexed).
-- **Existing framing docs**:
-  - `docs/docs/builders/specs/greenwill-gif-one-pager-2026-03.md` — GIF proposal (per Afo: "We have the yield impact work being outlined with our offer proposal").
-  - `docs/docs/builders/specs/greenwill-gif-evaluation-plan-2026-03.md`.
-  - `docs/docs/builders/specs/greenwill-badging-impact-framework-2026-03.md`.
-  - `docs/docs/builders/specs/v1-0.mdx § 3.4` — 5 action domains.
+- **Existing framing and authority**:
+  - This Plan Hub retains the durable yield-to-impact framing from the March 2026 GreenWill/GIF proposal set; the exact proposal text remains recoverable through Git history.
+  - `packages/shared/src/ontology/green-goods-ontology.json` defines the four production action domains and their cross-layer representations.
   - `docs/docs/builders/architecture/erd.mdx` and `docs/docs/builders/integrations/entity-matrix.mdx` — current entity model references.
-  - `docs/docs/reference/glossary-community.md` — canonical vocabulary reference.
+  - `docs/docs/reference/glossary.generated.mdx` — generated vocabulary reference (authority: `packages/shared/src/ontology/green-goods-ontology.json`).
 - **Missing**:
   - First-class impact dimensions (community / environmental / social / cultural / ecological) as types in shared.
   - Mapping from action domains × work output → dimensional impact vectors.
@@ -58,7 +56,7 @@ This plan is paired with `domain-coherence` (its own plan) — yield-to-impact h
 
 ## Approach (high-level — implementation detail emerges with discovery)
 
-1. **Discovery** — read the GIF proposal docs + v1 spec + ERD + entity matrix. Document: what dimensions are already partially defined, what's missing, where the gaps are between v1-0.mdx domains and the 5 dimensions Afo named.
+1. **Discovery** — read this hub's retained framing, the ontology, ERD, and entity matrix. Document what dimensions are partially defined and where the four production domains do not yet map to the five dimensions Afo named.
 2. **Conceptual codification** (paired with `domain-coherence` plan) — name the 5 dimensions formally, define how each of the 5 action domains maps to a dimension vector (likely a domain × dimension matrix with weights).
 3. **Type-level codification** — `ImpactDimension`, `ImpactVector`, `YieldImpactCurve` types in `@green-goods/shared`. Pure, no UI.
 4. **Indexer extension** — events / GraphQL fields for the transformation outputs (yield consumed, impact vector produced, per Season per garden).
@@ -88,7 +86,7 @@ This plan is paired with `domain-coherence` (its own plan) — yield-to-impact h
 
 ## Success
 
-- Documented dimension model + domain-to-dimension mapping in `docs/docs/builders/specs/yield-to-impact.mdx`.
+- Documented dimension model + domain-to-dimension mapping in this hub's `spec.md` (authored docs spec pages were retired; public projections generate from the ontology).
 - Typed `ImpactDimension` / `ImpactVector` / `YieldImpactCurve` in `@green-goods/shared`.
 - Indexer schema additions land deterministically on existing events (no new contracts in v1).
 - `useYieldImpactCurve` and `useNetworkImpactCurve` hooks ship with tests.
@@ -105,7 +103,7 @@ This plan is paired with `domain-coherence` (its own plan) — yield-to-impact h
 
 ## Checklist
 
-- [ ] Discovery doc summarizing GIF proposal alignment + dimension definitions in `docs/docs/builders/specs/yield-to-impact.mdx`.
+- [ ] Discovery doc summarizing GIF proposal alignment + dimension definitions in this hub's `spec.md`.
 - [ ] Domain × dimension mapping matrix (paired with `domain-coherence` plan).
 - [ ] Types in `@green-goods/shared` (`ImpactDimension`, `ImpactVector`, `YieldImpactCurve`).
 - [ ] Indexer schema extension if deterministic; design doc for any contract anchor needed.

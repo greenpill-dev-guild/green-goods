@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-15T23:39:22Z",
+  "command": "bun run --cwd packages/contracts test:match -- test/unit/GardenAccountRelay.t.sol -vv",
+  "executionEnvironment": "isolated package copy using the repository-pinned tokenbound and kernel submodules",
+  "result": {
+    "passed": 11,
+    "failed": 0,
+    "skipped": 0
+  },
+  "bounds": {
+    "maxSafeCalldataBytes": 4096,
+    "configuredDestinationGasLimit": 500000,
+    "maxCalldataProposalDestinationGas": 124677,
+    "maxCalldataFinalizationDestinationGas": 55580
+  },
+  "scope": "Unit proof only; pinned Arbitrum and Celo fork acceptance remains required"
+}

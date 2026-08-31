@@ -166,7 +166,7 @@ export interface User {
   privateKey: string;
   address: string;
   currentGarden?: string;
-  role?: "gardener" | "operator";
+  role?: "gardener" | "steward";
   locale?: string;
   createdAt: number;
 }
@@ -177,7 +177,7 @@ export interface CreateUserInput {
   privateKey: string;
   address: string;
   currentGarden?: string;
-  role?: "gardener" | "operator";
+  role?: "gardener" | "steward";
   locale?: string;
 }
 

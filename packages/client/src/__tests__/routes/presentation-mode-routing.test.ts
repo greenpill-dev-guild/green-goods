@@ -2,13 +2,15 @@
  * @vitest-environment jsdom
  */
 
+import { render } from "@testing-library/react";
+import { createElement } from "react";
 import { matchRoutes, type LoaderFunctionArgs, type RouteObject } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
-import { appRoutes, CLIENT_ROUTE_IDS } from "../../router.config";
+import { appRoutes, CLIENT_ROUTE_IDS } from "../../config/routes";
 import {
   requirePwaPresentationLoader,
   requireWebsitePresentationLoader,
-} from "../../routes/presentation-mode";
+} from "../../routes/presentationMode";
 
 const originalNavigator = global.navigator;
 const originalWindow = global.window;
@@ -104,16 +106,6 @@ function findRouteById(routes: RouteObject[], id: string): RouteObject | undefin
   return undefined;
 }
 
-function findRouteByPath(routes: RouteObject[], path: string): RouteObject | undefined {
-  for (const route of routes) {
-    if (route.path === path) return route;
-    const childMatch = route.children ? findRouteByPath(route.children, path) : undefined;
-    if (childMatch) return childMatch;
-  }
-
-  return undefined;
-}
-
 function setWebsiteMode() {
   mockNavigator({
     userAgent:
@@ -121,7 +113,13 @@ function setWebsiteMode() {
     maxTouchPoints: 0,
     platform: "MacIntel",
   });
-  mockWindow({ location: { hostname: "www.greengoods.app" } });
+  mockWindow({
+    location: {
+      href: "https://www.greengoods.app/",
+      hostname: "www.greengoods.app",
+      pathname: "/",
+    },
+  });
 }
 
 function setLocalDesktopMode() {
@@ -153,7 +151,11 @@ function setStandaloneMode() {
     platform: "MacIntel",
   });
   mockWindow({
-    location: { hostname: "www.greengoods.app" },
+    location: {
+      href: "https://www.greengoods.app/home",
+      hostname: "www.greengoods.app",
+      pathname: "/home",
+    },
     matchMedia: createMatchMedia((query) => query === "(display-mode: standalone)"),
   });
 }
@@ -176,6 +178,24 @@ describe("presentation-mode route guards", () => {
     setWebsiteMode();
 
     expect(requireWebsitePresentationLoader(loaderArgs("https://www.greengoods.app/"))).toBeNull();
+  });
+
+  it("leaves website hydration to the static editorial fallback", () => {
+    setWebsiteMode();
+    const rootRoute = findRouteById(appRoutes as RouteObject[], CLIENT_ROUTE_IDS.root);
+
+    const { container } = render(createElement(() => rootRoute?.hydrateFallbackElement ?? null));
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("leaves installed-app hydration to the static logo-led fallback", () => {
+    setStandaloneMode();
+    const rootRoute = findRouteById(appRoutes as RouteObject[], CLIENT_ROUTE_IDS.root);
+
+    const { container } = render(createElement(() => rootRoute?.hydrateFallbackElement ?? null));
+
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("keeps production public routes on the website shell even in standalone mode", () => {
@@ -299,7 +319,9 @@ describe("presentation-mode route guards", () => {
     setLocalDevicePreviewMode();
 
     const legacyUrl = new URL(`http://localhost:3001${legacyPath}`);
-    const legacyRoute = matchRoutes(appRoutes, legacyUrl.pathname)?.at(-1)?.route;
+    const legacyRoute = matchRoutes(appRoutes, legacyUrl.pathname)?.at(-1)?.route as
+      | RouteObject
+      | undefined;
     expect(legacyRoute?.loader).toBeTypeOf("function");
 
     const result = (legacyRoute!.loader as (args: LoaderFunctionArgs) => unknown)(

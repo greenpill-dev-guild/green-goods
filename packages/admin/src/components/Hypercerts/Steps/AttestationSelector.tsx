@@ -1,19 +1,20 @@
+import { Alert } from "@green-goods/shared/components/Alert";
+import { filterAttestationsByAssessment } from "@green-goods/shared/modules/data/hypercerts-filters";
+import type { GardenAssessment } from "@green-goods/shared/types/domain";
+import type { EASGardenAssessment } from "@green-goods/shared/types/eas-responses";
 import {
   ACTION_DOMAINS,
   type ActionDomain,
-  Alert,
-  Button,
-  cn,
-  FormInput,
-  filterAttestationsByAssessment,
-  formatDateTime,
-  type GardenAssessment,
   type HypercertAttestation,
-  NativeSelect,
-} from "@green-goods/shared";
+} from "@green-goods/shared/types/hypercerts";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { formatDateTime } from "@green-goods/shared/utils/time";
 import { RiCheckboxCircleLine, RiCheckboxMultipleLine, RiCloseCircleLine } from "@remixicon/react";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminSelectableCard } from "@/components/AdminSelectableCard";
+import { AdminSelect, AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
 interface AttestationSelectorProps {
@@ -26,7 +27,7 @@ interface AttestationSelectorProps {
   hasError?: boolean;
   bundledInfo?: Record<string, { hypercertId: string; title?: string | null }>;
   /** Available assessments for filtering attestations */
-  assessments?: GardenAssessment[];
+  assessments?: (GardenAssessment | EASGardenAssessment)[];
   /** Currently selected assessment ID */
   selectedAssessmentId?: string | null;
   /** Callback when assessment selection changes */
@@ -138,35 +139,25 @@ export function AttestationSelector({
 
       {/* Assessment filter (only shown when assessments are available) */}
       {assessments && assessments.length > 0 && onAssessmentChange && (
-        <div className="flex flex-col gap-1">
-          <label
-            htmlFor="assessment-filter"
-            className="font-semibold text-text-strong-950 text-label-sm"
-          >
-            {formatMessage({ id: "app.hypercerts.attestations.filter.assessment" })}
-          </label>
-          <NativeSelect
-            id="assessment-filter"
-            surface="admin"
-            aria-label={formatMessage({ id: "app.hypercerts.attestations.filter.assessment" })}
-            value={selectedAssessmentId ?? ""}
-            onChange={(event) => onAssessmentChange(event.target.value || null)}
-            className="block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4 text-sm text-text-strong-950 transition-all duration-[var(--spring-effects-fast-duration,150ms)] focus:ring-2 focus:ring-primary-lighter focus:border-primary-base"
-          >
-            <option value="">
-              {formatMessage({ id: "app.hypercerts.attestations.filter.assessment.none" })}
+        <AdminSelect
+          id="assessment-filter"
+          label={formatMessage({ id: "app.hypercerts.attestations.filter.assessment" })}
+          value={selectedAssessmentId ?? ""}
+          onChange={(event) => onAssessmentChange(event.target.value || null)}
+        >
+          <option value="">
+            {formatMessage({ id: "app.hypercerts.attestations.filter.assessment.none" })}
+          </option>
+          {assessments.map((assessment) => (
+            <option key={assessment.id} value={assessment.id}>
+              {assessment.title}
             </option>
-            {assessments.map((assessment) => (
-              <option key={assessment.id} value={assessment.id}>
-                {assessment.title}
-              </option>
-            ))}
-          </NativeSelect>
-        </div>
+          ))}
+        </AdminSelect>
       )}
 
       <div className="grid gap-3 md:grid-cols-[2fr_1fr]">
-        <FormInput
+        <AdminTextField
           id="attestation-search"
           label={formatMessage({ id: "app.hypercerts.attestations.search.label" })}
           value={searchQuery}
@@ -175,70 +166,45 @@ export function AttestationSelector({
             id: "app.hypercerts.attestations.search.placeholder",
           })}
         />
-        <div className="flex flex-col gap-1">
-          <label
-            htmlFor="domain-filter"
-            className="font-semibold text-text-strong-950 text-label-sm"
-          >
-            {formatMessage({ id: "app.hypercerts.attestations.filter.domain" })}
-          </label>
-          <NativeSelect
-            id="domain-filter"
-            surface="admin"
-            aria-label={formatMessage({ id: "app.hypercerts.attestations.filter.domain" })}
-            value={selectedAssessment ? "" : domainFilter}
-            disabled={Boolean(selectedAssessment)}
-            onChange={(event) => setDomainFilter(event.target.value as DomainOption | "")}
-            className={cn(
-              "block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4 text-sm text-text-strong-950 transition-all duration-[var(--spring-effects-fast-duration,150ms)] focus:ring-2 focus:ring-primary-lighter focus:border-primary-base",
-              selectedAssessment && "opacity-50 cursor-not-allowed"
-            )}
-          >
-            <option value="">{formatMessage({ id: "app.hypercerts.filters.all" })}</option>
-            {DOMAIN_OPTIONS.map((domain) => (
-              <option key={domain} value={domain}>
-                {formatMessage({ id: `app.hypercerts.domain.${domain}` })}
-              </option>
-            ))}
-          </NativeSelect>
-        </div>
+        <AdminSelect
+          id="domain-filter"
+          label={formatMessage({ id: "app.hypercerts.attestations.filter.domain" })}
+          value={selectedAssessment ? "" : domainFilter}
+          disabled={Boolean(selectedAssessment)}
+          onChange={(event) => setDomainFilter(event.target.value as DomainOption | "")}
+        >
+          <option value="">{formatMessage({ id: "app.hypercerts.filters.all" })}</option>
+          {DOMAIN_OPTIONS.map((domain) => (
+            <option key={domain} value={domain}>
+              {formatMessage({ id: `app.hypercerts.domain.${domain}` })}
+            </option>
+          ))}
+        </AdminSelect>
       </div>
 
       {/* Bulk selection buttons */}
       {!isLoading && !hasError && filtered.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          <Button
+          <AdminButton
             type="button"
-            variant="secondary"
+            variant="outlined"
             size="sm"
             onClick={handleSelectAll}
             disabled={allFilteredSelected || selectable.length === 0}
-            className={cn(
-              "inline-flex h-auto min-w-0 items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition",
-              allFilteredSelected || selectable.length === 0
-                ? "border-stroke-soft bg-bg-weak text-text-disabled cursor-not-allowed"
-                : "border-stroke-sub text-text-sub hover:bg-bg-weak"
-            )}
+            leadingIcon={<RiCheckboxMultipleLine />}
           >
-            <RiCheckboxMultipleLine className="h-3.5 w-3.5" />
             {formatMessage({ id: "app.hypercerts.attestations.selectAll" })}
-          </Button>
-          <Button
+          </AdminButton>
+          <AdminButton
             type="button"
-            variant="secondary"
+            variant="outlined"
             size="sm"
             onClick={handleDeselectAll}
             disabled={!someSelected}
-            className={cn(
-              "inline-flex h-auto min-w-0 items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition",
-              !someSelected
-                ? "border-stroke-soft bg-bg-weak text-text-disabled cursor-not-allowed"
-                : "border-stroke-sub text-text-sub hover:bg-bg-weak"
-            )}
+            leadingIcon={<RiCloseCircleLine />}
           >
-            <RiCloseCircleLine className="h-3.5 w-3.5" />
             {formatMessage({ id: "app.hypercerts.attestations.deselectAll" })}
-          </Button>
+          </AdminButton>
         </div>
       )}
 
@@ -305,84 +271,70 @@ export function AttestationSelector({
               : "";
 
           return (
-            <Button
+            <AdminSelectableCard
               key={attestation.id}
-              type="button"
-              variant="ghost"
+              selected={isSelected}
+              disabled={isBundled}
+              aria-disabled={isBundled}
               onClick={() => {
                 if (isBundled) return;
                 onToggle(attestation.id);
               }}
-              aria-pressed={isSelected}
-              aria-disabled={isBundled}
-              disabled={isBundled}
-              className={cn(
-                "flex h-auto w-full min-w-0 flex-col gap-2 rounded-lg border p-4 text-left transition",
-                "focus:outline-none focus:ring-2 focus:ring-primary-base focus:ring-offset-2",
-                isBundled
-                  ? "border-stroke-soft bg-bg-weak text-text-disabled cursor-not-allowed"
-                  : isSelected
-                    ? "border-primary-base bg-primary-lighter"
-                    : "border-stroke-soft bg-bg-white hover:border-primary-light"
-              )}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <h3 className="text-sm font-semibold text-text-strong">{attestation.title}</h3>
-                  <p className="text-xs text-text-sub">
-                    <EnsAddressText
-                      address={attestation.gardenerAddress}
-                      fallbackName={attestation.gardenerName}
-                    />
-                  </p>
-                </div>
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs",
-                    isBundled
-                      ? "border-warning-light bg-warning-lighter text-warning-dark"
+              title={attestation.title}
+              description={
+                <EnsAddressText
+                  address={attestation.gardenerAddress}
+                  fallbackName={attestation.gardenerName}
+                />
+              }
+              meta={
+                <>
+                  <span
+                    className={cn(
+                      "inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 body-sm",
+                      isBundled
+                        ? "border-warning-light bg-warning-lighter text-warning-dark"
+                        : isSelected
+                          ? "border-transparent bg-[rgb(var(--m3-secondary-container))] text-[rgb(var(--m3-on-secondary-container))]"
+                          : "border-stroke-sub text-text-sub"
+                    )}
+                  >
+                    {!isBundled && isSelected && <RiCheckboxCircleLine className="h-3.5 w-3.5" />}
+                    {isBundled
+                      ? formatMessage({ id: "app.hypercerts.attestations.bundledBadge" })
                       : isSelected
-                        ? "border-primary-base bg-primary-base text-primary-foreground"
-                        : "border-stroke-sub text-text-sub"
+                        ? formatMessage({ id: "app.hypercerts.attestations.selectedBadge" })
+                        : formatMessage({ id: "app.hypercerts.attestations.select" })}
+                  </span>
+                  {attestation.domain && (
+                    <span className="rounded-full bg-bg-weak px-2 py-0.5 body-sm text-text-sub">
+                      {formatMessage({ id: `app.hypercerts.domain.${attestation.domain}` })}
+                    </span>
                   )}
-                >
-                  {!isBundled && isSelected && <RiCheckboxCircleLine className="h-3.5 w-3.5" />}
-                  {isBundled
-                    ? formatMessage({ id: "app.hypercerts.attestations.bundledBadge" })
-                    : isSelected
-                      ? formatMessage({ id: "app.hypercerts.attestations.selectedBadge" })
-                      : formatMessage({ id: "app.hypercerts.attestations.select" })}
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-text-sub">
-                {attestation.domain && (
-                  <span className="rounded-full bg-bg-weak px-2 py-0.5">
-                    {formatMessage({ id: `app.hypercerts.domain.${attestation.domain}` })}
-                  </span>
-                )}
-                {attestation.actionType && (
-                  <span className="rounded-full bg-bg-weak px-2 py-0.5">
-                    {formatMessage({ id: `app.hypercerts.action.${attestation.actionType}` })}
-                  </span>
-                )}
-                {formattedDate && (
-                  <span>
-                    {formatMessage(
-                      { id: "app.hypercerts.attestations.approvedOn" },
-                      { date: formattedDate }
-                    )}
-                  </span>
-                )}
-                {isBundled && bundledLabel && (
-                  <span>
-                    {formatMessage(
-                      { id: "app.hypercerts.attestations.bundledIn" },
-                      { title: bundledLabel }
-                    )}
-                  </span>
-                )}
-              </div>
-            </Button>
+                  {attestation.actionType && (
+                    <span className="rounded-full bg-bg-weak px-2 py-0.5 body-sm text-text-sub">
+                      {formatMessage({ id: `app.hypercerts.action.${attestation.actionType}` })}
+                    </span>
+                  )}
+                  {formattedDate && (
+                    <span className="body-sm text-text-sub">
+                      {formatMessage(
+                        { id: "app.hypercerts.attestations.approvedOn" },
+                        { date: formattedDate }
+                      )}
+                    </span>
+                  )}
+                  {isBundled && bundledLabel && (
+                    <span className="body-sm text-text-sub">
+                      {formatMessage(
+                        { id: "app.hypercerts.attestations.bundledIn" },
+                        { title: bundledLabel }
+                      )}
+                    </span>
+                  )}
+                </>
+              }
+            />
           );
         })}
       </div>

@@ -1,4 +1,5 @@
-import { adminRoutes, cn } from "@green-goods/shared";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiArrowDownLine,
   RiArrowUpLine,
@@ -6,7 +7,7 @@ import {
   RiSearchLine,
 } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { STORYBOOK_ADMIN_DEPLOYER_SEEDS } from "../../../../shared/.storybook/adminFixtures";
@@ -192,7 +193,7 @@ function MockCommandPalette({
           id: "app.admin.nav.search",
           defaultMessage: "Search",
         })}
-        className="min-h-11 min-w-11 p-2 rounded-md text-text-soft hover:text-text-sub hover:bg-bg-weak transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
+        className="min-h-11 min-w-11 p-2 rounded-md text-text-soft hover:text-text-sub hover:bg-bg-weak transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
       >
         <RiSearchLine className="h-5 w-5" />
       </button>
@@ -306,7 +307,7 @@ function MockCommandPalette({
 
 // ─── Meta ────────────────────────────────────────────────────────────
 
-type CommandPaletteStoryArgs = MockCommandPaletteProps;
+type CommandPaletteStoryArgs = ComponentProps<typeof CommandPalette> & MockCommandPaletteProps;
 
 const meta: Meta<CommandPaletteStoryArgs> = {
   title: "Admin/Shell/CommandPalette",

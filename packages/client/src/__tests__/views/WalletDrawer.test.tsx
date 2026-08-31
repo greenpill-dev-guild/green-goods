@@ -1,11 +1,11 @@
 /**
- * WalletDrawer Tests — host drawer: tab badge counting and stub tabs.
+ * WalletDrawer Tests — host drawer: tab badge counting and tab membership.
  * @vitest-environment jsdom
  */
 
 import { within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
 import { renderWithProviders as render, screen } from "../test-utils";
 
 const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as const;
@@ -38,7 +38,7 @@ const pausedJar = {
   isPaused: true,
 };
 
-function jarsState(jars: (typeof baseJar)[]) {
+function jarsState(jars: CookieJar[]) {
   return {
     jars,
     isLoading: false,
@@ -51,18 +51,46 @@ function jarsState(jars: (typeof baseJar)[]) {
   };
 }
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
-
+vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal()),
     ConfirmDialog: () => null,
+  };
+});
+
+vi.mock("@green-goods/shared/utils/blockchain/vaults", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     getVaultAssetSymbol: () => "USDC",
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useCookieJarWithdraw: () => ({ mutate: vi.fn(), isPending: false }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useGardens: () => ({
       data: [{ id: TEST_GARDEN, tokenAddress: TEST_GARDEN_TOKEN, name: "Garden Alpha" }],
     }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/app/useOffline", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOffline: () => ({ isOnline: true }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useAccessibleCookieJars", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useAccessibleCookieJars: () => mockUseAccessibleCookieJars(),
   };
 });
@@ -94,15 +122,11 @@ describe("WalletDrawer", () => {
     expect(cookiesTab.queryByText("2")).not.toBeInTheDocument();
   });
 
-  it("shows a calm promise on the Commitments coming-soon tab", async () => {
-    const user = userEvent.setup();
+  it("holds only the two balances, with commitments gone to their own sheet", () => {
     render(<WalletDrawer isOpen onClose={() => {}} />);
 
-    await user.click(screen.getByTestId("tab-pools"));
-
-    expect(screen.getByRole("heading", { name: "Commitments" })).toBeInTheDocument();
-    expect(
-      screen.getByText("Make and honor shared promises with your gardens — coming soon.")
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("tab-cookie-jar")).toBeInTheDocument();
+    expect(screen.getByTestId("tab-send")).toBeInTheDocument();
+    expect(screen.queryByTestId("tab-pools")).not.toBeInTheDocument();
   });
 });

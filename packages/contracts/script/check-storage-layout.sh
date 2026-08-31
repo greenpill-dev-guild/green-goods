@@ -27,9 +27,15 @@ CONTRACTS=(
   "HatsModule:src/modules/Hats.sol"
   "KarmaGAPModule:src/modules/Karma.sol"
   "ActionRegistry:src/registries/Action.sol"
+  "CommitmentRegistry:src/registries/Commitment.sol"
+  "CreditRegistry:src/registries/Credit.sol"
+  "CommitmentPoolingModule:src/modules/CommitmentPooling.sol"
+  "SettlementModule:src/modules/SettlementModule.sol"
+  "CeloSettlementExecutor:src/modules/CeloSettlementExecutor.sol"
   "WorkResolver:src/resolvers/Work.sol"
   "WorkApprovalResolver:src/resolvers/WorkApproval.sol"
   "AssessmentResolver:src/resolvers/Assessment.sol"
+  "TestimonyResolver:src/resolvers/Testimony.sol"
   "Deployment:src/registries/Deployment.sol"
 )
 
@@ -97,6 +103,31 @@ forge "${build_args[@]}" 2>/dev/null || {
 
 if ! enum_catalog=$(bun script/utils/storage-layout-enums.ts src); then
   echo -e "${RED}Could not extract enum definitions from the Solidity AST.${NC}"
+  exit 1
+fi
+
+echo ""
+echo "Checking ERC-7201 namespace layouts..."
+namespace_manifest="$BASELINE_DIR/ERC7201Namespaces.json"
+if ! jq -e '.namespaces | type == "array"' "$namespace_manifest" >/dev/null; then
+  echo -e "${RED}Invalid ERC-7201 namespace manifest: ${namespace_manifest}${NC}"
+  exit 1
+fi
+
+namespace_check=()
+if [[ -n "$contract_filter" ]]; then
+  if jq -e --arg contract "$contract_filter" 'any(.namespaces[]; .contract == $contract)' \
+    "$namespace_manifest" >/dev/null; then
+    namespace_check=(bun script/utils/check-erc7201-layout.ts --contract "$contract_filter")
+  else
+    echo -e "${YELLOW}No ERC-7201 namespace baseline registered for ${contract_filter}; skipping namespace check.${NC}"
+  fi
+else
+  namespace_check=(bun script/utils/check-erc7201-layout.ts)
+fi
+
+if [[ "${#namespace_check[@]}" -gt 0 ]] && ! "${namespace_check[@]}"; then
+  echo -e "${RED}ERC-7201 namespace layout validation failed.${NC}"
   exit 1
 fi
 

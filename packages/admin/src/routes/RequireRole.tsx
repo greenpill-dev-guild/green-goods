@@ -1,4 +1,4 @@
-import { type UserRole, useRole } from "@green-goods/shared";
+import { useRole, type UserRole } from "@green-goods/shared/hooks/gardener/useRole";
 import { useIntl } from "react-intl";
 import { Outlet } from "react-router-dom";
 
@@ -38,8 +38,8 @@ export default function RequireRole({ allowedRoles, loadingFallback }: RequireRo
                 {allowedRoles.includes("deployer") && (
                   <li>{formatMessage({ id: "app.admin.auth.requireDeployer" })}</li>
                 )}
-                {allowedRoles.includes("operator") && (
-                  <li>{formatMessage({ id: "app.admin.auth.requireOperator" })}</li>
+                {allowedRoles.includes("steward") && (
+                  <li>{formatMessage({ id: "app.admin.auth.requireSteward" })}</li>
                 )}
               </ul>
             </div>

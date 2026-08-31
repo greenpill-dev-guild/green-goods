@@ -17,15 +17,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // Mocks
 // ============================================
 
-vi.mock("../../../modules/translation/browser-translator", () => ({
-  browserTranslator: {
-    get isSupported() {
-      return false;
-    },
-    translate: vi.fn(),
-  },
-}));
-
 vi.mock("../../../modules/app/logger", () => ({
   logger: {
     error: vi.fn(),
@@ -40,28 +31,39 @@ vi.mock("../../../modules/app/logger", () => ({
 // ============================================
 
 import { useGardenTranslation } from "../../../hooks/translation/useGardenTranslation";
+import type { Translator } from "../../../modules/translation/browser-translator";
 import { AppContext } from "../../../providers/App";
 import type { Garden } from "../../../types/domain";
+
+const unsupportedTranslator: Translator = {
+  isSupported: false,
+  translate: vi.fn(),
+  translateBatch: vi.fn(),
+};
 
 // ============================================
 // Test Helpers
 // ============================================
 
-function createWrapper(locale = "en") {
+function createWrapper(locale: "en" | "es" | "pt" = "en") {
   return function Wrapper({ children }: { children: React.ReactNode }) {
     const value = {
       locale,
       isMobile: false,
       isInstalled: false,
+      isInstalling: false,
       isPwaPresentation: false,
       isStandalone: false,
+      installState: "not-installed" as const,
+      installedAppEvidence: { status: "unknown" as const, source: "unsupported" as const },
       presentationMode: "website" as const,
       wasInstalled: false,
-      availableLocales: ["en", "es"],
+      availableLocales: ["en", "es", "pt"] as const,
       deferredPrompt: null,
       platform: "unknown" as const,
       promptInstall: () => {},
       handleInstallCheck: () => {},
+      switchLanguage: () => {},
     };
     return React.createElement(AppContext.Provider, { value }, children);
   };
@@ -79,7 +81,7 @@ function createGarden(overrides: Partial<Garden> = {}): Garden {
     bannerImage: "ipfs://QmBanner",
     createdAt: Date.now(),
     gardeners: [],
-    operators: [],
+    stewards: [],
     owners: [],
     evaluators: [],
     funders: [],
@@ -99,9 +101,12 @@ describe("useGardenTranslation", () => {
   });
 
   it("returns null translatedGarden when garden is null", () => {
-    const { result } = renderHook(() => useGardenTranslation(null), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => useGardenTranslation(null, { translator: unsupportedTranslator }),
+      {
+        wrapper: createWrapper(),
+      }
+    );
 
     expect(result.current.translatedGarden).toBeNull();
     expect(result.current.isTranslating).toBe(false);
@@ -109,9 +114,12 @@ describe("useGardenTranslation", () => {
 
   it("returns garden fields unchanged when locale matches source (en)", () => {
     const garden = createGarden();
-    const { result } = renderHook(() => useGardenTranslation(garden), {
-      wrapper: createWrapper("en"),
-    });
+    const { result } = renderHook(
+      () => useGardenTranslation(garden, { translator: unsupportedTranslator }),
+      {
+        wrapper: createWrapper("en"),
+      }
+    );
 
     expect(result.current.translatedGarden).not.toBeNull();
     expect(result.current.translatedGarden!.name).toBe("Urban Garden Portland");
@@ -127,34 +135,43 @@ describe("useGardenTranslation", () => {
       chainId: 42161,
     });
 
-    const { result } = renderHook(() => useGardenTranslation(garden), {
-      wrapper: createWrapper("en"),
-    });
+    const { result } = renderHook(
+      () => useGardenTranslation(garden, { translator: unsupportedTranslator }),
+      {
+        wrapper: createWrapper("en"),
+      }
+    );
 
     expect(result.current.translatedGarden!.id).toBe("special-garden");
     expect(result.current.translatedGarden!.tokenID).toBe(BigInt(42));
     expect(result.current.translatedGarden!.chainId).toBe(42161);
   });
 
-  it("preserves array fields (gardeners, operators, etc.)", () => {
+  it("preserves array fields (gardeners, stewards, etc.)", () => {
     const garden = createGarden({
       gardeners: ["0xGardener1" as any],
-      operators: ["0xOperator1" as any],
+      stewards: ["0xSteward1" as any],
     });
 
-    const { result } = renderHook(() => useGardenTranslation(garden), {
-      wrapper: createWrapper("en"),
-    });
+    const { result } = renderHook(
+      () => useGardenTranslation(garden, { translator: unsupportedTranslator }),
+      {
+        wrapper: createWrapper("en"),
+      }
+    );
 
     expect(result.current.translatedGarden!.gardeners).toEqual(["0xGardener1"]);
-    expect(result.current.translatedGarden!.operators).toEqual(["0xOperator1"]);
+    expect(result.current.translatedGarden!.stewards).toEqual(["0xSteward1"]);
   });
 
   it("reports isTranslating as false when API is unsupported and locale differs", () => {
     const garden = createGarden();
-    const { result } = renderHook(() => useGardenTranslation(garden), {
-      wrapper: createWrapper("es"),
-    });
+    const { result } = renderHook(
+      () => useGardenTranslation(garden, { translator: unsupportedTranslator }),
+      {
+        wrapper: createWrapper("es"),
+      }
+    );
 
     // API unsupported => falls back immediately without translating
     expect(result.current.isTranslating).toBe(false);
@@ -169,9 +186,12 @@ describe("useGardenTranslation", () => {
       location: "",
     });
 
-    const { result } = renderHook(() => useGardenTranslation(garden), {
-      wrapper: createWrapper("en"),
-    });
+    const { result } = renderHook(
+      () => useGardenTranslation(garden, { translator: unsupportedTranslator }),
+      {
+        wrapper: createWrapper("en"),
+      }
+    );
 
     expect(result.current.translatedGarden!.name).toBe("");
     expect(result.current.translatedGarden!.description).toBe("");

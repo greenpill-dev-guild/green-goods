@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { mockCreateAppKit, mockEnv, mockHttp, mockSetThemeMode, mockWagmiAdapter } = vi.hoisted(
   () => ({
-    mockCreateAppKit: vi.fn(() => ({ setThemeMode: mockSetThemeMode })),
+    mockCreateAppKit: vi.fn((_options?: unknown) => ({ setThemeMode: mockSetThemeMode })),
     mockEnv: {
       VITE_ALCHEMY_API_KEY: "",
       VITE_WALLETCONNECT_PROJECT_ID: "env-project",
@@ -30,7 +30,7 @@ vi.mock("viem", () => ({
 }));
 
 vi.mock("@reown/appkit/react", () => ({
-  createAppKit: (...args: unknown[]) => mockCreateAppKit(...args),
+  createAppKit: (options: unknown) => mockCreateAppKit(options),
 }));
 
 vi.mock("@reown/appkit-adapter-wagmi", () => ({

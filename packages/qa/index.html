@@ -1,0 +1,1001 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Green Goods QA</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  :root {
+    --paper:#FBF9F3; --surface:#FFFFFF; --linen:#F5F1E8; --ink:#26231C; --soft:#6E675A;
+    --green:#1A7544; --green-wash:#E8F1EA; --red:#A8402F; --red-wash:#F7E6E1;
+    --amber:#8F6516; --amber-wash:#F7EEDA; --line:#E2DBCC; --mono-bg:#F0EBDF;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --paper:#1B1914; --surface:#24211A; --linen:#2A261E; --ink:#EDE8DC; --soft:#A89F8E;
+    --green:#4CAE7A; --green-wash:#223A2C; --red:#E08A76; --red-wash:#422A24;
+    --amber:#D9A84E; --amber-wash:#3A3021; --line:#3A352A; --mono-bg:#2E2A21;
+  }}
+  :root[data-theme="dark"] {
+    --paper:#1B1914; --surface:#24211A; --linen:#2A261E; --ink:#EDE8DC; --soft:#A89F8E;
+    --green:#4CAE7A; --green-wash:#223A2C; --red:#E08A76; --red-wash:#422A24;
+    --amber:#D9A84E; --amber-wash:#3A3021; --line:#3A352A; --mono-bg:#2E2A21;
+  }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+    font-family:"Inter",system-ui,sans-serif; font-size:14px; line-height:1.45; }
+  header { position:sticky; top:0; z-index:5; background:var(--paper);
+    border-bottom:1px solid var(--line); padding:14px 18px 10px; }
+  h1 { font-family:"Plus Jakarta Sans",sans-serif; font-size:19px; font-weight:800;
+    margin:0 0 2px; letter-spacing:-0.01em; }
+  .runline { font-size:12px; color:var(--soft); }
+  .header-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px; }
+  .tabs { display:flex; gap:6px; flex:1 1 440px; flex-wrap:wrap; }
+  .tab { border:1px solid var(--line); background:var(--surface); color:var(--ink);
+    border-radius:999px; padding:4px 12px; font-size:12.5px; font-weight:600; cursor:pointer; }
+  .tab.on { background:var(--green); border-color:var(--green); color:#fff; }
+  .tab small { font-weight:500; opacity:0.75; margin-left:4px; }
+  main { max-width:880px; margin:0 auto; padding:12px 18px 90px; }
+  .area { font-family:"Plus Jakarta Sans",sans-serif; font-weight:700; font-size:12.5px;
+    letter-spacing:0.05em; text-transform:uppercase; color:var(--soft);
+    background:var(--linen); border-radius:8px; padding:5px 12px; margin:16px 0 6px; }
+  .row { display:grid; grid-template-columns:86px 1fr auto; gap:10px; align-items:start;
+    padding:9px 4px; border-bottom:1px solid var(--line); }
+  .row.done { opacity:0.68; }
+  .rid { font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--soft); padding-top:3px; }
+  .rid b { display:block; color:var(--ink); font-weight:500; }
+  .rid .mark { display:inline-block; font-style:normal; font-size:9.5px; font-weight:600;
+    border-radius:999px; padding:0 5px; margin:2px 3px 0 0; background:var(--linen); color:var(--soft); }
+  .rid .mark.pass { background:var(--green-wash); color:var(--green); }
+  .rid .mark.fail { background:var(--red-wash); color:var(--red); }
+  .rid .mark.blocked { background:var(--amber-wash); color:var(--amber); }
+  .scen { font-size:13.5px; }
+  .scen .why { display:block; font-size:11.5px; color:var(--soft); margin-top:1px; }
+  .flag { display:inline-block; font-size:10px; font-weight:600; letter-spacing:0.05em;
+    text-transform:uppercase; color:var(--amber); background:var(--amber-wash);
+    border-radius:999px; padding:1px 7px; margin-left:6px; vertical-align:1px; }
+  .flag.txf { color:var(--green); background:var(--green-wash); }
+  .ctl { display:flex; gap:4px; align-items:center; }
+  .st { width:34px; height:28px; border-radius:7px; border:1px solid var(--line);
+    background:var(--surface); color:var(--soft); font-weight:700; font-size:11.5px; cursor:pointer; }
+  .st:focus-visible { outline:2px solid var(--green); outline-offset:1px; }
+  .st.pass.on { background:var(--green); border-color:var(--green); color:#fff; }
+  .st.fail.on { background:var(--red); border-color:var(--red); color:#fff; }
+  .st.blocked.on { background:var(--amber); border-color:var(--amber); color:#fff; }
+  .st.na.on { background:var(--soft); border-color:var(--soft); color:var(--paper); }
+  .st:disabled { opacity:0.4; cursor:not-allowed; }
+  .note { grid-column:2 / -1; }
+  .note textarea { width:100%; min-height:34px; border:1px solid var(--line); border-radius:7px;
+    background:var(--surface); color:var(--ink); font:inherit; font-size:12.5px; padding:5px 9px;
+    resize:none; overflow:hidden; }
+  .note textarea::placeholder { color:var(--soft); opacity:0.7; }
+  .onote { font-size:12px; color:var(--ink); background:var(--linen); border-radius:7px;
+    padding:5px 9px; margin-bottom:4px; }
+  .onote b { color:var(--soft); font-weight:600; margin-right:6px; }
+  .filters { display:flex; gap:6px; align-items:center; }
+  .signin { position:fixed; inset:0; z-index:50; display:grid; place-items:center;
+    background:var(--paper); padding:24px; }
+  .signin-card { max-width:400px; text-align:center; }
+  .signin-card h2 { margin:0 0 10px; font-size:20px; }
+  .signin-card p { color:var(--soft); margin:0 0 18px; font-size:14px; line-height:1.55; }
+  .signin-card label { display:block; text-align:left; margin-bottom:5px; font-size:12px; font-weight:600; }
+  #signin-name { display:block; width:100%; margin:0 0 14px; padding:10px 12px; font:inherit;
+    border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); }
+  #signin-btn { border:1px solid var(--green); background:var(--green); color:#fff;
+    border-radius:8px; padding:11px 20px; font:inherit; font-weight:600; cursor:pointer; }
+  #signin-btn:disabled { opacity:.6; cursor:progress; }
+  .signin-err { color:var(--red); margin-top:14px !important; font-size:13px; }
+  .signout-btn { border:0; background:transparent; color:var(--soft); padding:2px 4px; font:inherit;
+    font-size:11.5px; text-decoration:underline; cursor:pointer; }
+  .filt, .scope-btn { border:1px solid var(--line); background:var(--surface);
+    color:var(--soft); border-radius:999px; padding:2px 10px; font-size:11.5px;
+    font-weight:600; cursor:pointer; }
+  .filt.on { color:var(--ink); border-color:var(--soft); }
+  .scope-btn.on { background:var(--ink); border-color:var(--ink); color:var(--paper); }
+  .scope-btn small { font-weight:500; opacity:0.7; margin-left:5px; }
+  .grouplabel { font-size:11px; color:var(--soft); letter-spacing:0.04em;
+    text-transform:uppercase; margin-right:2px; }
+  .scoperow { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-left:auto; }
+  .counts { font-size:11.5px; color:var(--soft); margin-left:auto; text-align:right; }
+  .counts b { color:var(--ink); }
+  .counts .current-tester { color:var(--ink); font-weight:700; }
+  .counts .warn { color:var(--amber); }
+  @media (max-width:720px) {
+    .tabs { flex-basis:100%; }
+    .scoperow, .counts { margin-left:0; }
+    .counts { flex-basis:100%; text-align:left; }
+    .row { grid-template-columns:72px minmax(0,1fr); }
+    .scen { min-width:0; overflow-wrap:anywhere; }
+    .ctl { grid-column:2; justify-self:start; }
+    .note { grid-column:1 / -1; }
+  }
+  .empty { color:var(--soft); font-size:13px; padding:22px 4px; }
+  .savebar { position:fixed; right:14px; bottom:14px; z-index:6; font-size:12px; font-weight:600;
+    background:var(--surface); border:1px solid var(--line); border-radius:999px;
+    padding:6px 14px; color:var(--soft); }
+  .savebar.saving { color:var(--amber); }
+  .savebar.saved { color:var(--green); }
+  .savebar.ro { color:var(--red); }
+</style>
+</head>
+<body>
+<div id="mount"><main><p class="empty">Loading the checklist…</p></main></div>
+<div class="savebar" id="savebar">connecting…</div>
+<div class="signin" id="signin" role="dialog" aria-modal="true" aria-labelledby="signin-title" hidden>
+  <div class="signin-card">
+    <h2 id="signin-title">Green Goods QA</h2>
+    <p id="signin-why">Sign in with the wallet on the QA allowlist. Your address is your identity here — nobody can record entries as you.</p>
+    <button type="button" id="signin-btn">Sign in with Ethereum</button>
+    <p class="signin-err" id="signin-err" role="alert" aria-live="assertive" hidden></p>
+  </div>
+</div>
+<script>
+(() => {
+  "use strict";
+
+  const STATUSES = ["pass", "fail", "blocked", "na"];
+  const LABEL = { pass: "P", fail: "F", blocked: "B", na: "–" };
+  // Each verdict button renders a single glyph, so "P" would be its whole
+  // accessible name. Screen readers get the word instead, and `aria-pressed`
+  // carries the selection that is otherwise only in the `on` class.
+  const SPOKEN = { pass: "pass", fail: "fail", blocked: "blocked", na: "not applicable" };
+  // Rollup when testers disagree on one case: the most severe verdict stands.
+  const RANK = { fail: 4, blocked: 3, pass: 2, na: 1 };
+  const POLL_MS = 4000;
+  const OUTBOX_PREFIX = "qa-outbox:";
+  /** The single shared key this page used before it kept one queue per tester. */
+  const LEGACY_OUTBOX_KEY = "qa-outbox";
+
+  let CASES = [];
+  let TABS = [];
+  let TEAM = [];
+  /** caseId -> person -> { s, n, at }. This browser is authoritative for `who`. */
+  let entries = Object.create(null);
+
+  let activeTab = "";
+  let filter = "all";
+  let scope = "all";
+  let who = "";
+  // Stable signing address in production; the loopback development bypass
+  // falls back to its fixed name. Display names are never durable identifiers.
+  let identity = "";
+  let dirty = false;
+  let saveTimer = null;
+  let pollTimer = null;
+  let saving = null;
+  let versionClock = 0;
+  let pollSequence = 0;
+  let lastAppliedPoll = 0;
+  let outboxVersions = Object.create(null);
+  const localVersions = Object.create(null);
+  const confirmedVersions = Object.create(null);
+
+  const mount = document.getElementById("mount");
+  const savebar = document.getElementById("savebar");
+
+  let view = {};
+  try { view = JSON.parse(sessionStorage.getItem("qa-view") || "{}") || {}; } catch (e) {}
+  // `who` is whoever the signed session says you are. It used to be a local
+  // preference, which is precisely what let anyone record as anyone.
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+  }
+  function hasOwn(value, key) {
+    return Boolean(value) && Object.prototype.hasOwnProperty.call(value, key);
+  }
+  function dictionary(source) {
+    const result = Object.create(null);
+    if (!source || typeof source !== "object") return result;
+    for (const [key, value] of Object.entries(source)) result[key] = value;
+    return result;
+  }
+  function entryRows(source) {
+    const result = Object.create(null);
+    if (!source || typeof source !== "object") return result;
+    for (const [caseId, row] of Object.entries(source)) result[caseId] = dictionary(row);
+    return result;
+  }
+  function mergedDictionary(...sources) {
+    const result = Object.create(null);
+    for (const source of sources) {
+      if (!source || typeof source !== "object") continue;
+      for (const [key, value] of Object.entries(source)) result[key] = value;
+    }
+    return result;
+  }
+  function ensureEntryRow(caseId) {
+    if (!hasOwn(entries, caseId)) entries[caseId] = Object.create(null);
+    return entries[caseId];
+  }
+  function rowEntry(row, person) {
+    return hasOwn(row, person) ? row[person] : null;
+  }
+  function versionKey(person, caseId) {
+    return person + "|" + caseId;
+  }
+
+  // ── Local durability ────────────────────────────────────────────────
+  // `outbox` is the pending FIELD-LEVEL delta — a status click carries only `s`
+  // and a note edit carries only `n`. It lands in storage on every keystroke, so
+  // a reload, a crash, a closed tab, or a failed POST never costs anyone their
+  // notes. Omitting the untouched field also prevents a phone's stale note from
+  // replacing a laptop edit, or a laptop's stale status from clearing a verdict.
+  //
+  // localStorage, not sessionStorage. The savebar promises "kept locally,
+  // retrying", and sessionStorage is discarded when the page session ends —
+  // which is exactly the case the promise is for: a tester who closes the tab
+  // or dismisses the installed PWA during the debounce, or while saves are
+  // failing, reopens to find the retry has nothing left to send. Entries leave
+  // here only once the server has confirmed that write.
+  function outboxKey(owner) {
+    return OUTBOX_PREFIX + owner;
+  }
+
+  /**
+   * The delta stored for one tester, or null.
+   *
+   * Keyed PER TESTER, because localStorage is shared by every tab on this
+   * origin. Under one shared key, a tab switching to Gui would delete Afo's
+   * unsent work, and a stored-vs-selected mismatch would look like something to
+   * discard — which is how a tester's only unsaved copy disappears. Under their
+   * own key, each tester's queue simply waits for them.
+   */
+  function storedOutboxFor(owner, legacyPerson) {
+    if (!owner) return null;
+    for (const read of [
+      () => localStorage.getItem(outboxKey(owner)),
+      // The first wallet-auth page keyed by display name. Migrate that queue
+      // after the authenticated response supplies the stable owner address.
+      () => owner !== legacyPerson && legacyPerson ? localStorage.getItem(outboxKey(legacyPerson)) : null,
+      // Written before this page keyed per tester, or before it moved off
+      // sessionStorage. Adopt it once rather than stranding it there.
+      () => localStorage.getItem(LEGACY_OUTBOX_KEY),
+      () => sessionStorage.getItem(LEGACY_OUTBOX_KEY),
+    ]) {
+      try {
+        const stored = JSON.parse(read() || "null");
+        if (stored && stored.delta && (stored.owner === owner || (!stored.owner && stored.person === legacyPerson))) {
+          return stored.delta;
+        }
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  // Loaded once `who` is known. Identity now arrives from the server, so there
+  // is nobody to key the outbox by until the first state read comes back —
+  // reading it here would silently start every session with an empty one and
+  // strand whatever the last session failed to send.
+  let outbox = Object.create(null);
+  function writeOutbox(owner, person, delta) {
+    try {
+      if (Object.keys(delta).length) {
+        localStorage.setItem(outboxKey(owner), JSON.stringify({ owner, person, delta }));
+      } else {
+        localStorage.removeItem(outboxKey(owner));
+      }
+    } catch (e) {}
+  }
+
+  /**
+   * Drop a legacy queue once its contents are in memory.
+   *
+   * `storedOutboxFor` falls back to the pre-per-tester keys so nothing is
+   * stranded there. But the fallback is a READ, and a drained queue that still
+   * exists in the legacy slot is found again on the next lookup — so a migrated
+   * queue would resurrect forever, re-sending work the server already has.
+   * Retiring it here is the second half of the migration.
+   */
+  function retireLegacyOutbox(owner, person) {
+    if (!owner) return;
+    for (const store of [localStorage, sessionStorage]) {
+      try {
+        const stored = JSON.parse(store.getItem(LEGACY_OUTBOX_KEY) || "null");
+        // Only ever retire this tester's own queue — another tester's unsent
+        // work may be sitting in the same slot on a shared browser.
+        if (stored && stored.person === person) store.removeItem(LEGACY_OUTBOX_KEY);
+      } catch (e) {}
+    }
+    if (person && owner !== person) {
+      try {
+        const stored = JSON.parse(localStorage.getItem(outboxKey(person)) || "null");
+        if (stored && !stored.owner && stored.person === person) localStorage.removeItem(outboxKey(person));
+      } catch (e) {}
+    }
+  }
+
+  /**
+   * Persist this tab's queue WITHOUT discarding another tab's.
+   *
+   * Per-tester keys stop one tester clearing another's work, but two tabs of
+   * the SAME tester still share a key while each holds its own in-memory
+   * queue. Writing the whole object made the second tab replace the first's
+   * cases — record case A here and case B there while saves are failing, close
+   * the first tab, and A is gone despite the promise on the savebar. So the
+   * write merges: this tab is authoritative for the cases it is holding, and
+   * silent about every other.
+   */
+  function saveOutbox() {
+    if (!identity || !who) return;
+    writeOutbox(identity, who, mergedDictionary(storedOutboxFor(identity, who), outbox));
+  }
+
+  /**
+   * Forget specific cases in storage as well as memory. A case leaves the
+   * stored queue only when the tab that sent it has a confirmation for it —
+   * merging alone would otherwise keep resurrecting what was already saved.
+   */
+  function forgetStoredCases(owner, caseIds) {
+    if (!owner || !caseIds.length) return;
+    const stored = dictionary(storedOutboxFor(owner, who));
+    for (const caseId of caseIds) delete stored[caseId];
+    writeOutbox(owner, who, mergedDictionary(stored, outbox));
+  }
+
+  /** Drop this tab's queue. Never touches another tab's or another tester's. */
+  function clearOutbox(person) {
+    const owned = Object.keys(outbox);
+    outbox = Object.create(null);
+    outboxVersions = Object.create(null);
+    forgetStoredCases(person || identity, owned);
+  }
+  /** Clearing a case is explicit, so clearing one field never means deletion. */
+  function tombstone() {
+    return { delete: true };
+  }
+  function patchEntry(current, patch) {
+    if (patch.delete) return null;
+    const next = {
+      s: hasOwn(patch, "s") ? patch.s || "" : current ? current.s || "" : "",
+      n: hasOwn(patch, "n") ? patch.n || "" : current ? current.n || "" : "",
+      at: new Date().toISOString(),
+    };
+    return !next.s && !next.n.trim() ? null : next;
+  }
+  function markLocalEdit(caseId, person) {
+    // The display label may change when another tester chooses the same name;
+    // the signing address remains stable across that relabel.
+    const key = versionKey(identity || person, caseId);
+    const version = ++versionClock;
+    localVersions[key] = version;
+    return version;
+  }
+  function normalizeLoadedOutbox() {
+    const normalized = Object.create(null);
+    for (const [caseId, raw] of Object.entries(outbox)) {
+      if (!raw || typeof raw !== "object") continue;
+      if (raw.delete === true) {
+        normalized[caseId] = tombstone();
+        continue;
+      }
+      const hasStatus = hasOwn(raw, "s") && typeof raw.s === "string";
+      const hasNote = hasOwn(raw, "n") && typeof raw.n === "string";
+      // The previous page stored whole entries with an `at` field. Diff those
+      // against the server copy so a recovered outbox becomes a field patch
+      // instead of reviving the old whole-entry overwrite race.
+      if (hasOwn(raw, "at")) {
+        if (hasStatus && hasNote && !raw.s && !raw.n.trim()) {
+          normalized[caseId] = tombstone();
+          continue;
+        }
+        // Only NON-EMPTY fields migrate. The old format stored a whole entry,
+        // so an empty field there is ambiguous: "this tester had nothing here"
+        // and "this tester cleared it" look identical. Treating it as a change
+        // would send an empty note over one the other device saved in the
+        // meantime — reviving the whole-entry overwrite this format replaced.
+        // The asymmetry is deliberate: a clear that has to be redone by hand
+        // costs a click, an erased note is not recoverable. Both-empty is
+        // already an explicit delete above.
+        const current = entryFor(caseId, who);
+        const patch = {};
+        if (hasStatus && raw.s && raw.s !== (current ? current.s || "" : "")) patch.s = raw.s;
+        if (hasNote && raw.n.trim() && raw.n !== (current ? current.n || "" : "")) patch.n = raw.n;
+        if (Object.keys(patch).length) normalized[caseId] = patch;
+        continue;
+      }
+      const patch = {};
+      if (hasStatus) patch.s = raw.s;
+      if (hasNote) patch.n = raw.n;
+      if (Object.keys(patch).length) normalized[caseId] = patch;
+    }
+    outbox = normalized;
+  }
+
+  /**
+   * Apply a recovered queue onto the rendered entries and schedule its send.
+   * Unsent work from an earlier page life wins over the server copy.
+   */
+  function adoptRecoveredOutbox() {
+    if (!who || !Object.keys(outbox).length) return;
+    normalizeLoadedOutbox();
+    for (const [caseId, patch] of Object.entries(outbox)) {
+      const entry = patchEntry(entryFor(caseId, who), patch);
+      const row = ensureEntryRow(caseId);
+      if (entry) row[who] = entry;
+      else delete row[who];
+      outboxVersions[caseId] = markLocalEdit(caseId, who);
+    }
+    saveOutbox();
+    if (Object.keys(outbox).length) queueSave(400);
+  }
+
+  function entryFor(caseId, person) {
+    return rowEntry(hasOwn(entries, caseId) ? entries[caseId] : null, person);
+  }
+  function setMine(caseId, entry, patch) {
+    const row = ensureEntryRow(caseId);
+    if (entry) row[who] = entry;
+    else delete row[who];
+    const pending = outbox[caseId];
+    if (patch.delete) outbox[caseId] = tombstone();
+    // Once a pending delete is followed by a new entry, send the complete new
+    // value. The server still has the pre-delete entry until this delta lands.
+    else if (pending && pending.delete) {
+      outbox[caseId] = entry ? { s: entry.s || "", n: entry.n || "" } : { ...patch };
+    }
+    else outbox[caseId] = { ...(pending || {}), ...patch };
+    outboxVersions[caseId] = markLocalEdit(caseId, who);
+    saveOutbox();
+  }
+
+  /** The case's standing verdict: the most severe entry any tester recorded. */
+  function verdict(caseId) {
+    const all = Object.values(entries[caseId] || {}).map((e) => e.s).filter(Boolean);
+    if (!all.length) return "";
+    return all.sort((a, b) => RANK[b] - RANK[a])[0];
+  }
+  function isIssue(caseId) {
+    return Object.values(entries[caseId] || {}).some((e) => e.s === "fail" || e.s === "blocked");
+  }
+  function hasEntry(caseId, person) { return Boolean(entryFor(caseId, person)); }
+
+  // ── Counts ──────────────────────────────────────────────────────────
+  function counts(tab) {
+    const rows = CASES.filter((c) => c.tab === tab);
+    return {
+      total: rows.length,
+      done: rows.filter((c) => verdict(c.id)).length,
+      fails: rows.filter((c) => isIssue(c.id)).length,
+    };
+  }
+  function scopeCount(tab, key) {
+    const rows = CASES.filter((c) => c.tab === tab);
+    return key === "all" ? rows.length : rows.filter((c) => hasEntry(c.id, key)).length;
+  }
+  function tally() {
+    // Display names are self-declared data. Escape them here just as we do in
+    // buttons and notes; this summary is also written through `innerHTML`.
+    const per = TEAM.map((n) => {
+      const name = `<span class="${n === who ? "current-tester" : "tester-name"}">${esc(n)}</span>`;
+      return `${name} ${CASES.filter((c) => hasEntry(c.id, n)).length}`;
+    });
+    const undecided = CASES.filter((c) => !verdict(c.id)).length;
+    return `${per.join(" · ")} · <b>${undecided}</b> still undecided (all tabs)`;
+  }
+
+  // ── Render ──────────────────────────────────────────────────────────
+  function render() {
+    const head = `<header>
+      <h1>Green Goods QA</h1>
+      <div class="runline">${CASES.length} cases · each signed-in tester keeps their own verdict and notes</div>
+      <div class="header-row tab-row">
+        <div class="tabs" role="group" aria-label="QA surface">${TABS.map((t) => {
+          const k = counts(t);
+          return `<button class="tab ${t === activeTab ? "on" : ""}" data-tab="${esc(t)}" aria-pressed="${t === activeTab ? "true" : "false"}">${esc(t)}<small>${k.done}/${k.total}${k.fails ? " · " + k.fails + "F" : ""}</small></button>`;
+        }).join("")}</div>
+        <div class="scoperow" role="group" aria-label="whose entries to show"><span class="grouplabel">showing</span>${
+          [["all", "Everyone"]].concat(TEAM.map((n) => [n, n])).map(([k, l]) =>
+            `<button class="scope-btn ${scope === k ? "on" : ""}" data-scope="${esc(k)}" aria-pressed="${scope === k ? "true" : "false"}">${esc(l)}<small>${scopeCount(activeTab, k)}</small></button>`).join("")
+        }</div>
+      </div>
+      <div class="header-row filter-row">
+        <div class="filters" role="group" aria-label="case status">${[["all", "All"], ["issues", "Issues"], ["open", "Undecided"]].map(([k, l]) =>
+          `<button class="filt ${filter === k ? "on" : ""}" data-f="${k}" aria-pressed="${filter === k ? "true" : "false"}">${l}</button>`).join("")}</div>
+        <div class="counts">${tally()}${who ? ' · <button type="button" class="signout-btn">Sign out</button>' : ' · <b class="warn">recording unavailable</b>'}</div>
+      </div>
+    </header>`;
+
+    const rows = CASES.filter((c) => c.tab === activeTab).filter((c) => {
+      if (filter === "issues" && !isIssue(c.id)) return false;
+      if (filter === "open" && verdict(c.id)) return false;
+      if (scope !== "all" && !hasEntry(c.id, scope)) return false;
+      return true;
+    });
+
+    const areas = [...new Set(rows.map((c) => c.area))];
+    const body = areas.map((a) => `<div class="area">${esc(a)}</div>` + rows.filter((c) => c.area === a).map((c) => {
+      const ents = entries[c.id] || {};
+      const own = who ? ents[who] : null;
+      const flag = (c.rp ? '<span class="flag">prod</span>' : c.rd ? '<span class="flag">device</span>' : "")
+        + (c.tx ? '<span class="flag txf">tx</span>' : "");
+      const marks = Object.entries(ents).filter(([, e]) => e.s).map(([p, e]) =>
+        `<i class="mark ${esc(e.s)}" title="${esc(p)}: ${esc(e.s)}">${esc(p)} ${LABEL[e.s] || "?"}</i>`).join("");
+      // Other testers' notes stay visible and untouched while you write yours.
+      const others = Object.entries(ents).filter(([p, e]) => p !== who && e.n).map(([p, e]) =>
+        `<div class="onote"><b>${esc(p)}</b>${esc(e.n)}</div>`).join("");
+      return `<div class="row ${verdict(c.id) ? "done" : ""}">
+        <div class="rid"><b>${esc(c.id)}</b>${esc(c.pri)}${marks}</div>
+        <div class="scen">${esc(c.scenario)}${flag}<span class="why">${esc(c.expected)}</span></div>
+        <div class="ctl" role="group" aria-label="${esc(c.id)} verdict">${STATUSES.map((s) =>
+          `<button class="st ${s} ${own && own.s === s ? "on" : ""}" data-id="${esc(c.id)}" data-s="${s}" aria-pressed="${own && own.s === s ? "true" : "false"}" aria-label="${esc(SPOKEN[s])}" title="${who ? esc(who) + ": " + s : "pick your name first"}"${who ? "" : " disabled"}>${LABEL[s]}</button>`).join("")}</div>
+        <div class="note">${others}<textarea data-note="${esc(c.id)}" rows="1" maxlength="4000" aria-label="${esc(c.id)} — ${who ? esc(who) + "'s notes" : "notes"}" placeholder="${who ? esc(who) + "'s notes — saves as you go…" : "pick your name above to add notes"}"${who ? "" : " disabled"}>${esc(own ? own.n || "" : "")}</textarea></div>
+      </div>`;
+    }).join("")).join("");
+
+    mount.innerHTML = head + (rows.length
+      ? `<main>${body}</main>`
+      : `<main><p class="empty">No cases match — ${scope === "all" ? "this filter" : esc(scope) + " has not recorded anything"} on the ${esc(activeTab)} tab.</p></main>`);
+
+    mount.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => {
+      activeTab = b.dataset.tab; saveView(); render();
+    }));
+    mount.querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => {
+      filter = b.dataset.f; saveView(); render();
+    }));
+    mount.querySelectorAll(".scope-btn").forEach((b) => b.addEventListener("click", () => {
+      scope = b.dataset.scope; saveView(); render();
+    }));
+    mount.querySelector(".signout-btn")?.addEventListener("click", signOut);
+    mount.querySelectorAll(".st").forEach((b) => b.addEventListener("click", () => {
+      if (!who) return;
+      const id = b.dataset.id;
+      const cur = entryFor(id, who) || { s: "", n: "" };
+      const next = cur.s === b.dataset.s ? "" : b.dataset.s;
+      if (!next && !(cur.n || "").trim()) setMine(id, null, { s: "" });
+      else setMine(id, { s: next, n: cur.n || "", at: new Date().toISOString() }, { s: next });
+      queueSave(); render();
+    }));
+    mount.querySelectorAll("[data-note]").forEach((i) => {
+      growEl(i);
+      i.addEventListener("input", () => {
+        if (!who) return;
+        growEl(i);
+        const id = i.dataset.note;
+        const cur = entryFor(id, who) || { s: "" };
+        if (!i.value.trim() && !cur.s) setMine(id, null, { n: "" });
+        else setMine(id, { s: cur.s || "", n: i.value, at: new Date().toISOString() }, { n: i.value });
+        queueSave(2500);
+      });
+    });
+  }
+
+  function growEl(t) {
+    t.style.height = "auto";
+    const h = t.scrollHeight;
+    t.style.height = (h > 0 ? Math.min(Math.max(h, 34), 180) : 34) + "px";
+  }
+  function growAll() { mount.querySelectorAll("[data-note]").forEach(growEl); }
+
+  function saveView() {
+    try {
+      sessionStorage.setItem("qa-view", JSON.stringify({
+        tab: activeTab, filter, scope, scroll: window.scrollY,
+      }));
+    } catch (e) {}
+  }
+
+  let scrollTimer = null;
+  addEventListener("scroll", () => {
+    clearTimeout(scrollTimer); scrollTimer = setTimeout(saveView, 200);
+  }, { passive: true });
+  let growTimer = null;
+  addEventListener("resize", () => { clearTimeout(growTimer); growTimer = setTimeout(growAll, 120); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) growAll(); });
+
+  /**
+   * Sign in with the wallet.
+   *
+   * No wallet library: this page has no bundler, and `personal_sign` through
+   * the injected provider is all that is needed. The message is fetched from
+   * the server rather than composed here, so the exact text the wallet signs is
+   * the exact text the server verifies.
+   */
+  async function signIn() {
+    const button = document.getElementById("signin-btn");
+    const problem = document.getElementById("signin-err");
+    const fail = (text) => {
+      problem.textContent = text;
+      problem.hidden = false;
+      button.disabled = false;
+      button.textContent = "Sign in with Ethereum";
+    };
+    problem.hidden = true;
+    button.disabled = true;
+    button.textContent = "check your wallet…";
+
+    if (!window.ethereum) {
+      return fail("No Ethereum wallet found in this browser. Open the QA app in a profile with your wallet extension.");
+    }
+    try {
+      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      const address = accounts && accounts[0];
+      if (!address) return fail("No account was shared by the wallet.");
+      if (identity && Object.keys(outbox).length && address.toLowerCase() !== identity.toLowerCase()) {
+        return fail("Select the wallet that started this QA walk before signing in again. Its unsaved notes are still here.");
+      }
+
+      const prep = await fetch("/api/auth?address=" + encodeURIComponent(address), { cache: "no-store" });
+      const challenge = await prep.json();
+      if (!prep.ok || !challenge.message) {
+        return fail(challenge.error || "Could not start sign-in. Try again in a moment.");
+      }
+
+      const signature = await window.ethereum.request({
+        method: "personal_sign",
+        params: [challenge.message, address],
+      });
+
+      const response = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: challenge.message, signature }),
+      });
+      const result = await response.json();
+      if (!response.ok) return fail(result.error || "Sign-in was rejected.");
+      // Reload rather than patching state in place: the session decides what
+      // this page may read, so the cleanest next step is a fresh load with it.
+      location.reload();
+    } catch (error) {
+      // Code 4001 is the wallet's own "user rejected" — not an error to dress up.
+      if (error && error.code === 4001) return fail("Sign-in cancelled in the wallet.");
+      fail((error && error.message) || "Sign-in failed.");
+    }
+  }
+
+  async function signOut() {
+    const button = mount.querySelector(".signout-btn");
+    if (button) button.disabled = true;
+    if (Object.keys(outbox).length) {
+      await save();
+      if (Object.keys(outbox).length) {
+        savebar.className = "savebar ro";
+        savebar.textContent = "still saving your notes — not signing out yet";
+        if (button) button.disabled = false;
+        return;
+      }
+    }
+    try {
+      const response = await fetch("/api/auth", { method: "DELETE" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      location.reload();
+    } catch (error) {
+      savebar.className = "savebar ro";
+      savebar.textContent = "could not sign out — try again";
+      if (button) button.disabled = false;
+    }
+  }
+
+  /**
+   * Ask a newly allowlisted tester what to call them, once.
+   *
+   * The allowlist holds addresses only, so the first thing a new tester needs
+   * is a label for their own shard. Without it their entries would read as
+   * `0x2aa6…d35e` in the run sheet, which is legible to nobody triaging a
+   * defect at eight in the morning.
+   */
+  function askForName(address) {
+    const panel = document.getElementById("signin");
+    document.getElementById("signin-why").textContent =
+      "Signed in as " + address + ". What should your notes be attributed to?";
+    const button = document.getElementById("signin-btn");
+    button.textContent = "Save my name";
+    const label = document.createElement("label");
+    label.htmlFor = "signin-name";
+    label.textContent = "Display name for QA notes";
+    const field = document.createElement("input");
+    field.id = "signin-name";
+    field.type = "text";
+    field.maxLength = 32;
+    field.placeholder = "e.g. Afo";
+    field.autocomplete = "off";
+    button.parentNode.insertBefore(label, button);
+    button.parentNode.insertBefore(field, button);
+    mount.inert = true;
+    savebar.inert = true;
+    panel.hidden = false;
+    field.focus();
+
+    const submit = async () => {
+      const chosen = field.value.trim();
+      if (!chosen) return;
+      button.disabled = true;
+      try {
+        const response = await fetch("/api/state", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ person: chosen, entries: {} }),
+        });
+        if (response.status === 401 || response.status === 403) {
+          location.reload();
+          return;
+        }
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        location.reload();
+      } catch (error) {
+        const problem = document.getElementById("signin-err");
+        problem.textContent = "Could not save that name. Try again.";
+        problem.hidden = false;
+        button.disabled = false;
+      }
+    };
+    button.removeEventListener("click", signIn);
+    button.addEventListener("click", submit);
+    field.addEventListener("keydown", (event) => { if (event.key === "Enter") submit(); });
+  }
+
+  function showSignIn(reason) {
+    const panel = document.getElementById("signin");
+    if (reason) document.getElementById("signin-why").textContent = reason;
+    mount.inert = true;
+    savebar.inert = true;
+    panel.hidden = false;
+    document.getElementById("signin-btn").focus();
+  }
+
+  // ── Save ────────────────────────────────────────────────────────────
+  function queueSave(delay) {
+    dirty = true;
+    saveView();
+    savebar.className = "savebar saving";
+    savebar.textContent = "saving…";
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(save, delay || 900);
+  }
+
+  /**
+   * One request at a time. A caller that arrives mid-flight gets the promise
+   * already running rather than a silent no-op, so callers can wait for a
+   * real result instead of assuming the outbox drained.
+   */
+  function save(owner) {
+    if (saving) return saving;
+    const person = owner || who;
+    if (!person) return Promise.resolve();
+    saving = postDelta(person).finally(() => { saving = null; });
+    return saving;
+  }
+
+  async function postDelta(person) {
+    const sent = dictionary(outbox);
+    const sentVersions = dictionary(outboxVersions);
+    if (!Object.keys(sent).length) { dirty = false; return; }
+    dirty = false;
+    try {
+      const response = await fetch("/api/state", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entries: sent }),
+      });
+      if (response.status === 401 || response.status === 403) {
+        // The session lapsed mid-walk. The outbox is still on disk, so signing
+        // back in resumes exactly where this left off — but retrying against a
+        // closed door forever would just look like an app that stopped saving.
+        showSignIn("Your QA session expired. Sign in again — the notes you have typed are still here.");
+        throw new Error(`HTTP ${response.status}`);
+      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      // Throws on a non-JSON gateway or platform error page, which turns an
+      // unavailable write into an honest "not saved" instead of silent loss.
+      await response.json();
+      // Confirm the exact local version this response represents. Anything
+      // typed during the request has a later version and remains pending.
+      //
+      // Acknowledge FIELD BY FIELD. Dropping the whole case only when the whole
+      // patch still matched left an already-stored field sitting in the queue
+      // the moment the tester touched the other one — a status that landed,
+      // then a note typed before the response arrived, went back out as
+      // `{s, n}` and overwrote a newer status from the other device. A field
+      // the server has stored is done; only what changed since is still ours
+      // to send.
+      const settled = [];
+      for (const [caseId, patch] of Object.entries(sent)) {
+        const key = versionKey(identity || person, caseId);
+        confirmedVersions[key] = Math.max(confirmedVersions[key] || 0, sentVersions[caseId] || 0);
+        const pending = outbox[caseId];
+        if (!pending) {
+          settled.push(caseId);
+          continue;
+        }
+        // A delete queued after this send is a new intent, not an echo of it.
+        if (Boolean(pending.delete) !== Boolean(patch.delete)) continue;
+        for (const field of ["s", "n"]) {
+          if (hasOwn(patch, field) && hasOwn(pending, field) && pending[field] === patch[field]) {
+            delete pending[field];
+          }
+        }
+        if (pending.delete || !Object.keys(pending).length) {
+          delete outbox[caseId];
+          delete outboxVersions[caseId];
+          settled.push(caseId);
+        }
+      }
+      forgetStoredCases(identity, settled);
+      saveOutbox();
+      // Anything typed while the request was in flight is still pending. The
+      // debounce that would have flushed it already fired and found a save
+      // running, so nothing else will schedule it — do that here or those
+      // edits sit unsent until the tester happens to type again.
+      if (Object.keys(outbox).length) {
+        dirty = true;
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(save, 400);
+        savebar.className = "savebar saving";
+        savebar.textContent = "saving…";
+      } else {
+        savebar.className = "savebar saved";
+        savebar.textContent = "saved ✓";
+      }
+    } catch (e) {
+      // The work is already in localStorage; keep retrying rather than
+      // telling the tester it saved when it did not.
+      dirty = true;
+      savebar.className = "savebar ro";
+      savebar.textContent = "not saved — kept locally, retrying";
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(save, 5000);
+    }
+  }
+
+  // ── Poll ────────────────────────────────────────────────────────────
+  // Adopt other testers' entries always, and this tester's OWN entries for any
+  // case they have no unsent edit on.
+  //
+  // That second half matters for the phone-and-laptop workflow. Skipping your
+  // own entries entirely keeps each device on its first-load copy of you: the
+  // phone records a verdict, the laptop still shows none, and the laptop's
+  // next note posts `{s:"", n:"..."}` — clearing the verdict the phone set.
+  // The outbox protects unsent work; per-case versions below also reject a GET
+  // that started before a now-confirmed save and therefore captured stale data.
+  async function poll() {
+    // Skip only while a save is in flight. Pausing on `dirty` too would freeze
+    // a tester's view of their partner while their OWN saves keep failing. The
+    // per-case versions below protect local edits from a GET that started too
+    // early; the re-render restores focus and caret.
+    if (saving) return;
+    const sequence = ++pollSequence;
+    const startedLocalVersions = dictionary(localVersions);
+    const startedConfirmedVersions = dictionary(confirmedVersions);
+    try {
+      const response = await fetch("/api/state", { cache: "no-store" });
+      if (response.status === 401 || response.status === 403) {
+        clearInterval(pollTimer);
+        showSignIn("Your QA session expired. Sign in again to keep recording.");
+        return;
+      }
+      if (!response.ok) return;
+      const data = await response.json();
+      // A slower, older GET must never apply after a newer poll already did.
+      if (sequence < lastAppliedPoll) return;
+      lastAppliedPoll = sequence;
+      const previousWho = who;
+      const nextWho = typeof data.you === "string" && data.you ? data.you : previousWho;
+      const nextTeam = Array.isArray(data.team) && data.team.length ? data.team : TEAM;
+      const remote = entryRows(data.entries);
+      const before = JSON.stringify({ team: TEAM, who, entries });
+
+      // The server may relabel the roster when a newly named tester collides
+      // with an existing display name. Its response is one complete snapshot,
+      // so replace old labels rather than merging the new names beside them.
+      // Only this browser's unconfirmed own entry survives over that snapshot.
+      const versionOwner = identity || previousWho;
+      for (const caseId of new Set(Object.keys(remote).concat(Object.keys(entries)))) {
+        const key = versionKey(versionOwner, caseId);
+        const started = startedLocalVersions[key] || 0;
+        const keepLocal =
+          hasOwn(outbox, caseId) ||
+          started > (startedConfirmedVersions[key] || 0) ||
+          (localVersions[key] || 0) > started;
+        if (!keepLocal) continue;
+
+        const local = entryFor(caseId, previousWho);
+        const row = hasOwn(remote, caseId) ? remote[caseId] : Object.create(null);
+        if (local) row[nextWho] = local;
+        else delete row[nextWho];
+        if (Object.keys(row).length) remote[caseId] = row;
+        else delete remote[caseId];
+      }
+
+      TEAM = nextTeam;
+      who = nextWho;
+      if (scope === previousWho && previousWho !== nextWho) scope = nextWho;
+      else if (scope !== "all" && !TEAM.includes(scope)) scope = "all";
+      entries = remote;
+      const changed = before !== JSON.stringify({ team: TEAM, who, entries });
+      if (changed) {
+        const active = document.activeElement;
+        const focusedNote = active && active.dataset ? active.dataset.note : null;
+        const caret = focusedNote ? active.selectionStart : null;
+        render();
+        // A partner's update must never steal the cursor mid-sentence.
+        if (focusedNote) {
+          const el = mount.querySelector('[data-note="' + focusedNote + '"]');
+          if (el) {
+            el.focus({ preventScroll: true });
+            const p = Math.min(caret == null ? el.value.length : caret, el.value.length);
+            el.setSelectionRange(p, p);
+          }
+        }
+      }
+      if (!dirty && !saving) {
+        savebar.className = "savebar saved";
+        savebar.textContent = "live — shared results";
+      }
+    } catch (e) {
+      // A dropped poll is not worth alarming anyone about; the next one retries.
+    }
+  }
+
+  document.getElementById("signin-btn").addEventListener("click", signIn);
+
+  // ── Boot ────────────────────────────────────────────────────────────
+  (async () => {
+    try {
+      const [catalogResponse, stateResponse] = await Promise.all([
+        fetch("catalog.json"),
+        fetch("/api/state"),
+      ]);
+      if (!catalogResponse.ok) throw new Error(`catalog HTTP ${catalogResponse.status}`);
+      const catalog = await catalogResponse.json();
+      CASES = catalog.cases || [];
+      TABS = catalog.tabs || [...new Set(CASES.map((c) => c.tab))];
+
+      if (stateResponse.ok) {
+        const data = await stateResponse.json();
+        entries = entryRows(data.entries);
+        if (Array.isArray(data.team) && data.team.length) TEAM = data.team;
+        // The server names you from your signed session. The page never guesses.
+        who = typeof data.you === "string" ? data.you : "";
+        identity = typeof data.address === "string" && data.address ? data.address.toLowerCase() : who;
+        // Allowlisted but unnamed: ask once, then reload into a named session.
+        if (data.named === false && data.address) {
+          askForName(data.address);
+          return;
+        }
+      } else if (stateResponse.status === 401) {
+        showSignIn();
+        return;
+      } else if (stateResponse.status === 403) {
+        showSignIn("That wallet is not on the QA allowlist. Ask Afo to add your address, then sign in again.");
+        return;
+      } else {
+        savebar.className = "savebar ro";
+        savebar.textContent = "state unavailable — entries will not save";
+      }
+      if (!TEAM.length) TEAM = ["Afo", "Nansel", "Gui"];
+      // Now that the session has named this tester, pick up anything a previous
+      // page life left unsent for them.
+      outbox = dictionary(storedOutboxFor(identity, who));
+      // Persist the migrated copy before removing any legacy name-based key.
+      saveOutbox();
+      // The contents are in memory now; retire the legacy copy so a drained
+      // queue is not rediscovered on the next lookup.
+      retireLegacyOutbox(identity, who);
+
+      activeTab = TABS.includes(view.tab) ? view.tab : TABS[0];
+      filter = ["all", "issues", "open"].includes(view.filter) ? view.filter : "all";
+      scope = ["all"].concat(TEAM).includes(view.scope) ? view.scope : "all";
+
+      adoptRecoveredOutbox();
+
+      render();
+      try { if (view.scroll) window.scrollTo(0, view.scroll); } catch (e) {}
+      try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(growAll); } catch (e) {}
+
+      if (stateResponse.ok && !dirty) {
+        savebar.className = "savebar saved";
+        savebar.textContent = "live — shared results";
+      }
+      pollTimer = setInterval(poll, POLL_MS);
+    } catch (e) {
+      mount.innerHTML = `<main><p class="empty">Could not load the checklist: ${esc(e.message)}. Reload to retry.</p></main>`;
+      savebar.className = "savebar ro";
+      savebar.textContent = "failed to load";
+    }
+  })();
+})();
+</script>
+</body>
+</html>

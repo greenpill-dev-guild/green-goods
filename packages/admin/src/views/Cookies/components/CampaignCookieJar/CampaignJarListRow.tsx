@@ -1,10 +1,8 @@
-import {
-  formatTokenAmount,
-  resolveIPFSUrl,
-  type CampaignCookieJarCampaign,
-  type Garden,
-  useCampaignCookieJar,
-} from "@green-goods/shared";
+import { useCampaignCookieJar } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
+import type { Garden } from "@green-goods/shared/types/domain";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiImageLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { EnsAddressText } from "@/components/EnsAddressText";

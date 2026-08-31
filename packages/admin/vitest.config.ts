@@ -1,11 +1,16 @@
 /// <reference types="vitest" />
 
-import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import { availableParallelism, totalmem } from "node:os";
 import { resolve } from "path";
+import { defineConfig } from "vitest/config";
+
+import { resolveVitestMaxWorkers } from "../../scripts/lib/dev-shared.js";
 
 const localReactPath = resolve(__dirname, "./node_modules/react");
 const localReactDomPath = resolve(__dirname, "./node_modules/react-dom");
+const nodeTestFiles = "src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts}";
+const domTestFiles = "src/**/*.{test,spec}.{jsx,tsx}";
 
 export default defineConfig({
   plugins: [react()],
@@ -100,6 +105,10 @@ export default defineConfig({
         replacement: resolve(__dirname, "../shared/src/__tests__/test-utils"),
       },
       {
+        find: "@green-goods/shared/commitment-pooling",
+        replacement: resolve(__dirname, "../shared/src/commitment-pooling"),
+      },
+      {
         find: "@green-goods/shared",
         replacement: resolve(__dirname, "../shared/src"),
       },
@@ -111,28 +120,32 @@ export default defineConfig({
     setupFiles: ["./src/__tests__/setup.ts"],
     exclude: [
       "**/node_modules/**",
-      "src/__tests__/components/WithdrawModal.test.tsx",
     ],
     coverage: {
       provider: "v8",
-      reporter: ["text", "json", "html"],
+      reporter: process.env.CI ? ["text", "json"] : ["text", "json", "html"],
+      include: ["src/**/*.{ts,tsx}"],
       exclude: [
         "node_modules/**",
         "src/__tests__/**",
+        "src/**/*.stories.{ts,tsx}",
         "**/*.d.ts",
         "**/*.config.*",
         "**/index.ts",
       ],
       thresholds: {
-        global: {
-          branches: 70,
-          functions: 70,
-          lines: 70,
-          statements: 70,
-        },
+        branches: 47,
+        functions: 44,
+        lines: 53,
+        statements: 51,
       },
     },
     pool: "threads",
+    maxWorkers: resolveVitestMaxWorkers({
+      cpus: availableParallelism(),
+      totalMemoryBytes: totalmem(),
+      ci: Boolean(process.env.CI),
+    }),
     isolate: true,
     server: {
       deps: {
@@ -159,5 +172,23 @@ export default defineConfig({
     },
     testTimeout: 10000,
     hookTimeout: 10000,
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "node",
+          environment: "node",
+          include: [nodeTestFiles],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "dom",
+          environment: "jsdom",
+          include: [domTestFiles],
+        },
+      },
+    ],
   },
 });

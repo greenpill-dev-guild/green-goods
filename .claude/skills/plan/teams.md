@@ -25,13 +25,15 @@ Fires when the plan skill routes to teams. Plan detects orchestration intent (se
 | `teams-review` | Orchestration + review framing ("parallel review", "team review") |
 | `teams-investigate` | Orchestration + investigation framing ("competing hypotheses", "test theories in parallel") |
 
-Legacy slash forms (`/plan --mode teams-*`, `/teams`) still work if typed explicitly but are not advertised.
-
 Before spawning, run preflight:
 
 ```bash
 bash .claude/scripts/check-agent-teams-readiness.sh
 ```
+
+Codex-driving teammates must also run `bash .claude/scripts/check-codex-lane-readiness.sh`. The
+preflight uses the shared Codex binary resolver and verifies that delegated lanes receive only the
+fixed non-secret environment allowlist; it never links the root `.env` into a worktree.
 
 If preflight fails, fall back to subagents (Task tool) with the same ownership model.
 
@@ -315,7 +317,7 @@ If a lane's nature is ambiguous, give it to a Claude teammate — it can decide 
 
 ### Spawning a Codex-Driving Teammate
 
-The teammate's spawn prompt tells it to use the dispatch script. It does NOT need to know the dispatch mechanics — the script handles worktree + env symlink + output schema.
+The teammate's spawn prompt tells it to use the dispatch script. It does NOT need to know the dispatch mechanics — the script handles the worktree, fixed non-secret child environment, and output schema.
 
 Good spawn prompt:
 
@@ -326,7 +328,7 @@ Spawn a codex-driving teammate with this prompt:
   bash .claude/scripts/dispatch-codex-lane.sh \
     --lane factory \
     --base feature/<feature-slug> \
-    --phase phase-1a \
+    --branch feature/factory-registration \
     --prompt-file .plans/active/<feature-slug>/handoffs/factory.md
 
 Run it via Bash with run_in_background=true. When it completes, read the JSON
@@ -338,7 +340,7 @@ On success: review the diff in the worktree, merge into feature/<feature-slug>
 with --no-ff, then clean up:
 
   git worktree remove /tmp/gg-codex-factory
-  git branch -d codex/factory/phase-1a
+  git branch -d feature/factory-registration
 
 Report the merge SHA, files changed, and any deviations from the original prompt."
 ```
@@ -353,19 +355,21 @@ Spawn a teammate to run codex on the factory task.
 
 `.claude/scripts/dispatch-codex-lane.sh` is the single entry point.
 
-- Required args: `--lane`, `--base`, and either `--prompt` or `--prompt-file`
-- Optional: `--phase` (default `main`), `--schema` (default `.codex/output-schema.json`)
-- Side effects: creates `/tmp/gg-codex-<lane>` worktree on branch `codex/<lane>/<phase>`, symlinks root `.env`, runs `codex exec --full-auto`
+- Required args: `--lane`, `--base`, `--branch <type/work-description>`, and either `--prompt` or `--prompt-file`
+- Optional: `--schema` (default `.codex/output-schema.json`)
+- Side effects: creates `/tmp/gg-codex-<lane>` worktree on the caller-supplied work branch and runs `codex exec --approve-for-me` with a fixed non-secret environment and closed stdin; this flag already selects workspace-write and cannot be combined with `-s`; root `.env` is never linked, so secret-backed validation remains a parent-session or human-run gate
 - Stdout: JSON with `result_file`, `worktree`, `branch`, `dispatch_exit`
 - Does NOT clean up — that is the teammate's job after review and merge
-- Env overrides: `CODEX` (binary path), `CODEX_WORKTREE_PARENT` (default `/tmp`)
+- Env overrides: `CODEX` (binary path), `CODEX_HOME` (configured Codex state directory),
+  `CODEX_WORKTREE_PARENT` (default `/tmp`)
+- Re-check `codex exec --help` before changing these flags; the CLI surface changes between releases.
 
 ### File Ownership With Codex Lanes
 
 Codex teammates follow the same ownership rules as Part 5. Assign each lane to exactly one teammate. A codex-driving teammate owns:
 
 - Its worktree path (`/tmp/gg-codex-<lane>`)
-- Its branch (`codex/<lane>/<phase>`)
+- Its caller-supplied work branch (`<type>/<work-description>`)
 - The files codex edits within the worktree
 - Merging the worktree back to the base branch
 

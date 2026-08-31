@@ -80,6 +80,14 @@ const descriptorIdPropNames = new Set([
   "ariaLabelId",
   "actionLabelId",
 ]);
+const sourceMessageTriggerTokens = [
+  "formatMessage",
+  "defineMessage",
+  "defineMessages",
+  "FormattedMessage",
+  "defaultMessage",
+  ...descriptorIdPropNames,
+];
 const allowedIdenticalLocalizedKeys = new Set([
   "app.admin.nav.cookieJars",
   "app.community.weightScheme.linear",
@@ -112,6 +120,9 @@ const allowedIdenticalProductValues = new Set([
   "Feedback",
   "GitHub",
   "Green Goods",
+  // The product noun the team already uses untranslated in Spanish and
+  // Portuguese copy ("las pools", "as pools").
+  "Pool",
   "Greenpill Network",
   "GreenWill",
   "ha",
@@ -153,6 +164,24 @@ const allowedIdenticalProductValues = new Set([
 // compact "{n} h" value is legitimately locale-identical (the optional space matches
 // the actual en.json formatting).
 const allowedIdenticalValuePatterns = [/^[\d\W]+$/, /^\d+d$/, /^\{[^}]+\}$/, /^\{[^}]+\} ?h$/];
+
+/**
+ * A value made only of ICU placeholders and whitespace, like `{count} {unit}`.
+ *
+ * These carry no words to translate, so every locale is legitimately identical;
+ * the letters the has-letters check sees are inside the braces.
+ *
+ * Written as a linear scan rather than `(?:\s*\{[^}]+\}\s*)+`, which CodeQL
+ * flagged: whitespace between repetitions can be matched by either the trailing
+ * or the leading `\s*`, and that ambiguity backtracks exponentially on input
+ * like `{{|}}` repeated. Stripping the tokens has no such shape.
+ */
+function isPlaceholderOnlyValue(value: string): boolean {
+  if (!value.includes("{")) return false;
+  // Symbols and punctuation outside the placeholders (`× {count}`, `{start} – {end}`)
+  // are no more translatable than the whitespace; only letters are words.
+  return !/\p{L}/u.test(value.replace(/\{[^}]*\}/g, ""));
+}
 const localeAllowedIdenticalValues: Record<string, Set<string>> = {
   es: new Set([
     " - Error",
@@ -176,6 +205,7 @@ function isAllowedIdenticalLocalizedValue(locale: string, key: string, value: st
     allowedIdenticalLocalizedKeys.has(key) ||
     allowedIdenticalProductValues.has(value) ||
     allowedIdenticalValuePatterns.some((pattern) => pattern.test(value)) ||
+    isPlaceholderOnlyValue(value) ||
     (localeAllowedIdenticalValues[locale]?.has(value) ?? false)
   );
 }
@@ -217,7 +247,7 @@ function calleeName(node: Node): string | undefined {
 
 function jsxTagName(node: Node): string | undefined {
   if (node.type === "JSXIdentifier") return node.name;
-  if (node.type === "JSXMemberExpression") return node.property.name.name;
+  if (node.type === "JSXMemberExpression") return node.property.name;
   return undefined;
 }
 
@@ -249,6 +279,10 @@ function walkSourceFiles(dir: string, files: string[] = []): string[] {
   return files;
 }
 
+function containsSourceMessageTrigger(source: string): boolean {
+  return sourceMessageTriggerTokens.some((token) => source.includes(token));
+}
+
 function collectSourceMessageRefs(): SourceMessageRef[] {
   const refs = new Map<string, SourceMessageRef>();
 
@@ -262,8 +296,31 @@ function collectSourceMessageRefs(): SourceMessageRef[] {
     });
   };
 
+  /**
+   * `formatMessage({ id: cond ? "a" : "b" })` used to hide both ids from this scan,
+   * so a stale id in either branch rendered its English defaultMessage in every
+   * locale with nothing failing. Following the branches puts them back in scope;
+   * genuinely dynamic template ids stay covered by knownDynamicMessageIds.
+   */
+  const literalIds = (id: Node | undefined): string[] => {
+    if (!id) return [];
+    const direct = stringLiteral(id);
+    if (direct !== undefined) return [direct];
+    if (id.type === "ConditionalExpression") {
+      return [...literalIds(id.consequent), ...literalIds(id.alternate)];
+    }
+    return [];
+  };
+
+  const addAll = (id: Node | undefined, file: string, fallback: Node) => {
+    for (const value of literalIds(id)) add(value, file, id ?? fallback);
+  };
+
   for (const file of sourceRoots.flatMap((root) => walkSourceFiles(root))) {
-    const source = parse(fs.readFileSync(file, "utf8"), {
+    const contents = fs.readFileSync(file, "utf8");
+    if (!containsSourceMessageTrigger(contents)) continue;
+
+    const source = parse(contents, {
       sourceFilename: file,
       sourceType: "unambiguous",
       plugins: file.endsWith(".tsx") ? ["typescript", "jsx"] : ["typescript"],
@@ -277,8 +334,7 @@ function collectSourceMessageRefs(): SourceMessageRef[] {
           (name === "formatMessage" || name === "defineMessage") &&
           firstArg?.type === "ObjectExpression"
         ) {
-          const id = getObjectProp(firstArg, "id");
-          add(stringLiteral(id), file, id ?? firstArg);
+          addAll(getObjectProp(firstArg, "id"), file, firstArg);
         }
         if (name === "defineMessages" && firstArg?.type === "ObjectExpression") {
           for (const property of firstArg.properties) {
@@ -406,7 +462,20 @@ describe("i18n locale coverage", () => {
   });
 
   describe("Source usage coverage", () => {
-    it("should include every statically declared source message id in all locales", () => {
+    it("recognizes every direct source message form before parsing", () => {
+      const directForms = [
+        'intl.formatMessage({ id: "app.direct.format" })',
+        'defineMessage({ id: "app.direct.define" })',
+        'defineMessages({ direct: { id: "app.direct.group" } })',
+        'const descriptor = { id: "app.direct.descriptor", defaultMessage: "Direct" }',
+        'const config = { titleId: "app.direct.title" }',
+        '<FormattedMessage id="app.direct.component" />',
+      ];
+
+      expect(directForms.every(containsSourceMessageTrigger)).toBe(true);
+    });
+
+    it("should include every source message id — including ternary branches — in all locales", () => {
       const refs = collectSourceMessageRefs();
       const catalogs: Record<string, LocaleCatalog> = { en, es, pt };
       const missing = refs.flatMap((ref) =>

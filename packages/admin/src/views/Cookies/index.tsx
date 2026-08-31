@@ -4,7 +4,10 @@ import {
   CampaignCookieJarCreateWorkspace,
   CampaignCookieJarPanel,
 } from "./components/CampaignCookieJarPanel";
-import { adminRoutes, useMediaQuery, useViewActions, type ViewAction } from "@green-goods/shared";
+import { useViewActions } from "@green-goods/shared/components/Canvas/useViewActions";
+import type { ViewAction } from "@green-goods/shared/components/Canvas/viewActions.types";
+import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiAddLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
@@ -24,7 +27,7 @@ export default function CookiesView() {
         : [
             {
               id: "create-cookie-jar",
-              label: "Create cookie jar",
+              label: "Create Cookie Jar",
               labelId: "cockpit.community.cookies.create",
               icon: RiAddLine,
               onClick: () => navigate(adminRoutes.cookiesDeploy()),
@@ -45,7 +48,7 @@ export default function CookiesView() {
         <CanvasRouteHeader
           title={formatMessage({
             id: "cockpit.community.cookies.dialogTitle",
-            defaultMessage: "Create cookie jar",
+            defaultMessage: "Create Cookie Jar",
           })}
           description={formatMessage({
             id: "cockpit.community.cookies.deployDescription",
@@ -79,7 +82,7 @@ export default function CookiesView() {
         description={formatMessage({
           id: "cockpit.community.cookies.description",
           defaultMessage:
-            "Create one shared Cookie Jar for a campaign and allow selected garden operators to claim from it.",
+            "Create one shared Cookie Jar for a campaign and allow selected garden stewards to claim from it.",
         })}
         actions={
           isDesktop && desktopActions.length > 0 ? (

@@ -1,9 +1,4 @@
-import { logger } from "../app/logger";
-import type { jobQueueDB as JobQueueDBType } from "./db";
-import { trackPrivateQueueEvent } from "./job-analytics";
-
-/** Default interval for orphaned job cleanup (5 minutes) */
-const ORPHAN_CLEANUP_INTERVAL = 5 * 60 * 1000;
+import type { JobQueueAnalytics, JobQueueLogger, JobQueueStore } from "./ports";
 
 /** Threshold for alerting on failed delete count. Exported for the telemetry-privacy test. */
 export const FAILED_DELETE_ALERT_THRESHOLD = 10;
@@ -21,13 +16,17 @@ export class JobMaintenance {
   /** Counter for failed deletes since last cleanup */
   failedDeleteCount = 0;
 
-  /** Interval ID for cleanup scheduler */
-  private cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
-
   /** Whether failed delete IDs have been rehydrated from IndexedDB */
   private failedDeleteIdsInitialized = false;
 
-  constructor(private db: typeof JobQueueDBType) {}
+  constructor(
+    private db: Pick<
+      JobQueueStore,
+      "deleteJob" | "getJob" | "loadFailedDeleteIds" | "saveFailedDeleteIds"
+    >,
+    private analytics: Pick<JobQueueAnalytics, "privateEvent">,
+    private log: JobQueueLogger
+  ) {}
 
   /**
    * Initialize failed delete IDs from IndexedDB on first access
@@ -40,7 +39,7 @@ export class JobMaintenance {
       this.failedDeleteCount = storedIds.length;
       this.failedDeleteIdsInitialized = true;
     } catch (err) {
-      logger.warn("[JobQueue] Failed to load failed delete IDs from IndexedDB", { error: err });
+      this.log.warn("[JobQueue] Failed to load failed delete IDs from IndexedDB", { error: err });
       this.failedDeleteIdsInitialized = true;
     }
   }
@@ -52,7 +51,7 @@ export class JobMaintenance {
     try {
       await this.db.saveFailedDeleteIds([...this.failedDeleteJobIds]);
     } catch (err) {
-      logger.warn("[JobQueue] Failed to persist failed delete IDs to IndexedDB", { error: err });
+      this.log.warn("[JobQueue] Failed to persist failed delete IDs to IndexedDB", { error: err });
     }
   }
 
@@ -64,10 +63,10 @@ export class JobMaintenance {
     this.failedDeleteCount += 1;
     await this.persistFailedDeleteIds();
 
-    logger.warn("[JobQueue] Failed to delete synced job", { jobId });
+    this.log.warn("[JobQueue] Failed to delete synced job", { jobId });
 
     if (this.failedDeleteCount >= FAILED_DELETE_ALERT_THRESHOLD) {
-      trackPrivateQueueEvent("job_queue_delete_failures_threshold", {
+      this.analytics.privateEvent("job_queue_delete_failures_threshold", {
         failed_count: this.failedDeleteCount,
         pending_cleanup_count: this.failedDeleteJobIds.size,
       });
@@ -98,7 +97,7 @@ export class JobMaintenance {
         }
       } catch (error) {
         failed += 1;
-        logger.debug("[JobQueue] cleanupOrphanedSyncedJobs delete retry failed", {
+        this.log.debug("[JobQueue] cleanupOrphanedSyncedJobs delete retry failed", {
           jobId,
           error,
         });
@@ -112,7 +111,7 @@ export class JobMaintenance {
     await this.persistFailedDeleteIds();
 
     if (cleaned > 0 || failed > 0) {
-      trackPrivateQueueEvent("job_queue_orphan_cleanup", {
+      this.analytics.privateEvent("job_queue_orphan_cleanup", {
         cleaned,
         failed,
         remaining: this.failedDeleteJobIds.size,
@@ -120,37 +119,5 @@ export class JobMaintenance {
     }
 
     return { cleaned, failed };
-  }
-
-  /**
-   * Start periodic cleanup of orphaned synced jobs.
-   */
-  startCleanupScheduler(intervalMs: number = ORPHAN_CLEANUP_INTERVAL): void {
-    if (this.cleanupIntervalId) {
-      return; // Already running
-    }
-
-    // Rehydrate failed delete IDs from IndexedDB on startup
-    this.initFailedDeleteIds().catch((err) => {
-      logger.warn("[JobQueue] Failed to init failed delete IDs", { error: err });
-    });
-
-    this.cleanupIntervalId = setInterval(() => {
-      if (this.failedDeleteJobIds.size > 0) {
-        this.cleanupOrphanedSyncedJobs().catch((err) => {
-          logger.warn("[JobQueue] Cleanup scheduler error", { error: err });
-        });
-      }
-    }, intervalMs);
-  }
-
-  /**
-   * Stop the periodic cleanup scheduler.
-   */
-  stopCleanupScheduler(): void {
-    if (this.cleanupIntervalId) {
-      clearInterval(this.cleanupIntervalId);
-      this.cleanupIntervalId = null;
-    }
   }
 }

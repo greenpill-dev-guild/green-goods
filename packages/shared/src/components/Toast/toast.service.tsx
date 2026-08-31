@@ -5,6 +5,7 @@ import { logger } from "../../modules/app/logger";
 import { useUIStore } from "../../stores/useUIStore";
 import { capitalize } from "../../utils/app/text";
 import { cn } from "../../utils/styles/cn";
+import { createToastDismissQueue } from "./toast.queue";
 
 type ToastFn = typeof toast.success;
 
@@ -149,83 +150,11 @@ const ACTION_BUTTON_BASE =
  * hook, so raw setTimeout is correct here — lifetimes are bound to toast ids we
  * explicitly clear on dismiss/replace, not to a component lifecycle.
  */
-const MAX_PAUSE_MS = 8000;
-
-interface DismissTimer {
-  /** Milliseconds left until dismissal when the timer last (re)started. */
-  remaining: number;
-  /** Timestamp the current running interval started (for pause accounting). */
-  startedAt: number;
-  /** Active dismissal timeout, or null while paused. */
-  runTimer: ReturnType<typeof setTimeout> | null;
-  /** Safety timeout that force-resumes a stuck pause. */
-  capTimer: ReturnType<typeof setTimeout> | null;
-  paused: boolean;
-}
-
-const dismissTimers = new Map<string, DismissTimer>();
-
-function fireDismiss(id: string) {
-  dismissTimers.delete(id);
-  toast.dismiss(id);
-}
-
-/** Cancel and forget the auto-dismiss timer(s). Pass no id to clear all. */
-function clearDismissTimer(id?: string) {
-  const clearEntry = (entry: DismissTimer) => {
-    if (entry.runTimer) clearTimeout(entry.runTimer);
-    if (entry.capTimer) clearTimeout(entry.capTimer);
-  };
-  if (id === undefined) {
-    dismissTimers.forEach(clearEntry);
-    dismissTimers.clear();
-    return;
-  }
-  const entry = dismissTimers.get(id);
-  if (!entry) return;
-  clearEntry(entry);
-  dismissTimers.delete(id);
-}
-
-/** Start (or replace) the auto-dismiss countdown for a toast id. */
-function scheduleDismiss(id: string, duration: number) {
-  clearDismissTimer(id);
-  // Non-finite duration => persistent toast => no auto-dismiss.
-  if (!Number.isFinite(duration)) return;
-  dismissTimers.set(id, {
-    remaining: duration,
-    startedAt: Date.now(),
-    runTimer: setTimeout(() => fireDismiss(id), duration),
-    capTimer: null,
-    paused: false,
-  });
-}
-
-/** Pause the countdown (hover/focus). No-op for persistent/unknown toasts. */
-function pauseDismiss(id: string) {
-  const entry = dismissTimers.get(id);
-  if (!entry || entry.paused || !entry.runTimer) return;
-  clearTimeout(entry.runTimer);
-  entry.runTimer = null;
-  entry.remaining = Math.max(0, entry.remaining - (Date.now() - entry.startedAt));
-  entry.paused = true;
-  // Safety: if the matching leave/blur never arrives (touch sticky-hover, the
-  // element removed under the pointer), force a resume so it can't stick open.
-  entry.capTimer = setTimeout(() => resumeDismiss(id), MAX_PAUSE_MS);
-}
-
-/** Resume a paused countdown with its remaining time. */
-function resumeDismiss(id: string) {
-  const entry = dismissTimers.get(id);
-  if (!entry || !entry.paused) return;
-  if (entry.capTimer) {
-    clearTimeout(entry.capTimer);
-    entry.capTimer = null;
-  }
-  entry.paused = false;
-  entry.startedAt = Date.now();
-  entry.runTimer = setTimeout(() => fireDismiss(id), entry.remaining);
-}
+const dismissQueue = createToastDismissQueue({ dismiss: (id) => toast.dismiss(id) });
+const clearDismissTimer = (id?: string) => dismissQueue.clear(id);
+const scheduleDismiss = (id: string, duration: number) => dismissQueue.schedule(id, duration);
+const pauseDismiss = (id: string) => dismissQueue.pause(id);
+const resumeDismiss = (id: string) => dismissQueue.resume(id);
 
 const fallbackTitles: Record<ToastStatus, string> = {
   success: "Success",

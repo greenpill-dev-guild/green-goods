@@ -4,7 +4,7 @@
  *
  * Tests the exported isGardenMember function from useJoinGarden.
  * This is a pure function (no hooks) that checks membership via:
- *   1. Actual list membership (gardeners/operators)
+ *   1. Actual list membership (gardeners/stewards)
  *   2. Pending join optimistic state (localStorage, 15-min TTL)
  */
 
@@ -21,6 +21,7 @@ vi.mock("../../../modules/app/analytics-events", () => ({
   trackGardenJoinStarted: vi.fn(),
   trackGardenJoinSuccess: vi.fn(),
   trackGardenJoinFailed: vi.fn(),
+  trackGardenJoinCancelled: vi.fn(),
   trackGardenJoinAlreadyMember: vi.fn(),
 }));
 
@@ -36,6 +37,7 @@ vi.mock("../../../utils/blockchain/simulation", () => ({
 
 vi.mock("../../../utils/errors/contract-errors", () => ({
   isAlreadyGardenerError: vi.fn().mockReturnValue(false),
+  parseContractError: vi.fn().mockReturnValue({ name: "UnknownError" }),
 }));
 
 vi.mock("../../../config/appkit", () => ({
@@ -45,6 +47,10 @@ vi.mock("../../../config/appkit", () => ({
 vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
   getDefaultChain: () => ({ chainId: 11155111, rootGarden: null }),
+}));
+
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 vi.mock("wagmi", () => ({
@@ -86,11 +92,11 @@ describe("isGardenMember", () => {
     expect(isGardenMember(user, gardeners, [])).toBe(true);
   });
 
-  it("returns true when user is in operators list", () => {
+  it("returns true when user is in stewards list", () => {
     const user = "0x1111111111111111111111111111111111111111";
-    const operators = ["0x1111111111111111111111111111111111111111"];
+    const stewards = ["0x1111111111111111111111111111111111111111"];
 
-    expect(isGardenMember(user, [], operators)).toBe(true);
+    expect(isGardenMember(user, [], stewards)).toBe(true);
   });
 
   it("returns true for pending join within TTL (localStorage)", () => {

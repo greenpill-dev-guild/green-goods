@@ -1,4 +1,4 @@
-import type { Address } from "@green-goods/shared";
+import type { Address } from "../types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, within } from "storybook/test";
 import { AddressDisplay } from "./AddressDisplay";
@@ -81,7 +81,7 @@ export const Gallery: Story = {
         <h3 className="mb-3 text-sm font-medium text-text-sub">In Context (table row)</h3>
         <div className="rounded-lg border border-stroke-soft">
           <div className="flex items-center justify-between px-4 py-3 border-b border-stroke-soft">
-            <span className="text-sm text-text-sub">Operator</span>
+            <span className="text-sm text-text-sub">Steward</span>
             <AddressDisplay address={SAMPLE_ADDRESSES.vitalik} />
           </div>
           <div className="flex items-center justify-between px-4 py-3 border-b border-stroke-soft">
@@ -106,7 +106,7 @@ export const Interactive: Story = {
     const canvas = within(canvasElement);
 
     // Find the copy button by its title
-    const copyButton = canvas.getByTitle("Copy address");
+    const copyButton = canvas.getByTitle("Copy Address");
     await expect(copyButton).toBeVisible();
 
     // Click the copy button — the icon should swap to a checkmark

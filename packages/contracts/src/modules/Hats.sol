@@ -11,20 +11,16 @@ import { ICVSyncPowerFacet } from "../interfaces/ICVSyncPowerFacet.sol";
 import { IHats } from "../interfaces/IHats.sol";
 import { IHatsModuleFactory } from "../interfaces/IHatsModuleFactory.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
+import { IKarmaSyncObserver } from "../interfaces/IKarmaSyncObserver.sol";
 import { HatsLib } from "../lib/Hats.sol";
 import { ZeroAddress, ArrayLengthMismatch } from "../CommonErrors.sol";
 
 /// @title HatsModule
 /// @notice Adapts Hats Protocol for Green Goods access control
-/// @dev Implements IGardenAccessControl + IHatsModule
-///
-/// **Architecture:**
-/// - Each garden configures six hat IDs: owner, operator, evaluator, gardener, funder, community
-/// - Hat tree creation and role management are centralized here
-/// - Resolvers and UI call into this module for Hats-based permissions
 contract HatsModule is
     IGardenAccessControl,
     IHatsModule,
+    IKarmaSyncObserver,
     OwnableUpgradeable,
     ReentrancyGuardUpgradeable,
     UUPSUpgradeable
@@ -245,7 +241,7 @@ contract HatsModule is
     /// @inheritdoc IGardenAccessControl
     /// @dev Checks if account wears the operator hat for msg.sender (the garden)
     function isOperator(address account) external view override returns (bool) {
-        return _checkRole(msg.sender, account, GardenRole.Operator);
+        return _checkRole(msg.sender, account, GardenRole.Steward);
     }
 
     /// @inheritdoc IGardenAccessControl
@@ -288,7 +284,7 @@ contract HatsModule is
     }
 
     function isStewardOf(address garden, address account) public view override returns (bool) {
-        return _checkRole(garden, account, GardenRole.Operator);
+        return _checkRole(garden, account, GardenRole.Steward);
     }
 
     function isOperatorOf(address garden, address account) public view override returns (bool) {
@@ -668,15 +664,15 @@ contract HatsModule is
             }
         }
 
-        if (role == GardenRole.Operator) {
-            _syncProjectAdmin(garden, account, true);
+        if (role == GardenRole.Steward) {
             _grantSubRole(garden, account, GardenRole.Evaluator, "evaluator");
             _grantSubRole(garden, account, GardenRole.Gardener, "gardener");
         } else if (role == GardenRole.Owner) {
             // Only grant Operator as sub-role; Operator's own sub-grants
             // (Evaluator + Gardener) are handled recursively by _grantSubRole
-            _grantSubRole(garden, account, GardenRole.Operator, "operator");
+            _grantSubRole(garden, account, GardenRole.Steward, "operator");
         }
+        if (role == GardenRole.Owner || role == GardenRole.Steward) _syncProjectAdmin(garden, account, true);
 
         // Best-effort conviction power sync on role grant
         // Sync fires post-mint so strategies see updated hat state
@@ -691,9 +687,7 @@ contract HatsModule is
 
         try hats.mintHat(hatId, account) {
             emit RoleGranted(garden, account, role);
-            // Recursively grant sub-roles for Operator (Evaluator + Gardener + GAP sync)
-            if (role == GardenRole.Operator) {
-                _syncProjectAdmin(garden, account, true);
+            if (role == GardenRole.Steward) {
                 _grantSubRole(garden, account, GardenRole.Gardener, "gardener");
             }
         } catch Error(string memory errorMsg) {
@@ -708,17 +702,12 @@ contract HatsModule is
         if (!gardenHats[garden].configured) revert GardenNotConfigured(garden);
 
         uint256 hatId = _getHatId(garden, role);
-        // Only transfer if the account currently wears the hat.
-        // Hats Protocol reverts with AlreadyWearingHat if the recipient address already
-        // wears the hat (e.g., 0xdead from a previous revocation of the same hat type).
-        // We use a monotonic nonce to generate a unique burn address per revocation,
-        // ensuring each transfer targets a fresh address that never wears the hat.
         if (hats.isWearerOfHat(account, hatId)) {
             address burnAddr = address(uint160(uint256(keccak256(abi.encodePacked("burn", _revokeNonce++)))));
             hats.transferHat(hatId, account, burnAddr);
         }
         emit RoleRevoked(garden, account, role);
-        if (role == GardenRole.Operator) {
+        if (role == GardenRole.Owner || role == GardenRole.Steward) {
             _syncProjectAdmin(garden, account, false);
         }
         // Best-effort conviction power sync -- sync failure MUST NOT revert role revocation.
@@ -730,25 +719,23 @@ contract HatsModule is
     }
 
     function _syncProjectAdmin(address garden, address account, bool add) internal {
-        if (address(karmaGAPModule) == address(0)) return;
+        if (address(karmaGAPModule) == address(0)) {
+            emit KarmaHookFailed(garden, account, IKarmaGAPModule.KarmaSyncOperation.Access, "module_unavailable");
+            return;
+        }
         if (add) {
-            // solhint-disable-next-line no-empty-blocks
-            try karmaGAPModule.addProjectAdmin(garden, account) { } catch { }
+            try karmaGAPModule.addProjectAdmin(garden, account) { }
+            catch {
+                emit KarmaHookFailed(garden, account, IKarmaGAPModule.KarmaSyncOperation.Access, "module_call_reverted");
+            }
         } else {
-            // solhint-disable-next-line no-empty-blocks
-            try karmaGAPModule.removeProjectAdmin(garden, account) { } catch { }
+            try karmaGAPModule.removeProjectAdmin(garden, account) { }
+            catch {
+                emit KarmaHookFailed(garden, account, IKarmaGAPModule.KarmaSyncOperation.Access, "module_call_reverted");
+            }
         }
     }
 
-    /// @notice Best-effort conviction power sync on role revocation
-    /// @dev Iterates configured strategies and calls syncPower via ICVSyncPowerFacet.
-    ///      Failures emit events but do NOT revert.
-    ///
-    ///      Architecture note: ICVSyncPowerFacet targets Gardens V2 diamond facets that
-    ///      maintain per-member voting power. HypercertSignalPool does NOT implement this
-    ///      interface — it uses lazy eligibility evaluation (isEligibleVoter checks Hats
-    ///      at read time). The sync infrastructure is built for future Gardens V2 integration
-    ///      where power registries require explicit sync on role changes.
     function _syncConvictionPower(address garden, address account) internal {
         address[] storage strategies = gardenConvictionStrategies[garden];
         uint256 len = strategies.length;
@@ -778,7 +765,7 @@ contract HatsModule is
     function _getHatId(address garden, GardenRole role) internal view returns (uint256) {
         GardenHats storage config = gardenHats[garden];
         if (role == GardenRole.Owner) return config.ownerHatId;
-        if (role == GardenRole.Operator) return config.operatorHatId;
+        if (role == GardenRole.Steward) return config.operatorHatId;
         if (role == GardenRole.Evaluator) return config.evaluatorHatId;
         if (role == GardenRole.Gardener) return config.gardenerHatId;
         if (role == GardenRole.Funder) return config.funderHatId;
@@ -824,8 +811,11 @@ contract HatsModule is
             if (address(hatsModuleFactory) != address(0)) {
                 if (communityToken == address(0)) revert ZeroAddress();
                 bytes memory otherArgs = abi.encodePacked(communityToken, communityMinBalance);
-                try hatsModuleFactory.createHatsModule(communityEligibilityModule, communityHatIdParam, otherArgs, "", 0)
-                returns (address createdModule) {
+                try hatsModuleFactory.createHatsModule(
+                    communityEligibilityModule, communityHatIdParam, otherArgs, "", 0
+                ) returns (
+                    address createdModule
+                ) {
                     communityModule = createdModule;
                 } catch {
                     emit EligibilityModuleCreationFailed(communityHatIdParam, "community");

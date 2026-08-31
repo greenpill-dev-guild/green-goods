@@ -50,6 +50,10 @@ vi.mock("../../config/blockchain", () => ({
   }),
 }));
 
+vi.mock("../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 // Mock utilities
 vi.mock("../../utils/blockchain/address", () => ({
   isAddressInList: vi.fn((address, list) =>
@@ -91,8 +95,29 @@ vi.mock("../../utils/errors/contract-errors", () => ({
   isAlreadyGardenerError: vi.fn((error) => error?.message?.includes("AlreadyGardener")),
 }));
 
+// Spy on the funnel trackers. `isCancelledTxError` is deliberately left real so
+// these tests exercise the actual cancellation classifier.
+vi.mock("../../modules/app/analytics-events", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../modules/app/analytics-events")>()),
+  trackGardenJoinStarted: vi.fn(),
+  trackGardenJoinSuccess: vi.fn(),
+  trackGardenJoinFailed: vi.fn(),
+  trackGardenJoinCancelled: vi.fn(),
+  trackGardenJoinAlreadyMember: vi.fn(),
+}));
+
+vi.mock("../../modules/app/error-tracking", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../modules/app/error-tracking")>()),
+  trackContractError: vi.fn(),
+}));
+
 import { readContract } from "@wagmi/core";
 import { checkGardenOpenJoining, useJoinGarden } from "../../hooks/garden/useJoinGarden";
+import {
+  trackGardenJoinCancelled,
+  trackGardenJoinFailed,
+} from "../../modules/app/analytics-events";
+import { trackContractError } from "../../modules/app/error-tracking";
 import {
   createMockSmartAccountClient,
   createTestWrapper,
@@ -267,6 +292,68 @@ describe("hooks/garden/useJoinGarden", () => {
       });
 
       expect(result.current.error).toBeDefined();
+    });
+  });
+
+  describe("failure telemetry", () => {
+    const renderWithRejection = (error: Error) => {
+      const mockClient = createMockSmartAccountClient();
+      mockClient.sendTransaction.mockRejectedValue(error);
+
+      mockUseUser.mockReturnValue({
+        smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+        smartAccountClient: mockClient,
+        eoa: null,
+      });
+
+      return renderHook(() => useJoinGarden(), { wrapper: createWrapper() });
+    };
+
+    it("records a declined prompt as cancelled, not a conversion failure", async () => {
+      const { result } = renderWithRejection(new Error("User rejected the request."));
+
+      await act(async () => {
+        await expect(result.current.joinGarden(MOCK_ADDRESSES.garden)).rejects.toThrow(
+          "User rejected the request."
+        );
+      });
+
+      expect(trackGardenJoinCancelled).toHaveBeenCalledWith({
+        gardenAddress: MOCK_ADDRESSES.garden,
+        authMode: "passkey",
+      });
+      // The funnel event drives `failures.conversion-kill`; an abort is not a kill.
+      expect(trackGardenJoinFailed).not.toHaveBeenCalled();
+      // Nor is a user changing their mind an exception worth dashboarding.
+      expect(trackContractError).not.toHaveBeenCalled();
+    });
+
+    it("records a genuine failure as the parsed family, never the raw message", async () => {
+      // Shape mirrors a viem wallet error, which embeds the signer address.
+      // The address here is synthetic — never commit a real one.
+      const signerAddress = "0x1234567890AbcdEF1234567890aBcdef12345678";
+      const { result } = renderWithRejection(
+        new Error(`An unknown RPC error occurred.\n\nRequest Arguments:\n  from: ${signerAddress}`)
+      );
+
+      await act(async () => {
+        await expect(result.current.joinGarden(MOCK_ADDRESSES.garden)).rejects.toThrow(
+          "An unknown RPC error occurred."
+        );
+      });
+
+      expect(trackGardenJoinFailed).toHaveBeenCalledWith({
+        gardenAddress: MOCK_ADDRESSES.garden,
+        error: "UnknownError",
+        parsedErrorFamily: "UnknownError",
+        authMode: "passkey",
+      });
+      expect(trackGardenJoinCancelled).not.toHaveBeenCalled();
+      expect(trackContractError).toHaveBeenCalled();
+
+      // The signer address must never reach a PostHog property.
+      const payload = JSON.stringify(vi.mocked(trackGardenJoinFailed).mock.calls[0]?.[0]);
+      expect(payload).not.toContain(signerAddress);
     });
   });
 

@@ -38,7 +38,7 @@ This routine is the **async sibling** of `/qa-triage`. The skill's Phase 1 step 
 
 - All env vars are loaded; do not read `.env`.
 - `DISCORD_USER_ID_AFO` is Afo's Discord snowflake ID. Use `<@${DISCORD_USER_ID_AFO}>` to @mention.
-- `DISCORD_PRODUCT_CHANNEL_ID` is the `#product` channel where this routine's daily summary posts.
+- `DISCORD_PRODUCT_CHANNEL_ID` is the `#product` channel where this routine's Phase 6 summary posts.
 - Google Drive connector is available for reading shared documents.
 - Linear connector is available — resolve team/label/status IDs by name at run-start; never hardcode.
 - PostHog connector is available — three projects (App `163591`, Admin `262122`, Agent `262124` — Agent unused here).
@@ -52,7 +52,7 @@ Write Customer Needs on the **Linear Product team**. Mirror [`bug-intake`](./bug
 
 1. **Customer Needs cannot be standalone.** Linear rejects `save_customer_need` calls without an `issue` (or `project`) parameter — `Exactly one of projectId or issueId must be defined`. Every Customer Need this routine creates must link to a Backlog tracking Issue. The routine never creates standalone "raw signal only" Needs.
 2. **`ai:*` is single-value-per-Issue.** Use `ai:routine` on every Issue this routine creates (cron'd provenance). When a track-only item is later promoted to a delegate (`ai:codex` or `ai:claude`), the interactive `/qa-triage` skill swaps the label — this routine doesn't.
-3. **`package:*` is single-value-per-Issue.** When the bug spans more than one package, pick the primary surface as the label; name the secondary package(s) in the Issue body's `## Surface` block.
+3. **`package:*` is single-value-per-Issue.** When the bug spans more than one package, pick the primary surface as the label; name the secondary package(s) in the problem sentence (the `## Surface` block is retired).
 
 ### Labels applied to the Backlog tracking Issues this routine creates
 
@@ -91,7 +91,7 @@ Only safe-summary fields cross into the Customer Need body. Replay URLs, session
    (name contains 'Build Sync' or name contains 'Product Sync') and name contains 'Notes by Gemini' and modifiedTime > '<6h-ago RFC3339>' and mimeType = 'application/vnd.google-apps.document'
    ```
 
-   The legacy 'Product Sync' clause covers the meeting's pre-June-2026 name (a straggling calendar title still produces old-name notes); drop it once it stops matching. The 6-hour window starts at routine-fire time and reaches back through the sync window. If zero matches, the sync didn't happen or notes haven't landed — post the silent-week summary (Phase 6) and exit cleanly. Do not fail loud; not every Wednesday has a sync.
+   The legacy 'Product Sync' clause covers the meeting's pre-June-2026 name (a straggling calendar title still produces old-name notes); drop it once it stops matching. The 6-hour window starts at routine-fire time and reaches back through the sync window. If zero matches, the sync didn't happen or notes haven't landed — post the Phase 6 one-line no-sync note and exit cleanly. Do not fail loud; not every Wednesday has a sync.
 
 2. **Multi-match handling**: if >1 candidate (rare — separate "Build Sync — Engineering" vs "Build Sync — Growth"), pick the newest. Surface the alternates in the Discord summary so the user knows.
 
@@ -142,14 +142,14 @@ For each extracted item:
    - PostHog error hash (if matched)
 
    If duplicate:
-   - **Existing Customer Need**: append a comment with today's sync date + the verbatim quote; do NOT create a duplicate.
+   - **Existing Customer Need**: append a comment with today's sync date + the verbatim quote; do NOT create a duplicate. Grep the drafted comment with the Phase 5 string list **before** posting — a comment is public the moment it lands, and a post-hoc edit does not unpublish it.
    - **Existing Issue**: link as `relates to` if a Customer Need is being created; skip the new Customer Need if the Issue already covers the same behavior.
 
 ## Phase 4: Pre-stage Customer Needs with Backlog tracking Issues
 
-Linear requires every Customer Need to link to an Issue. For each non-duplicate item:
+Linear requires every Customer Need to link to an Issue. Grep every drafted body with the Phase 5 string list **before** each write — Phase 5 is the backstop, not the gate. For each non-duplicate item:
 
-1. **First, create the Backlog tracking Issue** on the Product team. Title: prefix with `[tracking]`, then use an action-verb-led one-line distillation (e.g., "[tracking] Investigate PWA install hang on Android" rather than "Install hangs"). Body: Summary + Surface + Suggested fix + Source + safe evidence — no Reproduction/Expected/Actual sections at this routine stage.
+1. **First, create the Backlog tracking Issue** on the Product team. Title: a plain action-verb-led sentence with **no prefix** — "Investigate the PWA install hang on Android", not "[tracking] Install hangs". The `[tracking]` prefix is retired (2026-08-27): the `maintenance` label plus `Backlog` state already say the work is uncommitted, and a `PreToolUse` hook now rejects the prefix. Body: the problem in one or two plain paragraphs, then one source line — **no headings unless the item genuinely needs them (cap 3), ~150 words, 300 ceiling**, and no Reproduction/Expected/Actual at this routine stage. Drop any section you cannot fill rather than writing "—" or a paragraph reporting that PostHog matched nothing; note tooling gaps in the Discord summary instead. Full contract: [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md) § Issue structure.
    - Labels: `protocol:green-goods` + ONE `package:*` (primary surface; omit if unknown) + `activity:qa` (clear bug) or `activity:maintenance` (idea / polish / unclear actionability) + `source:drive` + `source:qa-triage-pulse` + `ai:routine` + `qa-sync:<YYYY-MM-DD>`. Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
    - Status: `Backlog` for all. The routine never claims work as `Todo`; the interactive `/qa-triage` skill promotes selected tracking Issues to `Todo` during the human triage gate.
    - Priority: P3 (Low) by default. P2 (Medium) when PostHog confirms ≥50 sessions in 30d. The routine never sets P0/P1 — humans decide release-blocker status.
@@ -173,36 +173,37 @@ Apply a per-run cap: at most **15 Customer Need + Issue pairs**. If the notes co
 
 ## Phase 5: Privacy grep
 
-Before posting, grep every Customer Need body created this run for `replay`, `session_id`, `distinct_id`, `0x`, and any reporter identifier seen this run. Hits → fail loud in the Discord summary's `⚠ Failures this run` block, redact in place, and re-verify.
+The backstop for the pre-write greps in Phases 3–4: re-grep everything this run wrote to Linear — every Customer Need body, every tracking Issue body, and every comment — for `replay`, `session_id`, `distinct_id`, `0x`, and any reporter identifier seen this run. Comments are inside the privacy boundary exactly like bodies (`.claude/context/linear-routing-rules.md` § Invariant rules), so a grep that skips them is not a redaction gate. A hit here means the value was already published: redact in place, re-verify, and fail loud in the Discord summary's `⚠ Failures this run` block, reporting it as an exposure rather than a save.
 
 ## Phase 6: Discord summary to #product
 
-Post one summary message to `#product` (`DISCORD_PRODUCT_CHANNEL_ID`):
+**House style v2** (see [`routines/claude/README.md` in `.github`](https://github.com/greenpill-dev-guild/.github/blob/main/routines/claude/README.md#house-style-v2-applies-to-every-posting-routine)): ONE message, lede first, items over counts. Post to `#product` (`DISCORD_PRODUCT_CHANNEL_ID`):
 
-```
-{if N >= 1 OR any_failure: "<@${DISCORD_USER_ID_AFO}> "}**QA Sync Pre-Stage — <meeting-title> · <YYYY-MM-DD>**
+```text
+{if N >= 1 OR any_failure: "<@${DISCORD_USER_ID_AFO}> "}**📋 QA Sync · {meeting-title} · {YYYY-MM-DD}**
 
-📋 Pre-staged {N} Customer Needs from the Build Sync
-🔗 Drive doc: <drive-url>
-🏷️ Linear label: `qa-sync:<YYYY-MM-DD>`
+{Lede: 1–2 sentences a teammate would write — what the sync surfaced and whether anything is urgent. e.g. "Six items from today's Build Sync, two matching live telemetry — the Android install hang is the one to look at first."}
 
-Surface breakdown:
-• Public Website: {n}
-• PWA iOS: {n}
-• PWA Android: {n}
-• Admin Dashboard: {n}
-• Cross Surface: {n}
-• Docs: {n}
+{Top items — up to 3, the most notable by telemetry match or severity, each one line:}
+- **{one-line item}** · {surface}{ · matches telemetry: {n} sessions/7d} → <{linear-url}>
 
-PostHog matches: {n}/{N} items matched recent telemetry
-Deduplicated: {n} items merged into existing Customer Needs
+{if N > 3: "…plus {N−3} more, all pre-staged under `qa-sync:<YYYY-MM-DD>`."}
+{if dedup_n >= 1: "{dedup_n} item(s) merged into existing Customer Needs."}
 
-{if N >= 1: "Ready for triage — run `/qa-triage qa-sync:<YYYY-MM-DD>` to promote these into Issues + QA-sheet rows."}
-
-{if any_failure: "⚠ Failures this run: {short list}"}
+{if N >= 1: "Ready for triage → run `/qa-triage qa-sync:<YYYY-MM-DD>` · notes: <drive-url>"}
+{if N == 0: "Nothing pre-staged this run · notes: <drive-url>"}
+{if any_failure: "⚠ {short failure list}{if N == 0: ' — fix the failed step and re-run before triaging; the `qa-sync:<YYYY-MM-DD>` label is empty.'}"}
 ```
 
-@mention only when there's something to act on (≥1 Customer Need created) OR a setup failure needs attention. Silent weeks (0 notes found OR 0 new items) post the structured summary without the @mention.
+Counts by surface, PostHog match tallies, and other run telemetry stay OUT of the post — they're visible in Linear via the `qa-sync:*` label. @mention only when there's something to act on (≥1 Customer Need created) OR a setup failure needs attention.
+
+**No-sync day (0 notes found) or 0 new items: post exactly one line, no mention** — never the full skeleton:
+
+```text
+📋 QA sync · {YYYY-MM-DD}: {no sync notes found today · nothing to pre-stage | notes read, nothing new to pre-stage ({dedup_n} already tracked)}.
+```
+
+**Failures take precedence over the one-line form.** If anything failed this run — Drive unreadable, Linear write rejected, PostHog degraded, privacy grep hit — post the full template with the @mention even when zero items were pre-staged, so a broken run is never indistinguishable from a quiet Wednesday. In that case the item list is empty, the lede states what failed, and the post must **not** claim anything is ready for triage: the `/qa-triage` call-to-action is gated on `N >= 1`, and a failed empty run instead tells the operator to fix the failed step and re-run the sync. Pointing someone at an empty `qa-sync:*` label wastes the trip.
 
 The summary is **public**. Replay URLs, session IDs, distinct IDs, wallet/user identifiers, and reporter identifiers must not appear here — same privacy boundary as `bug-intake`'s Discord summary.
 

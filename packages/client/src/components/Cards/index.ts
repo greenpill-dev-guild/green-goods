@@ -17,7 +17,7 @@ export {
   CardTitle,
   type CardVariantProps,
   FlexCard,
-} from "./Base/Card";
+} from "./Card";
 
 // Form utilities
 export { FormCard } from "./Form/FormCard";
@@ -40,7 +40,4 @@ export {
   type MinimalWorkCardProps,
   StatusBadge,
   type StatusBadgeProps,
-  WorkCard,
-  type WorkCardItem,
-  type WorkCardProps,
 } from "./Work/WorkCard";

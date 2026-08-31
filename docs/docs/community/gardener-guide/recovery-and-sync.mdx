@@ -1,0 +1,51 @@
+---
+title: Recovery and Sync
+sidebar_label: Recovery and Sync
+slug: /community/gardener-guide/recovery-and-sync
+audience: gardener
+owner: docs
+last_verified: 2026-08-30
+feature_status: Live
+goal: "Recover a draft or queued submission without duplicating or losing work."
+difficulty: "standard"
+estimated_time: "5-10 minutes."
+prereqs: "An existing draft or submission attempt."
+next_steps: "./track-status-and-attestations"
+persona_context: "Gardeners documenting and syncing work in intermittent connectivity."
+source_of_truth:
+  - packages/shared/src/modules/job-queue
+  - packages/shared/src/hooks/work/useDrafts.ts
+  - packages/shared/src/hooks/work/useWorkForm.ts
+  - packages/shared/src/hooks/work/useWorkMutation.ts
+  - packages/shared/src/hooks/app/useOffline.ts
+---
+
+# Recovery and Sync
+
+Green Goods saves work locally before it reaches the network. A draft is work you have not submitted. A queued item is waiting to send. A pending item has reached Green Goods and is waiting for steward review.
+
+## Work without a connection
+
+1. Start the submission and attach your evidence.
+2. Confirm the media preview before leaving the flow.
+3. Save the draft or submit it. If you are offline, the submission waits on your device.
+4. Reopen the app after connectivity returns. Passkey submissions normally retry automatically; an external wallet may ask you to confirm again.
+5. Check the item before creating another submission. Only start over when the original draft or queued item is no longer present.
+
+The app keeps a bounded number of local drafts. Submit or remove old drafts you no longer need, and recheck photos when reopening a draft after a long gap.
+
+## Fix a submission that will not send
+
+| What you see | What to do |
+|---|---|
+| Missing media or required field | Reopen the draft, restore the missing evidence, and review every required field. |
+| Queued or uploading for a long time | Confirm connectivity, keep the app open briefly, then use the retry action if it appears. |
+| Unauthorized or forbidden | Confirm that you joined the intended Garden and that the Action is still available to you. |
+| Session or signature request | Sign in again with the same account, then retry the existing item. |
+| Transaction rejected | Reopen the item and approve the signature when you are ready. |
+
+If the same error repeats, ask your steward for help. Share the Garden, Action, approximate time, visible error message, and current item status. Do not share private keys, recovery material, or personal identifiers.
+
+## Next action
+
+Once the item reads **Pending**, use [Track Status](./track-status-and-attestations) to follow the steward decision. To create a fresh record, return to [Submit Work](./uploading-your-work).

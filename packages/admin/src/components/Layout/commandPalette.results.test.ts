@@ -1,12 +1,13 @@
+import { buildCommandPaletteResults } from "@green-goods/shared/hooks/admin-ui/layout/commandPalette.results";
+import { groupCommandPaletteResults } from "@green-goods/shared/hooks/admin-ui/layout/useCommandPaletteData";
 import {
-  buildCommandPaletteResults,
-  groupCommandPaletteResults,
   type Action,
+  Domain,
   type Garden,
   type GardenAssessment,
-} from "@green-goods/shared";
+} from "@green-goods/shared/types/domain";
 import type { IntlShape } from "react-intl";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 const formatMessage = ((descriptor: { defaultMessage?: string; id: string }) =>
   descriptor.defaultMessage ?? descriptor.id) as IntlShape["formatMessage"];
@@ -91,11 +92,25 @@ describe("buildCommandPaletteResults", () => {
   it("hides action records from non-deployer command palettes", () => {
     const results = buildCommandPaletteResults({
       query: "mulch",
-      role: "operator",
+      role: "steward",
       formatMessage,
       staticRoutes: [],
       eligibleGardens: [eligibleGarden],
-      actions: [{ id: "action-1", title: "Mulch day", startTime: null } as Action],
+      actions: [
+        {
+          id: "action-1",
+          slug: "agro.mulch_day",
+          title: "Mulch day",
+          startTime: 0,
+          endTime: 0,
+          capitals: [],
+          media: [],
+          domain: Domain.AGRO,
+          createdAt: 0,
+          description: "",
+          inputs: [],
+        } satisfies Action,
+      ],
       assessments: [],
     });
 
@@ -126,9 +141,9 @@ describe("buildCommandPaletteResults", () => {
       },
     ];
 
-    const operatorResults = buildCommandPaletteResults({
+    const stewardResults = buildCommandPaletteResults({
       query: "co",
-      role: "operator",
+      role: "steward",
       formatMessage,
       staticRoutes,
       eligibleGardens: [],
@@ -145,7 +160,7 @@ describe("buildCommandPaletteResults", () => {
       assessments: [],
     });
 
-    expect(operatorResults).toEqual([expect.objectContaining({ id: "page-community" })]);
+    expect(stewardResults).toEqual([expect.objectContaining({ id: "page-community" })]);
     expect(deployerResults).toEqual([
       expect.objectContaining({ id: "page-cookies", href: "/cookies" }),
     ]);

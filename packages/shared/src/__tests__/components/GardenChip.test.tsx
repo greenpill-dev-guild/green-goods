@@ -18,7 +18,7 @@ vi.mock("react-intl", () => ({
     formatMessage: ({ id }: { id: string }) => {
       const messages: Record<string, string> = {
         "cockpit.gardenChip.allGardens": "All Gardens",
-        "cockpit.gardenChip.selectGarden": "Select garden",
+        "cockpit.gardenChip.selectGarden": "Select Garden",
         "cockpit.gardenChip.createGarden": "Create Garden",
       };
       return messages[id] ?? id;
@@ -89,7 +89,7 @@ describe("GardenChip", () => {
     );
 
     const trigger = screen.getByRole("button");
-    expect(trigger.textContent).toContain("Select garden");
+    expect(trigger.textContent).toContain("Select Garden");
     expect(trigger.textContent).not.toContain("All Gardens");
   });
 

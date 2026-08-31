@@ -1,12 +1,12 @@
 import { getAddress, isAddress } from "viem";
-import { derivePublicGardenSlug } from "../public-contracts";
+import { derivePublicGardenSlug } from "../public-contracts/garden-slug";
 import type { Address } from "../types/domain";
 import type {
   CampaignCookieJarCampaign,
   IndexedCampaignCookieJar,
   CampaignCookieJarMetadata,
-  CampaignCookieJarOperatorAggregation,
-  CampaignCookieJarOperatorSource,
+  CampaignCookieJarStewardAggregation,
+  CampaignCookieJarStewardSource,
   CookieJarWithdrawalType,
 } from "../types/cookie-jar";
 
@@ -223,47 +223,47 @@ export function normalizeCampaignMetadataUrl(value: unknown): string | undefined
   }
 }
 
-export interface CampaignGardenOperatorInput {
+export interface CampaignGardenStewardInput {
   id: string;
   name: string;
-  operators?: readonly Address[];
+  stewards?: readonly Address[];
 }
 
-export function aggregateCampaignCookieJarOperators({
+export function aggregateCampaignCookieJarStewards({
   gardens,
   selectedGardenIds,
   extraAddressesInput = "",
 }: {
-  gardens: readonly CampaignGardenOperatorInput[];
+  gardens: readonly CampaignGardenStewardInput[];
   selectedGardenIds: readonly string[];
   extraAddressesInput?: string;
-}): CampaignCookieJarOperatorAggregation {
+}): CampaignCookieJarStewardAggregation {
   const selectedKeys = new Set(selectedGardenIds.map((id) => id.toLowerCase()));
   const { addresses: extraAllowlist, invalidAddresses } =
     parseCampaignAddressList(extraAddressesInput);
-  const sources: CampaignCookieJarOperatorSource[] = gardens
+  const sources: CampaignCookieJarStewardSource[] = gardens
     .filter((garden) => selectedKeys.has(garden.id.toLowerCase()))
     .map((garden) => {
-      const operators = dedupeAddresses(garden.operators ?? []);
+      const stewards = dedupeAddresses(garden.stewards ?? []);
       return {
         gardenAddress: normalizeCampaignAddress(garden.id) ?? (garden.id as Address),
         gardenName: garden.name,
         gardenSlug: derivePublicGardenSlug(garden.name, garden.id),
-        operators,
-        selectedOperator: operators[0] ?? null,
+        stewards,
+        selectedSteward: stewards[0] ?? null,
       };
     });
 
-  const operatorAllowlist = sources
-    .map((source) => source.selectedOperator)
+  const stewardAllowlist = sources
+    .map((source) => source.selectedSteward)
     .filter((address): address is Address => Boolean(address));
-  const allowlist = dedupeAddresses([...operatorAllowlist, ...extraAllowlist]);
+  const allowlist = dedupeAddresses([...stewardAllowlist, ...extraAllowlist]);
 
   return {
     allowlist,
     invalidAddresses,
     sources,
-    missingOperatorGardens: sources.filter((source) => source.selectedOperator === null),
+    missingStewardGardens: sources.filter((source) => source.selectedSteward === null),
     extraAllowlist,
   };
 }

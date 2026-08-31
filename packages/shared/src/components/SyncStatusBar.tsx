@@ -1,10 +1,17 @@
 import { RiLoader4Line, RiUploadCloud2Line, RiWifiOffLine } from "@remixicon/react";
-import React from "react";
+import React, { lazy, Suspense, useCallback, useState } from "react";
 import { useIntl } from "react-intl";
-import { useAuth, useBatchWorkSync, useOffline, usePendingWorksCount } from "../hooks";
-import { useQueueFlush } from "../providers/JobQueue";
+import { useOffline } from "../hooks/app/useOffline";
+import { useAuth } from "../hooks/auth/useAuth";
+import { usePendingWorksCount } from "../hooks/work/usePendingWorksCount";
 import { useUIStore } from "../stores/useUIStore";
 import { cn } from "../utils/styles/cn";
+
+const SyncStatusBarWalletAction = lazy(() =>
+  import("./SyncStatusBarWalletAction").then(({ SyncStatusBarWalletAction }) => ({
+    default: SyncStatusBarWalletAction,
+  }))
+);
 
 interface SyncStatusBarProps {
   className?: string;
@@ -19,31 +26,23 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ className }) => {
   const { isOnline } = useOffline();
   const { data: pendingWorksCount = 0 } = usePendingWorksCount();
   const isOfflineBannerVisible = useUIStore((s) => s.isOfflineBannerVisible);
-  const flushQueue = useQueueFlush();
-  const batchWorkSync = useBatchWorkSync();
+  const [isSyncing, setIsSyncing] = useState(false);
+  const handleSyncingChange = useCallback((nextIsSyncing: boolean) => {
+    setIsSyncing(nextIsSyncing);
+  }, []);
 
   const pendingCount = pendingWorksCount;
   const isWalletUser = authMode === "wallet";
-  const isSyncing = batchWorkSync.isPending;
 
   if (!isOfflineBannerVisible || pendingCount === 0) {
     return null;
   }
 
-  const handleSyncAll = async () => {
-    if (!isOnline || isSyncing) return;
-    if (isWalletUser) {
-      await batchWorkSync.mutateAsync();
-      return;
-    }
-    await flushQueue();
-  };
-
   const statusLabel = !isOnline
     ? intl.formatMessage(
         {
           id: "app.syncBar.pendingOffline",
-          defaultMessage: "Offline: {count} items waiting to sync",
+          defaultMessage: "Offline: {count} items waiting to send when you're back online",
         },
         { count: pendingCount }
       )
@@ -51,14 +50,14 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ className }) => {
       ? intl.formatMessage(
           {
             id: "app.syncBar.syncing",
-            defaultMessage: "Syncing {count} items...",
+            defaultMessage: "Sending {count} items...",
           },
           { count: pendingCount }
         )
       : intl.formatMessage(
           {
             id: "app.syncBar.pendingOnline",
-            defaultMessage: "{count} items waiting to sync",
+            defaultMessage: "{count} items waiting to send",
           },
           { count: pendingCount }
         );
@@ -85,25 +84,13 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ className }) => {
         </div>
 
         {isWalletUser && (
-          <button
-            type="button"
-            onClick={() => void handleSyncAll()}
-            disabled={!isOnline || isSyncing}
-            className="text-xs font-medium text-primary disabled:text-text-soft-400"
-          >
-            {!isOnline
-              ? intl.formatMessage({
-                  id: "app.syncBar.reconnect",
-                  defaultMessage: "Reconnect to sync",
-                })
-              : intl.formatMessage(
-                  {
-                    id: "app.syncBar.syncAll",
-                    defaultMessage: "Sync All ({count})",
-                  },
-                  { count: pendingCount }
-                )}
-          </button>
+          <Suspense fallback={null}>
+            <SyncStatusBarWalletAction
+              isOnline={isOnline}
+              pendingCount={pendingCount}
+              onSyncingChange={handleSyncingChange}
+            />
+          </Suspense>
         )}
       </div>
     </div>

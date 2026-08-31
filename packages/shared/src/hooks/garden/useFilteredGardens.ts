@@ -1,5 +1,5 @@
-import type { Garden } from "../../types";
-import { gardenHasMember } from "../../utils";
+import type { Garden } from "../../types/domain";
+import { gardenHasMember } from "../../utils/app/garden";
 
 export type GardenFilterScope = "all" | "mine";
 export type GardenSortOrder = "default" | "name" | "recent";
@@ -52,7 +52,7 @@ export function useFilteredGardens(
   const myGardensCount = userAddress
     ? gardens.reduce(
         (count, garden) =>
-          count + (gardenHasMember(userAddress, garden.gardeners, garden.operators) ? 1 : 0),
+          count + (gardenHasMember(userAddress, garden.gardeners, garden.stewards) ? 1 : 0),
         0
       )
     : 0;
@@ -64,7 +64,7 @@ export function useFilteredGardens(
       working = [];
     } else {
       working = gardens.filter((garden) =>
-        gardenHasMember(userAddress, garden.gardeners, garden.operators)
+        gardenHasMember(userAddress, garden.gardeners, garden.stewards)
       );
     }
   }

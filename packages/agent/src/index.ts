@@ -38,11 +38,21 @@ import {
   createSqliteProfileAvatarStore,
   createViemProfileAvatarSignatureVerifier,
 } from "./services/profile-avatars";
+import {
+  createSavedOfferCipher,
+  createSqliteSavedOfferStore,
+  MemorySavedOffersSessionStore,
+} from "./services/saved-offers";
 import { logger } from "./services/logger";
 import { rateLimiter } from "./services/rate-limiter";
 import { captureAgentException, initAgentSentry, shutdownAgentSentry } from "./services/sentry";
 import { createResendSubscriptionClient } from "./services/subscriptions";
 import { createShutdownHandler } from "./runtime/shutdown";
+import {
+  createGardenJoinRequestCipher,
+  createSqliteGardenJoinRequestStore,
+} from "./services/garden-join-requests";
+import { createGardenJoinRequestChainReader } from "./services/garden-join-requests-chain";
 
 // ============================================================================
 // INITIALIZATION
@@ -88,6 +98,16 @@ async function main(): Promise<void> {
     segmentId: config.resendGreenGoodsSegmentId,
     topicId: config.resendGreenGoodsTopicId,
   });
+  const savedOfferCipher = config.savedOffersEncryptionKey
+    ? createSavedOfferCipher(config.savedOffersEncryptionKey)
+    : undefined;
+  const joinRequestCipher = config.joinRequestsEncryptionKey
+    ? createGardenJoinRequestCipher(config.joinRequestsEncryptionKey)
+    : undefined;
+  const gardenJoinRequestStore = joinRequestCipher
+    ? createSqliteGardenJoinRequestStore(joinRequestCipher)
+    : undefined;
+  const agentRpcUrl = resolveAgentRpcUrl(config.chainId);
 
   const groupCapture = createGroupCaptureHandler(config.captureTopics);
   const bot = createTelegramBot({ token: config.telegramToken }, handleMessage, groupCapture);
@@ -122,6 +142,31 @@ async function main(): Promise<void> {
       chain: config.chain,
       rpcUrl: resolveAgentRpcUrl(config.chainId),
     }),
+    savedOfferStore: savedOfferCipher ? createSqliteSavedOfferStore(savedOfferCipher) : undefined,
+    savedOffersSessionStore: savedOfferCipher
+      ? new MemorySavedOffersSessionStore({ tokenSecret: config.savedOffersEncryptionKey })
+      : undefined,
+    savedOffersSignatureVerifier: createViemProfileAvatarSignatureVerifier({
+      chain: config.chain,
+      rpcUrl: resolveAgentRpcUrl(config.chainId),
+    }),
+    savedOffersAudience: config.savedOffersAudience,
+    savedOffersChainIds: [config.chainId],
+    gardenJoinRequestsEnabled: config.joinRequestsEnabled,
+    gardenJoinRequestStore,
+    ...(config.joinRequestsEnabled
+      ? {
+          gardenJoinRequestChainId: config.chainId,
+          gardenJoinRequestChainReader: createGardenJoinRequestChainReader({
+            chain: config.chain,
+            rpcUrl: agentRpcUrl,
+          }),
+          gardenJoinRequestSignatureVerifier: createViemProfileAvatarSignatureVerifier({
+            chain: config.chain,
+            rpcUrl: agentRpcUrl,
+          }),
+        }
+      : {}),
     allowedOrigins: resolveAllowedOrigins(config.publicAllowedOrigins, {
       includeDevelopmentDefaults: config.isDevelopment,
     }),

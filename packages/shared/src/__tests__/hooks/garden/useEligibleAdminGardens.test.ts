@@ -41,7 +41,7 @@ function makeGarden(
   id: string,
   name: string,
   overrides: Partial<{
-    operators: string[];
+    stewards: string[];
     owners: string[];
     evaluators: string[];
   }> = {}
@@ -49,7 +49,7 @@ function makeGarden(
   return {
     id,
     name,
-    operators: [] as string[],
+    stewards: [] as string[],
     owners: [] as string[],
     evaluators: [] as string[],
     ...overrides,
@@ -59,7 +59,7 @@ function makeGarden(
 function defaultRole() {
   return {
     role: "user" as const,
-    operatorGardens: [] as Array<{ id: string; name: string }>,
+    stewardGardens: [] as Array<{ id: string; name: string }>,
     loading: false,
     gardensError: false,
   };
@@ -77,10 +77,10 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     );
   });
 
-  it("filters gardens to operator, owner, and evaluator memberships", () => {
+  it("filters gardens to steward, owner, and evaluator memberships", () => {
     mockUseGardens.mockReturnValue({
       data: [
-        makeGarden("garden-operator", "Operator Garden", { operators: [ADDR_USER] }),
+        makeGarden("garden-steward", "Steward Garden", { stewards: [ADDR_USER] }),
         makeGarden("garden-owner", "Owner Garden", { owners: [ADDR_USER] }),
         makeGarden("garden-evaluator", "Evaluator Garden", { evaluators: [ADDR_USER] }),
         makeGarden("garden-other", "Other Garden"),
@@ -92,9 +92,10 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     const { result } = renderHook(() => useEligibleAdminGardens());
 
     expect(result.current.eligibleGardens.map((garden) => garden.id)).toEqual([
+      // Sorted by garden name: Evaluator < Owner < Steward.
       "garden-evaluator",
-      "garden-operator",
       "garden-owner",
+      "garden-steward",
     ]);
     expect(result.current.hasStaleBaseList).toBe(false);
     expect(result.current.isError).toBe(false);
@@ -103,7 +104,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
   it("prefers the persisted garden when it is still eligible", () => {
     mockUseGardens.mockReturnValue({
       data: [
-        makeGarden("garden-b", "Beta Garden", { operators: [ADDR_USER] }),
+        makeGarden("garden-b", "Beta Garden", { stewards: [ADDR_USER] }),
         makeGarden("garden-a", "Alpha Garden", { evaluators: [ADDR_USER] }),
       ],
       isFetched: true,
@@ -132,8 +133,8 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     const BETA_CHECKSUMMED = "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
     mockUseGardens.mockReturnValue({
       data: [
-        makeGarden(ALPHA, "Alpha Garden", { operators: [ADDR_USER] }),
-        makeGarden(BETA_LOWER, "Beta Garden", { operators: [ADDR_USER] }),
+        makeGarden(ALPHA, "Alpha Garden", { stewards: [ADDR_USER] }),
+        makeGarden(BETA_LOWER, "Beta Garden", { stewards: [ADDR_USER] }),
       ],
       isFetched: true,
       isError: false,
@@ -156,7 +157,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     mockUseRole.mockReturnValue({ ...defaultRole(), role: "deployer" });
     mockUseGardens.mockReturnValue({
       data: [
-        makeGarden("garden-z", "Zeta Garden", { operators: [ADDR_USER] }),
+        makeGarden("garden-z", "Zeta Garden", { stewards: [ADDR_USER] }),
         makeGarden("garden-a", "Alpha Garden", { evaluators: [ADDR_USER] }),
       ],
       isFetched: true,
@@ -170,10 +171,10 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     expect(result.current.scopeKey).toBe("11155111:0x1111111111111111111111111111111111111111");
   });
 
-  it("does not grant canCreateGarden for operator role (route gate is deployer-only)", () => {
-    mockUseRole.mockReturnValue({ ...defaultRole(), role: "operator" });
+  it("does not grant canCreateGarden for steward role (route gate is deployer-only)", () => {
+    mockUseRole.mockReturnValue({ ...defaultRole(), role: "steward" });
     mockUseGardens.mockReturnValue({
-      data: [makeGarden("garden-a", "Alpha Garden", { operators: [ADDR_USER] })],
+      data: [makeGarden("garden-a", "Alpha Garden", { stewards: [ADDR_USER] })],
       isFetched: true,
       isError: false,
     });
@@ -186,7 +187,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
   it("returns no eligible gardens when the auth context has no primary address", () => {
     mockUsePrimaryAddress.mockReturnValue(null);
     mockUseGardens.mockReturnValue({
-      data: [makeGarden("garden-a", "Alpha Garden", { operators: [ADDR_USER] })],
+      data: [makeGarden("garden-a", "Alpha Garden", { stewards: [ADDR_USER] })],
       isFetched: true,
       isError: false,
     });
@@ -197,13 +198,13 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     expect(result.current.scopeKey).toBeNull();
   });
 
-  it("merges role-confirmed operator gardens missing from the base list (stale or errored base list)", () => {
-    // Symptom: operator account hits 'no garden access' because useGardens returned []
-    // (silent indexer error or stale cache) while useRole correctly proved operator status.
+  it("merges role-confirmed steward gardens missing from the base list (stale or errored base list)", () => {
+    // Symptom: steward account hits 'no garden access' because useGardens returned []
+    // (silent indexer error or stale cache) while useRole correctly proved steward status.
     mockUseRole.mockReturnValue({
       ...defaultRole(),
-      role: "operator",
-      operatorGardens: [{ id: "0xCafeGarden", name: "Cafe Garden" }],
+      role: "steward",
+      stewardGardens: [{ id: "0xCafeGarden", name: "Cafe Garden" }],
     });
     mockUseGardens.mockReturnValue({
       data: [],
@@ -219,14 +220,14 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     expect(result.current.hasStaleBaseList).toBe(true);
   });
 
-  it("does not duplicate when the operator garden is already in the base list", () => {
+  it("does not duplicate when the steward garden is already in the base list", () => {
     mockUseRole.mockReturnValue({
       ...defaultRole(),
-      role: "operator",
-      operatorGardens: [{ id: "garden-a", name: "Alpha Garden" }],
+      role: "steward",
+      stewardGardens: [{ id: "garden-a", name: "Alpha Garden" }],
     });
     mockUseGardens.mockReturnValue({
-      data: [makeGarden("garden-a", "Alpha Garden", { operators: [ADDR_USER] })],
+      data: [makeGarden("garden-a", "Alpha Garden", { stewards: [ADDR_USER] })],
       isFetched: true,
       isError: false,
     });
@@ -245,9 +246,9 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     expect(result.current.isError).toBe(true);
   });
 
-  it("surfaces useRole.gardensError so an operator-gardens outage renders an error branch, not no-access", () => {
+  it("surfaces useRole.gardensError so a steward-gardens outage renders an error branch, not no-access", () => {
     // The exact masking this fixes: the base list looks clean (empty, no error)
-    // but the address-filtered operator-gardens query failed. Previously that
+    // but the address-filtered steward-gardens query failed. Previously that
     // produced isError=false → "No garden access yet" instead of a retry.
     mockUseGardens.mockReturnValue({ data: [], isFetched: true, isError: false });
     mockUseRole.mockReturnValue({ ...defaultRole(), gardensError: true });
@@ -257,7 +258,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     expect(result.current.isError).toBe(true);
   });
 
-  it("preserves the deployer create-garden path during an operator-gardens outage", () => {
+  it("preserves the deployer create-garden path during a steward-gardens outage", () => {
     mockUseGardens.mockReturnValue({ data: [], isFetched: true, isError: false });
     mockUseRole.mockReturnValue({ ...defaultRole(), role: "deployer", gardensError: true });
 

@@ -1,4 +1,5 @@
-import type { Address, CampaignCookieJarCampaign, Garden } from "@green-goods/shared";
+import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
 import type { IntlShape } from "react-intl";
 
 export interface CampaignCookieJarPanelViewProps {

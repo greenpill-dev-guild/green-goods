@@ -1,15 +1,23 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
 import { getWorkApprovals, getWorks } from "../../modules/data/eas";
-import { jobQueue, jobQueueDB } from "../../modules/job-queue";
+import { jobQueueDB } from "../../modules/job-queue/db";
+import { jobQueue } from "../../modules/job-queue/default-instance";
 import { jobQueueEventBus, useJobQueueEvents } from "../../modules/job-queue/event-bus";
+import {
+  isLocalOverlayLive,
+  type OverlayWork,
+  resolveWorkStatus,
+} from "../../modules/work/local-status-overlay";
 import type { Work, WorkCard, WorkDisplayStatus } from "../../types/domain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { useMerged } from "../app/useMerged";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
-import { queryKeys } from "../../config/query-keys";
+import { queueKeys } from "../../config/query-keys/misc";
+import { worksKeys } from "../../config/query-keys/work";
+export { usePendingWorksCount } from "./usePendingWorksCount";
 
 // Throttle approval-fetch warnings to avoid console spam (at most once per 10s)
 let _lastApprovalWarnAt = 0;
@@ -17,8 +25,33 @@ function warnApprovalFetchOnce(error: unknown) {
   const now = Date.now();
   if (now - _lastApprovalWarnAt > 10_000) {
     _lastApprovalWarnAt = now;
-    warnApprovalFetchOnce(error);
+    logger.warn("Failed to fetch approvals, status may be stale", { source: "useWorks", error });
   }
+}
+
+function isDecisionOverlay(work: OverlayWork, now: number): boolean {
+  return (
+    (work.status === "approved" || work.status === "rejected") && isLocalOverlayLive(work, now)
+  );
+}
+
+function reconcileIndexedWorkCollection(
+  indexedWorks: WorkCard[],
+  cachedWorks: OverlayWork[]
+): { works: WorkCard[]; retainDecisionOverlay: boolean } {
+  if (cachedWorks.length === 0) {
+    return { works: indexedWorks, retainDecisionOverlay: false };
+  }
+
+  const indexedIds = new Set(indexedWorks.map((work) => work.id));
+  const isIncomplete = cachedWorks.some((work) => !indexedIds.has(work.id));
+  if (!isIncomplete) {
+    return { works: indexedWorks, retainDecisionOverlay: false };
+  }
+
+  const reconciled = new Map(cachedWorks.map((work) => [work.id, work as WorkCard]));
+  indexedWorks.forEach((work) => reconciled.set(work.id, work));
+  return { works: Array.from(reconciled.values()), retainDecisionOverlay: true };
 }
 
 /** Options for the useWorks hook */
@@ -73,11 +106,13 @@ async function computeWorksWithStatus(
   }
   const approvalMap = new Map(approvals.map((approval) => [approval.workUID, approval]));
 
-  // Get cached status map to preserve optimistic updates
-  const cachedWorks = queryClient.getQueryData<Work[]>(queryKeys.works.merged(gardenId, chainId));
-  const cachedStatusMap = new Map((cachedWorks ?? []).map((w) => [w.id, w.status]));
+  // Preserve optimistic updates that are still covering indexer lag
+  const cachedWorks = queryClient.getQueryData<OverlayWork[]>(worksKeys.merged(gardenId, chainId));
+  const cachedMap = new Map((cachedWorks ?? []).map((w) => [w.id, w]));
+  const now = Date.now();
+  const reconciliation = reconcileIndexedWorkCollection(works, cachedWorks ?? []);
 
-  return works.map((work) => {
+  return reconciliation.works.map((work) => {
     const approval = approvalMap.get(work.id);
     const computedStatus = approval
       ? approval.approved
@@ -85,8 +120,17 @@ async function computeWorksWithStatus(
         : ("rejected" as const)
       : ("pending" as const);
 
-    const status = cachedStatusMap.get(work.id) ?? computedStatus;
-    return { ...work, status };
+    const cached = cachedMap.get(work.id);
+    const status = resolveWorkStatus(computedStatus, cached, now);
+    const retainedOverlay =
+      reconciliation.retainDecisionOverlay && cached && isDecisionOverlay(cached, now)
+        ? {
+            _isPending: cached._isPending,
+            _pendingUntilMs: cached._pendingUntilMs,
+            _txHash: cached._txHash,
+          }
+        : {};
+    return { ...work, status, ...retainedOverlay };
   });
 }
 
@@ -110,12 +154,19 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const primaryAddress = usePrimaryAddress();
+  const mergedWorksKey = worksKeys.merged(gardenId, chainId);
+  const onlineOnlyQueryKey = offline
+    ? ([...mergedWorksKey, "online-only-disabled"] as const)
+    : mergedWorksKey;
+  const offlineMergedQueryKey = offline
+    ? mergedWorksKey
+    : ([...mergedWorksKey, "offline-merge-disabled"] as const);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Online-only mode: Simple query without offline job queue integration
   // ─────────────────────────────────────────────────────────────────────────
   const onlineOnlyQuery = useQuery({
-    queryKey: queryKeys.works.merged(gardenId, chainId),
+    queryKey: onlineOnlyQueryKey,
     queryFn: async () => {
       const onlineWorks = await getWorks(gardenId, chainId);
       return computeWorksWithStatus(onlineWorks, chainId, queryClient, gardenId);
@@ -129,9 +180,9 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   // Offline mode: Merged online + offline with job queue integration
   // ─────────────────────────────────────────────────────────────────────────
   const merged = useMerged<WorkCard[], Job<WorkJobPayload>[], Work[]>({
-    onlineKey: queryKeys.works.online(gardenId, chainId),
-    offlineKey: queryKeys.works.offline(gardenId),
-    mergedKey: queryKeys.works.merged(gardenId, chainId),
+    onlineKey: worksKeys.online(gardenId, chainId),
+    offlineKey: worksKeys.offline(gardenId),
+    mergedKey: offlineMergedQueryKey,
     enabled: offline && !!gardenId,
     fetchOnline: () => getWorks(gardenId, chainId),
     fetchOffline: async () => {
@@ -159,11 +210,11 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       }
       const approvalMap = new Map(approvals.map((approval) => [approval.workUID, approval]));
 
-      // Preserve optimistic updates from cache
-      const cachedWorks = queryClient.getQueryData<Work[]>(
-        queryKeys.works.merged(gardenId, chainId)
+      // Preserve optimistic updates that are still covering indexer lag
+      const cachedWorks = queryClient.getQueryData<OverlayWork[]>(
+        worksKeys.merged(gardenId, chainId)
       );
-      const cachedStatusMap = new Map((cachedWorks ?? []).map((w) => [w.id, w.status]));
+      const cachedMap = new Map((cachedWorks ?? []).map((w) => [w.id, w]));
 
       // Convert offline jobs to Work models
       const offlineWorks = await Promise.all(
@@ -187,7 +238,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
             ? ("approved" as const)
             : ("rejected" as const)
           : ("pending" as const);
-        const status = cachedStatusMap.get(work.id) ?? computedStatus;
+        const status = resolveWorkStatus(computedStatus, cachedMap.get(work.id));
         workMap.set(work.id, { ...work, status });
       });
 
@@ -234,7 +285,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     if (offline && "job" in data && data.job.kind === "work") {
       const jobGardenId = (data.job.payload as WorkJobPayload).gardenAddress;
       if (jobGardenId === gardenId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.online(gardenId, chainId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.online(gardenId, chainId) });
       }
     }
   });
@@ -274,36 +325,6 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
 }
 
 /**
- * Hook for getting pending work count across all gardens with event-driven updates
- * Scoped to the current authenticated primary address
- */
-export function usePendingWorksCount() {
-  const queryClient = useQueryClient();
-  const primaryAddress = usePrimaryAddress();
-
-  const query = useQuery({
-    queryKey: queryKeys.queue.pendingCount(),
-    queryFn: async () => {
-      // Only count jobs for the current user
-      if (!primaryAddress) return 0;
-      // Count only unsynced work jobs to align with Uploading tab
-      const jobs = await jobQueue.getJobs(primaryAddress, { kind: "work", synced: false });
-      return jobs.length;
-    },
-    enabled: !!primaryAddress,
-    staleTime: STALE_TIMES.queue,
-    gcTime: GC_TIMES.queue,
-  });
-
-  // Listen to events to update count
-  useJobQueueEvents(["job:added", "job:completed", "job:failed"], () => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.queue.pendingCount() });
-  });
-
-  return query;
-}
-
-/**
  * Hook for getting queue statistics with event-driven updates
  * Scoped to the current authenticated primary address
  */
@@ -312,7 +333,7 @@ export function useQueueStatistics() {
   const primaryAddress = usePrimaryAddress();
 
   const query = useQuery({
-    queryKey: queryKeys.queue.stats(),
+    queryKey: queueKeys.stats(),
     queryFn: async () => {
       // Only get stats for the current user
       if (!primaryAddress) {
@@ -327,7 +348,7 @@ export function useQueueStatistics() {
 
   // Listen to events to update stats
   useJobQueueEvents(["job:added", "job:completed", "job:failed", "queue:sync-completed"], () => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
+    queryClient.invalidateQueries({ queryKey: queueKeys.stats() });
   });
 
   return query;

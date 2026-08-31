@@ -1,10 +1,10 @@
+import { AppBar } from "@green-goods/shared/components/Canvas/AppBar";
+import { GardenChip } from "@green-goods/shared/components/Canvas/GardenChip";
+import { MainSheet } from "@green-goods/shared/components/Canvas/MainSheet";
 import {
-  AppBar,
-  GardenChip,
-  MainSheet,
   NavigationBar,
   type ToolbarSlot,
-} from "@green-goods/shared";
+} from "@green-goods/shared/components/Canvas/NavigationBar";
 import { RiAddLine, RiAppsLine, RiHammerLine, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, within } from "storybook/test";
@@ -103,7 +103,9 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
             <div className="flex flex-col gap-4">
               <div>
                 <p className="text-label-md text-text-soft">Dense route surface</p>
-                <h1 className="text-title-lg text-text-strong">Controlled Chrome Boundary</h1>
+                <h1 className="text-title-md font-semibold text-text-strong">
+                  Controlled Chrome Boundary
+                </h1>
                 <p className="mt-2 max-w-2xl text-body-md text-text-sub">
                   Route cards, form panels, records, and tables stay solid while persistent chrome
                   carries the subtle liquid material.
@@ -136,13 +138,13 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
               {
                 id: "edit-garden",
                 icon: RiSeedlingLine,
-                label: "Edit garden",
+                label: "Edit Garden",
                 labelId: "cockpit.garden.action.editGarden",
               },
               {
                 id: "view-public",
                 icon: RiTeamLine,
-                label: "View public",
+                label: "View Public",
                 labelId: "cockpit.garden.action.viewPublic",
               },
             ],

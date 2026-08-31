@@ -29,7 +29,7 @@
     {
       "id": "qa-06",
       "query": "Let's triage all the bugs from the QA session and figure out who fixes what. PostHog should have data on most of them",
-      "expect": "qa-triage"
+      "expect": ["qa-triage", "qa-session"]
     },
     {
       "id": "qa-07",
@@ -107,6 +107,46 @@
       "expect": "debug"
     },
     {
+      "id": "research-01",
+      "query": "Before we decide what to build at the hackathon, research what Commitment Pooling already defines about repeated Offers, member-funded claims, current implementation state, and open gates. Ground the discussion in the active Plan Hub and code before asking me product questions.",
+      "expect": "research"
+    },
+    {
+      "id": "research-02",
+      "query": "Research the current official Safe Protocol Kit documentation and first-party APIs for creating and executing a Safe transaction. Separate documented behavior from any implementation inference so we can choose an integration approach.",
+      "expect": "research"
+    },
+    {
+      "id": "research-neighbor-plan-01",
+      "query": "Write an implementation plan for the approved Commitment Pooling settlement slice, including package order, acceptance criteria, and validation commands.",
+      "expect": "plan"
+    },
+    {
+      "id": "research-neighbor-debug-01",
+      "query": "Commitment Pooling claims fail after the second contribution with an invalid state error. Reproduce it and find the root cause.",
+      "expect": "debug"
+    },
+    {
+      "id": "research-neighbor-review-01",
+      "query": "Review the Commitment Pooling implementation on this branch for regressions, remaining gaps, and production quality.",
+      "expect": "review"
+    },
+    {
+      "id": "research-neighbor-audit-01",
+      "query": "Audit the Commitment Pooling area for dead code, dependency drift, stale guidance, and broken invariants. Keep it read-only.",
+      "expect": "audit"
+    },
+    {
+      "id": "research-neighbor-lookup-01",
+      "query": "Which Plan Hub owns Commitment Pooling?",
+      "expect": "none"
+    },
+    {
+      "id": "research-neighbor-rationale-01",
+      "query": "Trace why Commitment Pooling chose its current Offer model by following the original commits, plan decisions, and review history.",
+      "expect": "none"
+    },
+    {
       "id": "plan-01",
       "query": "Break down the commitment pooling settlement work across contracts, shared, and admin — parallel lanes for you and codex",
       "expect": "plan"
@@ -122,14 +162,34 @@
       "expect": "ship"
     },
     {
-      "id": "status-01",
-      "query": "Just got back to this branch after a week — where were we and what are the next moves?",
-      "expect": "status"
-    },
-    {
       "id": "review-01",
       "query": "Any regressions in the offline queue changes on this branch? Is it production quality?",
       "expect": "review"
+    },
+    {
+      "id": "resolve-pr-comments-01",
+      "query": "Address every unresolved review comment on PR #482 and fix the similar instances the reviewer may have missed",
+      "expect": "resolve-pr-comments"
+    },
+    {
+      "id": "resolve-pr-comments-02",
+      "query": "The reviewer found swallowed errors in one mutation hook. Validate the comment, sweep the other mutation hooks for the same issue, and fix the approved cases",
+      "expect": "resolve-pr-comments"
+    },
+    {
+      "id": "resolve-pr-comments-03",
+      "query": "Check which GitHub review threads still apply at the current PR head, implement the actionable feedback, and leave the stale ones alone",
+      "expect": "resolve-pr-comments"
+    },
+    {
+      "id": "resolve-pr-comments-04",
+      "query": "PR #482 has a Request changes review with feedback only in the review body. Address that feedback even though there are no inline comments",
+      "expect": "resolve-pr-comments"
+    },
+    {
+      "id": "resolve-pr-comments-neg-01",
+      "query": "The product brief changed. Please implement the requested changes to the onboarding copy",
+      "expect": "none"
     },
     {
       "id": "audit-01",
@@ -139,6 +199,31 @@
     {
       "id": "clean-01",
       "query": "The codebase needs a cleanup pass — dedupe, dead code removal, type strengthening, the works",
+      "expect": "clean"
+    },
+    {
+      "id": "architecture-plan-01",
+      "query": "Scan the codebase for architecture opportunities that would deepen modules, reduce coupling, and improve agentic coding velocity. Rank the best candidates before we choose one.",
+      "expect": "plan"
+    },
+    {
+      "id": "architecture-review-01",
+      "query": "Review this PR's new module boundary and adapter interface. Is the change structurally sound, deep enough, and production quality?",
+      "expect": "review"
+    },
+    {
+      "id": "architecture-audit-01",
+      "query": "Audit the whole repo for measurable drift, brittle hotspots, dead code, dependency problems, and recurring architecture friction. Do not design refactors yet.",
+      "expect": "audit"
+    },
+    {
+      "id": "module-seams-review-01",
+      "query": "Perform a pinned read-only certification of our critical module seams, public exports, composition roots, direct tests, adapter conformance, and registry freshness.",
+      "expect": "module-seams-review"
+    },
+    {
+      "id": "architecture-clean-01",
+      "query": "Implement the approved cleanup scope now: remove dead code, deduplicate the helpers, strengthen the types, and clear the legacy compatibility layer.",
       "expect": "clean"
     },
     {
@@ -156,6 +241,51 @@
       "id": "none-04",
       "query": "Write a conventional commit message for the staged changes",
       "expect": "none"
+    },
+    {
+      "id": "none-05",
+      "query": "Just got back to this branch after a week — where were we and what are the next moves?",
+      "expect": "none"
+    },
+    {
+      "id": "qasession-01",
+      "query": "Starting a QA session — dev:prod is up, I'll walk my garden on the PWA and call things out as I go",
+      "expect": "qa-session"
+    },
+    {
+      "id": "qasession-02",
+      "query": "Here's the transcript of my QA walkthrough from this morning — triage it and fix what's safe to fix now",
+      "expect": "qa-session"
+    },
+    {
+      "id": "qasession-03",
+      "query": "Let's do a product experience QA pass on the admin cockpit. I'll drive and dictate issues, you fix them live so I can re-check",
+      "expect": "qa-session"
+    },
+    {
+      "id": "qasession-04",
+      "query": "I want to walk the funding flow against production data and call out problems while you patch them in real time",
+      "expect": "qa-session"
+    },
+    {
+      "id": "qasession-neg-01",
+      "query": "We finished the build sync call — here are the QA notes, file the bugs in Linear and the sheet",
+      "expect": "qa-triage"
+    },
+    {
+      "id": "qasession-neg-02",
+      "query": "Process yesterday's QA meeting notes from Drive and cross-reference PostHog before filing",
+      "expect": "qa-triage"
+    },
+    {
+      "id": "qasession-neg-03",
+      "query": "A steward reported the review dialog won't scroll on iPad — can you investigate what's going on?",
+      "expect": "debug"
+    },
+    {
+      "id": "qasession-neg-04",
+      "query": "What's our rule for where dialog actions go — pinned footer or inline at the end of the form?",
+      "expect": ["design", "none"]
     }
   ]
 }

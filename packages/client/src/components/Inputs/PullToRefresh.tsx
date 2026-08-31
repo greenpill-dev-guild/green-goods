@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiRefreshLine } from "@remixicon/react";
 import { type PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
 

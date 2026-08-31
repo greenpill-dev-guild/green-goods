@@ -15,7 +15,7 @@ import { AdminConfirmDialog } from "../AdminDialog";
 //   app.treasury.emergencyPauseTitle / .emergencyPauseDescription /
 //   .emergencyPause (confirm) and app.wizard.cancel (cancel).
 
-const PAUSE_TITLE = "Confirm emergency pause";
+const PAUSE_TITLE = "Confirm Emergency Pause";
 const PAUSE_DESCRIPTION =
   "This action will block all new deposits to the vault strategy. Existing depositors can still withdraw their funds.";
 const CONFIRM_LABEL = "Emergency pause";
@@ -56,7 +56,7 @@ const meta: Meta<typeof AdminConfirmDialog> = {
     docs: {
       description: {
         component:
-          "The danger-variant `AdminConfirmDialog` that `PositionCard` opens when an operator taps **Emergency pause**. Rendered through a small state wrapper so the open → confirm/cancel surface is reviewable and browser-tested without seeding wagmi.",
+          "The danger-variant `AdminConfirmDialog` that `PositionCard` opens when a steward taps **Emergency pause**. Rendered through a small state wrapper so the open → confirm/cancel surface is reviewable and browser-tested without seeding wagmi.",
       },
     },
     a11y: {
@@ -112,7 +112,7 @@ export const OpenAndCancel: Story = {
       name: new RegExp(PAUSE_TITLE, "i"),
     });
 
-    // Settle the open animation (admin-m3-overrides.css drives a zoom/opacity
+    // Settle the open animation (admin-m3-components.css drives a zoom/opacity
     // fade) so the visibility assertions below don't race the opacity fade-in.
     // `animation.finished` resolves at actual completion, independent of runner
     // load.

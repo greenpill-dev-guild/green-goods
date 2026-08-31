@@ -1,16 +1,16 @@
+import type { Address } from "@green-goods/shared/types/domain";
 import {
-  type Address,
   getVaultAssetDecimals,
-  useDebouncedValue,
-  useGardenCookieJars,
-  useGardenVaults,
-  useOffline,
-  useUser,
-  useVaultDeposit,
-  useVaultDeposits,
-  useVaultPreview,
   validateDecimalInput,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/blockchain/vaults";
+import { useDebouncedValue } from "@green-goods/shared/hooks/utils/useDebouncedValue";
+import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
+import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
+import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposits";
+import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
 import { RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";

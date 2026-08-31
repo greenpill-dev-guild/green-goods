@@ -79,8 +79,8 @@ type Story = StoryObj<typeof ActionFlowShell>;
 // Configure phase: in-flow back-arrow + pinned footer with idle progress slot.
 export const Configure: Story = {
   args: {
-    title: "Submit work",
-    context: "Aiyeloja Family Garden",
+    title: "Submit Work",
+    context: "Tech and Sun Hub",
     backLabel: "Back to action selection",
     onBack: fn(),
     layout: "dialog",
@@ -101,8 +101,8 @@ export const Submitting: Story = {
 // Qualify phase: no back-arrow (first phase), no footer — selection auto-advances.
 export const QualifyPhase: Story = {
   args: {
-    title: "Submit work",
-    context: "Aiyeloja Family Garden",
+    title: "Submit Work",
+    context: "Tech and Sun Hub",
     layout: "dialog",
     children: (
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -143,8 +143,8 @@ const STEPS = [
 // Mobile to see the rail collapse into the compact stepper in the header.
 export const TwoColumnRail: Story = {
   args: {
-    title: "Submit work",
-    context: "Aiyeloja Family Garden",
+    title: "Submit Work",
+    context: "Tech and Sun Hub",
     steps: STEPS,
     currentStep: 2,
     onStepClick: fn(),

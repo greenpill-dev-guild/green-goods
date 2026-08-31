@@ -77,6 +77,13 @@ export const financeInvalidation = {
     queryKeys.vaults.eventsBase(gardenAddress, chainId),
   ],
 
+  onHarvestDistribution: (gardenAddress: string, assetAddress: string, chainId: number) => [
+    ...financeInvalidation.onVaultHarvest(gardenAddress, chainId),
+    ...financeInvalidation.onYieldAllocated(gardenAddress, assetAddress, chainId),
+    queryKeys.cookieJar.byGarden(gardenAddress, chainId),
+    queryKeys.cookieJar.campaigns(chainId),
+  ],
+
   onCookieJarWithdraw: (
     gardenAddress: string,
     jarAddress: string,

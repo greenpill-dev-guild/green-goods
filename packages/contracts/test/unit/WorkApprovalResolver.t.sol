@@ -21,6 +21,7 @@ import { NotInActionRegistry } from "../../src/resolvers/Work.sol";
 import { ActionRegistry, Capital, Domain } from "../../src/registries/Action.sol";
 import { MockEAS } from "../../src/mocks/EAS.sol";
 import { MockGardenAccessControl } from "../../src/mocks/GardenAccessControl.sol";
+import { IKarmaGAPModule } from "../../src/interfaces/IKarmaGAPModule.sol";
 
 /// @title WorkApprovalResolverTest
 /// @notice Unit tests for WorkApprovalResolver onAttest validation logic
@@ -95,7 +96,11 @@ contract WorkApprovalResolverTest is Test {
             attester: gardener,
             revocable: true,
             data: abi.encode(
-                activeActionId, "Planted 50 oak saplings at riverside", "Detailed planting work", "bafkreiMetadata123", media
+                activeActionId,
+                "Planted 50 oak saplings at riverside",
+                "Detailed planting work",
+                "bafkreiMetadata123",
+                media
             )
         });
         mockEAS.setAttestationByUID(workUID, workAttestation);
@@ -449,19 +454,28 @@ contract WorkApprovalResolverTest is Test {
         vm.prank(multisig);
         workApprovalResolver.setKarmaGAPModule(address(mockModule));
 
-        // Mock IERC6551Account.token() on the garden address (work attestation recipient)
-        // _createGAPProjectImpact calls token() BEFORE the try/catch block
-        vm.mockCall(
-            address(mockGarden),
-            abi.encodeWithSignature("token()"),
-            abi.encode(uint256(11_155_111), address(0xdead), uint256(1))
-        );
-
         Attestation memory attestation = _buildApprovalAttestation(operator, workUID, activeActionId, true);
 
         vm.prank(address(mockEAS));
         bool result = workApprovalResolver.attest(attestation);
         assertTrue(result, "Approval should succeed with GAP module");
+        assertTrue(mockModule.createProjectUpdateCalled(), "Approval should create a Project Update");
+    }
+
+    function testOnAttestApproval_succeedsWhenKarmaProjectUpdateFails() public {
+        MockKarmaForWorkApproval mockModule = new MockKarmaForWorkApproval();
+        mockModule.setShouldRevert(true);
+        vm.prank(multisig);
+        workApprovalResolver.setKarmaGAPModule(address(mockModule));
+
+        Attestation memory attestation = _buildApprovalAttestation(operator, workUID, activeActionId, true);
+
+        vm.expectEmit(true, true, true, true, address(workApprovalResolver));
+        emit KarmaHookFailed(
+            address(mockGarden), address(0), IKarmaGAPModule.KarmaSyncOperation.ProjectUpdate, "module_call_reverted"
+        );
+        vm.prank(address(mockEAS));
+        assertTrue(workApprovalResolver.attest(attestation), "Karma failure must not block approval");
     }
 
     function testOnAttestRejection_doesNotCallGAP() public {
@@ -483,6 +497,9 @@ contract WorkApprovalResolverTest is Test {
 
     event KarmaGAPModuleUpdated(address indexed oldModule, address indexed newModule);
     event SchemaUIDUpdated(bytes32 indexed schemaUID);
+    event KarmaHookFailed(
+        address indexed garden, address indexed account, IKarmaGAPModule.KarmaSyncOperation indexed operation, string reason
+    );
 
     function testSetSchemaUID_emitsEvent() public {
         bytes32 newSchemaUID = bytes32(uint256(300));
@@ -653,6 +670,58 @@ contract WorkApprovalResolverTest is Test {
     }
 
     // =========================================================================
+    // Commitment Pooling Decision Bridge
+    // =========================================================================
+
+    function testDecisionBridgeUnsetPreservesLegacyBehavior() public {
+        Attestation memory attestation = _buildApprovalAttestation(operator, workUID, activeActionId, true);
+
+        vm.prank(address(mockEAS));
+        assertTrue(workApprovalResolver.attest(attestation));
+        assertEq(workApprovalResolver.latestDecisionSequence(workUID), 0);
+        assertEq(workApprovalResolver.decisionSequenceByUID(attestation.uid), 0);
+    }
+
+    function testDecisionBridgeAssignsMonotonicApprovalAndRejectionSequences() public {
+        MockCommitmentDecisionModule module = new MockCommitmentDecisionModule(false);
+        vm.prank(multisig);
+        workApprovalResolver.setCommitmentModule(address(module));
+
+        Attestation memory approval = _buildApprovalAttestation(operator, workUID, activeActionId, true);
+        approval.uid = bytes32(uint256(201));
+        vm.prank(address(mockEAS));
+        assertTrue(workApprovalResolver.attest(approval));
+
+        Attestation memory rejection = _buildApprovalAttestation(operator, workUID, activeActionId, false);
+        rejection.uid = bytes32(uint256(202));
+        vm.prank(address(mockEAS));
+        assertTrue(workApprovalResolver.attest(rejection));
+
+        assertEq(workApprovalResolver.latestDecisionSequence(workUID), 2);
+        assertEq(workApprovalResolver.decisionSequenceByUID(approval.uid), 1);
+        assertEq(workApprovalResolver.decisionSequenceByUID(rejection.uid), 2);
+        assertEq(module.callCount(), 2);
+        assertEq(module.lastWorkUID(), workUID);
+        assertEq(module.lastDecisionUID(), rejection.uid);
+        assertEq(module.lastSequence(), 2);
+        assertFalse(module.lastApproved());
+    }
+
+    function testRevertingDecisionBridgeDoesNotBlockAttestationOrSequence() public {
+        MockCommitmentDecisionModule module = new MockCommitmentDecisionModule(true);
+        vm.prank(multisig);
+        workApprovalResolver.setCommitmentModule(address(module));
+
+        Attestation memory approval = _buildApprovalAttestation(operator, workUID, activeActionId, true);
+        approval.uid = bytes32(uint256(203));
+        vm.prank(address(mockEAS));
+        assertTrue(workApprovalResolver.attest(approval));
+
+        assertEq(workApprovalResolver.latestDecisionSequence(workUID), 1);
+        assertEq(workApprovalResolver.decisionSequenceByUID(approval.uid), 1);
+    }
+
+    // =========================================================================
     // Helpers
     // =========================================================================
 
@@ -705,9 +774,11 @@ contract WorkApprovalResolverTest is Test {
 
 /// @notice Mock KarmaGAPModule for testing the GAP integration branch
 contract MockKarmaForWorkApproval {
-    function createImpact(
+    bool public createProjectUpdateCalled;
+    bool public shouldRevert;
+
+    function createProjectUpdate(
         address,
-        uint256,
         string calldata,
         string calldata,
         string calldata,
@@ -715,9 +786,36 @@ contract MockKarmaForWorkApproval {
         string calldata
     )
         external
-        pure
         returns (bytes32)
     {
+        if (shouldRevert) revert("Karma unavailable");
+        createProjectUpdateCalled = true;
         return bytes32(uint256(1));
+    }
+
+    function setShouldRevert(bool value) external {
+        shouldRevert = value;
+    }
+}
+
+contract MockCommitmentDecisionModule {
+    bool private immutable shouldRevert;
+    uint256 public callCount;
+    bytes32 public lastWorkUID;
+    bytes32 public lastDecisionUID;
+    uint64 public lastSequence;
+    bool public lastApproved;
+
+    constructor(bool shouldRevert_) {
+        shouldRevert = shouldRevert_;
+    }
+
+    function onWorkDecision(bytes32 workUID, bytes32 decisionUID, uint64 sequence, address, bool approved) external {
+        if (shouldRevert) revert("bridge unavailable");
+        callCount += 1;
+        lastWorkUID = workUID;
+        lastDecisionUID = decisionUID;
+        lastSequence = sequence;
+        lastApproved = approved;
     }
 }

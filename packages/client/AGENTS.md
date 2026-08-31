@@ -1,4 +1,4 @@
-# Client Package — Codex Guide
+# Client Package — Agent Guide
 
 Use this guide when editing `packages/client/**`.
 
@@ -35,7 +35,7 @@ should come from `@green-goods/shared`.
 - If a route or shell change blurs those paths, verify `router.tsx`, the shell component, and the
   relevant Storybook story in the same pass.
 
-## Codex Notes
+## Package Notes
 
 - Client changes commonly depend on shared hooks and providers. If the change reaches into
   `@green-goods/shared`, validate from the repo root, not only from this package.
@@ -43,11 +43,20 @@ should come from `@green-goods/shared`.
   rendered proof for visible UI. Build only when route wiring, render/build output, or PWA
   packaging behavior moves.
 - Route and rendering contract changes should get a build before PR/ship readiness, not only tests.
-- Local agentic browser QA must use the authenticated Brave QA profile. Codex: use the Codex browser-extension path and claim the already-open Brave tab/window. Claude Code: use the Claude Code Chrome/Chromium extension path (`claude --chrome` or `/chrome`) and select the authenticated Brave profile/tab when it is installed, connected, and able to control the already-open Brave window. Do not fall back merely because the extension is branded Chrome. If the Brave extension path is unavailable or not connected, use Claude computer-use/visible desktop control of the already-open Brave window; if neither can reach authenticated Brave, report QA as blocked. Use this for admin, PWA, extension, wallet/passkey, staging-session, installed-app, and profile-dependent verification.
-- Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA. Existing isolated browser-proof commands are CI/clean-room checks only and must not be reported as authenticated verification. If authenticated Brave access is blocked, stop and report QA as blocked.
+- Visible changes follow root `AGENTS.md` section “Agentic Modern Web Standard”; if its
+  authenticated Brave path is unavailable, report browser QA as `BLOCKED`.
 
 ## Validation
 
-- QA Speed Mode: targeted `bun run test -- src/...` or rendered proof; add `bun run build` only for route/render/PWA build risk
-- Package loop: `bun run test && bun run build`
-- Shared impact or cross-package changes: from repo root run `node scripts/dev/ci-local.js --quick`
+- QA Speed Mode: targeted `bun run test -- src/...` plus rendered proof for visible behavior; add `bun run build` only for route, render, or PWA build risk.
+- Package loop: `bun run test && bun run build`.
+- Conditional proof: typecheck/build and browser evidence follow the selector and the root validation pipeline.
+- Broader impact: run the root Repo Quick Gate when shared contracts or cross-package behavior moves.
+
+## Authenticated Browser QA
+
+Local agentic browser QA for this package uses the authenticated Brave QA profile.
+Codex sessions use the Codex browser-extension path and claim the already-open Brave tab/window.
+Claude Code sessions use the Claude Code Chrome/Chromium extension path and select the authenticated Brave profile/tab.
+Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA.
+If authenticated Brave access is blocked, stop and report QA as blocked.

@@ -24,12 +24,15 @@ import {
   getDistinctId,
   identify,
   identifyWithProperties,
+  registerTelemetrySink,
   reset,
   track,
   trackAppLifecycle,
   trackOfflineEvent,
   trackSyncPerformance,
 } from "../../modules/app/posthog";
+import { trackWorkApprovalPresentationFailed } from "../../modules/app/analytics-events";
+import { trackAuthWalletRestore } from "../../modules/app/authWalletRestoreAnalytics";
 
 describe("modules/posthog", () => {
   beforeEach(() => {
@@ -39,6 +42,79 @@ describe("modules/posthog", () => {
   });
 
   describe("track", () => {
+    it("routes enriched events through an injectable telemetry sink", () => {
+      const sink = { capture: vi.fn() };
+      const unregister = registerTelemetrySink(sink);
+
+      track("work_submitted", { garden: "garden-1" }, { includeSessionId: false });
+
+      expect(sink.capture).toHaveBeenCalledWith(
+        "work_submitted",
+        expect.objectContaining({
+          garden: "garden-1",
+          is_online: expect.any(Boolean),
+          connection_type: expect.any(String),
+          timestamp: expect.any(Number),
+        })
+      );
+      expect(sink.capture.mock.calls[0]?.[1]).not.toHaveProperty("session_id");
+      unregister();
+    });
+
+    it("replaces persisted user and session identity for anonymous diagnostics", () => {
+      const sink = { capture: vi.fn() };
+      const unregister = registerTelemetrySink(sink);
+
+      trackAuthWalletRestore({ authMode: "wallet", outcome: "delayed" });
+      trackAuthWalletRestore({ authMode: "wallet", outcome: "success" });
+
+      const firstProperties = sink.capture.mock.calls[0]?.[1];
+      const secondProperties = sink.capture.mock.calls[1]?.[1];
+      expect(firstProperties?.distinct_id).toMatch(/^anonymous_auth_wallet_restore_/);
+      expect(secondProperties?.distinct_id).toMatch(/^anonymous_auth_wallet_restore_/);
+      expect(firstProperties?.distinct_id).not.toBe(secondProperties?.distinct_id);
+      expect(firstProperties).toMatchObject({
+        $anon_distinct_id: undefined,
+        $device_id: undefined,
+        $session_id: undefined,
+        $user_id: undefined,
+        $window_id: undefined,
+      });
+      expect(firstProperties).not.toHaveProperty("session_id");
+      unregister();
+    });
+
+    it("anonymizes post-success work detail failures while preserving diagnostic fields", () => {
+      const sink = { capture: vi.fn() };
+      const unregister = registerTelemetrySink(sink);
+
+      trackWorkApprovalPresentationFailed({
+        approved: false,
+        failureReason: "detail-resolution",
+        resolutionStatus: "temporarily-absent",
+      });
+
+      expect(sink.capture).toHaveBeenCalledWith(
+        "work_approval_presentation_failed",
+        expect.objectContaining({
+          approved: false,
+          distinct_id: expect.stringMatching(/^anonymous_work_approval_presentation_failed_/),
+          failure_reason: "detail-resolution",
+          resolution_status: "temporarily-absent",
+        })
+      );
+      const properties = sink.capture.mock.calls[0]?.[1];
+      expect(properties).toMatchObject({
+        $anon_distinct_id: undefined,
+        $device_id: undefined,
+        $session_id: undefined,
+        $user_id: undefined,
+        $window_id: undefined,
+      });
+      expect(properties).not.toHaveProperty("session_id");
+      unregister();
+    });
+
     it("does not log to console outside debug mode", () => {
       track("test_event", { foo: "bar" });
       expect(console.log).not.toHaveBeenCalled();

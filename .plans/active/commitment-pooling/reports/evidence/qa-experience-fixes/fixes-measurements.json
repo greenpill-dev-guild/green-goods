@@ -1,0 +1,259 @@
+{
+  "expireDialog": {
+    "hasBlastRadius": true,
+    "hasFinality": true
+  },
+  "touchTargets": [
+    {
+      "text": "Start campaign",
+      "visual": 32,
+      "effective": 49
+    },
+    {
+      "text": "Decline…",
+      "visual": 32,
+      "effective": 56
+    },
+    {
+      "text": "Accept",
+      "visual": 32,
+      "effective": 56
+    },
+    {
+      "text": "Decline…",
+      "visual": 32,
+      "effective": 56
+    },
+    {
+      "text": "Accept",
+      "visual": 32,
+      "effective": 56
+    },
+    {
+      "text": "Seed commitment",
+      "visual": 32,
+      "effective": 53
+    },
+    {
+      "text": "Open",
+      "visual": 32,
+      "effective": 56
+    },
+    {
+      "text": "Confirmed",
+      "visual": 32,
+      "effective": 56
+    },
+    {
+      "text": "Past",
+      "visual": 32,
+      "effective": 54
+    },
+    {
+      "text": "Past due (1)",
+      "visual": 32,
+      "effective": 54
+    },
+    {
+      "text": "Expire now…",
+      "visual": 32,
+      "effective": 32
+    },
+    {
+      "text": "Review live commitments",
+      "visual": 32,
+      "effective": 53
+    },
+    {
+      "text": "Edit pool",
+      "visual": 32,
+      "effective": 54
+    },
+    {
+      "text": "Pause…",
+      "visual": 32,
+      "effective": 54
+    }
+  ],
+  "hubTabOrder": ["Confirm", "Work", "Certify"],
+  "hubConfirmLabels": ["Confirm kept", "Confirm kept…"],
+  "commandPalette": {
+    "empty": {
+      "inputY": 96,
+      "panelTop": 96,
+      "panelHeight": 362
+    },
+    "partial": {
+      "inputY": 96,
+      "panelTop": 96,
+      "panelHeight": 362
+    },
+    "narrow": {
+      "inputY": 96,
+      "panelTop": 96,
+      "panelHeight": 362
+    }
+  },
+  "allocationEditor": [
+    {
+      "invalid": null,
+      "describedResolves": true,
+      "containsAlert": false
+    },
+    {
+      "invalid": null,
+      "describedResolves": true,
+      "containsAlert": false
+    },
+    {
+      "invalid": null,
+      "describedResolves": true,
+      "containsAlert": false
+    },
+    {
+      "invalid": null,
+      "describedResolves": true,
+      "containsAlert": false
+    },
+    {
+      "invalid": null,
+      "describedResolves": true,
+      "containsAlert": false
+    },
+    {
+      "invalid": null,
+      "describedResolves": true,
+      "containsAlert": false
+    },
+    {
+      "invalid": null,
+      "describedResolves": false,
+      "containsAlert": false
+    },
+    {
+      "invalid": null,
+      "describedResolves": false,
+      "containsAlert": false
+    }
+  ],
+  "admin-pool-commitmentdialogpanel--detail": {
+    "crashed": false,
+    "errors": []
+  },
+  "admin-pool-commitmentdialogpanel--not-found": {
+    "crashed": false,
+    "errors": []
+  },
+  "poolRows": {
+    "hasArrow": false,
+    "hasFor": false
+  },
+  "coordination": {
+    "hasPrivacyBanner": false,
+    "hasProtocolPool": true,
+    "hasThisGarden": true,
+    "tabs": [
+      "Members11 item",
+      "Coordination",
+      "Endowment",
+      "Payouts",
+      "Protocol pool",
+      "This garden"
+    ]
+  },
+  "pageHeaderTitle": {
+    "fontSize": "14px",
+    "lineHeight": "21px",
+    "fontWeight": "600"
+  },
+  "tabs-es": [
+    {
+      "text": "Trabajo",
+      "clip": 0,
+      "wrapped": false
+    },
+    {
+      "text": "Compromisos",
+      "clip": 0,
+      "wrapped": true
+    },
+    {
+      "text": "Análisis",
+      "clip": 0,
+      "wrapped": false
+    },
+    {
+      "text": "Jardineros",
+      "clip": 0,
+      "wrapped": true
+    }
+  ],
+  "tabs-pt": [
+    {
+      "text": "Trabalho",
+      "clip": 0,
+      "wrapped": true
+    },
+    {
+      "text": "Compromissos",
+      "clip": 0,
+      "wrapped": true
+    },
+    {
+      "text": "Visão",
+      "clip": 0,
+      "wrapped": false
+    },
+    {
+      "text": "Jardineiros",
+      "clip": 0,
+      "wrapped": true
+    }
+  ],
+  "tabs-en": [
+    {
+      "text": "Work",
+      "clip": 0,
+      "wrapped": false
+    },
+    {
+      "text": "Pool",
+      "clip": 0,
+      "wrapped": false
+    },
+    {
+      "text": "Insights",
+      "clip": 0,
+      "wrapped": false
+    },
+    {
+      "text": "Gardeners",
+      "clip": 0,
+      "wrapped": true
+    }
+  ],
+  "settledScope": {
+    "chipMissing": true
+  },
+  "asker": {
+    "hasAskedForThis": true
+  },
+  "evidenceStrip": {
+    "present": true,
+    "items": 2
+  },
+  "settledCopy": {
+    "saysMovesForward": false,
+    "saysWasAdded": true
+  },
+  "composerEs": {
+    "nativeSelectGone": true,
+    "cycleCards": [
+      "Trabajo en la huertaCuenta para las acciones de la huerta, que los responsables aprueban.",
+      "Temporada · Spring 2026",
+      "Campaña · Community work day",
+      "Por su cuenta, fuera de cualquier temporada o campaña"
+    ],
+    "nextVisualClip": 0
+  }
+}

@@ -28,6 +28,10 @@ vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 42161,
 }));
 
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 42161,
+}));
+
 vi.mock("../../../modules/data/greenwill", () => ({
   getGreenWillBadgeDefinitions: (...args: unknown[]) => mockGetGreenWillBadgeDefinitions(...args),
   getGreenWillBadgesByOwner: (...args: unknown[]) => mockGetGreenWillBadgesByOwner(...args),
@@ -245,7 +249,7 @@ describe("hooks/greenwill", () => {
     });
 
     await act(async () => {
-      await result.current.mutateAsync();
+      await result.current.mutateAsync(undefined);
     });
 
     expect(mockSendContractCall).toHaveBeenCalledWith(

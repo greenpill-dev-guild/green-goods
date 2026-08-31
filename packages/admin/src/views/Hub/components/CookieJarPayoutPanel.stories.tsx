@@ -1,9 +1,9 @@
-import { Card, formatTokenAmount } from "@green-goods/shared";
-import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiHandCoinLine, RiWalletLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminCard, AdminCardBody, AdminCardHeader } from "@/components/AdminCard";
 
 // ⚠ VISUAL HARNESS — not the real CookieJarPayoutPanel.
 // Real component renders nothing until `useGardenCookieJars` (wagmi
@@ -30,17 +30,17 @@ function CookieJarPayoutPanelHarness({ jars }: MockPayoutPanelProps) {
   if (jars.length === 0) return null;
 
   return (
-    <Card className="overflow-hidden">
-      <Card.Header>
+    <AdminCard density="none" className="overflow-hidden">
+      <AdminCardHeader>
         <div>
-          <h3 className="label-md text-text-strong sm:text-lg">Cookie Jars</h3>
+          <h3 className="label-md text-text-strong sm:text-title-md">Cookie Jars</h3>
           <p className="mt-1 body-sm text-text-sub">
             Gardeners claim rewards from cookie jars for completed work
           </p>
         </div>
-      </Card.Header>
+      </AdminCardHeader>
 
-      <Card.Body className="space-y-3">
+      <AdminCardBody className="space-y-3">
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {jars.map((jar) => (
             <AdminCard
@@ -50,13 +50,13 @@ function CookieJarPayoutPanelHarness({ jars }: MockPayoutPanelProps) {
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h4 className="text-lg font-semibold text-text-strong" title={jar.symbol}>
+                  <h4 className="text-title-md font-semibold text-text-strong" title={jar.symbol}>
                     {jar.symbol}
                   </h4>
-                  <p className="mt-1 truncate text-xs text-text-soft">{jar.jarAddress}</p>
+                  <p className="mt-1 truncate text-label-sm text-text-soft">{jar.jarAddress}</p>
                 </div>
                 <span
-                  className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
+                  className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-label-sm font-medium ${
                     jar.isPaused
                       ? "bg-warning-lighter text-warning-dark"
                       : "bg-success-lighter text-success-dark"
@@ -67,14 +67,14 @@ function CookieJarPayoutPanelHarness({ jars }: MockPayoutPanelProps) {
               </div>
 
               <div className="rounded-lg bg-bg-weak px-4 py-3">
-                <p className="text-xs font-medium text-text-soft">Jar Balance</p>
-                <p className="mt-1 text-2xl font-semibold tabular-nums text-text-strong">
+                <p className="text-label-sm font-medium text-text-soft">Jar Balance</p>
+                <p className="mt-1 text-headline-sm font-semibold tabular-nums text-text-strong">
                   {formatTokenAmount(jar.balance, jar.decimals)}{" "}
-                  <span className="text-base font-medium text-text-sub">{jar.symbol}</span>
+                  <span className="text-body-lg font-medium text-text-sub">{jar.symbol}</span>
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="grid grid-cols-2 gap-2 text-body-md">
                 <div className="rounded-md bg-bg-weak px-3 py-2">
                   <p className="body-xs text-text-soft">Available now</p>
                   <p className="mt-1 font-semibold tabular-nums text-text-strong">
@@ -111,8 +111,8 @@ function CookieJarPayoutPanelHarness({ jars }: MockPayoutPanelProps) {
             </AdminCard>
           ))}
         </div>
-      </Card.Body>
-    </Card>
+      </AdminCardBody>
+    </AdminCard>
   );
 }
 

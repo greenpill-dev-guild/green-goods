@@ -58,11 +58,11 @@ export const approvalsKeys = {
     ] as const,
 } as const;
 
-export const operatorWorksKeys = {
-  all: ["greengoods", "operatorWorks"] as const,
+export const stewardWorksKeys = {
+  all: ["greengoods", "stewardWorks"] as const,
   // "v2": queryFn shape changed from Work[] to { works, failedGardenIds }. The persisted-cache
   // buster only rotates per release (VITE_APP_VERSION), so a same-version cache could hydrate
   // the old array shape under the old key — a new key makes old entries miss instead of mis-parse.
   byAddress: (address: Address | undefined, gardenIds: string[]) =>
-    ["greengoods", "operatorWorks", "v2", address, JSON.stringify([...gardenIds].sort())] as const,
+    ["greengoods", "stewardWorks", "v2", address, JSON.stringify([...gardenIds].sort())] as const,
 } as const;

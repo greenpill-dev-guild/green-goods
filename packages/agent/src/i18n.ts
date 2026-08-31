@@ -11,9 +11,9 @@ const enMessages = {
   "action.submission": "submission",
   "approve.gardenerMissing": "❌ Gardener account not found. They may need to run /start first.",
   "approve.permission":
-    "❌ *Permission Denied*\n\nOnly registered operators can approve work for this garden.",
+    "❌ *Permission Denied*\n\nOnly registered stewards can approve work for this garden.",
   "approve.permissionWithReason":
-    "❌ *Permission Denied*\n\n{reason}\n\nOnly registered operators can approve work for this garden.",
+    "❌ *Permission Denied*\n\n{reason}\n\nOnly registered stewards can approve work for this garden.",
   "approve.success":
     "✅ *Work approved and attested!*\n\nWork Tx: `{workTx}`\nApproval Tx: `{approvalTx}`",
   "approve.usage": "📍 *Usage:* `/approve <WorkID>`\n\nExample: `/approve abc123`",
@@ -23,11 +23,11 @@ const enMessages = {
   "common.unsupportedMessageType": "❌ Unsupported message type.",
   "common.unknownAction": "Unknown action.",
   "common.unknownCommand": "Unknown command: /{command}",
-  "command.approve": "(Operators) Approve a work submission",
+  "command.approve": "(Stewards) Approve a work submission",
   "command.help": "Show available commands",
   "command.join": "Join a garden by contract address",
-  "command.pending": "(Operators) View pending work submissions",
-  "command.reject": "(Operators) Reject a work submission",
+  "command.pending": "(Stewards) View pending work submissions",
+  "command.reject": "(Stewards) Reject a work submission",
   "command.start": "Create wallet and get started",
   "command.status": "View your current status and wallet",
   "error.authorization": "You don't have permission for this action.",
@@ -35,12 +35,12 @@ const enMessages = {
   "error.internal": "An unexpected error occurred. Please try again.",
   "permission.reason.gardenNotFound": "Garden contract not found at this address.",
   "permission.reason.notGardener": "This address is not a gardener in this garden.",
-  "permission.reason.notOperator": "This address is not an operator for this garden.",
+  "permission.reason.notSteward": "This address is not a steward for this garden.",
   "help.basic":
     '🌿 *Green Goods Bot Help*\n\n*Basic Commands:*\n/start - Create wallet & get started\n/join <address> - Join a garden\n/status - Check your current status\n\n*Submitting Work:*\nSimply send a text or voice message describing your work!\nExample: "I planted 5 trees today"\n\n*Reporting Bugs and Ideas:*\nPost freely in the Bug Reports or Ideas/Feedback topics in the Green Goods chat — the team picks them up automatically.\n\n',
   "help.footer": "_Need help? Contact @GreenGoodsSupport_",
-  "help.operator":
-    "*Operator Commands:*\n/approve <id> - Approve a work submission\n/reject <id> - Reject a work submission\n/pending - List pending work for your garden\n\n",
+  "help.steward":
+    "*Steward Commands:*\n/approve <id> - Approve a work submission\n/reject <id> - Reject a work submission\n/pending - List pending work for your garden\n\n",
   "idempotency.inProgress": "⏳ This {action} is already being processed. Please wait a moment.",
   "join.invalidAddress":
     "❌ Invalid address format.\n\nPlease provide a valid Ethereum address (0x followed by 40 hex characters).",
@@ -59,7 +59,7 @@ const enMessages = {
   "pending.footer": "Use `/approve <id>` or `/reject <id>` to process.",
   "pending.gardener": "Gardener",
   "pending.more": "_...and {count} more_\n\n",
-  "pending.operatorOnly": "This command is only available for operators.",
+  "pending.stewardOnly": "This command is only available for stewards.",
   "pending.plants": "Plants",
   "pending.title": "Title",
   "pending.titleHeader": "📋 *Pending Work Submissions*\n\n",
@@ -85,14 +85,14 @@ const enMessages = {
   "reject.notify":
     "❌ *Your work has been rejected*\n\nID: `{workId}`\nReason: {reason}\n\nPlease try again with more details or photos.",
   "reject.permission":
-    "❌ *Permission Denied*\n\nOnly registered operators can reject work for this garden.",
+    "❌ *Permission Denied*\n\nOnly registered stewards can reject work for this garden.",
   "reject.permissionWithReason":
-    "❌ *Permission Denied*\n\n{reason}\n\nOnly registered operators can reject work for this garden.",
+    "❌ *Permission Denied*\n\n{reason}\n\nOnly registered stewards can reject work for this garden.",
   "reject.success": "❌ Work {workId} rejected.\n\nReason: {reason}",
   "reject.usage":
     "📍 *Usage:* `/reject <WorkID> [reason]`\n\nExample: `/reject abc123 Insufficient documentation`",
   "role.gardener": "gardener",
-  "role.operator": "operator",
+  "role.steward": "steward",
   "session.approving_work": "approving_work",
   "session.awaiting_details": "awaiting_details",
   "session.awaiting_photo": "awaiting_photo",
@@ -121,7 +121,7 @@ const enMessages = {
   "submit.submitButton": "✅ Submit",
   "submit.cancelButton": "❌ Cancel",
   "submit.success":
-    "✅ *Work submitted for approval!*\n\nID: `{workId}`\n\nAn operator will review your submission soon.",
+    "✅ *Work submitted for approval!*\n\nID: `{workId}`\n\nAn steward will review your submission soon.",
   "submit.voiceNoTasks":
     '📝 I heard: "{transcribedText}"\n\n🤔 I couldn\'t identify any work tasks from your message.\n\nTry saying something like:\n• "I planted 5 trees today"\n• "Removed 10kg of weeds"',
   "voice.error":
@@ -147,9 +147,9 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "approve.gardenerMissing":
       "❌ No se encontró la cuenta del jardinero. Puede que necesite ejecutar /start primero.",
     "approve.permission":
-      "❌ *Permiso denegado*\n\nSolo los operadores registrados pueden aprobar trabajo para este jardín.",
+      "❌ *Permiso denegado*\n\nSolo los stewards registrados pueden aprobar trabajo para este jardín.",
     "approve.permissionWithReason":
-      "❌ *Permiso denegado*\n\n{reason}\n\nSolo los operadores registrados pueden aprobar trabajo para este jardín.",
+      "❌ *Permiso denegado*\n\n{reason}\n\nSolo los stewards registrados pueden aprobar trabajo para este jardín.",
     "approve.success":
       "✅ *Trabajo aprobado y atestiguado!*\n\nTx de trabajo: `{workTx}`\nTx de aprobación: `{approvalTx}`",
     "approve.usage": "📍 *Uso:* `/approve <IDTrabajo>`\n\nEjemplo: `/approve abc123`",
@@ -159,11 +159,11 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "common.unsupportedMessageType": "❌ Tipo de mensaje no compatible.",
     "common.unknownAction": "Acción desconocida.",
     "common.unknownCommand": "Comando desconocido: /{command}",
-    "command.approve": "(Operadores) Aprobar un envío de trabajo",
+    "command.approve": "(Stewards) Aprobar un envío de trabajo",
     "command.help": "Mostrar comandos disponibles",
     "command.join": "Unirse a un jardín por dirección de contrato",
-    "command.pending": "(Operadores) Ver envíos de trabajo pendientes",
-    "command.reject": "(Operadores) Rechazar un envío de trabajo",
+    "command.pending": "(Stewards) Ver envíos de trabajo pendientes",
+    "command.reject": "(Stewards) Rechazar un envío de trabajo",
     "command.start": "Crear billetera y empezar",
     "command.status": "Ver tu estado actual y billetera",
     "error.authorization": "No tienes permiso para esta acción.",
@@ -172,12 +172,12 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "error.internal": "Ocurrió un error inesperado. Inténtalo de nuevo.",
     "permission.reason.gardenNotFound": "No se encontró un contrato de jardín en esta dirección.",
     "permission.reason.notGardener": "Esta dirección no es jardinera en este jardín.",
-    "permission.reason.notOperator": "Esta dirección no es operadora de este jardín.",
+    "permission.reason.notSteward": "Esta dirección no es steward de este jardín.",
     "help.basic":
       '🌿 *Ayuda del bot de Green Goods*\n\n*Comandos básicos:*\n/start - Crear billetera y empezar\n/join <address> - Unirse a un jardín\n/status - Ver tu estado actual\n\n*Enviar trabajo:*\nEnvía un texto o mensaje de voz describiendo tu trabajo.\nEjemplo: "Hoy planté 5 árboles"\n\n*Reportar errores e ideas:*\nPublica libremente en los temas de Bug Reports o Ideas/Feedback del chat de Green Goods; el equipo los recoge automáticamente.\n\n',
     "help.footer": "_¿Necesitas ayuda? Contacta a @GreenGoodsSupport_",
-    "help.operator":
-      "*Comandos de operador:*\n/approve <id> - Aprobar un envío de trabajo\n/reject <id> - Rechazar un envío de trabajo\n/pending - Listar trabajo pendiente de tu jardín\n\n",
+    "help.steward":
+      "*Comandos de steward:*\n/approve <id> - Aprobar un envío de trabajo\n/reject <id> - Rechazar un envío de trabajo\n/pending - Listar trabajo pendiente de tu jardín\n\n",
     "idempotency.inProgress":
       "⏳ Esta acción de {action} ya se está procesando. Espera un momento.",
     "join.invalidAddress":
@@ -197,7 +197,7 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "pending.footer": "Usa `/approve <id>` o `/reject <id>` para procesar.",
     "pending.gardener": "Jardinero",
     "pending.more": "_...y {count} más_\n\n",
-    "pending.operatorOnly": "Este comando solo está disponible para operadores.",
+    "pending.stewardOnly": "Este comando solo está disponible para stewards.",
     "pending.plants": "Plantas",
     "pending.title": "Título",
     "pending.titleHeader": "📋 *Envíos de trabajo pendientes*\n\n",
@@ -223,14 +223,14 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "reject.notify":
       "❌ *Tu trabajo fue rechazado*\n\nID: `{workId}`\nMotivo: {reason}\n\nInténtalo de nuevo con más detalles o fotos.",
     "reject.permission":
-      "❌ *Permiso denegado*\n\nSolo los operadores registrados pueden rechazar trabajo para este jardín.",
+      "❌ *Permiso denegado*\n\nSolo los stewards registrados pueden rechazar trabajo para este jardín.",
     "reject.permissionWithReason":
-      "❌ *Permiso denegado*\n\n{reason}\n\nSolo los operadores registrados pueden rechazar trabajo para este jardín.",
+      "❌ *Permiso denegado*\n\n{reason}\n\nSolo los stewards registrados pueden rechazar trabajo para este jardín.",
     "reject.success": "❌ Trabajo {workId} rechazado.\n\nMotivo: {reason}",
     "reject.usage":
       "📍 *Uso:* `/reject <IDTrabajo> [motivo]`\n\nEjemplo: `/reject abc123 Documentación insuficiente`",
     "role.gardener": "jardinero",
-    "role.operator": "operador",
+    "role.steward": "steward",
     "session.approving_work": "aprobando trabajo",
     "session.awaiting_details": "esperando detalles",
     "session.awaiting_photo": "esperando foto",
@@ -259,7 +259,7 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "submit.submitButton": "✅ Enviar",
     "submit.cancelButton": "❌ Cancelar",
     "submit.success":
-      "✅ *Trabajo enviado para aprobación!*\n\nID: `{workId}`\n\nUn operador revisará tu envío pronto.",
+      "✅ *Trabajo enviado para aprobación!*\n\nID: `{workId}`\n\nUn steward revisará tu envío pronto.",
     "submit.voiceNoTasks":
       '📝 Escuché: "{transcribedText}"\n\n🤔 No pude identificar tareas de trabajo en tu mensaje.\n\nPrueba decir algo como:\n• "Hoy planté 5 árboles"\n• "Retiré 10 kg de maleza"',
     "voice.error":
@@ -279,9 +279,9 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "approve.gardenerMissing":
       "❌ Conta do jardineiro não encontrada. Talvez precise executar /start primeiro.",
     "approve.permission":
-      "❌ *Permissão negada*\n\nSomente operadores registrados podem aprovar trabalho para este jardim.",
+      "❌ *Permissão negada*\n\nSomente stewards registrados podem aprovar trabalho para este jardim.",
     "approve.permissionWithReason":
-      "❌ *Permissão negada*\n\n{reason}\n\nSomente operadores registrados podem aprovar trabalho para este jardim.",
+      "❌ *Permissão negada*\n\n{reason}\n\nSomente stewards registrados podem aprovar trabalho para este jardim.",
     "approve.success":
       "✅ *Trabalho aprovado e atestado!*\n\nTx do trabalho: `{workTx}`\nTx da aprovação: `{approvalTx}`",
     "approve.usage": "📍 *Uso:* `/approve <IDTrabalho>`\n\nExemplo: `/approve abc123`",
@@ -291,11 +291,11 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "common.unsupportedMessageType": "❌ Tipo de mensagem não compatível.",
     "common.unknownAction": "Ação desconhecida.",
     "common.unknownCommand": "Comando desconhecido: /{command}",
-    "command.approve": "(Operadores) Aprovar um envio de trabalho",
+    "command.approve": "(Stewards) Aprovar um envio de trabalho",
     "command.help": "Mostrar comandos disponíveis",
     "command.join": "Entrar em um jardim pelo endereço do contrato",
-    "command.pending": "(Operadores) Ver envios de trabalho pendentes",
-    "command.reject": "(Operadores) Rejeitar um envio de trabalho",
+    "command.pending": "(Stewards) Ver envios de trabalho pendentes",
+    "command.reject": "(Stewards) Rejeitar um envio de trabalho",
     "command.start": "Criar carteira e começar",
     "command.status": "Ver seu status atual e carteira",
     "error.authorization": "Você não tem permissão para esta ação.",
@@ -304,12 +304,12 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "error.internal": "Ocorreu um erro inesperado. Tente novamente.",
     "permission.reason.gardenNotFound": "Contrato do jardim não encontrado neste endereço.",
     "permission.reason.notGardener": "Este endereço não é jardineiro neste jardim.",
-    "permission.reason.notOperator": "Este endereço não é operador deste jardim.",
+    "permission.reason.notSteward": "Este endereço não é steward deste jardim.",
     "help.basic":
       '🌿 *Ajuda do bot Green Goods*\n\n*Comandos básicos:*\n/start - Criar carteira e começar\n/join <address> - Entrar em um jardim\n/status - Ver seu status atual\n\n*Enviar trabalho:*\nEnvie um texto ou mensagem de voz descrevendo seu trabalho.\nExemplo: "Plantei 5 árvores hoje"\n\n*Reportar erros e ideias:*\nPublique livremente nos tópicos Bug Reports ou Ideas/Feedback no chat Green Goods; a equipe acompanha automaticamente.\n\n',
     "help.footer": "_Precisa de ajuda? Contate @GreenGoodsSupport_",
-    "help.operator":
-      "*Comandos de operador:*\n/approve <id> - Aprovar um envio de trabalho\n/reject <id> - Rejeitar um envio de trabalho\n/pending - Listar trabalhos pendentes do seu jardim\n\n",
+    "help.steward":
+      "*Comandos de steward:*\n/approve <id> - Aprovar um envio de trabalho\n/reject <id> - Rejeitar um envio de trabalho\n/pending - Listar trabalhos pendentes do seu jardim\n\n",
     "idempotency.inProgress":
       "⏳ Esta ação de {action} já está sendo processada. Aguarde um momento.",
     "join.invalidAddress":
@@ -329,7 +329,7 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "pending.footer": "Use `/approve <id>` ou `/reject <id>` para processar.",
     "pending.gardener": "Jardineiro",
     "pending.more": "_...e mais {count}_\n\n",
-    "pending.operatorOnly": "Este comando está disponível apenas para operadores.",
+    "pending.stewardOnly": "Este comando está disponível apenas para stewards.",
     "pending.plants": "Plantas",
     "pending.title": "Título",
     "pending.titleHeader": "📋 *Envios de trabalho pendentes*\n\n",
@@ -354,14 +354,14 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "reject.notify":
       "❌ *Seu trabalho foi rejeitado*\n\nID: `{workId}`\nMotivo: {reason}\n\nTente novamente com mais detalhes ou fotos.",
     "reject.permission":
-      "❌ *Permissão negada*\n\nSomente operadores registrados podem rejeitar trabalho para este jardim.",
+      "❌ *Permissão negada*\n\nSomente stewards registrados podem rejeitar trabalho para este jardim.",
     "reject.permissionWithReason":
-      "❌ *Permissão negada*\n\n{reason}\n\nSomente operadores registrados podem rejeitar trabalho para este jardim.",
+      "❌ *Permissão negada*\n\n{reason}\n\nSomente stewards registrados podem rejeitar trabalho para este jardim.",
     "reject.success": "❌ Trabalho {workId} rejeitado.\n\nMotivo: {reason}",
     "reject.usage":
       "📍 *Uso:* `/reject <IDTrabalho> [motivo]`\n\nExemplo: `/reject abc123 Documentação insuficiente`",
     "role.gardener": "jardineiro",
-    "role.operator": "operador",
+    "role.steward": "steward",
     "session.approving_work": "aprovando trabalho",
     "session.awaiting_details": "aguardando detalhes",
     "session.awaiting_photo": "aguardando foto",
@@ -390,7 +390,7 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "submit.submitButton": "✅ Enviar",
     "submit.cancelButton": "❌ Cancelar",
     "submit.success":
-      "✅ *Trabalho enviado para aprovação!*\n\nID: `{workId}`\n\nUm operador revisará seu envio em breve.",
+      "✅ *Trabalho enviado para aprovação!*\n\nID: `{workId}`\n\nUm steward revisará seu envio em breve.",
     "submit.voiceNoTasks":
       '📝 Ouvi: "{transcribedText}"\n\n🤔 Não consegui identificar tarefas de trabalho na sua mensagem.\n\nTente dizer algo como:\n• "Plantei 5 árvores hoje"\n• "Removi 10 kg de ervas daninhas"',
     "voice.error":
@@ -432,7 +432,7 @@ export function agentRateLimitMessage(locale: string | undefined, type: RateLimi
 }
 
 export function agentRoleLabel(locale: string | undefined, role: User["role"]): string {
-  return agentMessage(locale, role === "operator" ? "role.operator" : "role.gardener");
+  return agentMessage(locale, role === "steward" ? "role.steward" : "role.gardener");
 }
 
 export function agentSessionLabel(locale: string | undefined, step?: SessionStep): string {

@@ -566,7 +566,7 @@ export const ShellSizeMd: Story = {
     <DialogShell
       open={true}
       onOpenChange={fn()}
-      title="Remove member"
+      title="Remove Member"
       description="Confirm before revoking access — size=md"
       size="md"
     >

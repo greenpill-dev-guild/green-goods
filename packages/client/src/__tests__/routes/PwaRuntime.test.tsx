@@ -21,8 +21,8 @@ vi.mock("../../routes/WalletRuntimeProviders", () => ({
 import PwaRuntime from "../../routes/PwaRuntime";
 
 describe("PwaRuntime", () => {
-  it("renders a boot loading surface while runtime providers are suspended", () => {
-    render(
+  it("leaves startup rendering to the static boot surface while providers are suspended", () => {
+    const { container } = render(
       <MemoryRouter initialEntries={["/home"]}>
         <Routes>
           <Route element={<PwaRuntime />}>
@@ -32,9 +32,8 @@ describe("PwaRuntime", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByLabelText("Loading Green Goods")).toBeInTheDocument();
-    expect(screen.getByText("Green Goods is loading.")).toBeVisible();
-    expect(screen.getAllByRole("status")[0]).toHaveAttribute("aria-busy", "true");
+    expect(container.querySelector(".boot-pwa-shell")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(screen.queryByText("Home app")).not.toBeInTheDocument();
   });
 });

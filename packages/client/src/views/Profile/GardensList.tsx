@@ -1,19 +1,19 @@
+import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import {
-  type Address,
-  ConfirmDialog,
-  debugError,
-  type Garden,
-  hapticLight,
-  hapticSuccess,
-  isAlreadyGardenerError,
   isGardenMember,
-  parseAndFormatError,
-  toastService,
-  useGardens,
   useJoinGarden,
   usePendingJoinsVersion,
-  useTimeout,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/garden/useJoinGarden";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
+import { hapticLight, hapticSuccess } from "@green-goods/shared/utils/app/haptics";
+import { debugError } from "@green-goods/shared/utils/debug";
+import {
+  isAlreadyGardenerError,
+  parseAndFormatError,
+} from "@green-goods/shared/utils/errors/contract-errors";
 import { RiCheckLine, RiMapPinLine, RiPlantLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -44,14 +44,14 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
         const isMember = isGardenMember(
           primaryAddress,
           garden.gardeners,
-          garden.operators,
+          garden.stewards,
           garden.id
         );
         return isOpen || isMember;
       })
       .map((garden) => ({
         ...garden,
-        isMember: isGardenMember(primaryAddress, garden.gardeners, garden.operators, garden.id),
+        isMember: isGardenMember(primaryAddress, garden.gardeners, garden.stewards, garden.id),
       }));
     // pendingJoinsVersion retriggers when a join confirms or expires in-tab,
     // so the Member badge updates without waiting for an unrelated re-render.
@@ -230,7 +230,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
               <p className="text-xs text-text-sub-600 mt-1">
                 {intl.formatMessage({
                   id: "app.profile.noGardensDescription",
-                  defaultMessage: "Discover and join gardens to start submitting work",
+                  defaultMessage: "Join a garden to start documenting regenerative work",
                 })}
               </p>
             </div>

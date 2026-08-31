@@ -1,4 +1,5 @@
-import { type Address, type FunderLeaderboardEntry } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { FunderLeaderboardEntry } from "@green-goods/shared/types/vaults";
 import type { Meta, StoryObj } from "@storybook/react";
 import { FunderRow } from "./FunderRow";
 

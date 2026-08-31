@@ -44,75 +44,94 @@ const {
   },
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    NavigationBar: ({
-      slots,
-      activePath,
-    }: {
-      slots: Array<{ id: string; label: string; visible: boolean; path: string }>;
-      activePath: string;
-    }) => (
-      <nav data-testid="navigation-bar">
-        {slots
-          .filter((slot) => slot.visible)
-          .map((slot) => (
-            <a key={slot.id} data-testid={`nav-${slot.id}`} href={slot.path}>
-              {slot.label}
-            </a>
-          ))}
-      </nav>
-    ),
-    GardenChip: () => <div>Garden Chip</div>,
-    AppBar: (props: {
-      gardenChip: React.ReactNode;
-      onOpenSearch?: () => void;
-      onOpenSettings?: () => void;
-      onOpenProfile?: () => void;
-    }) => <div data-testid="top-context-bar">{props.gardenChip}</div>,
-    useAdminStore: (
-      selector: (state: {
-        selectedGarden: null;
-        setSelectedGarden: typeof mockSetSelectedGarden;
-      }) => unknown
-    ) =>
-      selector({
-        selectedGarden: null,
-        setSelectedGarden: mockSetSelectedGarden,
-      }),
-    useAuth: () => ({
-      isAuthenticated: true,
-      eoaAddress: "0x1234567890123456789012345678901234567890",
-      isReady: true,
-      authMode: "wallet",
-      signOut: vi.fn(),
-    }),
-    useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
-    // CanvasLayout also calls useAdminGardenWorkspaceSelection directly
-    // (independent of useEligibleAdminGardens above) — unstubbed, it falls
-    // through to the real hook, which chains into useAdminGardenContext ->
-    // usePrimaryAddress -> wagmi's useAccount(), and this test has no
-    // WagmiProvider.
-    useAdminGardenWorkspaceSelection: () => ({
-      eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
-      selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
-      setSelectedGarden: vi.fn(),
-      gardenOptions: mockEligibleAdminGardens.current.eligibleGardens.map((g) => ({
-        id: g.id,
-        name: g.name,
-        location: g.location,
-      })),
-      handleSelectGarden: vi.fn(),
-    }),
-    useEffectiveToolbarPermissions: () => mockPermissions.current,
-    useGardenUrlSync: mockUseGardenUrlSync,
-    useStaleGardenGuard: mockUseStaleGardenGuard,
-  };
-});
+vi.mock("@/components/Shell", () => ({
+  NavigationBar: ({
+    slots,
+  }: {
+    slots: Array<{ id: string; label: string; visible: boolean; path: string }>;
+    activePath: string;
+  }) => (
+    <nav data-testid="navigation-bar">
+      {slots
+        .filter((slot) => slot.visible)
+        .map((slot) => (
+          <a key={slot.id} data-testid={`nav-${slot.id}`} href={slot.path}>
+            {slot.label}
+          </a>
+        ))}
+    </nav>
+  ),
+  AppBar: (props: {
+    gardenChip: React.ReactNode;
+    onOpenSearch?: () => void;
+    onOpenSettings?: () => void;
+    onOpenProfile?: () => void;
+  }) => <div data-testid="top-context-bar">{props.gardenChip}</div>,
+  MainSheet: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="main-sheet">{children}</div>
+  ),
+}));
 
-vi.mock("@green-goods/shared/profile-avatar", () => ({
+vi.mock("@green-goods/shared/components/Canvas/GardenChip", () => ({
+  GardenChip: () => <div>Garden Chip</div>,
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuth: () => ({
+    isAuthenticated: true,
+    eoaAddress: "0x1234567890123456789012345678901234567890",
+    isReady: true,
+    authMode: "wallet",
+    signOut: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
+  // CanvasLayout also calls useAdminGardenWorkspaceSelection directly
+  // (independent of useEligibleAdminGardens above) — unstubbed, it falls
+  // through to the real hook, which chains into useAdminGardenContext ->
+  // usePrimaryAddress -> wagmi's useAccount(), and this test has no
+  // WagmiProvider.
+  useAdminGardenWorkspaceSelection: () => ({
+    eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
+    selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
+    setSelectedGarden: vi.fn(),
+    gardenOptions: mockEligibleAdminGardens.current.eligibleGardens.map((g) => ({
+      id: g.id,
+      name: g.name,
+      location: g.location,
+    })),
+    handleSelectGarden: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useEligibleAdminGardens", () => ({
+  useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
+}));
+
+vi.mock("@green-goods/shared/hooks/navigation/useGardenUrlSync", () => ({
+  useGardenUrlSync: mockUseGardenUrlSync,
+}));
+
+vi.mock("@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions", () => ({
+  useEffectiveToolbarPermissions: () => mockPermissions.current,
+}));
+
+vi.mock("@green-goods/shared/stores/useAdminStore", () => ({
+  useAdminStore: (
+    selector: (state: {
+      selectedGarden: null;
+      setSelectedGarden: typeof mockSetSelectedGarden;
+    }) => unknown
+  ) =>
+    selector({
+      selectedGarden: null,
+      setSelectedGarden: mockSetSelectedGarden,
+    }),
+  useStaleGardenGuard: mockUseStaleGardenGuard,
+}));
+
+vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", () => ({
   useResolvedProfileAvatar: () => ({
     avatarUri: null,
     error: null,
@@ -209,7 +228,7 @@ describe("Toolbar Visibility", () => {
     expect(screen.queryByTestId("nav-actions")).not.toBeInTheDocument();
   });
 
-  it("operator sees Hub + Garden + Community", () => {
+  it("steward sees Hub + Garden + Community", () => {
     mockPermissions.current = {
       showWork: true,
       showGarden: true,
@@ -232,7 +251,7 @@ describe("Toolbar Visibility", () => {
   });
 
   it("switching garden scope updates visible slots", () => {
-    // Start with operator-level permissions
+    // Start with steward-level permissions
     mockPermissions.current = {
       showWork: true,
       showGarden: true,

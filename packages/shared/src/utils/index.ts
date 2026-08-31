@@ -1,8 +1,6 @@
 // Utilities — EXPLICIT EXPORTS for tree-shaking
 
-// ============================================================================
 // QUERY INVALIDATION
-// ============================================================================
 export type {
   InvalidationDelay,
   ProgressiveInvalidationOptions,
@@ -13,9 +11,7 @@ export {
   scheduleInvalidationForKey,
   scheduleProgressiveInvalidation,
 } from "../config/query-keys/schedule";
-// ============================================================================
 // ACTION
-// ============================================================================
 export {
   buildActionId,
   findActionByUID,
@@ -155,6 +151,8 @@ export {
 export {
   ActionRegistryABI,
   assertMarketplaceReady,
+  CommitmentPoolingModuleABI,
+  CommitmentRegistryABI,
   createClients,
   deriveMarketplaceReadiness,
   formatMarketplaceReadinessError,
@@ -165,6 +163,7 @@ export {
   getNetworkContracts,
   HatsABI,
   MARKETPLACE_READINESS_REQUIRED_FIELDS,
+  SettlementModuleABI,
 } from "./blockchain/contracts";
 export type {
   ResolveEnsAddressOptions,
@@ -251,7 +250,7 @@ export type {
   CampaignCookieJarPayoutAssetId,
 } from "./cookie-jar-campaign";
 export {
-  aggregateCampaignCookieJarOperators,
+  aggregateCampaignCookieJarStewards,
   buildCampaignCookieJarCampaigns,
   buildCampaignCookieJarMetadata,
   CAMPAIGN_COOKIE_JAR_METADATA_KIND,
@@ -396,14 +395,23 @@ export { clearFormDraft, loadFormDraft, saveFormDraft } from "./storage/form";
 // ============================================================================
 // STORAGE QUOTA
 // ============================================================================
-export type { StorageQuotaInfo, StorageQuotaThresholds } from "./storage/quota";
+export type {
+  PersistentStorageReason,
+  RefetchableStorageCleanupResult,
+  StorageQuotaInfo,
+  StorageQuotaThresholds,
+} from "./storage/quota";
 export {
+  cleanupRefetchableStorage,
   DEFAULT_CRITICAL_THRESHOLD,
   DEFAULT_LOW_THRESHOLD,
   formatBytes,
   getStorageQuota,
   hasEnoughStorage,
   isStorageQuotaSupported,
+  isQuotaExceededError,
+  requestPersistentStorageOnce,
+  retryOnceAfterQuotaCleanup,
   trackStorageErrorWithQuota,
   trackStorageQuota,
 } from "./storage/quota";
@@ -443,8 +451,6 @@ export {
   formatDateRange,
   formatDateTime,
   formatDuration,
-  formatRelativeTime,
-  fromCalendarDateKey,
   fromDateInputValue,
   fromDateTimeLocalValue,
   getCurrentTimezone,
@@ -454,12 +460,13 @@ export {
   isTemporalSupported,
   normalizeTimestamp,
   sortByCreatedAt,
-  toCalendarDateKey,
   toDateInputValue,
   toDateTimeLocalValue,
   toSafeDate,
   toSafeInstant,
 } from "./time";
+export { fromCalendarDateKey, toCalendarDateKey } from "./calendar-date";
+export { formatRelativeTime, getRelativeTimeParts } from "./relativeTime";
 // ============================================================================
 // WORK
 // ============================================================================

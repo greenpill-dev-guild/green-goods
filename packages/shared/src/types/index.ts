@@ -39,6 +39,13 @@ export type { AuthMode, BaseAuthContext } from "./auth";
 // Blockchain Types
 // ============================================
 export type { ChainId, DeploymentConfig } from "./blockchain";
+export {
+  KARMA_REQUIRED_SYNC_VERSION,
+  type KarmaIntegrationProjection,
+  type KarmaIntegrationStatus,
+  type KarmaIntegrationStatusName,
+  type KarmaProjectionState,
+} from "./karma";
 // ============================================
 // Contract Types
 // ============================================
@@ -79,9 +86,9 @@ export type {
   CampaignCookieJar,
   CampaignCookieJarCampaign,
   CampaignCookieJarMetadata,
-  CampaignCookieJarOperatorAggregation,
-  CampaignCookieJarOperatorPolicy,
-  CampaignCookieJarOperatorSource,
+  CampaignCookieJarStewardAggregation,
+  CampaignCookieJarStewardPolicy,
+  CampaignCookieJarStewardSource,
   CookieJarAccessType,
   CookieJarWithdrawalType,
   CookieJar,
@@ -223,6 +230,14 @@ export { ACTION_DOMAINS, LISTING_DEFAULTS } from "./hypercerts";
 export type {
   IndexerAction,
   IndexerActionsResponse,
+  IndexerCommitmentPayoutPlan,
+  IndexerCommitmentPayoutPlansResponse,
+  IndexerCommitmentPayoutPlanStatus,
+  IndexerCommitmentSettlementFlow,
+  IndexerDisbursement,
+  IndexerDisbursementKind,
+  IndexerDisbursementsResponse,
+  IndexerDisbursementState,
   IndexerGarden,
   IndexerGardener,
   IndexerGardenersResponse,
@@ -279,3 +294,4 @@ export type {
   VaultPreview,
   WithdrawParams,
 } from "./vaults";
+export type { GreenWillBadgeView } from "./greenwill";

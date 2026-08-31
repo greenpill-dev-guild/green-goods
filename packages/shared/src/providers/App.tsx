@@ -1,20 +1,12 @@
-import { PostHogProvider } from "posthog-js/react";
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { IntlProvider } from "react-intl";
 
-import enMessages from "../i18n/en.json";
-import esMessages from "../i18n/es.json";
-import ptMessages from "../i18n/pt.json";
 import { toastService } from "../components/toast";
-import {
-  registerGlobalProperties,
-  restoreExceptionTopLevelProps,
-  track,
-} from "../modules/app/posthog";
-import { queryClient } from "../config/react-query";
+import { useAppLifecycle } from "../hooks/app/useAppLifecycle";
 import { logger } from "../modules/app/logger";
-import { serviceWorkerManager } from "../modules/app/service-worker";
-import { clearActiveSessionAuth } from "../modules/auth/session";
+import { track } from "../modules/app/posthog";
+import { useInstalledAppEvidence } from "../hooks/app/useInstalledAppEvidence";
+import type { InstalledAppEvidence } from "../hooks/app/useInstallGuidance";
 import {
   type ClientPresentationMode,
   getClientPresentationMode,
@@ -22,16 +14,22 @@ import {
   isAppInstalled,
   isMobilePlatform,
   isStandaloneMode,
+  type InstallPromptEvent,
   type Platform,
 } from "../utils/app/pwa";
 
-const messages = {
-  en: enMessages,
-  pt: ptMessages,
-  es: esMessages,
-};
+type LocaleMessages = Record<string, string>;
 
-const POSTHOG_API_HOST = "https://us.i.posthog.com";
+async function loadLocaleMessages(locale: Locale): Promise<LocaleMessages> {
+  switch (locale) {
+    case "es":
+      return (await import("../i18n/es.json")).default;
+    case "pt":
+      return (await import("../i18n/pt.json")).default;
+    default:
+      return (await import("../i18n/en.json")).default;
+  }
+}
 
 export type InstallState =
   | "idle"
@@ -51,10 +49,32 @@ const installSuccessToastIds = {
   message: "app.toast.install.success.message",
 } as const;
 
-function clearInstalledAppSessionState() {
+const installSuccessMessages: Record<Locale, { title: string; message: string }> = {
+  en: {
+    title: "App installed",
+    message: "Green Goods is ready from your home screen.",
+  },
+  es: {
+    title: "App instalada",
+    message: "Green Goods está lista desde tu pantalla de inicio.",
+  },
+  pt: {
+    title: "App instalada",
+    message: "O Green Goods está pronto na tela inicial.",
+  },
+};
+
+async function clearInstalledAppSessionState() {
+  const [{ clearActiveSessionAuth }, { queryClient }, { serviceWorkerManager }] = await Promise.all(
+    [
+      import("../modules/auth/session"),
+      import("../config/react-query"),
+      import("../modules/app/service-worker"),
+    ]
+  );
   clearActiveSessionAuth();
   queryClient.clear();
-  serviceWorkerManager.clearAllCaches().catch((error) => {
+  await serviceWorkerManager.clearAllCaches().catch((error) => {
     logger.warn("[AppProvider] clearAllCaches failed after app install", { error });
   });
 }
@@ -66,14 +86,15 @@ export interface AppDataProps {
   isPwaPresentation: boolean;
   isStandalone: boolean;
   installState: InstallState;
+  installedAppEvidence: InstalledAppEvidence;
   presentationMode: ClientPresentationMode;
   wasInstalled: boolean;
   platform: Platform;
   locale: Locale;
   availableLocales: readonly Locale[];
-  deferredPrompt: BeforeInstallPromptEvent | null;
+  deferredPrompt: InstallPromptEvent | null;
   promptInstall: () => void;
-  handleInstallCheck: (e: BeforeInstallPromptEvent | null) => void;
+  handleInstallCheck: (e: InstallPromptEvent | null) => void;
   switchLanguage: (lang: Locale) => void;
 }
 
@@ -92,11 +113,6 @@ function getBrowserLocale(available: readonly string[], fallback: string): strin
   return fallback;
 }
 
-function formatAppProviderMessage(locale: Locale, id: string, fallback: string) {
-  const localizedMessage = (messages[locale] as Record<string, string>)[id];
-  return localizedMessage || fallback;
-}
-
 export const AppContext = React.createContext<AppDataProps>({
   isMobile: false,
   isInstalled: false,
@@ -104,6 +120,7 @@ export const AppContext = React.createContext<AppDataProps>({
   isPwaPresentation: false,
   isStandalone: false,
   installState: "idle",
+  installedAppEvidence: { status: "unknown", source: "unsupported" },
   presentationMode: "website",
   wasInstalled: false,
   locale: "en",
@@ -136,7 +153,8 @@ export const AppProvider = ({
     ? (localStorage.getItem("gg-language") as Locale)
     : (getBrowserLocale(supportedLanguages, "en") as Locale); // Use helper instead of browserLang
   const [locale, setLocale] = useState<Locale>(defaultLocale as Locale);
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [localeMessages, setLocaleMessages] = useState<LocaleMessages>({});
+  const [deferredPrompt, setDeferredPrompt] = useState<InstallPromptEvent | null>(null);
   const installSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const installAttemptHadExistingInstallRef = useRef<boolean | null>(null);
   const installReadinessSettledRef = useRef(false);
@@ -168,6 +186,44 @@ export const AppProvider = ({
   });
 
   const platform = getMobileOperatingSystem();
+
+  useEffect(() => {
+    if (!apiKey) return;
+    let cancelled = false;
+    let idleHandle: number | null = null;
+
+    const initialize = () => {
+      void import("../modules/app/posthog-browser").then(({ initializePostHog }) => {
+        if (!cancelled) initializePostHog(apiKey);
+      });
+    };
+    const schedule = () => {
+      if (window.requestIdleCallback) idleHandle = window.requestIdleCallback(initialize);
+      else idleHandle = window.setTimeout(initialize, 1_000);
+    };
+
+    if (document.readyState === "complete") schedule();
+    else window.addEventListener("load", schedule, { once: true });
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("load", schedule);
+      if (idleHandle !== null) {
+        if (window.cancelIdleCallback) window.cancelIdleCallback(idleHandle);
+        else window.clearTimeout(idleHandle);
+      }
+    };
+  }, [apiKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadLocaleMessages(locale).then((nextMessages) => {
+      if (!cancelled) setLocaleMessages(nextMessages);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
 
   const isStandalone = React.useMemo(() => isStandaloneMode(), []);
 
@@ -214,7 +270,7 @@ export const AppProvider = ({
   );
 
   const handleInstallCheck = useCallback(
-    (e: BeforeInstallPromptEvent | null) => {
+    (e: InstallPromptEvent | null) => {
       e?.preventDefault(); // Prevent the automatic prompt
       setDeferredPrompt(e);
 
@@ -231,7 +287,7 @@ export const AppProvider = ({
 
   const handleBeforeInstall = useCallback((e: Event) => {
     e.preventDefault();
-    setDeferredPrompt(e as BeforeInstallPromptEvent);
+    setDeferredPrompt(e as InstallPromptEvent);
   }, []);
 
   const handleAppInstalled = useCallback(() => {
@@ -250,19 +306,16 @@ export const AppProvider = ({
     setWasInstalled(true);
     if (wasPreviouslyInstalled && !reinstallCleanupRanRef.current) {
       reinstallCleanupRanRef.current = true;
-      clearInstalledAppSessionState();
+      void clearInstalledAppSessionState();
     }
     localStorage.setItem("gg-pwa-installed", "true");
 
     const settleInstall = () => {
+      const successMessage = installSuccessMessages[locale];
       toastService.success({
         id: "app-install-success",
-        title: formatAppProviderMessage(locale, installSuccessToastIds.title, "App installed"),
-        message: formatAppProviderMessage(
-          locale,
-          installSuccessToastIds.message,
-          "Green Goods is ready from your home screen."
-        ),
+        title: localeMessages[installSuccessToastIds.title] || successMessage.title,
+        message: localeMessages[installSuccessToastIds.message] || successMessage.message,
         context: "pwa install",
         suppressLogging: true,
       });
@@ -270,11 +323,6 @@ export const AppProvider = ({
         platform,
         locale,
         installState: "installed",
-        // Diagnostics for the two-phase readiness gate. `appinstalled_event_count`
-        // === 1 means we settled via the blind fallback (Chrome fired a single
-        // event); >= 2 means we confirmed off the second, WebAPK-ready event.
-        // `finalize_duration_ms` is first-event → settle, so a value near the
-        // fallback window flags the single-event path even without the count.
         appinstalled_event_count: appInstalledEventCountRef.current,
         settled_via_fallback: appInstalledEventCountRef.current === 1,
         finalize_duration_ms:
@@ -292,7 +340,7 @@ export const AppProvider = ({
     if (installReadyConfirmationScheduledRef.current) return;
     installReadyConfirmationScheduledRef.current = true;
     scheduleInstalledState(INSTALL_READY_SETTLE_MS, settleInstall);
-  }, [platform, locale, scheduleInstalledState]);
+  }, [locale, localeMessages, platform, scheduleInstalledState]);
 
   const switchLanguage = useCallback((lang: Locale) => {
     setLocale(lang);
@@ -321,28 +369,24 @@ export const AppProvider = ({
     }
   }, [deferredPrompt, resetInstallAttempt, startInstallAttempt]);
 
-  useEffect(() => {
-    // Only run install check if not already detected as installed during initialization
-    // This prevents state changes that could trigger redirects mid-render
-    if (installState === "idle") {
-      handleInstallCheck(null);
-    }
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
-    window.addEventListener("appinstalled", handleAppInstalled);
-
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
-      window.removeEventListener("appinstalled", handleAppInstalled);
-    };
-  }, [handleAppInstalled, handleBeforeInstall, handleInstallCheck, installState]);
-
-  useEffect(() => {
-    return () => resetInstallAttempt();
-  }, [resetInstallAttempt]);
+  const checkInstall = useCallback(() => handleInstallCheck(null), [handleInstallCheck]);
+  useAppLifecycle({
+    posthogEnabled: Boolean(apiKey),
+    shouldCheckInstall: installState === "idle",
+    checkInstall,
+    handleBeforeInstall,
+    handleAppInstalled,
+    resetInstallAttempt,
+  });
 
   const isMobile = isMobilePlatform();
-  const isInstalled = installState === "installed";
+  const installedAppEvidence = useInstalledAppEvidence({
+    platform,
+    isStandalone,
+    wasInstalled,
+    installConfirmed: installState === "installed",
+  });
+  const isInstalled = installedAppEvidence.status === "installed";
   const isInstalling = installState === "installing" || installState === "finalizing";
   const presentationMode = getClientPresentationMode();
   const isPwaPresentation = presentationMode === "pwa";
@@ -355,6 +399,7 @@ export const AppProvider = ({
       isPwaPresentation,
       isStandalone,
       installState,
+      installedAppEvidence,
       presentationMode,
       wasInstalled,
       platform,
@@ -372,6 +417,7 @@ export const AppProvider = ({
       isPwaPresentation,
       isStandalone,
       installState,
+      installedAppEvidence,
       presentationMode,
       wasInstalled,
       platform,
@@ -385,65 +431,11 @@ export const AppProvider = ({
 
   const appContent = (
     <AppContext.Provider value={contextValue}>
-      <IntlProvider locale={locale} messages={messages[locale]}>
+      <IntlProvider locale={locale} messages={localeMessages}>
         {children}
       </IntlProvider>
     </AppContext.Provider>
   );
-
-  // Register global PostHog properties after PostHog initializes
-  useEffect(() => {
-    if (!apiKey) return;
-
-    let isMounted = true;
-    let timeoutId: ReturnType<typeof setTimeout>;
-    let attemptCount = 0;
-    const maxAttempts = 10;
-
-    const tryRegister = () => {
-      if (!isMounted) return;
-
-      // Try to register - returns true if successful
-      const success = registerGlobalProperties();
-
-      if (success || attemptCount >= maxAttempts) {
-        return; // Done - either success or max attempts reached
-      }
-
-      // Exponential backoff: 100ms, 200ms, 400ms, 800ms, etc.
-      const delay = Math.min(100 * Math.pow(2, attemptCount), 2000);
-      attemptCount += 1;
-      timeoutId = setTimeout(tryRegister, delay);
-    };
-
-    // Start first attempt after initial delay
-    timeoutId = setTimeout(tryRegister, 100);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timeoutId);
-    };
-  }, [apiKey]);
-
-  // Only wrap with PostHogProvider if API key is available
-  if (apiKey) {
-    return (
-      <PostHogProvider
-        apiKey={apiKey}
-        options={{
-          api_host: POSTHOG_API_HOST,
-          capture_exceptions: true,
-          // Restore legacy top-level $exception_type/$exception_message that
-          // posthog-js >= 1.3xx moved into $exception_list — downstream routines
-          // and the posthog-questions HogQL still query the top-level fields.
-          before_send: restoreExceptionTopLevelProps,
-          debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
-        }}
-      >
-        {appContent}
-      </PostHogProvider>
-    );
-  }
 
   return appContent;
 };

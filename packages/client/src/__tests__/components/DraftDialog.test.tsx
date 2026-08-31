@@ -24,7 +24,7 @@ vi.mock("react-intl", () => ({
   }),
 }));
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 

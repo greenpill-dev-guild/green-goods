@@ -1,20 +1,18 @@
-import {
-  adminRoutes,
-  useAdminGardenWorkspaceSelection,
-  useCanvasSearchParams,
-  useGardenDerivedState,
-  useGardenDetailData,
-  useGardenStateStore,
-  useMediaQuery,
-  useSheetWidth,
-  useViewActions,
-} from "@green-goods/shared";
+import { useViewActions } from "../../../components/Canvas/useViewActions";
+import { useGardenStateStore } from "../../../stores/useGardenStateStore";
+import { adminRoutes } from "../../../utils/navigation/admin-routes";
+import { useAdminGardenWorkspaceSelection } from "../../garden/useAdminGardenWorkspaceSelection";
+import { useGardenDerivedState } from "../../garden/useGardenDerivedState";
+import { useGardenDetailData } from "../../garden/useGardenDetailData";
+import { useCanvasSearchParams } from "../../navigation/useCanvasSearchParams";
+import { useMediaQuery } from "../../ui/useMediaQuery";
+import { useSheetWidth } from "../../useSheetWidth";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
-  resolveAdminWorkspaceSectionRoute,
   type AdminWorkspaceSectionTab,
+  resolveAdminWorkspaceSectionRoute,
 } from "../navigation/workspaceNavigation";
 import {
   buildCommunityViewActions,
@@ -50,7 +48,11 @@ export function useCommunityWorkspaceController() {
     location.pathname.startsWith("/community/endowment/vault/withdraw") ||
     location.pathname.startsWith("/community/resources/vault/withdraw") ||
     location.pathname.startsWith("/community/treasury/vault/withdraw");
-  const vaultAction = isVaultDepositRoute ? "deposit" : isVaultWithdrawRoute ? "withdraw" : null;
+  const vaultAction: "deposit" | "withdraw" | null = isVaultDepositRoute
+    ? "deposit"
+    : isVaultWithdrawRoute
+      ? "withdraw"
+      : null;
   const isStrategiesRoute =
     location.pathname.startsWith("/community/coordination/strategies") ||
     location.pathname.startsWith("/community/governance/strategies");
@@ -226,6 +228,7 @@ export function useCommunityWorkspaceController() {
     garden,
     gardenId,
     gardenOptions,
+    hasVaults: derived.hasVaults,
     handleModeChange,
     handleSelectGarden,
     hypercerts,
@@ -241,14 +244,18 @@ export function useCommunityWorkspaceController() {
     pools,
     poolType,
     roleMembers,
+    roleSummary: derived.roleSummary,
     scheduleBackgroundRefetch,
     section,
     selectedItem,
     selectedGarden,
     selectedGardenAddress,
     setMemberSearch,
+    treasurySeverity: derived.treasurySeverity,
     vaultNetDeposited,
     vaultsLoading,
     visibleDirectory: derived.visibleDirectory,
   };
 }
+
+export type CommunityWorkspace = ReturnType<typeof useCommunityWorkspaceController>;

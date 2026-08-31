@@ -1,20 +1,21 @@
+import { AudioRecorder } from "@green-goods/shared/components/Audio/AudioRecorder";
+import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
+import { ConfidenceSelector } from "@green-goods/shared/components/Form/ConfidenceSelector";
+import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useWorkApproval } from "@green-goods/shared/hooks/work/useWorkApproval";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import { uploadFileToIPFS, uploadJSONToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
 import {
-  AudioRecorder,
   Confidence,
-  ConfidenceSelector,
-  ErrorBoundary,
-  logger,
-  parseAndFormatError,
-  Textarea,
-  toastService,
-  uploadFileToIPFS,
-  uploadJSONToIPFS,
-  useEnsName,
-  useWorkApproval,
   VerificationMethod,
   type Work,
   type WorkApprovalDraft,
-} from "@green-goods/shared";
+} from "@green-goods/shared/types/domain";
+import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
+import { parseAndFormatError } from "@green-goods/shared/utils/errors/contract-errors";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -32,7 +33,7 @@ interface ReviewFormProps {
   canApproveOrReject: boolean;
   isReviewed: boolean;
   layout?: "page" | "sheet";
-  onSuccess?: () => void;
+  onSuccess?: (approved: boolean) => void;
 }
 
 export function ReviewForm({
@@ -46,10 +47,12 @@ export function ReviewForm({
   onSuccess,
 }: ReviewFormProps) {
   const { formatMessage } = useIntl();
+  const primaryAddress = usePrimaryAddress();
   const { data: gardenerEnsName } = useEnsName(work.gardenerAddress);
   const gardenerDisplayName = formatEnsAddressName(work.gardenerAddress, gardenerEnsName);
 
   const isActionExpired = typeof actionEndTime === "number" && actionEndTime < Date.now();
+  const isOwnSubmission = compareAddresses(primaryAddress, work.gardenerAddress);
 
   const { control, watch, getValues } = useForm<WorkApprovalFormData>({
     resolver: zodResolver(workApprovalSchema),
@@ -141,19 +144,32 @@ export function ReviewForm({
 
       await approvalMutation.mutateAsync({ draft, work });
 
-      onSuccess?.();
+      onSuccess?.(approved);
     } catch (error) {
-      const { message, parsed } = parseAndFormatError(error);
+      const { message: formattedMessage, parsed } = parseAndFormatError(error);
 
       logger.error("Work approval submission failed", {
         error,
         source: "WorkDetail",
       });
 
+      const localizedKnownMessage = parsed.messageKey
+        ? [
+            formatMessage({ id: parsed.messageKey, defaultMessage: parsed.message }),
+            parsed.actionKey
+              ? formatMessage({
+                  id: parsed.actionKey,
+                  defaultMessage: parsed.action ?? "",
+                })
+              : parsed.action,
+          ]
+            .filter(Boolean)
+            .join(". ")
+        : formattedMessage;
       toastService.error({
         title: formatMessage({ id: "app.toast.approval.errorDecision.title" }),
         message: parsed.isKnown
-          ? message
+          ? localizedKnownMessage
           : formatMessage({ id: "app.toast.approval.errorWallet.message" }),
       });
     } finally {
@@ -164,13 +180,15 @@ export function ReviewForm({
 
   const blockedState = isReviewed
     ? "reviewed"
-    : isActionExpired
-      ? "expired"
-      : canReview && !canApproveOrReject
-        ? "role-blocked"
-        : canReview
-          ? "actionable"
-          : "no-permission";
+    : isOwnSubmission
+      ? "self-review"
+      : isActionExpired
+        ? "expired"
+        : canReview && !canApproveOrReject
+          ? "role-blocked"
+          : canReview
+            ? "actionable"
+            : "no-permission";
 
   return (
     <div className={layout === "page" ? "lg:col-span-2" : undefined}>
@@ -180,11 +198,27 @@ export function ReviewForm({
             <h3 className="text-base font-semibold text-text-strong">
               {blockedState === "reviewed"
                 ? formatMessage({ id: "app.work.detail.reviewSummary" })
-                : formatMessage({ id: "app.work.detail.operatorReview" })}
+                : formatMessage({ id: "app.work.detail.stewardReview" })}
             </h3>
 
             {blockedState === "reviewed" ? (
               <ReviewSummary work={work} />
+            ) : blockedState === "self-review" ? (
+              <div className="mt-4 rounded-xl border border-information-light bg-information-lighter p-4">
+                <p className="text-sm font-medium text-information-dark">
+                  {formatMessage({
+                    id: "app.work.detail.reviewBlocked.selfReviewTitle",
+                    defaultMessage: "Independent review required",
+                  })}
+                </p>
+                <p className="mt-1 text-sm text-information-dark">
+                  {formatMessage({
+                    id: "app.work.detail.reviewBlocked.selfReviewMessage",
+                    defaultMessage:
+                      "You submitted this work. Another garden steward must approve or reject it.",
+                  })}
+                </p>
+              </div>
             ) : blockedState === "expired" ? (
               <div className="mt-4 rounded-xl border border-warning-light bg-warning-lighter/70 p-4">
                 <p className="text-sm font-medium text-warning-dark">
@@ -205,15 +239,15 @@ export function ReviewForm({
               <div className="mt-4 rounded-xl border border-information-light bg-information-lighter p-4">
                 <p className="text-sm font-medium text-information-dark">
                   {formatMessage({
-                    id: "app.work.detail.reviewBlocked.operatorTitle",
-                    defaultMessage: "Owner or operator access required",
+                    id: "app.work.detail.reviewBlocked.stewardTitle",
+                    defaultMessage: "Owner or steward access required",
                   })}
                 </p>
                 <p className="mt-1 text-sm text-information-dark">
                   {formatMessage({
-                    id: "app.work.detail.reviewBlocked.operatorMessage",
+                    id: "app.work.detail.reviewBlocked.stewardMessage",
                     defaultMessage:
-                      "Only garden owners or operators can approve or reject work for this garden.",
+                      "Only garden owners or stewards can approve or reject work for this garden.",
                   })}
                 </p>
               </div>

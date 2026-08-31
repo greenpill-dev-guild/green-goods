@@ -34,7 +34,7 @@ function ControlPrimitiveCatalog() {
             <option value="changes">Needs changes</option>
           </NativeSelect>
         </FormField>
-        <FormField label="Operator note" htmlFor="admin-control-note">
+        <FormField label="Steward note" htmlFor="admin-control-note">
           <Textarea
             id="admin-control-note"
             surface="admin"
@@ -147,7 +147,7 @@ export const FocusedTopInputMobile: Story = {
       <FormField
         label="Manual allowlist review note"
         htmlFor="focused-top-textarea"
-        error="Enter at least one valid operator address."
+        error="Enter at least one valid steward address."
       >
         <Textarea
           id="focused-top-textarea"

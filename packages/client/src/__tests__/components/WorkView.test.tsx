@@ -38,9 +38,12 @@ vi.mock("@/components/Cards", () => ({
   GardenCardSkeleton: () => createElement("div", { "data-testid": "garden-card-skeleton" }),
 }));
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/components/Audio/AudioPlayer", () => ({
   AudioPlayer: ({ src }: { src: string }) =>
     createElement("div", { "data-testid": "audio-player", "data-src": src }, "Audio"),
+}));
+
+vi.mock("@green-goods/shared/modules/data/ipfs/resolve", () => ({
   resolveIPFSUrl: (cid: string) => `https://gateway.test/ipfs/${cid}`,
 }));
 
@@ -63,7 +66,7 @@ const mockGarden = {
   location: "Test Location",
   bannerImage: "",
   gardeners: [],
-  operators: [],
+  stewards: [],
   createdAt: Date.now(),
 };
 
@@ -145,7 +148,7 @@ describe("WorkView", () => {
     it("does not show audio section when no audioNoteCids provided", () => {
       render(createElement(WorkView, defaultProps));
 
-      expect(screen.queryByText("Audio Notes")).not.toBeInTheDocument();
+      expect(screen.queryByText("Audio notes")).not.toBeInTheDocument();
     });
 
     it("renders AudioPlayer for each audio CID", () => {
@@ -156,7 +159,7 @@ describe("WorkView", () => {
         })
       );
 
-      expect(screen.getByText("Audio Notes")).toBeInTheDocument();
+      expect(screen.getByText("Audio notes")).toBeInTheDocument();
       const players = screen.getAllByTestId("audio-player");
       expect(players).toHaveLength(2);
       expect(players[0]).toHaveAttribute("data-src", "https://gateway.test/ipfs/bafyabc123");

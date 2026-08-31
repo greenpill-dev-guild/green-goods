@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Address, Garden } from "@green-goods/shared";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
 import {
   buildCampaignCookieJarCreatePayload,
   canCreateCampaignCookieJar,
@@ -174,7 +174,7 @@ describe("campaign cookie jar admin model", () => {
     const payload = buildCampaignCookieJarCreatePayload({
       factoryAddress: GARDEN_A,
       campaignTitle: "Earth Week",
-      campaignDescription: "Operator rewards",
+      campaignDescription: "Steward rewards",
       campaignImage: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzd",
       campaignExternalUrl: "https://greengoods.app/cookies?campaign=earth-week",
       tokenAddress: TOKEN_A,
@@ -189,7 +189,7 @@ describe("campaign cookie jar admin model", () => {
     expect(payload).toMatchObject({
       title: "Earth Week",
       slug: "earth-week",
-      description: "Operator rewards",
+      description: "Steward rewards",
       oneTimeWithdrawal: true,
       strictPurpose: true,
       withdrawalType: "fixed",
@@ -202,12 +202,6 @@ describe("campaign cookie jar admin model", () => {
   it("prefills management drafts from selected campaign metadata", () => {
     const draft = resolveCampaignCookieJarManageDraft({
       address: JAR,
-      jarAddress: JAR,
-      slug: "earth-week",
-      label: "Earth Week",
-      title: "Earth Week",
-      rawMetadata: "",
-      source: "indexed",
       metadata: {
         kind: "green-goods.campaign-cookie-jar",
         version: 1,

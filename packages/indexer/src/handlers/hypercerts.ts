@@ -6,7 +6,9 @@ import {
   createDefaultHypercert,
   fetchJson,
   getTxHash,
+  indexCommitmentHypercert,
   parseHypercertMetadata,
+  poolingEntityId,
   ZERO_ADDRESS,
 } from "./shared";
 
@@ -143,14 +145,44 @@ indexer.onEvent(
       txHash: getTxHash(event.transaction),
       log: context.log,
     });
+    if (metadata === null) {
+      const existingCommitmentBundle = baseHypercert.bundleKind === "COMMITMENT";
+      context.Hypercert.set({
+        ...baseHypercert,
+        metadataUri: event.params.uri,
+        totalUnits: event.params.totalUnits,
+        bundleKind: existingCommitmentBundle ? "COMMITMENT" : "WORK_LEGACY",
+        metadataReconciliationRequired: true,
+        commitmentIds: existingCommitmentBundle ? baseHypercert.commitmentIds : [],
+        commitmentEntityIds: existingCommitmentBundle ? baseHypercert.commitmentEntityIds : [],
+        needUIDs: existingCommitmentBundle ? baseHypercert.needUIDs : [],
+        updatedAt: timestamp,
+      });
+      context.log.warn("Hypercert metadata requires reconciliation", {
+        hypercertId,
+        uri: event.params.uri,
+        chainId: event.chainId,
+        blockNumber: event.block.number,
+        correlationId: getTxHash(event.transaction),
+      });
+      return;
+    }
 
-    const parsedMetadata = metadata ? parseHypercertMetadata(metadata) : {};
+    const parsedMetadata = parseHypercertMetadata(metadata);
     const parsedAttestationUIDs = parsedMetadata.attestationUIDs;
+    const bundleKind = parsedMetadata.bundleKind ?? "WORK_LEGACY";
+    const commitmentIds = bundleKind === "COMMITMENT" ? (parsedMetadata.commitmentIds ?? []) : [];
+    const needUIDs = bundleKind === "COMMITMENT" ? (parsedMetadata.needUIDs ?? []) : [];
 
     const updatedHypercert: Hypercert = {
       ...baseHypercert,
       metadataUri: event.params.uri,
       totalUnits: event.params.totalUnits,
+      bundleKind,
+      metadataReconciliationRequired: false,
+      commitmentIds,
+      commitmentEntityIds: commitmentIds.map((id) => poolingEntityId(event.chainId, id)),
+      needUIDs,
       updatedAt: timestamp,
       ...(parsedMetadata.gardenId ? { garden: parsedMetadata.gardenId } : {}),
       ...(parsedAttestationUIDs
@@ -162,6 +194,9 @@ indexer.onEvent(
     };
 
     context.Hypercert.set(updatedHypercert);
+    if (bundleKind === "COMMITMENT") {
+      await indexCommitmentHypercert(context, updatedHypercert, timestamp);
+    }
 
     context.log.info("Hypercert claim stored", {
       hypercertId,

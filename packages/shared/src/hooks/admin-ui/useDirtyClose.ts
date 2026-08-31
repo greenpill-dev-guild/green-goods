@@ -22,7 +22,7 @@ export interface UseDirtyCloseOptions {
    */
   preventRouteChange?: boolean;
   /**
-   * Optional cleanup run when the operator confirms discard (e.g. reset the
+   * Optional cleanup run when the steward confirms discard (e.g. reset the
    * wizard store), before the close/navigation proceeds.
    */
   onDiscard?: () => void;

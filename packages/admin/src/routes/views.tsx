@@ -1,4 +1,9 @@
-import { adminRoutes, SkeletonGrid, type UserRole } from "@green-goods/shared";
+import { SkeletonGrid } from "@green-goods/shared/components/Skeleton";
+import {
+  type AdminIndexRedirectKind,
+  resolveAdminIndexRedirect,
+} from "@green-goods/shared/hooks/admin-ui/navigation/workspaceNavigation";
+import type { UserRole } from "@green-goods/shared/hooks/gardener/useRole";
 import type { ComponentType } from "react";
 import { Navigate, type RouteObject, useLocation } from "react-router-dom";
 import RequireRole from "@/routes/RequireRole";
@@ -19,18 +24,6 @@ const createGardenView = lazyView(() => import("@/views/Garden/CreateGarden"));
 const createAssessmentView = lazyView(() => import("@/views/Hub/CreateAssessment"));
 const createHypercertView = lazyView(() => import("@/views/Hub/CreateHypercert"));
 const submitWorkView = lazyView(() => import("@/views/Garden/SubmitWork"));
-
-function preserveSearch(search: string, omitKeys: string[] = []): string {
-  if (!search) return "";
-
-  const params = new URLSearchParams(search);
-  for (const key of omitKeys) {
-    params.delete(key);
-  }
-
-  const nextSearch = params.toString();
-  return nextSearch ? `?${nextSearch}` : "";
-}
 
 function RoleGateSkeleton() {
   return (
@@ -55,51 +48,15 @@ function roleGatedBranch(allowedRoles: UserRole[], children: RouteObject[]): Rou
   };
 }
 
-const HubIndexRedirect = () => {
+function IndexRedirect({ kind }: { kind: AdminIndexRedirectKind }) {
   const location = useLocation();
-  return (
-    <Navigate to={`${adminRoutes.hubWork()}${preserveSearch(location.search, ["view"])}`} replace />
-  );
-};
+  return <Navigate to={resolveAdminIndexRedirect(kind, location.search)} replace />;
+}
 
-const GardenIndexRedirect = () => {
+function PreserveSearchRedirect({ pathname }: { pathname: string }) {
   const location = useLocation();
-  return (
-    <Navigate
-      to={`${adminRoutes.gardenHealth()}${preserveSearch(location.search, ["view"])}`}
-      replace
-    />
-  );
-};
-
-const CommunityIndexRedirect = () => {
-  const location = useLocation();
-  return (
-    <Navigate
-      to={`${adminRoutes.communityMembers()}${preserveSearch(location.search, ["card", "pool"])}`}
-      replace
-    />
-  );
-};
-
-const GardenOverviewRedirect = () => {
-  const location = useLocation();
-  return (
-    <Navigate
-      to={`${adminRoutes.gardenHealth()}${preserveSearch(location.search, ["view"])}`}
-      replace
-    />
-  );
-};
-
-const GardenMembersRedirect = () => {
-  const location = useLocation();
-  // Manage Members is community-owned — old /garden/members links land on the
-  // canonical /community/members route with their garden context intact.
-  return (
-    <Navigate to={`${adminRoutes.communityMembers()}${preserveSearch(location.search)}`} replace />
-  );
-};
+  return <Navigate to={{ pathname, search: location.search }} replace />;
+}
 
 export const adminCanvasRoutes: RouteObject[] = [
   {
@@ -107,7 +64,7 @@ export const adminCanvasRoutes: RouteObject[] = [
     children: [
       {
         index: true,
-        element: <HubIndexRedirect />,
+        element: <IndexRedirect kind="hub" />,
       },
       {
         // Submit Work is a creation/commit flow — its own full surface
@@ -148,6 +105,21 @@ export const adminCanvasRoutes: RouteObject[] = [
         lazy: createHypercertView,
       },
       {
+        // Commitments waiting on a steward's confirmation (uiux-spec §6.9).
+        // A row opens the commitment dialog in place, route-backed.
+        path: "confirm",
+        children: [
+          {
+            index: true,
+            lazy: hubView,
+          },
+          {
+            path: ":commitmentId",
+            lazy: hubView,
+          },
+        ],
+      },
+      {
         path: "certify",
         children: [
           {
@@ -161,15 +133,17 @@ export const adminCanvasRoutes: RouteObject[] = [
         ],
       },
       {
+        // The History stage is retired (2026-08-25 AD-3); saved deep links
+        // land on the Hub's default stage instead of a 404.
         path: "history",
         children: [
           {
             index: true,
-            lazy: hubView,
+            element: <PreserveSearchRedirect pathname="/hub" />,
           },
           {
             path: ":historyEventId",
-            lazy: hubView,
+            element: <PreserveSearchRedirect pathname="/hub" />,
           },
         ],
       },
@@ -180,7 +154,7 @@ export const adminCanvasRoutes: RouteObject[] = [
     children: [
       {
         index: true,
-        element: <GardenIndexRedirect />,
+        element: <IndexRedirect kind="garden" />,
       },
       {
         path: "health",
@@ -188,7 +162,7 @@ export const adminCanvasRoutes: RouteObject[] = [
       },
       {
         path: "overview",
-        element: <GardenOverviewRedirect />,
+        element: <IndexRedirect kind="garden-overview" />,
       },
       {
         path: "activity",
@@ -198,7 +172,7 @@ export const adminCanvasRoutes: RouteObject[] = [
         // Membership is community-owned — redirect retained so existing
         // /garden/members bookmarks and deep links do not 404.
         path: "members",
-        element: <GardenMembersRedirect />,
+        element: <IndexRedirect kind="garden-members" />,
       },
       {
         // Legacy /garden/impact remains canonical for outcome/proof readouts
@@ -220,6 +194,26 @@ export const adminCanvasRoutes: RouteObject[] = [
         lazy: gardenView,
       },
       {
+        // The steward's pool console (uiux-spec §6.2). The seeding console and
+        // the commitment inspector are route-backed dialogs over the Pool tab,
+        // the way the hypercert inspector sits over Impact.
+        path: "pool",
+        children: [
+          {
+            index: true,
+            lazy: gardenView,
+          },
+          {
+            path: "seed",
+            lazy: gardenView,
+          },
+          {
+            path: ":commitmentId",
+            lazy: gardenView,
+          },
+        ],
+      },
+      {
         path: "create",
         ...roleGatedRoute(["deployer"], createGardenView),
       },
@@ -230,7 +224,7 @@ export const adminCanvasRoutes: RouteObject[] = [
     children: [
       {
         index: true,
-        element: <CommunityIndexRedirect />,
+        element: <IndexRedirect kind="community" />,
       },
       {
         path: "members",
@@ -277,6 +271,13 @@ export const adminCanvasRoutes: RouteObject[] = [
       {
         path: "payouts",
         lazy: communityView,
+      },
+      {
+        // The Pools tab retired into Coordination (2026-08-25 AD-5); the W12
+        // surface (protocol pool + this garden, uiux-spec §6.8) renders there
+        // and saved deep links land on it.
+        path: "pools",
+        element: <PreserveSearchRedirect pathname="/community/coordination" />,
       },
       {
         // Legacy resources URLs alias into Endowment until external links move.

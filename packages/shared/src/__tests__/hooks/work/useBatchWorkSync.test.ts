@@ -27,14 +27,20 @@ vi.mock("@wagmi/core", () => ({
 }));
 
 const mockGetJobsWithImages = vi.fn();
-vi.mock("../../../modules/job-queue", () => ({
+vi.mock("../../../modules/job-queue/default-instance", () => ({
   jobQueue: {
     getJobsWithImages: (...args: unknown[]) => mockGetJobsWithImages(...args),
   },
+}));
+
+vi.mock("../../../modules/job-queue/db", () => ({
   jobQueueDB: {
     markJobSynced: vi.fn().mockResolvedValue(undefined),
     deleteJob: vi.fn().mockResolvedValue(undefined),
   },
+}));
+
+vi.mock("../../../modules/job-queue/event-bus", () => ({
   jobQueueEventBus: {
     emit: vi.fn(),
   },
@@ -60,6 +66,10 @@ vi.mock("../../../config/blockchain", () => ({
     address: "0xEAS",
     schemaUID: "0xSchema",
   }),
+}));
+
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 vi.mock("../../../config/chains", () => ({
@@ -111,7 +121,8 @@ vi.mock("../../../modules/app/error-tracking", () => ({
 
 import { queueToasts } from "../../../components/toast";
 import { useBatchWorkSync } from "../../../hooks/work/useBatchWorkSync";
-import { jobQueueDB, jobQueueEventBus } from "../../../modules/job-queue";
+import { jobQueueDB } from "../../../modules/job-queue/db";
+import { jobQueueEventBus } from "../../../modules/job-queue/event-bus";
 
 // ============================================
 // Test helpers

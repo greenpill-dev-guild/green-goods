@@ -1,9 +1,7 @@
-import {
-  type Address,
-  cn,
-  useDirtyClose,
-  type useGardenWorkspaceController,
-} from "@green-goods/shared";
+import type { useGardenWorkspaceController } from "@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController";
+import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
+import type { Address } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { AdminCard } from "@/components/AdminCard";
 import { RiArrowGoBackLine, RiCloseLine, RiImageLine } from "@remixicon/react";
 import { useRef, useState } from "react";
@@ -25,6 +23,7 @@ import {
 } from "@/components/Layout/CanvasRouteState";
 import { OverviewTab } from "./OverviewTab";
 import { ImpactTab } from "./ImpactTab";
+import { GardenPoolTab } from "../Pool";
 
 interface GardenWorkspaceContentProps {
   workspace: ReturnType<typeof useGardenWorkspaceController>;
@@ -120,6 +119,15 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           assessmentCount30d={workspace.assessments.length}
           gardenerCount={workspace.garden.gardeners.length}
           treasuryBalance={workspace.treasuryBalance}
+          karmaIntegration={workspace.karmaIntegration}
+        />
+      ) : null}
+
+      {workspace.view === "pool" ? (
+        <GardenPoolTab
+          garden={{ id: workspace.garden.id as Address, name: workspace.garden.name }}
+          chainId={workspace.garden.chainId}
+          canManage={workspace.canManage}
         />
       ) : null}
 
@@ -214,7 +222,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
                 >
                   {formatMessage({
                     id: "app.garden.settings.saveChanges",
-                    defaultMessage: "Save changes",
+                    defaultMessage: "Save Changes",
                   })}
                 </AdminButton>
               </div>
@@ -233,7 +241,6 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
               bannerImage: workspace.garden.bannerImage,
               domainMask: workspace.garden.domainMask,
               openJoining: workspace.garden.openJoining,
-              maxGardeners: workspace.garden.maxGardeners,
             }}
             canManage={workspace.canManage}
             isOwner={workspace.isOwner}
@@ -283,7 +290,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
                       </AdminButton>
                     ) : null}
                     {bannerIsDraft ? (
-                      <span className="absolute bottom-2 right-2 rounded-full bg-bg-white/90 px-2 py-0.5 text-[11px] font-medium text-text-sub shadow-[var(--edge-rest)]">
+                      <span className="absolute bottom-2 right-2 rounded-full bg-bg-white/90 px-2 py-0.5 text-label-sm font-medium text-text-sub shadow-[var(--edge-rest)]">
                         {formatMessage({
                           id: "app.garden.settings.bannerDraft",
                           defaultMessage: "Preview · uploads on save",

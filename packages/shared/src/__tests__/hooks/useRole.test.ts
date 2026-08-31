@@ -56,10 +56,10 @@ vi.mock("../../config/react-query", () => ({
 vi.mock("../query-keys", () => ({
   queryKeys: {
     role: {
-      operatorGardens: (address?: string, chainId?: number) => [
+      stewardGardens: (address?: string, chainId?: number) => [
         "greengoods",
         "role",
-        "operatorGardens",
+        "stewardGardens",
         address,
         chainId,
       ],
@@ -113,11 +113,11 @@ describe("useRole", () => {
 
     expect(result.current.role).toBe("deployer");
     expect(result.current.isDeployer).toBe(true);
-    expect(result.current.isOperator).toBe(false);
+    expect(result.current.isSteward).toBe(false);
     expect(result.current.loading).toBe(false);
   });
 
-  it("should return operator role for user with operator gardens", () => {
+  it("should return steward role for user with steward gardens", () => {
     mockUsePrimaryAddress.mockReturnValue("0x456");
     mockUseAuthContext.mockReturnValue({ isReady: true, isAuthenticated: true });
     mockUseQuery.mockReturnValue({
@@ -131,14 +131,14 @@ describe("useRole", () => {
 
     const { result } = renderHook(() => useRole());
 
-    expect(result.current.role).toBe("operator");
+    expect(result.current.role).toBe("steward");
     expect(result.current.isDeployer).toBe(false);
-    expect(result.current.isOperator).toBe(true);
-    expect(result.current.operatorGardens).toHaveLength(2);
+    expect(result.current.isSteward).toBe(true);
+    expect(result.current.stewardGardens).toHaveLength(2);
     expect(result.current.loading).toBe(false);
   });
 
-  it("should return user role for unknown address without operator gardens", () => {
+  it("should return user role for unknown address without steward gardens", () => {
     mockUsePrimaryAddress.mockReturnValue("0x789");
     mockUseAuthContext.mockReturnValue({ isReady: true, isAuthenticated: true });
     mockUseQuery.mockReturnValue({
@@ -151,8 +151,8 @@ describe("useRole", () => {
 
     expect(result.current.role).toBe("user");
     expect(result.current.isDeployer).toBe(false);
-    expect(result.current.isOperator).toBe(false);
-    expect(result.current.operatorGardens).toHaveLength(0);
+    expect(result.current.isSteward).toBe(false);
+    expect(result.current.stewardGardens).toHaveLength(0);
     expect(result.current.loading).toBe(false);
   });
 
@@ -199,8 +199,8 @@ describe("useRole", () => {
     expect(result.current.loading).toBe(true);
   });
 
-  it("should deployer take precedence over operator role", () => {
-    // Deployer address that also has operator gardens
+  it("should deployer take precedence over steward role", () => {
+    // Deployer address that also has steward gardens
     mockUsePrimaryAddress.mockReturnValue("0x123");
     mockUseAuthContext.mockReturnValue({ isReady: true, isAuthenticated: true });
     mockUseDeploymentRegistry.mockReturnValue({
@@ -219,29 +219,29 @@ describe("useRole", () => {
 
     expect(result.current.role).toBe("deployer");
     expect(result.current.isDeployer).toBe(true);
-    expect(result.current.isOperator).toBe(true); // Can still be operator
-    expect(result.current.operatorGardens).toHaveLength(1);
+    expect(result.current.isSteward).toBe(true); // Can still be steward
+    expect(result.current.stewardGardens).toHaveLength(1);
   });
 
   it("uses the address that usePrimaryAddress returns (smart account in passkey mode)", () => {
     // Passkey mode: usePrimaryAddress returns smartAccountAddress regardless of
     // any wagmi connection. The previous wagmi-first chain in useRole could
-    // outrank this and produce zero operator gardens for an authenticated
-    // operator on the smart account; that bug must not regress.
+    // outrank this and produce zero steward gardens for an authenticated
+    // steward on the smart account; that bug must not regress.
     const SMART_ACCOUNT = "0xSmartAccount123";
     mockUsePrimaryAddress.mockReturnValue(SMART_ACCOUNT);
     mockUseAuthContext.mockReturnValue({ isReady: true, isAuthenticated: true });
     mockUseQuery.mockReturnValue({
-      data: [{ id: "0xGardenA", name: "Operator Garden" }],
+      data: [{ id: "0xGardenA", name: "Steward Garden" }],
       isLoading: false,
       error: null,
     });
 
     const { result } = renderHook(() => useRole());
 
-    expect(result.current.role).toBe("operator");
-    expect(result.current.isOperator).toBe(true);
-    expect(result.current.operatorGardens).toHaveLength(1);
+    expect(result.current.role).toBe("steward");
+    expect(result.current.isSteward).toBe(true);
+    expect(result.current.stewardGardens).toHaveLength(1);
   });
 
   it("should return deployment permissions from hook state", () => {

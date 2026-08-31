@@ -9,10 +9,10 @@ import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mockUseENSRegistrationStatus = vi.fn();
+const mockUseENSRegistrationStatus = vi.fn((_slug?: string) => undefined);
 const mockMutateAsync = vi.fn();
 const mockReleaseMutateAsync = vi.fn();
-const mockValidateSlug = vi.fn(() => ({ valid: true }));
+const mockValidateSlug = vi.fn((_slug: string) => ({ valid: true }));
 const mockClipboardWriteText = vi.fn(async () => undefined);
 const mockTrigger = vi.fn(async () => true);
 const mockGetValues = vi.fn(() => "river");
@@ -24,11 +24,23 @@ let mockSlugValue = "";
 let mockExistingGreenGoodsEnsName: string | null = null;
 let mockSponsoredReleaseUnavailable = false;
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...inputs: Array<string | undefined | null | false>) => inputs.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/ens", () => ({
   validateSlug: (slug: string) => mockValidateSlug(slug),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useOffline", () => ({
   useOffline: () => ({ isOnline: true }),
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useProtocolMemberStatus", () => ({
   useProtocolMemberStatus: () => ({ data: mockProtocolMember }),
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useSlugForm", () => ({
   useSlugForm: () => ({
     watch: (field: string) => (field === "slug" ? mockSlugValue : ""),
     register: () => ({}),
@@ -37,23 +49,44 @@ vi.mock("@green-goods/shared", () => ({
     reset: mockReset,
     formState: { errors: {} },
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useSlugAvailability", () => ({
   useSlugAvailability: () => ({ data: true, isFetching: false }),
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useENSClaim", () => ({
   useENSClaim: () => ({
     mutateAsync: mockMutateAsync,
     isPending: false,
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useENSReleaseName", () => ({
   useENSReleaseName: () => ({
     mutateAsync: mockReleaseMutateAsync,
     isPending: false,
     isSponsoredReleaseUnavailable: mockSponsoredReleaseUnavailable,
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useENSRegistrationStatus", () => ({
   useENSRegistrationStatus: (slug?: string) => {
     mockUseENSRegistrationStatus(slug);
     return { data: slug ? mockRegistrationData : undefined };
   },
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
   useGreenGoodsEnsName: () => ({ data: mockExistingGreenGoodsEnsName }),
-  ENSProgressTimeline: ({ slug, data }: { slug: string; data: unknown }) =>
+}));
+
+vi.mock("@green-goods/shared/components/Progress/ENSProgressTimeline", () => ({
+  ENSProgressTimeline: ({ slug }: { slug: string; data: unknown }) =>
     createElement("div", { "data-testid": "ens-progress" }, slug),
+}));
+
+vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", () => ({
   ConfirmDialog: ({
     isOpen,
     onConfirm,
@@ -145,7 +178,7 @@ describe("Profile ENSSection", () => {
         "Choose a personal name tied to your work. Registration takes about 15-20 minutes."
       )
     ).toBeInTheDocument();
-    expect(screen.getByText("Claim name")).toBeInTheDocument();
+    expect(screen.getByText("Claim Name")).toBeInTheDocument();
     expect(mockUseENSRegistrationStatus).toHaveBeenCalledWith(undefined);
   });
 
@@ -157,16 +190,16 @@ describe("Profile ENSSection", () => {
 
     renderENSSection();
 
-    expect(screen.getByText("Claim name")).toBeInTheDocument();
+    expect(screen.getByText("Claim Name")).toBeInTheDocument();
 
-    await user.click(screen.getByText("Claim name"));
+    await user.click(screen.getByText("Claim Name"));
 
     await waitFor(() => {
       expect(mockMutateAsync).toHaveBeenCalledWith({ slug: "river" });
     });
     expect(mockReset).toHaveBeenCalled();
     expect(screen.getByTestId("ens-progress")).toHaveTextContent("river");
-    expect(screen.queryByText("Claim name")).not.toBeInTheDocument();
+    expect(screen.queryByText("Claim Name")).not.toBeInTheDocument();
   });
 
   it("hides claim form when registration is active", async () => {
@@ -177,12 +210,12 @@ describe("Profile ENSSection", () => {
 
     renderENSSection();
 
-    await user.click(screen.getByText("Claim name"));
+    await user.click(screen.getByText("Claim Name"));
 
     await waitFor(() => {
       expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
     });
-    expect(screen.queryByText("Claim name")).not.toBeInTheDocument();
+    expect(screen.queryByText("Claim Name")).not.toBeInTheDocument();
   });
 
   it("hides claim form when the address already has a Green Goods ENS name", () => {
@@ -193,9 +226,9 @@ describe("Profile ENSSection", () => {
 
     expect(mockUseENSRegistrationStatus).toHaveBeenCalledWith("forest");
     expect(screen.getAllByText("forest")).toHaveLength(2);
-    expect(screen.getByText("Release username")).toBeInTheDocument();
+    expect(screen.getByText("Release Username")).toBeInTheDocument();
     expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
-    expect(screen.queryByText("Claim name")).not.toBeInTheDocument();
+    expect(screen.queryByText("Claim Name")).not.toBeInTheDocument();
   });
 
   it("releases the current ENS name after confirmation", async () => {
@@ -206,7 +239,7 @@ describe("Profile ENSSection", () => {
 
     renderENSSection();
 
-    await user.click(screen.getByText("Release username"));
+    await user.click(screen.getByText("Release Username"));
 
     await waitFor(() => {
       expect(screen.getByTestId("confirm-release-dialog")).toBeInTheDocument();
@@ -229,7 +262,7 @@ describe("Profile ENSSection", () => {
 
     renderENSSection();
 
-    const requestButton = screen.getByText("Request username change");
+    const requestButton = screen.getByText("Request Username Change");
     expect(requestButton).not.toBeDisabled();
     expect(
       screen.getByText(

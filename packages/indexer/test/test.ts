@@ -1,37 +1,15 @@
 import assert from "assert";
 import {
   ActionRegistry,
-  Addresses,
   createTestIndexer,
   GardenToken,
   OctantModule,
   OctantVault,
   processEvents,
 } from "./v3";
+import { addr, CHAINS, mockEvent, txHash } from "./helpers/events";
 
-const CHAIN_ID = 42161;
-
-function addr(index: number): string {
-  return Addresses.mockAddresses[index] || `0x${index.toString().padStart(40, "0")}`;
-}
-
-function txHash(index: number): string {
-  return `0x${index.toString(16).padStart(64, "0")}`;
-}
-
-function mockEvent(
-  chainId: number,
-  timestamp: number,
-  opts: { srcAddress?: string; txHash?: string; logIndex?: number; blockNumber?: number } = {}
-) {
-  return {
-    chainId,
-    block: { timestamp, number: opts.blockNumber ?? 0 },
-    srcAddress: opts.srcAddress ?? addr(99),
-    transaction: { hash: opts.txHash ?? txHash(timestamp) },
-    logIndex: opts.logIndex ?? 0,
-  };
-}
+const CHAIN_ID = CHAINS.arbitrum;
 
 describe("ActionRegistry retained surface", () => {
   it("creates and updates actions", async () => {
@@ -98,7 +76,7 @@ describe("GardenToken retained surface", () => {
       location: "Earth",
       bannerImage: "ipfs://bafk-banner",
       openJoining: true,
-      mockEventData: mockEvent(CHAIN_ID, 3_000, { srcAddress: addr(11) }),
+      mockEventData: mockEvent(CHAIN_ID, 3_000),
     });
 
     const result = await GardenToken.GardenMinted.processEvent({ event, mockDb });

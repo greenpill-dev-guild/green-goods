@@ -77,6 +77,13 @@ services:
       graphql-engine:
         condition: service_healthy
     restart: unless-stopped
+    # Envio tracks its entity tables in Hasura on fresh init but leaves its
+    # internal envio_* progress tables untracked, which local smoke proofs query.
+    # The tracker waits for the schema, backfills what is missing, then exits.
+    command:
+      - sh
+      - -c
+      - "./scripts/track-hasura-tables.sh & exec bun run start"
     environment:
       # Database connection (use Docker network hostname)
       ENVIO_PG_HOST: envio-postgres
@@ -85,7 +92,9 @@ services:
       ENVIO_PG_PASSWORD: ${ENVIO_PG_PASSWORD:-testing}
       ENVIO_PG_DATABASE: ${ENVIO_PG_DATABASE:-envio-dev}
       # Hasura connection
-      HASURA_GRAPHQL_ENDPOINT: http://graphql-engine:8080
+      # Envio POSTs to this URL directly (no path appended), so it must be the
+      # full metadata endpoint. A bare origin returns 404 and table tracking fails.
+      HASURA_GRAPHQL_ENDPOINT: http://graphql-engine:8080/v1/metadata
       HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_GRAPHQL_ADMIN_SECRET:-testing}
       # Envio HyperSync API token. Required for reliable live Arbitrum catch-up.
       ENVIO_API_TOKEN: ${ENVIO_API_TOKEN:-}
@@ -128,4 +137,4 @@ volumes:
 
 networks:
   indexer-network:
-    name: green_goods_indexer_network
+    name: ${INDEXER_NETWORK_NAME:-green_goods_indexer_network}

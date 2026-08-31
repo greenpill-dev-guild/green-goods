@@ -1,4 +1,4 @@
-import { type Action, Capital, Domain } from "@green-goods/shared";
+import { type Action, Capital, Domain } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { ActionCard } from "./ActionCard";
 
@@ -58,9 +58,7 @@ const meta: Meta<typeof ActionCard> = {
   title: "Client/Cards/ActionCard",
   component: ActionCard,
   tags: ["autodocs"],
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
   argTypes: {
     action: {
       control: "object",
@@ -180,7 +178,5 @@ export const Mobile: Story = {
     selected: false,
     media: "large",
   },
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
 };

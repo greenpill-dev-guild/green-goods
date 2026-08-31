@@ -214,7 +214,7 @@ flowchart LR
   end
 
   subgraph RESOLVERS["Two UUPS resolver proxies"]
-    CNR["CommunityNeedsResolver<br/>exact UID dispatch<br/>Need · Signal · Status"]
+    CNR["NeedsResolver<br/>exact UID dispatch<br/>Need · Signal · Status"]
     FAR["FundingAttributionResolver<br/>ungated funding blast wall"]
   end
 

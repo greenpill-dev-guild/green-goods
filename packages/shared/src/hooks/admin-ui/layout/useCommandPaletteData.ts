@@ -1,13 +1,9 @@
-import {
-  type Action,
-  DEFAULT_CHAIN_ID,
-  type Garden,
-  type UserRole,
-  useActions,
-  useAllAssessments,
-  useEligibleAdminGardens,
-  useRole,
-} from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
+import type { Action, Garden } from "../../../types/domain";
+import { useAllAssessments } from "../../assessment/useAllAssessments";
+import { useActions } from "../../blockchain/useBaseLists";
+import { useEligibleAdminGardens } from "../../garden/useEligibleAdminGardens";
+import { useRole, type UserRole } from "../../gardener/useRole";
 import { useMemo } from "react";
 import type { IntlShape } from "react-intl";
 import { ADMIN_COMMAND_ROUTES } from "../navigation/workspaceViews";

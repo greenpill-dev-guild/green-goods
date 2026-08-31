@@ -1,17 +1,16 @@
+import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { track } from "@green-goods/shared/modules/app/posthog";
+import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
 import {
-  type Action,
-  AudioPlayer,
-  cn,
-  imageCompressor,
-  mediaResourceManager,
   getSafeMediaBatchMetadata,
   getSafeMediaMetadata,
   getWorkMediaId,
   isVideoFile,
-  normalizeWorkMediaFiles,
-  toastService,
-  track,
-} from "@green-goods/shared";
+} from "@green-goods/shared/modules/work/media-processing";
+import { prepareWorkSubmission } from "@green-goods/shared/modules/work/submission-flow";
+import type { Action } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiCloseLine,
   RiImageFill,
@@ -25,8 +24,8 @@ import { FormInfo } from "@/components/Cards";
 import { Badge } from "@/components/Communication";
 import { ImagePreviewDialog } from "@/components/Dialogs";
 import { Books } from "@/components/Features";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
-import { trackWorkMediaJourneyEvent } from "./mediaAnalytics";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import { trackWorkMediaJourneyEvent } from "@/config/mediaAnalytics";
 
 const WORK_DRAFT_TRACKING_ID = "work-draft";
 const VIDEO_TRACKING_ID = "work-draft-video";
@@ -236,7 +235,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
     setCompressionProgress(0);
 
     try {
-      const normalized = await normalizeWorkMediaFiles(fileArray, {
+      const normalized = await prepareWorkSubmission(fileArray, {
         onHeicConversionStarted: (file) => {
           trackWorkMediaJourneyEvent("work_media_heic_conversion_started", {
             work_submission_journey_id: journeyId,
@@ -337,7 +336,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               : intl.formatMessage(
                   {
                     id: "app.garden.upload.videoTooLong",
-                    defaultMessage: "Video must be {max} seconds or shorter (yours is {actual}s)",
+                    defaultMessage: "Video is too long. Maximum {max} seconds.",
                   },
                   { max: MAX_VIDEO_DURATION_SECONDS, actual: Math.round(duration) }
                 );
@@ -356,6 +355,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
 
       // --- Process images: compress ---
       setProcessingPhase("compressing");
+      const { imageCompressor } = await import("@green-goods/shared/utils/work/image-compression");
       const toCompress = imageFiles.filter((f) => imageCompressor.shouldCompress(f, 1024));
       const noCompress = imageFiles.filter((f) => !imageCompressor.shouldCompress(f, 1024));
 
@@ -646,7 +646,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           >
             {intl.formatMessage({
               id: "app.garden.upload.removeBrokenMedia",
-              defaultMessage: "Remove broken media",
+              defaultMessage: "Remove Broken Media",
             })}
           </button>
         </div>

@@ -40,18 +40,20 @@ mocks.editor.continueAfterReconnect = mocks.continue;
 mocks.editor.discardDraft = mocks.discard;
 mocks.editor.save = mocks.save;
 
-vi.mock("@green-goods/shared", () => ({
-  cn: (...values: unknown[]) => values.filter(Boolean).join(" "),
+vi.mock("@green-goods/shared/modules/job-queue/media-resource-manager", () => ({
   mediaResourceManager: {
     cleanupUrl: mocks.cleanupPreviewUrl,
     createUrl: mocks.createPreviewUrl,
   },
 }));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...values: unknown[]) => values.filter(Boolean).join(" "),
+}));
 vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
   useOnlineStatus: () => mocks.online.isOnline,
 }));
-vi.mock("@green-goods/shared/profile-avatar", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@green-goods/shared/profile-avatar")>()),
+vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", () => ({
   useProfileAvatarEditor: () => mocks.editor,
   useResolvedProfileAvatar: () => mocks.resolved,
 }));
@@ -220,11 +222,11 @@ describe("AccountProfileAvatarEditor", () => {
     expect(mocks.continue).toHaveBeenCalledTimes(1);
   });
   it.each([
-    ["clear", { action: "clear", file: null }],
+    ["clear", { action: "clear" as const, file: null }],
     [
       "set",
       {
-        action: "set",
+        action: "set" as const,
         file: new File(["old"], "old-profile-avatar.webp", { type: "image/webp" }),
       },
     ],

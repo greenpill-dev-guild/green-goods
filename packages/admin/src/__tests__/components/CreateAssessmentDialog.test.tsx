@@ -5,19 +5,17 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { del as idbDel, get as idbGet } from "idb-keyval";
+import type { ComponentProps } from "react";
 import { IntlProvider } from "react-intl";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  AuthContext,
-  DEFAULT_CHAIN_ID,
-  queryKeys,
-  useAdminStore,
-  useCreateAssessmentStore,
-  type AuthContextType,
-  type Garden,
-} from "@green-goods/shared";
-import { createTestQueryClient } from "@green-goods/shared/testing";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import { AuthContext } from "@green-goods/shared/providers/Auth";
+import { useAdminStore } from "@green-goods/shared/stores/useAdminStore";
+import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
+import type { Garden } from "@green-goods/shared/types/domain";
+import { createTestQueryClient } from "@green-goods/shared/__tests__/test-utils/query-client";
 import CreateAssessment from "@/views/Hub/CreateAssessment";
 
 const createAssessmentControllerOverride = vi.hoisted(() => ({
@@ -25,6 +23,7 @@ const createAssessmentControllerOverride = vi.hoisted(() => ({
 }));
 
 const OPERATOR = "0x9999999999999999999999999999999999999999";
+type AuthContextValue = NonNullable<ComponentProps<typeof AuthContext.Provider>["value"]>;
 
 const SELECTED_GARDEN: Garden = {
   id: "0x1111111111111111111111111111111111111111",
@@ -36,7 +35,7 @@ const SELECTED_GARDEN: Garden = {
   location: "",
   bannerImage: "",
   gardeners: [],
-  operators: [OPERATOR],
+  stewards: [OPERATOR],
   owners: [],
   evaluators: [],
   funders: [],
@@ -54,18 +53,24 @@ vi.mock("wagmi", () => ({
   useWalletClient: () => ({ data: undefined }),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    useCreateAssessmentController: (() =>
-      createAssessmentControllerOverride.current
-        ? createAssessmentControllerOverride.current()
-        : actual.useCreateAssessmentController()) as typeof actual.useCreateAssessmentController,
-  };
-});
+vi.mock(
+  "@green-goods/shared/hooks/admin-ui/hub/useCreateAssessmentController",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("@green-goods/shared/hooks/admin-ui/hub/useCreateAssessmentController")
+      >();
+    return {
+      ...actual,
+      useCreateAssessmentController: (() =>
+        createAssessmentControllerOverride.current
+          ? createAssessmentControllerOverride.current()
+          : actual.useCreateAssessmentController()) as typeof actual.useCreateAssessmentController,
+    };
+  }
+);
 
-const authContextValue: AuthContextType = {
+const authContextValue: AuthContextValue = {
   authMode: "wallet",
   isReady: true,
   isAuthenticated: true,
@@ -99,7 +104,7 @@ function renderCreateAssessment() {
   queryClient.setQueryData(queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), [SELECTED_GARDEN]);
   queryClient.setQueryData(queryKeys.actions.byChain(DEFAULT_CHAIN_ID), []);
   queryClient.setQueryData(
-    queryKeys.role.operatorGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
+    queryKeys.role.stewardGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
     [{ id: SELECTED_GARDEN.id, name: SELECTED_GARDEN.name }]
   );
   queryClient.setQueryData(
@@ -141,8 +146,21 @@ function renderCreateAssessment() {
 // debounced write to it, which can land during a later test and make a
 // "pristine" form look dirty. Clear it on both sides of each test.
 const DRAFT_KEY = `assessment_draft_${SELECTED_GARDEN.id}_${OPERATOR}`;
+const ORIGINAL_TZ = process.env.TZ;
 
 describe("CreateAssessment dialog", () => {
+  beforeAll(() => {
+    process.env.TZ = "America/Los_Angeles";
+  });
+
+  afterAll(() => {
+    if (ORIGINAL_TZ === undefined) {
+      delete process.env.TZ;
+    } else {
+      process.env.TZ = ORIGINAL_TZ;
+    }
+  });
+
   beforeEach(async () => {
     await idbDel(DRAFT_KEY);
     useCreateAssessmentStore.getState().reset();
@@ -193,6 +211,7 @@ describe("CreateAssessment dialog", () => {
     // — real timers keep findBy*/waitFor and the debounced draft save working.
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-07-27T12:00:00Z"));
+    expect(new Date().getTimezoneOffset()).toBeGreaterThan(0);
 
     useCreateAssessmentStore.setState({ currentStep: 2 });
 
@@ -201,9 +220,8 @@ describe("CreateAssessment dialog", () => {
       await Promise.resolve();
     });
 
-    // LabeledField wraps each DatePicker in a <label>, and a <button> is a
-    // labelable element — so the trigger's accessible name is the whole field
-    // (label + help text + display value), not just its placeholder.
+    // DatePicker includes the visible label and help text in the trigger's
+    // accessible name, so select it by the field label rather than placeholder.
     const startTrigger = await screen.findByRole("button", { name: /Reporting period start/ });
     fireEvent.click(startTrigger);
 
@@ -228,7 +246,7 @@ describe("CreateAssessment dialog", () => {
     expect(endTrigger).toHaveAttribute("aria-expanded", "false");
   });
 
-  it("clears the persisted draft and in-memory form when the operator confirms Discard", async () => {
+  it("clears the persisted draft and in-memory form when the steward confirms Discard", async () => {
     await act(async () => {
       renderCreateAssessment();
       await Promise.resolve();
@@ -302,6 +320,7 @@ describe("CreateAssessment dialog", () => {
       handleSubmit: vi.fn(),
       hasError: false,
       isDirty: false,
+      isPristine: true,
       isSubmitting: true,
       normalizedGardenDomainMask: undefined,
       resetWorkflow: vi.fn(),
@@ -342,6 +361,7 @@ describe("CreateAssessment dialog", () => {
       handleSubmit: vi.fn(),
       hasError: false,
       isDirty: false,
+      isPristine: true,
       isSubmitting: true,
       normalizedGardenDomainMask: undefined,
       resetWorkflow: vi.fn(),
@@ -382,8 +402,10 @@ describe("CreateAssessment dialog", () => {
     // Pristine form: Escape must not raise the discard confirm — it exits
     // directly to the Hub workbench the flow was launched from (controller
     // handleCancel → adminRoutes.hub → the default /hub/work stage).
+    await waitFor(() => {
+      expect(router?.state.location.pathname).toBe("/hub/work");
+      expect(screen.queryByRole("dialog", { name: "Submit Assessment" })).not.toBeInTheDocument();
+    });
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("dialog", { name: "Submit Assessment" })).not.toBeInTheDocument();
-    expect(router?.state.location.pathname).toBe("/hub/work");
   });
 });

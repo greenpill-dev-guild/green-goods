@@ -1,4 +1,4 @@
-import { resolveAvatarUrl } from "../data/ipfs";
+import { resolveAvatarUrl } from "../data/ipfs/resolve";
 import type { ProfileAvatarResolution } from "./types";
 
 export function resolveProfileAvatar(

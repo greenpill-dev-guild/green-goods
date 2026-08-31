@@ -1,23 +1,21 @@
+import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
+import { useEnsAddress } from "@green-goods/shared/hooks/blockchain/useEnsAddress";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import type { Address } from "@green-goods/shared/types/domain";
+import { resolveEnsAddress } from "@green-goods/shared/utils/blockchain/ens";
 import {
-  type Address,
-  FormField,
   GARDEN_ROLE_ORDER,
   type GardenRole,
-  logger,
-  NativeSelect,
-  parseAndFormatError,
-  resolveEnsAddress,
-  TextInput,
-  useDirtyClose,
-  useEnsAddress,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/blockchain/garden-roles";
+import { parseAndFormatError } from "@green-goods/shared/utils/errors/contract-errors";
 import { RiAddLine, RiClipboardLine, RiCloseLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { isAddress } from "viem";
 import { EnsAddressText } from "@/components/EnsAddressText";
-import { AdminButton } from "../AdminButton";
+import { AdminButton, AdminIconButton } from "../AdminButton";
 import { AdminDialog, type AdminDialogProps } from "../AdminDialog";
+import { AdminSelect, AdminTextField } from "../AdminTextField";
 import { DiscardChangesDialog } from "../DiscardChangesDialog";
 
 export interface AddMembersDialogProps {
@@ -143,7 +141,7 @@ export function AddMembersDialog({
       // Fold a typed-but-not-yet-staged address into the batch so a single
       // entry doesn't require the extra "Add" tap. ENS submit resolution is
       // marked busy before awaiting so close paths cannot continue into a
-      // wallet write after the operator cancels.
+      // wallet write after the steward cancels.
       if (trimmed) {
         if (!isHexAddress) setSubmitResolving(true);
         const resolved = await resolveInput();
@@ -195,7 +193,7 @@ export function AddMembersDialog({
     onClose();
   };
   // Confirm-before-discard: a staged batch (or typed input) is unsaved
-  // operator input, so X/scrim/Escape confirm first. The footer Cancel still
+  // steward input, so X/scrim/Escape confirm first. The footer Cancel still
   // exits directly per the dialog contract.
   const dirtyClose = useDirtyClose({
     isDirty: pending.length > 0 || Boolean(trimmed),
@@ -242,75 +240,62 @@ export function AddMembersDialog({
         }
       >
         <form id={formId} onSubmit={handleSubmit} className="space-y-4">
-          <FormField
+          <AdminSelect
+            id="member-role"
             label={formatMessage({ id: "app.admin.roles.roleLabel", defaultMessage: "Role" })}
-            htmlFor="member-role"
+            value={selectedRole}
+            onChange={(e) => setSelectedRole(e.target.value as GardenRole)}
+            disabled={busy}
           >
-            <NativeSelect
-              surface="admin"
-              id="member-role"
-              value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value as GardenRole)}
-              disabled={busy}
-            >
-              {GARDEN_ROLE_ORDER.map((role) => (
-                <option key={role} value={role}>
-                  {formatMessage({ id: `app.roles.${role}` })}
-                </option>
-              ))}
-            </NativeSelect>
-          </FormField>
-          <FormField
-            label={formatMessage({ id: "app.admin.roles.addressLabel" })}
-            htmlFor="member-address"
-            error={error || undefined}
-          >
-            <div className="flex flex-col items-stretch gap-2 sm:flex-row">
-              <div className="relative min-w-0 flex-1">
-                <TextInput
-                  surface="admin"
-                  id="member-address"
-                  type="text"
-                  value={input}
-                  onChange={(e) => {
-                    setInput(e.target.value);
-                    setError("");
-                  }}
-                  className="pr-10"
-                  placeholder={formatMessage({
-                    id: "admin.addMember.placeholder",
-                    defaultMessage: "0x... or name.eth",
-                  })}
-                  disabled={busy}
-                  aria-invalid={!!error || typedInputInvalid}
-                  invalid={!!error || typedInputInvalid}
-                />
-                <button
-                  type="button"
+            {GARDEN_ROLE_ORDER.map((role) => (
+              <option key={role} value={role}>
+                {formatMessage({ id: `app.roles.${role}` })}
+              </option>
+            ))}
+          </AdminSelect>
+          <div>
+            <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-start">
+              <AdminTextField
+                id="member-address"
+                className="min-w-0 flex-1"
+                label={formatMessage({ id: "app.admin.roles.addressLabel" })}
+                error={error || undefined}
+                value={input}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  setError("");
+                }}
+                placeholder={formatMessage({
+                  id: "admin.addMember.placeholder",
+                  defaultMessage: "0x... or name.eth",
+                })}
+                disabled={busy}
+                inputProps={{ "aria-invalid": !!error || typedInputInvalid }}
+              />
+              <div className="flex items-center gap-2 pt-1.5">
+                <AdminIconButton
                   onClick={handlePaste}
                   disabled={busy}
-                  className="absolute right-1 top-1/2 flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center text-text-soft hover:text-text-sub disabled:opacity-50"
-                  title={formatMessage({
+                  label={formatMessage({
                     id: "admin.addMember.paste",
-                    defaultMessage: "Paste from clipboard",
+                    defaultMessage: "Paste from Clipboard",
                   })}
                 >
-                  <RiClipboardLine className="h-4 w-4" />
-                </button>
+                  <RiClipboardLine />
+                </AdminIconButton>
+                <AdminButton
+                  type="button"
+                  variant="tonal"
+                  onClick={() => handleAddToList()}
+                  disabled={busy || !typedEntryCommitReady || resolvingEns}
+                  leadingIcon={<RiAddLine />}
+                >
+                  {formatMessage({ id: "admin.addMember.addToList", defaultMessage: "Add" })}
+                </AdminButton>
               </div>
-              <AdminButton
-                type="button"
-                variant="tonal"
-                onClick={() => handleAddToList()}
-                disabled={busy || !typedEntryCommitReady || resolvingEns}
-                leadingIcon={<RiAddLine />}
-                className="w-full sm:w-auto"
-              >
-                {formatMessage({ id: "admin.addMember.addToList", defaultMessage: "Add" })}
-              </AdminButton>
             </div>
             {shouldResolveEns && (
-              <p className="mt-2 text-xs text-text-soft">
+              <p className="mt-1 body-sm text-text-soft">
                 {resolvingEns ? (
                   formatMessage({
                     id: "admin.addMember.resolvingEns",
@@ -330,7 +315,7 @@ export function AddMembersDialog({
                 )}
               </p>
             )}
-          </FormField>
+          </div>
 
           {/* Reserved-geometry staging area: fixed height from first paint so
             adding names never grows the dialog (§ dialog standard — loading/
@@ -360,18 +345,18 @@ export function AddMembersDialog({
                     <span className="min-w-0 truncate text-body-md text-text-strong">
                       <EnsAddressText address={address} />
                     </span>
-                    <button
-                      type="button"
+                    <AdminIconButton
+                      size="sm"
+                      className="shrink-0"
                       onClick={() => removeEntry(address)}
                       disabled={busy}
-                      aria-label={formatMessage({
+                      label={formatMessage({
                         id: "admin.addMember.remove",
                         defaultMessage: "Remove",
                       })}
-                      className="shrink-0 text-text-soft hover:text-text-sub disabled:opacity-50"
                     >
-                      <RiCloseLine className="h-4 w-4" />
-                    </button>
+                      <RiCloseLine />
+                    </AdminIconButton>
                   </li>
                 ))}
               </ul>

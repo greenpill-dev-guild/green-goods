@@ -9,7 +9,9 @@ import {
   withSeededQueryClient,
   withSelectedAdminGarden,
 } from "../../../../../../shared/.storybook/decorators";
-import { DEFAULT_CHAIN_ID, queryKeys, type Address } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import type { Address } from "@green-goods/shared/types/domain";
 import { CampaignCookieJarCreateWorkspace, CampaignCookieJarPanel } from "./index";
 
 const EMPTY_CAMPAIGN_PANEL_SEEDS = [

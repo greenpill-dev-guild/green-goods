@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "docusaurus-2",
+  "cleanUrls": true,
+  "installCommand": "cd .. && bun install --frozen-lockfile",
+  "buildCommand": "cd .. && bun run docs:audit:ci && bun run check:docs-generated && bun run check:ontology && bun run check:skill-behavior && bun run test:docs && bun run build:docs",
+  "outputDirectory": "build"
+}

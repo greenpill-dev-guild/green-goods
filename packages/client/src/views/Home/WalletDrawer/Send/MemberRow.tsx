@@ -1,13 +1,13 @@
+import type { Address } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
 import {
-  type Address,
-  cn,
-  formatAddress,
   type GardenRole,
   getRoleColorClasses,
   getRoleLabel,
-  useEnsAvatar,
-  useEnsName,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/blockchain/garden-roles";
+import { useEnsAvatar } from "@green-goods/shared/hooks/blockchain/useEnsAvatar";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { RiCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/Display/Avatar/Avatar";

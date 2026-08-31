@@ -1,18 +1,18 @@
+import { MetaStrip } from "@green-goods/shared/components/Canvas/MetaStrip";
+import { useRefreshAction } from "@green-goods/shared/components/Canvas/RefreshActionContext";
+import { WorkbenchCard } from "@green-goods/shared/components/Canvas/WorkbenchCard";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { DOMAIN_CONFIG } from "@green-goods/shared/config/domain";
 import {
   ACTION_CAPITAL_LABEL_IDS,
   buildActionsHeaderStats,
-  DOMAIN_CONFIG,
   DOMAIN_FILTER_OPTIONS,
-  EmptyState,
   getActionLifecycleState,
   getWorkbenchTone,
-  localizeAction,
-  MetaStrip,
-  useActionsController,
-  useMediaQuery,
-  useRefreshAction,
-  WorkbenchCard,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/admin-ui/actions/actions.utils";
+import { useActionsController } from "@green-goods/shared/hooks/admin-ui/actions/useActionsController";
+import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
+import { localizeAction } from "@green-goods/shared/utils/action/translations";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminSortSelect } from "@/components/AdminSortSelect";
@@ -38,7 +38,9 @@ export default function Actions() {
     if (actions.isLoading) return [];
     return buildActionsHeaderStats({
       totalCount: actions.actions.length,
-      domainsCovered: new Set(actions.actions.map((action) => action.domain)).size,
+      domainsCovered: new Set(
+        actions.actions.map((action) => action.domain).filter((domain) => domain !== null)
+      ).size,
       formatMessage: intl.formatMessage,
     });
   }, [actions.actions, actions.isLoading, intl.formatMessage]);
@@ -160,7 +162,7 @@ export default function Actions() {
                   ? {
                       label: intl.formatMessage({
                         id: "app.actions.createFirst",
-                        defaultMessage: "Create your first action",
+                        defaultMessage: "Create Your First Action",
                       }),
                       onClick: actions.openCreateAction,
                     }
@@ -183,7 +185,7 @@ export default function Actions() {
               action={{
                 label: intl.formatMessage({
                   id: "admin.actions.resetFilters",
-                  defaultMessage: "Reset filters",
+                  defaultMessage: "Reset Filters",
                 }),
                 onClick: actions.resetFilters,
               }}
@@ -199,8 +201,10 @@ export default function Actions() {
             {actions.stageFilteredActions.map((action) => {
               const stage = getActionLifecycleState(action);
               const displayAction = localizeAction(action, intl.locale);
+              const domainConfig =
+                action.domain !== null ? DOMAIN_CONFIG[action.domain] : undefined;
               const domainLabel = intl.formatMessage({
-                id: DOMAIN_CONFIG[action.domain]?.labelId ?? "app.admin.nav.actions",
+                id: domainConfig?.labelId ?? "app.domain.tab.unknown",
               });
               // Name the forms of capital (up to 3 + overflow) instead of an
               // abstract "{n} capital forms" count, so cards vary by content.
@@ -247,7 +251,7 @@ export default function Actions() {
                           : "Completed",
                   })}
                   statusTone={getWorkbenchTone(action)}
-                  leadingIcon={DOMAIN_CONFIG[action.domain]?.icon ?? RiFileListLine}
+                  leadingIcon={domainConfig?.icon ?? RiFileListLine}
                   thumbnailSrc={action.media[0] ?? undefined}
                   onClick={() => actions.openActionDetail(action.id)}
                 />

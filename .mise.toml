@@ -1,6 +1,7 @@
 [tools]
-node = "22"
-# CI uses oven-sh/setup-bun@v2 with `bun-version: latest` and the doctor only
-# enforces major 1, so pin to the same minor to stay close to CI without
-# locking patches lockstep.
-bun = "1.3"
+node = "22.22.1"
+# Keep local setup exactly aligned with packageManager and GitHub Actions.
+bun = "1.3.14"
+# Forge formatter output is version-sensitive. Keep local setup and CI on the
+# exact release that owns the checked-in Solidity format.
+foundry = "1.7.1"

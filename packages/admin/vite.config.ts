@@ -285,6 +285,10 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
           __dirname,
           "../shared/src/modules/app/sentry.ts"
         ),
+        "@green-goods/shared/commitment-pooling": resolve(
+          __dirname,
+          "../shared/src/commitment-pooling"
+        ),
         "@green-goods/shared": resolve(__dirname, "../shared/src"),
         "@green-goods/shared/hooks": resolve(__dirname, "../shared/src/hooks"),
         "@green-goods/shared/providers": resolve(__dirname, "../shared/src/providers"),

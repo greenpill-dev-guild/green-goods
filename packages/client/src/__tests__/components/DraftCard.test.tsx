@@ -4,8 +4,11 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/utils/relativeTime", () => ({
   formatRelativeTime: () => "2 hours ago",
 }));
 
@@ -21,7 +24,7 @@ vi.mock("@/components/Display", () => ({
     createElement("img", { src, alt, "data-testid": "thumb" }),
 }));
 
-vi.mock("@/styles/pwaStatusStyles", () => ({
+vi.mock("@/components/Pwa/statusStyles", () => ({
   pwaStatusStyles: {
     warning: { surface: "bg-warning", border: "border-warning" },
   },
@@ -46,7 +49,7 @@ const messages = {
   "app.draft.untitled": "Untitled Draft",
   "app.draft.status": "Draft",
   "app.draft.stepProgress": "Step {step}/4",
-  "app.draft.delete": "Delete draft",
+  "app.draft.delete": "Delete Draft",
 };
 
 const wrap = (el: React.ReactElement) =>
@@ -64,7 +67,7 @@ describe("DraftCard", () => {
         createElement(DraftCard, {
           draft: baseDraft,
           actionTitle: "Plant Trees",
-          gardenName: "Aiyeloja Family Garden",
+          gardenName: "Tech and Sun Hub",
           onResume: vi.fn(),
           onDelete: vi.fn(),
         })
@@ -74,7 +77,7 @@ describe("DraftCard", () => {
     expect(screen.getByText("Plant Trees")).toBeInTheDocument();
     // Garden name + time-ago share a parent with a separator span; match
     // both as substrings of the combined text.
-    expect(screen.getByText(/Aiyeloja Family Garden/)).toBeInTheDocument();
+    expect(screen.getByText(/Tech and Sun Hub/)).toBeInTheDocument();
     expect(screen.getByText(/2 hours ago/)).toBeInTheDocument();
   });
 
@@ -197,7 +200,7 @@ describe("DraftCard", () => {
       )
     );
 
-    await user.click(screen.getByLabelText("Delete draft"));
+    await user.click(screen.getByLabelText("Delete Draft"));
     expect(onDelete).toHaveBeenCalledTimes(1);
     expect(onResume).not.toHaveBeenCalled();
   });
@@ -213,7 +216,7 @@ describe("DraftCard", () => {
       )
     );
 
-    const deleteBtn = screen.getByLabelText("Delete draft");
+    const deleteBtn = screen.getByLabelText("Delete Draft");
     // Class assertion proxies for the actual tap target dimension.
     expect(deleteBtn.className).toContain("h-11");
     expect(deleteBtn.className).toContain("w-11");

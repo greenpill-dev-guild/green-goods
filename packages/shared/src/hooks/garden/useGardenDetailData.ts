@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { Address } from "../../types/domain";
 import { WeightScheme } from "../../types/gardens-community";
 import { compareAddresses } from "../../utils/blockchain/address";
@@ -13,7 +13,7 @@ import { useCreateGardenPools } from "../conviction/useCreateGardenPools";
 import { useGardenCommunity } from "../conviction/useGardenCommunity";
 import { useGardenPools } from "../conviction/useGardenPools";
 import { useHypercerts } from "../hypercerts/useHypercerts";
-import { queryInvalidation } from "../../config/query-keys";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 import { useGardenVaults } from "../vault/useGardenVaults";
 import { useWorks } from "../work/useWorks";
@@ -55,8 +55,8 @@ export function useGardenDetailData(id: string | undefined) {
   const {
     addGardener,
     removeGardener,
-    addOperator,
-    removeOperator,
+    addSteward,
+    removeSteward,
     addEvaluator,
     removeEvaluator,
     addOwner,
@@ -116,13 +116,15 @@ export function useGardenDetailData(id: string | undefined) {
     works,
     isLoading: worksLoading,
     isFetching: worksFetching,
+    isError: isWorksError,
+    error: worksError,
     refetch: refreshWorks,
   } = useWorks(gardenId);
   const { hypercerts, isLoading: hypercertsLoading } = useHypercerts({ gardenId: id });
 
   const roleMembers: Record<GardenRole, Address[]> = {
     owner: garden?.owners ?? [],
-    operator: garden?.operators ?? [],
+    steward: garden?.stewards ?? [],
     evaluator: garden?.evaluators ?? [],
     gardener: garden?.gardeners ?? [],
     funder: garden?.funders ?? [],
@@ -131,7 +133,7 @@ export function useGardenDetailData(id: string | undefined) {
 
   const roleActions = {
     owner: { add: addOwner, remove: removeOwner },
-    operator: { add: addOperator, remove: removeOperator },
+    steward: { add: addSteward, remove: removeSteward },
     evaluator: { add: addEvaluator, remove: removeEvaluator },
     gardener: { add: addGardener, remove: removeGardener },
     funder: { add: addFunder, remove: removeFunder },
@@ -180,6 +182,8 @@ export function useGardenDetailData(id: string | undefined) {
     works,
     worksLoading,
     worksFetching,
+    isWorksError,
+    worksError,
     refreshWorks,
     hypercerts,
     hypercertsLoading,

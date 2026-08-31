@@ -1,4 +1,5 @@
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { isGardenHiddenEverywhere } from "../../config/garden-visibility";
 import {
   type Action,
   type ActionContentLocale,
@@ -18,21 +19,21 @@ import {
 import { defaultTemplate, instructionTemplates } from "../../utils/action/templates";
 import { logger } from "../app/logger";
 import { greenGoodsGraphQL } from "./graphql";
-import { greenGoodsIndexer } from "./graphql-client";
-import { getFileByHash, resolveIPFSUrl } from "./ipfs";
+import { greenGoodsIndexer, type GraphQLReader } from "./graphql-client";
+import { getFileByHash, resolveIPFSUrl } from "./ipfs/resolve";
 
 const ACTION_INSTRUCTIONS_TIMEOUT_MS = 5_000;
 
-/** Maps indexer domain string (e.g., "SOLAR") to the Domain enum value. */
-function parseDomain(domain: string | undefined | null): Domain {
-  if (!domain) return Domain.SOLAR;
+/** Maps an indexer domain string without inventing a valid domain for unknown data. */
+export function parseIndexerDomain(domain: string | undefined | null): Domain | null {
+  if (!domain) return null;
   const map: Record<string, Domain> = {
     SOLAR: Domain.SOLAR,
     AGRO: Domain.AGRO,
     EDU: Domain.EDU,
     WASTE: Domain.WASTE,
   };
-  return map[domain] ?? Domain.SOLAR;
+  return map[domain] ?? null;
 }
 
 function cloneInstructionConfig(config: ActionInstructionConfig): ActionInstructionConfig {
@@ -187,7 +188,7 @@ async function parseInstructionMetadata(
 }
 
 /** Fetches action definitions from the indexer and enriches media + UI config. */
-export async function getActions(): Promise<Action[]> {
+export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Promise<Action[]> {
   try {
     const chainId = DEFAULT_CHAIN_ID;
     const QUERY = greenGoodsGraphQL(/* GraphQL */ `
@@ -208,7 +209,7 @@ export async function getActions(): Promise<Action[]> {
       }
     `);
 
-    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getActions");
+    const { data, error } = await reader.query(QUERY, { chainId }, "getActions");
 
     if (error) {
       logger.error("[getActions] Indexer query failed", { error: error.message });
@@ -233,6 +234,16 @@ export async function getActions(): Promise<Action[]> {
           instructions,
           createdAt,
         }) => {
+          // Unknown domains surface as null rather than dropping the action:
+          // hiding it would strand a real submittable action, and consumers
+          // render null-domain actions in their own explicit "Other" group.
+          const parsedDomain = parseIndexerDomain(domain as string | undefined);
+          if (parsedDomain === null) {
+            logger.warn("[getActions] Action has an unrecognized domain", {
+              actionId: id,
+              domain,
+            });
+          }
           const actionSlug = typeof slug === "string" ? slug : "";
           const fallbackConfig = getActionInstructionFallback(actionSlug);
 
@@ -270,7 +281,7 @@ export async function getActions(): Promise<Action[]> {
             title,
             slug: actionSlug,
             instructions: instructions ? resolveIPFSUrl(instructions) : undefined,
-            domain: parseDomain(domain as string | undefined),
+            domain: parsedDomain,
             startTime: startTime ? Number(startTime) * 1000 : Date.now(),
             endTime: endTime ? Number(endTime) * 1000 : Date.now() + 365 * 24 * 60 * 60 * 1000, // Default to 1 year from now
             capitals: Array.isArray(capitals) ? capitals.map((c: unknown) => c as Capital) : [],
@@ -298,7 +309,7 @@ export async function getActions(): Promise<Action[]> {
       );
     }
 
-    return actions;
+    return actions.filter((action) => action !== null);
   } catch (error) {
     logger.error("[getActions] Failed to fetch actions", { error });
     return [];
@@ -306,7 +317,7 @@ export async function getActions(): Promise<Action[]> {
 }
 
 /** Returns gardens with resolved banner assets for the current chain. */
-export async function getGardens(): Promise<Garden[]> {
+export async function getGardens(reader: GraphQLReader = greenGoodsIndexer): Promise<Garden[]> {
   try {
     const chainId = DEFAULT_CHAIN_ID;
     const QUERY = greenGoodsGraphQL(/* GraphQL */ `
@@ -336,7 +347,7 @@ export async function getGardens(): Promise<Garden[]> {
       }
     `);
 
-    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getGardens");
+    const { data, error } = await reader.query(QUERY, { chainId }, "getGardens");
 
     if (error) {
       logger.error("[getGardens] Indexer query failed", { error: error.message });
@@ -354,7 +365,12 @@ export async function getGardens(): Promise<Garden[]> {
       ])
     );
 
-    return data.Garden.map((garden) => {
+    // Curated out of every surface — see config/garden-visibility.ts. Filtering
+    // here rather than per-view keeps the PWA and admin consistent with the
+    // website for gardens that should not exist anywhere in Green Goods.
+    const visibleGardens = data.Garden.filter((garden) => !isGardenHiddenEverywhere(garden.id));
+
+    return visibleGardens.map((garden) => {
       // DIRTY FIX: Override Octant Community Garden banner until indexer is updated
       const OCTANT_BANNER_OVERRIDE = "bafkreihslrqy363mkr4kn5skr56zcazyvikldosy433p6e5okxyxxjdyuy";
       const isOctantGarden = garden.name === "Octant Community Garden";
@@ -375,7 +391,8 @@ export async function getGardens(): Promise<Garden[]> {
         location: garden.location || "Unknown Location",
         bannerImage,
         gardeners: (garden.gardeners || []) as Address[],
-        operators: (garden.operators || []) as Address[],
+        // The indexer field keeps the deployed `operators` wire name.
+        stewards: (garden.operators || []) as Address[],
         evaluators: (garden.evaluators || []) as Address[],
         owners: (garden.owners || []) as Address[],
         funders: (garden.funders || []) as Address[],
@@ -394,7 +411,9 @@ export async function getGardens(): Promise<Garden[]> {
 }
 
 /** Retrieves gardener registrations for operator views. */
-export async function getGardeners(): Promise<GardenerCard[]> {
+export async function getGardeners(
+  reader: GraphQLReader = greenGoodsIndexer
+): Promise<GardenerCard[]> {
   try {
     const chainId = DEFAULT_CHAIN_ID;
     const QUERY = greenGoodsGraphQL(/* GraphQL */ `
@@ -408,7 +427,7 @@ export async function getGardeners(): Promise<GardenerCard[]> {
       }
     `);
 
-    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getGardeners");
+    const { data, error } = await reader.query(QUERY, { chainId }, "getGardeners");
 
     if (error) {
       logger.error("[getGardeners] Indexer query failed", { error: error.message });

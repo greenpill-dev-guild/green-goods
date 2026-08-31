@@ -11,18 +11,27 @@ import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Track calls to mediaResourceManager and AudioPlayer
-const mockGetOrCreateUrl = vi.fn((file: File, trackingId: string) => `blob:mock-${file.name}`);
+const mockGetOrCreateUrl = vi.fn((file: File, _trackingId: string) => `blob:mock-${file.name}`);
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/components/Audio/AudioPlayer", () => ({
   AudioPlayer: ({ file }: { file: File }) =>
     createElement("div", { "data-testid": `audio-player-${file.name}` }, file.name),
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/types/domain", () => ({
   Domain: {
     SOLAR: 0,
     AGRO: 1,
     EDU: 2,
     WASTE: 3,
   },
+}));
+
+vi.mock("@green-goods/shared/utils/form/normalizers", () => ({
   formatTimeSpent: (minutes?: number) => {
     if (!minutes) return "";
     const hours = Math.floor(minutes / 60);
@@ -31,8 +40,14 @@ vi.mock("@green-goods/shared", () => ({
     if (hours > 0) return `${hours}h`;
     return `${remainingMinutes}m`;
   },
+}));
+
+vi.mock("@green-goods/shared/modules/work/media-processing", () => ({
   getWorkMediaId: (file: File) => `media-${file.name}-${file.size}-${file.lastModified}`,
   isVideoFile: (file: File) => file.type.startsWith("video/"),
+}));
+
+vi.mock("@green-goods/shared/modules/job-queue/media-resource-manager", () => ({
   mediaResourceManager: {
     getOrCreateUrl: (...args: unknown[]) => mockGetOrCreateUrl(...(args as [File, string])),
     cleanupUrls: vi.fn(),
@@ -49,6 +64,7 @@ vi.mock("@/components/Features/Work", () => ({
     media,
     details,
     onMediaError,
+    fulfills,
   }: {
     title: string;
     info: string;
@@ -57,6 +73,7 @@ vi.mock("@/components/Features/Work", () => ({
     media?: string[];
     details: Array<{ label: string; value: string }>;
     onMediaError?: (url: string, index: number) => void;
+    fulfills?: React.ReactNode;
   }) =>
     createElement("div", { "data-testid": "work-view" }, [
       createElement("span", { key: "title", "data-testid": "review-title" }, title),
@@ -89,12 +106,14 @@ vi.mock("@/components/Features/Work", () => ({
         },
         "Trigger media error"
       ),
+      createElement("div", { key: "fulfills", "data-testid": "review-fulfills" }, fulfills),
     ]),
 }));
 
 // Import after mocks
-import type { Action, Address, Garden } from "@green-goods/shared";
-import { Domain, getWorkMediaId } from "@green-goods/shared";
+import type { Action, Address, Garden } from "@green-goods/shared/types/domain";
+import { Domain } from "@green-goods/shared/types/domain";
+import { getWorkMediaId } from "@green-goods/shared/modules/work/media-processing";
 import { WorkReview } from "../../views/Garden/Review";
 
 const messages: Record<string, string> = {
@@ -102,12 +121,16 @@ const messages: Record<string, string> = {
   "app.garden.submit.tab.review.instruction": "Check if the information is correct",
   "app.garden.review.timeSpent": "Time Spent",
   "app.garden.review.description": "Description",
-  "app.garden.review.audioNotes": "Audio Notes",
+  "app.garden.review.audioNotes": "Audio notes",
   "app.garden.review.previewFailedMessage":
     "{count, plural, one {Remove the broken item before submitting again. Your details will stay here.} other {Remove the broken items before submitting again. Your details will stay here.}}",
   "app.garden.review.previewFailedTitle": "Some media previews failed",
-  "app.garden.review.removeBrokenMedia": "Remove broken media",
+  "app.garden.review.removeBrokenMedia": "Remove Broken Media",
   "app.garden.review.video": "Video",
+  "app.garden.commitment.fulfills": "Fulfills",
+  "app.garden.commitment.fulfillsValue": "{commitment} · requirement {requirement}",
+  "app.garden.commitment.none": "Not for a Commitment",
+  "app.garden.commitment.cleared": "This work will not be linked to a commitment.",
 };
 
 const now = Date.now();
@@ -122,7 +145,7 @@ const baseGarden: Garden = {
   location: "Bogota",
   bannerImage: "",
   gardeners: [],
-  operators: [],
+  stewards: [],
   evaluators: [],
   owners: [],
   funders: [],
@@ -253,7 +276,7 @@ describe("WorkReview", () => {
     renderReview({ audioNotes: [audioFile] });
 
     expect(screen.getByTestId("audio-player-note.webm")).toBeInTheDocument();
-    expect(screen.getByText("Audio Notes")).toBeInTheDocument();
+    expect(screen.getByText("Audio notes")).toBeInTheDocument();
   });
 
   it("reports Review photo preview failures by file identity", () => {
@@ -281,9 +304,43 @@ describe("WorkReview", () => {
     expect(screen.getByText("Some media previews failed")).toBeInTheDocument();
     expect(screen.getByTestId("detail-Trees Planted")).toHaveTextContent("15");
 
-    fireEvent.click(screen.getByRole("button", { name: "Remove broken media" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove Broken Media" }));
 
     expect(onRemoveBrokenMedia).toHaveBeenCalledWith("review");
+    expect(screen.getByTestId("detail-Trees Planted")).toHaveTextContent("15");
+  });
+
+  it("names the commitment requirement this work will fulfil", () => {
+    renderReview({
+      commitmentSelection: {
+        key: "9:1",
+        commitmentId: 9n,
+        requirementIndex: 1,
+        title: "Prune the north beds",
+      },
+      onClearCommitment: vi.fn(),
+    });
+
+    expect(screen.getByText("Fulfills")).toBeInTheDocument();
+    expect(screen.getByText("Prune the north beds · requirement 2")).toBeInTheDocument();
+  });
+
+  it("clears commitment context without changing the Work details", () => {
+    const onClearCommitment = vi.fn();
+    renderReview({
+      values: { treeCount: 15 },
+      commitmentSelection: {
+        key: "9:0",
+        commitmentId: 9n,
+        requirementIndex: 0,
+        title: "Prune the north beds",
+      },
+      onClearCommitment,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Not for a Commitment" }));
+
+    expect(onClearCommitment).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("detail-Trees Planted")).toHaveTextContent("15");
   });
 });

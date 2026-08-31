@@ -12,12 +12,14 @@ import { readContract } from "@wagmi/core";
 import type { SmartAccountClient } from "permissionless";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { type Address, encodeFunctionData, type Hex } from "viem";
+import { type Address, type Hex } from "viem";
 import { useWriteContract } from "wagmi";
 import { getWagmiConfig } from "../../config/appkit";
-import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
+import { getDefaultChain } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import {
   trackGardenJoinAlreadyMember,
+  trackGardenJoinCancelled,
   trackGardenJoinFailed,
   trackGardenJoinStarted,
   trackGardenJoinSuccess,
@@ -28,11 +30,10 @@ import {
   trackNetworkError,
 } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import {
-  assertLocalArbitrumForkSmartAccountsDisabled,
-  assertLocalArbitrumForkWallet,
-} from "../../modules/transactions/local-fork-safety";
+  createDefaultJoinGardenPorts,
+  joinGarden as submitJoinGarden,
+} from "../../modules/garden/join-garden-command";
 import type { Garden } from "../../types/domain";
 import { isAddressInList } from "../../utils/blockchain/address";
 
@@ -46,10 +47,10 @@ interface PasskeySession {
 }
 
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
-import { simulateJoinGarden } from "../../utils/blockchain/simulation";
-import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
+import { isAlreadyGardenerError, parseContractError } from "../../utils/errors/contract-errors";
+import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { useUser } from "../auth/useUser";
-import { queryKeys } from "../../config/query-keys";
+import { gardensKeys } from "../../config/query-keys/garden";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 
 /**
@@ -106,7 +107,7 @@ function getPendingJoins(): Record<string, { address: string; timestamp: number 
   }
 }
 
-function addPendingJoin(gardenId: string, userAddress: string) {
+function addPendingJoin(gardenId: string, userAddress: string, timestamp = Date.now()) {
   if (typeof window === "undefined") return;
   const pending = getPendingJoins();
   const existing = pending[gardenId];
@@ -117,7 +118,7 @@ function addPendingJoin(gardenId: string, userAddress: string) {
   ) {
     return;
   }
-  pending[gardenId] = { address: userAddress, timestamp: Date.now() };
+  pending[gardenId] = { address: userAddress, timestamp };
   localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
   notifyPendingJoinsChanged();
 }
@@ -157,19 +158,19 @@ export function usePendingJoinsVersion(): number {
 }
 
 /**
- * Check if user is a member of a garden (gardener or operator).
+ * Check if user is a member of a garden (gardener or steward).
  * Also checks pending joins for immediate UI feedback after successful transaction.
  */
 export function isGardenMember(
   userAddress: string | null | undefined,
   gardeners: string[] | null | undefined,
-  operators: string[] | null | undefined,
+  stewards: string[] | null | undefined,
   gardenId?: string
 ): boolean {
   if (!userAddress) return false;
 
   // Check actual membership
-  if (isAddressInList(userAddress, gardeners) || isAddressInList(userAddress, operators)) {
+  if (isAddressInList(userAddress, gardeners) || isAddressInList(userAddress, stewards)) {
     if (gardenId) removePendingJoin(gardenId); // Cleanup if confirmed
     return true;
   }
@@ -228,7 +229,7 @@ export function useJoinGarden() {
 
   // Memoized invalidation callback for gardens
   const invalidateGardens = useCallback(
-    () => queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(chainId) }),
+    () => queryClient.invalidateQueries({ queryKey: gardensKeys.byChain(chainId) }),
     [queryClient, chainId]
   );
 
@@ -275,65 +276,32 @@ export function useJoinGarden() {
       }));
 
       // Snapshot for rollback on error (before the try so it's visible in catch)
-      const previousGardens = queryClient.getQueryData<Garden[]>(
-        queryKeys.gardens.byChain(chainId)
-      );
+      const previousGardens = queryClient.getQueryData<Garden[]>(gardensKeys.byChain(chainId));
 
       try {
-        let txHash: string;
-
-        if (client?.account) {
-          assertLocalArbitrumForkSmartAccountsDisabled();
-
-          // Use smart account for passkey authentication (sponsored transaction)
-          txHash = await client.sendTransaction({
-            account: client.account,
-            chain: client.chain,
-            to: gardenAddress as `0x${string}`,
-            value: 0n,
-            data: encodeFunctionData({
-              abi: GardenAccountABI,
-              functionName: "joinGarden",
-              args: [],
-            }),
-          });
-        } else {
-          // Use wagmi for wallet authentication (user pays gas)
-          // Simulate first to catch errors before user pays gas
-          const simulation = await simulateJoinGarden(
-            gardenAddress as `0x${string}`,
-            targetAddress as `0x${string}`,
-            undefined,
-            chainId
-          );
-
-          if (!simulation.success) {
-            if (simulation.error) {
-              const error = new Error(simulation.error.message);
-              error.name = simulation.error.name;
-              throw error;
-            }
-            throw new Error("Transaction simulation failed. Please try again.");
-          }
-
-          await ensureAppKitWalletChain(chainId);
-          await assertLocalArbitrumForkWallet();
-
-          txHash = await writeContractAsync({
-            address: gardenAddress as `0x${string}`,
-            abi: GardenAccountABI,
-            functionName: "joinGarden",
-            args: [],
+        const txHash = await submitJoinGarden(
+          {
+            gardenAddress: gardenAddress as Hex,
+            userAddress: targetAddress as Hex,
             chainId,
-          });
-        }
-
-        // Store pending join for immediate UI feedback
-        addPendingJoin(gardenAddress, targetAddress);
+            smartAccountClient: client,
+          },
+          createDefaultJoinGardenPorts({
+            walletSend: ({ gardenAddress: targetGarden, chainId: targetChain }) =>
+              writeContractAsync({
+                address: targetGarden,
+                abi: GardenAccountABI,
+                functionName: "joinGarden",
+                args: [],
+                chainId: targetChain,
+              }),
+            recordPending: addPendingJoin,
+          })
+        );
 
         // Optimistic update: add user to garden's gardeners list
         queryClient.setQueryData(
-          queryKeys.gardens.byChain(chainId),
+          gardensKeys.byChain(chainId),
           (oldGardens: Garden[] | undefined) => {
             if (!oldGardens) return oldGardens;
             return oldGardens.map((garden) => {
@@ -388,24 +356,39 @@ export function useJoinGarden() {
 
         // Rollback optimistic update
         if (previousGardens) {
-          queryClient.setQueryData(queryKeys.gardens.byChain(chainId), previousGardens);
+          queryClient.setQueryData(gardensKeys.byChain(chainId), previousGardens);
         }
         removePendingJoin(gardenAddress);
 
-        // Track failed join - send both funnel event and structured exception
-        trackGardenJoinFailed({
-          gardenAddress,
-          error: error instanceof Error ? error.message : "Unknown error",
-          authMode,
-        });
+        // A declined wallet or passkey prompt is a user decision, not a product
+        // breakage. It still rolls back and rethrows like any other error, but it
+        // stays out of the failure funnel and the error dashboard — counting
+        // aborts as failures is what made `failures.conversion-kill` read a
+        // two-person retry loop as a 66.7% garden_join conversion kill (PRD-717).
+        if (isCancelledTxError(error)) {
+          trackGardenJoinCancelled({ gardenAddress, authMode });
+        } else {
+          // Telemetry carries the parsed error family only — viem embeds the
+          // signer address in raw wallet messages, and these values are quoted
+          // into shared surfaces by the growth-pulse routine.
+          const parsedErrorFamily = parseContractError(error).name;
 
-        // Also track as structured exception for PostHog error dashboard
-        trackContractError(error, {
-          source: "useJoinGarden",
-          gardenAddress,
-          authMode,
-          userAction: "joining garden",
-        });
+          // Track failed join - send both funnel event and structured exception
+          trackGardenJoinFailed({
+            gardenAddress,
+            error: parsedErrorFamily,
+            parsedErrorFamily,
+            authMode,
+          });
+
+          // Also track as structured exception for PostHog error dashboard
+          trackContractError(error, {
+            source: "useJoinGarden",
+            gardenAddress,
+            authMode,
+            userAction: "joining garden",
+          });
+        }
 
         isJoiningRef.current = false;
         setState((prev) => ({

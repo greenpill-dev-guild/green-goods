@@ -1,32 +1,29 @@
+import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
+import { Switch } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { GARDEN_NAME_MAX_LENGTH } from "@green-goods/shared/hooks/garden/useCreateGardenForm";
+import { useSetGardenDomains } from "@green-goods/shared/hooks/garden/useSetGardenDomains";
 import {
-  type Address,
-  cn,
-  DOMAIN_COLORS,
-  Domain,
-  expandDomainMask,
-  FileUploadField,
-  FormField,
-  GARDEN_NAME_MAX_LENGTH,
-  imageCompressor,
-  logger,
-  resolveIPFSUrl,
-  Switch,
-  Textarea,
-  TextInput,
-  toastService,
-  uploadFileToIPFS,
-  useSetGardenDomains,
   useSetMaxGardeners,
   useSetOpenJoining,
   useUpdateGardenBannerImage,
   useUpdateGardenDescription,
   useUpdateGardenLocation,
   useUpdateGardenName,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/garden/useUpdateGarden";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { uploadFileToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
+import { type Address, DOMAIN_COLORS, Domain } from "@green-goods/shared/types/domain";
+import { expandDomainMask } from "@green-goods/shared/utils/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminFieldGroup } from "@/components/AdminFieldGroup";
 import { AdminSelectableCard } from "@/components/AdminSelectableCard";
 import { AdminSettingRow } from "@/components/AdminSettingRow";
+import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 
 /** What the hosting surface should show as the banner right now. */
 export interface GardenBannerPreview {
@@ -36,7 +33,7 @@ export interface GardenBannerPreview {
   isDraft: boolean;
   /** True when a saved banner is staged for removal on Save. */
   isStagedRemoval: boolean;
-  /** True when there is an image the operator is allowed to remove. */
+  /** True when there is an image the steward is allowed to remove. */
   canRemove: boolean;
 }
 
@@ -51,7 +48,7 @@ export interface GardenSettingsFormState {
   hasValidationError: boolean;
   /** Count of edited fields — feeds the footer's unsaved-changes line. */
   dirtyCount: number;
-  /** Whether the operator can edit anything — hides the footer when false. */
+  /** Whether the steward can edit anything — hides the footer when false. */
   canEdit: boolean;
 }
 
@@ -206,7 +203,7 @@ export const GardenSettingsEditor = forwardRef<
   }, [draft.bannerFile]);
 
   // Adopt refreshed garden values (post-save invalidation, garden switch)
-  // whenever the operator has no pending edits — never clobber a dirty draft.
+  // whenever the steward has no pending edits — never clobber a dirty draft.
   const gardenSnapshot = JSON.stringify([
     garden.name,
     garden.description,
@@ -349,7 +346,7 @@ export const GardenSettingsEditor = forwardRef<
         }),
         message: formatMessage({
           id: "app.garden.settings.saveFailedMessage",
-          defaultMessage: "Your edits are still here — review the error and save again.",
+          defaultMessage: "Your edits are still here. Review the error and save again.",
         }),
         context: "garden settings save",
         error,
@@ -392,32 +389,27 @@ export const GardenSettingsEditor = forwardRef<
     // header inside a dialog).
     <section data-component="GardenSettingsEditor">
       <div className="space-y-5">
-        <FormField
-          label={formatMessage({ id: "app.garden.settings.name", defaultMessage: "Name" })}
-          htmlFor="garden-settings-name"
-          required={canEditName}
-          error={
-            nameInvalid
-              ? formatMessage({
-                  id: "app.garden.settings.nameRequired",
-                  defaultMessage: "Garden name is required",
-                })
-              : undefined
-          }
-        >
-          <TextInput
-            surface="admin"
+        <div>
+          <AdminTextField
             id="garden-settings-name"
-            type="text"
+            label={formatMessage({ id: "app.garden.settings.name", defaultMessage: "Name" })}
+            required={canEditName}
+            error={
+              nameInvalid
+                ? formatMessage({
+                    id: "app.garden.settings.nameRequired",
+                    defaultMessage: "Garden name is required",
+                  })
+                : undefined
+            }
             value={draft.name}
             onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
-            maxLength={GARDEN_NAME_MAX_LENGTH}
             disabled={!canEditName || isSaving}
-            aria-invalid={nameInvalid || undefined}
+            inputProps={{ maxLength: GARDEN_NAME_MAX_LENGTH }}
           />
           <p
             className={cn(
-              "mt-1 text-right text-xs tabular-nums",
+              "mt-1 text-right label-xs tabular-nums",
               draft.name.length > GARDEN_NAME_MAX_LENGTH * 0.85
                 ? "text-warning-dark"
                 : "text-text-soft"
@@ -425,39 +417,27 @@ export const GardenSettingsEditor = forwardRef<
           >
             {draft.name.length}/{GARDEN_NAME_MAX_LENGTH}
           </p>
-        </FormField>
+        </div>
 
-        <FormField
+        <AdminTextArea
+          id="garden-settings-description"
           label={formatMessage({
             id: "app.garden.settings.descriptionLabel",
             defaultMessage: "Description",
           })}
-          htmlFor="garden-settings-description"
-        >
-          <Textarea
-            surface="admin"
-            id="garden-settings-description"
-            value={draft.description}
-            onChange={(e) => setDraft((current) => ({ ...current, description: e.target.value }))}
-            rows={5}
-            disabled={disabledProfileField}
-            className="resize-y"
-          />
-        </FormField>
+          value={draft.description}
+          onChange={(e) => setDraft((current) => ({ ...current, description: e.target.value }))}
+          rows={5}
+          disabled={disabledProfileField}
+        />
 
-        <FormField
+        <AdminTextField
+          id="garden-settings-location"
           label={formatMessage({ id: "app.garden.settings.location", defaultMessage: "Location" })}
-          htmlFor="garden-settings-location"
-        >
-          <TextInput
-            surface="admin"
-            id="garden-settings-location"
-            type="text"
-            value={draft.location}
-            onChange={(e) => setDraft((current) => ({ ...current, location: e.target.value }))}
-            disabled={disabledProfileField}
-          />
-        </FormField>
+          value={draft.location}
+          onChange={(e) => setDraft((current) => ({ ...current, location: e.target.value }))}
+          disabled={disabledProfileField}
+        />
 
         <div className="border-t border-stroke-soft" />
 
@@ -465,7 +445,8 @@ export const GardenSettingsEditor = forwardRef<
             the hosting dialog's identity preview card (via onBannerPreviewChange),
             where its Remove/Undo controls also live; a staged file shows here as
             a filename. */}
-        <FormField
+        <AdminFieldGroup
+          as="div"
           label={formatMessage({
             id: "app.garden.create.bannerImageLabel",
             defaultMessage: "Banner image",
@@ -497,7 +478,7 @@ export const GardenSettingsEditor = forwardRef<
               }}
             />
           ) : null}
-        </FormField>
+        </AdminFieldGroup>
 
         <div className="border-t border-stroke-soft" />
 
@@ -554,35 +535,29 @@ export const GardenSettingsEditor = forwardRef<
           </AdminSettingRow>
 
           {draft.limitGardeners ? (
-            <FormField
+            <AdminTextField
+              id="garden-settings-max-gardeners"
+              type="number"
               label={formatMessage({
                 id: "app.garden.settings.maxGardeners",
                 defaultMessage: "Maximum gardeners",
               })}
-              htmlFor="garden-settings-max-gardeners"
-            >
-              <TextInput
-                surface="admin"
-                id="garden-settings-max-gardeners"
-                type="number"
-                min={1}
-                step={1}
-                value={draft.maxGardeners}
-                onChange={(e) =>
-                  setDraft((current) => ({ ...current, maxGardeners: e.target.value }))
-                }
-                disabled={disabledProfileField}
-                aria-invalid={maxGardenersInvalid || undefined}
-                className="w-32"
-              />
-            </FormField>
+              value={draft.maxGardeners}
+              onChange={(e) =>
+                setDraft((current) => ({ ...current, maxGardeners: e.target.value }))
+              }
+              disabled={disabledProfileField}
+              inputProps={{ min: 1, step: 1, "aria-invalid": maxGardenersInvalid || undefined }}
+              className="w-44"
+            />
           ) : null}
         </div>
 
         <div className="border-t border-stroke-soft" />
 
         {/* Domains — selected inline; saved with the rest on Save changes. */}
-        <FormField
+        <AdminFieldGroup
+          as="div"
           label={formatMessage({ id: "app.garden.detail.domains", defaultMessage: "Domains" })}
           hint={
             canEditProfile
@@ -621,7 +596,7 @@ export const GardenSettingsEditor = forwardRef<
               )
             )}
           </div>
-        </FormField>
+        </AdminFieldGroup>
       </div>
     </section>
   );

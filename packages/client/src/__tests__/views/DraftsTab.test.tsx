@@ -25,25 +25,47 @@ const mockDraftsState = {
 const mockNavigate = vi.fn();
 
 // Mock @green-goods/shared
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("@green-goods/shared/utils/action/parsers", () => ({
   findActionByUID: (actions: any[], uid: number) => actions.find((a: any) => a.id === uid),
+}));
+
+vi.mock("@green-goods/shared/modules/app/logger", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/modules/app/logger")>()),
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+}));
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: { error: vi.fn(), success: vi.fn(), info: vi.fn() },
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
   useActions: () => ({
     data: [
       { id: 1, title: "Plant Trees" },
       { id: 2, title: "Water Garden" },
     ],
   }),
-  useDrafts: () => mockDraftsState,
   useGardens: () => ({
     data: [
       { id: "0xgarden1", name: "Community Garden" },
       { id: "0xgarden2", name: "Rooftop Garden" },
     ],
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useDrafts", () => ({
+  useDrafts: () => mockDraftsState,
+}));
+
+vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", () => ({
   ConfirmDialog: ({
     isOpen,
     onClose,
@@ -174,14 +196,29 @@ describe("DraftsTab", () => {
 
   it("navigates to garden route on resume", async () => {
     const user = userEvent.setup();
+    const onBeforeNavigate = vi.fn();
+    mockDraftsState.drafts = [
+      { id: "d1", actionUID: 1, gardenAddress: "0xgarden1", createdAt: Date.now() },
+    ];
+
+    render(wrap(createElement(DraftsTab, { onBeforeNavigate })));
+
+    await user.click(screen.getByTestId("resume-d1"));
+    expect(onBeforeNavigate).toHaveBeenCalledOnce();
+    expect(mockNavigate).toHaveBeenCalledWith("/home/garden?draftId=d1", { viewTransition: true });
+    expect(onBeforeNavigate.mock.invocationCallOrder[0]).toBeLessThan(
+      mockNavigate.mock.invocationCallOrder[0]
+    );
+  });
+
+  it("lets populated draft content contribute to the dashboard scroll owner", () => {
     mockDraftsState.drafts = [
       { id: "d1", actionUID: 1, gardenAddress: "0xgarden1", createdAt: Date.now() },
     ];
 
     render(wrap(createElement(DraftsTab)));
 
-    await user.click(screen.getByTestId("resume-d1"));
-    expect(mockNavigate).toHaveBeenCalledWith("/home/garden?draftId=d1", { viewTransition: true });
+    expect(screen.getByTestId("draft-card-d1").closest(".overflow-y-auto")).toBeNull();
   });
 
   it("shows confirm dialog on delete and confirms", async () => {

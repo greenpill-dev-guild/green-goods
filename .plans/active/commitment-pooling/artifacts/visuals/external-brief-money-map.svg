@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="2200" height="2200" viewBox="0 0 1100 1100" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="money-map-title money-map-desc">
   <title id="money-map-title">Where value lives and how movement is proven</title>
-  <desc id="money-map-desc">A stacked map separates Arbitrum command and acknowledgment state from Celo G dollar movement. Arbitrum records commitments and CCIP settlement attempts; Celo executes bounded protocol routes and returns authenticated acknowledgments. Celo holds the House of Alignment stream, protocol treasury, garden accounts, and gated member delivery. G dollars never bridge to Arbitrum.</desc>
+  <desc id="money-map-desc">A stacked map separates Arbitrum command and acknowledgment state from Celo G dollar movement. Arbitrum records commitments and CCIP settlement attempts; Celo executes bounded protocol routes and returns authenticated acknowledgments. Celo holds the House of Alignment stream, protocol treasury, garden accounts, and gated gardener delivery. G dollars never bridge to Arbitrum.</desc>
   <defs>
     <marker id="money-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 1 L 8 5 L 0 9 Z" fill="#988D77"/>
@@ -15,7 +15,7 @@
   <text x="550" y="92" text-anchor="middle" font-size="19" fill="#6E6857">proof and coordination stay separate from the G$ settlement rail</text>
 
   <!-- Arbitrum proof panel -->
-  <rect x="55" y="135" width="990" height="350" rx="18" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
+  <rect x="55" y="135" width="990" height="350" rx="18" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
   <text x="90" y="180" font-size="27" font-weight="700" fill="#2A2722">Arbitrum — proof &amp; coordination</text>
   <text x="90" y="211" font-size="18" fill="#6E6857">A Celo execution is not confirmed until its authenticated acknowledgment returns.</text>
 
@@ -49,7 +49,7 @@
   <text x="452" y="526" font-size="20" font-weight="700" fill="#8A4A44">No bridged G$, ever</text>
 
   <!-- Celo value panel -->
-  <rect x="55" y="565" width="990" height="365" rx="18" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
+  <rect x="55" y="565" width="990" height="365" rx="18" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
   <text x="90" y="610" font-size="27" font-weight="700" fill="#2A2722">Celo — where G$ lives and moves</text>
   <text x="90" y="641" font-size="17" fill="#6E6857">Designated topology only — partner mechanism and live-receipt evidence remain pending.</text>
 
@@ -74,10 +74,10 @@
   <text x="670" y="781" text-anchor="middle" font-size="17" fill="#6E6857">planned · gated</text>
 
   <rect x="805" y="700" width="210" height="108" rx="14" fill="#FFFFFF" stroke="#988D77" stroke-width="2.5" stroke-dasharray="7 5"/>
-  <text x="910" y="750" text-anchor="middle" font-size="22" font-weight="700" fill="#3B372E">Members</text>
+  <text x="910" y="750" text-anchor="middle" font-size="22" font-weight="700" fill="#3B372E">Gardeners</text>
   <text x="910" y="781" text-anchor="middle" font-size="17" fill="#6E6857">sponsored-account gate</text>
 
-  <text x="550" y="875" text-anchor="middle" font-size="18" fill="#6E6857">If the member-delivery gate fails, garden funding can continue while that member leg waits.</text>
+  <text x="550" y="875" text-anchor="middle" font-size="18" fill="#6E6857">If the gardener-delivery gate fails, garden funding can continue while that delivery leg waits.</text>
 
   <g>
     <rect x="300" y="975" width="28" height="20" rx="5" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
@@ -86,5 +86,5 @@
     <text x="606" y="992" font-size="18" fill="#2A2722">Planned / gated</text>
   </g>
 
-  <text x="550" y="1070" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1.2 (2026-07)</text>
+  <text x="550" y="1070" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-08)</text>
 </svg>

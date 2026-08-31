@@ -1,16 +1,18 @@
+import { Alert } from "@green-goods/shared/components/Alert";
+import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import {
-  Alert,
-  useAccessibleCookieJars,
-  ConfirmDialog,
-  type CookieJar,
-  formatTokenAmount,
   FormattedAmountInput,
-  getVaultAssetSymbol,
-  useCookieJarWithdraw,
   useFormattedAmountInput,
-  useGardens,
-  useOffline,
-} from "@green-goods/shared";
+} from "@green-goods/shared/components/Form/FormattedAmountInput";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useAccessibleCookieJars } from "@green-goods/shared/hooks/cookie-jar/useAccessibleCookieJars";
+import { useCookieJarWithdraw } from "@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw";
+import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
+import {
+  formatTokenAmount,
+  getVaultAssetSymbol,
+} from "@green-goods/shared/utils/blockchain/vaults";
 import {
   RiArrowDownSLine,
   RiErrorWarningLine,
@@ -22,7 +24,7 @@ import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
 import { EmptyState } from "@/components/Communication";
-import { WALLET_DRAWER_SCROLL_CLASSNAME } from "./classnames";
+import { PWA_DRAWER_SCROLL_CLASSNAME } from "@/components/Pwa/drawerScrollStyles";
 
 interface JarCardProps {
   jar: CookieJar;
@@ -286,7 +288,7 @@ export const CookieJarTab: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
+      <div className={PWA_DRAWER_SCROLL_CLASSNAME}>
         <div className="space-y-2.5 p-4" role="status">
           <p className="text-xs text-text-soft-400">
             {formatMessage({
@@ -309,7 +311,7 @@ export const CookieJarTab: React.FC = () => {
 
   if (!moduleConfigured) {
     return (
-      <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
+      <div className={PWA_DRAWER_SCROLL_CLASSNAME}>
         <EmptyState
           tone="warning"
           icon={<RiErrorWarningLine />}
@@ -325,7 +327,7 @@ export const CookieJarTab: React.FC = () => {
           {
             id: "app.cookieJar.walletEligibilityUnconfirmed",
             defaultMessage:
-              "{count, plural, one {Could not confirm Cookie Jar access for # garden.} other {Could not confirm Cookie Jar access for # gardens.}}",
+              "{count, plural, one {We couldn't confirm cookie jar access for # garden.} other {We couldn't confirm cookie jar access for # gardens.}}",
           },
           { count: eligibilityErrorCount || unconfirmedGardenCount }
         )
@@ -353,7 +355,7 @@ export const CookieJarTab: React.FC = () => {
 
   if (jars.length === 0) {
     return (
-      <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
+      <div className={PWA_DRAWER_SCROLL_CLASSNAME}>
         <div className="space-y-4 p-4">
           {diagnosticBlock}
           {/* Offline reads fail closed, so an empty list proves nothing — say
@@ -376,7 +378,7 @@ export const CookieJarTab: React.FC = () => {
   }
 
   return (
-    <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
+    <div className={PWA_DRAWER_SCROLL_CLASSNAME}>
       <div className="space-y-4 p-4">
         {diagnosticBlock}
         {groupedJars.map((group) => (

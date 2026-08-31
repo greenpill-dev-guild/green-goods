@@ -12,6 +12,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
+import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
 
 // Stubbed `deriveSlug` mirrors the shared helper without pulling the wallet
 // runtime barrel into this test (the worktree environment cannot resolve
@@ -24,28 +25,40 @@ function fakeDeriveSlug(name: string, id: string) {
   return `${slug}-${id.slice(2, 8)}`;
 }
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/hooks/public/usePublicGardens", () => ({
   publicGardenHelpers: { deriveSlug: fakeDeriveSlug },
 }));
 
-import { resolveGardenQuery } from "../../views/Public/garden-query-resolution";
+import { resolveGardenQuery } from "../../views/Public/gardenQueryResolution";
 
-interface MinimalGarden {
-  id: string;
-  address: string;
-  name: string;
-}
-
-const solar: MinimalGarden = {
+const solar: PublicGardenSummary = {
   id: "0x1111111111111111111111111111111111111111",
   address: "0x1111111111111111111111111111111111111111",
   name: "Solar Community Garden",
+  slug: "solar-community-garden-111111",
+  location: "",
+  bannerImage: "",
+  description: "",
+  lastActivityAt: 0,
+  actionCount: 0,
+  contributorCount: 0,
+  stewards: [],
+  evaluators: [],
 };
 
-const compost: MinimalGarden = {
+const compost: PublicGardenSummary = {
   id: "0x2222222222222222222222222222222222222222",
   address: "0x2222222222222222222222222222222222222222",
   name: "Urban Composting Hub",
+  slug: "urban-composting-hub-222222",
+  location: "",
+  bannerImage: "",
+  description: "",
+  lastActivityAt: 0,
+  actionCount: 0,
+  contributorCount: 0,
+  stewards: [],
+  evaluators: [],
 };
 
 describe("resolveGardenQuery", () => {
@@ -72,7 +85,8 @@ describe("resolveGardenQuery", () => {
   it("returns ambiguous when more than one garden derives the same slug", () => {
     // Two gardens with identical names AND identical id prefixes collide
     // under the slug derivation, so the ambiguous branch fires.
-    const twin: MinimalGarden = {
+    const twin: PublicGardenSummary = {
+      ...solar,
       id: solar.id.slice(0, 8) + "9999999999999999999999999999999999",
       address: solar.id.slice(0, 8) + "9999999999999999999999999999999999",
       name: solar.name,

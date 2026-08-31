@@ -168,7 +168,14 @@ contract UnifiedPowerRegistry is IVotingPowerRegistry, OwnableUpgradeable, UUPSU
     }
 
     /// @notice Returns 0 for NFT-based registries (no staking)
-    function getMemberStakedAmount(address /* _member */ ) external pure override returns (uint256) {
+    function getMemberStakedAmount(
+        address /* _member */
+    )
+        external
+        pure
+        override
+        returns (uint256)
+    {
         return 0;
     }
 

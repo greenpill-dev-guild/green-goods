@@ -7,7 +7,8 @@
  *   node scripts/dev/stack.js                 # default: full
  *   node scripts/dev/stack.js full            # every app in ecosystem.config.cjs
  *   node scripts/dev/stack.js web             # client, admin, docs, storybook, browser
- *   node scripts/dev/stack.js stop            # stop all PM2 services
+ *   node scripts/dev/stack.js status          # inspect port/service ownership
+ *   node scripts/dev/stack.js stop            # stop services owned by GREEN_GOODS_DEV_OWNER
  *   node scripts/dev/stack.js client admin    # custom subset (any app name from ecosystem.config.cjs)
  */
 
@@ -15,8 +16,15 @@ import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import {
+  claimSurface,
+  inspectSurface,
+  releaseOwnerClaims,
+  releaseSurface,
+} from "./surface-leases.mjs";
 
 const require = createRequire(import.meta.url);
 const pm2 = require("pm2");
@@ -75,18 +83,21 @@ const groups = {
   "prod-mirror": ["docs", "admin", "client", "indexer", "storybook", "browser"],
 };
 
-const exclusiveGroups = new Set(["prod", "prod-mirror"]);
-
 // Apps that bind to a TCP port we can probe for readiness. Other apps (tunnel,
 // browser) finish their work without listening on a deterministic port.
-const portByApp = {
-  "anvil-arbitrum": 3009,
-  client: 3001,
-  admin: 3002,
-  docs: 3003,
-  storybook: 3004,
-  agent: 3005,
-  indexer: 3006,
+const portsByApp = {
+  "anvil-arbitrum": [3009],
+  client: [3001],
+  admin: [3002],
+  docs: [3003],
+  storybook: [3004],
+  agent: [3005],
+  indexer: [3006, 3007, 3008],
+};
+
+const forbiddenPortsByGroup = {
+  prod: [3005, 3006, 3007, 3008, 3009],
+  "prod-mirror": [3005, 3009],
 };
 
 function parseArgs(argv) {
@@ -104,6 +115,10 @@ function parseArgs(argv) {
     return { mode: "stop" };
   }
 
+  if (args.length === 1 && args[0] === "status") {
+    return { mode: "status" };
+  }
+
   if (args.length === 1 && groups[args[0]]) {
     return { mode: "group", group: args[0], names: groups[args[0]] };
   }
@@ -119,12 +134,14 @@ function parseArgs(argv) {
 function usage(stream = process.stdout) {
   stream.write(
     [
-      "Usage: node scripts/dev/stack.js [<group>|<app>...|stop]",
+      "Usage: node scripts/dev/stack.js [<group>|<app>...|status|stop]",
       "",
       "Groups:",
       ...Object.entries(groups).map(([name, apps]) => `  ${name.padEnd(11)} ${apps.join(", ")}`),
       "",
       `Apps: ${allApps.map((app) => app.name).join(", ")}`,
+      "",
+      "Set GREEN_GOODS_DEV_OWNER to a stable agent/session ID when detached stop authority is needed.",
       "",
     ].join("\n")
   );
@@ -150,10 +167,55 @@ function deleteApps(names) {
     uniqueNames.map(
       (name) =>
         new Promise((resolve) => {
-          pm2.delete(name, () => resolve());
+          pm2.delete(name, (error) => resolve({ name, error: error || null }));
         })
     )
   );
+}
+
+function listPm2Apps() {
+  return new Promise((resolve, reject) => {
+    pm2.list((error, processes) => (error ? reject(error) : resolve(processes || [])));
+  });
+}
+
+function pm2Owner(processDescription) {
+  return processDescription?.pm2_env?.GREEN_GOODS_DEV_OWNER || "";
+}
+
+async function assertAppsReplaceable(names, ownerId) {
+  const requested = new Set(names);
+  const conflicts = (await listPm2Apps()).filter(
+    (processDescription) =>
+      requested.has(processDescription.name) && pm2Owner(processDescription) !== ownerId
+  );
+
+  if (conflicts.length === 0) return;
+  throw new Error(
+    `PM2 app ownership conflict: ${conflicts
+      .map((processDescription) =>
+        `${processDescription.name} (${pm2Owner(processDescription) || "legacy/unknown owner"})`
+      )
+      .join(", ")}. Reuse the live surface or stop it from its owning session.`
+  );
+}
+
+async function deleteOwnedApps(names, ownerId) {
+  const requested = new Set(names);
+  const ownedNames = (await listPm2Apps())
+    .filter(
+      (processDescription) =>
+        requested.has(processDescription.name) && pm2Owner(processDescription) === ownerId
+    )
+    .map((processDescription) => processDescription.name);
+  const results = await deleteApps(ownedNames);
+  const failures = results.filter((result) => result.error);
+  if (failures.length > 0) {
+    throw new Error(
+      `Failed to stop owned PM2 app(s): ${failures.map((result) => result.name).join(", ")}`
+    );
+  }
+  return results.map((result) => result.name);
 }
 
 function startApps(apps) {
@@ -207,10 +269,150 @@ async function waitForPort(port, timeoutMs, hosts = ["127.0.0.1", "::1"]) {
   return false;
 }
 
+async function portIsLive(port) {
+  const checks = await Promise.all(
+    ["127.0.0.1", "::1"].map((host) => probePort(port, host))
+  );
+  return checks.some(Boolean);
+}
+
+function ownerIdForLaunch() {
+  const explicit = (process.env.GREEN_GOODS_DEV_OWNER || "").trim();
+  return explicit || `stack:${process.pid}:${randomUUID().slice(0, 8)}`;
+}
+
+function compatibilityKey(group, appName) {
+  const profile = group === "prod" || group === "prod-mirror" ? group : "local";
+  return `${appName}:${profile}`;
+}
+
+function surfaceEntries() {
+  return Object.entries(portsByApp)
+    .flatMap(([service, ports]) => ports.map((port) => ({ service, port })))
+    .sort((left, right) => left.port - right.port);
+}
+
+function claimDescription(claim) {
+  if (!claim) return "external/unknown listener";
+  return `${claim.service} (${claim.compatibilityKey}) owned by ${claim.ownerId} pid ${claim.ownerPid}`;
+}
+
+async function printSurfaceStatus() {
+  console.log("Green Goods dev-surface ownership");
+  for (const { service, port } of surfaceEntries()) {
+    const live = await portIsLive(port);
+    const inspection = inspectSurface({ port, portLive: live });
+    console.log(
+      `- ${port} ${service}: ${inspection.state}${
+        inspection.claim ? `; ${claimDescription(inspection.claim)}` : ""
+      }`
+    );
+  }
+}
+
+async function assertForbiddenPortsFree(group) {
+  for (const port of forbiddenPortsByGroup[group] || []) {
+    const live = await portIsLive(port);
+    const inspection = inspectSurface({ port, portLive: live });
+    if (!live && ["free", "stale"].includes(inspection.state)) continue;
+    throw new Error(
+      `${group} profile requires port ${port} to stay free, but it is ${inspection.state}: ${claimDescription(inspection.claim)}.`
+    );
+  }
+}
+
+async function releaseClaims(ports, ownerId) {
+  for (const port of [...new Set(ports)]) {
+    const result = releaseSurface({ port, ownerId });
+    if (result.status === "not-owner") {
+      console.error(
+        `[stack] did not release port ${port}; it belongs to ${result.claim.ownerId}.`
+      );
+    }
+  }
+}
+
+async function claimApps(apps, group, ownerId) {
+  await assertForbiddenPortsFree(group);
+
+  const appsToStart = [];
+  const reusedApps = [];
+  const skippedHelpers = [];
+  const claimedPorts = [];
+  const helperApps = [];
+
+  try {
+    for (const app of apps) {
+      const ports = portsByApp[app.name] || [];
+      if (ports.length === 0) {
+        helperApps.push(app);
+        continue;
+      }
+
+      const results = [];
+      for (const port of ports) {
+        const result = claimSurface({
+          port,
+          service: app.name,
+          compatibilityKey: compatibilityKey(group, app.name),
+          ownerId,
+          ownerPid: process.pid,
+          portLive: await portIsLive(port),
+        });
+        results.push({ port, ...result });
+        if (result.status === "claimed") {
+          claimedPorts.push(port);
+          if (result.staleRemoved) {
+            console.log(`[stack] replaced stale ${app.name} claim on port ${port}.`);
+          }
+        }
+      }
+
+      const conflict = results.find((result) => result.status === "conflict");
+      if (conflict) {
+        throw new Error(
+          `${app.name}:${conflict.port} lease conflict (${conflict.reason}): ${claimDescription(conflict.claim)}.`
+        );
+      }
+
+      const reusable = results.every((result) =>
+        ["reused", "owned-live"].includes(result.status)
+      );
+      const startable = results.every((result) => ["claimed", "owned"].includes(result.status));
+      if (reusable) {
+        reusedApps.push(app);
+        continue;
+      }
+      if (startable) {
+        appsToStart.push(app);
+        continue;
+      }
+
+      throw new Error(
+        `${app.name} has a partial surface: ${results
+          .map((result) => `${result.port}=${result.status}`)
+          .join(", ")}. Refusing to start over a mixed owner state.`
+      );
+    }
+
+    if (reusedApps.length > 0) {
+      skippedHelpers.push(...helperApps);
+    } else {
+      appsToStart.push(...helperApps);
+    }
+  } catch (error) {
+    await releaseClaims(claimedPorts, ownerId);
+    throw error;
+  }
+
+  return { appsToStart, reusedApps, skippedHelpers, claimedPorts };
+}
+
 async function reportReadiness(apps) {
   const probed = apps
-    .map((app) => ({ name: app.name, port: portByApp[app.name] }))
-    .filter((item) => typeof item.port === "number");
+    .flatMap((app) =>
+      (portsByApp[app.name] || []).map((port) => ({ name: app.name, port }))
+    );
 
   if (probed.length === 0) {
     console.log("[stack] no port-binding apps in this group; skipping readiness probe.");
@@ -340,10 +542,17 @@ function runProductionSmoke(group) {
   });
 }
 
-async function stopAndExit(names, exitCode = 0) {
-  await deleteApps(names);
-  disconnect();
-  process.exit(exitCode);
+async function stopAndExit(names, ownerId, claimedPorts, exitCode = 0) {
+  try {
+    await deleteOwnedApps(names, ownerId);
+    await releaseClaims(claimedPorts, ownerId);
+    disconnect();
+    process.exit(exitCode);
+  } catch (error) {
+    disconnect();
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  }
 }
 
 async function main() {
@@ -363,11 +572,28 @@ async function main() {
     return;
   }
 
+  if (parsed.mode === "status") {
+    await printSurfaceStatus();
+    return;
+  }
+
   if (parsed.mode === "stop") {
+    const ownerId = (process.env.GREEN_GOODS_DEV_OWNER || "").trim();
+    if (!ownerId) {
+      throw new Error(
+        "Refusing an ownerless stop. Use Ctrl+C in the launching terminal, or rerun with the same GREEN_GOODS_DEV_OWNER used to start the stack."
+      );
+    }
     await connect();
-    await deleteApps(allApps.map((app) => app.name));
+    await deleteOwnedApps(
+      allApps.map((app) => app.name),
+      ownerId
+    );
+    const released = releaseOwnerClaims({ ownerId });
     disconnect();
-    console.log("Stopped Green Goods dev services.");
+    console.log(
+      `Stopped Green Goods dev services owned by ${ownerId}; released ${released.length} claim(s).`
+    );
     return;
   }
 
@@ -379,16 +605,58 @@ async function main() {
     throw new Error(`No PM2 apps matched: ${parsed.names.join(", ")}`);
   }
 
+  const ownerId = ownerIdForLaunch();
+  const { appsToStart, reusedApps, skippedHelpers, claimedPorts } = await claimApps(
+    apps,
+    group,
+    ownerId
+  );
+  const ownedApps = appsToStart.map((app) => ({
+    ...app,
+    env: {
+      ...(app.env || {}),
+      GREEN_GOODS_DEV_OWNER: ownerId,
+    },
+  }));
+
+  if (reusedApps.length > 0) {
+    console.log(
+      `[stack] reusing compatible live services: ${reusedApps.map((app) => app.name).join(", ")}`
+    );
+  }
+  if (skippedHelpers.length > 0) {
+    console.log(
+      `[stack] skipping unowned helpers while reusing services: ${skippedHelpers.map((app) => app.name).join(", ")}`
+    );
+  }
+
+  if (ownedApps.length === 0) {
+    console.log(`[stack] all requested services are already live; owner remains unchanged.`);
+    const ready = await reportReadiness(apps);
+    if (ready) await runProductionSmoke(group);
+    return;
+  }
+
   await connect();
-  const namesToDelete =
-    parsed.mode === "group" && exclusiveGroups.has(parsed.group)
-      ? allApps.map((app) => app.name)
-      : apps.map((app) => app.name);
-  await deleteApps(namesToDelete);
-  await startApps(apps);
+  try {
+    await assertAppsReplaceable(
+      ownedApps.map((app) => app.name),
+      ownerId
+    );
+    await deleteOwnedApps(
+      ownedApps.map((app) => app.name),
+      ownerId
+    );
+    await startApps(ownedApps);
+  } catch (error) {
+    await releaseClaims(claimedPorts, ownerId);
+    disconnect();
+    throw error;
+  }
 
   const label = parsed.mode === "group" ? `${parsed.group} stack` : "custom stack";
-  console.log(`Started Green Goods ${label}: ${apps.map((app) => app.name).join(", ")}`);
+  console.log(`Started Green Goods ${label}: ${ownedApps.map((app) => app.name).join(", ")}`);
+  console.log(`[stack] lease owner: ${ownerId}`);
   printProductionModeNotice(group);
   console.log("Press Ctrl+C to stop services.\n");
 
@@ -401,10 +669,20 @@ async function main() {
   });
 
   process.on("SIGINT", () => {
-    stopAndExit(apps.map((app) => app.name), 0);
+    stopAndExit(
+      ownedApps.map((app) => app.name),
+      ownerId,
+      claimedPorts,
+      0
+    );
   });
   process.on("SIGTERM", () => {
-    stopAndExit(apps.map((app) => app.name), 0);
+    stopAndExit(
+      ownedApps.map((app) => app.name),
+      ownerId,
+      claimedPorts,
+      0
+    );
   });
 
   // Run readiness probe in the background so logs flow uninterrupted.

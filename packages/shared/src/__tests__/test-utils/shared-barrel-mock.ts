@@ -21,8 +21,6 @@
 
 import { vi } from "vitest";
 
-type SharedModule = typeof import("../../index");
-
 /**
  * Default hook return values — sensible defaults that prevent component crashes.
  * Each returns the minimal shape to avoid runtime errors.
@@ -133,15 +131,16 @@ function createDefaultHookMocks() {
  * @param actual - The real module from importOriginal()
  * @param overrides - Custom hook implementations for this test
  */
-export function createSharedBarrelMock(
-  actual: SharedModule,
-  overrides: Record<string, unknown> = {}
-): SharedModule {
-  const defaults = createDefaultHookMocks();
+export function createSharedBarrelMock<TModule extends object>(
+  actual: TModule,
+  overrides: Partial<TModule> = {},
+  options: { defaults?: boolean } = {}
+): TModule {
+  const defaults = options.defaults === false ? {} : createDefaultHookMocks();
 
   return {
     ...actual, // All real exports (types, utils, components)
     ...defaults, // Default hook mocks
     ...overrides, // Test-specific overrides win
-  } as unknown as SharedModule;
+  } as unknown as TModule;
 }

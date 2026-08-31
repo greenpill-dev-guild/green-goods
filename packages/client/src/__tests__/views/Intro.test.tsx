@@ -11,16 +11,26 @@ import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock only the runtime helpers WorkIntro needs.
-vi.mock("@green-goods/shared", () => {
+vi.mock("@green-goods/shared/types/domain", () => {
   const Domain = {
     SOLAR: 0,
     AGRO: 1,
     EDU: 2,
     WASTE: 3,
   } as const;
-
   return {
     Domain,
+  };
+});
+
+vi.mock("@green-goods/shared/utils/domain", () => {
+  const Domain = {
+    SOLAR: 0,
+    AGRO: 1,
+    EDU: 2,
+    WASTE: 3,
+  } as const;
+  return {
     expandDomainMask: (mask: number) => {
       const domains: Domain[] = [];
       if (mask & 1) domains.push(Domain.SOLAR);
@@ -30,10 +40,16 @@ vi.mock("@green-goods/shared", () => {
       return domains;
     },
     hasDomain: (mask: number, domain: Domain) => (mask & (1 << domain)) !== 0,
-    hapticSelection: vi.fn(),
-    localizeAction: (action: Action) => action,
   };
 });
+
+vi.mock("@green-goods/shared/utils/app/haptics", () => ({
+  hapticSelection: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/utils/action/translations", () => ({
+  localizeAction: (action: Action) => action,
+}));
 
 // Mock child components used by WorkIntro
 vi.mock("@/components/Actions", () => ({
@@ -127,13 +143,13 @@ vi.mock("@/components/Navigation", () => ({
 }));
 
 // Import after mocks
-import { type Action, type Address, Domain, type Garden } from "@green-goods/shared";
+import { type Action, type Address, Domain, type Garden } from "@green-goods/shared/types/domain";
 import { WorkIntro } from "../../views/Garden/Intro";
 
 const messages: Record<string, string> = {
-  "app.garden.selectYourAction": "Select your action",
+  "app.garden.selectYourAction": "Select Your Action",
   "app.garden.whatTypeOfWork": "What type of work are you submitting?",
-  "app.garden.selectYourGarden": "Select your garden",
+  "app.garden.selectYourGarden": "Select Your Garden",
   "app.garden.whichGarden": "Which garden are you submitting for?",
   "app.garden.noActiveActions": "No active actions at this time.",
   "app.garden.noActionsConfigured": "No actions have been configured for this garden yet.",
@@ -142,6 +158,18 @@ const messages: Record<string, string> = {
   "app.garden.communityOnramp.description":
     "The Community Garden is open to everyone and gives you a place to submit your first work.",
   "app.garden.communityOnramp.title": "Join the Community Garden",
+  "app.garden.commitment.label": "Commitment (optional)",
+  "app.garden.commitment.none": "No commitment",
+  "app.garden.commitment.option": "{title} · requirement {requirement}",
+  "app.garden.commitment.description":
+    "Choose the commitment and exact requirement this work fulfils.",
+  "app.garden.commitment.loading": "Checking eligible commitments…",
+  "app.garden.commitment.error":
+    "Eligible commitments could not be read. Try again or continue without one.",
+  "app.garden.commitment.invalid":
+    "That commitment link is no longer eligible. Choose another commitment or continue without one.",
+  "app.garden.commitment.retry": "Try Again",
+  "app.garden.commitment.empty": "No eligible commitments match this garden and action.",
   "app.domain.tab.solar": "Solar",
   "app.domain.tab.agro": "Agroforestry",
   "app.domain.tab.waste": "Waste",
@@ -173,7 +201,7 @@ const makeGarden = (overrides: Partial<Garden> & { id: string }): Garden => ({
   location: "Test Location",
   bannerImage: "",
   gardeners: [],
-  operators: [],
+  stewards: [],
   evaluators: [],
   owners: [],
   funders: [],
@@ -214,8 +242,8 @@ describe("WorkIntro", () => {
   it("renders action and garden form info sections", () => {
     renderIntro();
 
-    expect(screen.getByText("Select your action")).toBeInTheDocument();
-    expect(screen.getByText("Select your garden")).toBeInTheDocument();
+    expect(screen.getByText("Select Your Action")).toBeInTheDocument();
+    expect(screen.getByText("Select Your Garden")).toBeInTheDocument();
   });
 
   it("renders action cards for active actions", () => {
@@ -285,6 +313,104 @@ describe("WorkIntro", () => {
     fireEvent.click(gardenCard.closest("[data-testid='carousel-item']")!);
 
     expect(setGardenAddress).toHaveBeenCalledWith("0xABC");
+  });
+
+  it("shows a validated deep-linked commitment and exact requirement", () => {
+    renderIntro({
+      showCommitmentChoices: true,
+      commitmentChoices: [
+        {
+          key: "9:1",
+          commitmentId: 9n,
+          requirementIndex: 1,
+          title: "Prune the north beds",
+        },
+      ],
+      selectedCommitmentKey: "9:1",
+      setSelectedCommitmentKey: vi.fn(),
+    });
+
+    expect(screen.getByRole("combobox", { name: "Commitment (optional)" })).toHaveValue("9:1");
+    expect(
+      screen.getByRole("combobox", { name: "Commitment (optional)" })
+    ).toHaveAccessibleDescription("Choose the commitment and exact requirement this work fulfils.");
+    expect(
+      screen.getByRole("option", { name: "Prune the north beds · requirement 2" })
+    ).toBeInTheDocument();
+  });
+
+  it("lets a generic submission choose an eligible commitment requirement", () => {
+    const setSelectedCommitmentKey = vi.fn();
+    renderIntro({
+      showCommitmentChoices: true,
+      commitmentChoices: [
+        {
+          key: "9:0",
+          commitmentId: 9n,
+          requirementIndex: 0,
+          title: "Prune the north beds",
+        },
+      ],
+      selectedCommitmentKey: null,
+      setSelectedCommitmentKey,
+    });
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Commitment (optional)" }), {
+      target: { value: "9:0" },
+    });
+
+    expect(setSelectedCommitmentKey).toHaveBeenCalledWith("9:0");
+  });
+
+  it("announces commitment eligibility loading politely", () => {
+    renderIntro({ showCommitmentChoices: true, commitmentChoicesLoading: true });
+
+    expect(screen.getByRole("status")).toHaveTextContent("Checking eligible commitments…");
+  });
+
+  it("alerts a failed commitment read and retries it", () => {
+    const onRetryCommitmentChoices = vi.fn();
+    renderIntro({
+      showCommitmentChoices: true,
+      commitmentChoicesError: new Error("offline"),
+      onRetryCommitmentChoices,
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/could not be read/i);
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(onRetryCommitmentChoices).toHaveBeenCalledTimes(1);
+  });
+
+  it("distinguishes an invalid deep link from an empty eligible list", () => {
+    const setSelectedCommitmentKey = vi.fn();
+    const view = renderIntro({
+      showCommitmentChoices: true,
+      commitmentIntentStatus: "invalid",
+      setSelectedCommitmentKey,
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(/no longer eligible/i);
+    fireEvent.click(screen.getByRole("button", { name: "No commitment" }));
+    expect(setSelectedCommitmentKey).toHaveBeenCalledWith(null);
+
+    view.rerender(
+      createElement(
+        IntlProvider,
+        { locale: "en", messages },
+        createElement(WorkIntro, {
+          actions: [],
+          gardens: [],
+          selectedActionUID: null,
+          selectedGardenAddress: null,
+          selectedDomain: null,
+          setActionUID: vi.fn(),
+          setGardenAddress: vi.fn(),
+          setSelectedDomain: vi.fn(),
+          showCommitmentChoices: true,
+        })
+      )
+    );
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByText("No eligible commitments match this garden and action.")).toBeVisible();
   });
 
   it("keeps actions visible and shows an inline community join CTA with no joined gardens", () => {

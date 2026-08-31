@@ -1,4 +1,6 @@
-import { adminRoutes, TxInlineFeedback, useCreateGardenController } from "@green-goods/shared";
+import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import { useCreateGardenController } from "@green-goods/shared/hooks/admin-ui/garden/useCreateGardenController";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { DetailsStep } from "@/components/Garden/CreateGardenSteps/DetailsStep";
@@ -51,7 +53,7 @@ export default function CreateGarden() {
               <AdminButton variant="tonal" size="sm" onClick={createGarden.retry}>
                 {intl.formatMessage({
                   id: "admin.garden.deploy.retry",
-                  defaultMessage: "Retry deployment",
+                  defaultMessage: "Retry Deployment",
                 })}
               </AdminButton>
             }
@@ -76,7 +78,7 @@ export default function CreateGarden() {
             >
               {intl.formatMessage({
                 id: "admin.garden.form.deploy",
-                defaultMessage: "Deploy garden",
+                defaultMessage: "Deploy Garden",
               })}
             </AdminButton>
           </>

@@ -23,7 +23,6 @@ export type {
   NetworkConfig,
 } from "./blockchain";
 export {
-  DEFAULT_CHAIN_ID,
   getDefaultChain,
   getEASConfig,
   getEasGraphqlUrl,
@@ -31,6 +30,7 @@ export {
   getNetworkConfig,
   isGreenWillDeployed,
 } from "./blockchain";
+export { DEFAULT_CHAIN_ID, resolveDefaultChainId } from "./default-chain";
 export type { SupportedChainId } from "./chains";
 // From chains.ts
 export {
@@ -51,6 +51,14 @@ export {
 } from "./local-fork";
 // From gardens-subgraph.ts
 export { getGardensSubgraphUrl } from "./gardens-subgraph";
+
+// From garden-visibility.ts
+export {
+  GARDENS_HIDDEN_EVERYWHERE,
+  GARDENS_HIDDEN_FROM_EDITORIAL,
+  isGardenHiddenEverywhere,
+  isGardenPubliclyVisible,
+} from "./garden-visibility";
 
 // From passkeyServer.ts (client-only passkey utilities)
 export {

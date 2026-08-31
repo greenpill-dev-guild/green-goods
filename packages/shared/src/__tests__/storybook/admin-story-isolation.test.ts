@@ -29,7 +29,7 @@ describe("resetAdminStoryState", () => {
         bannerImage: "",
         createdAt: 0,
         gardeners: [],
-        operators: [],
+        stewards: [],
       },
       lastGardenIdsByScope: { "999:0xabc": "garden-1" },
       pendingTransactions: { "0xhash": { type: "test", status: "pending" } },
@@ -55,7 +55,7 @@ describe("resetAdminStoryState", () => {
     localStorage.setItem(ADMIN_GARDEN_PREFERENCES_STORAGE_KEY, "{}");
     sessionStorage.setItem(SHEET_STATE_STORAGE_KEY, "{}");
     sessionStorage.setItem(GARDEN_STATE_STORAGE_KEY, "{}");
-    sessionStorage.setItem(DEV_MOCK_AUTH_STORAGE_KEY, "operator");
+    sessionStorage.setItem(DEV_MOCK_AUTH_STORAGE_KEY, "steward");
 
     resetAdminStoryState();
 

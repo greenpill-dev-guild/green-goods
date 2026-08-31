@@ -17,6 +17,7 @@ const workMutationStoreMocks = vi.hoisted(() => ({
   setSubmissionCompleted: vi.fn(),
   ensureWorkSubmissionJourneyId: vi.fn(() => "journey-123"),
 }));
+const queueProcessJob = vi.fn();
 
 // Mock modules
 vi.mock("../../modules/work/wallet-submission", () => ({
@@ -25,13 +26,6 @@ vi.mock("../../modules/work/wallet-submission", () => ({
 
 vi.mock("../../modules/work/work-submission", () => ({
   submitWorkToQueue: vi.fn(),
-}));
-
-vi.mock("../../modules/job-queue", () => ({
-  isOfflineTxHash: (txHash: string) => txHash.startsWith("0xoffline_"),
-  jobQueue: {
-    processJob: vi.fn(),
-  },
 }));
 
 vi.mock("../../modules/work/simulate", () => ({
@@ -76,6 +70,10 @@ vi.mock("../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
+vi.mock("../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 vi.mock("../../utils/action/parsers", () => ({
   getActionTitle: vi.fn(() => "Test Action"),
 }));
@@ -103,12 +101,9 @@ vi.mock("../../modules/app/analytics-events", () => ({
 }));
 
 // Mock useTransactionSender to avoid wagmi provider dependency
-const mockSender = {
-  sendContractCall: vi.fn().mockResolvedValue({ hash: "0xabc123", sponsored: true }),
-  supportsSponsorship: true,
-  supportsBatching: false,
-  authMode: "passkey" as const,
-};
+const mockSender = createMockTransactionSender({
+  result: { hash: "0xabc123", sponsored: true },
+});
 
 vi.mock("../../hooks/blockchain/useTransactionSender", () => ({
   useTransactionSender: vi.fn(() => mockSender),
@@ -168,7 +163,6 @@ vi.mock("../../utils/errors/contract-errors", () => ({
 
 import { walletProgressToasts, workToasts } from "../../components/toast";
 import { useWorkMutation } from "../../hooks/work/useWorkMutation";
-import { jobQueue } from "../../modules/job-queue";
 import { submitWorkDirectly } from "../../modules/work/wallet-submission";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 import { submitWorkToQueue } from "../../modules/work/work-submission";
@@ -179,6 +173,7 @@ import {
 import {
   createMockAction,
   createMockFiles,
+  createMockTransactionSender,
   createMockWorkDraft,
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
@@ -393,7 +388,7 @@ describe("hooks/work/useWorkMutation", () => {
         clientWorkId: "work-abc",
       });
 
-      mock(jobQueue.processJob).mockResolvedValue({
+      queueProcessJob.mockResolvedValue({
         success: true,
         txHash: MOCK_TX_HASH,
         skipped: false,
@@ -405,6 +400,7 @@ describe("hooks/work/useWorkMutation", () => {
             ...defaultOptions,
             authMode: "passkey",
             userAddress: MOCK_ADDRESSES.smartAccount,
+            dependencies: { jobQueue: { processJob: queueProcessJob } },
           }),
         { wrapper: createWrapper() }
       );
@@ -418,7 +414,7 @@ describe("hooks/work/useWorkMutation", () => {
       });
 
       expect(submitWorkToQueue).toHaveBeenCalled();
-      expect(jobQueue.processJob).toHaveBeenCalledWith("job-abc", {
+      expect(queueProcessJob).toHaveBeenCalledWith("job-abc", {
         transactionSender: mockSender,
       });
       expect(txHash).toBe(MOCK_TX_HASH);
@@ -454,7 +450,7 @@ describe("hooks/work/useWorkMutation", () => {
       });
 
       expect(submitWorkToQueue).toHaveBeenCalled();
-      expect(jobQueue.processJob).not.toHaveBeenCalled();
+      expect(queueProcessJob).not.toHaveBeenCalled();
       expect(txHash).toBe("0xoffline_xyz");
     });
   });
@@ -466,7 +462,7 @@ describe("hooks/work/useWorkMutation", () => {
         async (_draft, _garden, _actionUID, _actionTitle, _chainId, _images, options) => {
           // Simulate the wallet submission calling onProgress("complete")
           if (options?.onProgress) {
-            options.onProgress("complete");
+            options.onProgress("complete", "Work submitted successfully!");
           }
           return MOCK_TX_HASH;
         }

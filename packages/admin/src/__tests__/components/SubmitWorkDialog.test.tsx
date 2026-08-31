@@ -11,22 +11,19 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IntlProvider } from "react-intl";
+import type { ComponentProps } from "react";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  AuthContext,
-  DEFAULT_CHAIN_ID,
-  Domain,
-  queryKeys,
-  useAdminStore,
-  type Action,
-  type AuthContextType,
-  type Garden,
-} from "@green-goods/shared";
-import { createTestQueryClient } from "@green-goods/shared/testing";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import { AuthContext } from "@green-goods/shared/providers/Auth";
+import { useAdminStore } from "@green-goods/shared/stores/useAdminStore";
+import { type Action, Domain, type Garden } from "@green-goods/shared/types/domain";
+import { createTestQueryClient } from "@green-goods/shared/__tests__/test-utils/query-client";
 import SubmitWork from "@/views/Garden/SubmitWork";
 
 const OPERATOR = "0x9999999999999999999999999999999999999999";
+type AuthContextValue = NonNullable<ComponentProps<typeof AuthContext.Provider>["value"]>;
 
 const workMutationOverride = vi.hoisted(() => ({
   current: null as null | (() => unknown),
@@ -76,7 +73,7 @@ const SELECTED_GARDEN: Garden = {
   location: "",
   bannerImage: "",
   gardeners: [],
-  operators: [OPERATOR],
+  stewards: [OPERATOR],
   owners: [],
   evaluators: [],
   funders: [],
@@ -140,8 +137,13 @@ vi.mock("wagmi", () => ({
 // SubmitWorkPanel resolves its auth snapshot through the auth state machine
 // (useAuthState/useUser), which needs the full AuthProvider tree — stub just
 // those two reads; everything else stays real.
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: OPERATOR }),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@green-goods/shared/hooks/blockchain/useBaseLists")>();
   const React = await import("react");
   const useOverrideSnapshot = (key: "gardens" | "actions") =>
     React.useSyncExternalStore(
@@ -149,11 +151,8 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       () => dataHookOverride.state[key],
       () => dataHookOverride.state[key]
     );
-
   return {
     ...actual,
-    useAuthState: () => ({ isAuthenticated: true, authMode: "wallet" }),
-    useUser: () => ({ primaryAddress: OPERATOR }),
     useGardens: ((...args) => {
       const override = useOverrideSnapshot("gardens");
       return override ? override : actual.useGardens(...args);
@@ -162,6 +161,14 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       const override = useOverrideSnapshot("actions");
       return override ? override : actual.useActions(...args);
     }) as typeof actual.useActions,
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/work/useWorkMutation", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@green-goods/shared/hooks/work/useWorkMutation")>();
+  return {
+    ...actual,
     useWorkMutation: ((options) =>
       workMutationOverride.current
         ? workMutationOverride.current()
@@ -169,7 +176,15 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   };
 });
 
-const authContextValue: AuthContextType = {
+vi.mock("@green-goods/shared/providers/Auth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared/providers/Auth")>();
+  return {
+    ...actual,
+    useAuthState: () => ({ isAuthenticated: true, authMode: "wallet" }),
+  };
+});
+
+const authContextValue: AuthContextValue = {
   authMode: "wallet",
   isReady: true,
   isAuthenticated: true,
@@ -203,7 +218,7 @@ function renderSubmitWork(actions: Action[] = []) {
   queryClient.setQueryData(queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), [SELECTED_GARDEN]);
   queryClient.setQueryData(queryKeys.actions.byChain(DEFAULT_CHAIN_ID), actions);
   queryClient.setQueryData(
-    queryKeys.role.operatorGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
+    queryKeys.role.stewardGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
     [{ id: SELECTED_GARDEN.id, name: SELECTED_GARDEN.name }]
   );
   queryClient.setQueryData(
@@ -235,7 +250,7 @@ function renderSubmitWorkTree() {
   const queryClient = createTestQueryClient();
   queryClient.setQueryData(queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), [SELECTED_GARDEN]);
   queryClient.setQueryData(
-    queryKeys.role.operatorGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
+    queryKeys.role.stewardGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
     [{ id: SELECTED_GARDEN.id, name: SELECTED_GARDEN.name }]
   );
   queryClient.setQueryData(
@@ -351,7 +366,7 @@ describe("SubmitWork dialog", () => {
     await user.type(noteInput, "Mulched the west bed");
 
     await act(async () => {
-      void router?.navigate("/hub/history?gardenId=0x2222222222222222222222222222222222222222");
+      void router?.navigate("/hub/certify?gardenId=0x2222222222222222222222222222222222222222");
       await Promise.resolve();
     });
 
@@ -363,7 +378,7 @@ describe("SubmitWork dialog", () => {
     });
 
     await waitFor(() => {
-      expect(router?.state.location.pathname).toBe("/hub/history");
+      expect(router?.state.location.pathname).toBe("/hub/certify");
       expect(router?.state.location.search).toBe(
         "?gardenId=0x2222222222222222222222222222222222222222"
       );

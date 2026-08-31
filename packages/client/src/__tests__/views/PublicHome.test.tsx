@@ -28,15 +28,35 @@ const {
   mockUsePublicStats: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: mockUseApp,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useIsBraveBrowser", () => ({
   useIsBraveBrowser: () => false,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useInstallGuidance", () => ({
   useInstallGuidance: mockUseInstallGuidance,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/usePublicInstallHandler", () => ({
   usePublicInstallHandler: mockUsePublicInstallHandler,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useTunnelUrl", () => ({
   useTunnelUrl: () => null,
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicStats", () => ({
   usePublicStats: mockUsePublicStats,
-  usePublicGardens: () => ({ data: [], isLoading: false }),
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useInViewReveal", () => ({
   useInViewReveal: () => ({ ref: vi.fn(), revealed: true }),
 }));
 
@@ -53,6 +73,9 @@ vi.mock("@/components/Public/PublicFundingBridge", () => ({
 }));
 vi.mock("@/components/Public/PublicRecordLoop", () => ({
   PublicRecordLoop: () => createElement("div", { "data-testid": "stub-loop" }),
+}));
+vi.mock("@/components/Public/PublicWhoTendsAGarden", () => ({
+  PublicWhoTendsAGarden: () => createElement("div", { "data-testid": "stub-who" }),
 }));
 vi.mock("@/components/Public/PublicGetInTouch", () => ({
   PublicGetInTouch: () => createElement("div", { "data-testid": "stub-getintouch" }),
@@ -177,6 +200,41 @@ describe("Public Home — hero CTAs", () => {
     expect(accentedWords).toEqual(["good", "green"]);
     for (const accent of heroHeading.querySelectorAll("em")) {
       expect(accent).toHaveClass("text-primary-dark");
+    }
+  });
+
+  it("renders the eight canonical sections in order", () => {
+    mockUseApp.mockReturnValue({
+      isPwaPresentation: false,
+      isMobile: false,
+      isInstalled: false,
+      wasInstalled: false,
+      platform: "unknown",
+      deferredPrompt: null,
+      promptInstall: vi.fn(),
+    });
+
+    renderHome();
+
+    // Hero (asserted via H1 elsewhere) is section 1; the stubbed sections
+    // pin the remaining order. DESIGN.browser.md § Homepage is the canon —
+    // a section added or removed here must change that list too.
+    const orderedStubs = [
+      "stub-featured",
+      "stub-proof",
+      "stub-loop",
+      "stub-who",
+      "stub-funding",
+      "stub-getintouch",
+      "stub-footer",
+    ].map((id) => screen.getByTestId(id));
+
+    for (let i = 0; i < orderedStubs.length - 1; i++) {
+      expect(
+        orderedStubs[i].compareDocumentPosition(orderedStubs[i + 1]) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+        `${orderedStubs[i].dataset.testid} should precede ${orderedStubs[i + 1].dataset.testid}`
+      ).toBeTruthy();
     }
   });
 

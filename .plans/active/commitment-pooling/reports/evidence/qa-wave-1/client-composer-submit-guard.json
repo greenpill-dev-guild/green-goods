@@ -1,0 +1,463 @@
+{
+  "postRequestSnapshot": "- main:\n  - article:\n    - link \"Skip to content\":\n      - /url: \"#main-content\"\n    - button \"Go back\":\n    - paragraph: Make a request\n    - heading \"It is on its way\" [level=1]\n    - paragraph: Your commitment is being placed in the pool. It appears there once it lands.\n    - button \"Back to the pool\"\n- navigation:\n  - link \"Home\":\n    - /url: /home\n    - paragraph: Home\n  - link \"Garden\":\n    - /url: /home/garden\n    - paragraph: Garden\n  - link \"Profile\":\n    - /url: /home/profile\n    - paragraph: Profile",
+  "buttons": [
+    {
+      "disabled": false,
+      "text": ""
+    },
+    {
+      "disabled": false,
+      "text": "Back to the pool"
+    },
+    {
+      "disabled": false,
+      "text": "Reload"
+    }
+  ],
+  "errorLogs": [
+    {
+      "level": "error",
+      "message": "[2026-08-25T03:25:21.331Z] [ERROR] [ServiceWorker] Service Worker registration failed Object",
+      "timestamp": "2026-08-25T03:25:21.338Z",
+      "url": "https://localhost:3001/@vite/client"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:25:22.947Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:25:23.396Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:25:26.692Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:25:29.875Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:25:33.061Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:25:36.248Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:25:39.444Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:25:42.608Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:25:45.794Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:25:48.974Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:25:52.158Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "[2026-08-25T03:26:10.462Z] [ERROR] [ServiceWorker] Service Worker registration failed Object",
+      "timestamp": "2026-08-25T03:26:10.464Z",
+      "url": "https://localhost:3001/@vite/client"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:26:11.644Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:26:12.130Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:26:15.410Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:26:18.578Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:26:21.741Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:26:24.888Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:26:28.058Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:26:31.206Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:26:34.359Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:26:37.507Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:26:40.673Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "[2026-08-25T03:26:54.067Z] [ERROR] [ServiceWorker] Service Worker registration failed Object",
+      "timestamp": "2026-08-25T03:26:54.073Z",
+      "url": "https://localhost:3001/@vite/client"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:26:55.857Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:26:56.297Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "In HTML, %s cannot be a descendant of <%s>.\nThis will cause a hydration error.%s <div> p \n\n  ...\n    <div className=\"h-full min...\">\n      <EndowmentDrawer>\n      <Outlet context={{gardenId:\"...\"}}>\n        <RenderedRoute match={{...}} routeContext={{outlet:null, ...}}>\n          <GardenCommitment>\n            <CommitmentDetailShell onBack={function t2} title=\"Mulch the ...\" bar={null}>\n              <div className=\"flex h-ful...\">\n                <TopNav>\n                <div className=\"min-h-0 fl...\">\n                  <div className=\"space-y-4 ...\">\n                    <h1>\n                    <CommitmentIdentity commitment={{id:\"42161-...\", ...}} contributors={[...]} seat=\"provider\" ...>\n                      <section className=\"rounded-[v...\" data-component=\"Commitment...\" data-tone=\"kept\">\n                        <h2>\n                        <p>\n                        <div className=\"mt-2\">\n                          <Provenance commitment={{id:\"42161-...\", ...}}>\n>                           <p\n>                             className=\"flex flex-wrap items-center gap-1 text-xs text-text-sub-600\"\n>                             data-component=\"ConfirmProvenance\"\n>                             data-path=\"POOL_FALLBACK\"\n>                           >\n                              <AddressDisplay address=\"0xfbaf2a97...\" showCopyButton={false}>\n                                <div className=\"flex items...\">\n                                  <button>\n>                                 <div\n>                                   id=\"_r_1_\"\n>                                   popover=\"hint\"\n>                                   className=\"px-2 py-1 bg-bg-sub text-text-strong text-xs rounded whitespace-nowrap ...\"\n>                                   style={{inset:\"unset\",margin:\"unset\"}}\n>                                 >\n                              ...\n                      ...\n                    ...\n            ...\n",
+      "timestamp": "2026-08-25T03:26:56.465Z",
+      "url": "https://localhost:3001/@vite/client"
+    },
+    {
+      "level": "error",
+      "message": "<%s> cannot contain a nested %s.\nSee this log for the ancestor stack trace. p <div>",
+      "timestamp": "2026-08-25T03:26:56.465Z",
+      "url": "https://localhost:3001/@vite/client"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:26:59.558Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:27:02.705Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:27:05.900Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:27:09.078Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:27:12.249Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:27:15.408Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:27:18.575Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:27:21.727Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:27:22.109Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "[2026-08-25T03:27:43.238Z] [ERROR] [ServiceWorker] Service Worker registration failed Object",
+      "timestamp": "2026-08-25T03:27:43.242Z",
+      "url": "https://localhost:3001/@vite/client"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:27:44.632Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:27:45.030Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:27:48.325Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:27:51.489Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:27:54.653Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:27:57.841Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:28:01.026Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:28:04.187Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:28:07.356Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:28:10.526Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:28:13.748Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "[2026-08-25T03:28:28.235Z] [ERROR] [ServiceWorker] Service Worker registration failed Object",
+      "timestamp": "2026-08-25T03:28:28.238Z",
+      "url": "https://localhost:3001/@vite/client"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:28:29.461Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:28:29.896Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:28:40.330Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:28:43.576Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:28:47.940Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:29:00.021Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:29:06.256Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:29:11.056Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:29:11.340Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:29:16.824Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:29:17.106Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:29:17.390Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:29:23.686Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:29:33.690Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:30:03.780Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:30:07.275Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:30:07.556Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:30:16.539Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:30:25.574Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:30:25.875Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:30:26.157Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:30:32.854Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    },
+    {
+      "level": "error",
+      "message": "TypeError: Cannot read properties of null (reading 'value')\n    at HTMLDocument.handleClick (chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js:37:70)",
+      "timestamp": "2026-08-25T03:30:39.257Z",
+      "url": "chrome-extension://engndlnldodigdjamndkplafgmkkencc/content-script.js"
+    }
+  ]
+}

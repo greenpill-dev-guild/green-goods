@@ -244,7 +244,7 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
         address gardenAddress = gardenToken.mintGarden(config);
 
@@ -432,11 +432,9 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
 
         // Verify config stored
         (
-            address eas,
-            , // schemaRegistry
+            address eas,, // schemaRegistry
             address commToken,
-            address actReg,
-            , // gardTok
+            address actReg,, // gardTok
             , // workRes
             , // workAppRes
             , // assessmentRes
@@ -445,7 +443,7 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
             , // octantFactory
             , // unlockFactory
             , // hypercerts
-                // greenWill
+            // greenWill
         ) = deploymentRegistry.networks(chainId);
 
         assertEq(eas, config.eas);
@@ -459,12 +457,10 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
 
         // Verify config preserved
         (
-            address easAfter,
-            , // schemaRegistryAfter
+            address easAfter,, // schemaRegistryAfter
             address commTokenAfter,
             address actRegAfter,
-            address gardTokAfter,
-            , // workResAfter
+            address gardTokAfter,, // workResAfter
             , // workAppResAfter
             , // assessmentResAfter
             , // integrationRouterAfter
@@ -472,7 +468,7 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
             , // octantFactoryAfter
             , // unlockFactoryAfter
             , // hypercertsAfter
-                // greenWillAfter
+            // greenWillAfter
         ) = deploymentRegistry.networks(chainId);
 
         assertEq(easAfter, config.eas);

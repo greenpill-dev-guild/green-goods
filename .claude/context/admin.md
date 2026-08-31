@@ -2,14 +2,16 @@
 
 Loaded when working in `packages/admin/`. Extends CLAUDE.md.
 
-**Primary persona**: David (Operator). For tone guidance and UX constraints, see `.claude/context/product.md` § Persona & Tone Quick-Reference.
+**Primary persona**: David (Steward). For tone guidance and UX constraints, see `.claude/context/product.md` § Persona & Tone Quick-Reference.
+
+**Design routing**: surface authority `packages/admin/DESIGN.md` · package rules `packages/admin/AGENTS.md` · AI prompt procedure `.claude/skills/design/prompt-contract.md` · public explanation `docs/docs/builders/packages/admin.mdx`.
 
 ## Quick Reference
 
 | Command | Purpose |
 |---------|---------|
 | `bun run test` | Run tests (vitest) |
-| `bun build` | Build (includes TypeScript check) |
+| `bun run build` | Build (includes TypeScript check) |
 | `bun lint` | Lint with oxlint |
 | `bun dev` | Start dev server (via PM2 from root) |
 
@@ -28,9 +30,12 @@ packages/admin/src/
 │   ├── Action/     # Action configuration
 │   ├── Assessment/ # Assessment workflow steps
 │   ├── Garden/     # Garden management
-│   └── Layout/     # Dashboard layout
+│   ├── Layout/     # Canvas layout (CanvasRouteFrame, LeftInspectorDialog, ...)
+│   ├── Shell/      # Admin-owned shell forks: AppBar, MainSheet, NavigationBar (+ FAB)
+│   └── Admin*.tsx  # Top-level admin M3 wrappers (AdminButton, AdminDialog, AdminCard, ...)
+├── styles/          # admin-m3-tokens.css (tokens + Controlled Chrome), admin-m3-components.css (admin skins/motion)
 ├── views/           # Main views (lazy-loaded)
-├── routes/          # Route guards (RequireRole, DashboardShell)
+├── routes/          # CanvasShell.tsx + RequireRole.tsx
 ├── config.ts        # Admin configuration
 └── router.tsx       # Route configuration
 ```
@@ -46,7 +51,7 @@ Three user roles:
 | Role | Access | Source |
 |------|--------|--------|
 | **Deployer (Admin)** | Full access, create gardens | Hardcoded allowlist |
-| **Operator** | Assigned gardens only | Indexer query |
+| **Steward** | Assigned gardens only | Indexer query |
 | **User** | Unauthorized | Default |
 
 ### useRole Hook
@@ -55,10 +60,10 @@ Three user roles:
 import { useRole } from "@green-goods/shared";
 
 const {
-  role,           // "deployer" | "operator" | "user"
+  role,           // "deployer" | "steward" | "user"
   isDeployer,     // true if deployer
-  isOperator,     // true if operator OR deployer
-  operatorGardens, // Gardens this user operates
+  isSteward,     // true if steward OR deployer
+  stewardGardens, // Gardens this user operates
   loading,
 } = useRole();
 ```
@@ -80,22 +85,7 @@ if (!permissions.canRemoveMembers(garden)) {
 
 ### Route Guards
 
-```typescript
-// Route configuration
-<Route element={<RequireAuth />}>
-  <Route element={<DashboardShell />}>
-    {/* Admin-only */}
-    <Route element={<RequireDeployer />}>
-      <Route path="/deployment" element={<Deployment />} />
-    </Route>
-
-    {/* Admin + Operator */}
-    <Route element={<RequireOperatorOrDeployer />}>
-      <Route path="/gardens" element={<Gardens />} />
-    </Route>
-  </Route>
-</Route>
-```
+`routes/` contains exactly two route components: `CanvasShell.tsx` (the canvas shell route wrapper) and `RequireRole.tsx` (the role guard). `router.tsx` composes them — check it for the live nesting. The legacy `RequireAuth` / `DashboardShell` / `RequireDeployer` / `RequireOperatorOrDeployer` guards are deleted.
 
 ### Toast for All Transactions (MANDATORY)
 
@@ -119,38 +109,25 @@ await executeWithToast(
 );
 ```
 
-### Radix Dialog for Modals
+### AdminDialog for Modals
 
-Use Radix Dialog for all admin modals (form-based interactions):
+`AdminDialog` / `AdminConfirmDialog` are the only admin dialog path: 16px radius, level-2
+elevation over the 32% scrim, solid `--admin-surface-0`-family surface, bottom-sheet
+presentation on mobile. Pass the mounting workspace's `tone` prop — the portal escapes
+`[data-tone]` and the prop re-establishes it. Full-surface creation/commit flows use
+`variant="flow"` with `ADMIN_FLOW_DIALOG_CLASS`.
 
 ```typescript
-import * as Dialog from "@radix-ui/react-dialog";
+import { AdminDialog } from "@/components/AdminDialog";
 
-<Dialog.Root>
-  <Dialog.Trigger asChild>
-    <button>Add Member</button>
-  </Dialog.Trigger>
-
-  <Dialog.Portal>
-    <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
-    <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl p-6 max-w-md w-full z-50">
-      <Dialog.Title>Add Member</Dialog.Title>
-      <form onSubmit={handleSubmit}>
-        {/* Form fields */}
-      </form>
-      <Dialog.Close asChild>
-        <button aria-label="Close">✕</button>
-      </Dialog.Close>
-    </Dialog.Content>
-  </Dialog.Portal>
-</Dialog.Root>
+<AdminDialog open={open} onOpenChange={setOpen} title="Add member" tone="community"
+  actions={<AdminButton onClick={handleSubmit}>Save</AdminButton>}>
+  {/* form fields */}
+</AdminDialog>
 ```
 
-**Benefits over custom modals:**
-- Complete ARIA support
-- Focus management built-in
-- Portal rendering
-- Composable API
+Raw Radix Dialog is allowed only when neither wrapper fits — and it must still honor the
+dialog contract (scrim, pinned actions, accessible title/description, mobile safety).
 
 ### Form Validation with Zod
 
@@ -174,14 +151,14 @@ const { register, handleSubmit, formState } = useForm({
 
 ```typescript
 function GardensList() {
-  const { isDeployer, operatorGardens } = useRole();
+  const { isDeployer, stewardGardens } = useRole();
   const { data: allGardens } = useQuery({
     queryKey: ['gardens'],
     queryFn: getGardens,
     enabled: isDeployer,  // Only fetch all if admin
   });
 
-  const gardensToShow = isDeployer ? allGardens : operatorGardens;
+  const gardensToShow = isDeployer ? allGardens : stewardGardens;
 
   return (
     <div>
@@ -213,12 +190,12 @@ if (isDeployer) {
 
 ```typescript
 // ❌ Wrong — assuming user has permission
-async function removeOperator(gardenId, address) {
+async function removeSteward(gardenId, address) {
   await contract.removeOperator(address);
 }
 
 // ✅ Correct — check first
-async function removeOperator(garden, address) {
+async function removeSteward(garden, address) {
   const permissions = useGardenPermissions();
   if (!permissions.canRemoveMembers(garden)) {
     throw new Error('Unauthorized');
@@ -227,15 +204,15 @@ async function removeOperator(garden, address) {
 }
 ```
 
-### Never Expose All Data to Operators
+### Never Expose All Data to Stewards
 
 ```typescript
-// ❌ Wrong — showing all gardens to operators
+// ❌ Wrong — showing all gardens to stewards
 <GardensList gardens={allGardens} />
 
 // ✅ Correct — filter by permission
-const { isDeployer, operatorGardens } = useRole();
-<GardensList gardens={isDeployer ? allGardens : operatorGardens} />
+const { isDeployer, stewardGardens } = useRole();
+<GardensList gardens={isDeployer ? allGardens : stewardGardens} />
 ```
 
 ### Never Create Hooks in Admin
@@ -270,10 +247,10 @@ describe("Gardens View", () => {
     });
   });
 
-  it("shows only assigned gardens for operator", async () => {
+  it("shows only assigned gardens for steward", async () => {
     const { screen } = renderWithProviders(<Gardens />, {
-      userRole: "operator",
-      operatorGardens: ["garden-1"],
+      userRole: "steward",
+      stewardGardens: ["garden-1"],
     });
 
     await waitFor(() => {
@@ -287,16 +264,16 @@ describe("Gardens View", () => {
 
 - Role hooks: `@green-goods/shared` → `hooks/gardener/useRole.ts`
 - Permission hooks: `@green-goods/shared` → `hooks/garden/useGardenPermissions.ts`
-- Route guards: `routes/RequireAuth.tsx`, `RequireDeployer.tsx`, `RequireOperatorOrDeployer.tsx`
+- Route guards: `routes/CanvasShell.tsx`, `routes/RequireRole.tsx`
 - Toast action: `@green-goods/shared` → `hooks/app/useToastAction.ts`
 
 ## Documentation References (on-demand)
 
-Read these docs pages when you need operator workflow context or garden management details:
+Read these docs pages when you need steward workflow context or garden management details:
 
-- Garden setup guide: `docs/docs/operator/setup-garden.mdx`
-- Manage gardeners: `docs/docs/operator/manage-gardeners.mdx`
-- Review work submissions: `docs/docs/operator/review-work.mdx`
-- Configure actions: `docs/docs/operator/configure-actions.mdx`
-- Impact reporting: `docs/docs/operator/impact-reporting.mdx`
-- Operator getting started: `docs/docs/operator/getting-started.mdx`
+- Garden setup guide: `docs/docs/community/steward-guide/creating-a-garden.mdx`
+- Manage gardeners: `docs/docs/community/steward-guide/index.mdx`
+- Review work submissions: `docs/docs/community/steward-guide/reviewing-work.mdx`
+- Configure actions: `docs/docs/community/steward-guide/managing-actions.mdx`
+- Assessment and reporting context: `docs/docs/community/steward-guide/making-an-assessment.mdx`
+- Steward getting started: `docs/docs/community/steward-guide/index.mdx`

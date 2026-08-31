@@ -1,4 +1,5 @@
-import { type Address, adminRoutes } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useRouteBackedLeftSheetConfig } from "@/components/Layout";

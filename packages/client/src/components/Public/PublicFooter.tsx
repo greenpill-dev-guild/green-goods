@@ -1,6 +1,6 @@
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 
 type FooterLinkKind = "internal" | "external";
 
@@ -12,6 +12,32 @@ interface FooterLink {
 }
 
 const FOOTER_LINKS: readonly FooterLink[] = [
+  // Route wayfinding first: SiteHeader fades out below the fold, so the footer
+  // is the only nav affordance at the bottom of a public page.
+  {
+    to: "/gardens",
+    labelId: "public.footer.gardens",
+    defaultLabel: "Gardens",
+    kind: "internal",
+  },
+  {
+    to: "/impact",
+    labelId: "public.footer.impact",
+    defaultLabel: "Impact",
+    kind: "internal",
+  },
+  {
+    to: "/fund",
+    labelId: "public.footer.fund",
+    defaultLabel: "Fund",
+    kind: "internal",
+  },
+  {
+    to: "/actions",
+    labelId: "public.footer.actions",
+    defaultLabel: "Actions",
+    kind: "internal",
+  },
   {
     to: "/glossary",
     labelId: "public.footer.glossary",

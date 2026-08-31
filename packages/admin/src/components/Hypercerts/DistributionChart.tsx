@@ -1,4 +1,7 @@
-import { type Address, type AllowlistEntry, TOTAL_UNITS, useEnsName } from "@green-goods/shared";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { TOTAL_UNITS } from "@green-goods/shared/lib/hypercerts/constants";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { AllowlistEntry } from "@green-goods/shared/types/hypercerts";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
@@ -106,9 +109,12 @@ export function DistributionChart({
             innerRadius={size * 0.3}
             outerRadius={size * 0.45}
             dataKey="value"
-            label={({ percentage }) =>
-              percentage >= OTHERS_THRESHOLD ? `${percentage.toFixed(1)}%` : undefined
-            }
+            label={({ payload }) => {
+              const percentage = (payload as ChartDataItem | undefined)?.percentage;
+              return percentage !== undefined && percentage >= OTHERS_THRESHOLD
+                ? `${percentage.toFixed(1)}%`
+                : undefined;
+            }}
             labelLine={false}
           >
             {chartData.map((entry, index) => (
@@ -123,7 +129,7 @@ export function DistributionChart({
               if (!active || !payload?.length) return null;
               const data = payload[0].payload as ChartDataItem;
               return (
-                <div className="rounded-lg border border-stroke-soft bg-bg-white p-2 shadow-md">
+                <div className="rounded-lg border border-stroke-soft bg-bg-white p-2 shadow-[var(--m3-elevation-2)]">
                   <p className="text-sm font-medium text-text-strong">
                     <DistributionTooltipTitle data={data} />
                   </p>

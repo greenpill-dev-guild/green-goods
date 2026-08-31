@@ -2,8 +2,8 @@
 /**
  * check-react-patterns.js
  *
- * Lint executor for `.claude/rules/react-patterns.md` and
- * `.claude/rules/typescript.md` rules that oxlint cannot express directly.
+ * Lint executor for repository source-pattern and package-boundary rules that
+ * oxlint cannot express directly.
  *
  * Modeled on `scripts/quality/check-source-structure.js` and
  * `scripts/design/check-vocab.sh`. Regex-based — AST is overkill for v1.
@@ -16,6 +16,9 @@
  *  - Rule 11  undeclared `@green-goods/shared/...` imports
  *  - Rule 13  raw Tailwind palette colors (frontend-design Rule 13)
  *  - Rule 16  inline alert-style divs that should use shared <Alert /> (frontend Rule 16)
+ *  - Architecture: declared internal-package direction and package-level cycles
+ *  - Architecture: shared export targets and consumer imports
+ *  - Architecture: exported client/admin hooks stay in shared unless explicitly local
  *
  * Modes:
  *   --report          emit JSON for blocking and heuristic advisory rules
@@ -31,6 +34,29 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "../..");
 const baselinePath = resolve(repoRoot, "scripts/quality/data/lint-rules-baseline.json");
 const sharedPackagePath = resolve(repoRoot, "packages/shared/package.json");
+
+// Package-level dependency direction only. This deliberately does not claim to
+// detect file-level TypeScript cycles; doing that reliably requires module
+// resolution/AST tooling. Keep the allowed edges explicit so architecture
+// changes are reviewed instead of silently widening the graph.
+const PACKAGE_DEPENDENCY_POLICY = {
+  contracts: [],
+  shared: ["contracts"],
+  indexer: [],
+  client: ["shared"],
+  admin: ["shared"],
+  agent: ["shared"],
+  // Internal QA tooling, deliberately dependency-free: it reads the test
+  // catalog from disk at build time rather than importing a package, so it can
+  // never drag product code into a tool nobody ships to users.
+  qa: [],
+};
+
+// This channel is an admin-shell implementation detail: its hooks coordinate
+// components inside one package and are not reusable domain/application hooks.
+const LOCAL_EXPORTED_HOOK_EXCEPTIONS = new Set([
+  "packages/admin/src/components/Layout/leftSheetChannel.tsx",
+]);
 
 // Regex heuristics stay available in --report mode for cleanup analysis without
 // flooding normal lint output. Only deterministic rules belong in the blocking gate.
@@ -92,6 +118,9 @@ const DECLARED_SHARED_IMPORTS = new Set(
 );
 const SHARED_IMPORT_PATTERN =
   /(?:from\s+|import\s*\(\s*|import\s+)["'](@green-goods\/shared(?:\/[^"']+)?)['"]/g;
+
+const INTERNAL_PACKAGE_IMPORT_PATTERN =
+  /(?:from\s+|import\s*\(\s*|import\s+)["'](@green-goods\/([a-z0-9-]+)(?:\/[^"']+)?)["']/g;
 
 function extractSharedImportPaths(line) {
   SHARED_IMPORT_PATTERN.lastIndex = 0;
@@ -179,6 +208,251 @@ function listFiles(scopes) {
 
 function readFile(filePath) {
   return readFileSync(resolve(repoRoot, filePath), "utf8");
+}
+
+export function extractInternalPackageImports(source) {
+  const lines = source.split("\n");
+  INTERNAL_PACKAGE_IMPORT_PATTERN.lastIndex = 0;
+  const imports = [];
+
+  for (const match of source.matchAll(INTERNAL_PACKAGE_IMPORT_PATTERN)) {
+    const line = source.slice(0, match.index).split("\n").length;
+    if (/^\s*(\/\/|\*|\/\*)/.test(lines[line - 1] ?? "")) continue;
+    imports.push({ importPath: match[1], target: match[2], line });
+  }
+
+  return imports;
+}
+
+export function findDirectedCycles(graph) {
+  const state = new Map();
+  const stack = [];
+  const cycles = new Map();
+
+  function visit(node) {
+    state.set(node, "visiting");
+    stack.push(node);
+
+    for (const dependency of graph[node] ?? []) {
+      if (state.get(dependency) === "visiting") {
+        const cycle = stack.slice(stack.indexOf(dependency));
+        const rotations = cycle.map((_, index) => [...cycle.slice(index), ...cycle.slice(0, index)]);
+        const canonical = rotations.map((entry) => entry.join(" -> ")).sort()[0];
+        cycles.set(canonical, [...canonical.split(" -> "), canonical.split(" -> ")[0]]);
+        continue;
+      }
+      if (!state.has(dependency)) visit(dependency);
+    }
+
+    stack.pop();
+    state.set(node, "visited");
+  }
+
+  for (const node of Object.keys(graph).sort()) {
+    if (!state.has(node)) visit(node);
+  }
+
+  return Array.from(cycles.values());
+}
+
+function internalDependencyEntries(manifest) {
+  const entries = [];
+  const sections = [
+    "dependencies",
+    "devDependencies",
+    "peerDependencies",
+    "optionalDependencies",
+  ];
+  for (const section of sections) {
+    for (const dependency of Object.keys(manifest[section] ?? {})) {
+      if (dependency.startsWith("@green-goods/")) entries.push({ dependency, section });
+    }
+  }
+  return entries;
+}
+
+export function findPackageArchitectureViolations(records) {
+  const hits = [];
+  const packageNameToDirectory = new Map(
+    records.map((record) => [record.manifest.name, record.directory]),
+  );
+  const graph = Object.fromEntries(records.map((record) => [record.directory, []]));
+
+  for (const record of records) {
+    if (!Object.hasOwn(PACKAGE_DEPENDENCY_POLICY, record.directory)) {
+      hits.push({
+        rule: "architecture-ungoverned-package",
+        file: `packages/${record.directory}/package.json`,
+        line: 1,
+        snippet: `${record.directory} is missing from PACKAGE_DEPENDENCY_POLICY`,
+      });
+    }
+    const allowed = new Set(PACKAGE_DEPENDENCY_POLICY[record.directory] ?? []);
+    const productionDependencies = new Set([
+      ...Object.keys(record.manifest.dependencies ?? {}),
+      ...Object.keys(record.manifest.peerDependencies ?? {}),
+      ...Object.keys(record.manifest.optionalDependencies ?? {}),
+    ]);
+
+    for (const { dependency, section } of internalDependencyEntries(record.manifest)) {
+      const targetDirectory = packageNameToDirectory.get(dependency);
+      if (!targetDirectory) {
+        hits.push({
+          rule: "architecture-unknown-internal-package",
+          file: `packages/${record.directory}/package.json`,
+          line: 1,
+          snippet: `${section} declares unknown internal package ${dependency}`,
+        });
+        continue;
+      }
+
+      graph[record.directory].push(targetDirectory);
+      if (!allowed.has(targetDirectory)) {
+        hits.push({
+          rule: "architecture-package-direction",
+          file: `packages/${record.directory}/package.json`,
+          line: 1,
+          snippet: `${record.directory} -> ${targetDirectory} is not an allowed package dependency`,
+        });
+      }
+    }
+
+    for (const sourceImport of record.sourceImports) {
+      const targetDirectory = packageNameToDirectory.get(`@green-goods/${sourceImport.target}`);
+      if (!targetDirectory) {
+        hits.push({
+          rule: "architecture-unknown-internal-package",
+          file: sourceImport.file,
+          line: sourceImport.line,
+          snippet: sourceImport.importPath,
+        });
+        continue;
+      }
+      // Package self-import aliases are an intra-package module-shape concern,
+      // not an edge in the cross-package dependency graph governed here.
+      if (targetDirectory === record.directory) continue;
+      if (!allowed.has(targetDirectory)) {
+        hits.push({
+          rule: "architecture-package-direction",
+          file: sourceImport.file,
+          line: sourceImport.line,
+          snippet: `${record.directory} source imports ${sourceImport.importPath}`,
+        });
+        continue;
+      }
+      if (!productionDependencies.has(`@green-goods/${sourceImport.target}`)) {
+        hits.push({
+          rule: "architecture-undeclared-package-import",
+          file: sourceImport.file,
+          line: sourceImport.line,
+          snippet: `${sourceImport.importPath} is not declared in dependencies`,
+        });
+      }
+    }
+  }
+
+  for (const cycle of findDirectedCycles(graph)) {
+    hits.push({
+      rule: "architecture-package-cycle",
+      file: "packages/*/package.json",
+      line: 1,
+      snippet: cycle.join(" -> "),
+    });
+  }
+
+  return hits;
+}
+
+function exportTargetStrings(value) {
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value.flatMap(exportTargetStrings);
+  if (value && typeof value === "object") return Object.values(value).flatMap(exportTargetStrings);
+  return [];
+}
+
+export function findSharedExportTargetViolations(
+  exportsMap,
+  { packageRoot = resolve(repoRoot, "packages/shared"), fileExists = existsSync } = {},
+) {
+  const hits = [];
+  for (const [exportPath, value] of Object.entries(exportsMap ?? {})) {
+    const targets = exportTargetStrings(value);
+    if (targets.length === 0) {
+      hits.push({
+        rule: "architecture-shared-export-target",
+        file: "packages/shared/package.json",
+        line: 1,
+        snippet: `${exportPath} has no filesystem target`,
+      });
+      continue;
+    }
+    for (const target of targets) {
+      const absoluteTarget = resolve(packageRoot, target);
+      const relativeTarget = relative(packageRoot, absoluteTarget);
+      if (
+        !target.startsWith("./") ||
+        relativeTarget.startsWith("..") ||
+        !fileExists(absoluteTarget)
+      ) {
+        hits.push({
+          rule: "architecture-shared-export-target",
+          file: "packages/shared/package.json",
+          line: 1,
+          snippet: `${exportPath} points to missing or external target ${target}`,
+        });
+      }
+    }
+  }
+  return hits;
+}
+
+export function extractExportedHookNames(source) {
+  const names = [];
+  const lines = source.split("\n");
+  const pattern = /\bexport\s+(?:(?:async\s+)?function|const)\s+(use[A-Z][A-Za-z0-9_]*)\b/g;
+  for (const match of source.matchAll(pattern)) {
+    const line = source.slice(0, match.index).split("\n").length;
+    if (/^\s*(\/\/|\*|\/\*)/.test(lines[line - 1] ?? "")) continue;
+    names.push({ name: match[1], line });
+  }
+  return names;
+}
+
+function gatherArchitectureHits() {
+  const packageDirectories = readdirSync(resolve(repoRoot, "packages"), { withFileTypes: true })
+    .filter(
+      (entry) =>
+        entry.isDirectory() && existsSync(resolve(repoRoot, "packages", entry.name, "package.json")),
+    )
+    .map((entry) => entry.name)
+    .sort();
+  const records = packageDirectories.map((directory) => {
+    const manifest = JSON.parse(readFile(`packages/${directory}/package.json`));
+    const sourceImports = [];
+    for (const file of listFiles([`packages/${directory}/src`])) {
+      for (const sourceImport of extractInternalPackageImports(readFile(file))) {
+        sourceImports.push({ ...sourceImport, file });
+      }
+    }
+    return { directory, manifest, sourceImports };
+  });
+
+  const hits = findPackageArchitectureViolations(records);
+  hits.push(...findSharedExportTargetViolations(sharedPackage.exports));
+
+  for (const file of listFiles(["packages/client/src", "packages/admin/src"])) {
+    if (LOCAL_EXPORTED_HOOK_EXCEPTIONS.has(file)) continue;
+    for (const hook of extractExportedHookNames(readFile(file))) {
+      hits.push({
+        rule: "architecture-exported-consumer-hook",
+        file,
+        line: hook.line,
+        snippet: `${hook.name} must live in packages/shared/src/hooks or be an explicit local exception`,
+      });
+    }
+  }
+
+  return hits;
 }
 
 // ---------------- rule scanners ----------------
@@ -455,15 +729,8 @@ function writeBaseline(allHits) {
 
 // ---------------- main ----------------
 
-const args = process.argv.slice(2);
-const mode = args.includes("--baseline-write")
-  ? "baseline-write"
-  : args.includes("--report")
-    ? "report"
-    : "lint";
-
 function gatherAllHits({ includeAdvisory = true } = {}) {
-  const allHits = [];
+  const allHits = gatherArchitectureHits();
   const fileLists = {};
   const enabledRules = includeAdvisory ? Object.keys(SCOPES) : BLOCKING_RULES;
 
@@ -490,48 +757,62 @@ function summarize(hits) {
   return byRule;
 }
 
-if (mode === "report") {
-  const hits = gatherAllHits();
-  const summary = summarize(hits);
-  console.log(JSON.stringify({ summary, total: hits.length, hits }, null, 2));
-  process.exit(0);
-}
+export function main(argv = process.argv.slice(2)) {
+  const selectedMode = argv.includes("--baseline-write")
+    ? "baseline-write"
+    : argv.includes("--report")
+      ? "report"
+      : "lint";
 
-if (mode === "baseline-write") {
-  const hits = gatherAllHits();
-  const baseline = writeBaseline(hits);
-  const summary = summarize(hits);
-  console.log("Baseline written:", baselinePath);
-  console.log("Per-rule counts:");
-  for (const [rule, count] of Object.entries(summary)) {
-    console.log(`  ${rule}: ${count}`);
+  if (selectedMode === "report") {
+    const hits = gatherAllHits();
+    const summary = summarize(hits);
+    console.log(JSON.stringify({ summary, total: hits.length, hits }, null, 2));
+    return 0;
   }
-  console.log(`Total: ${hits.length}`);
-  process.exit(0);
-}
 
-// Lint mode.
-const allHits = gatherAllHits({ includeAdvisory: false });
-
-if (allHits.length > 0) {
-  console.error(`\n❌ check-react-patterns: ${allHits.length} blocking violation(s):`);
-  for (const e of allHits) {
-    console.error(`  ${e.rule} ${e.file}:${e.line}`);
-    console.error(`    ${e.snippet}`);
+  if (selectedMode === "baseline-write") {
+    const hits = gatherAllHits();
+    writeBaseline(hits);
+    const summary = summarize(hits);
+    console.log("Baseline written:", baselinePath);
+    console.log("Per-rule counts:");
+    for (const [rule, count] of Object.entries(summary)) {
+      console.log(`  ${rule}: ${count}`);
+    }
+    console.log(`Total: ${hits.length}`);
+    return 0;
   }
-}
 
-if (allHits.length === 0) {
+  const allHits = gatherAllHits({ includeAdvisory: false });
+
+  if (allHits.length > 0) {
+    console.error(`\n❌ check-react-patterns: ${allHits.length} blocking violation(s):`);
+    for (const hit of allHits) {
+      console.error(`  ${hit.rule} ${hit.file}:${hit.line}`);
+      console.error(`    ${hit.snippet}`);
+    }
+    console.error(
+      "\nRemediation: use a declared shared export, keep internal package dependencies within the explicit direction policy, move reusable exported hooks to shared, or document a narrow intentional exception in this checker.",
+    );
+  } else {
+    console.log(
+      `✅ check-react-patterns: 0 blocking violations across ${BLOCKING_RULES.size} source-pattern rules plus package/export/hook boundary checks.`,
+    );
+  }
+
   console.log(
-    `✅ check-react-patterns: 0 blocking violations across ${BLOCKING_RULES.size} high-confidence rules.`,
+    "Heuristic cleanup rules are quiet in lint mode; use --report for advisory analysis.",
   );
+
+  console.log("\nRule sources:");
+  console.log("  .claude/rules/react-patterns.md  (Rules 1, 2, 6)");
+  console.log("  .claude/rules/typescript.md      (Rules 5, 11)");
+  console.log("  .claude/rules/frontend-design.md (Rules 13, 16)");
+  console.log("  scripts/quality/check-react-patterns.js (package/export/hook boundaries)");
+
+  return allHits.length > 0 ? 1 : 0;
 }
 
-console.log("Heuristic cleanup rules are quiet in lint mode; use --report for advisory analysis.");
-
-console.log("\nRule sources:");
-console.log("  .claude/rules/react-patterns.md  (Rules 1, 2, 6)");
-console.log("  .claude/rules/typescript.md      (Rules 5, 11)");
-console.log("  .claude/rules/frontend-design.md (Rules 13, 16)");
-
-process.exit(allHits.length > 0 ? 1 : 0);
+const isDirectRun = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isDirectRun) process.exit(main());

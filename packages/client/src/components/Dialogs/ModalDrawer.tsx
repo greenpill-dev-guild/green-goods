@@ -1,8 +1,11 @@
-import { cn, useFocusTrap, useTimeout } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
+import { useFocusTrap } from "@green-goods/shared/hooks/utils/useFocusTrap";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { RiCloseLine } from "@remixicon/react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { getPwaDrawerCloseDelayMs, pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
+import { getPwaDrawerCloseDelayMs, pwaDrawerStyles } from "@/components/Pwa/drawerStyles";
 
 export interface ModalDrawerTab {
   id: string;
@@ -53,27 +56,49 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
   const { formatMessage } = useIntl();
   const [isClosing, setIsClosing] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
-  const { set: scheduleTimeout } = useTimeout();
+  const closeCompletedRef = useRef(false);
+  const { set: scheduleTimeout, clear: clearCloseTimeout } = useTimeout();
 
-  // Prevent background scrolling when modal is open
-  useEffect(() => {
-    if (!isOpen) return;
-    document.documentElement.classList.add("modal-open");
-    return () => {
-      document.documentElement.classList.remove("modal-open");
-    };
-  }, [isOpen]);
+  useDocumentScrollLock(isOpen && !isClosing);
 
   // Focus trap: keep Tab/Shift+Tab cycling within the dialog
-  useFocusTrap(dialogRef, { enabled: isOpen });
+  useFocusTrap(dialogRef, { enabled: isOpen && !isClosing });
+
+  useEffect(() => {
+    if (isOpen && !isClosing) closeCompletedRef.current = false;
+  }, [isClosing, isOpen]);
+
+  const finishClose = useCallback(() => {
+    if (closeCompletedRef.current) return;
+    closeCompletedRef.current = true;
+    clearCloseTimeout();
+    setIsClosing(false);
+    onClose();
+  }, [clearCloseTimeout, onClose]);
 
   const handleClose = () => {
+    if (isClosing) return;
+    closeCompletedRef.current = false;
     setIsClosing(true);
-    scheduleTimeout(() => {
-      setIsClosing(false);
-      onClose();
-    }, getPwaDrawerCloseDelayMs());
+    scheduleTimeout(finishClose, getPwaDrawerCloseDelayMs());
   };
+
+  useEffect(() => {
+    if (!isClosing) return;
+
+    const handlePageHide = () => finishClose();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") finishClose();
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [finishClose, isClosing]);
 
   if (!isOpen && !isClosing) return null;
 
@@ -106,7 +131,15 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
         onTouchStart={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopPropagation();
+            handleClose();
+            return;
+          }
+          e.stopPropagation();
+        }}
         role="dialog"
         aria-modal="true"
         data-testid="modal-drawer"

@@ -5,7 +5,7 @@
  * that feed both the tab-rail badges and the header MetaStrip are derived from
  * the *unfiltered* works/assessments/hypercerts, independent of any active
  * search term. Reading the search-filtered queue lengths in the header made the
- * two disagree whenever an operator searched; this pins the unfiltered contract.
+ * two disagree whenever a steward searched; this pins the unfiltered contract.
  */
 
 import { describe, expect, it } from "vitest";
@@ -13,6 +13,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildHubStageModel,
   resolveHubRouteState,
+  resolveHubSheetSelection,
+  selectHubStageContent,
 } from "../../../hooks/admin-ui/hub/hub.workbenchModel";
 
 const baseInput = {
@@ -20,7 +22,6 @@ const baseInput = {
   canManage: true,
   canAssess: true,
   canCertify: true,
-  canBrowseHistory: true,
 };
 
 describe("buildHubStageModel stageCounts", () => {
@@ -35,11 +36,10 @@ describe("buildHubStageModel stageCounts", () => {
     expect(stageCounts.work).toBe(2); // two pending submissions
     expect(stageCounts.assess).toBe(1); // one approved submission awaiting assessment
     expect(stageCounts.certify).toBe(2); // three assessments minus one already certified
-    expect(stageCounts.history).toBeUndefined();
   });
 
   it("reports the full pipeline regardless of which stage is requested", () => {
-    // The header summary must report every stage even when the operator is
+    // The header summary must report every stage even when the steward is
     // viewing a single one — the counts are not scoped to requestedStage.
     const { stageCounts } = buildHubStageModel({
       ...baseInput,
@@ -52,6 +52,92 @@ describe("buildHubStageModel stageCounts", () => {
     expect(stageCounts.work).toBe(1);
     expect(stageCounts.assess).toBe(2);
     expect(stageCounts.certify).toBe(1);
+  });
+
+  it("counts the Confirm stage from the confirmation queue and shows it only to a steward", () => {
+    const steward = buildHubStageModel({
+      ...baseInput,
+      canConfirm: true,
+      confirmCount: 3,
+      works: [],
+      assessments: [],
+      hypercerts: [],
+    });
+    expect(steward.stageCounts.confirm).toBe(3);
+    expect(steward.stageVisibility.confirm).toBe(true);
+    expect(steward.stages.map((stage) => stage.id)).toEqual([
+      "confirm",
+      "work",
+      "assess",
+      "certify",
+    ]);
+
+    const evaluator = buildHubStageModel({
+      ...baseInput,
+      canManage: false,
+      canConfirm: false,
+      confirmCount: 3,
+      requestedStage: "confirm",
+      works: [],
+      assessments: [],
+      hypercerts: [],
+    });
+    expect(evaluator.stageVisibility.confirm).toBe(false);
+    // A stage the reader cannot see clamps to a visible one, never to an empty Confirm.
+    expect(evaluator.stage).not.toBe("confirm");
+  });
+});
+
+describe("Hub workbench routing policy", () => {
+  it.each([
+    "work",
+    "assess",
+    "confirm",
+    "certify",
+  ] as const)("routes the %s stage to its matching queue", (stage) => {
+    expect(selectHubStageContent(stage)).toBe(stage);
+  });
+
+  it("prioritizes a route-backed work inspector over persisted selection", () => {
+    expect(
+      resolveHubSheetSelection({
+        routeWorkId: "route-work",
+        routeCertificationId: "certification",
+        activeWorkDetailId: "active-work",
+        hasSelectedCertification: true,
+      })
+    ).toEqual({ kind: "work", id: "route-work" });
+  });
+
+  it("falls back from route work to the active work detail", () => {
+    expect(
+      resolveHubSheetSelection({
+        activeWorkDetailId: "active-work",
+        hasSelectedCertification: true,
+      })
+    ).toEqual({ kind: "work", id: "active-work" });
+  });
+
+  it.each([
+    ["certification route", { routeCertificationId: "certification" }, "certification"],
+    ["selected certification", { hasSelectedCertification: true }, "certification"],
+  ] as const)("resolves a %s inspector", (_label, overrides, kind) => {
+    expect(
+      resolveHubSheetSelection({
+        activeWorkDetailId: null,
+        hasSelectedCertification: false,
+        ...overrides,
+      })
+    ).toEqual({ kind });
+  });
+
+  it("returns no inspector without route or selection state", () => {
+    expect(
+      resolveHubSheetSelection({
+        activeWorkDetailId: null,
+        hasSelectedCertification: false,
+      })
+    ).toBeNull();
   });
 });
 
@@ -70,7 +156,6 @@ describe("Hub create-route stage resolution (two-click investigation)", () => {
       sortParam: null,
       routedWorkIdParam: undefined,
       routedAssessmentIdParam: undefined,
-      routedHistoryEventIdParam: undefined,
       activeContentId: null,
     });
 
@@ -80,30 +165,28 @@ describe("Hub create-route stage resolution (two-click investigation)", () => {
     expect(s.routeSheetContentId).toBeNull();
   });
 
-  it("does NOT diverge stage from requestedStage when the operator can assess (no redirect)", () => {
+  it("does NOT diverge stage from requestedStage when the steward can assess (no redirect)", () => {
     const { stage } = buildHubStageModel({
       requestedStage: "assess",
       canManage: true,
       canAssess: true,
       canCertify: true,
-      canBrowseHistory: true,
       works: [],
       assessments: [],
       hypercerts: [],
     });
     // stage === requestedStage → the effect's `requestedStage === stage` guard
-    // returns early → no redirect. So a permitted operator does NOT hit the
+    // returns early → no redirect. So a permitted steward does NOT hit the
     // stripping mechanism — the two-click cause for them lies elsewhere.
     expect(stage).toBe("assess");
   });
 
-  it("clamps stage to a visible fallback when the operator cannot assess (a legitimate permission redirect, not the two-click bug)", () => {
+  it("clamps stage to a visible fallback when the steward cannot assess (a legitimate permission redirect, not the two-click bug)", () => {
     const { stage } = buildHubStageModel({
       requestedStage: "assess",
       canManage: true,
       canAssess: false,
       canCertify: true,
-      canBrowseHistory: true,
       works: [],
       assessments: [],
       hypercerts: [],

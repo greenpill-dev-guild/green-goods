@@ -34,15 +34,15 @@ export function CampaignGardenSection(props: CampaignCookieJarCreateFormProps) {
         setSearch={setGardenSearch}
         listClassName="overflow-visible"
       />
-      {aggregation.missingOperatorGardens.length > 0 ? (
+      {aggregation.missingStewardGardens.length > 0 ? (
         <p className="mt-3 text-body-sm text-[rgb(var(--m3-error))]">
           {formatMessage(
             {
-              id: "cockpit.community.cookies.missingOperatorsSummary",
+              id: "cockpit.community.cookies.missingStewardsSummary",
               defaultMessage:
-                "{count, plural, one {# selected garden has no operator} other {# selected gardens have no operator}}.",
+                "{count, plural, one {# selected garden has no steward} other {# selected gardens have no steward}}.",
             },
-            { count: aggregation.missingOperatorGardens.length }
+            { count: aggregation.missingStewardGardens.length }
           )}
         </p>
       ) : null}

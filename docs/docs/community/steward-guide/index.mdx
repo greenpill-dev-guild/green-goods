@@ -1,0 +1,35 @@
+---
+title: Steward and Evaluator Guide
+sidebar_label: Steward and Evaluator Guide
+slug: /community/steward-guide/
+description: "Create and operate a Garden, assess its needs, review Work, certify impact, and manage funding."
+audience: steward
+owner: docs
+last_verified: 2026-08-30
+feature_status: Live
+goal: "Route stewards and evaluators to the current authorized workflow."
+difficulty: "standard"
+estimated_time: "Varies by flow."
+prereqs: "An account with the role required by the selected action."
+next_steps: "./creating-a-garden"
+persona_context: "Stewards operate Gardens; evaluators strengthen Assessments and impact methodology."
+source_of_truth:
+  - packages/admin/src/router.tsx
+  - packages/admin/src/views
+  - packages/shared/src/hooks/garden/useGardenPermissions.ts
+  - packages/contracts/src/resolvers/WorkApproval.sol
+  - packages/contracts/src/resolvers/Assessment.sol
+---
+
+# Steward and Evaluator Guide
+
+Stewards operate the Garden and record approval or rejection of submitted Work. Evaluators can help author or strengthen Assessments, methods, and impact claims; they do not approve Work.
+
+- [Create a Garden](/community/steward-guide/creating-a-garden) when you have deployer authority.
+- [Manage Actions](/community/steward-guide/managing-actions) to define the work Gardeners can document.
+- [Create an Assessment](/community/steward-guide/making-an-assessment) to record baseline, outcome, and reporting context.
+- [Review Work](/community/steward-guide/reviewing-work) as a steward and leave actionable feedback.
+- [Mint an Impact Certificate](/community/steward-guide/creating-impact-certificates) only after the evidence chain is ready.
+- [Manage Funding and Governance](/community/steward-guide/funding-and-governance) through the mechanism that fits the decision.
+
+Check the selected Garden, account, role, and network before any write action. A visible route does not by itself grant permission.

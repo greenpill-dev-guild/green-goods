@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 900 900" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="offer-continues-title offer-continues-desc">
+  <title id="offer-continues-title">The Offer that continues</title>
+  <desc id="offer-continues-desc">Five layers read top to bottom. A person saves reusable Offer details as private signed offchain data. Offering it over time in one garden creates a pool-scoped ongoing Offer. The ongoing Offer opens a finite number of available places. Each place is an ordinary immutable commitment with its own lifecycle. The Story groups those records with exact counts and is never a score.</desc>
+  <rect x="0" y="0" width="900" height="900" fill="#FBF8F2"/>
+
+  <text x="450" y="46" text-anchor="middle" font-size="32" font-weight="700" fill="#2A2722">The Offer that continues</text>
+  <text x="450" y="76" text-anchor="middle" font-size="17" fill="#6E6857">One noun, used two ways. Offer it once, or offer it over time in one garden.</text>
+
+  <!-- Layer 1 · person + saved offer details (offchain) -->
+  <g>
+    <rect x="90" y="108" width="720" height="112" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+    <text x="118" y="140" font-size="14" font-weight="700" fill="#8A6D3B" letter-spacing="1.2">SIGNED OFFCHAIN · PRIVATE · REUSABLE</text>
+    <text x="118" y="171" font-size="21" font-weight="600" fill="#3B372E">Saved details — &#8220;hosting climate workshops&#8221;</text>
+    <text x="118" y="197" font-size="16" fill="#6E6857">Reusable input to either path. No obligation. They follow you to a new phone.</text>
+  </g>
+  <path d="M450 220 L450 252" stroke="#4C7A57" stroke-width="2.5" fill="none" marker-end="url(#ar)"/>
+  <text x="466" y="243" font-size="15" fill="#4C6B54">you choose: once, or over time</text>
+
+  <!-- Layer 2 · ongoing Offer — CommitmentSeries (module) -->
+  <g>
+    <rect x="90" y="258" width="720" height="112" rx="12" fill="#FFFFFF" stroke="#4C7A57" stroke-width="2.5"/>
+    <text x="118" y="290" font-size="14" font-weight="700" fill="#24422E" letter-spacing="1.2">POOLING MODULE · ONE POOL ONLY · &#8220;OFFER OVER TIME&#8221;</text>
+    <text x="118" y="321" font-size="21" font-weight="600" fill="#3B372E">Ongoing Offer in Rocinha Community Garden</text>
+    <text x="118" y="347" font-size="16" fill="#6E6857">Internally a CommitmentSeries. Active, Resting, or Retired. Another garden means another one.</text>
+  </g>
+  <path d="M450 370 L450 402" stroke="#4C7A57" stroke-width="2.5" fill="none" marker-end="url(#ar)"/>
+  <text x="466" y="393" font-size="15" fill="#4C6B54">you open a finite number of places</text>
+
+  <!-- Layer 3 · available places -->
+  <g>
+    <rect x="90" y="408" width="720" height="128" rx="12" fill="#F1ECE2" stroke="#4C7A57" stroke-width="2.5"/>
+    <text x="118" y="440" font-size="14" font-weight="700" fill="#24422E" letter-spacing="1.2">AVAILABLE PLACES · CAPACITY ALREADY RESERVED</text>
+    <rect x="118" y="456" width="200" height="60" rx="10" fill="#FFFFFF" stroke="#4C7A57" stroke-width="2"/>
+    <text x="218" y="482" text-anchor="middle" font-size="17" font-weight="600" fill="#3B372E">Session 1</text>
+    <text x="218" y="503" text-anchor="middle" font-size="15" fill="#6E6857">Offered</text>
+    <rect x="350" y="456" width="200" height="60" rx="10" fill="#FFFFFF" stroke="#4C7A57" stroke-width="2"/>
+    <text x="450" y="482" text-anchor="middle" font-size="17" font-weight="600" fill="#3B372E">Session 2</text>
+    <text x="450" y="503" text-anchor="middle" font-size="15" fill="#6E6857">Offered</text>
+    <rect x="582" y="456" width="200" height="60" rx="10" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+    <text x="682" y="482" text-anchor="middle" font-size="17" font-weight="600" fill="#3B372E">Session 3</text>
+    <text x="682" y="503" text-anchor="middle" font-size="15" fill="#6E6857">taken up by João</text>
+  </g>
+  <path d="M450 536 L450 568" stroke="#4C7A57" stroke-width="2.5" fill="none" marker-end="url(#ar)"/>
+  <text x="466" y="559" font-size="15" fill="#4C6B54">a claim accepts one place — it never creates one</text>
+
+  <!-- Layer 4 · instances -->
+  <g>
+    <rect x="90" y="574" width="720" height="104" rx="12" fill="#FFFFFF" stroke="#4C7A57" stroke-width="2.5"/>
+    <text x="118" y="606" font-size="14" font-weight="700" fill="#24422E" letter-spacing="1.2">ORDINARY COMMITMENT INSTANCES · IMMUTABLE</text>
+    <text x="118" y="637" font-size="19" font-weight="600" fill="#3B372E">Each place keeps its own evidence, confirmation, and terminal state</text>
+    <text x="118" y="662" font-size="16" fill="#6E6857">Nothing about the ongoing Offer rewrites a record that already happened.</text>
+  </g>
+  <path d="M450 678 L450 710" stroke="#4C7A57" stroke-width="2.5" fill="none" marker-end="url(#ar)"/>
+
+  <!-- Layer 5 · story -->
+  <g>
+    <rect x="90" y="716" width="720" height="104" rx="12" fill="#DFEBDE" stroke="#24422E" stroke-width="2.5"/>
+    <text x="118" y="748" font-size="14" font-weight="700" fill="#24422E" letter-spacing="1.2">INDEXED STORY · EXACT COUNTS ONLY</text>
+    <text x="118" y="779" font-size="21" font-weight="600" fill="#24422E">Kept 12 times across 5 cycles</text>
+    <text x="118" y="804" font-size="16" fill="#3E5C41">Withdrawn and reviewed-then-kept records stay visible. Never a rate or a ranking.</text>
+  </g>
+
+  <text x="450" y="868" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-08)</text>
+
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4C7A57"/>
+    </marker>
+  </defs>
+</svg>

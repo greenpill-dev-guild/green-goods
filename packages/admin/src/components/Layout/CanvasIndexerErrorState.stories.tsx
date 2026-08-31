@@ -52,7 +52,7 @@ const meta: Meta<typeof CanvasIndexerErrorState> = {
 export default meta;
 type Story = StoryObj<typeof CanvasIndexerErrorState>;
 
-/** Default — indexer unreachable, primary CTA is "Try again". */
+/** Default — indexer unreachable, primary CTA is "Try Again". */
 export const IndexerUnavailable: Story = {};
 
 /**

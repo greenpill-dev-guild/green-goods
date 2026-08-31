@@ -1,4 +1,4 @@
-import { Confidence, type Work, type WorkMetadata } from "@green-goods/shared";
+import { Confidence, type Work, type WorkMetadata } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 import { z } from "zod";
 

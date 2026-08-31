@@ -3,11 +3,12 @@ import { readContract } from "@wagmi/core";
 import { getWagmiConfig } from "../../config/appkit";
 import { getConvictionStrategiesFromSubgraph } from "../../modules/data/gardens";
 import type { Address } from "../../types/domain";
-import { HATS_MODULE_CONVICTION_ABI } from "../../utils/blockchain/abis";
+import { HATS_MODULE_CONVICTION_ABI } from "../../utils/blockchain/abis/hats";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { fetchHatsModuleAddress } from "../../utils/blockchain/garden-hats";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { queryKeys, STALE_TIME_SLOW } from "../../config/query-keys";
+import { STALE_TIME_SLOW } from "../../config/query-keys/constants";
+import { convictionKeys } from "../../config/query-keys/hypercert";
 
 interface UseConvictionStrategiesOptions {
   enabled?: boolean;
@@ -47,7 +48,7 @@ export function useConvictionStrategies(
   const normalizedCommunity = communityAddress ? normalizeAddress(communityAddress) : undefined;
 
   const query = useQuery({
-    queryKey: queryKeys.conviction.strategies(normalizedGarden ?? "", chainId),
+    queryKey: convictionKeys.strategies(normalizedGarden ?? "", chainId),
     queryFn: async (): Promise<Address[]> => {
       if (!normalizedGarden) return [];
 

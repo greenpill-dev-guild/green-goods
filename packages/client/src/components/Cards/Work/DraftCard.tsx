@@ -1,9 +1,11 @@
-import { cn, type DraftWithImages, formatRelativeTime } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import type { DraftWithImages } from "@green-goods/shared/hooks/work/useDrafts";
+import { formatRelativeTime } from "@green-goods/shared/utils/relativeTime";
 import { RiDeleteBinLine, RiDraftLine, RiImageLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 export interface DraftCardProps {
   draft: DraftWithImages;
@@ -128,7 +130,7 @@ export const DraftCard: React.FC<DraftCardProps> = ({
         className="absolute top-1/2 right-2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full text-text-soft-400 transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-error-lighter hover:text-error-base focus:outline-none focus-visible:shadow-button-primary-focus"
         aria-label={intl.formatMessage({
           id: "app.draft.delete",
-          defaultMessage: "Delete draft",
+          defaultMessage: "Delete Draft",
         })}
       >
         <RiDeleteBinLine className="w-4 h-4" />

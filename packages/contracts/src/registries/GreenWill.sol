@@ -260,11 +260,7 @@ contract GreenWill is OwnableUpgradeable, UUPSUpgradeable {
         // unlockTokenId is initialised to 0 and patched below once the external call returns;
         // this is intentional CEI ordering, not a default value that persists.
         _badgeRecords[badgeId][account] = BadgeRecord({
-            issued: true,
-            issuedAt: uint64(block.timestamp),
-            sourceRef: sourceRef,
-            unlockTokenId: 0,
-            issuer: issuer
+            issued: true, issuedAt: uint64(block.timestamp), sourceRef: sourceRef, unlockTokenId: 0, issuer: issuer
         });
 
         // Interactions: external grantKeys call after the state write.

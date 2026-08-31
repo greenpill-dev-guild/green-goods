@@ -6,7 +6,7 @@
 
 export const PLAYER_JS = `(function(){
   function $(id){ return document.getElementById(id); }
-  var tabs = { play: [$("tab-play"), $("tabbtn-play")], screens: [$("tab-screens"), $("tabbtn-screens")], doc: [$("tab-doc"), $("tabbtn-doc")] };
+  var tabs = { play: [$("tab-play"), $("tabbtn-play")], screens: [$("tab-screens"), $("tabbtn-screens")], comps: [$("tab-comps"), $("tabbtn-comps")], doc: [$("tab-doc"), $("tabbtn-doc")] };
   function setTab(name){
     Object.keys(tabs).forEach(function(k){
       tabs[k][0].classList.toggle("on", k === name);
@@ -18,6 +18,7 @@ export const PLAYER_JS = `(function(){
   }
   $("tabbtn-play").addEventListener("click", function(){ setTab("play"); });
   $("tabbtn-screens").addEventListener("click", function(){ setTab("screens"); });
+  $("tabbtn-comps").addEventListener("click", function(){ setTab("comps"); if (history.replaceState) history.replaceState(null, "", "#components"); });
   $("tabbtn-doc").addEventListener("click", function(){ setTab("doc"); });
 
   // ---- theme ----
@@ -137,6 +138,46 @@ export const PLAYER_JS = `(function(){
   document.querySelectorAll('.surface-tab[data-screen-surface]').forEach(function(tab){ tab.addEventListener("click", function(){ setScreenSurface(tab.getAttribute("data-screen-surface")); }); });
   setFlowGroup(selectedFlowGroup); setScreenSurface(selectedScreenSurface);
 
+  // ---- components tab: surface flip, deep links, copy-link ----
+  // Same flip mechanics as the Screen library. Entry anchors follow the
+  // player's grammar: #components/<id> (client-first default) and
+  // #components/<id>@<surface> — a deep link flips the surface and scrolls.
+  function setCompSurface(surface){
+    document.querySelectorAll('.surface-tab[data-comp-surface]').forEach(function(tab){
+      var on = tab.getAttribute("data-comp-surface") === surface;
+      tab.classList.toggle("on", on); tab.setAttribute("aria-selected", String(on)); tab.tabIndex = on ? 0 : -1;
+    });
+    document.querySelectorAll('.comp-catalog[data-comp-surface]').forEach(function(panel){ panel.hidden = panel.getAttribute("data-comp-surface") !== surface; });
+  }
+  document.querySelectorAll('.surface-tab[data-comp-surface]').forEach(function(tab){ tab.addEventListener("click", function(){ setCompSurface(tab.getAttribute("data-comp-surface")); }); });
+  setCompSurface("client");
+  function openComponent(id, surface){
+    var nodes = Array.prototype.slice.call(document.querySelectorAll('.centry[data-centry="' + id + '"]'));
+    if (!nodes.length) return;
+    var el = null;
+    if (surface) nodes.forEach(function(n){ if (!el && n.getAttribute("data-comp-surface") === surface) el = n; });
+    if (!el) ["client", "admin", "editorial"].forEach(function(s){ if (!el) nodes.forEach(function(n){ if (!el && n.getAttribute("data-comp-surface") === s) el = n; }); });
+    if (!el) el = nodes[0];
+    setCompSurface(el.getAttribute("data-comp-surface"));
+    el.scrollIntoView();
+    el.classList.add("hl");
+    setTimeout(function(){ el.classList.remove("hl"); }, 1600);
+  }
+  var compsPanel = $("tab-comps");
+  if (compsPanel) compsPanel.addEventListener("click", function(e){
+    var b = e.target.closest ? e.target.closest(".complink") : null;
+    if (!b) return;
+    var anchor = "#" + b.getAttribute("data-anchor");
+    var url = location.href.split("#")[0] + anchor;
+    function done(ok){
+      b.classList.add(ok ? "copied" : "copyfail");
+      setTimeout(function(){ b.classList.remove("copied"); b.classList.remove("copyfail"); }, 1300);
+      if (history.replaceState) history.replaceState(null, "", anchor);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(function(){ done(true); }, function(){ done(false); });
+    else done(false);
+  });
+
   var SURFACE = { pwa: "Client PWA", admin: "Admin console", editorial: "Editorial website", community: "Community PWA", safe: "Safe app (external)" };
 
   // ---- shared: screen/state lookup + alias resolution ----
@@ -220,6 +261,10 @@ export const PLAYER_JS = `(function(){
 
   // ---------- journey player ----------
   var curSb = null, curI = 0;
+  // Catalog scroll restoration (2026-08-11 D8b): opening a flow or screen
+  // still jumps to the top, but returning to a catalog lands you back on the
+  // card you just left — ready to open the next one.
+  var catalogScroll = { play: 0, screens: 0 };
   function findSb(id){ for (var k = 0; k < DATA.sbs.length; k++) if (DATA.sbs[k].id === id) return DATA.sbs[k]; return null; }
   // A flow's home surface is its group — no prose sniffing. Scenes that land
   // elsewhere carry their own surface token and are marked as echoes.
@@ -229,13 +274,20 @@ export const PLAYER_JS = `(function(){
     $("stage").classList.remove("on");
     $("home").style.display = "";
     if (history.replaceState) history.replaceState(null, "", "#play");
+    window.scrollTo({ top: catalogScroll.play, left: 0, behavior: "instant" });
   }
   function start(id, ix){
     var sb = findSb(id); if (!sb) return;
     if (sb.reviewVisible) setFlowGroup(sb.reviewGroup);
     curSb = sb; curI = Math.min(Math.max(ix || 0, 0), sb.steps.length - 1);
+    if ($("home").style.display !== "none") catalogScroll.play = window.scrollY || 0;
     $("home").style.display = "none";
     $("stage").classList.add("on");
+    // A card tapped at the bottom of a long catalog must open the flow at its
+    // top, not wherever the page happened to be scrolled. Instant, not the CSS
+    // smooth default: collapsing the catalog cancels an in-flight smooth
+    // scroll, which left the stage header stranded above the viewport.
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     render();
   }
   function inspect(label, info, to){
@@ -369,19 +421,37 @@ export const PLAYER_JS = `(function(){
     if (push && expCur) expStack.push(expCur + (expState ? "@" + expState : ""));
     expCur = r.id;
     expState = r.state || scr.states[0].id;
+    if ($("exphome").style.display !== "none") catalogScroll.screens = window.scrollY || 0;
     $("exphome").style.display = "none";
     $("expstage").classList.add("on");
+    // Same top-of-page contract as the flow stage: a card tapped low in the
+    // library opens its screen at the top. Instant for the same reason.
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     renderExp();
   }
   function renderExp(){
     var scr = screenOf(expCur);
     var st = stateOf(scr, expState);
     expState = st.id;
-    $("exp-key").textContent = scr.id;
+    // expCur, not scr.id — DATA.screens values carry no id field, so scr.id
+    // rendered this label empty since the registry restructure.
+    $("exp-key").textContent = expCur;
     $("exp-title").textContent = scr.title.replace(/^\\s*(?:W\\d+a?|HUBWORK|WFLOW)\\s*[·—:-]\\s*/i, "");
     var chips = $("expstates"); chips.textContent = "";
     if (scr.states.length > 1) {
+      // States are grouped by FRAME where a screen declares one. Seventy-five
+      // chips in a flat row read as seventy-five screens; the same chips under
+      // eight headings read as what they are — one lifecycle, six kinds of
+      // commitment, and a handful of endings.
+      var lastGroup = null;
       scr.states.forEach(function(s2){
+        if (s2.group && s2.group !== lastGroup) {
+          var h = document.createElement("span");
+          h.className = "vgroup";
+          h.textContent = s2.group;
+          chips.appendChild(h);
+          lastGroup = s2.group;
+        }
         var c = document.createElement("button");
         c.className = "vchip" + (s2.id === st.id ? " on" : "") + (s2.proposed ? " prop" : "");
         c.textContent = s2.label;
@@ -432,6 +502,7 @@ export const PLAYER_JS = `(function(){
     $("expstage").classList.remove("on");
     $("exphome").style.display = "";
     if (history.replaceState) history.replaceState(null, "", "#screens");
+    window.scrollTo({ top: catalogScroll.screens, left: 0, behavior: "instant" });
   }
   $("expall").addEventListener("click", expHome);
   $("expback").addEventListener("click", function(){
@@ -495,8 +566,22 @@ export const PLAYER_JS = `(function(){
   function applyHash(){
     var h = location.hash.replace("#", "");
     if (!h || h === "play") { setTab("play"); if (curSb) showHome(); return; }
+    // A journey hash is answered by the play tab either way. Splits move scenes
+    // between flows, so redirect through the retired-route map FIRST; without
+    // it start() would clamp an out-of-range index onto the shortened flow's
+    // last frame and quietly show the wrong scene. render() then rewrites the
+    // hash, so a stale shared link heals itself on open. A flow id that retired
+    // outright has no honest per-scene answer — land on the catalog, never the
+    // doc tab, which is where an unmatched hash used to fall through to.
     var mPlay = h.match(/^(sb[\\w-]+)\\/(\\d+)$/);
-    if (mPlay && findSb(mPlay[1])) { setTab("play"); start(mPlay[1], +mPlay[2]); return; }
+    if (mPlay) {
+      var moved = DATA.sbRoutes[h];
+      if (moved) { h = moved; mPlay = h.match(/^(sb[\\w-]+)\\/(\\d+)$/); }
+      setTab("play");
+      if (mPlay && findSb(mPlay[1])) start(mPlay[1], +mPlay[2]);
+      else showHome();
+      return;
+    }
     var mScr = h.match(/^screens\\/([\\w.@-]+)$/);
     if (mScr) {
       setTab("screens");
@@ -505,6 +590,15 @@ export const PLAYER_JS = `(function(){
       return;
     }
     if (h === "screens") { setTab("screens"); expHome(); return; }
+    // Components anchors resolve BEFORE the doc fallthrough, or every entry
+    // link would land reviewers on the Reference tab.
+    var mComp = h.match(/^components(?:\\/([\\w-]+)(?:@(\\w+))?)?$/);
+    if (mComp) {
+      setTab("comps");
+      if (mComp[1]) openComponent(mComp[1], mComp[2]);
+      else window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      return;
+    }
     setTab("doc");
     var t = document.getElementById(h);
     if (t) t.scrollIntoView();

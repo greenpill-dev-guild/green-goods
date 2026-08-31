@@ -1,0 +1,199 @@
+{
+  "version": 1,
+  "description": "Machine-readable routing contract for Green Goods agent tasks. Skill frontmatter owns activation; this file owns cross-skill boundaries and handoffs.",
+  "authorityOrder": [
+    "nearest AGENTS.md",
+    "code and checked-in configuration",
+    "packages/shared/src/ontology/green-goods-ontology.json",
+    "owning Plan Hub",
+    "task-specific skill"
+  ],
+  "tasks": [
+    {
+      "id": "lookup-or-bounded-edit",
+      "label": "Simple lookup or bounded edit",
+      "skill": null,
+      "mutationBoundary": "direct-bounded",
+      "requiredAuthorities": ["nearest AGENTS.md", "named source or implementation"],
+      "output": "A sourced answer or the smallest verified edit.",
+      "handoff": "Route unresolved factual synthesis to research and multi-step product choices to plan.",
+      "mustNotSwallow": ["research", "planning", "debugging"]
+    },
+    {
+      "id": "research",
+      "label": "Research",
+      "skill": "research",
+      "mutationBoundary": "read-only-unless-persistence-requested",
+      "requiredAuthorities": [
+        "named repository authorities",
+        "first-party external sources when required"
+      ],
+      "output": "Evidence, contradictions, confidence, and remaining human decisions.",
+      "handoff": "Send accepted future decisions to plan; send observed failures to debug.",
+      "mustNotSwallow": ["planning", "debugging", "implementation"]
+    },
+    {
+      "id": "planning",
+      "label": "Planning",
+      "skill": "plan",
+      "mutationBoundary": "plan-artifacts-before-implementation",
+      "requiredAuthorities": ["owning Plan Hub", "nearest AGENTS.md", ".claude/context/values.md"],
+      "output": "Locked decisions, executable order, boundaries, and validation.",
+      "handoff": "Send factual prerequisites to research and implementation only after scope lock.",
+      "mustNotSwallow": ["research", "debugging", "change-review"]
+    },
+    {
+      "id": "debugging",
+      "label": "Debugging",
+      "skill": "debug",
+      "mutationBoundary": "diagnose-first-fix-when-requested",
+      "requiredAuthorities": ["reproduction evidence", "affected implementation", "recent history"],
+      "output": "Reproduction, failing layer, root cause, bounded fix, and proof.",
+      "handoff": "Route architectural redesign or unresolved product behavior to plan.",
+      "mustNotSwallow": ["architecture-discovery", "repository-audit", "change-review"]
+    },
+    {
+      "id": "change-review",
+      "label": "Change review",
+      "skill": "review",
+      "mutationBoundary": "read-only-pinned-diff",
+      "requiredAuthorities": ["pinned diff", "requirements", "validation evidence"],
+      "output": "Actionable regressions, remaining gaps, and readiness verdict.",
+      "handoff": "Return fixes to the implementing task; use resolve-pr-comments for active PR feedback.",
+      "mustNotSwallow": ["implementation", "repository-audit", "architecture-discovery"]
+    },
+    {
+      "id": "architecture-discovery",
+      "label": "Architecture discovery",
+      "skill": "plan",
+      "mutationBoundary": "read-only-until-human-selection",
+      "requiredAuthorities": [
+        ".claude/context/codebase-architecture.md",
+        "owning Plan Hub",
+        "current callers and tests"
+      ],
+      "output": "Ranked candidate cards and a selected interface only after human choice.",
+      "handoff": "Send the selected candidate into the owning Plan Hub for implementation.",
+      "mustNotSwallow": ["architecture-certification", "repository-audit", "change-review"]
+    },
+    {
+      "id": "architecture-certification",
+      "label": "Architecture certification",
+      "skill": "module-seams-review",
+      "mutationBoundary": "read-only-pinned-proof",
+      "requiredAuthorities": [
+        "module seam registry",
+        "public exports",
+        "composition roots",
+        "direct tests"
+      ],
+      "output": "Pinned proof of boundaries, exports, adapters, consumers, tests, and registry freshness.",
+      "handoff": "Route uncertified design changes to plan and concrete regressions to the implementation owner.",
+      "mustNotSwallow": ["architecture-discovery", "implementation", "repository-audit"]
+    },
+    {
+      "id": "repository-audit",
+      "label": "Repository audit",
+      "skill": "audit",
+      "mutationBoundary": "read-only-numbered-findings",
+      "requiredAuthorities": [
+        "current repository state",
+        "dependency graph",
+        "guidance and Plan Hubs"
+      ],
+      "output": "Evidence-backed dead code, drift, dependency, guidance, and invariant findings.",
+      "handoff": "Send approved cleanup-shaped findings to clean and architecture choices to plan.",
+      "mustNotSwallow": ["approved-cleanup", "architecture-discovery", "change-review"]
+    },
+    {
+      "id": "approved-cleanup",
+      "label": "Approved cleanup",
+      "skill": "clean",
+      "mutationBoundary": "approved-finding-ids-only",
+      "requiredAuthorities": ["human scope lock", "accepted audit findings", "current checkpoint"],
+      "output": "The smallest implementation for the approved findings with residue checks.",
+      "handoff": "Return new or uncertain findings to the user instead of expanding scope.",
+      "mustNotSwallow": ["repository-audit", "architecture-discovery", "unapproved-cleanup"]
+    },
+    {
+      "id": "live-product-qa",
+      "label": "Live product QA",
+      "skill": "qa-session",
+      "mutationBoundary": "session-bounded-fix-and-revalidate",
+      "requiredAuthorities": [
+        "live observation or transcript",
+        "QA catalog",
+        "authenticated product surface"
+      ],
+      "output": "Stable observations, bounded fixes, revalidation, and deferred handoff.",
+      "handoff": "Send deferred backlog work to qa-triage and root-cause investigations to debug.",
+      "mustNotSwallow": ["qa-notes-and-backlog", "debugging", "repository-audit"]
+    },
+    {
+      "id": "qa-notes-and-backlog",
+      "label": "QA notes and backlog",
+      "skill": "qa-triage",
+      "mutationBoundary": "authorized-product-records-and-private-qa-rows",
+      "requiredAuthorities": [
+        "meeting evidence or qa-session handoff",
+        "Linear routing rules",
+        "QA privacy boundary"
+      ],
+      "output": "Scoped Product records and private QA rows.",
+      "handoff": "Send live product fixes to qa-session and unclear failures to debug.",
+      "mustNotSwallow": ["live-product-qa", "debugging", "planning"]
+    },
+    {
+      "id": "pr-feedback",
+      "label": "PR feedback",
+      "skill": "resolve-pr-comments",
+      "mutationBoundary": "current-actionable-feedback-and-bounded-siblings",
+      "requiredAuthorities": [
+        "current PR head",
+        "unresolved review feedback",
+        "affected implementation"
+      ],
+      "output": "Validated comment resolution, bounded sibling sweep, and fresh proof.",
+      "handoff": "Return product or architecture decisions to the user or owning Plan Hub.",
+      "mustNotSwallow": ["change-review", "repository-audit", "architecture-discovery"]
+    },
+    {
+      "id": "pre-merge-readiness",
+      "label": "Pre-merge readiness",
+      "skill": "ship",
+      "mutationBoundary": "readiness-and-user-authorized-publish-actions",
+      "requiredAuthorities": [
+        "validation selector",
+        "current branch and commit",
+        "required release checks"
+      ],
+      "output": "Fresh gate evidence, branch/commit readiness, and explicit blockers.",
+      "handoff": "Return failures to the owning implementation task; never redesign during the gate.",
+      "mustNotSwallow": ["implementation", "change-review", "release-design"]
+    },
+    {
+      "id": "design-direction",
+      "label": "Design direction",
+      "skill": "design",
+      "mutationBoundary": "advisory-until-explicit-polish-scope",
+      "requiredAuthorities": [
+        "owning surface DESIGN.md dialect",
+        "design skill prompt contracts",
+        "shared design tokens"
+      ],
+      "output": "A grounded paradigm, material, or layout decision, design review findings, or an AI design-tool prompt contract.",
+      "handoff": "Send cross-surface token or dialect changes to planning; send implementation defects to debugging.",
+      "mustNotSwallow": ["change-review", "live-product-qa", "planning"]
+    },
+    {
+      "id": "doc-review-feedback",
+      "label": "Doc review feedback",
+      "skill": "doc-feedback",
+      "mutationBoundary": "triage-then-scope-locked-edits",
+      "requiredAuthorities": ["the reviewed .docx export", "the target document's owning surface"],
+      "output": "A triaged feedback record and each accepted item addressed in the agreed in-repo or out-of-repo mode.",
+      "handoff": "Route discovered product defects to debugging and net-new scope to planning.",
+      "mustNotSwallow": ["qa-notes-and-backlog", "planning", "debugging"]
+    }
+  ]
+}

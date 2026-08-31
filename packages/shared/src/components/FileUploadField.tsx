@@ -1,8 +1,10 @@
 import { RiCloseLine, RiLoader4Line, RiUploadCloudLine } from "@remixicon/react";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { logger } from "../modules";
-import { cn, extractErrorMessage, imageCompressor } from "../utils";
+import { logger } from "../modules/app/logger";
+import { extractErrorMessage } from "../utils/errors/extract-message";
+import { cn } from "../utils/styles/cn";
+import { imageCompressor } from "../utils/work/image-compression";
 import { toastService } from "./Toast/toast.service";
 
 const PREVIEWABLE_IMAGE_TYPES = new Set([
@@ -15,6 +17,7 @@ const PREVIEWABLE_IMAGE_TYPES = new Set([
 ]);
 
 export interface FileUploadFieldProps {
+  id?: string;
   onFilesChange: (files: File[]) => void;
   accept?: string;
   multiple?: boolean;
@@ -28,6 +31,7 @@ export interface FileUploadFieldProps {
 }
 
 export function FileUploadField({
+  id,
   onFilesChange,
   accept = "*",
   multiple = false,
@@ -184,6 +188,7 @@ export function FileUploadField({
       {helpText && <p className="text-xs text-text-soft">{helpText}</p>}
 
       <input
+        id={id}
         ref={fileInputRef}
         type="file"
         accept={accept}
@@ -219,11 +224,11 @@ export function FileUploadField({
               {multiple
                 ? formatMessage({
                     id: "admin.fileUpload.chooseFiles",
-                    defaultMessage: "Choose files",
+                    defaultMessage: "Choose Files",
                   })
                 : formatMessage({
                     id: "admin.fileUpload.chooseFile",
-                    defaultMessage: "Choose file",
+                    defaultMessage: "Choose File",
                   })}
             </span>
           </>

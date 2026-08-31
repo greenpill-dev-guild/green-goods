@@ -9,6 +9,7 @@ import {
 
 const mockEasConfig: EASConfig = {
   ASSESSMENT: { uid: "0x" + "1".repeat(64), schema: "" },
+  ASSESSMENT_V3: { uid: "0x" + "4".repeat(64), schema: "" },
   WORK: { uid: "0x" + "2".repeat(64), schema: "" },
   WORK_APPROVAL: { uid: "0x" + "3".repeat(64), schema: "" },
   EAS: { address: "0x0000000000000000000000000000000000001234" },

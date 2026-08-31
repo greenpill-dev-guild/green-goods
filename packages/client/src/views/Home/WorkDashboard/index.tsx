@@ -1,39 +1,42 @@
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import {
-  type Address,
-  cn,
-  collectApprovalRecipientsForWorks,
-  collectApprovedWorkUIDs,
   DEFAULT_RETRY_COUNT,
-  fetchApprovalsByRecipients,
-  filterByTimeRange,
-  filterPendingNeedsReview,
-  hapticLight,
-  logger,
-  queryKeys,
   STALE_TIME_MEDIUM,
-  isUserAddress as sharedIsUserAddress,
-  type TimeFilter,
-  toastService,
-  useDrafts,
-  useFocusTrap,
-  useMyWorks,
-  useReviewerGardenIds,
-  useReviewerWorks,
-  useTimeout,
+} from "@green-goods/shared/config/query-keys/constants";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
+import { useFocusTrap } from "@green-goods/shared/hooks/utils/useFocusTrap";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
+import { fetchApprovalsByRecipients } from "@green-goods/shared/hooks/work/useAggregatedApprovals";
+import { useDrafts } from "@green-goods/shared/hooks/work/useDrafts";
+import { useMyWorks } from "@green-goods/shared/hooks/work/useMyWorks";
+import { useReviewerGardenIds } from "@green-goods/shared/hooks/work/useReviewerGardenIds";
+import { useReviewerWorks } from "@green-goods/shared/hooks/work/useReviewerWorks";
+import { useWorkApprovals } from "@green-goods/shared/hooks/work/useWorkApprovals";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import {
   useUIStore,
-  useUser,
-  useWorkApprovals,
-  type Work,
   type WorkDashboardPendingFilter,
   type WorkDashboardTab,
-} from "@green-goods/shared";
+} from "@green-goods/shared/stores/useUIStore";
+import type { Address, Work } from "@green-goods/shared/types/domain";
+import { hapticLight } from "@green-goods/shared/utils/app/haptics";
+import { isUserAddress as sharedIsUserAddress } from "@green-goods/shared/utils/blockchain/address";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { filterByTimeRange, type TimeFilter } from "@green-goods/shared/utils/time";
+import {
+  collectApprovalRecipientsForWorks,
+  collectApprovedWorkUIDs,
+  filterPendingNeedsReview,
+} from "@green-goods/shared/utils/work/pending-review";
 import { RiCheckLine, RiCloseLine, RiDraftLine, RiTaskLine } from "@remixicon/react";
 import { useQuery } from "@tanstack/react-query";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
-import { getPwaDrawerCloseDelayMs, pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
+import { getPwaDrawerCloseDelayMs, pwaDrawerStyles } from "@/components/Pwa/drawerStyles";
 import { CompletedTab } from "./CompletedTab";
 import { DraftsTab } from "./Drafts";
 import { PendingTab } from "./PendingTab";
@@ -44,7 +47,7 @@ import {
   extractWorkGardenIds,
   receivedApprovalsToWorks,
   resolveWorkNavigation,
-} from "./work-dashboard-utils";
+} from "./workDashboardUtils";
 
 // Component-specific props (not a domain type)
 export interface WorkDashboardProps {
@@ -75,7 +78,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const { draftCount } = useDrafts();
 
   // Timer for close animation (auto-cleared on unmount)
-  const { set: scheduleTimeout } = useTimeout();
+  const { set: scheduleTimeout, clear: clearCloseTimeout } = useTimeout();
 
   // State management — open to the tab/filter the caller requested (e.g. the arrival toast),
   // else defaults. Store presets are consumed once at mount; an already-open dashboard
@@ -84,6 +87,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const initialPendingFilter = useUIStore((s) => s.workDashboardInitialPendingFilter);
   const [activeTab, setActiveTab] = useState<WorkDashboardTab>(initialTab ?? "pending");
   const [isClosing, setIsClosing] = useState(false);
+  const closeCompletedRef = useRef(false);
   const [pendingFilter, setPendingFilter] = useState<WorkDashboardPendingFilter>(
     initialPendingFilter ?? "all"
   );
@@ -95,25 +99,19 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Ref for focus trap on the dialog panel
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  // Prevent background scrolling when modal is open
-  useEffect(() => {
-    document.documentElement.classList.add("modal-open");
-    return () => {
-      document.documentElement.classList.remove("modal-open");
-    };
-  }, []);
+  useDocumentScrollLock(!isClosing);
 
   // Focus trap: keep Tab/Shift+Tab cycling within the dialog
-  useFocusTrap(dialogRef);
+  useFocusTrap(dialogRef, { enabled: !isClosing });
 
   // Use shared hooks for reviewer garden detection and works fetching
   const { reviewerGardenIds } = useReviewerGardenIds(activeAddress);
   const {
-    data: operatorWorks = [],
-    isLoading: isLoadingOperatorWorks,
-    isFetching: isFetchingOperatorWorks,
-    isError: isErrorOperatorWorks,
-    refetch: refetchOperatorWorks,
+    data: stewardWorks = [],
+    isLoading: isLoadingStewardWorks,
+    isFetching: isFetchingStewardWorks,
+    isError: isErrorStewardWorks,
+    refetch: refetchStewardWorks,
   } = useReviewerWorks(reviewerGardenIds, activeAddress);
 
   // Include offline queued submissions so the Pending tab still reflects the
@@ -135,11 +133,11 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // recipient = garden; historical bot approvals may use recipient = gardener, so the
   // helper includes both garden ids and candidate gardeners.
   const approvalRecipients = useMemo(
-    () => collectApprovalRecipientsForWorks(reviewerGardenIds, operatorWorks || []),
-    [reviewerGardenIds, operatorWorks]
+    () => collectApprovalRecipientsForWorks(reviewerGardenIds, stewardWorks || []),
+    [reviewerGardenIds, stewardWorks]
   );
   const reviewExclusionQueryEnabled =
-    reviewerGardenIds.length > 0 && (operatorWorks || []).length > 0;
+    reviewerGardenIds.length > 0 && (stewardWorks || []).length > 0;
   const {
     data: reviewExclusionApprovals = [],
     isLoading: isLoadingReviewExclusionApprovals,
@@ -158,7 +156,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const isWaitingForReviewExclusionApprovals =
     reviewExclusionQueryEnabled && !isReviewExclusionReady && !isErrorReviewExclusionApprovals;
 
-  // Set of work IDs that have been approved/rejected by ANY operator
+  // Set of work IDs that have been approved/rejected by ANY steward
   const alreadyReviewedByAnyone = useMemo(
     () =>
       isReviewExclusionReady
@@ -167,16 +165,16 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     [isReviewExclusionReady, reviewExclusionApprovals]
   );
 
-  const operatorWorksById = useMemo(() => buildWorkMap(operatorWorks || []), [operatorWorks]);
+  const stewardWorksById = useMemo(() => buildWorkMap(stewardWorks || []), [stewardWorks]);
 
   // Pending work needing your review (from gardens you operate): not reviewed by ANY
-  // operator and not your own submission — shared derivation, same as the arrival toast.
+  // steward and not your own submission — shared derivation, same as the arrival toast.
   const pendingNeedsReview = useMemo(
     () =>
       isReviewExclusionReady
-        ? filterPendingNeedsReview(operatorWorks || [], alreadyReviewedByAnyone, activeAddress)
+        ? filterPendingNeedsReview(stewardWorks || [], alreadyReviewedByAnyone, activeAddress)
         : [],
-    [operatorWorks, alreadyReviewedByAnyone, activeAddress, isReviewExclusionReady]
+    [stewardWorks, alreadyReviewedByAnyone, activeAddress, isReviewExclusionReady]
   );
 
   // Completed approvals (approved/rejected by you) - convert to Work shape for MinimalWorkCard
@@ -249,9 +247,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Navigation handler - handles both Work and WorkApproval shapes
   const handleWorkClick = (work: Work | { workUID?: string; gardenAddress?: Address }) => {
     try {
-      const nav = resolveWorkNavigation(work, operatorWorksById);
+      const nav = resolveWorkNavigation(work, stewardWorksById);
       if (!nav) return;
 
+      onClose?.();
       navigate(`/home/${nav.gardenId}/work/${nav.workId}`, {
         state: { from: "dashboard", returnTo: "/home" },
         viewTransition: true,
@@ -261,11 +260,11 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       toastService.error({
         title: intl.formatMessage({
           id: "app.workDashboard.error.navigationFailed",
-          defaultMessage: "Couldn't open work",
+          defaultMessage: "Navigation failed",
         }),
         message: intl.formatMessage({
           id: "app.workDashboard.error.navigationFailedMessage",
-          defaultMessage: "Please try again.",
+          defaultMessage: "Could not navigate to the selected item",
         }),
         context: "workDashboard",
       });
@@ -275,7 +274,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Combined refresh functions for each tab
   const handleRefreshPending = () => {
     hapticLight();
-    refetchOperatorWorks();
+    refetchStewardWorks();
     refetchMyWorks();
     refetchApprovals();
     refetchReviewExclusionApprovals();
@@ -289,16 +288,16 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   // Combined error states
   const pendingQueryErrored =
-    hasError || isErrorOperatorWorks || isErrorMyWorks || isErrorReviewExclusionApprovals;
+    hasError || isErrorStewardWorks || isErrorMyWorks || isErrorReviewExclusionApprovals;
   const hasPendingError = pendingQueryErrored && filteredPending.length === 0;
   const hasCompletedError = hasError || isErrorMyApprovals;
 
   // Combined fetching states
   const isFetchingPending =
-    isFetchingOperatorWorks || isFetchingMyWorks || isFetchingReviewExclusionApprovals;
+    isFetchingStewardWorks || isFetchingMyWorks || isFetchingReviewExclusionApprovals;
   const isLoadingPending =
     (isLoading ||
-      isLoadingOperatorWorks ||
+      isLoadingStewardWorks ||
       isLoadingMyWorks ||
       isLoadingReviewExclusionApprovals ||
       isWaitingForReviewExclusionApprovals) &&
@@ -325,17 +324,41 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     },
   ];
 
+  const finishClose = useCallback(() => {
+    if (closeCompletedRef.current) return;
+    closeCompletedRef.current = true;
+    clearCloseTimeout();
+    onClose?.();
+  }, [clearCloseTimeout, onClose]);
+
   const handleClose = () => {
+    if (isClosing) return;
+    closeCompletedRef.current = false;
     setIsClosing(true);
-    scheduleTimeout(() => {
-      onClose?.();
-    }, getPwaDrawerCloseDelayMs());
+    scheduleTimeout(finishClose, getPwaDrawerCloseDelayMs());
   };
+
+  useEffect(() => {
+    if (!isClosing) return;
+
+    const handlePageHide = () => finishClose();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") finishClose();
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [finishClose, isClosing]);
 
   const renderTabContent = () => {
     switch (activeTab) {
       case "drafts":
-        return <DraftsTab />;
+        return <DraftsTab onBeforeNavigate={onClose} />;
       case "pending":
       default:
         return (
@@ -407,6 +430,12 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         )}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopPropagation();
+            handleClose();
+            return;
+          }
           e.stopPropagation();
         }}
         role="dialog"
@@ -419,7 +448,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
             <h2 className="title-section truncate">
               {intl.formatMessage({
                 id: "app.workDashboard.title",
-                defaultMessage: "Work Dashboard",
+                defaultMessage: "Your work",
               })}
             </h2>
             <p className="text-sm text-text-sub-600 truncate">
@@ -439,7 +468,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
               data-testid="modal-drawer-close"
               aria-label={intl.formatMessage({
                 id: "app.workDashboard.closeModal",
-                defaultMessage: "Close modal",
+                defaultMessage: "Close Modal",
               })}
             >
               <RiCloseLine className={cn("w-5 h-5", pwaDrawerStyles.closeIcon)} />
@@ -452,11 +481,21 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           tabs={tabs}
           activeTab={activeTab}
           onTabChange={(tabId: string) => setActiveTab(tabId as WorkDashboardTab)}
+          ariaLabel={intl.formatMessage({
+            id: "app.work.tabs.label",
+            defaultMessage: "Work sections",
+          })}
           triggerClassName="text-xs"
+          scrollTargetSelector="#work-dashboard-scroll"
         />
 
         {/* Content */}
-        <div className="flex-1 min-h-0 overflow-y-auto">{renderTabContent()}</div>
+        <div
+          id="work-dashboard-scroll"
+          className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain"
+        >
+          {renderTabContent()}
+        </div>
       </div>
     </div>
   );

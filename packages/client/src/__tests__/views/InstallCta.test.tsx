@@ -30,12 +30,23 @@ const mockGuidanceState = {
 };
 
 // Mock @green-goods/shared
-vi.mock("@green-goods/shared", () => ({
-  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+vi.mock("@green-goods/shared/utils/app/clipboard", () => ({
   copyToClipboard: vi.fn().mockResolvedValue(true),
+}));
+
+vi.mock("@green-goods/shared/utils/app/haptics", () => ({
   hapticLight: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
+}));
+
+vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: () => mockAppState,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useInstallGuidance", () => ({
   useInstallGuidance: () => mockGuidanceState,
 }));
 

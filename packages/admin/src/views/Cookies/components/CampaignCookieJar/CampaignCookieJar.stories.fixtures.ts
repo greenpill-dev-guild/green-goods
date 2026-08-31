@@ -1,11 +1,10 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
 import {
   buildCampaignCookieJarMetadata,
-  DEFAULT_CHAIN_ID,
   getCampaignCookieJarPayoutAssets,
-  type Address,
-  type CampaignCookieJarCampaign,
-  type Garden,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/cookie-jar-campaign";
 import type { IntlShape } from "react-intl";
 import {
   STORYBOOK_ADMIN_DEPLOYER_SEEDS,
@@ -67,7 +66,7 @@ export const campaignCookieJarCreateFormProps: CampaignCookieJarCreateFormProps 
   setSelectedAssetId: () => undefined,
   campaignTitle: "Earth Week rewards",
   setCampaignTitle: () => undefined,
-  campaignDescription: "Rewards for the campaign's selected garden operators.",
+  campaignDescription: "Rewards for the campaign's selected garden stewards.",
   setCampaignDescription: () => undefined,
   campaignImage: FIXTURE_IMAGE_AGROFORESTRY,
   setCampaignImage: () => undefined,
@@ -85,9 +84,9 @@ export const campaignCookieJarCreateFormProps: CampaignCookieJarCreateFormProps 
   gardenSearch: "",
   setGardenSearch: () => undefined,
   aggregation: {
-    allowlist: STORYBOOK_PRIMARY_ADMIN_GARDEN.operators,
+    allowlist: STORYBOOK_PRIMARY_ADMIN_GARDEN.stewards,
     sources: [{ gardenAddress: STORYBOOK_PRIMARY_ADMIN_GARDEN.id }],
-    missingOperatorGardens: [],
+    missingStewardGardens: [],
     invalidAddresses: [],
   },
   advancedOpen: false,
@@ -120,7 +119,7 @@ export const storybookCampaign: CampaignCookieJarCampaign = {
   metadata: buildCampaignCookieJarMetadata({
     title: "Earth Week Cookie Jar",
     slug: "earth-week",
-    description: "Shared campaign rewards for selected garden operators.",
+    description: "Shared campaign rewards for selected garden stewards.",
     image: FIXTURE_IMAGE_AGROFORESTRY,
     externalUrl: "https://greengoods.app/cookies?campaign=earth-week",
     sourceGardens: [STORYBOOK_PRIMARY_ADMIN_GARDEN.id],

@@ -3,6 +3,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createMockTransactionSender } from "@green-goods/shared/testing";
 
 // Ensure fake-indexeddb is loaded before job-queue module
 import "fake-indexeddb/auto";
@@ -49,8 +50,12 @@ vi.mock("../../config/blockchain", async (importOriginal) => {
   };
 });
 
-import { jobQueue, jobQueueDB } from "../../modules/job-queue";
-import type { TransactionSender } from "../../modules/transactions/types";
+import {
+  createDefaultJobQueueDependencies,
+  jobQueue,
+  jobQueueDB,
+  jobQueueEventBus,
+} from "../../modules/job-queue";
 import { encodeWorkData } from "../../utils/eas/encoders";
 
 // Test user address for scoped queue operations
@@ -81,23 +86,11 @@ function createMockFile(content: string, name: string, type: string): File {
   return file;
 }
 
-/**
- * Creates a mock TransactionSender for testing.
- */
-function createMockSender(overrides: Partial<TransactionSender> = {}): TransactionSender {
-  return {
-    sendContractCall: vi.fn(async () => ({
-      hash: "0xtesthash" as `0x${string}`,
-      sponsored: true,
-    })),
-    supportsSponsorship: true,
-    supportsBatching: false,
-    authMode: "passkey",
-    ...overrides,
-  };
-}
-
 describe("modules/job-queue", () => {
+  it("wires the exported event bus into the default queue dependencies", () => {
+    expect(createDefaultJobQueueDependencies().events).toBe(jobQueueEventBus);
+  });
+
   beforeEach(() => {
     try {
       Object.defineProperty(globalThis.navigator, "onLine", {
@@ -116,6 +109,35 @@ describe("modules/job-queue", () => {
     for (const job of jobs) {
       await jobQueueDB.deleteJob(job.id);
     }
+  });
+
+  it("never sends a commitment act while demo pooling is on", async () => {
+    // Dev mock auth reports authMode "wallet", so the sender is a real
+    // WalletSender over wagmi even with no smart account. A fixture id must
+    // therefore never reach sendContractCall.
+    const { isDemoPoolingActive } = await import("../../modules/commitment-pooling/demo/demo-mode");
+    window.sessionStorage.setItem("greengoods_dev_mock_pooling", "1");
+    expect(isDemoPoolingActive()).toBe(true);
+
+    const jobId = await jobQueueDB.addJob({
+      kind: "confirmation",
+      payload: {
+        action: "confirm",
+        commitmentId: 1007n,
+        gardenAddress: "0x00000000000000000000000000000000000000aa",
+      },
+      meta: { chainId: 42161 },
+      chainId: 42161,
+      userAddress: TEST_USER_ADDRESS,
+    });
+
+    const mockSender = createMockTransactionSender();
+    const result = await jobQueue.processJob(jobId, { transactionSender: mockSender });
+
+    expect(mockSender.sendContractCall).not.toHaveBeenCalled();
+    expect(result.skipped).toBe(true);
+    expect(result.error).toBe("demo-mode");
+    window.sessionStorage.clear();
   });
 
   it("processes a queued work job during flush when sender is available", async () => {
@@ -137,7 +159,7 @@ describe("modules/job-queue", () => {
 
     expect(jobId).toBeDefined();
 
-    const mockSender = createMockSender();
+    const mockSender = createMockTransactionSender();
 
     const result = await jobQueue.flush({
       transactionSender: mockSender,
@@ -162,8 +184,11 @@ describe("modules/job-queue", () => {
       {
         actionUID: 1,
         workUID: "0xwork",
+        gardenAddress: "0xgarden",
         approved: true,
         gardenerAddress: "0xgardener",
+        confidence: 1,
+        verificationMethod: 1,
       },
       TEST_USER_ADDRESS,
       { chainId: 11155111 }
@@ -179,11 +204,7 @@ describe("modules/job-queue", () => {
   });
 
   it("marks jobs as failed when underlying submission throws", async () => {
-    const mockSender = createMockSender({
-      sendContractCall: vi.fn(async () => {
-        throw new Error("boom");
-      }),
-    });
+    const mockSender = createMockTransactionSender({ fail: new Error("boom") });
 
     await jobQueue.addJob(
       "work",

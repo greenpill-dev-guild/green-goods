@@ -14,7 +14,8 @@
       "notes": [
         "Green Goods browser proof is Brave-only. Do not use Google Chrome, Chrome for Testing, Chromium, or Edge as a fallback.",
         "The wrapper calls the upstream chrome-devtools-mcp package because that is the protocol package name; the browser executable must still be Brave.",
-        "Use isolated/non-default browser profiles for authenticated admin or wallet-adjacent proof.",
+        "This isolated DevTools MCP server is public clean-room evidence only; it is not authenticated local QA.",
+        "Use the authenticated Brave extension or visible-desktop path for admin, wallet, passkey, installed-PWA, and profile-dependent proof.",
         "Do not expose secrets, wallet state, passkeys, local storage, private garden data, telemetry identifiers, or hidden admin actions in prompts or reports."
       ]
     }

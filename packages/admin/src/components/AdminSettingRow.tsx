@@ -1,9 +1,9 @@
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { ReactNode } from "react";
 
 export interface AdminSettingRowProps {
   /**
-   * Field title. Uses the shared `FormField` label treatment so a setting row
+   * Field title. Carries the admin field-family label treatment so a setting row
    * never reads smaller or greyer than the stacked text fields beside it.
    */
   label: string;
@@ -27,8 +27,10 @@ export interface AdminSettingRowProps {
  * The inline "setting row" grammar for toggles and compact controls inside admin
  * forms and dialogs (open joining, gardener limit, …). Reach for this — never a
  * hand-rolled `label-xs text-text-soft` eyebrow — so field titles stay uniform
- * with the stacked {@link FormField} labels beside them. For a full-width
- * label-on-top field with a single input, use `FormField` instead.
+ * with the stacked `AdminTextField` labels beside them. For a full-width
+ * label-on-top field with a single input, use the admin field family
+ * (`AdminTextField` / `AdminTextArea` / `AdminSelect`, or `AdminFieldGroup`
+ * for a group of controls) — the shared `FormField` is the client pattern.
  */
 export function AdminSettingRow({
   label,

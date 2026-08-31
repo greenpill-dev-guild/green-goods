@@ -22,7 +22,7 @@ test.describe("Work Submission CI Tests", () => {
   test.describe("Login Page Accessibility", () => {
     // Real-login splash behavior remains a separate headless CI debt. The
     // authenticated specs below use the supported DevAuthProvider seam.
-    // SKIP: #564 owner:afo expiry:2026-08-12 — real-login splash needs its own headless fixture
+    // SKIP: #564 owner:afo expiry:2026-11-12 — real-login splash needs its own headless fixture
     test.skip("login page loads and shows auth options", async ({ page }) => {
       await page.goto("/home/login?presentation=pwa", { waitUntil: "domcontentloaded" });
       await page.waitForLoadState("domcontentloaded");

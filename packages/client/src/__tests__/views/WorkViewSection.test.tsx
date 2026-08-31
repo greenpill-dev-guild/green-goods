@@ -6,7 +6,7 @@
  * offline statuses (syncing, uploading, sync_failed, offline) hit unhandled code paths.
  */
 
-import type { WorkDisplayStatus } from "@green-goods/shared";
+import type { WorkDisplayStatus } from "@green-goods/shared/types/domain";
 import { cleanup, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -17,10 +17,9 @@ vi.mock("react-intl", () => ({
   }),
 }));
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual("@green-goods/shared");
+vi.mock("@green-goods/shared/utils/form/normalizers", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal()),
     formatTimeSpent: (mins: number) => `${mins}m`,
   };
 });
@@ -133,7 +132,7 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
       })
     );
     expect(screen.getByTestId("work-info")).toHaveTextContent(
-      "Saved on your device — we'll send it to the garden record when you're online."
+      "Saved on your device. We'll send it to the garden record when you're online."
     );
   });
 
@@ -149,15 +148,15 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
     );
   });
 
-  it("shows operator-specific title for approved status", () => {
+  it("shows steward-specific title for approved status", () => {
     render(
       createElement(WorkViewSection, {
         ...baseProps,
-        viewingMode: "operator",
+        viewingMode: "steward",
         effectiveStatus: "approved" as WorkDisplayStatus,
       })
     );
-    expect(screen.getByTestId("work-title")).toHaveTextContent("Work Approved");
+    expect(screen.getByTestId("work-title")).toHaveTextContent("Work approved");
   });
 
   it("shows gardener-specific info for pending status", () => {

@@ -212,7 +212,7 @@ export function AppBar({
               slot="settings-button"
               tooltip={formatMessage({
                 id: "cockpit.topBar.openSettings",
-                defaultMessage: "Settings",
+                defaultMessage: "Open Settings",
               })}
               onClick={onOpenSettings}
             >

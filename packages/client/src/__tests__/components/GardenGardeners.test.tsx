@@ -1,16 +1,34 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...values: Array<string | false | null | undefined>) => values.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/utils/app/clipboard", () => ({
   copyToClipboard: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/utils/app/text", () => ({
   formatAddress: (address: string) => address,
+}));
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: { error: vi.fn(), success: vi.fn() },
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsAvatar", () => ({
   useEnsAvatar: () => ({ data: null, isLoading: false }),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
   useEnsName: () => ({ data: null }),
+}));
+
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
   useGreenGoodsEnsName: () => ({ data: null }),
 }));
 
@@ -41,7 +59,7 @@ vi.mock("@/components/Inputs", () => ({
 import { GardenGardeners, type GardenMember } from "../../components/Features/Garden/Gardeners";
 
 const messages = {
-  "app.garden.gardeners.operatorBadge": "Operator",
+  "app.garden.gardeners.stewardBadge": "Steward",
   "app.garden.gardeners.registered": "Registered",
   "app.garden.gardeners.unknownUser": "Unknown user",
 };
@@ -59,14 +77,29 @@ const members: GardenMember[] = Array.from({ length: 41 }, (_, index) => ({
   account: `0x${index.toString(16).padStart(40, "0")}` as GardenMember["account"],
   username: `Member ${index}`,
   registeredAt: 1_700_000_000_000 + index,
-  isOperator: false,
+  isSteward: false,
   isGardener: true,
 }));
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("GardenGardeners", () => {
   it("virtualizes large member lists while preserving selection and list semantics", async () => {
     const user = userEvent.setup();
     const ref = createRef<HTMLUListElement>();
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+      bottom: 600,
+      height: 600,
+      left: 0,
+      right: 640,
+      top: 0,
+      width: 640,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
 
     render(
       <TestIntl>
@@ -75,11 +108,13 @@ describe("GardenGardeners", () => {
     );
 
     expect(ref.current?.tagName).toBe("UL");
-    const renderedRows = screen.getAllByRole("listitem");
-    expect(renderedRows.length).toBeGreaterThan(0);
-    expect(renderedRows.length).toBeLessThan(members.length);
-    expect(renderedRows[0]).toHaveAttribute("aria-posinset", "1");
-    expect(renderedRows[0]).toHaveAttribute("aria-setsize", "41");
+    await waitFor(() => {
+      const renderedRows = screen.getAllByRole("listitem");
+      expect(renderedRows.length).toBeGreaterThan(0);
+      expect(renderedRows.length).toBeLessThan(members.length);
+      expect(renderedRows[0]).toHaveAttribute("aria-posinset", "1");
+      expect(renderedRows[0]).toHaveAttribute("aria-setsize", "41");
+    });
 
     await user.click(screen.getByRole("button", { name: /Member 0/i }));
 

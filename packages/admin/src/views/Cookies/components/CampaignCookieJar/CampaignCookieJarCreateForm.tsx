@@ -1,8 +1,8 @@
+import type { Garden } from "@green-goods/shared/types/domain";
 import type {
   CampaignCookieJarPayoutAsset,
   CampaignCookieJarPayoutAssetId,
-  Garden,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/cookie-jar-campaign";
 import type { IntlShape } from "react-intl";
 import { CampaignAdvancedSection } from "./CampaignAdvancedSection";
 import { CampaignCreateReview } from "./CampaignCreateReview";
@@ -45,7 +45,7 @@ export interface CampaignCookieJarCreateFormProps {
   aggregation: {
     allowlist: readonly string[];
     sources: readonly unknown[];
-    missingOperatorGardens: readonly unknown[];
+    missingStewardGardens: readonly unknown[];
     invalidAddresses: readonly string[];
   };
   advancedOpen: boolean;
@@ -89,7 +89,7 @@ export function CampaignCookieJarCreateForm(props: CampaignCookieJarCreateFormPr
               {formatMessage({
                 id: "cockpit.community.cookies.deployerOnly",
                 defaultMessage:
-                  "This surface is intended for deployer and ops wallets. Connect a deployer wallet to create and manage campaign cookie jars.",
+                  "This surface is intended for deployer and ops wallets. Connect a deployer wallet to create jars, or the jar owner to sync an existing jar.",
               })}
             </div>
           ) : null}

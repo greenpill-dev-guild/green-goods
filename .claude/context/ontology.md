@@ -1,44 +1,91 @@
 # Ontology Context
 
-Loaded when touching controlled vocabularies (enums, string unions), EAS schemas, glossary entities/personas, or the ontology sidecar itself. Extends CLAUDE.md.
+Read this when changing controlled vocabularies, EAS schemas, glossary entities or personas,
+ontology constraints or state machines, capability evidence, or the ontology sidecar itself.
 
-## Quick Reference
+## Quick reference
 
 ```bash
-bun run check:ontology       # Drift gate: sidecar ↔ Solidity/GraphQL/TS/EAS/docs (also in agentic:check + drift:check)
-bun run ontology:generate    # Regenerate docs/docs/reference/ontology.generated.mdx + entity-matrix.mdx
-node --test scripts/quality/check-ontology.test.mjs   # Checker unit fixtures
+bun run ontology:generate    # Regenerate all five projections from the sidecar and projection data
+bun run check:ontology       # Verify declarations, anchors, generated output, and accepted drift
+node --test scripts/quality/check-ontology.test.mjs   # Run the checker fixtures directly
 ```
 
-## What the sidecar is
+## Source of truth
 
-`packages/shared/src/ontology/green-goods-ontology.json` is the canonical, machine-readable specification of the Green Goods domain: entities, personas, controlled vocabularies with per-layer representations, EAS schemas, cross-layer constraints, lifecycle state machines, the integration matrix, and known issues. `scripts/quality/check-ontology.mjs` drift-gates it against the code and docs on every relevant change (workflow: `.github/workflows/ontology.yml`; findings baseline: `scripts/data/ontology-drift-baseline.json`). The typed accessor is `packages/shared/src/ontology/index.ts` (internal — not in `package.json#exports` yet).
+`packages/shared/src/ontology/green-goods-ontology.json` is the canonical machine-readable
+specification for entities, personas, vocabularies, EAS schemas, constraints, lifecycle state
+machines, integration mappings, and known issues. Capability maturity, human-language concepts,
+and safe claims live in `packages/shared/src/ontology/green-goods-projections.json`.
+
+The full typed accessor in `packages/shared/src/ontology/index.ts` remains internal. Application
+code and agents should use the compact read-only query API exported by `@green-goods/shared`, which
+loads `agent-manifest.generated.json`.
+
+## What the gate proves
+
+`bun run check:ontology` performs exact checks for declared Solidity, GraphQL, and TypeScript
+vocabularies; EAS schema shapes; mappings; glossary definitions; stable source symbols; generated
+artifacts; and the bidirectional drift baseline. It validates state-machine structure, planned
+implementation arrival, and evidence-file presence.
+
+Constraint prose, transition behavior, capability evidence, and marketing claims still require
+their named implementation tests or human verification. An existing evidence file is not proof
+that its contents still support a claim.
 
 ## Canon rules
 
-- **On-chain wins for chain-backed vocabularies.** If a Solidity enum exists (Capital, Domain, GardenRole, WeightScheme, signal-pool PoolType…), its member names, order, and values are canonical. TypeScript/GraphQL representations declare their expected spelling in the sidecar; deviation is drift.
-- **The glossary wins for entity/persona prose.** The sidecar `definition` fields and the glossary's Domain Entities / Personas table cells are locked together character-for-character (normalized) by the docs-glossary guard — edit both together.
-- **Each layer's spelling is declared, not inferred.** SCREAMING in GraphQL, numeric enums in shared TS, lowercase slugs — every representation lists its exact expected members. Layer-only extras (the indexer's `UNKNOWN` sentinel, `mutual_credit`) are declared in the sidecar, never baselined.
+- **On-chain wins for chain-backed vocabularies.** When a Solidity enum exists, its member names,
+  order, and values are canonical. TypeScript and GraphQL representations declare their spelling
+  in the sidecar; unexplained deviation is drift.
+- **The glossary wins for entity and persona prose.** Sidecar definitions and the glossary's Domain
+  Entities and Personas tables are locked together after normalization.
+- **Each layer's spelling is explicit.** GraphQL sentinels, numeric enums, lowercase slugs, and
+  other layer-specific forms belong in declared representations or mappings, not assumptions.
 
-## Changing a vocabulary
+## Change protocol
 
-1. Edit the code (Solidity/TS/GraphQL) and the sidecar's canonical + representation member lists **in the same change**.
-2. Run `bun run check:ontology` — fix anything it reports; never hand-edit the generated pages.
-3. Run `bun run ontology:generate` and commit both regenerated artifacts.
-4. If the change intentionally leaves temporary drift, add a baseline entry (below) instead of skipping the gate.
+1. Edit the implementation, sidecar, and projection data together.
+2. Run `bun run ontology:generate`; never hand-edit generated projections.
+3. Run `bun run check:ontology` and fix every unlisted or stale finding.
+4. If temporary drift is intentional, add one bounded baseline entry with an owner, expiry, and
+   concrete burn-down direction.
 
 ## Baseline discipline
 
-`scripts/data/ontology-drift-baseline.json` entries carry `guard`, `subject`, `detail` (must equal the checker's computed detail verbatim), `owner`, `expires` (≤ 250 days out), and a `note` ≥ 12 chars explaining the fix direction. The gate is bidirectional: unlisted findings fail, and **fixed drift also fails until its entry is deleted**. Renewing an expiry is a conscious act — re-date it with a fresh note, never silently.
+`scripts/data/ontology-drift-baseline.json` entries carry `guard`, `subject`, the checker's exact
+`detail`, `owner`, `expires` (at most 250 days away), and a meaningful `note`. The gate is
+bidirectional: new drift fails, changed drift fails, and fixed drift fails until its stale baseline
+entry is removed. Renewing an expiry requires a fresh decision and note.
 
-## `status: "spec"` semantics
+## Specified-source semantics
 
-Commitment-pooling vocabularies/schemas/state machines are encoded from the locked spec (`.plans/active/commitment-pooling/contract-spec.md`) with `status: "spec"`, empty representations, and a `planned_anchor`. The gate skips code cross-checks for them but watches the planned anchor: once the anchor file exists and mentions the bare symbol anywhere outside comments (word-boundary match on the comment-stripped source — a type alias or constant set trips it too, not just `enum <Symbol>`; or a spec schema key lands in `config/schemas.json`), the gate fails with instructions to flip the entry to `live` and declare representations. If the spec's vocabulary changes before implementation, update the sidecar in the same PR as the spec edit.
+A `source_status: "specified"` vocabulary, constraint, or state machine must name its governing
+specification and a planned source anchor. The gate watches the comment-stripped source for that
+symbol and fails when implementation arrives, forcing the entry to become `implemented` with
+declared representations or implementation evidence. Specified EAS schemas are similarly watched
+through `packages/contracts/config/schemas.json`.
 
-## ⚠ PoolType name collision
+## PoolType name collision
 
-Solidity has two unrelated `PoolType` enums: `IGardensModule.PoolType { ActionSignal, HypercertSignal }` (live Gardens V2 signal pools — sidecar id `signal-pool-type`) and the planned `ICommitmentPoolingModule.PoolType { Garden, Protocol }` (sidecar id `commitment-pool-type`). Never merge, cross-map, or "unify" them. Note the shared TS `PoolType` in `gardens-community.ts` is currently inverted vs chain — verified latent (assigned by address identity, never decoded); see baseline entries `signal-pool-type-*` before touching it.
+Solidity has two unrelated `PoolType` enums:
 
-## Human-facing surfaces
+- `IGardensModule.PoolType { ActionSignal, HypercertSignal }` describes Gardens V2 signal pools
+  (`signal-pool-type`). Its shared and GraphQL representations remain intentionally baselined while
+  their compatibility migration is planned.
+- `ICommitmentPoolingModule.PoolType { Garden, Protocol }` describes commitment-pooling anchors
+  (`commitment-pool-type`) and is implemented across contracts, shared, and the indexer.
 
-Generated reference (listed): `docs/docs/reference/ontology.generated.mdx`. Entity matrix (unlisted, generated): `docs/docs/builders/integrations/entity-matrix.mdx`. Both carry AUTO-GENERATED banners — edit the sidecar, then regenerate.
+Never merge or cross-map these vocabularies because they share only an identifier.
+
+## Generated projections
+
+`bun run ontology:generate` owns all five outputs:
+
+- `docs/docs/reference/ontology.generated.mdx`
+- `docs/docs/builders/integrations/entity-matrix.mdx`
+- `docs/docs/reference/glossary.generated.mdx`
+- `docs/docs/community/green-goods-claims.generated.mdx`
+- `packages/shared/src/ontology/agent-manifest.generated.json`
+
+Every output carries a generated-file notice and must remain deterministic.

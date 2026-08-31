@@ -1,4 +1,5 @@
-import { logger, trackErrorBoundary } from "@green-goods/shared";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import { trackErrorBoundary } from "@green-goods/shared/modules/app/error-events";
 import { RiArrowGoBackLine, RiLeafFill, RiRefreshLine } from "@remixicon/react";
 import React, { Component, type ReactNode } from "react";
 import { type IntlShape, useIntl } from "react-intl";

@@ -65,9 +65,9 @@ const meta: Meta<typeof ProfileCanvasStory> = {
   title: "Admin/Workspaces/Profile",
   component: ProfileCanvasStory,
   tags: ["autodocs"],
+  globals: { viewport: { value: "mobile" } },
   parameters: {
     layout: "fullscreen",
-    viewport: { defaultViewport: "mobile1" },
     docs: {
       description: {
         component:

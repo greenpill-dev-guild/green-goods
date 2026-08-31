@@ -15,26 +15,26 @@ Green Goods is the verified impact operations layer for community-led regenerati
 | # | Archetype | What They Want | Primary Constraint | Tech Comfort |
 |---|-----------|----------------|-------------------|--------------|
 | 1 | **Gardener** | Rewards, recognition, impact visibility | Low connectivity, low patience for forms | None assumed |
-| 2 | **Garden Operator** | Find opportunities/resources for community | Admin overhead, reporting burden | Moderate |
+| 2 | **Garden Steward** | Find opportunities/resources for community | Admin overhead, reporting burden | Moderate |
 | 3 | **Evaluator** | Uphold expertise, iterate methodologies, gather research insights | Time, domain complexity | Moderate-high |
 | 4 | **Funder** | Verified impact for funding confidence | Budget/allocation strategy, trust | Varies |
 | 5 | **Community Member** | Community improvements, better resources | Awareness, access | None assumed |
 
-**Decision rule:** When two archetypes conflict, resolve in priority order. Gardener experience wins unless doing so blocks Operator onboarding (Operators are the distribution channel).
+**Decision rule:** When two archetypes conflict, resolve in priority order. Gardener experience wins unless doing so blocks Steward onboarding (Stewards are the distribution channel).
 
 ### Persona & Tone Quick-Reference
 
 | Archetype | Persona | Perceives Green Goods As | Tone | Avoid |
 |-----------|---------|--------------------------|------|-------|
 | Gardener | Maria | "A helpful WhatsApp contact that pays me for work" | Warm, direct, action-oriented. Short sentences. No jargon. | Technical terms, passive voice, options overload |
-| Operator | David | "My garden's command center" | Professional, efficient, task-focused. Data-aware. | Condescending simplicity, unstructured prose |
+| Steward | David | "My garden's command center" | Professional, efficient, task-focused. Data-aware. | Condescending simplicity, unstructured prose |
 | Evaluator | Dr. Chen | "A data-rich platform for certifying truth" | Precise, evidence-based, structured. Respect domain expertise. | Oversimplification, vague impact language |
 | Funder | Amara | "A high-yield savings account that heals the planet" | Confident, transparent, audit-friendly. Lead with verified data. | Hype, unsubstantiated claims, blockchain jargon |
 | Community | Kwame | "My neighborhood's way to have a say" | Inclusive, plain-language, encouraging. | Protocol jargon, assumed web3 literacy |
 
 **Tone rules:**
 - Gardener/Community copy: zero blockchain vocabulary, reading level ~6th grade
-- Operator copy: may reference on-chain verification as a trust mechanism, but not Solidity internals
+- Steward copy: may reference on-chain verification as a trust mechanism, but not Solidity internals
 - Evaluator copy: may use research/assessment terminology freely
 - Funder copy: may reference attestation integrity; never use "guaranteed returns"
 - For full persona profiles with behavioral scenarios: `docs/docs/reference/design-research.md#user-personas`
@@ -52,7 +52,7 @@ Green Goods is the verified impact operations layer for community-led regenerati
 | Passkey auth with zero blockchain vocabulary | Seed phrase, gas fee prompts, chain switching |
 | Graceful degradation on 2G/3G | Features that require persistent connectivity |
 
-### Operator (Admin Dashboard)
+### Steward (Admin Dashboard)
 
 | Acceptable | Unacceptable |
 |------------|--------------|
@@ -131,7 +131,7 @@ Resolve conflicts in this order (highest priority first):
 1. **Gardener submission friction** -- Nothing blocks the <2 min capture flow
 2. **Data integrity** -- Attestations are correct and verifiable, never fabricated
 3. **Offline resilience** -- Operations queue and sync, never silently fail
-4. **Operator efficiency** -- Reduce reporting/admin overhead per garden
+4. **Steward efficiency** -- Reduce reporting/admin overhead per garden
 5. **Funder legibility** -- Impact data is export-ready and auditable
 6. **Feature breadth** -- New capabilities only after core flow is solid
 
@@ -183,7 +183,7 @@ Each major feature set maps to a specific grant. When a feature request or bug t
 These are already part of the core product baseline and should be treated as live, not future roadmap items:
 
 - Offline-first work submission with photo evidence
-- Operator review and approval workflows
+- Steward review and approval workflows
 - EAS attestation chains (Work → Approval → Assessment)
 - Hats Protocol role management
 - Indexer-backed state queries
@@ -200,7 +200,7 @@ These are already part of the core product baseline and should be treated as liv
 ### Ship Later (Q3/Q4 2026)
 
 - Expand beyond Season One partner gardens
-- Operator subscriptions and funder-facing dashboards
+- Steward subscriptions and funder-facing dashboards
 - Deeper Hypercert marketplace participation
 - Community-owned infrastructure exploration (RevNets, public goods staking)
 - Meeting-to-action automation and broader agent coordination
@@ -223,11 +223,11 @@ These are already part of the core product baseline and should be treated as liv
 
 ## GTM Model
 
-- **B2B2C**: Operators onboard Gardeners. Gardener acquisition cost is effectively zero (passkeys + gas sponsorship).
-- **Revenue**: Operators ($49-$1000/mo per Garden), Funders ($2k-$50k/yr for dashboards).
+- **B2B2C**: Stewards onboard Gardeners. Gardener acquisition cost is effectively zero (passkeys + gas sponsorship).
+- **Revenue**: Stewards ($49-$1000/mo per Garden), Funders ($2k-$50k/yr for dashboards).
 - **Sustainability**: Yield-backed via Octant vault (~$100k-$200k TVL target for self-sustaining ops).
 
-**Implication for agents:** Operator setup friction directly impacts revenue. Gardener friction directly impacts retention. Optimize both paths aggressively.
+**Implication for agents:** Steward setup friction directly impacts revenue. Gardener friction directly impacts retention. Optimize both paths aggressively.
 
 ## Messaging Constraints
 
@@ -248,14 +248,14 @@ These are already part of the core product baseline and should be treated as liv
 - "Web3" or "blockchain" in Gardener-facing copy
 - "Decentralized" as a feature (it is an implementation detail)
 
-**Rule:** Gardener-facing copy must be comprehensible to someone who has never heard of Ethereum. Operator/Funder copy may reference on-chain verification as a trust mechanism.
+**Rule:** Gardener-facing copy must be comprehensible to someone who has never heard of Ethereum. Steward/Funder copy may reference on-chain verification as a trust mechanism.
 
 ## Competitive Differentiation
 
 | Differentiator | Why It Matters |
 |----------------|----------------|
 | Last-mile proof capture (offline-first PWA, <2 min) | Reaches gardeners where connectivity fails |
-| Human community verification (Operator-led) | Not self-report, not remote sensing -- local trust |
+| Human community verification (Steward-led) | Not self-report, not remote sensing -- local trust |
 | Composable on-chain records (EAS attestations) | Interoperable impact data, not siloed |
 | Capital formation primitives (yield + Hypercerts) | Funding follows verified impact automatically |
 
@@ -264,19 +264,19 @@ These are already part of the core product baseline and should be treated as liv
 - **Minimize on-chain PII**: No names, emails, or phone numbers in attestation data.
 - **Addresses are pseudonymous**: Do not build features that link wallet addresses to real-world identity on-chain.
 - **Media storage**: IPFS hashes on-chain, media files off-chain. Never store raw images in attestation data.
-- **Operator discretion**: Operators manage gardener identity mapping off-chain. The protocol does not enforce or store this mapping.
+- **Steward discretion**: Stewards manage gardener identity mapping off-chain. The protocol does not enforce or store this mapping.
 
 ## Escalate Product Decisions When
 
 - A feature trade-off pits Gardener friction against data integrity
 - Copy or UI implies carbon credit / offset functionality
 - A change would expose PII on-chain (even indirectly via attestation fields)
-- Funder-facing reporting accuracy conflicts with Operator workflow simplicity
+- Funder-facing reporting accuracy conflicts with Steward workflow simplicity
 - The feature is not on the priority framework and would take more than 2 days to implement
 - Gardener-facing UX requires blockchain vocabulary or wallet interaction
 
 ## Related Context
 - Organizational mission and values → `docs/docs/community/why-we-build.mdx`
 - Impact model (CIDS) and action domains → `docs/docs/community/how-it-works.mdx`
-- Strategic goals, metrics, economic model → `docs/docs/community/where-were-headed.mdx`
+- Public capability boundaries → `docs/docs/community/green-goods-claims.generated.mdx`
 - Real communities and localization → `docs/docs/reference/design-research.md`

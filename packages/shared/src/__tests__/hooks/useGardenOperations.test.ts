@@ -1,7 +1,7 @@
 /**
  * useGardenOperations Hook Tests
  *
- * Tests for garden member management (gardeners and operators).
+ * Tests for garden member management (gardeners and stewards).
  * Uses createGardenOperation factory with simulation and optimistic updates.
  *
  * NOTE: Complex integration tests are skipped due to factory pattern
@@ -13,15 +13,18 @@ import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock dependencies
-const mockUseAccount = vi.fn();
-const mockUseWalletClient = vi.fn();
+const mockUsePrimaryAddress = vi.fn();
+const mockUseTransactionSender = vi.fn();
 const mockUseQueryClient = vi.fn();
 const mockUseToastAction = vi.fn();
 const mockCreateGardenOperation = vi.fn();
 
-vi.mock("wagmi", () => ({
-  useAccount: () => mockUseAccount(),
-  useWalletClient: () => mockUseWalletClient(),
+vi.mock("../../hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => mockUsePrimaryAddress(),
+}));
+
+vi.mock("../../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: () => mockUseTransactionSender(),
 }));
 
 vi.mock("@tanstack/react-query", () => ({
@@ -39,6 +42,10 @@ vi.mock("../../hooks/app/useToastAction", () => ({
 }));
 
 vi.mock("../../config/blockchain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
@@ -63,14 +70,14 @@ vi.mock("../../hooks/garden/createGardenOperation", () => ({
       memberType: "gardener",
       operationType: "remove",
     },
-    addOperator: {
+    addSteward: {
       functionName: "addOperator",
-      memberType: "operator",
+      memberType: "steward",
       operationType: "add",
     },
-    removeOperator: {
+    removeSteward: {
       functionName: "removeOperator",
-      memberType: "operator",
+      memberType: "steward",
       operationType: "remove",
     },
     addEvaluator: {
@@ -114,18 +121,13 @@ const { useGardenOperations } = await import("../../hooks/garden/useGardenOperat
 describe("useGardenOperations", () => {
   const gardenId = "0x1234567890123456789012345678901234567890";
   const mockExecuteWithToast = vi.fn();
-  const mockWalletClient = { writeContract: vi.fn() };
+  const mockSender = { sendContractCall: vi.fn() };
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockUseAccount.mockReturnValue({
-      address: "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
-    });
-
-    mockUseWalletClient.mockReturnValue({
-      data: mockWalletClient,
-    });
+    mockUsePrimaryAddress.mockReturnValue("0x2aa64E6d80390F5C017F0313cB908051BE2FD35e");
+    mockUseTransactionSender.mockReturnValue(mockSender);
 
     mockUseQueryClient.mockReturnValue({
       getQueryData: vi.fn(),
@@ -142,8 +144,8 @@ describe("useGardenOperations", () => {
   });
 
   it("should return error when wallet not connected", async () => {
-    mockUseAccount.mockReturnValue({ address: undefined });
-    mockUseWalletClient.mockReturnValue({ data: undefined });
+    mockUsePrimaryAddress.mockReturnValue(null);
+    mockUseTransactionSender.mockReturnValue(null);
 
     const { result } = renderHook(() => useGardenOperations(gardenId));
 
@@ -169,8 +171,8 @@ describe("useGardenOperations", () => {
   });
 
   it("should not call createGardenOperation when wallet not connected", () => {
-    mockUseAccount.mockReturnValue({ address: undefined });
-    mockUseWalletClient.mockReturnValue({ data: undefined });
+    mockUsePrimaryAddress.mockReturnValue(null);
+    mockUseTransactionSender.mockReturnValue(null);
 
     renderHook(() => useGardenOperations(gardenId));
 
@@ -183,8 +185,8 @@ describe("useGardenOperations", () => {
 
     expect(typeof result.current.addGardener).toBe("function");
     expect(typeof result.current.removeGardener).toBe("function");
-    expect(typeof result.current.addOperator).toBe("function");
-    expect(typeof result.current.removeOperator).toBe("function");
+    expect(typeof result.current.addSteward).toBe("function");
+    expect(typeof result.current.removeSteward).toBe("function");
     expect(typeof result.current.addEvaluator).toBe("function");
     expect(typeof result.current.removeEvaluator).toBe("function");
     expect(typeof result.current.addOwner).toBe("function");

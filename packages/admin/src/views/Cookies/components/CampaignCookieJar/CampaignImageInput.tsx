@@ -1,16 +1,13 @@
-import {
-  extractErrorMessage,
-  FileUploadField,
-  FormField,
-  logger,
-  resolveIPFSUrl,
-  toastService,
-  TextInput,
-  uploadFileToIPFS,
-} from "@green-goods/shared";
+import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { uploadFileToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
+import { extractErrorMessage } from "@green-goods/shared/utils/errors/extract-message";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminTextField } from "@/components/AdminTextField";
 import { isValidCampaignCookieJarMetadataUrl } from "../../campaignCookieJarPanel.model";
 
 export function CampaignImageInput({
@@ -130,7 +127,7 @@ export function CampaignImageInput({
         {showUrlFallback
           ? formatMessage({
               id: "cockpit.community.cookies.hideImageUrl",
-              defaultMessage: "Hide image URL",
+              defaultMessage: "Hide Image URL",
             })
           : formatMessage({
               id: "cockpit.community.cookies.pasteImageUrl",
@@ -138,12 +135,17 @@ export function CampaignImageInput({
             })}
       </AdminButton>
       {showUrlFallback ? (
-        <FormField
+        <AdminTextField
+          id={`${source}-url`}
           label={formatMessage({
             id: "cockpit.community.cookies.campaignImage",
             defaultMessage: "Campaign image URL",
           })}
-          htmlFor={`${source}-url`}
+          value={value}
+          onChange={(event) => {
+            onFileChange(null);
+            onChange(event.target.value);
+          }}
           error={
             value && !isValidCampaignCookieJarMetadataUrl(value)
               ? formatMessage({
@@ -152,17 +154,7 @@ export function CampaignImageInput({
                 })
               : undefined
           }
-        >
-          <TextInput
-            id={`${source}-url`}
-            surface="admin"
-            value={value}
-            onChange={(event) => {
-              onFileChange(null);
-              onChange(event.target.value);
-            }}
-          />
-        </FormField>
+        />
       ) : null}
     </div>
   );

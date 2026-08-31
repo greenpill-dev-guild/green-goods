@@ -1,4 +1,5 @@
-import type { Address, DraftWithImages } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { DraftWithImages } from "@green-goods/shared/hooks/work/useDrafts";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, within } from "storybook/test";
 import { DraftCard } from "./DraftCard";
@@ -61,9 +62,7 @@ const meta: Meta<typeof DraftCard> = {
   title: "Client/Cards/DraftCard",
   component: DraftCard,
   tags: ["autodocs"],
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
   argTypes: {
     draft: {
       control: "object",
@@ -218,7 +217,5 @@ export const Mobile: Story = {
     onResume: () => {},
     onDelete: () => {},
   },
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
 };

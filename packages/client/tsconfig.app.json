@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2022",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
 
     /* Bundler mode */
     "moduleResolution": "bundler",
-    "resolvePackageJsonExports": false,
+    "resolvePackageJsonExports": true,
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "verbatimModuleSyntax": true,
@@ -27,6 +27,8 @@
     /* Paths */
     "paths": {
       "@/*": ["./src/*"],
+      "@green-goods/shared/commitment-pooling": ["../shared/src/commitment-pooling/index.ts"],
+      "@green-goods/shared/public": ["../shared/src/hooks/public/publicSurfaceState.ts"],
       "@green-goods/shared": ["../shared/src/index.ts"],
       "@green-goods/shared/sentry": ["../shared/src/modules/app/sentry.ts"],
       "@green-goods/shared/components": ["../shared/src/components/index.ts"],
@@ -49,6 +51,7 @@
       "@green-goods/shared/mocks/browser/*": ["../shared/src/mocks/browser/*.ts"],
       "@green-goods/shared/mocks/server/*": ["../shared/src/mocks/server/*.ts"],
       "@green-goods/shared/i18n": ["../shared/src/i18n/index.ts"],
+      "@green-goods/shared/i18n/*.json": ["../shared/src/i18n/*.json"],
       "@green-goods/shared/i18n/*": ["../shared/src/i18n/*.json"],
       "@green-goods/shared/workflows": ["../shared/src/workflows/index.ts"],
       "@green-goods/shared/workflows/*": ["../shared/src/workflows/*.ts"],
@@ -63,6 +66,7 @@
     "src/**/__tests__/**",
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
+    "src/**/*.stories.*",
     "../shared/src/__tests__/**",
     "../shared/src/__mocks__/**"
   ]

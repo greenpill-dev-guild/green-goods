@@ -1,11 +1,13 @@
-import { cn, type Address, type TimeFilter, type Work } from "@green-goods/shared";
+import type { Address, Work } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import type { TimeFilter } from "@green-goods/shared/utils/time";
 import { RiCheckLine, RiTimeLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { TimeFilterControl } from "./TimeFilterControl";
 import { WorkListTab } from "./WorkListTab";
-import { isOperatorForGarden } from "./work-dashboard-utils";
+import { isStewardForGarden } from "./workDashboardUtils";
 
 interface PendingTabProps {
   items: Work[];
@@ -34,7 +36,7 @@ const PENDING_MESSAGES = {
   emptyTitle: { id: "app.workDashboard.pending.noPending", defaultMessage: "No pending work" },
   emptyDescription: {
     id: "app.workDashboard.pending.description",
-    defaultMessage: "Submitted work waiting to sync or review will appear here",
+    defaultMessage: "Submitted work waiting to send or be reviewed will appear here",
   },
 };
 
@@ -60,10 +62,10 @@ export const PendingTab: React.FC<PendingTabProps> = ({
   const renderBadges = (item: Work): React.ReactNode[] => {
     const badges: React.ReactNode[] = [];
     const isGardener = isUserAddress(item.gardenerAddress);
-    const isOperator = isOperatorForGarden(activeAddress, reviewerGardenIds, item.gardenAddress);
+    const isSteward = isStewardForGarden(activeAddress, reviewerGardenIds, item.gardenAddress);
     const reviewed = reviewedByYou.has(item.id);
 
-    if (isOperator && !reviewed) {
+    if (isSteward && !reviewed) {
       badges.push(
         <span
           key="review"

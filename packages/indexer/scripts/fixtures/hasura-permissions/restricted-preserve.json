@@ -1,0 +1,35 @@
+{
+  "requiredTables": ["Allowlist", "Filtered", "Limited"],
+  "metadata": {
+    "metadata": {
+      "sources": [
+        {
+          "name": "default",
+          "tables": [
+            {
+              "table": { "schema": "public", "name": "Allowlist" },
+              "select_permissions": [
+                { "role": "public", "permission": { "columns": ["id"], "filter": {} } }
+              ]
+            },
+            {
+              "table": { "schema": "public", "name": "Filtered" },
+              "select_permissions": [
+                {
+                  "role": "public",
+                  "permission": { "columns": "*", "filter": { "active": { "_eq": true } } }
+                }
+              ]
+            },
+            {
+              "table": { "schema": "public", "name": "Limited" },
+              "select_permissions": [
+                { "role": "public", "permission": { "columns": "*", "filter": {}, "limit": 100 } }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

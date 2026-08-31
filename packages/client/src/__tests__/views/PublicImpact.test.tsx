@@ -61,16 +61,37 @@ const mockSliceReady = {
 const mockUsePublicStats = vi.fn();
 const mockUsePublicImpactEvidence = vi.fn();
 const mockUsePublicGardens = vi.fn();
+const mockUsePublicCommitmentImpact = vi.fn();
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+vi.mock("@green-goods/shared/hooks/public/usePublicStats", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal()),
     usePublicStats: () => mockUsePublicStats(),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/public/usePublicImpactEvidence", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     usePublicImpactEvidence: () => mockUsePublicImpactEvidence(),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/public/usePublicGardens", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     usePublicGardens: () => mockUsePublicGardens(),
   };
 });
+
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  usePublicCommitmentImpact: () => mockUsePublicCommitmentImpact(),
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicCommitmentImpact", () => ({
+  usePublicCommitmentImpact: () => mockUsePublicCommitmentImpact(),
+}));
 
 import ImpactPage from "../../views/Public/Impact";
 
@@ -86,7 +107,7 @@ const messages: Record<string, string> = {
   "public.impact.evidence.error": "Evidence is temporarily unavailable.",
   "public.impact.evidence.partialData": "Showing partial evidence.",
   "public.impact.evidence.sourceLimitReached": "Capped slice.",
-  "public.impact.evidence.viewSource": "View source",
+  "public.impact.evidence.viewSource": "View Source",
   "public.impact.evidence.noSource": "Source pending",
   "public.impact.evidence.thumbnailFallback": "no image",
   "public.impact.proof.notPublicYet": "Not public yet",
@@ -125,6 +146,10 @@ describe("ImpactPage", () => {
     mockUsePublicStats.mockReturnValue({ data: mockStats, isLoading: false });
     mockUsePublicImpactEvidence.mockReturnValue({ data: mockSliceReady, isLoading: false });
     mockUsePublicGardens.mockReturnValue({ data: [], isLoading: false });
+    // § 02 commitments band has its own suite (`commitment-editorial.test.tsx`);
+    // here it is pinned to a still-loading read so its figures cannot collide
+    // with the proof-marker counts this suite asserts on.
+    mockUsePublicCommitmentImpact.mockReturnValue({ data: undefined, isLoading: true });
   });
 
   it("renders the editorial hero", () => {
@@ -144,6 +169,19 @@ describe("ImpactPage", () => {
     expect(screen.getByText("30")).toBeInTheDocument();
   });
 
+  it("renders a stats read that settled without data as unavailable, never as zero", () => {
+    mockUsePublicStats.mockReturnValue({ data: undefined, isLoading: false });
+    renderView();
+    const proof = document.querySelector(
+      'section[aria-labelledby="public-impact-proof-title"]'
+    ) as HTMLElement;
+    // Three live markers dash out with a screen-reader label; the certificates
+    // marker is a confirmed "not public yet", not a failed read, and keeps its phrase.
+    expect(within(proof).getAllByText("Not available right now")).toHaveLength(3);
+    expect(within(proof).getAllByText("Not public yet")).toHaveLength(1);
+    expect(within(proof).queryByText("0")).toBeNull();
+  });
+
   it("renders evidence cards with their titles in an image-forward grid", () => {
     renderView();
     expect(screen.getByText("Q3 Soil Renewal")).toBeInTheDocument();
@@ -156,7 +194,10 @@ describe("ImpactPage", () => {
   it("shows loading skeletons while evidence is loading", () => {
     mockUsePublicImpactEvidence.mockReturnValue({ data: undefined, isLoading: true });
     const { container } = renderView();
-    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThanOrEqual(1);
+    expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
+      3
+    );
+    expect(container.querySelector(".animate-pulse")).toBeNull();
   });
 
   it("shows the empty evidence state when no records load", () => {

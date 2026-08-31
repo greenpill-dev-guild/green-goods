@@ -31,7 +31,7 @@
 
 - Afo (host)
 - Gui (engineering)
-- Lena (operator pilot — Hilltop Garden)
+- Lena (steward pilot — Hilltop Garden)
 
 ## Summary
 
@@ -60,11 +60,11 @@ Afo noticed during a smoke test that the radio buttons in the Fund dialog (when 
 > "I'm clicking the radios and nothing changes visually. The form still works though."
 > — Afo
 
-### Docs — glossary typo on "Operator"
+### Docs — glossary typo on "Steward"
 
-Lena noticed the [glossary](https://greengoods.docs/glossary) defines `Operator` as "the gardner responsible for…" — should be `gardener`. Minor, but the glossary is what new operators read on day one, so let's not let it sit. No telemetry — this is a docs-only fix.
+Lena noticed the [glossary](https://greengoods.docs/glossary) defines `Steward` as "the gardner responsible for…" — should be `gardener`. Minor, but the glossary is what new stewards read on day one, so let's not let it sit. No telemetry — this is a docs-only fix.
 
-> "Just spell-check; the glossary says 'gardner' on the Operator entry."
+> "Just spell-check; the glossary says 'gardner' on the Steward entry."
 > — Lena
 
 ### Cross-surface — member display shows raw address instead of ENS in admin Members tab
@@ -76,7 +76,7 @@ Gui flagged that the admin Members tab on Hilltop is showing `0x71C7…91aF` for
 
 ### Action templates — not a bug, idea
 
-Afo floated letting operators duplicate a previous successful action as a template. Not in scope for v1.1 but worth a Customer Need.
+Afo floated letting stewards duplicate a previous successful action as a template. Not in scope for v1.1 but worth a Customer Need.
 
 ## Action items
 

@@ -1,5 +1,6 @@
-import { type ActionInstructionConfig, FormField, Textarea, TextInput } from "@green-goods/shared";
+import type { ActionInstructionConfig } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
+import { AdminTextArea, AdminTextField } from "../AdminTextField";
 
 interface ReviewConfigSectionProps {
   config: ActionInstructionConfig["uiConfig"]["review"];
@@ -11,47 +12,34 @@ export function ReviewConfigSection({ config, onChange }: ReviewConfigSectionPro
 
   return (
     <div className="space-y-4">
-      <FormField
+      <AdminTextField
+        id="review-title"
         label={formatMessage({
           id: "app.admin.actions.reviewConfig.sectionTitle",
-          defaultMessage: "Section Title",
+          defaultMessage: "Section title",
         })}
-        htmlFor="review-title"
-      >
-        <TextInput
-          id="review-title"
-          surface="admin"
-          type="text"
-          value={config.title}
-          onChange={(e) => onChange({ ...config, title: e.target.value })}
-          className="w-full rounded-md border border-stroke-soft px-3 py-2"
-          placeholder={formatMessage({
-            id: "app.admin.actions.reviewConfig.sectionTitlePlaceholder",
-            defaultMessage: "e.g., Review & Submit",
-          })}
-        />
-      </FormField>
+        value={config.title}
+        onChange={(e) => onChange({ ...config, title: e.target.value })}
+        placeholder={formatMessage({
+          id: "app.admin.actions.reviewConfig.sectionTitlePlaceholder",
+          defaultMessage: "e.g., Review & Submit",
+        })}
+      />
 
-      <FormField
+      <AdminTextArea
+        id="review-description"
         label={formatMessage({
           id: "app.admin.actions.reviewConfig.description",
           defaultMessage: "Description",
         })}
-        htmlFor="review-description"
-      >
-        <Textarea
-          id="review-description"
-          surface="admin"
-          value={config.description}
-          onChange={(e) => onChange({ ...config, description: e.target.value })}
-          className="w-full rounded-md border border-stroke-soft px-3 py-2"
-          rows={3}
-          placeholder={formatMessage({
-            id: "app.admin.actions.reviewConfig.descriptionPlaceholder",
-            defaultMessage: "Instructions for the review screen...",
-          })}
-        />
-      </FormField>
+        value={config.description}
+        onChange={(e) => onChange({ ...config, description: e.target.value })}
+        rows={3}
+        placeholder={formatMessage({
+          id: "app.admin.actions.reviewConfig.descriptionPlaceholder",
+          defaultMessage: "Instructions for the review screen...",
+        })}
+      />
     </div>
   );
 }

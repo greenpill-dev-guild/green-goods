@@ -1,8 +1,9 @@
-import { type Action, Capital } from "@green-goods/shared";
+import { type Action, Capital } from "@green-goods/shared/types/domain";
 import { RiImageLine } from "@remixicon/react";
 import { type KeyboardEvent, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminSelectableCard } from "@/components/AdminSelectableCard";
+import { localizeActionForDisplay } from "@/views/Hub/actionDisplay";
 
 /**
  * Capital → i18n label key. Reuses the action-authoring capital labels so the
@@ -31,7 +32,7 @@ export interface ActionChooserGridProps {
 
 // Warm Earth tag chip — matches the neutral chip used across admin views.
 const chipClass =
-  "inline-flex items-center gap-1 rounded-full bg-bg-soft px-2 py-0.5 text-[11px] font-medium text-text-sub";
+  "inline-flex items-center gap-1 rounded-full bg-bg-soft px-2 py-0.5 text-label-sm font-medium text-text-sub";
 
 /**
  * ActionChooserGrid — the Choose step of Submit Work.
@@ -49,7 +50,8 @@ export function ActionChooserGrid({
   disabled = false,
   groupLabel,
 }: ActionChooserGridProps) {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const selectedIndex = actions.findIndex((action) => action.id === selectedActionId);
   const [focusedIndex, setFocusedIndex] = useState(() => (selectedIndex >= 0 ? selectedIndex : 0));
@@ -94,6 +96,7 @@ export function ActionChooserGrid({
       className="grid grid-cols-1 gap-3 sm:grid-cols-2"
     >
       {actions.map((action, index) => {
+        const displayAction = localizeActionForDisplay(action, intl);
         const selected = action.id === selectedActionId;
         const required = action.mediaInfo?.required ?? false;
         const minImages = required ? (action.mediaInfo?.minImageCount ?? 1) : 0;
@@ -110,8 +113,8 @@ export function ActionChooserGrid({
             onClick={() => onSelect(action.id)}
             onFocus={() => setFocusedIndex(index)}
             selected={selected}
-            title={action.title}
-            description={action.description}
+            title={displayAction.title}
+            description={displayAction.description}
             meta={
               <>
                 {action.capitals.map((capital) => {

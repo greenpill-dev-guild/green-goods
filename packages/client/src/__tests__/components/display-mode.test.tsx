@@ -23,17 +23,40 @@ const mockUseApp = vi.fn();
 const mockUsePendingWorksCount = vi.fn();
 const mockUseUIStore = vi.fn();
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useTunnelUrl", () => ({
   useTunnelUrl: () => null,
+}));
+
+vi.mock("@green-goods/shared/components/SyncStatusBar", () => ({
   SyncStatusBar: ({ className }: { className?: string }) =>
     createElement("div", { "data-testid": "sync-status-bar", className }),
+}));
+
+vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: () => mockUseApp(),
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useWorks", () => ({
   usePendingWorksCount: () => mockUsePendingWorksCount(),
+}));
+
+vi.mock("@green-goods/shared/stores/useUIStore", () => ({
   useUIStore: (selector: (s: any) => any) => mockUseUIStore(selector),
+}));
+
+vi.mock("@green-goods/shared/config/app", () => ({
   APP_NAME: "Green Goods",
-  useAppKit: () => ({ open: vi.fn() }),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useIsBraveBrowser", () => ({
   useIsBraveBrowser: () => false,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useInstallGuidance", () => ({
   useInstallGuidance: () => ({
     scenario: "desktop",
     primaryAction: { type: "continue-in-browser", label: "Open on Mobile" },
@@ -44,7 +67,13 @@ vi.mock("@green-goods/shared", () => ({
     browserSwitchReason: null,
     openInBrowserUrl: null,
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/usePublicInstallHandler", () => ({
   usePublicInstallHandler: () => vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useEventListener", () => ({
   useEventListener: vi.fn(),
 }));
 
@@ -65,8 +94,8 @@ const siteHeaderMessages: Record<string, string> = {
   "public.nav.fund": "Fund",
   "public.nav.installApp": "Install App",
   "public.nav.openApp": "Open App",
-  "public.nav.openMenu": "Open menu",
-  "public.nav.closeMenu": "Close menu",
+  "public.nav.openMenu": "Open Menu",
+  "public.nav.closeMenu": "Close Menu",
 };
 
 function renderAppBar(initialRoute = "/home") {
@@ -156,6 +185,29 @@ describe("Display mode — AppBar visibility", () => {
 
     expect(screen.getByRole("link", { name: /home/i }).className).not.toContain("tab-active");
     expect(screen.getByRole("link", { name: /garden/i }).className).toContain("tab-active");
+  });
+
+  it("standalone PWA: a commitment detail or composer hides the bottom nav under its action bar", () => {
+    mockUseApp.mockReturnValue({ isInstalled: true, isPwaPresentation: true });
+
+    renderAppBar("/home/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/commitments/9");
+    expect(screen.getByTestId("authenticated-nav").className).toMatch(/translate-y-full/);
+  });
+
+  it("standalone PWA: the commitments sheet hides the bottom nav like every other drawer", () => {
+    mockUseApp.mockReturnValue({ isInstalled: true, isPwaPresentation: true });
+    mockUseUIStore.mockImplementation((selector: (s: any) => any) =>
+      selector({
+        isWorkDashboardOpen: false,
+        isGardenFilterOpen: false,
+        isEndowmentDrawerOpen: false,
+        isWalletDrawerOpen: false,
+        isCommitmentsDrawerOpen: true,
+      })
+    );
+
+    renderAppBar("/home");
+    expect(screen.getByTestId("authenticated-nav").className).toMatch(/translate-y-full/);
   });
 
   it("standalone PWA: /home/profile keeps Profile active", () => {

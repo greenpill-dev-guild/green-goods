@@ -1,15 +1,15 @@
-import { logger } from "@green-goods/shared";
+import { logger } from "@green-goods/shared/modules/app/logger";
 import type {
   PublicFundingReceipt as PublicFundingReceiptShape,
   ReadFundingIntentReceiptResponse,
-} from "@green-goods/shared/public-contracts";
+} from "@green-goods/shared/public-contracts/core";
 import { useCallback, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import {
   RECEIPT_TOKEN_SESSION_KEY,
   scrubReceiptTokenFragmentFromLocation,
-} from "@/routes/receipt-token";
+} from "@/routes/receiptToken";
 import { EditorialGhostLink, EditorialLinkArrow } from "./atoms";
 import { PublicInstallAction } from "./PublicInstallAction";
 
@@ -117,7 +117,7 @@ export function PublicFundingReceipt({ intentId }: PublicFundingReceiptProps) {
             >
               {formatMessage({
                 id: "public.fund.receipt.tryAgain",
-                defaultMessage: "Try again",
+                defaultMessage: "Try Again",
               })}
             </button>
           ) : null}
@@ -285,13 +285,13 @@ function ReceiptBody({
         <EditorialLinkArrow to="/fund">
           {formatMessage({
             id: "public.fund.receipt.supportAnother",
-            defaultMessage: "Support another Garden",
+            defaultMessage: "Support Another Garden",
           })}
         </EditorialLinkArrow>
         <EditorialLinkArrow to="/impact">
           {formatMessage({
             id: "public.fund.receipt.viewImpact",
-            defaultMessage: "View public evidence",
+            defaultMessage: "View Public Evidence",
           })}
         </EditorialLinkArrow>
       </div>

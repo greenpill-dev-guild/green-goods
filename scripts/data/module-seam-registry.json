@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "shared-job-queue-construction",
+      "owner": "shared",
+      "lifecycle": "certified",
+      "criticality": "critical",
+      "modulePath": "packages/shared/src/modules/job-queue/queue.ts",
+      "publicSpecifier": "@green-goods/shared/modules/job-queue/queue",
+      "interfaceSummary": "Constructs one durable queue handle from explicit storage, scheduling, connectivity, execution, lifecycle, analytics, and event dependencies.",
+      "dependencyCategory": "local-substitute",
+      "compositionRoots": ["packages/shared/src/modules/job-queue/default-instance.ts"],
+      "directConsumers": ["packages/shared/src/modules/job-queue/default-instance.ts"],
+      "proof": {
+        "direct": ["packages/shared/src/__tests__/modules/job-queue.seam.test.ts"],
+        "conformance": ["packages/shared/src/__tests__/modules/job-queue.db.test.ts"],
+        "integration": ["packages/shared/src/__tests__/modules/job-queue.imports.test.ts"]
+      },
+      "reviewedAt": "2026-08-31",
+      "evidenceFingerprint": "sha256:8f726e016cd3ebec4fa590a81e3bb877e70abad7024936cb1526e1c62de52b00"
+    },
+    {
+      "id": "shared-auth-session",
+      "owner": "shared",
+      "lifecycle": "certified",
+      "criticality": "critical",
+      "modulePath": "packages/shared/src/modules/auth/session.ts",
+      "publicSpecifier": "@green-goods/shared/modules/auth/session",
+      "interfaceSummary": "Owns browser session identity, recovery metadata, sign-out state, and injectable storage operations used by auth composition.",
+      "dependencyCategory": "local-substitute",
+      "compositionRoots": ["packages/shared/src/providers/Auth.tsx"],
+      "directConsumers": ["packages/shared/src/config/passkeyServer.ts"],
+      "proof": {
+        "direct": ["packages/shared/src/__tests__/modules/session.test.ts"],
+        "conformance": ["packages/shared/src/__tests__/workflows/authServices.test.ts"],
+        "integration": ["packages/shared/src/__tests__/providers/Auth.wallet-login.test.tsx"]
+      },
+      "reviewedAt": "2026-08-31",
+      "evidenceFingerprint": "sha256:890e561c59a48c16a0bacbe068e45b6b98d7189e852e67ceb83388fc645379c3"
+    },
+    {
+      "id": "shared-work-provider-command",
+      "owner": "shared",
+      "lifecycle": "certified",
+      "criticality": "critical",
+      "modulePath": "packages/shared/src/modules/work/submit-work-command.ts",
+      "publicSpecifier": "@green-goods/shared/modules/work/submit-work-command",
+      "interfaceSummary": "Accepts a complete work-submission command and explicit ports, then returns a direct, queued, or processed outcome without hiding fallback policy.",
+      "dependencyCategory": "true-external",
+      "compositionRoots": ["packages/shared/src/hooks/work/useWorkMutation.ts"],
+      "directConsumers": ["packages/shared/src/hooks/work/useWorkMutation.ts"],
+      "proof": {
+        "direct": ["packages/shared/src/__tests__/modules/submit-work-command.test.ts"],
+        "conformance": [
+          "packages/shared/src/modules/transactions/__tests__/sender-conformance.test.ts"
+        ],
+        "integration": ["packages/shared/src/__tests__/providers/WorkProvider.test.tsx"]
+      },
+      "reviewedAt": "2026-08-31",
+      "evidenceFingerprint": "sha256:0160cff8181984b0f3e8b589e121b85658d56113186c90fbca5e56558b4e41ea"
+    },
+    {
+      "id": "shared-commitment-pooling-public",
+      "owner": "shared",
+      "lifecycle": "certified",
+      "criticality": "hotspot",
+      "modulePath": "packages/shared/src/commitment-pooling/index.ts",
+      "publicSpecifier": "@green-goods/shared/commitment-pooling",
+      "interfaceSummary": "Provides the declared stable domain surface for commitment pooling reads, commands, controllers, selectors, and types without exposing Shared internals.",
+      "dependencyCategory": "true-external",
+      "compositionRoots": ["packages/client/src/views/Home/Garden/index.tsx"],
+      "directConsumers": ["packages/client/src/views/Home/Garden/WorkFulfills.tsx"],
+      "proof": {
+        "direct": ["packages/shared/src/__tests__/commitment-pooling.test.ts"],
+        "conformance": ["packages/shared/src/__tests__/commitment-pooling-read-repository.test.ts"],
+        "integration": ["packages/shared/src/__tests__/commitment-pooling-hooks.test.tsx"]
+      },
+      "reviewedAt": "2026-08-31",
+      "evidenceFingerprint": "sha256:5ee732a148bc9a2ed6a3c8d0705d2e08071af6240213b9f26a44444a91b6b4a5"
+    }
+  ]
+}

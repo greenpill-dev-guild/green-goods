@@ -78,6 +78,10 @@ vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 vi.mock("../../../components/toast", () => ({
   toastService: {
     success: vi.fn(),
@@ -222,7 +226,7 @@ describe("useENSReleaseName", () => {
       expect(toastService.error).toHaveBeenCalledWith(
         expect.objectContaining({
           description:
-            "Username changes are temporarily operator-assisted while we migrate the ENS sender.",
+            "Username changes are temporarily steward-assisted while we migrate the ENS sender.",
         })
       );
     });

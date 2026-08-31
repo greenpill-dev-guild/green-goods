@@ -2,9 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 
 import { getWagmiConfig } from "../../config/appkit";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { yieldKeys } from "../../config/query-keys/vault";
 import type { Address } from "../../types/domain";
-import { GARDENS_MODULE_ABI, YIELD_RESOLVER_ABI } from "../../utils/blockchain/abis";
+import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis/conviction";
+import { YIELD_RESOLVER_ABI } from "../../utils/blockchain/abis/yield";
 import { isZeroAddress, normalizeAddress } from "../../utils/blockchain/address";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { fetchGardensModuleAddress } from "../../utils/blockchain/garden-modules";
@@ -106,7 +108,7 @@ export function useGardenYieldWiringState(
   const normalizedGarden = gardenAddress ? (normalizeAddress(gardenAddress) as Address) : undefined;
 
   const query = useQuery({
-    queryKey: queryKeys.yield.wiring(normalizedGarden ?? "", chainId),
+    queryKey: yieldKeys.wiring(normalizedGarden ?? "", chainId),
     queryFn: () => readGardenYieldWiringState(normalizedGarden as Address, chainId),
     enabled: enabled && Boolean(normalizedGarden),
     staleTime: STALE_TIME_MEDIUM,

@@ -16,7 +16,7 @@
  * Sister specs (each covers a single hop in deeper detail):
  * - client.smoke.spec.ts — auth + login UI
  * - client.work-submission.ci.spec.ts — wizard form validation
- * - client.work-approval.ci.spec.ts — operator approval flow
+ * - client.work-approval.ci.spec.ts — steward approval flow
  * - client.offline-sync.ci.spec.ts — JobQueue offline-first behavior
  */
 

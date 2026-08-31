@@ -1,4 +1,5 @@
-import { type Address, useCreateGardenStore } from "@green-goods/shared";
+import { useCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
+import type { Address } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect } from "react";
 import { TeamStep } from "./TeamStep";
@@ -15,11 +16,11 @@ const MOCK_ADDRESSES: Address[] = [
 function WithStoreState({
   children,
   gardeners = [],
-  operators = [],
+  stewards = [],
 }: {
   children: React.ReactNode;
   gardeners?: Address[];
-  operators?: Address[];
+  stewards?: Address[];
 }) {
   const reset = useCreateGardenStore((s) => s.reset);
   const setField = useCreateGardenStore((s) => s.setField);
@@ -27,7 +28,7 @@ function WithStoreState({
   useEffect(() => {
     reset();
     if (gardeners.length > 0) setField("gardeners", gardeners);
-    if (operators.length > 0) setField("operators", operators);
+    if (stewards.length > 0) setField("stewards", stewards);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Storybook initializer: run once on mount only
   }, []);
 
@@ -38,12 +39,6 @@ const meta: Meta<typeof TeamStep> = {
   title: "Admin/Workflows/Garden/TeamStep",
   component: TeamStep,
   tags: ["autodocs"],
-  argTypes: {
-    showValidation: {
-      control: "boolean",
-      description: "Whether to show validation state (team step has no required fields)",
-    },
-  },
   decorators: [
     (Story) => (
       <div className="max-w-2xl mx-auto">
@@ -57,13 +52,10 @@ export default meta;
 type Story = StoryObj<typeof TeamStep>;
 
 /**
- * Default empty state — no gardeners or operators added yet.
+ * Default empty state — no gardeners or stewards added yet.
  * Shows the advisory banner and empty input fields.
  */
 export const Default: Story = {
-  args: {
-    showValidation: false,
-  },
   decorators: [
     (Story) => (
       <WithStoreState>
@@ -74,17 +66,14 @@ export const Default: Story = {
 };
 
 /**
- * Pre-populated with several gardeners and operators.
+ * Pre-populated with several gardeners and stewards.
  */
 export const WithMembers: Story = {
-  args: {
-    showValidation: false,
-  },
   decorators: [
     (Story) => (
       <WithStoreState
         gardeners={[MOCK_ADDRESSES[0], MOCK_ADDRESSES[1]]}
-        operators={[MOCK_ADDRESSES[2]]}
+        stewards={[MOCK_ADDRESSES[2]]}
       >
         <Story />
       </WithStoreState>
@@ -93,12 +82,9 @@ export const WithMembers: Story = {
 };
 
 /**
- * Only gardeners, no operators — common for smaller gardens.
+ * Only gardeners, no stewards — common for smaller gardens.
  */
 export const GardenersOnly: Story = {
-  args: {
-    showValidation: false,
-  },
   decorators: [
     (Story) => (
       <WithStoreState gardeners={MOCK_ADDRESSES}>
@@ -118,19 +104,19 @@ export const StateCatalog: Story = {
         <h3 className="text-sm font-medium text-text-sub mb-2">Empty team</h3>
         <div className="rounded-lg border border-stroke-soft p-4">
           <WithStoreState>
-            <TeamStep showValidation={false} />
+            <TeamStep />
           </WithStoreState>
         </div>
       </div>
 
       <div>
-        <h3 className="text-sm font-medium text-text-sub mb-2">With gardeners and operators</h3>
+        <h3 className="text-sm font-medium text-text-sub mb-2">With gardeners and stewards</h3>
         <div className="rounded-lg border border-stroke-soft p-4">
           <WithStoreState
             gardeners={[MOCK_ADDRESSES[0], MOCK_ADDRESSES[1]]}
-            operators={[MOCK_ADDRESSES[2]]}
+            stewards={[MOCK_ADDRESSES[2]]}
           >
-            <TeamStep showValidation={false} />
+            <TeamStep />
           </WithStoreState>
         </div>
       </div>
@@ -138,8 +124,8 @@ export const StateCatalog: Story = {
       <div>
         <h3 className="text-sm font-medium text-text-sub mb-2">Many members (scroll test)</h3>
         <div className="rounded-lg border border-stroke-soft p-4">
-          <WithStoreState gardeners={MOCK_ADDRESSES} operators={MOCK_ADDRESSES}>
-            <TeamStep showValidation={false} />
+          <WithStoreState gardeners={MOCK_ADDRESSES} stewards={MOCK_ADDRESSES}>
+            <TeamStep />
           </WithStoreState>
         </div>
       </div>

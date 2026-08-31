@@ -1,5 +1,6 @@
 import { RiCloseLine } from "@remixicon/react";
 import { type ReactNode, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 
 export interface PublicSourceDialogProps {
@@ -48,7 +49,7 @@ export function PublicSourceDialog({
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-modal flex items-end justify-center bg-static-black/40 p-0 sm:items-center sm:p-4"
       role="dialog"
@@ -96,12 +97,13 @@ export function PublicSourceDialog({
               {sourceLabel ??
                 formatMessage({
                   id: "public.source.viewSource",
-                  defaultMessage: "View source",
+                  defaultMessage: "View Source",
                 })}
             </a>
           </p>
         ) : null}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -30,7 +30,7 @@ dialect: installed-pwa
 **Layout philosophy:**
 - Mobile-first, thumb-zone optimized
 - AppBar: 3 tabs — Home (with notification badge), Garden, Profile
-- AppBar hides on `/home/garden` and `/home/:id/work/:workId` routes for immersive work capture
+- AppBar hides for immersive surfaces: garden routes (`/home/garden/*`), work detail (`/home/:id/work/:workId`), commitment detail/composer routes (`/home/:id/commitments/*` — they carry their own fixed action bar exactly where the nav would sit), and whenever any full-height drawer is open (work dashboard, garden filter, endowment, wallet, commitments)
 - SyncStatusBar sits above AppBar
 - Content height: `calc(100lvh - 69px)` minus AppBar
 - Safe areas: `env(safe-area-inset-bottom)` for notched devices

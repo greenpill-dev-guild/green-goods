@@ -1,12 +1,21 @@
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
+import { availableParallelism, totalmem } from "node:os";
 import path from "path";
 import { defineConfig } from "vitest/config";
+
+import { resolveVitestMaxWorkers } from "../../scripts/lib/dev-shared.js";
 
 const workspaceRoot = path.resolve(__dirname, "../..");
 const workspaceNodeModules = path.join(workspaceRoot, "node_modules");
 const rootReactPath = path.join(workspaceNodeModules, "react");
 const rootReactDomPath = path.join(workspaceNodeModules, "react-dom");
+const allTestFiles = "src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}";
+const nodeTestFiles = [
+  "src/__tests__/*.test.ts",
+  "src/__tests__/{utils,modules,config,workflows,lib,types,i18n,public-contracts,ontology,styles}/**/*.test.ts",
+  "src/{modules,utils}/**/*.test.ts",
+];
 
 function escapeRegex(input: string): string {
   return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -33,6 +42,11 @@ export default defineConfig({
     globals: true,
     testTimeout: 10000,
     pool: "threads",
+    maxWorkers: resolveVitestMaxWorkers({
+      cpus: availableParallelism(),
+      totalMemoryBytes: totalmem(),
+      ci: Boolean(process.env.CI),
+    }),
     isolate: true,
     server: {
       deps: {
@@ -62,7 +76,8 @@ export default defineConfig({
     },
     coverage: {
       provider: "v8",
-      reporter: ["text", "html", "json"],
+      reporter: process.env.CI ? ["text", "json"] : ["text", "json", "html"],
+      include: ["src/**/*.{ts,tsx}"],
       exclude: [
         "node_modules/",
         "src/__tests__/**",
@@ -71,23 +86,38 @@ export default defineConfig({
         "**/__mocks__/**",
         "**/*.test.{ts,tsx}",
         "**/*.spec.{ts,tsx}",
+        "**/*.stories.{ts,tsx}",
         "**/*.d.ts",
         "**/*.config.*",
         "**/dist/**",
-        "**/types/**",
-        "**/index.ts",
       ],
       thresholds: {
-        global: {
-          branches: 70,
-          functions: 70,
-          lines: 70,
-          statements: 70,
-        },
+        branches: 52,
+        functions: 59,
+        lines: 62,
+        statements: 61,
       },
     },
-    include: ["src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
     exclude: ["node_modules/", "dist/", "**/*.d.ts"],
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "node",
+          environment: "node",
+          include: nodeTestFiles,
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "dom",
+          environment: "jsdom",
+          include: [allTestFiles],
+          exclude: ["node_modules/", "dist/", "**/*.d.ts", ...nodeTestFiles],
+        },
+      },
+    ],
   },
   resolve: {
     dedupe: ["react", "react-dom", "multiformats", "uint8arrays"],

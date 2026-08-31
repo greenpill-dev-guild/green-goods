@@ -15,14 +15,11 @@ import {
   ADMIN_ROUTE_STORY_QUERY_OPTIONS,
   StorybookAdminCanvasRoute,
 } from "../storybookCanvasHarness";
-import {
-  buildCampaignCookieJarMetadata,
-  DEFAULT_CHAIN_ID,
-  queryKeys,
-  type Address,
-  type CampaignCookieJarCampaign,
-  type Garden,
-} from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
+import { buildCampaignCookieJarMetadata } from "@green-goods/shared/utils/cookie-jar-campaign";
 
 const STORYBOOK_CAMPAIGN_JAR = "0x7777777777777777777777777777777777777777" as Address;
 
@@ -36,7 +33,7 @@ const STORYBOOK_COOKIE_CAMPAIGNS: CampaignCookieJarCampaign[] = [
     metadata: buildCampaignCookieJarMetadata({
       title: "Earth Week Cookie Jar",
       slug: "earth-week",
-      description: "Shared campaign rewards for selected garden operators.",
+      description: "Shared campaign rewards for selected garden stewards.",
       image: FIXTURE_IMAGE_AGROFORESTRY,
       externalUrl: "https://greengoods.app/cookies?campaign=earth-week",
       sourceGardens: [STORYBOOK_PRIMARY_ADMIN_GARDEN.id],
@@ -63,7 +60,7 @@ const EMPTY_COOKIE_CAMPAIGN_SEEDS = [
 
 const MANY_COOKIE_GARDENS: Garden[] = Array.from({ length: 24 }, (_, index) => {
   const address = `0x${(0x2000 + index).toString(16).padStart(40, "0")}` as Address;
-  const operators = index % 7 === 0 ? [] : STORYBOOK_PRIMARY_ADMIN_GARDEN.operators;
+  const stewards = index % 7 === 0 ? [] : STORYBOOK_PRIMARY_ADMIN_GARDEN.stewards;
 
   return {
     ...STORYBOOK_PRIMARY_ADMIN_GARDEN,
@@ -72,9 +69,9 @@ const MANY_COOKIE_GARDENS: Garden[] = Array.from({ length: 24 }, (_, index) => {
     tokenID: BigInt(index + 100),
     name:
       index % 7 === 0
-        ? `Campaign Garden ${index + 1} - operator missing`
+        ? `Campaign Garden ${index + 1} - steward missing`
         : `Campaign Garden ${index + 1}`,
-    operators,
+    stewards,
   };
 });
 
@@ -122,7 +119,7 @@ export const Empty: Story = {
     const canvas = within(canvasElement);
     const createActions = await canvas.findAllByRole(
       "button",
-      { name: "Create cookie jar" },
+      { name: "Create Cookie Jar" },
       ADMIN_ROUTE_STORY_QUERY_OPTIONS
     );
     await expect(createActions).toHaveLength(1);
@@ -139,7 +136,7 @@ export const DeployRoute: Story = {
     ).toBeVisible();
     await expect(
       await canvas.findByLabelText(
-        "Claim amount per operator",
+        "Claim amount per steward",
         undefined,
         ADMIN_ROUTE_STORY_QUERY_OPTIONS
       )
@@ -161,7 +158,5 @@ export const DeployRouteManyGardens: Story = {
 export const DeployRouteMobile: Story = {
   tags: ["visual-harness"],
   args: { initialPath: "/cookies/deploy" },
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
 };

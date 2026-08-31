@@ -1,278 +1,117 @@
 ---
 title: Entity Relationship Diagram
-sidebar_position: 2
 slug: /builders/architecture/erd
 audience: developer
 owner: docs
-last_verified: 2026-03-07
 feature_status: Live
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - packages/indexer/schema.graphql
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
+  - scripts/quality/ontology-render.mjs
+source_digest: "sha256:0bd0a28e6017ebd93ec75621b2dc8bc3d852d512f78a8aebec4b9da28bf76203"
 source_of_truth:
   - packages/indexer/schema.graphql
-  - packages/indexer/config.yaml
-  - packages/shared/src/types
-  - packages/contracts/src/tokens/Garden.sol
-  - packages/contracts/src/registries/Action.sol
-  - packages/contracts/src/modules/Hats.sol
-  - packages/contracts/src/modules/Octant.sol
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
+  - scripts/quality/ontology-render.mjs
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
-
+<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
 # Entity Relationship Diagram
 
-<StatusBadge status="Live" />
-
-This page maps every domain entity in Green Goods, its key fields, and how entities relate to each other -- from on-chain events through the Envio indexer to the frontend GraphQL surface.
-
-## Full entity relationship diagram
+The diagram projects the ontology's declared entity relationships. It explains semantic relationships, not database foreign keys.
 
 ```mermaid
-erDiagram
-    Garden ||--o{ Action : "enables via domains"
-    Garden ||--o{ Gardener : "has members"
-    Garden ||--o{ GardenVault : "receives deposits"
-    Garden ||--o{ Hypercert : "mints certificates"
-    Garden ||--o{ GardenDomains : "configures"
-    Garden ||--|{ Hat : "has role tree"
-
-    Action ||--o{ Work : "documents"
-    Work ||--o| WorkApproval : "reviewed by"
-    Work }o--|| Gardener : "submitted by"
-    Garden ||--o{ GardenAssessment : "baselines per domain/period"
-
-    GardenVault ||--o{ VaultDeposit : "tracks per depositor"
-    GardenVault ||--o{ VaultEvent : "logs activity"
-    GardenVault ||--o{ YieldAllocation : "splits yield"
-
-    Hypercert ||--o{ HypercertClaim : "fractionalized into"
-    Hypercert }o--o{ Work : "bundles attestations"
-
-    Garden {
-        ID id "Garden TBA address"
-        Int chainId
-        String tokenAddress
-        BigInt tokenID
-        String name
-        String description
-        String location
-        Boolean openJoining
-        Boolean initialized
-    }
-
-    Action {
-        ID id "chainId-actionUID"
-        String title
-        String slug "e.g. waste.cleanup_event"
-        String instructions
-        Domain domain "SOLAR | AGRO | EDU | WASTE"
-        Capital[] capitals
-        BigInt startTime
-        BigInt endTime
-    }
-
-    Work {
-        String uid "EAS attestation UID"
-        String actionUID "references Action"
-        String gardenAddress "references Garden"
-        String attester "Gardener address"
-        String title
-        String mediaURI "IPFS CID"
-        Int createdAt
-    }
-
-    WorkApproval {
-        String uid "EAS attestation UID"
-        String workUID "references Work"
-        String attester "Operator address"
-        Boolean approved
-        Int confidence "0-100"
-        String method
-    }
-
-    GardenAssessment {
-        String uid "EAS attestation UID"
-        String gardenAddress "references Garden"
-        String attester "Evaluator address"
-        String notes
-        String[] mediaURIs
-    }
-
-    Gardener {
-        ID id "Smart account address"
-        Int chainId
-        String owner "EOA owner"
-        String ensName
-        String[] gardens
-    }
-
-    GardenVault {
-        ID id "chainId-garden-asset"
-        String vaultAddress
-        String asset "ERC-20 address"
-        BigInt totalDeposited
-        BigInt totalWithdrawn
-        Int depositorCount
-        Boolean paused
-    }
-
-    VaultDeposit {
-        ID id "chainId-vault-depositor"
-        String depositor
-        BigInt shares
-        BigInt totalDeposited
-        BigInt totalWithdrawn
-    }
-
-    VaultEvent {
-        ID id "chainId-txHash-logIndex"
-        VaultEventType eventType "DEPOSIT | WITHDRAW | HARVEST | EMERGENCY_PAUSED"
-        String actor
-        BigInt amount
-        Int timestamp
-    }
-
-    YieldAllocation {
-        ID id "chainId-txHash-logIndex"
-        BigInt cookieJarAmount
-        BigInt fractionsAmount
-        BigInt juiceboxAmount
-        BigInt totalAmount
-    }
-
-    Hypercert {
-        ID id "chainId-tokenId"
-        BigInt tokenId
-        String metadataUri "IPFS URI"
-        BigInt totalUnits
-        BigInt claimedUnits
-        HypercertStatus status "ACTIVE | CLAIMED | SOLD"
-        String[] attestationUIDs
-    }
-
-    HypercertClaim {
-        ID id "chainId-tokenId-claimant"
-        String claimant
-        BigInt units
-        Int claimedAt
-    }
-
-    GardenDomains {
-        ID id "chainId-gardenAddress"
-        Int domainMask "Bitmask for enabled domains"
-        Domain[] domains
-    }
-
-    Hat {
-        BigInt hatId "Hats Protocol ID"
-        String role "owner | operator | evaluator | gardener | funder | community"
-        String wearer "Address wearing the hat"
-    }
+flowchart LR
+  garden["Garden"]
+  action["Action"]
+  work["Work"]
+  work_approval["Work Approval"]
+  assessment["Assessment"]
+  hypercert["Hypercert"]
+  vault["Vault"]
+  cookie_jar["Cookie Jar"]
+  attestation["Attestation"]
+  hat["Hat"]
+  season["Season"]
+  need["Need"]
+  commitment_pool["Commitment Pool"]
+  commitment_cycle["Commitment Cycle"]
+  commitment_series["Commitment Series"]
+  commitment_provider_exposure["Commitment Provider Exposure"]
+  commitment_unit_summary["Commitment Unit Summary"]
+  commitment_series_cycle_summary["Commitment Series Cycle Summary"]
+  commitment["Commitment"]
+  commitment_contributor["Commitment Contributor"]
+  commitment_payout_plan["Commitment Payout Plan"]
+  garden -->|has-many| vault
+  garden -->|has-tree| hat
+  action -->|enabled-by-domain-mask| garden
+  work -->|instance-of| action
+  work -->|performed-in| garden
+  work_approval -->|reviews| work
+  work_approval -->|recorded-in| garden
+  work_approval -->|recorded-as| attestation
+  assessment -->|frames| garden
+  hypercert -->|bundles| work
+  hypercert -->|minted-for| garden
+  vault -->|treasury-of| garden
+  cookie_jar -->|discretionary-fund-of| garden
+  attestation -->|records| work
+  attestation -->|records| assessment
+  hat -->|authority-in| garden
+  season -->|formalized-by| commitment_cycle
+  need -->|raised-in| garden
+  need -->|addressed-by| commitment
+  need -->|recorded-as| attestation
+  commitment_pool -->|anchored-to| garden
+  commitment_cycle -->|run-of| commitment_pool
+  commitment_series -->|scoped-to| commitment_pool
+  commitment_series -->|groups-offer-instances| commitment
+  commitment_provider_exposure -->|aggregated-in| commitment_pool
+  commitment_unit_summary -->|grouped-in| commitment_pool
+  commitment_unit_summary -->|optionally-grouped-in| commitment_cycle
+  commitment_series_cycle_summary -->|summarizes| commitment_series
+  commitment_series_cycle_summary -->|scoped-to| commitment_cycle
+  commitment -->|registered-in| commitment_pool
+  commitment -->|optionally-scoped-to| commitment_cycle
+  commitment -->|fulfilled-by| work
+  commitment -->|optionally-instance-of| commitment_series
+  commitment -->|performed-by| commitment_contributor
+  commitment -->|optionally-paid-through| commitment_payout_plan
+  commitment_contributor -->|contributes-to| commitment
+  commitment_contributor -->|credited-by| work
+  commitment_contributor -->|recognized-in| hypercert
+  commitment_payout_plan -->|pays-for| commitment
+  commitment_payout_plan -->|paid-by| garden
+  commitment_payout_plan -->|pays| commitment_contributor
 ```
 
-## Entity descriptions
+## Entity definitions
 
-### Core entities
-
-| Entity | Source | Description |
-| --- | --- | --- |
-| **Garden** | Envio (GardenToken events) | A regenerative project with a tokenbound account (ERC-6551 TBA), role tree, and configured domains. Created when an operator calls `mintGarden()`. |
-| **Action** | Envio (ActionRegistry events) | A template that defines what kind of work can be documented -- e.g., "Waste Cleanup Event". Actions belong to a domain (solar, agro, edu, waste) and have a time window. |
-| **Gardener** | Envio (HatsModule events) | A person who participates in gardens. Identified by their smart account address. May have ENS identity and passkey credentials. |
-| **Hat** | Envio (HatsModule events) | A role assignment from Hats Protocol. Each garden gets 6 roles: owner, operator, evaluator, gardener, funder, community. |
-
-### Attestation entities (via EAS)
-
-| Entity | Source | Description |
-| --- | --- | --- |
-| **Work** | EAS GraphQL | An attestation that a gardener performed a specific action. Contains a title, media URI (IPFS), and reference to the action. Validated by the WorkResolver. |
-| **WorkApproval** | EAS GraphQL | An operator's review of a work submission. References the work UID with an approval boolean, confidence score, and method description. |
-| **GardenAssessment** | EAS GraphQL | A garden's baseline strategy for a domain and reporting period: diagnosis, SMART-outcome targets, and selected actions. Set up front; approved work is later certified against it (the Hypercert bundles the work, not the assessment). |
-
-### Financial entities
-
-| Entity | Source | Description |
-| --- | --- | --- |
-| **GardenVault** | Envio (OctantModule events) | An ERC-4626 vault that holds ERC-20 deposits for a garden. One vault per supported asset per garden. |
-| **VaultDeposit** | Envio (OctantVault events) | Per-depositor tracking of shares, total deposited, and total withdrawn for a specific vault. |
-| **VaultEvent** | Envio (OctantVault events) | An immutable log entry for every deposit, withdrawal, harvest, or emergency pause event. |
-| **YieldAllocation** | Envio (YieldSplitter events) | Records how harvested yield was split three ways: cookie jar (petty cash), hypercert fractions, and community endowment (Juicebox). |
-
-### Impact entities
-
-| Entity | Source | Description |
-| --- | --- | --- |
-| **Hypercert** | Envio (HypercertMinter events) | An impact certificate that bundles one or more approved work attestations. Fractionalizable into claims. |
-| **HypercertClaim** | Envio (HypercertMinter events) | A fraction of a hypercert claimed by an address. Tracks units claimed and timestamp. |
-
-## Contract-to-indexer event mapping
-
-The Envio indexer watches specific contract events and materializes them into the GraphQL entities above. EAS attestations (works, approvals, assessments) are **not** re-indexed -- they are queried directly from easscan.org.
-
-```mermaid
-graph LR
-    subgraph Contracts["Contract Events"]
-        E1["GardenToken<br/><code>GardenMinted</code>"]
-        E2["HatsModule<br/><code>RoleGranted</code><br/><code>RoleRevoked</code>"]
-        E3["ActionRegistry<br/><code>ActionRegistered</code><br/><code>GardenDomainsUpdated</code>"]
-        E4["GardenAccount<br/><code>NameUpdated</code><br/><code>DescriptionUpdated</code><br/><code>...</code>"]
-        E5["OctantModule<br/><code>VaultCreated</code><br/><code>HarvestTriggered</code><br/><code>DonationAddressUpdated</code><br/><code>EmergencyPaused</code>"]
-        E6["OctantVault<br/><code>Deposit</code><br/><code>Withdraw</code>"]
-        E7["YieldSplitter<br/><code>YieldSplit</code>"]
-        E8["HypercertMinter<br/><code>TransferSingle</code><br/><code>ClaimStored</code>"]
-    end
-
-    subgraph Entities["Indexed Entities"]
-        G["Garden"]
-        Gd["Gardener"]
-        A["Action"]
-        DD["GardenDomains"]
-        GV["GardenVault"]
-        VD["VaultDeposit"]
-        VE["VaultEvent"]
-        YA["YieldAllocation"]
-        HC["Hypercert"]
-        HCC["HypercertClaim"]
-    end
-
-    E1 --> G
-    E2 --> G
-    E2 --> Gd
-    E3 --> A
-    E3 --> DD
-    E4 --> G
-    E5 --> GV
-    E6 --> VD
-    E6 --> VE
-    E6 --> GV
-    E7 --> YA
-    E8 --> HC
-    E8 --> HCC
-
-    style Contracts fill:#fce4ec,stroke:#c62828
-    style Entities fill:#e3f2fd,stroke:#1565c0
-```
-
-### Dynamic contract registration
-
-When a garden is minted, its tokenbound account (TBA) address is dynamically registered for `GardenAccount` events. When a vault is created, its vault contract address is registered for `Deposit`/`Withdraw` events. This means the indexer discovers new contracts at runtime rather than requiring static configuration.
-
-### Indexer boundary
-
-The Envio indexer covers only **core Green Goods state**. Several modules have stub handler files that are explicitly externalized:
-
-- **Cookie jars** -- read via direct RPC calls.
-- **ENS lifecycle** -- resolved client-side.
-- **Gardens V2 communities/pools** -- queried from external subgraph.
-- **Marketplace orders** -- read from external API.
-- **EAS attestations** -- queried from easscan.org.
-
-<NextBestAction
-  title="Next best action"
-  why="See how the contract module system enables this entity model."
-  actionLabel="Modular Approach"
-  actionHref="./modular-approach"
-  alternatives={[
-    {label: "Sequence Diagrams", href: "./sequence-diagrams"},
-    {label: "Back to Architecture", href: "../architecture"},
-  ]}
-/>
+| Entity | Definition | Surfaces |
+|---|---|---|
+| Garden | A community of gardeners rooted in a place, represented on-chain as an ERC-721 garden token whose ERC-6551 token-bound account holds the garden's treasury, role Hats, and metadata. | admin, client, agent, public, docs |
+| Action | A documented activity a gardener can perform — the unit of work template (e.g. "Plant native species", "Remove invasive growth"). | admin, client, agent, public, docs |
+| Work | One documented instance of an Action performed by a gardener — media, notes, and metadata submitted as an EAS Work attestation for steward review; approval records a separate Work Approval attestation. | admin, client, agent, public, docs |
+| Work Approval | The separate EAS attestation in which a garden steward records approval or rejection of a submitted Work, with feedback, confidence, and verification method. The Work record already exists; this decision never creates it. | admin, client, public, docs |
+| Assessment | An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or steward before work begins, mirrored to a Karma GAP milestone when that module is active; explicitly not a review of submitted Work (that is Work Approval). | admin, client, public, docs |
+| Hypercert | An on-chain claim of impact bundling approved Work into a fractional impact certificate. Funders hold fractions; gardeners hold contribution credit. | admin, client, public, docs |
+| Vault | The garden's treasury. Funders deposit; the garden's Tokenbound Account holds; yield splits flow to stewards / gardeners / community per configured ratios. | admin, client, public, docs |
+| Cookie Jar | A garden-scoped emergency or discretionary fund with rate-limited withdrawals. Allowlisted members can claim within the configured cap. | admin, client, public, docs |
+| Attestation | An EAS (Ethereum Attestation Service) record. Used for Work submissions, Assessment outcomes, and other off-chain-verifiable claims. | admin, client, public, docs |
+| Hat | A Hats Protocol role token. Determines on-chain authority — steward hats can approve Work; gardener hats can submit Work; evaluator hats can attest. | admin, client, public, docs |
+| Season | A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown. | admin, client, agent, public, docs |
+| Need | A community-authored statement of a place-based problem paired with a desired outcome. A Need can gather signals, moderation, linked commitments, and verified funding attribution without becoming a commitment or payment itself. | community, admin, client, public, docs |
+| Commitment Pool | A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter. | admin, client, docs |
+| Commitment Cycle | A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open. | admin, client, docs |
+| Commitment Series | The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun. | admin, client, docs |
+| Commitment Provider Exposure | The current count of open commitments held by one accountable lead provider in one pool, derived only from self-describing register unit events. | admin, client, docs |
+| Commitment Unit Summary | Exact-label pool or cycle totals for expected, approved, fulfilled, and open commitment units; unlike label hashes are never combined. | admin, client, docs |
+| Commitment Series Cycle Summary | Current lifecycle counts for the instances of one commitment series within one cycle. | admin, client, docs |
+| Commitment | A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation. | admin, client, community, docs |
+| Commitment Contributor | A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead. | admin, client, community, docs |
+| Commitment Payout Plan | A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch. | admin, client, docs |

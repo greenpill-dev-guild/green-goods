@@ -1,4 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
+import {
+  resolvePlaywrightApps,
+  shouldUsePlaywrightIndexer,
+} from "./tests/fixtures/playwright-services";
 
 // In CI, Vite skips mkcert and runs on HTTP instead of HTTPS
 const isCI = process.env.CI === "true";
@@ -20,14 +24,14 @@ function envFlag(name: string): boolean {
   return process.env[name]?.toLowerCase() === "true";
 }
 
-const playwrightApp = process.env.PLAYWRIGHT_APP;
-const shouldStartClient = playwrightApp !== "admin";
-const shouldStartAdmin = playwrightApp !== "client";
+const selectedApps = resolvePlaywrightApps({ playwrightApp: process.env.PLAYWRIGHT_APP });
+const shouldStartClient = selectedApps.client;
+const shouldStartAdmin = selectedApps.admin;
 
 // CI smoke / production-flows tests mock indexer GraphQL calls via Playwright
 // route interception, so the live envio indexer (which needs Docker) is not
 // required. SKIP_INDEXER=true (default in CI) keeps the webServer list lean.
-const skipIndexer = envFlag("SKIP_INDEXER") || (!!process.env.CI && !envFlag("REQUIRE_INDEXER"));
+const skipIndexer = !shouldUsePlaywrightIndexer();
 
 const webServers = [
   // Indexer (GraphQL)
@@ -56,6 +60,9 @@ const webServers = [
             NODE_ENV: "test",
             VITE_CHAIN_ID: "11155111",
             VITE_ENVIO_INDEXER_URL: currentEnv.indexer,
+            // CI exercises the installed-app/offline contract, so the client
+            // test server must expose vite-plugin-pwa's development worker.
+            VITE_ENABLE_SW_DEV: "true",
           },
         },
       ]

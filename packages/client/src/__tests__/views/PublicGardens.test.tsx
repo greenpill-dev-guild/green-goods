@@ -29,7 +29,7 @@ const mockGardens = [
     contributorCount: 2,
     actionCount: 3,
     lastActivityAt: 1710000000,
-    operators: [],
+    stewards: [],
     evaluators: [],
   },
   {
@@ -43,17 +43,16 @@ const mockGardens = [
     contributorCount: 1,
     actionCount: 0,
     lastActivityAt: 1690000000,
-    operators: [],
+    stewards: [],
     evaluators: [],
   },
 ];
 
 const mockUsePublicGardens = vi.fn();
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+vi.mock("@green-goods/shared/hooks/public/usePublicGardens", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal()),
     usePublicGardens: (...args: unknown[]) => mockUsePublicGardens(...args),
   };
 });
@@ -148,6 +147,9 @@ describe("GardensGallery", () => {
   it("shows skeletons during loading", () => {
     mockUsePublicGardens.mockReturnValue({ data: [], isLoading: true });
     const { container } = renderView();
-    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThanOrEqual(3);
+    expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
+      6
+    );
+    expect(container.querySelector(".animate-pulse")).toBeNull();
   });
 });

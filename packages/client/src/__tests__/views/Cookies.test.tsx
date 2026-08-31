@@ -6,6 +6,7 @@
 
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent } from "@testing-library/react";
 import { renderWithProviders as render, screen, userEvent, waitFor, within } from "../test-utils";
 
 const TEST_JAR = "0x1111111111111111111111111111111111111111" as const;
@@ -48,7 +49,7 @@ const eligibleJar = {
   metadata: {
     title: "Earth Week Cookie Jar",
     slug: "earth-week",
-    description: "Garden operator rewards for Earth Week.",
+    description: "Garden steward rewards for Earth Week.",
     image: "https://cdn.greengoods.app/campaigns/earth-week.webp",
     externalUrl: "https://greengoods.app/cookies?campaign=earth-week",
   },
@@ -62,11 +63,14 @@ vi.mock("wagmi", () => ({
   useBalance: () => ({ data: { formatted: "42", symbol: "GOOD" } }),
 }));
 
-vi.mock("@green-goods/shared", async () => {
-  const React = await vi.importActual<typeof import("react")>("react");
-
+vi.mock("@green-goods/shared/components/Alert", async () => {
   return {
     Alert: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  };
+});
+
+vi.mock("@green-goods/shared/components/Button", async () => {
+  return {
     Button: ({
       children,
       loading: _loading,
@@ -76,47 +80,98 @@ vi.mock("@green-goods/shared", async () => {
         {children}
       </button>
     ),
-    classifyTxError: (error: Error | null) => ({
-      severity: "error",
-      rawMessage: error?.message ?? "",
-      messageKey: "app.transaction.error.generic",
-      titleKey: "app.transaction.error.title",
-    }),
-    cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
-    formatTokenAmount: (value: bigint, decimals = 18) => String(Number(value) / 10 ** decimals),
+  };
+});
+
+vi.mock("@green-goods/shared/utils/errors/tx-error-classifier", () => ({
+  classifyTxError: (error: Error | null) => ({
+    severity: "error",
+    rawMessage: error?.message ?? "",
+    messageKey: "app.transaction.error.generic",
+    titleKey: "app.transaction.error.title",
+  }),
+  isMeaningfulTxErrorMessage: (message?: string) => Boolean(message),
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/vaults", () => ({
+  formatTokenAmount: (value: bigint, decimals = 18) => String(Number(value) / 10 ** decimals),
+}));
+
+vi.mock("@green-goods/shared/components/Display/ImageWithFallback", async () => {
+  return {
     ImageWithFallback: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} />,
-    isMeaningfulTxErrorMessage: (message?: string) => Boolean(message),
-    resolveIPFSUrl: (url: string) => url,
-    truncateAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
-    TxInlineFeedback: ({
-      visible,
-      title,
-      message,
-    }: {
-      visible: boolean;
-      title: string;
-      message: string;
-    }) => (visible ? <div role="alert">{`${title}: ${message}`}</div> : null),
+  };
+});
+
+vi.mock("@green-goods/shared/modules/data/ipfs/resolve", () => ({
+  resolveIPFSUrl: (url: string) => url,
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/address", () => ({
+  truncateAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
+}));
+
+vi.mock("@green-goods/shared/components/feedback/TxInlineFeedback", () => ({
+  TxInlineFeedback: ({
+    visible,
+    title,
+    message,
+  }: {
+    visible: boolean;
+    title: string;
+    message: string;
+  }) => (visible ? <div role="alert">{`${title}: ${message}`}</div> : null),
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useInViewReveal", async () => {
+  const React = await vi.importActual<typeof import("react")>("react");
+  return {
     useInViewReveal: () => ({ ref: React.createRef<HTMLElement>(), revealed: true }),
-    useAppKit: () => ({ open: mockOpenWallet }),
-    useAuth: () => ({ loginWithWallet: mockLoginWithWallet }),
-    useCampaignCookieJar: (jarAddress: string) => mockUseCampaignCookieJar(jarAddress),
-    useCampaignCookieJarCampaigns: () => mockUseCampaignCookieJarCampaigns(),
-    useCampaignCookieJarDeposit: () => ({
-      mutate: mockDepositMutate,
-      isPending: false,
-      error: depositError,
-      reset: mockDepositReset,
-    }),
-    useCampaignCookieJarWithdraw: () => ({
-      mutate: mockClaimMutate,
-      isPending: false,
-      error: claimError,
-      reset: mockClaimReset,
-    }),
-    usePublicGardens: () => mockUsePublicGardens(),
-    useUser: () => mockUseUser(),
-    validateDecimalInput: () => null,
+  };
+});
+
+vi.mock("@green-goods/shared/providers/AppKitProvider", () => ({
+  useAppKit: () => ({ open: mockOpenWallet }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuth: () => ({ loginWithWallet: mockLoginWithWallet }),
+}));
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar", () => ({
+  useCampaignCookieJar: (jarAddress: string) => mockUseCampaignCookieJar(jarAddress),
+  useCampaignCookieJarDeposit: () => ({
+    mutate: mockDepositMutate,
+    isPending: false,
+    error: depositError,
+    reset: mockDepositReset,
+  }),
+  useCampaignCookieJarWithdraw: () => ({
+    mutate: mockClaimMutate,
+    isPending: false,
+    error: claimError,
+    reset: mockClaimReset,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useCampaignCookieJarCampaigns", () => ({
+  useCampaignCookieJarCampaigns: () => mockUseCampaignCookieJarCampaigns(),
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicGardens", () => ({
+  usePublicGardens: () => mockUsePublicGardens(),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => mockUseUser(),
+}));
+
+vi.mock("@green-goods/shared/components/Form/FormattedAmountInput", async () => {
+  return {
     useFormattedAmountInput: (value: string) => {
       const trimmed = value.trim();
       let parsedAmount: bigint | null = null;
@@ -161,18 +216,25 @@ vi.mock("@green-goods/shared", async () => {
         {error ? <p role="alert">{error}</p> : null}
       </div>
     ),
-    TransactionSuccessAffordance: () => null,
   };
 });
 
+vi.mock("@green-goods/shared/components/feedback/TransactionSuccessAffordance", () => ({
+  TransactionSuccessAffordance: () => null,
+}));
+
 import CookiesPage from "../../views/Public/Cookies";
 
-function renderPage(path = `/cookies?jar=${TEST_JAR}`) {
-  return render(
+function renderPage(path = `/cookies?jar=${TEST_JAR}`, openWalletSurface = true) {
+  const result = render(
     <MemoryRouter initialEntries={[path]}>
       <CookiesPage />
     </MemoryRouter>
   );
+  if (openWalletSurface) {
+    fireEvent.click(screen.getByRole("button", { name: "Explore Cookie Jars" }));
+  }
+  return result;
 }
 
 describe("CookiesPage", () => {
@@ -227,11 +289,38 @@ describe("CookiesPage", () => {
     expect(
       await screen.findByText(/Connect a wallet to check claim access and add funds/i)
     ).toBeInTheDocument();
-    const connectButtons = screen.getAllByRole("button", { name: "Connect wallet" });
+    const connectButtons = screen.getAllByRole("button", { name: "Connect Wallet" });
     expect(connectButtons.length).toBeGreaterThanOrEqual(1);
     await user.click(connectButtons[0]!);
     expect(mockLoginWithWallet).toHaveBeenCalledTimes(1);
     expect(mockOpenWallet).not.toHaveBeenCalled();
+  });
+
+  it("keeps the wallet surface deferred until the visitor asks to explore jars", () => {
+    renderPage("/cookies", false);
+
+    expect(screen.getByRole("button", { name: "Explore Cookie Jars" })).toBeInTheDocument();
+    expect(screen.queryByRole("article", { name: "Earth Week Cookie Jar" })).toBeNull();
+  });
+
+  it("uses editorial record skeletons while the campaign list loads", async () => {
+    mockUseCampaignCookieJarCampaigns.mockReturnValue({
+      campaigns: [],
+      indexedCampaigns: [],
+      fallbackCampaigns: [],
+      isLoading: true,
+      isFallback: false,
+      error: null,
+    });
+
+    const { container } = renderPage("/cookies");
+
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
+        3
+      );
+    });
+    expect(container.querySelector(".animate-pulse")).toBeNull();
   });
 
   it("claims a fixed cookie amount for an eligible wallet", async () => {
@@ -239,7 +328,7 @@ describe("CookiesPage", () => {
 
     renderPage();
 
-    await user.click(await screen.findByRole("button", { name: "Claim cookie" }));
+    await user.click(await screen.findByRole("button", { name: "Claim Cookie" }));
 
     expect(mockClaimMutate).toHaveBeenCalledWith(
       {
@@ -266,7 +355,7 @@ describe("CookiesPage", () => {
     renderPage();
 
     expect(
-      (await screen.findAllByText("Garden operator rewards for Earth Week.")).length
+      (await screen.findAllByText("Garden steward rewards for Earth Week.")).length
     ).toBeGreaterThan(0);
     expect(
       screen.getByRole("img", { name: "Earth Week Cookie Jar campaign artwork" })
@@ -283,7 +372,7 @@ describe("CookiesPage", () => {
     expect(await screen.findByRole("heading", { name: /Seasonal jars/i }));
     const card = await screen.findByRole("article", { name: "Earth Week Cookie Jar" });
 
-    expect(within(card).getByRole("button", { name: "Claim cookie" })).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: "Claim Cookie" })).toBeInTheDocument();
     expect(within(card).getByRole("button", { name: "Deposit" })).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -307,7 +396,7 @@ describe("CookiesPage", () => {
     renderPage();
 
     await user.type(await screen.findByLabelText("Amount to claim"), "3");
-    await user.click(screen.getByRole("button", { name: "Claim cookie" }));
+    await user.click(screen.getByRole("button", { name: "Claim Cookie" }));
 
     expect(mockClaimMutate).toHaveBeenCalledWith(
       {
@@ -331,7 +420,7 @@ describe("CookiesPage", () => {
     renderPage();
 
     expect(await screen.findByText(/wallet is not on the list yet/i));
-    expect(screen.getByRole("button", { name: "Claim cookie" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Claim Cookie" })).toBeDisabled();
   });
 
   it("submits a deposit from the same public page", async () => {
@@ -374,6 +463,20 @@ describe("CookiesPage", () => {
     expect(within(card).getByText("Needs funding")).toBeInTheDocument();
     expect(within(card).getByRole("button", { name: "Deposit" })).toBeInTheDocument();
     expect(screen.queryByText(/Closed drops/i)).not.toBeInTheDocument();
+  });
+
+  it("labels a completed cookie-jar read failure", async () => {
+    mockUseCampaignCookieJar.mockReturnValue({
+      jar: null,
+      isLoading: false,
+      error: null,
+      hasDetailReadFailure: true,
+    });
+
+    renderPage("/cookies");
+
+    const card = await screen.findByRole("article", { name: "Earth Week" });
+    expect(within(card).getByText("Needs link check")).toBeInTheDocument();
   });
 
   it("keeps paused jars in the main grid as claims paused", async () => {

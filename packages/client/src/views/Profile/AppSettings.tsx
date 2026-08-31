@@ -1,12 +1,11 @@
+import { capitalize } from "@green-goods/shared/utils/app/text";
+import { hapticLight } from "@green-goods/shared/utils/app/haptics";
+import { type Locale, useApp } from "@green-goods/shared/providers/App";
 import {
-  capitalize,
-  hapticLight,
-  type Locale,
   type ServiceWorkerUpdatePhase,
-  useApp,
   useServiceWorkerUpdate,
-  useTheme,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/app/useServiceWorkerUpdate";
+import { useTheme } from "@green-goods/shared/hooks/app/useTheme";
 import { RiEarthFill, RiRefreshLine, RiSettings2Line } from "@remixicon/react";
 import { type ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
@@ -25,7 +24,7 @@ interface ApplicationSettings {
 export const AppSettings: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { locale, switchLanguage, availableLocales } = useApp();
-  const { phase, updateAvailable, applyUpdate } = useServiceWorkerUpdate();
+  const { phase, updateAvailable, activateNow } = useServiceWorkerUpdate();
   const intl = useIntl();
 
   const themeOptions = useMemo(
@@ -127,7 +126,7 @@ export const AppSettings: React.FC = () => {
 
   const handleUpdateClick = () => {
     hapticLight();
-    applyUpdate();
+    activateNow();
   };
 
   const updateStatus = useMemo(() => {
@@ -159,7 +158,7 @@ export const AppSettings: React.FC = () => {
           defaultMessage: "Getting the latest version in the background.",
         }),
       },
-      ready: {
+      waiting: {
         title: intl.formatMessage({
           id: "app.update.ready.title",
           defaultMessage: "Ready to restart",
@@ -170,10 +169,10 @@ export const AppSettings: React.FC = () => {
         }),
         buttonLabel: intl.formatMessage({
           id: "app.update.restartButton",
-          defaultMessage: "Restart to update",
+          defaultMessage: "Restart to Update",
         }),
       },
-      applying: {
+      activating: {
         title: intl.formatMessage({
           id: "app.update.applying.title",
           defaultMessage: "Finishing update",
@@ -183,7 +182,7 @@ export const AppSettings: React.FC = () => {
           defaultMessage: "Restarting with the latest version.",
         }),
       },
-      stalled: {
+      error: {
         title: intl.formatMessage({
           id: "app.update.stalled.title",
           defaultMessage: "Update needs a restart",
@@ -194,7 +193,7 @@ export const AppSettings: React.FC = () => {
         }),
         buttonLabel: intl.formatMessage({
           id: "app.update.retryButton",
-          defaultMessage: "Try again",
+          defaultMessage: "Try Again",
         }),
       },
     };
@@ -202,8 +201,8 @@ export const AppSettings: React.FC = () => {
     return phaseCopy[phase];
   }, [intl, phase]);
 
-  const showUpdateCard = phase !== "idle" && (updateAvailable || phase !== "ready");
-  const canApplyUpdate = phase === "ready" || phase === "stalled";
+  const showUpdateCard = phase !== "idle" && (updateAvailable || phase !== "waiting");
+  const canApplyUpdate = phase === "waiting" || phase === "error";
 
   return (
     <>

@@ -197,6 +197,12 @@ export function setupTestEnvironment() {
     // Mock IntersectionObserver (class-based — must be `new`-able since
     // useInViewReveal and other hooks construct an instance directly).
     (global as any).IntersectionObserver = class IntersectionObserver {
+      // Declared so callers can construct it the way the real API is used;
+      // nothing observes in jsdom, so the callback is held and never fired.
+      constructor(
+        public callback?: unknown,
+        public options?: unknown
+      ) {}
       root = null;
       rootMargin = "";
       thresholds: number[] = [];
@@ -216,7 +222,7 @@ export function setupTestEnvironment() {
 
   // Cleanup after each test
   afterEach(() => {
-    cleanup();
+    if (typeof document !== "undefined") cleanup();
     vi.clearAllMocks();
 
     // Reset fetch mock to strict default — unexpected calls throw

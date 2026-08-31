@@ -65,7 +65,7 @@ describe("queryKeys", () => {
       queryKeys.works.all,
       queryKeys.workApprovals.all,
       queryKeys.approvals.all,
-      queryKeys.operatorWorks.all,
+      queryKeys.stewardWorks.all,
       queryKeys.offline.all,
       queryKeys.media.all,
       queryKeys.gardens.all,
@@ -85,9 +85,15 @@ describe("queryKeys", () => {
       queryKeys.hypercerts.all,
       queryKeys.marketplace.all,
       queryKeys.greenWill.all,
+      queryKeys.gardenJoinRequests.all,
     ];
 
     roots.forEach((root) => expectRooted(root, queryKeys.all));
+    expect(queryKeys.gardenJoinRequests.availability()).toEqual([
+      "greengoods",
+      "garden-join-requests",
+      "availability",
+    ]);
   });
 
   it("builds representative keys without mutating caller input", () => {
@@ -95,15 +101,15 @@ describe("queryKeys", () => {
     const recipients = ["0xB", "0xa", "0xC"];
     const approvalsKey = queryKeys.approvals.forWorkReview(recipients);
     const myWorkApprovalsKey = queryKeys.approvals.byMyWorkGardens(TEST_USER, gardenIds);
-    const operatorKey = queryKeys.operatorWorks.byAddress(TEST_OPERATOR, gardenIds);
+    const stewardKey = queryKeys.stewardWorks.byAddress(TEST_OPERATOR, gardenIds);
 
     // forWorkReview lowercases recipients for stability across checksum casings.
     expect(approvalsKey[3]).toBe(JSON.stringify(["0xa", "0xb", "0xc"]));
     expect(myWorkApprovalsKey[3]).toBe(TEST_USER);
     expect(myWorkApprovalsKey[4]).toBe(JSON.stringify(["garden-a", "garden-b", "garden-c"]));
-    // operatorWorks carries a "v2" shape discriminator (queryFn returns { works, failedGardenIds }).
-    expect(operatorKey[2]).toBe("v2");
-    expect(operatorKey[4]).toBe(JSON.stringify(["garden-a", "garden-b", "garden-c"]));
+    // stewardWorks carries a "v2" shape discriminator (queryFn returns { works, failedGardenIds }).
+    expect(stewardKey[2]).toBe("v2");
+    expect(stewardKey[4]).toBe(JSON.stringify(["garden-a", "garden-b", "garden-c"]));
     expect(gardenIds).toEqual(["garden-c", "garden-a", "garden-b"]);
     expect(recipients).toEqual(["0xB", "0xa", "0xC"]);
   });
@@ -158,13 +164,13 @@ describe("queryKeys", () => {
       gardenerAddress: "0xABCDEF1234567890ABCDEF1234567890ABCDEF12" as Address,
       searchQuery: "  restoration  ",
       startDate: new Date("2026-01-01T00:00:00.000Z"),
-      domain: 2,
+      domain: "education",
     };
     const filtersB: AttestationFilters = {
       gardenerAddress: "0xabcdef1234567890abcdef1234567890abcdef12" as Address,
       searchQuery: "restoration",
       startDate: new Date("2026-01-01T00:00:00.000Z"),
-      domain: 2,
+      domain: "education",
     };
 
     const keyA = queryKeys.hypercerts.attestations(TEST_GARDEN, filtersA);

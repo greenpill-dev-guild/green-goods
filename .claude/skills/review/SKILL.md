@@ -7,9 +7,20 @@ user-invocable: true
 
 # Review
 
-One command for the standing request: **"review this — ensure no regressions, no remaining gaps, and production quality."** Three passes over one resolved scope, then a verdict. Read-only unless `--fix` is explicitly requested.
+One command for change review. Three passes over one resolved scope, then a verdict. Read-only unless
+`--fix` is explicitly requested. Evidence/diagnosis review is targeted by default; full production
+readiness is a separate, explicit intent.
 
-It answers three questions with fresh evidence: **regression safety** (Pass 1), **requirement closure** (Pass 2), **production readiness** (Pass 3). `APPROVE` is a bounded, evidence-backed readiness verdict for the reviewed scope — not a claim that unrelated repository or production failures are impossible.
+When the candidate changes module shape, public exports, dependency direction, composition, or test
+seams, read [`../../context/codebase-architecture.md`](../../context/codebase-architecture.md). Apply
+that shared depth, locality, leverage, export-taxonomy, and proof model to the changed design. Route
+repository-wide architecture opportunity discovery to `plan`; this skill judges a resolved change.
+
+It answers three questions with fresh evidence: **regression safety** (Pass 1), **requirement closure**
+(Pass 2), and the user's requested **evidence or readiness level** (Pass 3). `APPROVE` is reserved for
+an explicit production-quality, approval, PR/merge-readiness, or equivalent request whose full
+non-mutating readiness gate passed. It is a bounded verdict for the reviewed scope, not a claim that
+unrelated repository or production failures are impossible.
 
 ## Scoping
 
@@ -24,11 +35,33 @@ Valid package scopes map to `packages/<name>/**` (contracts, indexer, shared, cl
 - `--scope cross-package` — verify blast radius in dependency order (contracts → shared → indexer → apps → agent); only cross-boundary findings.
 - `--scope design-system` — delegate to [`design/system-alignment-review.md`](../design/system-alignment-review.md), read-only; return its sections directly, don't mix into diff findings. Fires only on explicit invocation, on DESIGN.md-dialect + theme/tokens co-changes, or when a change touches ≥2 visual surfaces at once.
 
+### Review intent
+
+Resolve intent separately from code scope:
+
+- **Evidence review / diagnosis** — ordinary "review this", regression investigation, gap analysis,
+  audit evidence, or a specific question. Inspect first and run only the non-mutating checks needed
+  to prove findings. A clean targeted review returns `COMMENT_ONLY`, not a readiness approval.
+- **Production readiness** — explicit requests for production quality, approval, PR/merge readiness,
+  or whether the branch is ready. Run the full Production Review Readiness Gate.
+
+Render the planned checks with `bun run validation:plan -- --intent review`. For explicit production
+readiness, use `--intent readiness` so the plan remains non-mutating while criticality can only add
+checks. Execute the returned plan. If the selector is unavailable or fails, follow CLAUDE.md's
+intent ladder and the shared validation
+pipeline directly, report the selector problem, and preserve every hard gate.
+
 ### Authoritative requirements
 
-After resolving the code scope, establish the requirement baseline in this order: (1) the user's current request and explicit acceptance criteria; (2) the PR description and any linked Linear issue; (3) the Linear issue parsed from a conventional branch name (`<user>/<team-key>-<id>-<slug>` via Linear MCP — skip silently if it doesn't parse); (4) any `.plans/` lane referenced by the request, PR, or issue (`brief.md`, `spec.md`, `plan.todo.md`, `status.json`); (5) directly applicable package documentation those sources reference. Record which sources were available. If no authoritative requirements can be established, continue with useful findings but set the final verdict to `COMMENT_ONLY` — do not claim that no gaps remain.
+After resolving the code scope, establish the requirement baseline in this order: (1) the user's current request and explicit acceptance criteria; (2) the PR description and any Linear issue linked there with `Fixes`, `Refs`, or `Relates to`, plus the legacy `Closes` and `Linear:` forms while existing PRs transition; (3) any `.plans/` lane referenced by the request, PR, or issue (`brief.md`, `spec.md`, `plan.todo.md`, `status.json`); (4) directly applicable package documentation those sources reference. Never infer issue identity from the branch name. Record which sources were available. If no authoritative requirements can be established, continue with useful findings but set the final verdict to `COMMENT_ONLY` — do not claim that no gaps remain.
 
 If scope resolves to >800 LOC, split it into declared review batches and keep a coverage ledger of reviewed vs remaining files; never narrow or imply completeness unless the user explicitly changes the scope.
+
+Package, lane, or pinned-range reviews are supporting evidence only. Before a PR-wide verdict, review
+the exact union of changed files from the resolved base through the declared upper bound, including
+trailing commits. If code review is pinned below the checkout HEAD, first prove the relevant tree is
+identical before using checkout lines or validation as evidence. Never silently extend or narrow a
+review range.
 
 ## Pass 1 — Regressions
 
@@ -45,10 +78,38 @@ Correctness of what changed. Prioritize high-signal risk areas:
 **Structural lenses** — apply when the diff shows the signal, not ritually:
 
 - *Boundary/placement*: hook or module landing outside its owning package; first-time cross-package import; layering breaks (`contracts → shared → indexer → client/admin/agent`); a public surface becoming a junk drawer. Prefer the smallest structural fix; never prescribe new layers without a deletion story.
-- *Coherence*: new wrapper/abstraction with one call site and no concrete pressure; near-duplicate of adjacent code (flag only when divergence creates real maintenance risk); a function accumulating unrelated concerns. Don't equate size with bad design; confirm harm before reporting. The canonical quality bar is [`values.md § Implementation Quality Contract`](../../context/values.md) — judge against it, don't restate textbook principles.
-- *Critical surfaces* (CLAUDE.md § Criticality Matrix): `packages/contracts/src/**` → **contracts-security** lens (access control, UUPS/storage-gap rules, CEI — checklist in `.claude/context/contracts.md`); JobQueue/Work/Auth providers and mutation hooks → **mutation-reliability** lens (no log-only failure handling, offline queue integrity, retry visibility — invariants in `.claude/context/shared.md`). Read every touched line on these surfaces.
+- *Coherence*: new wrapper/abstraction with one call site and no concrete pressure; near-duplicate of adjacent code (flag only when divergence creates real maintenance risk); a function accumulating unrelated concerns. Don't equate size with bad design; confirm harm before reporting. Require a concrete failure or repeated maintenance cost and explain where complexity returns under the deletion test before recommending an abstraction. Leaf exports may improve graph control without proving module depth. The canonical quality bar is [`values.md § Implementation Quality Contract`](../../context/values.md) — judge against it, don't restate textbook principles.
+- *State and invariant*: financial state machines, mutable dependency identity, retry or grace
+  windows, cross-chain acknowledgments, asynchronous projections, or upgradeable storage → build
+  the risk-triggered matrix from `.claude/context/testing.md` and apply the domain rules in
+  `.claude/context/contracts.md`. Exercise material role overlaps, terminal cleanup, time boundaries,
+  and dependency generations; a prose lifecycle summary is not proof.
+- *Critical surfaces* (CLAUDE.md § Criticality Matrix): contract source plus deploy, upgrade,
+  migration, release, size, and storage-validation tooling → **contracts-security** lens (access
+  control, UUPS/storage rules, CEI, transaction boundaries, and tooling failure safety); JobQueue,
+  Work, and Auth providers and mutation hooks → **mutation-reliability** lens (no log-only failure
+  handling, offline queue integrity, retry visibility — invariants in `.claude/context/shared.md`).
+  Read every touched line on these surfaces. Apply the matrix's sensitive tier to indexer
+  retry/lifecycle handlers, Plan Hub evidence, and agent dispatch scripts.
 
 For large or critical diffs where an adversarial deep pass is warranted, the built-in `/code-review` (effort levels, verify pass) is the engine of choice — say so and use it rather than hand-rolling depth.
+
+### Safety facts for cross-package and critical reviews
+
+For `--scope cross-package` and any critical-surface review, choose the one or two highest-risk
+invariants whose failure would invalidate the change. Report each as a compact safety fact:
+
+- **Fact** — the precise invariant or compatibility claim being evaluated
+- **Consumers** — the affected callers, packages, deployments, or runtime paths
+- **Proof level** — the strongest evidence actually obtained:
+  `REFERENCED` (claimed by source or docs), `PATH_TRACED` (call/data path followed),
+  `DEPENDENCY_WALKED` (direct consumers checked), `EXECUTED` (targeted check passed), or
+  `LIVE_OBSERVED` (required runtime or rendered surface observed)
+- **Evidence and limit** — command, path, output, and anything still unproven
+
+Proof levels are descriptive, not a maturity ladder that every review must climb. Use the level the
+review intent requires, never promote a fact based on indirect evidence, and turn a missing required
+proof into a finding, gap, or blocker under the existing verdict rules.
 
 ## Pass 2 — Remaining Gaps
 
@@ -66,9 +127,18 @@ Then sweep for the repo's recurring gap shapes:
 
 Report gaps in their own section — a gap is not a defect; it's unfinished intent.
 
-## Pass 3 — Production Quality
+## Pass 3 — Evidence or Production Quality
 
-Plain review runs the non-mutating **Review Readiness Gate** defined in [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md) (`format:check`, lint, tests, pinned `VITE_CHAIN_ID=11155111` build, plus its scope-conditional additions). Run every required stage fresh in this invocation — never reuse stale evidence. A required stage that fails → `REQUEST_CHANGES`; a required stage that cannot run → `COMMENT_ONLY`, never silently downgraded or substituted.
+Evidence review runs only the selector-chosen, non-mutating checks needed to prove or disprove its
+findings. Do not add full tests or builds merely to make the command count look comprehensive. A
+clean evidence review is not production certification and returns `COMMENT_ONLY`.
+
+Explicit production-readiness review runs the non-mutating **Production Review Readiness Gate**
+defined in [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md)
+(`format:check`, lint, tests, pinned `VITE_CHAIN_ID=11155111` root build, plus scope-conditional
+additions including Agent or Docs builds). Run every selected stage fresh unless an exact matching
+receipt satisfies the shared freshness contract. A required stage that fails → `REQUEST_CHANGES`; a
+required stage that cannot run → `COMMENT_ONLY`, never silently downgraded or substituted.
 
 For narrower explicit intents, pick the lightest honest rung per CLAUDE.md § Validation Intent Ladder:
 
@@ -76,7 +146,42 @@ For narrower explicit intents, pick the lightest honest rung per CLAUDE.md § Va
 - cross-package or shared-surface impact → Repo Quick Gate
 - explicit ship/merge readiness → full Ship Gate + conditional design/vocab/story gates when those surfaces moved
 
-State what ran with real output. **Never claim quality without evidence** — if a rung can't run here (env-gated, needs authenticated browser), say "unverified: X" instead of hedging. Visible-UI claims need rendered proof via the authenticated Brave QA path or are reported as blocked (CLAUDE.md § Agentic Modern Web Standard).
+For every selected check, name its risk, expected signal, freshness rule, and stopping condition.
+State what ran with real output. Record the tested commit SHA, UTC timestamp, exact command, and
+summarized result. Write green, passed, or merge-ready claims only after those commands finish in the
+current review and an empty
+`git status --porcelain=v1 --untracked-files=all -- <validated paths>` proves the tested paths match
+the recorded commit. An evidence-only follow-up may cite the tested parent only with a recorded,
+path-scoped `git diff --exit-code <tested>..HEAD -- <validated paths>` proving all validated
+implementation, dependency, configuration, and validation-entrypoint surfaces are unchanged, plus
+an empty `git status --porcelain=v1 --untracked-files=all -- <validated paths>` proving no staged,
+unstaged, or untracked path changes exist. If a
+rung can't run here (env-gated, or it requires an authenticated browser), mark it `BLOCKED`, name the unavailable
+capability, and do not retry until that capability changes. User cancellation is terminal: stop
+active validation, schedule no further checks, and report evidence already collected. Visible-UI
+claims need rendered proof via the authenticated Brave
+QA path or are reported as blocked (CLAUDE.md § Agentic Modern Web Standard). Dated reports under
+`.plans/**/reports/` are immutable audit inputs; put corrections or closure evidence in a new report.
+
+## Finding Closure
+
+Treat each confirmed finding as evidence of a possible failure class, not an isolated line edit.
+In a read-only review, these are closure criteria for the author: record missing coverage or proof as
+the finding's next step and do not edit files. Execute steps 3-5 only in explicitly authorized
+`--fix` mode or verify evidence the author has already supplied.
+
+1. Name the root-cause class and the invariant or repository rule it violates.
+2. Search the changed scope and its direct consumers for sibling instances. Record the affected and
+   checked-unaffected paths so absence claims are bounded.
+3. Add negative or boundary coverage that fails for the original trigger when behavior changed. If a
+   test is genuinely inapplicable, state the concrete proof substitute.
+4. Re-run the relevant validation at the current SHA before resolving the finding.
+5. After all targeted fixes, perform one final recurrence sweep for every approved root-cause class.
+
+Do not convert an explicit product or security boundary into implementation scope. An intentionally
+unsupported payment rail, unauthenticated receipt, secret-sharing path, or deployment phase remains a
+boundary unless authoritative requirements change it; test or document the rejection instead of
+inventing a capability.
 
 ## False-Positive Guardrails
 
@@ -90,18 +195,23 @@ State what ran with real output. **Never claim quality without evidence** — if
 
 Lead with findings, keep the list actionable:
 
-1. **Summary** — scope, blast radius, lenses that fired (with triggering signal), intent sources used
+1. **Summary** — scope, blast radius, lenses that fired (with triggering signal), intent sources used,
+   and safety facts when cross-package or critical review rules require them
 2. **Must-Fix** (critical/high) · **Should-Fix** (medium) · **Nice-to-Have** (low, keep short)
 3. **Remaining Gaps** — unfinished intent, each with the smallest completing step
 4. **Human Call-Outs** — dependencies, auth/permissions, migrations, contract deploys, trust-boundary changes (never auto-fix these)
 5. **Verification** — what ran, real results, what remains unverified
-6. **Verdict** — `APPROVE` | `REQUEST_CHANGES` | `COMMENT_ONLY`. Rules: any `MISSING` requirement or failed required check → `REQUEST_CHANGES`; any `BLOCKED` requirement/check, or no authoritative requirements available → `COMMENT_ONLY`; `APPROVE` only when every requirement is `SATISFIED`/`OUT_OF_SCOPE` and the readiness gate passed fresh.
+6. **Verdict** — `APPROVE` | `REQUEST_CHANGES` | `COMMENT_ONLY`. Rules: any `MISSING` requirement or failed required check → `REQUEST_CHANGES`; any `BLOCKED` requirement/check, no authoritative requirements, or evidence-review-only intent → `COMMENT_ONLY`; `APPROVE` only for explicit production-readiness intent when every requirement is `SATISFIED`/`OUT_OF_SCOPE` and the full readiness gate passed under the freshness contract.
 
 Finding format: `[Title] — severity · type · file:line · why it matters · next step`.
 
 ## --fix Mode
 
-Only on explicit request ("fix the findings", `--fix`). Report first, then fix must-fix and should-fix items; leave nice-to-have and all Human Call-Outs alone. Re-run the Pass 3 rung after fixing. Contract-touching fixes also run `bun run verify:contracts:fast`.
+Only on explicit request ("fix the findings", `--fix`). Report first, then group approved must-fix and
+should-fix items by root-cause class and address at most three classes per iteration; leave
+nice-to-have and all Human Call-Outs alone. Complete the sibling and recurrence sweeps from Finding
+Closure, then re-run the Pass 3 rung. Contract-touching fixes also run
+`bun run verify:contracts:fast`.
 
 ## Linear Routing
 

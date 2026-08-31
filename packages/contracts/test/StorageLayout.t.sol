@@ -9,11 +9,17 @@ import { GardenAccount } from "../src/accounts/Garden.sol";
 import { HatsModule } from "../src/modules/Hats.sol";
 import { OctantModule } from "../src/modules/Octant.sol";
 import { ActionRegistry } from "../src/registries/Action.sol";
+import { CommitmentRegistry } from "../src/registries/Commitment.sol";
+import { CommitmentPoolingModule } from "../src/modules/CommitmentPooling.sol";
+import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
+import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
+import { TestimonyResolver } from "../src/resolvers/Testimony.sol";
 import { GardensModule } from "../src/modules/Gardens.sol";
 import { UnifiedPowerRegistry } from "../src/registries/Power.sol";
 import { YieldResolver } from "../src/resolvers/Yield.sol";
 import { MockHats } from "../src/mocks/Hats.sol";
 import { MockOctantFactory } from "../src/mocks/Octant.sol";
+import { MockEAS } from "../src/mocks/EAS.sol";
 
 /// @title StorageLayoutTest
 /// @notice Verifies storage layout stability for UUPS upgradeable contracts
@@ -56,16 +62,27 @@ contract StorageLayoutTest is Test {
         assertEq(storedOctant, address(0xCC), "octantModule value should match");
     }
 
-    /// @notice Verify GardenToken gap is exactly 43 slots
+    /// @notice Verify GardenToken keeps 13 occupied custom slots plus the unchanged 37-slot gap.
     function testGardenTokenGapSize() public {
-        // The gap is declared as uint256[43] in GardenToken
-        // Total contract slots = 7 named + 43 gap = 50
-        // If someone adds a variable and forgets to shrink the gap, this will catch it
-        uint256 expectedNamedSlots = 7; // _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule, octantModule,
-            // gardensModule, actionRegistry
-        uint256 expectedGapSize = 43;
+        uint256 expectedNamedSlots = 13;
+        uint256 expectedGapSize = 37;
         uint256 expectedTotal = expectedNamedSlots + expectedGapSize;
         assertEq(expectedTotal, 50, "GardenToken should use exactly 50 custom slots");
+    }
+
+    function testGardenTokenCommitmentModuleIsPackedAtSlot213Offset2() public {
+        GardenToken impl = new GardenToken(address(1));
+        bytes memory initData = abi.encodeWithSelector(GardenToken.initialize.selector, address(this), address(0));
+        address proxy = address(new ERC1967Proxy(address(impl), initData));
+        GardenToken token = GardenToken(proxy);
+
+        token.setOpenMinting(true);
+        token.setCommitmentPoolingModule(address(0x721));
+
+        uint256 packed = uint256(vm.load(proxy, bytes32(uint256(213))));
+        assertEq(uint8(packed), uint8(GardenToken.TransferRestriction.Unrestricted));
+        assertEq(uint8(packed >> 8), 1, "openMinting must remain at offset 1");
+        assertEq(address(uint160(packed >> 16)), address(0x721), "pooling module must be at offset 2");
     }
 
     /// @notice Verify GardenToken storage slots via vm.load (ground-truth check)
@@ -276,6 +293,7 @@ contract StorageLayoutTest is Test {
         token.setHatsModule(address(0xAA));
         token.setKarmaGAPModule(address(0xBB));
         token.setOctantModule(address(0xCC));
+        token.setCommitmentPoolingModule(address(0xDD));
 
         // Upgrade to new implementation
         GardenToken newImpl = new GardenToken(address(1));
@@ -285,7 +303,95 @@ contract StorageLayoutTest is Test {
         assertEq(address(token.hatsModule()), address(0xAA), "hatsModule should survive upgrade");
         assertEq(address(token.karmaGAPModule()), address(0xBB), "karmaGAPModule should survive upgrade");
         assertEq(address(token.octantModule()), address(0xCC), "octantModule should survive upgrade");
+        assertEq(address(token.commitmentPoolingModule()), address(0xDD), "commitmentPoolingModule should survive upgrade");
         assertEq(token.owner(), address(this), "owner should survive upgrade");
+    }
+
+    // =========================================================================
+    // Commitment Pooling Storage Layouts (PRD-721)
+    // =========================================================================
+
+    function testCommitmentPoolingModuleConcreteSlots() public {
+        CommitmentPoolingModule impl = new CommitmentPoolingModule();
+        bytes memory initData =
+            abi.encodeWithSelector(CommitmentPoolingModule.initialize.selector, address(this), address(0xBEEF));
+        address proxy = address(new ERC1967Proxy(address(impl), initData));
+
+        assertEq(uint8(uint256(vm.load(proxy, bytes32(uint256(161))))), 1, "paused slot");
+        assertEq(uint256(vm.load(proxy, bytes32(uint256(162)))), 1, "nextPoolId slot");
+        assertEq(uint256(vm.load(proxy, bytes32(uint256(163)))), 1, "nextCycleId slot");
+        assertEq(uint256(vm.load(proxy, bytes32(uint256(164)))), 1, "nextCommitmentId slot");
+        assertEq(uint256(vm.load(proxy, bytes32(uint256(165)))), 1, "nextCommitmentSeriesId slot");
+        assertEq(address(uint160(uint256(vm.load(proxy, bytes32(uint256(186)))))), address(0xBEEF), "rootGarden slot");
+        assertEq(uint256(38 + 12), 50, "module feature entries plus gap");
+    }
+
+    function testCommitmentRegistryConcreteSlots() public {
+        CommitmentRegistry impl = new CommitmentRegistry();
+        bytes memory initData =
+            abi.encodeWithSelector(CommitmentRegistry.initialize.selector, address(this), address(0x721));
+        address proxy = address(new ERC1967Proxy(address(impl), initData));
+
+        assertEq(address(uint160(uint256(vm.load(proxy, bytes32(uint256(101)))))), address(0x721), "module slot");
+        assertEq(uint256(6 + 44), 50, "registry feature entries plus gap");
+    }
+
+    function testResolverAppendSlots() public {
+        MockEAS eas = new MockEAS();
+
+        AssessmentResolver assessmentImpl = new AssessmentResolver(address(eas));
+        AssessmentResolver assessment = AssessmentResolver(
+            payable(address(
+                    new ERC1967Proxy(
+                        address(assessmentImpl),
+                        abi.encodeWithSelector(AssessmentResolver.initialize.selector, address(this))
+                    )
+                ))
+        );
+        assessment.setSchemaUID(bytes32(uint256(1)));
+        assessment.setAssessmentV3SchemaUID(bytes32(uint256(2)));
+        assertEq(uint256(vm.load(address(assessment), bytes32(uint256(103)))), 2, "Assessment v3 UID slot");
+
+        ActionRegistry actionImpl = new ActionRegistry();
+        ActionRegistry action = ActionRegistry(
+            address(
+                new ERC1967Proxy(
+                    address(actionImpl), abi.encodeWithSelector(ActionRegistry.initialize.selector, address(this))
+                )
+            )
+        );
+        WorkApprovalResolver approvalImpl = new WorkApprovalResolver(address(eas), address(action));
+        WorkApprovalResolver approval = WorkApprovalResolver(
+            payable(address(
+                    new ERC1967Proxy(
+                        address(approvalImpl),
+                        abi.encodeWithSelector(WorkApprovalResolver.initialize.selector, address(this))
+                    )
+                ))
+        );
+        approval.setCommitmentModule(address(0x721));
+        assertEq(
+            address(uint160(uint256(vm.load(address(approval), bytes32(uint256(103)))))),
+            address(0x721),
+            "WorkApproval module slot"
+        );
+
+        TestimonyResolver testimonyImpl = new TestimonyResolver(address(eas));
+        TestimonyResolver testimony = TestimonyResolver(
+            payable(address(
+                    new ERC1967Proxy(
+                        address(testimonyImpl), abi.encodeWithSelector(TestimonyResolver.initialize.selector, address(this))
+                    )
+                ))
+        );
+        testimony.setSchemaUID(bytes32(uint256(3)));
+        testimony.setCommitmentModule(address(0x722));
+        assertEq(uint256(vm.load(address(testimony), bytes32(uint256(101)))), 3, "Testimony schema slot");
+        assertEq(
+            address(uint160(uint256(vm.load(address(testimony), bytes32(uint256(102)))))),
+            address(0x722),
+            "Testimony module slot"
+        );
     }
 
     /// @notice Verify HatsModule upgrade preserves all state

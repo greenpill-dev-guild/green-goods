@@ -8,22 +8,21 @@ on:
       - "bun.lock"
       - ".env.schema"
       - "packages/indexer/**"
-      - "packages/contracts/src/**"
       - "packages/contracts/abis/**"
       - "packages/contracts/deployments/**"
       - "scripts/quality/check-source-structure.js"
+      - ".github/actions/setup-js/action.yml"
       - ".github/workflows/indexer.yml"
   pull_request:
-    branches: [main, develop]
     paths:
       - "package.json"
       - "bun.lock"
       - ".env.schema"
       - "packages/indexer/**"
-      - "packages/contracts/src/**"
       - "packages/contracts/abis/**"
       - "packages/contracts/deployments/**"
       - "scripts/quality/check-source-structure.js"
+      - ".github/actions/setup-js/action.yml"
       - ".github/workflows/indexer.yml"
 
 permissions:
@@ -41,18 +40,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with:
-          node-version: "22"
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
-        with:
-          bun-version: 1.3.14
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      - name: Setup JavaScript toolchain and dependencies
+        uses: ./.github/actions/setup-js
 
       - name: Check indexing boundary
         working-directory: packages/indexer
@@ -62,16 +51,9 @@ jobs:
         working-directory: packages/indexer
         run: bun run codegen
 
-      - name: Run indexer tests
+      - name: Run indexer tests with coverage
         working-directory: packages/indexer
-        run: bun run test
-        env:
-          CI: true
-
-      - name: Generate coverage report
-        working-directory: packages/indexer
-        run: bun run test:coverage
-        continue-on-error: true
+        run: bun run test:coverage:ci
         env:
           CI: true
 
@@ -84,18 +66,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with:
-          node-version: "22"
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
-        with:
-          bun-version: 1.3.14
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      - name: Setup JavaScript toolchain and dependencies
+        uses: ./.github/actions/setup-js
 
       - name: Check source structure
         env:
@@ -105,10 +77,6 @@ jobs:
       - name: Check indexing boundary
         working-directory: packages/indexer
         run: bun run check:indexing-boundary
-
-      - name: Generate indexer code
-        working-directory: packages/indexer
-        run: bun run codegen
 
       - name: Run indexer lint
         working-directory: packages/indexer

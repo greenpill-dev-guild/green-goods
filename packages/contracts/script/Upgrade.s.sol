@@ -14,6 +14,7 @@ import { GardenAccount } from "../src/accounts/Garden.sol";
 import { WorkResolver } from "../src/resolvers/Work.sol";
 import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
+import { TestimonyResolver } from "../src/resolvers/Testimony.sol";
 import { Deployment } from "../src/registries/Deployment.sol";
 import { OctantModule } from "../src/modules/Octant.sol";
 import { HatsModule } from "../src/modules/Hats.sol";
@@ -21,6 +22,8 @@ import { GardensModule } from "../src/modules/Gardens.sol";
 import { YieldResolver } from "../src/resolvers/Yield.sol";
 import { KarmaGAPModule } from "../src/modules/Karma.sol";
 import { GreenWill } from "../src/registries/GreenWill.sol";
+import { CommitmentPoolingModule } from "../src/modules/CommitmentPooling.sol";
+import { CommitmentRegistry } from "../src/registries/Commitment.sol";
 
 /// @title Upgrade Script for Green Goods Contracts
 /// @notice Handles UUPS proxy upgrades for all upgradeable contracts
@@ -29,6 +32,7 @@ contract Upgrade is Script {
     error SameImplementation();
     error ZeroAddress(string paramName);
     error NotAContract(string contractName);
+    error UnexpectedAssessmentSchemaUID(bytes32 expected, bytes32 actual);
     /// @notice Load proxy address from deployment file
 
     function loadProxyAddress(string memory contractName) internal view returns (address) {
@@ -218,7 +222,18 @@ contract Upgrade is Script {
         vm.startBroadcast();
 
         (address eas,,,) = loadNetworkConfig();
+        string memory deploymentPath =
+            string.concat(vm.projectRoot(), "/deployments/", vm.toString(block.chainid), "-latest.json");
+        string memory deploymentJson = vm.readFile(deploymentPath);
+        bytes32 expectedV2SchemaUID = abi.decode(vm.parseJson(deploymentJson, ".schemas.assessmentSchemaUID"), (bytes32));
+        if (expectedV2SchemaUID == bytes32(0)) revert UnexpectedAssessmentSchemaUID(expectedV2SchemaUID, bytes32(0));
+        bytes32 liveV2SchemaUID = AssessmentResolver(payable(proxy)).schemaUID();
+        if (liveV2SchemaUID != bytes32(0) && liveV2SchemaUID != expectedV2SchemaUID) {
+            revert UnexpectedAssessmentSchemaUID(expectedV2SchemaUID, liveV2SchemaUID);
+        }
         console.log("Using EAS:", eas);
+        console.log("Expected Assessment v2 schema UID:");
+        console.logBytes32(expectedV2SchemaUID);
 
         AssessmentResolver newImpl = new AssessmentResolver(eas);
         console.log("New AssessmentResolver implementation:", address(newImpl));
@@ -228,6 +243,54 @@ contract Upgrade is Script {
 
         UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
         console.log("AssessmentResolver upgraded successfully");
+
+        // Arbitrum's live proxy predates artifact persistence and still reports a zero v2 UID.
+        // Pin the exact existing v2 schema in its own resumable transaction before any v3 schema
+        // preparation. A non-zero conflicting UID failed before broadcast above, while an exact
+        // existing pin is deliberately a no-op on replay.
+        if (liveV2SchemaUID == bytes32(0)) {
+            AssessmentResolver(payable(proxy)).setSchemaUID(expectedV2SchemaUID);
+            console.log("AssessmentResolver v2 schema UID pinned from the canonical artifact");
+        }
+        bytes32 pinnedV2SchemaUID = AssessmentResolver(payable(proxy)).schemaUID();
+        if (pinnedV2SchemaUID != expectedV2SchemaUID) {
+            revert UnexpectedAssessmentSchemaUID(expectedV2SchemaUID, pinnedV2SchemaUID);
+        }
+        // This getter exists only on the target implementation and must remain unset until the
+        // separately ordered AssessmentV3 schema-preparation transaction.
+        if (AssessmentResolver(payable(proxy)).assessmentV3SchemaUID() != bytes32(0)) {
+            revert UnexpectedAssessmentSchemaUID(bytes32(0), AssessmentResolver(payable(proxy)).assessmentV3SchemaUID());
+        }
+
+        vm.stopBroadcast();
+    }
+
+    /// @notice Upgrade TestimonyResolver
+    /// @dev The EAS address is a constructor argument, so it is baked into implementation bytecode
+    ///      and cannot be changed by an upgrade. It is re-read from the network config here so a
+    ///      new implementation can never silently point at a different EAS than the proxy was
+    ///      deployed against.
+    function upgradeTestimonyResolver() public {
+        address proxy = loadProxyAddress("testimonyResolver");
+        console.log("Upgrading TestimonyResolver proxy at:", proxy);
+
+        validateProxy(proxy, "TestimonyResolver");
+
+        bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
+        address currentImplAddr = address(uint160(uint256(vm.load(proxy, implementationSlot))));
+        console.log("Current TestimonyResolver implementation:", currentImplAddr);
+
+        vm.startBroadcast();
+
+        (address eas,,,) = loadNetworkConfig();
+        console.log("Using EAS:", eas);
+
+        TestimonyResolver newImpl = new TestimonyResolver(eas);
+        console.log("New TestimonyResolver implementation:", address(newImpl));
+        if (address(newImpl) == currentImplAddr) revert SameImplementation();
+
+        UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
+        console.log("TestimonyResolver upgraded successfully");
 
         vm.stopBroadcast();
     }
@@ -415,7 +478,12 @@ contract Upgrade is Script {
 
         if (address(newImpl) == currentImplAddr) revert SameImplementation();
 
-        UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
+        bytes32[] memory legacyWorkUIDs = vm.envBytes32("KARMA_LEGACY_WORK_UIDS", ",");
+        bytes32[] memory legacyUpdateUIDs = vm.envBytes32("KARMA_LEGACY_PROJECT_UPDATE_UIDS", ",");
+        UUPSUpgradeable(proxy)
+            .upgradeToAndCall(
+                address(newImpl), abi.encodeCall(KarmaGAPModule.migrateProjectUpdates, (legacyWorkUIDs, legacyUpdateUIDs))
+            );
         console.log("KarmaGAPModule upgraded successfully");
 
         vm.stopBroadcast();
@@ -482,6 +550,28 @@ contract Upgrade is Script {
         upgradeYieldResolver();
         upgradeGardensModule();
         wireYieldResolverGardensModule();
+    }
+
+    /// @notice Upgrade the existing Work integration required by Commitment Pooling.
+    /// @dev The net-new CommitmentPoolingModule and CommitmentRegistry are deployed, never
+    ///      "upgraded". KarmaGAPModule must be upgraded before WorkApprovalResolver, which depends
+    ///      on its Project Update selector. GardenToken is deliberately excluded until a compatible
+    ///      GardenAccount implementation can be deployed and bound to it in a separate release.
+    function upgradeCommitmentPoolingIntegrations() public {
+        upgradeKarmaGAPModule();
+        upgradeWorkApprovalResolver();
+
+        address poolingModule = vm.envAddress("COMMITMENT_POOLING_MODULE");
+        if (poolingModule == address(0)) revert ZeroAddress("CommitmentPoolingModule");
+        if (vm.envBool("UPGRADE_REQUIRE_LIVE_DEPENDENCIES")) {
+            validateAddress(poolingModule, "CommitmentPoolingModule");
+        }
+        address workApprovalProxy = loadProxyAddress("workApprovalResolver");
+
+        vm.startBroadcast();
+        WorkApprovalResolver(payable(workApprovalProxy)).setCommitmentModule(poolingModule);
+        vm.stopBroadcast();
+        console.log("Commitment Pooling integration reverse wiring completed");
     }
 
     /// @notice Upgrade all contracts

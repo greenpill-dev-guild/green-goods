@@ -1,153 +1,180 @@
 ---
 title: Test Cases
-sidebar_label: Test Cases
 slug: /builders/quality/test-cases
 audience: developer
 owner: docs
-last_verified: 2026-04-25
-feature_status: Planned
+feature_status: In progress
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - package.json
+  - packages/admin/vitest.config.ts
+  - packages/agent/vitest.config.ts
+  - packages/client/vitest.config.ts
+  - packages/shared/vitest.config.ts
+  - playwright.config.ts
+  - scripts/data/qa-test-catalog.json
+  - scripts/data/validation-policy.json
+source_digest: "sha256:0c8eb6f9a70cbb103a757dec595f0303619904c1efdbd683b9766de9d65e8ae1"
 source_of_truth:
   - package.json
-  - .github/workflows/contracts.yml
-  - .github/workflows/indexer.yml
-  - .github/workflows/shared.yml
-  - .github/workflows/client.yml
-  - .github/workflows/admin.yml
-  - .github/workflows/agent.yml
-  - .github/workflows/design.yml
-  - .github/workflows/docs.yml
-  - playwright.config.ts
-  - packages/client/vitest.config.ts
   - packages/admin/vitest.config.ts
-  - packages/shared/vitest.config.ts
   - packages/agent/vitest.config.ts
-  - scripts/quality/check-test-quality.sh
-keywords: [test cases, QA, quality assurance, coverage, E2E, regression, critical paths]
+  - packages/client/vitest.config.ts
+  - packages/shared/vitest.config.ts
+  - playwright.config.ts
+  - scripts/data/qa-test-catalog.json
+  - scripts/data/validation-policy.json
 ---
 
-import {StatusBadge} from "@site/src/components/docs";
-
+<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
 # Test Cases
 
-<StatusBadge status="Planned" />
+This page projects scenario definitions only. Live results, identities, owners, defect links, and session evidence are intentionally excluded.
 
-Structured test case tracking is planned. Today, the source of truth is the package test scripts, GitHub Actions workflows, Vitest configs, contracts test scripts, Playwright config, and test-quality guardrail. Use this page as an orientation map, not as proof that every listed workflow has full automated coverage.
+## Public Website
 
-```mermaid
-flowchart LR
-    G[Gardener] --> |Select Action| Form[Work Form]
-    Form --> |Upload| IPFS[IPFS Media]
-    IPFS --> |Encode| EAS[EAS Attestation]
-    EAS --> |Validate| WR[WorkResolver]
-    WR --> |Store| Chain[On-Chain]
-    Chain --> |Review| Op[Operator]
-    Op --> |Approve| WAR[WorkApproval Resolver]
-    WAR --> |Attest| Done[Verified]
-```
+| ID | Priority | Area | Scenario | Evidence requested |
+|---|---|---|---|---|
+| `PUB-001` | P0 | Public Shell | Public routes use website shell, not PWA shell | Screenshot of one public desktop route |
+| `PUB-002` | P0 | Public Shell | Mobile public navigation works | Mobile screenshot or short video |
+| `PUB-003` | P0 | Garden Discovery | Gardens listing renders real data at volume with search | Screenshot of listing and detail |
+| `PUB-006` | P1 | Impact | Impact page loads without stale loading or blank metrics | Screenshot |
+| `PUB-007` | P1 | Actions | Actions route renders public-safe content | Screenshot |
+| `PUB-008` | P1 | Cookies | Cookies route and direct jar route degrade gracefully | Screenshot |
+| `PUB-010` | P2 | Orientation | Glossary and orientation routes stay understandable | Screenshot or notes |
+| `PUB-011` | P2 | Responsive Shell | Editorial shell holds at 375px and 1440px with keyboard access | Screenshots at both widths |
+| `PUB-012` | P1 | Funding | Wallet edge states fail helpfully: none installed, wrong network | Screenshots of both states |
+| `PUB-013` | P2 | Garden Discovery | Unknown or broken garden URL degrades honestly | Screenshot of the not-found state |
+| `PUB-014` | P0 | Funding | Donate end to end from /fund: token pick, USD⇄WETH switch, connect-from-card, approve+deposit, reject recovery | Screen recording of the two-prompt flow |
+| `PUB-015` | P0 | Funding | Endow a garden from /fund incl. approval-reset path and no-vault message | Screenshot of success + no-vault message |
+| `PUB-016` | P1 | Funding | Withdraw an endowment via Manage Endowments: expand position, Max, withdraw | Screenshot of updated position |
+| `PUB-017` | P0 | Funding | Campaign vault checkout on /vaults: amount, connect, wrap ETH if needed, multi-step endow | Recording of the multi-step checkout |
+| `PUB-018` | P1 | Funding | Redeem a campaign position from Manage positions | Screenshot of redeem result |
+| `PUB-019` | P0 | Cookies | Claim from a campaign cookie jar: eligibility, cooldown, fixed vs variable amounts | Screenshot of claim toast + balance |
+| `PUB-020` | P1 | Cookies | Deposit into a campaign jar + deep-link ?jar= focus + connection-line 'Disconnect' behavior | Screenshot of deep-link focus |
+| `PUB-021` | P1 | Install | Install App branches: desktop QR dialog, mobile steps, copy-URL, Open App flip | Screenshot of each branch |
+| `PUB-022` | P2 | Home | Home engagement: seasonal-letter subscribe, schedule a call, persona accordion | Screenshot of inline thanks |
+| `PUB-023` | P1 | Garden Discovery | Garden detail deep interactions: field-note drawer, lightbox, show-more, Support handoff | Screenshot of drawer + highlighted fund row |
+| `PUB-024` | P1 | Impact | Impact filters, pagination, evidence drawer, and Cite this record | Screenshot of filtered results |
+| `PUB-025` | P2 | Responsive Shell | Editorial media fallbacks and hero CTA legibility | Screenshots light + dark |
+| `PUB-026` | P1 | Garden Records | Open a field-note record: media mosaic, lightbox, feedback, attestation link | Screenshot of record + explorer tab |
+| `PUB-027` | P1 | Garden Records | Read the public commitments story across pool states | Screenshots per state |
+| `PUB-028` | P2 | Garden Records | Cycle details and the certificate tie-in | Screenshot of matching counts |
+| `PUB-029` | P2 | Garden Records | Certificates and steward identities on the garden page | Screenshot of both sections |
+| `PUB-030` | P1 | Funding | Read-only browse of /vaults and /fund without signing | Screenshot of read-only browse |
+| `PUB-031` | P1 | Locale Quality | Editorial language switch: en/pt/es with persistence and no mixed-language pages | Screenshot per locale |
+| `PUB-032` | P2 | SEO & Meta | Social and SEO meta on home and garden detail | Screenshot of preview render |
+| `PUB-033` | P2 | Vocabulary | Editorial vocabulary holds: no admin/cockpit jargon on public pages | List of offending terms with routes (or a clean pass note) |
 
-## Current source-backed test surfaces
+## PWA
 
-| Surface | Current source-backed state |
-| --- | --- |
-| Root unit/integration loop | `bun run test` fans out to shared, client, admin, indexer, contracts, and agent package test scripts. |
-| Package CI workflows | `contracts.yml`, `indexer.yml`, `shared.yml`, `client.yml`, `admin.yml`, and `agent.yml` own package tests/builds with dependency fanout for shared, root dependency/config, and relevant contract artifact changes. |
-| Playwright E2E | Client and admin browser gates are folded into `client.yml` and `admin.yml` via the focused `client-ci` and `admin-ci` Playwright projects. Broader/mobile/fork projects stay manual. |
-| Contract fork tests | `contracts.yml` has a fork-readiness job that requires RPC secrets and only runs on trusted pushes or manual dispatch. It is not part of the default local `bun run test` loop. |
-| Coverage thresholds | Coverage is V8-based where configured, but thresholds differ by package: client is higher than 70%, admin/shared use 70%, and agent intentionally uses lower thresholds. |
-| Test-quality guardrail | `bash scripts/quality/check-test-quality.sh` checks test-quality patterns across test directories. |
+| ID | Priority | Area | Scenario | Evidence requested |
+|---|---|---|---|---|
+| `PWA-020` | P0 | Auth | Desktop-shell wallet login connects, signs, and recovers from a rejected signature | Recording of reject + retry |
+| `PWA-021` | P0 | Garden Join | Join flows: open joining, request-to-join with note, withdraw request, steward welcome/decline | Screenshots of each toast |
+| `PWA-023` | P1 | Routing | Refresh and direct deep links preserve garden/work context | Screenshot after refresh |
+| `PWA-025` | P1 | Locale Quality | Portuguese/Spanish render dates, plurals, and diacritics on the client | Screenshots per locale |
+| `PWA-026` | P1 | Auth | In-app wallet edge states: wrong network and mid-session disconnect recover | Screenshot of the network gate |
+| `PWA-027` | P1 | Home | Home orientation: pull-to-refresh (online/offline), filters, drawer entry points, arrival toast | Screenshot of filters + drawer |
+| `PWA-028` | P0 | Cookies | Claim from a garden cookie jar in the Wallet drawer (purpose required) | Screenshot of claim result |
+| `PWA-029` | P0 | Wallet | Send tokens: recipient search/QR/browse, amount+Max, review with note, confirm | Recording of the full send |
+| `PWA-030` | P0 | My Work | Work dashboard: drafts resume/delete, pending and completed filters, open items | Screenshot of dashboard states |
+| `PWA-031` | P0 | Work Submission | Full work submission on desktop shell: action, garden, media upload, audio note, details, location, review, submit | Recording of wizard + submit |
+| `PWA-032` | P0 | Commitments | Compose a commitment: beats, draft resume, read-to-end gate, place offer/request | Screenshot of done screen |
+| `PWA-033` | P0 | Commitments | Commitment detail acts: take up, withdraw with reason, confirm / not-yet, link work, steward claim decisions | Screenshots per act |
+| `PWA-034` | P1 | Commitments | Proof composer: media and audio capture, beats, submit proof | Screenshot of composer |
+| `PWA-035` | P0 | Review | Review work on desktop shell: approve with optional feedback, reject requires feedback | Screenshot of decided states |
+| `PWA-036` | P1 | Governance | Allocate conviction support points in the governance drawer | Screenshot of updated stake |
+| `PWA-037` | P1 | Endowment | Garden endowment drawer: vault deposit, own-deposit withdraw, in-drawer jar claim | Screenshot of drawer states |
+| `PWA-038` | P1 | Profile | Profile actions: avatar edit/remove with draft recovery, theme, language, ENS claim/release, badges, logout | Screenshots of profile flows |
+| `PWA-039` | P2 | Home | Notifications popover, ENS reminder toast, AppBar badges and auto-hide | Screenshot of popover + badge |
+| `PWA-040` | P1 | Offline | Offline mid-browse: toggle devtools offline while navigating, then reconnect | Screenshot of offline state |
+| `PWA-041` | P1 | Update | Desktop service-worker update: banner on a new deploy, refresh applies cleanly | Screenshot of the banner |
+| `PWA-042` | P1 | Accessibility | Keyboard and focus smoke on core PWA flows: wizard, drawers, dialogs | Notes per surface + screenshots |
+| `PWA-043` | P1 | Performance | Boot performance: warm reload locally; cold-start budget on a production build | Console timings screenshot |
+| `PWA-044` | P2 | Identity | Identity parity: the same gardener across website records, PWA, and admin queue | Three-surface screenshot set |
+| `PWA-045` | P2 | Vocabulary | PWA vocabulary holds: gardener-facing language, no internal or admin terms | List of offending terms with routes (or a clean pass note) |
+| `PWA-AND-001` | P0 | Install | [Android] Fresh Android install launches standalone | Screen recording |
+| `PWA-AND-002` | P0 | Update | [Android] Existing Android install updates without split state | Screen recording |
+| `PWA-AND-003` | P0 | Upload | [Android] Camera and gallery image handling works on Android | Screen recording |
+| `PWA-AND-004` | P0 | Offline Queue | Offline queue survives app close and reconnect | Screen recording plus queue/status screenshot |
+| `PWA-AND-005` | P1 | Mobile UI | Keyboard and drawer layout remain usable on Android | Screenshots |
+| `PWA-IOS-001` | P0 | Install | [iOS] Fresh iOS install launches standalone | Photo or screen recording |
+| `PWA-IOS-002` | P0 | Update | [iOS] Existing iOS install updates without split state | Screen recording |
+| `PWA-IOS-003` | P0 | Auth | Login/passkey/wallet gate is recoverable on iOS | Screen recording plus account role |
+| `PWA-IOS-004` | P0 | Upload | [iOS] Camera capture preview and draft persist on iOS | Screen recording |
+| `PWA-IOS-005` | P0 | Upload | [iOS] HEIC or library image survives submission draft | Screenshot before and after reopen |
+| `PWA-IOS-006` | P0 | Offline Queue | Offline work submission queues and flushes once | Screen recording plus queue/status screenshot |
+| `PWA-IOS-007` | P1 | Mobile UI | Drawers and bottom nav respect safe areas | Screenshots with drawer and keyboard |
+| `PWA-IOS-008` | P1 | Garden Discovery | Home and Garden discovery handle real, empty, and stale data | Screenshots of home, list, and detail |
+| `PWA-IOS-010` | P1 | Assessments | Assessment detail is readable without losing garden context | Screenshots of assessment and return |
+| `PWA-IOS-012` | P1 | Installed Navigation | Bottom AppBar behavior holds through flows and back navigation | Screen recording of navigation loop |
+| `PWA-IOS-013` | P1 | Auth | Logout clears the session and re-login works cleanly | Screen recording of the loop |
+| `PWA-IOS-014` | P0 | Upload | Submission validation blocks incomplete work and rapid double-taps | Screenshot of validation errors; work list showing a single submission |
+| `PWA-ROLE-001` | P0 | Review | Approve pending work with valid role on iOS | Screen recording plus account role |
+| `PWA-ROLE-002` | P0 | Review | Reject pending work with reason on iOS | Screen recording plus account role |
+| `PWA-ROLE-003` | P0 | Permissions | Insufficient-role user cannot approve or reject on iOS | Screenshot plus account role |
+| `PWA-ROLE-004` | P0 | Review | Approve pending work with valid role on Android | Screen recording plus account role |
+| `PWA-ROLE-005` | P0 | Review | Reject pending work with reason on Android | Screen recording plus account role |
+| `PWA-ROLE-006` | P0 | Permissions | Insufficient-role user cannot approve or reject on Android | Screenshot plus account role |
+| `XPLAT-005` | P1 | Install | Website-to-install handoff keeps browser and PWA shells separate | Screen recording across the handoff |
 
-## Planned catalog scope
+## Admin Dashboard
 
-The future structured catalog should map test cases to source-backed scripts, workflows, or acceptance artifacts before it presents them as enforced coverage. Candidate categories are:
+| ID | Priority | Area | Scenario | Evidence requested |
+|---|---|---|---|---|
+| `ADM-001` | P0 | Shell | Admin hub loads with canonical canvas shell | Screenshot |
+| `ADM-002` | P0 | Routing | Primary admin direct routes reload | Screenshot set or notes |
+| `ADM-003` | P0 | Auth Gates | Unauthenticated admin state is clear | Screenshot |
+| `ADM-004` | P0 | Work Queue | Work queue/detail state is usable | Screenshot |
+| `ADM-005` | P0 | Assess | Assessment create flow gates invalid input | Screenshot or video |
+| `ADM-006` | P0 | Certify | Certification flow does not overpromise transaction state | Screenshot |
+| `ADM-007` | P0 | Endowment | Endowment and vault routes are role-gated and readable | Screenshot |
+| `ADM-008` | P1 | Coordination | Coordination routes render without broken state | Screenshot |
+| `ADM-009` | P1 | Actions | Create and edit action forms validate correctly | Screenshot or video |
+| `ADM-010` | P1 | Cookies | Campaign cookie jar management and deploy gating are clear | Screenshot |
+| `ADM-011` | P1 | Garden Admin | Garden health, settings, members, and impact routes render | Screenshot |
+| `ADM-012` | P0 | Hub Work Review | Full review decision path completes with actions visible | Screen recording; screenshot of the action region at ~1084x637 |
+| `ADM-013` | P0 | Hub Confirmations | Commitment confirmation states who and what before commit | Screenshots of confirmation and result |
+| `ADM-014` | P1 | Garden Pool | Pool console statuses, seeding, and detail are coherent | Screenshots of pool, seed review, and detail |
+| `ADM-015` | P1 | Cross-Route Continuity | Workspace selection survives back, refresh, and deep links | Screen recording of the loop |
+| `ADM-016` | P1 | Locale Quality | Portuguese and Spanish render dates, plurals, and units correctly | Screenshots of pt/es views with real records |
+| `ADM-017` | P1 | Garden Lifecycle | Garden creation reviews before submit and lands usable | Screenshots of validation, review, and landing |
+| `ADM-018` | P0 | Hub Work Review | Decision integrity: no double decisions, honest tx failure | Screenshots of the blocked second decision and the failure state |
+| `ADM-019` | P2 | Profile | Admin profile renders identity and sign-out lands sensibly | Screenshot of profile + landing |
+| `ADM-020` | P0 | Garden Settings | Garden settings: per-field edits, banner upload/remove+undo, joining toggle, gardener cap, domains | Recording of sequential saves |
+| `ADM-021` | P0 | Members | Members: batch add via 0x/ENS/clipboard, remove with confirm, join-request queue welcome/decline | Screenshot of queue states |
+| `ADM-022` | P0 | Garden Pool | Pool lifecycle: set up commitments, start/open a season or campaign, cancel with reason, pause/resume, close/archive/reopen | Screenshots per lifecycle step |
+| `ADM-023` | P0 | Endowment | Endowment operations: vault deposit with limits, withdraw, harvest & distribute, emergency pause, auto-allocate | Screenshot of harvest report |
+| `ADM-024` | P1 | Payouts | Cookie jar payouts: deposit, withdraw with purpose within limits and cooldown | Screenshot of withdraw result |
+| `ADM-025` | P0 | Hub Confirmations | Commitment inspector steward acts: confirm ordinary/fallback, raise & resolve dispute, expire, recovery overrides | Screenshots per act |
+| `ADM-026` | P1 | Garden Pool | Seed a commitment: 4-step wizard, named confirmers, review, queued creation | Screenshot of queued row |
+| `ADM-027` | P1 | Coordination | Coordination: create signal pools, manage strategies, register/deregister items, allocate weights | Screenshot of saved weights |
+| `ADM-028` | P1 | Impact | Hypercert marketplace: approvals gate, list for yield, cancel listing — including whether it's reachable at all | Screenshot of listing state |
+| `ADM-029` | P1 | Shell | Global chrome: garden switch chip, command palette (⌘K), notifications sheet, view-public | Screenshot of palette |
+| `ADM-030` | P1 | Work Submission | Admin submit-work wizard with review-step edit jumps and offline queueing | Screenshot of review step |
+| `ADM-031` | P1 | Work Queue | Hub queue at volume: full scroll, search/sort, deep item open and return | Recording of scroll return |
+| `ADM-032` | P2 | Error Recovery | Data-source failure on the hub: throttle/offline the network and load | Screenshot of error + recovery |
+| `ADM-033` | P1 | Garden Lifecycle | First-run: zero-garden steward sees an honest no-access state; a deployer gets the create funnel | Screenshot of empty state |
+| `ADM-034` | P2 | Accessibility | Admin keyboard smoke: palette, dialogs, wizard focus order | Notes + screenshots |
+| `ADM-035` | P2 | Vocabulary | Admin vocabulary holds: cockpit language, no editorial 'hero/story' terms | List of offending terms with routes (or a clean pass note) |
+| `XPLAT-007` | P2 | Hub Work Review | Two stewards acting on the same submission converge on one state | Screenshots from both sessions |
 
-- **Work submission flows** -- gardener creates work, uploads media to IPFS, submits EAS attestation, resolver validates
-- **Garden lifecycle** -- minting, module initialization, role assignment, metadata updates, action publishing
-- **Attestation validation** -- resolver role checks, action validity, struct-vs-tuple encoding correctness
-- **Offline sync** -- draft creation in IndexedDB, job queue processing, conflict resolution on reconnect
-- **Wallet and passkey auth** -- wallet connect, passkey registration, session management, smart account creation
-- **Hypercert minting** -- metadata assembly, allowlist generation, minting, marketplace listing
-- **Vault operations** -- deposits, yield harvesting, three-way splitting, withdrawal
+## Docs
 
-## Test Cases
-
-:::info Planned catalog
-Test cases are not yet maintained as a canonical checked-in test-case repository. Add links to concrete tests, workflows, or acceptance artifacts before treating a category as covered.
-:::
-
-### Critical Path: Work Submission to Attestation
-
-The core user journey that must never break:
-
-1. Gardener selects an action and fills out work form
-2. Media files are uploaded to IPFS through the Pinata-backed upload path
-3. Metadata JSON is uploaded to IPFS
-4. Work attestation is encoded and submitted to EAS
-5. WorkResolver validates: gardener role, action validity, data format
-6. Attestation is stored on-chain
-7. Operator reviews and submits WorkApproval attestation
-8. WorkApprovalResolver validates: operator role, work reference, confidence/method
-
-### Offline Sync
-
-- Draft creation persists to IndexedDB when offline
-- Job queue processes pending jobs when connectivity returns
-- Background sync (service worker) flushes queue on `BACKGROUND_SYNC` event
-- Retry policy: exponential backoff (1s base, doubling, max 60s, 5 retries)
-- Mutex prevents concurrent flush operations
-- Conflict resolution: last-write-wins for draft updates
-
-### Authentication
-
-- **Wallet connect**: MetaMask, WalletConnect, Coinbase Wallet
-- **Passkey registration**: WebAuthn credential creation, smart account deployment
-- **Session management**: auth state machine transitions (disconnected, connecting, connected, authenticated)
-- **Role verification**: hat-based role checks for gardener, operator, evaluator actions
-
-### Garden Management
-
-- Garden minting triggers module fan-out (Hats tree, vaults, cookie jars, ENS, communities)
-- Role assignment via Hats Protocol (6-role tree per garden)
-- Action publishing with domain categorization and metadata
-- Garden metadata updates via tokenbound account
-
-### Impact Pipeline
-
-- Assessment creation with strategy kernel (diagnosis, SMART outcomes, Cynefin phase)
-- Hypercert minting from approved work (metadata, allowlist, distribution)
-- Marketplace listing and trading (LooksRare protocol integration)
-- Conviction voting on registered hypercerts via Gardens V2 signal pools
-
-## Automation boundaries
-
-### CI pipeline
-
-- GitHub Actions are split into eight lanes: contracts, indexer, shared, client, admin, agent, design, and docs.
-- Playwright E2E is package-scoped in CI: `client-ci` runs client smoke and critical client specs; `admin-ci` runs admin smoke and production-flow specs.
-- Contract tests run through package scripts; fork readiness needs RPC secrets and runs only on trusted pushes or manual dispatch.
-
-### Pre-commit
-
-- **Pre-commit** runs `lint-staged`, which currently formats staged JS/TS/JSON files and excludes generated/out contract paths.
-- **Pre-push** runs broader repo checks, including `format:contracts`, `format`, and `lint`.
-- Treat hooks as formatting and lint guardrails, not as proof that tests, typecheck, or full quality gates have run.
-
-### E2E (Playwright)
-
-- Curated CI projects cover client smoke plus critical client flows, and admin smoke plus production flows.
-- Manual projects can run broader browser/mobile coverage when needed.
-- Fork-backed browser coverage is a separate path from the default CI E2E project set.
-
-### Coverage
-
-- Coverage thresholds are package-specific, not one universal 70% rule.
-- Client, admin, shared, and agent use V8 coverage configs; indexer coverage is informational in CI.
-- Treat coverage as one signal alongside realism checks, E2E coverage, and human review.
-
-## Status
-
-Current test infrastructure is operational, but the structured catalog is still planned. Known gaps:
-
-- This page is not yet generated from or linked to a canonical test-case source.
-- Planned categories need explicit links to current tests before they can be described as covered.
-- E2E and fork coverage remain curated and environment-dependent.
-- Load testing and broad cross-chain verification should not be implied unless a checked-in workflow or script proves them.
+| ID | Priority | Area | Scenario | Evidence requested |
+|---|---|---|---|---|
+| `DOCS-001` | P1 | Navigation | Sidebar, top nav, and direct URLs resolve across sections | Screenshots or notes |
+| `DOCS-002` | P1 | Search | Local search returns relevant results with keyboard flow | Screenshot of results |
+| `DOCS-003` | P1 | Glossary Anchors | Glossary anchor links resolve — they are a client API | Screenshots of anchored terms |
+| `DOCS-004` | P1 | Responsive Shell | Docs shell holds at 375px and 1440px | Screenshots at both widths |
+| `DOCS-005` | P2 | Keyboard & Focus | Docs are navigable by keyboard with visible focus | Notes or short recording |
+| `DOCS-006` | P2 | Theme & Diagrams | Dark mode and mermaid diagrams render legibly | Paired light/dark screenshots |
+| `DOCS-007` | P0 | Guide Truth | Gardener guide walks true against the live PWA (joining, uploading work, offline sync, track status) | List of drifted pages |
+| `DOCS-008` | P0 | Guide Truth | Steward guide walks true against the live admin (create garden, review work, assessments, actions/payouts/endowments) | List of drifted pages |
+| `DOCS-009` | P1 | Guide Truth | Funder guide walks true against the editorial funding surfaces (donate, fund, vaults, withdraw) — read-only | List of drifted pages |
+| `DOCS-010` | P1 | Guide Truth | Evaluator guide holds: in-product assessment steps plus runnable query-eas / query-indexer / export instructions | Query output screenshots |
+| `DOCS-011` | P1 | Builder Docs | Builder onboarding path: getting-started and env-management commands run on a fresh checkout | Terminal transcript |
+| `DOCS-012` | P2 | Builder Docs | Builder journeys and quality pages describe shipped reality | List of drifted pages |
+| `DOCS-013` | P2 | Reference | Reference layer truth: FAQ, changelog, generated ontology/claims pages, glossary consistency | List of stale entries |

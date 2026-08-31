@@ -6,7 +6,7 @@ import { getWagmiConfig } from "../../../config/appkit";
 import { getEASConfig } from "../../../config/blockchain";
 import { getChain } from "../../../config/chains";
 import { queryClient } from "../../../config/react-query";
-import { queryKeys } from "../../../config/query-keys";
+import { worksKeys } from "../../../config/query-keys/work";
 import { trackWalletSubmissionTiming } from "../../../modules/app/analytics-events";
 import { ensureWagmiWalletChain } from "../../../modules/transactions/chain-guard";
 import { assertLocalArbitrumForkWallet } from "../../../modules/transactions/local-fork-safety";
@@ -22,7 +22,7 @@ import {
 } from "../../../utils/blockchain/polling";
 import { simulateWorkSubmission } from "../simulate";
 import { WorkSubmissionError, type WalletSubmissionOptions } from "./types";
-import { waitForReceiptWithTimeout } from "./receipt";
+import { TransactionReceiptTimeoutError, waitForReceiptWithTimeout } from "./receipt";
 
 export async function submitWorkDirectly(
   draft: WorkDraft,
@@ -96,6 +96,7 @@ export async function submitWorkDirectly(
       },
       chainId,
       {
+        clientWorkId: options.clientWorkId,
         gardenAddress,
         authMode: "wallet",
         uploadBatchId,
@@ -136,11 +137,19 @@ export async function submitWorkDirectly(
     throw new WorkSubmissionError(extractErrorMessage(err), "transaction", uploadBatchId, err);
   }
 
-  // ── Phase 3: Receipt, cache, and sync (non-critical) ───────────────
+  // ── Phase 3: Receipt, cache, and sync ──────────────────────────────
+  // Timing out is non-critical — the transaction may still land, and the
+  // optimistic cache below covers the gap. A revert is not: the attestation
+  // never happened, so surfacing it beats showing the gardener a submission
+  // that silently went nowhere.
   try {
     await waitForReceiptWithTimeout(hash, chainId, txTimeout);
     debugLog("[WalletSubmission] Transaction confirmed", { hash });
-  } catch {
+  } catch (err: unknown) {
+    if (!(err instanceof TransactionReceiptTimeoutError)) {
+      debugError("[WalletSubmission] Receipt phase failed", err);
+      throw new WorkSubmissionError(extractErrorMessage(err), "transaction", uploadBatchId, err);
+    }
     debugLog("[WalletSubmission] Transaction timeout, continuing...", { hash });
   }
 
@@ -151,16 +160,16 @@ export async function submitWorkDirectly(
     actionUID,
     title: workTitle,
     feedback: draft.feedback || "",
-    metadata: "{}",
+    metadata: JSON.stringify({ clientWorkId: options.clientWorkId }),
     media: [],
     createdAt: Math.floor(Date.now() / 1000),
   };
 
-  queryClient.setQueryData<EASWork[]>(queryKeys.works.online(gardenAddress, chainId), (old) => [
+  queryClient.setQueryData<EASWork[]>(worksKeys.online(gardenAddress, chainId), (old) => [
     optimisticWork,
     ...(old || []),
   ]);
-  queryClient.setQueryData<EASWork[]>(queryKeys.works.merged(gardenAddress, chainId), (old) => [
+  queryClient.setQueryData<EASWork[]>(worksKeys.merged(gardenAddress, chainId), (old) => [
     optimisticWork,
     ...(old || []),
   ]);
@@ -168,7 +177,7 @@ export async function submitWorkDirectly(
   const userAddress = walletClient.account?.address;
   if (userAddress) {
     queryClient.invalidateQueries({
-      queryKey: queryKeys.works.mineByUser(userAddress),
+      queryKey: worksKeys.mineByUser(userAddress),
       exact: false,
     });
   }
@@ -176,10 +185,7 @@ export async function submitWorkDirectly(
   onProgress?.("syncing", "Syncing with blockchain...");
 
   await pollQueriesAfterTransaction({
-    queryKeys: [
-      queryKeys.works.online(gardenAddress, chainId),
-      queryKeys.works.merged(gardenAddress, chainId),
-    ],
+    queryKeys: [worksKeys.online(gardenAddress, chainId), worksKeys.merged(gardenAddress, chainId)],
     baseDelay: 1000,
     maxDelay: 4000,
     maxAttempts: 4,

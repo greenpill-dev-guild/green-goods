@@ -1,10 +1,8 @@
-import {
-  adminRoutes,
-  compareAddresses,
-  useAdminGardenContext,
-  useGardenPermissions,
-  useGardens,
-} from "@green-goods/shared";
+import { compareAddresses } from "../../../utils/blockchain/address";
+import { adminRoutes } from "../../../utils/navigation/admin-routes";
+import { useGardens } from "../../blockchain/useBaseLists";
+import { useAdminGardenContext } from "../../garden/useAdminGardenContext";
+import { useGardenPermissions } from "../../garden/useGardenPermissions";
 import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { HypercertCompletionData } from "../hypercerts/types";

@@ -22,6 +22,9 @@ const DEFAULTS = {
   SEPOLIA_FORK_BLOCK_NUMBER: "10917257",
   ETHEREUM_RPC_URL: "https://ethereum.drpc.org",
   ETHEREUM_FORK_BLOCK_NUMBER: "25170563",
+  // Celo's public node. Only the settlement-lane shard forks Celo, and it is read-only.
+  CELO_RPC_URL: "https://forno.celo.org",
+  CELO_FORK_BLOCK_NUMBER: "74700818",
 };
 
 const SHARDS = {
@@ -29,13 +32,26 @@ const SHARDS = {
     chain: "ARBITRUM",
     description: "Arbitrum core, ENS, Gardens module, EAS, Hypercerts, Karma GAP, and full-protocol fork coverage",
     glob:
-      "test/fork/{ArbitrumActionRegistry,ArbitrumConvictionVoting,ArbitrumENS,ArbitrumGardenAccount,ArbitrumGardenAccountConfig,ArbitrumGardenAccountMembership,ArbitrumGardenAccountMetadata,ArbitrumGardenToken,ArbitrumGardensModule,ArbitrumGardensNegativePaths,ArbitrumGoodsToken,ArbitrumHats,ArbitrumHatsModuleUpgrade,ArbitrumHypercerts,ArbitrumKarmaGAP,ArbitrumLiveGardenSignalPoolRepair,ArbitrumMultiGardenIsolation,ArbitrumNegativePaths,ArbitrumRoleRevocation,e2e/ArbitrumFullProtocolE2E,eas/ArbitrumEASAttestationLifecycle}.t.sol",
+      "test/fork/{ArbitrumActionRegistry,ArbitrumCommitmentPooling,ArbitrumConvictionVoting,ArbitrumENS,ArbitrumGardenAccount,ArbitrumGardenAccountConfig,ArbitrumGardenAccountMembership,ArbitrumGardenAccountMetadata,ArbitrumGardenToken,ArbitrumGardensModule,ArbitrumGardensNegativePaths,ArbitrumGoodsToken,ArbitrumHats,ArbitrumHatsModuleUpgrade,ArbitrumHypercerts,ArbitrumKarmaGAP,ArbitrumLiveGardenSignalPoolRepair,ArbitrumMultiGardenIsolation,ArbitrumNegativePaths,ArbitrumRoleRevocation,e2e/ArbitrumFullProtocolE2E,eas/ArbitrumEASAttestationLifecycle}.t.sol",
     testEnv: {
       HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER: "488774048",
       HATS_MODULE_UPGRADE_GARDEN_COUNT: "18",
       HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION:
         "0xE5E5cbEDa7DC1139AF2e04Bd4a6784B42B4BeCD2",
     },
+  },
+  "pooling-arbitrum": {
+    chain: "ARBITRUM",
+    description:
+      "Commitment Pooling and ordered Assessment release rehearsals against live Arbitrum Hats, EAS, and WorkApprovalResolver",
+    glob: "test/fork/{ArbitrumCommitmentPooling,ArbitrumAssessmentReleaseSequence}.t.sol",
+  },
+  "settlement-lane": {
+    chain: "ARBITRUM",
+    description:
+      "Arbitrum <-> Celo settlement lane, Garden Safe ownership spike, and a fork-local Cookie Jar credit round trip",
+    glob:
+      "test/fork/{CrossChainSettlementLane,CrossChainGardenSafeOwner,CreditTreasuryRoundTrip}.t.sol",
   },
   "hats-module-upgrade-arbitrum": {
     chain: "ARBITRUM",
@@ -90,7 +106,7 @@ const SHARDS = {
   },
 };
 
-const SHARD_ORDER = ["arbitrum", "sepolia", "ethereum", "gardens", "octant"];
+const SHARD_ORDER = ["arbitrum", "settlement-lane", "sepolia", "ethereum", "gardens", "octant"];
 
 function loadEnv() {
   loadDotenv({ path: path.resolve(process.cwd(), "../../.env"), override: false, quiet: true });

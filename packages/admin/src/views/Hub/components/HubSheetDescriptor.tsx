@@ -1,24 +1,23 @@
+import { Alert } from "@green-goods/shared/components/Alert";
+import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
+import { resolveHubSheetSelection } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
+import type { Work } from "@green-goods/shared/types/domain";
 import {
-  Alert,
   type AdminHubRouteContext,
   adminRoutes,
-  SheetBody,
-  type ActivityEvent,
-  type Work,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/navigation/admin-routes";
 import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { useRouteBackedLeftSheetConfig } from "@/components/Layout";
 import { WorkDetailPanel } from "@/views/Garden/WorkDetail";
+import { localizeCanonicalActionTitle } from "../actionDisplay";
 import { HubCertificationInspector } from "./HubCertificationInspector";
-import { HubHistoryInspector } from "./HubHistoryInspector";
 
 interface HubSheetDescriptorProps {
   routeSheetContentId: string | null;
   routeWorkId: string | undefined;
   routeCertificationId: string | undefined;
-  routeHistoryEventId: string | undefined;
   activeWorkDetailId: string | null;
   selectedWork: Work | undefined;
   selectedCertification:
@@ -30,7 +29,6 @@ interface HubSheetDescriptorProps {
         createdAt: number;
       }
     | undefined;
-  selectedHistoryEvent: ActivityEvent | undefined;
   isResolvingSelection: boolean;
   canManage: boolean;
   hubContext: AdminHubRouteContext;
@@ -75,11 +73,9 @@ function SheetResolutionState({
 export function HubSheetDescriptor({
   routeWorkId,
   routeCertificationId,
-  routeHistoryEventId,
   activeWorkDetailId,
   selectedWork,
   selectedCertification,
-  selectedHistoryEvent,
   isResolvingSelection,
   canManage,
   hubContext,
@@ -94,28 +90,35 @@ export function HubSheetDescriptor({
     onNavigateToBase();
   }, [onBeforeClose, onNavigateToBase]);
 
+  const sheetSelection = useMemo(
+    () =>
+      resolveHubSheetSelection({
+        routeWorkId,
+        routeCertificationId,
+        activeWorkDetailId,
+        hasSelectedCertification: Boolean(selectedCertification),
+      }),
+    [activeWorkDetailId, routeCertificationId, routeWorkId, selectedCertification]
+  );
+
   const sheetDescriptor = useMemo(() => {
     // Submit Work is no longer a Hub inspector sheet — it owns its own route
     // (/hub/work/submit → submitWorkView). This descriptor only resolves the
-    // read/review inspectors (work detail, certification, history).
-    const resolvedWorkDetailId = routeWorkId ?? activeWorkDetailId;
-
-    if (resolvedWorkDetailId) {
+    // read/review inspectors (work detail, certification).
+    if (sheetSelection?.kind === "work") {
       return {
         title:
-          selectedWork?.title ??
+          (selectedWork?.title
+            ? localizeCanonicalActionTitle(selectedWork.title, formatMessage)
+            : undefined) ??
           formatMessage({ id: "app.work.detail.reviewTitle", defaultMessage: "Review Work" }),
         content: (
-          <WorkDetailPanel
-            workId={resolvedWorkDetailId}
-            layout="sheet"
-            onSuccess={handlePanelClose}
-          />
+          <WorkDetailPanel workId={sheetSelection.id} layout="sheet" onSuccess={handlePanelClose} />
         ),
       };
     }
 
-    if (routeCertificationId || selectedCertification) {
+    if (sheetSelection?.kind === "certification") {
       return {
         title:
           selectedCertification?.title ??
@@ -145,29 +148,6 @@ export function HubSheetDescriptor({
       };
     }
 
-    if (routeHistoryEventId || selectedHistoryEvent) {
-      return {
-        title:
-          selectedHistoryEvent?.title ??
-          formatMessage({ id: "cockpit.hub.tab.history", defaultMessage: "History" }),
-        content: selectedHistoryEvent ? (
-          <HubHistoryInspector event={selectedHistoryEvent} />
-        ) : (
-          <SheetResolutionState
-            isResolving={isResolvingSelection}
-            loadingLabel={formatMessage({
-              id: "cockpit.hub.sheet.resolving",
-              defaultMessage: "Loading selection...",
-            })}
-            message={formatMessage({
-              id: "cockpit.hub.sheet.historyNotFound",
-              defaultMessage: "History event could not be found.",
-            })}
-          />
-        ),
-      };
-    }
-
     return null;
   }, [
     canManage,
@@ -176,12 +156,8 @@ export function HubSheetDescriptor({
     hubContext,
     isResolvingSelection,
     navigate,
-    activeWorkDetailId,
-    routeCertificationId,
-    routeHistoryEventId,
-    routeWorkId,
+    sheetSelection,
     selectedCertification,
-    selectedHistoryEvent,
     selectedWork,
   ]);
 
@@ -195,7 +171,7 @@ export function HubSheetDescriptor({
             onBeforeClose,
             // Hub deep-link inspectors carry forms and media evidence — render
             // at the richer `lg` dialog tier (QA refinement pass). `hub` tone
-            // keeps the operator-blue accent inside the portaled dialog.
+            // keeps the steward-blue accent inside the portaled dialog.
             size: "lg" as const,
             tone: "hub" as const,
           }

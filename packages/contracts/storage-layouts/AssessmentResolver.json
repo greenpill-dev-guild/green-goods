@@ -43,10 +43,16 @@
       "type": "t_bytes32"
     },
     {
-      "label": "__gap",
+      "label": "assessmentV3SchemaUID",
       "offset": 0,
       "slot": "103",
-      "type": "t_array(t_uint256)48_storage"
+      "type": "t_bytes32"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "104",
+      "type": "t_array(t_uint256)47_storage"
     }
   ],
   "types": {
@@ -55,11 +61,11 @@
       "label": "address",
       "numberOfBytes": "20"
     },
-    "t_array(t_uint256)48_storage": {
+    "t_array(t_uint256)47_storage": {
       "base": "t_uint256",
       "encoding": "inplace",
-      "label": "uint256[48]",
-      "numberOfBytes": "1536"
+      "label": "uint256[47]",
+      "numberOfBytes": "1504"
     },
     "t_array(t_uint256)49_storage": {
       "base": "t_uint256",

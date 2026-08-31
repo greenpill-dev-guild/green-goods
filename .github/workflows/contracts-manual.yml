@@ -1,0 +1,24 @@
+name: Contracts Manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Contracts operation to run"
+        required: true
+        type: choice
+        options:
+          - fork-readiness
+          - ci
+          - all
+        default: fork-readiness
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    uses: ./.github/workflows/contracts.yml
+    with:
+      operation: ${{ inputs.operation }}
+    secrets: inherit

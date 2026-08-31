@@ -15,20 +15,11 @@ import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ============================================
-// Mocks (must be before imports)
+// Test port
 // ============================================
 
 const mockTranslate = vi.fn();
 const mockIsSupported = vi.fn().mockReturnValue(true);
-
-vi.mock("../../../modules/translation/browser-translator", () => ({
-  browserTranslator: {
-    get isSupported() {
-      return mockIsSupported();
-    },
-    translate: (...args: unknown[]) => mockTranslate(...args),
-  },
-}));
 
 vi.mock("../../../modules/app/logger", () => ({
   logger: {
@@ -44,27 +35,41 @@ vi.mock("../../../modules/app/logger", () => ({
 // ============================================
 
 import { useTranslation } from "../../../hooks/translation/useTranslation";
+import type { Translator } from "../../../modules/translation/browser-translator";
 import { AppContext } from "../../../providers/App";
+
+const translator: Translator = {
+  get isSupported() {
+    return mockIsSupported();
+  },
+  translate: (text, target, source) => mockTranslate(text, target, source),
+  translateBatch: (texts, target, source) =>
+    Promise.all(texts.map((text) => mockTranslate(text, target, source))),
+};
 
 // ============================================
 // Test Wrapper
 // ============================================
 
-function createWrapper(locale: string) {
+function createWrapper(locale: "en" | "es" | "pt") {
   return function Wrapper({ children }: { children: React.ReactNode }) {
     const value = {
       locale,
       isMobile: false,
       isInstalled: false,
+      isInstalling: false,
       isPwaPresentation: false,
       isStandalone: false,
+      installState: "not-installed" as const,
+      installedAppEvidence: { status: "unknown" as const, source: "unsupported" as const },
       presentationMode: "website" as const,
       wasInstalled: false,
-      availableLocales: ["en", "es", "fr"],
+      availableLocales: ["en", "es", "pt"] as const,
       deferredPrompt: null,
       platform: "unknown" as const,
       promptInstall: () => {},
       handleInstallCheck: () => {},
+      switchLanguage: () => {},
     };
     return React.createElement(AppContext.Provider, { value }, children);
   };
@@ -87,7 +92,7 @@ describe("useTranslation", () => {
 
   describe("same locale as source", () => {
     it("returns original content when locale matches sourceLang", () => {
-      const { result } = renderHook(() => useTranslation("Hello"), {
+      const { result } = renderHook(() => useTranslation("Hello", "en", { translator }), {
         wrapper: createWrapper("en"),
       });
 
@@ -97,7 +102,7 @@ describe("useTranslation", () => {
     });
 
     it("returns original content with custom sourceLang match", () => {
-      const { result } = renderHook(() => useTranslation("Hola", "es"), {
+      const { result } = renderHook(() => useTranslation("Hola", "es", { translator }), {
         wrapper: createWrapper("es"),
       });
 
@@ -111,7 +116,7 @@ describe("useTranslation", () => {
 
   describe("different locale triggers translation", () => {
     it("translates string content to target locale", async () => {
-      const { result } = renderHook(() => useTranslation("Hello"), {
+      const { result } = renderHook(() => useTranslation("Hello", "en", { translator }), {
         wrapper: createWrapper("es"),
       });
 
@@ -125,8 +130,8 @@ describe("useTranslation", () => {
 
     it("translates array of strings", async () => {
       const content = ["Hello", "World"];
-      const { result } = renderHook(() => useTranslation(content), {
-        wrapper: createWrapper("fr"),
+      const { result } = renderHook(() => useTranslation(content, "en", { translator }), {
+        wrapper: createWrapper("pt"),
       });
 
       await waitFor(() => {
@@ -138,9 +143,12 @@ describe("useTranslation", () => {
 
     it("translates object values recursively", async () => {
       const content = { greeting: "Hello", farewell: "Goodbye" };
-      const { result } = renderHook(() => useTranslation(content as Record<string, unknown>), {
-        wrapper: createWrapper("fr"),
-      });
+      const { result } = renderHook(
+        () => useTranslation(content as Record<string, unknown>, "en", { translator }),
+        {
+          wrapper: createWrapper("pt"),
+        }
+      );
 
       await waitFor(() => {
         expect(result.current.isTranslating).toBe(false);
@@ -161,7 +169,7 @@ describe("useTranslation", () => {
           })
       );
 
-      const { result } = renderHook(() => useTranslation("Hello"), {
+      const { result } = renderHook(() => useTranslation("Hello", "en", { translator }), {
         wrapper: createWrapper("es"),
       });
 
@@ -185,7 +193,7 @@ describe("useTranslation", () => {
 
   describe("null/undefined content", () => {
     it("returns null for null content", () => {
-      const { result } = renderHook(() => useTranslation(null), {
+      const { result } = renderHook(() => useTranslation(null, "en", { translator }), {
         wrapper: createWrapper("es"),
       });
 
@@ -195,7 +203,7 @@ describe("useTranslation", () => {
     });
 
     it("returns undefined for undefined content", () => {
-      const { result } = renderHook(() => useTranslation(undefined), {
+      const { result } = renderHook(() => useTranslation(undefined, "en", { translator }), {
         wrapper: createWrapper("es"),
       });
 
@@ -212,7 +220,7 @@ describe("useTranslation", () => {
     it("returns original content when API not supported", () => {
       mockIsSupported.mockReturnValue(false);
 
-      const { result } = renderHook(() => useTranslation("Hello"), {
+      const { result } = renderHook(() => useTranslation("Hello", "en", { translator }), {
         wrapper: createWrapper("es"),
       });
 
@@ -230,7 +238,7 @@ describe("useTranslation", () => {
     it("falls back to original content on translation error", async () => {
       mockTranslate.mockRejectedValue(new Error("Translation API error"));
 
-      const { result } = renderHook(() => useTranslation("Hello"), {
+      const { result } = renderHook(() => useTranslation("Hello", "en", { translator }), {
         wrapper: createWrapper("es"),
       });
 
@@ -244,7 +252,7 @@ describe("useTranslation", () => {
     it("falls back to original when translate returns empty string", async () => {
       mockTranslate.mockResolvedValue("");
 
-      const { result } = renderHook(() => useTranslation("Hello"), {
+      const { result } = renderHook(() => useTranslation("Hello", "en", { translator }), {
         wrapper: createWrapper("es"),
       });
 

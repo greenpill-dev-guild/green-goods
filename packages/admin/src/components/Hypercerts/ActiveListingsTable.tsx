@@ -1,13 +1,12 @@
-import {
-  type Address,
-  Alert,
-  type RegisteredOrderView,
-  useCancelListing,
-  useHypercertListings,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { useCancelListing } from "@green-goods/shared/hooks/hypercerts/useCancelListing";
+import { useHypercertListings } from "@green-goods/shared/hooks/hypercerts/useHypercertListings";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { RegisteredOrderView } from "@green-goods/shared/types/hypercerts";
 import { RiCloseLine, RiExchangeDollarLine, RiLoader4Line, RiTimeLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { formatEther } from "viem";
+import { AdminButton } from "@/components/AdminButton";
 
 interface ActiveListingsTableProps {
   gardenAddress: Address;
@@ -182,35 +181,31 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
                 </td>
                 <td className="px-4 py-3 text-right">
                   {status === "active" ? (
-                    <button
-                      type="button"
+                    <AdminButton
+                      variant="danger"
+                      size="sm"
                       onClick={() => cancelListing(listing.orderId)}
-                      disabled={isCancelling}
-                      className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-error-base transition hover:bg-error-lighter disabled:opacity-50"
+                      loading={isCancelling}
+                      leadingIcon={<RiCloseLine />}
                     >
-                      {isCancelling ? (
-                        <RiLoader4Line className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <RiCloseLine className="h-3.5 w-3.5" />
-                      )}
                       {intl.formatMessage({
                         id: "app.admin.listings.cancel",
                         defaultMessage: "Cancel",
                       })}
-                    </button>
+                    </AdminButton>
                   ) : (
                     onCreateListing && (
-                      <button
-                        type="button"
+                      <AdminButton
+                        variant="text"
+                        size="sm"
                         onClick={() => onCreateListing(listing.hypercertId)}
-                        className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-primary-base transition hover:bg-primary-lighter"
+                        leadingIcon={<RiExchangeDollarLine />}
                       >
-                        <RiExchangeDollarLine className="h-3.5 w-3.5" />
                         {intl.formatMessage({
                           id: "app.admin.listings.renew",
                           defaultMessage: "Renew",
                         })}
-                      </button>
+                      </AdminButton>
                     )
                   )}
                 </td>

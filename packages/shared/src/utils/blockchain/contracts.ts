@@ -25,6 +25,9 @@ import GardenTokenABIJson from "@green-goods/contracts/abis/GardenToken.json";
 import GreenGoodsENSABIJson from "@green-goods/contracts/abis/GreenGoodsENS.json";
 import GreenWillABIJson from "@green-goods/contracts/abis/GreenWill.json";
 import IHatsABIJson from "@green-goods/contracts/abis/IHats.json";
+import ICommitmentPoolingModuleABIJson from "@green-goods/contracts/abis/ICommitmentPoolingModule.json";
+import ICommitmentRegistryABIJson from "@green-goods/contracts/abis/ICommitmentRegistry.json";
+import ISettlementModuleABIJson from "@green-goods/contracts/abis/ISettlementModule.json";
 import EASABIJson from "@green-goods/contracts/abis/MockEAS.json";
 // Import deployment configurations
 import deployment42161 from "@green-goods/contracts/deployments/42161-latest.json";
@@ -40,9 +43,12 @@ export const EASABI = EASABIJson as Abi;
 export const GreenGoodsENSABI = GreenGoodsENSABIJson as Abi;
 export const HatsABI = IHatsABIJson as Abi;
 export const GreenWillABI = GreenWillABIJson as Abi;
+export const CommitmentPoolingModuleABI = ICommitmentPoolingModuleABIJson as Abi;
+export const CommitmentRegistryABI = ICommitmentRegistryABIJson as Abi;
+export const SettlementModuleABI = ISettlementModuleABIJson as Abi;
 
 // Re-export ERC20_ALLOWANCE_ABI from abis barrel for backward compatibility
-export { ERC20_ALLOWANCE_ABI } from "./abis";
+export { ERC20_ALLOWANCE_ABI } from "./abis/erc20";
 
 type DeploymentJsonValue =
   | string
@@ -126,6 +132,10 @@ export function getNetworkContracts(chainId: number): NetworkContracts {
     strategyHypercertFractionOffer: asAddress(deployment.strategyHypercertFractionOffer),
     // GreenWill
     greenWill: asAddress(deployment.greenWill),
+    commitmentPoolingModule: asAddress(deployment.commitmentPoolingModule),
+    commitmentRegistry: asAddress(deployment.commitmentRegistry),
+    settlementModule: asAddress(deployment.settlementModule),
+    celoSettlementExecutor: asAddress(deployment.celoSettlementExecutor),
   };
 }
 

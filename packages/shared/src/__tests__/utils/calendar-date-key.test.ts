@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  fromCalendarDateKey,
-  fromDateInputValue,
-  toCalendarDateKey,
-  toDateInputValue,
-} from "../../utils/time";
+import { fromCalendarDateKey, toCalendarDateKey } from "../../utils/calendar-date";
+import { fromDateInputValue, toDateInputValue } from "../../utils/time";
 
 /**
  * These helpers exist because mixing a UTC-basis parser with a local-basis

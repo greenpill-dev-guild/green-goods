@@ -1,4 +1,4 @@
-# Agent Package — Codex Guide
+# Agent Package — Agent Guide
 
 Use this guide when editing `packages/agent/**`.
 
@@ -23,7 +23,7 @@ routes them through handlers, and coordinates service dependencies.
 - Do not leak internal error details to users; keep user-facing failures generic.
 - If a change touches shared types or shared APIs, validate those boundaries as well.
 
-## Codex Notes
+## Package Notes
 
 - Response-shape changes ripple quickly through platform adapters and tests; run both tests and
   typecheck when editing handlers, adapters, or service contracts.
@@ -41,6 +41,7 @@ hashes, but never raw `privateKey` values or decrypted key material.
 
 ## Validation
 
-- Package loop: `bun run test && bun run typecheck`
-- Security-sensitive or handler-heavy changes: `bun run test:coverage`
-- Shared impact: from repo root run `node scripts/dev/ci-local.js --quick`
+- QA Speed Mode: targeted `bun run test -- src/...`; add `bun run typecheck` when handler, adapter, response, or service contracts move.
+- Package loop: `bun run test && bun run typecheck`.
+- Conditional proof: run `bun run test:coverage` for security-sensitive or handler-heavy changes.
+- Broader impact: run the root Repo Quick Gate when shared types or public APIs affect other packages.

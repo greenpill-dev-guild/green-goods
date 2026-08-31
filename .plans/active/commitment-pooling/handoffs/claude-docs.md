@@ -5,7 +5,7 @@
 - Execution sub-lane: docs
 - Machine lane: none; post-QA communication lane
 - Owner: Claude
-- Branch signal: claude/docs/commitment-pooling
+- Branch signal: docs/commitment-pooling
 - Current state: blocked until QA Pass 1 completes
 - Linear context: PRD-727 (docs lane) under parent PRD-650
 
@@ -20,7 +20,7 @@
 ## Outputs
 
 - Architecture, glossary, data-boundary, and settlement documentation aligned to the frozen specs.
-- Operator seeding/claims/settlement and gardener promise/evidence/confirmation/reward guides
+- Operator seeding/claims/settlement and gardener promise/evidence/confirmation/consideration guides
   replayed against the QA-tested product, with authenticated screenshots, alt text, captions,
   version/date, and source provenance.
 - Explicit built, planned, dispatched, confirming, confirmed, and evidence-gated labels.

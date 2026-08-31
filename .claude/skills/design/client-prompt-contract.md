@@ -2,17 +2,17 @@
 
 Stable vocabulary and never-use list for prompting AI design tools or coding agents to generate client PWA screens that align with the Green Goods garden-journal voice.
 
-> **Companion**: The `admin` surface uses a restrained operator cockpit dialect. See [prompt-contract.md](./prompt-contract.md) for admin-specific framing. This file is client-specific — gardener-facing PWA framing.
+> **Companion**: The `admin` surface uses a restrained steward cockpit dialect. See [prompt-contract.md](./prompt-contract.md) for admin-specific framing. This file is client-specific — gardener-facing PWA framing.
 
 ## Stable Prompt Core
 
 Paste this sentence (or a trimmed version) into every AI design prompt for client surfaces:
 
-> Green Goods client is a **PWA in an adaptive shell**. Installed PWA uses a **bottom `AppBar`**; browser uses a **hamburger + `SiteHeader`**. Never mix. Use **Inter** for all typography (editorial serif only appears on the public browser site, never in the PWA). Surfaces follow the **Warm Earth** language — concentric geometry, expressive spring motion, garden-journal feel. Materials are **permitted to be expressive** (liquid glass, organic shapes, hero moments). **Real content over lorem ipsum.** Copy tone is **warm, first-person-community** — "our garden", "what's in season", "how the work grew" — not operator-facing task framing.
+> Green Goods client is a **PWA in an adaptive shell**. Installed PWA uses a **bottom `AppBar`**; browser uses a **hamburger + `SiteHeader`**. Never mix. Use **Inter** for all typography (editorial serif only appears on the public browser site, never in the PWA). Surfaces follow the **Warm Earth** language — concentric geometry, expressive spring motion, garden-journal feel. Materials are **permitted to be expressive** (liquid glass, organic shapes, hero moments). **Real content over lorem ipsum.** Copy tone is **warm, first-person-community** — "our garden", "what's in season", "how the work grew" — not steward-facing task framing.
 
 ## Required Vocabulary
 
-> **Canonical glossary**: cross-surface domain terms (Garden, Action, Work, Assessment, Hypercert, Vault, Cookie Jar, Attestation, Hat, Season) and personas (Gardener, Operator, Evaluator, Funder, Community Member) live in [`docs/docs/reference/glossary-community.md § Design Vocabulary`](../../../docs/docs/reference/glossary-community.md#design-vocabulary). The table below is client-specific shell / journal vocabulary that does not live there.
+> **Terminology authority**: cross-surface domain terms and personas live in [`green-goods-ontology.json`](../../../packages/shared/src/ontology/green-goods-ontology.json). The generated public [glossary](../../../docs/docs/reference/glossary.generated.mdx) explains that vocabulary. The table below is client-specific shell and journal vocabulary.
 
 Use these terms when describing client UI:
 
@@ -33,11 +33,11 @@ Use these terms when describing client UI:
 
 ## Never Use (in client prompts)
 
-> **Canonical source**: the full client-banned phrase list lives in [`docs/docs/reference/glossary-community.md § Client-Only Banned (AI Prompt Vocabulary)`](../../../docs/docs/reference/glossary-community.md#client-only-banned-ai-prompt-vocabulary) and in [`docs/docs/reference/banned-vocabulary.json`](../../../docs/docs/reference/banned-vocabulary.json) (`prompt_vocabulary_client_banned`). Lint-enforced cross-surface bans live in the same glossary § Lint-Enforced section — `bun run lint:vocab` parses the JSON.
+> **Machine policy**: the full client-banned phrase list lives in [`scripts/data/banned-vocabulary.json`](../../../scripts/data/banned-vocabulary.json) (`prompt_vocabulary_client_banned`). `bun run lint:vocab` reads the same file for lint-enforced cross-surface terms.
 
 The categories below are contract-specific framing — *why* client output should reject these patterns. The exact phrase set is the glossary's job:
 
-- **Operator-cockpit framing** — `operator cockpit`, workbench / inspector vocabulary; the client is a garden journal, not a cockpit.
+- **Steward-cockpit framing** — `operator cockpit`, workbench / inspector vocabulary; the client is a garden journal, not a cockpit.
 - **Utility-copy register** — terse task framing; client copy is warm and narrative.
 - **Dashboard / KPI / metric-grid framing** — the client surfaces story and place, not key-performance-indicator tiles.
 - **Admin typography** — `Plus Jakarta Sans` is admin-only; client uses Inter throughout the PWA.
@@ -48,7 +48,7 @@ The categories below are contract-specific framing — *why* client output shoul
 ## Materials & Motion (client)
 
 - **Full Warm Earth expression** is permitted — capsule + squircle + concentric shapes, spring motion, hero moments, expressive color.
-- **Glass material is allowed across client surfaces**, unlike admin where glass is restricted to Navigation/FAB (the admin sheet shells are retired and its `AppBar` root stays transparent). Match thickness to content density (see [materials.md](./materials.md)).
+- **Glass material is allowed across client surfaces**, unlike admin where glass is restricted to Navigation/FAB (the admin sheet shells are retired and its `AppBar` root stays transparent). Match thickness to content density (see [surfaces.md](./surfaces.md)).
 - **Spring motion is the default easing** — never hardcoded cubic-bezier or duration values.
 - **Typography** — Inter across the PWA. Editorial serif (Fraunces/Lora/Newsreader) only on the public browser site, never in the installed PWA.
 - **Succession-aware** — pioneer gardens get simple hero moments, climax gardens get full expression.
@@ -56,7 +56,7 @@ The categories below are contract-specific framing — *why* client output shoul
 
 ## Copy Voice
 
-The client speaks **to the community, about the work**. The admin speaks **about the work, to the operator**. Same garden, different dialects. Cross-surface voice pillars and terminology live in the root [`DESIGN.md § Voice & Copy`](../../../DESIGN.md#voice--copy).
+The client speaks **to the community, about the work**. The admin speaks **about the work, to the steward**. Same garden, different dialects. Cross-surface voice pillars and terminology live in the root [`DESIGN.md § Voice & Copy`](../../../DESIGN.md#voice--copy).
 
 **Say:** "Let's see what's grown in your garden." / "Your work is in good hands." / "The reviewer will take it from here." / "Go do more of what matters."
 
@@ -130,7 +130,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 
 The admin cockpit and client PWA speak different dialects of the same Warm Earth language. An explicit client contract prevents two failure modes:
 
-1. **Admin bleed** — client screens generated with operator-cockpit vocabulary produce sterile data-table layouts where a garden journal belongs.
+1. **Admin bleed** — client screens generated with steward-cockpit vocabulary produce sterile data-table layouts where a garden journal belongs.
 2. **Growth-hacking drift** — AI tools default to "engagement-maximizing" patterns (streaks, leaderboards, FOMO) that violate the regenerative design lens.
 
 Created 2026-04-17 to close the asymmetry gap — admin had `prompt-contract.md`, client had nothing but the root `DESIGN.md`.

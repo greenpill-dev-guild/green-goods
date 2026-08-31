@@ -1,8 +1,8 @@
 ---
 name: design
 user-invocable: false
-description: "Design philosophy for adaptive, spatial interfaces. Paradigm selection, material language, interaction patterns, inclusive design, ecosystem thinking, and progressive immersion strategy. Use for design direction, visual language decisions, and spatial UI planning."
-token_version: "2.5.0"
+description: "Green Goods design direction — the Warm Earth design language (shape, motion, color, material tokens), admin cockpit vs client PWA surface identities, paradigm selection, layout composition, AI design-tool prompt contracts, and design review lenses. Use for design direction, visual language decisions, what paradigm or material a view should use, new views or components, UI polish passes, and preparing prompts for AI design tools."
+token_version: "2.10.0"
 ---
 
 # Design Skill
@@ -16,12 +16,13 @@ Design philosophy and visual direction for building spatial-ready, AI-driven int
 ## Route to another skill when…
 
 - You need an at-a-glance map of this skill stack (which file owns which question) → [ARCHITECTURE.md](./ARCHITECTURE.md).
+- You are doing **any admin-console UI work** (shipped console, admin prototypes, AI-generated admin design) → [admin-ux-brief.md](./admin-ux-brief.md) (the canonical brief + authoritative external references) and [interaction-patterns.md](./interaction-patterns.md) (the codified contract: action placement/alignment, dialog taxonomy and shell continuity, flow anatomy, layout, row/status anatomy, component parity — each rule cited to shipped code). Both are MANDATORY reading before an admin design round.
 - You need implementation detail (Tailwind tokens, Radix composition, a11y checks, Storybook, i18n) → [implementation.md](./implementation.md).
 - You are about to feed a design to an AI tool or coding agent → [ai-ui-brief.md](./ai-ui-brief.md) + § Working with AI Design Tools below + the matching prompt contract.
 - You need the **admin** AI prompt contract (stable core, vocabulary, never-use list) → [prompt-contract.md](./prompt-contract.md).
 - You need the **client** AI prompt contract → [client-prompt-contract.md](./client-prompt-contract.md).
 - You need to **report a UI defect** on an admin surface (grammar, component identifiers, browser workflow) → [defect-grammar.md](./defect-grammar.md).
-- You just need a scannable token cheat sheet → [quick-reference.md](./quick-reference.md).
+- You need the **locked design decisions** (the `DL-NNN` ledger, its graduation ladder, or where a decision was codified) → [decision-log.md](./decision-log.md).
 - You are doing a **design-system alignment review** — full-repo, or stack-only when the target is just the `design/` skill stack → [system-alignment-review.md](./system-alignment-review.md).
 
 ## Token version
@@ -37,22 +38,22 @@ This skill's frontmatter `token_version` reflects the current Warm Earth token s
 | **Skill Map** | where does X live, skill stack, routing, architecture overview | [ARCHITECTURE.md](./ARCHITECTURE.md) |
 | **Design Language** | Warm Earth language, shape system, motion tokens, color direction, components, hero moments | [language.md](./language.md) |
 | **AI UI Brief** | reusable prompt contract, external reference role map, saved UI/CSS build brief | [ai-ui-brief.md](./ai-ui-brief.md) |
+| **Admin UX Brief** | admin usability brief, NN/g heuristics, GOV.UK patterns, USWDS, Laws of UX, Refactoring UI, responsive requirements | [admin-ux-brief.md](./admin-ux-brief.md) |
+| **Interaction Patterns** | action placement, alignment, right-aligned actions, stable view actions, dialog taxonomy, shell continuity, flow anatomy, two-column rail, row anatomy, state matrix, component parity | [interaction-patterns.md](./interaction-patterns.md) |
 | **Admin Prompt Contract** | admin stable core, banned terms, workspace vocabulary for AI design tools | [prompt-contract.md](./prompt-contract.md) |
 | **Client Prompt Contract** | client stable core, banned terms, PWA shell vocabulary | [client-prompt-contract.md](./client-prompt-contract.md) |
 | **Defect Grammar** | "this looks broken", describe UI bug, component identifier lookup, defect types, browser inspect workflow | [defect-grammar.md](./defect-grammar.md) |
-| **Quick Reference** | cheat sheet, radii, springs, colors, materials, paradigms at a glance | [quick-reference.md](./quick-reference.md) |
+| **Decision Log** | locked decision, DL-NNN, design ruling, "what did we decide about", decision ledger, codification | [decision-log.md](./decision-log.md) |
 | **Design Philosophy** | design direction, paradigm, adaptive surface, spatial, vision, progressive immersion | This file |
-| **Depth & Space** | Z-axis, depth, layers, glass pane, elevation, scroll depth | [spatial.md](./spatial.md) |
-| **Interaction** | adaptive density, progressive disclosure, multimodal, hover-to-gaze | [interaction.md](./interaction.md) |
-| **Materials** | glass, material, blur, surface, frosted, translucent | [materials.md](./materials.md) |
-| **Generative UI** | UI atoms, intent-driven composition, agent-generated surfaces | [generative-ui.md](./generative-ui.md) |
+| **Surfaces** | Z-axis, depth, glass pane, elevation, material, blur, adaptive density, progressive disclosure, multimodal | [surfaces.md](./surfaces.md) |
 | **View Transitions** | view transition API, entity morphing, spatial navigation | [implementation.md § View Transitions](./implementation.md) |
 | **Ecosystem** | ecosystem, relational, cascade, multi-user, surrogate, autonomic, archetype | [ecosystem.md](./ecosystem.md) |
-| **Regenerative** | regenerative, regen, degen, mycofi, commons, biomimicry, succession, growth-agnostic, capability | [regenerative.md](./regenerative.md) |
+| **Regenerative** | regenerative, succession, growth-agnostic, capability, value flow | [review-checklist.md § Lens 1](./review-checklist.md#lens-1-regenerative-design) |
 | **Review Checklist** | review, PR, audit, compliance, checklist, design review, before merging | [review-checklist.md](./review-checklist.md) |
 | **System Alignment Review** | design system alignment, UI drift, Storybook alignment, full repo design-system review, stack review, meta-review of the design skill stack | [system-alignment-review.md](./system-alignment-review.md) |
 
 When invoked:
+0. Check [decision-log.md](./decision-log.md) for `locked` rows touching your surface — locked decisions bind immediately, before codification
 1. Establish design paradigm and material metaphor before writing code
 2. Apply Inclusive Design lens — every decision raises or lowers barriers
 3. Apply Ecosystem lens for multi-user surfaces — whose experience composes with whose? ([ecosystem.md](./ecosystem.md))
@@ -77,13 +78,13 @@ Not everything should be spatial. A simple form is a simple form. The paradigm a
 
 Three principles woven throughout — not a checklist, a lens:
 
-- **Recognize Exclusion** — Spatial interfaces create new forms of exclusion: gorilla arm fatigue, gaze tracking imprecision, depth perception variance, motion sickness. The [Persona Spectrum](./interaction.md) maps these across permanent, temporary, and situational contexts.
+- **Recognize Exclusion** — Spatial interfaces create new forms of exclusion: gorilla arm fatigue, gaze tracking imprecision, depth perception variance, motion sickness. The [Persona Spectrum](./surfaces.md) maps these across permanent, temporary, and situational contexts.
 - **Learn from Diversity** — Adaptive density and progressive disclosure serve cognitive diversity, not just preference. The [Cognition Extension](https://inclusive.microsoft.design/) adds: understand motivation → discern cognitive load → co-create across the neurodiversity spectrum.
 - **Solve for One, Extend to Many** — Every spatial pattern must degrade gracefully to 2D, voice, and keyboard. Closed captions started for the deaf and became universal. Spatial patterns that work only in spatial mode are incomplete.
 
 ### Regenerative Design
 
-Does this design regenerate or extract? Seven principles — make the mycelium visible, design for succession, enrich the edges, failure is succession, be growth-agnostic, capability is the deliverable, regen not degen. Full framework: [regenerative.md](./regenerative.md). PR checks live in the unified [review-checklist.md](./review-checklist.md) § Lens 1.
+Does this design regenerate or extract? Make value flows visible, match complexity to community maturity, enrich stakeholder boundaries, make failure recoverable, reject manufactured engagement, build community capability, and keep the visual language grounded rather than financialized. The executable PR checks live in [review-checklist.md § Lens 1](./review-checklist.md#lens-1-regenerative-design); public rationale and sources live in `docs/docs/reference/design-research.md`.
 
 ### User Ecosystem Thinking
 
@@ -116,16 +117,16 @@ Pick a material that carries the entire surface:
 | Material | Visual Language | Best For |
 |----------|----------------|----------|
 | **Liquid Glass** | Refracted light, variable blur, chromatic edges | Command surfaces, active workspaces (**default material for client PWA**) |
-| **Obsidian** | Dark, reflective, warm accent glows on interaction | Data landscapes, operator tools |
+| **Obsidian** | Dark, reflective, warm accent glows on interaction | Data landscapes, steward tools |
 | **Vellum** | Warm, tactile, paper-like grain texture | Conversational surfaces, documentation |
 | **Holographic** | Iridescent edges, gradient shifts, spectral accents | Ritual moments, celebrations, onboarding |
-| **Carbon** | Industrial matte dark, precise grid lines, monospace | Technical/operator surfaces, config |
+| **Carbon** | Industrial matte dark, precise grid lines, monospace | Technical/steward surfaces, config |
 
 Then enforce it — every element speaks the same material language.
 
 ### Admin Cockpit Carve-Out
 
-For `packages/admin` and operator dashboards, do not treat the Warm Earth language as permission to make the cockpit theatrical. The cockpit inherits warmth and concentric geometry from the design language, but expresses them through restraint — solid surfaces, quiet workspace tint, utility copy. See [prompt-contract.md](./prompt-contract.md) for the stable admin brief.
+For `packages/admin` and steward dashboards, do not treat the Warm Earth language as permission to make the cockpit theatrical. The cockpit inherits warmth and concentric geometry from the design language, but expresses them through restraint — solid surfaces, quiet workspace tint, utility copy. See [prompt-contract.md](./prompt-contract.md) for the stable admin brief.
 
 - Default to **Command Surface** with restrained material, strong typography, and calm workspace hierarchy.
 - Use subtle atmosphere and tint, not decorative spectacle.
@@ -167,7 +168,7 @@ If a platform-specific quirk really is worth recording (e.g. a one-line tip abou
 10. **Generic AI slop** — Inter + purple gradient + white bg + predictable grid = forgettable.
 11. **Sharp corners at scale** — Squircles for panes. Sharp only for inline text elements.
 12. **Motion without meaning** — Every animation communicates state change, not decoration.
-13. **Client styling in the cockpit** — Do not import landing-page or public-brand composition rules into operator surfaces.
+13. **Client styling in the cockpit** — Do not import landing-page or public-brand composition rules into steward surfaces.
 
 ---
 
@@ -184,9 +185,9 @@ What kind of design work?
 │   └── Implement per implementation.md (Pane pattern + adaptive density)
 │
 ├─► New component?
-│   ├── What Z-layer? (ground / surface / floating / overlay) → spatial.md
-│   ├── What material? → materials.md
-│   ├── Interactive? (hit targets ≥ 44px, keyboard reachable) → interaction.md
+│   ├── What Z-layer? (ground / surface / floating / overlay) → surfaces.md
+│   ├── What material? → surfaces.md
+│   ├── Interactive? (hit targets ≥ 44px, keyboard reachable) → surfaces.md
 │   └── Run review-checklist.md § Lens 2 (Spatial Readiness)
 │
 ├─► Multi-user or governing surface?
@@ -196,18 +197,15 @@ What kind of design work?
 │   └── Run review-checklist.md § Lens 3 (Ecosystem Awareness)
 │
 ├─► Visual polish pass?
-│   ├── Replace solid backgrounds with materials → materials.md
-│   ├── Add depth via Z-layer model → spatial.md
-│   ├── Add progressive disclosure to dense surfaces → interaction.md
+│   ├── Replace solid backgrounds with materials → surfaces.md
+│   ├── Add depth via Z-layer model → surfaces.md
+│   ├── Add progressive disclosure to dense surfaces → surfaces.md
 │   └── Verify inclusive design checks → review-checklist.md § Lens 2
 │
 ├─► Animation / spatial motion?
 │   ├── View transitions for navigation morph → ./implementation.md § View Transitions
-│   ├── Scroll-linked depth → spatial.md
+│   ├── Scroll-linked depth → surfaces.md
 │   └── Respect prefers-reduced-motion (MANDATORY)
-│
-├─► Generative UI / AI surface?
-│   └── UIAtom composition pattern → generative-ui.md
 │
 └─► Need inspiration or direction?
     └── language.md § Philosophy (Sources) — the model already knows the classic
@@ -239,7 +237,7 @@ Tier 3: Spatial (headsets, AR, large displays)
 
 **The bridge**: Each tier is additive. Tier 2 includes everything from Tier 1. Tier 3 includes everything from Tier 2. **Nothing is spatial-only** — that's a core rule from Inclusive Design (see Quad Foundation above).
 
-This maps to Green Goods' offline-first architecture: the offline state (service worker, IndexedDB) IS Tier 1. The PWA is Tier 2. The codebase is spatially-prepared via glass panes ([spatial.md](./spatial.md)), container queries ([interaction.md](./interaction.md)), and view transitions ([implementation.md § View Transitions](./implementation.md)).
+This maps to Green Goods' offline-first architecture: the offline state (service worker, IndexedDB) IS Tier 1. The PWA is Tier 2. The codebase is spatially-prepared via glass panes and container queries ([surfaces.md](./surfaces.md)) and view transitions ([implementation.md § View Transitions](./implementation.md)).
 
 ---
 

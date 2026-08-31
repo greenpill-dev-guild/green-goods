@@ -42,9 +42,7 @@ const meta: Meta<typeof StandardTabs> = {
   title: "Client/Navigation/StandardTabs",
   component: StandardTabs,
   tags: ["autodocs"],
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
   argTypes: {
     tabs: {
       control: "object",
@@ -190,7 +188,5 @@ export const Interactive: Story = {
 
 export const Mobile: Story = {
   render: () => <TabsDemo tabs={tabsWithCounts} />,
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
 };

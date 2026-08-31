@@ -21,7 +21,7 @@ const APP_GARDEN_DETAIL_URL = /\/home\/(?!garden(?:\/|$)|login(?:\/|$)|profile(?
 
 // Skip entire file - these tests require real auth infrastructure
 test.describe("Offline Sync Flows", () => {
-  // SKIP: #338 owner:afo expiry:2026-08-17 — needs real auth infrastructure
+  // SKIP: #338 owner:afo expiry:2026-09-17 — needs real auth infrastructure
   test.skip(
     () => true,
     "Offline sync e2e tests skipped: require real auth infrastructure. " +
@@ -97,37 +97,11 @@ test.describe("Offline Sync Flows", () => {
 
       // Go back online
       await context.setOffline(false);
-      await page.waitForTimeout(3000);
-
-      // Check for "Back Online" message or hidden indicator
-      const backOnlineText = page.locator("text=/back online|connected|online/i").first();
-      const isBackOnlineVisible = await backOnlineText
-        .isVisible({ timeout: 2000 })
-        .catch(() => false);
-
-      if (isBackOnlineVisible) {
-        // Saw the back online message
-        expect(isBackOnlineVisible).toBeTruthy();
-      } else if (offlineIndicator) {
-        // Indicator should be hidden or have hidden classes
-        const isHidden = await offlineIndicator.isHidden({ timeout: 2000 }).catch(() => false);
-        const hasHiddenClass = await offlineIndicator
-          .evaluate((el) => {
-            const classes = el.className;
-            return (
-              classes.includes("opacity-0") ||
-              classes.includes("hidden") ||
-              classes.includes("-translate-y-full") ||
-              el.style.display === "none"
-            );
-          })
-          .catch(() => false);
-
-        expect(isHidden || hasHiddenClass).toBeTruthy();
-      } else {
-        // No offline indicator visible after going online is also success
-        expect(true).toBeTruthy();
-      }
+      const offlineStatus = page
+        .locator(offlineSelectors.join(", "))
+        .filter({ hasText: /offline/i })
+        .first();
+      await expect(offlineStatus).toBeHidden({ timeout: 5000 });
     });
 
     test("persists offline state across page reloads", async ({ page, context }) => {
@@ -172,7 +146,7 @@ test.describe("Offline Sync Flows", () => {
       await page.waitForLoadState("domcontentloaded");
 
       const gardensAvailable = await hasGardens(page);
-      // SKIP: #338 owner:afo expiry:2026-08-17 — runtime data availability check
+      // SKIP: #338 owner:afo expiry:2026-09-17 — runtime data availability check
       test.skip(!gardensAvailable, "No gardens available for testing");
 
       // Navigate to work submission
@@ -286,7 +260,7 @@ test.describe("Offline Sync Flows", () => {
       await page.waitForLoadState("domcontentloaded");
 
       const gardensAvailable = await hasGardens(page);
-      // SKIP: #338 owner:afo expiry:2026-08-17 — runtime data availability check
+      // SKIP: #338 owner:afo expiry:2026-09-17 — runtime data availability check
       test.skip(!gardensAvailable, "No gardens available for testing");
 
       // Queue work offline
@@ -344,7 +318,7 @@ test.describe("Offline Sync Flows", () => {
       await page.waitForLoadState("domcontentloaded");
 
       const gardensAvailable = await hasGardens(page);
-      // SKIP: #338 owner:afo expiry:2026-08-17 — runtime data availability check
+      // SKIP: #338 owner:afo expiry:2026-09-17 — runtime data availability check
       test.skip(!gardensAvailable, "No gardens available for testing");
 
       // Queue work offline
@@ -437,7 +411,7 @@ test.describe("Offline Sync Flows", () => {
       await page.waitForLoadState("domcontentloaded");
 
       const gardensAvailable = await hasGardens(page);
-      // SKIP: #338 owner:afo expiry:2026-08-17 — runtime data availability check
+      // SKIP: #338 owner:afo expiry:2026-09-17 — runtime data availability check
       test.skip(!gardensAvailable, "No gardens available for testing");
 
       // Queue work offline
@@ -521,7 +495,7 @@ test.describe("Offline Sync Flows", () => {
   test.describe("Conflict Resolution", () => {
     test("detects duplicate submission conflict", async ({ page }) => {
       // This test requires a complex setup - skip for now with explanation
-      // SKIP: #338 owner:afo expiry:2026-08-17 — needs pre-existing duplicate work
+      // SKIP: #338 owner:afo expiry:2026-09-17 — needs pre-existing duplicate work
       test.skip(
         true,
         "Conflict detection requires pre-existing duplicate work - manual testing recommended"
@@ -532,7 +506,7 @@ test.describe("Offline Sync Flows", () => {
 
     test("shows conflict resolution UI", async ({ page }) => {
       // This test requires triggering a conflict state
-      // SKIP: #338 owner:afo expiry:2026-08-17 — needs simulated duplicate
+      // SKIP: #338 owner:afo expiry:2026-09-17 — needs simulated duplicate
       test.skip(true, "Conflict UI requires simulated duplicate - manual testing recommended");
       await page.goto("/home");
       await page.waitForLoadState("domcontentloaded");
@@ -540,7 +514,7 @@ test.describe("Offline Sync Flows", () => {
 
     test("resolves conflict by skipping duplicate", async ({ page }) => {
       // This test requires a conflict to be present
-      // SKIP: #338 owner:afo expiry:2026-08-17 — needs active conflict state
+      // SKIP: #338 owner:afo expiry:2026-09-17 — needs active conflict state
       test.skip(true, "Conflict resolution requires active conflict - manual testing recommended");
       await page.goto("/home");
       await page.waitForLoadState("domcontentloaded");
@@ -575,7 +549,7 @@ test.describe("Offline Sync Flows", () => {
 
     test("warns when storage is nearly full", async ({ page }) => {
       // Storage warning requires filling storage - hard to test in E2E
-      // SKIP: #338 owner:afo expiry:2026-08-17 — needs filled local storage
+      // SKIP: #338 owner:afo expiry:2026-09-17 — needs filled local storage
       test.skip(
         true,
         "Storage warning requires filling local storage - manual testing recommended"

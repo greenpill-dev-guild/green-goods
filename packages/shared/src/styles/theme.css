@@ -485,7 +485,7 @@
   --glass-overlay-bg: 0 0 0 / 40%;
 
   /* ── Material System ── 5-thickness semantic surface material (Warm Earth spec).
-   * Match thickness to content density — see .claude/skills/design/materials.md.
+   * Match thickness to content density — see .claude/skills/design/surfaces.md.
    * Opacity uses OKLCH per language.md § Color Direction (destination token format).
    * Usage: `background: var(--color-material-regular); backdrop-filter: blur(var(--blur-material-regular));`
    * Degrades to solid via @media (prefers-contrast: more) at end of theme layer.
@@ -749,7 +749,7 @@
 
 /* Material system — accessibility fallback.
  * Users who enable max-contrast lose translucent glass and get solid surfaces.
- * Matches the fallback rule in .claude/skills/design/materials.md § Accessibility.
+ * Matches the fallback rule in .claude/skills/design/surfaces.md § Material System.
  */
 @media (prefers-contrast: more) {
   :root {
@@ -1127,6 +1127,36 @@
 
   .gg-switch[data-state="checked"] .gg-switch-thumb {
     transform: translateX(1.25rem);
+  }
+
+  /* Admin cockpit surface variant — the component's own opt-in API
+   * (`surface="admin"`). Rides the admin M3 roles, which only resolve inside
+   * the admin app / admin stories; the tone fallbacks keep it sane elsewhere.
+   * Moved here from admin-m3-overrides.css when that remote-override file was
+   * retired (Cockpit M3 1a, Step 5). */
+  .gg-switch[data-surface="admin"] {
+    border-color: rgb(var(--m3-outline, var(--neutral-500)));
+    background: rgb(var(--m3-surface-container-highest, var(--neutral-200)));
+    box-shadow: inset 0 0 0 1px rgb(var(--m3-outline, var(--neutral-500)) / 0.18);
+  }
+
+  .gg-switch[data-surface="admin"]:focus-visible {
+    box-shadow:
+      0 0 0 3px rgb(var(--tone-focus-ring, var(--m3-primary, var(--primary-base))) / 0.22),
+      inset 0 0 0 1px rgb(var(--m3-outline, var(--neutral-500)) / 0.18);
+  }
+
+  .gg-switch[data-surface="admin"][data-state="checked"] {
+    border-color: rgb(var(--tone-action, var(--m3-primary, var(--primary-base))));
+    background: rgb(var(--tone-action, var(--m3-primary, var(--primary-base))));
+  }
+
+  .gg-switch[data-surface="admin"] .gg-switch-thumb {
+    background: rgb(var(--m3-surface, var(--bg-white-0)));
+  }
+
+  .gg-switch[data-surface="admin"][data-state="checked"] .gg-switch-thumb {
+    background: rgb(var(--tone-on-action, var(--m3-on-primary, 255 255 255)));
   }
 
   @media (prefers-reduced-motion: reduce) {

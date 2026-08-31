@@ -1,10 +1,9 @@
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { Address } from "../../types/domain";
 import { formatAddress } from "../app/text";
-import { ZERO_ADDRESS } from "./address";
-
 // Re-export for backward compatibility (canonical source is address.ts)
-export { ZERO_ADDRESS };
+export { ZERO_ADDRESS } from "./address-constants";
+export { isZeroBytes32 } from "./bytes";
 
 /** Octant vault MAX_BPS (10000 = 100%). Used as maxLoss for permissive withdraw/redeem queries. */
 export const VAULT_MAX_BPS = 10000n;
@@ -48,17 +47,6 @@ const ASSET_DECIMALS_BY_CHAIN: Record<number, Record<string, number>> = {
     "0xe4fe50cdd716ef9e15b9ddd5e5e946b23fc4f9e4": 18,
   },
 };
-
-/**
- * Checks if a bytes32 value is zero or falsy.
- * Handles both falsy values (null, undefined, "") and truthy
- * "0x000...0" strings of any length (20-byte addresses, 32-byte UIDs).
- */
-export function isZeroBytes32(value: string | undefined | null): boolean {
-  if (!value) return true;
-  if (value.length < 3 || !value.startsWith("0x")) return false;
-  return /^0+$/.test(value.slice(2));
-}
 
 export function getVaultAssetSymbol(
   assetAddress: string,

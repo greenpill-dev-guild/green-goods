@@ -9,27 +9,30 @@
  * @module hooks/work/useWorkApprovalActions
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Confidence,
   VerificationMethod,
   type Work,
   type WorkApprovalDraft,
+  type WorkDisplayStatus,
 } from "../../types/domain";
 import type { ApprovalJobPayload } from "../../types/job-queue";
 import { toastService } from "../../components/toast";
-import { useJobQueueEvents } from "../../modules/job-queue";
+import { trackWorkApprovalLifecycle } from "../../modules/app/analytics-events";
+import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import { useTimeout } from "../utils/useTimeout";
 import { useWorkApproval } from "./useWorkApproval";
-import { queryKeys } from "../../config/query-keys";
+import type { WorkApprovalCompletion } from "./useWorkApprovalLifecycle";
+import { workApprovalsKeys, worksKeys } from "../../config/query-keys/work";
 
 export interface UseWorkApprovalActionsParams {
   work: Work | undefined;
   gardenId: string | undefined;
   chainId: number;
-  /** Only "operator" viewers can submit approvals */
-  viewingMode: "operator" | "gardener" | "viewer";
+  /** Only "steward" viewers can submit approvals */
+  viewingMode: "steward" | "gardener" | "viewer";
   /** Called after a successful approval + navigation delay */
   onApprovalComplete?: (gardenId: string) => void;
 }
@@ -42,7 +45,7 @@ export interface UseWorkApprovalActionsResult {
   setConfidence: (value: Confidence) => void;
   optimisticStatus: "approved" | "rejected" | null;
   /** Derived status: optimistic takes precedence over fetched */
-  effectiveStatus: string;
+  effectiveStatus: WorkDisplayStatus;
   handleApprovePress: () => void;
   handleRejectPress: () => void;
   handleCancelFeedback: () => void;
@@ -63,7 +66,39 @@ export function useWorkApprovalActions({
 
   const queryClient = useQueryClient();
   const { set: scheduleTimeout } = useTimeout();
-  const workApprovalMutation = useWorkApproval();
+
+  const completeApproval = useCallback(
+    (completion: WorkApprovalCompletion) => {
+      setFeedbackMode(null);
+      setInlineFeedback("");
+      setConfidence(Confidence.NONE);
+      setOptimisticStatus(completion.approved ? "approved" : "rejected");
+
+      const message = completion.approved ? "Work approved" : "Work rejected";
+      toastService.success({
+        id: "approval-submit",
+        title: message,
+        message,
+        context: "approval submission",
+        suppressLogging: true,
+      });
+
+      return new Promise<void>((resolve, reject) => {
+        scheduleTimeout(() => {
+          setOptimisticStatus(null);
+          try {
+            onApprovalComplete?.(completion.gardenId || gardenId || "");
+            resolve();
+          } catch (error) {
+            reject(error);
+          }
+        }, 2500);
+      });
+    },
+    [gardenId, onApprovalComplete, scheduleTimeout]
+  );
+
+  const workApprovalMutation = useWorkApproval({ onApprovalComplete: completeApproval });
 
   const effectiveStatus = optimisticStatus ?? work?.status ?? "pending";
 
@@ -124,9 +159,6 @@ export function useWorkApprovalActions({
     };
 
     workApprovalMutation.mutate({ draft, work });
-    setFeedbackMode(null);
-    setInlineFeedback("");
-    setConfidence(Confidence.NONE);
   };
 
   // --- Job queue event wiring (toasts + cache invalidation) ---
@@ -140,21 +172,18 @@ export function useWorkApprovalActions({
       if (payload.workUID !== work.id) return;
 
       if (type === "job:completed") {
-        setOptimisticStatus(payload.approved ? "approved" : "rejected");
-
-        const message = payload.approved ? "Work approved" : "Work rejected";
-        toastService.success({
-          id: "approval-submit",
-          title: message,
-          message,
-          context: "approval submission",
-          suppressLogging: true,
+        void completeApproval({
+          approved: payload.approved,
+          gardenId: gardenId || "",
+          workUID: payload.workUID,
+        }).catch(() => {
+          trackWorkApprovalLifecycle({
+            approved: payload.approved,
+            authMode: null,
+            stage: "completed",
+            reason: "presentation-failed",
+          });
         });
-
-        scheduleTimeout(() => {
-          setOptimisticStatus(null);
-          onApprovalComplete?.(gardenId || "");
-        }, 2500);
       }
 
       if (type === "job:failed") {
@@ -168,13 +197,13 @@ export function useWorkApprovalActions({
         });
       }
 
-      queryClient.invalidateQueries({ queryKey: queryKeys.workApprovals.all });
+      queryClient.invalidateQueries({ queryKey: workApprovalsKeys.all });
       if (gardenId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.online(gardenId, chainId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.merged(gardenId, chainId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.online(gardenId, chainId) });
       }
     },
-    [work?.id, gardenId]
+    [work?.id, gardenId, completeApproval]
   );
 
   // Clear optimistic status when real data catches up

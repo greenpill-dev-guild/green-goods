@@ -6,9 +6,7 @@ import { getWagmiConfig } from "../../../config/appkit";
 import { getEASConfig } from "../../../config/blockchain";
 import { getChain } from "../../../config/chains";
 import { queryClient } from "../../../config/react-query";
-import { queryKeys } from "../../../config/query-keys";
-import { ANALYTICS_EVENTS } from "../../../modules/app/analytics-events";
-import { track } from "../../../modules/app/posthog";
+import { workApprovalsKeys } from "../../../config/query-keys/work";
 import { ensureWagmiWalletChain } from "../../../modules/transactions/chain-guard";
 import { assertLocalArbitrumForkWallet } from "../../../modules/transactions/local-fork-safety";
 import { logger } from "../../app/logger";
@@ -16,19 +14,18 @@ import { DEBUG_ENABLED, debugError, debugLog } from "../../../utils/debug";
 import { encodeWorkApprovalData } from "../../../utils/eas/encoders";
 import { buildApprovalAttestTx } from "../../../utils/eas/transaction-builder";
 import { extractErrorMessage } from "../../../utils/errors/extract-message";
-import { pollQueriesAfterTransaction } from "../../../utils/blockchain/polling";
 import { simulateApprovalSubmission } from "../simulate";
-import type { WalletSubmissionOptions } from "./types";
-import { waitForReceiptWithTimeout } from "./receipt";
+import type { ApprovalSubmissionOptions } from "./types";
+import { TransactionReceiptTimeoutError, waitForReceiptWithTimeout } from "./receipt";
 
 export async function submitApprovalDirectly(
   draft: WorkApprovalDraft,
   gardenAddress: Address,
   gardenerAddress: Address,
   chainId: number,
-  options: WalletSubmissionOptions = {}
-): Promise<`0x${string}`> {
-  const { onProgress, txTimeout = 60_000 } = options;
+  options: ApprovalSubmissionOptions = {}
+): Promise<{ hash: `0x${string}`; confirmed: boolean }> {
+  const { onLifecycle, onProgress, txTimeout = 60_000 } = options;
   const startTime = Date.now();
 
   debugLog("[WalletSubmission] Starting direct approval submission", {
@@ -77,6 +74,7 @@ export async function submitApprovalDirectly(
     );
 
     onProgress?.("confirming", "Confirm in your wallet...");
+    onLifecycle?.({ stage: "handoff" });
     debugLog("[WalletSubmission] Sending approval transaction", { to: txParams.to });
     await assertLocalArbitrumForkWallet();
 
@@ -87,17 +85,25 @@ export async function submitApprovalDirectly(
     });
 
     debugLog("[WalletSubmission] Approval transaction sent", { hash });
+    onLifecycle?.({ stage: "broadcast", txHash: hash });
 
+    let confirmed = false;
     try {
       await waitForReceiptWithTimeout(hash, chainId, txTimeout);
+      confirmed = true;
+      onLifecycle?.({ stage: "confirmed", txHash: hash });
       debugLog("[WalletSubmission] Approval transaction confirmed", { hash });
-    } catch {
+    } catch (err: unknown) {
+      if (!(err instanceof TransactionReceiptTimeoutError)) {
+        throw err;
+      }
+      onLifecycle?.({ stage: "broadcast", txHash: hash, reason: "receipt-timeout" });
       debugLog("[WalletSubmission] Approval timeout, continuing...", { hash });
     }
 
     const optimisticApproval: EASWorkApproval = {
       id: `optimistic-${hash}`,
-      operatorAddress: walletClient.account?.address || "",
+      stewardAddress: walletClient.account?.address || "",
       gardenerAddress,
       actionUID: draft.actionUID,
       workUID: draft.workUID,
@@ -109,41 +115,19 @@ export async function submitApprovalDirectly(
       createdAt: Math.floor(Date.now() / 1000),
     };
 
-    queryClient.setQueryData<EASWorkApproval[]>(queryKeys.workApprovals.all, (old) => [
+    queryClient.setQueryData<EASWorkApproval[]>(workApprovalsKeys.all, (old) => [
       optimisticApproval,
       ...(old || []),
     ]);
 
-    onProgress?.("syncing", "Syncing with blockchain...");
-
-    await pollQueriesAfterTransaction({
-      queryKeys: [queryKeys.workApprovals.all, queryKeys.works.all],
-      baseDelay: 1000,
-      maxDelay: 4000,
-      maxAttempts: 4,
-      onAttempt: (attempt, delay) => {
-        debugLog(
-          `[WalletSubmission] Polling indexer for approval (attempt ${attempt}, waited ${delay}ms)`
-        );
-      },
-    });
-
-    onProgress?.("complete", "Approval submitted successfully!");
+    if (confirmed) onProgress?.("complete", "Approval submitted successfully!");
 
     const totalTime = Date.now() - startTime;
-    track(ANALYTICS_EVENTS.WORK_APPROVAL_SUCCESS, {
-      work_uid: draft.workUID,
-      garden_address: gardenAddress,
-      tx_hash: hash,
-      auth_mode: "wallet",
-      total_time_ms: totalTime,
-    });
-
-    debugLog("[WalletSubmission] Approval submission complete with indexer sync", {
+    debugLog("[WalletSubmission] Approval submission returned to the application", {
       hash,
       totalTimeMs: totalTime,
     });
-    return hash;
+    return { hash, confirmed };
   } catch (err: unknown) {
     const logMessage = "[WalletSubmission] Approval submission failed";
     if (DEBUG_ENABLED) {

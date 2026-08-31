@@ -5,7 +5,8 @@ import type { Address } from "../../types/domain";
 import type { YieldAllocation } from "../../types/gardens-community";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { yieldKeys } from "../../config/query-keys/vault";
 
 interface UseYieldAllocationsOptions {
   enabled?: boolean;
@@ -59,7 +60,7 @@ export function useYieldAllocations(
   const normalizedGarden = gardenAddress ? normalizeAddress(gardenAddress) : undefined;
 
   const query = useQuery({
-    queryKey: queryKeys.yield.allocations(normalizedGarden ?? "", chainId, limit),
+    queryKey: yieldKeys.allocations(normalizedGarden ?? "", chainId, limit),
     queryFn: async (): Promise<YieldAllocation[]> => {
       if (!normalizedGarden) return [];
 

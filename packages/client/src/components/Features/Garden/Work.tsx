@@ -1,4 +1,5 @@
-import { type Action, useNavigateToTop, type Work } from "@green-goods/shared";
+import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
+import type { Action, Work } from "@green-goods/shared/types/domain";
 import { RiErrorWarningLine, RiInboxLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
 import React, { forwardRef, memo, type UIEvent, useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
@@ -166,7 +167,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
             icon={<RiErrorWarningLine />}
             title={intl.formatMessage({
               id: "app.garden.work.errorLoadingWorks",
-              defaultMessage: "Failed to load work submissions",
+              defaultMessage: "Error loading works",
             })}
             action={
               onRefresh ? (
@@ -203,7 +204,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
             icon={<RiInboxLine />}
             title={intl.formatMessage({
               id: "app.garden.work.noWork",
-              defaultMessage: "No work submissions yet",
+              defaultMessage: "No work yet, get started by submitting new work.",
             })}
             action={
               onRefresh ? (

@@ -17,6 +17,11 @@ pass() {
   PASS_COUNT=$((PASS_COUNT + 1))
 }
 
+count_shared_exports() {
+  local pattern="$1"
+  { grep -rn "$pattern" packages/shared/src/ 2>/dev/null || true; } | wc -l | tr -d ' '
+}
+
 echo "Checking skill & configuration drift..."
 echo ""
 
@@ -26,7 +31,7 @@ echo "== Hooks =="
 for hook in useTimeout useDelayedInvalidation useEventListener useWindowEvent \
   useDocumentEvent useAsyncEffect useAsyncSetup useOffline \
   useServiceWorkerUpdate useDraftAutoSave useDraftResume useJobQueue; do
-  count=$(grep -rn "export.*$hook" packages/shared/src/ 2>/dev/null | wc -l | tr -d ' ')
+  count=$(count_shared_exports "export.*$hook")
   if [ "$count" -eq 0 ]; then
     drift "$hook referenced in skills but not exported from shared"
   else
@@ -42,7 +47,7 @@ echo ""
 echo "== Utilities =="
 for util in parseContractError createMutationErrorHandler mediaResourceManager \
   getStorageQuota jobQueue jobQueueEventBus logger toastService; do
-  count=$(grep -rn "export.*$util" packages/shared/src/ 2>/dev/null | wc -l | tr -d ' ')
+  count=$(count_shared_exports "export.*$util")
   if [ "$count" -eq 0 ]; then
     drift "$util referenced in skills but not exported from shared"
   else
@@ -58,7 +63,7 @@ echo ""
 echo "== Types =="
 for type in Address Garden Work Action WorkApproval GardenAssessment \
   Job JobKind WorkDraft OfflineStatus; do
-  count=$(grep -rn "export.*type.*${type}\b\|export.*interface.*${type}\b" packages/shared/src/ 2>/dev/null | wc -l | tr -d ' ')
+  count=$(count_shared_exports "export.*type.*${type}\b\|export.*interface.*${type}\b")
   if [ "$count" -eq 0 ]; then
     drift "Type $type referenced in skills but not found in shared"
   else
@@ -74,16 +79,21 @@ echo ""
 echo "== Port Assignments =="
 
 extract_stack_port() {
+  # Values are arrays (client: [3001], indexer: [3006, 3007, 3008]); the
+  # canonical port for cross-checks is the first element.
   local app="$1"
   awk -v app="$app" '
-    /const portByApp = \{/ { in_ports = 1; next }
+    /const portsByApp = \{/ { in_ports = 1; next }
     in_ports && /^\};/ { in_ports = 0 }
     in_ports {
       line = $0
-      gsub(/["'\'' ,]/, "", line)
+      gsub(/["'\'' ]/, "", line)
       split(line, parts, ":")
       if (parts[1] == app) {
-        print parts[2]
+        val = parts[2]
+        gsub(/[][]/, "", val)
+        split(val, nums, ",")
+        print nums[1]
         exit
       }
     }
@@ -125,6 +135,14 @@ check_port_match() {
     drift "$label port is $actual in $source, expected $expected from scripts/dev/stack.js"
   fi
 }
+
+# Self-check first: if the declaration itself is gone or renamed, report the
+# parser as the broken piece instead of six misleading "port not found" drifts.
+if grep -q 'const portsByApp = {' scripts/dev/stack.js 2>/dev/null; then
+  pass
+else
+  drift "portsByApp declaration not found in scripts/dev/stack.js — the stack renamed its port map; update extract_stack_port in check-drift.sh"
+fi
 
 for app in client admin docs storybook agent indexer; do
   check_required_port "$app"

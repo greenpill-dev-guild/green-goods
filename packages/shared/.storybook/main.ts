@@ -109,6 +109,14 @@ const config: StorybookConfig = {
     config.resolve = config.resolve || {};
     config.resolve.alias = {
       ...config.resolve.alias,
+      "@green-goods/shared/commitment-pooling": resolve(
+        sharedSrc,
+        "commitment-pooling",
+      ),
+      "@green-goods/shared/public": resolve(
+        sharedSrc,
+        "hooks/public/publicSurfaceState.ts",
+      ),
       "@green-goods/shared": sharedSrc,
       "@green-goods/shared/components": resolve(sharedSrc, "components"),
       "@green-goods/shared/hooks": resolve(sharedSrc, "hooks"),

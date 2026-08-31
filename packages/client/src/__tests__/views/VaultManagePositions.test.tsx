@@ -11,8 +11,9 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { OctantVaultCampaignManifest, OctantVaultPosition } from "@green-goods/shared";
-import VaultsPage, { VaultsPageContent } from "../../views/Public/Vaults";
+import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
+import type { OctantVaultPosition } from "@green-goods/shared/hooks/vault/useOctantVaultPositions";
+import VaultsWalletSurface, { VaultsPageContent } from "../../views/Public/VaultsWalletSurface";
 
 // Hoisted so vi.mock factories and the hoisted mock state can reference them.
 const { CONNECTED, CARD, VAULT, ASSET } = vi.hoisted(() => ({
@@ -74,50 +75,82 @@ function makePosition(over: Partial<OctantVaultPosition> = {}): OctantVaultPosit
   };
 }
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuth: () => ({ loginWithWallet: mocks.loginWithWallet }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ authMode: mocks.authMode, primaryAddress: mocks.primaryAddress }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useWalletModalOpen", () => ({
+  useWalletConnectDismissGuard: () => ({
+    markConnecting: () => {},
+    shouldBlockDismiss: () => false,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", async (importOriginal) => {
   return {
-    ...actual,
-    useAuth: () => ({ loginWithWallet: mocks.loginWithWallet }),
-    useUser: () => ({ authMode: mocks.authMode, primaryAddress: mocks.primaryAddress }),
-    useWalletConnectDismissGuard: () => ({
-      markConnecting: () => {},
-      shouldBlockDismiss: () => false,
-    }),
+    ...(await importOriginal()),
     useEnsName: () => ({
       data: mocks.ensName,
       isLoading: false,
       isError: false,
     }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultPositions", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOctantVaultPositions: (owner?: string | null) =>
       owner ? (mocks.positionsByOwner[owner.toLowerCase()] ?? emptyPositions()) : emptyPositions(),
-    useOctantVaultRedeem: () => ({
-      mutateAsync: mocks.redeemMutateAsync,
-      mutate: vi.fn(),
-      reset: mocks.redeemReset,
-      isPending: false,
-      error: null,
-    }),
-    useOctantVaultWalletEndow: () => ({
-      mutate: mocks.walletEndowMutate,
-      reset: mocks.walletEndowReset,
-      error: null,
-      isPending: false,
-    }),
-    useWrapEthToWeth: () => ({
-      mutate: mocks.wrapEthToWethMutate,
-      reset: mocks.wrapEthToWethReset,
-      error: null,
-      isPending: false,
-    }),
-    useOctantVaultWalletBalances: () => ({
-      nativeBalance: null,
-      assetBalance: null,
-      isLoading: false,
-      isError: false,
-      isFetching: false,
-      refetch: mocks.walletBalancesRefetch,
-    }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWithdraw", () => ({
+  useOctantVaultRedeem: () => ({
+    mutateAsync: mocks.redeemMutateAsync,
+    mutate: vi.fn(),
+    reset: mocks.redeemReset,
+    isPending: false,
+    error: null,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWalletEndow", () => ({
+  useOctantVaultWalletEndow: () => ({
+    mutate: mocks.walletEndowMutate,
+    reset: mocks.walletEndowReset,
+    error: null,
+    isPending: false,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useWrapEthToWeth", () => ({
+  useWrapEthToWeth: () => ({
+    mutate: mocks.wrapEthToWethMutate,
+    reset: mocks.wrapEthToWethReset,
+    error: null,
+    isPending: false,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultWalletBalances", () => ({
+  useOctantVaultWalletBalances: () => ({
+    nativeBalance: null,
+    assetBalance: null,
+    isLoading: false,
+    isError: false,
+    isFetching: false,
+    refetch: mocks.walletBalancesRefetch,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEthUsdPrice", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useEthUsdPrice: () => ({
       hasFeed: false,
       priceAnswer: 0n,
@@ -126,31 +159,43 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       isStale: false,
       updatedAt: 0n,
     }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultStats", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOctantVaultStats: () => ({
       totalAssets: 0n,
       usdCents: null,
       isLoading: false,
       isError: false,
     }),
-    useOctantVaultHarvestableYield: () => ({
-      status: "unavailable",
-      strategyAddress: null,
-      strategyAssets: 0n,
-      vaultDebt: 0n,
-      harvestableAssets: 0n,
-      isLoading: false,
-      isError: false,
-      unavailableReason: "missing_strategy",
-    }),
-    useOctantVaultProjectSupportMetric: () => ({
-      status: "unavailable",
-      sourceAddress: null,
-      shareBalance: 0n,
-      assetValue: 0n,
-      isLoading: false,
-      isError: false,
-      unavailableReason: "missing_source",
-    }),
+  };
+});
+
+vi.mock(
+  "@green-goods/shared/hooks/vault/useOctantVaultHarvestableYield",
+  async (importOriginal) => {
+    return {
+      ...(await importOriginal()),
+      useOctantVaultHarvestableYield: () => ({
+        status: "unavailable",
+        strategyAddress: null,
+        strategyAssets: 0n,
+        vaultDebt: 0n,
+        harvestableAssets: 0n,
+        isLoading: false,
+        isError: false,
+        unavailableReason: "missing_strategy",
+      }),
+    };
+  }
+);
+
+vi.mock("@green-goods/shared/hooks/vault/useOctantVaultStrategyApy", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOctantVaultStrategyApy: () => ({
       status: "unavailable",
       apy: null,
@@ -194,9 +239,9 @@ function makeStableCampaign(): OctantVaultCampaignManifest {
 vi.mock("@/routes/WalletRuntimeProviders", async () => {
   const { createElement: ce } = await import("react");
   return {
-    default: ({ children }: { children: unknown }) => {
+    default: ({ children }: { children: React.ReactNode }) => {
       mocks.walletRuntimeRender();
-      return ce("div", { "data-testid": "wallet-runtime-provider" }, children);
+      return ce("div", { "data-testid": "wallet-runtime-provider", children });
     },
   };
 });
@@ -214,7 +259,7 @@ function renderPage(path = "/vaults") {
       createElement(
         IntlProvider,
         { locale: "en", messages: intlMessages },
-        createElement(VaultsPage)
+        createElement(VaultsWalletSurface)
       )
     )
   );
@@ -241,7 +286,7 @@ function renderPageWithLocationProbe(path: string, onLocationChange: (location: 
         createElement(
           Fragment,
           null,
-          createElement(VaultsPage),
+          createElement(VaultsWalletSurface),
           createElement(LocationProbe, { onChange: onLocationChange })
         )
       )
@@ -273,11 +318,11 @@ function renderContent(campaigns: OctantVaultCampaignManifest[]) {
     createElement(
       MemoryRouter,
       { initialEntries: ["/vaults"] },
-      createElement(
-        IntlProvider,
-        { locale: "en", messages: intlMessages },
-        createElement(VaultsPageContent, { campaigns })
-      )
+      createElement(IntlProvider, {
+        locale: "en",
+        messages: intlMessages,
+        children: <VaultsPageContent campaigns={campaigns} />,
+      })
     )
   );
 }
@@ -440,7 +485,7 @@ describe("/vaults?manage=positions", () => {
     expect(within(panel).getByText("Connected wallet")).toBeInTheDocument();
     expect(within(panel).getByText("vault-owner.eth")).toBeInTheDocument();
     expect(within(panel).getByText("No endowments for this wallet yet")).toBeInTheDocument();
-    expect(within(panel).getByRole("button", { name: "Endow a campaign" })).toBeInTheDocument();
+    expect(within(panel).getByRole("button", { name: "Endow a Campaign" })).toBeInTheDocument();
   });
 
   it("gates redeem: disabled over the redeemable max, enabled and signs for a valid share amount", async () => {
@@ -623,7 +668,7 @@ describe("checkout success no longer points to Fund", () => {
     const user = userEvent.setup();
     mocks.authMode = "wallet";
     mocks.primaryAddress = CONNECTED;
-    const { container } = renderContent([makeStableCampaign()]);
+    renderContent([makeStableCampaign()]);
 
     await user.click(screen.getByRole("button", { name: "Endow to Synthetic complete campaign" }));
     await user.type(screen.getByLabelText("Amount to endow"), "2.50");
@@ -631,8 +676,11 @@ describe("checkout success no longer points to Fund", () => {
 
     const success = await screen.findByTestId("vault-wallet-endow-success");
     expect(mocks.walletEndowMutate).toHaveBeenCalledTimes(1);
-    // No Fund-page CTA or copy remains in the success state.
-    expect(container.querySelector('a[href="/fund"]')).toBeNull();
+    // No Fund-page CTA or copy remains in the success state. Scoped to the
+    // success region: the page footer legitimately carries a /fund wayfinding
+    // link on every public page (DESIGN.browser.md § Compact utility footer).
+    expect(within(success).queryByRole("link", { name: /Fund/i })).toBeNull();
+    expect(success.querySelector('a[href="/fund"]')).toBeNull();
     expect(within(success).queryByText(/Fund page/i)).toBeNull();
     // Primary CTA is now Manage Endowments.
     await user.click(screen.getByRole("button", { name: "Manage Endowments" }));

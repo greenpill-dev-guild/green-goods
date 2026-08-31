@@ -5,11 +5,22 @@
 - Machine lane: state_api
 - Execution sub-lane: indexer
 - Owner: Codex
-- Branch signal: codex/indexer/commitment-pooling
-- Current state: blocked; corrected-and-merged PR #649 and its Envio `3.2.1` proof come first,
-  then core pooling indexing waits for the final architecture freeze and frozen PRD-721 events.
-  Settlement indexing separately waits for frozen settlement events.
+- Branch signal: feature/commitment-pooling-api-modules
+- Current state: source-ready after the 2026-08-16 pre-deploy gap-closure pass. PR #706 is merged
+  at `b2c427025`; the hosted Envio indexer has not deployed or synced the pooling schema. The
+  frozen event inventory remains 58 events. The 28-record consumer/query contract is unchanged;
+  one additional `CommitmentCycleCommitmentIndex` is handler-internal scale machinery and is not
+  queryable through shared.
 - Linear context: PRD-722 (indexer lane) under parent PRD-650; PRD-673 is historical context
+- Gap-closure receipt (2026-08-16): codegen, the per-chain indexing boundary, package lint,
+  package build, ontology, and Plan Hub validation pass. The full indexer lane passes 255/255.
+  The pass covers bounded metadata retry plus reconciliation marking, optional-address and
+  optional-value normalization, numeric campaign pairing, decline-after-acceptance, shared
+  recognition weights, acknowledgment terminality, and per-cycle reconciliation without a
+  pool-wide scan. No hosted deploy or live read-back occurred.
+
+Concurrent agents share this repository. Stay inside this lane's named indexer/spec paths,
+preserve unrelated working-tree changes, and do not switch the primary tree's branch.
 
 ## Inputs
 
@@ -24,15 +35,80 @@
 
 ## Outputs
 
-- Core phase: the ten pooling entities — pool, cycle, commitment, requirement, claim request, claim-request index, event, `NeedCommitmentIndex`, `CommitmentUnitSummary`, and `CommitmentProviderExposure` — with chainId and explicit composite relationship fields. Requests persist canonical claimant and requestedBy; pools persist the current pause reason CID; cycles persist the six-field allocation only from `CycleOpened`.
+- Core phase: sixteen pooling entities — pool, cycle, immutable `CommitmentClass`, commitment,
+  requirement, claim request, claim-request index, event, `NeedCommitmentIndex`,
+  `CommitmentUnitSummary`, `CommitmentProviderExposure`, `CommitmentCounterIndex`,
+  `CommitmentExchange`, `CommitmentSeries`, `CommitmentSeriesCycleSummary`, and
+  `PoolMemberHistory` — with chainId and chain-scoped composite IDs for the new entities. Their
+  Garden relationship fields deliberately retain the documented bare-address `Garden.id`
+  compatibility contract. Ten auxiliary contributor/provenance/replay-coordination entities live
+  in the same schema but stay outside this core-phase count, including
+  `CommitmentContributorRequirementAssignment`,
+  `CommitmentContributorRequirementIndex`, `CommitmentPendingLifecycleProjection`, and its
+  commitment-keyed index. Pool and cycle each carry an independent nullable lifecycle
+  `(blockNumber, logIndex)` cursor; pool charter and provider cap use their own cursor pairs.
+  Sparse delivery is represented, never faked: Pool has `registrationSeen`, Cycle has `seedSeen`,
+  Series and Commitment have `creationSeen`, claim rows have `requestSeen`, contributor rows have
+  `additionSeen`, and Work attribution has `linkSeen`. Base-event-only facts and unrelated cursor
+  pairs are nullable until their owning event arrives; ordinary queries exclude unseen
+  placeholders while handlers may load them by ID.
+  `Commitment.creationRequestKey` and `Commitment.creationPayloadHash` are both **emitted
+  parameters of `CommitmentCreated`** (amendment 2026-08-05, contract-spec §6.1 "Creation payload
+  hash (frozen preimage)"). Assign each verbatim from `event.params`. Never recompute the hash,
+  never derive it, never leave it null on a seen creation, and never satisfy it with an RPC read —
+  the no-RPC-backfill rule and this required field are consistent only because the event carries it.
+  The commitment entity also carries creation key/hash, immutable acceptance position,
+  `creationSeen`, `acceptanceSeen`, `frozenContributorCount`, nullable
+  `memberHistoryOutcome`, `fulfilledParticipantHistoryApplied`, `counterCommitmentId`,
+  `declaredUnitValue`/`declaredValueBasis`, independent value, consideration, confirmer-rule, and
+  lifecycle cursor pairs, immutable `payerGarden`/`payerGardenId`, `protocolFallbackEnabled`, `fulfilledBy`, nullable
+  `confirmationPath`, `fallbackReason`, and derived `fulfilledByFallback`. Contributor membership,
+  requirement assignment, and Work link membership each own independent event-position cursors.
+  `ConfirmerRuleSet` is the only authority for the opt-in. `CommitmentFulfilled` is the only
+  authority for confirmation actor/path/reason; `DisputeResolved -> Fulfilled` leaves
+  confirmation-only fields null. Creation events initialize independently mutable state only when
+  its cursor is absent; every later projection applies only when its own cursor wins.
+  Contract-spec §8.3's handler rules bind reverse-index append/idempotency, atomic-marker
+  treatment, lifecycle projection, late-fact reconciliation, signed commutative register deltas,
+  and deterministic relationship ordering.
+- The deployed settlement increment adds `CommitmentFunding` and `CommitmentFundingIndex` as the
+  twenty-seventh and twenty-eighth PRD-722 records.
+  `FundingPledged`, `FundingDepositRecorded`, `FundingConsumed`, and `FundingWithdrawn` own its
+  immutable identity and independent nullable fact cursors. `DisbursementKind.Refund` is appended
+  after the four existing kinds, and a funding row retains at most one stable refund child.
+  `DisbursementQueued(kind=Refund)` carries commitment/funder identity but no `fundingId`, so the
+  index row persists the only bounded `(chainId, commitmentId, normalized funder)` join and may
+  temporarily retain the Refund child until `FundingPledged` supplies the funding ID. No timeout,
+  RPC read, database scan, or delivery order may synthesize a funding outcome.
+- `ExchangeAccepted` creates one `CommitmentExchange` marker keyed
+  `chainId-EXCHANGE-poolId-idA-idB`, using the event's non-indexed `poolId` without an RPC read or
+  prior commitment row. Entity existence proves atomic acceptance. The two ordinary
+  `CommitmentAccepted` events remain the only lifecycle, unit, provider-slot, and member-history
+  inputs. The same transaction emits `ContributorAdded(A, A.creator)` and
+  `ContributorAdded(B, B.creator)` to seed the two lead roster rows; `ExchangeAccepted` substitutes
+  for neither contributor event and never applies any delta a third time. Pair status joins the
+  two ordinary commitments and never mutates either after cancellation, expiry, dispute, or
+  fulfillment. Each ordinary `CommitmentAccepted` handler attempts to mark its matching request
+  Accepted when present, then independently loads the commitment's request index and marks every
+  other still-Pending row Superseded. The sweep runs even when the accepted counterpart has no
+  request row, so exchange acceptance clears pending requests for both A and B without a scan.
+- `PoolMemberHistory` is public event-derived index data. The indexer does not claim row-level confidentiality; it exposes no public ranking or comparison query. Shared viewer-aware selectors own steward/self product disclosure, and editorial consumers receive aggregates only.
 - Pool-less `ModuleUpdated`, pooling dependency/schema/pause events use the generic
   `CommitmentEvent.configurationKey/previousValue/newValue` audit fields, never a synthetic pool
   zero, and never mutate accounting entities.
-- Settlement phase: Arbitrum settlement account/disbursement/batch/message entities; Celo `SettlementGardenRoute`, bounded `CeloSettlementExecutor` execution, and acknowledgment-message entities; and one chain-composite `SettlementConfiguration` singleton per source/executor chain carrying role, local contract/router, nullable remote selector, nullable verified `remoteEvmChainId`, nullable active/previous peer + expiry, protocol version, pause state, source/executor batch limit, executor transfer/aggregate/period caps, dispatcher where applicable, native-fee floor/balance/low state, peer readiness, and nullable source-only `memberDeliveryEnabled`.
+- Settlement phase: Arbitrum settlement account/disbursement/batch/message entities; Celo `SettlementGardenRoute`, bounded `CeloSettlementExecutor` execution, and acknowledgment-message entities; and one chain-composite `SettlementConfiguration` singleton per source/executor chain carrying role, local contract/router, nullable remote selector, nullable verified `remoteEvmChainId`, nullable active/previous peer + expiry, protocol version, pause state, source/executor batch limit, executor transfer/aggregate/period caps, dispatcher where applicable, native-fee floor/balance/low state, peer readiness, and nullable source-only `gardenerDeliveryEnabled`. Null means the source fact is unknown/not configured and can never satisfy readiness; only explicit `true` enables gardener delivery.
+- `CommitmentPayoutPlan` carries provider and payer relationships, immutable `payoutKind`, general
+  payable/prepared/confirmed/failed/cancelled counters, and nullable beneficiary garden/Safe/child
+  fields. `ContributorConsideration` buffers versioned contributor snapshots;
+  `GardenBeneficiary` accepts no contributor rows and binds its one child directly from
+  `DisbursementQueued`. Derive `CommitmentSettlementFlow` as `INTERNAL`,
+  `PROTOCOL_TO_GARDEN`, `GARDEN_TO_PROTOCOL`, or reserved `GARDEN_TO_GARDEN` from immutable
+  payer/provider plus write-once protocol garden; never infer it from recipient/source addresses.
+  The fact describes intended settlement direction, not later Celo token circulation.
 - Source `SettlementConfiguration` additionally persists the write-once protocol garden/canonical
   G$ plus event-owned Hats and CommitmentPoolingModule dependency addresses; handlers update those
   trust roots only from their exact old/new events.
-- Exact pooling blocks for `CommitmentPoolingModule` and `CommitmentRegister` on `42161` and
+- Exact pooling blocks for `CommitmentPoolingModule` and `CommitmentRegistry` on `42161` and
   `421614`; exact `SettlementModule` blocks on `42161` and `421614`; and exact
   `CeloSettlementExecutor` blocks on `42220` and rehearsal-only `11142220`. The `11142220`
   network uses explicit `rpc_config` rather than assumed HyperSync coverage. Every address is a
@@ -52,18 +128,77 @@
   Configuration rows seed from generated verified deployment constants on the first relevant
   protocol event; no imaginary deployment-block callback is assumed. Celo Sepolia uses
   `rpc_config` because HyperSync coverage is not assumed.
+- The pooling ID namespace supports exactly one canonical UUPS
+  `CommitmentPoolingModule` / `CommitmentRegistry` proxy pair per chain. Implementation upgrades
+  keep those addresses. The updater and boundary checker reject a duplicate same-chain block or
+  proxy replacement unless a separately approved migration introduces a versioned entity
+  namespace and full replay. Saved Offer `moduleAddress` is a fail-closed client link key, not a
+  multi-module indexing contract.
 - Commitment-keyed request index that marks accept/decline/supersede without a database-wide scan.
-- Full Garden.id migration to chainId-lowercaseAddress with replay/backfill, every foreign-key/helper/query/fixture cutover, and no mixed-ID interval.
+  Each request row owns a lifecycle cursor. A late `ClaimRequested` delivered after a newer
+  acceptance materializes as Accepted for the winning claimant or Superseded for every other
+  claimant; after a newer cancellation/expiry it materializes Superseded. It can never revive an
+  actionable Pending row behind the commitment result. `ClaimDeclined` also upserts the
+  claimant-keyed row and request index when it arrives first: `requestSeen = false`, request-only
+  payload null, state Declined, and the decline cursor/reason retained. An older Request later
+  fills payload without revival; only a genuinely newer request may advance the cursor and return
+  to Pending.
+- Preserve `Garden.id` as the normalized bare GardenAccount address with explicit `chainId`.
+  `gardenId`, `providerGardenId`, `payerGardenId`, and `gardenContextId` relationship helpers store that existing ID;
+  every new Commitment Pooling entity retains its own chain-scoped composite ID. No Garden
+  primary-key migration or mixed-ID compatibility layer is permitted.
 - Nullable generic audit actor populated only from explicit event parameters, never transaction.from.
-- Commitment read model persists provider, providerGarden composite relation, preDisputeState, positional requirement rows (`requirementIndex`, domain/action, required/approved counts), the per-commitment `approvedUnits` value emitted by the contract, and explicit `RewardRail` plus derived reward facts. `rewardRecipient` is the ArbitrumExternal `RewardPaid` recipient only; a Celo beneficiary lives on the settlement `Disbursement`. Hypercert persists `bundleKind`, composite fulfilled-commitment relationships, ascending unique Need UIDs, legacy Work-bundle readability, and certificate-scoped `HypercertCommitmentContributorAllocation` rows; integer recognition units never live on or overwrite the commitment contributor.
+- Commitment read model persists provider, bare-address providerGarden relation, preDisputeState,
+  nullable lifecycle cursor, positional requirement rows (`requirementIndex`, domain/action,
+  required/approved counts), the per-commitment `approvedUnits` value emitted by the contract, and
+  explicit `ConsiderationRail` plus derived consideration facts. `considerationRecipient` is the ArbitrumExternal
+  `ConsiderationPaid` recipient only; a Celo beneficiary lives on the settlement `Disbursement`. Hypercert
+  persists `bundleKind`, composite fulfilled-commitment relationships, ascending unique Need UIDs,
+  legacy Work-bundle readability, and certificate-scoped
+  `HypercertCommitmentContributorAllocation` rows; integer recognition units never live on or
+  overwrite the commitment contributor.
 - `CommitmentUnitSummary` is keyed by `chainId-scope-scopeId-unitLabelHash`, where the hash is computed from exact stored UTF-8 label bytes. POOL and CYCLE rows keep expected, approved, fulfilled, and open units only for that exact hash; `hours` and `Hours` never merge.
 - `CommitmentProviderExposure` is keyed by chain, pool, and provider and stores only the current open commitment count.
+- One replay-idempotent, cursor-ordered lifecycle helper applies every current-state pool/cycle,
+  member-history, attribution-confirmation, Need-lineage, and `liveCommitmentCount` delta.
+  A commitment placeholder has `creationSeen = false`. Accepted, Ready, confirmation, dispute, and
+  terminal events that need immutable creation facts write one typed pending projection keyed by
+  their audit event and return without consuming the lifecycle cursor or applying side effects.
+  `CommitmentCreated` fills the facts, applies its base projection, and drains the explicit
+  commitment-keyed pending IDs in block/log order within the same handler transaction.
+  `CommitmentDisputed`, `CommitmentFulfilled`, `CommitmentCancelled`, `CommitmentExpired`, and
+  terminal `DisputeResolved.finalState` all use that shared projection path. Expired-to-Disputed
+  reverses the current Expired bucket and re-increments a cycle's live count;
+  RestorePrevious-to-Expired or resolution-to-Cancelled applies exactly one final bucket and
+  decrements once. Unit summaries and provider exposure remain owned only by their self-describing
+  unit events.
+- `CommitmentPool.liveCommitmentCount` mirrors every non-terminal commitment in the pool,
+  including cycle-less rows, and follows the same reversible transition helper.
+  `CommitmentPool.nonTerminalCycleCount` increments on seed and decrements once on cancel or
+  compost. `PoolClosed` may project only when both are zero.
+- Pool charter, provider cap, commitment consideration, contributor membership, contributor requirement
+  assignment, and Work link lifecycle each compare an independent `(blockNumber, logIndex)`
+  cursor. `CommitmentContributorIndex`, its requirement-assignment companion, request/evidence/
+  Need/counter indexes, and every other set-like relationship array are de-duplicated and sorted
+  deterministically; only pending lifecycle projections use event-position order.
+- Terminal member history is a separate idempotent side projection so older acceptance and roster
+  events can complete a newer terminal outcome. `CommitmentAccepted` always stores the immutable
+  lead/receiver facts and sets `acceptanceSeen`, even when its lifecycle tuple is older than the
+  current cursor. `ContributorRosterFrozen` stores the emitted exact roster count. The terminal
+  projector and the Accepted, ContributorAdded/Removed, and roster-freeze handlers all call the
+  same reconciler. A nullable `memberHistoryOutcome` owns the reversible lead bucket; Fulfilled
+  participant history waits until acceptance is seen and the bounded contributor index contains
+  the exact frozen active roster, then flips `fulfilledParticipantHistoryApplied` once.
 - `CommitmentCycle.liveCommitmentCount` mirrors the on-chain close/cancel guard independently of
-  accepted-only exposure: non-zero-cycle `CommitmentCreated` increments it, and the first
-  Fulfilled/Cancelled/Expired transition decrements it. Offered/Requested rows therefore block
-  close in the indexed read model exactly as they do on-chain.
+  provider-capacity exposure: non-zero-cycle `CommitmentCreated` increments it, every live-to-terminal
+  Fulfilled/Cancelled/Expired transition decrements it, and the Expired dispute reopen/resolve pair
+  re-increments/decrements it exactly once. Offered/Requested rows therefore block close in the
+  indexed read model exactly as they do on-chain.
+- Unit and exposure totals are unique-event signed commutative deltas, not last-delivered
+  assignments. Commit/Release/Fulfill permutations converge to the same final counts and
+  exact-label units; `updatedAt` is the maximum event position.
 - Generated-config preservation changes and a regression fixture proving
-  `CommitmentPoolingModule`, `CommitmentRegister`, `SettlementModule`, and
+  `CommitmentPoolingModule`, `CommitmentRegistry`, `SettlementModule`, and
   `CeloSettlementExecutor` blocks survive repeated artifact updates on every applicable
   production/component-rehearsal network without turning the two Sepolia components into a peer
   pair.
@@ -71,15 +206,58 @@
 
 ## Acceptance
 
-- Every entity has chainId and a composite ID; same address on Arbitrum and Sepolia remains distinct.
+- Every new Commitment Pooling entity has `chainId` and a chain-scoped composite ID. The documented
+  exception remains `Garden.id`, which is the normalized bare address and still carries `chainId`;
+  Garden relationship helpers resolve to that existing ID without changing it.
 - Celo routes, executions, Garden/account joins, and command/ack message directions require the
   verified configuration seed's non-null `remoteEvmChainId`; handlers fail closed when it is null
   and never translate selectors into EVM chain IDs or substitute the local Celo event chain.
-- Full replay produces no raw-address Garden lookup and shared consumers are cut over to the replayed dataset.
-- Handlers are idempotent, tolerate out-of-order events, update both sides of relationships, and never infer immutable creation facts from RPC.
+- Full replay preserves existing raw-address Garden lookup compatibility while every new
+  commitment/settlement row remains chain-distinct through its own ID and `chainId`.
+- Handlers are idempotent, tolerate out-of-order events, update both sides of relationships, and
+  never infer immutable creation facts from RPC. A lifecycle event delivered before
+  `CommitmentCreated` remains pending and applies only after creation facts exist; the creation
+  handler drains the typed queue atomically without a database scan or externally visible
+  intermediate count.
+- Pool and cycle lifecycle fixtures deliver Open/Pause/Resume/Close/Compost/Reopen and
+  Open/Close/Compost/Cancel events in both orders, before and after `PoolRegistered` or
+  `CycleSeeded`, with duplicates. Their independent cursor pairs make every permutation converge
+  to the latest state, pause reason, open Season/Campaign relationships, and `updatedAt`. A
+  reverse-delivered `CycleOpened` still fills its immutable allocation and recognition snapshots
+  once without reopening a cycle whose newer lifecycle cursor already won.
+- Lifecycle fixtures prove ordinary Fulfilled/Cancelled/Expired and every terminal
+  `DisputeResolved` outcome share one projection path. They cover
+  `Accepted -> Disputed -> Fulfilled`, `Ready -> Disputed -> Cancelled`,
+  `Expired -> Disputed -> RestorePrevious(Expired)`, and
+  `Expired -> Disputed -> Cancelled`, including duplicate delivery and every lifecycle sequence
+  both before and after `CommitmentCreated`. Each fixture asserts that a pre-creation event does
+  not consume the commitment lifecycle cursor or mutate state-derived counters, the creation drain
+  marks each pending row applied once, and the final read model has one current member-history
+  outcome, exact pool/cycle and series state counts, exact `liveCommitmentCount`, Fulfilled
+  attribution/Need lineage, and no duplicated unit/exposure delta.
+- Late-fact member-history fixtures cover Fulfilled before `CommitmentAccepted`, before
+  `ContributorAdded`, before `ContributorRosterFrozen`, and with the roster-freeze event before
+  its contributor rows; they also cover Cancelled/Expired before Accepted. Every permutation and
+  duplicate delivery converges to one lead outcome, the exact frozen Fulfilled participant set,
+  and no second history delta.
+- Confirmation fixtures prove the complete `ConfirmerRuleSet` tuple is gated by its independent
+  `(blockNumber, logIndex)` cursor. They cover creation→update, update→creation, duplicates, and
+  opposing opt-in/opt-out updates delivered in either order; every order converges to the latest
+  emitted threshold, confirmer list, and `protocolFallbackEnabled` value without changing
+  `updatedAt` for an older event. `CommitmentFulfilled` persists its emitted confirmer and exact
+  `ORDINARY` / `POOL_FALLBACK` / `PROTOCOL_FALLBACK` path; only the two fallback paths set
+  `fulfilledByFallback`, only fallback paths retain a non-empty `fallbackReason`, and no handler
+  classifies a caller from `transaction.from`. A terminal `DisputeResolved -> Fulfilled` keeps
+  confirmation-only fields null. Reader copy can therefore distinguish “confirmed by Green Goods
+  team — fallback” from a local garden fallback or ordinary counterparty confirmation.
 - ApprovalGated claim acceptance consumes the stored request identity and supersedes only
   still-pending sibling requests through the companion index; Open acceptance has no request row
-  and stores the emitted authenticated requester as the Garden Request lead.
+  and stores the emitted authenticated requester as the Garden Request lead. Reverse fixtures
+  also deliver acceptance/cancellation/expiry before the older ClaimRequested row and prove the
+  late row materializes Accepted or Superseded, never Pending. A separate decline-first fixture
+  delivers `ClaimDeclined` before its older `ClaimRequested`, proves the terminal placeholder is
+  indexed immediately, then proves the late payload fill leaves the row Declined; a newer
+  post-decline Request is the only case that returns it to Pending.
 - Evidence replay preserves every distinct attribution row but changes a contributor's
   `evidenceCredits` only on the first 0-to-1 transition. Multiple CIDs attributed to the same
   contributor never multiply recognition, while the first attribution to another contributor
@@ -90,19 +268,24 @@
   two Hypercerts produces distinct unit rows and never overwrites either certificate or the
   contributor's stable commitment-level `recognitionWeightBps`.
 - Commitment cancellation/expiry supersede still-pending requests through the same companion index; no terminal commitment retains an actionable Pending row.
+- Contributor fixtures reverse Add/Remove and assignment true/false events and prove independent
+  latest-wins membership/assignment rows, deterministically sorted indexes, and an exact active
+  frozen roster. Work fixtures reverse Link/Unlink separately from approval/reversal sequence and
+  prove neither cursor suppresses the other.
 - `ApprovedWorkCounted` and `ApprovedWorkReversed` update exactly the matching
   `requirementIndex`, replace that row's cumulative count, and store the event-emitted
   per-commitment `approvedUnits`. The count event adds `newlyApprovedUnits`; the reversal event
   subtracts `removedApprovedUnits` from only the matching exact-label pool/cycle summary.
   `UnitsReleased` and `UnitsFulfilled` update only that same label hash; cumulative event values
   are never summed or re-derived.
-- `CommitmentAccepted` stores the canonical claimant/counterparty/provider/providerGarden and
+- `CommitmentAccepted` stores its immutable event position plus the canonical claimant/counterparty/provider/providerGarden and
   resolves claim-request rows, but it never mutates count exposure. `UnitsCommitted` is the
   sole increment for pool/cycle open counts and `CommitmentProviderExposure`; `UnitsReleased`
   and `UnitsFulfilled` are the sole decrements. Fulfillment, accepted cancellation, and
   accepted expiry therefore change exposure only through the emitted register event. Dispute
   entry/restoration emits no register delta and preserves the count. Replaying any event leaves
-  summaries and exposure unchanged.
+  summaries and exposure unchanged. All unit-event order permutations converge through signed
+  commutative deltas rather than delivery-order assignment.
 - Unit events are independently self-describing with `poolId`, `cycleId`, and exact
   `unitLabel`; an event arriving before `CommitmentCreated` still produces the final canonical
   IDs. `cycleId == 0` never creates or mutates a cycle summary.
@@ -113,6 +296,9 @@
   never infers an actor from `transaction.from`.
 - Pool/cycle entities retain state counts and expose no raw-unit aggregate fields; no handler or query adds unlike label hashes.
 - Queued, Dispatched, Celo executed/acknowledgment-pending, Confirmed, authenticated execution Failed, transport-delayed, same-key command retry, acknowledgment retry, and per-member recovery remain distinguishable.
+- Member-funding fixtures deliver pledge, deposit, consume, and withdraw in normal and reverse
+  order with duplicates, and deliver the Refund child before every funding fact. Every order
+  converges to one chain-scoped funding row and one persistent refund-child relationship.
 - `DisbursementCancelled` persists whether an individual cancellation came from an unbatched Queued item or from an authenticated Failed result; a failed member is never made to look like a pre-dispatch withdrawal.
 - `BatchCancelled(uint256 indexed batchId,address indexed actor,string reasonCID)` atomically marks the still-Queued batch and every immutable member Cancelled-from-Queued in one replay-idempotent handler. No indexed state can present a partially cancelled Queued batch.
 - `SettlementExecutionStored` records the bounded Celo executor transaction, exact authenticated acknowledgment receiver, decoded `isBatch`, settlement ID, and attempt, and derives acknowledgment-pending without waiting for an Arbitrum join. `AcknowledgmentDeferred` stores the bounded quote/reserve/send deferral code; only Arbitrum `SettlementAcknowledged(success=true)` makes canonical state Confirmed.
@@ -136,36 +322,47 @@
 
 ## RED / GREEN
 
-- RED: `test/commitmentPool.test.ts`, `test/settlement.test.ts`, and `test/gardenCompositeIdMigration.test.ts` are explicit to-be-created first-failing deliverables; focused handler/migration/preservation fixtures fail before schema, config, helper, and handler changes.
-- GREEN: the same fixtures pass after codegen; generated operations expose every entity; setup-generated, boundary, tests, and build pass.
-- Generated ReScript setup runs through the exact pnpm `10.33.2` Corepack pin declared by
-  `packages/indexer/package.json`. The root monorepo remains `bun@1.3.14`; no generated-workspace
-  command may walk up to or replace that root package-manager declaration.
+- RED: create `test/commitmentPool.test.ts` and `test/gardenIdentityCompatibility.test.ts` first,
+  and extend the existing `test/settlement.test.ts` with funding/Refund coverage. The focused
+  handler, compatibility, and preservation fixtures fail before schema, config, helper, and
+  handler changes.
+- GREEN: the same fixtures pass after Envio v3 codegen; generated operations expose every entity;
+  boundary, tests, and build pass. Envio v3 has no separate generated-ReScript install step.
+- 2026-08-16 gap closure RED: focused regressions reproduced zero-address relationships, numeric
+  campaign/entity order divergence, explicit-zero value persistence, and the discarded newer
+  decline; the prior metadata test also pinned the obsolete throw behavior.
+- 2026-08-16 gap closure GREEN: the four touched files pass 46/46 with the corrected persistence,
+  retry, reconciliation, replay, scale, and terminal-state semantics.
 
 ## Exact Bun commands
 
 - bun run --filter @green-goods/indexer codegen
-- bun run --filter @green-goods/indexer setup-generated
 - bun run --filter @green-goods/indexer check:indexing-boundary
 - bun run --filter @green-goods/indexer test -- test/commitmentPool.test.ts
 - bun run --filter @green-goods/indexer test -- test/settlement.test.ts
-- bun run --filter @green-goods/indexer test -- test/gardenCompositeIdMigration.test.ts
-- bun run --filter @green-goods/indexer migrate:garden-ids -- --dry-run
+- bun run --filter @green-goods/indexer test -- test/gardenIdentityCompatibility.test.ts
 - bun run --filter @green-goods/indexer build
+- bun run ../../scripts/dev/node-cli.js mocha --require tsx --timeout 30000 test/hypercerts.test.ts test/commitmentPoolReview.test.ts test/hypercertAllocationReview.test.ts test/settlementReview.test.ts _(from `packages/indexer`)_
+- bun run --filter @green-goods/indexer lint
+- bun run check:ontology
+- node scripts/harness/plan-hub.mjs validate --feature commitment-pooling --json
 
-The three named test files and the `migrate:garden-ids` target do not exist yet; they are intentional RED-first deliverables of this lane and must be created before their commands can pass.
+The pooling and Garden-identity files are intentional RED-first deliverables. The existing
+settlement file receives the member-funding and Refund regression cases before implementation.
 
 ## Out of scope
 
 - EAS attestation indexing, raw Celo/G$ transfer indexing, arbitrary Celo token ingestion, contract changes, UI, Sarafu ingestion, and credit/ranking entities.
-- A compatibility period with mixed raw and composite Garden IDs.
+- A Garden primary-key migration or mixed Garden-ID compatibility layer.
 
 ## Unblock evidence
 
 - Corrected PR #649 is merged and its generation, build, tests, migration/replay, and block
   preservation proof pass before Commitment Pooling adds entities or handlers.
 - Core dispatch then requires pooling event signatures frozen and identical between contract-spec and Envio config. Settlement handlers use the frozen Arbitrum command/ack and Celo executor signatures in settlement-spec; core GREEN must not be reported as full settlement GREEN.
-- Garden replay procedure, pre-replay snapshot, switch criterion, rollback package, and accountable owner Afolabi Aiyeloja are named. The implementer produces the rehearsal; `human-release-ops.md` owns the authorized live cutover.
+- Garden identity compatibility proof, full new-schema replay procedure, pre-replay snapshot,
+  switch criterion, rollback package, and accountable owner Afolabi Aiyeloja are named. The
+  implementer produces the rehearsal; `human-release-ops.md` owns the authorized live cutover.
 - Updater/boundary allowlist changes and preservation fixture are part of the lane.
 - RED fixture evidence is recorded; final GREEN includes codegen, generated build, boundary check, targeted handlers, and package build.
 
@@ -194,8 +391,10 @@ The three named test files and the `migrate:garden-ids` target do not exist yet;
   Keep stable bps on `CommitmentContributor`, and persist each integer result on
   `HypercertCommitmentContributorAllocation` so every certificate owns an immutable allocation
   snapshot even when commitments are bundled again.
-- Index `CommitmentPayoutPlan` and `ContributorPayout`; draft events carry no child ID, while each
-  later `DisbursementQueued` binds one prepared child to its stable parent row and garden payer.
+- Index `CommitmentPayoutPlan` and `ContributorPayout`; creation freezes the plan kind, payer,
+  provider, and beneficiary fields. Draft events carry no child ID. A later
+  `DisbursementQueued(kind=ContributorConsideration)` binds one prepared child to its stable
+  contributor row; `GardenBeneficiary` binds the plan's one beneficiary child pointer.
   Buffer every version-tagged `ContributorPayoutSet` row by `(payoutPlanId,
   paymentSnapshotVersion)` and atomically publish a replacement only when the trailing
   `CommitmentPayoutSnapshotCommitted` row count and payment hash match; that event owns retention,
@@ -204,12 +403,19 @@ The three named test files and the `migrate:garden-ids` target do not exist yet;
   `{ contributor, recipient, recognitionWeightBps, paymentWeightBps, amount }` rows. Never hash
   disbursement IDs or child counters; there is no inclusion flag, because a row is payable
   exactly when its `amount > 0` (register #70). Keep payment weights
-  amount-derived and derive parent status from finalization, unprepared payable rows, and child
-  counters; do not infer payment from Hypercert weights or raw token transfers.
+  amount-derived and derive parent status from finalization, general unprepared payable count, and
+  child counters. A beneficiary plan has one payable row and cannot be Complete before its child
+  is Confirmed. Acknowledgment/failure/requeue/cancel applies the same parent-counter update to
+  both commitment-bound kinds and never clears their stable pointers. Do not infer payment from
+  Hypercert weights or raw token transfers.
 - Migration/replay fixtures must include solo lead, multi-person team, roster freeze at
-  `ReadyForConfirmation` and direct `Disputed -> Fulfilled`, one-credit-per-Work replay, stale
-  catch-up rejection before mutation, unlink after effective rejection, exact
-  `liveCommitmentCount` including Offered/Requested,
+  `ReadyForConfirmation`, every direct terminal `DisputeResolved` outcome, the exact reversible
+  `Expired -> Disputed -> RestorePrevious/Cancelled` projection, duplicate/reverse lifecycle
+  delivery with Accepted/Ready/terminal events arriving before creation and draining only after
+  immutable facts exist, one-credit-per-Work replay, stale catch-up rejection before mutation, unlink after
+  effective rejection, exact `liveCommitmentCount` including Offered/Requested,
+  declared-value creation→update, update→creation, duplicate delivery, and two-update
+  forward/reverse delivery with the same latest `(blockNumber, logIndex)` winner,
   one-evidence-participation-credit across multiple CIDs, the same commitment in two
   certificate-scoped allocation snapshots, opened
   cycle policy and cycle-less default, zero-eligible inconsistent-state blocking with no metadata
@@ -218,3 +424,37 @@ The three named test files and the `migrate:garden-ids` target do not exist yet;
   mismatched snapshot rejection, reasoned payment correction, all-retained zero-child finalization,
   idempotent preparation, stable pointer after child/batch cancellation, duplicate-recipient batch
   rejection, partial payout, retry, and complete payout.
+
+## Binding CommitmentSeries amendment — 2026-08-02
+
+- Add `CommitmentSeries`, `CommitmentSeriesCycleSummary`, the nullable Commitment series
+  relationship, series event handlers, and composite ID helpers exactly as specified in
+  `standing-commitments-spec.md`.
+- Give `CommitmentSeries` separate lifecycle and metadata cursor pairs. Lifecycle events compare
+  only the lifecycle cursor; metadata events compare only the metadata cursor; creation fills
+  immutable placeholder facts and initializes a mutable field only when that field has no later
+  same-type cursor. One cross-type event may never suppress the other field's update.
+- Reuse the cursor-ordered reversible lifecycle projection to maintain exact current state counts
+  for the series and its non-zero-cycle summary, including dispute reopen/restore paths. Append a
+  fulfilled cycle ID once. Cycle zero never creates a series-cycle row.
+- Available count derives from current capacity-backed Offered instances. Do not add participant
+  counts, rates, rankings, reliability fields, cross-pool groupings, or mixed-label unit sums.
+- RED/GREEN includes inverted creation/lifecycle order, metadata-before-Rest,
+  lifecycle-before-metadata, later-metadata-before-earlier-Rest, later-Resume-before-earlier-
+  metadata, same-type stale/duplicate delivery, prospective metadata, mixed outcomes across
+  cycles, exact replay convergence, duplicate/replacement same-chain pooling block rejection, and
+  an exchange pair whose A and B each have pending requests but neither accepted counterpart has
+  a request row; both indexes must converge with no Pending rows and no database scan.
+
+
+## Audit note (2026-08-10, prototype-registry drift audit)
+
+Two findings for this lane from the cross-stack audit:
+
+1. **Closed by the merged/source-complete pooling schema**: `schema.graphql` carried
+   `CommitmentPayoutPlan.commitmentEntityId: String!` and
+   `Disbursement.commitmentEntityId: String` before the `Commitment` entity family landed. The
+   pooling schema now supplies the matching chain-scoped IDs used by the settlement handlers.
+2. **`CLAUDE.md` boundary line updated 2026-08-10** to name settlement and
+   (when this lane ships) commitment pooling as in-boundary; the enforceable
+   boundary of record is `packages/indexer/scripts/check-indexing-boundary.mjs`.

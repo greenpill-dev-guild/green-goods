@@ -11,7 +11,7 @@ import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock @green-goods/shared
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
@@ -62,6 +62,49 @@ describe("StandardTabs", () => {
 
     await user.click(screen.getByTestId("tab-tab2"));
     expect(onTabChange).toHaveBeenCalledWith("tab2");
+  });
+
+  it("resets an explicit scroll owner before changing tabs", async () => {
+    const user = userEvent.setup();
+    const explicitOwner = document.createElement("div");
+    explicitOwner.id = "work-dashboard-scroll";
+    explicitOwner.scrollTop = 420;
+    document.body.append(explicitOwner);
+
+    render(
+      createElement(StandardTabs, {
+        tabs: baseTabs,
+        activeTab: "tab1",
+        onTabChange: vi.fn(),
+        scrollTargetSelector: "#work-dashboard-scroll",
+      })
+    );
+
+    await user.click(screen.getByTestId("tab-tab2"));
+
+    expect(explicitOwner.scrollTop).toBe(0);
+    explicitOwner.remove();
+  });
+
+  it("preserves the app scroll fallback when no explicit owner is provided", async () => {
+    const user = userEvent.setup();
+    const appScroll = document.createElement("div");
+    appScroll.id = "app-scroll";
+    appScroll.scrollTop = 240;
+    document.body.append(appScroll);
+
+    render(
+      createElement(StandardTabs, {
+        tabs: baseTabs,
+        activeTab: "tab1",
+        onTabChange: vi.fn(),
+      })
+    );
+
+    await user.click(screen.getByTestId("tab-tab2"));
+
+    expect(appScroll.scrollTop).toBe(0);
+    appScroll.remove();
   });
 
   it("does not call onTabChange for disabled tabs", async () => {

@@ -11,6 +11,12 @@
 > `#46` and `settlement-spec.md` now require message-only CCIP command + authenticated
 > acknowledgment. Do not re-apply this transport wording.
 >
+> **Funding supersession (2026-08-04):** the 2026-07-10 session record below cites the then-current
+> "~$800/month figure". The confirmed arrangement is **$800 per month, paid in G$, for July through
+> September 2026 — $2,400 total**. The session wording is preserved as the record of what was
+> locked that day; the current fact lives in `reports/corrections-log.md`,
+> `reports/external-verification-2026-07-20.md`, and `settlement-spec.md` §2.
+>
 > **Readiness supersession (2026-07-24/25):** registers `#54`–`#60` amend `#53`; `#60` is the current
 > correction set.
 > AssessmentV3 is only a schema name on the upgraded existing `AssessmentResolver`; current

@@ -1,4 +1,4 @@
-import { useCreateGardenStore } from "@green-goods/shared";
+import { useCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect } from "react";
 import { DetailsStep } from "./DetailsStep";

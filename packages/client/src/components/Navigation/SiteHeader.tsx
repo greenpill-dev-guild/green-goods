@@ -1,4 +1,6 @@
-import { APP_NAME, cn, useEventListener } from "@green-goods/shared";
+import { APP_NAME } from "@green-goods/shared/config/app";
+import { useEventListener } from "@green-goods/shared/hooks/utils/useEventListener";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCloseLine, RiMenuLine } from "@remixicon/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -150,6 +152,8 @@ export const SiteHeader = () => {
             aria-hidden={isFullyHidden ? "true" : undefined}
             data-variant="transparent"
           >
+            {/* GEOMETRY SYNC: the boot header skeleton in index.html mirrors this
+                gutter + column (bootFallbackGeometry.test.ts trips on changes). */}
             <div className="px-6 sm:px-10">
               <div className="mx-auto flex h-16 max-w-7xl items-center justify-between">
                 {/* Logo — image only, h-8 keeps the GG mark at a stable height while w-auto
@@ -185,15 +189,18 @@ export const SiteHeader = () => {
 
                 {/* Desktop: Install App | Mobile: hamburger */}
                 <div className="flex items-center gap-3">
-                  <button
-                    type="button"
+                  <a
+                    href={href}
                     onClick={onClick}
-                    disabled={disabled}
+                    aria-disabled={disabled || undefined}
                     data-install-action={dataInstallAction}
-                    className="hidden cursor-pointer rounded-full bg-primary-action px-4 py-2 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 md:inline-flex"
+                    className={cn(
+                      "hidden cursor-pointer rounded-full bg-primary-action px-4 py-2 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 md:inline-flex",
+                      disabled && "cursor-not-allowed opacity-70"
+                    )}
                   >
                     {label}
-                  </button>
+                  </a>
 
                   {/* Mobile hamburger */}
                   <button
@@ -202,7 +209,7 @@ export const SiteHeader = () => {
                     className="flex h-10 w-10 items-center justify-center rounded-lg text-static-white/90 transition-colors hover:text-static-white md:hidden"
                     aria-label={intl.formatMessage({
                       id: "public.nav.openMenu",
-                      defaultMessage: "Open menu",
+                      defaultMessage: "Open Menu",
                     })}
                     aria-expanded={isDrawerOpen}
                     aria-controls="mobile-nav-drawer"
@@ -228,7 +235,7 @@ export const SiteHeader = () => {
                 onClick={() => setIsDrawerOpen(false)}
                 aria-label={intl.formatMessage({
                   id: "public.nav.closeMenu",
-                  defaultMessage: "Close menu",
+                  defaultMessage: "Close Menu",
                 })}
               />
 
@@ -252,7 +259,7 @@ export const SiteHeader = () => {
                     className="flex h-10 w-10 items-center justify-center rounded-lg text-text-sub-600 hover:text-text-strong-950"
                     aria-label={intl.formatMessage({
                       id: "public.nav.closeMenu",
-                      defaultMessage: "Close menu",
+                      defaultMessage: "Close Menu",
                     })}
                   >
                     <RiCloseLine className="h-6 w-6" />

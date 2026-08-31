@@ -1,68 +1,136 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 900 900" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="circular-gd-title circular-gd-desc">
-  <title id="circular-gd-title">A circular G dollar economy</title>
-  <desc id="circular-gd-desc">A clockwise Celo flow moves from the House of Alignment stream to the Green Goods protocol treasury, garden accounts, members, and a local spend sink before circulating back. Member delivery remains gated.</desc>
+  <title id="circular-gd-title">A circular G dollar economy: the pilot hypothesis</title>
+  <desc id="circular-gd-desc">Green Goods circulation diagram with three related parties. The House of Alignment supports the GG protocol pool on Celo. On the left, individual Requests: the pool asks gardeners for protocol work and pays the gardener directly. On the right, garden Requests such as events and garden surveys, which the garden claims and is paid into its own Safe, plus discretionary seeding; and Offers such as support sessions and onboarding, which the garden claims and pays for from what it earned. Along the bottom, each garden runs its own commitments and pays its own gardeners, gardeners keep the garden's promises, and gardeners spend earned G$ back with their garden. A loop under the Gardeners block records that gardeners also help each other: mutual aid is confirmed, and paid help between gardeners moves through the garden's Safe rather than wallet to wallet. Only the upstream House of Alignment relationship is confirmed; every other path is planned or evidence gated.</desc>
   <defs>
-    <marker id="circular-gd-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <marker id="circular-gd-arrow-solid" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 1 L 8 5 L 0 9 Z" fill="#988D77"/>
+    </marker>
+    <marker id="circular-gd-arrow-gated" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 Z" fill="#8A6D3B"/>
     </marker>
   </defs>
 
   <rect x="0" y="0" width="900" height="900" fill="#FBF8F2"/>
 
-  <text x="450" y="46" text-anchor="middle" font-size="29" font-weight="700" fill="#2A2722">A circular G$ economy — circulation, not extraction</text>
+  <text x="450" y="42" text-anchor="middle" font-size="29" font-weight="700" fill="#2A2722">A circular G$ economy: the pilot hypothesis</text>
+  <text x="450" y="69" text-anchor="middle" font-size="17" fill="#6E6857">G$ stays on Celo. Who is paid follows who claimed the commitment.</text>
 
-  <!-- center thesis -->
-  <text x="450" y="440" text-anchor="middle" font-size="19" font-weight="600" fill="#24422E">value circulates</text>
-  <text x="450" y="460" text-anchor="middle" font-size="19" font-weight="600" fill="#24422E">instead of draining out</text>
+  <!-- ============ arrows ============ -->
 
-  <!-- clockwise flow arrows on the orbit (r=240 around 450,455; five stations) -->
-  <g fill="none" stroke="#988D77" stroke-width="2.25" marker-end="url(#circular-gd-arrow)">
-    <path d="M 539.9 232.5 A 240 240 0 0 1 633.8 300.7"/>
-    <path d="M 689.4 471.7 A 240 240 0 0 1 653.5 582.2"/>
-    <path d="M 508.1 687.9 A 240 240 0 0 1 391.9 687.9"/>
-    <path d="M 246.5 582.2 A 240 240 0 0 1 210.6 471.7"/>
-    <!-- local spend sink closes the loop back into garden accounts -->
-    <path d="M 255 420 Q 320 580 512 642"/>
+  <!-- A · House of Alignment to GG protocol pool · confirmed upstream relationship -->
+  <path d="M 450 176 L 450 244" fill="none" stroke="#988D77" stroke-width="2.5" marker-end="url(#circular-gd-arrow-solid)"/>
+
+  <!-- L1 · individual Requests out, and the pool pays the gardener -->
+  <path d="M 300 404 C 210 460, 130 540, 112 640" fill="none" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#circular-gd-arrow-gated)"/>
+  <!-- L2 · gardeners deliver protocol work -->
+  <path d="M 248 644 C 300 560, 350 470, 368 410" fill="none" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#circular-gd-arrow-gated)"/>
+
+  <!-- R1 · garden-scoped Requests out, and the garden Safe is paid -->
+  <path d="M 600 404 C 690 460, 770 540, 788 640" fill="none" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#circular-gd-arrow-gated)"/>
+  <!-- R2 · the garden pays for Offers it claims -->
+  <path d="M 652 644 C 600 560, 550 470, 532 410" fill="none" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#circular-gd-arrow-gated)"/>
+
+  <!-- S · discretionary seeding · pool to garden accounts -->
+  <path d="M 650 330 C 760 340, 856 430, 856 640" fill="none" stroke="#8A6D3B" stroke-width="2" stroke-dasharray="4 5" marker-end="url(#circular-gd-arrow-gated)"/>
+
+  <!-- B1 · the garden pays its own gardeners -->
+  <path d="M 586 680 L 316 680" fill="none" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#circular-gd-arrow-gated)"/>
+  <!-- B2 · gardeners keep the garden's promises -->
+  <path d="M 316 720 L 586 720" fill="none" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#circular-gd-arrow-gated)"/>
+  <!-- B3 · gardeners spend earned G$ back with the garden -->
+  <path d="M 316 760 L 586 760" fill="none" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#circular-gd-arrow-gated)"/>
+  <!-- P · gardeners help each other · paid help moves through the garden's Safe -->
+  <path d="M 78 782 C 44 842, 176 842, 142 782" fill="none" stroke="#8A6D3B" stroke-width="2" stroke-dasharray="7 6" marker-end="url(#circular-gd-arrow-gated)"/>
+
+  <!-- ============ arrow labels ============ -->
+
+  <g font-size="15" fill="#6E6857" text-anchor="middle">
+    <!-- A · beside the line -->
+    <text x="474" y="203" text-anchor="start">supports the protocol</text>
+    <text x="474" y="221" text-anchor="start">pool’s G$ rail</text>
+
+    <!-- L1 -->
+    <rect x="24" y="462" width="206" height="71" rx="8" fill="#FBF8F2"/>
+    <text x="127" y="484">Individual Requests:</text>
+    <text x="127" y="502">the pool asks, and</text>
+    <text x="127" y="520">pays the gardener</text>
+
+    <!-- L2 -->
+    <rect x="238" y="556" width="176" height="53" rx="8" fill="#FBF8F2"/>
+    <text x="326" y="578">gardeners deliver</text>
+    <text x="326" y="596">protocol work</text>
+
+    <!-- R2 -->
+    <rect x="470" y="556" width="188" height="53" rx="8" fill="#FBF8F2"/>
+    <text x="564" y="578">the garden pays for</text>
+    <text x="564" y="596">Offers it claims</text>
+
+    <!-- R1 -->
+    <rect x="662" y="462" width="214" height="71" rx="8" fill="#FBF8F2"/>
+    <text x="769" y="484">Garden Requests:</text>
+    <text x="769" y="502">the garden claims and</text>
+    <text x="769" y="520">its own Safe is paid</text>
+
+    <!-- S · seeding -->
+    <rect x="712" y="378" width="176" height="35" rx="8" fill="#FBF8F2"/>
+    <text x="800" y="400" font-size="14">plus discretionary seeding</text>
+
+    <!-- bottom edge -->
+    <text x="451" y="666" font-size="14">the garden pays its own gardeners</text>
+    <text x="451" y="706" font-size="14">gardeners keep the garden’s promises</text>
+    <text x="451" y="746" font-size="14">gardeners spend G$ with the garden</text>
+
+    <!-- peer loop -->
+    <text x="110" y="856" font-size="13">gardeners help each other;</text>
+    <text x="110" y="872" font-size="13">paid help moves through</text>
+    <text x="110" y="888" font-size="13">the garden’s Safe</text>
   </g>
 
-  <!-- House of Alignment stream · top -->
+  <!-- ============ blocks ============ -->
+
+  <!-- 1 · House of Alignment -->
   <g>
-    <rect x="365" y="185" width="170" height="60" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
-    <text x="450" y="210" text-anchor="middle" font-size="19" font-weight="600" fill="#3B372E">House of Alignment</text>
-    <text x="450" y="228" text-anchor="middle" font-size="19" font-weight="600" fill="#3B372E">stream (Celo)</text>
+    <rect x="310" y="94" width="280" height="82" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <text x="450" y="129" text-anchor="middle" font-size="21" font-weight="600" fill="#3B372E">House of Alignment</text>
+    <text x="450" y="154" text-anchor="middle" font-size="16" fill="#6E6857">G$ support stream on Celo</text>
   </g>
-  <!-- note on the arrow into the protocol treasury -->
-  <text x="632" y="252" text-anchor="middle" font-size="15" fill="#6E6857">streams directly —</text>
-  <text x="632" y="266" text-anchor="middle" font-size="15" fill="#6E6857">upstream fact</text>
 
-  <!-- Green Goods protocol treasury · upper right -->
+  <!-- 2 · GG protocol pool -->
   <g>
-    <rect x="578" y="357" width="200" height="48" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
-    <text x="678" y="386" text-anchor="middle" font-size="19" font-weight="600" fill="#3B372E">GG protocol treasury</text>
+    <rect x="250" y="252" width="400" height="152" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <text x="450" y="292" text-anchor="middle" font-size="21" font-weight="600" fill="#3B372E">GG protocol pool</text>
+    <text x="450" y="319" text-anchor="middle" font-size="16" fill="#6E6857">Requests and Offers live here</text>
+    <path d="M 300 338 L 600 338" stroke="#988D77" stroke-opacity="0.35" stroke-width="1"/>
+    <text x="450" y="361" text-anchor="middle" font-size="14" fill="#6E6857">value stays on the separate Celo rail</text>
+    <text x="450" y="381" text-anchor="middle" font-size="14" fill="#6E6857">the pool coordinates, and never holds it</text>
   </g>
 
-  <!-- garden accounts · lower right -->
+  <!-- 3 · Gardeners -->
   <g>
-    <rect x="501" y="625" width="180" height="48" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
-    <text x="591" y="654" text-anchor="middle" font-size="18" font-weight="600" fill="#3B372E">garden accounts</text>
+    <rect x="20" y="644" width="296" height="136" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <text x="168" y="684" text-anchor="middle" font-size="21" font-weight="600" fill="#3B372E">Gardeners</text>
+    <text x="168" y="711" text-anchor="middle" font-size="15" fill="#6E6857">claim individual work</text>
+    <text x="168" y="731" text-anchor="middle" font-size="15" fill="#6E6857">and are paid into</text>
+    <text x="168" y="751" text-anchor="middle" font-size="15" fill="#6E6857">their own account</text>
   </g>
 
-  <!-- members · lower left -->
+  <!-- 4 · Garden accounts -->
   <g>
-    <rect x="254" y="625" width="110" height="48" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
-    <text x="309" y="654" text-anchor="middle" font-size="19" font-weight="600" fill="#3B372E">members</text>
-  </g>
-  <!-- note on the arrow into members -->
-  <text x="450" y="728" text-anchor="middle" font-size="15" fill="#6E6857">sponsored-account</text>
-  <text x="450" y="742" text-anchor="middle" font-size="15" fill="#6E6857">gate applies</text>
-
-  <!-- local spend sink · upper left -->
-  <g>
-    <rect x="92" y="345" width="260" height="72" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
-    <text x="222" y="369" text-anchor="middle" font-size="19" font-weight="600" fill="#3B372E">local spend sink</text>
-    <text x="222" y="387" text-anchor="middle" font-size="16" fill="#6E6857">circulation aim &amp; rollout-ordering</text>
-    <text x="222" y="401" text-anchor="middle" font-size="16" fill="#6E6857">criterion — not a launch gate</text>
+    <rect x="586" y="644" width="296" height="136" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <text x="734" y="684" text-anchor="middle" font-size="21" font-weight="600" fill="#3B372E">Garden accounts</text>
+    <text x="734" y="711" text-anchor="middle" font-size="15" fill="#6E6857">claim garden-scoped work</text>
+    <text x="734" y="731" text-anchor="middle" font-size="15" fill="#6E6857">and are paid into the</text>
+    <text x="734" y="751" text-anchor="middle" font-size="15" fill="#6E6857">garden’s own Safe</text>
   </g>
 
-  <text x="450" y="868" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1.1 (2026-07)</text>
+  <!-- ============ legend ============ -->
+  <g font-size="16" fill="#2A2722">
+    <path d="M 250 812 L 282 812" fill="none" stroke="#988D77" stroke-width="2.5" marker-end="url(#circular-gd-arrow-solid)"/>
+    <text x="298" y="817">Solid: confirmed upstream funding relationship</text>
+
+    <path d="M 250 840 L 282 840" fill="none" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#circular-gd-arrow-gated)"/>
+    <text x="298" y="845">Dashed: planned or evidence gated</text>
+  </g>
+
+  <text x="450" y="880" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling · v1 (2026-08)</text>
 </svg>

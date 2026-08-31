@@ -177,8 +177,8 @@ const meta = {
   tags: ["autodocs", "storybook-ci"],
   parameters: {
     layout: "fullscreen",
-    viewport: { defaultViewport: "mobile1" },
   },
+  globals: { viewport: { value: "mobile" } },
   decorators: [withInstalledPwa(), withClientAppRuntime],
 } satisfies Meta<typeof HeroMomentsCatalog>;
 

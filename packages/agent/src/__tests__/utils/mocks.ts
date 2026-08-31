@@ -1,4 +1,4 @@
-import type { Address } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
 import { vi } from "vitest";
 
 // Logger mock that tracks calls for assertions

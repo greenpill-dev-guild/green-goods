@@ -85,6 +85,8 @@ fi
 
 cd "$CONTRACTS_DIR"
 
+bun run check:foundry-version || fail "Foundry version does not match the repository pin"
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Phase 1: Full Compilation
 # ═══════════════════════════════════════════════════════════════════════════════

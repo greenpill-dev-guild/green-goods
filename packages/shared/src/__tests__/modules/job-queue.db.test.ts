@@ -67,4 +67,28 @@ describe("modules/job-queue/db", () => {
     const after = await jobQueueDB.getJob(id);
     expect(after).toBeUndefined();
   });
+
+  it("does not count a retained synced job as failed", async () => {
+    const id = await jobQueueDB.addJob({
+      kind: "approval",
+      payload: {},
+      meta: { chainId: 11155111 },
+      chainId: 11155111,
+      userAddress: TEST_USER_ADDRESS,
+    } as Parameters<typeof jobQueueDB.addJob>[0]);
+
+    await jobQueueDB.markJobFailed(id, "temporary network failure");
+    await jobQueueDB.markJobSynced(id, "0xcompleted");
+
+    const retained = await jobQueueDB.getJob(id);
+    expect(retained?.synced).toBe(true);
+    expect(retained?.lastError).toBeUndefined();
+    await expect(jobQueueDB.getStats(TEST_USER_ADDRESS)).resolves.toMatchObject({
+      pending: 0,
+      failed: 0,
+      synced: 1,
+    });
+
+    await jobQueueDB.deleteJob(id);
+  });
 });

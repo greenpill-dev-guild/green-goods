@@ -1,28 +1,26 @@
+import { Alert } from "@green-goods/shared/components/Alert";
+import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import { AssetSelector } from "@green-goods/shared/components/Vault/AssetSelector";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useDebouncedValue } from "@green-goods/shared/hooks/utils/useDebouncedValue";
+import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
+import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposits";
+import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
+import { useVaultWithdraw } from "@green-goods/shared/hooks/vault/useVaultWithdraw";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { GardenVault } from "@green-goods/shared/types/vaults";
 import {
-  type Address,
-  Alert,
-  AssetSelector,
-  Button,
-  FormField,
   formatTokenAmount,
-  type GardenVault,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
-  TextInput,
-  TxInlineFeedback,
-  useDebouncedValue,
-  useTxErrorMessages,
-  useUser,
-  useVaultDeposits,
-  useVaultPreview,
-  useVaultWithdraw,
   validateDecimalInput,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/blockchain/vaults";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog, type AdminDialogProps } from "@/components/AdminDialog";
+import { AdminTextField } from "@/components/AdminTextField";
 
 interface WithdrawModalProps {
   isOpen: boolean;
@@ -189,18 +187,18 @@ export function WithdrawModal({
           <Alert
             variant="error"
             action={
-              <button
-                type="button"
+              <AdminButton
+                variant="danger"
+                size="sm"
                 onClick={() => {
                   void refetchDeposits();
                 }}
                 disabled={depositsFetching}
-                className="rounded-md border border-error-light px-2 py-1 text-xs font-medium text-error-dark hover:bg-error-lighter disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {depositsFetching
                   ? formatMessage({ id: "app.common.refreshing" })
                   : formatMessage({ id: "app.common.tryAgain" })}
-              </button>
+              </AdminButton>
             }
           >
             {depositsQueryError instanceof Error
@@ -225,35 +223,27 @@ export function WithdrawModal({
           </p>
         </div>
 
-        <FormField
-          label={formatMessage({ id: "app.treasury.withdrawAmount" })}
-          htmlFor="withdraw-amount"
-          error={amountError ? formatMessage({ id: amountError }) : undefined}
-        >
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <TextInput
-              surface="admin"
-              id="withdraw-amount"
-              type="text"
-              inputMode="decimal"
-              value={amountInput}
-              onChange={(event) => setAmountInput(event.target.value)}
-              placeholder={`0.0 ${assetSymbol}`}
-              aria-required="true"
-              aria-invalid={Boolean(amountError)}
-              invalid={Boolean(amountError)}
-              className="min-w-0 flex-1"
-            />
-            <Button
-              variant="secondary"
-              size="sm"
-              className="w-full sm:w-auto"
-              onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
-            >
-              {formatMessage({ id: "app.treasury.max" })}
-            </Button>
-          </div>
-        </FormField>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+          <AdminTextField
+            id="withdraw-amount"
+            className="min-w-0 flex-1"
+            label={formatMessage({ id: "app.treasury.withdrawAmount" })}
+            required
+            value={amountInput}
+            onChange={(event) => setAmountInput(event.target.value)}
+            placeholder={`0.0 ${assetSymbol}`}
+            error={amountError ? formatMessage({ id: amountError }) : undefined}
+            inputProps={{ inputMode: "decimal" }}
+          />
+          <AdminButton
+            variant="outlined"
+            size="sm"
+            className="w-full sm:mt-2 sm:w-auto"
+            onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
+          >
+            {formatMessage({ id: "app.treasury.max" })}
+          </AdminButton>
+        </div>
 
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
           <p>

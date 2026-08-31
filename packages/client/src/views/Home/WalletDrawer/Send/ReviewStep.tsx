@@ -1,4 +1,6 @@
-import { Alert, formatTokenAmount, type SendableTokenBalance } from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import type { SendableTokenBalance } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
 import { RiPencilLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import type { SelectedRecipient } from "./types";
@@ -112,10 +114,7 @@ export function ReviewStep({
       </div>
 
       {token.confersGovernance ? (
-        <Alert
-          variant="information"
-          title={formatMessage({ id: "app.send.governance.reviewTitle" })}
-        >
+        <Alert variant="info" title={formatMessage({ id: "app.send.governance.reviewTitle" })}>
           {formatMessage({ id: "app.send.governance.reviewBody" })}
         </Alert>
       ) : null}

@@ -1,4 +1,4 @@
-# Green Goods Contracts — Architecture Guide
+# Contracts Package — Agent Guide
 
 The contracts package contains Solidity smart contracts for the Green Goods protocol, built with Foundry.
 
@@ -8,6 +8,13 @@ The contracts package contains Solidity smart contracts for the Green Goods prot
 - `bun run test`
 - `bun run lint`
 - `bun run test:audit:full`
+
+## Validation
+
+- QA Speed Mode: run `bun run test:match -- test/<path>.t.sol`; add `bun run build:target -- src/<path>.sol` when the compiled contract surface moves.
+- Package loop: `bun run test`.
+- Conditional proof: storage, size, fork, script, release, and deployment checks come from the root selector and must all pass when selected.
+- Broader impact: run the root Repo Quick Gate when ABI or deployment artifacts change downstream consumers.
 
 ## Deployment Script Defaults
 
@@ -27,32 +34,30 @@ The contracts package contains Solidity smart contracts for the Green Goods prot
 
 ## Architecture Overview
 
+Current high-change systems are `src/modules/CommitmentPooling.sol`,
+`src/modules/SettlementModule.sol`, `src/registries/Credit.sol`, and
+`src/registries/Deployment.sol`. Treat this map as routing, not a frozen file inventory.
+
 ```
 src/
-├── accounts/            # Token-bound accounts
-│   └── Garden.sol      # Garden account (TBA)
-├── modules/             # Integration modules (fan-out pattern)
-│   ├── Octant.sol      # Yield vault creation
-│   ├── Unlock.sol      # Work badges
-│   └── Hats.sol        # Role management
-├── registries/          # Protocol registries
-│   ├── Action.sol      # Action registry
-│   └── ENS.sol         # ENS subdomain registration (CCIP)
-├── resolvers/           # EAS schema resolvers
-│   ├── Assessment.sol  # Assessment attestations
-│   ├── Work.sol        # Work submission attestations
-│   └── WorkApproval.sol # Work approval attestations
-├── tokens/              # Token contracts
-│   └── Garden.sol      # Garden NFT (ERC721)
-├── lib/                 # Shared libraries
-│   ├── EAS.sol
-│   ├── Karma.sol
-│   ├── StringUtils.sol
-│   └── TBA.sol
-├── interfaces/          # Contract interfaces
-├── mocks/               # Test mocks
-├── DeploymentRegistry.sol # Deployment tracking
-└── Schemas.sol          # EAS schema definitions
+├── accounts/                # Garden accounts, action routing, and Celo relay/coordinator
+├── modules/                 # Integrations plus pooling and settlement control planes
+│   ├── CommitmentPooling.sol
+│   ├── SettlementModule.sol
+│   └── CeloSettlementExecutor.sol
+├── registries/              # Action, commitment, credit, deployment, ENS, power, GreenWill
+│   ├── Commitment.sol
+│   ├── Credit.sol
+│   └── Deployment.sol
+├── resolvers/               # EAS assessment, testimony, work, approval, and yield resolvers
+├── lib/                     # Shared libraries, including pooling and settlement behavior
+├── libraries/               # Garden account and settlement codecs/execution helpers
+├── markets/                 # Marketplace adapters
+├── strategies/              # Yield strategies
+├── tokens/                  # Garden and Goods tokens
+├── interfaces/              # Contract interfaces
+├── mocks/                   # Test mocks
+└── Schemas.sol              # EAS schema definitions
 ```
 
 ## Design Principles for Solidity
@@ -163,7 +168,7 @@ function mint(address to) { ... }  // Defaults to public!
 
 ```solidity
 // ✅ Multi-sig + Timelock for admin actions
-// - Gnosis Safe (3-of-5 signers minimum)
+// - Gnosis Safe (at least a 2-signature threshold)
 // - Timelock delay (48h for mainnet, 24h for testnet)
 // - Emergency pause with separate guardian
 
@@ -206,7 +211,7 @@ uint256 result = a.add(b);
 **Use random inputs to find edge cases:**
 
 ```solidity
-function testFuzz_mintGarden(address to, string calldata uri) public {
+function testFuzz_GardenToken_mintsForValidRecipient(address to, string calldata uri) public {
     vm.assume(to != address(0));
     vm.assume(bytes(uri).length > 0);
 
@@ -325,7 +330,7 @@ Process attestations for the Ethereum Attestation Service:
 
 **Location:** `src/resolvers/`
 
-### DeploymentRegistry
+### Deployment Registry
 
 Tracks contract deployments across networks.
 
@@ -334,7 +339,7 @@ Tracks contract deployments across networks.
 - Address registry
 - Ownership management
 
-**Location:** `src/DeploymentRegistry.sol`
+**Location:** `src/registries/Deployment.sol`
 
 ## Deployment
 
@@ -352,7 +357,7 @@ bun script/deploy.ts core --network sepolia --broadcast
 # Register an approved new schema through its standalone deploy path.
 # Bulk --update-schemas remains prohibited.
 
-# Or use npm scripts
+# Or use package scripts
 bun deploy:testnet     # Sepolia
 bun deploy:mainnet     # Production
 ```
@@ -399,8 +404,8 @@ deployments/
 ### Pre-Flight Checks
 
 ```bash
-bun run test                                              # >= 80% pass (testnet), 100% (mainnet)
-bun build                                                 # Clean compilation, no errors
+bun run test                                              # all selected tests pass
+bun run build                                             # Clean compilation, no errors
 bun script/deploy.ts core --network sepolia               # Dry run (omit --broadcast)
 ```
 
@@ -428,7 +433,7 @@ For new contract work, deployment artifacts move through phases:
 
 ### Pre-Broadcast Red Flags (Block Broadcast)
 
-- Test pass rate < 80% (testnet) or < 100% (mainnet)
+- Any required selected test fails
 - Compiler errors or warnings
 - Missing deploy command or unsafe dry-run for the target module
 - Bad required network config, manager defaults, or deployer wallet inputs
@@ -443,20 +448,36 @@ For new contract work, deployment artifacts move through phases:
 - Indexer config still points at a zero or stale address for newly deployed indexed contracts
 - Generated ABI/config artifacts were not refreshed after deployment metadata changed
 
-### Mainnet Additional Requirements (All Blocking)
+### Mainnet Requirements by Activation Risk
 
-- External security audit completed — no unresolved critical/high findings
-- Protocol UUPS/admin ownership configured on a Gnosis Safe with a 3-of-5 minimum. This
-  rule governs protocol upgrade and administrative authority; it is not the threshold for
-  a garden's bounded operational settlement Safe.
-- A per-garden Celo settlement Safe may use the Commitment Pooling pilot's exact 2-of-3
-  recovery exception only when all three named owner roles, the scoped Roles/Allowance
-  selectors and caps, owner/executor separation, the recovery configuration hash, and live
-  post-deploy verification satisfy `settlement-spec.md`. The exception grants no protocol
-  upgrade authority and does not weaken the 3-of-5 protocol rule.
-- Timelock delay: 48h mainnet, 24h testnet
-- Minimum 2 weeks testnet operation before mainnet
-- Rollback procedures documented and tested
+Every mainnet boundary requires 100% passing required tests, explicit human release authorization,
+no unresolved critical/high finding under the recorded review disposition, persisted receipts and
+post-state verification, and documented/tested rollback. Beyond that common floor, apply the
+highest tier reached by the boundary:
+
+1. **Paused deployment only** — contracts remain paused, temporary authority is recorded, and no
+   peer, role, allowance, custody, transfer, or value-moving capability is enabled. Safe ownership,
+   timelock, and soak may remain later activation gates when the active release handoff records
+   them as blocked and the verifier proves the paused/no-authority endpoint.
+2. **Coordination-only activation** — the activated contract is non-custodial and its records are
+   non-transferable; every value-bearing dependency remains paused or disabled. A temporary owner
+   may remain only when the accountable release owner explicitly accepts that bounded risk in the
+   active handoff, the exact owner and rollback owner are verified, emergency pause remains
+   available, and the selected committed-range security review has no unresolved critical/high
+   finding. Any later custody, transferability, peer wiring, allowance, or value authority moves
+   the boundary to tier 3 before it is enabled.
+3. **Value-bearing or protocol-authority activation** — protocol UUPS/admin ownership must be on a
+   Gnosis Safe with a threshold of at least 2. Owner membership is operationally managed and does
+   not block the release; the verifier reads only the live threshold. External audit, timelock
+   (48h mainnet, 24h testnet), and minimum
+   two-week testnet operation are blocking defaults. A human release owner may replace or waive
+   one of those defaults only through an explicit, dated, release-scoped disposition that names
+   the substitute evidence; no agent, passing test, or deployment artifact grants that waiver.
+
+A per-garden Celo settlement Safe is always tier 3. It uses the Commitment Pooling pilot's exact
+2-of-3 recovery policy only when all three named owner roles, scoped Roles/Allowance selectors and
+caps, owner/executor separation, recovery configuration hash, and live post-deploy verification
+satisfy `settlement-spec.md`. It grants no protocol upgrade authority.
 
 ---
 
@@ -504,16 +525,22 @@ test/
 ```solidity
 // Pattern: test[ContractName]_[scenario]
 function testGardenToken_mintsNewGarden() public {}
-function testGardenToken_revertsOnUnauthorizedMint() public {}
+function testGardenToken_revertsWhenCallerUnauthorized() public {}
 
-// Categories: test_, testRevert_, testFuzz_, testIntegration_, testUpgrade_
+// Categories: test[Contract]_, testFuzz_[Contract]_, testIntegration_[Contract]_,
+//             testUpgrade_[Contract]_, testE2E_[Contract]_, invariant_[Contract]_
 ```
 
-### Coverage Targets
+Describe expected reverts in the scenario (`revertsWhen...`); do not create a separate
+`testRevert_` category. This convention is diff-aware: existing legacy names are grandfathered, but
+every newly added or renamed test must use a canonical category. Rename a legacy test when its
+behavior is materially edited; do not churn unrelated tests solely for naming cleanup.
 
-- **Testnet:** 80% pass rate acceptable
-- **Mainnet:** 100% tests must pass
-- **Critical paths:** Storage gaps, access control, attestation validation
+### Evidence Expectations
+
+All selected tests must pass on testnet and mainnet paths. Coverage measures execution but never
+turns known failures into acceptable evidence. Storage gaps, access control, attestation validation,
+upgrade safety, and value-moving paths require their selector-chosen critical proof.
 
 ## Critical Rules
 

@@ -1,7 +1,7 @@
 import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 import { getEASConfig } from "../../config/blockchain";
 import { trackUploadBatchProgress, trackUploadError } from "../../modules/app/error-tracking";
-import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs";
+import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs/upload";
 import type { Domain, WorkApprovalDraft, WorkDraft, WorkMetadata } from "../../types/domain";
 
 /**
@@ -113,6 +113,8 @@ export function simulateWorkData(data: WorkDraft, chainId: number | string) {
  * Options for work data encoding
  */
 export interface EncodeWorkDataOptions {
+  /** Stable submission identity. New submissions always supply it. */
+  clientWorkId?: string;
   /** Garden address for tracking context */
   gardenAddress?: string;
   /** Auth mode for tracking context */
@@ -121,8 +123,8 @@ export interface EncodeWorkDataOptions {
   onFileProgress?: (progress: { completed: number; total: number; fileIndex: number }) => void;
   /** Batch ID for correlating upload events with submission errors */
   uploadBatchId?: string;
-  /** Domain for v2 metadata */
-  domain?: Domain;
+  /** Domain for v2 metadata; null (unknown domain) falls back to legacy v1 metadata rather than fabricating a domain */
+  domain?: Domain | null;
   /** Action slug for v2 metadata */
   actionSlug?: string;
 }
@@ -340,7 +342,8 @@ export async function encodeWorkData(
 
   // Upload metadata JSON (v2 if domain/slug provided, legacy otherwise)
   try {
-    const isV2 = options.domain !== undefined && options.actionSlug !== undefined;
+    const isV2 =
+      options.domain !== null && options.domain !== undefined && options.actionSlug !== undefined;
 
     const metadataPayload: WorkMetadata | Record<string, unknown> = isV2
       ? {
@@ -352,8 +355,8 @@ export async function encodeWorkData(
           ...(data.tags && data.tags.length > 0 ? { tags: data.tags } : {}),
           ...(audioNoteCids.length > 0 ? { audioNoteCids } : {}),
           clientWorkId:
-            ((data as unknown as Record<string, unknown>).clientWorkId as string) ||
-            crypto.randomUUID(),
+            options.clientWorkId ??
+            ((data as unknown as Record<string, unknown>).clientWorkId as string),
           submittedAt: new Date().toISOString(),
         }
       : {
@@ -362,6 +365,7 @@ export async function encodeWorkData(
           timeSpentMinutes: data.timeSpentMinutes,
           ...(data.tags && data.tags.length > 0 ? { tags: data.tags } : {}),
           ...(audioNoteCids.length > 0 ? { audioNoteCids } : {}),
+          ...(options.clientWorkId ? { clientWorkId: options.clientWorkId } : {}),
         };
 
     const metadata = await uploadJSONToIPFS(metadataPayload as Record<string, unknown>, {

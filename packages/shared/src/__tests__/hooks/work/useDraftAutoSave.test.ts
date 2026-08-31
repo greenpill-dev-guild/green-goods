@@ -21,6 +21,7 @@ import { createMockFile, MOCK_ADDRESSES } from "../../test-utils/mock-factories"
 const mockCreateDraft = vi.fn();
 const mockUpdateDraft = vi.fn();
 const mockSetImages = vi.fn();
+const mockRequestPersistentStorageOnce = vi.hoisted(() => vi.fn());
 let mockActiveDraftId: string | null = null;
 
 vi.mock("../../../hooks/work/useDrafts", () => ({
@@ -69,6 +70,10 @@ vi.mock("../../../modules/job-queue/draft-db", () => ({
     setImagesForDraft: vi.fn(),
   },
   computeFirstIncompleteStep: vi.fn(() => "intro"),
+}));
+
+vi.mock("../../../utils/storage/quota", () => ({
+  requestPersistentStorageOnce: mockRequestPersistentStorageOnce,
 }));
 
 import { useDraftAutoSave } from "../../../hooks/work/useDraftAutoSave";
@@ -179,6 +184,7 @@ describe("useDraftAutoSave", () => {
       expect(savedId!).toBeNull();
       expect(mockCreateDraft).not.toHaveBeenCalled();
       expect(mockUpdateDraft).not.toHaveBeenCalled();
+      expect(mockRequestPersistentStorageOnce).not.toHaveBeenCalled();
     });
 
     it("creates a new draft when no active draft and there is progress", async () => {
@@ -200,6 +206,7 @@ describe("useDraftAutoSave", () => {
         draftId: "new-draft-id",
         files: images,
       });
+      expect(mockRequestPersistentStorageOnce).toHaveBeenCalledWith("work-draft");
     });
 
     it("updates existing draft when active draft exists", async () => {

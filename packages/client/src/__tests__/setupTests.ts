@@ -9,10 +9,6 @@ import { vi } from "vitest";
 
 // Import base setup from shared (includes common mocks)
 import "@green-goods/shared/__tests__/setupTests.base";
-import { setupTestEnvironment } from "@green-goods/shared/__tests__/setupTests.base";
-
-// Call the setup function to ensure proper cleanup between tests
-setupTestEnvironment();
 
 // Client-specific: Ensure diagnostics_channel polyfill for pino
 const ensureDiagnosticsChannel = () => {
@@ -47,8 +43,8 @@ vi.mock("@reown/appkit", () => ({
 
 // JSDOM does not implement scrollTo, but several client views call it during
 // interaction flows. Stub it once here so package-wide test runs stay quiet.
-window.scrollTo = vi.fn();
+if (typeof window !== "undefined") window.scrollTo = vi.fn();
 
 // JSDOM likewise does not implement scrollIntoView; the public endowment panel
 // nudges a freshly expanded withdrawal row into view. Stub it on the prototype.
-window.HTMLElement.prototype.scrollIntoView = vi.fn();
+if (typeof window !== "undefined") window.HTMLElement.prototype.scrollIntoView = vi.fn();

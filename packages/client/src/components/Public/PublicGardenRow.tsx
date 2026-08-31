@@ -1,14 +1,14 @@
-import {
-  formatRelativeTime,
-  formatTokenAmount,
-  type PublicGardenSummary,
-  type PublicGardenVaultSummary,
-  type PublicVaultSummaryAsset,
-} from "@green-goods/shared";
-import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts";
+import { formatRelativeTime } from "@green-goods/shared/utils/relativeTime";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
+import type {
+  PublicGardenVaultSummary,
+  PublicVaultSummaryAsset,
+} from "@green-goods/shared/hooks/public/usePublicVaultSummary";
+import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts/core";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { ImageWithFallback } from "@/components/Display";
+import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
 import { EditorialGhostButton, EditorialKicker, EditorialPrimaryButton } from "./atoms";
 import { GardenCoverFallback } from "./GardenCoverFallback";
 
@@ -21,14 +21,14 @@ export interface PublicGardenRowProps {
 /**
  * Aggregate garden's people count. `contributorCount` from the indexer is
  * unique addresses across Work attestations (gardeners who submitted work).
- * Operators are also gardeners (per product semantics) but may not have
+ * Stewards are also gardeners (per product semantics) but may not have
  * submitted any work. Without the unique-address sets in scope, `max(...)`
  * is the safe approximation: when work exists, contributorCount typically
- * subsumes operators (operators submit work too); when work is sparse,
- * operators reflects who's involved.
+ * subsumes stewards (stewards submit work too); when work is sparse,
+ * stewards reflects who's involved.
  */
 function aggregateGardenerCount(garden: PublicGardenSummary): number {
-  return Math.max(garden.contributorCount, garden.operators.length);
+  return Math.max(garden.contributorCount, garden.stewards.length);
 }
 
 /**
@@ -100,7 +100,7 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
           <ImageWithFallback
             src={garden.bannerImage}
             alt=""
-            className="h-full w-full object-cover transition-transform group-hover:scale-[1.03]"
+            className="h-full w-full object-cover"
             backgroundFallback={
               <GardenCoverFallback
                 name={garden.name}

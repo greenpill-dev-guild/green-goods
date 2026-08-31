@@ -10,10 +10,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
+import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock modules
 const mockUseUser = vi.fn();
+const queueProcessJob = vi.fn();
 
 vi.mock("../../hooks/auth/useUser", () => ({
   useUser: () => mockUseUser(),
@@ -25,12 +27,6 @@ vi.mock("../../modules/work/wallet-submission", () => ({
 
 vi.mock("../../modules/work/work-submission", () => ({
   submitApprovalToQueue: vi.fn(),
-}));
-
-vi.mock("../../modules/job-queue", () => ({
-  jobQueue: {
-    processJob: vi.fn(),
-  },
 }));
 
 vi.mock("../../components/toast", () => ({
@@ -45,10 +41,15 @@ vi.mock("../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
+vi.mock("../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 vi.mock("../../modules/app/analytics-events", () => ({
   trackWorkApprovalStarted: vi.fn(),
   trackWorkApprovalSuccess: vi.fn(),
   trackWorkApprovalFailed: vi.fn(),
+  trackWorkApprovalLifecycle: vi.fn(),
   trackWorkRejectionSuccess: vi.fn(),
 }));
 
@@ -71,12 +72,9 @@ vi.mock("../../utils/debug", () => ({
 }));
 
 // Mock useTransactionSender to avoid wagmi provider dependency
-const mockSender = {
-  sendContractCall: vi.fn().mockResolvedValue({ hash: "0xabc123", sponsored: true }),
-  supportsSponsorship: true,
-  supportsBatching: false,
-  authMode: "passkey" as const,
-};
+const mockSender = createMockTransactionSender({
+  result: { hash: "0xabc123", sponsored: true },
+});
 
 vi.mock("../../hooks/blockchain/useTransactionSender", () => ({
   useTransactionSender: vi.fn(() => mockSender),
@@ -85,23 +83,37 @@ vi.mock("../../hooks/blockchain/useTransactionSender", () => ({
 import { toastService } from "../../components/toast";
 import { queryKeys } from "../../config/query-keys";
 import { useWorkApproval } from "../../hooks/work/useWorkApproval";
-import { jobQueue } from "../../modules/job-queue";
+import en from "../../i18n/en.json";
+import {
+  trackWorkApprovalFailed,
+  trackWorkApprovalLifecycle,
+} from "../../modules/app/analytics-events";
 import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
 import { submitApprovalToQueue } from "../../modules/work/work-submission";
 import { Confidence, VerificationMethod } from "../../types/domain";
 import {
   createMockWork,
   createMockWorkApprovalDraft,
+  createMockTransactionSender,
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
 } from "../test-utils";
+
+const MOCK_CONFIRMED_APPROVAL_RESULT = {
+  hash: MOCK_TX_HASH,
+  confirmed: true,
+};
 
 describe("hooks/work/useWorkApproval", () => {
   let queryClient: QueryClient;
 
   const createWrapper = () => {
     return ({ children }: { children: ReactNode }) =>
-      createElement(QueryClientProvider, { client: queryClient }, children);
+      createElement(
+        IntlProvider,
+        { locale: "en", messages: en },
+        createElement(QueryClientProvider, { client: queryClient }, children)
+      );
   };
 
   beforeEach(() => {
@@ -112,6 +124,7 @@ describe("hooks/work/useWorkApproval", () => {
       },
     });
     vi.clearAllMocks();
+    localStorage.clear();
 
     // Default: online
     Object.defineProperty(navigator, "onLine", {
@@ -129,15 +142,70 @@ describe("hooks/work/useWorkApproval", () => {
 
   afterEach(() => {
     queryClient.clear();
+    vi.restoreAllMocks();
   });
 
   describe("Wallet mode", () => {
-    it("calls submitApprovalDirectly for wallet users", async () => {
-      (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
+    it("does not install a leave-page warning during an intentional wallet handoff", async () => {
+      let releaseSubmission: (() => void) | undefined;
+      (submitApprovalDirectly as any).mockImplementation(async () => {
+        await new Promise<void>((resolve) => {
+          releaseSubmission = resolve;
+        });
+        return MOCK_CONFIRMED_APPROVAL_RESULT;
+      });
+      const addEventListenerSpy = vi.spyOn(window, "addEventListener");
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
 
-      const { result } = renderHook(() => useWorkApproval(), {
+      let approvalPromise!: ReturnType<typeof result.current.mutateAsync>;
+      act(() => {
+        approvalPromise = result.current.mutateAsync({
+          draft: createMockWorkApprovalDraft({ approved: true }),
+          work: createMockWork(),
+        });
+      });
+
+      await waitFor(() => expect(submitApprovalDirectly).toHaveBeenCalled());
+      const beforeUnloadCalls = addEventListenerSpy.mock.calls.filter(
+        ([eventName]) => eventName === "beforeunload"
+      ).length;
+
+      await act(async () => {
+        releaseSubmission?.();
+        await approvalPromise;
+      });
+      expect(beforeUnloadCalls).toBe(0);
+    });
+
+    it("invokes the shared completion callback after direct wallet confirmation", async () => {
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
+      const onApprovalComplete = vi.fn();
+      const { result } = renderHook(() => useWorkApproval({ onApprovalComplete } as any), {
         wrapper: createWrapper(),
       });
+      const work = createMockWork();
+      const draft = createMockWorkApprovalDraft({ approved: true, workUID: work.id });
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      expect(onApprovalComplete).toHaveBeenCalledWith({
+        approved: true,
+        gardenId: work.gardenAddress,
+        workUID: work.id,
+      });
+    });
+
+    it("calls submitApprovalDirectly for wallet users", async () => {
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
+
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        {
+          wrapper: createWrapper(),
+        }
+      );
 
       const work = createMockWork();
       const draft = createMockWorkApprovalDraft({ approved: true });
@@ -150,13 +218,303 @@ describe("hooks/work/useWorkApproval", () => {
         draft,
         work.gardenAddress,
         work.gardenerAddress,
-        11155111
+        11155111,
+        expect.objectContaining({ onLifecycle: expect.any(Function) })
       );
       expect(submitApprovalToQueue).not.toHaveBeenCalled();
     });
 
+    it("does not mutate cached wallet work until the transaction confirms", async () => {
+      let releaseSubmission: (() => void) | undefined;
+      (submitApprovalDirectly as any).mockImplementation(async () => {
+        await new Promise<void>((resolve) => {
+          releaseSubmission = resolve;
+        });
+        return MOCK_CONFIRMED_APPROVAL_RESULT;
+      });
+
+      const work = createMockWork({ status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: false,
+      });
+      const workQueryKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      queryClient.setQueryData(workQueryKey, [work]);
+
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        {
+          wrapper: createWrapper(),
+        }
+      );
+
+      let approvalPromise!: ReturnType<typeof result.current.mutateAsync>;
+      act(() => {
+        approvalPromise = result.current.mutateAsync({ draft, work });
+      });
+
+      await waitFor(() => {
+        expect(submitApprovalDirectly).toHaveBeenCalled();
+      });
+
+      expect(queryClient.getQueryData(workQueryKey)).toEqual([work]);
+
+      await act(async () => {
+        releaseSubmission?.();
+        await approvalPromise;
+      });
+
+      expect(queryClient.getQueryData<Array<{ status: string }>>(workQueryKey)?.[0]?.status).toBe(
+        "rejected"
+      );
+    });
+
+    it("does not roll the visible work collection back when approval cancels an active refetch", async () => {
+      let releaseSubmission: (() => void) | undefined;
+      (submitApprovalDirectly as any).mockImplementation(async () => {
+        await new Promise<void>((resolve) => {
+          releaseSubmission = resolve;
+        });
+        return MOCK_CONFIRMED_APPROVAL_RESULT;
+      });
+
+      const work = createMockWork({ id: "work-reviewed", status: "pending" });
+      const unrelatedWork = createMockWork({ id: "work-unrelated", status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: false,
+      });
+      const workQueryKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      const cancelQueriesSpy = vi.spyOn(queryClient, "cancelQueries");
+
+      queryClient.setQueryData(workQueryKey, []);
+      const activeRefetch = queryClient.fetchQuery({
+        queryKey: workQueryKey,
+        queryFn: () => new Promise<never>(() => {}),
+      });
+      void activeRefetch.catch(() => {});
+      await waitFor(() =>
+        expect(queryClient.getQueryState(workQueryKey)?.fetchStatus).toBe("fetching")
+      );
+
+      queryClient.setQueryData(workQueryKey, [work, unrelatedWork]);
+
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+      let approvalPromise!: ReturnType<typeof result.current.mutateAsync>;
+      act(() => {
+        approvalPromise = result.current.mutateAsync({ draft, work });
+      });
+
+      try {
+        await waitFor(() => expect(submitApprovalDirectly).toHaveBeenCalled());
+        expect(queryClient.getQueryData(workQueryKey)).toEqual([work, unrelatedWork]);
+        expect(cancelQueriesSpy).toHaveBeenCalledWith(
+          { queryKey: workQueryKey },
+          { revert: false }
+        );
+        queryClient.setQueryData(workQueryKey, []);
+      } finally {
+        await act(async () => {
+          releaseSubmission?.();
+          await approvalPromise;
+        });
+      }
+
+      const reconciled =
+        queryClient.getQueryData<Array<{ id: string; status: string }>>(workQueryKey);
+      expect(reconciled?.map(({ id, status }) => [id, status])).toEqual([
+        [work.id, "rejected"],
+        [unrelatedWork.id, "pending"],
+      ]);
+    });
+
+    it("reconciles a confirmed wallet decision when durable approval storage is unavailable", async () => {
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
+
+      const work = createMockWork({ id: "work-reviewed", status: "pending" });
+      const unrelatedWork = createMockWork({ id: "work-unrelated", status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: false,
+      });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      const onlineKey = queryKeys.works.online(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work, unrelatedWork]);
+      queryClient.setQueryData(onlineKey, [work, unrelatedWork]);
+      const setItemSpy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+        throw new DOMException("Storage unavailable", "QuotaExceededError");
+      });
+
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      expect(setItemSpy).toHaveBeenCalled();
+      for (const queryKey of [mergedKey, onlineKey]) {
+        const reconciled =
+          queryClient.getQueryData<Array<{ id: string; status: string }>>(queryKey);
+        expect(reconciled?.map(({ id, status }) => [id, status])).toEqual([
+          [work.id, "rejected"],
+          [unrelatedWork.id, "pending"],
+        ]);
+      }
+    });
+
+    it("records wallet decisions when receipt confirmation times out", async () => {
+      (submitApprovalDirectly as any).mockResolvedValue({
+        hash: MOCK_TX_HASH,
+        confirmed: false,
+      });
+
+      const work = createMockWork({ status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: true,
+      });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      const onlineKey = queryKeys.works.online(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work]);
+      queryClient.setQueryData(onlineKey, [work]);
+
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        {
+          wrapper: createWrapper(),
+        }
+      );
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      expect(queryClient.getQueryData<Array<{ status: string }>>(mergedKey)?.[0]?.status).toBe(
+        "approved"
+      );
+      expect(queryClient.getQueryData<Array<{ status: string }>>(onlineKey)?.[0]?.status).toBe(
+        "approved"
+      );
+
+      const rejectionDraft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: false,
+      });
+      await act(async () => {
+        await result.current.mutateAsync({ draft: rejectionDraft, work });
+      });
+
+      expect(queryClient.getQueryData<Array<{ status: string }>>(mergedKey)?.[0]?.status).toBe(
+        "rejected"
+      );
+      expect(queryClient.getQueryData<Array<{ status: string }>>(onlineKey)?.[0]?.status).toBe(
+        "rejected"
+      );
+    });
+
+    it("keeps an unconfirmed wallet decision pending behind an expiring overlay", async () => {
+      // A timed-out receipt records the decision so the steward sees it landed,
+      // but it must stay flagged pending and must expire, so a transaction that
+      // is later dropped cannot leave the work looking resolved forever.
+      (submitApprovalDirectly as any).mockResolvedValue({
+        hash: MOCK_TX_HASH,
+        confirmed: false,
+      });
+
+      const work = createMockWork({ status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: true,
+      });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work]);
+
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      const cached =
+        queryClient.getQueryData<
+          Array<{ status: string; _isPending?: boolean; _pendingUntilMs?: number }>
+        >(mergedKey)?.[0];
+      expect(cached?.status).toBe("approved");
+      expect(cached?._isPending).toBe(true);
+      expect(cached?._pendingUntilMs).toBeGreaterThan(Date.now());
+    });
+
+    it("clears the pending flag but still stamps a deadline on a confirmed decision", async () => {
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
+
+      const work = createMockWork({ status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: true,
+      });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work]);
+
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      const cached =
+        queryClient.getQueryData<
+          Array<{ status: string; _isPending?: boolean; _pendingUntilMs?: number }>
+        >(mergedKey)?.[0];
+      expect(cached?.status).toBe("approved");
+      expect(cached?._isPending).toBe(false);
+      // The deadline is what lets the indexer reclaim authority afterwards.
+      expect(cached?._pendingUntilMs).toBeGreaterThan(Date.now());
+    });
+
+    it("leaves persisted work state unchanged when the wallet rejects the request", async () => {
+      const walletError = new Error("User rejected the request");
+      (submitApprovalDirectly as any).mockRejectedValue(walletError);
+
+      const work = createMockWork({ status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: false,
+      });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      const onlineKey = queryKeys.works.online(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work]);
+      queryClient.setQueryData(onlineKey, [work]);
+
+      const { result } = renderHook(() => useWorkApproval(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await expect(result.current.mutateAsync({ draft, work })).rejects.toThrow(
+          "User rejected the request"
+        );
+      });
+
+      expect(queryClient.getQueryData(mergedKey)).toEqual([work]);
+      expect(queryClient.getQueryData(onlineKey)).toEqual([work]);
+      expect(trackWorkApprovalFailed).not.toHaveBeenCalled();
+      expect(trackWorkApprovalLifecycle).toHaveBeenCalledWith(
+        expect.objectContaining({ stage: "cancelled" })
+      );
+      expect(localStorage.getItem("gg:pending-work-approval:v1")).toBeNull();
+      expect(result.current.approvalLifecycleStage).toBe("cancelled");
+    });
+
     it("invalidates recipient-scoped approval reads after wallet approval succeeds", async () => {
-      (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
       const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
       const { result } = renderHook(() => useWorkApproval(), {
@@ -186,15 +544,16 @@ describe("hooks/work/useWorkApproval", () => {
         jobId: "job-approval-1",
       });
 
-      (jobQueue.processJob as any).mockResolvedValue({
+      queueProcessJob.mockResolvedValue({
         success: true,
         txHash: MOCK_TX_HASH,
         skipped: false,
       });
 
-      const { result } = renderHook(() => useWorkApproval(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        { wrapper: createWrapper() }
+      );
 
       const work = createMockWork();
       const draft = createMockWorkApprovalDraft({ approved: true });
@@ -210,7 +569,7 @@ describe("hooks/work/useWorkApproval", () => {
         11155111,
         MOCK_ADDRESSES.smartAccount
       );
-      expect(jobQueue.processJob).toHaveBeenCalledWith("job-approval-1", {
+      expect(queueProcessJob).toHaveBeenCalledWith("job-approval-1", {
         transactionSender: mockSender,
       });
       expect(result_data?.hash).toBe(MOCK_TX_HASH);
@@ -242,13 +601,13 @@ describe("hooks/work/useWorkApproval", () => {
       });
 
       expect(result_data?.hash).toBe("0xoffline_xyz");
-      expect(jobQueue.processJob).not.toHaveBeenCalled();
+      expect(queueProcessJob).not.toHaveBeenCalled();
     });
   });
 
   describe("Feedback handling", () => {
     it("handles empty feedback correctly", async () => {
-      (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
 
       const { result } = renderHook(() => useWorkApproval(), {
         wrapper: createWrapper(),
@@ -268,12 +627,13 @@ describe("hooks/work/useWorkApproval", () => {
         expect.objectContaining({ feedback: "" }),
         work.gardenAddress,
         work.gardenerAddress,
-        11155111
+        11155111,
+        expect.objectContaining({ onLifecycle: expect.any(Function) })
       );
     });
 
     it("includes feedback for rejection", async () => {
-      (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
 
       const { result } = renderHook(() => useWorkApproval(), {
         wrapper: createWrapper(),
@@ -296,14 +656,15 @@ describe("hooks/work/useWorkApproval", () => {
         }),
         work.gardenAddress,
         work.gardenerAddress,
-        11155111
+        11155111,
+        expect.objectContaining({ onLifecycle: expect.any(Function) })
       );
     });
   });
 
   describe("Toast notifications", () => {
     it("shows success toast on approval", async () => {
-      (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
 
       const { result } = renderHook(() => useWorkApproval(), {
         wrapper: createWrapper(),
@@ -320,6 +681,7 @@ describe("hooks/work/useWorkApproval", () => {
         expect(toastService.success).toHaveBeenCalledWith(
           expect.objectContaining({
             id: "approval-submit",
+            message: "Transaction confirmed.",
           })
         );
       });
@@ -366,15 +728,16 @@ describe("hooks/work/useWorkApproval", () => {
         jobId: "job-conf-1",
       });
 
-      (jobQueue.processJob as any).mockResolvedValue({
+      queueProcessJob.mockResolvedValue({
         success: true,
         txHash: MOCK_TX_HASH,
         skipped: false,
       });
 
-      const { result } = renderHook(() => useWorkApproval(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        { wrapper: createWrapper() }
+      );
 
       const work = createMockWork();
       const draft = createMockWorkApprovalDraft({
@@ -441,11 +804,11 @@ describe("hooks/work/useWorkApproval", () => {
         MOCK_ADDRESSES.smartAccount
       );
       // Offline: processJob should not be called
-      expect(jobQueue.processJob).not.toHaveBeenCalled();
+      expect(queueProcessJob).not.toHaveBeenCalled();
     });
 
     it("passes confidence through wallet direct submission", async () => {
-      (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
 
       const { result } = renderHook(() => useWorkApproval(), {
         wrapper: createWrapper(),
@@ -469,7 +832,8 @@ describe("hooks/work/useWorkApproval", () => {
         }),
         work.gardenAddress,
         work.gardenerAddress,
-        11155111
+        11155111,
+        expect.objectContaining({ onLifecycle: expect.any(Function) })
       );
     });
 
@@ -484,15 +848,16 @@ describe("hooks/work/useWorkApproval", () => {
         jobId: "job-notes-1",
       });
 
-      (jobQueue.processJob as any).mockResolvedValue({
+      queueProcessJob.mockResolvedValue({
         success: true,
         txHash: MOCK_TX_HASH,
         skipped: false,
       });
 
-      const { result } = renderHook(() => useWorkApproval(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        { wrapper: createWrapper() }
+      );
 
       const work = createMockWork();
       const draft = createMockWorkApprovalDraft({

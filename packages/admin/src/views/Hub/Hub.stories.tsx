@@ -36,7 +36,7 @@ const meta: Meta<typeof HubCanvasStory> = {
     docs: {
       description: {
         component:
-          "Seeded Hub workspace coverage through the real CanvasLayout shell, including work queue, assess, certify, history, and route-backed detail entry points.",
+          "Seeded Hub workspace coverage through the real CanvasLayout shell, including the confirm, work, assess, and certify stages and route-backed detail entry points.",
       },
     },
   },
@@ -57,6 +57,14 @@ function hubDecorators() {
     }),
   ];
 }
+
+// The Confirm stage (W13) on the Hub rail; empty here because the seeded
+// stewarded gardens hold nothing waiting for confirmation.
+export const ConfirmQueue: Story = {
+  tags: ["visual-harness"],
+  args: { initialPath: "/hub/confirm" },
+  decorators: hubDecorators(),
+};
 
 export const WorkQueue: Story = {
   // Not in storybook-ci: the work queue needs live indexer data the clean-room CI browser
@@ -109,7 +117,7 @@ export const CreateAssessmentRoute: Story = {
     await expect(
       await canvas.findByRole(
         "heading",
-        { name: "Submit assessment" },
+        { name: "Submit Assessment" },
         ADMIN_ROUTE_STORY_QUERY_OPTIONS
       )
     ).toBeVisible();
@@ -137,14 +145,6 @@ export const CreateHypercertRoute: Story = {
   },
 };
 
-export const History: Story = {
-  tags: ["visual-harness"],
-  args: { initialPath: "/hub/history?sort=newest" },
-  decorators: hubDecorators(),
-};
-
-export const HistoryDetail: Story = {
-  tags: ["visual-harness"],
-  args: { initialPath: "/hub/history/assessment-assessment-rio-canopy?sort=newest" },
-  decorators: hubDecorators(),
-};
+// The History stage is retired (2026-08-25 AD-3): /hub/history and its
+// detail deep links redirect to the Hub's default stage, so the retired
+// stage keeps no stories.

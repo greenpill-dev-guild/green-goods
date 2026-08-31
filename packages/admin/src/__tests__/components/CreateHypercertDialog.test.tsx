@@ -3,23 +3,22 @@
  */
 
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { IntlProvider } from "react-intl";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  AuthContext,
-  DEFAULT_CHAIN_ID,
-  queryKeys,
-  useAdminStore,
-  useHypercertWizardStore,
-  type AuthContextType,
-  type Garden,
-} from "@green-goods/shared";
-import { createTestQueryClient } from "@green-goods/shared/testing";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import { AuthContext } from "@green-goods/shared/providers/Auth";
+import { useAdminStore } from "@green-goods/shared/stores/useAdminStore";
+import { useHypercertWizardStore } from "@green-goods/shared/stores/useHypercertWizardStore";
+import type { Garden } from "@green-goods/shared/types/domain";
+import { createTestQueryClient } from "@green-goods/shared/__tests__/test-utils/query-client";
 import CreateHypercert from "@/views/Hub/CreateHypercert";
 
 const OPERATOR = "0x9999999999999999999999999999999999999999";
+type AuthContextValue = NonNullable<ComponentProps<typeof AuthContext.Provider>["value"]>;
 
 const SELECTED_GARDEN: Garden = {
   id: "0x1111111111111111111111111111111111111111",
@@ -31,7 +30,7 @@ const SELECTED_GARDEN: Garden = {
   location: "",
   bannerImage: "",
   gardeners: [],
-  operators: [OPERATOR],
+  stewards: [OPERATOR],
   owners: [],
   evaluators: [],
   funders: [],
@@ -49,7 +48,7 @@ vi.mock("wagmi", () => ({
   useWalletClient: () => ({ data: undefined }),
 }));
 
-const authContextValue: AuthContextType = {
+const authContextValue: AuthContextValue = {
   authMode: "wallet",
   isReady: true,
   isAuthenticated: true,
@@ -85,7 +84,7 @@ function renderCreateHypercert({ seedGarden = true }: { seedGarden?: boolean } =
     seedGarden ? [SELECTED_GARDEN] : []
   );
   queryClient.setQueryData(
-    queryKeys.role.operatorGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
+    queryKeys.role.stewardGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
     seedGarden ? [{ id: SELECTED_GARDEN.id, name: SELECTED_GARDEN.name }] : []
   );
   queryClient.setQueryData(
@@ -158,6 +157,50 @@ describe("CreateHypercert dialog", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Role-Proven Garden")).toBeInTheDocument();
     expect(screen.queryByText("app.hypercerts.create.notFound")).not.toBeInTheDocument();
+  });
+
+  it("closes straight back to the Hub while the hypercert wizard is pristine", async () => {
+    let router: ReturnType<typeof renderCreateHypercert> | undefined;
+    await act(async () => {
+      router = renderCreateHypercert();
+      await Promise.resolve();
+    });
+
+    const dialog = await screen.findByRole("dialog", { name: "app.hypercerts.create.title" });
+    await act(async () => {
+      fireEvent.keyDown(dialog, { key: "Escape" });
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(router?.state.location.pathname).toBe("/hub/work"));
+    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+  });
+
+  it("prompts before closing a dirty hypercert wizard and discards on confirmation", async () => {
+    let router: ReturnType<typeof renderCreateHypercert> | undefined;
+    await act(async () => {
+      router = renderCreateHypercert();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      useHypercertWizardStore.getState().setSelectedAttestations(["attestation-1"]);
+      await Promise.resolve();
+    });
+
+    const dialog = await screen.findByRole("dialog", { name: "app.hypercerts.create.title" });
+    fireEvent.keyDown(dialog, { key: "Escape" });
+
+    expect(await screen.findByRole("button", { name: "Discard" })).toBeInTheDocument();
+    expect(router?.state.location.pathname).toBe("/hub/certify/create");
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Discard" }));
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(router?.state.location.pathname).toBe("/hub/work"));
+    expect(useHypercertWizardStore.getState().selectedAttestationIds).toEqual([]);
   });
 
   it("blocks route navigation while hypercert minting is pending", async () => {

@@ -12,9 +12,9 @@ import { type Address, decodeEventLog, encodeFunctionData, type Hex, zeroAddress
 import { useAccount, useWalletClient } from "wagmi";
 
 import { toastService } from "../../components/toast";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getChain } from "../../config/chains";
-import { queryKeys } from "../../config/query-keys";
+import { ensKeys } from "../../config/query-keys/identity";
 import { logger } from "../../modules/app/logger";
 import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import {
@@ -37,7 +37,7 @@ const ENS_RELEASE_ERROR_MESSAGES: Record<string, string> = {
   InsufficientSponsoredBalance:
     "The sponsored username fund needs more ETH before passkey users can release names.",
   SponsoredReleaseUnavailable:
-    "Username changes are temporarily operator-assisted while we migrate the ENS sender.",
+    "Username changes are temporarily steward-assisted while we migrate the ENS sender.",
   NotOwner: "Only the current name owner can release this name.",
 };
 
@@ -203,8 +203,8 @@ export function useENSReleaseName() {
       return { slug, owner, ccipMessageId, submittedAt: Date.now(), txHash };
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(queryKeys.ens.protocolName(data.owner), null);
-      queryClient.invalidateQueries({ queryKey: queryKeys.ens.all });
+      queryClient.setQueryData(ensKeys.protocolName(data.owner), null);
+      queryClient.invalidateQueries({ queryKey: ensKeys.all });
 
       toastService.success({
         title: "Name release started",

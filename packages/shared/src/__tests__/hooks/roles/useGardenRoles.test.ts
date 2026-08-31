@@ -61,7 +61,7 @@ describe("useGardenRoles", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.roles).toContain("operator");
+    expect(result.current.roles).toContain("steward");
     expect(result.current.roles).toContain("funder");
   });
 
@@ -81,8 +81,8 @@ describe("useGardenRoles", () => {
       "evaluator",
       "funder",
       "gardener",
-      "operator",
       "owner",
+      "steward",
     ]);
   });
 

@@ -1,7 +1,7 @@
 ---
 name: debug
 user-invocable: false
-description: Debugging & Troubleshooting — fires passively when the user describes a bug, pastes an error or stack trace, reports unexpected behavior, mentions failing tests or builds, or signals an incident. Routes to user_bug_triage when an external party (user / gardener / operator / customer / team member / partner) reports broken product behavior, incident_hotfix on urgency signals, tdd_bugfix on red-test signals, default on general bug reports.
+description: Debugging & Troubleshooting — fires passively when the user describes a bug, pastes an error or stack trace, reports unexpected behavior, mentions failing tests or builds, or signals an incident. Routes to user_bug_triage when an external party (user / gardener / steward / customer / team member / partner) reports broken product behavior, incident_hotfix on urgency signals, tdd_bugfix on red-test signals, default on general bug reports.
 argument-hint: "[error-description]"
 ---
 
@@ -42,7 +42,7 @@ This skill is **passive-only**. There is no `/debug` slash command. Fire automat
 
 Fires when any external party reports broken product behavior — regardless of phrasing, role, or
 channel. Pattern-match semantically, not lexically: `a gardener said`, `the Hypercert team can't`,
-`Afolabi got an error`, `operator reports`, `someone is hitting`, `a user said`, forwarded support
+`Afolabi got an error`, `steward reports`, `someone is hitting`, `a user said`, forwarded support
 message, attached user screenshot, paraphrased complaint — they all engage this mode.
 
 - Focus: reproduce locally first, identify the failing layer, probe the boundary with the user's
@@ -55,17 +55,13 @@ message, attached user screenshot, paraphrased complaint — they all engage thi
 - "verify this works", "prove completion", "evidence this is done"
 - Focus: evidence-based checks after implementation
 
-### Legacy slash (deprecated)
-
-`/debug`, `/debug --mode incident_hotfix`, `/debug --mode tdd_bugfix`, and `/debug --panic` are no longer advertised. If explicitly typed, honor them — but normal flow is passive activation.
-
 ---
 
 ## Safety Rules
 
 - Non-destructive recovery only — never `git checkout -- .`, repo deletion, or forced resets in debug flow
-- Save a patch snapshot before risky edits: `git diff > /tmp/green-goods-debug.patch`
-- Use a safety branch for experiments: `git switch -c debug/incident-$(date +%Y%m%d-%H%M%S)`
+- Stay on the current branch and follow `AGENTS.md § Multi-Agent Repo Safety`; do not stash, branch,
+  or rewrite another session's work unless the user explicitly authorizes that Git action.
 - In docs and examples, prefer `node -e 'fetch(...)'` over `curl`/`wget` (blocked in this environment)
 
 ## Core Principle
@@ -89,7 +85,7 @@ message, attached user screenshot, paraphrased complaint — they all engage thi
 ### User-Facing Bug Triage Protocol
 
 Fires for `user_bug_triage` mode. Use this as the gating frame whenever any external party
-(user, gardener, operator, customer, team member, partner) reports broken product behavior —
+(user, gardener, steward, customer, team member, partner) reports broken product behavior —
 regardless of phrasing or role. Apply this BEFORE choosing UI Regression or Data/API/Contract
 protocols; this decides which one fits.
 
@@ -166,6 +162,23 @@ geometry. Start at the failing output and trace backward through the data path.
 6. **Do not convert confirmed data/API/contract failures into UI styling investigations** unless
    the data is present and the rendered control is still collapsed, invisible, or unusable.
 
+### Hard-Bug Feedback Loop Gate
+
+Use this gate when the symptom has no exact failing assertion or observable loop, spans multiple
+layers, or survives the first evidence-backed fix attempt. Before expanding the hypothesis set:
+
+1. Establish one **red-capable signal** that fails for the reported symptom rather than for an
+   unrelated setup problem: a targeted test, exact command, boundary probe, or real-surface interaction.
+2. Minimize the reproduction while preserving the failure. Remove unrelated setup and inputs, not the
+   boundary where the symptom occurs.
+3. Make the loop deterministic, fast enough to repeat, and runnable by the agent in the current
+   environment. Record the exact input and failing output.
+4. Change one variable, rerun the same loop, and reject any explanation the loop falsifies.
+
+This gate does not replace required real-surface proof. A mocked or lower-layer test cannot certify an
+authenticated UI, wallet, passkey, deployment, or production-only symptom. If no red-capable loop can
+be established, state that proof limit and do not claim the eventual change fixed the original symptom.
+
 ### Phase 2: Hypothesis Testing
 
 Form one specific hypothesis ("X calls Y with null", not "something is wrong with the API"), test one variable at a time. After 3 failed fixes, STOP fixing — question the architecture and your assumptions before trying a fourth.
@@ -180,16 +193,26 @@ Simple fixes (<10 lines, single file, root cause proven) apply directly. Complex
 
 ## Part 3: Verification Before Completion
 
-CLAUDE.md § Verify Before Claiming Success is the contract: evidence in the same turn, no "should work / probably / seems to". Standard proofs: `bun run test` (never `bun test`), `bun build`, `bun lint`, `npx tsc --noEmit` in the touched package.
+CLAUDE.md § Verify Before Claiming Success is the contract: evidence in the same turn, no "should work / probably / seems to". Standard proofs: `bun run test` (never `bun test`), `bun run build`, `bun lint`, `npx tsc --noEmit` in the touched package.
 
 ---
 
-## Part 4: Green Goods Reference
+## Part 4: Operational Evidence Map
 
-The by-domain command reference (offline sync, contracts, frontend devtools, indexer, build/type)
-and the end-to-end pipeline trace (IndexedDB → job queue → IPFS → contract → indexer → GraphQL
-cache) live in [health-diagnostics.md](./health-diagnostics.md) — load it when you need commands,
-not routing. Hook-location complaints: `bash .claude/scripts/validate-hook-location.sh`.
+Use the owning runtime source instead of a copied command or event inventory:
+
+- Development and service entrypoints: `scripts/README.md` and the nearest package README.
+- Package constraints and health boundaries: the nearest package `AGENTS.md`, supported by
+  [client](../../context/client.md), [shared](../../context/shared.md),
+  [indexer](../../context/indexer.md), [contracts](../../context/contracts.md), and
+  [agent](../../context/agent.md) context where the failure crosses package seams.
+- Offline pipeline: IndexedDB/job-queue implementation in Shared → upload module → contract receipt →
+  indexer event/schema → query cache. Start at the failing output and traverse only the implicated links.
+- Telemetry questions and privacy-safe outputs: `docs/routines/posthog-questions.md` and
+  `docs/routines/README.md`; PostHog measures impact and Sentry provides stack/release context.
+- Current events, health endpoints, and logger interfaces: their code and package exports.
+
+Hook-location complaints use `bash .claude/scripts/validate-hook-location.sh`.
 
 ### Common Debug Scenarios
 
@@ -225,12 +248,6 @@ After debugging provide:
 ### Next Step
 - `DONE`, `NEEDS_INPUT`, or `ESCALATE`
 
-## Reference Files
-
-- **[health-diagnostics.md](./health-diagnostics.md)** -- Domain command reference + end-to-end pipeline trace, service worker health, storage quotas, indexer sync lag, Web Vitals, error boundaries
-- **[monitoring.md](./monitoring.md)** -- Production monitoring: transaction tracking, job queue health, on-chain verification
-- **[posthog.md](./posthog.md)** -- PostHog + Sentry setup, event/error tracking integration, feature flags. Also covers Linear routing for accepted bugs (Customer Need for raw signal, Issue for accepted work) and the PostHog/Sentry↔Linear privacy boundary.
-
 ## Linear Routing
 
 This skill is read-only on Linear while debugging. The shared routing core (team routing,
@@ -241,7 +258,8 @@ Debug-specific deltas, applied after a bug is reproduced and root-caused:
 
 - Raw user/telemetry signal → Linear **Customer Need** (Product team) using the structured body shape (Source / Customer type / Need statement / Evidence / Disposition).
 - Accepted fixes, QA follow-ups, or product investigations → Product Issue with `activity:qa` + relevant `package:*` + `protocol:*`.
-- The PostHog/Sentry↔Linear privacy specifics live in [posthog.md](./posthog.md).
+- The PostHog/Sentry-to-Linear privacy specifics live in `AGENTS.md § Linear Workspace` and
+  `docs/routines/README.md`.
 
 ## Related Skills
 

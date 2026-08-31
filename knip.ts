@@ -10,10 +10,15 @@ const config: KnipConfig = {
       // scripts/README.md entry, not by import analysis.
       entry: [
         "scripts/**/*.{ts,js,mjs,cjs}",
-        "ecosystem.config.cjs",
         "playwright.config.ts",
       ],
+      // PM2 loads ecosystem.config.cjs directly. Disable Knip's PM2 plugin so
+      // dead-code analysis never executes that config's root-env bootstrap.
+      pm2: false,
       ignore: [
+        // PM2 remains this external config's durable caller; the disabled plugin
+        // above keeps Knip from executing it during analysis.
+        "ecosystem.config.cjs",
         // Ambient type declarations for env-parity.mjs, which both Vite configs
         // import. Consumed by tsc, never by a runtime import.
         "scripts/lib/env-parity.d.mts",
@@ -47,6 +52,7 @@ const config: KnipConfig = {
       ],
       entry: [
         "src/index.ts",
+        "src/commitment-pooling/index.ts",
         "src/components/index.ts",
         "src/ontology/index.ts",
         "src/hooks/index.ts",
@@ -73,6 +79,7 @@ const config: KnipConfig = {
         // Listed here so dead-code sweeps stop re-reporting a deliberate park.
         "src/components/Public/VaultCardEndowFlow.tsx",
         "src/components/Public/VaultCardPaymentPanel.tsx",
+        "src/components/Public/VaultCardWalletManage.calls.ts",
         "src/components/Public/VaultCardWalletManage.tsx",
       ],
       ignoreDependencies: [
@@ -90,6 +97,12 @@ const config: KnipConfig = {
         "@storybook/react",
         "storybook",
       ],
+    },
+    "packages/qa": {
+      // The build script and the Vercel function are both entry points reached
+      // by platform convention (vercel.json buildCommand, the api/ directory),
+      // never by an import from elsewhere in the monorepo.
+      entry: ["build.mjs", "dev.mjs", "api/*.ts"],
     },
     "packages/agent": {
       entry: ["src/index.ts"],
@@ -127,11 +140,7 @@ const config: KnipConfig = {
     },
     docs: {
       // Docusaurus site — skip TS analysis
-      entry: ["docusaurus.config.ts", "src/**/*.{ts,tsx}"],
-      ignoreDependencies: [
-        // Re-exported by @docusaurus/preset-classic, not declared directly
-        "@docusaurus/plugin-content-docs",
-      ],
+      entry: ["src/**/*.{ts,tsx}"],
     },
   },
   ignore: [

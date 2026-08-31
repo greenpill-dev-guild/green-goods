@@ -3,23 +3,18 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import messages from "../../../../shared/src/i18n/en.json";
+import messages from "@green-goods/shared/i18n/en.json";
 
 const mockNavigate = vi.fn();
+let mockPrimaryAddress: `0x${string}` | null = null;
 const mockUseGardenTabs = vi.fn(() => ({
   activeTab: "Work",
   setActiveTab: vi.fn(),
 }));
 const mockUseGardens = vi.fn(() => ({
-  data: [],
+  data: [] as Array<Record<string, unknown>>,
   isLoading: false,
   isFetching: true,
-}));
-const mockUseGardenAssessments = vi.fn(() => ({
-  data: [],
-  isLoading: false,
-  isFetching: false,
-  isError: false,
 }));
 const mockGardenAssessments = vi.fn(
   ({
@@ -36,15 +31,25 @@ const mockGardenAssessments = vi.fn(
     )
 );
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useGardenTabs", () => ({
   GardenTab: {
     Work: "Work",
     Insights: "Insights",
     Gardeners: "Gardeners",
   },
+  useGardenTabs: () => mockUseGardenTabs(),
+}));
+
+vi.mock("@green-goods/shared/components/Display/GardenBannerFallback", () => ({
   GardenBannerFallback: ({ name, className }: { name: string; className?: string }) =>
     createElement("div", { "data-testid": "garden-banner-fallback", className }, name),
+}));
+
+vi.mock("@green-goods/shared/components/Display/ImageWithFallback", () => ({
   ImageWithFallback: ({
     src,
     alt,
@@ -60,27 +65,55 @@ vi.mock("@green-goods/shared", () => ({
     src
       ? createElement("img", { src, alt, className })
       : (backgroundFallback ?? createElement("img", { src: "", alt, className })),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useJoinGarden", () => ({
   isGardenMember: vi.fn(() => false),
-  toastService: {
-    success: vi.fn(),
-    error: vi.fn(),
-  },
-  useActions: () => ({ data: [], isLoading: false }),
-  useGardenAssessments: (...args: unknown[]) => mockUseGardenAssessments(...args),
-  useBrowserNavigation: vi.fn(),
-  useConvictionStrategies: () => ({ strategies: [] }),
-  useGardeners: () => ({ data: [] }),
-  useGardenTabs: (...args: unknown[]) => mockUseGardenTabs(...args),
-  useGardenVaults: () => ({ vaults: [] }),
-  useGardens: (...args: unknown[]) => mockUseGardens(...args),
-  useHasRole: () => ({ hasRole: false }),
   useJoinGarden: () => ({
     joinGarden: vi.fn(),
     isJoining: false,
   }),
-  useNavigateToTop: () => mockNavigate,
   usePendingJoinsVersion: () => 0,
+}));
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
+  toastService: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
+  useActions: () => ({ data: [], isLoading: false }),
+  useGardeners: () => ({ data: [] }),
+  useGardens: () => mockUseGardens(),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useBrowserNavigation", () => ({
+  useBrowserNavigation: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/hooks/conviction/useConvictionStrategies", () => ({
+  useConvictionStrategies: () => ({ strategies: [] }),
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useGardenVaults", () => ({
+  useGardenVaults: () => ({ vaults: [] }),
+}));
+
+vi.mock("@green-goods/shared/hooks/roles/useHasRole", () => ({
+  useHasRole: () => ({ hasRole: false }),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useNavigateToTop", () => ({
+  useNavigateToTop: () => mockNavigate,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useScrollToTop", () => ({
   useScrollToTop: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/stores/useUIStore", () => ({
   useUIStore: Object.assign(
     vi.fn((selector: (state: Record<string, unknown>) => unknown) =>
       selector({
@@ -97,8 +130,17 @@ vi.mock("@green-goods/shared", () => ({
       }),
     }
   ),
-  useUser: () => ({ primaryAddress: null }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: mockPrimaryAddress }),
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useVaultDeposits", () => ({
   useVaultDeposits: () => ({ deposits: [] }),
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useWorks", () => ({
   useWorks: () => ({
     works: [],
     isLoading: false,
@@ -106,6 +148,11 @@ vi.mock("@green-goods/shared", () => ({
     isError: false,
     refetch: vi.fn(),
   }),
+}));
+
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  useCommitmentPools: () => ({ pools: [], availability: { status: "unknown-chain" } }),
 }));
 
 vi.mock("viem", () => ({
@@ -133,6 +180,7 @@ vi.mock("@/components/Features", () => ({
     description?: string | null;
   }) => mockGardenAssessments(props),
   GardenGardeners: () => createElement("div", null, "Gardeners"),
+  GardenJoinRequestDialog: () => createElement("div", { "data-testid": "join-request-dialog" }),
   GardenWork: () => createElement("div", null, "Work"),
 }));
 
@@ -151,6 +199,7 @@ import { Garden } from "../../views/Home/Garden";
 describe("Home garden route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrimaryAddress = null;
     mockUseGardenTabs.mockReturnValue({
       activeTab: "Work",
       setActiveTab: vi.fn(),
@@ -159,12 +208,6 @@ describe("Home garden route", () => {
       data: [],
       isLoading: false,
       isFetching: true,
-    });
-    mockUseGardenAssessments.mockReturnValue({
-      data: [],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
     });
   });
 
@@ -215,25 +258,13 @@ describe("Home garden route", () => {
             },
           ],
           gardeners: [],
-          operators: [],
+          stewards: [],
           openJoining: false,
         },
       ],
       isLoading: false,
       isFetching: false,
     });
-    mockUseGardenAssessments.mockReturnValue({
-      data: [
-        {
-          id: "assessment-1",
-          title: "Soil Health",
-        },
-      ],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-    });
-
     render(
       createElement(
         MemoryRouter,
@@ -258,5 +289,46 @@ describe("Home garden route", () => {
         description: "Garden description",
       })
     );
+  });
+
+  it("does not offer a closed-garden join request to an owner", () => {
+    mockPrimaryAddress = "0x9999999999999999999999999999999999999999";
+    mockUseGardens.mockReturnValue({
+      data: [
+        {
+          id: "garden-1",
+          name: "Owner Garden",
+          bannerImage: "/banner.png",
+          location: "Test Location",
+          createdAt: Date.now(),
+          description: "Garden description",
+          assessments: [],
+          gardeners: [],
+          stewards: [],
+          owners: [mockPrimaryAddress],
+          openJoining: false,
+        },
+      ],
+      isLoading: false,
+      isFetching: false,
+    });
+
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/home/garden-1"] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, { path: "/home/:id", element: createElement(Garden) })
+          )
+        )
+      )
+    );
+
+    expect(screen.queryByTestId("join-request-dialog")).not.toBeInTheDocument();
   });
 });

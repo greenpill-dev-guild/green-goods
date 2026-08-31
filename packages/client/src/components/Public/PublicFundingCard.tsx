@@ -1,28 +1,32 @@
+import { TransactionSuccessAffordance } from "@green-goods/shared/components/feedback/TransactionSuccessAffordance";
+import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useEthUsdPrice } from "@green-goods/shared/hooks/blockchain/useEthUsdPrice";
+import { useCookieJarDeposit } from "@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit";
+import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
+import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
+import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
+import { useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
+import { useAppKit } from "@green-goods/shared/providers/AppKitProvider";
+import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts/core";
+import type { Address } from "@green-goods/shared/types/domain";
+import { truncateAddress } from "@green-goods/shared/utils/blockchain/address";
 import {
-  type Address,
-  classifyTxError,
-  formatTokenAmount,
   formatUsdCents,
   formatUsdPrice,
-  getVaultAssetSymbol,
-  isMeaningfulTxErrorMessage,
-  normalizeDecimalInput,
   parseUsdToCents,
-  type PublicGardenSummary,
-  TransactionSuccessAffordance,
-  truncateAddress,
-  useAppKit,
-  useAuth,
-  useCookieJarDeposit,
-  useEthUsdPrice,
-  useGardenCookieJars,
-  useGardenVaults,
-  useUser,
-  useVaultDeposit,
   usdCentsToWei,
   weiToUsdCents,
-} from "@green-goods/shared";
-import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts";
+} from "@green-goods/shared/utils/blockchain/price-feeds";
+import {
+  formatTokenAmount,
+  getVaultAssetSymbol,
+  normalizeDecimalInput,
+} from "@green-goods/shared/utils/blockchain/vaults";
+import {
+  classifyTxError,
+  isMeaningfulTxErrorMessage,
+} from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -31,9 +35,7 @@ import { EditorialGhostButton, EditorialKicker, EditorialPrimaryButton } from ".
 
 const DAI_SYMBOL = "DAI";
 const WETH_SYMBOL = "WETH";
-
 type Denomination = "usd" | "weth";
-
 /**
  * Parse a user-typed token amount (WETH denomination) into wei. Mirrors the
  * tolerant input handling used across the public vault panels: normalize a bare
@@ -52,7 +54,6 @@ function parseTokenInputToWei(input: string, decimals: number): bigint {
     return 0n;
   }
 }
-
 interface PublicFundingCardProps {
   open: boolean;
   garden: PublicGardenSummary;
@@ -425,7 +426,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
             selected={selected}
             selectedAddress={selectedAddress}
             onSelectAddress={setSelectedAddress}
-            primaryAddress={primaryAddress}
+            primaryAddress={primaryAddress ?? undefined}
             tokenAmountWei={tokenAmountWei}
             usdCents={usdCents}
             conversionUnavailable={conversionUnavailable}
@@ -437,7 +438,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
                 ? {
                     severity: txErrorView.severity,
                     message: isMeaningfulTxErrorMessage(txErrorView.rawMessage)
-                      ? txErrorView.rawMessage
+                      ? (txErrorView.rawMessage ?? undefined)
                       : formatMessage({
                           id: txErrorView.messageKey,
                           defaultMessage: "Something went wrong. Please try again.",
@@ -533,11 +534,11 @@ export function SuccessBody({
           {isDonate
             ? formatMessage({
                 id: "public.fund.card.donateAgain",
-                defaultMessage: "Donate again",
+                defaultMessage: "Donate Again",
               })
             : formatMessage({
                 id: "public.fund.card.endowAgain",
-                defaultMessage: "Endow again",
+                defaultMessage: "Endow Again",
               })}
         </EditorialPrimaryButton>
         <EditorialGhostButton onClick={onClose} className="px-5 py-2.5 text-sm">
@@ -628,7 +629,7 @@ function IdleBody(props: IdleBodyProps) {
     if (conversionUnavailable) {
       return formatMessage({
         id: "public.fund.card.conversionUnavailable",
-        defaultMessage: "ETH price unavailable",
+        defaultMessage: "Waiting on the ETH price…",
       });
     }
     const amountLabel = isWethDenomination
@@ -941,7 +942,7 @@ export function AmountInput({
             {formatMessage({
               id: "public.fund.card.wethUnavailable",
               defaultMessage:
-                "ETH price feed unavailable on this network. Pick DAI or check back later.",
+                "The live ETH price isn't reaching us on this network. Pick DAI, or check back soon.",
             })}
           </p>
         ) : null}

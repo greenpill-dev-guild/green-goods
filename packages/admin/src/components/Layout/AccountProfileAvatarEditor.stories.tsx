@@ -1,16 +1,17 @@
-import { DEFAULT_CHAIN_ID, queryKeys } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
-  STORYBOOK_OPERATOR_ADDRESS,
+  STORYBOOK_STEWARD_ADDRESS,
 } from "../../../../shared/.storybook/adminFixtures";
 import { withAdminIdentity, withSeededQueryClient } from "../../../../shared/.storybook/decorators";
 import { AccountProfileAvatarEditor } from "./AccountProfileAvatarEditor";
 
 const PROFILE_AVATAR_URI = "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzd";
 const PROFILE_AVATAR = {
-  address: STORYBOOK_OPERATOR_ADDRESS,
+  address: STORYBOOK_STEWARD_ADDRESS,
   avatarUri: PROFILE_AVATAR_URI,
   chainId: DEFAULT_CHAIN_ID,
   updatedAt: "2026-07-29T00:00:00.000Z",
@@ -51,24 +52,24 @@ export const PublishedAvatar: Story = {
     withSeededQueryClient([
       ...STORYBOOK_ADMIN_SHELL_SEEDS,
       [
-        queryKeys.profileAvatars.record(DEFAULT_CHAIN_ID, STORYBOOK_OPERATOR_ADDRESS),
+        queryKeys.profileAvatars.record(DEFAULT_CHAIN_ID, STORYBOOK_STEWARD_ADDRESS),
         PROFILE_AVATAR,
       ],
     ]),
   ],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const trigger = await canvas.findByRole("button", { name: "Edit profile photo" });
+    const trigger = await canvas.findByRole("button", { name: "Edit Profile Photo" });
     await expect(trigger).toBeVisible();
     await userEvent.click(trigger);
 
     const body = within(canvasElement.ownerDocument.body);
-    const dialog = await body.findByRole("dialog", { name: "Edit profile photo" });
+    const dialog = await body.findByRole("dialog", { name: "Edit Profile Photo" });
     await waitFor(() => expect(dialog).toBeVisible());
-    await waitFor(() => expect(body.getByRole("button", { name: "Remove photo" })).toBeVisible());
+    await waitFor(() => expect(body.getByRole("button", { name: "Remove Photo" })).toBeVisible());
     await userEvent.click(within(dialog).getByRole("button", { name: "Close" }));
     await waitFor(() =>
-      expect(body.queryByRole("dialog", { name: "Edit profile photo" })).not.toBeInTheDocument()
+      expect(body.queryByRole("dialog", { name: "Edit Profile Photo" })).not.toBeInTheDocument()
     );
   },
 };

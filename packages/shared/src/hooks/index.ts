@@ -1,6 +1,4 @@
-// Hooks — EXPLICIT EXPORTS for tree-shaking
-
-// ============================================================================
+// Hooks — EXPLICIT EXPORTS for tree-shaking ==================================
 // QUERY KEYS
 // ============================================================================
 export type { QueryKey, QueueQueryKey, WorksQueryKey } from "../config/query-keys";
@@ -10,6 +8,7 @@ export type { QueryKey, QueueQueryKey, WorksQueryKey } from "../config/query-key
 export {
   DEFAULT_RETRY_COUNT,
   DEFAULT_RETRY_DELAY,
+  creditInvalidationKeys,
   INDEXER_LAG_SCHEDULE_MS,
   queryInvalidation,
   queryKeys,
@@ -67,9 +66,9 @@ export type {
   UseLoadingWithMinDurationResult,
 } from "./app/useLoadingWithMinDuration";
 export { useLoadingWithMinDuration } from "./app/useLoadingWithMinDuration";
+export { useLocalizedRelativeTime } from "./app/useLocalizedRelativeTime";
 export { useMerged } from "./app/useMerged";
-export type { NavigateToTopOptions } from "./app/useNavigateToTop";
-export { useNavigateToTop } from "./app/useNavigateToTop";
+export { type NavigateToTopOptions, useNavigateToTop } from "./app/useNavigateToTop";
 export { useOffline } from "./app/useOffline";
 export { usePublicInstallHandler } from "./app/usePublicInstallHandler";
 export { useScrollToTop } from "./app/useScrollToTop";
@@ -114,11 +113,11 @@ export type { CreateAssessmentForm } from "./assessment/useCreateAssessmentWorkf
 // ============================================================================
 export { useCreateAssessmentWorkflow } from "./assessment/useCreateAssessmentWorkflow";
 export { useGardenAssessments } from "./assessment/useGardenAssessments";
+export * from "./commitment-pooling";
 // ============================================================================
 // AUTH
 // ============================================================================
 export type { AuthActionsValue, AuthContextType, AuthMode, AuthStateValue } from "./auth/useAuth";
-// Compatibility exports
 // Prefer useAuthState/useAuthActions in new code.
 export { useAuth, useAuthActions, useAuthContext, useAuthState } from "./auth/useAuth";
 export { getPrimaryAddress, usePrimaryAddress } from "./auth/usePrimaryAddress";
@@ -287,6 +286,7 @@ export { useGardenInvites } from "./garden/useGardenInvites";
 export { useGardenOperations } from "./garden/useGardenOperations";
 export type { GardenPermissions } from "./garden/useGardenPermissions";
 export { useGardenPermissions } from "./garden/useGardenPermissions";
+export * from "./garden/useKarmaIntegration";
 export { GardenTab, useGardenTabs } from "./garden/useGardenTabs";
 export {
   checkGardenOpenJoining,
@@ -385,9 +385,7 @@ export type {
   UsePublicFieldNotesOptions,
 } from "./public/usePublicFieldNotes";
 export { usePublicFieldNotes } from "./public/usePublicFieldNotes";
-// ============================================================================
 // PUBLIC READ-SIDE (Living Archive journal)
-// ============================================================================
 export type {
   PublicFieldNote,
   PublicGardenContributor,
@@ -395,6 +393,8 @@ export type {
   UsePublicGardenDetailOptions,
 } from "./public/usePublicGardenDetail";
 export { usePublicGardenDetail } from "./public/usePublicGardenDetail";
+export { usePublicCommitmentImpact } from "./public/usePublicCommitmentImpact";
+export { usePublicGardenPool } from "./public/usePublicGardenPool";
 export type { PublicGardenSummary } from "./public/usePublicGardens";
 export { publicGardenHelpers, usePublicGardens } from "./public/usePublicGardens";
 export type { UsePublicImpactEvidenceOptions } from "./public/usePublicImpactEvidence";
@@ -586,15 +586,15 @@ export {
   useQueueStatistics,
   useWorks,
 } from "./work/useWorks";
-// ============================================================================
 // YIELD
-// ============================================================================
 export { useAllocateYield } from "./yield/useAllocateYield";
 export {
   type GardenYieldSummary,
   useGardenYieldSummary,
 } from "./yield/useGardenYieldSummary";
 export { useGardenYieldWiringState } from "./yield/useGardenYieldWiringState";
+// useHarvestDistribution and useYieldStatus are deliberately not re-exported
+// here: consumers import their declared leaf subpaths (package.json#exports).
 export { usePendingYield } from "./yield/usePendingYield";
 export {
   type ProtocolYieldSummary,

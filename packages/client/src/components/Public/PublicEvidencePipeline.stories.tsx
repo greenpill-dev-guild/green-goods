@@ -10,8 +10,10 @@ const meta: Meta<typeof PublicEvidencePipeline> = {
       description: {
         component:
           "The Impact page's anchor figure — the regenerative cycle as " +
-          "Assessment → Work → Impact Certificate, with a return arrow indicating " +
-          "the loop continues.",
+          "Assessment → Commitment → Work → Confirmation → Impact Certificate, " +
+          "with a return arrow indicating the loop continues. Node copy is " +
+          "localized; Commitment and Confirmation are narrative stages, not " +
+          "evidence-ledger record kinds.",
       },
     },
   },
@@ -23,16 +25,14 @@ type Story = StoryObj<typeof PublicEvidencePipeline>;
 export const Default: Story = {
   render: () => (
     <PublicEvidencePipeline
-      kicker="§ 01 — The cycle"
-      title="From plan to public proof, season after season."
+      kicker="§ 03: The cycle"
+      title="From need to learning, season after season."
       titleId="story-pipeline-title"
-      intro="Each Garden moves through three stages of evidence — and starts again. The cycle is what turns a place's intentions into something the public can verify."
+      intro="Each Garden moves through four stages and starts again. The cycle is what turns a place's needs into something the public can verify."
     />
   ),
 };
 
 export const NoIntro: Story = {
-  render: () => (
-    <PublicEvidencePipeline title="The evidence cycle." titleId="story-pipeline-no-intro" />
-  ),
+  render: () => <PublicEvidencePipeline title="The cycle." titleId="story-pipeline-no-intro" />,
 };

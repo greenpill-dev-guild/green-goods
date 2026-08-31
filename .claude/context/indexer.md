@@ -212,4 +212,4 @@ dynamic registrations, and a representative non-empty Green Goods query.
 - V3 test adapter: `packages/indexer/test/v3.ts`
 - Boundary guard: `packages/indexer/scripts/check-indexing-boundary.mjs`
 - Builder documentation: `docs/docs/builders/packages/indexer.mdx`
-- Deployment documentation: `docs/docs/builders/deployments/indexer-deploy.mdx`
+- Deployment and local-runtime runbook: `packages/indexer/README.md`

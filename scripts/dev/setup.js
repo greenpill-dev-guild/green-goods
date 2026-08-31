@@ -10,7 +10,15 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { execSync } from "child_process";
+import { fileURLToPath } from "url";
+import {
+  foundryVersionMatches,
+  readPinnedFoundryVersion,
+} from "../contracts/check-foundry-version.mjs";
 import { commandExists, commandVersion, majorVersion } from "../lib/dev-shared.js";
+
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const requiredFoundryVersion = readPinnedFoundryVersion(projectRoot);
 
 const validProfiles = new Set(["host", "isolated", "cloud"]);
 const validInstallModes = new Set(["auto", "always", "skip"]);
@@ -184,11 +192,13 @@ function installBun() {
 }
 
 function installFoundry() {
-  log.info("Installing Foundry...\n");
+  log.info(`Installing Foundry ${requiredFoundryVersion}...\n`);
 
   if (process.platform === "win32") {
     log.error("Automatic Foundry install is not supported on Windows");
-    console.log(`${c.dim}Install via WSL: curl -L https://foundry.paradigm.xyz | bash && foundryup${c.reset}\n`);
+    console.log(
+      `${c.dim}Install via WSL: foundryup --install v${requiredFoundryVersion} && foundryup --use v${requiredFoundryVersion}${c.reset}\n`
+    );
     return false;
   }
 
@@ -201,8 +211,9 @@ function installFoundry() {
     return false;
   }
 
-  const asset = `foundry_stable_${platform}_${assetArch}.tar.gz`;
-  const url = `https://github.com/foundry-rs/foundry/releases/download/stable/${asset}`;
+  const releaseTag = `v${requiredFoundryVersion}`;
+  const asset = `foundry_${releaseTag}_${platform}_${assetArch}.tar.gz`;
+  const url = `https://github.com/foundry-rs/foundry/releases/download/${releaseTag}/${asset}`;
   const home = os.homedir();
   const binDir = path.join(home, ".foundry", "bin");
   const tmpFile = path.join(os.tmpdir(), `foundry-${Date.now()}.tar.gz`);
@@ -271,14 +282,38 @@ function installFoundry() {
       }
     }
 
-    log.success("Foundry installed successfully\n");
+    const installedVersion = commandVersion("forge");
+    if (!foundryVersionMatches(installedVersion, requiredFoundryVersion)) {
+      log.error(`Foundry ${requiredFoundryVersion} install verification failed; detected ${installedVersion || "unknown"}`);
+      return false;
+    }
+
+    log.success(`Foundry ${requiredFoundryVersion} installed successfully\n`);
     return true;
   } catch (err) {
     log.error("Failed to install Foundry automatically");
-    console.log(`${c.dim}Install manually: curl -L https://foundry.paradigm.xyz | bash && foundryup${c.reset}\n`);
+    console.log(
+      `${c.dim}Install manually: foundryup --install v${requiredFoundryVersion} && foundryup --use v${requiredFoundryVersion}${c.reset}\n`
+    );
     fs.rmSync(tmpFile, { force: true });
     return false;
   }
+}
+
+function checkFoundryVersion() {
+  if (!commandExists("forge")) {
+    log.error("Foundry not found");
+    return false;
+  }
+
+  const version = commandVersion("forge");
+  if (!foundryVersionMatches(version, requiredFoundryVersion)) {
+    log.error(`Foundry ${requiredFoundryVersion} required; detected ${version || "unknown"}`);
+    return false;
+  }
+
+  log.success(version);
+  return true;
 }
 
 function checkVersion(cmd, minVersion, name) {
@@ -407,8 +442,7 @@ const hasNode = checkVersion("node", 22, "Node.js");
 let hasBun = checkVersion("bun", 1, "bun");
 const hasGit = checkCommand("git", "Git");
 const hasDocker = isHost ? checkDocker() : false;
-const hasForge = isHost ? checkCommand("forge", "Foundry") : commandExists("forge");
-if (!isHost && hasForge) log.success(commandVersion("forge") || "Foundry available");
+const hasForge = checkFoundryVersion();
 
 console.log("");
 
@@ -441,13 +475,13 @@ if (isHost && !hasDocker) {
 let foundryInstalled = hasForge;
 if (!hasForge) {
   if (isHost) {
-    log.warning("Foundry not found. Attempting to install...\n");
+    log.warning(`Foundry ${requiredFoundryVersion} is missing or mismatched. Attempting to install...\n`);
     foundryInstalled = installFoundry();
     if (!foundryInstalled) {
       log.warning("Continuing without Foundry — contract scripts and pre-push hooks will fail until installed.\n");
     }
   } else {
-    log.warning("Foundry not found. Contracts work will need an image/profile that provides it.\n");
+    log.warning(`Foundry ${requiredFoundryVersion} is required for contracts work in this profile.\n`);
   }
 }
 

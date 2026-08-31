@@ -1,7 +1,7 @@
 /**
  * usePendingReviewCount Hook Tests
  *
- * Pins the truth-gated readiness predicate that backs the arrival "review"/"operatorClear"
+ * Pins the truth-gated readiness predicate that backs the arrival "review"/"stewardClear"
  * claims: ready only when the count (including count = 0) is backed by settled data, a
  * failed per-garden works fetch is NEVER ready, and the count excludes works already
  * reviewed by anyone plus the viewer's own submissions.
@@ -68,22 +68,22 @@ describe("usePendingReviewCount", () => {
     mocks.fetchApprovals = vi.fn(async () => []);
   });
 
-  it("is vacuously ready with count 0 for a non-operator, without fetching approvals", () => {
-    mocks.gardens = { data: [{ id: GARDEN, operators: [] }], isSuccess: true };
+  it("is vacuously ready with count 0 for a non-steward, without fetching approvals", () => {
+    mocks.gardens = { data: [{ id: GARDEN, stewards: [] }], isSuccess: true };
     const { result } = renderHook(() => usePendingReviewCount(VIEWER), { wrapper });
-    expect(result.current).toEqual({ count: 0, ready: true, isOperator: false });
+    expect(result.current).toEqual({ count: 0, ready: true, isSteward: false });
     expect(mocks.fetchApprovals).not.toHaveBeenCalled();
   });
 
-  it("is ready with count 0 for an operator whose gardens have no works (no approvals fetch)", () => {
-    mocks.gardens = { data: [{ id: GARDEN, operators: [VIEWER] }], isSuccess: true };
+  it("is ready with count 0 for a steward whose gardens have no works (no approvals fetch)", () => {
+    mocks.gardens = { data: [{ id: GARDEN, stewards: [VIEWER] }], isSuccess: true };
     const { result } = renderHook(() => usePendingReviewCount(VIEWER), { wrapper });
-    expect(result.current).toEqual({ count: 0, ready: true, isOperator: true });
+    expect(result.current).toEqual({ count: 0, ready: true, isSteward: true });
     expect(mocks.fetchApprovals).not.toHaveBeenCalled();
   });
 
   it("is NOT ready while the works query has not settled", () => {
-    mocks.gardens = { data: [{ id: GARDEN, operators: [VIEWER] }], isSuccess: true };
+    mocks.gardens = { data: [{ id: GARDEN, stewards: [VIEWER] }], isSuccess: true };
     mocks.reviewerWorks = { ...mocks.reviewerWorks, isSuccess: false, isLoading: true };
     const { result } = renderHook(() => usePendingReviewCount(VIEWER), { wrapper });
     expect(result.current.ready).toBe(false);
@@ -91,7 +91,7 @@ describe("usePendingReviewCount", () => {
   });
 
   it("is NOT ready when any garden's works fetch failed — a swallowed outage never reads as all-clear", () => {
-    mocks.gardens = { data: [{ id: GARDEN, operators: [VIEWER] }], isSuccess: true };
+    mocks.gardens = { data: [{ id: GARDEN, stewards: [VIEWER] }], isSuccess: true };
     mocks.reviewerWorks = {
       ...mocks.reviewerWorks,
       data: [makeWork("w1", OTHER)],
@@ -104,7 +104,7 @@ describe("usePendingReviewCount", () => {
   });
 
   it("counts only works not reviewed by anyone and not self-authored, once approvals settle", async () => {
-    mocks.gardens = { data: [{ id: GARDEN, operators: [VIEWER] }], isSuccess: true };
+    mocks.gardens = { data: [{ id: GARDEN, stewards: [VIEWER] }], isSuccess: true };
     mocks.reviewerWorks = {
       ...mocks.reviewerWorks,
       data: [

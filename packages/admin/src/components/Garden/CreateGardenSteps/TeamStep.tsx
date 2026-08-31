@@ -1,30 +1,28 @@
-import {
-  type Address,
-  TextInput,
-  useAddressInput,
-  useCreateGardenStore,
-} from "@green-goods/shared";
+import { useAddressInput } from "@green-goods/shared/hooks/utils/useAddressInput";
+import { useCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
+import type { Address } from "@green-goods/shared/types/domain";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
+import { AdminButton, AdminIconButton } from "@/components/AdminButton";
+import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
 export function TeamStep() {
   const form = useCreateGardenStore((s) => s.form);
   const addGardener = useCreateGardenStore((s) => s.addGardener);
   const removeGardener = useCreateGardenStore((s) => s.removeGardener);
-  const addOperator = useCreateGardenStore((s) => s.addOperator);
-  const removeOperator = useCreateGardenStore((s) => s.removeOperator);
+  const addSteward = useCreateGardenStore((s) => s.addSteward);
+  const removeSteward = useCreateGardenStore((s) => s.removeSteward);
   const { formatMessage } = useIntl();
 
-  // Use shared hook for both gardener and operator inputs
+  // Use shared hook for both gardener and steward inputs
   const gardenerInput = useAddressInput(addGardener, formatMessage);
-  const operatorInput = useAddressInput(addOperator, formatMessage);
+  const stewardInput = useAddressInput(addSteward, formatMessage);
 
   return (
     <div className="space-y-5">
-      <div className="rounded-lg border border-primary-light bg-primary-lighter/40 p-3.5 text-xs text-text-sub">
-        <p className="font-semibold text-text-strong">
+      <div className="rounded-lg border border-primary-light bg-primary-lighter/40 p-3.5 body-sm text-text-sub">
+        <p className="label-md font-semibold text-text-strong">
           {formatMessage({
             id: "app.admin.garden.create.teamAdvisory.title",
             defaultMessage: "Planned team members",
@@ -39,59 +37,56 @@ export function TeamStep() {
         </p>
         <p className="mt-1">
           {formatMessage({
-            id: "app.admin.garden.create.teamAdvisory.operatorNote",
+            id: "app.admin.garden.create.teamAdvisory.stewardNote",
             defaultMessage:
-              "Note: Operators automatically have gardener access. You don't need to add them to both lists.",
+              "Note: Stewards automatically have gardener access. You don't need to add them to both lists.",
           })}
         </p>
       </div>
 
-      {/* Operators section — shown first since they have broader permissions */}
+      {/* Stewards section — shown first since they have broader permissions */}
       <div>
-        <label
-          className="mb-2 block text-sm font-medium text-text-strong"
-          htmlFor="create-garden-operator-address"
-        >
-          {formatMessage({ id: "app.roles.operator.plural", defaultMessage: "Garden operators" })}
-        </label>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <TextInput
-            surface="admin"
-            id="create-garden-operator-address"
-            value={operatorInput.input}
-            onChange={(event) => operatorInput.setInput(event.target.value)}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+          <AdminTextField
+            id="create-garden-steward-address"
+            className="min-w-0 flex-1 font-mono"
+            label={formatMessage({
+              id: "app.roles.steward.plural",
+              defaultMessage: "Stewards",
+            })}
+            value={stewardInput.input}
+            onChange={(event) => stewardInput.setInput(event.target.value)}
             placeholder={formatMessage({
               id: "admin.team.addressPlaceholder",
               defaultMessage: "0x... or vitalik.eth",
             })}
-            aria-invalid={!!operatorInput.error}
-            invalid={!!operatorInput.error}
-            aria-describedby="operator-error"
-            className="flex-1 font-mono"
+            error={stewardInput.error || undefined}
+            helperText={" "}
           />
           <AdminButton
             variant="tonal"
             size="sm"
-            onClick={operatorInput.handleAdd}
-            disabled={operatorInput.shouldResolveEns && operatorInput.resolvingEns}
+            className="mt-1.5"
+            onClick={stewardInput.handleAdd}
+            disabled={stewardInput.shouldResolveEns && stewardInput.resolvingEns}
             leadingIcon={<RiAddLine />}
           >
             {formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
           </AdminButton>
         </div>
-        {operatorInput.shouldResolveEns && (
-          <p className="mt-2 text-xs text-text-soft">
-            {operatorInput.resolvingEns ? (
+        {stewardInput.shouldResolveEns && (
+          <p className="mt-1 body-sm text-text-soft">
+            {stewardInput.resolvingEns ? (
               formatMessage({
                 id: "app.admin.garden.create.resolvingEns",
                 defaultMessage: "Resolving ENS name...",
               })
-            ) : operatorInput.resolvedAddress ? (
+            ) : stewardInput.resolvedAddress ? (
               <FormattedMessage
                 id="app.admin.garden.create.ensResolved"
                 defaultMessage="Resolves to {address}"
                 values={{
-                  address: <EnsAddressText address={operatorInput.resolvedAddress as Address} />,
+                  address: <EnsAddressText address={stewardInput.resolvedAddress as Address} />,
                 }}
               />
             ) : (
@@ -102,29 +97,21 @@ export function TeamStep() {
             )}
           </p>
         )}
-        {/* Always render to reserve space and prevent layout shift */}
-        <p
-          id="operator-error"
-          role="alert"
-          className="mt-1 block min-h-[1.25rem] text-xs text-error-dark"
-        >
-          {operatorInput.error || "\u00A0"}
-        </p>
         <ul className="mt-1.5 space-y-1.5">
-          {form.operators.map((operator) => (
+          {form.stewards.map((steward) => (
             <li
-              key={operator}
-              className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-xs font-mono text-text-sub"
+              key={steward}
+              className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-1.5 label-sm font-mono text-text-sub"
             >
-              <EnsAddressText address={operator as Address} />
-              <button
-                type="button"
-                onClick={() => removeOperator(form.operators.indexOf(operator))}
-                className="min-h-11 min-w-11 flex items-center justify-center rounded-md text-text-soft transition hover:bg-bg-white hover:text-error-dark"
-                aria-label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
+              <EnsAddressText address={steward as Address} />
+              <AdminIconButton
+                size="sm"
+                variant="danger"
+                onClick={() => removeSteward(form.stewards.indexOf(steward))}
+                label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
               >
-                <RiDeleteBinLine className="h-4 w-4" />
-              </button>
+                <RiDeleteBinLine />
+              </AdminIconButton>
             </li>
           ))}
         </ul>
@@ -132,30 +119,24 @@ export function TeamStep() {
 
       {/* Gardeners section */}
       <div>
-        <label
-          className="mb-2 block text-sm font-medium text-text-strong"
-          htmlFor="create-garden-gardener-address"
-        >
-          {formatMessage({ id: "app.roles.gardener.plural", defaultMessage: "Gardeners" })}
-        </label>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <TextInput
-            surface="admin"
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+          <AdminTextField
             id="create-garden-gardener-address"
+            className="min-w-0 flex-1 font-mono"
+            label={formatMessage({ id: "app.roles.gardener.plural", defaultMessage: "Gardeners" })}
             value={gardenerInput.input}
             onChange={(event) => gardenerInput.setInput(event.target.value)}
             placeholder={formatMessage({
               id: "admin.team.addressPlaceholder",
               defaultMessage: "0x... or vitalik.eth",
             })}
-            aria-invalid={!!gardenerInput.error}
-            invalid={!!gardenerInput.error}
-            aria-describedby="gardener-error"
-            className="flex-1 font-mono"
+            error={gardenerInput.error || undefined}
+            helperText={" "}
           />
           <AdminButton
             variant="tonal"
             size="sm"
+            className="mt-1.5"
             onClick={gardenerInput.handleAdd}
             disabled={gardenerInput.shouldResolveEns && gardenerInput.resolvingEns}
             leadingIcon={<RiAddLine />}
@@ -164,7 +145,7 @@ export function TeamStep() {
           </AdminButton>
         </div>
         {gardenerInput.shouldResolveEns && (
-          <p className="mt-2 text-xs text-text-soft">
+          <p className="mt-1 body-sm text-text-soft">
             {gardenerInput.resolvingEns ? (
               formatMessage({
                 id: "app.admin.garden.create.resolvingEns",
@@ -186,29 +167,21 @@ export function TeamStep() {
             )}
           </p>
         )}
-        {/* Always render to reserve space and prevent layout shift */}
-        <p
-          id="gardener-error"
-          role="alert"
-          className="mt-1 block min-h-[1.25rem] text-xs text-error-dark"
-        >
-          {gardenerInput.error || "\u00A0"}
-        </p>
         <ul className="mt-1.5 space-y-1.5">
           {form.gardeners.map((gardener) => (
             <li
               key={gardener}
-              className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-xs font-mono text-text-sub"
+              className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-1.5 label-sm font-mono text-text-sub"
             >
               <EnsAddressText address={gardener as Address} />
-              <button
-                type="button"
+              <AdminIconButton
+                size="sm"
+                variant="danger"
                 onClick={() => removeGardener(form.gardeners.indexOf(gardener))}
-                className="min-h-11 min-w-11 flex items-center justify-center rounded-md text-text-soft transition hover:bg-bg-white hover:text-error-dark"
-                aria-label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
+                label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
               >
-                <RiDeleteBinLine className="h-4 w-4" />
-              </button>
+                <RiDeleteBinLine />
+              </AdminIconButton>
             </li>
           ))}
         </ul>

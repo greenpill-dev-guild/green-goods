@@ -17,12 +17,80 @@ import { expect, test } from "@playwright/test";
 import { setupAuthenticatedClient, TEST_URLS } from "../helpers/test-utils";
 
 const CLIENT_URL = TEST_URLS.client;
+const PWA_DEV_SERVICE_WORKER_SCRIPT = "/dev-sw.js?dev-sw";
+const PWA_APP_SCOPE = "/home";
 
 /**
  * Set up mocked environment with auth and GraphQL mocking.
  */
 async function setupMockedEnvironment(page: import("@playwright/test").Page) {
   return setupAuthenticatedClient(page);
+}
+
+/**
+ * Wait until the PWA app shell (AppBar and its lazily imported route module)
+ * is actually mounted. The boot fallback clears before the router resolves
+ * the authed shell, so going offline any earlier turns the pending dynamic
+ * import of AppShell.tsx into a chunk-load error and the update-recovery
+ * screen — instead of the offline indicator these tests assert on.
+ */
+async function waitForAppShell(page: import("@playwright/test").Page) {
+  await page.getByTestId("authenticated-nav").waitFor({ timeout: 30000 });
+}
+
+async function waitForActiveServiceWorker(page: import("@playwright/test").Page) {
+  const prerequisites = await page.evaluate(() => ({
+    secureContext: window.isSecureContext,
+    supported: "serviceWorker" in navigator,
+  }));
+
+  expect(
+    prerequisites,
+    "Offline reload requires service-worker support on a secure localhost or HTTPS origin."
+  ).toEqual({ secureContext: true, supported: true });
+
+  await page.evaluate(
+    async ({ scriptUrl, scope }) => {
+      const existingRegistration = await navigator.serviceWorker.getRegistration(scope);
+      const registration =
+        existingRegistration ??
+        (await navigator.serviceWorker.register(scriptUrl, {
+          scope,
+          updateViaCache: "none",
+        }));
+
+      await registration.update();
+      await navigator.serviceWorker.ready;
+    },
+    { scriptUrl: PWA_DEV_SERVICE_WORKER_SCRIPT, scope: PWA_APP_SCOPE }
+  );
+
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async (scope) => {
+          const registration = await navigator.serviceWorker.getRegistration(scope);
+          return registration?.active?.state ?? null;
+        }, PWA_APP_SCOPE),
+      {
+        message:
+          "Expected vite-plugin-pwa's development service worker to activate for the /home app scope.",
+        timeout: 15000,
+      }
+    )
+    .toBe("activated");
+}
+
+async function ensureServiceWorkerControlsPage(page: import("@playwright/test").Page) {
+  if (await page.evaluate(() => Boolean(navigator.serviceWorker.controller))) return;
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect
+    .poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller)), {
+      message: "Expected the active PWA service worker to control the reloaded app page.",
+      timeout: 10000,
+    })
+    .toBe(true);
 }
 
 test.describe("Offline Sync CI Tests", () => {
@@ -33,39 +101,12 @@ test.describe("Offline Sync CI Tests", () => {
       const helper = await setupMockedEnvironment(page);
       await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
       await helper.waitForPageLoad();
+      await waitForAppShell(page);
 
-      // Go offline
       await context.setOffline(true);
-      await page.waitForTimeout(2000);
-
-      // Look for offline indicator using multiple possible selectors
-      const offlineSelectors = [
-        '[data-testid="offline-indicator"]',
-        '[data-testid="offline-banner"]',
-        '[role="status"]',
-      ];
-
-      let offlineIndicatorFound = false;
-      for (const selector of offlineSelectors) {
-        const element = page.locator(selector).first();
-        const isVisible = await element.isVisible({ timeout: 3000 }).catch(() => false);
-        if (isVisible) {
-          // Verify the indicator contains offline-related text
-          const text = await element.textContent().catch(() => "");
-          if (text && /offline|disconnected|no connection/i.test(text)) {
-            offlineIndicatorFound = true;
-            break;
-          }
-        }
-      }
-
-      // Also check if any text contains "offline" on the page
-      if (!offlineIndicatorFound) {
-        const offlineText = page.locator("text=/offline/i").first();
-        offlineIndicatorFound = await offlineText.isVisible({ timeout: 2000 }).catch(() => false);
-      }
-
-      expect(offlineIndicatorFound).toBe(true);
+      await expect(page.getByRole("status", { name: "App is in offline mode" })).toBeVisible({
+        timeout: 10000,
+      });
 
       // Restore online state for cleanup
       await context.setOffline(false);
@@ -75,11 +116,9 @@ test.describe("Offline Sync CI Tests", () => {
       const helper = await setupMockedEnvironment(page);
       await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
       await helper.waitForPageLoad();
+      await waitForAppShell(page);
 
-      // Go offline
       await context.setOffline(true);
-      await page.waitForTimeout(2000);
-
       const offlineStatus = page.getByRole("status", { name: "App is in offline mode" });
       await expect(offlineStatus).toBeVisible({ timeout: 10000 });
 
@@ -92,72 +131,68 @@ test.describe("Offline Sync CI Tests", () => {
   });
 
   test.describe("PWA Service Worker", () => {
-    // SKIP: #338 owner:afo expiry:2026-08-17 — needs HTTPS plus service worker registration.
-    test.skip("client app loads and registers service worker", async ({ page }) => {
+    test("client app loads under an active service worker", async ({ page }) => {
       await page.goto("/home/login?presentation=pwa");
       await page.waitForLoadState("domcontentloaded");
-      await page.waitForTimeout(3000);
 
-      // Check that the app loaded without critical errors
-      const hasAppError = await page
-        .locator('text="Unexpected Application Error"')
-        .isVisible({ timeout: 2000 })
-        .catch(() => false);
-      expect(hasAppError).toBe(false);
+      await expect(page.getByText("Unexpected Application Error", { exact: true })).toHaveCount(0);
+      await expect(page.getByTestId("login-button")).toBeVisible({ timeout: 10000 });
+      await waitForActiveServiceWorker(page);
 
-      // Verify service worker registration via JS evaluation
-      const hasServiceWorker = await page
-        .evaluate(async () => {
-          if (!("serviceWorker" in navigator)) return false;
-          const registrations = await navigator.serviceWorker.getRegistrations();
-          return registrations.length > 0;
-        })
-        .catch(() => false);
-
-      // Service worker may not be registered in all test environments
-      // Log the result for visibility but don't fail the test
-      if (!hasServiceWorker) {
-        console.log("Service worker not registered — this is expected in some CI environments");
-      }
-
-      // The app should at least be a valid PWA entry point
-      const loginButton = page.getByTestId("login-button");
-      await expect(loginButton).toBeVisible({ timeout: 10000 });
+      const registrationScope = await page.evaluate(async () => {
+        const registration = await navigator.serviceWorker.getRegistration();
+        return registration?.scope ?? "";
+      });
+      expect(new URL(registrationScope).pathname.replace(/\/$/, "")).toBe("/home");
     });
 
-    test("client app serves valid HTML even when offline after initial load", async ({
-      page,
-      context,
-    }) => {
-      // Load the app initially (cache service worker assets)
-      await page.goto("/home/login?presentation=pwa");
-      await page.waitForLoadState("domcontentloaded");
-      await page.waitForTimeout(3000);
+    test("reloads the authenticated app shell while offline", async ({ page, context }) => {
+      // SKIP: #338 owner:afo expiry:2026-09-15 — Vite dev SW has no precached navigation shell.
+      test.skip(
+        process.env.PLAYWRIGHT_PWA_PREVIEW !== "true",
+        "Offline reload requires a production PWA preview with a precached /home app shell; " +
+          "the default CI Vite dev worker registers but does not precache index.html. " +
+          "Set PLAYWRIGHT_PWA_PREVIEW=true only when serving a production preview."
+      );
 
-      // Go offline
-      await context.setOffline(true);
-
-      // Reload — service worker should serve cached response
-      await page.reload().catch(() => {
-        // Reload may fail in offline mode without service worker — that's expected
+      await page.addInitScript(() => {
+        const key = "__gg_e2e_navigation_count";
+        const nextCount = Number(window.sessionStorage.getItem(key) ?? "0") + 1;
+        window.sessionStorage.setItem(key, String(nextCount));
       });
 
-      await page.waitForTimeout(2000);
+      const helper = await setupMockedEnvironment(page);
+      await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
+      await helper.waitForPageLoad();
 
-      // Check if the page still shows content (from service worker cache)
-      const body = page.locator("body");
-      await expect(body).toBeVisible();
+      const appMarker = page.getByTestId("work-dashboard-button");
+      await expect(appMarker).toBeVisible({ timeout: 10000 });
+      await waitForActiveServiceWorker(page);
+      await ensureServiceWorkerControlsPage(page);
+      await expect(appMarker).toBeVisible({ timeout: 10000 });
 
-      // If service worker cached the page, we should see some app content
-      const bodyText = await body.textContent().catch(() => "");
-      const hasContent = bodyText.length > 100; // Not an empty page
+      const navigationCountBeforeOfflineReload = await page.evaluate(() =>
+        Number(window.sessionStorage.getItem("__gg_e2e_navigation_count"))
+      );
 
-      // Log result for debugging — offline caching depends on SW registration
-      if (!hasContent) {
-        console.log("Page empty after offline reload — service worker may not have cached assets");
-      }
+      await context.setOffline(true);
+      await expect(page.getByRole("status", { name: "App is in offline mode" })).toBeVisible({
+        timeout: 10000,
+      });
 
-      // Restore online state
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await expect(page).toHaveURL(/\/home(?:[/?#]|$)/);
+      await expect(appMarker).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText("Unexpected Application Error", { exact: true })).toHaveCount(0);
+      await expect
+        .poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller)))
+        .toBe(true);
+
+      const navigationCountAfterOfflineReload = await page.evaluate(() =>
+        Number(window.sessionStorage.getItem("__gg_e2e_navigation_count"))
+      );
+      expect(navigationCountAfterOfflineReload).toBeGreaterThan(navigationCountBeforeOfflineReload);
+
       await context.setOffline(false);
     });
   });
@@ -177,9 +212,10 @@ test.describe("Offline Sync CI Tests", () => {
       // Verify button is enabled while online
       await expect(dashboardButton).toBeEnabled();
 
-      // Go offline
       await context.setOffline(true);
-      await page.waitForTimeout(1000);
+      await expect(page.getByRole("status", { name: "App is in offline mode" })).toBeVisible({
+        timeout: 10000,
+      });
 
       // Button should still be interactive while offline
       // (offline work management is a core feature)

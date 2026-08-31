@@ -27,8 +27,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { queryKeys } from "../../config/query-keys";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { isGardenPubliclyVisible } from "../../config/garden-visibility";
+import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
 import { getGardenAssessments, getWorks } from "../../modules/data/eas";
@@ -93,7 +94,7 @@ export interface PublicVolume {
 
 export function usePublicVolume(volumeId: number, chainId: number = DEFAULT_CHAIN_ID) {
   return useQuery({
-    queryKey: queryKeys.public.volume(chainId, volumeId),
+    queryKey: publicKeys.volume(chainId, volumeId),
     queryFn: async (): Promise<PublicVolume | null> => {
       const meta = VOLUMES.get(volumeId);
       if (!meta) return null;
@@ -105,9 +106,7 @@ export function usePublicVolume(volumeId: number, chainId: number = DEFAULT_CHAI
       };
 
       const gardens = await getGardens();
-      const initializedGardens = gardens.filter(
-        (g) => (g.name ?? "").trim().length > 0 || (g.location ?? "").trim().length > 0
-      );
+      const initializedGardens = gardens.filter(isGardenPubliclyVisible);
 
       if (initializedGardens.length === 0) {
         return {

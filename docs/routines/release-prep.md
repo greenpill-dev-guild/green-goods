@@ -32,12 +32,14 @@ It **reads and drafts only**. It never cuts the release, opens PRs, or tags anyt
 
 ## What it produces
 
-A single Discord brief containing:
+A Discord brief (max two messages — see Phase 7's budget) containing:
 
-- a summary of everything unreleased on `develop`, grouped by change type;
-- draft release notes and the version to bump to;
+- a one-line per-type summary of everything unreleased on `develop`;
+- draft release notes (highlights) and the version to bump to;
 - a doc-freshness + risk scan (contracts / auth / migrations that need extra QA);
-- a draft, plain-language announcement for gardeners.
+- a draft, plain-language announcement for gardeners;
+
+with the full commit enumeration linked as the live GitHub compare view for **the same range Phase 1 counted** (`main...develop`) rather than pasted into Discord.
 
 ## Cadence
 
@@ -65,7 +67,7 @@ Decide whether this run produces the full brief or exits quietly:
 ## Setup
 
 - Env vars are injected; do not read `.env`.
-- Read the canonical runbook live from the checkout: `docs/docs/builders/deployments/releasing.mdx`. Follow its cadence, naming, and versioning rules rather than hardcoding them — if the runbook changes, follow it.
+- Read the canonical runbook live from the checkout: `CONTRIBUTING.md` § Releases and hotfixes. Follow its cadence, naming, and versioning rules rather than hardcoding them.
 - Next version: read the root `package.json` version and bump the **minor** (`X.Y.0` → `X.(Y+1).0`).
 - **Ship month** = the current calendar month (we release at the start of it), per the runbook's ship-month naming.
 
@@ -84,8 +86,8 @@ State the commands `bun run version:bump X.Y.0` and `bun run version:check X.Y.0
 ## Phase 4 — Doc-freshness scan
 
 - Flag release-relevant docs whose `last_verified` is older than ~90 days.
-- Check changelog/tag drift: does `docs/docs/reference/changelog.md` reference the latest tag? Any tags with no GitHub Release?
-- Scan for dead links to `/builders/deployments/releasing` and any stragglers pointing at the old `/developer/releasing` path.
+- Check release/tag drift: does every published tag have a GitHub Release, and do major product milestones belong in Product History?
+- Scan for stale release guidance that bypasses `CONTRIBUTING.md`.
 
 ## Phase 5 — Risk surface
 
@@ -94,17 +96,23 @@ State the commands `bun run version:bump X.Y.0` and `bun run version:check X.Y.0
 
 ## Phase 6 — Draft gardener announcement
 
-Write 3-5 plain-language lines announcing the release. **Self-check the prose against the enforced term list** in `docs/docs/reference/banned-vocabulary.json` (`.linter_enforced.terms`) and list any hits. Note: `bun run lint:vocab` does **not** cover prose — it scans only `packages/{shared,client,admin}/src/i18n/*.json` — so this manual check is the gate for announcement copy.
+Write 3-5 plain-language lines announcing the release. **Self-check the prose against the enforced term list** in `scripts/data/banned-vocabulary.json` (`.linter_enforced.terms`) and list any hits. Note: `bun run lint:vocab` does **not** cover prose — it scans only `packages/{shared,client,admin}/src/i18n/*.json` — so this manual check is the gate for announcement copy.
 
 ## Phase 7 — Post and exit
 
-Post one brief to `DISCORD_ENGINEERING_CHANNEL_ID`. @mention `DISCORD_USER_ID_AFO` only when a Phase 5 risk needs a decision or a setup step failed. Keep the privacy boundary (no session IDs, replay URLs, wallet addresses, or reporter identifiers). Never commit, open PRs, or create tags.
+Post the brief to `DISCORD_ENGINEERING_CHANNEL_ID` with a **message budget of at most TWO Discord messages** (the stated house-style-v2 exception — every other routine gets one; see [`routines/claude/README.md` in `.github`](https://github.com/greenpill-dev-guild/.github/blob/main/routines/claude/README.md#house-style-v2-applies-to-every-posting-routine)). Structure:
+
+- **Message 1 — the decision surface**: a 1–2 sentence lede (what's shipping and when), the version + bump/check commands, per-type commit counts on ONE line (`{N} commits · {a} feat / {b} fix / {c} chore …`), the Phase 5 risk flags (these are why a human reads the brief), and the Phase 4 doc-freshness flags.
+- **Message 2 — the copy**: the draft release notes (highlights, not the full commit enumeration) and the 3–5 line gardener announcement.
+- **The full commit enumeration never goes to Discord**: Message 1 links the live GitHub compare view for **the exact range Phase 1 counted** — `https://github.com/greenpill-dev-guild/green-goods/compare/main...develop`, wrapped in `<>` — so the linked list and the per-type counts can never disagree. (Resolve the range once in Phase 1 and reuse it here; do not substitute a `{last-tag}...develop` range, which covers different commits whenever main and the tag differ.) The routine stays read-only everywhere (no Linear writes, no GitHub writes) — the budget is met by linking, not by relocating content.
+
+Prefix the message with `<@${DISCORD_USER_ID_AFO}>` only when a Phase 5 risk needs a decision or a setup step failed. Keep the privacy boundary (no session IDs, replay URLs, wallet addresses, or reporter identifiers). Never commit, open PRs, or create tags.
 
 ## Anti-patterns
 
 | Don't | Why |
 | --- | --- |
-| Hardcode the cadence/naming | Read it live from `releasing.mdx` so the brief follows the runbook |
+| Hardcode the cadence/naming | Read it live from `CONTRIBUTING.md` § Releases and hotfixes so the brief follows the runbook |
 | Claim `lint:vocab` validated the announcement | It only scans i18n JSON; prose is a manual term-list check |
 | Commit, open PRs, or tag | Read + draft only; the human cuts the release |
 | Treat the first large commit range as a bug | The first cadenced release is a catch-up; flag it as expected |

@@ -27,9 +27,15 @@ beforeAll(() => {
 });
 
 // Mock shared barrel imports — component imports everything from @green-goods/shared
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/modules/work/media-processing", () => ({
   getWorkMediaId: (file: File) => `media-${file.name}-${file.size}-${file.lastModified}`,
   isVideoFile: (file: File) => file.type.startsWith("video/"),
   getSafeMediaBatchMetadata: (files: File[]) => ({
@@ -46,7 +52,10 @@ vi.mock("@green-goods/shared", () => ({
     size_bucket: "0-1mb",
     media_kind: file.type.startsWith("video/") ? "video" : "image",
   }),
-  normalizeWorkMediaFiles: vi.fn(async (files: File[]) => {
+}));
+
+vi.mock("@green-goods/shared/modules/work/submission-flow", () => ({
+  prepareWorkSubmission: vi.fn(async (files: File[]) => {
     const accepted = [];
     const converted = [];
 
@@ -95,24 +104,31 @@ vi.mock("@green-goods/shared", () => ({
 
     return { accepted, rejected: [], converted };
   }),
-  AudioPlayer: ({ file, onDelete }: any) => <div data-testid="audio-player">{file?.name}</div>,
-  AudioRecorder: ({ onRecordingComplete }: any) => (
-    <button
-      data-testid="audio-recorder"
-      onClick={() => onRecordingComplete?.(new File([], "recording.webm"))}
-    >
-      Record
-    </button>
-  ),
+}));
+
+vi.mock("@green-goods/shared/components/Audio/AudioPlayer", () => ({
+  AudioPlayer: ({ file }: any) => <div data-testid="audio-player">{file?.name}</div>,
+}));
+
+vi.mock("@green-goods/shared/modules/app/posthog", () => ({
   track: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: {
     info: vi.fn(),
     error: vi.fn(),
   },
+}));
+
+vi.mock("@green-goods/shared/modules/job-queue/media-resource-manager", () => ({
   mediaResourceManager: {
     getOrCreateUrl: vi.fn((file: File) => `blob:mock-url-${file.name}`),
     cleanupUrls: vi.fn(),
   },
+}));
+
+vi.mock("@green-goods/shared/utils/work/image-compression", () => ({
   imageCompressor: {
     shouldCompress: () => false,
     compressImages: vi.fn().mockImplementation((files: File[]) => Promise.resolve(files)),
@@ -151,7 +167,7 @@ vi.mock("@/components/Features", () => ({
 }));
 
 // Import after mocks
-import { getWorkMediaId } from "@green-goods/shared";
+import { getWorkMediaId } from "@green-goods/shared/modules/work/media-processing";
 import { WorkMedia } from "../../views/Garden/Media";
 
 const messages = {
@@ -190,7 +206,7 @@ function StatefulWorkMedia({ initialImages = [] }: { initialImages?: File[] }) {
 
   return (
     <WorkMedia
-      config={{ required: false, maxImageCount: 5 }}
+      config={{ title: "Evidence", required: false, maxImageCount: 5 }}
       images={images}
       setImages={setImages}
       audioNotes={[]}
@@ -255,7 +271,7 @@ describe("WorkMedia", () => {
 
     renderWithIntl(
       <WorkMedia
-        config={{ required: false, maxImageCount: 5 }}
+        config={{ title: "Evidence", required: false, maxImageCount: 5 }}
         images={[]}
         setImages={setImages}
         audioNotes={[]}
@@ -275,7 +291,7 @@ describe("WorkMedia", () => {
 
     renderWithIntl(
       <WorkMedia
-        config={{ required: false, maxImageCount: 5 }}
+        config={{ title: "Evidence", required: false, maxImageCount: 5 }}
         images={[]}
         setImages={setImages}
         audioNotes={[]}
@@ -297,7 +313,7 @@ describe("WorkMedia", () => {
 
     renderWithIntl(
       <WorkMedia
-        config={{ required: true, maxImageCount: 5 }}
+        config={{ title: "Evidence", required: true, maxImageCount: 5 }}
         images={[mockFile1, mockFile2]}
         setImages={setImages}
         audioNotes={[]}
@@ -316,7 +332,7 @@ describe("WorkMedia", () => {
 
     renderWithIntl(
       <WorkMedia
-        config={{ required: true, maxImageCount: 5, minImageCount: 2 }}
+        config={{ title: "Evidence", required: true, maxImageCount: 5, minImageCount: 2 }}
         images={[]}
         setImages={setImages}
         audioNotes={[]}
@@ -335,7 +351,7 @@ describe("WorkMedia", () => {
 
     renderWithIntl(
       <WorkMedia
-        config={{ required: false, maxImageCount: 5 }}
+        config={{ title: "Evidence", required: false, maxImageCount: 5 }}
         images={[]}
         setImages={setImages}
         audioNotes={[]}
@@ -355,7 +371,7 @@ describe("WorkMedia", () => {
 
     renderWithIntl(
       <WorkMedia
-        config={{ required: false, maxImageCount: 5 }}
+        config={{ title: "Evidence", required: false, maxImageCount: 5 }}
         images={[]}
         setImages={setImages}
         audioNotes={[]}
@@ -375,7 +391,7 @@ describe("WorkMedia", () => {
 
     renderWithIntl(
       <WorkMedia
-        config={{ required: false, maxImageCount: 5 }}
+        config={{ title: "Evidence", required: false, maxImageCount: 5 }}
         images={[]}
         setImages={setImages}
         audioNotes={[]}
@@ -423,7 +439,7 @@ describe("WorkMedia", () => {
     fireEvent.error(images[1]);
 
     expect(await screen.findByText("Some media previews failed")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Remove broken media" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove Broken Media" }));
 
     await waitFor(() => {
       expect(screen.getAllByRole("img")).toHaveLength(1);
@@ -438,7 +454,7 @@ describe("WorkMedia", () => {
 
     renderWithIntl(
       <WorkMedia
-        config={{ required: false, maxImageCount: 5 }}
+        config={{ title: "Evidence", required: false, maxImageCount: 5 }}
         images={[first, second]}
         setImages={vi.fn()}
         audioNotes={[]}

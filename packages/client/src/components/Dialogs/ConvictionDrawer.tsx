@@ -1,26 +1,26 @@
+import type { Address } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import type { ConvictionWeight } from "@green-goods/shared/types/conviction";
 import {
-  type Address,
-  cn,
-  type ConvictionWeight,
   DEFAULT_SPLIT_CONFIG,
-  formatAddress,
-  formatTokenAmount,
-  truncateAddress,
-  useAllocateHypercertSupport,
-  useConvictionStrategies,
-  useGardenCommunity,
-  useHypercertConviction,
-  useMemberVotingPower,
-  useOffline,
-  useUser,
-  useYieldAllocations,
   WEIGHT_SCHEME_VALUES,
   WeightScheme,
-} from "@green-goods/shared";
+} from "@green-goods/shared/types/gardens-community";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { truncateAddress } from "@green-goods/shared/utils/blockchain/address";
+import { useAllocateHypercertSupport } from "@green-goods/shared/hooks/conviction/useAllocateHypercertSupport";
+import { useConvictionStrategies } from "@green-goods/shared/hooks/conviction/useConvictionStrategies";
+import { useGardenCommunity } from "@green-goods/shared/hooks/conviction/useGardenCommunity";
+import { useHypercertConviction } from "@green-goods/shared/hooks/conviction/useHypercertConviction";
+import { useMemberVotingPower } from "@green-goods/shared/hooks/conviction/useMemberVotingPower";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useYieldAllocations } from "@green-goods/shared/hooks/yield/useYieldAllocations";
 import { RiLoader4Line } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { ModalDrawer } from "./ModalDrawer";
 
 function SectionSkeleton({ rows = 3 }: { rows?: number }) {
@@ -352,8 +352,8 @@ export function ConvictionDrawer({
                       {WEIGHT_SCHEME_VALUES[community.weightScheme].gardener / 10_000}x
                     </span>
                     <span>
-                      {formatMessage({ id: "app.roles.operator" })}:{" "}
-                      {WEIGHT_SCHEME_VALUES[community.weightScheme].operator / 10_000}x
+                      {formatMessage({ id: "app.roles.steward" })}:{" "}
+                      {WEIGHT_SCHEME_VALUES[community.weightScheme].steward / 10_000}x
                     </span>
                   </div>
                 </div>

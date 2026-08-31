@@ -25,13 +25,14 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { queryKeys } from "../../config/query-keys";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { isGardenPubliclyVisible } from "../../config/garden-visibility";
+import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
 import { getWorks } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
-import { derivePublicGardenSlug } from "../../public-contracts";
+import { derivePublicGardenSlug } from "../../public-contracts/garden-slug";
 import type { Address } from "../../types/domain";
 
 export interface PublicGardenSummary {
@@ -42,7 +43,7 @@ export interface PublicGardenSummary {
   name: string;
   /** Slug derived from name — see header for limitations. */
   slug: string;
-  /** Free-text location set by the operator. */
+  /** Free-text location set by the steward. */
   location: string;
   bannerImage: string;
   description: string;
@@ -52,8 +53,8 @@ export interface PublicGardenSummary {
   actionCount: number;
   /** Distinct gardener addresses across all works for this garden. */
   contributorCount: number;
-  /** Operator addresses surfaced to the public detail page. */
-  operators: Address[];
+  /** Steward addresses surfaced to the public detail page. */
+  stewards: Address[];
   /** Evaluator addresses surfaced for the "Verified Site" credibility path. */
   evaluators: Address[];
 }
@@ -69,19 +70,14 @@ export function usePublicGardens(
   options: { enabled?: boolean } = {}
 ) {
   return useQuery({
-    queryKey: queryKeys.public.gardens(chainId),
+    queryKey: publicKeys.gardens(chainId),
     enabled: options.enabled ?? true,
     queryFn: async (): Promise<PublicGardenSummary[]> => {
       const gardens = await getGardens();
-      // Filter placeholder gardens. The indexer's `Garden.initialized` flag is
-      // not exposed by `getGardens`; we approximate "placeholder" as a garden
-      // with no name AND no location. A garden with a name but no location
-      // (or vice-versa) is still public — it just hasn't filled all metadata.
-      const initializedGardens = gardens.filter((g) => {
-        const hasName = (g.name ?? "").trim().length > 0;
-        const hasLocation = (g.location ?? "").trim().length > 0;
-        return hasName || hasLocation;
-      });
+      // Curated visibility plus the placeholder check, both owned by
+      // config/garden-visibility.ts so the archive, the proof counters, and the
+      // evidence ledger can never disagree about which gardens are public.
+      const initializedGardens = gardens.filter(isGardenPubliclyVisible);
 
       if (initializedGardens.length === 0) return [];
 
@@ -137,7 +133,7 @@ export function usePublicGardens(
               : fallbackSeconds,
           actionCount: stats?.actionCount ?? 0,
           contributorCount: stats?.contributors.size ?? 0,
-          operators: garden.operators ?? [],
+          stewards: garden.stewards ?? [],
           evaluators: garden.evaluators ?? [],
         };
       });

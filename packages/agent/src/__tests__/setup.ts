@@ -184,7 +184,7 @@ class InMemoryDatabase {
   private insertRegex = /INSERT(?: OR REPLACE| OR IGNORE)? INTO (\w+)/i;
   private selectRegex = /SELECT (?:\*|id) FROM (\w+)(?:\s+WHERE|\s+ORDER|\s+LIMIT|\s*$)/i;
   private updateRegex = /UPDATE\s+(\w+)\s+SET/i;
-  private deleteRegex = /DELETE FROM (\w+) WHERE/i;
+  private deleteRegex = /DELETE FROM\s+(\w+)\s+WHERE/i;
   private createIndexRegex = /CREATE INDEX/i;
 
   constructor(_path?: string) {
@@ -226,6 +226,14 @@ class InMemoryDatabase {
 
     return {
       get(...params: unknown[]): unknown {
+        if (/FROM saved_offers/i.test(sql)) {
+          const table = self.tables.get("saved_offers");
+          if (!table) return null;
+          if (params.length === 1) {
+            return Array.from(table.values()).find((row) => row.savedOfferId === params[0]) ?? null;
+          }
+          return table.get(`${params[0]}:${params[1]}:${params[2]}`) ?? null;
+        }
         if (/FROM profile_avatars/i.test(sql)) {
           const table = self.tables.get("profile_avatars");
           if (!table) return null;
@@ -288,6 +296,22 @@ class InMemoryDatabase {
       },
 
       all(...params: unknown[]): unknown[] {
+        if (/FROM saved_offers/i.test(sql)) {
+          const table = self.tables.get("saved_offers");
+          if (!table) return [];
+          const expectedDeleted = /deleted\s*=\s*1/i.test(sql) ? 1 : 0;
+          return Array.from(table.values())
+            .filter(
+              (row) =>
+                (params.length < 2 || (row.chainId === params[0] && row.owner === params[1])) &&
+                row.deleted === expectedDeleted
+            )
+            .sort(
+              (left, right) =>
+                String(right.updatedAt).localeCompare(String(left.updatedAt)) ||
+                String(left.savedOfferId).localeCompare(String(right.savedOfferId))
+            );
+        }
         const selectMatch = sql.match(self.selectRegex);
         if (selectMatch) {
           const tableName = selectMatch[1];
@@ -375,13 +399,36 @@ class InMemoryDatabase {
             funding_intents: 34,
             funding_intent_events: 6,
             profile_avatars: 5,
+            saved_offers: 7,
           };
 
           // Determine key based on table
           let key: string;
           let row: Record<string, unknown>;
 
-          if (tableName === "profile_avatars") {
+          if (tableName === "saved_offers") {
+            if (params.length !== EXPECTED_PARAMS.saved_offers) {
+              throw new Error(
+                `Mock DB: Expected ${EXPECTED_PARAMS.saved_offers} params for saved_offers, got ${params.length}`
+              );
+            }
+            key = `${params[0]}:${params[1]}:${params[2]}`;
+            if (table.has(key)) {
+              throw new Error(
+                "UNIQUE constraint failed: saved_offers.chainId, saved_offers.owner, saved_offers.savedOfferId"
+              );
+            }
+            row = {
+              chainId: params[0],
+              owner: params[1],
+              savedOfferId: params[2],
+              ciphertext: params[3],
+              nonce: params[4],
+              version: params[5],
+              updatedAt: params[6],
+              deleted: 0,
+            };
+          } else if (tableName === "profile_avatars") {
             if (params.length !== EXPECTED_PARAMS.profile_avatars) {
               throw new Error(
                 `Mock DB: Expected ${EXPECTED_PARAMS.profile_avatars} params for profile_avatars, got ${params.length}`
@@ -597,7 +644,32 @@ class InMemoryDatabase {
           const table = self.tables.get(tableName);
           if (!table) return;
 
-          if (tableName === "profile_avatars") {
+          if (tableName === "saved_offers") {
+            const tombstone = /SET ciphertext = '', nonce = ''/i.test(sql);
+            const key = tombstone
+              ? `${params[2]}:${params[3]}:${params[4]}`
+              : `${params[4]}:${params[5]}:${params[6]}`;
+            const expectedVersion = tombstone ? params[5] : params[7];
+            const existingRow = table.get(key);
+            if (!existingRow || existingRow.version !== expectedVersion) {
+              return { changes: 0, lastInsertRowid: 0 };
+            }
+            if (tombstone) {
+              existingRow.ciphertext = "";
+              existingRow.nonce = "";
+              existingRow.version = params[0];
+              existingRow.updatedAt = params[1];
+              existingRow.deleted = 1;
+            } else {
+              existingRow.ciphertext = params[0];
+              existingRow.nonce = params[1];
+              existingRow.version = params[2];
+              existingRow.updatedAt = params[3];
+              existingRow.deleted = 0;
+            }
+            table.set(key, existingRow);
+            return { changes: 1, lastInsertRowid: 0 };
+          } else if (tableName === "profile_avatars") {
             const key = `${params[3]}:${params[4]}`;
             const existingRow = table.get(key);
             if (existingRow && existingRow.version === params[5]) {
@@ -691,6 +763,16 @@ class InMemoryDatabase {
           const table = self.tables.get(tableName);
           if (!table) return { changes: 0, lastInsertRowid: 0 };
 
+          if (tableName === "saved_offers") {
+            const key = `${params[0]}:${params[1]}:${params[2]}`;
+            const row = table.get(key);
+            if (row?.deleted === 1) {
+              table.delete(key);
+              return { changes: 1, lastInsertRowid: 0 };
+            }
+            return { changes: 0, lastInsertRowid: 0 };
+          }
+
           // DELETE FROM chat_messages WHERE status IN ('triaged', 'rejected') AND postedAt < ?
           if (
             tableName === "chat_messages" &&
@@ -745,64 +827,6 @@ class InMemoryDatabase {
 // Mock bun:sqlite with in-memory implementation
 vi.mock("bun:sqlite", () => ({
   Database: InMemoryDatabase,
-}));
-
-// Mock @green-goods/shared completely (do NOT use importActual - it triggers browser library initialization)
-// The agent only uses a small subset of the shared package.
-vi.mock("@green-goods/shared", () => ({
-  // Blockchain functions used by agent
-  getDefaultChain: () => ({ id: 11155111, name: "Sepolia" }),
-  getNetworkConfig: (chainId: number, alchemyKey: string) => ({
-    chainId,
-    rpcUrl: `https://example.invalid/${chainId}/${alchemyKey}`,
-  }),
-  // Both bot functions resolve a bare tx hash (Hex), matching bot-submission.ts.
-  submitApprovalBot: vi.fn().mockResolvedValue("0x" + "0".repeat(64)),
-  submitWorkBot: vi.fn().mockResolvedValue("0x" + "0".repeat(64)),
-
-  // Config constants
-  DEFAULT_CHAIN_ID: 11155111,
-  SUPPORTED_CHAINS: [{ id: 11155111, name: "Sepolia" }],
-
-  // Type guards and utilities
-  isAddress: (value: string) => /^0x[a-fA-F0-9]{40}$/.test(value),
-  getAddress: (address: string) => address.toLowerCase(),
-  zeroAddress: "0x0000000000000000000000000000000000000000",
-
-  // Hypercerts constants (for work submission)
-  TOTAL_UNITS: 100000000n,
-  TransferRestrictions: {
-    AllowAll: 0,
-    DisallowAll: 1,
-    FromCreatorOnly: 2,
-  },
-
-  // Action domains
-  ACTION_DOMAINS: ["biodiversity", "water", "soil", "carbon", "air", "community"],
-
-  // Error utilities
-  parseContractError: vi.fn(() => ({
-    raw: "0x00000000",
-    name: "UnknownError",
-    message: "Unknown error",
-    isKnown: false,
-    recoverable: true,
-    suggestedAction: "retry",
-  })),
-  formatErrorForToast: vi.fn(() => ({ title: "Error", message: "Unknown error" })),
-  parseAndFormatError: vi.fn(() => ({
-    title: "Error",
-    message: "Unknown error",
-    parsed: { name: "UnknownError", isKnown: false },
-  })),
-
-  // Logger (noop for tests)
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  },
 }));
 
 // Mock only external dependencies that can't run in unit tests

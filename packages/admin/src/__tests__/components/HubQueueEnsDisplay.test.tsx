@@ -2,8 +2,8 @@
  * @vitest-environment jsdom
  */
 
-import type { Address, Work } from "@green-goods/shared";
-import { render, screen } from "@testing-library/react";
+import type { Address, Work } from "@green-goods/shared/types/domain";
+import { render, screen, within } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import enMessages from "@green-goods/shared/i18n/en.json";
@@ -12,13 +12,9 @@ const { mockUseEnsName } = vi.hoisted(() => ({
   mockUseEnsName: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    useEnsName: (address: Address | null | undefined) => mockUseEnsName(address),
-  };
-});
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: (address: Address | null | undefined) => mockUseEnsName(address),
+}));
 
 import { HubAssessmentQueue } from "@/views/Hub/components/HubAssessmentQueue";
 import { HubWorkQueue } from "@/views/Hub/components/HubWorkQueue";
@@ -65,7 +61,10 @@ describe("Hub queue ENS display", () => {
       />
     );
 
-    expect(screen.getByText("Compost")).toBeInTheDocument();
+    // The queue search matches on the action title, so the card has to show it
+    // — a hover-only title leaves a search hit with no visible matching text.
+    const card = screen.getByRole("button", { name: /Compost setup/ });
+    expect(within(card).getByText("Compost")).toBeInTheDocument();
     expect(screen.getByText("river")).toBeInTheDocument();
   });
 
@@ -81,7 +80,10 @@ describe("Hub queue ENS display", () => {
       />
     );
 
-    expect(screen.getByText("Compost")).toBeInTheDocument();
+    // The queue search matches on the action title, so the card has to show it
+    // — a hover-only title leaves a search hit with no visible matching text.
+    const card = screen.getByRole("button", { name: /Compost setup/ });
+    expect(within(card).getByText("Compost")).toBeInTheDocument();
     expect(screen.getByText("river")).toBeInTheDocument();
   });
 });

@@ -1,11 +1,12 @@
-import { SubmissionProgress, SyncIndicator } from "@green-goods/shared/components";
+import { SubmissionProgress } from "@green-goods/shared/components/Progress/SubmissionProgress";
+import { SyncIndicator } from "@green-goods/shared/components/Progress/SyncIndicator";
 import { RiFilterLine, RiLeafLine, RiSeedlingLine, RiUserLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import { withClientAppRuntime, withInstalledPwa } from "../../../shared/.storybook/decorators";
-import tokens from "../../../shared/src/styles/design-md.generated.json";
+import tokens from "@green-goods/shared/styles/design-md.generated.json";
 import { OfflineIndicator } from "../components/Communication/Offline/OfflineIndicator";
 import { FormProgress } from "../components/Communication/Progress/Progress";
 import { AppBar } from "../components/Layout/AppBar";
@@ -46,8 +47,8 @@ const meta: Meta = {
   tags: ["autodocs", "storybook-ci"],
   parameters: {
     layout: "fullscreen",
-    viewport: { defaultViewport: "mobile1" },
   },
+  globals: { viewport: { value: "mobile" } },
   decorators: [withInstalledPwa(), withClientAppRuntime],
 };
 

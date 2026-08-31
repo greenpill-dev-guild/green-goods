@@ -6,13 +6,13 @@ Green Goods exists to make verified regenerative work fundable at scale. Every e
 
 ```
 Evidence Capture → Community Verification → Impact Certification → Community Thriving → Capital Formation
-(Gardener)         (Operator)               (Evaluator)           (Community)          (Funder)
+(Gardener)         (Steward)               (Evaluator)           (Community)          (Funder)
 ```
 
 **What we optimize for:**
 - Gardener submission friction below 2 minutes — this is the growth bottleneck
 - Data integrity of attestation chains — funders won't pay for unverifiable claims
-- Operator onboarding efficiency — operators are the distribution channel (B2B2C)
+- Steward onboarding efficiency — stewards are the distribution channel (B2B2C)
 - Self-sustaining economics — yield-backed vaults, not perpetual grants
 
 **What we do not optimize for:**
@@ -40,8 +40,33 @@ Apply this compact contract whenever writing or reviewing production code:
   simplification or risk-isolation benefit.
 - **Clean comments**: explain why, constraints, invariants, or non-obvious tradeoffs. Do not narrate
   what the code says, preserve implementation history, or leave stale/generated commentary.
+- **Systemic closure**: when a defect is confirmed, name its root-cause class, search direct
+  consumers and sibling surfaces, add negative proof for the triggering boundary, and record what was
+  checked but unaffected. Fix the class inside the locked scope, not only the commented line.
+- **Evidence before claims**: write passing, green, or merge-ready status only after fresh proof at
+  the current implementation commit. Record the command, tested commit SHA, timestamp, and
+  summarized result; historical dated reports stay immutable and receive separate correction
+  artifacts. Every commit-attributed receipt also records an empty
+  `git status --porcelain=v1 --untracked-files=all -- <validated paths>` so the tested code is exactly
+  reproducible from its SHA. A later evidence-only commit may cite that tested parent only when an exact path-scoped
+  `git diff --exit-code <tested>..HEAD -- <validated paths>` proves every validated implementation,
+  dependency, configuration, and validation entrypoint is unchanged, and
+  `git status --porcelain=v1 --untracked-files=all -- <validated paths>` returns no staged, unstaged,
+  or untracked changes. Record both identity commands and results; any validation-surface or
+  working-tree change requires a fresh run.
 - **Final simplification pass**: after behavior is green, delete redundancy, flatten avoidable
   branching, improve names, and remove comments or abstractions that no longer earn their cost.
+
+### Authority and judgment routing
+
+- Current behavior, routes, exports, endpoints, deployment state, and workflows are authoritative
+  in code and configuration. Do not create prose inventories that must be kept in sync by hand.
+- The ontology owns cross-package entities, vocabulary, relationships, schemas, and lifecycle
+  semantics. Plan Hubs own rationale, rejected alternatives, and accepted execution decisions.
+- Authored documentation explains stable concepts, user flows, recovery, and navigation. Project
+  volatile facts deterministically from their owning sources.
+- Automate repeatable mechanical checks. Preserve human review for irreversible operations,
+  security boundaries, product tradeoffs, and claims whose truth cannot be derived mechanically.
 
 When agent values conflict, resolve in this order (highest priority first):
 
@@ -91,7 +116,7 @@ When agent values conflict, resolve in this order (highest priority first):
    - Build toward community self-sufficiency, not captive usage
    - **This means**: prefer portable records, exports, and clear reporting over trapped-in-platform workflows
    - **This means**: recognition should reflect capability and trust transitions, not addictive activity volume
-   - **This means**: if a workflow makes operators or funders faster but weakens community agency, revisit the tradeoff
+   - **This means**: if a workflow makes stewards or funders faster but weakens community agency, revisit the tradeoff
 
 7. **When genuinely uncertain, escalate**
    - Never guess on ambiguous tradeoffs
@@ -106,13 +131,20 @@ Choose review depth from the surface, not from how small the diff feels.
 
 - **`critical`**
   - `packages/contracts/src/**`
+  - contract deploy, upgrade, migration, release, size, and storage-layout tooling and baselines
   - `packages/shared/src/providers/{Auth,JobQueue,Work}.tsx`
   - `packages/shared/src/modules/job-queue/**`
   - `packages/shared/src/hooks/{auth,work,vault,blockchain}/**`
-  - Required behavior: read every touched line, run the matching reviewer flow, and reject log-only failure handling.
+  - Required behavior: read every touched line, run the matching reviewer flow, and reject log-only
+    failure handling. For contract tooling, also prove malformed-input handling, path confinement,
+    idempotency, atomic updates, and accurate failure summaries where applicable.
 
 - **`sensitive`**
   - `packages/agent/src/**`
+  - indexer retry, event-lifecycle, and projection handlers
+  - `.claude/scripts/**` dispatch or environment-boundary tooling
+  - Plan Hub state, validation evidence, and `scripts/harness/plan-hub.mjs`
+  - migration, validation, and repository-policy tooling outside the contract package
   - admin workflow state surfaces
   - client journey views
   - Required behavior: verify failure and recovery states explicitly, keep the blast radius tight, and run targeted validation before claiming the change is safe.
@@ -123,7 +155,9 @@ Choose review depth from the surface, not from how small the diff feels.
   - stories
   - cleanup-only changes
   - test-only refactors that do not alter runtime behavior
-  - Required behavior: use the lightest honest validation loop and keep attention on correctness, not ceremony.
+  - Required behavior: use the lightest honest validation loop and keep attention on correctness,
+    not ceremony. A doc, command, guide, or skill deletion/rename becomes sensitive when it retires a
+    live surface; search all tracked consumers before removing it.
 
 ## Tradeoff Escalation Triggers
 
@@ -147,7 +181,7 @@ These past cases illustrate when escalation was the correct action:
 When evaluating whether a work submission constitutes "meaningful impact":
 
 1. **Minimum evidence per submission**: At least 1 photo + text description. Submissions with no photo or no text are incomplete and must not be attested.
-2. **Attestation validity**: The attestation must match its registered EAS schema UID. Operator approval must have confidence level >= `LOW` (the minimum threshold; higher is better but LOW is acceptable).
+2. **Attestation validity**: The attestation must match its registered EAS schema UID. Steward approval must have confidence level >= `LOW` (the minimum threshold; higher is better but LOW is acceptable).
 3. **No self-attestation**: The submitter of a work (`msg.sender` of the work attestation) must not be the same address as the approver (`msg.sender` of the approval attestation). This is enforced at the resolver level.
 4. **Traceability**: Every attested work must be traceable to a client-initiated submission (job queue entry with `clientWorkId` or direct transaction hash). No system-generated impact claims.
 

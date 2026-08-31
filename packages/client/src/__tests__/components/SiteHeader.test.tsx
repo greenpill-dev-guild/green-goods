@@ -11,7 +11,7 @@
  */
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { type ComponentProps, createElement } from "react";
+import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -24,14 +24,35 @@ const { mockUseApp, mockUseInstallGuidance, mockUsePublicInstallHandler, mockIns
     mockInstallHandler: vi.fn(),
   }));
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/config/app", () => ({
   APP_NAME: "Green Goods",
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: mockUseApp,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useIsBraveBrowser", () => ({
   useIsBraveBrowser: () => false,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useInstallGuidance", () => ({
   useInstallGuidance: mockUseInstallGuidance,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/usePublicInstallHandler", () => ({
   usePublicInstallHandler: mockUsePublicInstallHandler,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useTunnelUrl", () => ({
   useTunnelUrl: () => null,
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useEventListener", () => ({
   useEventListener: vi.fn(),
 }));
 
@@ -45,16 +66,20 @@ const messages: Record<string, string> = {
   "public.nav.fund": "Fund",
   "public.nav.installApp": "Install App",
   "public.nav.openApp": "Open App",
-  "public.nav.openMenu": "Open menu",
-  "public.nav.closeMenu": "Close menu",
+  "public.nav.openMenu": "Open Menu",
+  "public.nav.closeMenu": "Close Menu",
 };
 
-function renderHeader(initialRoute = "/gardens", props: ComponentProps<typeof SiteHeader> = {}) {
+function renderHeader(initialRoute = "/gardens") {
   return render(
     createElement(
       MemoryRouter,
       { initialEntries: [initialRoute] },
-      createElement(IntlProvider, { locale: "en", messages }, createElement(SiteHeader, props))
+      createElement(IntlProvider, {
+        locale: "en",
+        messages,
+        children: <SiteHeader />,
+      })
     )
   );
 }
@@ -98,14 +123,14 @@ describe("SiteHeader", () => {
     expect(screen.getAllByText("Install App").length).toBeGreaterThanOrEqual(1);
     // Vaults is intentionally not in the header nav.
     expect(screen.queryByText("Vaults")).toBeNull();
-    expect(mockUseInstallGuidance).toHaveBeenCalledWith(
-      "unknown",
-      false,
-      false,
-      null,
-      false,
-      false
-    );
+    expect(mockUseInstallGuidance).toHaveBeenCalledWith({
+      platform: "unknown",
+      installedAppEvidence: undefined,
+      wasInstalled: false,
+      deferredPrompt: null,
+      isMobile: false,
+      isInstalling: false,
+    });
     // No wallet CTA in public header.
     expect(screen.queryByText("Connect Wallet")).toBeNull();
   });
@@ -185,7 +210,7 @@ describe("SiteHeader", () => {
 
   it("desktop install CTA opens the QR handoff dialog", () => {
     renderHeader();
-    const desktopCta = screen.getByRole("button", { name: "Install App" });
+    const desktopCta = screen.getByRole("link", { name: "Install App" });
     expect(desktopCta.getAttribute("data-install-action")).toBe("continue-in-browser");
     expect(desktopCta.className).toMatch(/cursor-pointer/);
     fireEvent.click(desktopCta);

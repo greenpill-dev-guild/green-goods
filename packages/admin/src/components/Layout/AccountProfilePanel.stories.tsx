@@ -7,10 +7,10 @@ import {
   withRouter,
   withSeededQueryClient,
 } from "../../../../shared/.storybook/decorators";
-import { AccountProfilePanel } from "./AccountProfilePanel";
+import { AccountProfilePanelContainer } from "./AccountProfilePanel";
 
 interface MockAccountProfilePanelProps {
-  userRole: "deployer" | "operator" | "user";
+  userRole: "deployer" | "steward" | "user";
   displayName?: string;
   wallet?: string;
 }
@@ -62,9 +62,9 @@ function MockAccountProfilePanel({
   );
 }
 
-const meta: Meta<typeof AccountProfilePanel> = {
+const meta: Meta<typeof AccountProfilePanelContainer> = {
   title: "Admin/Shell/AccountProfilePanel",
-  component: AccountProfilePanel,
+  component: AccountProfilePanelContainer,
   tags: ["autodocs"],
   decorators: [
     withAdminIdentity,
@@ -87,9 +87,9 @@ const meta: Meta<typeof AccountProfilePanel> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof AccountProfilePanel>;
+type Story = StoryObj<typeof AccountProfilePanelContainer>;
 
-export const Operator: Story = {
+export const Steward: Story = {
   tags: ["storybook-ci"],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -102,7 +102,7 @@ export const Operator: Story = {
     await expect(await canvas.findByRole("heading", { name: "Wallet" })).toBeVisible();
     await expect(await canvas.findByRole("heading", { name: "Your gardens" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: /Disconnect/ })).toBeVisible();
-    await expect(canvas.getByRole("link", { name: /View on explorer/ })).toBeVisible();
+    await expect(canvas.getByRole("link", { name: /View on Explorer/ })).toBeVisible();
   },
 };
 

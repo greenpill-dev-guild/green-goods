@@ -3,7 +3,7 @@ import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 import type { Address, WorkDisplayStatus } from "../../../types/domain";
 import { cn } from "../../../utils/styles/cn";
-import { formatRelativeTime } from "../../../utils/time";
+import { formatRelativeTime } from "../../../utils/relativeTime";
 import { ImageWithFallback } from "../../Display/ImageWithFallback";
 import { getStatusColors } from "../../StatusBadge";
 

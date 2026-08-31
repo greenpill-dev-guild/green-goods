@@ -5,60 +5,49 @@
 #   1. Tautological assertions: expect(true), expect(false), || true
 #   2. Ungoverned or expired test skips
 #   3. Type-safety bypasses: @ts-nocheck in test files
+#   4. Newly added or renamed Solidity tests use the canonical naming format
+#   5. Direct-tested seams import their subject and never mock that subject
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 VIOLATIONS=0
 
-# Unit/integration test directories — enforced for ALL checks.
-UNIT_TEST_DIRS=(
-  "packages/shared/src/__tests__"
-  "packages/client/src/__tests__"
-  "packages/admin/src/__tests__"
-  "packages/indexer/test"
-  "packages/contracts/test"
-)
+# Discover tracked and new non-ignored tests by filename instead of a hand-maintained
+# directory list. This includes colocated package tests, agent tests, root scripts/docs
+# tests, and Playwright before a contributor stages a newly added file.
+TEST_FILES=()
+SCRIPT_TEST_FILES=()
+while IFS= read -r tracked_file; do
+  case "$tracked_file" in
+    *.test.ts|*.test.tsx|*.test.js|*.test.jsx|*.test.mjs|*.test.cjs|\
+    *.spec.ts|*.spec.tsx|*.spec.js|*.spec.jsx|*.spec.mjs|*.spec.cjs|*.t.sol)
+      TEST_FILES+=("$REPO_ROOT/$tracked_file")
+      case "$tracked_file" in
+        *.t.sol) ;;
+        *) SCRIPT_TEST_FILES+=("$REPO_ROOT/$tracked_file") ;;
+      esac
+      ;;
+  esac
+done < <(git -C "$REPO_ROOT" ls-files --cached --others --exclude-standard)
 
-# E2E test directories — enforced for Checks 2 (skips) and 3 (@ts-nocheck) only.
-# Check 1 (tautological assertions) is excluded for E2E because Playwright smoke tests
-# legitimately use expect(true) as page-load confirmations, and conditional || true
-# patterns serve as graceful degradation in environments with variable infra availability.
-E2E_TEST_DIRS=(
-  "tests"
-)
-
-# Build search path arrays
-UNIT_PATHS=()
-for d in "${UNIT_TEST_DIRS[@]}"; do
-  full="$REPO_ROOT/$d"
-  [ -d "$full" ] && UNIT_PATHS+=("$full")
-done
-
-ALL_PATHS=("${UNIT_PATHS[@]}")
-for d in "${E2E_TEST_DIRS[@]}"; do
-  full="$REPO_ROOT/$d"
-  [ -d "$full" ] && ALL_PATHS+=("$full")
-done
-
-if [ ${#ALL_PATHS[@]} -eq 0 ]; then
-  echo "No test directories found — nothing to check."
+if [ ${#TEST_FILES[@]} -eq 0 ]; then
+  echo "No tracked or new test/spec files found — nothing to check."
   exit 0
 fi
 
-# Exclusion pattern for generated/vendor files
-EXCLUDE_PATTERN="(node_modules|generated|lib|dist|\.next|\.cache)"
-
 echo "=== Test Quality Check ==="
+echo "Discovered ${#TEST_FILES[@]} tracked or new test/spec files."
 echo ""
 
 # ── Check 1: Tautological assertions ────────────────────────────
 echo "--- Check 1: Tautological assertions ---"
+# A genuine source-fixture assertion may opt out only on that exact line with:
+# TEST-QUALITY: allow-tautology - <why the literal expression is test data>
 TAUTOLOGICAL=$(grep -rn \
-  --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' --include='*.sol' \
-  -E '(expect\(\s*(true|false)\s*\)|(\|\|\s*true))' \
-  "${UNIT_PATHS[@]}" 2>/dev/null \
-  | grep -vE "$EXCLUDE_PATTERN" || true)
+  -E '(expect\([[:space:]]*(true|false)[[:space:]]*\)|(\|\|[[:space:]]*true))' \
+  "${TEST_FILES[@]}" 2>/dev/null \
+  | grep -vE 'TEST-QUALITY:[[:space:]]*allow-tautology[[:space:]]+-[[:space:]]+[^[:space:]]' || true)
 
 if [ -n "$TAUTOLOGICAL" ]; then
   echo "FAIL: Found tautological assertions (expect(true), expect(false), || true):"
@@ -76,10 +65,8 @@ echo "--- Check 2: Governed, non-expired test skips ---"
 # Then exclude lines that have a governance comment on the same line OR
 # on the 1-2 lines immediately above: // SKIP:.*#\d+.*owner.*expiry
 RAW_SKIPS=$(grep -rn \
-  --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' \
   -E '\.(skip|only)\(' \
-  "${ALL_PATHS[@]}" 2>/dev/null \
-  | grep -vE "$EXCLUDE_PATTERN" || true)
+  "${SCRIPT_TEST_FILES[@]}" 2>/dev/null || true)
 
 # Filter: for each skip line, require a governance comment and future expiry.
 SKIP_LINES=""
@@ -138,10 +125,8 @@ echo ""
 # ── Check 3: @ts-nocheck in test files ──────────────────────────
 echo "--- Check 3: @ts-nocheck in test files ---"
 TS_NOCHECK=$(grep -rn \
-  --include='*.ts' --include='*.tsx' \
   '@ts-nocheck' \
-  "${ALL_PATHS[@]}" 2>/dev/null \
-  | grep -vE "$EXCLUDE_PATTERN" || true)
+  "${SCRIPT_TEST_FILES[@]}" 2>/dev/null || true)
 
 if [ -n "$TS_NOCHECK" ]; then
   echo "FAIL: Found @ts-nocheck in test files:"
@@ -150,6 +135,30 @@ if [ -n "$TS_NOCHECK" ]; then
   VIOLATIONS=$((VIOLATIONS + $(echo "$TS_NOCHECK" | wc -l)))
 else
   echo "PASS: No @ts-nocheck found in test files."
+fi
+echo ""
+
+# ── Check 4: Diff-aware Solidity test naming ────────────────────
+echo "--- Check 4: New Solidity test naming ---"
+SOLIDITY_NAME_STATUS=0
+node "$REPO_ROOT/scripts/contracts/check-solidity-test-names.mjs" || SOLIDITY_NAME_STATUS=$?
+if [ "$SOLIDITY_NAME_STATUS" -eq 1 ]; then
+  VIOLATIONS=$((VIOLATIONS + 1))
+elif [ "$SOLIDITY_NAME_STATUS" -ne 0 ]; then
+  echo "ERROR: Solidity test-name checker could not run (exit $SOLIDITY_NAME_STATUS)."
+  exit "$SOLIDITY_NAME_STATUS"
+fi
+echo ""
+
+# ── Check 5: Direct-tested seam integrity ───────────────────────
+echo "--- Check 5: Direct-tested seam integrity ---"
+DIRECT_SEAM_STATUS=0
+node "$REPO_ROOT/scripts/quality/check-direct-tested-seams.mjs" || DIRECT_SEAM_STATUS=$?
+if [ "$DIRECT_SEAM_STATUS" -eq 1 ]; then
+  VIOLATIONS=$((VIOLATIONS + 1))
+elif [ "$DIRECT_SEAM_STATUS" -ne 0 ]; then
+  echo "ERROR: Direct-tested seam checker could not run (exit $DIRECT_SEAM_STATUS)."
+  exit "$DIRECT_SEAM_STATUS"
 fi
 echo ""
 

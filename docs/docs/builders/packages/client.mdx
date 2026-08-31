@@ -4,123 +4,30 @@ sidebar_label: Client
 slug: /builders/packages/client
 audience: developer
 owner: docs
-last_verified: 2026-04-25
+last_verified: 2026-08-30
 feature_status: Live
 source_of_truth:
   - packages/client/AGENTS.md
   - packages/client/package.json
-  - packages/client/src/router.config.tsx
-  - packages/client/src/config/pwa-routing.ts
+  - packages/client/src/config/routes.tsx
+  - packages/client/src/config/pwaRouting.ts
   - packages/client/vite.config.ts
   - packages/shared/src/modules/app/service-worker-registration.ts
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
-
 # Client PWA
 
-<StatusBadge status="Live" />
+Client contains two presentations with one domain language: the public browser site and the
+installed PWA.
 
-```mermaid
-graph TB
-    subgraph Client["Client PWA"]
-        SW["Service Worker\noffline + sync"]
-        JQ["Job Queue\nIndexedDB"]
-        MDR["MDR Workflow\nMedia → Details → Review"]
-        Auth["Passkey Auth\nAccount Abstraction"]
-    end
+## Boundary
 
-    Shared["@green-goods/shared\nhooks, types, modules"] --> Client
-    Client -->|online| GQL["Envio GraphQL"]
-    Client -->|offline| JQ
-    JQ -->|sync| GQL
-    Client -->|submit| EAS["EAS Attestations"]
-    Auth -->|bundler| Pimlico["Pimlico AA"]
-```
+- Route configuration owns public, installed-app, and compatibility paths.
+- The public site uses editorial navigation and public-safe data access.
+- The installed PWA uses the app shell, authentication, offline capture, and bottom navigation.
+- Shared owns reusable hooks, stores, providers, service-worker registration, and protocol modules.
+- Client owns route composition and presentation-specific components.
 
-The client package is the end-user Green Goods web app. It owns browser/public routes and the installed PWA shell, while hooks, providers, stores, auth helpers, domain logic, and shared components come from `@green-goods/shared`.
-
-## What this package owns
-
-- Public/browser routes through the public shell path.
-- Installed/authenticated PWA routes through the protected app shell and bottom app bar.
-- Mobile-first work submission surfaces, offline queue UX, install guidance, profile/settings, and route composition.
-- Package-local views and components only when the behavior is client-specific.
-
-<div style={{maxWidth: '320px', margin: '1rem auto'}}>
-  <img src="/img/screenshots/client-profile.png" alt="Client profile page — user identity, theme settings, and language preferences" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
-</div>
-
-## Builder contract
-
-- Keep reusable hooks and providers in `@green-goods/shared`; do not add client-local copies.
-- Preserve the offline-first queue flow for work submissions, including passkey users.
-- Use shared auth APIs and app defaults; do not treat wallet chain state as the app source of truth.
-- Manage media object URLs through shared media utilities so preview blobs are cleaned up.
-- Add any user-facing string to `en`, `es`, and `pt`.
-
-## Route ownership
-
-The browser-facing editorial site and the installed app intentionally share the same origin, but not the same route ownership boundary.
-
-- Public/browser routes stay on the public shell: `/`, `/gardens`, `/gardens/:id`, `/fund`, `/impact`, `/actions`, `/cookies`, `/glossary`.
-- Installed PWA routes are canonical under `/home`: `/home`, `/home/login`, `/home/garden`, `/home/profile`, plus garden detail routes under `/home/:id`.
-- Legacy app routes `/login`, `/garden`, and `/profile` are compatibility redirects in PWA presentation mode; browser presentation redirects them back to `/`.
-- The browser-origin manifest keeps `id: "/"` for install migration safety, but scopes the installed PWA to `/home`.
-- IPFS/static builds keep relative assets and hash routing, so the same app routes are represented as `./#/home`, `./#/home/garden`, and `./#/home/profile`.
-
-For production browser-origin builds, the service worker registers at `/home`, precaches only the installed
-app shell plus essential `/home` assets, serves the app shell for offline `/home` navigations, and performs a
-one-time cleanup of legacy root-scoped Green Goods service workers.
-
-## Commands
-
-```bash
-cd packages/client
-bun run test
-bun run build
-bun run lint
-```
-
-Run repo-level quick verification when a client change reaches into `packages/shared`.
-
-## Testing on a real device
-
-The client is a mobile-first PWA — testing on a real phone is part of the dev workflow. When `bun run dev` is running, a cloudflared tunnel automatically creates a temporary public HTTPS URL pointing to your local client on port 3001.
-
-**How it works:**
-
-1. Run `bun run dev` — the `tunnel` PM2 service starts alongside the client
-2. Open `https://localhost:3001` on your laptop
-3. The landing page QR code automatically shows the tunnel URL
-4. Scan the QR code with your phone — full PWA with service worker, install prompt, and passkey auth
-
-If cloudflared is not installed, the tunnel service exits silently and the QR code falls back to `window.location.origin`. Install it with `brew install cloudflared`.
-
-### Service worker update behavior
-
-The client uses `vite-plugin-pwa` with `registerType: "prompt"` — users control when updates apply. Workbox
-downloads and installs the new worker in the background, but activation waits for the user. When a new service
-worker is detected:
-
-1. The PWA can show phased status: "Downloading update", "Ready to restart", "Finishing update", or restart guidance if the apply path stalls
-2. User taps "Restart to update" only after the waiting worker is ready
-3. The waiting worker receives `SKIP_WAITING`, activates, claims clients, and reloads the page
-4. On activation, the new SW clears stale runtime caches (`js-cache`, `indexer-cache`, `graphql-cache`) to prevent serving old content
-5. React Query's IndexedDB cache is busted via `VITE_APP_VERSION` to prevent stale data hydration
-
-`bun run build` runs `bun run check:pwa-precache` after Vite emits `dist/sw.js`. The check fails if the
-generated Workbox precache exceeds 160 entries or 5 MiB.
-
-The `ipfs-cache` and `image-cache` are preserved across updates since IPFS CIDs are immutable and images are static.
-
-<NextBestAction
-  title="Next best action"
-  why="Most client behavior depends on shared hooks and app-wide domain models."
-  actionLabel="Open shared package"
-  actionHref="./shared"
-  alternatives={[
-    {label: "Client deployment", href: "../deployments/client-deploy"},
-    {label: "Authentication integration", href: "../integrations/passkey"},
-  ]}
-/>
+Do not mix browser and PWA chrome or treat a compatibility redirect as a canonical route. Read
+`packages/client/AGENTS.md` and `packages/client/README.md` before editing. Use the generated
+[persona surfaces](../journeys/persona-surfaces) for the route inventory.

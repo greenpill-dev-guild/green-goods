@@ -8,9 +8,8 @@ import {
   SETTINGS_SHEET_CONTENT_ID,
   toActionDetailContentId,
   toActionEditContentId,
-  toHistoryContentId,
   toWorkDetailContentId,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/admin-ui/navigation/sheetRegistry";
 
 describe("admin sheet registry", () => {
   it("registers global right sheet content", () => {
@@ -30,8 +29,9 @@ describe("admin sheet registry", () => {
     expect(isRouteSheetRestorable(toWorkDetailContentId("work-7"), "/hub/work")).toBe(false);
   });
 
-  it("does not treat legacy Hub item query state as route ownership", () => {
-    expect(isRouteSheetRestorable(toHistoryContentId("event-1"), "/hub/history")).toBe(false);
+  it("never restores retired hub:history sheet ids from stale persisted state", () => {
+    expect(isRouteSheetRestorable("hub:history:event-1", "/hub/history/event-1")).toBe(false);
+    expect(isRouteSheetRestorable("hub:history:event-1", "/hub")).toBe(false);
   });
 
   it("restores route-backed Actions inspectors only when the path owns the sheet", () => {

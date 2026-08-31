@@ -1,7 +1,9 @@
-import { formatTokenAmount, useFunderLeaderboard } from "@green-goods/shared";
+import { useFunderLeaderboard } from "@green-goods/shared/hooks/vault/useFunderLeaderboard";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiArrowDownSLine, RiArrowUpSLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 import { FunderRow } from "./FunderRow";
 
 const DEFAULT_VISIBLE = 3;
@@ -13,7 +15,7 @@ export function ImpactFunders() {
 
   if (isLoading) {
     return (
-      <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
+      <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-5">
         <div className="h-5 w-40 rounded skeleton-shimmer" />
         <div className="mt-3 space-y-2">
           {[0, 1, 2].map((i) => (
@@ -37,7 +39,7 @@ export function ImpactFunders() {
   const maxYield = funders[0]?.totalYieldGenerated ?? 0n;
 
   return (
-    <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
+    <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="font-heading text-lg font-semibold text-text-strong">
@@ -64,20 +66,17 @@ export function ImpactFunders() {
       </div>
 
       {hasMore && (
-        <button
-          type="button"
+        <AdminButton
+          variant="outlined"
+          size="sm"
+          className="mt-3 w-full"
           onClick={() => setExpanded((prev) => !prev)}
-          className="mt-3 flex w-full items-center justify-center gap-1 rounded-md border border-stroke-soft py-2 text-xs font-medium text-text-sub transition-colors hover:bg-bg-weak"
+          leadingIcon={expanded ? <RiArrowUpSLine /> : <RiArrowDownSLine />}
         >
           {expanded
             ? formatMessage({ id: "app.funders.collapse" })
             : formatMessage({ id: "app.funders.viewAll" }, { count: funders.length })}
-          {expanded ? (
-            <RiArrowUpSLine className="h-3.5 w-3.5" />
-          ) : (
-            <RiArrowDownSLine className="h-3.5 w-3.5" />
-          )}
-        </button>
+        </AdminButton>
       )}
 
       <p className="mt-3 text-xs text-text-sub">

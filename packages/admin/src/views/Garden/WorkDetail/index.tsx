@@ -1,5 +1,11 @@
-import { Alert, adminRoutes, useResolvedWorkDetail } from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { useResolvedWorkDetail } from "@green-goods/shared/hooks/admin-ui/garden/useResolvedWorkDetail";
+import { trackWorkApprovalPresentationFailed } from "@green-goods/shared/modules/app/analytics-events";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import type { WorkDisplayStatus } from "@green-goods/shared/types/domain";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiCheckboxCircleLine, RiCloseLine, RiTimeLine } from "@remixicon/react";
+import { useCallback, useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
 import {
@@ -11,6 +17,7 @@ import { CanvasRouteErrorState } from "@/components/Layout/CanvasRouteState";
 import { MediaEvidence } from "@/views/Hub/components/MediaEvidence";
 import { ReviewForm } from "./ReviewForm";
 import { SubmissionDetails } from "./SubmissionDetails";
+import { localizeActionForDisplay, localizeCanonicalActionTitle } from "@/views/Hub/actionDisplay";
 
 type WorkDetailLayout = "page" | "sheet";
 
@@ -21,15 +28,12 @@ function parseHubContext(search: string) {
 
   return {
     gardenId: params.get("gardenId") ?? params.get("gardenAddress") ?? undefined,
-    view:
-      view === "work" || view === "assess" || view === "certify" || view === "history"
-        ? view
-        : undefined,
+    view: view === "work" || view === "assess" || view === "certify" ? view : undefined,
     sort: sort === "newest" || sort === "oldest" ? sort : undefined,
   } as const;
 }
 
-function WorkDetailStatusBadge({ status }: { status: "pending" | "approved" | "rejected" }) {
+function WorkDetailStatusBadge({ status }: { status: WorkDisplayStatus }) {
   const { formatMessage } = useIntl();
 
   const statusConfig = {
@@ -50,7 +54,8 @@ function WorkDetailStatusBadge({ status }: { status: "pending" | "approved" | "r
     },
   } as const;
 
-  const config = statusConfig[status];
+  const displayStatus = status === "approved" || status === "rejected" ? status : "pending";
+  const config = statusConfig[displayStatus];
   const StatusIcon = config.icon;
 
   return (
@@ -70,15 +75,52 @@ export interface WorkDetailPanelProps {
 }
 
 export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDetailPanelProps) {
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
   const resolved = useResolvedWorkDetail(workId);
   const { garden, work, action, canReview, canApproveOrReject, isReviewed, metadata } = resolved;
+  const resolutionStatusRef = useRef(resolved.resolutionStatus);
+  useEffect(() => {
+    resolutionStatusRef.current = resolved.resolutionStatus;
+  }, [resolved.resolutionStatus]);
+
+  const handleReviewSuccess = useCallback(
+    (approved: boolean) => {
+      const resolutionStatus = resolutionStatusRef.current;
+      if (
+        resolutionStatus === "loading" ||
+        resolutionStatus === "not-found" ||
+        resolutionStatus === "error"
+      ) {
+        trackWorkApprovalPresentationFailed({
+          approved,
+          failureReason: "detail-resolution",
+          resolutionStatus,
+        });
+      }
+
+      try {
+        onSuccess?.();
+      } catch (error) {
+        logger.error("Post-success work inspector close failed", {
+          errorName: error instanceof Error ? error.name : "UnknownError",
+          source: "WorkDetail",
+        });
+        trackWorkApprovalPresentationFailed({
+          approved,
+          failureReason: "inspector-close",
+          resolutionStatus,
+        });
+      }
+    },
+    [onSuccess]
+  );
 
   if (resolved.isLoading) {
     if (layout === "sheet") {
       // Mirrors the loaded two-column structure so content lands in place.
       return (
-        <div className="space-y-4 p-1" aria-busy="true">
+        <div className="space-y-4 p-1" aria-busy="true" role="status">
+          <span className="sr-only">{formatMessage({ id: "app.work.detail.loading" })}</span>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
             <div className="space-y-4 lg:col-span-3">
               <div className="h-48 animate-pulse rounded-2xl bg-bg-soft" />
@@ -107,7 +149,24 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
     );
   }
 
-  if (!work || !garden) {
+  if (resolved.isError) {
+    const message = formatMessage({ id: "app.work.detail.loadError" });
+    if (layout === "sheet") {
+      return (
+        <div className="p-1">
+          <Alert variant="error">{message}</Alert>
+        </div>
+      );
+    }
+
+    return (
+      <CanvasRouteContent maxWidthClassName="max-w-6xl" className="mt-6">
+        <Alert variant="error">{message}</Alert>
+      </CanvasRouteContent>
+    );
+  }
+
+  if (resolved.isNotFound || !work || !garden) {
     if (layout === "sheet") {
       return (
         <div className="p-1">
@@ -123,11 +182,21 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
     );
   }
 
+  const displayAction = action
+    ? localizeActionForDisplay(action, { formatMessage, locale })
+    : undefined;
+  const localizedActionTitle = displayAction?.title;
+  const localizedWorkTitle = work.title
+    ? localizeCanonicalActionTitle(work.title, formatMessage)
+    : undefined;
+
   const sheetTopline = (
     <div className="flex flex-wrap items-center gap-2 px-1">
       <WorkDetailStatusBadge status={work.status} />
       <span className="text-xs text-text-soft">
-        {action?.title ?? work.title ?? formatMessage({ id: "app.work.detail.title" })}
+        {localizedActionTitle ??
+          localizedWorkTitle ??
+          formatMessage({ id: "app.work.detail.title" })}
       </span>
     </div>
   );
@@ -146,13 +215,13 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
               <MediaEvidence
                 media={work.media}
                 audioNoteCids={resolved.audioNoteCids}
-                actionTitle={action?.title}
+                actionTitle={localizedActionTitle}
               />
             </section>
             <SubmissionDetails
               work={work}
               gardenName={garden.name}
-              actionTitle={action?.title}
+              actionTitle={localizedActionTitle}
               actionSlug={action?.slug}
               metadata={metadata}
             />
@@ -167,7 +236,7 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
               canApproveOrReject={canApproveOrReject}
               isReviewed={isReviewed}
               layout="sheet"
-              onSuccess={onSuccess}
+              onSuccess={handleReviewSuccess}
             />
           </div>
         </div>
@@ -183,14 +252,14 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
             <MediaEvidence
               media={work.media}
               audioNoteCids={resolved.audioNoteCids}
-              actionTitle={action?.title}
+              actionTitle={localizedActionTitle}
             />
           </section>
 
           <SubmissionDetails
             work={work}
             gardenName={garden.name}
-            actionTitle={action?.title}
+            actionTitle={localizedActionTitle}
             actionSlug={action?.slug}
             metadata={metadata}
           />
@@ -205,7 +274,7 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
           canApproveOrReject={canApproveOrReject}
           isReviewed={isReviewed}
           layout="page"
-          onSuccess={onSuccess}
+          onSuccess={handleReviewSuccess}
         />
       </div>
     </CanvasRouteContent>
@@ -214,8 +283,15 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
 
 export default function WorkDetail() {
   const { workId } = useParams<{ workId: string }>();
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
   const resolved = useResolvedWorkDetail(workId);
+  const displayAction = resolved.action
+    ? localizeActionForDisplay(resolved.action, { formatMessage, locale })
+    : undefined;
+  const localizedActionTitle = displayAction?.title;
+  const localizedWorkTitle = resolved.work?.title
+    ? localizeCanonicalActionTitle(resolved.work.title, formatMessage)
+    : undefined;
   const hubContext =
     typeof window === "undefined" ? undefined : parseHubContext(window.location.search);
 
@@ -250,8 +326,8 @@ export default function WorkDetail() {
         maxWidthClassName="max-w-6xl"
         title={formatMessage({ id: "app.work.detail.reviewTitle" })}
         description={
-          resolved.action?.title ??
-          resolved.work?.title ??
+          localizedActionTitle ??
+          localizedWorkTitle ??
           formatMessage({ id: "app.work.detail.loadingDescription" })
         }
         metadata={

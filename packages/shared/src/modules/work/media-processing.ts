@@ -1,5 +1,3 @@
-import { heicTo, isHeic } from "heic-to/csp";
-
 export type WorkMediaSource = "camera" | "gallery";
 export type WorkMediaKind = "image" | "video" | "unknown";
 export type MediaRejectedReason = "unsupported" | "heic_conversion_failed";
@@ -36,7 +34,7 @@ export interface WorkMediaProcessingResult {
   converted: ConvertedWorkMediaFile[];
 }
 
-interface NormalizeWorkMediaOptions {
+export interface NormalizeWorkMediaOptions {
   jpegQuality?: number;
   onHeicConversionStarted?: (file: File) => void;
   onHeicConversionSucceeded?: (originalFile: File, convertedFile: File) => void;
@@ -136,6 +134,7 @@ function toJpegFileName(file: File): string {
 async function canConvertHeic(file: File): Promise<boolean> {
   if (!isLikelyHeic(file)) return false;
   try {
+    const { isHeic } = await import("heic-to/csp");
     return await isHeic(file);
   } catch {
     return isLikelyHeic(file);
@@ -143,6 +142,7 @@ async function canConvertHeic(file: File): Promise<boolean> {
 }
 
 async function convertHeicToJpeg(file: File, quality: number): Promise<File> {
+  const { heicTo } = await import("heic-to/csp");
   const convertedBlob = await heicTo({
     blob: file,
     type: "image/jpeg",
@@ -207,4 +207,52 @@ export async function normalizeWorkMediaFiles(
   }
 
   return { accepted, rejected, converted };
+}
+
+/** What `prepareMediaForUpload` hands back: files ready to queue, and how many were refused. */
+export interface PreparedMedia {
+  files: File[];
+  rejectedCount: number;
+}
+
+/**
+ * Normalize a picker's files and compress the photos, the way both composers
+ * do before queueing: HEIC converted, unsupported types refused, large images
+ * brought under the upload ceiling, videos passed through as they are. Kept
+ * here so the proof composer and the work composer cannot drift on what a
+ * queued photo looks like.
+ */
+export async function prepareMediaForUpload(
+  files: File[],
+  compressor: {
+    shouldCompress: (file: File, maxKB: number) => boolean;
+    compressImages: (
+      files: File[],
+      options: {
+        maxSizeMB: number;
+        maxWidthOrHeight: number;
+        initialQuality: number;
+        useWebWorker: boolean;
+      }
+    ) => Promise<Array<{ file: File }>>;
+  }
+): Promise<PreparedMedia> {
+  const normalized = await normalizeWorkMediaFiles(files);
+  const accepted = normalized.accepted.map((item) => item.file);
+  const videos = accepted.filter(isVideoFile);
+  const images = accepted.filter((file) => !isVideoFile(file));
+  const toCompress = images.filter((file) => compressor.shouldCompress(file, 1024));
+  const asIs = images.filter((file) => !compressor.shouldCompress(file, 1024));
+  const compressed =
+    toCompress.length > 0
+      ? (
+          await compressor.compressImages(toCompress, {
+            maxSizeMB: 0.8,
+            maxWidthOrHeight: 2048,
+            initialQuality: 0.8,
+            useWebWorker: true,
+          })
+        ).map((result) => result.file)
+      : [];
+  return { files: [...asIs, ...compressed, ...videos], rejectedCount: normalized.rejected.length };
 }

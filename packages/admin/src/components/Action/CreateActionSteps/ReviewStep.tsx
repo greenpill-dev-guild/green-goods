@@ -1,4 +1,4 @@
-import type { CreateActionFormData } from "@green-goods/shared";
+import type { CreateActionFormData } from "@green-goods/shared/hooks/action/useActionForm";
 import type { UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
 

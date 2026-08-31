@@ -1,11 +1,11 @@
+import { Alert } from "@green-goods/shared/components/Alert";
+import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
+import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
 import {
-  Alert,
-  formatRelativeTime,
   HUB_CERTIFY_STATUS_CLASSNAME,
   HUB_META_PILL_CLASSNAME,
-  SheetBody,
-  SheetFooter,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import { AdminCard } from "@/components/AdminCard";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -27,6 +27,7 @@ export function HubCertificationInspector({
   onOpenMintFlow: () => void;
 }) {
   const { formatMessage } = useIntl();
+  const formatEventAge = useLocalizedRelativeTime();
 
   return (
     <>
@@ -44,9 +45,7 @@ export function HubCertificationInspector({
                     defaultMessage: "Read-only handoff",
                   })}
             </span>
-            <span className="text-xs text-text-soft">
-              {formatRelativeTime(assessment.createdAt)}
-            </span>
+            <span className="text-xs text-text-soft">{formatEventAge(assessment.createdAt)}</span>
           </div>
 
           <div>
@@ -80,7 +79,7 @@ export function HubCertificationInspector({
         {canMint ? (
           <p className="text-sm text-text-sub">
             {formatMessage({
-              id: "cockpit.hub.certify.operatorDescription",
+              id: "cockpit.hub.certify.stewardDescription",
               defaultMessage:
                 "This bundle is ready for the minting flow. Open the hypercert form when you are ready to finalize it.",
             })}
@@ -90,7 +89,7 @@ export function HubCertificationInspector({
             {formatMessage({
               id: "cockpit.hub.certify.readOnlyDescription",
               defaultMessage:
-                "You can review the certification handoff here, but only garden owners or operators can mint the hypercert.",
+                "You can review the certification handoff here, but only garden owners or stewards can mint the hypercert.",
             })}
           </Alert>
         )}
@@ -106,7 +105,7 @@ export function HubCertificationInspector({
           >
             {formatMessage({
               id: "cockpit.hub.certify.openMintFlow",
-              defaultMessage: "Open mint flow",
+              defaultMessage: "Open Mint Flow",
             })}
           </AdminButton>
         </SheetFooter>

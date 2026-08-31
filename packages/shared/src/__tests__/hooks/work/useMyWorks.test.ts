@@ -12,6 +12,7 @@ import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createMockWork, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import type { Work } from "../../../types/domain";
 
 // ============================================
 // Mocks
@@ -27,26 +28,31 @@ vi.mock("../../../utils/work/offline", () => ({
   fetchOfflineWorks: (...args: unknown[]) => mockFetchOfflineWorks(...args),
 }));
 
-const mockDeduplicateById = vi.fn((works: any[]) => works);
-const mockMergeAndDeduplicateByClientId = vi.fn((online: any[], offline: any[]) => [
+const mockDeduplicateById = vi.fn((works: Work[]) => works);
+const mockMergeAndDeduplicateByClientId = vi.fn((online: Work[], offline: Work[]) => [
   ...online,
   ...offline,
 ]);
 vi.mock("../../../utils/work/deduplication", () => ({
-  deduplicateById: (...args: unknown[]) => mockDeduplicateById(...args),
-  mergeAndDeduplicateByClientId: (...args: unknown[]) => mockMergeAndDeduplicateByClientId(...args),
+  deduplicateById: (works: Work[]) => mockDeduplicateById(works),
+  mergeAndDeduplicateByClientId: (online: Work[], offline: Work[]) =>
+    mockMergeAndDeduplicateByClientId(online, offline),
 }));
 
-const mockFilterByTimeRange = vi.fn((works: any[]) => works);
-const mockSortByCreatedAt = vi.fn((works: any[]) =>
-  [...works].sort((a: any, b: any) => b.createdAt - a.createdAt)
+const mockFilterByTimeRange = vi.fn((works: Work[], _filter?: unknown) => works);
+const mockSortByCreatedAt = vi.fn((works: Work[]) =>
+  [...works].sort((a, b) => b.createdAt - a.createdAt)
 );
 vi.mock("../../../utils/time", () => ({
-  filterByTimeRange: (...args: unknown[]) => mockFilterByTimeRange(...args),
-  sortByCreatedAt: (...args: unknown[]) => mockSortByCreatedAt(...args),
+  filterByTimeRange: (works: Work[], filter: unknown) => mockFilterByTimeRange(works, filter),
+  sortByCreatedAt: (works: Work[]) => mockSortByCreatedAt(works),
 }));
 
 vi.mock("../../../config/blockchain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("../../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 

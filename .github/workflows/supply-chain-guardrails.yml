@@ -14,7 +14,9 @@ on:
       - ".npmrc"
       - "pnpm-workspace.yaml"
       - ".yarnrc.yml"
+      - ".mise.toml"
       - ".github/workflows/**"
+      - ".github/actions/setup-js/action.yml"
       - "AGENTS.md"
       - "CLAUDE.md"
       - "ONBOARDING.md"
@@ -24,6 +26,21 @@ on:
       - "docs/routines/**"
       - "scripts/quality/**"
       - "scripts/harness/**"
+      - "**/*.css"
+      - "**/*.scss"
+      - "**/*.js"
+      - "**/*.json"
+      - "**/*.jsx"
+      - "**/*.mjs"
+      - "**/*.cjs"
+      - "**/*.md"
+      - "**/*.mdx"
+      - "**/*.sh"
+      - "**/*.sol"
+      - "**/*.ts"
+      - "**/*.tsx"
+      - "**/*.yaml"
+      - "**/*.yml"
   push:
     branches: [main, develop]
     paths:
@@ -38,7 +55,9 @@ on:
       - ".npmrc"
       - "pnpm-workspace.yaml"
       - ".yarnrc.yml"
+      - ".mise.toml"
       - ".github/workflows/**"
+      - ".github/actions/setup-js/action.yml"
       - "AGENTS.md"
       - "CLAUDE.md"
       - "ONBOARDING.md"
@@ -48,6 +67,21 @@ on:
       - "docs/routines/**"
       - "scripts/quality/**"
       - "scripts/harness/**"
+      - "**/*.css"
+      - "**/*.scss"
+      - "**/*.js"
+      - "**/*.json"
+      - "**/*.jsx"
+      - "**/*.mjs"
+      - "**/*.cjs"
+      - "**/*.md"
+      - "**/*.mdx"
+      - "**/*.sh"
+      - "**/*.sol"
+      - "**/*.ts"
+      - "**/*.tsx"
+      - "**/*.yaml"
+      - "**/*.yml"
   workflow_dispatch:
 
 permissions:
@@ -74,6 +108,11 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22.22.1"
+
       - name: Run supply-chain guardrails audit
         shell: bash
         run: |
@@ -90,26 +129,39 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          fetch-depth: 0
           persist-credentials: false
 
-      - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with:
-          node-version: "22"
+      - name: Setup JavaScript toolchain and dependencies
+        uses: ./.github/actions/setup-js
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
-        with:
-          bun-version: 1.3.14
+      - name: Run workflow performance parity tests
+        run: node --test scripts/quality/workflow-performance-parity.test.mjs
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      - name: Check repository formatting
+        run: bun run format:check
 
       - name: Check Codex guidance parity
         run: node scripts/quality/check-codex-docs.js
 
       - name: Check guidance links and retired references
-        run: node scripts/quality/check-guidance-links.mjs
+        env:
+          GUIDANCE_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
+        run: bun run check:guidance-links
+
+      - name: Check critical skill behavior contracts
+        run: bun run check:skill-behavior
+
+      - name: Check immutable dated plan reports
+        env:
+          PLAN_REPORTS_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
+        run: bun run check:immutable-plan-reports
+
+      - name: Run guidance guardrail tests
+        run: node --test scripts/quality/branch-name-policy.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs
+
+      - name: Check test quality
+        run: bun run check:test-quality
 
       - name: Validate plan hubs
         run: node scripts/harness/plan-hub.mjs validate

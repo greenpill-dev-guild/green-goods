@@ -1,11 +1,11 @@
+import enMessages from "@green-goods/shared/i18n/en";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import { IntlProvider, useIntl } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import enMessages from "../../../../shared/src/i18n/en.json";
-import { Domain } from "../../../../shared/src/types/domain";
-import { resolveIPFSUrl } from "../../../../shared/src/modules/data/ipfs/resolve";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { Domain } from "@green-goods/shared/types/domain";
 import {
   GardenSettingsEditor,
   type GardenSettingsEditorHandle,
@@ -34,24 +34,42 @@ const {
   mockUploadFileToIPFS: vi.fn().mockResolvedValue({ cid: "bafysettingsbanner" }),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-
+vi.mock("@green-goods/shared/hooks/garden/useSetGardenDomains", async () => {
   const asMutation = (mutateAsync: (params: unknown) => Promise<unknown>) => () => ({
     mutateAsync,
     isPending: false,
   });
-
   return {
-    ...actual,
+    useSetGardenDomains: asMutation(mockSetGardenDomains),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/garden/useUpdateGarden", async () => {
+  const asMutation = (mutateAsync: (params: unknown) => Promise<unknown>) => () => ({
+    mutateAsync,
+    isPending: false,
+  });
+  return {
     useUpdateGardenName: asMutation(mockUpdateName),
     useUpdateGardenDescription: asMutation(mockUpdateDescription),
     useUpdateGardenLocation: asMutation(mockUpdateLocation),
     useUpdateGardenBannerImage: asMutation(mockUpdateBannerImage),
     useSetOpenJoining: asMutation(mockSetOpenJoining),
     useSetMaxGardeners: asMutation(mockSetMaxGardeners),
-    useSetGardenDomains: asMutation(mockSetGardenDomains),
-    uploadFileToIPFS: mockUploadFileToIPFS,
+  };
+});
+
+vi.mock("@green-goods/shared/modules/data/ipfs/upload", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@green-goods/shared/modules/data/ipfs/upload")>();
+  return { ...actual, uploadFileToIPFS: mockUploadFileToIPFS };
+});
+
+vi.mock("@green-goods/shared/utils/work/image-compression", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@green-goods/shared/utils/work/image-compression")>();
+  return {
+    ...actual,
     imageCompressor: {
       ...actual.imageCompressor,
       shouldCompress: () => false,
@@ -190,7 +208,7 @@ describe("GardenSettingsEditor explicit save", () => {
       expect(mutation).not.toHaveBeenCalled();
     }
     expect(screen.getByText("1 unsaved change")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Save Changes" })).toBeEnabled();
   });
 
   it("saves only the dirty fields with trimmed values", async () => {
@@ -205,7 +223,7 @@ describe("GardenSettingsEditor explicit save", () => {
     await user.clear(locationInput);
     await user.type(locationInput, "Lisbon, Portugal");
 
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
     await waitFor(() => {
       expect(mockUpdateName).toHaveBeenCalledWith({
@@ -246,7 +264,7 @@ describe("GardenSettingsEditor explicit save", () => {
     expect(mockUploadFileToIPFS).not.toHaveBeenCalled();
     expect(mockUpdateBannerImage).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
     await waitFor(() => {
       expect(mockUploadFileToIPFS).toHaveBeenCalledTimes(1);
@@ -273,7 +291,7 @@ describe("GardenSettingsEditor explicit save", () => {
       );
     });
 
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
     await waitFor(() => {
       expect(mockUpdateBannerImage).toHaveBeenCalledWith({ gardenAddress, value: "" });
     });
@@ -305,7 +323,7 @@ describe("GardenSettingsEditor explicit save", () => {
     await user.click(screen.getByRole("switch", { name: "Open joining" }));
     expect(mockSetOpenJoining).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
     await waitFor(() => {
       expect(mockSetOpenJoining).toHaveBeenCalledWith({ gardenAddress, value: true });
     });
@@ -315,14 +333,14 @@ describe("GardenSettingsEditor explicit save", () => {
     const user = userEvent.setup();
     renderEditor();
 
-    // No cap field until the operator opts into limiting.
+    // No cap field until the steward opts into limiting.
     expect(screen.queryByLabelText("Maximum gardeners")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("switch", { name: "Limit gardeners" }));
     const capInput = screen.getByLabelText("Maximum gardeners");
     await user.type(capInput, "25");
 
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
     await waitFor(() => {
       expect(mockSetMaxGardeners).toHaveBeenCalledWith({ gardenAddress, value: 25 });
     });
@@ -336,7 +354,7 @@ describe("GardenSettingsEditor explicit save", () => {
     expect(screen.getByLabelText("Maximum gardeners")).toHaveValue(50);
 
     await user.click(screen.getByRole("switch", { name: "Limit gardeners" }));
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
     await waitFor(() => {
       expect(mockSetMaxGardeners).toHaveBeenCalledWith({ gardenAddress, value: 0 });
     });
@@ -348,7 +366,7 @@ describe("GardenSettingsEditor explicit save", () => {
 
     await user.click(screen.getByRole("button", { name: /Solar/ }));
 
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
     await waitFor(() => {
       expect(mockSetGardenDomains).toHaveBeenCalledWith({
         gardenAddress,
@@ -383,7 +401,7 @@ describe("GardenSettingsEditor explicit save", () => {
     const nameInput = screen.getByLabelText(/Name/);
     await user.clear(nameInput);
     await user.type(nameInput, "Renamed Garden");
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
     await waitFor(() => {
       expect(onDirtyStateChange).toHaveBeenCalledWith(
@@ -404,13 +422,13 @@ describe("GardenSettingsEditor explicit save", () => {
     await user.clear(screen.getByLabelText(/Name/));
 
     expect(screen.getByText("Garden name is required")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save Changes" })).toBeDisabled();
   });
 
   it("renders read-only without a footer when the viewer cannot edit", () => {
     renderEditor({ canManage: false, isOwner: false });
 
-    expect(screen.queryByRole("button", { name: "Save changes" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save Changes" })).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Name/)).toBeDisabled();
     expect(screen.getByLabelText("Location")).toBeDisabled();
   });

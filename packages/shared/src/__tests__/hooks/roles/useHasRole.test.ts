@@ -35,6 +35,10 @@ vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 vi.mock("../../../utils/blockchain/abis", () => ({
   GARDEN_ACCOUNT_ROLE_ABI: [],
 }));
@@ -48,7 +52,7 @@ vi.mock("../../../utils/blockchain/garden-roles", () => ({
   GARDEN_ROLE_FUNCTIONS: {
     gardener: "isGardener",
     evaluator: "isEvaluator",
-    operator: "isOperator",
+    steward: "isOperator",
     owner: "isOwner",
     funder: "isFunder",
     community: "isCommunity",
@@ -83,7 +87,7 @@ describe("useHasRole", () => {
 
   describe("disabled states", () => {
     it("returns false when gardenAddress is undefined", () => {
-      const { result } = renderHook(() => useHasRole(undefined, TEST_USER, "operator"), {
+      const { result } = renderHook(() => useHasRole(undefined, TEST_USER, "steward"), {
         wrapper: createWrapper(queryClient),
       });
 
@@ -93,7 +97,7 @@ describe("useHasRole", () => {
     });
 
     it("returns false when userAddress is undefined", () => {
-      const { result } = renderHook(() => useHasRole(TEST_GARDEN, undefined, "operator"), {
+      const { result } = renderHook(() => useHasRole(TEST_GARDEN, undefined, "steward"), {
         wrapper: createWrapper(queryClient),
       });
 
@@ -111,7 +115,7 @@ describe("useHasRole", () => {
     });
 
     it("returns false when gardenAddress is zero address", () => {
-      const { result } = renderHook(() => useHasRole(ZERO_ADDRESS, TEST_USER, "operator"), {
+      const { result } = renderHook(() => useHasRole(ZERO_ADDRESS, TEST_USER, "steward"), {
         wrapper: createWrapper(queryClient),
       });
 
@@ -120,7 +124,7 @@ describe("useHasRole", () => {
     });
 
     it("returns false when gardenAddress is null", () => {
-      const { result } = renderHook(() => useHasRole(null, TEST_USER, "operator"), {
+      const { result } = renderHook(() => useHasRole(null, TEST_USER, "steward"), {
         wrapper: createWrapper(queryClient),
       });
 
@@ -129,10 +133,10 @@ describe("useHasRole", () => {
   });
 
   describe("enabled states", () => {
-    it("returns true when contract returns true for operator", async () => {
+    it("returns true when contract returns true for steward", async () => {
       mockReadContract.mockResolvedValue(true);
 
-      const { result } = renderHook(() => useHasRole(TEST_GARDEN, TEST_USER, "operator"), {
+      const { result } = renderHook(() => useHasRole(TEST_GARDEN, TEST_USER, "steward"), {
         wrapper: createWrapper(queryClient),
       });
 
@@ -170,7 +174,8 @@ describe("useHasRole", () => {
       const roleMap = {
         gardener: "isGardener",
         evaluator: "isEvaluator",
-        operator: "isOperator",
+        // Role key is `steward`; the deployed access function is still isSteward.
+        steward: "isOperator",
         owner: "isOwner",
       } as const;
 
@@ -197,7 +202,7 @@ describe("useHasRole", () => {
     it("returns false when contract call fails", async () => {
       mockReadContract.mockRejectedValue(new Error("Reverted"));
 
-      const { result } = renderHook(() => useHasRole(TEST_GARDEN, TEST_USER, "operator"), {
+      const { result } = renderHook(() => useHasRole(TEST_GARDEN, TEST_USER, "steward"), {
         wrapper: createWrapper(queryClient),
       });
 

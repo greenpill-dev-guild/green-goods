@@ -60,7 +60,7 @@ export const createGardenSchema = z.object({
   openJoining: z.boolean().default(false),
   domains: z.array(z.nativeEnum(Domain)).min(1, "Select at least one domain"),
   gardeners: z.array(addressSchema).default([]),
-  operators: z.array(addressSchema).default([]),
+  stewards: z.array(addressSchema).default([]),
 });
 
 type CreateGardenFormInput = z.input<typeof createGardenSchema>;
@@ -77,7 +77,7 @@ export type CreateGardenFormData = CreateGardenFormInput;
  */
 export const gardenStepFields = {
   details: ["name", "slug", "description", "location", "bannerImage", "domains"] as const,
-  team: ["gardeners", "operators", "openJoining"] as const,
+  team: ["gardeners", "stewards", "openJoining"] as const,
   review: [] as const,
 } satisfies Record<string, readonly (keyof CreateGardenFormData)[]>;
 
@@ -98,7 +98,7 @@ export function createDefaultGardenForm(): CreateGardenFormInput {
     openJoining: false,
     domains: [],
     gardeners: [],
-    operators: [],
+    stewards: [],
   };
 }
 

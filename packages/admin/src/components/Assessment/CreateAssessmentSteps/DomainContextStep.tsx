@@ -1,19 +1,16 @@
-import {
-  cn,
-  Domain,
-  expandDomainMask,
-  Textarea,
-  TextInput,
-  useCreateAssessmentStore,
-} from "@green-goods/shared";
+import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
+import { Domain } from "@green-goods/shared/types/domain";
+import { expandDomainMask } from "@green-goods/shared/utils/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
+import { AdminChoiceGroup } from "../../AdminChoiceGroup";
+import { AdminTextArea, AdminTextField } from "../../AdminTextField";
 import {
   ALL_DOMAINS,
   DOMAIN_GUIDANCE,
   DOMAIN_ICON_CONFIG,
   domainKey,
-  LabeledField,
   resolveDomainLabel,
   Section,
 } from "./shared";
@@ -109,30 +106,25 @@ export function DomainContextStep({
           defaultMessage: "Select the primary action domain for this assessment.",
         })}
       >
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {availableDomains.map((domain) => {
-            const config = DOMAIN_ICON_CONFIG[domain];
-            const isSelected = selectedDomain === domain;
-            return (
-              <button
-                key={domain}
-                type="button"
-                onClick={() => handleDomainChange(domain)}
-                disabled={isSubmitting}
-                className={cn(
-                  "flex items-center gap-2 rounded-lg border px-3 py-3 text-sm font-medium transition",
-                  isSelected
-                    ? "border-primary-base bg-primary-alpha-10 text-primary-darker"
-                    : "border-stroke-soft bg-bg-white text-text-sub hover:border-primary-alpha-24 hover:bg-primary-alpha-10",
-                  isSubmitting && "cursor-not-allowed opacity-60"
-                )}
-              >
-                <i className={cn(config.icon, "text-base")} aria-hidden="true" />
-                {resolveDomainLabel(intl, domain)}
-              </button>
-            );
+        <AdminChoiceGroup
+          ariaLabel={formatMessage({
+            id: "app.admin.assessment.domainAction.domainTitle",
+            defaultMessage: "Domain",
           })}
-        </div>
+          columns={4}
+          value={String(selectedDomain)}
+          onChange={(next) => {
+            if (!isSubmitting) handleDomainChange(Number(next) as Domain);
+          }}
+          options={availableDomains.map((domain) => ({
+            value: String(domain),
+            label: resolveDomainLabel(intl, domain),
+            leadingVisual: (
+              <i className={cn(DOMAIN_ICON_CONFIG[domain].icon, "text-base")} aria-hidden="true" />
+            ),
+            disabled: isSubmitting,
+          }))}
+        />
       </Section>
 
       {/* Context Fields */}
@@ -147,98 +139,72 @@ export function DomainContextStep({
         })}
       >
         <div className="grid gap-2.5 md:grid-cols-2 md:gap-3">
-          <LabeledField
+          <AdminTextField
             label={formatMessage({
               id: "app.admin.assessment.strategyKernel.titleLabel",
               defaultMessage: "Title",
             })}
             required
-            error={showValidation ? fieldErrors.title : null}
-            helpText={formatMessage({
+            disabled={isSubmitting}
+            value={form.title}
+            onChange={(e) => setField("title", e.target.value)}
+            placeholder={formatMessage({
+              id: domainKey("app.admin.assessment.domainContext.titlePlaceholder", selectedDomain),
+              defaultMessage: guidance.titlePlaceholder,
+            })}
+            error={(showValidation && fieldErrors.title) || undefined}
+            helperText={formatMessage({
               id: "app.admin.assessment.strategyKernel.titleHelp",
               defaultMessage: "Summarise this assessment in a few words.",
             })}
-          >
-            <TextInput
-              surface="admin"
-              type="text"
-              disabled={isSubmitting}
-              value={form.title}
-              onChange={(e) => setField("title", e.target.value)}
-              placeholder={formatMessage({
-                id: domainKey(
-                  "app.admin.assessment.domainContext.titlePlaceholder",
-                  selectedDomain
-                ),
-                defaultMessage: guidance.titlePlaceholder,
-              })}
-              aria-invalid={showValidation && !!fieldErrors.title}
-              invalid={showValidation && !!fieldErrors.title}
-              className="mt-1"
-            />
-          </LabeledField>
-          <LabeledField
+          />
+          <AdminTextField
             label={formatMessage({
               id: "app.admin.assessment.strategyKernel.locationLabel",
               defaultMessage: "Location",
             })}
             required
-            error={showValidation ? fieldErrors.location : null}
-            helpText={formatMessage({
+            disabled={isSubmitting}
+            value={form.location}
+            onChange={(e) => setField("location", e.target.value)}
+            placeholder={formatMessage({
+              id: domainKey(
+                "app.admin.assessment.domainContext.locationPlaceholder",
+                selectedDomain
+              ),
+              defaultMessage: guidance.locationPlaceholder,
+            })}
+            error={(showValidation && fieldErrors.location) || undefined}
+            helperText={formatMessage({
               id: "app.admin.assessment.strategyKernel.locationHelp",
               defaultMessage: "Where this assessment applies.",
             })}
-          >
-            <TextInput
-              surface="admin"
-              type="text"
-              disabled={isSubmitting}
-              value={form.location}
-              onChange={(e) => setField("location", e.target.value)}
-              placeholder={formatMessage({
-                id: domainKey(
-                  "app.admin.assessment.domainContext.locationPlaceholder",
-                  selectedDomain
-                ),
-                defaultMessage: guidance.locationPlaceholder,
-              })}
-              aria-invalid={showValidation && !!fieldErrors.location}
-              invalid={showValidation && !!fieldErrors.location}
-              className="mt-1"
-            />
-          </LabeledField>
+          />
         </div>
 
-        <LabeledField
+        <AdminTextArea
           label={formatMessage({
             id: "app.admin.assessment.strategyKernel.descriptionLabel",
             defaultMessage: "Description",
           })}
           required
-          error={showValidation ? fieldErrors.description : null}
-          helpText={formatMessage({
+          rows={2}
+          disabled={isSubmitting}
+          value={form.description}
+          onChange={(e) => setField("description", e.target.value)}
+          placeholder={formatMessage({
+            id: domainKey(
+              "app.admin.assessment.domainContext.descriptionPlaceholder",
+              selectedDomain
+            ),
+            defaultMessage: guidance.descriptionPlaceholder,
+          })}
+          error={(showValidation && fieldErrors.description) || undefined}
+          helperText={formatMessage({
             id: domainKey("app.admin.assessment.domainContext.descriptionHelp", selectedDomain),
             defaultMessage: guidance.descriptionHelp,
           })}
-        >
-          <Textarea
-            surface="admin"
-            rows={2}
-            disabled={isSubmitting}
-            value={form.description}
-            onChange={(e) => setField("description", e.target.value)}
-            placeholder={formatMessage({
-              id: domainKey(
-                "app.admin.assessment.domainContext.descriptionPlaceholder",
-                selectedDomain
-              ),
-              defaultMessage: guidance.descriptionPlaceholder,
-            })}
-            aria-invalid={showValidation && !!fieldErrors.description}
-            invalid={showValidation && !!fieldErrors.description}
-            className="mt-1"
-          />
-        </LabeledField>
+        />
       </Section>
     </div>
   );

@@ -1,12 +1,15 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { queueToasts, toastService } from "../components/toast";
-import { DEFAULT_CHAIN_ID } from "../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 import { queryClient } from "../config/react-query";
 import { useAuth } from "../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
-import { queryInvalidation, queryKeys } from "../config/query-keys";
-import { jobQueue, jobQueueEventBus } from "../modules/job-queue";
+import { queryInvalidation } from "../config/query-keys/invalidation";
+import { queueKeys } from "../config/query-keys/misc";
+import { approvalsKeys, workApprovalsKeys, worksKeys } from "../config/query-keys/work";
+import { jobQueue } from "../modules/job-queue/default-instance";
+import type { JobQueueHandle } from "../modules/job-queue/ports";
 import { logger } from "../modules/app/logger";
 import { useUIStore } from "../stores/useUIStore";
 import type {
@@ -15,7 +18,7 @@ import type {
   QueueStats,
   WorkJobPayload,
 } from "../types/job-queue";
-import { trackStorageQuota } from "../utils/storage/quota";
+import { requestPersistentStorageOnce, trackStorageQuota } from "../utils/storage/quota";
 
 interface JobQueueContextValue {
   stats: QueueStats;
@@ -48,6 +51,7 @@ export const useQueueFlush = () => {
 
 interface JobQueueProviderProps {
   children: React.ReactNode;
+  queue?: JobQueueHandle;
 }
 
 const EMPTY_QUEUE_STATS: QueueStats = { total: 0, pending: 0, failed: 0, synced: 0 };
@@ -65,7 +69,7 @@ interface Work {
   [key: string]: unknown;
 }
 
-const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) => {
+const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queue = jobQueue }) => {
   const { authMode } = useAuth();
   const sender = useTransactionSender();
 
@@ -106,7 +110,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       }
 
       try {
-        const newStats = await jobQueue.getStats(currentUserAddress);
+        const newStats = await queue.getStats(currentUserAddress);
         if (signal?.aborted) return;
         setStats((previousStats) =>
           areQueueStatsEqual(previousStats, newStats) ? previousStats : newStats
@@ -117,7 +121,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         logger.warn("[JobQueueProvider] refreshStats failed", { error });
       }
     },
-    [currentUserAddress, setOfflineBannerVisibleIfChanged]
+    [currentUserAddress, queue, setOfflineBannerVisibleIfChanged]
   );
 
   // Helper to invalidate multiple query keys
@@ -186,14 +190,14 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         // Invalidate work approvals to show the new approval
         if (currentUserAddress) {
           queryClient.invalidateQueries({
-            queryKey: queryKeys.workApprovals.byAttester(currentUserAddress, DEFAULT_CHAIN_ID),
+            queryKey: workApprovalsKeys.byAttester(currentUserAddress, DEFAULT_CHAIN_ID),
           });
         }
-        queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all });
+        queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
 
         // Update work status in cache if available
         const workUID = approvalPayload.workUID;
-        queryClient.setQueriesData<Work[]>({ queryKey: queryKeys.works.all }, (oldWorks) => {
+        queryClient.setQueriesData<Work[]>({ queryKey: worksKeys.all }, (oldWorks) => {
           // Defensive shape check: cached values can be undefined or
           // (rarely) a non-array if a hook stuffed something unexpected
           // into the same query-key namespace. Bail without mutating.
@@ -218,8 +222,8 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         const workPayload = event.job.payload as WorkJobPayload;
         const gardenId = workPayload.gardenAddress;
         const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.offline(gardenId) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.offline(gardenId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.merged(gardenId, chainId) });
       } else if (event.job.kind === "approval") {
         queueToasts.jobFailed("approval", event.error);
       }
@@ -227,6 +231,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
 
     const handleJobAdded = (event: QueueEvent) => {
       void refreshStats(abortController.signal);
+      void requestPersistentStorageOnce("offline-job");
 
       if (event.job?.kind === "work") {
         const workPayload = event.job.payload as WorkJobPayload;
@@ -240,8 +245,8 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       }
 
       // Update global counts
-      queryClient.invalidateQueries({ queryKey: queryKeys.queue.pendingCount() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
+      queryClient.invalidateQueries({ queryKey: queueKeys.pendingCount() });
+      queryClient.invalidateQueries({ queryKey: queueKeys.stats() });
     };
 
     // Handler map for cleaner event routing
@@ -262,8 +267,8 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
     void refreshStats(abortController.signal);
 
     // Subscribe to events
-    const unsubscribe = jobQueue.subscribe(handleQueueEvent);
-    const unsubscribeSyncCompleted = jobQueueEventBus.on("queue:sync-completed", () => {
+    const unsubscribe = queue.subscribe(handleQueueEvent);
+    const unsubscribeSyncCompleted = queue.onSyncCompleted(() => {
       setIsProcessing(false);
       void refreshStats(abortController.signal);
     });
@@ -273,7 +278,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       unsubscribe();
       unsubscribeSyncCompleted();
     };
-  }, [currentUserAddress, refreshStats, setOfflineBannerVisibleIfChanged]);
+  }, [currentUserAddress, queue, refreshStats, setOfflineBannerVisibleIfChanged]);
 
   useEffect(() => {
     if (!sender || !currentUserAddress) {
@@ -294,7 +299,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
 
       isFlushInProgressRef.current = true;
       try {
-        await jobQueue.flush({ transactionSender: sender, userAddress: currentUserAddress });
+        await queue.flush({ transactionSender: sender, userAddress: currentUserAddress });
         if (!abortController.signal.aborted) {
           await refreshStats(abortController.signal);
         }
@@ -330,7 +335,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
     };
 
     window.addEventListener("online", handleOnline);
-    const unsubscribeBackgroundSync = jobQueueEventBus.on("background:sync-requested", () => {
+    const unsubscribeBackgroundSync = queue.onBackgroundSyncRequested(() => {
       if (authMode === "passkey" || authMode === "embedded") {
         void attemptFlush();
       }
@@ -341,7 +346,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       window.removeEventListener("online", handleOnline);
       unsubscribeBackgroundSync();
     };
-  }, [sender, authMode, currentUserAddress, refreshStats]);
+  }, [sender, authMode, currentUserAddress, queue, refreshStats]);
 
   // Context value - useMemo kept here as it's passed to Provider (cross-boundary)
   const contextValue: JobQueueContextValue = React.useMemo(
@@ -361,7 +366,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         }
 
         try {
-          const result = await jobQueue.flush({
+          const result = await queue.flush({
             transactionSender: sender ?? null,
             userAddress: currentUserAddress,
           });
@@ -394,19 +399,19 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       },
       hasPendingJobs: () => {
         if (!currentUserAddress) return Promise.resolve(false);
-        return jobQueue.hasPendingJobs(currentUserAddress);
+        return queue.hasPendingJobs(currentUserAddress);
       },
       getPendingCount: () => {
         if (!currentUserAddress) return Promise.resolve(0);
-        return jobQueue.getPendingCount(currentUserAddress);
+        return queue.getPendingCount(currentUserAddress);
       },
     }),
-    [stats, isProcessing, lastEvent, currentUserAddress, sender, refreshStats]
+    [stats, isProcessing, lastEvent, currentUserAddress, sender, queue, refreshStats]
   );
 
   return <JobQueueContext.Provider value={contextValue}>{children}</JobQueueContext.Provider>;
 };
 
-export const JobQueueProvider: React.FC<JobQueueProviderProps> = ({ children }) => {
-  return <JobQueueProviderInner>{children}</JobQueueProviderInner>;
+export const JobQueueProvider: React.FC<JobQueueProviderProps> = ({ children, queue }) => {
+  return <JobQueueProviderInner queue={queue ?? jobQueue}>{children}</JobQueueProviderInner>;
 };

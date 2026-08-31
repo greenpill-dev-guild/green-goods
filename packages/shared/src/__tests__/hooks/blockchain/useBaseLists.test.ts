@@ -22,12 +22,16 @@ const mockGetGardens = vi.fn();
 const mockGetGardeners = vi.fn();
 
 vi.mock("../../../modules/data/greengoods", () => ({
-  getActions: () => mockGetActions(),
-  getGardens: () => mockGetGardens(),
-  getGardeners: () => mockGetGardeners(),
+  getActions: (...args: unknown[]) => mockGetActions(...args),
+  getGardens: (...args: unknown[]) => mockGetGardens(...args),
+  getGardeners: (...args: unknown[]) => mockGetGardeners(...args),
 }));
 
 vi.mock("../../../config/blockchain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("../../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
@@ -89,6 +93,7 @@ describe("useBaseLists", () => {
         expect(result.current.data).toHaveLength(2);
       });
       expect(result.current.data).toEqual(mockActions);
+      expect(mockGetActions).toHaveBeenCalledWith();
     });
 
     it("uses the correct query key based on chain ID", async () => {
@@ -136,7 +141,7 @@ describe("useBaseLists", () => {
       const query = queryClient.getQueryCache().find({
         queryKey: ["greengoods", "actions", 11155111],
       });
-      expect(query?.options.staleTime).toBe(60_000);
+      expect((query?.options as { staleTime?: number }).staleTime).toBe(60_000);
     });
 
     it("provides empty array as placeholder data", async () => {
@@ -193,6 +198,7 @@ describe("useBaseLists", () => {
         expect(result.current.data).toHaveLength(2);
       });
       expect(result.current.data).toEqual(mockGardens);
+      expect(mockGetGardens).toHaveBeenCalledWith();
     });
 
     it("caches with chain-specific query key", async () => {
@@ -244,6 +250,7 @@ describe("useBaseLists", () => {
         expect(result.current.data).toHaveLength(2);
       });
       expect(result.current.data).toEqual(mockGardenersList);
+      expect(mockGetGardeners).toHaveBeenCalledWith();
     });
 
     it("uses the gardeners.all query key (no chain scoping)", async () => {

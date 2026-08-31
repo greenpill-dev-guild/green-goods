@@ -2,7 +2,7 @@ import { RiAlertLine, RiCloseLine, RiRefreshLine } from "@remixicon/react";
 import { useCallback, useState } from "react";
 import { useIntl } from "react-intl";
 import { logger } from "../../modules/app/logger";
-import { cn } from "../../utils";
+import { cn } from "../../utils/styles/cn";
 import { ErrorBoundary } from "../ErrorBoundary/ErrorBoundary";
 
 export interface SheetErrorBoundaryProps {

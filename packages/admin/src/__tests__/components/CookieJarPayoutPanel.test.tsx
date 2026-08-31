@@ -1,31 +1,40 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen } from "../test-utils";
 
-vi.mock(import("@green-goods/shared"), async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
-    useGardenCookieJars: () => ({
-      jars: [
-        {
-          jarAddress: "0xjar",
-          gardenAddress: "0xgarden",
-          assetAddress: "0xasset",
-          balance: 5000000n,
-          currency: "0xasset",
-          decimals: 6,
-          maxWithdrawal: 1000000n,
-          withdrawalInterval: 3600n,
-          minDeposit: 0n,
-          isPaused: false,
-          emergencyWithdrawalEnabled: false,
-        },
-      ],
-      isLoading: false,
-      moduleConfigured: true,
-    }),
-  };
-});
+vi.mock(
+  import("@green-goods/shared/hooks/cookie-jar/useGardenCookieJars"),
+  async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+      ...actual,
+      useGardenCookieJars: () => ({
+        jars: [
+          {
+            jarAddress: "0xjar",
+            gardenAddress: "0xgarden",
+            assetAddress: "0xasset",
+            balance: 5000000n,
+            currency: "0xasset",
+            decimals: 6,
+            maxWithdrawal: 1000000n,
+            withdrawalInterval: 3600n,
+            minDeposit: 0n,
+            isPaused: false,
+            emergencyWithdrawalEnabled: false,
+          },
+        ],
+        isLoading: false,
+        error: null,
+        jarCount: 1,
+        moduleConfigured: true,
+        detailErrorCount: 0,
+        hasDetailReadFailure: false,
+        decimalsErrorCount: 0,
+        hasDecimalsReadFailure: false,
+      }),
+    };
+  }
+);
 
 // Mock modal components to avoid deep hook dependencies (AuthProvider, wagmi, etc.)
 vi.mock("@/views/Hub/components/CookieJarWithdrawModal", () => ({
@@ -51,7 +60,7 @@ describe("CookieJarPayoutPanel", () => {
     expect(screen.getByText("Active")).toBeInTheDocument();
     expect(screen.getByText("Jar Balance")).toBeInTheDocument();
     expect(screen.getByText("Available now")).toBeInTheDocument();
-    expect(screen.getByText("Withdrawal Cooldown")).toBeInTheDocument();
+    expect(screen.getByText("Withdrawal cooldown")).toBeInTheDocument();
     expect(screen.getByText("1h")).toBeInTheDocument();
 
     // The card shows the jar asset and balance details in multiple slots.

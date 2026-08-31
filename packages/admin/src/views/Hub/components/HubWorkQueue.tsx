@@ -1,11 +1,10 @@
-import {
-  Alert,
-  EmptyState,
-  EmptyStateShell,
-  type HubActionSummary,
-  type Work,
-  useEnsName,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import type { HubActionSummary } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import type { Work } from "@green-goods/shared/types/domain";
+import { hoursSince } from "@green-goods/shared/utils/garden-detail";
 import { RiCheckboxCircleLine, RiSearchLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
@@ -45,6 +44,9 @@ function HubWorkQueueItem({
   const { formatMessage } = useIntl();
   const { data: ensName } = useEnsName(work.gardenerAddress);
   const gardenerDisplayName = formatEnsAddressName(work.gardenerAddress, ensName);
+  // Same 72h critical bucket the Hub header stats use (useGardenDerivedState):
+  // a pending submission older than 72h reads as Overdue in the error pair.
+  const isOverdue = hoursSince(work.createdAt) >= 72;
 
   return (
     <HubWorkCard
@@ -55,10 +57,12 @@ function HubWorkQueueItem({
         selectedGardenName ?? formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Hub" })
       }
       gardenerDisplayName={gardenerDisplayName}
-      statusLabel={formatMessage({
-        id: "app.admin.work.filter.pending",
-        defaultMessage: "Pending",
-      })}
+      statusLabel={
+        isOverdue
+          ? formatMessage({ id: "cockpit.hub.workCard.overdue", defaultMessage: "Overdue" })
+          : formatMessage({ id: "app.admin.work.filter.pending", defaultMessage: "Pending" })
+      }
+      statusTone={isOverdue ? "error" : "neutral"}
       selected={selected}
       eagerImages={eagerImages}
       onClick={() => onOpenWorkDetail(work.id)}
@@ -112,7 +116,7 @@ export function HubWorkQueue({
           action={{
             label: formatMessage({
               id: "cockpit.hub.clearSearch",
-              defaultMessage: "Clear search",
+              defaultMessage: "Clear Search",
             }),
             variant: "ghost",
             size: "sm",

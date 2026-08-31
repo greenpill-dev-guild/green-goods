@@ -16,14 +16,6 @@ vi.mock("@/components/Display", () => ({
   ),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    cn: (...args: any[]) => args.filter(Boolean).join(" "),
-  };
-});
-
 import { ImagePreviewDialog } from "../../components/Dialogs/ImagePreviewDialog";
 
 const IMAGES = [
@@ -186,5 +178,21 @@ describe("ImagePreviewDialog", () => {
     expect(screen.queryByRole("button", { name: /next image/i })).not.toBeInTheDocument();
     // Thumbnails also hidden for single image
     expect(screen.queryByRole("button", { name: /go to image/i })).not.toBeInTheDocument();
+  });
+  it("reopens on the requested image after paging away and closing", async () => {
+    // The dialog stays mounted while closed, so `useState(initialIndex)` alone
+    // kept whatever image the reader last paged to. Reopening the same tile —
+    // an unchanged `initialIndex` — then showed the wrong photo.
+    const user = userEvent.setup();
+    render(<TestHarness />);
+
+    expect(screen.getByText("1 / 3")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /next image/i }));
+    expect(screen.getByText("2 / 3")).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("image-preview-close"));
+    await user.click(screen.getByLabelText("open-dialog"));
+
+    expect(screen.getByText("1 / 3")).toBeInTheDocument();
   });
 });

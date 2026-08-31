@@ -1,4 +1,4 @@
-# Indexer Package — Codex Guide
+# Indexer Package — Agent Guide
 
 Use this guide when editing `packages/indexer/**`.
 
@@ -30,7 +30,7 @@ responsible for protocol entities, not for EAS attestations.
 - `envio dev` preserves the local database. Use `bun run dev:restart` only when a destructive
   local replay is explicitly intended and authorized.
 
-## Codex Notes
+## Package Notes
 
 - On macOS, local development usually relies on Docker-based scripts, but validation still needs
   boundary checks, tests, and a TypeScript build.
@@ -39,5 +39,7 @@ responsible for protocol entities, not for EAS attestations.
 
 ## Validation
 
-- Schema/config changes: `bun run codegen && bun run build`
-- Package loop: `bun run check:indexing-boundary && bun run test && bun run build`
+- QA Speed Mode: run `node ../../scripts/dev/node-cli.js mocha --require tsx --timeout 30000 test/<file>.test.ts` for one behavior.
+- Package loop: `bun run check:indexing-boundary && bun run test && bun run build`.
+- Conditional proof: schema, config, or generated-type changes require `bun run codegen && bun run build` before targeted tests are trusted.
+- Broader impact: run the root Repo Quick Gate when event, ABI, schema, or consumer-facing data contracts move.

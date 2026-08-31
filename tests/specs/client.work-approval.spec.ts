@@ -2,11 +2,11 @@
  * Client Work Approval E2E Tests
  *
  * NOTE: These tests are SKIPPED in CI because they require:
- * 1. Real authentication as an OPERATOR (not just any user)
+ * 1. Real authentication as an STEWARD (not just any user)
  * 2. Pending work submissions in the indexer to approve/reject
  * 3. Blockchain state for approval transactions
  *
- * Run locally with real operator wallet for manual testing:
+ * Run locally with real steward wallet for manual testing:
  *   npx playwright test client.work-approval.spec.ts --project=client-full
  *
  * For automated testing, work approval is validated via unit tests:
@@ -18,13 +18,13 @@ import { ClientTestHelper, hasGardens, TEST_URLS } from "../helpers/test-utils";
 
 const CLIENT_URL = TEST_URLS.client;
 
-// Skip entire file - these tests require operator auth and pending work data
-// SKIP: #338 owner:afo expiry:2026-08-17 — needs operator auth + pending work data
-test.describe("Work Approval Flows (Operator)", () => {
+// Skip entire file - these tests require steward auth and pending work data
+// SKIP: #338 owner:afo expiry:2026-09-17 — needs steward auth + pending work data
+test.describe("Work Approval Flows (Steward)", () => {
   test.skip(
     () => true,
-    "Work approval e2e tests skipped: require operator auth and pending work data. " +
-      "Use unit tests for approval validation or run manually with operator wallet."
+    "Work approval e2e tests skipped: require steward auth and pending work data. " +
+      "Use unit tests for approval validation or run manually with steward wallet."
   );
 
   test.use({ baseURL: CLIENT_URL });
@@ -183,12 +183,12 @@ test.describe("Work Approval Flows (Operator)", () => {
               (await page
                 .locator('[role="status"]')
                 .isVisible({ timeout: 3000 })
-                .catch(() => true))
+                .catch(() => false))
           ).toBeTruthy();
         }
       } else {
-        // No work to approve - test passes (nothing to test)
-        expect(true).toBeTruthy();
+        // SKIP: #338 owner:afo expiry:2026-09-15 — requires pending steward work fixture
+        test.skip(true, "No pending work is available to approve");
       }
     });
 
@@ -213,12 +213,12 @@ test.describe("Work Approval Flows (Operator)", () => {
           const newCount = await workItems.count();
           // Either count decreased or page shows success state
           expect(
-            newCount <= initialCount || (await page.getByText(/approved|success/i).isVisible())
+            newCount < initialCount || (await page.getByText(/approved|success/i).isVisible())
           ).toBeTruthy();
         }
       } else {
-        // No work to test with
-        expect(true).toBeTruthy();
+        // SKIP: #338 owner:afo expiry:2026-09-15 — requires pending steward work fixture
+        test.skip(true, "No pending work is available to update");
       }
     });
   });
@@ -309,8 +309,8 @@ test.describe("Work Approval Flows (Operator)", () => {
           }
         }
       } else {
-        // No work to test with
-        expect(true).toBeTruthy();
+        // SKIP: #338 owner:afo expiry:2026-09-15 — requires pending steward work fixture
+        test.skip(true, "No pending work is available to reject");
       }
     });
   });
@@ -339,11 +339,11 @@ test.describe("Work Approval Flows (Operator)", () => {
           // Restore online state
           await context.setOffline(false);
 
-          // Either error shown or action was queued
-          expect(isErrorVisible || true).toBeTruthy(); // Always pass - offline handling varies
+          expect(isErrorVisible).toBe(true);
         }
       } else {
-        expect(true).toBeTruthy();
+        // SKIP: #338 owner:afo expiry:2026-09-15 — requires pending steward work fixture
+        test.skip(true, "No pending work is available for offline failure handling");
       }
     });
 
@@ -353,7 +353,7 @@ test.describe("Work Approval Flows (Operator)", () => {
 
       // This test requires simulating a blockchain transaction failure
       // which is difficult in E2E without mocking - mark as skipped
-      // SKIP: #338 owner:afo expiry:2026-08-17 — needs blockchain mock for tx failure
+      // SKIP: #338 owner:afo expiry:2026-09-17 — needs blockchain mock for tx failure
       test.skip(true, "Transaction failure requires blockchain mock - manual testing recommended");
     });
 
@@ -362,7 +362,7 @@ test.describe("Work Approval Flows (Operator)", () => {
       await page.waitForLoadState("domcontentloaded");
 
       // This test requires a prior failure state
-      // SKIP: #338 owner:afo expiry:2026-08-17 — needs prior failure state
+      // SKIP: #338 owner:afo expiry:2026-09-17 — needs prior failure state
       test.skip(true, "Retry flow requires prior failure state - manual testing recommended");
     });
   });

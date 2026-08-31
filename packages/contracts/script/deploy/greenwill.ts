@@ -30,7 +30,9 @@ interface DeploymentWithGreenWill extends DeploymentData {
       firstSupport?: unknown;
     };
   };
-  greenWill?: unknown;
+  // `string`, not `unknown`: `DeploymentData`'s index signature does not admit `unknown`, and this
+  // is an artifact address key. `optionalAddress` still validates it at runtime.
+  greenWill?: string;
 }
 
 interface GreenWillArtifact {

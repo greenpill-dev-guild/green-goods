@@ -1,0 +1,610 @@
+/**
+ * AttestationSelector Component Tests
+ *
+ * Tests for the hypercert attestation selection step component.
+ * Covers rendering, filtering, selection, and accessibility.
+ */
+
+import type { HypercertAttestation } from "@green-goods/shared/types/hypercerts";
+import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { createElement } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders as render } from "../../test-utils";
+
+// Mock dependencies
+vi.mock("@green-goods/shared/components/Alert", () => ({
+  Alert: ({ children }: { children?: React.ReactNode }) => {
+    const React = require("react");
+    return React.createElement("div", { role: "alert" }, children);
+  },
+}));
+
+vi.mock("@green-goods/shared/components/Button", () => ({
+  Button: ({
+    children,
+    disabled,
+    onClick,
+    type = "button",
+    ...props
+  }: {
+    children?: React.ReactNode;
+    disabled?: boolean;
+    onClick?: React.MouseEventHandler<HTMLButtonElement>;
+    type?: "button" | "submit" | "reset";
+    [key: string]: unknown;
+  }) => {
+    const React = require("react");
+    return React.createElement(
+      "button",
+      {
+        ...props,
+        type,
+        disabled,
+        onClick,
+      },
+      children
+    );
+  },
+}));
+
+vi.mock("@green-goods/shared/components/Form/ControlPrimitives", () => ({
+  NativeSelect: ({
+    id,
+    value,
+    onChange,
+    disabled,
+    children,
+    ...props
+  }: {
+    id?: string;
+    value?: string;
+    onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+    disabled?: boolean;
+    children?: React.ReactNode;
+    [key: string]: unknown;
+  }) => {
+    const React = require("react");
+    return React.createElement(
+      "select",
+      {
+        id,
+        value: value ?? "",
+        onChange,
+        disabled,
+        "aria-label": props["aria-label"],
+        "data-testid": props["data-testid"] ?? "native-select",
+      },
+      children
+    );
+  },
+}));
+
+vi.mock("@green-goods/shared/components/Form/FormInput", () => ({
+  // Minimal FormInput mock for search functionality with accessible label
+  FormInput: ({
+    id,
+    label,
+    value,
+    onChange,
+    placeholder,
+    ...props
+  }: {
+    id?: string;
+    label?: React.ReactNode;
+    value?: string;
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    placeholder?: string;
+    [key: string]: unknown;
+  }) => {
+    const React = require("react");
+    return React.createElement("div", null, [
+      label && React.createElement("label", { key: "label", htmlFor: id }, label),
+      React.createElement("input", {
+        key: "input",
+        id,
+        type: "text",
+        value: value ?? "",
+        onChange,
+        placeholder,
+        "data-testid": props["data-testid"] ?? "form-input",
+      }),
+    ]);
+  },
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: (address: string | null | undefined) => ({
+    data: address ? "river.greengoods.eth" : null,
+  }),
+}));
+
+vi.mock("@green-goods/shared/modules/data/hypercerts-filters", () => ({
+  filterAttestationsByAssessment: (attestations: any[]) => attestations,
+}));
+
+vi.mock("@green-goods/shared/types/hypercerts", () => ({
+  ACTION_DOMAINS: ["agroforestry", "waste", "solar", "education"],
+}));
+
+vi.mock("@green-goods/shared/utils/app/text", () => ({
+  formatAddress: (
+    address: string,
+    options: { ensName?: string | null; variant?: "default" | "card" | "long" } = {}
+  ) => {
+    const ensName = options.ensName?.trim();
+    if (ensName?.toLowerCase().endsWith(".greengoods.eth")) {
+      return ensName.slice(0, -".greengoods.eth".length);
+    }
+    if (ensName) return ensName;
+
+    const start = options.variant === "default" ? 6 : options.variant === "long" ? 8 : 4;
+    const end = options.variant === "default" ? 4 : options.variant === "long" ? 6 : 3;
+    return `${address.slice(0, start)}...${address.slice(-end)}`;
+  },
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/utils/time", () => ({
+  formatDateTime: (timestamp: number) => new Date(timestamp).toLocaleDateString(),
+}));
+
+import { AttestationSelector } from "../../../components/Hypercerts/Steps/AttestationSelector";
+
+// ============================================
+// Test Fixtures
+// ============================================
+
+function createMockAttestation(
+  overrides: Partial<HypercertAttestation> = {}
+): HypercertAttestation {
+  const id = overrides.id ?? `0x${Math.random().toString(16).slice(2)}`;
+  return {
+    ...overrides,
+    id,
+    workUid: overrides.workUid ?? `${id}-work`,
+    gardenId: overrides.gardenId ?? "0x1234567890123456789012345678901234567890",
+    title: overrides.title ?? "Test Work Submission",
+    gardenerAddress: overrides.gardenerAddress ?? "0x1234567890123456789012345678901234567890",
+    gardenerName: "gardenerName" in overrides ? overrides.gardenerName : "Alice Gardener",
+    domain: overrides.domain ?? "agroforestry",
+    actionType: overrides.actionType ?? "planting",
+    createdAt: overrides.createdAt ?? Math.floor(Date.now() / 1000) - 86400,
+    approvedAt: overrides.approvedAt ?? Math.floor(Date.now() / 1000),
+    workScope: overrides.workScope ?? ["tree planting", "habitat restoration"],
+    mediaUrls: overrides.mediaUrls ?? [],
+  };
+}
+
+const mockAttestations: HypercertAttestation[] = [
+  createMockAttestation({
+    id: "0x1111",
+    title: "Native Tree Planting",
+    gardenerName: "Alice",
+    domain: "agroforestry",
+  }),
+  createMockAttestation({
+    id: "0x2222",
+    title: "Rain Garden Installation",
+    gardenerName: "Bob",
+    domain: "waste",
+  }),
+  createMockAttestation({
+    id: "0x3333",
+    title: "Compost System Setup",
+    gardenerName: "Charlie",
+    domain: "solar",
+  }),
+  createMockAttestation({
+    id: "0x4444",
+    title: "Carbon Sequestration Project",
+    gardenerName: "Diana",
+    domain: "education",
+  }),
+];
+
+describe("components/Hypercerts/AttestationSelector", () => {
+  const defaultProps = {
+    attestations: mockAttestations,
+    selectedIds: [] as string[],
+    onToggle: vi.fn(),
+    isLoading: false,
+    hasError: false,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("rendering", () => {
+    it("renders attestation cards", () => {
+      render(createElement(AttestationSelector, defaultProps));
+
+      expect(screen.getByText("Native Tree Planting")).toBeInTheDocument();
+      expect(screen.getByText("Rain Garden Installation")).toBeInTheDocument();
+      expect(screen.getByText("Compost System Setup")).toBeInTheDocument();
+      expect(screen.getByText("Carbon Sequestration Project")).toBeInTheDocument();
+    });
+
+    it("contains long titles beside the selection badge", () => {
+      const longTitle =
+        "Maintenance Activity – 2026-03-21T04:55:23.886Z – 2026-03-21T04:55:24.125Z";
+
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          attestations: [createMockAttestation({ id: "0xlong", title: longTitle })],
+        })
+      );
+
+      const title = screen.getByText(longTitle);
+      const titleColumn = title.parentElement;
+      const card = title.closest("button");
+      const selectionBadge = within(card!).getByText(/^select$/i);
+
+      expect(titleColumn).toHaveClass("min-w-0", "flex-1");
+      // AdminSelectableCard owns the title anatomy: a block span with pr-7
+      // reserving the selected-check corner so long titles never overlap it.
+      expect(title).toHaveClass("block", "pr-7");
+      expect(selectionBadge).toHaveClass("shrink-0");
+    });
+
+    it("displays attestation count", () => {
+      render(createElement(AttestationSelector, defaultProps));
+
+      // Should show "4 available" count text
+      expect(screen.getByText("4 available")).toBeInTheDocument();
+    });
+
+    it("explains why hypercert creation cannot proceed without approved attestations", () => {
+      render(createElement(AttestationSelector, { ...defaultProps, attestations: [] }));
+
+      expect(
+        screen.getByText(
+          "No approved, unbundled attestations are available yet. Approve work in Hub before creating a hypercert."
+        )
+      ).toBeInTheDocument();
+    });
+
+    it("shows gardener names", () => {
+      render(createElement(AttestationSelector, defaultProps));
+
+      expect(screen.getByText("Alice")).toBeInTheDocument();
+      expect(screen.getByText("Bob")).toBeInTheDocument();
+      expect(screen.getByText("Charlie")).toBeInTheDocument();
+      expect(screen.getByText("Diana")).toBeInTheDocument();
+    });
+
+    it("shows ENS names when an attestation has no stored gardener name", () => {
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          attestations: [
+            createMockAttestation({
+              id: "0xens",
+              gardenerName: undefined,
+            }),
+          ],
+        })
+      );
+
+      expect(screen.getByText("river")).toBeInTheDocument();
+    });
+
+    it("displays domain badges", () => {
+      render(createElement(AttestationSelector, defaultProps));
+
+      // Check for domain labels (these would be translated in real app)
+      const buttons = screen.getAllByRole("button", { pressed: false });
+      expect(buttons.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("loading state", () => {
+    it("shows skeleton loaders when loading", () => {
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          attestations: [], // Empty attestations during loading
+          isLoading: true,
+        })
+      );
+
+      // Should have loading indicator with aria-busy
+      const loadingRegion = screen.getByRole("status");
+      expect(loadingRegion).toHaveAttribute("aria-busy", "true");
+      expect(loadingRegion).toHaveAttribute("aria-label");
+    });
+  });
+
+  describe("error state", () => {
+    it("shows error message when hasError is true", () => {
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          hasError: true,
+        })
+      );
+
+      // Should show error message - look for the translated error text
+      expect(screen.getByText(/unable to load attestations/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("empty state", () => {
+    it("shows empty message when no attestations", () => {
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          attestations: [],
+        })
+      );
+
+      // Should show empty state message
+      expect(screen.queryByText("Native Tree Planting")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("selection behavior", () => {
+    it("calls onToggle when attestation is clicked", async () => {
+      const onToggle = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          onToggle,
+        })
+      );
+
+      const attestationCard = screen.getByText("Native Tree Planting").closest("button");
+      expect(attestationCard).toBeInTheDocument();
+
+      await user.click(attestationCard!);
+      expect(onToggle).toHaveBeenCalledWith("0x1111");
+    });
+
+    it("shows selected state for selected attestations", () => {
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          selectedIds: ["0x1111", "0x2222"],
+        })
+      );
+
+      const selectedButtons = screen.getAllByRole("button", { pressed: true });
+      expect(selectedButtons.length).toBe(2);
+    });
+
+    it("displays selection count when attestations selected", () => {
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          selectedIds: ["0x1111", "0x2222"],
+        })
+      );
+
+      // Should show "2 selected" - use more specific pattern
+      expect(screen.getByText(/2 selected/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("filtering", () => {
+    it("filters by search query", async () => {
+      const user = userEvent.setup();
+
+      render(createElement(AttestationSelector, defaultProps));
+
+      const searchInput = screen.getByRole("textbox");
+      await user.type(searchInput, "Rain");
+
+      // Only the matching attestation should be visible
+      expect(screen.getByText("Rain Garden Installation")).toBeInTheDocument();
+      expect(screen.queryByText("Native Tree Planting")).not.toBeInTheDocument();
+    });
+
+    it("filters by domain", async () => {
+      const user = userEvent.setup();
+
+      render(createElement(AttestationSelector, defaultProps));
+
+      const domainSelect = screen.getByRole("combobox");
+      await user.selectOptions(domainSelect, "waste");
+
+      // Only the waste-domain attestation should be visible.
+      expect(screen.getByText("Rain Garden Installation")).toBeInTheDocument();
+      expect(screen.queryByText("Native Tree Planting")).not.toBeInTheDocument();
+    });
+
+    it("combines search and domain filters", async () => {
+      const user = userEvent.setup();
+
+      render(createElement(AttestationSelector, defaultProps));
+
+      const searchInput = screen.getByRole("textbox");
+      const domainSelect = screen.getByRole("combobox");
+
+      await user.selectOptions(domainSelect, "agroforestry");
+      await user.type(searchInput, "Tree");
+
+      expect(screen.getByText("Native Tree Planting")).toBeInTheDocument();
+      expect(screen.queryByText("Rain Garden Installation")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("bulk selection", () => {
+    it("shows Select All button", () => {
+      render(createElement(AttestationSelector, defaultProps));
+
+      const selectAllButton = screen.getByRole("button", { name: /^select all$/i });
+      expect(selectAllButton).toBeInTheDocument();
+    });
+
+    it("shows Deselect All button when some selected", () => {
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          selectedIds: ["0x1111"],
+        })
+      );
+
+      const deselectAllButton = screen.getByRole("button", { name: /deselect all/i });
+      expect(deselectAllButton).toBeInTheDocument();
+    });
+
+    it("calls onSelectAll when Select All clicked", async () => {
+      const onSelectAll = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          onSelectAll,
+        })
+      );
+
+      const selectAllButton = screen.getByRole("button", { name: /^select all$/i });
+      await user.click(selectAllButton);
+
+      expect(onSelectAll).toHaveBeenCalled();
+    });
+
+    it("calls onDeselectAll when Deselect All clicked", async () => {
+      const onDeselectAll = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          selectedIds: ["0x1111"],
+          onDeselectAll,
+        })
+      );
+
+      const deselectAllButton = screen.getByRole("button", { name: /deselect all/i });
+      await user.click(deselectAllButton);
+
+      expect(onDeselectAll).toHaveBeenCalled();
+    });
+  });
+
+  describe("bundled attestations", () => {
+    it("shows bundled badge for already-bundled attestations", () => {
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          bundledInfo: {
+            "0x1111": { hypercertId: "hc-123", title: "Existing Hypercert" },
+          },
+        })
+      );
+
+      // The bundled attestation should show a different state
+      const bundledCard = screen.getByText("Native Tree Planting").closest("button");
+      expect(bundledCard).toHaveAttribute("aria-disabled", "true");
+    });
+
+    it("prevents selection of bundled attestations", async () => {
+      const onToggle = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          onToggle,
+          bundledInfo: {
+            "0x1111": { hypercertId: "hc-123", title: "Existing Hypercert" },
+          },
+        })
+      );
+
+      const bundledCard = screen.getByText("Native Tree Planting").closest("button");
+      await user.click(bundledCard!);
+
+      // onToggle should NOT be called for bundled attestations
+      expect(onToggle).not.toHaveBeenCalled();
+    });
+
+    it("excludes bundled attestations from Select All", async () => {
+      const onSelectAll = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          onSelectAll,
+          bundledInfo: {
+            "0x1111": { hypercertId: "hc-123", title: "Existing Hypercert" },
+          },
+        })
+      );
+
+      const selectAllButton = screen.getByRole("button", { name: /^select all$/i });
+      await user.click(selectAllButton);
+
+      // Should only select non-bundled attestations
+      expect(onSelectAll).toHaveBeenCalledWith(expect.not.arrayContaining(["0x1111"]));
+    });
+  });
+
+  describe("accessibility", () => {
+    it("has proper aria-pressed state for selection", () => {
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          selectedIds: ["0x1111"],
+        })
+      );
+
+      const selectedCard = screen.getByText("Native Tree Planting").closest("button");
+      expect(selectedCard).toHaveAttribute("aria-pressed", "true");
+
+      const unselectedCard = screen.getByText("Rain Garden Installation").closest("button");
+      expect(unselectedCard).toHaveAttribute("aria-pressed", "false");
+    });
+
+    it("has proper aria-disabled state for bundled items", () => {
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          bundledInfo: {
+            "0x1111": { hypercertId: "hc-123", title: "Existing Hypercert" },
+          },
+        })
+      );
+
+      const bundledCard = screen.getByText("Native Tree Planting").closest("button");
+      expect(bundledCard).toHaveAttribute("aria-disabled", "true");
+    });
+
+    it("has accessible loading state", () => {
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          isLoading: true,
+        })
+      );
+
+      const loadingRegion = screen.getByRole("status");
+      expect(loadingRegion).toHaveAttribute("aria-busy", "true");
+      expect(loadingRegion).toHaveAttribute("aria-label");
+    });
+
+    it("search input has accessible label", () => {
+      render(createElement(AttestationSelector, defaultProps));
+
+      const searchInput = screen.getByRole("textbox");
+      expect(searchInput).toHaveAccessibleName();
+    });
+
+    it("domain filter has accessible label", () => {
+      render(createElement(AttestationSelector, defaultProps));
+
+      const domainSelect = screen.getByRole("combobox");
+      expect(domainSelect).toHaveAccessibleName();
+    });
+  });
+});

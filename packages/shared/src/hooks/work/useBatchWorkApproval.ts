@@ -1,7 +1,7 @@
 /**
  * Batch Work Approval Hook
  *
- * Enables operators to approve/reject multiple works in a single transaction
+ * Enables stewards to approve/reject multiple works in a single transaction
  * using EAS multiAttest. This dramatically improves UX by:
  * - Single wallet confirmation instead of N confirmations
  * - Single gas payment
@@ -13,29 +13,24 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { toastService } from "../../components/toast";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { trackContractError } from "../../modules/app/error-tracking";
 import { track } from "../../modules/app/posthog";
-import { submitBatchApprovalsWithPasskey } from "../../modules/work/passkey-submission";
-import { submitBatchApprovalsDirectly } from "../../modules/work/wallet-submission";
-import type { Work, WorkApprovalDraft } from "../../types/domain";
+import { type OverlayWork, overlayDeadline } from "../../modules/work/local-status-overlay";
+import {
+  type BatchApprovalItem,
+  createDefaultSubmitBatchApprovalsPorts,
+  submitBatchApprovals,
+} from "../../modules/work/submit-approval-command";
+import type { Work } from "../../types/domain";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";
-import { INDEXER_LAG_SCHEDULE_MS, queryKeys } from "../../config/query-keys";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { approvalsKeys, workApprovalsKeys, worksKeys } from "../../config/query-keys/work";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
-
-interface BatchApprovalItem {
-  draft: WorkApprovalDraft;
-  work: Work;
-}
-
-interface BatchApprovalResult {
-  hash: `0x${string}`;
-  count: number;
-}
 
 /**
  * Hook for submitting multiple work approvals in a single transaction.
@@ -86,20 +81,16 @@ export function useBatchWorkApproval() {
   const { start: scheduleFollowUp } = useProgressiveInvalidation(
     useCallback(() => {
       for (const addr of lastGardenAddressesRef.current) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.online(addr, chainId) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(addr, chainId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.online(addr, chainId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.merged(addr, chainId) });
       }
-      queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all });
+      queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
     }, [queryClient, chainId]),
     INDEXER_LAG_SCHEDULE_MS
   );
 
   const mutation = useMutation({
-    mutationFn: async (items: BatchApprovalItem[]): Promise<BatchApprovalResult> => {
-      if (items.length === 0) {
-        throw new Error("No items to approve");
-      }
-
+    mutationFn: async (items: BatchApprovalItem[]) => {
       if (DEBUG_ENABLED) {
         debugLog("[useBatchWorkApproval] Starting batch approval", {
           authMode,
@@ -108,29 +99,10 @@ export function useBatchWorkApproval() {
         });
       }
 
-      const approvals = items.map(({ draft, work }) => ({
-        draft,
-        gardenAddress: work.gardenAddress,
-        gardenerAddress: work.gardenerAddress,
-      }));
-
-      if (authMode === "wallet") {
-        const hash = await submitBatchApprovalsDirectly(approvals, chainId);
-        return { hash, count: items.length };
-      }
-
-      // Passkey mode
-      if (!smartAccountClient) {
-        throw new Error("Smart account not available. Please re-authenticate.");
-      }
-
-      const hash = await submitBatchApprovalsWithPasskey({
-        client: smartAccountClient,
-        approvals: approvals.map(({ draft, gardenAddress }) => ({ draft, gardenAddress })),
-        chainId,
-      });
-
-      return { hash, count: items.length };
+      return submitBatchApprovals(
+        { authMode, items, chainId },
+        createDefaultSubmitBatchApprovalsPorts(smartAccountClient)
+      );
     },
 
     onMutate: async (items) => {
@@ -146,10 +118,10 @@ export function useBatchWorkApproval() {
       const gardenAddresses = [...new Set(items.map((i) => i.work.gardenAddress))];
       for (const addr of gardenAddresses) {
         await queryClient.cancelQueries({
-          queryKey: queryKeys.works.merged(addr, chainId),
+          queryKey: worksKeys.merged(addr, chainId),
         });
         await queryClient.cancelQueries({
-          queryKey: queryKeys.works.online(addr, chainId),
+          queryKey: worksKeys.online(addr, chainId),
         });
       }
 
@@ -158,33 +130,33 @@ export function useBatchWorkApproval() {
       for (const addr of gardenAddresses) {
         previousStates.set(
           `merged-${addr}`,
-          queryClient.getQueryData<Work[]>(queryKeys.works.merged(addr, chainId))
+          queryClient.getQueryData<Work[]>(worksKeys.merged(addr, chainId))
         );
         previousStates.set(
           `online-${addr}`,
-          queryClient.getQueryData<Work[]>(queryKeys.works.online(addr, chainId))
+          queryClient.getQueryData<Work[]>(worksKeys.online(addr, chainId))
         );
       }
 
-      // Optimistically update all works
+      // Optimistically update all works. The deadline matters: without one the
+      // overlay would outrank the indexer forever if this batch never lands.
       for (const { draft, work } of items) {
         const optimisticStatus = draft.approved ? ("approved" as const) : ("rejected" as const);
 
-        queryClient.setQueryData(
-          queryKeys.works.merged(work.gardenAddress, chainId),
-          (old: Work[] = []) =>
-            old.map((w) =>
-              w.id === draft.workUID ? { ...w, status: optimisticStatus, _isPending: true } : w
-            )
-        );
+        const applyOptimistic = (old: OverlayWork[] = []): OverlayWork[] =>
+          old.map((w) =>
+            w.id === draft.workUID
+              ? {
+                  ...w,
+                  status: optimisticStatus,
+                  _isPending: true,
+                  _pendingUntilMs: overlayDeadline(),
+                }
+              : w
+          );
 
-        queryClient.setQueryData(
-          queryKeys.works.online(work.gardenAddress, chainId),
-          (old: Work[] = []) =>
-            old.map((w) =>
-              w.id === draft.workUID ? { ...w, status: optimisticStatus, _isPending: true } : w
-            )
-        );
+        queryClient.setQueryData(worksKeys.merged(work.gardenAddress, chainId), applyOptimistic);
+        queryClient.setQueryData(worksKeys.online(work.gardenAddress, chainId), applyOptimistic);
       }
 
       // Show loading toast
@@ -214,39 +186,36 @@ export function useBatchWorkApproval() {
     onSuccess: (result, items) => {
       hapticSuccess();
 
-      // Clear pending flags on all items
+      // Clear pending flags on all items, keeping a grace window so the decision
+      // survives indexer lag without outliving a transaction that never landed.
       for (const { draft, work } of items) {
         const confirmedStatus = draft.approved ? ("approved" as const) : ("rejected" as const);
 
-        queryClient.setQueryData(
-          queryKeys.works.merged(work.gardenAddress, chainId),
-          (old: Work[] = []) =>
-            old.map((w) =>
-              w.id === draft.workUID
-                ? { ...w, status: confirmedStatus, _isPending: false, _txHash: result.hash }
-                : w
-            )
-        );
+        const recordDecision = (old: OverlayWork[] = []): OverlayWork[] =>
+          old.map((w) =>
+            w.id === draft.workUID
+              ? {
+                  ...w,
+                  status: confirmedStatus,
+                  _isPending: false,
+                  _txHash: result.hash,
+                  _pendingUntilMs: overlayDeadline(),
+                }
+              : w
+          );
 
-        queryClient.setQueryData(
-          queryKeys.works.online(work.gardenAddress, chainId),
-          (old: Work[] = []) =>
-            old.map((w) =>
-              w.id === draft.workUID
-                ? { ...w, status: confirmedStatus, _isPending: false, _txHash: result.hash }
-                : w
-            )
-        );
+        queryClient.setQueryData(worksKeys.merged(work.gardenAddress, chainId), recordDecision);
+        queryClient.setQueryData(worksKeys.online(work.gardenAddress, chainId), recordDecision);
       }
 
       // Invalidate queries
       const gardenAddresses = [...new Set(items.map((i) => i.work.gardenAddress))];
       for (const addr of gardenAddresses) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.online(addr, chainId) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(addr, chainId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.online(addr, chainId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.merged(addr, chainId) });
       }
-      queryClient.invalidateQueries({ queryKey: queryKeys.workApprovals.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all });
+      queryClient.invalidateQueries({ queryKey: workApprovalsKeys.all });
+      queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
 
       // Schedule progressive follow-up invalidations for indexer lag (non-blocking)
       lastGardenAddressesRef.current = gardenAddresses;
@@ -283,10 +252,10 @@ export function useBatchWorkApproval() {
           const prevMerged = context.previousStates.get(`merged-${addr}`);
           const prevOnline = context.previousStates.get(`online-${addr}`);
           if (prevMerged) {
-            queryClient.setQueryData(queryKeys.works.merged(addr, chainId), prevMerged);
+            queryClient.setQueryData(worksKeys.merged(addr, chainId), prevMerged);
           }
           if (prevOnline) {
-            queryClient.setQueryData(queryKeys.works.online(addr, chainId), prevOnline);
+            queryClient.setQueryData(worksKeys.online(addr, chainId), prevOnline);
           }
         }
       }

@@ -17,15 +17,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // Mocks
 // ============================================
 
-vi.mock("../../../modules/translation/browser-translator", () => ({
-  browserTranslator: {
-    get isSupported() {
-      return false;
-    },
-    translate: vi.fn(),
-  },
-}));
-
 vi.mock("../../../modules/app/logger", () => ({
   logger: {
     error: vi.fn(),
@@ -47,21 +38,25 @@ import type { Action } from "../../../types/domain";
 // Test Helpers
 // ============================================
 
-function createWrapper(locale = "en") {
+function createWrapper(locale: "en" | "es" | "pt" = "en") {
   return function Wrapper({ children }: { children: React.ReactNode }) {
     const value = {
       locale,
       isMobile: false,
       isInstalled: false,
+      isInstalling: false,
       isPwaPresentation: false,
       isStandalone: false,
+      installState: "not-installed" as const,
+      installedAppEvidence: { status: "unknown" as const, source: "unsupported" as const },
       presentationMode: "website" as const,
       wasInstalled: false,
-      availableLocales: ["en", "es"],
+      availableLocales: ["en", "es", "pt"] as const,
       deferredPrompt: null,
       platform: "unknown" as const,
       promptInstall: () => {},
       handleInstallCheck: () => {},
+      switchLanguage: () => {},
     };
     return React.createElement(AppContext.Provider, { value }, children);
   };

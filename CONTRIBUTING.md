@@ -35,7 +35,11 @@ Branch from `develop` and PR into `develop`. Don't target `main` directly except
 
 ### Releases and hotfixes
 
-Green Goods ships a **monthly release** at the start of each month (minor bump: `1.1.0` → `1.2.0`; patch for hotfixes; major for breaking). Releases are cut from a `release/<ship-month>-<version>` branch off `develop`, PR'd into `main`, tagged `vX.Y.0`, then **back-merged to `develop`**. Hotfixes branch from `main` directly and are also back-merged. Full runbook: [Releasing](https://docs.greengoods.app/builders/deployments/releasing).
+Green Goods ships a **monthly release** at the start of each month (minor bump: `1.1.0` → `1.2.0`; patch for hotfixes; major for breaking). Releases are cut from a `release/<ship-month>-<version>` branch off `develop`, versioned with `bun run version:bump <x.y.z>`, checked with `bun run version:check <x.y.z>`, PR'd into `main`, and tagged `vX.Y.0` after merge. Pushing the tag triggers `.github/workflows/release.yml`, which creates the GitHub Release from the merged production history.
+
+After every release or hotfix, fetch the merged `main` branch and merge it back into `develop`. Never open a back-merge PR with `main` as the head branch: GitHub is configured to delete merged PR head branches. If direct back-merge is unavailable, push `origin/main` to a temporary `chore/backmerge-main-<date>` branch and use that branch as the PR head.
+
+Hotfixes branch from `main`, use a patch version, follow the same tag workflow, and are also back-merged to `develop`. Release source-map upload jobs run on the trusted `main` push and must be checked separately because they are not part of the PR CI Gate.
 
 ### PR gate
 

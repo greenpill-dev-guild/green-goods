@@ -1,10 +1,8 @@
-import {
-  Alert,
-  EmptyState,
-  EmptyStateShell,
-  formatRelativeTime,
-  WorkbenchCard,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
+import { WorkbenchCard } from "@green-goods/shared/components/Canvas/WorkbenchCard";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import { RiMedalLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
@@ -37,6 +35,7 @@ export function HubCertificationQueue({
   onOpenCertification,
 }: HubCertificationQueueProps) {
   const { formatMessage } = useIntl();
+  const formatEventAge = useLocalizedRelativeTime();
 
   if (hasDataError) {
     return (
@@ -99,13 +98,13 @@ export function HubCertificationQueue({
                   : formatMessage({
                       id: "cockpit.hub.certify.readOnlyDescription",
                       defaultMessage:
-                        "You can review the certification handoff here, but only garden owners or operators can mint the hypercert.",
+                        "You can review the certification handoff here, but only garden owners or stewards can mint the hypercert.",
                     })
               }
               meta={[
                 assessment.assessmentType ||
                   formatMessage({ id: "cockpit.garden.impact", defaultMessage: "Impact" }),
-                formatRelativeTime(assessment.createdAt),
+                formatEventAge(assessment.createdAt),
               ]}
               statusLabel={
                 hasMintAuthority

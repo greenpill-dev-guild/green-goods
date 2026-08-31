@@ -32,6 +32,10 @@ vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 import { usePublicStats } from "../../../hooks/public/usePublicStats";
 
 // ============================================
@@ -87,7 +91,7 @@ describe("usePublicStats", () => {
     mockGetGardenAssessments.mockResolvedValue([
       {
         id: "a-1",
-        authorAddress: MOCK_ADDRESSES.operator,
+        authorAddress: MOCK_ADDRESSES.steward,
         gardenAddress: MOCK_ADDRESSES.garden,
         title: "",
         description: "",

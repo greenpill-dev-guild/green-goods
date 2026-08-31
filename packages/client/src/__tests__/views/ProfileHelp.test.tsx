@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, describe, expect, it } from "vitest";
-import messages from "../../../../shared/src/i18n/en.json";
+import messages from "@green-goods/shared/i18n/en.json";
 import { ProfileHelp } from "../../views/Profile/Help";
 
 const wrap = (el: React.ReactElement) =>

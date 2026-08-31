@@ -14,14 +14,16 @@
     "dev:docker:logs": "docker compose -f docker-compose.indexer.yaml logs -f indexer",
     "dev:docker:down": "docker compose -f docker-compose.indexer.yaml down",
     "dev:manual": "bun --env-file=../../.env ../../scripts/dev/node-cli.js envio dev",
-    "start": "bun --env-file=../../.env ../../scripts/dev/node-cli.js envio start",
+    "start": "node --env-file-if-exists=../../.env ./node_modules/envio/bin.mjs start",
     "stop": "docker ps -q --filter label=dev.envio.config-hash | xargs -r docker stop",
     "doctor": "node ../../scripts/dev/doctor.js --profile full",
-    "check:indexing-boundary": "node scripts/check-indexing-boundary.mjs",
+    "check:indexing-boundary": "node --test scripts/indexing-boundary-rules.test.mjs scripts/hasura-permissions.test.mjs && node scripts/check-indexing-boundary.mjs",
     "db:up": "node ../../scripts/dev/node-cli.js envio local docker up",
     "db:down": "docker ps -q --filter label=dev.envio.config-hash | xargs -r docker stop",
-    "test": "bun run codegen && bun run mocha",
+    "test": "bun run codegen && GG_RUN_FULL_INDEXER_TEST_SUITE=1 bun run mocha",
+    "test:contract-events": "GG_RUN_LOCAL_CONTRACT_EVENT_INTEGRATION=1 node ../../scripts/dev/node-cli.js mocha --require tsx --timeout 480000 \"test/contractEventsLocal.test.ts\"",
     "test:coverage": "c8 bun run mocha",
+    "test:coverage:ci": "c8 --reporter text --reporter json bun run mocha",
     "test:full": "bun run test",
     "lint": "bun --bun run oxlint src test --deny-warnings",
     "reset": "node ../../scripts/dev/node-cli.js envio stop"
@@ -34,7 +36,8 @@
     "typescript": "~7.0.2"
   },
   "dependencies": {
-    "envio": "3.2.1"
+    "envio": "3.6.1",
+    "viem": "2.55.0"
   },
   "engines": {
     "node": ">=22.12.0 <23"

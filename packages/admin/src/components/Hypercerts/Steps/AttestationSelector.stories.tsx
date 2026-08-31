@@ -3,8 +3,8 @@ import {
   CynefinPhase,
   Domain,
   type GardenAssessment,
-  type HypercertAttestation,
-} from "@green-goods/shared";
+} from "@green-goods/shared/types/domain";
+import type { HypercertAttestation } from "@green-goods/shared/types/hypercerts";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { STORYBOOK_NOW_SECONDS, daysAgo } from "../../../../../shared/.storybook/fixtures";
@@ -39,6 +39,14 @@ const ATTESTATIONS: HypercertAttestation[] = [
   attestation("0xatt3", "Workshop cohort 12", "education", daysAgo(6), "ana.eth"),
   attestation("0xatt4", "Panel install site 3", "solar", daysAgo(9), "diego.eth"),
 ];
+
+const LONG_TITLE_ATTESTATION = attestation(
+  "0xatt-long",
+  "Maintenance Activity – 2026-03-21T04:55:23.886Z – 2026-03-21T04:55:24.125Z",
+  "agroforestry",
+  daysAgo(2),
+  "maria.eth"
+);
 
 const ASSESSMENT: GardenAssessment = {
   id: "0xassess1",
@@ -88,6 +96,15 @@ type Story = StoryObj<typeof AttestationSelector>;
 export const WithData: Story = {
   args: {
     attestations: ATTESTATIONS,
+    selectedIds: [],
+    isLoading: false,
+    hasError: false,
+  },
+};
+
+export const LongTitle: Story = {
+  args: {
+    attestations: [LONG_TITLE_ATTESTATION],
     selectedIds: [],
     isLoading: false,
     hasError: false,

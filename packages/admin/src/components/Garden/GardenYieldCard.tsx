@@ -1,12 +1,12 @@
+import { useGardenYieldWiringState } from "@green-goods/shared/hooks/yield/useGardenYieldWiringState";
+import type { Address } from "@green-goods/shared/types/domain";
 import {
-  type Address,
   DEFAULT_SPLIT_CONFIG,
-  formatDate,
-  formatTokenAmount,
   MIN_YIELD_THRESHOLD_USD,
-  useGardenYieldWiringState,
   type YieldAllocation,
-} from "@green-goods/shared";
+} from "@green-goods/shared/types/gardens-community";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { formatDate } from "@green-goods/shared/utils/time";
 import { RiAlertLine, RiPieChart2Line, RiQuestionLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -65,7 +65,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
     : allocations.slice(0, INITIAL_ALLOCATION_COUNT);
 
   return (
-    <div className="mb-4 rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+    <div className="mb-4 rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-lighter">
@@ -73,7 +73,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
           </div>
           <div>
             <h3 className="admin-section-title">{formatMessage({ id: "app.yield.title" })}</h3>
-            <p className="mt-0.5 text-sm text-text-sub">
+            <p className="mt-0.5 text-body-md text-text-sub">
               {formatMessage({ id: "app.yield.splitConfig" })}
             </p>
           </div>
@@ -83,14 +83,14 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
       {showRepairLink && repairHref ? (
         <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-warning-light bg-warning-lighter px-3 py-2">
           <RiAlertLine className="h-4 w-4 flex-shrink-0 text-warning-dark" aria-hidden="true" />
-          <p className="text-xs text-warning-dark">
+          <p className="text-body-sm text-warning-dark">
             {wiringStatus === "mismatch"
               ? formatMessage({ id: "app.yield.wiring.mismatch" })
               : formatMessage({ id: "app.yield.wiring.notConnected" })}
           </p>
           <Link
             to={repairHref}
-            className="text-xs font-medium text-primary-dark hover:text-primary-darker"
+            className="text-label-sm font-medium text-primary-dark hover:text-primary-darker"
           >
             {formatMessage({ id: "app.yield.wiring.repairLink" })}
           </Link>
@@ -100,7 +100,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
       {showPoolReviewHint ? (
         <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg bg-bg-weak px-3 py-2">
           <RiQuestionLine className="h-4 w-4 flex-shrink-0 text-text-soft" aria-hidden="true" />
-          <p className="text-xs text-text-sub">
+          <p className="text-body-sm text-text-sub">
             {formatMessage({ id: "app.yield.wiring.poolNeedsReview" })}
           </p>
         </div>
@@ -109,7 +109,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
       {showUnavailableHint ? (
         <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg bg-bg-weak px-3 py-2">
           <RiQuestionLine className="h-4 w-4 flex-shrink-0 text-text-soft" aria-hidden="true" />
-          <p className="text-xs text-text-sub">
+          <p className="text-body-sm text-text-sub">
             {formatMessage({ id: "app.yield.wiring.unavailable" })}
           </p>
         </div>
@@ -120,10 +120,10 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
           <p className="label-xs text-success-dark">
             {formatMessage({ id: "app.yield.gardenCumulativeTotal" })}
           </p>
-          <p className="mt-1 font-heading text-xl font-semibold tabular-nums text-success-dark">
+          <p className="mt-1 font-heading text-title-lg font-semibold tabular-nums text-success-dark">
             {formatTokenAmount(cumulative.totalYield)}
           </p>
-          <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-success-dark">
+          <div className="mt-2 grid grid-cols-3 gap-2 text-body-sm text-success-dark">
             <span>
               {formatMessage({ id: "app.yield.cookieJar" })}:{" "}
               {formatTokenAmount(cumulative.totalCookieJar)}
@@ -143,35 +143,35 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
       <div className="mt-4 grid grid-cols-3 gap-3">
         <div className="rounded-lg bg-bg-weak p-3 text-center">
           <p className="label-xs text-text-soft">{formatMessage({ id: "app.yield.cookieJar" })}</p>
-          <p className="mt-1 font-heading text-lg font-semibold tabular-nums text-text-strong">
+          <p className="mt-1 font-heading text-title-md font-semibold tabular-nums text-text-strong">
             {cookieJarPct}%
           </p>
-          <p className="mt-0.5 text-xs text-text-sub">
+          <p className="mt-0.5 text-body-sm text-text-sub">
             {formatMessage({ id: "app.yield.cookieJarDescription" })}
           </p>
         </div>
         <div className="rounded-lg bg-bg-weak p-3 text-center">
           <p className="label-xs text-text-soft">{formatMessage({ id: "app.yield.fractions" })}</p>
-          <p className="mt-1 font-heading text-lg font-semibold tabular-nums text-text-strong">
+          <p className="mt-1 font-heading text-title-md font-semibold tabular-nums text-text-strong">
             {fractionsPct}%
           </p>
-          <p className="mt-0.5 text-xs text-text-sub">
+          <p className="mt-0.5 text-body-sm text-text-sub">
             {formatMessage({ id: "app.yield.fractionsDescription" })}
           </p>
         </div>
         <div className="rounded-lg bg-bg-weak p-3 text-center">
           <p className="label-xs text-text-soft">{formatMessage({ id: "app.yield.juicebox" })}</p>
-          <p className="mt-1 font-heading text-lg font-semibold tabular-nums text-text-strong">
+          <p className="mt-1 font-heading text-title-md font-semibold tabular-nums text-text-strong">
             {juiceboxPct}%
           </p>
-          <p className="mt-0.5 text-xs text-text-sub">
+          <p className="mt-0.5 text-body-sm text-text-sub">
             {formatMessage({ id: "app.yield.juiceboxDescription" })}
           </p>
         </div>
       </div>
 
       <div className="mt-3 rounded-lg border border-information-light bg-information-lighter px-3 py-2">
-        <p className="text-xs text-information-dark">
+        <p className="text-body-sm text-information-dark">
           {formatMessage({ id: "app.yield.threshold" }, { amount: `$${MIN_YIELD_THRESHOLD_USD}` })}
         </p>
       </div>
@@ -197,7 +197,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
             ))}
           </div>
         ) : allocations.length === 0 ? (
-          <p className="mt-2 text-center text-sm text-text-soft">
+          <p className="mt-2 text-center text-body-md text-text-soft">
             {formatMessage({ id: "app.yield.noAllocations" })}
           </p>
         ) : (
@@ -208,12 +208,12 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
                 className="flex items-center justify-between rounded-lg bg-bg-weak p-3"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-text-strong">
+                  <p className="text-body-md font-medium text-text-strong">
                     {formatTokenAmount(allocation.totalAmount)}
                   </p>
-                  <p className="text-xs text-text-sub">{formatDate(allocation.timestamp)}</p>
+                  <p className="text-body-sm text-text-sub">{formatDate(allocation.timestamp)}</p>
                 </div>
-                <div className="flex flex-wrap gap-2 text-xs text-text-sub">
+                <div className="flex flex-wrap gap-2 text-body-sm text-text-sub">
                   <span>
                     {formatMessage({ id: "app.yield.cookieJar" })}:{" "}
                     {formatTokenAmount(allocation.cookieJarAmount)}

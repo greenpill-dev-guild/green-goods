@@ -1,10 +1,11 @@
-import { cn, useInViewReveal } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { EditorialHeading, EditorialKicker, EditorialLede, EditorialLinkArrow } from "./atoms";
 import { PublicInstallAction } from "./PublicInstallAction";
 
-type PersonaId = "gardener" | "operator" | "evaluator" | "funder" | "community";
+type PersonaId = "gardener" | "steward" | "evaluator" | "funder" | "community";
 
 type PersonaCta =
   | { type: "install" }
@@ -26,12 +27,12 @@ interface PersonaEntry {
 
 /**
  * Five archetypes that show up in a Garden. Order chosen so the visitor walks
- * outward from the field (Gardener) through stewardship (Operator), through
+ * outward from the field (Gardener) through stewardship (Steward), through
  * verification (Evaluator), through resourcing (Funder), to the wider circle
  * (Community). Mirrors the persona framing in the canonical user-archetypes
  * doc on the Docusaurus site.
  *
- * Operator and Evaluator CTAs route to docs since these roles aren't open
+ * Steward and Evaluator CTAs route to docs since these roles aren't open
  * sign-ups today — they're invited and onboarded by an existing Garden.
  */
 const PERSONAS: readonly PersonaEntry[] = [
@@ -49,30 +50,33 @@ const PERSONAS: readonly PersonaEntry[] = [
     cta: { type: "install" },
   },
   {
-    id: "operator",
-    nameId: "public.home.personas.operator.name",
-    defaultName: "Operators",
-    roleId: "public.home.personas.operator.role",
+    id: "steward",
+    nameId: "public.home.personas.steward.name",
+    defaultName: "Stewards",
+    roleId: "public.home.personas.steward.role",
     defaultRole: "Run the garden: assemble the season's plan, accept gardeners, confirm the work.",
-    bodyId: "public.home.personas.operator.body",
+    bodyId: "public.home.personas.steward.body",
     defaultBody:
-      "Operators are the steady hand of a garden: the one who calls the season's plan, who decides what counts, who approves a gardener's first work. They are the connective tissue between a place's intentions and its proof.",
-    ctaId: "public.home.personas.operator.cta",
-    defaultCta: "Read the operator guide",
-    cta: { type: "external", href: "https://docs.greengoods.app/community/operator-guide" },
+      "Stewards are the steady hand of a garden: the one who calls the season's plan, who decides what counts, who approves a gardener's first work. They are the connective tissue between a place's intentions and its proof.",
+    ctaId: "public.home.personas.steward.cta",
+    defaultCta: "Read the steward guide",
+    cta: { type: "external", href: "https://docs.greengoods.app/community/steward-guide" },
   },
   {
     id: "evaluator",
     nameId: "public.home.personas.evaluator.name",
     defaultName: "Evaluators",
     roleId: "public.home.personas.evaluator.role",
-    defaultRole: "Verify the record. Review submitted Work, sign off on confidence and method.",
+    defaultRole: "Strengthen Assessments, methods, and impact claims.",
     bodyId: "public.home.personas.evaluator.body",
     defaultBody:
-      "Evaluators are the trust layer of the public record. They come from many backgrounds, review submitted Work, sign off with a confidence band, and name the verification method behind each approval. Their care is what turns a field log into evidence.",
+      "Evaluators strengthen the public record by shaping Assessments, methods, and impact claims. Stewards, not Evaluators, approve or reject submitted Work.",
     ctaId: "public.home.personas.evaluator.cta",
-    defaultCta: "Read the evaluator guide",
-    cta: { type: "external", href: "https://docs.greengoods.app/community/evaluator-guide" },
+    defaultCta: "Read the assessment guide",
+    cta: {
+      type: "external",
+      href: "https://docs.greengoods.app/community/steward-guide/making-an-assessment",
+    },
   },
   {
     id: "funder",

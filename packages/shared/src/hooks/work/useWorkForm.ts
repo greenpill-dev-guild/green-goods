@@ -81,7 +81,13 @@ type WorkFormDataBase = z.infer<typeof workFormSchema>;
 
 // Extend with index signature for dynamic action-specific fields
 export type WorkFormData = WorkFormDataBase & {
-  [key: string]: string | number | string[] | Record<string, unknown>[] | undefined;
+  [key: string]:
+    | string
+    | number
+    | string[]
+    | Record<string, unknown>
+    | Record<string, unknown>[]
+    | undefined;
 };
 
 /**

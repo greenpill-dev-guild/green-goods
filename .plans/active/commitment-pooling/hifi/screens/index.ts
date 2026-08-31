@@ -12,7 +12,9 @@ import { ADMIN_DEFS } from "./admin";
 import { PUBLIC_DEFS } from "./public";
 import { SETTLEMENT_DEFS } from "./settlement";
 import { CLIENT_DEFS } from "./client";
+import { EXCHANGE_DEFS } from "./exchange";
 import { WALLET_DEFS } from "./client-wallet";
+import { FUNDING_DEFS } from "./funding";
 
 // W6 retired (Decision Log #28f): summary line moved into the W5 drawer header.
 const RETIRED = new Set(["W6"]);
@@ -21,22 +23,72 @@ const DISSOLVED = new Set(["W1P", "W1S", "MF3", "MF5", "MF6", "MF10", "W23G", "M
 
 // Screens-tab groups (order = display order). W6 dropped from Client PWA.
 const GROUP_DEFS: { name: string; surface: Surface; ids: string[] }[] = [
-  { name: "Client PWA", surface: "client", ids: ["W1", "W2", "W2a", "W2b", "W3", "W4", "W5", "W23", "W25", "WFLOW"] },
-  { name: "Admin console", surface: "admin", ids: ["W7", "W8", "W9", "W10", "W11", "W12", "W13", "W14", "W21", "W22", "W24", "W26", "HUBWORK"] },
+  // W32–W35 are the offer-over-time set (saved details → series → places →
+  // Story). They stay inside the one client panel: the Screens tab keys its
+  // tabpanel by surface, so a second client group would collide on that id.
+  { name: "Client PWA", surface: "client", ids: ["W1", "W1C", "W2", "W2a", "W2b", "W3", "W4", "W36", "W5", "W23", "W25", "WFLOW", "W28", "W29", "W30", "W31", "W32", "W34", "W35"] },
+  { name: "Admin console", surface: "admin", ids: ["W7", "W7C", "W7M", "W8", "W9", "W10", "W11", "W12", "W13", "W14", "W37", "W21", "W22", "W24", "W26", "HUBWORK"] },
   { name: "Editorial website", surface: "editorial", ids: ["W15", "W16"] },
-  { name: "Community PWA — September preview (lo-fi)", surface: "community", ids: ["C1", "C3", "C4", "C5", "C6", "C9", "C10"] },
+  { name: "Community PWA, September preview (lo-fi)", surface: "community", ids: ["C1", "C3", "C4", "C5", "C6", "C9", "C10"] },
 ];
 
+// Screen-library chapters (2026-08-10): the same clustered treatment the
+// guided-flow catalog uses. Renameable data — the build asserts only that each
+// surface's chapters exactly cover its GROUP_DEFS ids, never names or counts.
+const SCREEN_CHAPTERS: Record<string, { label: string; ids: string[] }[]> = {
+  client: [
+    { label: "The pool & its commitments", ids: ["W1", "W1C", "W2", "W4", "W25", "W36"] },
+    // W32 joined creation in round 42: saving offer details is entered from
+    // the composer's step 1, which is the only place they are used.
+    { label: "Create & prove", ids: ["W3", "W32", "W2a", "W2b", "WFLOW"] },
+    // The commitments sheet leads, then the two screens it opens from Over
+    // time. W5 left the Wallet chapter with round 40 — it is no longer a tab.
+    { label: "Your commitments", ids: ["W5", "W34", "W35"] },
+    { label: "Exchange & templates", ids: ["W28", "W29", "W30", "W31"] },
+    { label: "Wallet", ids: ["W23"] },
+  ],
+  admin: [
+    { label: "Pool & seasons", ids: ["W7", "W7C", "W7M", "W11", "W26"] },
+    { label: "Seed & capture", ids: ["W8", "W9"] },
+    { label: "Review & decisions", ids: ["W10", "W13", "W14", "W37", "HUBWORK"] },
+    { label: "Community & operations", ids: ["W12", "W24"] },
+    { label: "Settlement", ids: ["W21", "W22"] },
+  ],
+  editorial: [{ label: "Public pages", ids: ["W15", "W16"] }],
+  community: [{ label: "September preview (lo-fi)", ids: ["C1", "C3", "C4", "C5", "C6", "C9", "C10"] }],
+};
 // Old deep-link ids → new screen[@state] targets. Extended per batch as
 // variant frames dissolve into states of their parent screens.
 export const ALIASES: Record<string, string> = {
   W6: "W5",
+  // W32's list states dissolved twice: round 40 moved them into the
+  // commitments sheet's tabs, and round 42's tense split re-homed them again —
+  // saved details into the composer's step 1, series casts onto Over time.
+  // W32 keeps only the saving flow; these keep old deep links resolving.
+  "W32@saved": "W3@step-what",
+  "W32@empty": "W3@step-what",
+  "W32@loading": "W3@step-what",
+  "W32@read-error": "W3@step-what",
+  "W32@saved-with-ongoing": "W5@overtime",
+  "W32@saved-with-ongoing-ready": "W5@overtime-ready",
+  "W32@series-queued": "W5@overtime-queued",
+  "W32@series-queued-place-waiting": "W5@overtime-queued-waiting",
+  // Round 40/41's own W5 state ids, renamed by the round-42 tense split.
+  "W5@ongoing": "W5@overtime",
+  "W5@ongoing-empty": "W5@overtime-empty",
+  "W5@ongoing-ready": "W5@overtime-ready",
+  "W5@ongoing-queued": "W5@overtime-queued",
+  "W5@ongoing-queued-waiting": "W5@overtime-queued-waiting",
+  "W5@ongoing-loading": "W5@overtime-loading",
+  "W5@ongoing-read-error": "W5@overtime-read-error",
+  "W5@saved": "W3@step-what",
+  "W5@saved-empty": "W3@step-what",
   W1P: "W1@claim-pending",
   W1S: "W1@claim-superseded",
   MF3: "W2@expired",
   MF5: "W1@waiting-membership",
   MF6: "W2@request-evidence-submitted",
-  MF10: "W1@cycle-summary",
+  MF10: "W1C@season-ended",
   W23G: "W23@delivery-blocked",
   MF8: "W25@context-chooser",
   W7X: "W7@claim-outcomes",
@@ -70,15 +122,34 @@ export const SCREEN_HOTS: Record<string, Set<string>> = {};
 export const SCREEN_MARKS: Record<string, Set<string>> = {};
 export const BUILD_ERRORS: string[] = [];
 
+// Chapter coverage must exactly match GROUP_DEFS — derived, not transcribed.
+for (const { surface, ids } of GROUP_DEFS) {
+  const chaptered = (SCREEN_CHAPTERS[surface] ?? []).flatMap((chapter) => chapter.ids);
+  const missing = ids.filter((id) => !chaptered.includes(id));
+  const extra = chaptered.filter((id) => !ids.includes(id));
+  const dupes = chaptered.filter((id, ix) => chaptered.indexOf(id) !== ix);
+  if (missing.length || extra.length || dupes.length)
+    BUILD_ERRORS.push(`SCREEN CHAPTERS ${surface}: missing [${missing}] extra [${extra}] duplicated [${dupes}]`);
+}
+
 // Hi-fi screen modules export HifiDef arrays; imports land here as batches
 // ship (B1: CLIENT_DEFS, B3: ADMIN_DEFS, B5: PUBLIC_DEFS).
 export type HifiDef = {
   screen: Omit<Screen, "reviewVisible">;
   hots: Record<string, HotMeta>;
+  // Module-local integrity checks, surfaced through the ordinary build error
+  // list (2026-08-18). A screen module's own tables — cast families, seat
+  // assignments, membership sets — are private to it, so validate.ts cannot see
+  // them; and throwing from module scope would crash the build with a stack
+  // trace instead of joining the printed list the build emits before it exits.
+  // This is the channel for "my own declarations disagree with each other".
+  errors?: string[];
 };
 const REG: HifiDef[] = [
   ...CLIENT_DEFS,
+  ...EXCHANGE_DEFS,
   ...WALLET_DEFS,
+  ...FUNDING_DEFS,
   ...ADMIN_DEFS,
   ...SETTLEMENT_DEFS,
   ...PUBLIC_DEFS,
@@ -91,6 +162,7 @@ for (const g of GROUP_DEFS) {
     if (RETIRED.has(id)) continue;
     const hifi = hifiById.get(id);
     if (hifi) {
+      BUILD_ERRORS.push(...(hifi.errors ?? []));
       SCREENS.push({ ...hifi.screen, group: g.name, surface: g.surface, reviewVisible: g.surface !== "community" });
       SCREEN_HOTS[id] = new Set(Object.keys(hifi.hots));
       SCREEN_MARKS[id] = new Set();
@@ -154,16 +226,25 @@ const friendlyTitle = (screen: Screen) => screen.title.replace(/^\s*(?:W\d+a?|HU
 // Static Screen-library cards. Community remains in the registry and direct
 // hash graph, but is deliberately absent from this presentation catalog.
 export function screenCardsHtml(): string {
-  return REVIEW_GROUPS.map(
-    ({ name, surface, ids }, groupIx) =>
-      `<section class="catalog-panel screen-catalog" id="screen-panel-${surface}" role="tabpanel" aria-labelledby="screen-tab-${surface}" data-screen-surface="${surface}"${groupIx ? " hidden" : ""}><h2>${esc(name)}</h2><div class="grid">` +
-      ids
-        .map((id) => {
-          const s = screenById(id)!;
-          const states = `${s.states.length} ${s.states.length === 1 ? "state" : "states"}`;
-          return `<button class="sbcard sc" data-frame="${id}"><span class="screenkey">${esc(id)}</span><span class="sbt">${esc(friendlyTitle(s))}</span><span class="sbm">${states}</span></button>`;
-        })
-        .join("") +
-      `</div></section>`,
-  ).join("");
+  // Screens cluster under SCREEN_CHAPTERS headings — the same chapter
+  // treatment the guided-flow catalog uses (2026-08-10). Coverage is asserted
+  // against GROUP_DEFS above, so a new screen cannot silently skip its chapter.
+  return REVIEW_GROUPS.map(({ name, surface }, groupIx) => {
+    const clusters = (SCREEN_CHAPTERS[surface] ?? [])
+      .map(({ label, ids: clusterIds }) =>
+        `<h3 class="chapter-h">${esc(label)}</h3><div class="grid">` +
+        clusterIds
+          .map((id) => {
+            // Total lookup: a chapter id without a registered screen renders
+            // nothing here — the chapter/registry cross-check reports it.
+            const s = screenById(id);
+            if (!s) return "";
+            const states = `${s.states.length} ${s.states.length === 1 ? "state" : "states"}`;
+            return `<button class="sbcard sc" data-frame="${id}"><span class="screenkey">${esc(id)}</span><span class="sbt">${esc(friendlyTitle(s))}</span><span class="sbm">${states}</span></button>`;
+          })
+          .join("") +
+        `</div>`)
+      .join("");
+    return `<section class="catalog-panel screen-catalog" id="screen-panel-${surface}" role="tabpanel" aria-labelledby="screen-tab-${surface}" data-screen-surface="${surface}"${groupIx ? " hidden" : ""}><h2>${esc(name)}</h2>${clusters}</section>`;
+  }).join("");
 }

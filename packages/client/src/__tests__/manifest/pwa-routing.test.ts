@@ -8,7 +8,7 @@ import {
   PWA_MANIFEST_ID,
   createPwaLaunchUrl,
   createPwaRoutingConfig,
-} from "../../config/pwa-routing";
+} from "../../config/pwaRouting";
 
 describe("PWA routing manifest config", () => {
   it("builds launch URLs from the provided origin", () => {

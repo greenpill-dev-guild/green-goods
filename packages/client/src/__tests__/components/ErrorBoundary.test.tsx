@@ -22,8 +22,12 @@ vi.mock("../../components/Actions", () => ({
 }));
 
 // Mock shared barrel to avoid WalletConnect/shared dependency chain resolution
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/modules/app/error-events", () => ({
   trackErrorBoundary: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/modules/app/logger", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/modules/app/logger")>()),
   logger: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -95,11 +99,10 @@ describe("GardenErrorBoundary", () => {
 
       // Render with a component that will throw
       render(
-        createElement(
-          GardenErrorBoundary,
-          { fallback: customFallback },
-          createElement(ThrowingComponent, { shouldThrow: true })
-        )
+        createElement(GardenErrorBoundary, {
+          fallback: customFallback,
+          children: createElement(ThrowingComponent, { shouldThrow: true }),
+        })
       );
 
       expect(screen.getByText("Custom error fallback")).toBeInTheDocument();
@@ -109,11 +112,10 @@ describe("GardenErrorBoundary", () => {
       const customFallback = createElement("div", null, "Custom error fallback");
 
       render(
-        createElement(
-          GardenErrorBoundary,
-          { fallback: customFallback },
-          createElement("div", null, "Normal content")
-        )
+        createElement(GardenErrorBoundary, {
+          fallback: customFallback,
+          children: createElement("div", null, "Normal content"),
+        })
       );
 
       expect(screen.getByText("Normal content")).toBeInTheDocument();

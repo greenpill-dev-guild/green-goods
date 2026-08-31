@@ -5,6 +5,13 @@ import type { Address } from "../../types/domain";
 export const queryInvalidation = {
   invalidateAll: () => queryKeys.all,
 
+  /**
+   * Wagmi-owned root query keys for direct on-chain reads. Invalidating these
+   * forces every `useReadContract(s)` and balance query to refetch after a
+   * state-changing transaction. Keep the key shapes here, not in hooks.
+   */
+  onchainReads: () => [["readContract"], ["readContracts"], ["balance"]],
+
   invalidateQueueStats: () => queryKeys.queue.stats(),
 
   invalidateWorksForGarden: (gardenId: string, chainId: number) => [
@@ -75,6 +82,14 @@ export const queryInvalidation = {
   invalidateGarden: (gardenId: string, chainId: number) => [
     queryKeys.gardens.byChain(chainId),
     queryKeys.gardens.detail(gardenId, chainId),
+  ],
+
+  invalidateGardenKarma: (gardenId: string, chainId: number) => [
+    queryKeys.gardens.byChain(chainId),
+    queryKeys.gardens.detail(gardenId, chainId),
+    queryKeys.gardens.karmaStatus(gardenId, chainId),
+    queryKeys.gardens.karmaVersion(gardenId, chainId),
+    queryKeys.gardens.karmaSlug(gardenId, chainId),
   ],
 
   invalidateDrafts: (userAddress: string, chainId: number) => [

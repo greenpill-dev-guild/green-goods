@@ -1,4 +1,6 @@
-import { cn, type Garden, useOffline, type Work } from "@green-goods/shared";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import type { Garden, Work } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiArrowLeftFill,
   RiBankLine,
@@ -9,7 +11,7 @@ import {
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { ModalDrawer } from "@/components/Dialogs";
-import { pwaStatusStyles, type PwaStatusTone } from "@/styles/pwaStatusStyles";
+import { type PwaStatusTone, pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 
 type TopNavProps = {
@@ -17,8 +19,8 @@ type TopNavProps = {
   garden?: Garden;
   works?: Work[];
   overlay?: boolean;
-  /** Whether the current user is an operator of this garden */
-  isOperator?: boolean;
+  /** Whether the current user is a steward of this garden */
+  isSteward?: boolean;
   showEndowmentButton?: boolean;
   hasEndowmentDeposits?: boolean;
   onEndowmentClick?: () => void;
@@ -106,8 +108,7 @@ const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({ works,
             ? formatMessage(
                 {
                   id: "app.home.notifications.pendingCount",
-                  defaultMessage:
-                    "{count, plural, one {# pending review} other {# pending reviews}}",
+                  defaultMessage: "{count, plural, one {# pending} other {# pending}}",
                 },
                 { count: workNotifications.length }
               )
@@ -185,7 +186,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   garden,
   works,
   overlay,
-  isOperator = false,
+  isSteward = false,
   showEndowmentButton = false,
   hasEndowmentDeposits = false,
   onEndowmentClick,
@@ -236,8 +237,8 @@ export const TopNav: React.FC<TopNavProps> = ({
 
       <div className="flex grow" />
       <div className="flex flex-col items-end gap-2 z-1">
-        {/* Notifications at top — operators need quick access to pending reviews */}
-        {garden && isOperator && <NotificationCenter works={works} garden={garden} />}
+        {/* Notifications at top — stewards need quick access to pending reviews */}
+        {garden && isSteward && <NotificationCenter works={works} garden={garden} />}
         {garden && showGovernanceButton && onGovernanceClick && (
           <GovernanceButton
             onClick={onGovernanceClick}

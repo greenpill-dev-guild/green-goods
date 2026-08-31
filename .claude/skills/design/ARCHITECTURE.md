@@ -24,13 +24,12 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 | Artifact | Role |
 |----------|------|
 | Root `DESIGN.md` | Canonical Warm Earth DesignMD front matter + creative brief |
-| `packages/admin/DESIGN.md` | Restrained operator cockpit, M3 strict anatomy, Plus Jakarta Sans |
+| `packages/admin/DESIGN.md` | Restrained steward cockpit, M3 strict anatomy, Plus Jakarta Sans |
 | `packages/client/DESIGN.pwa.md` | Installed PWA field tool, Inter, bottom AppBar |
 | `packages/client/DESIGN.browser.md` | Public browser site, editorial browser treatment |
 | `docs/DESIGN.md` | Docusaurus documentation dialect, Manrope/Bricolage/IBM Plex Mono |
 | `design/language.md` | Implementation guide — shape, motion, color, material, hero moments |
 | `design/ai-ui-brief.md` | Reusable AI UI/CSS build brief and external reference role map |
-| `design/quick-reference.md` | One-page scannable cheat sheet (derivative of language.md) |
 | `packages/shared/src/styles/design-md.generated.css` | Generated DesignMD CSS projection |
 | `packages/shared/src/styles/theme.css` | Runtime consumer — springs, materials, blur, colors |
 | `packages/client/src/styles/typography.css` | Client type scale utilities |
@@ -42,17 +41,18 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 | I need… | Start here |
 |---------|-----------|
 | DesignMD color/radius values | Root `DESIGN.md` front matter |
-| Runtime spring/material usage | `design/quick-reference.md` → `language.md` for full detail |
+| Runtime spring/material usage | `design/language.md` and `packages/shared/src/styles/theme.css` |
 | Reusable UI/CSS prompt for agents | `design/ai-ui-brief.md` |
 | Prompt vocabulary for any AI design tool | `design/prompt-contract.md` (admin) or `client-prompt-contract.md` (client) |
 | How to feed an AI design tool the right context | `design/SKILL.md § Working with AI Design Tools` |
 | Decision: which paradigm for this surface? | `design/SKILL.md § Paradigm Selection` |
 | Decision: which component / primitive? | `design/implementation.md § New Component Runbook` (10 steps) |
 | Surface-specific brief | `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md` |
+| Locked design decisions (DL-NNN ledger, graduation ladder) | `design/decision-log.md` — append-only; `qa-session` close gate and design rounds append here |
 | PR review (per-change, 4 lenses) | `design/review-checklist.md` — Regenerative → Spatial → Ecosystem → Compliance |
 | Design-system alignment (full repo, or stack-only self-audit) | `design/system-alignment-review.md` — DesignMD files, Warm Earth, `theme.css`, Storybook, admin, client PWA/browser, docs, agentic guidance, Claude + Codex instructions; § Stack-only mode for `design/` infrastructure alone |
 | Ecosystem / cascade / archetype analysis | `design/ecosystem.md` |
-| Regenerative lens specifics | `design/regenerative.md` |
+| Regenerative review checks | `design/review-checklist.md` § Lens 1 |
 | Inspiration / sources / research frameworks | `design/language.md § Philosophy` (Sources) |
 | View transitions API | `design/implementation.md § View Transitions` |
 
@@ -83,8 +83,8 @@ bun run lint:vocab            # lint-enforced banned terms in i18n strings only
 AI design tools should map output to these exports. Full palette lives in the prompt contracts; here's the quick locator.
 
 **Admin** (`packages/admin/src/components/`):
-- Layout shell: `CanvasLayout`, `AppBar` (admin top context bar), `MainSheet`, `NavigationBar`, `AdminFab` (the old side-sheet renderers are deleted — every workspace overlay is a centered `AdminDialog`; the three global AppBar surfaces render in `AdminSideSheet`)
-- M3 wrappers (count derives from `packages/admin/src/components/Admin*.tsx` — 16 today): `AdminBadge`, `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminDialog`, `AdminFab`, `AdminFilterChip`, `AdminLinearProgress`, `AdminListItem`, `AdminSearchToolbar`, `AdminSideSheet`, `AdminSortSelect`, `AdminTabRail`, `AdminTextField`, `AdminTooltip`, `AdminViewActions`
+- Layout shell: `CanvasLayout`, `AppBar` (admin top context bar), `MainSheet`, `NavigationBar`, `FabButton` (the old side-sheet renderers are deleted — every workspace overlay is a centered `AdminDialog`; the three global AppBar surfaces render in `AdminSideSheet`)
+- M3 wrappers (the `packages/admin/src/components/Admin*.tsx` exports are the roster of record — 21 wrappers across 18 files today; `AdminConfirmDialog` lives in `AdminDialog.tsx`, `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`): `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminChoiceGroup`, `AdminConfirmDialog`, `AdminDialog`, `AdminFilterChip`, `AdminInlineField`, `AdminLinearProgress`, `AdminReasonDialog`, `AdminSearchToolbar`, `AdminSelect`, `AdminSelectableCard`, `AdminSettingRow`, `AdminSideSheet`, `AdminSortSelect`, `AdminTabRail`, `AdminTextArea`, `AdminTextField`, `AdminTooltip`, `AdminViewActions` (`AdminBadge`/`AdminFab`/`AdminListItem` deleted 2026-08-29)
 
 **Client / shared** (`packages/shared/src/components/`, exported from `@green-goods/shared`):
 - Shell: presentation-mode loaders, `PublicShell` (browser), `PwaRuntime` / `AppShell` (installed PWA), `SiteHeader` (browser), `AppBar` (installed PWA)
@@ -113,7 +113,6 @@ The filesystem is the registry: `design/SKILL.md` frontmatter (`name`, `descript
 - [SKILL.md](./SKILL.md) — Design philosophy, paradigms, decision tree
 - [language.md](./language.md) — Implementation guide
 - [ai-ui-brief.md](./ai-ui-brief.md) — Reusable AI UI/CSS prompt contract and reference role map
-- [quick-reference.md](./quick-reference.md) — One-page cheat sheet
 - [review-checklist.md](./review-checklist.md) — 4-lens PR review (per-change)
 - [system-alignment-review.md](./system-alignment-review.md) — Design-system alignment review: full-repo, plus § Stack-only mode for the `design/` stack itself
 - [prompt-contract.md](./prompt-contract.md) — Admin AI prompt vocabulary + palette

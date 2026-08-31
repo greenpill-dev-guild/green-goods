@@ -1,14 +1,12 @@
-import {
-  Button,
-  Card,
-  EmptyState,
-  adminRoutes,
-  formatDate,
-  getEASExplorerUrl,
-} from "@green-goods/shared";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { getEASExplorerUrl } from "@green-goods/shared/utils/eas/explorers";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
+import { formatDate } from "@green-goods/shared/utils/time";
 import { RiExternalLinkLine, RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminCard, AdminCardBody, AdminCardHeader } from "../AdminCard";
 
 interface Assessment {
   id: string;
@@ -35,21 +33,21 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
   const { formatMessage } = useIntl();
 
   return (
-    <Card>
-      <Card.Header className="gap-2">
+    <AdminCard density="none">
+      <AdminCardHeader className="gap-2">
         <h3 className="min-w-0 truncate label-md text-text-strong sm:text-lg">
           {formatMessage({ id: "app.garden.admin.recentAssessments" })}
         </h3>
-        <Button variant="secondary" size="sm" asChild>
+        <AdminButton variant="outlined" size="sm" asChild>
           <Link
             to={adminRoutes.gardenImpact({ gardenId, section: "assessments" })}
             aria-label={formatMessage({ id: "app.garden.admin.viewAssessments" })}
           >
             {formatMessage({ id: "app.garden.admin.viewAll" })}
           </Link>
-        </Button>
-      </Card.Header>
-      <Card.Body>
+        </AdminButton>
+      </AdminCardHeader>
+      <AdminCardBody>
         {isLoading ? (
           <p className="py-4 text-center text-sm text-text-soft">
             {formatMessage({ id: "app.garden.admin.loadingAssessments" })}
@@ -91,10 +89,10 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
                   href={getEASExplorerUrl(chainId, assessment.id)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center rounded text-sm text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base/40"
+                  className="inline-flex items-center rounded text-sm text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
                   aria-label={formatMessage({
                     id: "app.admin.assessments.viewOnEas",
-                    defaultMessage: "View assessment on EAS Explorer",
+                    defaultMessage: "View Assessment on EAS Explorer",
                   })}
                 >
                   {formatMessage({ id: "app.actions.view" })}{" "}
@@ -104,7 +102,7 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
             ))}
           </div>
         )}
-      </Card.Body>
-    </Card>
+      </AdminCardBody>
+    </AdminCard>
   );
 };

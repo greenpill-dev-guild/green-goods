@@ -1,14 +1,11 @@
-import {
-  cn,
-  DEFAULT_CHAIN_ID,
-  getBlockExplorer,
-  getChainName,
-  SheetBody,
-  SheetDivider,
-  type Locale,
-  useApp,
-  useTheme,
-} from "@green-goods/shared";
+import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
+import { SheetDivider } from "@green-goods/shared/components/Canvas/SheetDivider";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { getChainName } from "@green-goods/shared/config/chains";
+import { useTheme } from "@green-goods/shared/hooks/app/useTheme";
+import { type Locale, useApp } from "@green-goods/shared/providers/App";
+import { getBlockExplorer } from "@green-goods/shared/utils/blockchain/chain-registry";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiComputerLine, RiExternalLinkLine, RiMoonLine, RiSunLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
@@ -71,7 +68,7 @@ function InfoRow({ label, value }: { label: string; value: ReactNode }) {
 }
 
 /**
- * Settings panel — operator preferences behind the AppBar gear (desktop side
+ * Settings panel — steward preferences behind the AppBar gear (desktop side
  * sheet) and the mobile Profile tab's "Settings" tab.
  *
  * Sections (flat M3 lists, no nested cards): Appearance, Language, Network,
@@ -118,7 +115,7 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
           title={formatMessage({ id: "cockpit.settings.language", defaultMessage: "Language" })}
           description={formatMessage({
             id: "cockpit.settings.languageDescription",
-            defaultMessage: "Choose the language for the operator canvas.",
+            defaultMessage: "Choose the language for the steward canvas.",
           })}
         />
         <AdminChoiceGroup
@@ -146,7 +143,7 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
           href={getBlockExplorer(DEFAULT_CHAIN_ID)}
           label={formatMessage({
             id: "cockpit.account.viewOnExplorer",
-            defaultMessage: "View on explorer",
+            defaultMessage: "View on Explorer",
           })}
         />
       </section>

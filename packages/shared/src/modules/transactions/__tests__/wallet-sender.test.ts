@@ -10,8 +10,11 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Abi } from "viem";
-import { MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
+import {
+  createFakeWagmiDeps,
+  createMockContractCall,
+  MOCK_TX_HASH,
+} from "@green-goods/shared/testing";
 import type { ContractCall } from "../types";
 import { WalletSender, type WalletSenderDeps } from "../wallet-sender";
 
@@ -19,30 +22,8 @@ import { WalletSender, type WalletSenderDeps } from "../wallet-sender";
 // Test fixtures
 // ============================================
 
-const TEST_ABI: Abi = [
-  {
-    type: "function",
-    name: "transfer",
-    inputs: [
-      { name: "to", type: "address", internalType: "address" },
-      { name: "amount", type: "uint256", internalType: "uint256" },
-    ],
-    outputs: [{ name: "", type: "bool", internalType: "bool" }],
-    stateMutability: "nonpayable",
-  },
-];
-
 const VALID_RECIPIENT = "0x1111111111111111111111111111111111111111" as const;
-
-const TEST_CALL: ContractCall = {
-  address: "0x3333333333333333333333333333333333333333",
-  abi: TEST_ABI,
-  functionName: "transfer",
-  args: [VALID_RECIPIENT, 1000n],
-  chainId: 42161,
-};
-
-const MOCK_WAGMI_CONFIG = {} as any;
+const TEST_CALL = createMockContractCall();
 
 // ============================================
 // Tests
@@ -50,18 +31,17 @@ const MOCK_WAGMI_CONFIG = {} as any;
 
 describe("WalletSender", () => {
   let sender: WalletSender;
-  let mockWriteContractAsync: ReturnType<typeof vi.fn>;
+  let mockWriteContractAsync: ReturnType<
+    typeof vi.fn<ConstructorParameters<typeof WalletSender>[1]>
+  >;
   let mockDeps: WalletSenderDeps;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockWriteContractAsync = vi.fn().mockResolvedValue(MOCK_TX_HASH);
-    mockDeps = {
-      waitForTransactionReceipt: vi.fn().mockResolvedValue({ status: "success" }),
-      assertWriteSafety: vi.fn().mockResolvedValue(undefined),
-      ensureWalletChain: vi.fn().mockResolvedValue(undefined),
-    };
-    sender = new WalletSender(MOCK_WAGMI_CONFIG, mockWriteContractAsync, undefined, mockDeps);
+    const fakeWagmi = createFakeWagmiDeps();
+    mockWriteContractAsync = fakeWagmi.writeContractAsync;
+    mockDeps = fakeWagmi;
+    sender = new WalletSender(fakeWagmi.config, mockWriteContractAsync, undefined, mockDeps);
   });
 
   describe("properties", () => {
@@ -125,7 +105,7 @@ describe("WalletSender", () => {
 
       expect(result.hash).toBe(MOCK_TX_HASH);
       expect(mockDeps.waitForTransactionReceipt).toHaveBeenCalledOnce();
-      expect(mockDeps.waitForTransactionReceipt).toHaveBeenCalledWith(MOCK_WAGMI_CONFIG, {
+      expect(mockDeps.waitForTransactionReceipt).toHaveBeenCalledWith(expect.anything(), {
         hash: MOCK_TX_HASH,
         chainId: TEST_CALL.chainId,
       });
@@ -170,7 +150,7 @@ describe("WalletSender", () => {
 
   describe("sendBatch (unsupported)", () => {
     it("does not expose sendBatch", () => {
-      expect(sender.sendBatch).toBeUndefined();
+      expect("sendBatch" in sender).toBe(false);
     });
   });
 });

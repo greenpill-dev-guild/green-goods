@@ -150,7 +150,9 @@ contract HypercertsModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUP
         _requireOperator(garden);
         if (paused) revert NotActive();
         if (merkleRoot == bytes32(0)) revert InvalidMerkleRoot();
-        if (expectedHypercertId == 0 || _isFractionToken(expectedHypercertId)) revert InvalidHypercert(expectedHypercertId);
+        if (expectedHypercertId == 0 || _isFractionToken(expectedHypercertId)) {
+            revert InvalidHypercert(expectedHypercertId);
+        }
         if (IHypercertMinter(hypercertMinter).unitsOf(expectedHypercertId) != 0) {
             revert InvalidHypercert(expectedHypercertId);
         }

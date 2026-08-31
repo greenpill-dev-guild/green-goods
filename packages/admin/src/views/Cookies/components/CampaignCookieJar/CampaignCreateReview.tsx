@@ -43,17 +43,17 @@ export function CampaignCreateReview(props: CampaignCookieJarCreateFormProps) {
           />
           <ReviewLine
             label={formatMessage({
-              id: "cockpit.community.cookies.generatedOperators",
-              defaultMessage: "Generated operators",
+              id: "cockpit.community.cookies.generatedStewards",
+              defaultMessage: "Generated stewards",
             })}
             value={aggregation.allowlist.length}
           />
           <ReviewLine
             label={formatMessage({
-              id: "cockpit.community.cookies.missingOperators",
-              defaultMessage: "Missing operators",
+              id: "cockpit.community.cookies.missingStewards",
+              defaultMessage: "Missing stewards",
             })}
-            value={aggregation.missingOperatorGardens.length}
+            value={aggregation.missingStewardGardens.length}
           />
           <ReviewLine
             label={formatMessage({
@@ -72,7 +72,7 @@ export function CampaignCreateReview(props: CampaignCookieJarCreateFormProps) {
             >
               {formatMessage({
                 id: "cockpit.community.cookies.create",
-                defaultMessage: "Create cookie jar",
+                defaultMessage: "Create Cookie Jar",
               })}
             </AdminButton>
             <AdminButton type="button" variant="text" className="mt-2 w-full" onClick={onCancel}>
@@ -85,7 +85,7 @@ export function CampaignCreateReview(props: CampaignCookieJarCreateFormProps) {
         </AdminCard>
       </aside>
 
-      <div className="fixed inset-x-0 bottom-[calc(80px+env(safe-area-inset-bottom))] z-sticky border-t border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-high))] p-3 shadow-[var(--m3-elevation-3)] lg:hidden">
+      <div className="fixed inset-x-0 bottom-[calc(80px+env(safe-area-inset-bottom))] z-sticky border-t border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-high))] p-3 shadow-[var(--m3-elevation-2)] lg:hidden">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate text-label-md font-semibold text-[rgb(var(--m3-on-surface))]">
@@ -96,9 +96,9 @@ export function CampaignCreateReview(props: CampaignCookieJarCreateFormProps) {
                 {
                   id: "cockpit.community.cookies.mobileReviewSummary",
                   defaultMessage:
-                    "{gardens, plural, one {# garden} other {# gardens}} - {operators, plural, one {# operator} other {# operators}}",
+                    "{gardens, plural, one {# garden} other {# gardens}} - {stewards, plural, one {# steward} other {# stewards}}",
                 },
-                { gardens: aggregation.sources.length, operators: aggregation.allowlist.length }
+                { gardens: aggregation.sources.length, stewards: aggregation.allowlist.length }
               )}
             </p>
           </div>
@@ -110,7 +110,7 @@ export function CampaignCreateReview(props: CampaignCookieJarCreateFormProps) {
           >
             {formatMessage({
               id: "cockpit.community.cookies.create",
-              defaultMessage: "Create cookie jar",
+              defaultMessage: "Create Cookie Jar",
             })}
           </AdminButton>
         </div>

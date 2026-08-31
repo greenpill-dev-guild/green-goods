@@ -1,11 +1,13 @@
 // Builds the "Commitment Pooling — Flow Prototypes" claude.ai artifact from the
-// sibling prototypes.md + the hifi/ module set. Three tabs:
+// hifi/ module set alone (the retired hand-written prototypes.md stays in the
+// repo as history and is no longer an input). Three tabs:
 //   1) Guided flows — click-through prototypes: the canonical control
 //      advances, real decision points are on-frame choices, every other drawn
 //      control answers via the inspector or jumps elsewhere.
 //   2) Screen library — free-roam: browse every review-visible screen, switch its states
 //      (Storybook-style), tap any control, navigate the screen graph.
-//   3) Reference — the full rendered prototypes.md document.
+//   3) Reference — flow and screen indexes generated from the registry on
+//      every build, so the reference cannot drift from the prototypes.
 //
 // Screens are pre-rendered at build time. Hi-fi screens live in hifi/screens/*
 // (Warm Earth kit); not-yet-migrated frames render through the ascii shim from
@@ -23,8 +25,16 @@
 // banned-vocabulary / steward / quiet-admin / chain-placement scans.
 // One-shot op per CLAUDE.md scripts policy — lives in .plans, not scripts/.
 import { readFileSync, writeFileSync } from "node:fs";
+import {
+  COMPONENT_COUNTS,
+  COMPONENTS_TAB_HTML,
+  COVERED_KIT_BUILDERS,
+  GALLERY_ERRORS,
+  GALLERY_SCAN_INPUT,
+} from "./hifi/components";
 import { iconSprite } from "./hifi/icons";
-import { SBS } from "./hifi/journeys";
+import { SB_ROUTE_ALIASES, SBS } from "./hifi/journeys";
+import * as kitAll from "./hifi/kit";
 import { PLAYER_JS } from "./hifi/player";
 import {
   HIFI_CSS,
@@ -44,160 +54,12 @@ import {
   screenCardsHtml,
   TABLES,
 } from "./hifi/screens/index";
-import { FLOW_GROUPS } from "./hifi/types";
-import { normalizeAndValidate } from "./hifi/validate";
+import { CHAPTERS, FLOW_GROUPS, ROLES } from "./hifi/types";
+import { normalizeAndValidate, scanGalleryHtml } from "./hifi/validate";
 
-const SRC = `${import.meta.dir}/prototypes.md`;
 const OUT = process.env.OUT ?? "/tmp/commitment-pooling-prototypes.html";
 
-const md = readFileSync(SRC, "utf8");
-const lines = md.split("\n");
-
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-// ---------- Reference-tab document pipeline (unchanged) ----------
-function inline(raw: string): string {
-  let s = esc(raw);
-  const codes: string[] = [];
-  s = s.replace(/`([^`]+)`/g, (_, c) => { codes.push(c); return "\x00" + (codes.length - 1) + "\x00"; });
-  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-  s = s.replace(/\b(CI-W\d+|MF-\d+[ab]?|W\d+a?|SB-\d+(?:\.\d+[ab]?(?:–\d+)?)?)\b/g, (m) => {
-    if (m.startsWith("SB-")) {
-      const sec = m.match(/^SB-(\d+)/)![1];
-      return `<a class="chip sb" href="#sb-${sec}">${m}</a>`;
-    }
-    if (m.startsWith("MF-")) return `<a class="chip mf" href="#sec-15">${m}</a>`;
-    return `<span class="chip w">${m}</span>`;
-  });
-  s = s.replace(/\x00(\d+)\x00/g, (_, i) => `<code>${codes[+i]}</code>`);
-  return s;
-}
-
-type Sec = { id: string; title: string; html: string[] };
-const secs: Sec[] = [];
-let cur: Sec | null = null;
-let front: string[] = [];
-let i = 0;
-let h1 = "Commitment Pooling — Flow Prototypes";
-
-function push(html: string) { (cur ? cur.html : front).push(html); }
-
-function slug(t: string): string {
-  const sb = t.match(/^SB-(\d+)/);
-  if (sb) return `sb-${sb[1]}`;
-  const num = t.match(/^(\d+)\./);
-  if (num) return `sec-${num[1]}`;
-  return t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
-}
-
-function flowHtml(code: string[]): string {
-  const labels: Record<string, string> = {};
-  const edges: { f: string; t: string; l: string }[] = [];
-  for (const ln of code) {
-    const m = ln.match(/^\s*(\w+)(?:\["([^"]*)"\])?\s*-->\|"([^"]*)"\|\s*(\w+)(?:\["([^"]*)"\])?/);
-    if (!m) continue;
-    if (m[2]) labels[m[1]] = m[2];
-    if (m[5]) labels[m[4]] = m[5];
-    edges.push({ f: m[1], t: m[4], l: m[3] });
-  }
-  const rows = edges.map(e =>
-    `<div class="fr"><span class="fn">${esc(labels[e.f] ?? e.f)}</span><span class="fe"><span class="fl">${esc(e.l)}</span><span class="fa" aria-hidden="true"></span></span><span class="fn">${esc(labels[e.t] ?? e.t)}</span></div>`
-  ).join("");
-  const srcCode = esc(code.join("\n"));
-  return `<div class="flow">${rows}</div><details class="msrc"><summary>mermaid source</summary><pre>${srcCode}</pre></details>`;
-}
-
-while (i < lines.length) {
-  const ln = lines[i];
-  if (ln.startsWith("# ") && !cur && front.length === 0) { h1 = ln.slice(2).replace(/ \(.*\)$/, ""); i++; continue; }
-  if (ln.startsWith("## ")) {
-    const title = ln.slice(3);
-    cur = { id: slug(title), title, html: [] };
-    secs.push(cur);
-    i++; continue;
-  }
-  if (ln.startsWith("```mermaid")) {
-    const buf: string[] = []; i++;
-    while (i < lines.length && !lines[i].startsWith("```")) { buf.push(lines[i]); i++; }
-    i++; push(flowHtml(buf)); continue;
-  }
-  if (ln.startsWith("```text") || ln === "```") {
-    const buf: string[] = []; i++;
-    while (i < lines.length && !lines[i].startsWith("```")) { buf.push(lines[i]); i++; }
-    i++;
-    const proposed = buf.some(b => b.includes("NEW — proposed"));
-    push(`<div class="framewrap${proposed ? " proposed" : ""}">${proposed ? '<div class="ptag">NEW — proposed lo-fi, not locked</div>' : ""}<pre class="frame">${esc(buf.join("\n"))}</pre></div>`);
-    continue;
-  }
-  if (ln.startsWith("|")) {
-    const rows: string[] = [];
-    while (i < lines.length && lines[i].startsWith("|")) { rows.push(lines[i]); i++; }
-    const cells = (r: string) => r.replace(/^\|/, "").replace(/\|\s*$/, "").split("|").map(c => c.trim());
-    let bodyStart = 1;
-    if (rows.length > 1 && /^[\s|:-]+$/.test(rows[1])) bodyStart = 2;
-    const head = cells(rows[0]).map(c => `<th>${inline(c)}</th>`).join("");
-    const body = rows.slice(bodyStart).map(r => {
-      const warn = r.includes("⚠");
-      return `<tr${warn ? ' class="warn"' : ""}>${cells(r).map(c => `<td>${inline(c)}</td>`).join("")}</tr>`;
-    }).join("");
-    push(`<div class="tw"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`);
-    continue;
-  }
-  if (ln.startsWith("- ")) {
-    const items: string[] = [];
-    while (i < lines.length && lines[i].startsWith("- ")) { items.push(lines[i].slice(2)); i++; }
-    push(`<ul>${items.map(it => `<li>${inline(it)}</li>`).join("")}</ul>`);
-    continue;
-  }
-  if (ln === "---" || ln.trim() === "") { i++; continue; }
-  const buf: string[] = [ln];
-  i++;
-  while (i < lines.length && lines[i].trim() !== "" && !/^(#|```|\||- |---)/.test(lines[i])) { buf.push(lines[i]); i++; }
-  push(`<p>${inline(buf.join(" "))}</p>`);
-}
-
-const sbSecs = secs.filter(s => s.id.startsWith("sb-"));
-const refSecs = secs.filter(s => !s.id.startsWith("sb-"));
-const groupsDoc: [string, Sec[]][] = [
-  ["Member journeys", sbSecs.slice(0, 7)],
-  ["Operator journeys", sbSecs.slice(7, 10)],
-  ["Settlement", sbSecs.slice(10, 12)],
-  ["Protocol + September", sbSecs.slice(12, 14)],
-];
-const navSb = groupsDoc.map(([g, ss]) =>
-  `<div class="ng">${g}</div>` + ss.map(s => {
-    const m = s.title.match(/^(SB-\d+) — (.*)$/);
-    const label = m ? `<b>${m[1]}</b> ${esc(m[2].replace(/\*\*/g, ""))}` : esc(s.title);
-    return `<a href="#${s.id}">${label}</a>`;
-  }).join("")
-).join("");
-const navRef = `<div class="ng">Reference</div>` + refSecs.map(s =>
-  `<a href="#${s.id}">${esc(s.title.replace(/ \(.*\)$/, "").replace(/ —.*$/, ""))}</a>`
-).join("");
-
-const refToc = `<nav class="ref-toc" aria-label="Reference overview">${groupsDoc.map(([g, ss]) =>
-  `<a href="#${ss[0].id}"><b>${esc(g)}</b><span>${ss.length} journeys</span></a>`
-).join("")}${refSecs.map(s =>
-  `<a href="#${s.id}"><b>${esc(s.title.replace(/ \(.*\)$/, "").replace(/ —.*$/, ""))}</b></a>`
-).join("")}</nav>`;
-
-const statusNote = `<aside class="status"><h2>Status — audit closure 2026-07-25 · hi-fi register #36</h2>
-<p><strong>Presentation review</strong>: ${SBS.filter((b) => b.reviewVisible).length} guided flows and ${SCREENS.filter((s) => s.frame !== "ascii").length} high-fidelity screens are grouped by Client PWA, Admin console, and Editorial website. September Community wireframes remain validated source material with stable direct hashes, but are intentionally hidden from the presentation catalogs until their high-fidelity pass. Adopted micro-frames remain dissolved into their locked parent states. Rendered copy and lifecycle-sensitive call/state pairings are build-linted.</p>
-<p><strong>Adopted</strong>: pool open/close on the pool status card + open-cycle guard prompt (MF-1) · member pre-acceptance withdraw (MF-2a) · <code>waiting_for_hat</code> covers the five pool job kinds in August (MF-5) · admin expiry queue + member "offer again" ship in August, keeper cron is a post-launch backstop (MF-3/MF-4) · pilot stewards hold the executor role with a visible missing-role guard state · read-only delivery-gate status row on W21 · testimony is September-realized (MF-12) · the dry run rehearses payout with a real minimal Cookie Jar withdrawal.</p>
-<p><strong>Placement closure (register #51)</strong>: W10 steward cancel, the Work Review commitment row, the pre-claim personal/garden chooser, and the W10 attach-assessment picker are locked where drawn. The W10 accepted/override states, W23 delivery-blocked state, W26 reconciliation report, queue-funding control, and both origin-specific settlement-cancellation messages are also realized rather than review proposals. <strong>Join-request queue</strong> design is canonical in <code>../community-interface/join-queue-spec.md</code>; implementation remains gated on RESR-64's operating record.</p></aside>`;
-
-const sections = secs.map(s => {
-  const m = s.title.match(/^(SB-\d+) — (.*)$/);
-  const heading = m
-    ? `<h2><span class="sbnum">${m[1]}</span> ${inline(m[2])}</h2>`
-    : `<h2>${inline(s.title.replace(/^\d+\. /, ""))}</h2>`;
-  const glance = s.html.findIndex(block => block.includes("<strong>At a glance</strong>"));
-  const fold = glance >= 0 && s.html.length - glance > 4;
-  const body = fold
-    ? `${s.html.slice(0, glance + 1).join("\n")}<details class="refmore"><summary>Open the full section</summary>${s.html.slice(glance + 1).join("\n")}</details>`
-    : s.html.join("\n");
-  return `<section id="${s.id}">${heading}${body}</section>`;
-}).join("\n");
 
 // ---------- Normalize journeys against the screen registry + validate ----------
 const { sbs, errors, warnings } = normalizeAndValidate(SBS, {
@@ -217,7 +79,17 @@ if (!HIFI_CSS.includes("transform:scale(var(--phone-scale))"))
   frameContractErrors.push("FRAME CSS: phone shell must fit the review canvas with uniform scaling");
 if (!HIFI_CSS.includes(".device .phonefit,") || HIFI_CSS.includes(".device .phone,"))
   frameContractErrors.push("FRAME CSS: entry motion must animate the fit wrapper without overriding phone scaling");
-const allErrors = [...BUILD_ERRORS, ...errors, ...frameContractErrors];
+// Components-tab gallery: structural checks from the module itself, the same
+// copy/control scans the screens get (new call sites, unchanged rules), and a
+// completeness gate — every kit builder must have a gallery entry, so the tab
+// can never silently fall behind the kit.
+const galleryErrors: string[] = [...GALLERY_ERRORS];
+for (const { surface, specimens, chromeText } of GALLERY_SCAN_INPUT)
+  galleryErrors.push(...scanGalleryHtml(surface, specimens, chromeText));
+for (const [name, value] of Object.entries(kitAll))
+  if (typeof value === "function" && !COVERED_KIT_BUILDERS.has(name))
+    galleryErrors.push(`COMPONENTS: kit builder ${name} has no gallery entry`);
+const allErrors = [...BUILD_ERRORS, ...errors, ...frameContractErrors, ...galleryErrors];
 for (const w of warnings) console.warn("WARN", w);
 if (allErrors.length > 0) {
   for (const e of allErrors) console.error(e);
@@ -230,20 +102,130 @@ const PLAYER_DATA = JSON.stringify({
   hots: HOTS,
   sbs,
   aliases: ALIASES,
+  // Retired `#sbX/i` routes → where that scene lives now (journeys.ts).
+  sbRoutes: SB_ROUTE_ALIASES,
 });
 
 const visibleSbs = sbs.filter((sb) => sb.reviewVisible);
 const visibleScreens = SCREENS.filter((screen) => screen.reviewVisible);
 
+// Flow cards: chapter clusters inside each surface tab, role chips instead of
+// the old surface badge (which merely repeated the tab label), and a derived
+// "continues in" hint taken from the final scene's cross-flow branch links —
+// derived, not transcribed, so a re-split can never leave a stale hint.
+const roleLabel = new Map<string, string>(ROLES.map((role) => [role.id, role.label]));
+const sbTitle = new Map(sbs.map((sb) => [sb.id, sb.title]));
+// Card anatomy is title → description → role tags (Afo, D3). The persona line
+// the description replaced still shows on the stage pill and in the Reference
+// tab.
+//
+// The continues-in tag is GONE (2026-08-16, Afo — the text below the role tags,
+// not just its arrow). It repeated titles the reader meets in the catalog
+// anyway, it was the only ragged thing left on an otherwise uniform grid, and
+// putting a second kind of tag beside the roles muddied the one thing a reader
+// scans this row for. Where a flow hands off is still shown at the end of the
+// flow itself, as branch links — where it can actually be followed.
+const flowCardHtml = (sb: (typeof visibleSbs)[number]) =>
+  `<button class="sbcard" data-sb="${sb.id}"><span class="sbt">${esc(sb.title)}</span><span class="sbd">${esc(
+    sb.desc,
+  )}</span><span class="cardchips">${sb.roles
+    .map((role) => `<span class="role-chip">${esc(roleLabel.get(role) ?? role)}</span>`)
+    .join("")}</span></button>`;
 const flowCatalog = FLOW_GROUPS.map(({ id, label }, groupIx) => {
-  const cards = visibleSbs
-    .filter((sb) => sb.reviewGroup === id)
-    .map((sb) => `<button class="sbcard" data-sb="${sb.id}"><span class="sbt">${esc(sb.title)}</span><span class="sbm">${esc(sb.persona)}</span><span class="surface-badge">${esc(label)}</span></button>`)
-    .join("");
-  return `<section class="catalog-panel flow-catalog" id="flow-panel-${id}" role="tabpanel" aria-labelledby="flow-tab-${id}" data-flow-group="${id}"${groupIx ? " hidden" : ""}><h2>${esc(label)} flows</h2><div class="grid">${cards}</div></section>`;
+  const groupSbs = visibleSbs.filter((sb) => sb.reviewGroup === id);
+  const chapterBlocks = (CHAPTERS[id] ?? []).flatMap((chapter) => {
+    const cards = groupSbs.filter((sb) => sb.chapter === chapter.id).map(flowCardHtml).join("");
+    if (!cards) return []; // an empty chapter simply doesn't render (renameable data, no count asserts)
+    // Each chapter is a block inside a two-column grid (iteration 2): less
+    // scrolling, subcategories visible side by side on wide review screens.
+    const inner = `<section class="chapter-block"><h3 class="chapter-h">${esc(chapter.label)}</h3><div class="grid">${cards}</div></section>`;
+    return [chapter.collapsed
+      ? `<details class="chapter-fold chapter-block"><summary><h3 class="chapter-h">${esc(chapter.label)}</h3><span class="fold-hint">protocol team only — open when needed</span></summary><div class="grid">${cards}</div></details>`
+      : inner];
+  });
+  // The gutter rule only makes sense once a second column exists — derived from
+  // the blocks actually rendered, never asserted per surface.
+  const cols = `chapter-cols${chapterBlocks.length > 1 ? " ruled" : ""}`;
+  return `<section class="catalog-panel flow-catalog" id="flow-panel-${id}" role="tabpanel" aria-labelledby="flow-tab-${id}" data-flow-group="${id}"${groupIx ? " hidden" : ""}><h2>${esc(label)} flows</h2><div class="${cols}">${chapterBlocks.join("")}</div></section>`;
 }).join("");
 
 const screenCards = screenCardsHtml();
+
+// ---------- Reference tab: generated from the executable registry ----------
+// prototypes.md was the hand-written July reference; it drifted within weeks
+// of each restructure. This tab now derives from the same registry the
+// validator checks, so it cannot disagree with the prototypes (register #96).
+const statusNote = `<aside class="status"><h2>Status — audit closure 2026-07-25 · hi-fi register #36</h2>
+<p><strong>Presentation review</strong>: ${SBS.filter((b) => b.reviewVisible).length} guided flows and ${SCREENS.filter((s) => s.frame !== "ascii").length} high-fidelity screens are grouped by Client PWA, Admin console, and Editorial website, with lifecycle-ordered chapters inside each tab and acting-role tags on every card. September Community wireframes remain validated source material with stable direct hashes, but are intentionally hidden from the presentation catalogs until their high-fidelity pass. Adopted micro-frames remain dissolved into their locked parent states. Rendered copy and lifecycle-sensitive call/state pairings are build-linted.</p>
+<p><strong>Self-contained flows (2026-08-10)</strong>: every flow is one person's action to completion. "Meanwhile" echoes are read-only consequences — the build rejects an echo carrying a control — and cross-role continuations hand off through end-of-flow links (sb42–sb48 carry the split-out segments; old mid-ribbon hashes retire as <code>#sb9</code> did). The creation wizards default the confirmer rule with the Green Goods team fallback ON for the pilot (supersedes the 2026-08-02 off-by-default closure; the unreachable-path guard, required reason, and contributor exclusion are unchanged), keeping the default path to four steps and moving named groups, team policy, and assessment to an Advanced detour.</p>
+<p><strong>Exchange wave drawn (2026-08-10, register #97)</strong>: W28–W31 and the two exchange journeys are now in the executable registry — the same-day contracts audit found <code>acceptExchange</code> shipped and tested on-chain, so the screens caught up with the chain. Bilateral pair creation, atomic acceptance, counterpart-lapsed context, and template-first creation are all walkable; multilateral and transferable exchange stay design-only in the exchange architecture brief.</p>
+<p><strong>Adopted</strong>: pool open/close on the pool status card + open-cycle guard prompt (MF-1) · member pre-acceptance withdraw (MF-2a) · <code>waiting_for_hat</code> covers the six pool job kinds in August (MF-5) · the admin due-live expiry action, post-expiry queue, and member "offer again" ship in August, while a keeper cron remains only a post-launch backstop (MF-3/MF-4) · pilot stewards hold the executor role with a visible missing-role guard state · read-only delivery-gate status row on W21 · testimony is September-realized (MF-12) · the dry run rehearses payout with a real minimal Cookie Jar withdrawal.</p>
+<p><strong>Placement closure (register #51)</strong>: W10 steward cancel, the Work Review commitment row, the pre-claim personal/garden chooser, and the W10 attach-assessment picker are locked where drawn. The W10 accepted/override states, W23 delivery-blocked state, W26 reconciliation report, queue-funding control, and both origin-specific settlement-cancellation messages are also realized rather than review proposals. <strong>Join-request queue</strong> design is canonical in <code>../community-interface/join-queue-spec.md</code>; implementation remains gated on RESR-64's operating record.</p></aside>`;
+
+const chapterLabelOf = (group: keyof typeof CHAPTERS, id: string) =>
+  (CHAPTERS[group] ?? []).find((chapter) => chapter.id === id)?.label ?? id;
+const callsOfFlow = (sb: (typeof sbs)[number]) => {
+  const set = new Set<string>();
+  for (const step of sb.steps)
+    for (const hid of [step.hot?.h, ...(step.alts ?? []).map((alt) => alt.h)])
+      if (hid) for (const call of HOTS[hid]?.calls ?? []) set.add(call);
+  return [...set];
+};
+const citesOfFlow = (sb: (typeof sbs)[number]) => {
+  const set = new Set<string>();
+  for (const step of sb.steps)
+    for (const token of (step.cite ?? "").split("·")) if (token.trim()) set.add(token.trim());
+  return [...set];
+};
+const capList = (items: string[], max: number) =>
+  items.length > max ? `${items.slice(0, max).join(" · ")} · +${items.length - max} more` : items.join(" · ");
+const walkedBy = new Map<string, Set<string>>();
+for (const sb of visibleSbs)
+  for (const step of sb.steps) {
+    if (!walkedBy.has(step.f)) walkedBy.set(step.f, new Set());
+    walkedBy.get(step.f)!.add(sb.title);
+  }
+const callsOfScreen = (id: string) => {
+  const set = new Set<string>();
+  for (const hid of SCREEN_HOTS[id] ?? []) for (const call of HOTS[hid]?.calls ?? []) set.add(call);
+  return [...set];
+};
+// One section per surface, flows and screens together (Afo 2026-08-10: split
+// flow/screen sections read as duplicates of the browsing tabs). The tables
+// answer the implementation question the tabs don't: calls, cites, walked-by.
+const refSurfaceSections = FLOW_GROUPS.map(({ id, label }) => {
+  const flowRows = visibleSbs.filter((sb) => sb.reviewGroup === id).map((sb) => {
+    const calls = callsOfFlow(sb);
+    return `<tr><td><strong>${esc(sb.title)}</strong><br><span style="color:var(--stone);font-size:12px">${esc(sb.persona)} · <code>#${sb.id}</code></span></td><td>${esc(chapterLabelOf(sb.reviewGroup, sb.chapter))}</td><td>${sb.steps.length}</td><td>${calls.length ? `<code>${calls.join("</code> <code>")}</code>` : "read-only walk"}</td><td>${esc(capList(citesOfFlow(sb), 8))}</td></tr>`;
+  }).join("");
+  const screenGroup = REVIEW_GROUPS.find((group) => group.surface === id);
+  const screenRows = (screenGroup?.ids ?? []).map((sid) => {
+    const scr = SCREENS.find((candidate) => candidate.id === sid)!;
+    const calls = callsOfScreen(sid);
+    const walkers = [...(walkedBy.get(sid) ?? [])];
+    return `<tr><td><strong><code>${esc(sid)}</code></strong> ${esc(scr.title.replace(/^W\S+ · /, ""))}</td><td>${scr.states.length}</td><td>${calls.length ? `<code>${calls.join("</code> <code>")}</code>` : "—"}</td><td>${walkers.length ? esc(capList(walkers, 3)) : "Screen library only"}</td></tr>`;
+  }).join("");
+  return `<section id="ref-${id}"><h2>${esc(label)}</h2>
+<h3>Flows — what each walked path exercises</h3>
+<div class="tw"><table><thead><tr><th>Flow</th><th>Chapter</th><th>Scenes</th><th>Contract calls on the walked path</th><th>Spec cites</th></tr></thead><tbody>${flowRows}</tbody></table></div>
+<h3>Screens — what each screen declares</h3>
+<div class="tw"><table><thead><tr><th>Screen</th><th>States</th><th>Calls declared</th><th>Walked by</th></tr></thead><tbody>${screenRows}</tbody></table></div></section>`;
+}).join("\n");
+const refHowTo = `<section id="ref-howto"><h2>How to read this reference</h2>
+<p>Everything on this tab is <strong>generated from the executable registry on every build</strong> — the same source the validator checks — so it cannot drift from the Flows and Screens tabs. Those tabs are for browsing; this one answers the implementation questions they don't: which contract calls a walked path exercises, which spec lines it cites, and which flows exercise each screen. Deep links are stable: <code>#sbN/i</code> opens a guided flow at a scene, <code>#screens/ID@state</code> opens a screen state.</p>
+<p>Spec cites resolve to the plan-hub documents: <code>UX</code> → uiux-spec.md (by line or section), <code>CS</code> → contract-spec.md, <code>WF</code> → wireframes.md, <code>AM</code> → acceptance-matrix.md, <code>SS</code> → settlement-spec.md, <code>DG</code> → diagrams.md. Other keys cite sibling documents in the same hub. The retired hand-written reference (prototypes.md) remains in the repo as historical source material.</p></section>`;
+const refPlanned = `<section id="ref-planned"><h2>Planned additions</h2>
+<p>The exchange wave (W28–W31, both journeys) graduated into the executable registry on 2026-08-10 (register #97), closing the one place the chain was ahead of the prototypes. What remains planned: the September Community wireframes (registered, validated, directly addressable, hidden from the catalogs until their high-fidelity pass), September-realized testimony (register #34g), and the multilateral/transferable exchange tier, which stays design-only in the exchange architecture brief.</p></section>`;
+const refNav = `<div class="ng">Start here</div><a href="#ref-howto">How to read this</a>
+<div class="ng">Surfaces</div>${FLOW_GROUPS.map(({ id, label }) => `<a href="#ref-${id}">${esc(label)}</a>`).join("")}
+<div class="ng">Roadmap</div><a href="#ref-planned">Planned additions</a>`;
+const refToc = `<nav class="ref-toc" aria-label="Reference overview"><a href="#ref-howto"><b>How to read this</b><span>generated, not written</span></a>${FLOW_GROUPS.map(({ id, label }) => {
+  const flowCount = visibleSbs.filter((sb) => sb.reviewGroup === id).length;
+  const screenCount = REVIEW_GROUPS.find((group) => group.surface === id)?.ids.length ?? 0;
+  return `<a href="#ref-${id}"><b>${esc(label)}</b><span>${flowCount} flows · ${screenCount} screens</span></a>`;
+}).join("")}<a href="#ref-planned"><b>Planned additions</b><span>exchange wave · September</span></a></nav>`;
+const refSections = `${refHowTo}\n${refSurfaceSections}\n${refPlanned}`;
+const distinctCalls = new Set(visibleSbs.flatMap((sb) => callsOfFlow(sb))).size;
 
 // Both tablists are generated from the same arrays that generate their panels,
 // so a new group cannot appear as a tab without a panel (or vice versa) and the
@@ -286,13 +268,19 @@ assertBuild(
   visibleSbs.some((sb) => sb.steps.some((step) => step.echo)),
   "no echo scenes — the cross-surface mechanic vanished",
 );
-assertBuild(visibleScreens.length === 25, `expected 25 visible screens, found ${visibleScreens.length}`);
-assertBuild(screenCounts.client === 10 && screenCounts.admin === 13 && screenCounts.editorial === 2, `screen grouping must be 10 client / 13 admin / 2 editorial`);
+// 35 = the 25-screen August set + three standing-commitment screens (W32/W34/
+// W35 — W33 folded into the composer 2026-08-11, D2) + the four
+// exchange/template screens (W28–W31, register #97) + the member and steward
+// funded-claim checkpoints (W36/W37, register #103) + the phone-presentation
+// pool tab (W7M, 2026-08-16 admin review).
+assertBuild(visibleScreens.length === 37, `expected 37 visible screens, found ${visibleScreens.length}`);
+assertBuild(screenCounts.client === 19 && screenCounts.admin === 16 && screenCounts.editorial === 2, `screen grouping must be 19 client / 16 admin / 2 editorial`);
 const presentationCatalogs = flowCatalog + screenCards;
 const presentationRuntimeCopy = [
   presentationCatalogs,
   ...visibleSbs.flatMap((sb) => [
     sb.title,
+    sb.desc,
     sb.persona,
     ...sb.steps.flatMap((step) => [
       step.hot?.l,
@@ -365,23 +353,79 @@ body{margin:0;background:var(--canvas);color:var(--ink);
   position:sticky;top:0;background:var(--canvas);z-index:5;align-items:center;flex-wrap:wrap}
 .tabs .tt{font-weight:700;font-size:13px;margin-right:12px}
 .tab{border:1px solid var(--line);background:var(--panel);color:var(--stone);border-radius:8px;
-  padding:5px 14px;font:600 13px inherit;cursor:pointer;min-height:44px}
+  padding:5px 14px;font-weight:600;font-size:13px;cursor:pointer;min-height:44px}
 .tab.on{background:var(--accent);border-color:var(--accent);color:var(--canvas)}
 /* Chrome-level toggle. The dialect tokens already ship both theme signals
    ([data-theme="dark"] and the prefers-color-scheme twin), so pinning the
    attribute is all that is needed to review dark on a light machine. */
 .chromebtn{margin-left:auto;border:1px solid var(--line);background:var(--panel);color:var(--stone);
-  border-radius:8px;padding:5px 12px;font:600 12.5px inherit;cursor:pointer;min-height:44px}
+  border-radius:8px;padding:5px 12px;font-weight:600;font-size:12.5px;cursor:pointer;min-height:44px}
 .chromebtn:hover{color:var(--ink)}
 .chromebtn[aria-pressed="true"]{border-color:var(--accent-ink);color:var(--ink)}
-#tab-doc,#tab-play,#tab-screens{display:none}
-#tab-doc.on,#tab-play.on,#tab-screens.on{display:block}
+.chromebtn .tb{display:none;align-items:center;gap:7px}
+.chromebtn[aria-pressed="false"] .tb-dark{display:inline-flex}
+.chromebtn[aria-pressed="true"] .tb-light{display:inline-flex}
+.chromebtn svg{width:15px;height:15px;fill:currentColor;flex:none}
+#tab-doc,#tab-play,#tab-screens,#tab-comps{display:none}
+#tab-doc.on,#tab-play.on,#tab-screens.on,#tab-comps.on{display:block}
+
+/* ---- Components tab (component-library contract, 2026-08-14) ---- */
+#comps{max-width:1180px;margin:0 auto;padding:26px 20px 60px}
+#comps h1{font-size:21px;margin:0 0 4px;text-wrap:balance}
+#comps .sub{color:var(--stone);font-size:13px;margin:0 0 14px;max-width:88ch}
+.cindex{display:flex;flex-direction:column;gap:4px;margin:0 0 18px;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:10px 12px;font-size:12px}
+.cindex .cig{display:flex;flex-wrap:wrap;gap:2px 4px;align-items:center}
+.cindex b{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--stone);margin-right:6px;font-weight:700}
+.cindex a{color:var(--accent-ink);text-decoration:none;padding:3px 7px;border-radius:6px}
+.cindex a:hover{background:var(--canvas)}
+.cfam h3{margin:26px 0 6px;font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--stone)}
+.centry{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:14px 16px 12px;margin:10px 0;scroll-margin-top:64px}
+.centry.hl{outline:2px solid var(--accent);outline-offset:2px}
+.chead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.chead h4{margin:0;font-size:15px}
+.ckit{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--stone);background:var(--canvas);border:1px solid var(--line);border-radius:5px;padding:1px 7px}
+.complink{margin-left:auto;border:1px solid var(--line);background:var(--canvas);color:var(--stone);border-radius:7px;min-width:34px;min-height:34px;cursor:pointer;font-size:14px}
+.complink:hover{color:var(--ink);border-color:var(--accent-ink)}
+.complink.copied::after{content:" copied";font-size:10.5px;color:var(--accent-ink)}
+.complink.copyfail::after{content:" copy failed";font-size:10.5px;color:var(--amber)}
+.ctag{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-radius:99px;padding:2px 8px}
+.ctag.new{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent-ink)}
+.ctag.drift{background:var(--amber-bg);color:var(--amber)}
+.ctag.delib{background:var(--chipw);color:var(--stone)}
+.cship,.cused{margin:6px 0 0;font-size:12.5px;color:var(--stone)}
+.cship code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}
+.cship.netnew{color:var(--accent-ink)}
+.crule{margin:6px 0 0;font-size:12.5px;color:var(--ink);max-width:88ch}
+.cdrift{margin:6px 0 0;font-size:12.5px;color:var(--amber);border-left:3px solid var(--amber);background:var(--amber-bg);border-radius:0 6px 6px 0;padding:4px 9px;max-width:88ch}
+.cdelib{margin:6px 0 0;font-size:12.5px;color:var(--stone);border-left:3px solid var(--line);padding-left:9px;max-width:88ch}
+.cspecs{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0 2px;align-items:flex-start}
+.spec{margin:0;display:flex;flex-direction:column;gap:5px;min-width:0;max-width:100%}
+.spec figcaption{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--stone)}
+.specbox{border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--cv);overflow:auto}
+.spec.w-p .specbox{width:358px;max-width:100%}
+.spec.w-m .specbox{width:min(560px,100%)}
+.spec.w-l{flex:1 1 100%}
+.spec.w-l .specbox{width:100%}
+.spec.w-frame .specbox{padding:10px}
+.zoomwrap{width:calc(${PHONE_SHELL_WIDTH}px*.5);height:calc(${PHONE_SHELL_HEIGHT}px*.5);overflow:hidden}
+.zoomwrap>.phonefit{transform:scale(.5);transform-origin:top left}
+.specbox[style*="height"]{display:flex;flex-direction:column}
+.specbox[style*="height"]>.sheetstage,.specbox[style*="height"]>.dlgstage,
+.specbox[style*="height"]>.deskwin,.specbox[style*="height"]>.webwin{flex:1;min-height:0}
+.uchip{font:600 11px ui-monospace,SFMono-Regular,Menlo,monospace;border:1px solid var(--line);background:var(--canvas);color:var(--accent-ink);border-radius:6px;padding:2px 7px;text-decoration:none;margin-right:4px;display:inline-block;margin-top:2px}
+.uchip:hover{border-color:var(--accent-ink)}
 
 #play,#screens{max-width:1080px;margin:0 auto;padding:26px 20px 44px}
-#play h1,#screens h1{font-size:21px;margin:0 0 4px;text-wrap:balance}
+/* Scoped away from the phone frames (2026-08-16 round 12). This is the artifact
+   SHELL's page heading, but as a bare ID selector it also matched every <h1>
+   inside a rendered screen — an ID beats .hf .hdr.fixed h1 on specificity, so
+   the flow header's 17px nowrap treatment had never applied in the Screen
+   library or Guided flows panes. Every wizard title rendered at 21px and was
+   free to wrap: "Make a request" broke across two lines inside fixed chrome. */
+#play h1:not(.hf h1),#screens h1:not(.hf h1){font-size:21px;margin:0 0 4px;text-wrap:balance}
 #play .sub,#screens .sub{color:var(--stone);font-size:13px;margin:0 0 18px;max-width:78ch}
 .surface-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 18px;padding:4px;width:max-content;max-width:100%;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
-.surface-tab{border:0;background:transparent;color:var(--stone);border-radius:8px;padding:7px 13px;font:650 12.5px inherit;cursor:pointer;min-height:44px}
+.surface-tab{border:0;background:transparent;color:var(--stone);border-radius:8px;padding:7px 13px;font-weight:650;font-size:12.5px;cursor:pointer;min-height:44px}
 .surface-tab.on{background:var(--canvas);color:var(--ink);box-shadow:0 1px 3px color-mix(in srgb,var(--ink) 12%,transparent)}
 .catalog-panel[hidden]{display:none}
 .catalog-panel h2{margin:0 0 9px;font-size:15px}
@@ -393,14 +437,59 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .sbn{font:700 11.5px ui-monospace,Menlo,monospace;color:var(--accent-ink)}
 .tick{color:var(--accent-ink);font-weight:700}
 .sbt{font-weight:650;font-size:14px}
-.sbm{font-size:11.5px;color:var(--stone)}
-.surface-badge{width:max-content;margin-top:4px;border:1px solid var(--line);border-radius:99px;padding:1px 8px;font-size:10.5px;font-weight:650;color:var(--accent-ink)}
+.sbm{font-size:11.5px;color:var(--stone)} /* screen-library cards: one-line state count */
+/* Flow cards are a grid of peers, so they are all ONE height (2026-08-16, Afo):
+   ragged cards read as a ragged catalog. Title and description each get a fixed
+   line box — two and four lines — so neither a long name nor a long description
+   changes the card's size. The four-line box is deliberately roomier than the
+   median description, which is the "space to be longer where needed"; anything
+   past it ellipsises rather than pushing the card taller. */
+.sbt{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  min-height:calc(2 * 1.3em);line-height:1.3}
+.sbd{font-size:11.5px;line-height:1.45;color:var(--stone);margin-top:1px;
+  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;
+  min-height:calc(4 * 1.45em)} /* flow cards: fixed four-line description box */
+.chapter-h{margin:20px 0 8px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)}
+.catalog-panel .chapter-h:first-of-type{margin-top:6px}
+.chapter-cols{display:grid;grid-template-columns:1fr;gap:0 28px;align-items:start;position:relative}
+@media (min-width:760px){
+  .chapter-cols{grid-template-columns:1fr 1fr}
+  /* One continuous rule down the gutter, drawn on the grid itself: chapter
+     blocks are different heights, so a per-block border would break the seam
+     into ragged segments. The ruled class is set only when a panel actually
+     fills both columns, so the single-chapter editorial tab draws no line. */
+  .chapter-cols.ruled::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:1px;background:var(--line)}
+}
+.chapter-block{min-width:0}
+.chapter-block .chapter-h{margin-top:14px}
+.chapter-cols .grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+/* The tag row is the last thing that could still make cards ragged: one to
+   three wrapped rows depending on how many roles act in a flow and how long
+   the flows it continues into are named. Fixed at two rows — roles come first
+   and are short, so what ellipsises is the tail of a continues-in title, which
+   the flow itself shows in full. */
+/* One row of role tags is all that sits here now, and roles are short, so the
+   box is a single row tall. */
+.cardchips{display:flex;flex-wrap:wrap;gap:4px;margin-top:auto;padding-top:7px;
+  min-height:calc(7px + 20px)}
+/* Tags share ONE metric across the artifact (2026-08-16, Afo): same radius,
+   padding, size and weight as the .ch tag on a promise card, so a tag reads as
+   a tag whether it sits on a flow card or inside a rendered screen. Role tags
+   keep only their accent colour. */
+.role-chip{border-radius:8px;padding:2.5px 8px;font-weight:600;font-size:12px;
+  background:var(--bg-accent-soft,color-mix(in srgb,var(--accent) 14%,transparent));
+  color:var(--accent-ink);white-space:nowrap}
+.chapter-fold{border:1px dashed var(--line);border-radius:10px;padding:2px 12px 8px;margin:20px 0 8px}
+.chapter-fold summary{cursor:pointer;display:flex;align-items:center;gap:10px;min-height:44px;list-style:revert}
+.chapter-fold summary .chapter-h{margin:0}
+.chapter-fold .fold-hint{font-size:11px;color:var(--stone)}
+.chapter-fold[open]{padding-bottom:12px}
 .screenkey{font:700 10.5px ui-monospace,Menlo,monospace;color:var(--accent-ink);letter-spacing:.04em}
 #stage,#expstage{display:none}
 #stage.on,#expstage.on{display:block}
 .stagebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px}
 .stagebar .back{border:1px solid var(--line);background:var(--panel);color:var(--ink);
-  border-radius:8px;padding:4px 12px;cursor:pointer;font:600 12.5px inherit;min-height:44px}
+  border-radius:8px;padding:4px 12px;cursor:pointer;font-weight:600;font-size:12.5px;min-height:44px}
 .stagebar .ti{font-weight:700;font-size:15px}
 .pill{font-size:11px;border:1px solid var(--line);border-radius:99px;padding:1px 9px;color:var(--stone)}
 .pill.sur{border-color:var(--accent-ink);color:var(--accent-ink)}
@@ -413,13 +502,13 @@ body{margin:0;background:var(--canvas);color:var(--ink);
    top-LEFT so it never collides with the proposed tag's top-right corner. */
 .device.echo{outline:2px dashed color-mix(in srgb,var(--stone) 45%,transparent);outline-offset:3px}
 .device .echotag{position:absolute;top:0;left:0;z-index:2;background:var(--panel);color:var(--stone);
-  font:700 10px inherit;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;
+  font-weight:700;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;
   border-radius:13px 0 8px 0;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
 .pill.echo{border-style:dashed;color:var(--stone)}
 /* lo-fi ascii frames have no inner scroll surface — cap + scroll the panel itself */
 .device.f-ascii{max-height:var(--dev-cap);overflow:auto}
 .device .mftag{position:absolute;top:0;right:0;background:var(--amber-bg);color:var(--amber);
-  font:700 10px inherit;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:0 13px 0 8px}
+  font-weight:700;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:0 13px 0 8px}
 .device pre.ascii{margin:0;padding:0;border:0;background:transparent;overflow:visible;
   font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink)}
 .hspot{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;
@@ -449,10 +538,15 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .marked{background:color-mix(in srgb, var(--amber) 22%, transparent);border-radius:3px}
 .stchips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
 .vchip{border:1px solid var(--line);background:var(--panel);color:var(--stone);border-radius:99px;
-  padding:3px 12px;font:600 12px inherit;cursor:pointer;min-height:44px}
+  padding:3px 12px;font-weight:600;font-size:12px;cursor:pointer;min-height:44px}
 .vchip.on{background:var(--accent);border-color:var(--accent);color:var(--canvas)}
 .vchip.prop{border-style:dashed;border-color:var(--amber);color:var(--amber)}
 .vchip.prop.on{background:var(--amber);border-color:var(--amber);color:var(--canvas)}
+/* Frame heading in the state switcher. Forces a line break so each frame's
+   states sit together — the collapse is only legible if the groups are. */
+.vgroup{flex:0 0 100%;margin:8px 0 -2px;font-weight:600;font-size:11px;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--stone);opacity:.75}
+.vgroup:first-child{margin-top:0}
 .hint{margin:10px 0 0;font-size:12.5px;color:var(--accent-ink);font-weight:600}
 .hint .kbd{color:var(--stone);font-weight:400}
 #insp{margin:10px 0 0;border:1px solid var(--line);border-left:3px solid var(--accent-ink);
@@ -461,12 +555,12 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 #insp b{display:block;margin-bottom:2px}
 #insp .ia{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
 #insp .ia button{border:1px solid var(--accent-ink);background:transparent;color:var(--accent-ink);
-  border-radius:7px;padding:2px 10px;font:600 12px inherit;cursor:pointer;min-height:44px}
+  border-radius:7px;padding:2px 10px;font-weight:600;font-size:12px;cursor:pointer;min-height:44px}
 .insp{margin:10px 0 0}
 .insp.on{border:1px solid var(--line);border-left:3px solid var(--accent-ink);background:var(--panel);
   border-radius:8px;padding:8px 12px;font-size:12.5px}
 .insp .walkbtn{margin-left:8px;border:1px solid var(--accent-ink);background:transparent;color:var(--accent-ink);
-  border-radius:7px;padding:2px 10px;font:600 12px inherit;cursor:pointer;min-height:44px}
+  border-radius:7px;padding:2px 10px;font-weight:600;font-size:12px;cursor:pointer;min-height:44px}
 .meta{margin:12px 0 0;display:flex;flex-direction:column;gap:6px;font-size:13px}
 .impl-notes{margin:10px 0 0;border-top:1px solid var(--line);font-size:13px}
 .impl-notes>summary{display:flex;align-items:center;min-height:44px;cursor:pointer;color:var(--stone);font-weight:650}
@@ -479,7 +573,7 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .note{font-size:12.5px;color:var(--stone);border-left:3px solid var(--line);padding-left:10px}
 .brs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .br{border:1px solid var(--amber);background:var(--amber-bg);color:var(--amber);border-radius:8px;
-  padding:3px 10px;font:600 12px inherit;cursor:pointer;min-height:44px}
+  padding:3px 10px;font-weight:600;font-size:12px;cursor:pointer;min-height:44px}
 .br.info{cursor:default}
 /* Journey stage: the device is flanked by large prev/next arrows that stay in
    view. Phones scale uniformly; every frame scrolls its own content. */
@@ -526,6 +620,7 @@ nav.doc a.on{background:var(--panel);color:var(--accent-ink)}
 #tab-doc section{margin:0 0 44px;scroll-margin-top:64px}
 #tab-doc h2{font-size:17.5px;margin:34px 0 12px;padding-top:18px;border-top:1px solid var(--line);text-wrap:balance}
 #tab-doc section:first-of-type h2{border-top:0;padding-top:0}
+#tab-doc h3{font-size:14px;margin:20px 0 6px}
 .sbnum{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;font-weight:700;
   color:var(--accent-ink);background:var(--panel);border:1px solid var(--line);
   border-radius:6px;padding:2px 7px;margin-right:6px;vertical-align:2px}
@@ -602,8 +697,9 @@ ${iconSprite()}
   <span class="tt">Commitment Pooling</span>
   <button class="tab on" id="tabbtn-play" role="tab" aria-selected="true" aria-controls="tab-play">Guided flows</button>
   <button class="tab" id="tabbtn-screens" role="tab" aria-selected="false" aria-controls="tab-screens" tabindex="-1">Screen library</button>
+  <button class="tab" id="tabbtn-comps" role="tab" aria-selected="false" aria-controls="tab-comps" tabindex="-1">Components</button>
   <button class="tab" id="tabbtn-doc" role="tab" aria-selected="false" aria-controls="tab-doc" tabindex="-1">Implementation reference</button>
-  <button class="chromebtn" id="themebtn" type="button" aria-pressed="false">Dark mode</button>
+  <button class="chromebtn" id="themebtn" type="button" aria-pressed="false"><span class="tb tb-dark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5.5a8.5 8.5 0 0 0 8.5 8.5c.7 0 1.4-.09 2.06-.25A9.5 9.5 0 1 1 10.25 3.44 8.5 8.5 0 0 0 10 5.5z"/></svg>Dark mode</span><span class="tb tb-light"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>Light mode</span></button>
 </div>
 
 <div id="tab-play" class="on" role="tabpanel" aria-labelledby="tabbtn-play">
@@ -666,20 +762,22 @@ ${iconSprite()}
 </div>
 </div>
 
+<div id="tab-comps" role="tabpanel" aria-labelledby="tabbtn-comps" hidden>
+${COMPONENTS_TAB_HTML}
+</div>
+
 <div id="tab-doc" role="tabpanel" aria-labelledby="tabbtn-doc" hidden>
 <div class="wrap">
 <nav class="doc" aria-label="Sections">
-  <div class="brand">Implementation reference<small>prototypes.md · 2026-07-25</small></div>
-  ${navSb}
-  ${navRef}
+  <div class="brand">Implementation reference<small>generated from the registry · 2026-08-10</small></div>
+  ${refNav}
 </nav>
 <main>
-<h1>${esc(h1)}</h1>
-<p class="sub">${new Set(SBS.map((b) => b.n)).size} storyboards composing the locked wireframes (W1–W26 + community CI-W frames), the missing-frame index, the action inventory, and the state-coverage matrix. Every claim cites file:line in the repo specs. Source of truth: <code>.plans/active/commitment-pooling/prototypes.md</code>.</p>
+<h1>Commitment Pooling: Implementation Reference</h1>
+<p class="sub">${visibleSbs.length} guided flows · ${visibleScreens.length} screens · ${distinctCalls} distinct contract calls, generated from the executable registry on every build — the same source the validator checks, so this page cannot drift from the prototypes. The retired hand-written reference (<code>prototypes.md</code>) stays in the repo as historical source material.</p>
 ${refToc}
 ${statusNote}
-${front.join("\n")}
-${sections}
+${refSections}
 </main>
 </div>
 </div>
@@ -689,7 +787,78 @@ var DATA = ${PLAYER_DATA};
 ${PLAYER_JS}
 </script></body></html>`;
 
-writeFileSync(OUT, html);
+// Vocabulary and state-truth regressions here are product-model defects, not
+// presentation warnings. Keep them as hard build failures so an old artifact
+// cannot be republished after the one-noun Offer correction.
+const staleOfferNounPatterns: [RegExp, string][] = [
+  [/\bpractice-template\b/i, "practice-template"],
+  [/\bpractice templates?\b/i, "practice template"],
+  [/\bpractice-first\b/i, "practice-first"],
+  [/\bpractice library\b/i, "practice library"],
+  [/\bstanding-practice-remains\b/i, "standing-practice-remains"],
+  [/\bstart from a practice\b/i, "start from a practice"],
+];
+for (const [pattern, label] of staleOfferNounPatterns) {
+  if (pattern.test(html)) throw new Error(`Offer vocabulary regression: generated artifact still contains "${label}".`);
+}
+
+const stateHtml = (screenId: string, stateId: string) =>
+  SCREENS.find((screen) => screen.id === screenId)?.states.find((state) => state.id === stateId)?.html ?? "";
+const claimantView = stateHtml("W34", "claimant-view");
+const claimantAllowedFields = [
+  "provider",
+  "terms",
+  "garden",
+  "openNow",
+  "openTerms",
+  "claimExplanation",
+];
+const claimantRenderedFields = [...claimantView.matchAll(/data-claimant-field="([^"]+)"/g)].map(
+  (match) => match[1],
+);
+if (
+  !claimantView ||
+  !claimantView.includes('data-privacy-contract="ongoing-offer-claimant-v1"') ||
+  JSON.stringify(claimantRenderedFields) !== JSON.stringify(claimantAllowedFields)
+) {
+  throw new Error(
+    "Privacy regression: W34@claimant-view must render only the approved structural claimant fields; holder Story and kept-count fields are not permitted.",
+  );
+}
+// W33 retired 2026-08-11 (D2), and iteration 2 folded ongoing INLINE into the
+// composer: the renewal prompt lives on the ongoing review state + W34. What
+// this assertion protects is that an ongoing offer never renews itself — the
+// member is asked. The phrase was "Ask me again next cycle" until 2026-08-18,
+// when "cycle" left member copy: it is the machine's word for what the composer
+// calls where it runs, and it appeared in a control the member reads.
+for (const [screenId, stateId] of [["W3", "support-review-ongoing"], ["W34", "active-two"]] as const) {
+  if (!stateHtml(screenId, stateId).includes("Ask me whether to keep offering it")) {
+    throw new Error(`Renewal-copy regression: ${screenId}@${stateId} lost the exact phrase "Ask me whether to keep offering it".`);
+  }
+}
+const requiredTargets: [string, string][] = [
+  ["w32.offer-once", "screen:W3@saved-offer-edit"],
+  // Was `support-howmuch-ongoing` — this assertion locked the decision that the
+  // separate ongoing wizard retires INTO the composer, and that still holds.
+  // What changed (2026-08-17, Afo) is where in the composer it lands: jumping
+  // straight to the amount step made this the one entry that never picked a
+  // cycle, and an ongoing offer has to name where it runs, because every
+  // commitment it opens carries that cycle.
+  // Normalized to the bare screen id: step-what is W3's first state, and
+  // validate.ts strips "@<first state>" from every target.
+  ["w32.offer-over-time", "screen:W3"],
+  // Was W32@series-queued. An ongoing offer used to be the one creation flow
+  // that finished in the wallet's private section instead of the pool tab
+  // (2026-08-17, Afo). It now lands where every other commitment lands.
+  ["w3.submit-ongoing", "screen:W1@ongoing-queued"],
+  ["w35.queued-done", "screen:W34@places-queued"],
+];
+for (const [hotId, target] of requiredTargets) {
+  if (HOTS[hotId]?.to !== target) {
+    throw new Error(`State-coherence regression: ${hotId} must target ${target}.`);
+  }
+}
+
 const byteSize = new TextEncoder().encode(html).byteLength;
 
 // prototypes-coverage.md transcribes this snapshot by hand and has drifted from
@@ -697,6 +866,16 @@ const byteSize = new TextEncoder().encode(html).byteLength;
 // so the transcription cannot silently rot again.
 const totalStates = SCREENS.reduce((a, s) => a + s.states.length, 0);
 const totalScenes = sbs.reduce((a, b) => a + b.steps.length, 0);
+// Drift is collected, not just printed. Until 2026-08-19 every line below was a
+// bare console.warn AFTER the exit gate, so a wrong registry printed its warning
+// and then reported "warnings: 0", wrote the artifact, and exited 0 — the two
+// signals anyone actually checks both said clean. Anything that can be wrong
+// silently will be.
+const coverageDrift: string[] = [];
+const noteDrift = (message: string) => {
+  coverageDrift.push(message);
+  console.warn(message);
+};
 try {
   const coverage = readFileSync(new URL("./prototypes-coverage.md", import.meta.url), "utf8");
   const claimed: [string, number, number][] = [
@@ -704,14 +883,68 @@ try {
     ["states", totalStates, Number(coverage.match(/registered screens \/ (\d+) rendered states/)?.[1])],
     ["hotspots", Object.keys(HOTS).length, Number(coverage.match(/- (\d+) registered hotspots/)?.[1])],
     ["scenes", totalScenes, Number(coverage.match(/source flows \/ (\d+) scenes/)?.[1])],
+    // The presentation-visible subset had its own hand-written line and no check,
+    // so plan.todo.md quoted this snapshot for a screen count of 33 while the
+    // snapshot itself said 37 (CodeRabbit, 2026-08-19).
+    [
+      "presentation-visible screens",
+      visibleScreens.length,
+      Number(coverage.match(/- (\d+) presentation-visible hi-fi screens/)?.[1]),
+    ],
+    [
+      "presentation-visible states",
+      visibleScreens.reduce((total, screen) => total + screen.states.length, 0),
+      Number(coverage.match(/presentation-visible hi-fi screens \/ (\d+) states/)?.[1]),
+    ],
   ];
   for (const [label, actual, stated] of claimed) {
     if (Number.isFinite(stated) && stated !== actual)
-      console.warn(`coverage-doc drift: prototypes-coverage.md says ${stated} ${label}, build has ${actual}`);
+      noteDrift(`coverage-doc drift: prototypes-coverage.md says ${stated} ${label}, build has ${actual}`);
   }
+  // The aggregate totals above agreed while 19 of 39 per-screen rows were wrong
+  // in both directions (2026-08-19 review), because a total can stay right while
+  // two rows drift the opposite way. Check each row, and check every screen has
+  // one — a per-screen registry that omits a screen is worse than no registry.
+  const listed = new Set<string>();
+  for (const line of coverage.split("\n")) {
+    const row = /^\|\s*([A-Za-z0-9]+)\s*\|\s*[^|]+?\s*\|\s*(\d+)\s*\|\s*(.*?)\s*\|\s*$/.exec(line);
+    if (!row) continue;
+    const screen = SCREENS.find((s) => s.id === row[1]);
+    // A row for a screen that does not exist used to be skipped in silence, so a
+    // registry could name a retired screen forever and still report no drift —
+    // the same shape as the state ids this round removed. And `listed` swallowed
+    // a second row for the same screen, so a duplicate passed as a match while
+    // only one of the two was ever checked (CodeRabbit, 2026-08-19).
+    if (!screen) {
+      noteDrift(`coverage-doc drift: row "${row[1]}" names a screen the build does not have`);
+      continue;
+    }
+    if (listed.has(screen.id)) {
+      noteDrift(`coverage-doc drift: ${screen.id} has more than one row in the screen registry`);
+      continue;
+    }
+    listed.add(screen.id);
+    const ids = screen.states.map((s) => s.id).join(", ");
+    if (Number(row[2]) !== screen.states.length)
+      noteDrift(`coverage-doc drift: ${screen.id} row says ${row[2]} states, build has ${screen.states.length}`);
+    else if (row[3] !== ids)
+      noteDrift(`coverage-doc drift: ${screen.id} row lists different state ids than the build`);
+  }
+  for (const s of SCREENS)
+    if (!listed.has(s.id)) noteDrift(`coverage-doc drift: ${s.id} has no row in the screen registry`);
 } catch {
-  console.warn("coverage-doc drift: prototypes-coverage.md not readable — snapshot unchecked");
+  noteDrift("coverage-doc drift: prototypes-coverage.md not readable — snapshot unchecked");
 }
+
+if (coverageDrift.length > 0) {
+  console.error(`${coverageDrift.length} coverage-doc drift problems — not writing output`);
+  process.exit(1);
+}
+
+// Written only once every gate has passed, so a failing build leaves the last
+// good artifact in place — the same contract the validation-error exit above
+// has always had. Drift used to be found after this line had already run.
+writeFileSync(OUT, html);
 
 console.log(
   "screens:", SCREENS.length,
@@ -719,6 +952,8 @@ console.log(
   "| hotspots:", Object.keys(HOTS).length,
   "| journeys:", sbs.length,
   "| scenes:", sbs.reduce((a, b) => a + b.steps.length, 0),
+  "| components:", COMPONENT_COUNTS.entries,
+  "| specimens:", COMPONENT_COUNTS.specimens,
   "| warnings:", warnings.length,
   "| chars:", html.length,
   "| bytes:", byteSize,

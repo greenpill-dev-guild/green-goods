@@ -1,18 +1,16 @@
-import {
-  type Address,
-  cn,
-  ConfirmDialog,
-  ENSProgressTimeline,
-  validateSlug,
-  useENSClaim,
-  useENSReleaseName,
-  useGreenGoodsEnsName,
-  useENSRegistrationStatus,
-  useOffline,
-  useProtocolMemberStatus,
-  useSlugAvailability,
-  useSlugForm,
-} from "@green-goods/shared";
+import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { ENSProgressTimeline } from "@green-goods/shared/components/Progress/ENSProgressTimeline";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useENSClaim } from "@green-goods/shared/hooks/ens/useENSClaim";
+import { useENSRegistrationStatus } from "@green-goods/shared/hooks/ens/useENSRegistrationStatus";
+import { useENSReleaseName } from "@green-goods/shared/hooks/ens/useENSReleaseName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { useProtocolMemberStatus } from "@green-goods/shared/hooks/ens/useProtocolMemberStatus";
+import { useSlugAvailability } from "@green-goods/shared/hooks/ens/useSlugAvailability";
+import { useSlugForm } from "@green-goods/shared/hooks/ens/useSlugForm";
+import type { Address } from "@green-goods/shared/types/domain";
+import { validateSlug } from "@green-goods/shared/utils/blockchain/ens";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiAlertLine,
   RiCheckLine,
@@ -26,7 +24,7 @@ import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 interface ENSSectionProps {
   primaryAddress: Address | undefined;
@@ -202,7 +200,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
       setRequestError(
         intl.formatMessage({
           id: "app.profile.ensChangeContactError",
-          defaultMessage: "Add a Telegram handle, email, or another contact path.",
+          defaultMessage: "Add a Telegram handle, email, or another way to reach you.",
         })
       );
       return;
@@ -306,12 +304,12 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                   !isOnline
                     ? intl.formatMessage({
                         id: "app.profile.releaseOffline",
-                        defaultMessage: "Go online to release",
+                        defaultMessage: "Go Online to Release",
                       })
                     : isReleaseUnavailable
                       ? intl.formatMessage({
                           id: "app.profile.ensChangeRequestButton",
-                          defaultMessage: "Request username change",
+                          defaultMessage: "Request Username Change",
                         })
                       : releasingSlug === existingSlug
                         ? intl.formatMessage({
@@ -320,7 +318,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                           })
                         : intl.formatMessage({
                             id: "app.profile.releaseENSButton",
-                            defaultMessage: "Release username",
+                            defaultMessage: "Release Username",
                           })
                 }
                 className="w-full"
@@ -459,7 +457,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                         >
                           {intl.formatMessage({
                             id: "app.profile.ensChangeOpenSupport",
-                            defaultMessage: "Open Telegram support",
+                            defaultMessage: "Open Telegram Support",
                           })}
                         </a>
                       </div>
@@ -599,11 +597,11 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                     !isOnline
                       ? intl.formatMessage({
                           id: "app.profile.claimOffline",
-                          defaultMessage: "Go online to claim",
+                          defaultMessage: "Go Online to Claim",
                         })
                       : intl.formatMessage({
                           id: "app.profile.claimButton",
-                          defaultMessage: "Claim name",
+                          defaultMessage: "Claim Name",
                         })
                   }
                   className="w-full"
@@ -642,7 +640,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
         variant="warning"
         confirmLabel={intl.formatMessage({
           id: "app.profile.releaseENSButton",
-          defaultMessage: "Release username",
+          defaultMessage: "Release Username",
         })}
         isLoading={ensRelease.isPending}
       />

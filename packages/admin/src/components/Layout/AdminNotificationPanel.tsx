@@ -1,20 +1,23 @@
 import {
   NotificationPanel,
-  formatRelativeTime,
-  resolveAdminWorkspaceSectionRoute,
-  useAdminGardenWorkspaceSelection,
-  useGardenDerivedState,
-  useGardenDetailData,
-  type AdminWorkspaceSectionTab,
   type NotificationPanelItem,
   type NotificationPanelSection,
-} from "@green-goods/shared";
+} from "@green-goods/shared/components/Canvas/NotificationPanel";
+import {
+  type AdminWorkspaceSectionTab,
+  resolveAdminWorkspaceSectionRoute,
+} from "@green-goods/shared/hooks/admin-ui/navigation/workspaceNavigation";
+import { useAdminGardenWorkspaceSelection } from "@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection";
+import { useGardenDerivedState } from "@green-goods/shared/hooks/garden/useGardenDerivedState";
+import { useGardenDetailData } from "@green-goods/shared/hooks/garden/useGardenDetailData";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
 export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => void }) {
   const { formatMessage } = useIntl();
+  const formatEventAge = useLocalizedRelativeTime();
   const navigate = useNavigate();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const selectedGardenAddress = selectedGarden?.id;
@@ -82,7 +85,7 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
           id: event.id,
           title: event.title,
           description: event.description,
-          meta: formatRelativeTime(event.timestamp),
+          meta: formatEventAge(event.timestamp),
           tone: "info" as const,
           onSelect: href ? () => navigateFromNotification(href) : undefined,
         };
@@ -109,6 +112,7 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
   }, [
     derived.activityEvents,
     derived.overviewAlerts,
+    formatEventAge,
     formatMessage,
     navigateFromNotification,
     workspace.garden,

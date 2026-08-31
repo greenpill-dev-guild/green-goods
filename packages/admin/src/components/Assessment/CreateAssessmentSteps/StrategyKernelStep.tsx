@@ -1,16 +1,12 @@
-import {
-  CynefinPhase,
-  cn,
-  Domain,
-  NativeSelect,
-  Textarea,
-  TextInput,
-  useCreateAssessmentStore,
-} from "@green-goods/shared";
+import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
+import { CynefinPhase, Domain } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { type IntlShape, useIntl } from "react-intl";
-import { DOMAIN_GUIDANCE, domainKey, LabeledField, Section } from "./shared";
+import { AdminButton, AdminIconButton } from "../../AdminButton";
+import { AdminSelect, AdminTextArea, AdminTextField } from "../../AdminTextField";
+import { DOMAIN_GUIDANCE, domainKey, Section } from "./shared";
 
 const CYNEFIN_SLUGS: Record<CynefinPhase, string> = {
   [CynefinPhase.CLEAR]: "clear",
@@ -324,33 +320,26 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
             "Define the challenge, outcomes, and complexity context for this assessment.",
         })}
       >
-        <LabeledField
+        <AdminTextArea
           label={formatMessage({
             id: "app.admin.assessment.strategyKernel.diagnosisLabel",
             defaultMessage: "Diagnosis",
           })}
           required
-          error={showValidation ? fieldErrors.diagnosis : null}
-          helpText={formatMessage({
+          rows={4}
+          disabled={isSubmitting}
+          value={form.diagnosis}
+          onChange={(e) => setField("diagnosis", e.target.value)}
+          error={(showValidation && fieldErrors.diagnosis) || undefined}
+          helperText={formatMessage({
             id: domainKey("app.admin.assessment.strategyKernel.diagnosisHelp", domainEnum),
             defaultMessage: guidance.diagnosisHelp,
           })}
-        >
-          <Textarea
-            surface="admin"
-            rows={4}
-            disabled={isSubmitting}
-            value={form.diagnosis}
-            onChange={(e) => setField("diagnosis", e.target.value)}
-            aria-invalid={showValidation && !!fieldErrors.diagnosis}
-            invalid={showValidation && !!fieldErrors.diagnosis}
-            className="mt-1"
-            placeholder={formatMessage({
-              id: domainKey("app.admin.assessment.strategyKernel.diagnosisPlaceholder", domainEnum),
-              defaultMessage: guidance.diagnosisPlaceholder,
-            })}
-          />
-        </LabeledField>
+          placeholder={formatMessage({
+            id: domainKey("app.admin.assessment.strategyKernel.diagnosisPlaceholder", domainEnum),
+            defaultMessage: guidance.diagnosisPlaceholder,
+          })}
+        />
       </Section>
 
       {/* SMART Outcomes Repeater */}
@@ -377,86 +366,74 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
               key={index}
               className="flex flex-col gap-2 rounded-lg border border-stroke-soft bg-bg-white p-3 sm:flex-row sm:items-start sm:gap-3"
             >
-              <div className="flex-1 space-y-2">
-                <TextInput
-                  surface="admin"
-                  type="text"
-                  placeholder={formatMessage({
-                    id: "app.admin.assessment.strategyKernel.outcomePlaceholder",
-                    defaultMessage: "What this outcome achieves...",
-                  })}
-                  disabled={isSubmitting}
-                  value={outcome.description}
-                  onChange={(e) => updateSmartOutcome(index, "description", e.target.value)}
-                  aria-invalid={showValidation && !!outcomeErrors[index]?.description}
-                  invalid={showValidation && !!outcomeErrors[index]?.description}
-                />
-                {showValidation && outcomeErrors[index]?.description && (
-                  <p className="text-xs text-error-dark">{outcomeErrors[index].description}</p>
-                )}
-              </div>
+              <AdminTextField
+                className="flex-1"
+                label={formatMessage({
+                  id: "app.admin.assessment.strategyKernel.outcomeFieldLabel",
+                  defaultMessage: "Outcome",
+                })}
+                placeholder={formatMessage({
+                  id: "app.admin.assessment.strategyKernel.outcomePlaceholder",
+                  defaultMessage: "What this outcome achieves...",
+                })}
+                disabled={isSubmitting}
+                value={outcome.description}
+                onChange={(e) => updateSmartOutcome(index, "description", e.target.value)}
+                error={(showValidation && outcomeErrors[index]?.description) || undefined}
+              />
 
-              <div className="w-full sm:w-48">
-                <NativeSelect
-                  surface="admin"
-                  disabled={isSubmitting}
-                  value={outcome.metric}
-                  onChange={(e) => updateSmartOutcome(index, "metric", e.target.value)}
-                  aria-invalid={showValidation && !!outcomeErrors[index]?.metric}
-                  invalid={showValidation && !!outcomeErrors[index]?.metric}
-                >
-                  <option value="">
-                    {formatMessage({
-                      id: "app.admin.assessment.strategyKernel.selectMetric",
-                      defaultMessage: "Select metric",
-                    })}
+              <AdminSelect
+                className="w-full sm:w-48"
+                label={formatMessage({
+                  id: "app.admin.assessment.strategyKernel.metricFieldLabel",
+                  defaultMessage: "Metric",
+                })}
+                disabled={isSubmitting}
+                value={outcome.metric}
+                onChange={(e) => updateSmartOutcome(index, "metric", e.target.value)}
+                error={(showValidation && outcomeErrors[index]?.metric) || undefined}
+              >
+                <option value="">
+                  {formatMessage({
+                    id: "app.admin.assessment.strategyKernel.selectMetric",
+                    defaultMessage: "Select Metric",
+                  })}
+                </option>
+                {metrics.map((m) => (
+                  <option key={m.key} value={m.key}>
+                    {m.label} ({m.unit})
                   </option>
-                  {metrics.map((m) => (
-                    <option key={m.key} value={m.key}>
-                      {m.label} ({m.unit})
-                    </option>
-                  ))}
-                </NativeSelect>
-                {showValidation && outcomeErrors[index]?.metric && (
-                  <p className="mt-0.5 text-xs text-error-dark">{outcomeErrors[index].metric}</p>
-                )}
-              </div>
+                ))}
+              </AdminSelect>
 
               <div className="flex items-start gap-2">
-                <div className="w-24">
-                  <TextInput
-                    surface="admin"
-                    type="number"
-                    min={0}
-                    step="any"
-                    placeholder={formatMessage({
-                      id: "app.admin.assessment.strategyKernel.targetPlaceholder",
-                      defaultMessage: "Target",
-                    })}
-                    disabled={isSubmitting}
-                    value={outcome.target}
-                    onChange={(e) => updateSmartOutcome(index, "target", e.target.valueAsNumber)}
-                    aria-invalid={showValidation && !!outcomeErrors[index]?.target}
-                    invalid={showValidation && !!outcomeErrors[index]?.target}
-                  />
-                  {showValidation && outcomeErrors[index]?.target && (
-                    <p className="mt-0.5 text-xs text-error-dark">{outcomeErrors[index].target}</p>
-                  )}
-                </div>
+                <AdminTextField
+                  className="w-28"
+                  type="number"
+                  label={formatMessage({
+                    id: "app.admin.assessment.strategyKernel.targetFieldLabel",
+                    defaultMessage: "Target",
+                  })}
+                  disabled={isSubmitting}
+                  value={String(outcome.target)}
+                  onChange={(e) => updateSmartOutcome(index, "target", e.target.valueAsNumber)}
+                  error={(showValidation && outcomeErrors[index]?.target) || undefined}
+                  inputProps={{ min: 0, step: "any" }}
+                />
 
                 {form.smartOutcomes.length > 1 && (
-                  <button
-                    type="button"
+                  <AdminIconButton
+                    variant="danger"
+                    className="mt-1.5"
                     onClick={() => removeSmartOutcome(index)}
                     disabled={isSubmitting}
-                    className="mt-1 rounded-md p-1.5 text-error-base transition hover:bg-error-lighter hover:text-error-dark disabled:cursor-not-allowed disabled:opacity-60"
-                    aria-label={formatMessage({
+                    label={formatMessage({
                       id: "app.admin.assessment.strategyKernel.removeOutcome",
-                      defaultMessage: "Remove outcome",
+                      defaultMessage: "Remove Outcome",
                     })}
                   >
-                    <RiDeleteBinLine className="h-4 w-4" />
-                  </button>
+                    <RiDeleteBinLine />
+                  </AdminIconButton>
                 )}
               </div>
             </div>
@@ -467,18 +444,19 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
             <p className="text-xs text-error-dark">{fieldErrors.smartOutcomes}</p>
           )}
 
-          <button
+          <AdminButton
             type="button"
+            variant="outlined"
+            size="sm"
             onClick={() => addSmartOutcome()}
             disabled={isSubmitting}
-            className="inline-flex items-center gap-1.5 rounded-md border border-stroke-soft px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft disabled:cursor-not-allowed disabled:opacity-60"
+            leadingIcon={<RiAddLine />}
           >
-            <RiAddLine className="h-4 w-4" />
             {formatMessage({
               id: "app.admin.assessment.strategyKernel.addOutcome",
-              defaultMessage: "Add outcome",
+              defaultMessage: "Add Outcome",
             })}
-          </button>
+          </AdminButton>
         </div>
       </Section>
 
@@ -510,7 +488,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                   "flex cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 transition",
                   isSelected
                     ? "border-primary-base bg-primary-alpha-10 text-primary-dark"
-                    : "border-stroke-soft bg-bg-white text-text-sub hover:border-primary-alpha-24 hover:bg-primary-alpha-10",
+                    : "border-stroke-soft bg-bg-white text-text-sub hover:bg-[rgb(var(--m3-on-surface)/0.08)]",
                   isSubmitting && "cursor-not-allowed opacity-60"
                 )}
               >
@@ -521,12 +499,12 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                   checked={isSelected}
                   onChange={() => setField("cynefinPhase", option.value)}
                   disabled={isSubmitting}
-                  className="mt-0.5 h-4 w-4 border-stroke-sub text-primary-base focus:ring-2 focus:ring-primary-alpha-24 focus:ring-offset-0"
+                  className="mt-0.5 h-4 w-4 border-stroke-sub accent-primary-base focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-0"
                 />
                 <div>
-                  <span className="text-sm font-medium">{option.label}</span>
-                  <p className="mt-0.5 text-xs text-text-soft">{option.description}</p>
-                  <p className="mt-0.5 text-xs italic text-text-soft/70">
+                  <span className="label-md font-medium">{option.label}</span>
+                  <p className="mt-0.5 body-sm text-text-soft">{option.description}</p>
+                  <p className="mt-0.5 body-sm italic text-text-soft/70">
                     {formatMessage({
                       id: domainKey(
                         `app.admin.assessment.strategyKernel.cynefinExample.${CYNEFIN_SLUGS[option.value]}`,

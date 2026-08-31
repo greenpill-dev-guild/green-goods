@@ -1,7 +1,7 @@
-import { createActionSchema, type CreateActionFormData } from "@green-goods/shared";
+import type { CreateActionFormData } from "@green-goods/shared/hooks/action/useActionForm";
+import { createActionResolver } from "@green-goods/shared/hooks/admin-ui/actions/createAction.utils";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { CapitalsStep } from "./CapitalsStep";
 
 const BASE_DEFAULTS: CreateActionFormData = {
@@ -28,12 +28,13 @@ const BASE_DEFAULTS: CreateActionFormData = {
       review: { title: "", description: "" },
     },
   },
+  translations: {},
 };
 
 function CapitalsStepHarness({ capitals = [] }: { capitals?: number[] }) {
   const form = useForm<CreateActionFormData>({
     defaultValues: { ...BASE_DEFAULTS, capitals },
-    resolver: zodResolver(createActionSchema),
+    resolver: createActionResolver,
     mode: "onChange",
   });
   return <CapitalsStep form={form} />;

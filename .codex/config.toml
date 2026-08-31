@@ -1,6 +1,8 @@
 project_doc_fallback_filenames = ["CLAUDE.md"]
 project_doc_max_bytes = 40960
 
+model_verbosity = "low"
+model_reasoning_summary = "concise"
 [features]
 hooks = true
 

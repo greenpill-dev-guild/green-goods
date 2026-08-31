@@ -19,9 +19,9 @@ Unified PR review flow combining all four design lenses. Run in order — each l
 
 | # | Check | Pass | Fix if Fail |
 |---|-------|------|-------------|
-| 1.1 | **Value flow visible?** User can trace how their action connects to the system | | Add contextual text showing chain: "Your submission → operator review → assessment → funding" |
+| 1.1 | **Value flow visible?** User can trace how their action connects to the system | | Add contextual text showing chain: "Your submission → steward review → assessment → funding" |
 | 1.2 | **Succession-appropriate?** Feature complexity matches garden maturity | | Use progressive disclosure — hide advanced controls behind expansion, not removal |
-| 1.3 | **Edge-enriched?** If at a stakeholder boundary, designed for bidirectional learning | | Add context from both sides: rejection shows operator's reasoning + past approved examples |
+| 1.3 | **Edge-enriched?** If at a stakeholder boundary, designed for bidirectional learning | | Add context from both sides: rejection shows steward's reasoning + past approved examples |
 | 1.4 | **Failure as succession?** Error/empty/rejection states guide toward renewal | | Replace "Error" with actionable context. Replace empty states with "Here's how to get started" |
 | 1.5 | **Growth-agnostic?** No engagement gamification, urgency manufacturing, or FOMO | | Remove countdown timers, streak indicators, competitive leaderboards, re-engagement cues |
 | 1.6 | **Capability-building?** Increases independence, not dependency | | Ask: "If the platform disappeared, would this feature's value persist?" If no, redesign |
@@ -37,10 +37,10 @@ Unified PR review flow combining all four design lenses. Run in order — each l
 | # | Check | Pass | Fix if Fail |
 |---|-------|------|-------------|
 | 2.1 | **Paradigm declared?** Surface type chosen (Command / Ambient / Data Landscape / Conversational) | | Choose paradigm using the Decision Matrix below. Add comment to component: `// Paradigm: Command Surface` |
-| 2.2 | **Material appropriate?** Glass blur level matches content density | | Text-dense → thick material (solid bg). Glanceable → regular (light blur). Status → thin (max blur). See `materials.md` |
-| 2.3 | **Depth hierarchy?** Z-axis used for information priority (Z0–Z4) | | Primary content at Z2 (main pane), contextual at Z1 (recessed), alerts at Z3 (elevated). See `spatial.md` |
+| 2.2 | **Material appropriate?** Glass blur level matches content density | | Text-dense → thick material (solid bg). Glanceable → regular (light blur). Status → thin (max blur). See `surfaces.md`. Admin: solid everywhere except the nav dock — blur outside the admin chrome files fails `check:design-tokens` |
+| 2.3 | **Depth hierarchy?** Z-axis used for information priority (Z0–Z4) | | Primary content at Z2 (main pane), contextual at Z1 (recessed), alerts at Z3 (elevated). See `surfaces.md`. Admin: depth is backed by the single `--m3-elevation-0/1/2` ladder plus the warm chrome shadow |
 | 2.4 | **Hit targets ≥ 44px?** All interactive elements large enough for touch/gaze | | Increase padding. Use `min-h-11 min-w-11` (44px) on clickable areas |
-| 2.5 | **Rounded corners scale?** Larger elements have larger radii | | Small badge: `rounded-lg` (8px). Card: `rounded-xl` (12px). Modal: `rounded-2xl` (16px). Full pane: `rounded-3xl` (24px) |
+| 2.5 | **Rounded corners scale?** Larger elements have larger radii | | Client: badge `rounded-lg` (8px), card `rounded-xl` (12px), modal `rounded-2xl` (16px), full pane `rounded-3xl` (24px). Admin: badge 8, card 12, dialog/pane 16, pill 9999 — no 24px step |
 | 2.6 | **Progressive disclosure?** Information layers: glance → scan → engage → deep dive | | Surface summary first. Details on click/expand. Full data behind navigation |
 | 2.7 | **Container-query aware?** Components adapt to container, not viewport | | Replace `@media` with `@container` where component may appear in different layout contexts |
 | 2.8 | **Motion respects reduced-motion?** Animations degrade gracefully | | Wrap animations in `@media (prefers-reduced-motion: no-preference)`. Use `motion-safe:` prefix |
@@ -53,11 +53,11 @@ Unified PR review flow combining all four design lenses. Run in order — each l
 
 | # | Check | Pass | Fix if Fail |
 |---|-------|------|-------------|
-| 3.1 | **Archetypes mapped?** Can name at least 3 user archetypes this surface serves | | Review the 15 archetypes in `ecosystem.md`. A card seen by Direct (gardener), Governing (operator), and Oblique (researcher) needs different emphasis |
+| 3.1 | **Archetypes mapped?** Can name at least 3 user archetypes this surface serves | | Review the 15 archetypes in `ecosystem.md`. A card seen by Direct (gardener), Governing (steward), and Oblique (researcher) needs different emphasis |
 | 3.2 | **Cascade visible?** Governing actions show blast radius before confirmation | | Add: "This will affect N gardeners" or "Rejecting this removes it from the assessment" before destructive actions |
 | 3.3 | **Autonomic actors surfaced?** On-chain state, sync status, and resolver activity are visible | | Show sync badges (queued/syncing/confirmed), transaction status, indexer freshness |
-| 3.4 | **Surrogate supported?** Can an operator act on behalf of a gardener? | | Check if flows work when user ≠ author (e.g., operator submitting for a gardener without a phone) |
-| 3.5 | **Multi-archetype transitions?** UI adapts when user changes role (gardener → operator) | | Role-switch should update available actions without full navigation. Use role context from Hats |
+| 3.4 | **Surrogate supported?** Can a steward act on behalf of a gardener? | | Check if flows work when user ≠ author (e.g., steward submitting for a gardener without a phone) |
+| 3.5 | **Multi-archetype transitions?** UI adapts when user changes role (gardener → steward) | | Role-switch should update available actions without full navigation. Use role context from Hats |
 
 ---
 
@@ -77,6 +77,11 @@ Unified PR review flow combining all four design lenses. Run in order — each l
 | 4.8 | **i18n ready?** All user-facing strings use `intl.formatMessage()` | | Replace hardcoded strings. Update en.json, es.json, pt.json |
 | 4.9 | **Storybook story exists?** Component has story with loading/error/empty variants | | Create story file. Include `tags: ["autodocs"]`, add play functions for interactions |
 | 4.10 | **Offline state handled?** Component degrades gracefully without connectivity | | Show cached data with freshness indicator. Queue actions for background sync |
+| 4.11 | **Admin: single elevation ladder?** Only `--m3-elevation-0/1/2` (+ warm chrome shadow on floating chrome) | | Replace any other shadow token or ad-hoc `box-shadow` with the ladder |
+| 4.12 | **Admin: radius set?** Only 4/8/12/16/9999px | | Snap to the nearest admin step — no 20/24/28px |
+| 4.13 | **Admin: tone budget?** Workspace tone appears only in its 4 sanctioned uses (active tab/nav pill, one filled header action, faint canvas wash, nav-shell FAB fill) | | Return extra tone usage to neutral ink/stone |
+| 4.14 | **Admin: hover discipline?** Elevation step or neutral 8% ink layer only — no lift, no glow, no hue shift | | Replace transform/glow hovers with elevation 1→2 or `rgb(var(--m3-on-surface)/0.08)` |
+| 4.15 | **Buttons: Title Case labels?** Buttons are `AdminButton` (pill); action labels are Title Case in en (DL-012 — es/pt keep native casing); shared `Button` never appears in admin | | Swap shared `Button` for `AdminButton`; fix sentence-case action labels |
 
 ---
 
@@ -115,10 +120,10 @@ Q4: Is this AI/guidance interaction?
 
 | Paradigm | Background | Border | Text | Shadow |
 |----------|-----------|--------|------|--------|
-| **Command** | `bg-card` (solid) | `border-border` (visible) | `text-foreground` (high contrast) | `shadow-sm` to `shadow-md` |
-| **Ambient** | `bg-card/60 backdrop-blur-xl` | `border-border/30` (subtle) | `text-muted-foreground` | `shadow-none` |
-| **Data Landscape** | `bg-background` | `border-border/50` | `text-foreground` | Variable by depth |
-| **Conversational** | `bg-transparent` | `border-none` | `text-foreground` | `shadow-none` |
+| **Command** (admin) | Solid `rgb(var(--admin-surface-0))` | `--stroke-sub-300` hairline | `--text-strong-950` (high contrast) | `--m3-elevation-1` |
+| **Ambient** (client) | `--color-material-thin` + `--blur-material-thin` | `var(--border-material)` | `--text-sub-600` | None |
+| **Data Landscape** | `--bg-white-0` canvas | `--stroke-sub-300` hairline | `--text-strong-950` | Variable by depth (`--shadow-elevation-*`) |
+| **Conversational** | Transparent | None | `--text-strong-950` | None |
 
 ---
 
@@ -133,7 +138,16 @@ Q4: Is this AI/guidance interaction?
    ↓ Catches: single-user tunnel vision, hidden blast radius
 4. COMPLIANCE (Lens 4) — Does this meet a11y/i18n/responsive standards?
    ↓ Catches: accessibility violations, missing stories, hardcoded strings
+5. INTERACTION (admin surfaces) — Does this follow interaction-patterns.md?
+   ↓ Catches: left-aligned action clusters, tab-varying view actions, dialog
+     shell changes mid-flow, flows without visible entries, banner-as-status,
+     invented components outside the shipped palette
 ```
+
+**Lens 5 is mandatory for every admin design round — shipped console, prototypes, or
+AI-generated output — and runs as an explicit checklist pass against
+[interaction-patterns.md](./interaction-patterns.md) before publishing.** A green prototype
+build does not substitute for it (2026-08-16 lesson: validators check structure, not design).
 
 ---
 
@@ -143,11 +157,11 @@ Each lens has a manual review pass. Some lenses also have automation that runs t
 
 | Lens | Manual Review | Automation | Status |
 |------|--------------|-----------|--------|
-| **1 — Regenerative** | Motivation filter + degen/regen pattern table | `bun run lint:vocab` — scans `packages/*/src/i18n/*.json` for `linter_enforced.terms` from `docs/docs/reference/banned-vocabulary.json`; prompt-only admin/client vocabulary is documentation, not a runtime check | **Wired** |
+| **1 — Regenerative** | Value-flow, succession, recovery, motivation, capability, and aesthetic checks | `bun run lint:vocab` — scans `packages/*/src/i18n/*.json` for `linter_enforced.terms` from `scripts/data/banned-vocabulary.json`; prompt-only admin/client vocabulary is guidance, not a runtime check | **Wired** |
 | **2 — Spatial** | Paradigm declared, material thickness matches content density | Chromatic visual regression on paradigm-tagged stories; `@container` coverage lint | **Proposed** |
-| **3 — Ecosystem** | Archetype mapping, cascade visibility, surrogate flows | Playwright role-based flows (gardener / operator / evaluator / funder); vitest surrogate-path tests; indexer archetype-span checks | **Proposed** |
+| **3 — Ecosystem** | Archetype mapping, cascade visibility, surrogate flows | Playwright role-based flows (gardener / steward / evaluator / funder); vitest surrogate-path tests; indexer archetype-span checks | **Proposed** |
 | **4 — Compliance** | WCAG 2.1 AA, i18n readiness, responsive breakpoints | `@storybook/addon-a11y` (installed, not CI-gating); viewport tests at 320/768/1280; i18n-key coverage lint; `prefers-reduced-motion` vitest matcher | **Partial** — addon installed, no CI gate |
-| **Cross-cutting** | Token consistency across docs and implementation | `bun run check:design-tokens` — spec ↔ `theme.css` + `token_version` declared in `design/SKILL.md` | **Wired** |
+| **Cross-cutting** | Token consistency across docs and implementation | `bun run check:design-tokens` — spec ↔ `theme.css` (shared) + `packages/admin/src/styles/admin-m3-tokens.css` / `admin-m3-components.css` + `token_version` declared in `design/SKILL.md` | **Wired** |
 
 ### Quick wiring reference — currently runnable
 
@@ -155,7 +169,7 @@ Each lens has a manual review pass. Some lenses also have automation that runs t
 # Lens 1 — lint-enforced banned vocabulary in user-facing i18n strings
 bun run lint:vocab
 
-# Cross-cutting — Warm Earth token spec ↔ theme.css + version coupling
+# Cross-cutting — Warm Earth token spec ↔ theme.css + admin-m3-tokens.css/admin-m3-components.css + version coupling
 bun run check:design-tokens
 ```
 
@@ -168,22 +182,22 @@ To move rows out of **Proposed** / **Partial**:
 - **Lens 2 — `@container` coverage**: adopt `eslint-plugin-css-query` or equivalent (not installed).
 - **Lens 4 — i18n key coverage**: adopt or build a lightweight lint that diffs keys across `en.json` / `es.json` / `pt.json`. No `intl-lint` package currently installed.
 - **Lens 4 — viewport tests**: Storybook `@viewport` at 320/768/1280 — depends on the `test-storybook` script above.
-- **Lens 3 — archetype-spanning Playwright flows**: Playwright is in the stack; missing is the gardener / operator / evaluator / funder + surrogate coverage.
+- **Lens 3 — archetype-spanning Playwright flows**: Playwright is in the stack; missing is the gardener / steward / evaluator / funder + surrogate coverage.
 
 ### Why automate
 
 A checklist agents run once per PR catches what we remember. Automated checks catch what we forget. The combination is the whole system — manual review for judgment, CI for vigilance. Keep this table honest: every row marked **Wired** must execute without error from a clean checkout.
 
 **Implementation notes**:
-- `lint:vocab` runs `scripts/design/check-vocab.sh` against `packages/*/src/i18n/*.json` and reads only `linter_enforced.terms` from `docs/docs/reference/banned-vocabulary.json`. Biome's linter is disabled repo-wide so a shell grep is the practical substitute; wire it into pre-commit + CI.
-- `check:design-tokens` runs `scripts/design/check-tokens.sh`, which verifies every spec'd Warm Earth token (springs, materials, border) exists in `theme.css` AND that `token_version` is declared in `design/SKILL.md`.
+- `lint:vocab` runs `scripts/design/check-vocab.sh` against `packages/*/src/i18n/*.json` and reads only `linter_enforced.terms` from `scripts/data/banned-vocabulary.json`. Biome's linter is disabled repo-wide so a shell grep is the practical substitute; wire it into pre-commit + CI.
+- `check:design-tokens` runs `scripts/design/check-tokens.sh`, which verifies every spec'd Warm Earth token (springs, materials, border) exists in its source — `theme.css` for shared/client tokens; `packages/admin/src/styles/admin-m3-tokens.css` + `admin-m3-components.css` for admin M3/tone tokens — AND that `token_version` is declared in `design/SKILL.md`.
 
 ---
 
 ## Related
 
-- Regenerative principles: [regenerative.md](./regenerative.md)
-- Spatial patterns: [spatial.md](./spatial.md)
+- Regenerative rationale and sources: `docs/docs/reference/design-research.md`
+- Spatial patterns: [surfaces.md](./surfaces.md)
 - Ecosystem archetypes: [ecosystem.md](./ecosystem.md)
 - Implementation details: [implementation.md](./implementation.md)
 - Green Goods personas: `docs/docs/reference/design-research.md`

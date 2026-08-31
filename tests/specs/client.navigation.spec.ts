@@ -81,7 +81,7 @@ test.describe("Client Navigation", () => {
   test.describe("Deep Linking", () => {
     test("preserves intended destination after login", async () => {
       // This test requires completing a real login flow which we can't do with wallet injection
-      // SKIP: #338 owner:afo expiry:2026-08-17 — needs real login flow
+      // SKIP: #338 owner:afo expiry:2026-09-17 — needs real login flow
       test.skip(
         true,
         "Deep linking test skipped: requires completing real login flow. " +
@@ -94,34 +94,24 @@ test.describe("Client Navigation", () => {
     test("shows navigation menu on mobile", async ({ page }) => {
       const helper = new ClientTestHelper(page);
 
+      await page.setViewportSize({ width: 375, height: 667 });
       // Use wallet injection
       await helper.injectWalletAuth();
       await page.goto("/home?presentation=pwa");
       await helper.waitForPageLoad();
 
       const url = page.url();
-      if (url.includes("/home/login")) {
-        console.log("Auth injection not persisted - skipping navigation menu test");
-        return;
-      }
+      // SKIP: #338 owner:afo expiry:2026-09-15 — wallet injection may not persist in this manual lane
+      test.skip(url.includes("/home/login"), "Wallet authentication did not persist");
 
       // Look for hamburger menu on mobile
       const menuButton = page.locator('button[aria-label="Menu"], button[aria-label="Open menu"]');
-      if (await menuButton.isVisible({ timeout: TIMEOUTS.shortWait }).catch(() => false)) {
-        await menuButton.click();
-        await page.waitForTimeout(TIMEOUTS.shortWait);
+      await expect(menuButton).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+      await menuButton.click();
 
-        // Menu should open
-        const navMenu = page.locator('nav[role="navigation"], [data-testid="mobile-menu"]');
-        await expect(navMenu.first()).toBeVisible({ timeout: TIMEOUTS.modalAppear });
-
-        // Should have navigation links
-        const profileLink = page.locator('a[href="/home/profile"]');
-        await expect(profileLink.first()).toBeVisible();
-      } else {
-        // No mobile menu visible - test passes (may be desktop view)
-        expect(true).toBeTruthy();
-      }
+      const navMenu = page.locator('nav[role="navigation"], [data-testid="mobile-menu"]');
+      await expect(navMenu.first()).toBeVisible({ timeout: TIMEOUTS.modalAppear });
+      await expect(page.locator('a[href="/home/profile"]').first()).toBeVisible();
     });
 
     test("shows breadcrumbs on detail pages", async ({ page }) => {
@@ -133,10 +123,8 @@ test.describe("Client Navigation", () => {
       await helper.waitForPageLoad();
 
       const url = page.url();
-      if (url.includes("/home/login")) {
-        console.log("Auth injection not persisted - skipping breadcrumbs test");
-        return;
-      }
+      // SKIP: #338 owner:afo expiry:2026-09-15 — wallet injection may not persist in this manual lane
+      test.skip(url.includes("/home/login"), "Wallet authentication did not persist");
 
       // Navigate to a detail page if available
       const gardenLink = page.locator('a[href*="/gardens/"], a[href*="/home/"]').first();
@@ -149,19 +137,11 @@ test.describe("Client Navigation", () => {
           'nav[aria-label="Breadcrumb"], [data-testid="breadcrumbs"], ol:has(li > a)'
         );
 
-        if (await breadcrumbs.isVisible({ timeout: TIMEOUTS.shortWait }).catch(() => false)) {
-          // Should have at least one breadcrumb link
-          const breadcrumbLinks = breadcrumbs.locator("a");
-          expect(await breadcrumbLinks.count()).toBeGreaterThan(0);
-        } else {
-          // No breadcrumbs visible - this is acceptable
-          console.log("No breadcrumbs found on detail page");
-          expect(true).toBeTruthy();
-        }
+        await expect(breadcrumbs).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+        expect(await breadcrumbs.locator("a").count()).toBeGreaterThan(0);
       } else {
-        // No garden links to navigate to
-        console.log("No garden links available - skipping breadcrumbs test");
-        expect(true).toBeTruthy();
+        // SKIP: #338 owner:afo expiry:2026-09-15 — requires a rendered garden detail link
+        test.skip(true, "No garden detail link is available for breadcrumb coverage");
       }
     });
   });

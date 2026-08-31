@@ -1,8 +1,10 @@
-import { type Address, type Garden, FormField, TextInput, useEnsName } from "@green-goods/shared";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCheckbox } from "@/components/AdminCheckbox";
+import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText, formatEnsAddressName } from "@/components/EnsAddressText";
 import {
   filterCampaignCookieJarGardens,
@@ -29,10 +31,10 @@ function GardenSelectorCheckbox({
       label={garden.name}
       description={formatMessage(
         {
-          id: "cockpit.community.cookies.operatorCount",
-          defaultMessage: "{count, plural, one {# operator} other {# operators}} - {address}",
+          id: "cockpit.community.cookies.stewardCount",
+          defaultMessage: "{count, plural, one {# steward} other {# stewards}} · {address}",
         },
-        { count: garden.operators.length, address: addressLabel }
+        { count: garden.stewards.length, address: addressLabel }
       )}
     />
   );
@@ -77,24 +79,20 @@ export function GardenSelector({
   return (
     <div className="space-y-3">
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-        <FormField
+        <AdminTextField
+          id="campaign-cookie-jar-garden-search"
+          className="min-w-0"
           label={formatMessage({
             id: "cockpit.community.cookies.searchGardens",
             defaultMessage: "Search gardens",
           })}
-          htmlFor="campaign-cookie-jar-garden-search"
-        >
-          <TextInput
-            id="campaign-cookie-jar-garden-search"
-            surface="admin"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={formatMessage({
-              id: "cockpit.community.cookies.searchGardensPlaceholder",
-              defaultMessage: "Search by name, slug, or address",
-            })}
-          />
-        </FormField>
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder={formatMessage({
+            id: "cockpit.community.cookies.searchGardensPlaceholder",
+            defaultMessage: "Search by name, slug, or address",
+          })}
+        />
         <div className="flex flex-wrap gap-2">
           <AdminButton
             type="button"
@@ -105,7 +103,7 @@ export function GardenSelector({
           >
             {formatMessage({
               id: "cockpit.community.cookies.selectVisibleGardens",
-              defaultMessage: "Select visible",
+              defaultMessage: "Select Visible",
             })}
           </AdminButton>
           <AdminButton

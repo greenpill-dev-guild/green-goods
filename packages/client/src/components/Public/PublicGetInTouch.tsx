@@ -1,8 +1,10 @@
-import { logger, toastService, useInViewReveal } from "@green-goods/shared";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
+import { logger } from "@green-goods/shared/modules/app/logger";
 import type {
   PublicSubscribeRequest,
   PublicSubscribeResponse,
-} from "@green-goods/shared/public-contracts";
+} from "@green-goods/shared/public-contracts/core";
 import { type FormEvent, useCallback, useState } from "react";
 import { useIntl } from "react-intl";
 import { publicCuration } from "@/content/publicCuration";
@@ -166,7 +168,7 @@ export function PublicGetInTouch() {
                   {submitState === "loading"
                     ? formatMessage({
                         id: "public.home.getInTouch.submitting",
-                        defaultMessage: "…",
+                        defaultMessage: "Subscribing…",
                       })
                     : formatMessage({
                         id: "public.home.getInTouch.submit",
@@ -235,7 +237,7 @@ export function PublicGetInTouch() {
               >
                 {formatMessage({
                   id: "public.home.getInTouch.scheduleCall",
-                  defaultMessage: "Schedule a call",
+                  defaultMessage: "Schedule a Call",
                 })}
                 <span aria-hidden="true">→</span>
               </a>

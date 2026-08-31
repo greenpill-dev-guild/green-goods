@@ -94,7 +94,7 @@ const messages = {
   "app.treasury.withdraw": "Withdraw",
   "app.treasury.harvest": "Harvest",
   "app.treasury.emergencyPause": "Emergency Pause",
-  "app.treasury.enableAutoAllocate": "Enable auto-allocation",
+  "app.treasury.enableAutoAllocate": "Enable Auto-Allocation",
   "app.treasury.enablingAutoAllocate": "Enabling auto-allocation",
   "app.treasury.enableAutoAllocateSuccess": "Auto-allocation enabled",
   "app.treasury.depositSuccess": "Deposit successful",
@@ -207,7 +207,7 @@ describe("hooks/vault/useVaultOperations", () => {
       })
     );
     expect(invalidateSpy).toHaveBeenCalled();
-  });
+  }, 20_000);
 
   it("skips approve when allowance is already sufficient", async () => {
     // Read sequence (no minSharesOut -> early slippage check skipped):
@@ -535,7 +535,7 @@ describe("hooks/vault/useVaultOperations", () => {
             receiverAddress: TEST_PRIMARY_ADDRESS as `0x${string}`,
           },
         })
-      ).rejects.toThrow(/insufficient WETH/i);
+      ).rejects.toThrow(/needs more WETH/i);
     });
 
     // Stops at maxDeposit + balanceOf; never previews, approves, or deposits.
@@ -586,7 +586,7 @@ describe("hooks/vault/useVaultOperations", () => {
             receiverAddress: TEST_PRIMARY_ADDRESS as `0x${string}`,
           },
         })
-      ).rejects.toThrow(/insufficient WETH/i);
+      ).rejects.toThrow(/needs more WETH/i);
     });
 
     expect(lifecycleSteps).toEqual(["error"]);

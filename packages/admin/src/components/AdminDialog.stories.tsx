@@ -112,7 +112,7 @@ function OpenGeometryDialog({
 
 /**
  * Wait for the dialog's enter animation to finish so geometry is measured at
- * rest. The admin-owned keyframes (admin-m3-overrides.css) animate transform +
+ * rest. The admin-owned keyframes (admin-m3-components.css) animate transform +
  * opacity, so a naive measurement could land mid-flight. `getAnimations()`
  * resolves once every running CSS animation on the surface has settled.
  */
@@ -239,14 +239,10 @@ export const LongBody: Story = {
 };
 
 export const MobileSheetContract: Story = {
-  parameters: {
-    viewport: {
-      defaultViewport: "mobile1",
-    },
-  },
+  globals: { viewport: { value: "mobile" } },
   render: () => (
     <DialogPreview
-      title="Edit domains"
+      title="Edit Domains"
       description="Mobile action dialogs use a full-width sheet while desktop remains centered."
       body="The body scrolls inside the AdminDialog surface and actions stay pinned below it."
       confirmLabel="Save"
@@ -307,13 +303,13 @@ export const FlowVariant: Story = {
       variant="flow"
       className={ADMIN_FLOW_DIALOG_CLASS}
       onOpenChange={() => undefined}
-      title="Submit work"
+      title="Submit Work"
       description="Capture the action, evidence, and notes for a new contribution."
       bodyClassName="flex min-h-0 flex-col !overflow-hidden"
     >
       <ActionFlowShell
         layout="dialog"
-        title="Submit work"
+        title="Submit Work"
         context="Rio Rainforest Lab"
         footer={
           <>
@@ -508,10 +504,10 @@ export const MobileSheetGeometry: Story = {
   tags: ["storybook-ci"],
   parameters: {
     viewport: {
-      defaultViewport: "adminMobile390x844",
-      viewports: ADMIN_MOBILE_390_VIEWPORT,
+      options: ADMIN_MOBILE_390_VIEWPORT,
     },
   },
+  globals: { viewport: { value: "adminMobile390x844" } },
   render: () => (
     <OpenGeometryDialog
       title="Mobile bottom sheet"

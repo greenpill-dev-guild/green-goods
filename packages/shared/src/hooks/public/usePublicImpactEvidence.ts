@@ -18,8 +18,9 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { queryKeys } from "../../config/query-keys";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { isGardenPubliclyVisible } from "../../config/garden-visibility";
+import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
 import { getGardenAssessments, getWorks } from "../../modules/data/eas";
@@ -31,7 +32,7 @@ import {
   PUBLIC_IMPACT_GARDEN_FETCH_CAP,
   type PublicImpactEvidenceRecord,
   type PublicImpactSlice,
-} from "../../public-contracts";
+} from "../../public-contracts/public-impact";
 import type { Domain } from "../../types/domain";
 
 export interface UsePublicImpactEvidenceOptions {
@@ -46,13 +47,12 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
   const pageSize = Math.max(1, options.pageSize ?? PUBLIC_IMPACT_DEFAULT_PAGE_SIZE);
 
   return useQuery({
-    queryKey: queryKeys.public.impactEvidence(chainId, page, pageSize),
+    queryKey: publicKeys.impactEvidence(chainId, page, pageSize),
     queryFn: async (): Promise<PublicImpactSlice> => {
       const gardens = await getGardens();
-      const visibleGardens = gardens.filter(
-        (garden) =>
-          (garden.name ?? "").trim().length > 0 || (garden.location ?? "").trim().length > 0
-      );
+      // Same predicate the archive and the proof counters use. A garden hidden
+      // from the website must not leak back in through its work records.
+      const visibleGardens = gardens.filter(isGardenPubliclyVisible);
 
       // First pass: pull all Work entries to determine recency-ordered Garden caps.
       const worksResult = await getWorks(
@@ -107,7 +107,7 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
       // Action ids in the indexer are chainId-prefixed (`${chainId}-${actionUID}`)
       // so we can't match Work.actionUID directly — the lookup key has to be
       // assembled the same way the indexer keys its rows.
-      const actionDomainByCompositeId = new Map<string, Domain>(
+      const actionDomainByCompositeId = new Map<string, Domain | null>(
         actions.map((action) => [action.id, action.domain])
       );
 
@@ -159,7 +159,9 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
           gardenId: gardenContext.id,
           gardenName: gardenContext.name,
           title: work.title,
-          domain: actionDomainByCompositeId.get(`${chainId}-${work.actionUID}`),
+          // Unknown domains surface as undefined here — the /impact domain filters
+          // then exclude the record from named-domain tabs while "All" keeps it.
+          domain: actionDomainByCompositeId.get(`${chainId}-${work.actionUID}`) ?? undefined,
           summary: work.feedback,
           media: work.media,
           easUid: work.id,

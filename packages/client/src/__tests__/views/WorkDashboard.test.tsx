@@ -2,13 +2,20 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Work } from "@green-goods/shared/types/domain";
 
 const mockNavigate = vi.hoisted(() => vi.fn());
 const mockUseMyWorks = vi.fn();
 const mockUseMyOnlineWorks = vi.fn();
 let mockReviewerGardenIds: string[] = [];
-let mockReviewerWorksState = {
+let mockReviewerWorksState: {
+  data: Work[];
+  isLoading: boolean;
+  isFetching: boolean;
+  isError: boolean;
+  refetch: ReturnType<typeof vi.fn>;
+} = {
   data: [],
   isLoading: false,
   isFetching: false,
@@ -68,16 +75,22 @@ vi.mock("react-router-dom", async (importOriginal) => {
   };
 });
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/blockchain/address", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/utils/blockchain/address")>()),
   compareAddresses: (left?: string, right?: string) =>
     Boolean(left && right && left.toLowerCase() === right.toLowerCase()),
+  isUserAddress: (address?: string, activeAddress?: string) =>
+    Boolean(address && activeAddress && address.toLowerCase() === activeAddress.toLowerCase()),
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/utils/work/pending-review", () => ({
   collectApprovalRecipientsForWorks: (gardenIds: string[]) => gardenIds,
   collectApprovedWorkUIDs: (approvals: Array<{ workUID: string }>) =>
     new Set(approvals.map((approval) => approval.workUID)),
-  DEFAULT_RETRY_COUNT: 0,
-  fetchApprovalsByRecipients: vi.fn(async () => []),
-  filterByTimeRange: (items: unknown[]) => items,
   filterPendingNeedsReview: (
     works: Array<{ id: string; gardenerAddress?: string }>,
     approvedWorkUIDs: Set<string>,
@@ -92,29 +105,98 @@ vi.mock("@green-goods/shared", () => ({
           work.gardenerAddress.toLowerCase() === viewerAddress.toLowerCase()
         )
     ),
-  hapticLight: vi.fn(),
-  isUserAddress: (address?: string, activeAddress?: string) =>
-    Boolean(address && activeAddress && address.toLowerCase() === activeAddress.toLowerCase()),
-  logger: { error: vi.fn() },
-  queryKeys: {
-    approvals: {
-      byMyWorkGardens: (...args: unknown[]) => ["approvals", "mine", ...args],
-      forWorkReview: (...args: unknown[]) => ["approvals", "forWorkReview", ...args],
-    },
-  },
-  Spinner: ({ label }: { label?: string }) => createElement("div", { role: "status" }, label),
+}));
+
+vi.mock("@green-goods/shared/config/query-keys/constants", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/config/query-keys/constants")>()),
+  DEFAULT_RETRY_COUNT: 0,
   STALE_TIME_MEDIUM: 30_000,
-  toastService: { error: vi.fn() },
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useAggregatedApprovals", () => ({
+  fetchApprovalsByRecipients: vi.fn(async () => []),
+}));
+
+vi.mock("@green-goods/shared/utils/time", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/utils/time")>()),
+  filterByTimeRange: (items: unknown[]) => items,
+}));
+
+vi.mock("@green-goods/shared/utils/app/haptics", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/utils/app/haptics")>()),
+  hapticLight: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/modules/app/logger", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared/modules/app/logger")>();
+  return { ...actual, logger: { ...actual.logger, error: vi.fn() } };
+});
+
+vi.mock("@green-goods/shared/config/query-keys/registry", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@green-goods/shared/config/query-keys/registry")>();
+  return {
+    ...actual,
+    queryKeys: {
+      ...actual.queryKeys,
+      approvals: {
+        ...actual.queryKeys.approvals,
+        byMyWorkGardens: (...args: unknown[]) => ["approvals", "mine", ...args],
+        forWorkReview: (...args: unknown[]) => ["approvals", "forWorkReview", ...args],
+      },
+    },
+  };
+});
+
+vi.mock("@green-goods/shared/components/Spinner", () => ({
+  Spinner: ({ label }: { label?: string }) => createElement("div", { role: "status" }, label),
+}));
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@green-goods/shared/components/Toast/toast.service")>();
+  return { ...actual, toastService: { ...actual.toastService, error: vi.fn() } };
+});
+
+vi.mock("@green-goods/shared/hooks/work/useDrafts", () => ({
   useDrafts: () => ({ draftCount: 0 }),
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useFocusTrap", () => ({
   useFocusTrap: vi.fn(),
-  useMyOnlineWorks: (...args: unknown[]) => mockUseMyOnlineWorks(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useMyWorks", () => ({
   useMyWorks: (...args: unknown[]) => mockUseMyWorks(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useReviewerGardenIds", () => ({
   useReviewerGardenIds: () => ({ reviewerGardenIds: mockReviewerGardenIds }),
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useReviewerWorks", () => ({
   useReviewerWorks: () => mockReviewerWorksState,
-  useTimeout: () => ({ set: vi.fn((fn: () => void) => fn()) }),
-  useUIStore: (selector: (s: { workDashboardInitialTab?: string }) => unknown) =>
-    selector({ workDashboardInitialTab: undefined }),
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useTimeout", () => ({
+  useTimeout: () => ({ set: vi.fn((fn: () => void) => fn()), clear: vi.fn() }),
+}));
+
+vi.mock("@green-goods/shared/stores/useUIStore", () => ({
+  useUIStore: (
+    selector: (s: {
+      workDashboardInitialTab?: string;
+      workDashboardInitialPendingFilter?: string;
+    }) => unknown
+  ) =>
+    selector({ workDashboardInitialTab: undefined, workDashboardInitialPendingFilter: undefined }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
   useUser: () => ({ user: { id: "0xabc" } }),
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useWorkApprovals", () => ({
   useWorkApprovals: () => mockWorkApprovalsState,
 }));
 
@@ -159,18 +241,19 @@ vi.mock("../../views/Home/WorkDashboard/Drafts", () => ({
 
 import { WorkDashboard } from "../../views/Home/WorkDashboard";
 
-function renderDashboard() {
-  return render(
+function renderDashboard(onClose = vi.fn()) {
+  const view = render(
     createElement(
       MemoryRouter,
       null,
       createElement(
         IntlProvider,
         { locale: "en", messages: { "app.common.loading": "Loading" } },
-        createElement(WorkDashboard, { onClose: vi.fn() })
+        createElement(WorkDashboard, { onClose })
       )
     )
   );
+  return { ...view, onClose };
 }
 
 describe("WorkDashboard", () => {
@@ -212,7 +295,7 @@ describe("WorkDashboard", () => {
         {
           id: "job-1",
           title: "Queued tree planting",
-          actionUID: "1",
+          actionUID: 1,
           gardenerAddress: "0xabc",
           gardenAddress: "garden-1",
           feedback: "",
@@ -234,6 +317,11 @@ describe("WorkDashboard", () => {
       isError: false,
       refetch: vi.fn(),
     });
+  });
+
+  afterEach(() => {
+    document.getElementById("app-scroll")?.remove();
+    document.documentElement.classList.remove("modal-open");
   });
 
   it("opens on Pending and shows offline-included submitted work after submission", () => {
@@ -293,14 +381,14 @@ describe("WorkDashboard", () => {
     expect(screen.queryByText("Loading pending work...")).not.toBeInTheDocument();
   });
 
-  it("waits for review-exclusion approvals before showing operator work as needing review", () => {
+  it("waits for review-exclusion approvals before showing steward work as needing review", () => {
     mockReviewerGardenIds = ["garden-1"];
     mockReviewerWorksState = {
       data: [
         {
           id: "reviewed-work",
           title: "Already reviewed planting",
-          actionUID: "1",
+          actionUID: 1,
           gardenerAddress: "0xdef",
           gardenAddress: "garden-1",
           feedback: "",
@@ -353,6 +441,7 @@ describe("WorkDashboard", () => {
   });
 
   it("opens the original work route from the My work reviewed completed filter", () => {
+    const onClose = vi.fn();
     mockUseMyWorks.mockReturnValue({
       data: [
         {
@@ -390,7 +479,7 @@ describe("WorkDashboard", () => {
       isSuccess: true,
     };
 
-    renderDashboard();
+    renderDashboard(onClose);
 
     fireEvent.click(screen.getByTestId("tab-completed"));
     fireEvent.change(screen.getByDisplayValue("Reviewed by you"), {
@@ -398,10 +487,44 @@ describe("WorkDashboard", () => {
     });
     fireEvent.click(screen.getByText("Reviewed planting"));
 
+    expect(onClose).toHaveBeenCalledOnce();
     expect(mockNavigate).toHaveBeenCalledWith("/home/garden-42/work/reviewed-work", {
       state: { from: "dashboard", returnTo: "/home" },
       viewTransition: true,
     });
+    expect(onClose.mock.invocationCallOrder[0]).toBeLessThan(
+      mockNavigate.mock.invocationCallOrder[0]
+    );
+  });
+
+  it("owns dashboard scrolling explicitly and resets that owner on tab changes", () => {
+    const appScroll = document.createElement("div");
+    appScroll.id = "app-scroll";
+    appScroll.scrollTop = 900;
+    document.body.append(appScroll);
+
+    renderDashboard();
+
+    const dashboardScroll = document.getElementById("work-dashboard-scroll");
+    expect(dashboardScroll).not.toBeNull();
+    if (!dashboardScroll) throw new Error("WorkDashboard scroll owner is missing");
+    dashboardScroll.scrollTop = 420;
+
+    fireEvent.click(screen.getByTestId("tab-completed"));
+
+    expect(dashboardScroll.scrollTop).toBe(0);
+    expect(appScroll.scrollTop).toBe(900);
+    expect(dashboardScroll.querySelector(".overflow-y-auto")).toBeNull();
+  });
+
+  it("closes from Escape while focus is inside the dialog", () => {
+    const { onClose } = renderDashboard();
+    const closeButton = screen.getByTestId("modal-drawer-close");
+    closeButton.focus();
+
+    fireEvent.keyDown(closeButton, { key: "Escape" });
+
+    expect(onClose).toHaveBeenCalledOnce();
   });
 
   it("does not show original submission feedback as review feedback", () => {

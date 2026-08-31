@@ -1,22 +1,22 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import type { QueryKey } from "@tanstack/react-query";
+import { ToastViewport } from "@green-goods/shared/components/Toast/ToastViewport";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import {
-  DEFAULT_CHAIN_ID,
-  Domain,
-  queryKeys,
-  ToastViewport,
   type Action,
   type Address,
+  Domain,
   type Garden as SharedGarden,
-} from "@green-goods/shared";
+} from "@green-goods/shared/types/domain";
 import {
   AuthActionsContext,
-  AuthContext,
-  AuthStateContext,
   type AuthActionsValue,
+  AuthContext,
   type AuthContextType,
+  AuthStateContext,
   type AuthStateValue,
-} from "@green-goods/shared/providers";
+} from "@green-goods/shared/providers/Auth";
 import type { ComponentType, ReactNode } from "react";
 import { Route, Routes } from "react-router-dom";
 import { expect, fn, userEvent, within } from "storybook/test";
@@ -24,7 +24,7 @@ import {
   STORYBOOK_ADMIN_ACTIONS,
   STORYBOOK_ADMIN_GARDENS,
   STORYBOOK_ADMIN_SHELL_SEEDS,
-  STORYBOOK_OPERATOR_ADDRESS,
+  STORYBOOK_STEWARD_ADDRESS,
   STORYBOOK_PRIMARY_ADMIN_GARDEN,
 } from "../../../../shared/.storybook/adminFixtures";
 import {
@@ -37,7 +37,7 @@ import {
 } from "../../../../shared/.storybook/decorators";
 import SubmitWork, { SubmitWorkPanel } from "./SubmitWork";
 
-const STORYBOOK_OPERATOR_ADDRESS_KEY = STORYBOOK_OPERATOR_ADDRESS.toLowerCase() as Address;
+const STORYBOOK_STEWARD_ADDRESS_KEY = STORYBOOK_STEWARD_ADDRESS.toLowerCase() as Address;
 
 const STORYBOOK_SUBMIT_ACTIONS: Action[] = STORYBOOK_ADMIN_ACTIONS.map((action, index) => ({
   ...action,
@@ -126,9 +126,9 @@ const STORYBOOK_EMPTY_DOMAIN_GARDEN = {
 
 const STORYBOOK_REVIEW_ONLY_GARDEN = {
   ...STORYBOOK_PRIMARY_ADMIN_GARDEN,
-  operators: [],
+  stewards: [],
   owners: [],
-  evaluators: [STORYBOOK_OPERATOR_ADDRESS],
+  evaluators: [STORYBOOK_STEWARD_ADDRESS],
 } satisfies SharedGarden;
 
 function replaceGarden(garden: SharedGarden) {
@@ -147,7 +147,7 @@ function submitWorkSeeds({
     [queryKeys.actions.byChain(DEFAULT_CHAIN_ID), actions],
     [queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), gardens],
     [
-      queryKeys.role.operatorGardens(STORYBOOK_OPERATOR_ADDRESS_KEY, DEFAULT_CHAIN_ID),
+      queryKeys.role.stewardGardens(STORYBOOK_STEWARD_ADDRESS_KEY, DEFAULT_CHAIN_ID),
       gardens.map((garden) => ({ id: garden.id, name: garden.name })),
     ],
   ];
@@ -362,7 +362,7 @@ export const NoDomainRecovery: Story = {
     await expect(
       await canvas.findByText("No actions available for this garden's domains")
     ).toBeVisible();
-    await expect(await canvas.findByRole("button", { name: "Configure domains" })).toBeVisible();
+    await expect(await canvas.findByRole("button", { name: "Configure Domains" })).toBeVisible();
   },
 };
 

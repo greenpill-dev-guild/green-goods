@@ -6,13 +6,13 @@
 **Companions**: `spec.md` (the product contract these storyboards walk), `wireframes.md` (the frames — referenced by W-id, never re-drawn), `journeys.md` (J1–J6 + personas), `diagrams.md` (D1–D13 flow truth), `research-plan.md`, and cross-hub `../commitment-pooling/{wireframes.md,uiux-spec.md,contract-spec.md,external-brief.md}` for the seed-from-Need seam and the September frames that ride August primitives.
 **Fidelity**: deliberately low, matching `wireframes.md` §0 — a storyboard is a screen-by-screen walk of flows the specs already lock; it adds **no design authority**. Where a step lands on a moment no existing frame draws, a minimal micro-frame appears inline marked `NEW — proposed lo-fi, not a locked design` and is indexed in §14 Missing frames for Afo to accept into `wireframes.md` or reject.
 **Grounding rule**: every claim carries file:line. Wireframe frames are `W1…W14` (this folder); commitment-pooling frames are `CP-W7`, `CP-W8`, `CP-W4` (that folder independently numbers its own W-ids). This document is a review deliverable: §§1–13 are the walkable storyboards, §14 the missing-frames index, §15 the action inventory (Deliverable B), §16 the coverage matrix, §§17–22 the review findings, verdicts, risks, dependency realism, open questions, and the verified-clean list.
-**Copy discipline**: authored placeholder copy uses the mutual-aid register and passes the banned-vocabulary rules (`docs/docs/reference/glossary-community.md` § Banned Vocabulary; the 8 lint-enforced terms in `banned-vocabulary.json:11-20`). Moderation and progress are never collapsed into one score (`spec.md:195`).
+**Copy discipline**: authored placeholder copy uses the mutual-aid register and passes the banned-vocabulary rules (the 8 lint-enforced terms in `scripts/data/banned-vocabulary.json`). Moderation and progress are never collapsed into one score (`spec.md:195`).
 
 ## 0. How to read
 
 **Source keys** (same-folder unless pathed): `SPEC` = spec.md · `WF` = wireframes.md · `JN` = journeys.md · `DG` = diagrams.md · `CL` = corrections-log.md · `RP` = research-plan.md · `ST` = status.json · `PT` = plan.todo.md · `CP-CS` / `CP-UX` / `CP-WF` / `CP-XB` / `CP-XC` / `CP-AM` / `CP-PT` = ../commitment-pooling/{contract-spec,uiux-spec,wireframes,external-brief,external-communications,acceptance-matrix,plan.todo}.md. `SPEC §4` means spec.md section 4; `WF W5` and `DG D8` identify stable frame/diagram anchors. Exact line numbers are reserved for external files without named anchors.
 
-**Per-storyboard anatomy**: a **meta line** (persona = `docs/docs/builders/specs/v1-0.mdx` §3.1 archetype + named research persona `docs/docs/reference/design-research.md` · journey · surfaces · owning spec §) → a **mermaid `flowchart LR`** screen-flow graph (screens as nodes, user actions as edge labels) → a **numbered steps table**: `# | Screen (frame cite) | User action | System response (schema write / job kind) | State (moderation/progress; on-chain vs derived) | If it fails`. A finding surfaced by the walk is tagged **(finding →)** pointing at §17.
+**Per-storyboard anatomy**: a **meta line** (persona = canonical ontology persona in `packages/shared/src/ontology/green-goods-ontology.json` + named research persona in `docs/docs/reference/design-research.md` · journey · surfaces · owning spec §) → a **mermaid `flowchart LR`** screen-flow graph (screens as nodes, user actions as edge labels) → a **numbered steps table**: `# | Screen (frame cite) | User action | System response (schema write / job kind) | State (moderation/progress; on-chain vs derived) | If it fails`. A finding surfaced by the walk is tagged **(finding →)** pointing at §17.
 
 **Frame vs micro-frame**: an existing frame is cited by W-id and never re-drawn. A moment with no frame gets an inline micro-frame marked `NEW — proposed lo-fi, not a locked design` and an §14 MF row.
 
@@ -42,7 +42,7 @@ Grouping: member SB-1–8 · operator SB-9–11 · evaluator SB-12 · funder SB-
 
 ## SB-1 — Lazy-join by QR → browse → first action waits
 
-**Persona**: Community member — v1-0.mdx §3.1 Persona E + Kwame (`design-research.md:160`). **Journey**: J1 Discover + Join (JN:58,61). **Surfaces**: Community PWA, public browser → optional install. **Owning spec**: §7 onboarding (SPEC §7), §8 IA (SPEC §8).
+**Persona**: Community Member (ontology) + Kwame (`design-research.md:160`). **Journey**: J1 Discover + Join (JN:58,61). **Surfaces**: Community PWA, public browser → optional install. **Owning spec**: §7 onboarding (SPEC §7), §8 IA (SPEC §8).
 
 ```mermaid
 flowchart LR
@@ -245,7 +245,7 @@ flowchart LR
 
 ## SB-9 — Operator triage: acknowledge / merge / hide / decline
 
-**Persona**: Operator — v1-0.mdx §3.1 Persona B + David (`design-research.md:118`). **Journey**: J3 Triage (JN:85). **Surfaces**: Admin `/community/needs`. **Owning spec**: §9, D9, D4.
+**Persona**: Steward (ontology) + David (`design-research.md:118`). **Journey**: J3 Triage (JN:85). **Surfaces**: Admin `/community/needs`. **Owning spec**: §9, D9, D4.
 
 ```mermaid
 flowchart LR
@@ -319,7 +319,7 @@ flowchart LR
 
 ## SB-12 — Evaluator lineage + export + completeness Retry
 
-**Persona**: Evaluator — v1-0.mdx §3.1 Persona C + Dr. Chen (`design-research.md:132`). **Journey**: J4 (JN:96-100). **Surfaces**: Admin `/community/needs`. **Owning spec**: §11 export, D11.
+**Persona**: Evaluator (ontology) + Dr. Chen (`design-research.md:132`). **Journey**: J4 (JN:96-100). **Surfaces**: Admin `/community/needs`. **Owning spec**: §11 export, D11.
 
 ```mermaid
 flowchart LR
@@ -343,7 +343,7 @@ flowchart LR
 
 ## SB-13 — Funder discovery + FundingAttribution states
 
-**Persona**: Funder — v1-0.mdx §3.1 Persona D + Amara (`design-research.md:146`). **Journey**: J5 (JN:107-112). **Surfaces**: **existing client public surfaces** (no new app, no new route). **Owning spec**: §10, D10.
+**Persona**: Funder (ontology) + Amara (`design-research.md:146`). **Journey**: J5 (JN:107-112). **Surfaces**: **existing client public surfaces** (no new app, no new route). **Owning spec**: §10, D10.
 
 ```mermaid
 flowchart LR
@@ -561,7 +561,7 @@ Ranked; every claim cites a stable file section/frame/diagram anchor, or an exac
 
 **P2-1 · RESOLVED 2026-07-28 — admin route ownership.** The fifth route-level `/community/needs` mode owns triage, moderation, selected-Need inspection, gathering, seed-from-Need, and Need lineage/export. Existing `/community/coordination` retains pool/cycle operations; `/community/members` retains Manage Members and the separately gated membership queue. The implementation must not expand the catch-all `CommunityTab` branch or duplicate controls across modes. **Lane**: ui_admin.
 
-**P2-2 · The needs vocabulary is undefined in the glossary.** `Need / problem / signal / desired outcome / horizon`, commitment `Request / Offer`, and the two-axis states are defined in the Community spec and research instruments — **not** in `docs/docs/reference/glossary-community.md` (its Domain Entities / Term Reference registers carry no entry). The 2026-07-21 product decision locks the layer boundary, so the glossary now needs a direct update rather than another mirrored definition. **Lane**: docs.
+**P2-2 · The needs vocabulary is undefined in the glossary.** `Need / problem / signal / desired outcome / horizon`, commitment `Request / Offer`, and the two-axis states are defined in the Community spec and research instruments — **not** in the public glossary (no entry in its registers). The glossary is now generated from `packages/shared/src/ontology/green-goods-ontology.json` (→ `docs/docs/reference/glossary.generated.mdx`), so the fix is an ontology update rather than another mirrored definition. **Lane**: docs.
 
 **P2-3 · CLOSED 2026-07-21 — Need/commitment vocabulary boundary.** The product decision removed `NeedKind` before schema registration: a Need is a problem paired with a desired outcome; Request / Offer is commitment direction only. Research still validates comprehension and translations, but no longer owns the architecture decision. **Lane**: research/contracts.
 

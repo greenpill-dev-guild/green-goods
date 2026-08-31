@@ -1,6 +1,6 @@
-# Green Goods — Codex Guide
+# Green Goods — Agent Guide
 
-Primary runtime contract for Codex in this repository. Start here, then read the nearest
+Primary runtime contract for coding agents in this repository. Start here, then read the nearest
 `AGENTS.md` for the package you are editing. Package-level guides override this file for
 their subtree.
 
@@ -12,6 +12,31 @@ their subtree.
 - `packages/admin` — Admin cockpit
 - `packages/agent` — Bot/webhook service
 - `packages/indexer` — Envio indexer
+
+## Package Guides
+
+Read the nearest guide before editing a package. It narrows this root contract for that subtree.
+
+- `packages/contracts/AGENTS.md`
+- `packages/shared/AGENTS.md`
+- `packages/client/AGENTS.md`
+- `packages/admin/AGENTS.md`
+- `packages/agent/AGENTS.md`
+- `packages/indexer/AGENTS.md`
+
+## Common Commands
+
+- `bun run validation:plan -- --intent <intent>` — select evidence from intent, paths, dependencies, and criticality
+- `bun run test:fast` — cache-aware full-scope iteration after targeted proof is green
+- `bun run test:fast:force` — repeat the same full scope without cache reuse
+- `node scripts/dev/ci-local.js --quick` — cross-package checkpoint
+- `bun run test` — exact uncached full test gate
+- `VITE_CHAIN_ID=11155111 bun run build` — deterministic root application build
+- `bun run build:agent` / `bun run build:docs` — Agent and Docs builds, which the root build does not include
+
+The command definitions, conditional checks, receipt rules, and stop conditions live in
+[`.claude/context/validation-pipeline.md`](.claude/context/validation-pipeline.md). Development and
+service entrypoints live in [`scripts/README.md`](scripts/README.md).
 
 ## Global Invariants
 
@@ -27,6 +52,19 @@ their subtree.
 - Use Remixicon (`Ri*Line`), never lucide.
 - Any new user-facing string must be added to `en`, `es`, and `pt`.
 - Respect build dependency order: contracts -> shared -> indexer -> client/admin/agent.
+
+## Key Patterns
+
+- Keep package source inside the package-specific root files and top-level directories declared by
+  `scripts/quality/check-source-structure.js`.
+- In `packages/client/src`, component files use PascalCase, other TypeScript files use camelCase,
+  and filenames do not use hyphens. Framework entry files are declared by the structure checker.
+- Define `useX` hooks in `packages/shared`. Consume Shared through specifiers declared in
+  `packages/shared/package.json#exports`, never through `@green-goods/shared/src/**`.
+- Remove unused named exports when touching an implementation file. Barrels, tests, stories, and
+  the exact staged-module manifest are excluded from this check.
+- `scripts/data/source-structure-baseline.json` records pre-enforcement debt. It may only shrink;
+  new work never earns a baseline entry.
 
 ## Linear Workspace
 
@@ -44,7 +82,33 @@ Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09
 
 **Linear MCP** is wired into the Codex environment; it is the same Linear MCP that Claude Code uses. No project `.mcp.json` config needed. Use it for read/query, triage/promote, state transitions, and branch-context loading.
 
+**Writing in Linear — write for the person who opens it cold.** Titles and bodies are read by teammates, not parsed by agents. Say what is wrong or what should exist, in plain sentences, the way you would explain it to a colleague who has not been in your session.
+
+- **Lead with the problem or the outcome**, not the mechanism. "Gardeners can't submit work when offline" beats "JobQueue mutation retry regression".
+- **Prose over structure.** No status tables, no emoji headers, no `P0/P1` prefixes in titles, no restating the same fact in a summary *and* a detail section. Short paragraphs; a list only when the items are genuinely parallel.
+- **Never paste raw agent output** — session transcripts, tool logs, full stack traces, diff dumps, or a wall of file:line anchors. Quote the one line that matters and link the rest.
+- **No internal shorthand**: no screen codes (`W22`), no spec citations (`§6.1`, `register #90`), no plan-hub lane names, no decision-log numbers. Those live in `.plans/`. If context is genuinely needed, link the file.
+- **One issue per issue.** Two unrelated bugs in one title is two issues.
+- **Say what you actually know.** Mark what is verified versus suspected, and never write that something is fixed, passing, or deployed without having seen it — the same evidence bar as everywhere else in this file.
+- **Comments are updates, not changelogs.** Say what changed and what it means for the reader. Don't narrate your process.
+- **Don't rewrite history.** A `Done` issue's description stays as it was; add a comment, or open a successor and link it.
+
+- **No prefixes in titles.** Not `plan:`, `[tracking]`, `UI:`, `QA Pass 2:`, or a category marker. Labels, state, and project fields already carry that. (`[tracking]` was retired 2026-08-27; promotion is now a label and state change, with no title edit.)
+
+The shape those principles produce — the three-block body, the heading and word caps, and the worked example — is the **Accepted Product Work** structure in `.claude/context/linear-routing-rules.md § Issue structure`. `.claude/scripts/lint-linear-issue.sh` enforces it as a `PreToolUse` hook on `save_issue`; a blocked write returns the specific rule it broke, and the agent rewrites before anything reaches Linear. It is registered in both `.claude/settings.json` and `.codex/hooks.json`, so it covers Claude Code sessions, the cloud routines, and Codex — but a hook is a backstop, not the contract: write to the structure directly rather than relying on a rejection to tell you. Linear's own issue templates cannot cover agent writes at all, because `save_issue` takes no template parameter.
+
+Issue references use native `<issue>` mentions rather than markdown links. Fuller conventions and the routing contract: `.claude/context/linear-routing-rules.md`.
+
 **Privacy boundary** (PostHog evidence in Linear bodies): error message + hash + counts OK; replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers stay out.
+
+## PostHog Routing
+
+Select the project before every query: **App** (`163591`) for client/PWA/public browser,
+**Admin** (`262122`) for the steward cockpit, and **Agent** (`262124`) for messaging runtimes.
+The connector can start on the wrong project and return a misleading empty result. The current
+surface map, approved evidence, and privacy rules live in
+[`docs/routines/README.md`](docs/routines/README.md) and
+[`docs/routines/posthog-questions.md`](docs/routines/posthog-questions.md).
 
 ## Linear-Spawned Issue Contract
 
@@ -52,19 +116,36 @@ When you are dispatched from a Linear issue (delegated/assigned, labeled `ai:cod
 
 - **Codex-ready gate.** Start implementing only if the issue gives all of: clear **acceptance criteria**, a named **surface / `package:*`**, and **validation** (explicit commands, or inferable from the Validation Ladder below). If any is missing, the scope is ambiguous, or it asks for a cross-lane or architecture decision — **stop and comment on the issue with what's missing; do not guess.** A vague issue is a no-op, not a green light. This is the Linear entry to the same two-phase scope-lock rhythm in `## Codex Workflow`.
 - **Executor, not orchestrator.** Implement only the issue's scoped unit. Cross-lane order and coupling live in `.plans/<feature>/status.json` + the human — do not reorder lanes, pull in sibling lanes, or expand past the acceptance criteria. Coupled-feature order: shared/types + contracts → state/API → UI.
-- **Branch + PR.** Work on the integration branch named in the issue or its lane, not a fresh ad-hoc branch. The PR body must link the issue — `Closes PRD-NNN` (or `Linear: PRD-NNN`); that link is the issue↔PR source of truth. One issue per PR; keep unattended-maintenance PRs as drafts with the right labels (see `## Scope Constraints For Automated Maintenance`); never self-merge. `critical` and `packages/contracts` surfaces get extra human/Claude review.
-- **Before the PR**, run the Ship Gate from `## Validation Intent Ladder` and produce evidence per `## Verify Before Claiming Success`. Honor the privacy boundary above and `## Multi-Agent Repo Safety`.
+- **Branch + PR.** Branch names describe the work, never the worker, tool, Linear issue, or orchestration lane: `<type>/<work-description>`, where type is `feature`, `fix`, `refactor`, `docs`, `chore`, `test`, `perf`, `ci`, `release`, or `research`. Use a concrete kebab-case outcome such as `feature/commitment-pooling-indexer`; never use `codex/`, `claude/`, `<user>/PRD-NNN-...`, or generic lane prefixes. When an issue or plan supplies a branch, it must follow this contract, and so does a branch you inherit: sessions frequently begin on an auto-created branch that predates this rule, so check the name before your first push or PR and, if it does not conform, ask the user before renaming. Never rename unprompted — concurrent sessions share this checkout, and `git branch -m` moves the branch under all of them. With approval, rename while the branch is still local; renaming after a PR exists closes that PR and forces a new one. The PR body is the issue↔PR source of truth: use `Fixes PRD-NNN` when merge completes the issue, `Refs PRD-NNN` for partial or stacked work, or `Relates to PRD-NNN` for context. One issue per PR; keep unattended-maintenance PRs as drafts with the right labels (see `## Scope Constraints For Automated Maintenance`); never self-merge. `critical` and `packages/contracts` surfaces get extra human/Claude review.
+- **Before the PR**, run the Ship Gate from `## Validation` and produce evidence per `## Verify Before Claiming Success`. Honor the privacy boundary above and `## Multi-Agent Repo Safety`.
 
-## Codex Workflow
+## Agent Workflow
 
 1. Read the nearest `AGENTS.md`.
-2. Apply [the Implementation Quality Contract](.claude/context/values.md#implementation-quality-contract)
+2. For specialized work, route through [`.claude/context/task-routing.json`](.claude/context/task-routing.json); it defines each core task's skill, mutation boundary, output, and handoff.
+3. Apply [the Implementation Quality Contract](.claude/context/values.md#implementation-quality-contract)
    while planning, writing, and reviewing code.
-3. Keep the change inside the smallest sensible package boundary.
-4. Run the lightest validation loop that still proves the change.
-5. Escalate to cross-package verification when shared contracts, shared types, or public APIs move.
+4. Keep the change inside the smallest sensible package boundary.
+5. Run the lightest validation loop that still proves the change.
+6. Escalate to cross-package verification when shared contracts, shared types, or public APIs move.
 
 **Two-phase rhythm for ambiguous or multi-issue work**: investigate (read-only) → present numbered findings → wait for explicit scope lock from the human → fix only locked items → run the validation ladder. This paragraph is the canonical spec (the former `audit-then-ship` skill folded into it; Claude gets the same gate from plan mode + CLAUDE.md § Scope Discipline). Do not invent a parallel Codex-specific protocol.
+
+For architecture opportunity discovery or structural review, load
+[`.claude/context/codebase-architecture.md`](.claude/context/codebase-architecture.md). Keep
+candidate selection in the owning Plan Hub; do not turn an unselected idea into implementation or
+registry state.
+
+## Change Criticality
+
+- **Critical**: contract source and release tooling; shared Auth, JobQueue, Work providers and
+  modules; auth/work/vault/blockchain mutation hooks. Read every touched line and retain the
+  selector's critical override.
+- **Sensitive**: Agent runtime, indexer retry/lifecycle behavior, Plan Hub evidence, validation or
+  migration tooling, admin workflow state, and client journey views. Inspect failure and recovery
+  behavior and keep the diff bounded.
+- **Routine**: docs, stories, cleanup, and test-only refactors without runtime changes. Use the
+  lightest honest proof unless a changed command, guide, or skill creates a sensitive consumer risk.
 
 ## Research, Plan, Implement
 
@@ -100,15 +181,24 @@ This repo runs multiple concurrent Codex/Claude sessions on the same tree and `d
 
 Before reporting that a fix works, a setting takes effect, or a behavior holds, produce evidence in the same turn — the command output, the passing test, the rendered DOM, the re-read file showing the change. "Should work", "probably fixed", and unrun commands are not evidence. If a CLI flag is unfamiliar, read `--help` or the source before invoking it; do not invent flags. If you cannot verify (no test, no live DOM, no observable signal), say "I can't verify this without X" and stop rather than declaring success. Untested fixes and hallucinated commands have produced more reverts in this repo than any other failure mode.
 
-## Validation Intent Ladder
+## Validation
 
-Use the lightest honest proof for the current intent. Do not collapse QA fixes,
-checkpoint validation, and merge readiness into one default command.
+Render `bun run validation:plan -- --intent <intent>` before executing validation. Follow its
+selected checks and inspect `selectedBy`; do not invent a broader suite or omit a direct acceptance
+check. Use these rungs:
 
-- **QA Speed Mode** — default when the user says "QA mode", "quick fix", "get this to staging", or asks for a small visible/content/control fix. Run the targeted test file(s) or package-local command that covers the touched behavior. Add package-local typecheck/build only when the change affects route wiring, render/build output, exported types, or runtime contracts. For visible UI, capture rendered proof through authenticated Brave when available; if the required Brave path is unavailable, report browser QA as blocked instead of substituting isolated Playwright. Do not run full `bun run test`, full `bun build`, or `ci-local --quick` just to finish an isolated QA fix.
-- **Repo Quick Gate** — use `node scripts/dev/ci-local.js --quick` for cross-package/shared-impact changes, checkpoint validation after several QA fixes, or when touched shared exports, hook signatures, provider contracts, data shapes, or mutation flows can affect multiple apps. This is broader than QA Speed Mode and is not the default for every small fix.
-- **Ship Gate** — use the full ship pipeline (`bun format && bun lint && bun run test && bun build`, plus conditional design/vocab/contract checks) only for explicit ship/PR/commit/merge/release readiness, critical surfaces, or when the user asks to prove the branch is ready. Keep this gate strict; do not use QA Speed Mode to claim merge or release readiness.
-- **Multiple agents in QA mode** — each agent runs targeted proof for its own lane and reports blockers. A coordinator or final checkpoint runs Repo Quick Gate or Ship Gate before merge/release instead of every agent duplicating broad validation.
+- **Diagnosis/review**: non-mutating evidence needed to prove or disprove the finding.
+- **QA Speed Mode**: targeted behavior proof; add package typecheck/build only for the runtime or
+  interface risk that needs it.
+- **Repo Quick Gate**: cross-package checkpoints and shared public-contract changes.
+- **Ship Gate**: full uncached readiness proof for ship, PR, commit, merge, release, or critical
+  surfaces.
+
+Each selected check names its risk, expected signal, freshness rule, and stopping condition. Never
+reuse a failure. User cancellation is terminal, unavailable capabilities remain `BLOCKED`, and no
+speed budget may suppress a critical override. Multiple agents prove their own lanes; one
+coordinator runs the broader checkpoint. The canonical commands and conditional gates are in
+[`.claude/context/validation-pipeline.md`](.claude/context/validation-pipeline.md).
 
 ## User-Observed UI Regression Debugging
 
@@ -134,7 +224,7 @@ browser or DOM evidence proves otherwise.
 
 ## Admin UI Defaults
 
-- For `packages/admin`, read `docs/docs/builders/packages/admin.mdx` alongside `packages/admin/AGENTS.md`; it is the active UI contract.
+- For `packages/admin`, the nearest `AGENTS.md`, `packages/admin/DESIGN.md`, exported admin primitives, and guard tests own UI behavior. The public Builder page is an explanatory map, not an implementation contract.
 - The canonical admin shell is `CanvasLayout`.
 - Use `/hub` as the reference admin canvas surface; `/work` is retired.
 - New admin UI should not start from `DashboardLayout`, `Sidebar`, or `Header`; treat them as legacy migration references only.
@@ -144,14 +234,14 @@ browser or DOM evidence proves otherwise.
 
 Single design language across frontend packages, with distinct admin, installed PWA, public browser, and docs surfaces. Full detail in `.claude/skills/design/`. One-page map: `.claude/skills/design/ARCHITECTURE.md`.
 
-**Admin** (`packages/admin`) — restrained operator cockpit. M3 strict anatomy (v0.192). Plus Jakarta Sans. The admin `AppBar` root stays transparent over the workspace canvas; glass is reserved for Navigation/FAB chrome only. Dialogs, side sheets, route cards, forms, tables, lists, and dense content stay solid. Use `Admin*` wrappers from `packages/admin/src/components/Admin*.tsx` (count derives from the filesystem; 16 today). Litmus: Linear / GitHub / Stripe-appropriate?
+**Admin** (`packages/admin`) — restrained steward cockpit. M3 strict anatomy (v0.192). Plus Jakarta Sans. The admin `AppBar` root stays transparent over the workspace canvas; glass is reserved for Navigation/FAB chrome only. Dialogs, side sheets, route cards, forms, tables, lists, and dense content stay solid. Use `Admin*` wrappers from `packages/admin/src/components/Admin*.tsx` (the exports are the roster of record — 21 wrappers across 18 files today; `AdminConfirmDialog` lives in `AdminDialog.tsx`, `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`). Litmus: Linear / GitHub / Stripe-appropriate?
 
 **Client** (`packages/client`) — adaptive shell. Browser = `SiteHeader` + hamburger. Installed PWA = bottom `AppBar` (Home / Garden / Profile). Never mix. Inter across PWA; editorial serif only on public browser site. Hero moments (garden creation, first submission, hypercert mint, vault deposit, seasonal transitions, assessment completion, role milestone) live here, never in admin.
 
 **Tokens** — root `DESIGN.md` front matter is the canonical DesignMD token source; generated `--gg-*` tokens and runtime aliases live in `packages/shared/src/styles/theme.css`. Never hardcode `cubic-bezier`, `duration`, or raw color / radius values. Use `--spring-*` (6 tokens), `--color-*`, `--radius-*`, `--color-material-*`, `--blur-material-*`. Concentricity: `child_radius = parent_radius − padding`. 4-role volume hierarchy: canvas 80–90% / ink 8–15% / stone 3–5% / accent green 1–3%.
 
 **Banned vocabulary and prompt-only wording**:
-- Lint-enforced i18n terms (`bun run lint:vocab`, from `docs/docs/reference/banned-vocabulary.json` → `linter_enforced.terms`): `streak`, `countdown`, `leaderboard`, `FOMO`, `urgent`, `limited time`, `re-engagement`, `retention hook`.
+- Lint-enforced i18n terms (`bun run lint:vocab`, from `scripts/data/banned-vocabulary.json` → `linter_enforced.terms`): `streak`, `countdown`, `leaderboard`, `FOMO`, `urgent`, `limited time`, `re-engagement`, `retention hook`.
 - Admin prompt-only vocabulary (not parsed by `lint:vocab`): `hero moment`, `gallery`, `decorative gradient`, AppBar glass, glass outside Navigation/FAB chrome.
 - Client prompt-only vocabulary (not parsed by `lint:vocab`): `operator cockpit`, `utility copy`, `Plus Jakarta Sans`, `KPI tile`, `dashboard`.
 
@@ -174,39 +264,10 @@ Single design language across frontend packages, with distinct admin, installed 
 
 Proven workarounds in this repo (do **not** chase a Vite/Tailwind config fix — none has been wired up and none has worked):
 - Inline styles or CSS custom properties for layout in shared components (`packages/shared/src/components/Canvas/MainSheet.tsx`, commit `374508db`).
-- CSS overrides in the consuming package (`packages/admin/src/styles/admin-m3-overrides.css` restates `width: max-content` instead of relying on shared's `w-max`, commit `bba06573`).
+- Fork the component into the consuming package — the admin Canvas shell (`packages/admin/src/components/Shell/`) exists precisely so its utility classes live where the content scan reaches them.
 - Apply utility classes in the consumer's JSX, not in shared.
 
 When you see a layout bug that "looks like" a missing class, first check: was the class authored in `packages/shared/src/`? If yes, this gotcha is the likely cause.
-
-## Validation Ladder
-
-- Codex drift check: `node scripts/quality/check-codex-docs.js`
-- QA Speed Mode: targeted package/file tests plus package-local typecheck/build only when the touched behavior needs it
-- Quick repo verification: `node scripts/dev/ci-local.js --quick`
-- Full-local dev proof: `bun run dev` followed by `bun run dev:smoke:full` proves browser surfaces, local agent, local indexer/Hasura/Postgres, Anvil fork chain id 42161, deployed bytecode, and funded Anvil accounts without submitting transactions.
-- Production-backed local proof: `bun run dev:prod` followed by `bun run dev:prod:smoke` if you need local browser apps against Arbitrum One, hosted production indexer, and the production agent at https://agent.greengoods.app. Use `bun run dev:prod:mirror:health` before mirror mode; set the Envio API token env var for reliable live-indexer catch-up. The smoke is read-only; wallet-confirmed writes in this mode are real Arbitrum transactions.
-- Test-quality guardrail: `bash scripts/quality/check-test-quality.sh`
-- Lint check: `bun run format:check && bun lint`
-- Lint fix: `bun format && bun lint`
-- Full tests: `bun run test`
-- Full build: `VITE_CHAIN_ID=11155111 bun run build` _(Sepolia is the deterministic validation chain — overrides local environment files so the build is reproducible across machines without requiring Arbitrum-specific deployment artifacts)_
-
-## Test Suite Speed Follow-Up
-
-Do not refactor or delete tests as part of QA-speed guidance updates. Track a
-separate test-suite speed audit when needed: measure the slowest package tests,
-identify large multi-scenario files, and propose focused splits or lighter
-default runners with evidence.
-
-## Package Guides
-
-- `packages/contracts/AGENTS.md`
-- `packages/shared/AGENTS.md`
-- `packages/client/AGENTS.md`
-- `packages/admin/AGENTS.md`
-- `packages/agent/AGENTS.md`
-- `packages/indexer/AGENTS.md`
 
 ## Scope Constraints For Automated Maintenance
 
@@ -222,7 +283,7 @@ When Codex is running unattended maintenance work:
 
 - Project config: `.codex/config.toml`
 - Environment and actions: `.codex/environments/environment.toml`
-- Reference doc: `docs/docs/builders/agentic/codex.mdx`
+- Shared skills: `.agents/skills` → `.claude/skills`
 
 ## Shared Skill Surface
 

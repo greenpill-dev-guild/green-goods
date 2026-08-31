@@ -14,7 +14,7 @@
 import { waitForTransactionReceipt as defaultWaitForReceipt, type Config } from "@wagmi/core";
 import type { Hex } from "viem";
 import { logger } from "../app/logger";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { ensureWagmiWalletChain } from "./chain-guard";
 import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
 import type { ContractCall, TransactionSender, TxResult } from "./types";
@@ -51,7 +51,6 @@ export class WalletSender implements TransactionSender {
     chainId?: number;
     value?: bigint;
   }) => Promise<`0x${string}`>;
-  private erc7677ProxyUrl?: string;
   private deps: WalletSenderDeps;
 
   constructor(
@@ -64,12 +63,11 @@ export class WalletSender implements TransactionSender {
       chainId?: number;
       value?: bigint;
     }) => Promise<`0x${string}`>,
-    erc7677ProxyUrl?: string,
+    _erc7677ProxyUrl?: string,
     deps?: WalletSenderDeps
   ) {
     this.config = wagmiConfig;
     this.writeContractAsync = writeContractAsync;
-    this.erc7677ProxyUrl = erc7677ProxyUrl;
     this.deps = deps ?? {
       waitForTransactionReceipt:
         defaultWaitForReceipt as unknown as WalletSenderDeps["waitForTransactionReceipt"],
@@ -105,11 +103,12 @@ export class WalletSender implements TransactionSender {
     // waiting and treat this as successfully submitted for off-chain Safe
     // execution flow.
     if (!isCanonicalTxHash(hash)) {
+      // No address or hash material in the log context: aggregated logs must
+      // stay free of identifying transaction data (short Safe identifiers
+      // would otherwise be logged in full via a "preview").
       logger.info("Skipping receipt wait for non-canonical wallet transaction hash", {
         source: "WalletSender",
         functionName: call.functionName,
-        address: call.address,
-        hashPreview: hash.slice(0, 18),
         hashLength: hash.length,
       });
       return { hash: hash as Hex, sponsored: false };

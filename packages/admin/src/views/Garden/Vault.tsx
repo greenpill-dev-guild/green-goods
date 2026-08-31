@@ -1,19 +1,19 @@
+import { Alert } from "@green-goods/shared/components/Alert";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
+import { useAdminGardenWorkspaceSelection } from "@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection";
+import { useGardenPermissions } from "@green-goods/shared/hooks/garden/useGardenPermissions";
+import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
+import type { Address } from "@green-goods/shared/types/domain";
+import { OCTANT_MODULE_ABI } from "@green-goods/shared/utils/blockchain/abis/octant";
+import { getNetworkContracts } from "@green-goods/shared/utils/blockchain/contracts";
 import {
-  type Address,
-  Alert,
-  adminRoutes,
   formatTokenAmount,
   getNetDeposited,
-  getNetworkContracts,
   getVaultAssetSymbol,
-  OCTANT_MODULE_ABI,
-  useAdminGardenWorkspaceSelection,
-  useCurrentChain,
-  useGardenPermissions,
-  useGardens,
-  useGardenVaults,
-  useUser,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/blockchain/vaults";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";

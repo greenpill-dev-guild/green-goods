@@ -72,7 +72,7 @@ export const NarrowContent: Story = {
   render: () => (
     <CanvasRouteFrame>
       <CanvasRouteHeader
-        title="Submit assessment"
+        title="Submit Assessment"
         description="Capture the review context before moving into the wizard."
         variant="canvas"
         maxWidthClassName="max-w-3xl"

@@ -44,8 +44,11 @@ vi.mock("../../../modules/transactions/chain-guard", () => ({
   ensureAppKitWalletChain: (...args: unknown[]) => mockEnsureAppKitWalletChain(...args),
 }));
 
-vi.mock("../../../config", () => ({
+vi.mock("../../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("../../../config/pimlico", () => ({
   createPublicClientForChain: () => ({
     waitForTransactionReceipt: (...args: unknown[]) => mockWaitForTransactionReceipt(...args),
   }),
@@ -72,7 +75,7 @@ vi.mock("../../../stores/useAdminStore", () => ({
     selector({ selectedChainId: 11155111 }),
 }));
 
-vi.mock("../../../config/query-keys", () => ({
+vi.mock("../../../config/query-keys/invalidation", () => ({
   queryInvalidation: {
     onMarketplaceListingChanged: () => [
       ["greengoods", "marketplace", "orders"],

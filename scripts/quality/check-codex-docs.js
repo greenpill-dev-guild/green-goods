@@ -91,73 +91,87 @@ function validateCommand(command, scripts, relBaseDir, label) {
   }
 }
 
-function parseEnvironmentActions(toml) {
-  const actionRegex = /\[\[actions\]\]\s*name = "([^"]+)"\s*icon = "[^"]+"\s*command = """([\s\S]*?)"""/g;
-  const actions = new Map();
+function policyBlocks(markdown, minWords) {
+  const blocks = [];
+  const lines = markdown.split(/\r?\n/);
+  let buffer = [];
+  let startLine = 0;
+  let inFence = false;
 
-  for (const match of toml.matchAll(actionRegex)) {
-    const name = match[1];
-    const command = match[2]
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith("export PATH="))
-      .join(" && ");
-    actions.set(name, normalizeForDocs(command));
+  function flush() {
+    if (buffer.length === 0) return;
+    const raw = buffer.join(" ").trim();
+    const normalized = raw
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/[`*_>#~-]/g, " ")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const words = normalized.split(" ").filter(Boolean);
+    if (words.length >= minWords) {
+      blocks.push({
+        line: startLine,
+        raw,
+        words,
+        wordSet: new Set(words),
+      });
+    }
+    buffer = [];
+    startLine = 0;
   }
 
-  return actions;
-}
-
-function parseDocActions(markdown) {
-  const section = getSection(markdown, "Predefined Actions");
-  const tableLines = section
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.startsWith("|"));
-
-  const actions = new Map();
-  for (const line of tableLines.slice(2)) {
-    const cells = line
-      .split("|")
-      .slice(1, -1)
-      .map((cell) => cell.trim());
-    if (cells.length !== 2) continue;
-    const [name, command] = cells;
-    actions.set(name, normalizeForDocs(command.replace(/^`|`$/g, "")));
-  }
-  return actions;
-}
-
-function normalizeForDocs(command) {
-  return command
-    .replace(/\$\{[A-Za-z_][A-Za-z0-9_]*:-([^}]+)\}/g, "$1")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function validateActions() {
-  const envActions = parseEnvironmentActions(read(".codex/environments/environment.toml"));
-  const docActions = parseDocActions(read("docs/docs/builders/agentic/codex.mdx"));
-
-  for (const [name, command] of envActions) {
-    if (!docActions.has(name)) {
-      fail(`docs/docs/builders/agentic/codex.mdx: missing action "${name}" from action table`);
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const trimmed = line.trim();
+    if (trimmed.startsWith("```")) {
+      flush();
+      inFence = !inFence;
       continue;
     }
-    if (docActions.get(name) !== command) {
-      fail(
-        `docs/docs/builders/agentic/codex.mdx: action "${name}" command mismatch\n` +
-          `  docs: ${docActions.get(name)}\n` +
-          `  env:  ${command}`
-      );
+    if (inFence) continue;
+    if (!trimmed || /^#{1,6}\s/.test(trimmed) || trimmed.startsWith("|")) {
+      flush();
+      continue;
+    }
+    if (buffer.length === 0) startLine = index + 1;
+    buffer.push(trimmed);
+  }
+  flush();
+  return blocks;
+}
+
+export function findNearDuplicatePolicyBlocks(leftMarkdown, rightMarkdown, options = {}) {
+  const minWords = options.minWords ?? 30;
+  const minimumSimilarity = options.minimumSimilarity ?? 0.82;
+  const leftBlocks = policyBlocks(leftMarkdown, minWords);
+  const rightBlocks = policyBlocks(rightMarkdown, minWords);
+  const matches = [];
+
+  for (const left of leftBlocks) {
+    for (const right of rightBlocks) {
+      const lengthRatio = Math.min(left.words.length, right.words.length) /
+        Math.max(left.words.length, right.words.length);
+      if (lengthRatio < 0.65) continue;
+      const smallerSet = left.wordSet.size <= right.wordSet.size ? left.wordSet : right.wordSet;
+      const largerSet = smallerSet === left.wordSet ? right.wordSet : left.wordSet;
+      let sharedWords = 0;
+      for (const word of smallerSet) {
+        if (largerSet.has(word)) sharedWords += 1;
+      }
+      const similarity = sharedWords / smallerSet.size;
+      if (similarity < minimumSimilarity) continue;
+      matches.push({
+        leftLine: left.line,
+        rightLine: right.line,
+        similarity,
+        leftExcerpt: left.raw.slice(0, 120),
+        rightExcerpt: right.raw.slice(0, 120),
+      });
     }
   }
 
-  for (const name of docActions.keys()) {
-    if (!envActions.has(name)) {
-      fail(`.codex/environments/environment.toml: missing action "${name}" documented in codex.mdx`);
-    }
-  }
+  return matches;
 }
 
 function validateRootGuide() {
@@ -200,8 +214,33 @@ function validateRootGuide() {
     }
   }
 
-  for (const command of extractCodeLiterals(getSection(rootGuide, "Validation Ladder"))) {
+  for (const command of extractBulletCommands(rootGuide, "Common Commands")) {
     validateCommand(command, rootScripts, ".", "AGENTS.md");
+  }
+
+  const validationHeadings = Array.from(rootGuide.matchAll(/^## Validation(?:\s|$)/gm));
+  if (validationHeadings.length !== 1) {
+    fail(`AGENTS.md: expected one canonical Validation section, found ${validationHeadings.length}`);
+  }
+
+  for (const reference of [
+    ".claude/context/validation-pipeline.md",
+    ".claude/context/codebase-architecture.md",
+    ".claude/context/task-routing.json",
+  ]) {
+    if (!rootGuide.includes(reference)) {
+      fail(`AGENTS.md: missing canonical guidance reference ${reference}`);
+    }
+  }
+}
+
+function validateGuideDuplication() {
+  const duplicates = findNearDuplicatePolicyBlocks(read("AGENTS.md"), read("CLAUDE.md"));
+  for (const duplicate of duplicates) {
+    fail(
+      `AGENTS.md:${duplicate.leftLine} and CLAUDE.md:${duplicate.rightLine}: near-verbatim policy block ` +
+        `(${Math.round(duplicate.similarity * 100)}% shared vocabulary); keep one canonical source`,
+    );
   }
 }
 
@@ -248,7 +287,7 @@ function validatePackageGuides() {
 
 function validateCodexImplementationAgent() {
   // Committed agent definitions were retired with the lean-skills consolidation;
-  // the Implementation Quality Contract obligation now lives in AGENTS.md § Codex Workflow.
+  // the Implementation Quality Contract obligation now lives in AGENTS.md § Agent Workflow.
   const guide = read("AGENTS.md");
   for (const marker of [
     "Implementation Quality Contract",
@@ -275,7 +314,7 @@ function validateGuideReferences() {
     {
       relPath: "AGENTS.md",
       requiredTerms: [
-        "docs/docs/builders/packages/admin.mdx",
+        "packages/admin/DESIGN.md",
         "CanvasLayout",
         "DashboardLayout",
         "Sidebar",
@@ -285,7 +324,7 @@ function validateGuideReferences() {
     {
       relPath: "packages/admin/AGENTS.md",
       requiredTerms: [
-        "docs/docs/builders/packages/admin.mdx",
+        "packages/admin/DESIGN.md",
         "CanvasLayout",
         "DashboardLayout",
         "Sidebar",
@@ -313,7 +352,7 @@ function validateGuideReferences() {
     {
       relPath: "packages/shared/AGENTS.md",
       requiredTerms: [
-        "docs/docs/builders/packages/admin.mdx",
+        "packages/admin/DESIGN.md",
         "Storybook",
         "AppBar",
         "NavigationBar",
@@ -357,19 +396,115 @@ function validateSkillMirrorSymlink() {
   }
 }
 
-validateActions();
-validateRootGuide();
-validatePackageGuides();
-validateGuideReferences();
-validateSkillMirrorSymlink();
-validateCodexImplementationAgent();
-
-if (failures.length > 0) {
-  console.error("Codex consistency check failed:");
-  for (const failure of failures) {
-    console.error(`- ${failure}`);
+function validateRepoDerivedGuidanceFacts() {
+  const agenticDocs = fs
+    .readdirSync(path.join(repoRoot, "docs/docs/builders/agentic"))
+    .filter((name) => name.endsWith(".mdx"))
+    .map((name) => `docs/docs/builders/agentic/${name}`);
+  for (const relPath of agenticDocs) {
+    const doc = read(relPath);
+    if (doc.includes(".claude/context/intent.md") || /(?:^|[^/])intent\.md\b/m.test(doc)) {
+      fail(`${relPath}: references nonexistent intent.md; use product.md and values.md`);
+    }
   }
-  process.exit(1);
+
+  const contractsGuide = read("packages/contracts/AGENTS.md");
+  for (const relPath of [
+    "packages/contracts/src/modules/CommitmentPooling.sol",
+    "packages/contracts/src/modules/SettlementModule.sol",
+    "packages/contracts/src/registries/Credit.sol",
+    "packages/contracts/src/registries/Deployment.sol",
+  ]) {
+    const packageRelative = relPath.replace("packages/contracts/", "");
+    if (!exists(relPath) || !contractsGuide.includes(packageRelative)) {
+      fail(`packages/contracts/AGENTS.md: architecture map must include existing ${packageRelative}`);
+    }
+  }
+  if (contractsGuide.includes("src/DeploymentRegistry.sol")) {
+    fail("packages/contracts/AGENTS.md: references nonexistent src/DeploymentRegistry.sol");
+  }
+
+  const hookFolders = fs
+    .readdirSync(path.join(repoRoot, "packages/shared/src/hooks"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => `${entry.name}/`)
+    .sort();
+  const hookSection = getSection(read("packages/shared/src/MODULES.md"), "hooks/ -- React hooks");
+  const documentedHookFolders = Array.from(
+    hookSection.matchAll(/^\| `([^`]+\/)` \|/gm),
+    (match) => match[1],
+  ).sort();
+  if (JSON.stringify(documentedHookFolders) !== JSON.stringify(hookFolders)) {
+    fail(
+      "packages/shared/src/MODULES.md: hook folder inventory drifted from packages/shared/src/hooks",
+    );
+  }
+
+  const adminGuide = read("packages/admin/AGENTS.md");
+  const adminVitest = read("packages/admin/vitest.config.ts");
+  if (
+    !adminVitest.includes('exclude: [\n      "**/node_modules/**"') ||
+    /default admin Vitest run excludes `src\/__tests__\/views/.test(adminGuide)
+  ) {
+    fail("packages/admin/AGENTS.md: default Vitest discovery guidance drifted from vitest.config.ts");
+  }
+
+  const testsReadme = read("tests/README.md");
+  for (const relPath of [
+    "tests/fixtures/playwright-services.ts",
+    "tests/fixtures/anvil-fork.ts",
+    "tests/fixtures/contract-helpers.ts",
+    "tests/helpers/test-utils.ts",
+    "tests/helpers/test-config.ts",
+    "tests/mocks/pimlico-handlers.ts",
+    "scripts/dev/test-e2e.js",
+  ]) {
+    if (!exists(relPath) || !testsReadme.includes(relPath)) {
+      fail(`tests/README.md: missing current E2E path ${relPath}`);
+    }
+  }
+  for (const stalePath of [
+    "tests/run-tests.ts",
+    "docs/developer/getting-started.md",
+    "docs/developer/cursor-workflows.md",
+    ".github/workflows/e2e-tests.yml",
+  ]) {
+    if (testsReadme.includes(stalePath)) {
+      fail(`tests/README.md: references removed path ${stalePath}`);
+    }
+  }
+
+  const playwrightDoc = read("docs/docs/builders/testing/playwright.mdx");
+  if (playwrightDoc.includes("npx playwright")) {
+    fail("docs/docs/builders/testing/playwright.mdx: use the repo's Bun Playwright entrypoint");
+  }
+
+  const forgeDoc = read("docs/docs/builders/testing/forge.mdx");
+  if (/\bbun build:(?:fast|full|target)\b/.test(forgeDoc)) {
+    fail("docs/docs/builders/testing/forge.mdx: package scripts require `bun run`");
+  }
 }
 
-console.log("Codex consistency check passed.");
+function run() {
+  validateRootGuide();
+  validateGuideDuplication();
+  validatePackageGuides();
+  validateGuideReferences();
+  validateSkillMirrorSymlink();
+  validateCodexImplementationAgent();
+  validateRepoDerivedGuidanceFacts();
+
+  if (failures.length > 0) {
+    console.error("Codex consistency check failed:");
+    for (const failure of failures) {
+      console.error(`- ${failure}`);
+    }
+    process.exit(1);
+  }
+
+  console.log("Codex consistency check passed.");
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+  run();
+}

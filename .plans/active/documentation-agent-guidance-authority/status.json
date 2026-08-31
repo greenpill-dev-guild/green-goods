@@ -1,0 +1,230 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "documentation-agent-guidance-authority",
+    "title": "Documentation and Agent Guidance Authority",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-08-31T01:28:28.764Z",
+    "updated_at": "2026-08-31T20:17:06.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-858",
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-08-31T06:12:49.050Z",
+    "lanes": {
+      "state_api": {
+        "issue": "PRD-859"
+      }
+    },
+    "laneSyncMode": "lane_issues"
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": [],
+    "work_types": ["implementation"],
+    "surfaces": [],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Mark unused lanes as n/a before promoting QA.",
+    "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",
+    "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": "chore/documentation-authority-migration",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "node --test docs/scripts/docs-audit.test.mjs scripts/docs/generate.test.mjs scripts/quality/check-ontology.test.mjs scripts/quality/task-routing-contract.test.mjs",
+          "evidence": "New fixtures initially exposed stale anchors, ontology table bleed, unresolved generated aliases, and missing downstream-authority enforcement. The later search checker also exited nonzero because docs/build/search-index.json was missing under the prior /docs route-base configuration."
+        },
+        "green": {
+          "command": "bun run docs:audit:ci && bun run check:docs-generated && bun run check:ontology && bun run check:skill-behavior && bun run test:docs && bun run build:docs && bun run --cwd docs check:search-index",
+          "evidence": "Authority, generation, routing, ontology, CI selection, guidance retirements, docs tests, dead-code checks, and the 79-route sitemap passed. The search closeout added seven passing fixtures, 70-of-70 source-route coverage, and a successful local browser confidence journey. Live Vercel verification remains required before archive."
+        },
+        "note": ""
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "n/a",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "n/a",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-08-31T01:28:28.768Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-08-31T03:10:00.000Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "n/a",
+      "branch": null,
+      "note": "No production UI behavior changed; Docusaurus rendering is covered by the docs build."
+    },
+    {
+      "timestamp": "2026-08-31T03:10:01.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "n/a",
+      "branch": null,
+      "note": "No Solidity, deployment artifact, or protocol type behavior changed."
+    },
+    {
+      "timestamp": "2026-08-31T03:10:02.000Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded local RED/GREEN proof for documentation authority, deterministic generation, ontology, task routing, and sitemap enforcement."
+    },
+    {
+      "timestamp": "2026-08-31T03:10:03.000Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Repository implementation is complete locally; the lane remains active for clean-commit Vercel production and rollback receipts."
+    },
+    {
+      "timestamp": "2026-08-31T03:10:04.000Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "n/a",
+      "branch": null,
+      "note": "No separate runtime QA lane; public rendering is covered by tests, build, links, navigation, and sitemap checks."
+    },
+    {
+      "timestamp": "2026-08-31T03:10:05.000Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "n/a",
+      "branch": null,
+      "note": "Production browser verification remains part of the deployment receipt rather than a parallel code lane."
+    },
+    {
+      "timestamp": "2026-08-31T03:41:01.000Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Closed the review findings and recorded a green local Vercel build contract. The failed remote preview used the monorepo root and Node 24; live correction awaits authenticated access to the green-goods-docs project settings."
+    },
+    {
+      "timestamp": "2026-08-31T04:05:00.000Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "chore/documentation-authority-migration",
+      "note": "Created the scoped documentation migration branch for review and Vercel preview verification."
+    },
+    {
+      "timestamp": "2026-08-31T06:12:49.050Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-08-31T06:31:17.311Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-08-31T20:17:06.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "landed_recorded",
+      "branch": null,
+      "note": "Integration landed on develop as cfa4f2272..3562fd9c8 (rebased from chore/documentation-authority-migration; PR #785 is now zero-diff against develop) plus projection refresh 8190dc240 and stale-reference repairs b87446a27. Local docs, ontology, guidance, and skill gates re-run green at the landed tree. Remaining: protected preview route-response checks and production Vercel sitemap verification (need Vercel auth), plus one final eval:skills run (needs an authenticated non-nested CLI)."
+    }
+  ]
+}

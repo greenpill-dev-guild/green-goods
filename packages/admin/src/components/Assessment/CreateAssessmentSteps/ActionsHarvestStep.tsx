@@ -1,15 +1,14 @@
-import {
-  cn,
-  DatePicker,
-  fromCalendarDateKey,
-  toCalendarDateKey,
-  useActions,
-  useCreateAssessmentStore,
-  useCurrentChain,
-} from "@green-goods/shared";
+import { DatePicker } from "@green-goods/shared/components/DatePicker/DatePicker";
+import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
+import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
+import { fromCalendarDateKey, toCalendarDateKey } from "@green-goods/shared/utils";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
-import { LabeledField, resolveDomainLabel, Section } from "./shared";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminCheckbox } from "@/components/AdminCheckbox";
+import { resolveDomainLabel, Section } from "./shared";
 
 interface ActionsHarvestStepProps {
   showValidation: boolean;
@@ -127,8 +126,10 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
                   { count: selectedUIDs.length, total: domainActions.length }
                 )}
               </span>
-              <button
+              <AdminButton
                 type="button"
+                variant="text"
+                size="sm"
                 onClick={() => {
                   if (selectedUIDs.length === domainActions.length) {
                     setField("selectedActionUIDs", []);
@@ -140,43 +141,51 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
                   }
                 }}
                 disabled={isSubmitting}
-                className="text-xs font-medium text-primary-dark hover:text-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {selectedUIDs.length === domainActions.length
                   ? formatMessage({
                       id: "app.admin.assessment.domainAction.deselectAll",
-                      defaultMessage: "Deselect all",
+                      defaultMessage: "Deselect All",
                     })
                   : formatMessage({
                       id: "app.admin.assessment.domainAction.selectAll",
-                      defaultMessage: "Select all",
+                      defaultMessage: "Select All",
                     })}
-              </button>
+              </AdminButton>
             </div>
 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {domainActions.map((action) => {
                 const isChecked = selectedUIDs.includes(action.id);
+                const checkboxId = `harvest-action-${action.id}`;
                 return (
-                  <label
+                  <div
                     key={action.id}
-                    aria-label={action.title}
                     className={cn(
-                      "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 text-sm transition",
+                      "flex items-start gap-2 rounded-lg border px-3 py-2.5 text-sm transition",
                       isChecked
                         ? "border-primary-base bg-primary-alpha-10 text-primary-dark"
                         : "border-stroke-soft bg-bg-white text-text-sub hover:border-primary-alpha-24 hover:bg-primary-alpha-10",
-                      isSubmitting && "cursor-not-allowed opacity-60"
+                      isSubmitting && "opacity-60"
                     )}
                   >
-                    <input
-                      type="checkbox"
+                    {/* Canonical M3 control (18px box, 40px target); negative
+                        margins absorb the target padding so the compact row
+                        keeps its height. */}
+                    <AdminCheckbox
+                      id={checkboxId}
                       checked={isChecked}
                       onChange={() => handleToggleAction(action.id)}
                       disabled={isSubmitting}
-                      className="mt-0.5 h-4 w-4 rounded border-stroke-sub text-primary-base focus:ring-2 focus:ring-primary-alpha-24 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="-my-2 -ml-2.5"
                     />
-                    <div className="min-w-0 flex-1">
+                    <label
+                      htmlFor={checkboxId}
+                      className={cn(
+                        "min-w-0 flex-1 pt-0.5",
+                        isSubmitting ? "cursor-not-allowed" : "cursor-pointer"
+                      )}
+                    >
                       <span className="block truncate font-medium" title={action.title}>
                         {action.title}
                       </span>
@@ -185,8 +194,8 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
                           {action.slug}
                         </span>
                       )}
-                    </div>
-                  </label>
+                    </label>
+                  </div>
                 );
               })}
             </div>
@@ -210,63 +219,52 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
         })}
       >
         <div className="grid gap-2.5 md:grid-cols-2 md:gap-3">
-          <LabeledField
+          <DatePicker
+            id="reportingPeriodStart"
             label={formatMessage({
               id: "app.admin.assessment.sdgHarvest.reportingStartLabel",
               defaultMessage: "Reporting period start",
             })}
             required
-            error={showValidation ? fieldErrors.reportingPeriodStart : null}
-            helpText={formatMessage({
+            value={fromCalendarDateKey(form.reportingPeriodStart)}
+            onChange={(ts) => setField("reportingPeriodStart", toCalendarDateKey(ts))}
+            disabled={isSubmitting}
+            placeholder={formatMessage({
+              id: "app.admin.assessment.actionsHarvest.reportingStartPlaceholder",
+              defaultMessage: "Select start date",
+            })}
+            helperText={formatMessage({
               id: "app.admin.assessment.actionsHarvest.reportingStartHelp",
               defaultMessage:
                 "When does the work period begin? Typically aligns with a season, project phase, or funding cycle.",
             })}
-          >
-            <DatePicker
-              id="reportingPeriodStart"
-              value={fromCalendarDateKey(form.reportingPeriodStart)}
-              onChange={(ts) => setField("reportingPeriodStart", toCalendarDateKey(ts))}
-              disabled={isSubmitting}
-              placeholder={formatMessage({
-                id: "app.admin.assessment.actionsHarvest.reportingStartPlaceholder",
-                defaultMessage: "Select start date",
-              })}
-              error={showValidation && fieldErrors.reportingPeriodStart ? " " : undefined}
-            />
-          </LabeledField>
-          <LabeledField
+            error={(showValidation && fieldErrors.reportingPeriodStart) || undefined}
+          />
+          <DatePicker
+            id="reportingPeriodEnd"
             label={formatMessage({
               id: "app.admin.assessment.sdgHarvest.reportingEndLabel",
               defaultMessage: "Reporting period end",
             })}
             required
-            error={
-              showValidation ? (fieldErrors.dateRange ?? fieldErrors.reportingPeriodEnd) : null
-            }
-            helpText={formatMessage({
+            value={fromCalendarDateKey(form.reportingPeriodEnd)}
+            onChange={(ts) => setField("reportingPeriodEnd", toCalendarDateKey(ts))}
+            disabled={isSubmitting}
+            minDate={fromCalendarDateKey(form.reportingPeriodStart)}
+            placeholder={formatMessage({
+              id: "app.admin.assessment.actionsHarvest.reportingEndPlaceholder",
+              defaultMessage: "Select end date",
+            })}
+            helperText={formatMessage({
               id: "app.admin.assessment.actionsHarvest.reportingEndHelp",
               defaultMessage:
                 "When does the work period end? All work documented within this window will be aggregated.",
             })}
-          >
-            <DatePicker
-              id="reportingPeriodEnd"
-              value={fromCalendarDateKey(form.reportingPeriodEnd)}
-              onChange={(ts) => setField("reportingPeriodEnd", toCalendarDateKey(ts))}
-              disabled={isSubmitting}
-              minDate={fromCalendarDateKey(form.reportingPeriodStart)}
-              placeholder={formatMessage({
-                id: "app.admin.assessment.actionsHarvest.reportingEndPlaceholder",
-                defaultMessage: "Select end date",
-              })}
-              error={
-                showValidation && (fieldErrors.reportingPeriodEnd || fieldErrors.dateRange)
-                  ? " "
-                  : undefined
-              }
-            />
-          </LabeledField>
+            error={
+              (showValidation && (fieldErrors.dateRange ?? fieldErrors.reportingPeriodEnd)) ||
+              undefined
+            }
+          />
         </div>
       </Section>
     </div>

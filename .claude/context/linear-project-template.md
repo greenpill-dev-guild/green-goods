@@ -135,7 +135,7 @@ Two records that are *not* dispatchable work, and must not be treated as such:
 Then the actual work, routed by team per `CLAUDE.md § Linear Workspace`:
 
 * **Research** (`RESR`) — synthesis, external brief, use cases, scenario packs.
-* **Community** (`COM`) — operator onboarding, surveys, gathering logistics.
+* **Community** (`COM`) — steward onboarding, surveys, gathering logistics.
 * **Product** (`PRD`) — build work, *if* you mirror it (see below).
 * **Evidence-gated follow-ons** — designed, parked, explicitly not authorized. Keep them in
   Backlog with no cycle and no due date, and say so in the body.
@@ -262,6 +262,6 @@ See [[reference-linear-mcp-write-limits]] for detail. In short:
 5. No constraint stated that is not canonically in the spec or architecture issue.
 6. Vocabulary: evidence labels exact ("Oracle-verified", never bare "verified" for
    settlement); no banned i18n terms (`streak`, `countdown`, `leaderboard`, `FOMO`,
-   urgency language) — see `docs/docs/reference/glossary-community.md`.
+   urgency language) — see `scripts/data/banned-vocabulary.json`.
 7. Read the description back via `get_project` after saving — the markdown parser
    mangles some input.

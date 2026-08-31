@@ -21,9 +21,12 @@
       "env": ["VITE_*", "RUN_LIVE_RPC_TESTS"],
       "inputs": [
         "$TURBO_DEFAULT$",
+        "../../scripts/dev/node-cli.js",
+        "../../scripts/lib/dev-shared.js",
+        "../client/src/**",
+        "../admin/src/**",
         "../contracts/abis/**",
-        "../contracts/deployments/**",
-        "../contracts/.generated/**"
+        "../contracts/deployments/**"
       ]
     },
     "@green-goods/client#test": {
@@ -31,7 +34,12 @@
       "env": ["VITE_*"],
       "inputs": [
         "$TURBO_DEFAULT$",
+        "../../scripts/dev/node-cli.js",
+        "../../scripts/lib/dev-shared.js",
         "../shared/src/**",
+        "!../shared/src/**/*.test.*",
+        "!../shared/src/**/*.spec.*",
+        "!../shared/src/**/*.stories.*",
         "../shared/package.json",
         "../contracts/abis/**",
         "../contracts/deployments/**"
@@ -42,7 +50,12 @@
       "env": ["VITE_*"],
       "inputs": [
         "$TURBO_DEFAULT$",
+        "../../scripts/dev/node-cli.js",
+        "../../scripts/lib/dev-shared.js",
         "../shared/src/**",
+        "!../shared/src/**/*.test.*",
+        "!../shared/src/**/*.spec.*",
+        "!../shared/src/**/*.stories.*",
         "../shared/package.json",
         "../contracts/abis/**",
         "../contracts/deployments/**"
@@ -51,11 +64,25 @@
     "@green-goods/agent#test": {
       "outputs": [],
       "env": ["VITE_*"],
-      "inputs": ["$TURBO_DEFAULT$", "../shared/src/**", "../shared/package.json"]
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "../../scripts/dev/node-cli.js",
+        "../../scripts/lib/dev-shared.js",
+        "../shared/src/**",
+        "!../shared/src/**/*.test.*",
+        "!../shared/src/**/*.spec.*",
+        "!../shared/src/**/*.stories.*",
+        "../shared/package.json"
+      ]
     },
     "@green-goods/indexer#test": {
       "outputs": [],
-      "inputs": ["$TURBO_DEFAULT$", "../contracts/abis/**"]
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "../../scripts/dev/node-cli.js",
+        "../../scripts/lib/dev-shared.js",
+        "../contracts/abis/**"
+      ]
     },
     "@green-goods/contracts#test": {
       "outputs": [],

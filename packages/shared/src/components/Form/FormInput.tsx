@@ -1,9 +1,9 @@
-import { forwardRef, type InputHTMLAttributes } from "react";
+import { forwardRef, type InputHTMLAttributes, type ReactNode } from "react";
 import { cn } from "../../utils/styles/cn";
 import { FormFieldWrapper } from "./FormFieldWrapper";
 
 export interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label: string;
+  label: ReactNode;
   helperText?: string;
   error?: string;
 }

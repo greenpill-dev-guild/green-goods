@@ -28,6 +28,8 @@ export interface MutationErrorHandlerConfig {
   getFallbackMessage?: (authMode: "wallet" | "passkey" | "embedded" | null) => string;
   /** Get fallback description based on auth mode */
   getFallbackDescription?: (authMode: "wallet" | "passkey" | "embedded" | null) => string;
+  /** Get fallback toast title (e.g. localized); defaults to "<toastContext> failed" */
+  getFallbackTitle?: (authMode: "wallet" | "passkey" | "embedded" | null) => string;
   /** Use wallet progress toast style for wallet mode */
   useWalletProgressToast?: boolean;
 }
@@ -92,6 +94,7 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
     trackError,
     getFallbackMessage,
     getFallbackDescription,
+    getFallbackTitle,
     useWalletProgressToast = false,
   } = config;
 
@@ -133,7 +136,9 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
     // Determine display title
     const displayTitle = parsed.isKnown
       ? title
-      : `${toastContext.charAt(0).toUpperCase() + toastContext.slice(1)} failed`;
+      : getFallbackTitle
+        ? getFallbackTitle(authMode ?? null)
+        : `${toastContext.charAt(0).toUpperCase() + toastContext.slice(1)} failed`;
 
     // Show error toast
     if (showToast) {

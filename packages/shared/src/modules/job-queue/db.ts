@@ -1,20 +1,17 @@
 import { type IDBPDatabase, openDB } from "idb";
-import type { CachedWork, Job, JobQueueDBImage, SerializedFileData } from "../../types/job-queue";
-import { normalizeToFile } from "../../utils/app/normalizeToFile";
-import {
-  buildFileMetadata,
-  deserializeFile,
-  serializeFile,
-} from "../../utils/storage/file-serialization";
-import { addBreadcrumb } from "../app/error-tracking";
+import type { CachedWork, Job, JobQueueDBImage } from "../../types/job-queue";
+import { deserializeFile } from "../../utils/storage/file-serialization";
+import { retryOnceAfterQuotaCleanup } from "../../utils/storage/quota";
 import { createLogger } from "../app/logger";
+import { serializeJobMedia } from "./db-media";
+import { loadFailedDeleteIds, saveFailedDeleteIds } from "./failed-delete-storage";
 import { trackPrivateQueueEvent } from "./job-analytics";
 import { mediaResourceManager } from "./media-resource-manager";
 
 const log = createLogger({ source: "job-queue/db" });
 
 const DB_NAME = "green-goods-job-queue";
-const DB_VERSION = 5; // Incremented for userAddress field
+const DB_VERSION = 6; // Commitment Pooling client-id materialization mappings
 
 interface ClientWorkIdMapping {
   clientWorkId: string;
@@ -23,11 +20,29 @@ interface ClientWorkIdMapping {
   createdAt: number;
 }
 
+interface ClientCommitmentIdMapping {
+  clientCommitmentId: string;
+  commitmentId: string;
+  jobId: string;
+  chainId: number;
+  createdAt: number;
+}
+
+interface ClientSeriesIdMapping {
+  clientSeriesId: string;
+  seriesId: string;
+  jobId: string;
+  chainId: number;
+  createdAt: number;
+}
+
 interface JobQueueDB {
   jobs: Job;
   job_images: JobQueueDBImage;
   cached_work: CachedWork;
   client_work_id_mappings: ClientWorkIdMapping;
+  client_commitment_id_mappings: ClientCommitmentIdMapping;
+  client_series_id_mappings: ClientSeriesIdMapping;
 }
 
 class JobQueueDatabase {
@@ -73,6 +88,24 @@ class JobQueueDatabase {
           mappingsStore.createIndex("attestationId", "attestationId");
           mappingsStore.createIndex("jobId", "jobId");
           mappingsStore.createIndex("createdAt", "createdAt");
+        }
+
+        if (!db.objectStoreNames.contains("client_commitment_id_mappings")) {
+          const mappingsStore = db.createObjectStore("client_commitment_id_mappings", {
+            keyPath: "clientCommitmentId",
+          });
+          mappingsStore.createIndex("commitmentId", "commitmentId");
+          mappingsStore.createIndex("jobId", "jobId");
+          mappingsStore.createIndex("chainId", "chainId");
+        }
+
+        if (!db.objectStoreNames.contains("client_series_id_mappings")) {
+          const mappingsStore = db.createObjectStore("client_series_id_mappings", {
+            keyPath: "clientSeriesId",
+          });
+          mappingsStore.createIndex("seriesId", "seriesId");
+          mappingsStore.createIndex("jobId", "jobId");
+          mappingsStore.createIndex("chainId", "chainId");
         }
 
         // Migration: Add userAddress index to existing jobs store (v4 -> v5)
@@ -152,99 +185,36 @@ class JobQueueDatabase {
       synced: false,
     } as Job<T>;
 
-    // Normalize media up-front so we never persist a job partially.
-    const normalizedMediaFiles: File[] = [];
-
-    // Store images separately if present in payload
-    if (job.payload && typeof job.payload === "object" && "media" in job.payload) {
-      const media = (job.payload as { media?: File[] }).media;
-      if (Array.isArray(media)) {
-        for (let index = 0; index < media.length; index++) {
-          const input = media[index] as unknown;
-          const file = normalizeToFile(input, { fallbackName: `work-${id}-${index}.jpg` });
-
-          if (!file) {
-            // Avoid silently dropping images — it's better to fail fast than
-            // attest partially. This also keeps on-chain "media" consistent
-            // with what the user selected.
-            throw new Error(`Invalid work media at index ${index}`);
-          }
-
-          normalizedMediaFiles.push(file);
-        }
-      }
-    }
-
-    // Also serialize audio notes if present in payload
-    if (job.payload && typeof job.payload === "object" && "audioNotes" in job.payload) {
-      const audioNotes = (job.payload as { audioNotes?: File[] }).audioNotes;
-      if (Array.isArray(audioNotes)) {
-        for (let index = 0; index < audioNotes.length; index++) {
-          const input = audioNotes[index] as unknown;
-          const file = normalizeToFile(input, {
-            fallbackName: `audio-note-${id}-${index}.webm`,
-          });
-
-          if (file) {
-            normalizedMediaFiles.push(file);
-          }
-          // Audio notes are optional — don't fail if normalization fails
-        }
-      }
-    }
-
-    // Serialize all files BEFORE starting the transaction.
-    // This is important because:
-    // 1. arrayBuffer() is async and can't be called inside a transaction
-    // 2. iOS Safari fails to store File objects directly (DOMException: UnknownError)
-    const serializedFiles: Array<{ file: File; fileData: SerializedFileData }> = [];
-    for (const file of normalizedMediaFiles) {
-      try {
-        const fileData = await serializeFile(file);
-        serializedFiles.push({ file, fileData });
-      } catch (serializeError) {
-        trackPrivateQueueEvent("job_queue_file_serialization_failed", {
-          ...buildFileMetadata(file),
-          job_kind: job.kind,
-        });
-        throw serializeError;
-      }
-    }
-
-    // Add breadcrumb for debugging
-    addBreadcrumb("job_files_serialized", {
-      file_count: serializedFiles.length,
-      total_size: serializedFiles.reduce((sum, f) => sum + f.file.size, 0),
-    });
+    const serializedFiles = await serializeJobMedia(id, job as Pick<Job, "kind" | "payload">);
+    const imageRows = serializedFiles.map(({ file, fileData }) => ({
+      id: crypto.randomUUID(),
+      jobId: id,
+      fileData,
+      url: mediaResourceManager.createUrl(file, id),
+      createdAt: timestamp,
+    })) as JobQueueDBImage[];
 
     // Atomically persist job + images.
     // If anything fails, we cleanup any created object URLs and nothing is committed.
-    const tx = db.transaction(["jobs", "job_images"], "readwrite");
     try {
-      await tx.objectStore("jobs").add(jobData as Job);
-
-      for (let index = 0; index < serializedFiles.length; index++) {
-        const { file, fileData } = serializedFiles[index];
-        const imageId = crypto.randomUUID();
-        const url = mediaResourceManager.createUrl(file, id);
-
-        await tx.objectStore("job_images").add({
-          id: imageId,
-          jobId: id,
-          fileData, // Store serialized data instead of File
-          url,
-          createdAt: timestamp,
-        } as JobQueueDBImage);
-      }
-
-      await tx.done;
+      await retryOnceAfterQuotaCleanup(async () => {
+        const tx = db.transaction(["jobs", "job_images"], "readwrite");
+        try {
+          await tx.objectStore("jobs").add(jobData as Job);
+          for (const imageRow of imageRows) {
+            await tx.objectStore("job_images").add(imageRow);
+          }
+          await tx.done;
+        } catch (error) {
+          try {
+            tx.abort();
+          } catch {
+            // Transaction may already be aborted; ignore error.
+          }
+          throw error;
+        }
+      });
     } catch (error) {
-      try {
-        tx.abort();
-      } catch {
-        // Transaction may already be aborted; ignore error
-      }
-
       trackPrivateQueueEvent("job_queue_storage_failed", {
         job_kind: job.kind,
         file_count: serializedFiles.length,
@@ -316,6 +286,7 @@ class JobQueueDatabase {
 
     if (job) {
       job.synced = true;
+      delete job.lastError;
       if (txHash && job.meta) {
         job.meta.txHash = txHash;
       }
@@ -333,6 +304,16 @@ class JobQueueDatabase {
       job.lastAttemptAt = Date.now();
       await db.put("jobs", job);
     }
+  }
+
+  async markJobTerminalFailed(id: string, error: string): Promise<void> {
+    const db = await this.init();
+    const job = await db.get("jobs", id);
+    if (!job) return;
+    job.lastError = error;
+    job.attempts = Math.max(job.attempts, 5);
+    job.lastAttemptAt = Date.now();
+    await db.put("jobs", job);
   }
 
   async getImagesForJob(jobId: string): Promise<Array<{ id: string; file: File; url: string }>> {
@@ -411,7 +392,7 @@ class JobQueueDatabase {
     return {
       total: userJobs.length,
       pending: userJobs.filter((job) => !job.synced && !job.lastError).length,
-      failed: userJobs.filter((job) => job.lastError).length,
+      failed: userJobs.filter((job) => !job.synced && Boolean(job.lastError)).length,
       synced: userJobs.filter((job) => job.synced).length,
     };
   }
@@ -459,6 +440,50 @@ class JobQueueDatabase {
     return new Set(allMappings.map((m) => m.clientWorkId));
   }
 
+  async storeClientCommitmentIdMapping(
+    clientCommitmentId: string,
+    commitmentId: bigint,
+    jobId: string,
+    chainId: number
+  ): Promise<void> {
+    const db = await this.init();
+    await db.put("client_commitment_id_mappings", {
+      clientCommitmentId,
+      commitmentId: commitmentId.toString(),
+      jobId,
+      chainId,
+      createdAt: Date.now(),
+    });
+  }
+
+  async getCommitmentIdByClientId(clientCommitmentId: string): Promise<bigint | null> {
+    const db = await this.init();
+    const mapping = await db.get("client_commitment_id_mappings", clientCommitmentId);
+    return mapping ? BigInt(mapping.commitmentId) : null;
+  }
+
+  async storeClientSeriesIdMapping(
+    clientSeriesId: string,
+    seriesId: bigint,
+    jobId: string,
+    chainId: number
+  ): Promise<void> {
+    const db = await this.init();
+    await db.put("client_series_id_mappings", {
+      clientSeriesId,
+      seriesId: seriesId.toString(),
+      jobId,
+      chainId,
+      createdAt: Date.now(),
+    });
+  }
+
+  async getSeriesIdByClientId(clientSeriesId: string): Promise<bigint | null> {
+    const db = await this.init();
+    const mapping = await db.get("client_series_id_mappings", clientSeriesId);
+    return mapping ? BigInt(mapping.seriesId) : null;
+  }
+
   /**
    * Cleanup old mappings (older than 30 days)
    */
@@ -490,37 +515,19 @@ class JobQueueDatabase {
     await this.cleanupOldMappings();
   }
 
-  // Key for storing failed delete IDs in localStorage (lightweight persistence)
-  private readonly FAILED_DELETE_IDS_KEY = "gg_failed_delete_job_ids";
-
   /**
    * Load failed delete job IDs from localStorage.
    * Uses localStorage instead of IndexedDB for simplicity since this is just a small array.
    */
   async loadFailedDeleteIds(): Promise<string[]> {
-    try {
-      const stored = localStorage.getItem(this.FAILED_DELETE_IDS_KEY);
-      if (!stored) return [];
-      const parsed = JSON.parse(stored);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+    return loadFailedDeleteIds();
   }
 
   /**
    * Save failed delete job IDs to localStorage.
    */
   async saveFailedDeleteIds(ids: string[]): Promise<void> {
-    try {
-      if (ids.length === 0) {
-        localStorage.removeItem(this.FAILED_DELETE_IDS_KEY);
-      } else {
-        localStorage.setItem(this.FAILED_DELETE_IDS_KEY, JSON.stringify(ids));
-      }
-    } catch {
-      // Ignore storage errors - this is just cleanup optimization
-    }
+    saveFailedDeleteIds(ids);
   }
 }
 

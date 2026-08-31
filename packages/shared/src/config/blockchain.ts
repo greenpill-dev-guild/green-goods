@@ -3,13 +3,23 @@ import deployment42161 from "@green-goods/contracts/deployments/42161-latest.jso
 import deployment42220 from "@green-goods/contracts/deployments/42220-latest.json";
 import deployment11155111 from "@green-goods/contracts/deployments/11155111-latest.json";
 import networksConfig from "@green-goods/contracts/deployments/networks.json";
-import { ENV } from "../lib/env";
-import { logger } from "../modules/app/logger";
+import { DEFAULT_CHAIN_ID } from "./default-chain";
 import { getLocalArbitrumForkRpcUrl, shouldUseLocalArbitrumForkRpc } from "./local-fork";
+
+export { DEFAULT_CHAIN_ID } from "./default-chain";
 
 // Export types
 export interface EASConfig {
   ASSESSMENT: { uid: string; schema: string };
+  /**
+   * Assessment v3. EAS schemas are immutable, so v3 was registered as a fresh
+   * UID beside the still-readable v2 record on the same resolver proxy, and a
+   * garden's assessments live under whichever one was current when they were
+   * recorded. The pooling module accepts either (ProofLib.sol:104-107), so a
+   * reader that wants every assessment has to ask for both. Zero when the chain
+   * has no v3 registration.
+   */
+  ASSESSMENT_V3: { uid: string; schema: string };
   WORK: { uid: string; schema: string };
   WORK_APPROVAL: { uid: string; schema: string };
   EAS: { address: string };
@@ -31,6 +41,8 @@ interface DeploymentConfig {
   schemas?: {
     assessmentSchemaUID?: string;
     assessmentSchema?: string;
+    assessmentV3SchemaUID?: string;
+    assessmentV3Schema?: string;
     workSchemaUID?: string;
     workSchema?: string;
     workApprovalSchemaUID?: string;
@@ -41,6 +53,7 @@ interface DeploymentConfig {
     schemaRegistry?: string;
   };
   gardenToken?: string;
+  gardenAccountImpl?: string;
   actionRegistry?: string;
   workResolver?: string;
   workApprovalResolver?: string;
@@ -85,10 +98,56 @@ const EAS_GRAPHQL_URLS: Record<string, string> = {
 
 const DEFAULT_EAS_GRAPHQL_URL = "https://sepolia.easscan.org/graphql";
 const FALLBACK_CHAIN_ID = 42161;
+const PUBLIC_GARDEN_IMPACT_INDEXER_CHAINS = new Set([42161, 11155111]);
+
+export interface PublicGardenImpactChainConfig {
+  gardenToken: string;
+  gardenAccountImpl: string;
+  tokenboundRegistry: string;
+}
 
 function hasNetworkConfig(chainId: number): boolean {
   return Object.values(networksConfig.networks).some(
     (config) => (config as NetworkJsonConfig).chainId === chainId
+  );
+}
+
+function isConfiguredAddress(value: unknown): value is string {
+  return (
+    typeof value === "string" && /^0x[0-9a-fA-F]{40}$/.test(value) && !/^0x0{40}$/i.test(value)
+  );
+}
+
+export function getPublicGardenImpactChainConfig(
+  chainId: number
+): PublicGardenImpactChainConfig | null {
+  const deployment = DEPLOYMENT_CONFIGS[String(chainId)];
+  const tokenboundRegistry = (
+    networksConfig as { deploymentDefaults?: { tokenboundRegistry?: string } }
+  ).deploymentDefaults?.tokenboundRegistry;
+  if (
+    !isConfiguredAddress(deployment?.gardenToken) ||
+    !isConfiguredAddress(deployment.gardenAccountImpl) ||
+    !isConfiguredAddress(tokenboundRegistry)
+  ) {
+    return null;
+  }
+  return {
+    gardenToken: deployment.gardenToken,
+    gardenAccountImpl: deployment.gardenAccountImpl,
+    tokenboundRegistry,
+  };
+}
+
+/** True only when every source required by the public impact adapter covers the chain. */
+export function isPublicGardenImpactChainSupported(chainId: number): boolean {
+  if (!Number.isSafeInteger(chainId) || chainId <= 0) return false;
+  const key = String(chainId);
+  return Boolean(
+    PUBLIC_GARDEN_IMPACT_INDEXER_CHAINS.has(chainId) &&
+      getPublicGardenImpactChainConfig(chainId) &&
+      EAS_GRAPHQL_URLS[key] &&
+      hasNetworkConfig(chainId)
   );
 }
 
@@ -146,6 +205,12 @@ export function getEASConfig(chainId?: number | string): EASConfig {
         deployment.schemas?.assessmentSchemaUID ||
         "0x0000000000000000000000000000000000000000000000000000000000000000",
       schema: deployment.schemas?.assessmentSchema || "",
+    },
+    ASSESSMENT_V3: {
+      uid:
+        deployment.schemas?.assessmentV3SchemaUID ||
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+      schema: deployment.schemas?.assessmentV3Schema || "",
     },
     WORK: {
       uid:
@@ -264,27 +329,6 @@ export function isGreenWillDeployed(chainId?: number | string): boolean {
   const deployment = getDeploymentConfig(chain) as DeploymentConfig & { greenWill?: string };
   const address = deployment.greenWill;
   return Boolean(address) && address !== "0x0000000000000000000000000000000000000000";
-}
-
-// Default chain ID from environment variable
-export const DEFAULT_CHAIN_ID = resolveChainId(ENV.VITE_CHAIN_ID);
-
-// Warn at module init when VITE_CHAIN_ID is missing or didn't resolve to a
-// known deployment, so build pipelines and local dev sessions surface the
-// silent fallback path instead of running on the wrong chain unnoticed.
-{
-  const rawChainId = ENV.VITE_CHAIN_ID;
-  const resolvedFromEnv =
-    rawChainId !== undefined && rawChainId !== null && rawChainId !== ""
-      ? Number(rawChainId)
-      : undefined;
-  if (resolvedFromEnv !== DEFAULT_CHAIN_ID) {
-    logger.warn("[blockchain] VITE_CHAIN_ID missing or unresolved; using fallback", {
-      source: "config/blockchain",
-      rawChainId: rawChainId ?? null,
-      fallbackChainId: DEFAULT_CHAIN_ID,
-    });
-  }
 }
 
 // Get default chain configuration

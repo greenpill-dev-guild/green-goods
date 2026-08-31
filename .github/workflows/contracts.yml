@@ -9,28 +9,27 @@ on:
       - ".env.schema"
       - "packages/contracts/**"
       - "scripts/contracts/**"
+      - "scripts/lib/git-guardrails.mjs"
       - "scripts/quality/check-source-structure.js"
+      - ".github/actions/setup-js/action.yml"
       - ".github/workflows/contracts.yml"
   pull_request:
-    branches: [main, develop]
     paths:
       - "package.json"
       - "bun.lock"
       - ".env.schema"
       - "packages/contracts/**"
       - "scripts/contracts/**"
+      - "scripts/lib/git-guardrails.mjs"
       - "scripts/quality/check-source-structure.js"
+      - ".github/actions/setup-js/action.yml"
       - ".github/workflows/contracts.yml"
-  workflow_dispatch:
+  workflow_call:
     inputs:
       operation:
         description: "Contracts operation to run"
         required: true
-        type: choice
-        options:
-          - fork-readiness
-          - ci
-          - all
+        type: string
         default: fork-readiness
 
 permissions:
@@ -52,23 +51,41 @@ jobs:
           submodules: recursive
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@b00af27efadbc7b4ca8b82abbd903b17cc874d2a
+        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
-          version: stable
+          version: v1.7.1
+          cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
 
-      - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      - name: Setup JavaScript toolchain and dependencies
+        uses: ./.github/actions/setup-js
+
+      # Restore the newest Foundry build for this compiler config, then save a
+      # fresh entry per commit; forge recompiles only what changed since the
+      # restored snapshot. Per-job key prefixes keep each job's profile
+      # artifacts in their own cache lineage. This lineage holds two profile
+      # subdirectories (out/test and out/production) because the required gate
+      # below compiles both.
+      - name: Cache Foundry build
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
-          node-version: "22"
+          path: |
+            packages/contracts/.generated/foundry/cache
+            packages/contracts/.generated/foundry/out
+          key: foundry-unit-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-${{ github.sha }}
+          restore-keys: |
+            foundry-unit-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
-        with:
-          bun-version: 1.3.14
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
+      # `bun run test` is the required PR gate and chains, in order:
+      #   1. TypeScript typecheck
+      #   2. optimizer-off `test`-profile unit suite (the three source-acknowledgment
+      #      boundary fixtures are excluded by exact name — their gas is meaningless
+      #      outside release codegen)
+      #   3. `test:gas:release` — the production-profile (via_ir, optimizer_runs = 1)
+      #      cold-path proof of the frozen batch-size boundary, run with per-call
+      #      transaction isolation; this is release gas evidence, the nightly deep
+      #      lane's optimizer-200 numbers are not
+      #   4. script tests (vitest), including the release-lock derivation and the
+      #      gas-gate routing guardrail
       - name: Run contract unit tests
         working-directory: packages/contracts
         run: bun run test
@@ -87,35 +104,48 @@ jobs:
           fetch-depth: 0
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@b00af27efadbc7b4ca8b82abbd903b17cc874d2a
+        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
-          version: stable
+          version: v1.7.1
+          cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
 
-      - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      - name: Setup JavaScript toolchain and dependencies
+        uses: ./.github/actions/setup-js
+
+      - name: Cache Foundry build
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
-          node-version: "22"
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
-        with:
-          bun-version: 1.3.14
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+          path: |
+            packages/contracts/.generated/foundry/cache
+            packages/contracts/.generated/foundry/out
+          key: foundry-lint-build-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-${{ github.sha }}
+          restore-keys: |
+            foundry-lint-build-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-
 
       - name: Check source structure
         env:
           SOURCE_STRUCTURE_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
         run: node scripts/quality/check-source-structure.js
 
+      - name: Check new Solidity test names
+        env:
+          SOLIDITY_TEST_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
+        run: bun run check:solidity-test-names
+
+      - name: Run Solidity naming guardrail tests
+        run: node --test scripts/contracts/check-solidity-test-names.test.mjs
+
       - name: Run contract lint
         working-directory: packages/contracts
-        run: bun run lint
+        run: bun run lint:check
 
       - name: Build contracts
         working-directory: packages/contracts
         run: bun run build
+
+      - name: Check deployed bytecode sizes (EIP-170)
+        working-directory: packages/contracts
+        run: bun run check:sizes
 
   realism-audit:
     name: Test Realism Audit
@@ -126,26 +156,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          submodules: recursive
-
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@b00af27efadbc7b4ca8b82abbd903b17cc874d2a
-        with:
-          version: stable
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: "22"
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
-        with:
-          bun-version: 1.3.14
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+          node-version: "22.22.1"
 
       - name: Resolve realism gate phase
         id: realism-phase
@@ -174,18 +189,17 @@ jobs:
           echo "today=$TODAY" >> "$GITHUB_OUTPUT"
 
       - name: Validate realism audit tooling
-        working-directory: packages/contracts
-        run: bun run test:audit:realism:tooling
+        run: bash scripts/contracts/validate-test-realism-tooling.sh
 
       - name: Run contracts realism audit
-        working-directory: packages/contracts
-        run: bun run test:audit:realism
+        run: >-
+          bash scripts/contracts/check-test-realism.sh
+          --mode "${{ steps.realism-phase.outputs.mode }}"
+          --report-md output/contracts-test-audit/realism-report-ci.md
+          --report-json output/contracts-test-audit/realism-report-ci.json
         env:
           CI: true
-          CONTRACT_REALISM_MODE: ${{ steps.realism-phase.outputs.mode }}
           REALISM_REVERT_THRESHOLD: ${{ steps.realism-phase.outputs.revert_threshold }}
-          CONTRACT_REALISM_REPORT_MD: ../../output/contracts-test-audit/realism-report-ci.md
-          CONTRACT_REALISM_REPORT_JSON: ../../output/contracts-test-audit/realism-report-ci.json
 
       - name: Upload realism audit artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -217,22 +231,13 @@ jobs:
           submodules: recursive
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@b00af27efadbc7b4ca8b82abbd903b17cc874d2a
+        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
-          version: stable
+          version: v1.7.1
+          cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
 
-      - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with:
-          node-version: "22"
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
-        with:
-          bun-version: 1.3.14
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      - name: Setup JavaScript toolchain and dependencies
+        uses: ./.github/actions/setup-js
 
       - name: Resolve fork RPCs and block pins
         env:
@@ -265,13 +270,23 @@ jobs:
           fi
 
           if [[ -z "$SEPOLIA_RPC_URL" ]]; then
-            SEPOLIA_RPC_URL="$PUBLIC_SEPOLIA_RPC_URL"
-            echo "::warning::SEPOLIA_RPC_URL secret is not configured; using public Sepolia RPC fallback."
+            if [[ -n "$ALCHEMY_KEY_VALUE" ]]; then
+              SEPOLIA_RPC_URL="https://eth-sepolia.g.alchemy.com/v2/$ALCHEMY_KEY_VALUE"
+              echo "::notice::SEPOLIA_RPC_URL secret is not configured; using derived Alchemy Sepolia RPC from existing key secret."
+            else
+              SEPOLIA_RPC_URL="$PUBLIC_SEPOLIA_RPC_URL"
+              echo "::warning::SEPOLIA_RPC_URL secret and Alchemy key secrets are not configured; using public Sepolia RPC fallback."
+            fi
           fi
 
           if [[ -z "$ETHEREUM_RPC_URL" ]]; then
-            ETHEREUM_RPC_URL="$PUBLIC_ETHEREUM_RPC_URL"
-            echo "::warning::ETHEREUM_RPC_URL secret is not configured; using public Ethereum RPC fallback."
+            if [[ -n "$ALCHEMY_KEY_VALUE" ]]; then
+              ETHEREUM_RPC_URL="https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_KEY_VALUE"
+              echo "::notice::ETHEREUM_RPC_URL secret is not configured; using derived Alchemy Ethereum RPC from existing key secret."
+            else
+              ETHEREUM_RPC_URL="$PUBLIC_ETHEREUM_RPC_URL"
+              echo "::warning::ETHEREUM_RPC_URL secret and Alchemy key secrets are not configured; using public Ethereum RPC fallback."
+            fi
           fi
 
           echo "::add-mask::$ARBITRUM_RPC_URL"
@@ -289,6 +304,19 @@ jobs:
           echo "ETHEREUM_FORK_BLOCK_NUMBER=$ETHEREUM_FORK_BLOCK_NUMBER" >> "$GITHUB_ENV"
           echo "MAINNET_FORK_BLOCK_NUMBER=$ETHEREUM_FORK_BLOCK_NUMBER" >> "$GITHUB_ENV"
           echo "::notice::Fork shard=${{ matrix.shard }} blocks: arbitrum=$ARBITRUM_FORK_BLOCK_NUMBER sepolia=$SEPOLIA_FORK_BLOCK_NUMBER ethereum=$ETHEREUM_FORK_BLOCK_NUMBER"
+
+      # Also cache Foundry's RPC response cache: fork tests pin block numbers,
+      # so remote chain state is fully reusable across runs.
+      - name: Cache Foundry build
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            packages/contracts/.generated/foundry/cache
+            packages/contracts/.generated/foundry/out
+            ~/.foundry/cache
+          key: foundry-fork-${{ matrix.shard }}-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-${{ github.sha }}
+          restore-keys: |
+            foundry-fork-${{ matrix.shard }}-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-
 
       - name: Run ${{ matrix.label }} fork shard
         working-directory: packages/contracts
@@ -309,22 +337,13 @@ jobs:
           submodules: recursive
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@b00af27efadbc7b4ca8b82abbd903b17cc874d2a
+        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
-          version: stable
+          version: v1.7.1
+          cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
 
-      - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with:
-          node-version: "22"
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
-        with:
-          bun-version: 1.3.14
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      - name: Setup JavaScript toolchain and dependencies
+        uses: ./.github/actions/setup-js
 
       - name: Resolve fork RPCs and block pins
         env:
@@ -357,13 +376,23 @@ jobs:
           fi
 
           if [[ -z "$SEPOLIA_RPC_URL" ]]; then
-            SEPOLIA_RPC_URL="$PUBLIC_SEPOLIA_RPC_URL"
-            echo "::warning::SEPOLIA_RPC_URL secret is not configured; using public Sepolia RPC fallback."
+            if [[ -n "$ALCHEMY_KEY_VALUE" ]]; then
+              SEPOLIA_RPC_URL="https://eth-sepolia.g.alchemy.com/v2/$ALCHEMY_KEY_VALUE"
+              echo "::notice::SEPOLIA_RPC_URL secret is not configured; using derived Alchemy Sepolia RPC from existing key secret."
+            else
+              SEPOLIA_RPC_URL="$PUBLIC_SEPOLIA_RPC_URL"
+              echo "::warning::SEPOLIA_RPC_URL secret and Alchemy key secrets are not configured; using public Sepolia RPC fallback."
+            fi
           fi
 
           if [[ -z "$ETHEREUM_RPC_URL" ]]; then
-            ETHEREUM_RPC_URL="$PUBLIC_ETHEREUM_RPC_URL"
-            echo "::warning::ETHEREUM_RPC_URL secret is not configured; using public Ethereum RPC fallback."
+            if [[ -n "$ALCHEMY_KEY_VALUE" ]]; then
+              ETHEREUM_RPC_URL="https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_KEY_VALUE"
+              echo "::notice::ETHEREUM_RPC_URL secret is not configured; using derived Alchemy Ethereum RPC from existing key secret."
+            else
+              ETHEREUM_RPC_URL="$PUBLIC_ETHEREUM_RPC_URL"
+              echo "::warning::ETHEREUM_RPC_URL secret and Alchemy key secrets are not configured; using public Ethereum RPC fallback."
+            fi
           fi
 
           echo "::add-mask::$ARBITRUM_RPC_URL"
@@ -382,6 +411,17 @@ jobs:
           echo "MAINNET_FORK_BLOCK_NUMBER=$ETHEREUM_FORK_BLOCK_NUMBER" >> "$GITHUB_ENV"
           echo "::notice::Arbitrum sequential fork shards blocks: arbitrum=$ARBITRUM_FORK_BLOCK_NUMBER sepolia=$SEPOLIA_FORK_BLOCK_NUMBER ethereum=$ETHEREUM_FORK_BLOCK_NUMBER"
 
+      - name: Cache Foundry build
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            packages/contracts/.generated/foundry/cache
+            packages/contracts/.generated/foundry/out
+            ~/.foundry/cache
+          key: foundry-fork-arbitrum-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-${{ github.sha }}
+          restore-keys: |
+            foundry-fork-arbitrum-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-
+
       - name: Run Arbitrum fork shards sequentially
         working-directory: packages/contracts
         run: |
@@ -396,6 +436,9 @@ jobs:
           bun run test:fork:octant:ci
           octant_status=$?
 
+          bun run test:fork:settlement-lane
+          settlement_lane_status=$?
+
           set -e
 
           failed=0
@@ -409,6 +452,10 @@ jobs:
           fi
           if [[ "$octant_status" -ne 0 ]]; then
             echo "::error::Octant fork shard failed with exit code $octant_status"
+            failed=1
+          fi
+          if [[ "$settlement_lane_status" -ne 0 ]]; then
+            echo "::error::Settlement lane fork shard failed with exit code $settlement_lane_status"
             failed=1
           fi
 

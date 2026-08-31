@@ -2,6 +2,7 @@ import { RiAddLine } from "@remixicon/react";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils/styles/cn";
+import { selectNavigationBarModel } from "./NavigationBar.model";
 import { useCanvasMobileChromeHidden } from "./useCanvasMobileChromeHidden";
 
 // ----------------------------------------------------------------------------
@@ -122,8 +123,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   const [focusedSpeedDialActionId, setFocusedSpeedDialActionId] = useState<string | null>(null);
   const fabButtonRef = useRef<HTMLButtonElement>(null);
   const speedDialActionRefs = useRef(new Map<string, HTMLButtonElement>());
-  const speedDialShadow =
-    "var(--admin-speed-dial-shadow, var(--elevation-3, 0 12px 28px rgb(15 23 42 / 0.16)))";
+  const speedDialShadow = "var(--admin-speed-dial-shadow, var(--m3-elevation-2))";
   const isSingleAction = config.actions.length <= 1;
   const enabledSpeedDialActions = useMemo(
     () => config.actions.filter((action) => !action.disabled),
@@ -150,6 +150,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   const closeSpeedDial = useCallback(() => {
     setSpeedDialOpen(false);
     setFocusedSpeedDialActionId(null);
+    fabButtonRef.current?.focus();
   }, []);
 
   const focusSpeedDialAction = useCallback((actionId: string) => {
@@ -164,8 +165,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
     (action: FabAction) => {
       if (action.disabled) return;
 
-      const actionId = action.id;
-      config.onAction(actionId);
+      config.onAction(action.id);
       closeSpeedDial();
     },
     [closeSpeedDial, config]
@@ -176,7 +176,6 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
       if (event.key === "Escape") {
         event.preventDefault();
         closeSpeedDial();
-        fabButtonRef.current?.focus();
         return;
       }
 
@@ -341,11 +340,12 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         ref={fabButtonRef}
         type="button"
         onClick={handleClick}
+        // Name = visible label (WCAG 2.5.3); aria-expanded stays explicit when collapsed.
         aria-label={
-          isSingleAction ? config.label : formatMessage({ id: "cockpit.fab.openActions" })
+          isSingleAction ? floatingActionLabel : formatMessage({ id: "cockpit.fab.openActions" })
         }
         aria-haspopup={isSingleAction ? undefined : "menu"}
-        aria-expanded={speedDialOpen || undefined}
+        aria-expanded={isSingleAction ? undefined : speedDialOpen}
         data-slot="fab-button"
         data-state={speedDialOpen ? "open" : "closed"}
         style={{
@@ -376,7 +376,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
           type="button"
           className="fixed inset-0 z-[-1] cursor-default"
           style={{ position: "fixed", inset: 0, zIndex: -1, cursor: "default" }}
-          onClick={() => setSpeedDialOpen(false)}
+          onClick={closeSpeedDial}
           aria-hidden="true"
           tabIndex={-1}
           data-slot="speed-dial-backdrop"
@@ -410,16 +410,18 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
   const [isLargeDesktop, setIsLargeDesktop] = useState(
     () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches
   );
-  const visibleSlots = useMemo(() => slots.filter((s) => s.visible), [slots]);
-  const desktopSlots = useMemo(
-    () => visibleSlots.filter((slot) => !slot.mobileOnly),
-    [visibleSlots]
-  );
-  const mobileSlots = useMemo(
-    () => visibleSlots.filter((slot) => !slot.desktopOnly),
-    [visibleSlots]
-  );
   const hideMobileChrome = useCanvasMobileChromeHidden();
+  const { desktopSlots, mobileSlots, shouldRender, showMobileFab, showDesktopNav, showMobileNav } =
+    useMemo(
+      () =>
+        selectNavigationBarModel(slots, {
+          isDesktop,
+          isLargeDesktop,
+          hideMobileChrome,
+          hasFab: Boolean(fab),
+        }),
+      [slots, isDesktop, isLargeDesktop, hideMobileChrome, fab]
+    );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -447,11 +449,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
     return () => mediaQuery.removeEventListener("change", syncLargeDesktop);
   }, []);
 
-  // Role-based visibility: no nav bar if ≤1 tab and no FAB
-  if (visibleSlots.length === 0 && !fab) return null;
-  if (desktopSlots.length <= 1 && mobileSlots.length <= 1 && !fab) {
-    return null;
-  }
+  if (!shouldRender) return null;
 
   const navLabel = formatMessage({ id: "cockpit.nav.mainNavigation" });
   const desktopNavStyle = {
@@ -466,7 +464,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
 
   return (
     <>
-      {!isLargeDesktop && fab && !hideMobileChrome ? (
+      {showMobileFab && fab ? (
         // Tier 2e: Floating FAB layer for tablet (600–1023px) and mobile (<600px).
         // Hidden at >=1024px per audit §5.4.4 — desktop puts inline header actions
         // in the page header instead.
@@ -504,7 +502,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
         </div>
       ) : null}
 
-      {isDesktop && desktopSlots.length > 1 && (
+      {showDesktopNav && (
         <nav
           aria-label={navLabel}
           data-component="NavigationBar"
@@ -520,7 +518,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
           className={cn(
             "canvas-navigation-bar flex w-max items-center",
             "gap-1.5 rounded-2xl px-2.5 py-2",
-            "border border-stroke-soft-200 bg-bg-white-0 shadow-[var(--edge-rest),_var(--elevation-2)]"
+            "border border-stroke-soft-200 bg-bg-white-0 shadow-[var(--edge-rest),_var(--m3-elevation-1)]"
           )}
           data-item-count={desktopSlots.length}
         >
@@ -541,7 +539,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
           flows; no FAB on desktop. The mobile-floating FAB block above now
           covers tablet (600–1023px) too. */}
 
-      {!isDesktop && mobileSlots.length > 1 && !hideMobileChrome && (
+      {showMobileNav && (
         <nav
           aria-label={navLabel}
           data-component="NavigationBar"
@@ -559,7 +557,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
           }}
           className={cn(
             "canvas-navigation-bar fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-nav flex items-start gap-1.5 rounded-2xl px-2 py-2",
-            "border border-stroke-soft-200 bg-bg-white-0 shadow-[var(--edge-rest),_var(--elevation-3)]"
+            "border border-stroke-soft-200 bg-bg-white-0 shadow-[var(--edge-rest),_var(--m3-elevation-2)]"
           )}
         >
           {mobileSlots.map((slot) => (

@@ -1,0 +1,188 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "agent-research-grounding",
+    "title": "Agent Research and Discussion Grounding",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-08-25T06:06:31.016Z",
+    "updated_at": "2026-08-25T06:44:40.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["docs", "ops"],
+    "work_types": ["implementation", "research", "qa"],
+    "surfaces": [
+      ".claude/skills/research",
+      ".claude/skills/plan",
+      "scripts/quality",
+      "scripts/data/skill-trigger-eval.json",
+      "scripts/README.md",
+      "docs/docs/builders/agentic",
+      ".plans/active/agent-research-grounding"
+    ],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Repository-only guidance slice: no Linear mirror or tracker write was requested.",
+    "The current shared develop checkout is preserved; publication, commit, PR, and branch changes are outside scope.",
+    "Commitment Pooling is a 236-file read-only proving case. No product decision, spec, report, status, or WIP in that hub may be modified.",
+    "State/API remains in_progress after implementation because terminal status requires a clean commit-attributed validation receipt; the user did not request publication or commit readiness.",
+    "Live routing and same-model forward testing are BLOCKED: the sandbox denies stitch.googleapis.com and api.anthropic.com for Claude plus chatgpt.com for Codex. Deterministic local checks remain the available proof.",
+    "The changed guidance, script, JSON, and docs surfaces pass scoped formatting, behavior, guardrail, guidance, Plan Hub, docs-test, and docs-build checks. Repository-wide format:check remains blocked only by an unchanged Commitment Pooling evidence JSON newline.",
+    "The optional skill-creator quick_validate.py check is BLOCKED because both available Python runtimes lack PyYAML; no dependency was installed."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No rendered UI, component, i18n, or browser-visible behavior changes."
+      },
+      "skill_tags": ["not-applicable"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "node --test scripts/quality/check-skill-behavior-contracts.test.mjs",
+          "evidence": "Exited 1 before implementation: all three new contracts reported their missing research and frontier-round sections; the live baseline was red."
+        },
+        "green": {
+          "command": "node --test scripts/quality/check-skill-behavior-contracts.test.mjs",
+          "evidence": "Exited 0 after implementation: 16 tests passed, including the 15 live behavior scenarios and the three new contract mutation guards."
+        },
+        "note": ""
+      },
+      "skill_tags": ["agent-guidance", "research", "planning"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No Solidity, ABI, deployment, broadcast, or release surface changes."
+      },
+      "skill_tags": ["not-applicable"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-08-25T06:06:31.020Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-08-25T06:19:26.081Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-08-25T06:30:00.000Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Implemented research guidance, planning integration, behavior contracts, routing fixtures, and repository-only evidence; validation and clean receipt reconciliation remain."
+    },
+    {
+      "timestamp": "2026-08-25T06:37:33.000Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "review_fixes_applied",
+      "branch": null,
+      "note": "Reconciled skill inventory documentation, guidance-link-safe behavior matching, Plan Hub formatting, and evidence state before rerunning validation."
+    },
+    {
+      "timestamp": "2026-08-25T06:41:37.000Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "blocked",
+      "branch": null,
+      "note": "Live Claude routing and Claude/Codex before-after evaluators were blocked by the sandbox endpoint allowlist; no substitute model evidence was recorded."
+    },
+    {
+      "timestamp": "2026-08-25T06:44:40.000Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "targeted_checks_passed",
+      "branch": null,
+      "note": "Behavior contracts, 104 review guardrails, guidance links, Codex consistency, Plan Hub validation, docs tests/build, scoped formatting, diff checks, and Commitment Pooling preservation passed. Full format remains blocked by unchanged out-of-scope evidence JSON formatting."
+    }
+  ]
+}

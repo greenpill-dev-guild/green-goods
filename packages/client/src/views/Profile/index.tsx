@@ -1,11 +1,9 @@
-import {
-  type Address,
-  formatEnsNameForDisplay,
-  useAuthState,
-  useEnsName,
-  useGardenerProfile,
-  useUser,
-} from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
+import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGardenerProfile } from "@green-goods/shared/hooks/gardener/useGardenerProfile";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { RiAwardLine, RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
@@ -102,6 +100,10 @@ const Profile: React.FC = () => {
           tabs={tabs}
           activeTab={activeTab}
           onTabChange={(tabId) => setActiveTab(tabId as "account" | "badges" | "help")}
+          ariaLabel={intl.formatMessage({
+            id: "app.profile.tabs.label",
+            defaultMessage: "Profile sections",
+          })}
           variant="compact"
           scrollTargetSelector="#profile-scroll"
         />

@@ -1,13 +1,10 @@
-import {
-  type Address,
-  debugError,
-  hapticLight,
-  toastService,
-  useAuthActions,
-  useAuthState,
-  useEnsName,
-  usePrimaryAddress,
-} from "@green-goods/shared";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useAuthActions, useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import type { Address } from "@green-goods/shared/types/domain";
+import { hapticLight } from "@green-goods/shared/utils/app/haptics";
+import { debugError } from "@green-goods/shared/utils/debug";
 import {
   RiAlertLine,
   RiKeyLine,
@@ -21,7 +18,7 @@ import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
-import { APP_ROUTES } from "@/config/pwa-routing";
+import { APP_ROUTES } from "@/config/pwaRouting";
 
 export const AccountInfo: React.FC = () => {
   const { authMode, credential, walletAddress, embeddedAddress } = useAuthState();
@@ -147,20 +144,21 @@ export const AccountInfo: React.FC = () => {
             <RiAlertLine className="w-3.5 h-3.5 shrink-0" />
             {intl.formatMessage({
               id: "app.identity.passkeyWarning.title",
-              defaultMessage: "Save a backup before changing browsers",
+              defaultMessage: "Recovery depends on your passkey provider",
             })}
           </p>
           <p className="mt-1 leading-relaxed">
             {intl.formatMessage({
               id: "app.identity.passkeyWarning.message",
               defaultMessage:
-                "This sign-in lives on this device only. Clearing browser data or uninstalling the app will sign you out.",
+                "Keep the same username or ENS handle for recovery lookup. Creating a separate account gives you a different address.",
             })}
           </p>
           <p className="mt-1 leading-relaxed">
             {intl.formatMessage({
               id: "app.identity.passkeyWarning.guidance",
-              defaultMessage: "Want access from another device? Sign in with a wallet instead.",
+              defaultMessage:
+                "Synced passkeys can recover where your passkey provider supports sync. Legacy local-only passkeys keep same-device login only.",
             })}
           </p>
         </div>

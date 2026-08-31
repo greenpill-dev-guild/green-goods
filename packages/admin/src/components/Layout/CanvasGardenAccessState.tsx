@@ -26,14 +26,17 @@ export function CanvasGardenAccessState({
         })}
       </h1>
       <p className="mt-2 max-w-md text-sm text-text-sub">
-        {formatMessage({
-          id: canCreateGarden
-            ? "cockpit.access.noGardenDescriptionUnified"
-            : "cockpit.access.noGardenDescriptionOperator",
-          defaultMessage: canCreateGarden
-            ? "Create your first garden or ask a garden owner to add you as an operator."
-            : "Ask a garden owner to add you as an operator.",
-        })}
+        {canCreateGarden
+          ? formatMessage({
+              id: "cockpit.access.noGardenDescriptionCanCreate",
+              defaultMessage:
+                "This wallet is not assigned to a steward or evaluator garden yet. Create a garden to start working in the canvas.",
+            })
+          : formatMessage({
+              id: "cockpit.access.noGardenDescription",
+              defaultMessage:
+                "This wallet is not assigned to a steward or evaluator garden yet. Ask a garden owner or steward to add you before using the canvas.",
+            })}
       </p>
       {canCreateGarden && (
         <AdminButton className="mt-6" onClick={onCreateGarden}>

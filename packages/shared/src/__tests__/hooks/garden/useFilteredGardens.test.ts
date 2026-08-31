@@ -30,7 +30,7 @@ function createGarden(overrides: Partial<Garden> = {}): Garden {
     logo: "",
     location: "",
     gardeners: [],
-    operators: [],
+    stewards: [],
     owners: [],
     evaluators: [],
     actions: [],
@@ -100,12 +100,12 @@ describe("useFilteredGardens", () => {
       expect(result.filteredGardens[0].id).toBe("g1");
     });
 
-    it("includes gardens where user is operator", () => {
+    it("includes gardens where user is steward", () => {
       const gardens = [
         createGarden({
           id: "g1",
           name: "Operated Garden",
-          operators: [USER_ADDRESS] as any[],
+          stewards: [USER_ADDRESS] as any[],
         }),
       ];
 
@@ -310,7 +310,7 @@ describe("useFilteredGardens", () => {
         }),
         createGarden({
           id: "g2",
-          operators: [USER_ADDRESS] as any[],
+          stewards: [USER_ADDRESS] as any[],
         }),
         createGarden({ id: "g3" }),
       ];

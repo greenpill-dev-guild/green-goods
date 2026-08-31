@@ -28,7 +28,7 @@ export function collectApprovalRecipientsForWorks(gardenIds: string[], works: Wo
   return Array.from(recipients.values());
 }
 
-/** Set of workUIDs that any operator has already approved/rejected. */
+/** Set of workUIDs that any steward has already approved/rejected. */
 export function collectApprovedWorkUIDs(approvals: EASWorkApproval[]): Set<string> {
   return new Set(approvals.map((approval) => approval.workUID));
 }

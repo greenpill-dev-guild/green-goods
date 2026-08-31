@@ -2,7 +2,7 @@ import { RiMailLine, RiSearchLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
-import { AdminTextField } from "./AdminTextField";
+import { AdminSelect, AdminTextField } from "./AdminTextField";
 
 const meta: Meta<typeof AdminTextField> = {
   title: "Admin/Primitives/AdminTextField",
@@ -104,7 +104,7 @@ export const OutlinedAtSectionTop: Story = {
   render: () => (
     <section className="max-w-sm overflow-hidden rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] p-0">
       <AdminTextField
-        label="Long campaign operator payout token label"
+        label="Long campaign steward payout token label"
         variant="outlined"
         defaultValue="0.25"
       />
@@ -171,4 +171,59 @@ export const WorkspaceToneMatrix: Story = {
     await userEvent.click(actionsField);
     await expect(actionsField).toHaveFocus();
   },
+};
+
+// ---------------------------------------------------------------------------
+// AdminSelect — the form select sharing this field anatomy (added 2026-08-29)
+// ---------------------------------------------------------------------------
+
+const CYCLE_OPTIONS = (
+  <>
+    <option value="">Choose a cycle</option>
+    <option value="c1">Season One</option>
+    <option value="c2">Winter interseason</option>
+  </>
+);
+
+export const SelectField: Story = {
+  name: "Select — filled",
+  render: () => (
+    <div className="max-w-sm space-y-4">
+      <AdminSelect
+        label="Cycle"
+        defaultValue=""
+        helperText="The label floats permanently — a select always shows its option text."
+      >
+        {CYCLE_OPTIONS}
+      </AdminSelect>
+      <AdminSelect label="Cycle" defaultValue="c1">
+        {CYCLE_OPTIONS}
+      </AdminSelect>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const selects = canvas.getAllByRole("combobox", { name: "Cycle" });
+    await expect(selects).toHaveLength(2);
+    await userEvent.selectOptions(selects[0], "c2");
+    await expect(selects[0]).toHaveValue("c2");
+  },
+};
+
+export const SelectStates: Story = {
+  name: "Select — error · disabled · outlined",
+  render: () => (
+    <div className="max-w-sm space-y-4">
+      <AdminSelect label="Action" defaultValue="" error="Pick an action">
+        <option value="">Choose an action</option>
+        <option value="a1">Turn soil</option>
+      </AdminSelect>
+      <AdminSelect label="Action" defaultValue="a1" disabled>
+        <option value="a1">Turn soil</option>
+      </AdminSelect>
+      <AdminSelect label="Action" variant="outlined" defaultValue="a1">
+        <option value="a1">Turn soil</option>
+      </AdminSelect>
+    </div>
+  ),
 };

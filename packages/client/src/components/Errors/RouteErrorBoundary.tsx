@@ -21,11 +21,13 @@
  *   - the raw error message stays hidden behind a "Show technical details" toggle
  *   - a Copy button assembles a markdown bug report ready to paste into chat
  *
- * Mount as `errorElement` on the root route in router.config.tsx so every loader,
+ * Mount as `errorElement` on the root route in `config/routes.tsx` so every loader,
  * `lazy:` import, and route component throws into here instead of into Router's
  * default UI.
  */
-import { Alert, en, es, logger, pt, trackErrorBoundary } from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import { trackErrorBoundary } from "@green-goods/shared/modules/app/error-events";
 import {
   RiBugLine,
   RiCheckLine,
@@ -38,12 +40,12 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isRouteErrorResponse, useRouteError } from "react-router-dom";
 import { Button } from "../Actions";
-
-type Messages = typeof en;
-type Locale = "en" | "es" | "pt";
-
-const messages: Record<Locale, Messages> = { en, es, pt };
-
+import {
+  defaultErrorBoundaryMessages,
+  type ErrorBoundaryLocale as Locale,
+  type ErrorBoundaryMessages as Messages,
+  loadErrorBoundaryMessages,
+} from "./messages";
 const CHUNK_ERROR_PATTERNS: RegExp[] = [
   /chunkloaderror/i,
   /loading chunk\s+\S+\s+failed/i,
@@ -51,7 +53,6 @@ const CHUNK_ERROR_PATTERNS: RegExp[] = [
   /importing a module script failed/i,
   /unable to preload css/i,
 ];
-
 const LOOP_ERROR_PATTERNS: RegExp[] = [
   /maximum update depth exceeded/i,
   /minified react error #301/i,
@@ -59,7 +60,6 @@ const LOOP_ERROR_PATTERNS: RegExp[] = [
   /rendered more hooks than during the previous render/i,
   /rendered fewer hooks than expected/i,
 ];
-
 const CHUNK_RELOAD_SESSION_KEY = "gg-route-eb-chunk-reload";
 
 type ErrorCategory = "chunk" | "loop" | "network" | "offline" | "unknown";
@@ -201,20 +201,32 @@ export const RouteErrorBoundary: React.FC = () => {
   const error = useMemo(() => normalizeRouteError(rawError), [rawError]);
   const category = useMemo(() => classifyError(error), [error]);
   const [locale] = useState<Locale>(getBrowserLocale);
+  const [messages, setMessages] = useState<Messages>(defaultErrorBoundaryMessages);
   const [showDetails, setShowDetails] = useState(false);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "fallback">("idle");
   const [isAutoRecovering, setIsAutoRecovering] = useState(false);
   const copyResetTimer = useRef<number | null>(null);
   const trackedRef = useRef(false);
-
   const t = useCallback(
-    (key: keyof Messages): string => messages[locale][key] || messages.en[key] || String(key),
-    [locale]
+    (key: keyof Messages): string =>
+      messages[key] || defaultErrorBoundaryMessages[key] || String(key),
+    [messages]
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadErrorBoundaryMessages(locale).then((nextMessages) => {
+      if (!cancelled) setMessages(nextMessages);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
 
   // Auto-recover chunk-load errors with a one-shot reload. This is the critical
   // path for the post-SW-update refresh failure mode.
   useEffect(() => {
+    (window as Window & { __GG_MARK_BOOT_FAILED?: () => void }).__GG_MARK_BOOT_FAILED?.();
     if (category !== "chunk") return;
     if (readSessionFlag(CHUNK_RELOAD_SESSION_KEY)) return;
 

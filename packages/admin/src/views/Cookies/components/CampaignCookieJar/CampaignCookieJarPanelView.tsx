@@ -2,13 +2,13 @@ import { RiExternalLinkLine, RiRefreshLine } from "@remixicon/react";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminDialog } from "@/components/AdminDialog";
+import { AdminTextArea } from "@/components/AdminTextField";
 import { EnsAddressText } from "@/components/EnsAddressText";
-import { FormField, Textarea } from "@green-goods/shared";
+import { CampaignCookieJarPanelList } from "./CampaignCookieJarPanelList";
+import type { CampaignCookieJarPanelViewProps } from "./CampaignCookieJarPanelView.types";
 import { CampaignImageInput } from "./CampaignImageInput";
 import { GardenSelector } from "./GardenSelector";
 import { publicJarLink } from "./helpers";
-import { CampaignCookieJarPanelList } from "./CampaignCookieJarPanelList";
-import type { CampaignCookieJarPanelViewProps } from "./CampaignCookieJarPanelView.types";
 
 export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProps) {
   const {
@@ -72,7 +72,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
           {formatMessage({
             id: "cockpit.community.cookies.deployerOnly",
             defaultMessage:
-              "This surface is intended for deployer and ops wallets. Connect a deployer wallet to create and manage campaign cookie jars.",
+              "This surface is intended for deployer and ops wallets. Connect a deployer wallet to create jars, or the jar owner to sync an existing jar.",
           })}
         </AdminCard>
       ) : null}
@@ -102,7 +102,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
         description={formatMessage({
           id: "cockpit.community.cookies.manageDescription",
           defaultMessage:
-            "Review the public link, update campaign metadata, and sync garden operator access.",
+            "Review the public link, update campaign metadata, and sync garden steward access.",
         })}
         size="lg"
         tone="community"
@@ -129,7 +129,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
             >
               {formatMessage({
                 id: "cockpit.community.cookies.sync",
-                defaultMessage: "Sync allowlist",
+                defaultMessage: "Sync Allowlist",
               })}
             </AdminButton>
           </>
@@ -155,27 +155,22 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
               >
                 {formatMessage({
                   id: "cockpit.community.cookies.openPublicLink",
-                  defaultMessage: "Open public link",
+                  defaultMessage: "Open Public Link",
                 })}
                 <RiExternalLinkLine className="h-4 w-4" aria-hidden />
               </a>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <FormField
+              <AdminTextArea
+                id="campaign-cookie-jar-manage-description"
+                className="md:col-span-2"
                 label={formatMessage({
                   id: "cockpit.community.cookies.campaignDescription",
                   defaultMessage: "Campaign description",
                 })}
-                htmlFor="campaign-cookie-jar-manage-description"
-                className="md:col-span-2"
-              >
-                <Textarea
-                  id="campaign-cookie-jar-manage-description"
-                  surface="admin"
-                  value={syncCampaignDescription}
-                  onChange={(event) => setSyncCampaignDescription(event.target.value)}
-                />
-              </FormField>
+                value={syncCampaignDescription}
+                onChange={(event) => setSyncCampaignDescription(event.target.value)}
+              />
               <CampaignImageInput
                 value={syncCampaignImage}
                 onChange={setSyncCampaignImage}
@@ -205,20 +200,15 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
               search={syncGardenSearch}
               setSearch={setSyncGardenSearch}
             />
-            <FormField
+            <AdminTextArea
+              id="campaign-cookie-jar-manage-extra-addresses"
               label={formatMessage({
                 id: "cockpit.community.cookies.extraAddresses",
                 defaultMessage: "Extra allowlist addresses",
               })}
-              htmlFor="campaign-cookie-jar-manage-extra-addresses"
-            >
-              <Textarea
-                id="campaign-cookie-jar-manage-extra-addresses"
-                surface="admin"
-                value={syncExtraAddresses}
-                onChange={(event) => setSyncExtraAddresses(event.target.value)}
-              />
-            </FormField>
+              value={syncExtraAddresses}
+              onChange={(event) => setSyncExtraAddresses(event.target.value)}
+            />
             <div className="grid gap-3 sm:grid-cols-3">
               <DiffStat
                 label={formatMessage({

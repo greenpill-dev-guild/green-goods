@@ -1,4 +1,4 @@
-import { useUIStore } from "@green-goods/shared";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect } from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -45,8 +45,8 @@ const meta: Meta<typeof AppBar> = {
   title: "Client/Layout/AppBar",
   component: AppBar,
   tags: ["autodocs", "storybook-ci"],
+  globals: { viewport: { value: "mobile" } },
   parameters: {
-    viewport: { defaultViewport: "mobile1" },
     layout: "fullscreen",
   },
   decorators: [withInstalledPwa(), withClientAppRuntime],
@@ -186,7 +186,5 @@ export const StateCatalog: Story = {
 
 export const Mobile: Story = {
   decorators: [withRouter(["/home"])],
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
 };

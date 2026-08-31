@@ -10,12 +10,15 @@ import { ActionDeployer } from "./actions";
 import { AnvilManager } from "./anvil";
 import { BadgeLocksDeployer } from "./badge-locks";
 import { BadgeSchemasDeployer } from "./badge-schemas";
+import { CommitmentSchemasDeployer } from "./commitment-schemas";
 import { CoreDeployer } from "./core";
 import { GardenDeployer } from "./gardens";
 import { GoodsDeployer } from "./goods";
 import { GreenWillDeployer } from "./greenwill";
 import { HatsTreeDeployer } from "./hats";
 import { OctantFactoryDeployer } from "./octant-factory";
+import { PoolingConfigureDeployer } from "./pooling-configure";
+import { ReleaseDeployer } from "./release";
 
 const CONTRACTS_ROOT = path.join(__dirname, "../..");
 
@@ -38,6 +41,9 @@ export class DeploymentCLI {
   private badgeLocksDeployer: BadgeLocksDeployer;
   private badgeSchemasDeployer: BadgeSchemasDeployer;
   private greenWillDeployer: GreenWillDeployer;
+  private commitmentSchemasDeployer: CommitmentSchemasDeployer;
+  private poolingConfigureDeployer: PoolingConfigureDeployer;
+  private releaseDeployer: ReleaseDeployer;
 
   constructor() {
     this.parser = new CliParser();
@@ -57,6 +63,9 @@ export class DeploymentCLI {
     this.badgeLocksDeployer = new BadgeLocksDeployer(this.networkManager, this.deploymentAddresses);
     this.badgeSchemasDeployer = new BadgeSchemasDeployer(this.networkManager, this.deploymentAddresses);
     this.greenWillDeployer = new GreenWillDeployer(this.networkManager, this.deploymentAddresses);
+    this.commitmentSchemasDeployer = new CommitmentSchemasDeployer(this.networkManager, this.deploymentAddresses);
+    this.poolingConfigureDeployer = new PoolingConfigureDeployer(this.networkManager, this.deploymentAddresses);
+    this.releaseDeployer = new ReleaseDeployer(this.networkManager);
   }
 
   /**
@@ -79,6 +88,24 @@ Commands:
   badge-locks              Deploy or dry-run GreenWill reputation badge Unlock locks
   greenwill                Deploy or dry-run initial GreenWill proxy and three-badge config
   badge-schemas            Future/backlog: deploy GreenWill portable EAS badge schema
+  commitment-schemas       Pooling lane step 1: deploy the testimony resolver, register assessment v3,
+                           and pin the community testimony UID (add --finalize-community-testimony
+                           after 'pooling' to register the record and activate the resolver)
+  pooling                  Deterministically deploy CommitmentPoolingModule, its 14 libraries,
+                           and CommitmentRegistry (module stays paused)
+  pooling-configure        Legacy resolver-only compatibility target; release plans use 'pooling'
+  release-manifest         Validate the combined pooling/settlement/credit manifest and identity lock
+  protocol-core            Print the dependency-ordered Arbitrum core release plan
+  ownership-transfer      Transfer one reviewed proxy owner boundary to the protocol Safe
+  settlement-module       Deploy/plan the paused Arbitrum SettlementModule and its six libraries
+  credit-registry         Deploy/plan the paused records-only CreditRegistry and settlement binding
+  settlement-executor     Deploy/plan the paused Celo executor (--network celo only)
+  safe-plan               Produce the inert Safe prediction/Zodiac Roles plan
+  settlement-peer         Plan peer wiring after fresh bidirectional route verification
+  settlement-peer-verify  Prove a sent peer-wiring call matches the reviewed plan
+  release-recover         Produce deterministic artifact recovery inputs
+  release-verify          Reread release code, proxy, owner, peer, pause, and artifact state
+  indexer-handoff         Produce an inert Envio activation/reindex/read-back plan
   ens-migrate              Reconcile Arbitrum ENS sends and migrate missing mainnet receiver records
   status [network]         Check deployment status
   fork <network>           Start Anvil fork for network
@@ -88,10 +115,16 @@ Common Options:
   --broadcast, -b          Broadcast transactions
   --save-artifacts         Save forge broadcast artifacts without broadcasting
   --sender <address>       Override tx sender address
+  --stage <name>           Exact release stage for verification or artifact recovery
+  --step <index>           One-based release transaction boundary (required for broadcast)
+  --expected-nonce <n>     Exact pending nonce authorized for a release boundary
+  --artifact <path>        Explicit release/recovery artifact for read-only verification
+  --owner-phase <phase>    Verify release proxy owners in deployment or safe phase
   --update-schemas         Only update schemas, skip existing contracts
   --force                  Force fresh deployment
   --dry-run                Run full deployment simulation against RPC (no broadcast)
   --pure-simulation        Run compile-only preflight (no RPC calls)
+  --tx-plan                Persist an exact nonce-pinned transaction plan without broadcasting
   --salt <value>           Override deployment salt string for CREATE2
   --owner <address>        Optional GreenWill owner override; defaults to deployment greenWillConfig.owner
   --genesis-hat-id <id>    Optional Genesis Hats override; defaults to deployment greenWillConfig.genesisHatId
@@ -133,6 +166,25 @@ Examples:
 
   # Migrate stuck greengoods.eth registrations into the current mainnet receiver
   bun deploy.ts ens-migrate --network mainnet --broadcast
+
+  # Plan the Commitment Pooling lane, in order. Each step's output is the next step's input, so
+  # the sequence cannot be reordered. Rehearse the whole thing first on an Arbitrum One fork:
+  #   bun run test:fork:pooling:arbitrum
+  bun run pooling:schemas:plan:arbitrum --expected-nonce <fresh-pending-nonce>
+  bun run pooling:deploy:dry:arbitrum --expected-nonce <fresh-pending-nonce>
+  bun run pooling:finalize:plan:arbitrum --expected-nonce <fresh-pending-nonce>
+  bun run pooling:upgrade:plan:arbitrum --expected-nonce <fresh-pending-nonce>
+  bun run pooling:backfill:dry:arbitrum
+
+  # Phase A release engineering (never broadcasts)
+  bun run release:manifest
+  bun run release:core:plan:arbitrum
+  bun run settlement:module:plan:arbitrum --expected-nonce <fresh-pending-nonce>
+  bun run credit:registry:plan:arbitrum --expected-nonce <fresh-pending-nonce>
+  bun run settlement:executor:plan:celo --expected-nonce <fresh-pending-nonce>
+  bun run settlement:safe:plan:celo
+  bun run release:verify:plan:arbitrum
+  bun run release:indexer:handoff
 
 Available networks: ${this.networkManager.getAvailableNetworks().join(", ")}
 
@@ -292,6 +344,37 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
 
         case "badge-schemas": {
           await this.badgeSchemasDeployer.deployBadgeSchemas(options);
+          break;
+        }
+
+        case "commitment-schemas": {
+          await this.commitmentSchemasDeployer.deployCommitmentSchemas(options);
+          break;
+        }
+
+        case "pooling": {
+          await this.releaseDeployer.run("pooling", options);
+          break;
+        }
+
+        case "pooling-configure": {
+          await this.poolingConfigureDeployer.configurePooling(options);
+          break;
+        }
+
+        case "release-manifest":
+        case "protocol-core":
+        case "ownership-transfer":
+        case "settlement-module":
+        case "credit-registry":
+        case "settlement-executor":
+        case "safe-plan":
+        case "settlement-peer":
+        case "settlement-peer-verify":
+        case "release-recover":
+        case "release-verify":
+        case "indexer-handoff": {
+          await this.releaseDeployer.run(command, options);
           break;
         }
 

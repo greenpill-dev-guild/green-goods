@@ -1,9 +1,9 @@
-import { forwardRef, type TextareaHTMLAttributes } from "react";
+import { forwardRef, type ReactNode, type TextareaHTMLAttributes } from "react";
 import { cn } from "../../utils/styles/cn";
 import { FormFieldWrapper } from "./FormFieldWrapper";
 
 export interface FormTextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
-  label: string;
+  label: ReactNode;
   helperText?: string;
   error?: string;
 }

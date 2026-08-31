@@ -1,18 +1,16 @@
-import {
-  type Address,
-  DEFAULT_CHAIN_ID,
-  FormInput,
-  formatDate,
-  useEnsName,
-  useGreenWillBadgeDefinitions,
-  useGreenWillBadges,
-  useGreenWillRecentGrants,
-} from "@green-goods/shared";
-import { AdminCard } from "@/components/AdminCard";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGreenWillBadgeDefinitions } from "@green-goods/shared/hooks/greenwill/useGreenWillBadgeDefinitions";
+import { useGreenWillBadges } from "@green-goods/shared/hooks/greenwill/useGreenWillBadges";
+import { useGreenWillRecentGrants } from "@green-goods/shared/hooks/greenwill/useGreenWillRecentGrants";
+import type { Address } from "@green-goods/shared/types/domain";
+import { formatDate } from "@green-goods/shared/utils/time";
 import { RiAwardLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
+import { AdminCard } from "@/components/AdminCard";
+import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText, formatEnsAddressName } from "@/components/EnsAddressText";
 
 function badgeTitle(intl: ReturnType<typeof useIntl>, slug: string) {
@@ -141,7 +139,9 @@ export function GreenWillPanel() {
   })();
 
   const badgeLookupFeedbackClassName =
-    badgeLookupFeedback.tone === "error" ? "text-sm text-error-base" : "text-sm text-text-sub-600";
+    badgeLookupFeedback.tone === "error"
+      ? "text-body-md text-error-dark"
+      : "text-body-md text-text-sub-600";
 
   return (
     <AdminCard variant="filled" density="compact" className="flex flex-col gap-4">
@@ -150,13 +150,13 @@ export function GreenWillPanel() {
           <RiAwardLine className="h-5 w-5 text-primary" />
         </div>
         <div className="min-w-0">
-          <h2 className="text-base font-semibold text-text-strong-950">
+          <h2 className="text-title-sm font-semibold text-text-strong-950">
             {intl.formatMessage({
               id: "admin.greenWill.title",
               defaultMessage: "GreenWill",
             })}
           </h2>
-          <p className="text-sm text-text-sub-600">
+          <p className="text-body-md text-text-sub-600">
             {intl.formatMessage({
               id: "admin.greenWill.description",
               defaultMessage:
@@ -169,13 +169,13 @@ export function GreenWillPanel() {
       <div className="grid gap-4 xl:grid-cols-2">
         <AdminCard variant="filled" density="compact" className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-sm font-medium text-text-strong-950">
+            <h3 className="text-body-md font-medium text-text-strong-950">
               {intl.formatMessage({
                 id: "admin.greenWill.registry",
                 defaultMessage: "Registry",
               })}
             </h3>
-            <span className="text-xs text-text-sub-600">
+            <span className="text-body-sm text-text-sub-600">
               {intl.formatMessage(
                 {
                   id: "admin.greenWill.definitionCount",
@@ -187,14 +187,14 @@ export function GreenWillPanel() {
           </div>
 
           {isDefinitionsLoading ? (
-            <p className="text-sm text-text-sub-600">
+            <p className="text-body-md text-text-sub-600">
               {intl.formatMessage({
                 id: "admin.greenWill.loadingDefinitions",
                 defaultMessage: "Loading badge definitions...",
               })}
             </p>
           ) : isDefinitionsError ? (
-            <p className="text-sm text-error-base">
+            <p className="text-body-md text-error-dark">
               {intl.formatMessage({
                 id: "admin.greenWill.definitionsError",
                 defaultMessage: "Could not load GreenWill badge definitions.",
@@ -208,12 +208,12 @@ export function GreenWillPanel() {
                   className="flex items-center justify-between gap-3 rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2"
                 >
                   <div>
-                    <p className="text-sm font-medium text-text-strong-950">
+                    <p className="text-body-md font-medium text-text-strong-950">
                       {badgeTitle(intl, definition.slug)}
                     </p>
-                    <p className="text-xs text-text-sub-600">{definition.slug}</p>
+                    <p className="text-body-sm text-text-sub-600">{definition.slug}</p>
                   </div>
-                  <div className="text-right text-xs text-text-sub-600">
+                  <div className="text-right text-body-sm text-text-sub-600">
                     <p>
                       {intl.formatMessage(
                         {
@@ -240,7 +240,7 @@ export function GreenWillPanel() {
         </AdminCard>
 
         <AdminCard variant="filled" density="compact" className="flex flex-col gap-3">
-          <h3 className="text-sm font-medium text-text-strong-950">
+          <h3 className="text-body-md font-medium text-text-strong-950">
             {intl.formatMessage({
               id: "admin.greenWill.recentGrants",
               defaultMessage: "Recent grants",
@@ -248,14 +248,14 @@ export function GreenWillPanel() {
           </h3>
 
           {isGrantsLoading ? (
-            <p className="text-sm text-text-sub-600">
+            <p className="text-body-md text-text-sub-600">
               {intl.formatMessage({
                 id: "admin.greenWill.loadingGrants",
                 defaultMessage: "Loading recent grants...",
               })}
             </p>
           ) : isGrantsError ? (
-            <p className="text-sm text-error-base">
+            <p className="text-body-md text-error-dark">
               {intl.formatMessage({
                 id: "admin.greenWill.grantsError",
                 defaultMessage: "Could not load GreenWill grant history.",
@@ -268,10 +268,10 @@ export function GreenWillPanel() {
                   key={grant.id}
                   className="rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2"
                 >
-                  <p className="text-sm font-medium text-text-strong-950">
+                  <p className="text-body-md font-medium text-text-strong-950">
                     <EnsAddressText address={grant.owner as Address} />
                   </p>
-                  <p className="text-xs text-text-sub-600">
+                  <p className="text-body-sm text-text-sub-600">
                     {badgeTitle(
                       intl,
                       badgeDefinitions.find((definition) => definition.badgeId === grant.badgeId)
@@ -288,14 +288,14 @@ export function GreenWillPanel() {
       </div>
 
       <AdminCard variant="filled" density="compact" className="flex flex-col gap-3">
-        <h3 className="text-sm font-medium text-text-strong-950">
+        <h3 className="text-body-md font-medium text-text-strong-950">
           {intl.formatMessage({
             id: "admin.greenWill.lookup",
             defaultMessage: "Address lookup",
           })}
         </h3>
 
-        <FormInput
+        <AdminTextField
           id="greenwill-lookup-address"
           label={intl.formatMessage({
             id: "admin.greenWill.lookupLabel",
@@ -307,8 +307,10 @@ export function GreenWillPanel() {
             id: "admin.greenWill.lookupPlaceholder",
             defaultMessage: "0x...",
           })}
-          aria-describedby="greenwill-lookup-feedback"
-          aria-invalid={lookupAddressInvalid || undefined}
+          inputProps={{
+            "aria-describedby": "greenwill-lookup-feedback",
+            "aria-invalid": lookupAddressInvalid || undefined,
+          }}
         />
 
         <p
@@ -326,10 +328,10 @@ export function GreenWillPanel() {
                 key={badge.badgeId}
                 className="rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2"
               >
-                <p className="text-sm font-medium text-text-strong-950">
+                <p className="text-body-md font-medium text-text-strong-950">
                   {badgeTitle(intl, badge.slug)}
                 </p>
-                <p className="text-xs text-text-sub-600">
+                <p className="text-body-sm text-text-sub-600">
                   {intl.formatMessage(
                     {
                       id: "admin.greenWill.lookupIssuedAt",

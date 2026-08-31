@@ -1,40 +1,54 @@
 ---
 title: Hats Protocol
-sidebar_label: Hats Protocol
 slug: /builders/integrations/hats
 audience: developer
 owner: docs
-last_verified: 2026-04-25
 feature_status: Live
-source_of_truth:
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
   - packages/contracts/src/modules/Hats.sol
-  - packages/contracts/src/interfaces/IHatsModule.sol
-  - packages/shared/src/utils/blockchain/abis/hats.ts
-  - packages/indexer/src/handlers/hatsModule.ts
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
+source_digest: "sha256:b35d0a25b5abc10e65e173e098307e8dbab0ef594de1acee25b8c6a5d4c5ec93"
+source_of_truth:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
+  - packages/contracts/src/modules/Hats.sol
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
-
+<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
 # Hats Protocol
 
-<StatusBadge status="Live" />
+Hats provides the on-chain role hierarchy used to authorize Garden responsibilities.
 
-## Overview
-Hats Protocol is the live role-management layer for Green Goods gardens. The contracts define per-garden roles, the indexer listens for role grant/revoke events, and shared/admin surfaces use those roles to determine who can approve work, assess, operate, fund, or submit.
+## Checked-in deployment projection
 
-## Builder notes
+| Network | Status | Recorded components |
+|---|---|---|
+| Sepolia Testnet (`11155111`) | Deployed | `hatsModule` |
+| Arbitrum One (`42161`) | Deployed | `hatsModule` |
 
-- Role logic belongs in shared hooks/utilities before admin or client consume it.
-- Indexer entities should include `chainId` when reflecting role events.
-- Be precise about the admin hierarchy: wearing a role hat is not the same thing as administering that hat.
-- Update deployment docs if tree IDs or community hat addresses change.
+Networks without recorded components are omitted; per-network state lives in the [deployment status projection](/builders/deployments/status).
 
-<NextBestAction
-  title="Next best action"
-  why="The architecture ERD shows how roles relate to gardens, work, and approvals."
-  actionLabel="Architecture ERD"
-  actionHref="../architecture/erd"
-  alternatives={[
-    {label: "Deployment status", href: "../deployments/status"},
-  ]}
-/>
+## Indexer boundary
+
+Configured indexer contracts: `HatsModule`.
+
+A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. Follow the owning package runbook for operational verification.

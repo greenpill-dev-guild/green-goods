@@ -90,7 +90,7 @@ export function ListToolbar({
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-text-soft hover:text-text-strong"
             aria-label={intl.formatMessage({
               id: "app.admin.listToolbar.clearSearch",
-              defaultMessage: "Clear search",
+              defaultMessage: "Clear Search",
             })}
           >
             <RiCloseLine className="h-4 w-4" />

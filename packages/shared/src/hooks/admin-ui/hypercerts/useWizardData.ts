@@ -1,31 +1,32 @@
+import { toastService } from "../../../components/Toast/toast.service";
+import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
+import { getSDGLabel } from "../../../config/sdg";
+import { formatHypercertMetadata } from "../../../lib/hypercerts/metadata";
+import { logger } from "../../../modules/app/logger";
+import { prefillMetadataFromAssessment } from "../../../modules/data/hypercerts-metadata";
+import { useAdminStore } from "../../../stores/useAdminStore";
 import {
-  categorizeError,
-  DEFAULT_CHAIN_ID,
-  formatHypercertMetadata,
-  getSDGLabel,
-  type HypercertAttestation,
-  logger,
-  prefillMetadataFromAssessment,
-  toastService,
-  useAdminStore,
-  useAuth,
-  useCreateHypercertWorkflow,
-  useGardenAssessments,
-  useHypercertAllowlist,
-  useHypercertAttestations,
-  useHypercertContributorWeights,
-  useHypercertDraft,
-  useHypercerts,
   isHypercertMintingInProgress,
-  useDirtyClose,
   useHypercertWizardStore,
-  useMintHypercert,
-} from "@green-goods/shared";
+} from "../../../stores/useHypercertWizardStore";
+import type { HypercertAttestation } from "../../../types/hypercerts";
+import { categorizeError } from "../../../utils/errors/categorize-error";
+import { useGardenAssessments } from "../../assessment/useGardenAssessments";
+import { useAuth } from "../../auth/useAuth";
+import { useAttestations as useHypercertAttestations } from "../../hypercerts/useAttestations";
+import { useCreateHypercertWorkflow } from "../../hypercerts/useCreateHypercertWorkflow";
+import { useHypercertAllowlist } from "../../hypercerts/useHypercertAllowlist";
+import { useHypercertContributorWeights } from "../../hypercerts/useHypercertContributorWeights";
+import { useHypercertDraft } from "../../hypercerts/useHypercertDraft";
+import { useHypercerts } from "../../hypercerts/useHypercerts";
+import { useMintHypercert } from "../../hypercerts/useMintHypercert";
+import { useDirtyClose } from "../useDirtyClose";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { zeroAddress } from "viem";
 import { getErrorMessageKey, type HypercertCompletionData } from "./types";
 import { useValidationMessage, useWizardSteps } from "./wizardSteps";
+import { selectHypercertDirtyState } from "./wizardTransitions";
 
 interface UseWizardDataOptions {
   gardenId: string;
@@ -36,7 +37,7 @@ interface UseWizardDataOptions {
 export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDataOptions) {
   const { formatMessage } = useIntl();
   const { smartAccountAddress, eoaAddress } = useAuth();
-  const operatorAddress = smartAccountAddress ?? eoaAddress ?? undefined;
+  const stewardAddress = smartAccountAddress ?? eoaAddress ?? undefined;
   const [draftReady, setDraftReady] = useState(false);
   const chainId = useAdminStore((state) => state.selectedChainId) ?? DEFAULT_CHAIN_ID;
 
@@ -56,8 +57,15 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
   const wizardTitle = useHypercertWizardStore((s) => s.title);
   const wizardDescription = useHypercertWizardStore((s) => s.description);
   const wizardWorkScopes = useHypercertWizardStore((s) => s.workScopes);
+  const wizardImpactScopes = useHypercertWizardStore((s) => s.impactScopes);
   const wizardWorkTimeframeStart = useHypercertWizardStore((s) => s.workTimeframeStart);
   const wizardWorkTimeframeEnd = useHypercertWizardStore((s) => s.workTimeframeEnd);
+  const wizardImpactTimeframeStart = useHypercertWizardStore((s) => s.impactTimeframeStart);
+  const wizardImpactTimeframeEnd = useHypercertWizardStore((s) => s.impactTimeframeEnd);
+  const wizardSdgs = useHypercertWizardStore((s) => s.sdgs);
+  const wizardCapitals = useHypercertWizardStore((s) => s.capitals);
+  const wizardOutcomes = useHypercertWizardStore((s) => s.outcomes);
+  const wizardExternalUrl = useHypercertWizardStore((s) => s.externalUrl);
   const wizardDraftId = useHypercertWizardStore((s) => s.draftId);
 
   const { currentStep, nextStep, previousStep, setStep, canProceed } = useCreateHypercertWorkflow();
@@ -82,23 +90,22 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     if (lastPrefillId.current === selectedAssessment.id) return;
     lastPrefillId.current = selectedAssessment.id;
 
-    const prefill = prefillMetadataFromAssessment(
-      selectedAssessment as unknown as Parameters<typeof prefillMetadataFromAssessment>[0],
-      getSDGLabel
-    );
+    const prefill = prefillMetadataFromAssessment(selectedAssessment, getSDGLabel);
     updateMetadata(prefill);
   }, [selectedAssessment, updateMetadata]);
 
   const isSubmitting = isHypercertMintingInProgress(mintingState.status);
 
-  // Track if the operator has made changes worth protecting.
-  const hasUnsavedChanges = useMemo(() => {
-    // Pending chain/indexer confirmation is protected by preventRouteChange;
-    // confirmed mints have no draft left to guard.
-    if (["pending", "confirmed"].includes(mintingState.status)) return false;
-    // Block if user has selected attestations or moved past step 1
-    return selectedAttestationIds.length > 0 || currentStep > 1;
-  }, [selectedAttestationIds.length, currentStep, mintingState.status]);
+  // Track if the steward has made changes worth protecting.
+  const { isDirty, isPristine } = useMemo(
+    () =>
+      selectHypercertDirtyState({
+        currentStep,
+        mintingStatus: mintingState.status,
+        selectedAttestationIds,
+      }),
+    [currentStep, mintingState.status, selectedAttestationIds]
+  );
 
   // Confirm before navigating away from an in-progress mint. The shared hook
   // owns the React Router blocker + beforeunload guard and raises the confirm;
@@ -109,15 +116,15 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     cancelClose: handleCancelLeave,
     confirmClose: handleConfirmLeave,
   } = useDirtyClose({
-    isDirty: hasUnsavedChanges,
+    isDirty,
     onClose: () => undefined,
     blockRouteChange: true,
     preventRouteChange: isSubmitting,
     onDiscard: reset,
   });
 
-  const { peekDraft, loadDraft, clearDraft } = useHypercertDraft(gardenId, operatorAddress, {
-    enabled: draftReady && Boolean(gardenId && operatorAddress),
+  const { peekDraft, loadDraft, clearDraft } = useHypercertDraft(gardenId, stewardAddress, {
+    enabled: draftReady && Boolean(gardenId && stewardAddress),
     autoLoad: false,
   });
 
@@ -131,7 +138,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
 
   useEffect(() => {
     let isActive = true;
-    if (!draftReady || !gardenId || !operatorAddress) return;
+    if (!draftReady || !gardenId || !stewardAddress) return;
 
     const checkDraft = async () => {
       const stored = await peekDraft();
@@ -143,7 +150,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     return () => {
       isActive = false;
     };
-  }, [draftReady, gardenId, operatorAddress, peekDraft]);
+  }, [draftReady, gardenId, stewardAddress, peekDraft]);
 
   const selectedAttestations = useMemo(() => {
     if (!attestations.length) return [] as HypercertAttestation[];
@@ -204,17 +211,25 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
   // Include metadata fields to ensure draft recalculates when form values change
   // This is necessary because toDraft reads from store state via get()
   const draft = useMemo(
-    () => toDraft(gardenId, (operatorAddress ?? zeroAddress) as `0x${string}`),
+    () => toDraft(gardenId, (stewardAddress ?? zeroAddress) as `0x${string}`),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Store values intentionally trigger recalc even though not passed to toDraft
     [
       gardenId,
-      operatorAddress,
+      stewardAddress,
       toDraft,
       wizardTitle,
       wizardDescription,
       wizardWorkScopes,
+      wizardImpactScopes,
       wizardWorkTimeframeStart,
       wizardWorkTimeframeEnd,
+      wizardImpactTimeframeStart,
+      wizardImpactTimeframeEnd,
+      wizardSdgs,
+      wizardCapitals,
+      wizardOutcomes,
+      wizardExternalUrl,
+      currentStep,
       selectedAttestationIds,
       allowlist,
       distributionMode,
@@ -259,7 +274,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
 
   const handleMint = useCallback(async () => {
     if (!gardenId) return;
-    if (!operatorAddress) {
+    if (!stewardAddress) {
       toastService.error({
         title: formatMessage({ id: "app.hypercerts.mint.error.auth.title" }),
         message: formatMessage({ id: "app.hypercerts.mint.error.auth.message" }),
@@ -312,7 +327,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     gardenId,
     mint,
     mintingState.status,
-    operatorAddress,
+    stewardAddress,
     previewMetadata,
     retry,
     selectedAttestations,
@@ -417,6 +432,8 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     validationMessage,
 
     // Navigation guards
+    isDirty,
+    isPristine,
     showLeaveConfirm,
     handleConfirmLeave,
     handleCancelLeave,

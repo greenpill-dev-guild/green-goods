@@ -1,7 +1,7 @@
-import { type ActionInstructionConfig } from "@green-goods/shared";
+import type { ActionInstructionConfig } from "@green-goods/shared/types/domain";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "../AdminButton";
+import { AdminTabRail } from "../AdminTabRail";
 import { DetailsConfigSection } from "./DetailsConfigSection";
 import { MediaConfigSection } from "./MediaConfigSection";
 import { ReviewConfigSection } from "./ReviewConfigSection";
@@ -33,56 +33,38 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
   return (
     <div className="border border-stroke-soft rounded-lg bg-bg-white">
       {/* Tab Navigation */}
-      <div className="flex border-b border-stroke-soft">
-        <AdminButton
-          type="button"
-          variant="text"
-          size="sm"
-          onClick={() => setActiveTab("media")}
-          className={`h-auto min-w-0 rounded-none px-4 py-3 text-sm font-medium ${
-            activeTab === "media"
-              ? "border-b-2 border-[rgb(var(--m3-primary))] text-[rgb(var(--m3-primary))]"
-              : "text-text-sub hover:text-text-strong"
-          }`}
-        >
-          {formatMessage({
-            id: "app.admin.actions.instructions.tabMedia",
-            defaultMessage: "Media Configuration",
-          })}
-        </AdminButton>
-        <AdminButton
-          type="button"
-          variant="text"
-          size="sm"
-          onClick={() => setActiveTab("details")}
-          className={`h-auto min-w-0 rounded-none px-4 py-3 text-sm font-medium ${
-            activeTab === "details"
-              ? "border-b-2 border-[rgb(var(--m3-primary))] text-[rgb(var(--m3-primary))]"
-              : "text-text-sub hover:text-text-strong"
-          }`}
-        >
-          {formatMessage({
-            id: "app.admin.actions.instructions.tabFormInputs",
-            defaultMessage: "Form Inputs",
-          })}
-        </AdminButton>
-        <AdminButton
-          type="button"
-          variant="text"
-          size="sm"
-          onClick={() => setActiveTab("review")}
-          className={`h-auto min-w-0 rounded-none px-4 py-3 text-sm font-medium ${
-            activeTab === "review"
-              ? "border-b-2 border-[rgb(var(--m3-primary))] text-[rgb(var(--m3-primary))]"
-              : "text-text-sub hover:text-text-strong"
-          }`}
-        >
-          {formatMessage({
-            id: "app.admin.actions.instructions.tabReview",
-            defaultMessage: "Review Screen",
-          })}
-        </AdminButton>
-      </div>
+      <AdminTabRail
+        className="px-2"
+        ariaLabel={formatMessage({
+          id: "app.admin.actions.instructions.tabsLabel",
+          defaultMessage: "Instruction sections",
+        })}
+        activeId={activeTab}
+        onChange={(id) => setActiveTab(id as "media" | "details" | "review")}
+        tabs={[
+          {
+            id: "media",
+            label: formatMessage({
+              id: "app.admin.actions.instructions.tabMedia",
+              defaultMessage: "Media Configuration",
+            }),
+          },
+          {
+            id: "details",
+            label: formatMessage({
+              id: "app.admin.actions.instructions.tabFormInputs",
+              defaultMessage: "Form Inputs",
+            }),
+          },
+          {
+            id: "review",
+            label: formatMessage({
+              id: "app.admin.actions.instructions.tabReview",
+              defaultMessage: "Review Screen",
+            }),
+          },
+        ]}
+      />
 
       {/* Tab Content */}
       <div className="p-6">

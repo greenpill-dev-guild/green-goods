@@ -7,8 +7,8 @@
 
 import { vi } from "vitest";
 import { TOTAL_UNITS } from "../../lib/hypercerts/constants";
-import type { Action, Garden, Work, WorkApprovalDraft, WorkDraft } from "../../types";
-import { Confidence, Domain, VerificationMethod } from "../../types";
+import type { Action, Garden, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
+import { Confidence, Domain, VerificationMethod } from "../../types/domain";
 import type { CookieJar } from "../../types/cookie-jar";
 import type {
   AllowlistEntry,
@@ -24,7 +24,7 @@ import type {
 
 export const MOCK_ADDRESSES = {
   deployer: "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
-  operator: "0x04D60647836bcA09c37B379550038BdaaFD82503",
+  steward: "0x04D60647836bcA09c37B379550038BdaaFD82503",
   gardener: "0x1234567890123456789012345678901234567890",
   smartAccount: "0xSmartAccount1234567890123456789012345678",
   garden: "0xGarden12345678901234567890123456789012345",
@@ -104,7 +104,11 @@ export function createMockGarden(overrides?: Partial<Garden>): Garden {
     bannerImage: "ipfs://QmBanner123",
     createdAt: Date.now(),
     gardeners: [MOCK_ADDRESSES.gardener],
-    operators: [MOCK_ADDRESSES.operator],
+    stewards: [MOCK_ADDRESSES.steward],
+    evaluators: [],
+    owners: [],
+    funders: [],
+    communities: [],
     assessments: [],
     works: [],
     ...overrides,
@@ -147,6 +151,7 @@ export function createMockCookieJar(overrides?: Partial<CookieJar>): CookieJar {
     decimals: 18,
     maxWithdrawal: 500000000000000000n, // 0.5e18
     withdrawalInterval: 86400n, // 1 day in seconds
+    minDeposit: 0n,
     isPaused: false,
     emergencyWithdrawalEnabled: false,
     ...overrides,
@@ -286,7 +291,7 @@ export function createMockHypercertAttestation(
     },
     createdAt: Math.floor(Date.now() / 1000) - 86400, // 1 day ago
     approvedAt: Math.floor(Date.now() / 1000),
-    approvedBy: MOCK_ADDRESSES.operator as `0x${string}`,
+    approvedBy: MOCK_ADDRESSES.steward as `0x${string}`,
     feedback: "Good work!",
     ...overrides,
   };
@@ -297,7 +302,7 @@ export function createMockHypercertDraft(overrides: Partial<HypercertDraft> = {}
   return {
     id: `draft-${Date.now()}`,
     gardenId: MOCK_ADDRESSES.garden,
-    operatorAddress: MOCK_ADDRESSES.operator as `0x${string}`,
+    stewardAddress: MOCK_ADDRESSES.steward as `0x${string}`,
     stepNumber: 1,
     attestationIds: [],
     title: "Test Hypercert",
@@ -359,7 +364,7 @@ export function createMockHypercertRecord(
     metadataUri: "ipfs://QmMetadata123",
     imageUri: "ipfs://QmImage123",
     mintedAt: Math.floor(Date.now() / 1000),
-    mintedBy: MOCK_ADDRESSES.operator as `0x${string}`,
+    mintedBy: MOCK_ADDRESSES.steward as `0x${string}`,
     txHash: MOCK_TX_HASH as `0x${string}`,
     totalUnits: TOTAL_UNITS,
     claimedUnits: 0n,

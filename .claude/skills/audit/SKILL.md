@@ -2,7 +2,7 @@
 name: audit
 user-invocable: true
 description: Repo-health audit and drift classifier for Green Goods — dead code, dependency health, invariant drift, stale guidance/plans/docs drift, and concrete broken or brittle spots. Use when the user asks for an audit, a drift check, "is the repo healthy", stale guidance, cleanup readiness, or whether to run clean. Read-only; routes accepted findings to a fix pass, /clean, or Linear.
-argument-hint: "[package|drift] [--full] [--team] [--loop]"
+argument-hint: "[package|drift] [--full] [--loop]"
 context: fork
 effort: high
 ---
@@ -11,9 +11,11 @@ effort: high
 
 Systematic repo-health analysis: dead code detection, dependency health, invariant drift, and concrete brittle spots.
 
-Prefer `/review` or `/status` first. This skill is for broader repo-health drift, not for every change or every question.
+Prefer `/review` first. This skill is for broader repo-health drift, not for every change or every question.
 
-**References**: See `CLAUDE.md` for codebase patterns and `.claude/context/*.md` for per-package invariants.
+**References**: See `CLAUDE.md` for codebase patterns and `.claude/context/*.md` for per-package invariants. Read [`../../context/codebase-architecture.md`](../../context/codebase-architecture.md)
+when measurable drift exposes architecture friction; use it to classify the signal, not to design a
+replacement.
 
 **Context mode**: `context: fork` -- read-only subagent, report generation included. Never edit files during an audit; return findings in the response and let the user decide. Do not create or mutate Linear records during analysis — after the user approves specific findings for tracking, route them into Linear Issues, not GitHub's issue tracker.
 
@@ -23,10 +25,13 @@ Prefer `/review` or `/status` first. This skill is for broader repo-health drift
 - dependency health and outdated package surfacing
 - concrete invariant drift against repo rules
 - brittle runtime or maintenance hotspots with direct evidence
+- measurable architecture friction such as repeated cross-module edits, unstable import/mock
+  graphs, duplicated policy, or untestable composition, reported as an observation only
 
 ## What This Skill Does Not Own
 
-- abstract architecture or design-soundness judgment (`/review`'s boundary + coherence lenses)
+- architecture candidate selection or interface design (`plan`)
+- design-soundness judgment for a resolved change (`review`)
 - PR-scoped correctness review (`review`)
 - implementation or refactor orchestration
 
@@ -37,7 +42,9 @@ These are mandatory:
 - only report issues with concrete runtime, correctness, or clear maintenance cost
 - do not recommend new abstractions, patterns, or layers from this skill
 - do not treat file size alone as a finding
-- if a structural concern is mostly about design judgment, route it to `/review` (boundary/coherence lenses) instead of reporting it here
+- if a structural concern is a repository-wide improvement opportunity, report the measured
+  friction and route selection/design to `plan`; if it is about whether one resolved change is
+  sound, route it to `review`
 - cap medium and low-severity findings to the highest-signal set a human can act on
 
 ---
@@ -51,12 +58,11 @@ These are mandatory:
 | `/audit drift [scope]` | Quick drift classification only (see Drift Mode) |
 | "repo drift", "stale guidance", "should we clean?" | Treat as `/audit drift` |
 | `/audit --full` | Skip scope detection, analyze all packages |
-| `/audit --team` | Parallel agent team |
-| `/audit --loop` | Complete the read-only audit, then route approved findings through the scope-lock rhythm (see Part 10) |
+| `/audit --loop` | Complete the read-only audit, then route approved findings through the scope-lock rhythm (see Part 9) |
 
 ## Drift Mode
 
-`/audit drift [scope]` is the fast, read-only classifier (formerly the standalone `drift` skill). It does not run Parts 0-10.
+`/audit drift [scope]` is the fast, read-only classifier (formerly the standalone `drift` skill). It does not run the numbered full-audit parts.
 
 1. Run `bun run drift:check -- --scope <scope>` (scopes: `all`, `guidance`, `plans`, `design`, `docs`, `ontology`, `cleanup`, `quality`; add `--json` for machine output). The `ontology` scope reports a distinct infra-fault status when the checker itself cannot run — treat that as a tooling failure to fix, not ontology drift.
 2. Report numbered findings with category, severity, evidence, and recommended route. Treat `WARN` output as a finding; include working-tree context if the checker reports a dirty tree.
@@ -146,7 +152,12 @@ bun run --filter '@green-goods/agent' test -- --coverage --reporter=json
 
 Extract per package: overall coverage %, files with 0% coverage, files below 50% branch coverage. Cross-reference zero-coverage files against god objects in Part 4 (low coverage + god object = higher risk).
 
-For contracts: `forge coverage` if available, otherwise note "coverage not measured."
+Contract coverage is outside the read-only audit phase because the supported wrapper writes generated
+artifacts under `output/contracts-test-audit/`. During audit, inspect any commit-bound coverage
+evidence already supplied and otherwise record "coverage not measured". After the user authorizes a
+validation or remediation phase, run `bun run test:audit:coverage` from `packages/contracts`; never
+bypass the repository wrapper with raw Forge. Do not run concurrent coverage invocations in one
+checkout because the wrapper uses fixed output paths.
 
 ---
 
@@ -172,22 +183,18 @@ For each file in CHANGED packages, check:
 - **MEDIUM**: Tech debt, maintainability
 - **LOW**: Style, minor improvements
 
-### Risk Prioritization
+### Prioritization
 
-Use **risk score = Impact x Likelihood**. Issue age from current Linear tracking may
-be noted separately, but does not mechanically change severity.
-
-| Factor | Values |
-|--------|--------|
-| Impact | 4=Critical, 3=High, 2=Medium, 1=Low |
-| Likelihood | 3=Certain, 2=Likely, 1=Unlikely |
-Score < 4: report as-is. Score 4-8: prioritize for review. Score > 8: flag in
-the Executive Summary. ACCEPTED, DEFERRED, and MONITORED findings retain their
-current Linear decision unless the user explicitly reopens it.
+Rank findings by severity, weighed by how likely the failure actually is — a certain
+Medium outranks a speculative High. Flag every Critical finding (and any High finding
+with a certain trigger path) in the Executive Summary. Issue age from current Linear
+tracking may be noted separately, but does not mechanically change severity. ACCEPTED,
+DEFERRED, and MONITORED findings retain their current Linear decision unless the user
+explicitly reopens it.
 
 ### Security Skill Integration (contracts only)
 
-When auditing `packages/contracts/`, apply the security checklist in `.claude/context/contracts.md`:
+When auditing `packages/contracts/`, apply the contract-security guidance in `.claude/context/contracts.md` (its Upgrade Safety Checklist and Access Control sections):
 1. Solidity security patterns against modified `.sol` files
 2. Access control against files with `onlyHatWearer`, `_authorizeUpgrade`, role-check modifiers
 3. UUPS upgrade safety (storage gaps, `_authorizeUpgrade`) if proxy/upgradeable contracts modified
@@ -221,7 +228,7 @@ The `knip.ts` config already excludes `packages/contracts/lib/`, `packages/index
 | Circular Deps | Import cycles |
 | Layer Violations | Wrong import direction |
 
-God objects: include coverage %. Zero-coverage god objects escalate one additional risk level.
+God objects: include coverage %. Zero-coverage god objects report one severity higher.
 
 ### Green Goods Violations
 
@@ -232,7 +239,7 @@ grep -rn "0x[a-fA-F0-9]\{40\}" packages/ --include="*.ts" | grep -v __tests__  #
 grep -rn "@green-goods/shared/src" packages/client packages/admin packages/agent packages/indexer --include="*.ts*"  # Undeclared shared internals
 ```
 
-Cap the anti-patterns table at **top 10 by risk score**. Do not create a local
+Cap the anti-patterns table at **top 10 by severity**. Do not create a local
 overflow registry; offer the remaining accepted findings for Linear tracking.
 
 ---
@@ -245,11 +252,11 @@ Re-verify EVERY finding from Parts 1-4:
 2. Confirm code matches the finding description
 3. Check 10 lines above/below for guards/comments that invalidate the finding
 4. Assign confidence: HIGH / MEDIUM / LOW -- drop LOW confidence findings
-5. Verify escalation was applied where required (score 4.0-8.0 bumped, score > 8.0 in summary)
+5. Verify every Critical finding (and certain-path High) appears in the Executive Summary
 6. Verify catch block classification (only dangerous catches reported)
 7. Verify security integration for contracts (SEC-prefixed findings included)
 
-In team mode, the lead re-reads every sub-agent finding before synthesis. Unverifiable findings get dropped.
+Unverifiable findings get dropped.
 
 ---
 
@@ -264,19 +271,19 @@ accepted work to Linear rather than creating a generic audit folder. Report shap
 
 ## Executive Summary        — packages/mode/baseline, counts by severity + SEC-*,
                               dead-code totals, tests/coverage, dependency health,
-                              highest-risk findings (score > 8), executive delta
+                              Critical findings, executive delta
                               (only when a live comparison was requested)
-## Previous Findings Status — | ID | Finding | File | Status | Risk Score | Notes |
+## Previous Findings Status — | ID | Finding | File | Status | Severity | Notes |
                               (only when current tracked findings exist)
 ## Security Findings        — SEC-prefixed, contracts only: file, checklist, issue,
                               recommendation
-## High / Medium / Low      — per finding: **File** | **Risk score** | **Issue** |
+## High / Medium / Low      — per finding: **File** | **Issue** |
                               **Recommendation**, tagged [STILL OPEN | NEW]
 ## Skill & Config Drift     — | Reference | Location | Status |
-## Anti-Patterns (top 10)   — | Anti-Pattern | Location | Lines | Coverage | Risk | Severity |
+## Anti-Patterns (top 10)   — | Anti-Pattern | Location | Lines | Coverage | Severity |
 ## Dependency Health        — | Category | Count | Details |
 ## Tracked-finding delta    — (only when current Linear history exists)
-## Recommendations          — priority-ordered, each citing severity + finding ID + risk score
+## Recommendations          — priority-ordered, each citing severity + finding ID
 ```
 
 ---
@@ -294,35 +301,14 @@ Checks: hook/utility/type references in skills vs actual shared exports, dev por
 
 ---
 
-## Part 8: Team Mode
-
-When `--team` is passed, spawn parallel agents. Requires the Agent tool (fall back to single-agent if unavailable).
-
-### Scope-Aware Spawning
-
-Only spawn agents for CHANGED package groups. Lead handles carry-forward for UNCHANGED packages. `/audit --full --team` spawns all agents regardless.
-
-### Team Structure
-
-```
-Lead (Parts 0, 0.5, 5-7, 9 -- scope, validation, report, drift, triage)
-  [if contracts/indexer CHANGED]  chain-auditor      (Parts 1-4)
-  [if shared CHANGED]             middleware-auditor  (Parts 1-4)
-  [if client/admin/agent CHANGED] app-auditor         (Parts 1-4)
-```
-
-Each agent runs Parts 1-4 scoped to their packages using `bunx knip --workspace`. Agents must NOT read files outside their scope; cross-package findings are marked "needs cross-package verification." The lead validates all sub-agent findings before synthesis.
-
----
-
-## Part 9: Triage & Routing
+## Part 8: Triage & Routing
 
 After the report, group findings by actionability:
 
 | Category | Criteria | Output |
 |----------|----------|--------|
-| **Fix Now** | Critical/High, risk > 8.0 | Individual Linear issue per accepted finding |
-| **Fix Soon** | Medium, risk 4.0-8.0 | Batch into 1 Linear issue per package when accepted |
+| **Fix Now** | Critical/High | Individual Linear issue per accepted finding |
+| **Fix Soon** | Medium | Batch into 1 Linear issue per package when accepted |
 | **Track** | Low or MONITORED | Keep in response; offer Linear tracking after approval |
 | **Accept** | ACCEPTED/DEFERRED | No action |
 
@@ -347,9 +333,15 @@ Audit-specific deltas:
 
 ---
 
-## Part 10: Implementation Handoff
+## Part 9: Implementation Handoff
 
-When `--loop` is requested, complete the read-only audit first and present numbered findings. Route the approved set through the scope-lock rhythm (numbered findings → explicit user lock → fix only locked items → re-validate per `.claude/context/validation-pipeline.md`). Do not apply fixes, create branches, write reports, or update registries from the audit phase itself. Fix at most 3 findings per approved iteration, highest risk score first, on the current branch.
+When `--loop` is requested, complete the read-only audit first and present numbered findings. Route
+the approved set through the scope-lock rhythm (numbered findings → explicit user lock → fix only
+locked items → re-validate per `.claude/context/validation-pipeline.md`). Do not apply fixes, create
+branches, write reports, or update registries from the audit phase itself. Group approved findings by
+root-cause class and fix at most 3 classes per iteration, highest severity first, on the current
+branch. For each class, search direct consumers and sibling surfaces, record the checked scope, add
+negative coverage when behavior changed, and run one final recurrence sweep before handoff.
 
 ---
 
@@ -363,18 +355,19 @@ When `--loop` is requested, complete the read-only audit first and present numbe
 | Count generated files in unused totals | Build artifacts, not source |
 | Use grep to detect unused exports | High false-positive rate; use knip (Part 3) |
 | Use haiku-class models for audit | 95% false-positive rate -- use opus |
-| State cross-package findings as confirmed | Mark "needs cross-package verification" |
 | Skip current tracked-findings check when trend was requested | A stale local report is not a substitute for live tracking |
 | Report 24+ god object rows | Keep the response to the top 10; offer accepted overflow findings for Linear |
 | Count intentional catch-with-fallback as bare catch | Classify per Part 2; only report dangerous ones |
-| Fix more than 3 findings per loop iteration | Prevents context exhaustion |
+| Fix more than 3 root-cause classes per loop iteration | Prevents context exhaustion without encouraging one-line fixes |
 | Fix design-level problems via `/audit --loop` | Design judgment belongs in `/review`'s coherence lens |
 
 ---
 
 ## Boundary
 
-If it's about *what's broken, dead, or drifted* — audit. If it's about *whether one change is sound* — `/review` (its coherence and boundary lenses replaced the retired `principles`/`architecture` skills).
+If it is about *what is broken, dead, drifted, or measurably brittle* — audit. Audit may identify
+architecture friction but never prescribe the refactor. Repository-wide opportunity selection and
+interface design route to `plan`; whether one resolved change is sound routes to `review`.
 
 ## Related Skills
 

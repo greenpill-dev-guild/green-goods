@@ -5,9 +5,12 @@
 - Execution sub-lane: editorial
 - Machine lane: ui
 - Owner: Claude
-- Branch signal: claude/editorial/commitment-pooling
-- Current state: prototype/copy review may continue; implementation waits for state_api, verified
-  non-value deployment/indexer output, and the shared admin/UI foundation cleanup
+- Branch signal: feature/commitment-pooling-editorial
+- Current state: the `/gardens/:id` page conversion and every editorial backend source contract are
+  complete on `feature/commitment-pooling-editorial`. The section's scope is a record across seasons
+  and campaigns, not one live cycle. UI implementation still waits for merge, hosted Envio
+  deployment/full reindex/live read-back, the shared admin/UI foundation cleanup, and the
+  `PublicEvidencePipeline` i18n/five-node prerequisite
 - Linear context: PRD-726 (editorial lane) under parent PRD-650
 
 ## Inputs
@@ -16,17 +19,20 @@
 - uiux-spec.md editorial contract and W15/W16
 - the canonical [Commitment Pooling Google Doc](https://docs.google.com/document/d/16LNXMr5voQUgWC3iyULbL4iEhRrFo4DezZZLgNtA4hc/edit) for external language; `external-brief.md` for the repo source map
 - acceptance-matrix.md §3 public claims matrix
-- Existing public GardenDialog and /impact composition
+- The public Garden page (`packages/client/src/views/Public/GardenDetail.tsx`) and `/impact`
+  composition. The Garden page is a page, not a dialog, as of 2026-08-19; its `Section` shell,
+  `StatCell` em-dash contract, and always-render rule are what the commitments section plugs into
 
 ## Outputs
 
-- Read-only garden pool story and protocol-wide promise aggregates.
+- Read-only garden pool story at `§ 02` and protocol-wide commitment aggregates.
 - Clear labels separating planned, queued, dispatched, confirming, and CCIP-confirmed behavior.
 - Privacy-thresholded counts with readiness/empty/error copy.
 - en/es/pt copy and accessible public-browser proof.
 
 ## Acceptance
 
+- Public copy says commitment, never promise (C.14; the prototype build already enforces it).
 - Public views render only indexer-backed aggregates and approved EAS/shared joined reads.
 - No per-person lists, wallet addresses, rankings, funding-ordering, or unsupported percentage claims.
 - Dispatched or Celo-executed/ack-pending settlement never reads as arrived; only a CCIP-confirmed outcome may use arrival language and it remains distinct from community narrative and evaluator conclusions.
@@ -52,8 +58,28 @@
 
 ## Unblock evidence
 
-- Indexer/shared aggregate selectors and privacy thresholds are GREEN.
-- Verified live indexer output and the scoped shared admin/UI foundation cleanup are complete.
+- MET in source — `CommitmentPool.distinctProviderCount` is monotonic, replay-safe, and seeded at
+  zero. `selectPublicPromiseKeptRate` gates the lifetime rate at five due commitments and three
+  distinct providers while the authenticated in-garden selector remains unchanged.
+- MET in source — `usePublicGardenPool` reads pool, included cycles, and exact-label unit summaries
+  without selecting or returning provider addresses. It resolves the frozen cycle metadata v1
+  `{ version: 1, name }` shape and reports an unavailable name as partial data rather than zero or
+  a fabricated label.
+- MET in source — `usePublicCommitmentImpact` returns open-pool count, fulfilled/due totals,
+  server-side distinct providers across the open pool IDs, and a confirmed settlement sum through
+  aggregate-only GraphQL responses. It returns no provider, disbursement, wallet, token, recipient,
+  or source row.
+- MET in source — the confirmed selector and aggregate both require exact `CONFIRMED` state;
+  queued, dispatched, executed/ack-pending, failed, cancelled, unknown, and future states cannot
+  reach the published total.
+- NOT MET — `PublicEvidencePipeline` must be internationalised and laid out for five nodes before
+  the `/impact` band can ship. It is not yet: its node titles and descriptions are literal English
+  (only the closing caption goes through `formatMessage`) and it is `md:grid-cols-3` with three
+  hardcoded domain tones.
+- NOT MET — the configured hosted Envio endpoint still serves the older schema without
+  `CommitmentPool`. Merge, deployment, full reindex, cutover, and live schema/data read-back are
+  required before runtime availability can be claimed.
+- NOT MET — the scoped shared admin/UI foundation cleanup remains a UI-entry dependency.
 - `acceptance-matrix.md` §3 is approved and every public claim maps to its required evidence class.
 - GREEN includes targeted tests, client build, and rendered public-browser proof for readiness, live, queued, dispatched, confirming, confirmed, empty, and error states.
 
@@ -62,3 +88,11 @@
 - Public team attribution may name contributors only where privacy/publication rules allow and must reflect approved contribution, not an equal-by-presence split.
 - Hypercert recognition can be described as contribution credit; contributor payment, garden retention, and delivery status remain separate claims with their own proof.
 - A public story must never imply that a Hypercert share itself paid a member or that one failed child payout invalidated the fulfilled commitment.
+
+## Binding ongoing-Offer amendment — 2026-08-02
+
+- Public ongoing-Offer copy uses separately approved pool-level aggregates only.
+- Do not expose a person's saved Offer metadata, series Story, inferred participant count,
+  reliability language, cross-pool identity, rate, rank, or score.
+- “Kept N times across M cycles” is permitted only when exact linked Fulfilled instances and
+  unique cycle IDs support it; “verified impact” requires its own evidence authority.

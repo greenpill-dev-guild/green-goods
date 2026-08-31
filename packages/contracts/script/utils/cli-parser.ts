@@ -13,6 +13,9 @@ export interface ParsedOptions {
   force: boolean;
   dryRun: boolean;
   pureSimulation: boolean;
+  transactionPlan: boolean;
+  /** commitment-schemas only: run the finalization mode instead of preparation. */
+  finalizeCommunityTestimony: boolean;
   skipEnvio: boolean;
   skipVerification: boolean;
   startIndexer: boolean;
@@ -20,6 +23,12 @@ export interface ParsedOptions {
   overrideSepoliaGate: boolean;
   sender?: string;
   deploymentSalt?: string;
+  releaseStage?: string;
+  releaseStep?: number;
+  expectedNonce?: number;
+  receiptHash?: string;
+  artifactPath?: string;
+  releaseOwnerPhase?: "deployment" | "safe";
   greenWillOwner?: string;
   genesisHatId?: string;
   genesisLock?: string;
@@ -39,6 +48,12 @@ const VALUE_FLAGS = new Set([
   "--chain",
   "--salt",
   "--sender",
+  "--stage",
+  "--step",
+  "--expected-nonce",
+  "--receipt",
+  "--artifact",
+  "--owner-phase",
   "--owner",
   "--genesis-hat-id",
   "--genesis-lock",
@@ -112,6 +127,8 @@ export class CliParser {
       force: false,
       dryRun: false,
       pureSimulation: false,
+      transactionPlan: false,
+      finalizeCommunityTestimony: false,
       skipEnvio: false,
       skipVerification: false,
       startIndexer: false,
@@ -152,6 +169,12 @@ export class CliParser {
         case "--pure-simulation":
           options.pureSimulation = true;
           break;
+        case "--tx-plan":
+          options.transactionPlan = true;
+          break;
+        case "--finalize-community-testimony":
+          options.finalizeCommunityTestimony = true;
+          break;
         case "--skip-envio":
           options.skipEnvio = true;
           break;
@@ -179,6 +202,62 @@ export class CliParser {
           }
           options.sender = args[++i];
           break;
+        case "--stage":
+          if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
+            return { ...options, error: `${arg} requires a release stage` };
+          }
+          options.releaseStage = args[++i];
+          break;
+        case "--step": {
+          if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
+            return { ...options, error: `${arg} requires a positive transaction index` };
+          }
+          const value = Number(args[++i]);
+          if (!Number.isSafeInteger(value) || value <= 0) {
+            return { ...options, error: `${arg} requires a positive safe integer` };
+          }
+          options.releaseStep = value;
+          break;
+        }
+        case "--expected-nonce": {
+          if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
+            return { ...options, error: `${arg} requires a non-negative transaction nonce` };
+          }
+          const value = Number(args[++i]);
+          if (!Number.isSafeInteger(value) || value < 0) {
+            return { ...options, error: `${arg} requires a non-negative safe integer` };
+          }
+          options.expectedNonce = value;
+          break;
+        }
+        case "--receipt": {
+          if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
+            return { ...options, error: `${arg} requires a transaction hash` };
+          }
+          const value = args[++i];
+          if (!/^0x[0-9a-fA-F]{64}$/u.test(value)) {
+            return { ...options, error: `${arg} requires a 32-byte transaction hash` };
+          }
+          options.receiptHash = value;
+          break;
+        }
+        case "--artifact":
+          if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
+            return { ...options, error: `${arg} requires a file path` };
+          }
+          options.artifactPath = args[++i];
+          break;
+        case "--owner-phase": {
+          if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
+            return { ...options, error: `${arg} requires deployment or safe` };
+          }
+          const value = args[++i];
+          if (value !== "deployment" && value !== "safe") {
+            return { ...options, error: `${arg} requires deployment or safe` };
+          }
+          options.releaseOwnerPhase = value;
+          break;
+        }
         case "--owner":
           if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
             return { ...options, error: `${arg} requires an address value` };

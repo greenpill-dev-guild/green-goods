@@ -1,13 +1,13 @@
-import {
-  cn,
-  type GardenFilterScope,
-  type GardenFiltersState,
-  type GardenSortOrder,
-} from "@green-goods/shared";
+import type {
+  GardenFilterScope,
+  GardenFiltersState,
+  GardenSortOrder,
+} from "@green-goods/shared/hooks/garden/useFilteredGardens";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { ModalDrawer } from "@/components/Dialogs/ModalDrawer";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 // Re-export types from shared for convenience
 export type { GardenFilterScope, GardenFiltersState, GardenSortOrder };
@@ -97,7 +97,7 @@ export const GardensFilterDrawer = ({
       description: !canFilterMine
         ? intl.formatMessage({
             id: "app.home.filters.scope.mineDisabled",
-            defaultMessage: "Sign in or connect a wallet to filter by your gardens.",
+            defaultMessage: "Sign in to filter by your gardens.",
           })
         : myGardensCount === 0
           ? intl.formatMessage({
@@ -144,7 +144,7 @@ export const GardensFilterDrawer = ({
         }),
         description: intl.formatMessage({
           id: "app.home.filters.description",
-          defaultMessage: "Filter by membership or sort order.",
+          defaultMessage: "Refine the garden list by membership or sort order.",
         }),
       }}
     >
@@ -190,7 +190,7 @@ export const GardensFilterDrawer = ({
         <Button
           label={intl.formatMessage({
             id: "app.home.filters.reset",
-            defaultMessage: "Reset filters",
+            defaultMessage: "Reset Filters",
           })}
           variant="neutral"
           mode="stroke"

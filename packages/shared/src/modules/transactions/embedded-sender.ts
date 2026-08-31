@@ -21,7 +21,7 @@ import {
 } from "@wagmi/core";
 import type { Hex } from "viem";
 import { logger } from "../app/logger";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { ensureWagmiWalletChain } from "./chain-guard";
 import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
 import type { ContractCall, TransactionSender, TxResult } from "./types";

@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Mock the current shared auth state hook
 const mockUseAuthState = vi.fn();
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuthState: () => mockUseAuthState(),
 }));
 
@@ -57,7 +57,7 @@ describe("RequireAuth", () => {
     cleanup();
   });
 
-  it("renders loading spinner when auth is not ready", () => {
+  it("does not mount a second loading scene during cold session restoration", () => {
     mockUseAuthState.mockReturnValue({
       isReady: false,
       isAuthenticated: false,
@@ -65,10 +65,20 @@ describe("RequireAuth", () => {
 
     const { container } = renderWithRouter();
 
-    // Should show a loading spinner
-    const spinner = container.querySelector(".animate-spin");
-    expect(spinner).toBeInTheDocument();
+    expect(container.querySelector(".animate-spin")).not.toBeInTheDocument();
     expect(screen.queryByText("Protected Content")).not.toBeInTheDocument();
+    expect(screen.queryByText("Login Page")).not.toBeInTheDocument();
+  });
+
+  it("keeps protected content mounted during a transient authenticated restore", () => {
+    mockUseAuthState.mockReturnValue({
+      isReady: false,
+      isAuthenticated: true,
+    });
+
+    renderWithRouter();
+
+    expect(screen.getByText("Protected Content")).toBeInTheDocument();
     expect(screen.queryByText("Login Page")).not.toBeInTheDocument();
   });
 

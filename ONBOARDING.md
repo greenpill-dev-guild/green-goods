@@ -39,8 +39,7 @@ Top Browser MCP Usage:
 
 ### Skills to Know About
 Slash-invokable (type the command):
-- [ ] `/status` — Branch-first orientation when you sit down or return to a branch (read-only, ~30-60s). Start here.
-- [ ] `/review [package|PR|file]` — Full change review: regressions, remaining gaps, production quality, verdict (`/review admin`, `/review #123`).
+- [ ] `/review [package|PR|file]` — Full change review: regressions, remaining gaps, production quality, verdict (`/review admin`, `/review #123`). Start here for an in-flight branch.
 - [ ] `/audit` — Read-only repo-health audit; `/audit drift` for the quick drift classifier.
 - [ ] `/clean` — 8 parallel cleanup agents after findings are accepted (`--dry-run`, `--scope`, `--agents`).
 - [ ] `/qa-triage` and `/doc-feedback` — Build Sync QA notes → Linear records + QA-sheet rows; Google-Doc review feedback processing.
@@ -62,7 +61,7 @@ These complement (not duplicate) `CLAUDE.md` — they're things that aren't alre
 
 - **Run admin in Brave only, with the Claude browser extension installed.** There is no Google Chrome, Chrome for Testing, Chromium, or Edge fallback for Green Goods browser proof. Claude reads `data-component`/`data-region`/`data-workspace` off the live admin DOM during UI review; without Brave-backed DOM proof, every admin UI change becomes guesswork.
 - **Commit in scoped groups, not one mega-diff.** Working trees here often accumulate multiple unrelated changes; split them by package or concern using Conventional Commits (`feat(admin): ...`, `refactor(shared): ...`). Use `git add -p` if you need to slice a file.
-- **For multi-lane work, dispatch Codex from Claude via `codex exec --full-auto`.** Claude stays the orchestrator. Codex is strong as a plan-follower and code reviewer, weak at visual polish — never delegate UI design work to it.
+- **For multi-lane work, dispatch Codex from Claude via `codex exec --approve-for-me < /dev/null`.** The flag already grants workspace-write after automatic approval review and cannot be combined with `-s`. Claude stays the orchestrator. Codex is strong as a plan-follower and code reviewer, weak at visual polish — never delegate UI design work to it. Re-check `codex exec --help` when the CLI version changes.
 - **Don't make Claude "wait" — use `/loop` or `/schedule`.** `/loop <interval> <command>` for active polling; `/schedule` for cron-style remote routines (deploy checks, weekly sweeps, scheduled cleanup PRs).
 - **Sibling repos live in `~/Code/greenpill/`** — `coop`, `gardens`, `network-website`, `cookie-jar`, etc. They share identity/chain/attestation infra with green-goods. Pull them down if your work crosses those boundaries.
 - **Real-time coordination happens in [Telegram](https://t.me/+N3o3_43iRec1Y2Jh).** Drop in if you're stuck or pairing.

@@ -195,18 +195,18 @@ Tone shifts by context while voice stays constant:
 | **Hero moments** | Celebratory, genuine | "Your first contribution. This garden is growing because of you." |
 | **Errors** | Calm, constructive | "That didn't go through. Your work is saved — try again when you're ready." |
 | **Offline** | Reassuring, matter-of-fact | "You're offline. Everything is saved locally and will sync when you reconnect." |
-| **Admin / operator** | Efficient, status-oriented | "3 submissions pending review. 1 flagged for follow-up." |
+| **Admin / steward** | Efficient, status-oriented | "3 submissions pending review. 1 flagged for follow-up." |
 | **Funding / impact** | Respectful, concrete | "This garden has documented 47 actions across 3 seasons." |
 
 ### Terminology
 
-The names that carry the work. The canonical vocabulary contract — domain entities, personas, surfaces, and banned terms (streak, countdown, leaderboard, FOMO, growth-hacking language, plus admin-only and client-only AI-prompt bans) — lives in [`docs/docs/reference/glossary-community.md`](docs/docs/reference/glossary-community.md). This table is the positive copy-voice set; the glossary is the cross-surface single source of truth.
+The names that carry the work. Domain entities, personas, relationships, and lifecycle semantics live in [`green-goods-ontology.json`](packages/shared/src/ontology/green-goods-ontology.json); banned language lives in [`scripts/data/banned-vocabulary.json`](scripts/data/banned-vocabulary.json). The generated [public glossary](docs/docs/reference/glossary.generated.mdx) explains both without becoming another authority. This table is the positive copy-voice set.
 
 | Use | Don't Use | Why |
 |-----|-----------|-----|
 | Garden | Project, organization, DAO | Gardens are the metaphor. |
 | Gardener | User, contributor, member | People who do the work have a name. |
-| Operator | Admin, manager | They operate the garden. |
+| Steward | Admin, manager | They operate the garden. |
 | Evaluator | Reviewer, auditor, assessor | They evaluate impact, not audit compliance. |
 | Funder | Donor, investor, backer | Funding a garden, not donating to a cause. |
 | Community member | Visitor, viewer, spectator | Part of the community, not an audience. |
@@ -222,7 +222,7 @@ Before shipping copy:
 
 - [ ] Is it concrete? (Can the reader picture it?)
 - [ ] Is it active? (Subject → verb → object?)
-- [ ] Is the audience right? (Gardener ≠ operator ≠ funder)
+- [ ] Is the audience right? (Gardener ≠ steward ≠ funder)
 - [ ] Is blockchain invisible? (On-chain = implementation, not copy)
 - [ ] Would it make sense to someone who's never heard of web3?
 - [ ] Is it shorter than your first draft?

@@ -1,12 +1,9 @@
-import {
-  gardenStepFields,
-  toastService,
-  useCreateGardenForm,
-  useCreateGardenStore,
-  useCreateGardenWorkflow,
-  useFormWizardStepValidation,
-  useTxErrorMessages,
-} from "@green-goods/shared";
+import { toastService } from "../../../components/Toast/toast.service";
+import { useCreateGardenStore } from "../../../stores/useCreateGardenStore";
+import { gardenStepFields, useCreateGardenForm } from "../../garden/useCreateGardenForm";
+import { useCreateGardenWorkflow } from "../../garden/useCreateGardenWorkflow";
+import { useFormWizardStepValidation } from "../../ui/useFormWizardStepValidation";
+import { useTxErrorMessages } from "../../utils/useTxErrorMessages";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -42,7 +39,7 @@ export function useCreateGardenController() {
   const hasError = state.value === "error";
   const isSuccess = state.value === "success";
   const txError = useTxErrorMessages(state.context.error);
-  const plannedMemberCount = form.gardeners.length + form.operators.length;
+  const plannedMemberCount = form.gardeners.length + form.stewards.length;
   const initializedRef = useRef(false);
 
   useEffect(() => {
@@ -65,7 +62,7 @@ export function useCreateGardenController() {
         storeForm.metadata.trim().length > 0 ||
         storeForm.openJoining ||
         storeForm.gardeners.length > 0 ||
-        storeForm.operators.length > 0;
+        storeForm.stewards.length > 0;
 
       if (hasSessionProgress) {
         const isOnReviewStep = storeState.currentStep === storeState.steps.length - 1;

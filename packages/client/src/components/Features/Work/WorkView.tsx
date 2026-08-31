@@ -1,4 +1,6 @@
-import { AudioPlayer, resolveIPFSUrl, type Garden } from "@green-goods/shared";
+import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import type { Garden } from "@green-goods/shared/types/domain";
 import { RiDownloadLine, RiExternalLinkLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
@@ -28,6 +30,8 @@ type WorkViewProps = {
   /** IPFS CIDs for gardener audio notes (from work metadata) */
   audioNoteCids?: string[];
   details: Array<{ label: string; value: string; icon?: IconComponent | null }>;
+  /** The commitment this work fulfils, drawn after the details when there is one. */
+  fulfills?: React.ReactNode;
   /** When true, shows skeleton placeholders for details instead of the actual cards */
   isDetailsLoading?: boolean;
   headerIcon?: IconComponent | null;
@@ -57,6 +61,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
   media = [],
   audioNoteCids,
   details,
+  fulfills = null,
   isDetailsLoading = false,
   headerIcon: HeaderIcon,
   primaryActions = [],
@@ -85,7 +90,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
           garden={garden}
           media="small"
           height="default"
-          showOperators={true}
+          showStewards={true}
           selected={false}
           showDescription={false}
           showBanner={false}
@@ -126,7 +131,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
           <h6>
             {intl.formatMessage({
               id: "app.home.work.audioNotes",
-              defaultMessage: "Audio Notes",
+              defaultMessage: "Audio notes",
             })}
           </h6>
           <div className="flex flex-col gap-2">
@@ -170,6 +175,8 @@ export const WorkView: React.FC<WorkViewProps> = ({
             />
           ))
       )}
+
+      {fulfills}
 
       {feedbackSection}
 

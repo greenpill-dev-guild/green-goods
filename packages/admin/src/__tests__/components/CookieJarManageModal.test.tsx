@@ -13,49 +13,66 @@ const mockEmergencyWithdraw = vi.fn();
 const mockUpdateMaxWithdrawal = vi.fn();
 const mockUpdateInterval = vi.fn();
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
-    formatTokenAmount: (value: bigint, decimals = 18) =>
-      `${Number(value) / 10 ** decimals}`.replace(/\.0$/, ""),
-    getVaultAssetSymbol: () => "USDC",
-    useCookieJarPause: () => ({ mutate: mockPause, isPending: false }),
-    useCookieJarUnpause: () => ({ mutate: mockUnpause, isPending: false }),
-    useCookieJarEmergencyWithdraw: () => ({
-      mutate: mockEmergencyWithdraw,
-      isPending: false,
-    }),
-    useCookieJarUpdateMaxWithdrawal: () => ({
-      mutate: mockUpdateMaxWithdrawal,
-      isPending: false,
-    }),
-    useCookieJarUpdateInterval: () => ({
-      mutate: mockUpdateInterval,
-      isPending: false,
-    }),
-    useGardenCookieJars: () => ({
-      jars: [
-        {
-          jarAddress: "0xjar1",
-          gardenAddress: "0xgarden",
-          assetAddress: "0xasset",
-          balance: 5000000n,
-          currency: "0xasset",
-          decimals: 6,
-          maxWithdrawal: 1000000n,
-          withdrawalInterval: 3600n,
-          minDeposit: 0n,
-          isPaused: false,
-          emergencyWithdrawalEnabled: false,
-        },
-      ],
-      isLoading: false,
-      moduleConfigured: true,
-    }),
-  };
-});
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
+  useGardens: () => ({
+    data: [
+      {
+        id: "0xgarden",
+        tokenAddress: "0xgarden",
+        name: "Rocinha",
+      },
+    ],
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarAdmin", () => ({
+  useCookieJarPause: () => ({ mutate: mockPause, isPending: false }),
+  useCookieJarUnpause: () => ({ mutate: mockUnpause, isPending: false }),
+  useCookieJarEmergencyWithdraw: () => ({
+    mutate: mockEmergencyWithdraw,
+    isPending: false,
+  }),
+  useCookieJarUpdateMaxWithdrawal: () => ({
+    mutate: mockUpdateMaxWithdrawal,
+    isPending: false,
+  }),
+  useCookieJarUpdateInterval: () => ({
+    mutate: mockUpdateInterval,
+    isPending: false,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useGardenCookieJars", () => ({
+  useGardenCookieJars: () => ({
+    jars: [
+      {
+        jarAddress: "0xjar1",
+        gardenAddress: "0xgarden",
+        assetAddress: "0xasset",
+        balance: 5000000n,
+        currency: "0xasset",
+        decimals: 6,
+        maxWithdrawal: 1000000n,
+        withdrawalInterval: 3600n,
+        minDeposit: 0n,
+        isPaused: false,
+        emergencyWithdrawalEnabled: true,
+      },
+    ],
+    isLoading: false,
+    moduleConfigured: true,
+  }),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/vaults", () => ({
+  formatTokenAmount: (value: bigint, decimals = 18) =>
+    `${Number(value) / 10 ** decimals}`.replace(/\.0$/, ""),
+  getVaultAssetSymbol: () => "USDC",
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+}));
 
 vi.mock("@remixicon/react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@remixicon/react")>();
@@ -97,6 +114,11 @@ const defaultProps = {
 describe("CookieJarManageModal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPause.mockReset();
+    mockUnpause.mockReset();
+    mockEmergencyWithdraw.mockReset();
+    mockUpdateMaxWithdrawal.mockReset();
+    mockUpdateInterval.mockReset();
   });
 
   it("shows edit buttons next to max withdrawal and cooldown when canManage is true", () => {
@@ -251,5 +273,31 @@ describe("CookieJarManageModal", () => {
 
     // After success, edit button should be back (not the input)
     expect(screen.getAllByRole("button", { name: /edit max withdrawal/i }).length).toBe(1);
+  });
+
+  it("keeps max withdrawal editing open after a failed mutation", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CookieJarManageModal {...defaultProps} />);
+
+    await user.click(screen.getByRole("button", { name: /edit max withdrawal/i }));
+    const input = screen.getByRole("textbox");
+    await user.clear(input);
+    await user.type(input, "3");
+    await user.click(screen.getByRole("button", { name: /confirm max withdrawal/i }));
+
+    expect(mockUpdateMaxWithdrawal).toHaveBeenCalled();
+    expect(screen.getByRole("textbox")).toHaveValue("3");
+  });
+
+  it("keeps the emergency confirmation open after a failed mutation", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CookieJarManageModal {...defaultProps} isOwner />);
+
+    await user.click(screen.getByRole("button", { name: "Emergency Withdraw" }));
+    const confirmButtons = screen.getAllByRole("button", { name: "Emergency Withdraw" });
+    await user.click(confirmButtons.at(-1)!);
+
+    expect(mockEmergencyWithdraw).toHaveBeenCalled();
+    expect(screen.getByText(/Take 5 USDC from/i)).toBeInTheDocument();
   });
 });

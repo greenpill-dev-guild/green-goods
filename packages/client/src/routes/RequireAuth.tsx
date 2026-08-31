@@ -1,22 +1,15 @@
-import { useAuthState } from "@green-goods/shared";
+import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { APP_ROUTES } from "@/config/pwa-routing";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { APP_ROUTES } from "@/config/pwaRouting";
 
 export default function RequireAuth() {
   const { isReady, isAuthenticated } = useAuthState();
   const location = useLocation();
 
-  // Wait for auth provider to finish initialization
-  // Show minimal loading state to prevent flash of login screen
+  // Static HTML owns the cold-start scene. During a transient reconnect, keep
+  // the already-authorized route mounted instead of replacing it with a loader.
   if (!isReady) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-bg-white-0">
-        <div
-          className={`h-10 w-10 animate-spin rounded-full border-3 border-stroke-soft-200 ${pwaStatusStyles.primary.spinnerBorder}`}
-        />
-      </div>
-    );
+    return isAuthenticated ? <Outlet /> : null;
   }
 
   // Check if user has valid credentials (either passkey or wallet)

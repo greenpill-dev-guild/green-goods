@@ -35,8 +35,9 @@
 import { createActor } from "xstate";
 import { ENV } from "../lib/env";
 
-import { DEFAULT_CHAIN_ID } from "../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 import { logger } from "../modules/app/logger";
+import { getAuthMode } from "../modules/auth/session";
 import { authMachine } from "./authMachine";
 import { authServices } from "./authServices";
 
@@ -58,22 +59,26 @@ function getChainId(): number {
 /**
  * Create the auth actor with proper services injected
  */
-function createAuthActor() {
+export function createAuthActor(services: typeof authServices = authServices) {
   // Get chain ID at runtime
   const chainId = getChainId();
+  const storedAuthMode = typeof window !== "undefined" ? getAuthMode() : null;
+  const restoreAuthMode =
+    storedAuthMode === "wallet" || storedAuthMode === "embedded" ? storedAuthMode : null;
 
   // Create actor with services and initial context
   const actor = createActor(
     authMachine.provide({
       actors: {
-        restoreSession: authServices.restoreSession,
-        registerPasskey: authServices.registerPasskey,
-        authenticatePasskey: authServices.authenticatePasskey,
+        restoreSession: services.restoreSession,
+        registerPasskey: services.registerPasskey,
+        authenticatePasskey: services.authenticatePasskey,
       },
     }),
     {
       input: {
         chainId,
+        restoreAuthMode,
       },
     }
   );
