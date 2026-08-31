@@ -6,6 +6,7 @@ import path from "node:path";
 import test from "node:test";
 
 const AUDIT = path.resolve(import.meta.dirname, "docs-audit.mjs");
+const VERCEL_CONFIG = path.resolve(import.meta.dirname, "../vercel.json");
 
 function fixture() {
   const root = mkdtempSync(path.join(tmpdir(), "green-goods-docs-audit-"));
@@ -65,6 +66,12 @@ test("accepts existing authority and redirect-fragment targets", () => {
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("Vercel serves Docusaurus HTML at extensionless routes", () => {
+  const config = JSON.parse(readFileSync(VERCEL_CONFIG, "utf8"));
+  assert.equal(config.cleanUrls, true);
+  assert.equal(config.outputDirectory, "build");
 });
 
 test("ignores unterminated MDX tags when deriving heading anchors", () => {
