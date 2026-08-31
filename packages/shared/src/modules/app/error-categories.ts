@@ -8,10 +8,9 @@
  * @module modules/app/error-categories
  */
 
-import { posthog } from "posthog-js";
 import { type ParsedContractError, parseContractError } from "../../utils/errors/contract-errors";
 import { logger } from "./logger";
-import { getAppContext } from "./posthog";
+import { getAppContext, track } from "./posthog";
 import { getBreadcrumbs } from "./error-breadcrumbs";
 import { captureExternalError } from "./external-error-reporters";
 import { redactSentryString, sanitizeSentryContext } from "./sentry-redaction";
@@ -162,18 +161,6 @@ function redactErrorForTracking(error: Error): Error {
 // ============================================================================
 // CORE ERROR TRACKING
 // ============================================================================
-
-/**
- * Check if PostHog is ready for exception capture.
- */
-function isPostHogReady(): boolean {
-  try {
-    const config = (posthog as unknown as { config?: { api_host?: string } }).config;
-    return typeof config !== "undefined" && typeof config.api_host === "string";
-  } catch {
-    return false;
-  }
-}
 
 /**
  * Track an error to PostHog with full context.
@@ -331,15 +318,8 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
 
   // Skip in dev mode
   if (IS_DEV) return;
-  if (!isPostHogReady()) {
-    if (IS_DEBUG) {
-      logger.warn("[ErrorTracking] PostHog not ready, skipping capture");
-    }
-    return;
-  }
-
-  // Send as custom event - PostHog's built-in capture_exceptions handles native $exception format
-  posthog.capture("error_tracked", properties);
+  // The transport is registered lazily after startup; before then this safely no-ops.
+  track("error_tracked", properties);
 }
 
 // ============================================================================

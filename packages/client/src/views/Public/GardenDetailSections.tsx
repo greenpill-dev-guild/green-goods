@@ -1,5 +1,5 @@
 import type { Address } from "@green-goods/shared/types/domain";
-import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { useHypercerts } from "@green-goods/shared/hooks/hypercerts/useHypercerts";
 import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import type { ReactNode } from "react";
@@ -159,7 +159,7 @@ export function StewardsSection({ stewards, loading }: { stewards: Address[]; lo
               key={address}
               className="border border-stroke-soft-200 bg-bg-white-0 px-4 py-2 text-sm text-text-sub-600"
             >
-              <AddressDisplay address={address} showCopyButton={false} />
+              {formatAddress(address, { variant: "card" })}
             </li>
           ))}
         </ul>

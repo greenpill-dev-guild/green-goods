@@ -4,7 +4,7 @@ import { ImagePreviewDialog } from "@green-goods/shared/components/Dialog/ImageP
 import type { PublicFieldNote } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { ImageWithFallback } from "@/components/Display";
+import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
 import { PublicRecordDrawer } from "@/components/Public/PublicRecordDrawer";
 import { formatNoteDate, NoteAuthor, NotePlaceholderTile } from "./GardenDetailAtoms";
 

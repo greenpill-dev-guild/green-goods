@@ -14,6 +14,11 @@
 import { trackStorageError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
 import { track } from "../../modules/app/posthog";
+import {
+  createQueryPersister,
+  PERSIST_MAX_AGE,
+  type PersistedClient,
+} from "../../config/query-persistence";
 
 // ============================================================================
 // TYPES
@@ -51,6 +56,23 @@ export const DEFAULT_CRITICAL_THRESHOLD = 90;
 
 /** Minimum quota to consider storage API working (10MB) */
 const MIN_VALID_QUOTA = 10 * 1024 * 1024;
+const PERSISTENCE_REQUEST_KEY = "gg-persistent-storage-requested";
+const QUOTA_CLEANUP_THRESHOLD = 80;
+const QUOTA_CLEANUP_TARGET = 65;
+const REFETCHABLE_CACHE_GROUPS = [
+  ["indexer-cache", "graphql-cache"],
+  ["image-cache"],
+  ["ipfs-cache"],
+] as const;
+
+export type PersistentStorageReason = "work-draft" | "offline-job";
+
+export interface RefetchableStorageCleanupResult {
+  beforePercentUsed: number;
+  afterPercentUsed: number;
+  deletedCaches: string[];
+  clearedPersistedQueries: boolean;
+}
 
 // ============================================================================
 // CORE FUNCTIONS
@@ -65,6 +87,107 @@ export function isStorageQuotaSupported(): boolean {
     "storage" in navigator &&
     typeof navigator.storage.estimate === "function"
   );
+}
+
+export async function requestPersistentStorageOnce(
+  reason: PersistentStorageReason
+): Promise<boolean | null> {
+  if (
+    typeof navigator === "undefined" ||
+    typeof window === "undefined" ||
+    !navigator.storage?.persist ||
+    !navigator.storage?.persisted
+  ) {
+    return null;
+  }
+
+  try {
+    if (window.localStorage.getItem(PERSISTENCE_REQUEST_KEY)) {
+      return navigator.storage.persisted();
+    }
+    window.localStorage.setItem(PERSISTENCE_REQUEST_KEY, reason);
+    if (await navigator.storage.persisted()) return true;
+    const granted = await navigator.storage.persist();
+    track("persistent_storage_requested", { reason, granted });
+    return granted;
+  } catch (error) {
+    logger.warn("[StorageQuota] Persistent storage request failed", { error, reason });
+    return null;
+  }
+}
+
+export function isPersistedQueryClientExpired(
+  client: Pick<PersistedClient, "timestamp">,
+  currentTime = Date.now()
+): boolean {
+  return currentTime - client.timestamp > PERSIST_MAX_AGE;
+}
+
+async function clearExpiredPersistedQueryStorage(): Promise<boolean> {
+  try {
+    const persister = createQueryPersister({ dbName: "gg-react-query", storeName: "rq" });
+    const persisted = await persister.restoreClient();
+    if (!persisted || !isPersistedQueryClientExpired(persisted)) return false;
+    await persister.removeClient();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function cleanupRefetchableStorage(
+  force = false
+): Promise<RefetchableStorageCleanupResult> {
+  const before = await getStorageQuota();
+  const result: RefetchableStorageCleanupResult = {
+    beforePercentUsed: before.percentUsed,
+    afterPercentUsed: before.percentUsed,
+    deletedCaches: [],
+    clearedPersistedQueries: false,
+  };
+  if (!force && before.percentUsed < QUOTA_CLEANUP_THRESHOLD) return result;
+
+  result.clearedPersistedQueries = await clearExpiredPersistedQueryStorage();
+  let cleanupTargetReached = false;
+  if (result.clearedPersistedQueries) {
+    const afterQueries = await getStorageQuota();
+    result.afterPercentUsed = afterQueries.percentUsed;
+    cleanupTargetReached = afterQueries.percentUsed < QUOTA_CLEANUP_TARGET;
+  }
+  for (const cacheGroup of cleanupTargetReached ? [] : REFETCHABLE_CACHE_GROUPS) {
+    if (typeof caches !== "undefined") {
+      for (const cacheName of cacheGroup) {
+        if (await caches.delete(cacheName)) result.deletedCaches.push(cacheName);
+      }
+    }
+    const current = await getStorageQuota();
+    result.afterPercentUsed = current.percentUsed;
+    if (current.percentUsed < QUOTA_CLEANUP_TARGET) break;
+  }
+
+  track("storage_quota_cleanup", {
+    before_percent_used: result.beforePercentUsed,
+    after_percent_used: result.afterPercentUsed,
+    deleted_caches: result.deletedCaches.join(","),
+    cleared_persisted_queries: result.clearedPersistedQueries,
+  });
+  return result;
+}
+
+export function isQuotaExceededError(error: unknown): boolean {
+  return error instanceof DOMException
+    ? error.name === "QuotaExceededError"
+    : error instanceof Error && error.name === "QuotaExceededError";
+}
+
+export async function retryOnceAfterQuotaCleanup<T>(operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (!isQuotaExceededError(error)) throw error;
+    await cleanupRefetchableStorage(true);
+    return operation();
+  }
 }
 
 /**

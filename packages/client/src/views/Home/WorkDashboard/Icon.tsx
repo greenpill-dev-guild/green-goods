@@ -2,10 +2,11 @@ import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCloudOffLine, RiLoader4Line, RiTaskLine } from "@remixicon/react";
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { useIntl } from "react-intl";
 import { type PwaStatusTone, pwaStatusStyles } from "@/components/Pwa/statusStyles";
-import { WorkDashboard } from ".";
+
+const WorkDashboard = lazy(() => import(".").then((module) => ({ default: module.WorkDashboard })));
 
 interface WorkDashboardIconProps {
   className?: string;
@@ -102,7 +103,11 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
       </button>
 
       {/* Dashboard Modal */}
-      {isWorkDashboardOpen && <WorkDashboard onClose={closeWorkDashboard} />}
+      {isWorkDashboardOpen ? (
+        <Suspense fallback={null}>
+          <WorkDashboard onClose={closeWorkDashboard} />
+        </Suspense>
+      ) : null}
     </>
   );
 };

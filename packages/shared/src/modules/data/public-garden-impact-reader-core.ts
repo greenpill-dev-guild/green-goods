@@ -1,6 +1,6 @@
 import { isPublicGardenImpactChainSupported } from "../../config/blockchain";
 import type { PublicGardenImpactSource } from "../../public-contracts/garden-impact";
-import { isZeroBytes32 } from "../../utils/blockchain/vaults";
+import { isZeroBytes32 } from "../../utils/blockchain/bytes";
 import type { GraphQLReader } from "./graphql-client";
 
 export const PUBLIC_GARDEN_IMPACT_SOURCE_PAGE_SIZE = 100;

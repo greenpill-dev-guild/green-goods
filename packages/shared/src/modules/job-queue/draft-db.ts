@@ -19,6 +19,7 @@ import {
   deserializeFile,
   serializeFile,
 } from "../../utils/storage/file-serialization";
+import { retryOnceAfterQuotaCleanup } from "../../utils/storage/quota";
 import { trackPrivateQueueEvent } from "./job-analytics";
 import { mediaResourceManager } from "./media-resource-manager";
 
@@ -119,7 +120,7 @@ class DraftDatabase {
       updatedAt: now,
     };
 
-    await db.add("drafts", draft);
+    await retryOnceAfterQuotaCleanup(() => db.add("drafts", draft));
     return id;
   }
 
@@ -148,7 +149,7 @@ class DraftDatabase {
       updatedAt: Date.now(),
     };
 
-    await db.put("drafts", updated);
+    await retryOnceAfterQuotaCleanup(() => db.put("drafts", updated));
   }
 
   /**
@@ -218,13 +219,14 @@ class DraftDatabase {
     }
 
     try {
-      await db.add("draft_images", {
+      const image: DraftImage = {
         id: imageId,
         draftId,
         fileData, // Store serialized data instead of File
         url,
         createdAt: Date.now(),
-      } as DraftImage);
+      } as DraftImage;
+      await retryOnceAfterQuotaCleanup(() => db.add("draft_images", image));
     } catch (storeError) {
       trackPrivateQueueEvent("job_queue_draft_storage_failed", {
         ...buildFileMetadata(file),
@@ -236,11 +238,12 @@ class DraftDatabase {
     const draft = await this.getDraft(draftId);
     if (draft) {
       const images = await this.getImagesForDraft(draftId);
-      await db.put("drafts", {
+      const updatedDraft: WorkDraftRecord = {
         ...draft,
         firstIncompleteStep: computeFirstIncompleteStep(draft, images.length > 0),
         updatedAt: Date.now(),
-      });
+      };
+      await retryOnceAfterQuotaCleanup(() => db.put("drafts", updatedDraft));
     }
 
     return imageId;
@@ -261,11 +264,12 @@ class DraftDatabase {
       const draft = await this.getDraft(image.draftId);
       if (draft) {
         const images = await this.getImagesForDraft(image.draftId);
-        await db.put("drafts", {
+        const updatedDraft: WorkDraftRecord = {
           ...draft,
           firstIncompleteStep: computeFirstIncompleteStep(draft, images.length > 0),
           updatedAt: Date.now(),
-        });
+        };
+        await retryOnceAfterQuotaCleanup(() => db.put("drafts", updatedDraft));
       }
     }
   }
@@ -299,20 +303,74 @@ class DraftDatabase {
    */
   async setImagesForDraft(draftId: string, files: File[]): Promise<void> {
     const db = await this.init();
-
-    // Delete existing images
-    const existingImages = await this.getImagesForDraft(draftId);
-    const tx = db.transaction("draft_images", "readwrite");
-    for (const img of existingImages) {
-      mediaResourceManager.cleanupUrl(img.url);
-      await tx.objectStore("draft_images").delete(img.id);
-    }
-    await tx.done;
-
-    // Add new images
+    const serializedFiles: Array<{ file: File; fileData: SerializedFileData }> = [];
     for (const file of files) {
-      await this.addImageToDraft(draftId, file);
+      try {
+        serializedFiles.push({ file, fileData: await serializeFile(file) });
+      } catch (serializeError) {
+        trackPrivateQueueEvent("job_queue_draft_file_serialization_failed", {
+          ...buildFileMetadata(file),
+        });
+        throw serializeError;
+      }
     }
+
+    const timestamp = Date.now();
+    const replacementImages = serializedFiles.map(({ file, fileData }) => ({
+      id: crypto.randomUUID(),
+      draftId,
+      fileData,
+      url: mediaResourceManager.createUrl(file, draftId),
+      createdAt: timestamp,
+    })) as DraftImage[];
+    let committedPreviousImages: DraftImage[] = [];
+
+    try {
+      await retryOnceAfterQuotaCleanup(async () => {
+        const tx = db.transaction(["drafts", "draft_images"], "readwrite");
+        try {
+          const draftStore = tx.objectStore("drafts");
+          const imageStore = tx.objectStore("draft_images");
+          const draft = await draftStore.get(draftId);
+          if (!draft) throw new Error(`Draft ${draftId} not found`);
+
+          const previousImages = await imageStore.index("draftId").getAll(draftId);
+          for (const image of previousImages) {
+            await imageStore.delete(image.id);
+          }
+          for (const image of replacementImages) {
+            await imageStore.add(image);
+          }
+
+          await draftStore.put({
+            ...draft,
+            firstIncompleteStep: computeFirstIncompleteStep(draft, replacementImages.length > 0),
+            updatedAt: timestamp,
+          });
+          await tx.done;
+          committedPreviousImages = previousImages;
+        } catch (error) {
+          try {
+            tx.abort();
+          } catch {
+            // The browser may have already aborted the failed transaction.
+          }
+          await tx.done.catch(() => undefined);
+          throw error;
+        }
+      });
+    } catch (storeError) {
+      replacementImages.forEach((image) => mediaResourceManager.cleanupUrl(image.url));
+      files.forEach((file) => {
+        trackPrivateQueueEvent("job_queue_draft_storage_failed", {
+          ...buildFileMetadata(file),
+        });
+      });
+      throw storeError;
+    }
+
+    // Old object URLs remain valid until the replacement transaction commits.
+    committedPreviousImages.forEach((image) => mediaResourceManager.cleanupUrl(image.url));
   }
 
   /**

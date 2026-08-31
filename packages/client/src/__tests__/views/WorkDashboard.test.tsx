@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Work } from "@green-goods/shared/types/domain";
 
 const mockNavigate = vi.hoisted(() => vi.fn());
@@ -179,12 +179,17 @@ vi.mock("@green-goods/shared/hooks/work/useReviewerWorks", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/utils/useTimeout", () => ({
-  useTimeout: () => ({ set: vi.fn((fn: () => void) => fn()) }),
+  useTimeout: () => ({ set: vi.fn((fn: () => void) => fn()), clear: vi.fn() }),
 }));
 
 vi.mock("@green-goods/shared/stores/useUIStore", () => ({
-  useUIStore: (selector: (s: { workDashboardInitialTab?: string }) => unknown) =>
-    selector({ workDashboardInitialTab: undefined }),
+  useUIStore: (
+    selector: (s: {
+      workDashboardInitialTab?: string;
+      workDashboardInitialPendingFilter?: string;
+    }) => unknown
+  ) =>
+    selector({ workDashboardInitialTab: undefined, workDashboardInitialPendingFilter: undefined }),
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
@@ -236,18 +241,19 @@ vi.mock("../../views/Home/WorkDashboard/Drafts", () => ({
 
 import { WorkDashboard } from "../../views/Home/WorkDashboard";
 
-function renderDashboard() {
-  return render(
+function renderDashboard(onClose = vi.fn()) {
+  const view = render(
     createElement(
       MemoryRouter,
       null,
       createElement(
         IntlProvider,
         { locale: "en", messages: { "app.common.loading": "Loading" } },
-        createElement(WorkDashboard, { onClose: vi.fn() })
+        createElement(WorkDashboard, { onClose })
       )
     )
   );
+  return { ...view, onClose };
 }
 
 describe("WorkDashboard", () => {
@@ -311,6 +317,11 @@ describe("WorkDashboard", () => {
       isError: false,
       refetch: vi.fn(),
     });
+  });
+
+  afterEach(() => {
+    document.getElementById("app-scroll")?.remove();
+    document.documentElement.classList.remove("modal-open");
   });
 
   it("opens on Pending and shows offline-included submitted work after submission", () => {
@@ -430,6 +441,7 @@ describe("WorkDashboard", () => {
   });
 
   it("opens the original work route from the My work reviewed completed filter", () => {
+    const onClose = vi.fn();
     mockUseMyWorks.mockReturnValue({
       data: [
         {
@@ -467,7 +479,7 @@ describe("WorkDashboard", () => {
       isSuccess: true,
     };
 
-    renderDashboard();
+    renderDashboard(onClose);
 
     fireEvent.click(screen.getByTestId("tab-completed"));
     fireEvent.change(screen.getByDisplayValue("Reviewed by you"), {
@@ -475,10 +487,44 @@ describe("WorkDashboard", () => {
     });
     fireEvent.click(screen.getByText("Reviewed planting"));
 
+    expect(onClose).toHaveBeenCalledOnce();
     expect(mockNavigate).toHaveBeenCalledWith("/home/garden-42/work/reviewed-work", {
       state: { from: "dashboard", returnTo: "/home" },
       viewTransition: true,
     });
+    expect(onClose.mock.invocationCallOrder[0]).toBeLessThan(
+      mockNavigate.mock.invocationCallOrder[0]
+    );
+  });
+
+  it("owns dashboard scrolling explicitly and resets that owner on tab changes", () => {
+    const appScroll = document.createElement("div");
+    appScroll.id = "app-scroll";
+    appScroll.scrollTop = 900;
+    document.body.append(appScroll);
+
+    renderDashboard();
+
+    const dashboardScroll = document.getElementById("work-dashboard-scroll");
+    expect(dashboardScroll).not.toBeNull();
+    if (!dashboardScroll) throw new Error("WorkDashboard scroll owner is missing");
+    dashboardScroll.scrollTop = 420;
+
+    fireEvent.click(screen.getByTestId("tab-completed"));
+
+    expect(dashboardScroll.scrollTop).toBe(0);
+    expect(appScroll.scrollTop).toBe(900);
+    expect(dashboardScroll.querySelector(".overflow-y-auto")).toBeNull();
+  });
+
+  it("closes from Escape while focus is inside the dialog", () => {
+    const { onClose } = renderDashboard();
+    const closeButton = screen.getByTestId("modal-drawer-close");
+    closeButton.focus();
+
+    fireEvent.keyDown(closeButton, { key: "Escape" });
+
+    expect(onClose).toHaveBeenCalledOnce();
   });
 
   it("does not show original submission feedback as review feedback", () => {

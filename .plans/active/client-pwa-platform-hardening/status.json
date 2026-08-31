@@ -1,0 +1,163 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "client-pwa-platform-hardening",
+    "title": "Client PWA Platform Hardening",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "implementation_checkpoint_blocked_on_external_proof",
+    "priority": "p2",
+    "created_at": "2026-08-30T19:17:02.663Z",
+    "updated_at": "2026-08-30T21:14:30Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "laneSyncMode": "parent_only",
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["client", "shared"],
+    "work_types": ["implementation"],
+    "surfaces": [
+      "packages/client/src",
+      "packages/client/scripts",
+      "packages/shared/src",
+      ".plans/active/client-pwa-platform-hardening"
+    ],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Contracts are not in scope; the contracts lane is marked n/a.",
+    "Repository-only implementation: no Linear mirror was requested or authorized.",
+    "Existing unrelated AppShell and WorkDashboard changes are preserved and excluded from this plan's ownership.",
+    "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",
+    "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist.",
+    "All five implementation slices are complete. Final acceptance is held for physical Android/WebAPK proof and repository-wide gates blocked by concurrent checkout failures."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "codex",
+      "status": "completed",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "",
+          "evidence": "Focused regression tests were added before and during implementation; individual failing snapshots were not retained in the shared checkout."
+        },
+        "green": {
+          "command": "cd packages/client && bun run test -- <13 focused PWA test files>",
+          "evidence": "13 test files passed; 101 assertions passed on 2026-08-30."
+        },
+        "note": "Authenticated Brave rendered the public and installed shells and loaded the funding wallet surface only after interaction. Physical Android evidence remains outside this lane's local proof."
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "completed",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "",
+          "evidence": "Focused regression tests were added before and during implementation; individual failing snapshots were not retained in the shared checkout."
+        },
+        "green": {
+          "command": "cd packages/shared && bun run test -- <7 focused PWA/storage test files>",
+          "evidence": "7 test files passed; 44 assertions passed on 2026-08-30."
+        },
+        "note": "Direct Vite production build and PWA budget checker pass. Full Client typecheck remains blocked by unrelated concurrent address-typing changes."
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No Solidity, ABI, deployment, broadcast, or release surface changes."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "note": "Requires physical Android/WebAPK proof and a clean checkout for the repository-wide validation selection.",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-08-30T19:17:02.669Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-08-30T21:14:30Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "completed",
+      "branch": null,
+      "note": "Launch/install, split bootstraps, update UI, Share Target routing, badging, budgets, and authenticated Brave proof completed."
+    },
+    {
+      "timestamp": "2026-08-30T21:14:30Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": null,
+      "note": "Service-worker lifecycle, offline shell, persistence/quota protection, Share Target envelope, and shared leaf boundaries completed."
+    }
+  ]
+}

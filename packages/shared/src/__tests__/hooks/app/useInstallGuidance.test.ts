@@ -17,7 +17,8 @@ vi.mock("../../../utils/app/browser", () => ({
 }));
 
 import type { InstallScenario } from "../../../hooks/app/useInstallGuidance";
-import { useInstallGuidance } from "../../../hooks/app/useInstallGuidance";
+import { useInstallGuidance as useInstallGuidanceOptions } from "../../../hooks/app/useInstallGuidance";
+import type { Platform } from "../../../utils/app/pwa";
 import {
   canTriggerInstallPrompt,
   detectMobileBrowser,
@@ -29,6 +30,27 @@ const mockDetect = vi.mocked(detectMobileBrowser);
 const mockRecommended = vi.mocked(getRecommendedBrowser);
 const mockOpenUrl = vi.mocked(getOpenInBrowserUrl);
 const mockCanTrigger = vi.mocked(canTriggerInstallPrompt);
+
+function useInstallGuidance(
+  platform: Platform,
+  isInstalled: boolean,
+  wasInstalled: boolean,
+  deferredPrompt: BeforeInstallPromptEvent | null,
+  isMobile: boolean,
+  isInstalling = false
+) {
+  return useInstallGuidanceOptions({
+    platform,
+    installedAppEvidence: {
+      status: isInstalled ? "installed" : "unknown",
+      source: isInstalled ? "standalone" : wasInstalled ? "history" : "unsupported",
+    },
+    wasInstalled,
+    deferredPrompt,
+    isMobile,
+    isInstalling,
+  });
+}
 
 const safariBrowser = {
   browser: "safari" as const,
@@ -264,6 +286,25 @@ describe("hooks/app/useInstallGuidance", () => {
       expect(result.current.showBrowserOption).toBe(true);
       expect(result.current.manualInstructions).toBeDefined();
       expect(result.current.manualInstructions![0].icon).toBe("menu");
+    });
+
+    it("lets verified negative WebAPK evidence override stale install history", () => {
+      mockDetect.mockReturnValue(chromeBrowser);
+      mockCanTrigger.mockReturnValue(false);
+
+      const { result } = renderHook(() =>
+        useInstallGuidanceOptions({
+          platform: "android",
+          installedAppEvidence: { status: "not-installed", source: "related-app" },
+          wasInstalled: true,
+          deferredPrompt: null,
+          isMobile: true,
+        })
+      );
+
+      expect(result.current.scenario).toBe("manual-install-available");
+      expect(result.current.primaryAction.type).toBe("show-manual-steps");
+      expect(result.current.primaryAction.label).toBe("Install App");
     });
 
     it("provides Android Chrome manual steps", () => {

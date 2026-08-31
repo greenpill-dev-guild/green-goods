@@ -42,7 +42,7 @@ import { getGardenAssessments, getWorks } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
 import type { Address, Garden } from "../../types/domain";
 import type { EASWork } from "../../types/eas-responses";
-import { isZeroBytes32 } from "../../utils/blockchain/vaults";
+import { isZeroBytes32 } from "../../utils/blockchain/bytes";
 import { publicGardenHelpers } from "./usePublicGardens";
 
 export interface PublicFieldNote {

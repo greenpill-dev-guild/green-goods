@@ -86,12 +86,11 @@ function renderAction() {
             "div",
             null,
             createElement(
-              "button",
+              "a",
               {
-                type: "button",
-                disabled,
+                href,
+                "aria-disabled": disabled || undefined,
                 onClick,
-                "data-href": href,
                 "data-install-action": dataInstallAction,
                 "data-testid": "cta",
               },
@@ -198,7 +197,7 @@ describe("PublicInstallAction", () => {
     renderAction();
 
     const cta = screen.getByTestId("cta");
-    expect(cta).toBeDisabled();
+    expect(cta).toHaveAttribute("aria-disabled", "true");
     expect(cta).toHaveTextContent("Installing...");
     expect(cta).toHaveAttribute("data-install-action", "installing");
   });
@@ -227,11 +226,9 @@ describe("PublicInstallAction", () => {
 
     renderAction();
 
-    expect(screen.getByTestId("cta")).toHaveAttribute(
-      "data-href",
-      new URL("/home", window.location.origin).toString()
-    );
+    expect(screen.getByTestId("cta")).toHaveAttribute("href", "/home");
     expect(screen.getByTestId("cta")).toHaveAttribute("data-install-action", "open-app");
+    expect(fireEvent.click(screen.getByTestId("cta"))).toBe(true);
   });
 
   it("keeps Open App primary for remembered Android installs and exposes reinstall help", () => {

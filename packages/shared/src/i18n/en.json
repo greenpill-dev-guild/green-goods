@@ -4440,6 +4440,7 @@
   "public.cookies.gridLedeConnectedSome": "Claimable jars are shown first. You can also add funds to any seasonal campaign jar below.",
   "public.cookies.gridLedeDisconnected": "Connect a wallet to see which jars you can claim from, or add funds to support a seasonal campaign.",
   "public.cookies.gridTitle": "Seasonal jars.",
+  "public.cookies.openWalletSurface": "Explore Cookie Jars",
   "public.cookies.imageFallback": "Cookie jar",
   "public.cookies.invalidJar": "\"{jar}\" is not a valid jar address.",
   "public.cookies.jarNotes": "Jar notes",
@@ -5259,6 +5260,7 @@
   "public.vaults.hero.kicker": "Octant V2 Ethereum vaults",
   "public.vaults.hero.lede": "Back a campaign once, and its support can keep growing as generated yield is routed toward the public good.",
   "public.vaults.hero.title": "Public goods campaigns, powered by <accent>Octant vaults</accent>.",
+  "public.vaults.openWalletSurface": "View Campaign Vaults",
   "public.vaults.manage.card.checking": "Checking your recovery session…",
   "public.vaults.manage.card.codeLabel": "Email code",
   "public.vaults.manage.card.codeSent": "Code sent. Check {email} and enter the 6 digit code.",
@@ -5415,5 +5417,8 @@
   "public.vaults.walletEndow.unavailable": "Wallet Endow unavailable",
   "public.vaults.walletEndow.unavailableLabel": "Wallet Endow unavailable for {campaign}",
   "public.vaults.walletEndow.wrap": "Wrap ETH to WETH",
-  "public.vaults.walletEndow.wrapping": "Wrapping..."
+  "public.vaults.walletEndow.wrapping": "Wrapping...",
+  "app.shareTarget.invalid.title": "That share could not be imported",
+  "app.shareTarget.invalid.message": "Try sharing up to five supported photos again.",
+  "app.shareTarget.imported.title": "Shared work added to your draft"
 }

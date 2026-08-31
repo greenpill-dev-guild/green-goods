@@ -1,9 +1,9 @@
 /** @vitest-environment jsdom */
 
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { createElement, StrictMode, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -14,6 +14,13 @@ const mocks = vi.hoisted(() => ({
   reset: vi.fn(),
   enqueue: vi.fn(),
   uploadWork: vi.fn(),
+  consumeShareTarget: vi.fn(),
+  loadShareTarget: vi.fn(),
+  normalizeWorkMediaFiles: vi.fn(),
+  saveOnExit: vi.fn(),
+  setImages: vi.fn(),
+  setValue: vi.fn(),
+  loggerWarn: vi.fn(),
   outcome: null as null | Record<string, unknown>,
   choices: [] as Array<Record<string, unknown>>,
 }));
@@ -27,7 +34,7 @@ vi.mock("../../../utils/action/parsers", () => ({
 }));
 
 vi.mock("../../../modules/app/logger", () => ({
-  logger: { error: vi.fn() },
+  logger: { error: vi.fn(), warn: mocks.loggerWarn },
   createLogger: () => ({ error: vi.fn(), warn: vi.fn(), debug: vi.fn(), info: vi.fn() }),
 }));
 
@@ -67,7 +74,16 @@ vi.mock("../../../hooks/utils/useAudioRecording", () => ({
 }));
 
 vi.mock("../../../hooks/work/useDraftAutoSave", () => ({
-  useDraftAutoSave: () => ({ saveOnExit: vi.fn() }),
+  useDraftAutoSave: () => ({ saveOnExit: mocks.saveOnExit }),
+}));
+
+vi.mock("../../../modules/app/share-target", () => ({
+  consumeShareTarget: mocks.consumeShareTarget,
+  loadShareTarget: mocks.loadShareTarget,
+}));
+
+vi.mock("../../../modules/work/media-processing", () => ({
+  normalizeWorkMediaFiles: mocks.normalizeWorkMediaFiles,
 }));
 
 vi.mock("../../../hooks/work/useDraftResume", () => ({
@@ -117,10 +133,10 @@ vi.mock("../../../providers/Work", () => ({
   useWorkFormContext: () => ({
     state: { isValid: true, isSubmitting: false },
     images: [],
-    setImages: vi.fn(),
+    setImages: mocks.setImages,
     register: vi.fn(),
     control: {},
-    setValue: vi.fn(),
+    setValue: mocks.setValue,
     uploadWork: mocks.uploadWork,
     feedback: "",
     timeSpentMinutes: undefined,
@@ -184,6 +200,38 @@ function Wrapper({ children }: { children: ReactNode }) {
   );
 }
 
+function StrictShareWrapper({ children }: { children: ReactNode }) {
+  return createElement(
+    StrictMode,
+    null,
+    createElement(
+      MemoryRouter,
+      { initialEntries: ["/home/garden?shareTarget=share-1"] },
+      createElement(IntlProvider, { locale: "en", messages: {} }, children)
+    )
+  );
+}
+
+let navigateShareRoute: ((path: string) => void) | null = null;
+
+function ShareNavigationCapture({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
+  navigateShareRoute = (path) => navigate(path);
+  return children;
+}
+
+function ShareNavigationWrapper({ children }: { children: ReactNode }) {
+  return createElement(
+    MemoryRouter,
+    { initialEntries: ["/home/garden?shareTarget=share-1"] },
+    createElement(
+      ShareNavigationCapture,
+      null,
+      createElement(IntlProvider, { locale: "en", messages: {} }, children)
+    )
+  );
+}
+
 describe("useWorkSubmissionFlowController", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -192,6 +240,12 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.outcome = null;
     mocks.choices = [];
     mocks.enqueue.mockResolvedValue("link-job");
+    mocks.consumeShareTarget.mockResolvedValue(undefined);
+    mocks.loadShareTarget.mockReset();
+    mocks.normalizeWorkMediaFiles.mockReset();
+    mocks.saveOnExit.mockReset();
+    mocks.saveOnExit.mockResolvedValue("draft-1");
+    navigateShareRoute = null;
   });
 
   it("projects selection and owns the intro progress gate", () => {
@@ -225,6 +279,182 @@ describe("useWorkSubmissionFlowController", () => {
 
     result.current.changeTab("Media" as never);
     expect(mocks.setActiveTab).toHaveBeenCalledWith("Media");
+  });
+
+  it("imports and consumes a Share Target exactly once under Strict Mode", async () => {
+    const image = new File(["image"], "garden.webp", { type: "image/webp" });
+    let resolveShareTarget: ((value: Record<string, unknown>) => void) | undefined;
+    const shareTarget = new Promise<Record<string, unknown>>((resolve) => {
+      resolveShareTarget = resolve;
+    });
+    mocks.actionUID = 1;
+    mocks.gardenAddress = "0x1111111111111111111111111111111111111111";
+    mocks.loadShareTarget.mockReturnValue(shareTarget);
+    const loadedShareTarget = {
+      envelope: {
+        version: 1,
+        token: "share-1",
+        createdAt: 1,
+        expiresAt: Date.now() + 60_000,
+        title: "Creek restoration",
+        text: "Seedlings planted",
+        url: "https://example.org/proof",
+        files: [],
+      },
+      feedback: "Creek restoration\n\nSeedlings planted\n\nhttps://example.org/proof",
+      files: [image],
+    };
+    mocks.normalizeWorkMediaFiles.mockResolvedValue({
+      accepted: [{ file: image }],
+      rejected: [],
+    });
+
+    const view = renderHook(
+      () =>
+        useWorkSubmissionFlowController({
+          homeRoute: "/home",
+          profileRoute: "/home/profile",
+          trackMediaJourneyEvent: vi.fn(),
+        }),
+      { wrapper: StrictShareWrapper }
+    );
+
+    await waitFor(() => expect(mocks.loadShareTarget).toHaveBeenCalled());
+    view.rerender();
+    await act(async () => {
+      resolveShareTarget?.(loadedShareTarget);
+      await shareTarget;
+    });
+
+    await waitFor(() =>
+      expect(mocks.setValue).toHaveBeenCalledWith(
+        "feedback",
+        "Creek restoration\n\nSeedlings planted\n\nhttps://example.org/proof",
+        { shouldDirty: true }
+      )
+    );
+    expect(mocks.setImages).toHaveBeenCalledWith([image]);
+    await waitFor(() => expect(mocks.saveOnExit).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mocks.consumeShareTarget).toHaveBeenCalledTimes(1));
+    expect(mocks.consumeShareTarget).toHaveBeenCalledWith("share-1");
+  });
+
+  it("keeps the Share Target available when saving its draft fails", async () => {
+    const image = new File(["image"], "garden.webp", { type: "image/webp" });
+    mocks.actionUID = 1;
+    mocks.gardenAddress = "0x1111111111111111111111111111111111111111";
+    mocks.loadShareTarget.mockResolvedValue({
+      envelope: {
+        version: 1,
+        token: "share-1",
+        createdAt: 1,
+        expiresAt: Date.now() + 60_000,
+        title: "Creek restoration",
+        text: "",
+        url: "",
+        files: [],
+      },
+      feedback: "Creek restoration",
+      files: [image],
+    });
+    mocks.normalizeWorkMediaFiles.mockResolvedValue({
+      accepted: [{ file: image }],
+      rejected: [],
+    });
+    mocks.saveOnExit.mockRejectedValue(new Error("draft storage unavailable"));
+
+    renderHook(
+      () =>
+        useWorkSubmissionFlowController({
+          homeRoute: "/home",
+          profileRoute: "/home/profile",
+          trackMediaJourneyEvent: vi.fn(),
+        }),
+      { wrapper: StrictShareWrapper }
+    );
+
+    await waitFor(() =>
+      expect(mocks.loggerWarn).toHaveBeenCalledWith(
+        "Share Target draft save failed",
+        expect.objectContaining({ source: "GardenFlow" })
+      )
+    );
+    await waitFor(() => expect(mocks.saveOnExit).toHaveBeenCalledTimes(2));
+    expect(mocks.consumeShareTarget).not.toHaveBeenCalled();
+  });
+
+  it("serializes overlapping Share Targets without dropping the newer token", async () => {
+    const firstImage = new File(["first"], "first.webp", { type: "image/webp" });
+    const secondImage = new File(["second"], "second.webp", { type: "image/webp" });
+    const loadedShare = (token: string, feedback: string, file: File) => ({
+      envelope: {
+        version: 1,
+        token,
+        createdAt: 1,
+        expiresAt: Date.now() + 60_000,
+        title: feedback,
+        text: "",
+        url: "",
+        files: [],
+      },
+      feedback,
+      files: [file],
+    });
+    let resolveFirstSave: ((draftId: string) => void) | undefined;
+    const firstSave = new Promise<string>((resolve) => {
+      resolveFirstSave = resolve;
+    });
+    mocks.actionUID = 1;
+    mocks.gardenAddress = "0x1111111111111111111111111111111111111111";
+    mocks.loadShareTarget.mockImplementation((token: string) =>
+      Promise.resolve(
+        token === "share-1"
+          ? loadedShare("share-1", "First share", firstImage)
+          : loadedShare("share-2", "Second share", secondImage)
+      )
+    );
+    mocks.normalizeWorkMediaFiles.mockImplementation((files: File[]) =>
+      Promise.resolve({
+        accepted: files.map((file) => ({ file })),
+        rejected: [],
+      })
+    );
+    mocks.saveOnExit.mockReturnValueOnce(firstSave).mockResolvedValueOnce("draft-2");
+
+    renderHook(
+      () =>
+        useWorkSubmissionFlowController({
+          homeRoute: "/home",
+          profileRoute: "/home/profile",
+          trackMediaJourneyEvent: vi.fn(),
+        }),
+      { wrapper: ShareNavigationWrapper }
+    );
+
+    await waitFor(() => expect(mocks.saveOnExit).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      navigateShareRoute?.("/home/garden?shareTarget=share-2");
+      await Promise.resolve();
+    });
+
+    expect(mocks.loadShareTarget).not.toHaveBeenCalledWith("share-2");
+
+    await act(async () => {
+      resolveFirstSave?.("draft-1");
+      await firstSave;
+    });
+
+    await waitFor(() => expect(mocks.consumeShareTarget).toHaveBeenCalledWith("share-1"));
+    await waitFor(() => expect(mocks.loadShareTarget).toHaveBeenCalledWith("share-2"));
+    await waitFor(() => expect(mocks.setValue).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mocks.saveOnExit).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mocks.consumeShareTarget).toHaveBeenCalledWith("share-2"));
+    expect(mocks.setValue).toHaveBeenNthCalledWith(1, "feedback", "First share", {
+      shouldDirty: true,
+    });
+    expect(mocks.setValue).toHaveBeenNthCalledWith(2, "feedback", "Second share", {
+      shouldDirty: true,
+    });
   });
 
   it.each([

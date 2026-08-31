@@ -9,7 +9,7 @@ their taps never save. This is the same interface with a store behind it.
 
 ## How it stays correct with two writers
 
-Each tester owns exactly one blob — `qa/entries/<person>.json` — and only ever writes that one.
+Each tester owns exactly one blob — `qa/entries/<lowercase-address>.json` — and only ever writes that one.
 Two people recording the same case touch **different objects**, so there is nothing to resolve
 between them and no way for one tester's work to overwrite another's. `GET /api/state` reads every
 shard and merges.
@@ -42,24 +42,39 @@ Two more details that look like bugs if you get them wrong:
 
 ### The trust boundary
 
-Access control is the deployment password, and that is the whole of it. The API takes `person` from
-the request body and does not — cannot — prove the caller is that person: Gui is not on the Vercel
-team, which is exactly why the deployment is password-protected rather than SSO-gated. Anyone with
-the password can write to anyone's shard.
+The signing address is the identity. `QA_ALLOWLIST` contains addresses only, and the server accepts
+state reads and writes only from a valid session for an address that is still on that allowlist. A
+tester sets a display name after their first sign-in; the name is a label inside their address-owned
+shard and never decides which shard a request may write. If two testers choose the same name, the app
+adds shortened addresses to keep their entries distinct.
 
-That is acceptable because the password is shared with three teammates recording their own QA
-findings, and the failure mode is a misattributed note rather than a leak or a loss. It would not be
-acceptable if this app ever held anything that mattered to anyone outside the team, or if the roster
-grew past people who trust each other. Treat per-person auth as the prerequisite for either.
+Sign-in uses an ERC-4361 Sign-In With Ethereum message. The server creates the exact message, binds it
+to the request origin and URI, verifies the wallet signature, and stores a 12-hour HMAC-authenticated
+session in an `HttpOnly; Secure; SameSite=Lax` cookie. The endpoint rechecks the allowlist on every
+request, so removing an address revokes its existing session. Every state-changing request must also
+carry the app's exact `Origin`; `SameSite` alone would still admit a compromised sibling subdomain.
+Nonces carry an HMAC-authenticated five-minute expiry. After the signature and allowlist checks pass,
+the server hashes the nonce and creates a private Blob marker with overwrite disabled. Only the first
+request can create that marker, so the same signed challenge cannot mint a second session. If the
+marker write fails and the server cannot prove another request already created it, sign-in returns
+`503` and does not set a cookie. Markers contain only `used`; wallet addresses, messages, and
+signatures are not written there.
+
+This proves control of an allowlisted externally owned account at sign-in. It does not verify a
+person's real-world name, support ERC-1271 contract-wallet signatures, protect a compromised wallet or
+browser origin, or hide one tester's notes from another allowlisted tester. An allowlisted tester can
+read the shared run and change only their own address-owned shard.
 
 ## Layout
 
 | Path | What it is |
 |---|---|
 | `index.html` | The whole UI — static, inline CSS/JS, no bundler |
-| `api/state.ts` | The only function: `GET` merges shards, `POST` merges one tester's delta |
+| `auth.ts` | SIWE message, nonce, allowlist, cookie, and session verification |
+| `api/auth.ts` | `GET` issues a challenge, `POST` consumes it once and creates a session, `DELETE` signs out |
+| `api/state.ts` | Authenticated `GET` merges shards; authenticated `POST` merges the caller's delta |
 | `build.mjs` | Copies the page and projects the active catalog into `dist/catalog.json` |
-| `dev.mjs` | Local server with the same `/api/state` contract, backed by `tmp/qa/` |
+| `dev.mjs` | Loopback-only rehearsal server with a local identity bypass and state in `tmp/qa/` |
 
 Case **definitions** come from `scripts/data/qa-test-catalog.json` at build time, so a deployment is
 pinned to the catalog revision it shipped with and a case cannot change shape mid-session. Only
@@ -71,12 +86,28 @@ active cases ship; retired rows stay in the catalog as an audit trail.
 node packages/qa/build.mjs && node packages/qa/dev.mjs
 ```
 
-Serves <http://127.0.0.1:4610> with state in gitignored `tmp/qa/`. Use it to rehearse a session and
-to prove the two-writer behaviour before deploying.
+Serves <http://127.0.0.1:4610> with state in gitignored `tmp/qa/`. It binds only to `127.0.0.1` and
+does not use a wallet or the production allowlist. Open `?as=Afo`, `?as=Nansel`, or `?as=Gui` to pin
+that browser to a local test identity. The bypass is implemented only by `dev.mjs`; it is not imported
+by either deployed function and `dist/` contains only the static page and catalog.
+
+Loopback is a network boundary, not user authentication. Other processes or users on the same
+machine can reach the rehearsal server. Keep only disposable local QA state there.
 
 It is not a mid-session fallback. Its state is a separate store — it neither reads the deployed
 shards nor pushes back to them — so a session split across both leaves results in two places and
 `qa:pull` sees only one of them.
+
+## Required environment
+
+Set these in the Vercel QA project. The CLI reads `BLOB_READ_WRITE_TOKEN` from the process environment
+or the repository root `.env`; do not add a package-level `.env`.
+
+| Variable | Requirement |
+|---|---|
+| `QA_SESSION_SECRET` | A private random value of at least 32 characters. A missing or shorter value makes every auth and state request fail closed with `503`; there is no fallback secret. |
+| `QA_ALLOWLIST` | A JSON array of unique Ethereum addresses, for example `["0x1111111111111111111111111111111111111111","0x2222222222222222222222222222222222222222"]`. Names do not belong here. Missing, empty, duplicate, or malformed values admit nobody. |
+| `BLOB_READ_WRITE_TOKEN` | Token for the private QA Blob store. State reads/writes and one-shot nonce markers require it; if unavailable, no session is minted. Vercel injects it when the store is connected; `qa:pull` and `qa:status` need it locally. |
 
 ## Deploy (one-time setup)
 
@@ -90,11 +121,11 @@ shards nor pushes back to them — so a session split across both leaves results
    the build sandbox excludes without this, and the deploy fails on a missing catalog. The
    Storybook project needs the same setting for the same reason
    (`docs/docs/builders/testing/storybook.mdx`).
-4. **Turn on Password Protection** — Settings → Deployment Protection. It covers `/api/*` too, which
-   is what protects the write endpoint. Share the password with whoever is testing.
-5. **Verify** before relying on it: open the deployment in two browsers, pick a different name in
-   each under *testing as*, and record a verdict **and** a note on the same case in both. Both marks
-   and both notes must appear. If they don't, stop and fix it rather than starting a session.
+4. **Set wallet authentication environment** — add `QA_SESSION_SECRET` and `QA_ALLOWLIST` as described
+   above. Confirm the connected Blob store supplied `BLOB_READ_WRITE_TOKEN`.
+5. **Verify** before relying on it: use two allowlisted wallets in two browser profiles, sign in, and
+   record a verdict **and** a note on the same case in both. Both marks and both notes must appear. A
+   human performs the wallet signatures; automated QA must not sign on their behalf.
 
 ## Getting results back into the repo
 
@@ -102,11 +133,13 @@ shards nor pushes back to them — so a session split across both leaves results
 bun run qa:pull
 ```
 
-Reads the shards straight from the Blob store (needs `BLOB_READ_WRITE_TOKEN` in the root `.env`) and
+Reads the shards straight from the Blob store (needs `BLOB_READ_WRITE_TOKEN` in the process environment
+or root `.env`) and
 writes `tmp/qa-session/<slug>/results.csv` plus `qa-state.json`, the artifacts the `qa-session`
-skill closes out with. It reads the store rather than the app, so it works while the app is
-password-protected and still works if the deployment is down. Results stay in gitignored `tmp/` —
-definitions live in git, results never do.
+skill closes out with. It reads the store rather than the app, so it needs no browser session and
+still works if the deployment is down. Results stay in gitignored `tmp/` —
+definitions live in git, results never do. It lists address-keyed shards from the store rather than
+copying the deployment allowlist into the repository.
 
 A pull that would land on an existing session **refuses**, because severity, redactions and rows
 added by hand live only in the pulled files and never in the store. Pull the refresh somewhere new
@@ -115,6 +148,5 @@ with `--out`, or pass `--force` to say the local copy is expendable.
 ## Deliberately not here yet
 
 Dev-stack/PM2 registration, named per-release runs (storage is keyed so adding them is additive),
-per-person authentication (the password authenticates *someone on the team*, and the name you pick
-is claimed rather than proven — fine for a small trusted team, worth knowing), severity capture in
-the UI, and screenshot upload.
+ERC-1271 contract-wallet authentication, severity capture in the UI, nonce-marker cleanup, and
+screenshot upload.

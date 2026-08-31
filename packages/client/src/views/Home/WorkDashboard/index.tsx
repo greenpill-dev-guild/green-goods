@@ -5,6 +5,7 @@ import {
 } from "@green-goods/shared/config/query-keys/constants";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { useFocusTrap } from "@green-goods/shared/hooks/utils/useFocusTrap";
 import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { fetchApprovalsByRecipients } from "@green-goods/shared/hooks/work/useAggregatedApprovals";
@@ -31,7 +32,7 @@ import {
 } from "@green-goods/shared/utils/work/pending-review";
 import { RiCheckLine, RiCloseLine, RiDraftLine, RiTaskLine } from "@remixicon/react";
 import { useQuery } from "@tanstack/react-query";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
@@ -77,7 +78,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const { draftCount } = useDrafts();
 
   // Timer for close animation (auto-cleared on unmount)
-  const { set: scheduleTimeout } = useTimeout();
+  const { set: scheduleTimeout, clear: clearCloseTimeout } = useTimeout();
 
   // State management — open to the tab/filter the caller requested (e.g. the arrival toast),
   // else defaults. Store presets are consumed once at mount; an already-open dashboard
@@ -86,6 +87,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const initialPendingFilter = useUIStore((s) => s.workDashboardInitialPendingFilter);
   const [activeTab, setActiveTab] = useState<WorkDashboardTab>(initialTab ?? "pending");
   const [isClosing, setIsClosing] = useState(false);
+  const closeCompletedRef = useRef(false);
   const [pendingFilter, setPendingFilter] = useState<WorkDashboardPendingFilter>(
     initialPendingFilter ?? "all"
   );
@@ -97,16 +99,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Ref for focus trap on the dialog panel
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  // Prevent background scrolling when modal is open
-  useEffect(() => {
-    document.documentElement.classList.add("modal-open");
-    return () => {
-      document.documentElement.classList.remove("modal-open");
-    };
-  }, []);
+  useDocumentScrollLock(!isClosing);
 
   // Focus trap: keep Tab/Shift+Tab cycling within the dialog
-  useFocusTrap(dialogRef);
+  useFocusTrap(dialogRef, { enabled: !isClosing });
 
   // Use shared hooks for reviewer garden detection and works fetching
   const { reviewerGardenIds } = useReviewerGardenIds(activeAddress);
@@ -254,6 +250,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       const nav = resolveWorkNavigation(work, stewardWorksById);
       if (!nav) return;
 
+      onClose?.();
       navigate(`/home/${nav.gardenId}/work/${nav.workId}`, {
         state: { from: "dashboard", returnTo: "/home" },
         viewTransition: true,
@@ -327,17 +324,41 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     },
   ];
 
+  const finishClose = useCallback(() => {
+    if (closeCompletedRef.current) return;
+    closeCompletedRef.current = true;
+    clearCloseTimeout();
+    onClose?.();
+  }, [clearCloseTimeout, onClose]);
+
   const handleClose = () => {
+    if (isClosing) return;
+    closeCompletedRef.current = false;
     setIsClosing(true);
-    scheduleTimeout(() => {
-      onClose?.();
-    }, getPwaDrawerCloseDelayMs());
+    scheduleTimeout(finishClose, getPwaDrawerCloseDelayMs());
   };
+
+  useEffect(() => {
+    if (!isClosing) return;
+
+    const handlePageHide = () => finishClose();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") finishClose();
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [finishClose, isClosing]);
 
   const renderTabContent = () => {
     switch (activeTab) {
       case "drafts":
-        return <DraftsTab />;
+        return <DraftsTab onBeforeNavigate={onClose} />;
       case "pending":
       default:
         return (
@@ -409,6 +430,12 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         )}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopPropagation();
+            handleClose();
+            return;
+          }
           e.stopPropagation();
         }}
         role="dialog"
@@ -459,10 +486,16 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
             defaultMessage: "Work sections",
           })}
           triggerClassName="text-xs"
+          scrollTargetSelector="#work-dashboard-scroll"
         />
 
         {/* Content */}
-        <div className="flex-1 min-h-0 overflow-y-auto">{renderTabContent()}</div>
+        <div
+          id="work-dashboard-scroll"
+          className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain"
+        >
+          {renderTabContent()}
+        </div>
       </div>
     </div>
   );

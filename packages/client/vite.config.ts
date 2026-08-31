@@ -18,9 +18,19 @@ import {
 } from "./src/config/pwaManifest";
 import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwaRouting";
 import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
+import { createPwaShellAssetsPlugin } from "./vite/pwa-shell";
 
 const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
 const CLIENT_VERCEL_PROJECT_ID = "prj_AFl9rmdB5VJFKcpK4Art9had9DmG";
+const CLIENT_REACT_MODULES = /[\\/]node_modules[\\/](?:react|react-dom|react-is|scheduler)[\\/]/;
+const CLIENT_QUERY_MODULES =
+  /[\\/]node_modules[\\/]@tanstack[\\/](?:query-core|react-query|react-query-persist-client|query-sync-storage-persister)[\\/]/;
+const CLIENT_VIEM_MODULES = /[\\/]node_modules[\\/](?:viem|ox|abitype)[\\/]/;
+const CLIENT_WALLET_MODULES =
+  /[\\/]node_modules[\\/](?:wagmi|permissionless|@wagmi|@walletconnect|@reown|@safe-global|@coinbase)[\\/]/;
+const CLIENT_VITE_RUNTIME_MODULES = /\0vite\/(?:preload-helper|modulepreload-polyfill)\.js/;
+const CLIENT_POSTHOG_MODULES = /[\\/]node_modules[\\/]posthog-js[\\/]/;
+const CLIENT_SENTRY_MODULES = /[\\/]node_modules[\\/]@sentry[\\/]/;
 
 function envValue(key: string): string | undefined {
   const value = process.env[key]?.trim();
@@ -280,10 +290,11 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     react(),
     babel({ presets: [reactCompilerPreset()] }),
     createPublicSocialPreviewPlugin(isIPFSBuild),
+    createPwaShellAssetsPlugin(),
     VitePWA({
       includeAssets: pwaBranding.includeAssets,
       injectRegister: false,
-      registerType: "autoUpdate",
+      registerType: "prompt",
       workbox: {
         // Workbox's Rollup/Terser pass can exit early under Bun while writing the
         // generated service worker. Keep the app build in production mode, but
@@ -291,7 +302,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         mode: isBunRuntime ? "development" : nodeEnv,
         disableDevLogs: true,
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
-        globPatterns: ["index.html", "assets/*.css"],
+        globPatterns: ["index.html", "assets/*.css", "pwa-shell-assets.json"],
         globIgnores: [
           "**/*.map",
           "assets/Actions-*.js",
@@ -341,6 +352,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
               expiration: {
                 maxEntries: 100,
                 maxAgeSeconds: 30 * 24 * 60 * 60,
+                purgeOnQuotaError: true,
               },
               cacheableResponse: { statuses: [0, 200] },
             },
@@ -356,6 +368,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
               expiration: {
                 maxEntries: 500,
                 maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year — CIDs are immutable
+                purgeOnQuotaError: true,
               },
               cacheableResponse: { statuses: [0, 200] },
             },
@@ -369,6 +382,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
               expiration: {
                 maxAgeSeconds: 24 * 60 * 60, // 24 hours for offline
                 maxEntries: 100,
+                purgeOnQuotaError: true,
               },
               cacheableResponse: { statuses: [0, 200] },
             },
@@ -382,6 +396,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
               expiration: {
                 maxAgeSeconds: 24 * 60 * 60, // 24 hours for offline
                 maxEntries: 100,
+                purgeOnQuotaError: true,
               },
               cacheableResponse: { statuses: [0, 200] },
             },
@@ -412,6 +427,39 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         icons: pwaBranding.manifestIcons,
         start_url: pwaStartUrl,
         scope: pwaRouting.manifestScope,
+        launch_handler: {
+          client_mode: "navigate-existing",
+        },
+        related_applications: [
+          {
+            platform: "webapp",
+            url: "https://www.greengoods.app/manifest.webmanifest",
+          },
+        ],
+        share_target: {
+          action: "/home/share",
+          method: "POST",
+          enctype: "multipart/form-data",
+          params: {
+            title: "title",
+            text: "text",
+            url: "url",
+            files: [
+              {
+                name: "images",
+                accept: [
+                  "image/jpeg",
+                  "image/png",
+                  "image/webp",
+                  "image/heic",
+                  "image/heif",
+                  ".heic",
+                  ".heif",
+                ],
+              },
+            ],
+          },
+        },
         display: "standalone",
         orientation: "portrait-primary",
         theme_color: pwaBranding.themeColor,
@@ -476,6 +524,26 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       // — or served to — browsers. The upload lane deletes them after upload.
       sourcemap: enableSourceMaps ? "hidden" : false,
       chunkSizeWarningLimit: 2000,
+      manifest: true,
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [
+              // Keep Vite's dynamic-import helper neutral. If it is assigned to a feature
+              // vendor chunk, every lazy import accidentally preloads that whole feature.
+              { name: "vite-runtime", test: CLIENT_VITE_RUNTIME_MODULES, priority: 50 },
+              { name: "vendor-react", test: CLIENT_REACT_MODULES, priority: 40 },
+              { name: "vendor-query", test: CLIENT_QUERY_MODULES, priority: 30 },
+              // Public read paths use viem without needing Reown/Wagmi UI.
+              { name: "vendor-viem", test: CLIENT_VIEM_MODULES, priority: 25 },
+              { name: "vendor-wallet", test: CLIENT_WALLET_MODULES, priority: 20 },
+              { name: "vendor-posthog", test: CLIENT_POSTHOG_MODULES, priority: 10 },
+              { name: "vendor-sentry", test: CLIENT_SENTRY_MODULES, priority: 10 },
+            ],
+          },
+          strictExecutionOrder: true,
+        },
+      },
     },
     define: {
       "import.meta.env.DEV": JSON.stringify(nodeEnv !== "production"),
@@ -500,6 +568,10 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "@green-goods/shared/service-worker": resolve(
           __dirname,
           "../shared/src/modules/app/service-worker-registration.ts"
+        ),
+        "@green-goods/shared/commitment-pooling/demo-mode": resolve(
+          __dirname,
+          "../shared/src/modules/commitment-pooling/demo/demo-mode.ts"
         ),
         "@green-goods/shared/commitment-pooling": resolve(
           __dirname,
@@ -547,7 +619,6 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "react-hook-form",
         "zod",
         "posthog-js",
-        "posthog-js/react",
         "@sentry/react",
         // ── @green-goods/shared runtime surface ──
         "@ethereum-attestation-service/eas-sdk",

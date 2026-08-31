@@ -1,5 +1,5 @@
 export const PWA_MANIFEST_ID = "/";
-export const PWA_APP_SCOPE = "/home";
+export const PWA_APP_SCOPE = "/home/";
 const PWA_IPFS_SCOPE = "./";
 /**
  * URL vite-plugin-pwa serves the generated worker from in dev (generateSW dev mode).

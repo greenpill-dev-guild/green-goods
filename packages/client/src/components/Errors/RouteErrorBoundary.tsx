@@ -26,10 +26,7 @@
  * default UI.
  */
 import { Alert } from "@green-goods/shared/components/Alert";
-import en from "@green-goods/shared/i18n/en";
-import es from "@green-goods/shared/i18n/es";
 import { logger } from "@green-goods/shared/modules/app/logger";
-import pt from "@green-goods/shared/i18n/pt";
 import { trackErrorBoundary } from "@green-goods/shared/modules/app/error-events";
 import {
   RiBugLine,
@@ -43,9 +40,12 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isRouteErrorResponse, useRouteError } from "react-router-dom";
 import { Button } from "../Actions";
-type Messages = typeof en;
-type Locale = "en" | "es" | "pt";
-const messages: Record<Locale, Messages> = { en, es, pt };
+import {
+  defaultErrorBoundaryMessages,
+  type ErrorBoundaryLocale as Locale,
+  type ErrorBoundaryMessages as Messages,
+  loadErrorBoundaryMessages,
+} from "./messages";
 const CHUNK_ERROR_PATTERNS: RegExp[] = [
   /chunkloaderror/i,
   /loading chunk\s+\S+\s+failed/i,
@@ -201,15 +201,27 @@ export const RouteErrorBoundary: React.FC = () => {
   const error = useMemo(() => normalizeRouteError(rawError), [rawError]);
   const category = useMemo(() => classifyError(error), [error]);
   const [locale] = useState<Locale>(getBrowserLocale);
+  const [messages, setMessages] = useState<Messages>(defaultErrorBoundaryMessages);
   const [showDetails, setShowDetails] = useState(false);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "fallback">("idle");
   const [isAutoRecovering, setIsAutoRecovering] = useState(false);
   const copyResetTimer = useRef<number | null>(null);
   const trackedRef = useRef(false);
   const t = useCallback(
-    (key: keyof Messages): string => messages[locale][key] || messages.en[key] || String(key),
-    [locale]
+    (key: keyof Messages): string =>
+      messages[key] || defaultErrorBoundaryMessages[key] || String(key),
+    [messages]
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadErrorBoundaryMessages(locale).then((nextMessages) => {
+      if (!cancelled) setMessages(nextMessages);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
 
   // Auto-recover chunk-load errors with a one-shot reload. This is the critical
   // path for the post-SW-update refresh failure mode.

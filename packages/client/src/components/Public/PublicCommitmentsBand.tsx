@@ -2,10 +2,8 @@ import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { getCampaignCookieJarPayoutAssets } from "@green-goods/shared/utils/cookie-jar-campaign";
 import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
-import {
-  selectPublicPromiseKeptRate,
-  usePublicCommitmentImpact,
-} from "@green-goods/shared/commitment-pooling";
+import { usePublicCommitmentImpact } from "@green-goods/shared/hooks/public/usePublicCommitmentImpact";
+import { selectPublicPromiseKeptRate } from "@green-goods/shared/modules/commitment-pooling/disclosure";
 import { useIntl } from "react-intl";
 import { EditorialHeading, EditorialKicker, EditorialLede, EditorialLinkArrow } from "./atoms";
 import { formatKeptRate } from "./keptRate";

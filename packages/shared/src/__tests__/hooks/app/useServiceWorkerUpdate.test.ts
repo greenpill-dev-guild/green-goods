@@ -6,6 +6,7 @@
  */
 
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { createElement, type PropsWithChildren } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock logger and posthog
@@ -28,6 +29,8 @@ vi.mock("../../../modules/app/posthog", () => ({
 
 import {
   APPLY_UPDATE_TIMEOUT_MS,
+  LONG_SESSION_UPDATE_PROMPT_MS,
+  ServiceWorkerUpdateProvider,
   useServiceWorkerUpdate,
 } from "../../../hooks/app/useServiceWorkerUpdate";
 import { logger } from "../../../modules/app/logger";
@@ -101,9 +104,17 @@ function installServiceWorkerMock(registration: ServiceWorkerRegistration) {
   });
 }
 
+function renderUpdateHook() {
+  return renderHook(() => useServiceWorkerUpdate(), {
+    wrapper: ({ children }: PropsWithChildren) =>
+      createElement(ServiceWorkerUpdateProvider, null, children),
+  });
+}
+
 describe("hooks/app/useServiceWorkerUpdate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Reflect.deleteProperty(navigator, "serviceWorker");
   });
 
   afterEach(() => {
@@ -112,7 +123,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
   describe("when service worker is not available", () => {
     it("returns default state when SW not supported", () => {
-      const { result } = renderHook(() => useServiceWorkerUpdate());
+      const { result } = renderUpdateHook();
 
       expect(result.current.updateAvailable).toBe(false);
       expect(result.current.isUpdating).toBe(false);
@@ -126,7 +137,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
   describe("dismissUpdate", () => {
     it("hides the update notification", () => {
-      const { result } = renderHook(() => useServiceWorkerUpdate());
+      const { result } = renderUpdateHook();
 
       act(() => {
         result.current.dismissUpdate();
@@ -140,7 +151,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
   describe("applyUpdate with no waiting worker", () => {
     it("does nothing when no waiting worker", () => {
-      const { result } = renderHook(() => useServiceWorkerUpdate());
+      const { result } = renderUpdateHook();
 
       act(() => {
         result.current.applyUpdate();
@@ -158,7 +169,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       const registration = createMockRegistration();
       installServiceWorkerMock(registration);
 
-      const { result } = renderHook(() => useServiceWorkerUpdate());
+      const { result } = renderUpdateHook();
 
       await waitFor(() => {
         expect(navigator.serviceWorker.getRegistration).toHaveBeenCalled();
@@ -175,19 +186,19 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       const registration = createMockRegistration({ waiting: waitingWorker });
       installServiceWorkerMock(registration);
 
-      const { result } = renderHook(() => useServiceWorkerUpdate());
+      const { result } = renderUpdateHook();
 
       await waitFor(() => {
         expect(result.current.updateAvailable).toBe(true);
       });
 
       expect(result.current.waitingWorker).toBe(waitingWorker);
-      expect(result.current.phase).toBe("ready");
+      expect(result.current.phase).toBe("waiting");
       expect(track).toHaveBeenCalledWith(
         "sw_update_available",
         expect.objectContaining({
           source: "initial_check",
-          phase: "ready",
+          phase: "waiting",
           app_version: expect.any(String),
           active_worker_version: "release-old",
           waiting_worker_version: "release-new",
@@ -195,13 +206,13 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       );
     });
 
-    it("transitions from downloading to ready when an installing worker finishes", async () => {
+    it("transitions from downloading to waiting when an installing worker finishes", async () => {
       vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
       const installingWorker = createMockWorker({ state: "installing" });
       const registration = createMockRegistration({ installing: installingWorker });
       installServiceWorkerMock(registration);
 
-      const { result } = renderHook(() => useServiceWorkerUpdate());
+      const { result } = renderUpdateHook();
 
       await waitFor(() => {
         expect(registration.addEventListener).toHaveBeenCalledWith(
@@ -229,7 +240,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       });
 
       await waitFor(() => {
-        expect(result.current.phase).toBe("ready");
+        expect(result.current.phase).toBe("waiting");
       });
       expect(result.current.updateAvailable).toBe(true);
       expect(result.current.waitingWorker).toBe(installingWorker);
@@ -238,7 +249,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
   describe("return type stability", () => {
     it("returns consistent shape across renders", () => {
-      const { result, rerender } = renderHook(() => useServiceWorkerUpdate());
+      const { result, rerender } = renderUpdateHook();
 
       const keys1 = Object.keys(result.current).sort();
 
@@ -248,11 +259,13 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
       expect(keys1).toEqual(keys2);
       expect(keys1).toEqual([
+        "activateNow",
         "applyUpdate",
         "checkForUpdate",
         "dismissUpdate",
         "isUpdating",
         "phase",
+        "shouldPrompt",
         "updateAvailable",
         "updateStalled",
         "waitingWorker",
@@ -271,7 +284,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       const registration = createMockRegistration({ waiting: waitingWorker });
       installServiceWorkerMock(registration);
 
-      const { result } = renderHook(() => useServiceWorkerUpdate());
+      const { result } = renderUpdateHook();
 
       await waitFor(() => {
         expect(result.current.updateAvailable).toBe(true);
@@ -287,7 +300,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
       expect(result.current.isUpdating).toBe(true);
       expect(result.current.updateStalled).toBe(false);
-      expect(result.current.phase).toBe("applying");
+      expect(result.current.phase).toBe("activating");
       expect(waitingWorker.postMessage).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
       const addServiceWorkerListener = navigator.serviceWorker
         .addEventListener as unknown as ReturnType<typeof vi.fn>;
@@ -308,11 +321,11 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
       expect(result.current.isUpdating).toBe(false);
       expect(result.current.updateStalled).toBe(true);
-      expect(result.current.phase).toBe("stalled");
+      expect(result.current.phase).toBe("error");
       expect(track).toHaveBeenCalledWith(
         "sw_update_apply_timeout",
         expect.objectContaining({
-          phase: "stalled",
+          phase: "error",
           duration_ms: expect.any(Number),
           timeout_ms: APPLY_UPDATE_TIMEOUT_MS,
         })
@@ -333,7 +346,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       const registration = createMockRegistration({ waiting: waitingWorker });
       installServiceWorkerMock(registration);
 
-      const { result } = renderHook(() => useServiceWorkerUpdate());
+      const { result } = renderUpdateHook();
 
       await waitFor(() => {
         expect(result.current.updateAvailable).toBe(true);
@@ -355,7 +368,25 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
       expect(result.current.updateStalled).toBe(false);
       expect(result.current.isUpdating).toBe(true);
-      expect(result.current.phase).toBe("applying");
+      expect(result.current.phase).toBe("activating");
+    });
+
+    it("keeps a waiting update passive until the long-session threshold", async () => {
+      vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+      const waitingWorker = createMockWorker({ state: "installed" });
+      installServiceWorkerMock(createMockRegistration({ waiting: waitingWorker }));
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+
+      const { result } = renderUpdateHook();
+
+      await waitFor(() => expect(result.current.phase).toBe("waiting"));
+      expect(result.current.shouldPrompt).toBe(false);
+
+      act(() => {
+        vi.advanceTimersByTime(LONG_SESSION_UPDATE_PROMPT_MS);
+      });
+
+      expect(result.current.shouldPrompt).toBe(true);
     });
   });
 });

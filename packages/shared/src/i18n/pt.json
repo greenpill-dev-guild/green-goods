@@ -4440,6 +4440,7 @@
   "public.cookies.gridLedeConnectedSome": "As jars reclamáveis aparecem primeiro. Você também pode adicionar fundos a qualquer jar de campanha sazonal abaixo.",
   "public.cookies.gridLedeDisconnected": "Conecte uma wallet para ver de quais jars você pode reclamar, ou adicione fundos para apoiar uma campanha sazonal.",
   "public.cookies.gridTitle": "Jars sazonais.",
+  "public.cookies.openWalletSurface": "Explorar cookie jars",
   "public.cookies.imageFallback": "Cookie Jar",
   "public.cookies.invalidJar": "\"{jar}\" não é um endereço de jar válido.",
   "public.cookies.jarNotes": "Notas da jar",
@@ -5259,6 +5260,7 @@
   "public.vaults.hero.kicker": "Vaults Octant V2 Ethereum",
   "public.vaults.hero.lede": "Apoie uma campanha uma vez, e esse apoio pode continuar crescendo à medida que o rendimento gerado é direcionado ao bem público.",
   "public.vaults.hero.title": "Campanhas de bens públicos, impulsionadas por <accent>vaults Octant</accent>.",
+  "public.vaults.openWalletSurface": "Ver vaults de campanhas",
   "public.vaults.manage.card.checking": "Verificando sua sessão de recuperação…",
   "public.vaults.manage.card.codeLabel": "Código de email",
   "public.vaults.manage.card.codeSent": "Código enviado. Verifique {email} e digite o código de 6 dígitos.",
@@ -5415,5 +5417,8 @@
   "public.vaults.walletEndow.unavailable": "Wallet Endow indisponível",
   "public.vaults.walletEndow.unavailableLabel": "Wallet Endow indisponível para {campaign}",
   "public.vaults.walletEndow.wrap": "Converter ETH em WETH",
-  "public.vaults.walletEndow.wrapping": "Convertendo..."
+  "public.vaults.walletEndow.wrapping": "Convertendo...",
+  "app.shareTarget.invalid.title": "Não foi possível importar o compartilhamento",
+  "app.shareTarget.invalid.message": "Tente compartilhar novamente até cinco fotos compatíveis.",
+  "app.shareTarget.imported.title": "O trabalho compartilhado foi adicionado ao seu rascunho"
 }

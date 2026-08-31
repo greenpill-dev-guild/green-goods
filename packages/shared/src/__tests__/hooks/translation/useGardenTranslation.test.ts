@@ -55,6 +55,7 @@ function createWrapper(locale: "en" | "es" | "pt" = "en") {
       isPwaPresentation: false,
       isStandalone: false,
       installState: "not-installed" as const,
+      installedAppEvidence: { status: "unknown" as const, source: "unsupported" as const },
       presentationMode: "website" as const,
       wasInstalled: false,
       availableLocales: ["en", "es", "pt"] as const,

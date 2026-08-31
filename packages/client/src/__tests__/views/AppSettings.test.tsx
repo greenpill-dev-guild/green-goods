@@ -21,9 +21,7 @@ const mockAppState = {
 const mockServiceWorkerUpdateState = {
   phase: "idle",
   updateAvailable: false,
-  isUpdating: false,
-  updateStalled: false,
-  applyUpdate: vi.fn(),
+  activateNow: vi.fn(),
 };
 
 // Mock @green-goods/shared
@@ -121,8 +119,6 @@ describe("AppSettings", () => {
     mockThemeState.theme = "system";
     mockServiceWorkerUpdateState.phase = "idle";
     mockServiceWorkerUpdateState.updateAvailable = false;
-    mockServiceWorkerUpdateState.isUpdating = false;
-    mockServiceWorkerUpdateState.updateStalled = false;
   });
 
   afterEach(() => {
@@ -172,7 +168,7 @@ describe("AppSettings", () => {
   });
 
   it("renders the ready update card when a service worker update is waiting", () => {
-    mockServiceWorkerUpdateState.phase = "ready";
+    mockServiceWorkerUpdateState.phase = "waiting";
     mockServiceWorkerUpdateState.updateAvailable = true;
 
     render(wrap(createElement(AppSettings)));
@@ -193,8 +189,7 @@ describe("AppSettings", () => {
   });
 
   it("renders stalled guidance with a retry button", () => {
-    mockServiceWorkerUpdateState.phase = "stalled";
-    mockServiceWorkerUpdateState.updateStalled = true;
+    mockServiceWorkerUpdateState.phase = "error";
 
     render(wrap(createElement(AppSettings)));
 
@@ -204,7 +199,7 @@ describe("AppSettings", () => {
   });
 
   it("applies the waiting service worker update from the update card", async () => {
-    mockServiceWorkerUpdateState.phase = "ready";
+    mockServiceWorkerUpdateState.phase = "waiting";
     mockServiceWorkerUpdateState.updateAvailable = true;
     const user = userEvent.setup();
 
@@ -212,6 +207,6 @@ describe("AppSettings", () => {
 
     await user.click(screen.getByTestId("btn-Restart to Update"));
 
-    expect(mockServiceWorkerUpdateState.applyUpdate).toHaveBeenCalledTimes(1);
+    expect(mockServiceWorkerUpdateState.activateNow).toHaveBeenCalledTimes(1);
   });
 });

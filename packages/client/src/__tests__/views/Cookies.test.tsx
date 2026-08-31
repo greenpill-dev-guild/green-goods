@@ -6,6 +6,7 @@
 
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent } from "@testing-library/react";
 import { renderWithProviders as render, screen, userEvent, waitFor, within } from "../test-utils";
 
 const TEST_JAR = "0x1111111111111111111111111111111111111111" as const;
@@ -224,12 +225,16 @@ vi.mock("@green-goods/shared/components/feedback/TransactionSuccessAffordance", 
 
 import CookiesPage from "../../views/Public/Cookies";
 
-function renderPage(path = `/cookies?jar=${TEST_JAR}`) {
-  return render(
+function renderPage(path = `/cookies?jar=${TEST_JAR}`, openWalletSurface = true) {
+  const result = render(
     <MemoryRouter initialEntries={[path]}>
       <CookiesPage />
     </MemoryRouter>
   );
+  if (openWalletSurface) {
+    fireEvent.click(screen.getByRole("button", { name: "Explore Cookie Jars" }));
+  }
+  return result;
 }
 
 describe("CookiesPage", () => {
@@ -291,7 +296,14 @@ describe("CookiesPage", () => {
     expect(mockOpenWallet).not.toHaveBeenCalled();
   });
 
-  it("uses editorial record skeletons while the campaign list loads", () => {
+  it("keeps the wallet surface deferred until the visitor asks to explore jars", () => {
+    renderPage("/cookies", false);
+
+    expect(screen.getByRole("button", { name: "Explore Cookie Jars" })).toBeInTheDocument();
+    expect(screen.queryByRole("article", { name: "Earth Week Cookie Jar" })).toBeNull();
+  });
+
+  it("uses editorial record skeletons while the campaign list loads", async () => {
     mockUseCampaignCookieJarCampaigns.mockReturnValue({
       campaigns: [],
       indexedCampaigns: [],
@@ -303,9 +315,11 @@ describe("CookiesPage", () => {
 
     const { container } = renderPage("/cookies");
 
-    expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
-      3
-    );
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
+        3
+      );
+    });
     expect(container.querySelector(".animate-pulse")).toBeNull();
   });
 

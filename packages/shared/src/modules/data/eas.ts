@@ -5,7 +5,7 @@ import type {
   EASWork,
   EASWorkApproval,
 } from "../../types/eas-responses";
-import { isZeroBytes32 } from "../../utils/blockchain/vaults";
+import { isZeroBytes32 } from "../../utils/blockchain/bytes";
 import { parseDataToGardenAssessment, parseDataToWork, parseDataToWorkApproval } from "./eas-parse";
 export { parseWorkApprovalAttestation } from "./eas-parse";
 import { easGraphQL } from "./graphql";

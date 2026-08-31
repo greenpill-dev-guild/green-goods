@@ -8,8 +8,8 @@ import {
   type PublicGardenVaultSummary,
   type PublicVaultSummary,
   type PublicVaultSummaryAsset,
-  usePublicVaultSummary,
 } from "@green-goods/shared/hooks/public/usePublicVaultSummary";
+import { usePublicVaultCatalogSummary } from "@green-goods/shared/hooks/public/usePublicVaultCatalogSummary";
 import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { selectPublicSurfaceState } from "@green-goods/shared/public";
 import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts/core";
@@ -27,19 +27,23 @@ import {
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
-import { PublicEndowmentPanel } from "@/components/Public/PublicEndowmentPanel";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicFundingReceipt } from "@/components/Public/PublicFundingReceipt";
 import { PublicGardenRow } from "@/components/Public/PublicGardenRow";
 import { PublicSurfaceState } from "@/components/Public/PublicSurfaceState";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
-import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
 import { resolveGardenQuery } from "@/views/Public/gardenQueryResolution";
 const PublicFundingCard = lazy(() =>
   import("@/components/Public/PublicFundingCard").then((module) => ({
     default: module.PublicFundingCard,
   }))
 );
+const PublicEndowmentPanel = lazy(() =>
+  import("@/components/Public/PublicEndowmentPanel").then((module) => ({
+    default: module.PublicEndowmentPanel,
+  }))
+);
+const WalletRuntimeProviders = lazy(() => import("@/routes/WalletRuntimeProviders"));
 interface SupportPathProps {
   numeral: string;
   titleId: string;
@@ -352,7 +356,7 @@ function getGardenVaultSummary(
 function FundPageContent() {
   const { formatMessage } = useIntl();
   const { data: gardens = [], isLoading, isError } = usePublicGardens();
-  const vaultSummary = usePublicVaultSummary();
+  const vaultSummary = usePublicVaultCatalogSummary();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const intentId = searchParams.get("intent");
@@ -740,29 +744,33 @@ function FundPageContent() {
           }
         >
           {selectorState ? (
-            <PublicFundingCard
-              open
-              garden={selectorState.garden}
-              intent={selectorState.intent}
-              onClose={closeSelector}
-            />
+            <WalletRuntimeProviders>
+              <PublicFundingCard
+                open
+                garden={selectorState.garden}
+                intent={selectorState.intent}
+                onClose={closeSelector}
+              />
+            </WalletRuntimeProviders>
           ) : null}
         </Suspense>
       ) : null}
 
-      <PublicEndowmentPanel
-        open={isEndowmentPanelOpen}
-        onExitComplete={handleEndowmentPanelExitComplete}
-        onOpenChange={handleEndowmentPanelOpenChange}
-      />
+      {isEndowmentPanelOpen ? (
+        <Suspense fallback={null}>
+          <WalletRuntimeProviders>
+            <PublicEndowmentPanel
+              open
+              onExitComplete={handleEndowmentPanelExitComplete}
+              onOpenChange={handleEndowmentPanelOpenChange}
+            />
+          </WalletRuntimeProviders>
+        </Suspense>
+      ) : null}
     </>
   );
 }
 
 export default function FundPage() {
-  return (
-    <WalletRuntimeProviders>
-      <FundPageContent />
-    </WalletRuntimeProviders>
-  );
+  return <FundPageContent />;
 }

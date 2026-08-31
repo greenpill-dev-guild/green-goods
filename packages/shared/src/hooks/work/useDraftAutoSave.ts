@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { trackStorageError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
+import { requestPersistentStorageOnce } from "../../utils/storage/quota";
 import { useDrafts } from "./useDrafts";
 
 interface DraftFormData {
@@ -134,6 +135,8 @@ export function useDraftAutoSave(
       if (draftId && currentImages.length > 0) {
         await setDraftImages({ draftId, files: currentImages });
       }
+
+      if (draftId) void requestPersistentStorageOnce("work-draft");
 
       return draftId;
     } catch (error) {

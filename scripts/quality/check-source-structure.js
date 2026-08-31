@@ -64,7 +64,16 @@ const ALLOWED_TOP_LEVEL_DIRECTORIES = {
 const ALLOWED_ROOT_SOURCE_FILES = {
   admin: new Set(["App.tsx", "main.tsx", "router.tsx"]),
   agent: new Set(["config.ts", "i18n.ts", "index.ts", "types.ts"]),
-  client: new Set(["App.tsx", "main.tsx", "router.tsx", "webmcp.ts"]),
+  client: new Set([
+    "App.tsx",
+    "PublicApp.tsx",
+    "PwaApp.tsx",
+    "bootstrapPublic.tsx",
+    "bootstrapPwa.tsx",
+    "main.tsx",
+    "router.tsx",
+    "webmcp.ts",
+  ]),
   contracts: new Set(["CommonErrors.sol", "Schemas.sol"]),
   indexer: new Set(["EventHandlers.ts"]),
   shared: new Set(["index.ts"]),
@@ -451,6 +460,13 @@ export function collectStructureViolations({
   for (const filePath of changedFilePaths.filter(isStructurePolicyFile)) {
     if (!existsSync(resolve(root, filePath))) continue;
     if (basename(filePath).startsWith("index.")) continue;
+    const sourceParts = packageSourceParts(filePath);
+    if (
+      sourceParts?.parts.length === 1 &&
+      ALLOWED_ROOT_SOURCE_FILES[sourceParts.packageName]?.has(sourceParts.parts[0])
+    ) {
+      continue;
+    }
     if (isMarkedStagedModule(root, filePath, staged)) continue;
     const source = readSource(root, filePath);
     for (const exportName of exportedValueNames(source)) {

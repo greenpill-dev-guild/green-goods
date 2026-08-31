@@ -1,7 +1,7 @@
 /**
  * QA session state — sharded by writer.
  *
- * Each tester owns exactly one blob (`qa/entries/<person>.json`) and only ever
+ * Each tester owns exactly one blob (`qa/entries/<address>.json`) and only ever
  * writes that one. Two people recording the same case at the same moment touch
  * DIFFERENT objects, so there is no cross-tester conflict to resolve and no way
  * for one tester's verdict or notes to overwrite another's. GET fans out over
@@ -15,8 +15,8 @@
  * that was read, and a losing write re-reads and re-merges instead of retrying
  * blind.
  *
- * The roster is fixed and served from here so the page never invents a writer:
- * an unknown `person` is rejected rather than silently creating a shard.
+ * The roster comes from the address-only allowlist. Display names live inside
+ * address-owned shards and never select which object a request may write.
  *
  * Reads pass `useCache: false` deliberately. Private blob reads are served
  * through the CDN cache by default, and an overwrite can take up to 60 seconds
@@ -29,7 +29,14 @@ import { BlobPreconditionFailedError, get, put } from "@vercel/blob";
 // `.js`, not `.ts`, and not extensionless: Vercel compiles this to ESM and
 // Node's resolver demands an explicit extension on a relative import. Without
 // it the function crashes at load with ERR_MODULE_NOT_FOUND — which it did.
-import { SESSION_COOKIE, isAllowed, parseAllowlist, readCookie, readSession } from "../auth.js";
+import {
+  SESSION_COOKIE,
+  isAllowed,
+  isSameOriginMutation,
+  parseAllowlist,
+  readCookie,
+  readSession,
+} from "../auth.js";
 
 /**
  * A shard is keyed by the ADDRESS that owns it, never by a display name.
@@ -91,6 +98,32 @@ export function fallbackName(address: Address): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
+/**
+ * Human labels for address-owned shards, made unique without changing identity.
+ *
+ * Names are self-declared and therefore may collide. A name collision must not
+ * turn two address-keyed shards back into one entry in the merged response.
+ */
+export function displayLabels(shards: Array<Pick<Shard, "address" | "person">>): string[] {
+  const bases = shards.map((shard) => shard.person.trim() || fallbackName(shard.address));
+  const baseCounts = new Map<string, number>();
+  for (const base of bases) baseCounts.set(base.toLocaleLowerCase(), (baseCounts.get(base.toLocaleLowerCase()) ?? 0) + 1);
+  const provisional = bases.map((base, index) =>
+    (baseCounts.get(base.toLocaleLowerCase()) ?? 0) > 1
+      ? `${base} (${fallbackName(shards[index].address)})`
+      : base,
+  );
+  const labelCounts = new Map<string, number>();
+  for (const label of provisional) {
+    labelCounts.set(label.toLocaleLowerCase(), (labelCounts.get(label.toLocaleLowerCase()) ?? 0) + 1);
+  }
+  return provisional.map((label, index) =>
+    (labelCounts.get(label.toLocaleLowerCase()) ?? 0) > 1
+      ? `${bases[index]} (${shards[index].address})`
+      : label,
+  );
+}
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -106,7 +139,7 @@ function json(body: unknown, status = 200): Response {
  * An error whose message is safe to return to the caller.
  *
  * A store error's own message can carry a token, a store id, or a stack, and
- * this endpoint is reachable by anyone holding the deployment password. The
+ * this endpoint is reachable by every allowlisted tester. The
  * detail goes to the server log; the caller gets the sentence that tells a
  * tester what happened to their work.
  */
@@ -182,15 +215,25 @@ export function shardShapeError(address: string, parsed: unknown): string | null
   if (typeof shard.address !== "string" || shard.address.toLowerCase() !== address.toLowerCase()) {
     return `shard reports its owner as ${JSON.stringify(shard.address ?? null)}`;
   }
+  if (!/^0x[0-9a-f]{40}$/.test(shard.address)) return "shard owner is not a lowercase address";
+  if (typeof shard.person !== "string" || cleanName(shard.person) !== shard.person) {
+    return "shard has no valid display name";
+  }
+  if (typeof shard.updatedAt !== "string" || !Number.isFinite(Date.parse(shard.updatedAt))) {
+    return "shard has no valid update timestamp";
+  }
   if (!shard.entries || typeof shard.entries !== "object" || Array.isArray(shard.entries)) {
     return "shard has no entries object";
   }
   for (const [caseId, entry] of Object.entries(shard.entries)) {
+    if (!caseId || caseId.length > 64) return "shard has an invalid case id";
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) return `entry ${caseId} is not an object`;
     const candidate = entry as Partial<Entry>;
     if (typeof candidate.s !== "string" || !STATUSES.has(candidate.s)) return `entry ${caseId} has no valid status`;
-    if (typeof candidate.n !== "string") return `entry ${caseId} has no note`;
-    if (typeof candidate.at !== "string") return `entry ${caseId} has no timestamp`;
+    if (typeof candidate.n !== "string" || candidate.n.length > MAX_NOTE_LENGTH) return `entry ${caseId} has no valid note`;
+    if (typeof candidate.at !== "string" || !Number.isFinite(Date.parse(candidate.at))) {
+      return `entry ${caseId} has no valid timestamp`;
+    }
   }
   return null;
 }
@@ -205,10 +248,10 @@ export function shardShapeError(address: string, parsed: unknown): string | null
  * previous page version. Explicit deletes use `{ delete: true }`.
  */
 export function sanitizeDelta(raw: unknown): Record<string, EntryPatch> {
-  const delta: Record<string, EntryPatch> = {};
+  const delta = Object.create(null) as Record<string, EntryPatch>;
   if (!raw || typeof raw !== "object") return delta;
   for (const [caseId, value] of Object.entries(raw as Record<string, unknown>)) {
-    if (typeof caseId !== "string" || caseId.length > 64) continue;
+    if (!caseId || caseId.length > 64) continue;
     const incoming = value as Partial<Entry> & { delete?: unknown };
     if (!incoming || typeof incoming !== "object") continue;
     const hasStatus =
@@ -245,7 +288,7 @@ export function mergeDelta(
   delta: Record<string, EntryPatch>,
   now: string = new Date().toISOString(),
 ): Record<string, Entry> {
-  const merged: Record<string, Entry> = { ...existing };
+  const merged = Object.assign(Object.create(null) as Record<string, Entry>, existing);
   for (const [caseId, incoming] of Object.entries(delta)) {
     if (incoming.delete) {
       delete merged[caseId];
@@ -386,6 +429,9 @@ export async function handler(request: Request): Promise<Response> {
   if (request.method !== "GET" && request.method !== "POST") {
     return json({ error: "method not allowed" }, 405);
   }
+  if (request.method === "POST" && !isSameOriginMutation(request)) {
+    return json({ error: "cross-origin request refused" }, 403);
+  }
   const caller = await whoIsCalling(request);
   if ("error" in caller) return json({ error: caller.error }, caller.status);
 
@@ -401,24 +447,26 @@ export async function handler(request: Request): Promise<Response> {
     // The roster is whoever the allowlist admits, labelled by the name they
     // declared. Somebody who has never signed in has no shard and so no name
     // yet — they still belong on the roster, under their short address.
-    const team: string[] = [];
+    const owners = caller.allowlist.map((address, index) => ({
+      address,
+      person: reads[index]?.shard.person ?? "",
+    }));
+    const team = displayLabels(owners);
     let you = fallbackName(caller.address);
     const nameFor = new Map<string, string>();
     caller.allowlist.forEach((address, index) => {
-      const declared = reads[index]?.shard.person?.trim();
-      const label = declared || fallbackName(address);
+      const label = team[index];
       nameFor.set(address, label);
-      team.push(label);
       if (address === caller.address) you = label;
     });
 
     // caseId -> person -> entry, the exact shape the page renders from.
-    const entries: Record<string, Record<string, Entry>> = {};
+    const entries = Object.create(null) as Record<string, Record<string, Entry>>;
     for (const read of reads) {
       if (!read) continue;
       const label = nameFor.get(read.shard.address) ?? fallbackName(read.shard.address);
       for (const [caseId, entry] of Object.entries(read.shard.entries)) {
-        (entries[caseId] ??= {})[label] = entry;
+        (entries[caseId] ??= Object.create(null) as Record<string, Entry>)[label] = entry;
       }
     }
     return json({

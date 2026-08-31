@@ -1,7 +1,4 @@
-import en from "@green-goods/shared/i18n/en";
-import es from "@green-goods/shared/i18n/es";
 import { logger } from "@green-goods/shared/modules/app/logger";
-import pt from "@green-goods/shared/i18n/pt";
 import { trackErrorBoundary } from "@green-goods/shared/modules/app/error-events";
 import {
   RiBugLine,
@@ -14,9 +11,12 @@ import {
 } from "@remixicon/react";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Button } from "../Actions";
-type Messages = typeof en;
-type Locale = "en" | "es" | "pt";
-const messages: Record<Locale, Messages> = { en, es, pt };
+import {
+  defaultErrorBoundaryMessages,
+  type ErrorBoundaryLocale as Locale,
+  type ErrorBoundaryMessages as Messages,
+  loadErrorBoundaryMessages,
+} from "./messages";
 // Recoverable: new SW activated and old dynamic-import chunks 404. One reload pulls the
 // fresh HTML+chunks and the user never needs to see an error screen.
 const CHUNK_ERROR_PATTERNS: RegExp[] = [
@@ -105,6 +105,7 @@ interface State {
   error: Error | null;
   errorInfo: ErrorInfo | null;
   locale: Locale;
+  messages: Messages;
   category: ErrorCategory;
   showDetails: boolean;
   isAutoRecovering: boolean;
@@ -119,6 +120,7 @@ export class AppErrorBoundary extends Component<Props, State> {
       error: null,
       errorInfo: null,
       locale: getBrowserLocale(),
+      messages: defaultErrorBoundaryMessages,
       category: "unknown",
       showDetails: false,
       isAutoRecovering: false,
@@ -127,8 +129,10 @@ export class AppErrorBoundary extends Component<Props, State> {
   }
 
   private copyResetTimer: number | null = null;
+  private mounted = false;
 
   componentWillUnmount() {
+    this.mounted = false;
     if (this.copyResetTimer !== null) {
       window.clearTimeout(this.copyResetTimer);
       this.copyResetTimer = null;
@@ -230,7 +234,7 @@ export class AppErrorBoundary extends Component<Props, State> {
   };
 
   private t(key: keyof Messages): string {
-    return messages[this.state.locale][key] || messages.en[key] || String(key);
+    return this.state.messages[key] || defaultErrorBoundaryMessages[key] || String(key);
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
@@ -238,6 +242,10 @@ export class AppErrorBoundary extends Component<Props, State> {
   }
 
   componentDidMount() {
+    this.mounted = true;
+    void loadErrorBoundaryMessages(this.state.locale).then((messages) => {
+      if (this.mounted) this.setState({ messages });
+    });
     // Clean boot — clear the chunk-reload one-shot so the NEXT deploy can also auto-recover.
     if (!this.state.hasError && readSessionFlag(CHUNK_RELOAD_SESSION_KEY)) {
       clearSessionFlag(CHUNK_RELOAD_SESSION_KEY);

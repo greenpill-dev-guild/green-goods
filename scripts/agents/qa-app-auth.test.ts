@@ -15,14 +15,17 @@ import {
   isAllowed,
   issueNonce,
   issueSession,
+  isSameOriginMutation,
   nonceError,
   parseAllowlist,
   parseSiweMessage,
   readCookie,
   readSession,
+  sessionCookie,
   siweMessage,
   verifySignIn,
 } from "../../packages/qa/auth";
+import { DELETE, handlePost, type NonceStore } from "../../packages/qa/api/auth";
 
 const SECRET = "test-secret-that-is-long-enough-to-pass-the-length-check";
 const TESTER = privateKeyToAccount("0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d");
@@ -47,8 +50,54 @@ async function signedRequest(
   return { message, signature: await account.signMessage({ message }) };
 }
 
+function requestFor(body: { message: string; signature: string }): Request {
+  return new Request(`https://${DOMAIN}/api/auth`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Origin: `https://${DOMAIN}` },
+    body: JSON.stringify(body),
+  });
+}
+
+function memoryNonceStore() {
+  const markers = new Set<string>();
+  const writes: Array<{ pathname: string; body: string; options: Record<string, unknown> }> = [];
+  const store: NonceStore = {
+    async put(pathname, body, options) {
+      if (markers.has(pathname)) throw new Error("marker already exists");
+      markers.add(pathname);
+      writes.push({ pathname, body, options });
+    },
+    async get(pathname) {
+      return markers.has(pathname) ? { statusCode: 200 } : null;
+    },
+  };
+  return { store, writes };
+}
+
+async function withAuthConfig<T>(run: () => Promise<T>): Promise<T> {
+  const previousSecret = process.env.QA_SESSION_SECRET;
+  const previousAllowlist = process.env.QA_ALLOWLIST;
+  process.env.QA_SESSION_SECRET = SECRET;
+  process.env.QA_ALLOWLIST = JSON.stringify([TESTER.address]);
+  try {
+    return await run();
+  } finally {
+    if (previousSecret === undefined) delete process.env.QA_SESSION_SECRET;
+    else process.env.QA_SESSION_SECRET = previousSecret;
+    if (previousAllowlist === undefined) delete process.env.QA_ALLOWLIST;
+    else process.env.QA_ALLOWLIST = previousAllowlist;
+  }
+}
+
 const verify = (input: { message: string; signature: string }, now = NOW) =>
-  verifySignIn({ ...input, secret: SECRET, allowlist: ALLOWLIST, expectedDomain: DOMAIN, now });
+  verifySignIn({
+    ...input,
+    secret: SECRET,
+    allowlist: ALLOWLIST,
+    expectedDomain: DOMAIN,
+    expectedUri: `https://${DOMAIN}`,
+    now,
+  });
 
 describe("QA allowlist", () => {
   it("admits an address case-insensitively, and nobody else", () => {
@@ -65,6 +114,12 @@ describe("QA allowlist", () => {
     expect(() => parseAllowlist('["0xabc"]')).toThrow(/not an address/);
     expect(() => parseAllowlist("[42]")).toThrow(/not an address/);
     expect(parseAllowlist(undefined)).toEqual([]);
+  });
+
+  it("refuses a duplicate address rather than reading one shard twice", () => {
+    expect(() => parseAllowlist(JSON.stringify([TESTER.address, TESTER.address.toLowerCase()]))).toThrow(
+      /more than once/,
+    );
   });
 });
 
@@ -86,8 +141,14 @@ describe("QA nonce", () => {
   it("rejects a hand-made value and a tampered one", async () => {
     expect(await nonceError(SECRET, "deadbeef", NOW)).toMatch(/malformed/);
     const nonce = await issueNonce(SECRET, NOW);
-    const tampered = `${nonce.slice(0, 59)}${nonce.endsWith("a") ? "b" : "a"}`;
+    const tampered = `${nonce.slice(0, -1)}${nonce.endsWith("a") ? "b" : "a"}`;
     expect(await nonceError(SECRET, tampered, NOW)).toMatch(/not issued by this server/);
+  });
+
+  it("requires the full SHA-256 authentication tag", async () => {
+    const nonce = await issueNonce(SECRET, NOW);
+    expect(nonce).toHaveLength(92);
+    expect(await nonceError(SECRET, nonce.slice(0, -32), NOW)).toMatch(/malformed/);
   });
 });
 
@@ -104,6 +165,9 @@ describe("SIWE message", () => {
     expect(parseSiweMessage(message)).toEqual({
       domain: DOMAIN,
       address: TESTER.address,
+      uri: `https://${DOMAIN}`,
+      version: "1",
+      chainId: 1,
       nonce,
       issuedAt: new Date(NOW).toISOString(),
     });
@@ -117,7 +181,8 @@ describe("SIWE message", () => {
 describe("QA sign-in verification", () => {
   it("admits an allowlisted tester who signed the message", async () => {
     const result = await verify(await signedRequest(TESTER));
-    expect(result).toEqual({ address: TESTER.address.toLowerCase() });
+    expect(result).toMatchObject({ address: TESTER.address.toLowerCase() });
+    expect(result).toHaveProperty("nonce");
   });
 
   it("refuses an address that is not on the allowlist", async () => {
@@ -128,6 +193,33 @@ describe("QA sign-in verification", () => {
   it("refuses a signature captured for another site", async () => {
     const result = await verify(await signedRequest(TESTER, { domain: "evil.example" }));
     expect(result).toEqual({ error: "sign-in was issued for another site" });
+  });
+
+  it("refuses a valid signature over a different URI or non-canonical SIWE text", async () => {
+    const request = await signedRequest(TESTER);
+    const otherUri = request.message.replace(`URI: https://${DOMAIN}`, "URI: https://qa.greengoods.app/other");
+    expect(await verify({ message: otherUri, signature: await TESTER.signMessage({ message: otherUri }) })).toEqual({
+      error: "sign-in was issued for another resource",
+    });
+
+    const trailing = `${request.message}\nIgnored: yes`;
+    expect(await verify({ message: trailing, signature: await TESTER.signMessage({ message: trailing }) })).toEqual({
+      error: "malformed sign-in message",
+    });
+  });
+
+  it("binds the signed issue time to the authenticated nonce", async () => {
+    const nonce = await issueNonce(SECRET, NOW, "0011223344556677");
+    const message = siweMessage({
+      domain: DOMAIN,
+      address: TESTER.address,
+      uri: `https://${DOMAIN}`,
+      nonce,
+      issuedAt: new Date(NOW + 1_000).toISOString(),
+    });
+    expect(await verify({ message, signature: await TESTER.signMessage({ message }) })).toEqual({
+      error: "sign-in timing does not match its challenge",
+    });
   });
 
   it("refuses a message claiming an address it was not signed by", async () => {
@@ -141,6 +233,12 @@ describe("QA sign-in verification", () => {
     expect(await verify(request)).toHaveProperty("address");
     const late = await verify(request, NOW + 6 * 60 * 1000);
     expect(late).toEqual({ error: "nonce expired — reload and sign in again" });
+  });
+
+  it("keeps cryptographic verification pure before the endpoint consumes the nonce", async () => {
+    const request = await signedRequest(TESTER);
+    expect(await verify(request)).toHaveProperty("address");
+    expect(await verify(request, NOW + 4 * 60 * 1000)).toHaveProperty("address");
   });
 
   it("refuses a mangled signature", async () => {
@@ -178,6 +276,11 @@ describe("QA session token", () => {
     expect(await readSession(SECRET, null, NOW)).toBeNull();
     expect(await readSession(SECRET, "nonsense", NOW)).toBeNull();
   });
+
+  it("rejects a truncated authentication tag", async () => {
+    const token = await issueSession(SECRET, TESTER.address, NOW);
+    expect(await readSession(SECRET, token.slice(0, -32), NOW)).toBeNull();
+  });
 });
 
 describe("cookie reading", () => {
@@ -185,5 +288,108 @@ describe("cookie reading", () => {
     expect(readCookie("a=1; qa_session=abc.def.ghi; b=2", "qa_session")).toBe("abc.def.ghi");
     expect(readCookie("a=1", "qa_session")).toBeNull();
     expect(readCookie(null, "qa_session")).toBeNull();
+  });
+
+  it("sets the production session protections and clears the same cookie path", async () => {
+    expect(sessionCookie("token", 43_200)).toBe(
+      "qa_session=token; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=43200",
+    );
+    const response = await DELETE(
+      new Request(`https://${DOMAIN}/api/auth`, { method: "DELETE", headers: { Origin: `https://${DOMAIN}` } }),
+    );
+    expect(response.headers.get("set-cookie")).toBe(
+      "qa_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0",
+    );
+  });
+});
+
+describe("one-shot sign-in", () => {
+  it("mints one session when the same signed challenge races twice", async () => {
+    await withAuthConfig(async () => {
+      const signed = await signedRequest(TESTER);
+      const { store, writes } = memoryNonceStore();
+      const responses = await Promise.all([
+        handlePost(requestFor(signed), store, NOW),
+        handlePost(requestFor(signed), store, NOW),
+      ]);
+
+      expect(responses.map((response) => response.status).sort()).toEqual([200, 401]);
+      const accepted = responses.find((response) => response.status === 200);
+      const refused = responses.find((response) => response.status === 401);
+      expect(accepted?.headers.get("set-cookie")).toContain("qa_session=");
+      expect(refused?.headers.get("set-cookie")).toBeNull();
+      await expect(refused?.json()).resolves.toEqual({
+        error: "sign-in challenge was already used — start again",
+      });
+      expect(writes).toHaveLength(1);
+      expect(writes[0]).toMatchObject({
+        pathname: expect.stringMatching(/^qa\/auth\/nonces\/[0-9a-f]{64}\.txt$/),
+        body: "used",
+        options: {
+          access: "private",
+          addRandomSuffix: false,
+          allowOverwrite: false,
+          contentType: "text/plain",
+        },
+      });
+    });
+  });
+
+  it("does not burn a challenge until its signature passes", async () => {
+    await withAuthConfig(async () => {
+      const signed = await signedRequest(TESTER);
+      const { store, writes } = memoryNonceStore();
+      const malformed = {
+        ...signed,
+        signature: `${signed.signature.slice(0, -2)}${signed.signature.endsWith("00") ? "01" : "00"}`,
+      };
+
+      expect((await handlePost(requestFor(malformed), store, NOW)).status).toBe(401);
+      expect(writes).toHaveLength(0);
+      expect((await handlePost(requestFor(signed), store, NOW)).status).toBe(200);
+      expect(writes).toHaveLength(1);
+    });
+  });
+
+  it("fails closed when nonce consumption cannot be established", async () => {
+    await withAuthConfig(async () => {
+      const signed = await signedRequest(TESTER);
+      const unavailable: NonceStore = {
+        async put() {
+          throw new Error("write unavailable");
+        },
+        async get() {
+          throw new Error("read unavailable");
+        },
+      };
+
+      const response = await handlePost(requestFor(signed), unavailable, NOW);
+      expect(response.status).toBe(503);
+      expect(response.headers.get("set-cookie")).toBeNull();
+      await expect(response.json()).resolves.toEqual({
+        error: "sign-in state is unavailable — try again",
+      });
+    });
+  });
+});
+
+describe("mutation origin", () => {
+  it("accepts the app origin and refuses a same-site sibling or an absent Origin header", async () => {
+    const sameOrigin = new Request(`https://${DOMAIN}/api/state`, {
+      method: "POST",
+      headers: { Origin: `https://${DOMAIN}` },
+    });
+    const sibling = new Request(`https://${DOMAIN}/api/state`, {
+      method: "POST",
+      headers: { Origin: "https://evil.greengoods.app" },
+    });
+    expect(isSameOriginMutation(sameOrigin)).toBe(true);
+    expect(isSameOriginMutation(sibling)).toBe(false);
+    expect(isSameOriginMutation(new Request(`https://${DOMAIN}/api/state`, { method: "POST" }))).toBe(false);
+
+    const state = await import("../../packages/qa/api/state");
+    expect((await state.POST(sibling)).status).toBe(403);
+    const auth = await import("../../packages/qa/api/auth");
+    expect((await auth.DELETE(sibling)).status).toBe(403);
   });
 });

@@ -1,6 +1,7 @@
 import { type IDBPDatabase, openDB } from "idb";
 import type { CachedWork, Job, JobQueueDBImage } from "../../types/job-queue";
 import { deserializeFile } from "../../utils/storage/file-serialization";
+import { retryOnceAfterQuotaCleanup } from "../../utils/storage/quota";
 import { createLogger } from "../app/logger";
 import { serializeJobMedia } from "./db-media";
 import { loadFailedDeleteIds, saveFailedDeleteIds } from "./failed-delete-storage";
@@ -185,35 +186,35 @@ class JobQueueDatabase {
     } as Job<T>;
 
     const serializedFiles = await serializeJobMedia(id, job as Pick<Job, "kind" | "payload">);
+    const imageRows = serializedFiles.map(({ file, fileData }) => ({
+      id: crypto.randomUUID(),
+      jobId: id,
+      fileData,
+      url: mediaResourceManager.createUrl(file, id),
+      createdAt: timestamp,
+    })) as JobQueueDBImage[];
 
     // Atomically persist job + images.
     // If anything fails, we cleanup any created object URLs and nothing is committed.
-    const tx = db.transaction(["jobs", "job_images"], "readwrite");
     try {
-      await tx.objectStore("jobs").add(jobData as Job);
-
-      for (let index = 0; index < serializedFiles.length; index++) {
-        const { file, fileData } = serializedFiles[index];
-        const imageId = crypto.randomUUID();
-        const url = mediaResourceManager.createUrl(file, id);
-
-        await tx.objectStore("job_images").add({
-          id: imageId,
-          jobId: id,
-          fileData, // Store serialized data instead of File
-          url,
-          createdAt: timestamp,
-        } as JobQueueDBImage);
-      }
-
-      await tx.done;
+      await retryOnceAfterQuotaCleanup(async () => {
+        const tx = db.transaction(["jobs", "job_images"], "readwrite");
+        try {
+          await tx.objectStore("jobs").add(jobData as Job);
+          for (const imageRow of imageRows) {
+            await tx.objectStore("job_images").add(imageRow);
+          }
+          await tx.done;
+        } catch (error) {
+          try {
+            tx.abort();
+          } catch {
+            // Transaction may already be aborted; ignore error.
+          }
+          throw error;
+        }
+      });
     } catch (error) {
-      try {
-        tx.abort();
-      } catch {
-        // Transaction may already be aborted; ignore error
-      }
-
       trackPrivateQueueEvent("job_queue_storage_failed", {
         job_kind: job.kind,
         file_count: serializedFiles.length,
@@ -285,6 +286,7 @@ class JobQueueDatabase {
 
     if (job) {
       job.synced = true;
+      delete job.lastError;
       if (txHash && job.meta) {
         job.meta.txHash = txHash;
       }
@@ -390,7 +392,7 @@ class JobQueueDatabase {
     return {
       total: userJobs.length,
       pending: userJobs.filter((job) => !job.synced && !job.lastError).length,
-      failed: userJobs.filter((job) => job.lastError).length,
+      failed: userJobs.filter((job) => !job.synced && Boolean(job.lastError)).length,
       synced: userJobs.filter((job) => job.synced).length,
     };
   }

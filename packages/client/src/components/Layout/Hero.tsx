@@ -23,7 +23,6 @@ import {
   RiUploadLine,
 } from "@remixicon/react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { createPwaLaunchUrl } from "@/config/pwaRouting";
 
 interface HeroProps {
   handleSubscribe: (e: React.FormEvent<HTMLFormElement>) => void;
@@ -36,9 +35,9 @@ export const Hero: FC<HeroProps> = () => {
     platform,
     deferredPrompt,
     promptInstall,
-    isInstalled,
     isInstalling,
     wasInstalled,
+    installedAppEvidence,
   } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -51,14 +50,14 @@ export const Hero: FC<HeroProps> = () => {
   const qrValue = tunnelUrl || window.location.origin;
 
   // Get smart installation guidance based on current browser/platform
-  const guidance = useInstallGuidance(
+  const guidance = useInstallGuidance({
     platform,
-    isInstalled,
+    installedAppEvidence,
     wasInstalled,
     deferredPrompt,
     isMobile,
-    isInstalling
-  );
+    isInstalling,
+  });
 
   // Auto-reset copy states after 2 seconds (auto-cleared on unmount)
   const { set: scheduleCopyReset } = useTimeout();
@@ -105,13 +104,9 @@ export const Hero: FC<HeroProps> = () => {
       case "copy-url":
         handleCopyUrl();
         break;
+      // The installed case renders a native anchor below so Chrome receives a
+      // trusted navigation it can capture for the Android WebAPK.
       case "open-app":
-        // Real (full-document) navigation to the absolute in-scope start URL, not
-        // a client-side navigate(). The landing page is outside the "/home" WebAPK
-        // scope, so this "/" -> "/home" scope crossing is what Chrome/Android
-        // link-capturing can hand off to the installed app. A React Router
-        // navigate() stays in the tab and Android never sees it.
-        window.location.assign(createPwaLaunchUrl(window.location.origin));
         break;
       default:
         break;

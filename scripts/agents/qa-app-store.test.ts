@@ -14,7 +14,13 @@ vi.mock("@vercel/blob", () => {
   };
 });
 
-import { applyDelta, shardShapeError } from "../../packages/qa/api/state";
+import {
+  applyDelta,
+  displayLabels,
+  mergeDelta,
+  sanitizeDelta,
+  shardShapeError,
+} from "../../packages/qa/api/state";
 
 /** Shards are keyed by owner address; the display name inside is only a label. */
 const ADDRESS = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e";
@@ -59,8 +65,8 @@ describe("QA app Blob writes", () => {
     });
 
     const [phone, laptop] = await Promise.all([
-      applyDelta("Afo", { "PUB-001": { s: "pass" } }),
-      applyDelta("Afo", { "PUB-002": { n: "laptop note" } }),
+      applyDelta(ADDRESS, { "PUB-001": { s: "pass" } }, "Afo"),
+      applyDelta(ADDRESS, { "PUB-002": { n: "laptop note" } }, "Afo"),
     ]);
 
     expect(phone.entries).toHaveProperty("PUB-001");
@@ -76,43 +82,69 @@ describe("QA app Blob writes", () => {
 
 describe("shard shape validation", () => {
   const entry = { s: "pass", n: "", at: "2026-08-30T10:00:00.000Z" };
+  const shard = (overrides: Record<string, unknown> = {}) => ({
+    address: ADDRESS,
+    person: "Afo",
+    updatedAt: "2026-08-30T10:00:00.000Z",
+    entries: {},
+    ...overrides,
+  });
 
   it("accepts a shard this endpoint can vouch for", () => {
-    expect(shardShapeError(ADDRESS, { address: ADDRESS, entries: { "PUB-001": entry } })).toBeNull();
-    expect(shardShapeError(ADDRESS, { address: ADDRESS, entries: {} })).toBeNull();
+    expect(shardShapeError(ADDRESS, shard({ entries: { "PUB-001": entry } }))).toBeNull();
+    expect(shardShapeError(ADDRESS, shard())).toBeNull();
     // A note with no verdict yet is a legitimate in-progress entry.
     expect(
-      shardShapeError(ADDRESS, { address: ADDRESS, entries: { "PUB-001": { ...entry, s: "" } } }),
+      shardShapeError(ADDRESS, shard({ entries: { "PUB-001": { ...entry, s: "" } } })),
     ).toBeNull();
   });
 
   it("rejects a malformed entry rather than serving it to the checklist", () => {
     // GET hands what it read straight to the page, which reads `e.s` off it —
     // one bad entry took the board down for everyone in a live session.
-    expect(shardShapeError(ADDRESS, { address: ADDRESS, entries: { "PUB-001": null } })).toMatch(
+    expect(shardShapeError(ADDRESS, shard({ entries: { "PUB-001": null } }))).toMatch(
       /PUB-001 is not an object/,
     );
-    expect(shardShapeError(ADDRESS, { address: ADDRESS, entries: { "PUB-001": { n: "x", at: "t" } } })).toMatch(
+    expect(shardShapeError(ADDRESS, shard({ entries: { "PUB-001": { n: "x", at: "t" } } }))).toMatch(
       /PUB-001 has no valid status/,
     );
     expect(
-      shardShapeError(ADDRESS, { address: ADDRESS, entries: { "PUB-001": { ...entry, s: "maybe" } } }),
+      shardShapeError(ADDRESS, shard({ entries: { "PUB-001": { ...entry, s: "maybe" } } })),
     ).toMatch(/PUB-001 has no valid status/);
-    expect(shardShapeError(ADDRESS, { address: ADDRESS, entries: { "PUB-001": { s: "pass", at: "t" } } })).toMatch(
-      /PUB-001 has no note/,
+    expect(shardShapeError(ADDRESS, shard({ entries: { "PUB-001": { s: "pass", at: "t" } } }))).toMatch(
+      /PUB-001 has no valid note/,
     );
-    expect(shardShapeError(ADDRESS, { address: ADDRESS, entries: { "PUB-001": { s: "pass", n: "" } } })).toMatch(
-      /PUB-001 has no timestamp/,
+    expect(shardShapeError(ADDRESS, shard({ entries: { "PUB-001": { s: "pass", n: "" } } }))).toMatch(
+      /PUB-001 has no valid timestamp/,
     );
   });
 
   it("rejects a shard that is not one, or is filed under the wrong owner", () => {
     expect(shardShapeError(ADDRESS, null)).toMatch(/not an object/);
     expect(shardShapeError(ADDRESS, [])).toMatch(/not an object/);
-    expect(shardShapeError(ADDRESS, { address: OTHER_ADDRESS, entries: {} })).toMatch(/owner as/);
+    expect(shardShapeError(ADDRESS, shard({ address: OTHER_ADDRESS }))).toMatch(/owner as/);
     // A display name is a label; it can never make a shard belong to someone else.
-    expect(shardShapeError(ADDRESS, { address: ADDRESS, person: "Gui", entries: {} })).toBeNull();
-    expect(shardShapeError(ADDRESS, { address: ADDRESS })).toMatch(/no entries object/);
-    expect(shardShapeError(ADDRESS, { address: ADDRESS, entries: [] })).toMatch(/no entries object/);
+    expect(shardShapeError(ADDRESS, shard({ person: "Gui" }))).toBeNull();
+    expect(shardShapeError(ADDRESS, shard({ person: 42 }))).toMatch(/display name/);
+    expect(shardShapeError(ADDRESS, shard({ updatedAt: "not-a-date" }))).toMatch(/update timestamp/);
+    expect(shardShapeError(ADDRESS, shard({ entries: null }))).toMatch(/no entries object/);
+    expect(shardShapeError(ADDRESS, shard({ entries: [] }))).toMatch(/no entries object/);
+  });
+
+  it("does not write a case id the shard reader would later reject", () => {
+    const delta = sanitizeDelta({ "": { s: "pass" } });
+    expect(Object.keys(delta)).toEqual([]);
+    expect(shardShapeError(ADDRESS, shard({ entries: mergeDelta({}, delta) }))).toBeNull();
+  });
+});
+
+describe("display labels", () => {
+  it("keeps same-name address shards distinct", () => {
+    const labels = displayLabels([
+      { address: ADDRESS, person: "Afo" },
+      { address: OTHER_ADDRESS, person: "afo" },
+    ]);
+    expect(new Set(labels.map((label) => label.toLowerCase())).size).toBe(2);
+    expect(labels.every((label) => label.includes("…"))).toBe(true);
   });
 });

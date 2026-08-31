@@ -1394,8 +1394,7 @@
 
 /* ============================================================================
  * WARM-EARTH ADMIN ALIASES (Tier 1a — additive, non-breaking)
- * Source-of-truth values: design_handoff_admin-revamp/screens/tokens.css
- * Decision log: docs/admin-revamp/audit.md §5.1
+ * Authority: packages/admin/DESIGN.md and the runtime aliases below.
  *
  * These aliases give admin code a stable Warm-Earth vocabulary
  * (--canvas / --ink / --stone / --g-* / --r-* / --e*) that points at our
@@ -1567,8 +1566,7 @@
 
 /* ============================================================================
  * STATUS PALETTE REMAP (Tier 1b — admin-scoped global remap)
- * Decision log: docs/admin-revamp/audit.md §5.5 (Global remap to handoff palette)
- * Source-of-truth: design_handoff_admin-revamp/screens/tokens.css
+ * Authority: packages/admin/DESIGN.md and the scoped runtime aliases below.
  *
  * Scope: .admin-m3 only — client PWA's --orange/--red/--sky scales unchanged.
  * Mechanism: redefine the base color RGB triplets inside admin scope; the

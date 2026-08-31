@@ -1,6 +1,5 @@
-import { ensureBaseLists } from "@green-goods/shared/hooks/blockchain/prefetch";
 import { type LoaderFunctionArgs, type RouteObject, redirect } from "react-router-dom";
-import { RouteErrorBoundary } from "@/components/Errors";
+import { RouteErrorBoundary } from "@/components/Errors/RouteErrorBoundary";
 import { APP_ROUTES, LEGACY_APP_ROUTES } from "./pwaRouting";
 import {
   requirePwaPresentationLoader,
@@ -29,10 +28,11 @@ export const CLIENT_ROUTE_IDS = {
 } as const;
 
 // Prefetch base lists before rendering home (non-blocking).
-const homeLoader = (args: LoaderFunctionArgs) => {
+const homeLoader = async (args: LoaderFunctionArgs) => {
   const modeRedirect = requirePwaPresentationLoader(args);
   if (modeRedirect) return modeRedirect;
 
+  const { ensureBaseLists } = await import("@green-goods/shared/hooks/blockchain/prefetch");
   ensureBaseLists();
   return null;
 };
@@ -47,7 +47,7 @@ const legacyPwaRouteLoader =
     return redirect(`${canonicalRoute}${url.search}${url.hash}`);
   };
 
-export const appRoutes = [
+const combinedAppRoutes = [
   {
     id: CLIENT_ROUTE_IDS.root,
     lazy: async () => ({ Component: (await import("@/routes/Root")).default }),
@@ -251,3 +251,32 @@ export const appRoutes = [
     ],
   },
 ] satisfies RouteObject[];
+
+const combinedRoot = combinedAppRoutes[0] as RouteObject;
+const publicShell = combinedRoot.children?.find(
+  (route) => route.id === CLIENT_ROUTE_IDS.publicShell
+);
+const pwaRuntime = combinedRoot.children?.find(
+  (route) => route !== publicShell && route.path !== "*"
+);
+
+if (!publicShell || !pwaRuntime) {
+  throw new Error("Client route trees are missing their presentation roots");
+}
+
+export const publicAppRoutes: RouteObject[] = [
+  {
+    ...combinedRoot,
+    children: [publicShell, { path: "*", loader: () => redirect("/") }],
+  } as RouteObject,
+];
+
+export const pwaAppRoutes: RouteObject[] = [
+  {
+    ...combinedRoot,
+    children: [pwaRuntime, { path: "*", loader: () => redirect(APP_ROUTES.home) }],
+  } as RouteObject,
+];
+
+/** Combined route inventory retained for route-contract tests and Storybook. */
+export const appRoutes = combinedAppRoutes;

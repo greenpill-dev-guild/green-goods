@@ -19,13 +19,14 @@ import { APP_ROUTES } from "@/config/pwaRouting";
 export interface DraftsTabProps {
   className?: string;
   headerContent?: React.ReactNode;
+  onBeforeNavigate?: () => void;
 }
 
 /**
  * Drafts tab for WorkDashboard.
  * Shows all saved work drafts with options to resume or delete.
  */
-export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
+export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent, onBeforeNavigate }) => {
   const intl = useIntl();
   const navigate = useNavigate();
   const { drafts, isLoading, deleteDraft, isDeleting, refetchDrafts } = useDrafts();
@@ -49,6 +50,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
   };
 
   const handleResume = (draft: DraftWithImages) => {
+    onBeforeNavigate?.();
     navigate(`${APP_ROUTES.garden}?draftId=${draft.id}`, { viewTransition: true });
   };
 
@@ -84,7 +86,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex min-h-full flex-col">
         {headerContent && (
           <div className="flex items-center justify-between px-4 py-2 border-b border-stroke-soft-200">
             {headerContent}
@@ -107,7 +109,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
 
   if (drafts.length === 0) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex min-h-full flex-col">
         {headerContent && (
           <div className="flex items-center justify-between px-4 py-2 border-b border-stroke-soft-200">
             {headerContent}
@@ -140,7 +142,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex min-h-full flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-stroke-soft-200">
         <div className="flex items-center gap-2">
@@ -165,7 +167,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 p-4">
         <ul className="flex flex-col gap-3">
           {drafts.map((draft) => (
             <li key={draft.id} className="cv-draft-card">

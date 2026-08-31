@@ -11,7 +11,7 @@
  *
  * Reads the per-tester shards straight from the Blob store with
  * BLOB_READ_WRITE_TOKEN, NOT through the deployed app — so ingestion works
- * while the app is password-protected, and still works if the deploy is down.
+ * without an app session, and still works if the deploy is down.
  *
  * Results never enter git: everything lands under gitignored tmp/.
  */
@@ -37,6 +37,8 @@ interface Options {
 
 /** What a completed pull leaves behind, and therefore what a rerun would replace. */
 export const SESSION_ARTIFACTS = ["results.csv", "qa-state.json"] as const;
+const SHARD_STATUSES = new Set(["pass", "fail", "blocked", "na", ""]);
+type BlobAccess = Pick<typeof import("@vercel/blob"), "get" | "list">;
 
 export function parseArgs(argv: string[]): Options {
   let slug = new Date().toISOString().slice(0, 10);
@@ -129,14 +131,37 @@ export function parseShard(pathname: string, text: string): Shard {
   // name is a label the tester may change, and changing it must not make their
   // own shard unreadable.
   const owner = pathname.split("/").pop()?.replace(/\.json$/, "").toLowerCase();
-  if (owner && shard.address && shard.address.toLowerCase() !== owner) {
+  if (!owner || !/^0x[0-9a-f]{40}$/.test(owner)) {
+    throw new Error(`${pathname} is not keyed by an owner address`);
+  }
+  if (typeof shard.address !== "string" || !/^0x[0-9a-f]{40}$/.test(shard.address)) {
+    throw new Error(`${pathname} shard has no lowercase owner address`);
+  }
+  if (shard.address !== owner) {
     throw new Error(`${pathname} reports its owner as ${JSON.stringify(shard.address)}`);
+  }
+  if (typeof shard.person !== "string" || shard.person !== shard.person.trim() || shard.person.length > 32) {
+    throw new Error(`${pathname} shard has no valid display name`);
+  }
+  if (typeof shard.updatedAt !== "string" || !Number.isFinite(Date.parse(shard.updatedAt))) {
+    throw new Error(`${pathname} shard has no valid update timestamp`);
   }
   if (!shard.entries || typeof shard.entries !== "object" || Array.isArray(shard.entries)) {
     throw new Error(`${pathname} shard has no entries object`);
   }
   for (const [caseId, entry] of Object.entries(shard.entries)) {
-    if (!entry || typeof entry !== "object" || typeof entry.s !== "string" || typeof entry.n !== "string") {
+    if (
+      !caseId ||
+      caseId.length > 64 ||
+      !entry ||
+      typeof entry !== "object" ||
+      typeof entry.s !== "string" ||
+      !SHARD_STATUSES.has(entry.s) ||
+      typeof entry.n !== "string" ||
+      entry.n.length > 4000 ||
+      typeof entry.at !== "string" ||
+      !Number.isFinite(Date.parse(entry.at))
+    ) {
       throw new Error(`${pathname} entry for ${caseId} is malformed`);
     }
   }
@@ -147,8 +172,12 @@ export function parseShard(pathname: string, text: string): Shard {
  * Read one tester's shard. A missing shard is normal — it means that person has
  * not recorded anything — and must not fail the pull for everyone else.
  */
-export async function readShard(pathname: string, token: string): Promise<Shard | null> {
-  const { get } = await import("@vercel/blob");
+export async function readShard(
+  pathname: string,
+  token: string,
+  access?: Pick<BlobAccess, "get">,
+): Promise<Shard | null> {
+  const get = access?.get ?? (await import("@vercel/blob")).get;
   let text: string;
   try {
     const result = await get(pathname, {
@@ -157,7 +186,10 @@ export async function readShard(pathname: string, token: string): Promise<Shard 
       useCache: false,
       token,
     });
-    if (!result || result.statusCode !== 200 || !result.stream) return null;
+    if (!result) return null;
+    if (result.statusCode !== 200 || !result.stream) {
+      throw new Error(`unexpected status ${result.statusCode}`);
+    }
     text = await new Response(result.stream).text();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -177,11 +209,17 @@ export async function readShard(pathname: string, token: string): Promise<Shard 
  * Listing means these commands need no copy of who the testers are, and pick up
  * somebody added mid-season without a code change.
  */
-export async function readShards(token: string): Promise<Array<Shard | null>> {
-  const { list } = await import("@vercel/blob");
-  const { blobs } = await list({ prefix: "qa/entries/", token });
+export async function readShards(token: string, access?: BlobAccess): Promise<Array<Shard | null>> {
+  const list = access?.list ?? (await import("@vercel/blob")).list;
+  const blobs: Awaited<ReturnType<typeof list>>["blobs"] = [];
+  let cursor: string | undefined;
+  do {
+    const page = await list({ prefix: "qa/entries/", token, ...(cursor ? { cursor } : {}) });
+    blobs.push(...page.blobs);
+    cursor = page.hasMore ? page.cursor : undefined;
+  } while (cursor);
   const shards = blobs.filter((blob) => blob.pathname.endsWith(".json"));
-  return Promise.all(shards.map((blob) => readShard(blob.pathname, token)));
+  return Promise.all(shards.map((blob) => readShard(blob.pathname, token, access)));
 }
 
 async function main(): Promise<void> {

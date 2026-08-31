@@ -2,7 +2,7 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   type CommitmentUnitSummaryRecord,
   type PublicCommitmentCycleRecord,
-} from "@green-goods/shared/commitment-pooling";
+} from "@green-goods/shared/commitment-pooling/public";
 import { useEffect, useRef } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { EditorialHeading, EditorialKicker } from "@/components/Public/atoms";
