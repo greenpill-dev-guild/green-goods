@@ -55,7 +55,13 @@ function getBrowserLocale(): Locale {
 function classifyError(error: Error | null): ErrorCategory {
   if (!error) return "unknown";
   const message = (error.message || "").toLowerCase();
-  if (CHUNK_ERROR_PATTERNS.some((p) => p.test(message))) return "chunk";
+  if (CHUNK_ERROR_PATTERNS.some((p) => p.test(message))) {
+    // A dynamic import that fails while the browser is offline is an offline
+    // condition, not a stale deploy — auto-reloading offline strands the user
+    // on the update screen instead of the offline experience.
+    if (typeof navigator !== "undefined" && navigator.onLine === false) return "offline";
+    return "chunk";
+  }
   if (LOOP_ERROR_PATTERNS.some((p) => p.test(message))) return "loop";
   if (
     ["network error", "fetch failed", "failed to fetch", "network request failed"].some((m) =>

@@ -419,7 +419,7 @@ export function useGardenOperations(gardenId: string) {
       ),
     };
   }, [
-    gardenId,
+    gardenAddress,
     sender,
     address,
     executeWithToast,

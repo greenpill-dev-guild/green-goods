@@ -6,10 +6,9 @@
  * @module utils/work/offline
  */
 
-import type { Address } from "../../types/domain";
 import { jobToWork } from "../../hooks/work/useWorks";
 import { jobQueueDB } from "../../modules/job-queue/db";
-import type { Work } from "../../types/domain";
+import type { Address, Work } from "../../types/domain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 
 /**
