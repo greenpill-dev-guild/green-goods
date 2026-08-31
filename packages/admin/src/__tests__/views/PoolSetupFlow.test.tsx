@@ -505,7 +505,9 @@ describe("PoolSetupFlow (W11)", () => {
 
     // A steward names the campaign, moves the range, then thinks better of it.
     fillCycle();
-    expect(startField().value).toBe("2026-09-01");
+    fireEvent.change(startField(), { target: { value: "2099-01-01" } });
+    fireEvent.change(endField(), { target: { value: "2099-01-30" } });
+    expect(startField().value).toBe("2099-01-01");
 
     // Cancel closes the flow; PoolDialogs keeps it mounted on `open={flow !== null}`.
     fireEvent.click(within(dialog()).getByRole("button", { name: /^cancel$/i }));
@@ -513,7 +515,7 @@ describe("PoolSetupFlow (W11)", () => {
 
     // Nothing unmounted, so the fresh-open reset is the only thing that clears it.
     expect(startField().value).toBe(today);
-    expect(endField().value).not.toBe("2026-09-30");
+    expect(endField().value).not.toBe("2099-01-30");
     expect((within(dialog()).getByLabelText(/^name/i) as HTMLInputElement).value).toBe("");
   });
 
