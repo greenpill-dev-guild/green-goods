@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Status**: `IN PROGRESS`
 **Created**: `2026-08-30`
-**Last Updated**: `2026-08-30`
+**Last Updated**: `2026-08-31`
 
 ## Decision Log
 
@@ -39,8 +39,8 @@
 | Shrink 26 authored guides | `state_api` | Change 4 | Completed |
 | Enforce hard authority/generation gates | `state_api` | Change 5 | Completed |
 | Render and regression proof | `state_api` | Final validation | Completed locally for the migration scope |
-| Five sequential independently green changes | `state_api` | Delivery | Pending repository-owner coordination |
-| First deployed sitemap proof | `state_api` | Deployment follow-up | Blocked until the migration is merged and Pages deploys |
+| Five sequential independently green changes | `state_api` | Delivery | Superseded — landed on develop 2026-08-31 as five rebased commits (`cfa4f2272`…`3562fd9c8`) in one batch, plus projection refresh `8190dc240` |
+| First deployed sitemap proof | `state_api` | Deployment follow-up | Head Vercel deploy reached READY with a 79-route sitemap pre-landing; post-landing production proof pending (tracked in `documentation-agent-guidance-authority`) |
 
 ## TDD / Proof Order
 
@@ -130,11 +130,17 @@ than folded into the documentation change.
 
 ## Delivery
 
-- [ ] Coordinate a safe split into five ordered, independently green delivery changes without
-  overwriting concurrent working-tree changes.
-- [ ] Merge each change before beginning the next delivery step.
+- [x] Superseded 2026-08-31: the migration landed on develop as five rebased commits
+  (`cfa4f2272`, `104bc3a9c`, `b5652c7d1`, `dae4fe1ad`, `3562fd9c8`) in one batch rather than five
+  independently merged changes. The batch left the api-index and persona-surfaces projections
+  stale (Docs workflow red at `0086993ca`); repaired by `8190dc240` with the docs audit,
+  generated-output, ontology, guidance, and docs test/build gates re-run green.
+- [x] Superseded by the same landing; no per-change merges occurred. PR #785 is now zero-diff
+  against develop and awaits the owner's close-or-merge decision.
 
 ## Deployment Follow-up
 
-- [ ] Confirm the first post-merge Pages sitemap contains the same 44 builder routes proven by the
-  local production build. No deploy was requested or performed in this change.
+- [ ] Confirm the first post-landing production Vercel sitemap contains the same 44 builder routes
+  proven by the local production build (deployment owner is Vercel; GitHub Actions validates only).
+  Needs Vercel authentication — tracked with the production verification in
+  `documentation-agent-guidance-authority`.

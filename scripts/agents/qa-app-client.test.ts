@@ -638,8 +638,8 @@ async function displayLabelHarness() {
     await flush();
     await collision.poll();
     await flush();
-    const buttons = [...collision.dom.window.document.querySelectorAll(".who-btn")];
-    assert.equal(buttons.find((button) => button.textContent === ownLabel)?.getAttribute("aria-pressed"), "true");
+    assert.equal(collision.dom.window.document.querySelector(".current-tester")?.textContent, ownLabel);
+    assert.equal(collision.dom.window.document.querySelectorAll(".who-btn").length, 0);
     assert.equal(collision.dom.window.document.querySelectorAll(".mark").length, 2);
     assert.deepEqual(
       [...collision.dom.window.document.querySelectorAll(".onote b")].map((node) => node.textContent),
@@ -673,6 +673,22 @@ async function displayLabelHarness() {
     assert.equal(prototype.dom.window.document.querySelector(".tab small")?.textContent, "1/1");
   } finally {
     prototype.dom.window.close();
+  }
+
+  const markupName = '<img src=x onerror="globalThis.displayNameRan=true">';
+  const escaped = await openPage({
+    team: [markupName],
+    you: markupName,
+    address: owner,
+    named: true,
+    entries: {},
+  });
+  try {
+    assert.equal(escaped.dom.window.document.querySelector("header img"), null);
+    assert.equal(escaped.dom.window.document.querySelector(".current-tester")?.textContent, markupName);
+    assert.equal(escaped.dom.window.displayNameRan, undefined);
+  } finally {
+    escaped.dom.window.close();
   }
 }
 

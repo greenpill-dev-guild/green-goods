@@ -29,7 +29,7 @@ This is **conceptual + type-system work** in the first instance — not UI. UI c
 - **Existing**:
   - Four production action domains declared in `packages/shared/src/ontology/green-goods-ontology.json` and drift-checked against code.
   - `docs/docs/builders/architecture/erd.mdx` and `docs/docs/builders/integrations/entity-matrix.mdx` — current entity model references.
-  - `docs/docs/reference/glossary-community.md` — canonical vocabulary reference.
+  - `docs/docs/reference/glossary.generated.mdx` — generated vocabulary reference (authority: `packages/shared/src/ontology/green-goods-ontology.json`).
   - This hub and `yield-to-impact-codification` retain the durable framing from the historical GreenWill/GIF proposal set; exact proposal text remains in Git history.
 - **Missing**:
   - Formal definition of the 5 dimensions as types.
@@ -82,7 +82,7 @@ This is **conceptual + type-system work** in the first instance — not UI. UI c
 
 - [ ] Read the ontology, this hub, yield-to-impact framing, entity matrix, ERD, regenerative guidance, and ecosystem guidance.
 - [ ] Confirm the 5 dimensions and 5 domains (count + names).
-- [ ] Author `docs/docs/builders/specs/impact-dimensions.mdx` with definitions + matrix.
+- [ ] Author the impact-dimension definitions + matrix in this hub's `spec.md` (authored docs spec pages were retired in the docs-authority migration; the public surface generates from the ontology).
 - [ ] `ImpactDomain` / `ImpactDimension` enums + `DimensionVector` type in `@green-goods/shared`.
 - [ ] Domain → default-vector lookup function with tests.
 - [ ] Per-Action-template default vector derivation.

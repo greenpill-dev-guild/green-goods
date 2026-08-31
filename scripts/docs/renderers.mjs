@@ -135,10 +135,25 @@ export function renderIntegration({ root, sources, digest }, integrationId) {
     integration.display,
     integration.definition
   );
-  body += "## Checked-in deployment projection\n\n| Network | Status | Recorded components |\n|---|---|---|\n";
-  for (const row of rows) {
-    const recorded = integration.deployment_fields.filter((field) => isRecordedAddress(row.values[field]));
-    body += `| ${esc(names.get(Number(row.chainId)) ?? row.chainId)} (\`${row.chainId}\`) | ${deploymentState(row.values, integration.deployment_fields)} | ${recorded.length ? recorded.map((field) => `\`${field}\``).join(", ") : "none"} |\n`;
+  body += "## Checked-in deployment projection\n\n";
+  const recordedByRow = rows.map((row) =>
+    integration.deployment_fields.filter((field) => isRecordedAddress(row.values[field]))
+  );
+  const recordedRows = rows.filter((_, index) => recordedByRow[index].length > 0);
+  if (recordedRows.length === 0) {
+    body +=
+      "No checked-in deployment artifact records components for this integration on any supported network. Per-network state lives in the [deployment status projection](/builders/deployments/status).\n";
+  } else {
+    body += "| Network | Status | Recorded components |\n|---|---|---|\n";
+    rows.forEach((row, index) => {
+      const recorded = recordedByRow[index];
+      if (recorded.length === 0) return;
+      body += `| ${esc(names.get(Number(row.chainId)) ?? row.chainId)} (\`${row.chainId}\`) | ${deploymentState(row.values, integration.deployment_fields)} | ${recorded.map((field) => `\`${field}\``).join(", ")} |\n`;
+    });
+    if (recordedRows.length < rows.length) {
+      body +=
+        "\nNetworks without recorded components are omitted; per-network state lives in the [deployment status projection](/builders/deployments/status).\n";
+    }
   }
   const indexedSignals = integration.indexer_contracts.filter((name) => indexed.includes(name));
   body += `\n## Indexer boundary\n\n${indexedSignals.length ? `Configured indexer contracts: ${indexedSignals.map((name) => `\`${name}\``).join(", ")}.` : "No integration-specific contract is declared in the checked-in indexer configuration."}\n\n`;

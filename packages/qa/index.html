@@ -31,7 +31,8 @@
   h1 { font-family:"Plus Jakarta Sans",sans-serif; font-size:19px; font-weight:800;
     margin:0 0 2px; letter-spacing:-0.01em; }
   .runline { font-size:12px; color:var(--soft); }
-  .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+  .header-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px; }
+  .tabs { display:flex; gap:6px; flex:1 1 440px; flex-wrap:wrap; }
   .tab { border:1px solid var(--line); background:var(--surface); color:var(--ink);
     border-radius:999px; padding:4px 12px; font-size:12.5px; font-weight:600; cursor:pointer; }
   .tab.on { background:var(--green); border-color:var(--green); color:#fff; }
@@ -73,7 +74,7 @@
   .onote { font-size:12px; color:var(--ink); background:var(--linen); border-radius:7px;
     padding:5px 9px; margin-bottom:4px; }
   .onote b { color:var(--soft); font-weight:600; margin-right:6px; }
-  .filters { display:flex; gap:6px; margin-top:8px; align-items:center; }
+  .filters { display:flex; gap:6px; align-items:center; }
   .signin { position:fixed; inset:0; z-index:50; display:grid; place-items:center;
     background:var(--paper); padding:24px; }
   .signin-card { max-width:400px; text-align:center; }
@@ -86,23 +87,30 @@
     border-radius:8px; padding:11px 20px; font:inherit; font-weight:600; cursor:pointer; }
   #signin-btn:disabled { opacity:.6; cursor:progress; }
   .signin-err { color:var(--red); margin-top:14px !important; font-size:13px; }
-  .who-btn[disabled] { opacity:1; cursor:default; }
   .signout-btn { border:0; background:transparent; color:var(--soft); padding:2px 4px; font:inherit;
     font-size:11.5px; text-decoration:underline; cursor:pointer; }
-  .filt, .scope-btn, .who-btn { border:1px solid var(--line); background:var(--surface);
+  .filt, .scope-btn { border:1px solid var(--line); background:var(--surface);
     color:var(--soft); border-radius:999px; padding:2px 10px; font-size:11.5px;
     font-weight:600; cursor:pointer; }
   .filt.on { color:var(--ink); border-color:var(--soft); }
   .scope-btn.on { background:var(--ink); border-color:var(--ink); color:var(--paper); }
   .scope-btn small { font-weight:500; opacity:0.7; margin-left:5px; }
-  .who-group { margin-left:auto; display:flex; gap:4px; align-items:center; }
-  .who-btn.on { background:var(--green); border-color:var(--green); color:#fff; }
   .grouplabel { font-size:11px; color:var(--soft); letter-spacing:0.04em;
     text-transform:uppercase; margin-right:2px; }
-  .scoperow { flex-wrap:wrap; }
-  .counts { font-size:11.5px; color:var(--soft); margin-top:6px; }
+  .scoperow { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-left:auto; }
+  .counts { font-size:11.5px; color:var(--soft); margin-left:auto; text-align:right; }
   .counts b { color:var(--ink); }
+  .counts .current-tester { color:var(--ink); font-weight:700; }
   .counts .warn { color:var(--amber); }
+  @media (max-width:720px) {
+    .tabs { flex-basis:100%; }
+    .scoperow, .counts { margin-left:0; }
+    .counts { flex-basis:100%; text-align:left; }
+    .row { grid-template-columns:72px minmax(0,1fr); }
+    .scen { min-width:0; overflow-wrap:anywhere; }
+    .ctl { grid-column:2; justify-self:start; }
+    .note { grid-column:1 / -1; }
+  }
   .empty { color:var(--soft); font-size:13px; padding:22px 4px; }
   .savebar { position:fixed; right:14px; bottom:14px; z-index:6; font-size:12px; font-weight:600;
     background:var(--surface); border:1px solid var(--line); border-radius:999px;
@@ -458,7 +466,12 @@
     return key === "all" ? rows.length : rows.filter((c) => hasEntry(c.id, key)).length;
   }
   function tally() {
-    const per = TEAM.map((n) => `${n} ${CASES.filter((c) => hasEntry(c.id, n)).length}`);
+    // Display names are self-declared data. Escape them here just as we do in
+    // buttons and notes; this summary is also written through `innerHTML`.
+    const per = TEAM.map((n) => {
+      const name = `<span class="${n === who ? "current-tester" : "tester-name"}">${esc(n)}</span>`;
+      return `${name} ${CASES.filter((c) => hasEntry(c.id, n)).length}`;
+    });
     const undecided = CASES.filter((c) => !verdict(c.id)).length;
     return `${per.join(" · ")} · <b>${undecided}</b> still undecided (all tabs)`;
   }
@@ -467,19 +480,22 @@
   function render() {
     const head = `<header>
       <h1>Green Goods QA</h1>
-      <div class="runline">${CASES.length} cases · two testers can record the same case — each keeps their own verdict and notes</div>
-      <div class="tabs">${TABS.map((t) => {
-        const k = counts(t);
-        return `<button class="tab ${t === activeTab ? "on" : ""}" data-tab="${esc(t)}" aria-pressed="${t === activeTab ? "true" : "false"}">${esc(t)}<small>${k.done}/${k.total}${k.fails ? " · " + k.fails + "F" : ""}</small></button>`;
-      }).join("")}</div>
-      <div class="filters">${[["all", "All"], ["issues", "Issues"], ["open", "Undecided"]].map(([k, l]) =>
-        `<button class="filt ${filter === k ? "on" : ""}" data-f="${k}" aria-pressed="${filter === k ? "true" : "false"}">${l}</button>`).join("")}<span class="who-group" role="group" aria-label="who is testing"><span class="grouplabel">testing as</span>${TEAM.map((n) =>
-        `<button class="who-btn ${who === n ? "on" : ""}" disabled aria-pressed="${who === n ? "true" : "false"}" title="${who === n ? "your signed-in identity " + esc(identity) : "sign in as " + esc(n) + " to record as them"}">${esc(n)}</button>`).join("")}${who ? '<button type="button" class="signout-btn">Sign out</button>' : ""}</span></div>
-      <div class="filters scoperow" role="group" aria-label="whose entries to show"><span class="grouplabel">showing</span>${
-        [["all", "Everyone"]].concat(TEAM.map((n) => [n, n])).map(([k, l]) =>
-          `<button class="scope-btn ${scope === k ? "on" : ""}" data-scope="${esc(k)}" aria-pressed="${scope === k ? "true" : "false"}">${esc(l)}<small>${scopeCount(activeTab, k)}</small></button>`).join("")
-      }</div>
-      <div class="counts">${tally()}${who ? "" : ' · <b class="warn">pick your name above to record</b>'}</div>
+      <div class="runline">${CASES.length} cases · each signed-in tester keeps their own verdict and notes</div>
+      <div class="header-row tab-row">
+        <div class="tabs" role="group" aria-label="QA surface">${TABS.map((t) => {
+          const k = counts(t);
+          return `<button class="tab ${t === activeTab ? "on" : ""}" data-tab="${esc(t)}" aria-pressed="${t === activeTab ? "true" : "false"}">${esc(t)}<small>${k.done}/${k.total}${k.fails ? " · " + k.fails + "F" : ""}</small></button>`;
+        }).join("")}</div>
+        <div class="scoperow" role="group" aria-label="whose entries to show"><span class="grouplabel">showing</span>${
+          [["all", "Everyone"]].concat(TEAM.map((n) => [n, n])).map(([k, l]) =>
+            `<button class="scope-btn ${scope === k ? "on" : ""}" data-scope="${esc(k)}" aria-pressed="${scope === k ? "true" : "false"}">${esc(l)}<small>${scopeCount(activeTab, k)}</small></button>`).join("")
+        }</div>
+      </div>
+      <div class="header-row filter-row">
+        <div class="filters" role="group" aria-label="case status">${[["all", "All"], ["issues", "Issues"], ["open", "Undecided"]].map(([k, l]) =>
+          `<button class="filt ${filter === k ? "on" : ""}" data-f="${k}" aria-pressed="${filter === k ? "true" : "false"}">${l}</button>`).join("")}</div>
+        <div class="counts">${tally()}${who ? ' · <button type="button" class="signout-btn">Sign out</button>' : ' · <b class="warn">recording unavailable</b>'}</div>
+      </div>
     </header>`;
 
     const rows = CASES.filter((c) => c.tab === activeTab).filter((c) => {
@@ -905,7 +921,7 @@
       }
       if (!dirty && !saving) {
         savebar.className = "savebar saved";
-        savebar.textContent = "live — two testers at once";
+        savebar.textContent = "live — shared results";
       }
     } catch (e) {
       // A dropped poll is not worth alarming anyone about; the next one retries.
@@ -970,7 +986,7 @@
 
       if (stateResponse.ok && !dirty) {
         savebar.className = "savebar saved";
-        savebar.textContent = "live — two testers at once";
+        savebar.textContent = "live — shared results";
       }
       pollTimer = setInterval(poll, POLL_MS);
     } catch (e) {

@@ -139,6 +139,15 @@ describe("shard shape validation", () => {
 });
 
 describe("display labels", () => {
+  it("uses a saved name everywhere and falls back only for unnamed addresses", () => {
+    expect(
+      displayLabels([
+        { address: ADDRESS, person: "Afo" },
+        { address: OTHER_ADDRESS, person: "" },
+      ]),
+    ).toEqual(["Afo", "0x2268…6b56"]);
+  });
+
   it("keeps same-name address shards distinct", () => {
     const labels = displayLabels([
       { address: ADDRESS, person: "Afo" },

@@ -196,7 +196,7 @@ test("plan lifecycle guard fails when completed work remains active", () => {
   const sources = replaceRequiredMarker(
     liveSources,
     ".claude/skills/plan/SKILL.md",
-    /If fully implemented, move the hub to `\.plans\/archive\/`/i,
+    /If fully implemented, close the hub with `plan-hub\.mjs move --to archive/i,
     "If fully implemented, leave the hub active",
   );
 
