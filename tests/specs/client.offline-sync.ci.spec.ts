@@ -49,21 +49,30 @@ async function waitForActiveServiceWorker(page: import("@playwright/test").Page)
     "Offline reload requires service-worker support on a secure localhost or HTTPS origin."
   ).toEqual({ secureContext: true, supported: true });
 
-  await page.evaluate(
-    async ({ scriptUrl, scope }) => {
-      const existingRegistration = await navigator.serviceWorker.getRegistration(scope);
-      const registration =
-        existingRegistration ??
-        (await navigator.serviceWorker.register(scriptUrl, {
-          scope,
-          updateViaCache: "none",
-        }));
-
-      await registration.update();
-      await navigator.serviceWorker.ready;
-    },
-    { scriptUrl: PWA_DEV_SERVICE_WORKER_SCRIPT, scope: PWA_APP_SCOPE }
-  );
+  // The app registers the dev service worker itself during boot (and sweeps
+  // legacy scopes while doing so), so this helper observes rather than drives:
+  // racing a second register/update against the app's own registration made
+  // Chromium reject with "Failed to update a ServiceWorker … Not found".
+  await expect(async () => {
+    const state = await page.evaluate(
+      async ({ scriptUrl, scope }) => {
+        const existing = await navigator.serviceWorker.getRegistration(scope);
+        if (existing?.active) return "active";
+        if (!existing) {
+          try {
+            await navigator.serviceWorker.register(scriptUrl, { scope, updateViaCache: "none" });
+          } catch {
+            // The app may be registering the same scope concurrently; the poll retries.
+          }
+        }
+        const registration = await navigator.serviceWorker.getRegistration(scope);
+        if (registration?.active) return "active";
+        return registration ? "pending" : "absent";
+      },
+      { scriptUrl: PWA_DEV_SERVICE_WORKER_SCRIPT, scope: PWA_APP_SCOPE }
+    );
+    expect(state).toBe("active");
+  }).toPass({ timeout: 30000 });
 
   await expect
     .poll(
@@ -136,7 +145,12 @@ test.describe("Offline Sync CI Tests", () => {
       await page.waitForLoadState("domcontentloaded");
 
       await expect(page.getByText("Unexpected Application Error", { exact: true })).toHaveCount(0);
-      await expect(page.getByTestId("login-button")).toBeVisible({ timeout: 10000 });
+      // The unauthenticated splash may open on either panel (sign-in exposes
+      // login-button; create-account exposes its own primary button) — the
+      // assertion is that an interactive auth screen rendered, not which panel.
+      await expect(
+        page.getByTestId("login-button").or(page.getByRole("button", { name: "Create Account" }))
+      ).toBeVisible({ timeout: 10000 });
       await waitForActiveServiceWorker(page);
 
       const registrationScope = await page.evaluate(async () => {

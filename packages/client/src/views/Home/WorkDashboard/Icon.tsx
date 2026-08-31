@@ -15,6 +15,15 @@ interface WorkDashboardIconProps {
 export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className }) => {
   const intl = useIntl();
   const { isOnline, pendingCount, syncStatus } = useOffline();
+
+  // Offline work management is a core promise: warm the dashboard module as
+  // soon as the launcher mounts, so opening it offline never hits a failed
+  // dynamic import (which would surface the error boundary instead of the
+  // sheet). Deferring to idle time proved too late when the network drops
+  // shortly after load.
+  React.useEffect(() => {
+    void import(".").catch(() => {});
+  }, []);
   const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
   const closeWorkDashboard = useUIStore((s) => s.closeWorkDashboard);

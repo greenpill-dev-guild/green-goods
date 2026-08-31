@@ -10,7 +10,12 @@ import { AppBar } from "@/components/Layout/AppBar";
 import { APP_ROUTES } from "@/config/pwaRouting";
 
 const ENSClaimReminder = lazy(() =>
-  import("./ENSClaimReminder").then((module) => ({ default: module.ENSClaimReminder }))
+  import("./ENSClaimReminder")
+    .then((module) => ({ default: module.ENSClaimReminder }))
+    // The reminder is an optional adjunct: failing to load it (typically while
+    // offline in dev, where chunks are served on demand) must not take down
+    // the route through the error boundary.
+    .catch(() => ({ default: () => null }))
 );
 
 function DeferredEnsClaimReminder() {
