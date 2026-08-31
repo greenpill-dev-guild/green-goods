@@ -28,9 +28,18 @@ const VALIDATION_RECEIPT_DEBT_PATH = join(
 const STAGES = ["ideas", "backlog", "active"];
 const MOVE_STAGES = [...STAGES, "archive"];
 const VALIDATION_STAGES = [...STAGES, "archive"];
-const ALLOWED_PLAN_ROOT_ENTRIES = new Set(["README.md", "_templates", ...VALIDATION_STAGES]);
+const ALLOWED_PLAN_ROOT_ENTRIES = new Set(["README.md", "ARCHIVE.md", "_templates", ...VALIDATION_STAGES]);
+const ARCHIVE_LEDGER_PATH = join(PLANS_ROOT, "ARCHIVE.md");
+const ARCHIVE_LEDGER_HEADER = `# Archived Plan Ledger
+
+Closed feature hubs are deleted from the working tree; Git history is the only archive.
+Recover one with \`git log --oneline -- <historical path>\` and
+\`git checkout <sha>^ -- <historical path>\` against its closeout commit.
+
+| Archived (UTC) | Slug | Title | Resolution | Historical path | Closeout |
+|---|---|---|---|---|---|
+`;
 const REQUIRED_LINK_ROLES = ["brief", "spec", "plan", "eval"];
-const ARCHIVE_DOCUMENT_MARKER = "> **Archived record:** implementation is closed.";
 const ARCHIVE_STATUS_KEYS = new Set([
   "version",
   "feature",
@@ -195,6 +204,7 @@ function usage() {
   console.log(`Usage:
   node scripts/harness/plan-hub.mjs scaffold <feature-slug> [--title "Feature Title"] [--stage backlog]
   node scripts/harness/plan-hub.mjs move --feature <feature-slug> --to <ideas|backlog|active|archive> [--reason "closeout reason"] [--resolution <completed|closed|closed_stale|superseded|paused|cancelled>]
+      (--to archive validates the hub, appends a row to .plans/ARCHIVE.md, and deletes the hub directory; git history is the only archive)
   node scripts/harness/plan-hub.mjs list --agent <claude|codex> --lane <lane> [--stage active] [--json]
   node scripts/harness/plan-hub.mjs set-lane --feature <feature-slug> --lane <lane> --status <status> [--actor human] [--branch <branch>] [--note "text"]
   node scripts/harness/plan-hub.mjs record-tdd --feature <feature-slug> --lane <ui|state-api|contracts> --red-command "..." --red-evidence "..." --green-command "..." --green-evidence "..." [--actor human]
@@ -202,7 +212,6 @@ function usage() {
   node scripts/harness/plan-hub.mjs record-linear --feature <feature-slug> [--parent PRD-123] [--lane ui=PRD-124] [--execution-lane contracts=PRD-125] [--lane-sync-mode <lane_issues|parent_only>] [--project <name-or-id>] [--initiative <name-or-id>] [--actor human]
   node scripts/harness/plan-hub.mjs summary [--initiative <initiative>] [--track <track>] [--json]
   node scripts/harness/plan-hub.mjs stale [--days 14] [--json]
-  node scripts/harness/plan-hub.mjs compact-archive
   node scripts/harness/plan-hub.mjs check-branch --feature <feature-slug> --lane <lane>
   node scripts/harness/plan-hub.mjs validate`);
 }
@@ -357,13 +366,6 @@ function ensureActiveHandoffFiles(destinationDir, replacements) {
   }
 }
 
-function archiveEntryNames(status) {
-  return new Set([
-    "status.json",
-    "reports",
-    ...Object.values(status.links || {}).filter((value) => typeof value === "string" && value.length > 0),
-  ]);
-}
 
 function isConfinedReportLink(link) {
   if (typeof link !== "string" || !link.startsWith("reports/") || link.includes("\\")) return false;
@@ -403,37 +405,18 @@ function reportsEntryError(featureDirPath) {
   return null;
 }
 
-function compactArchiveFeature(destinationDir, status) {
-  const allowedEntries = archiveEntryNames(status);
-  for (const entry of readdirSync(destinationDir)) {
-    if (!allowedEntries.has(entry)) {
-      rmSync(join(destinationDir, entry), { recursive: true, force: true });
-    }
-  }
+
+
+function ledgerCell(value) {
+  return String(value ?? "").replaceAll("|", "\\|").replaceAll(/\r?\n/g, " ").trim();
 }
 
-function markArchivedDocuments(destinationDir, status) {
-  const slug = status.feature.slug;
-  for (const relativePath of Object.values(status.links)) {
-    if (isConfinedReportLink(relativePath)) continue;
-    const documentPath = join(destinationDir, relativePath);
-    if (!relativePath.endsWith(".md") || !existsSync(documentPath)) {
-      continue;
-    }
-
-    let contents = readFileSync(documentPath, "utf8")
-      .replaceAll(`.plans/active/${slug}`, `.plans/archive/${slug}`)
-      .replaceAll(`.plans/backlog/${slug}`, `.plans/archive/${slug}`)
-      .replaceAll(`.plans/ideas/${slug}`, `.plans/archive/${slug}`);
-    if (!contents.includes(ARCHIVE_DOCUMENT_MARKER)) {
-      const firstLineEnd = contents.indexOf("\n");
-      contents =
-        firstLineEnd === -1
-          ? `${contents}\n\n${ARCHIVE_DOCUMENT_MARKER} Operational handoffs, artifacts, and lane files were removed; preserved reports and any references below describe historical execution, not live work.\n`
-          : `${contents.slice(0, firstLineEnd)}\n\n${ARCHIVE_DOCUMENT_MARKER} Operational handoffs, artifacts, and lane files were removed; preserved reports and any references below describe historical execution, not live work.\n${contents.slice(firstLineEnd + 1)}`;
-    }
-    writeFileSync(documentPath, contents);
-  }
+function appendArchiveLedgerEntry(status, historicalPath) {
+  const row = `| ${ledgerCell(status.workflow.archived_at)} | \`${ledgerCell(status.feature.slug)}\` | ${ledgerCell(status.feature.title)} | ${ledgerCell(status.workflow.resolution)} | \`${ledgerCell(historicalPath)}\` | ${ledgerCell(status.workflow.archive_reason)} |\n`;
+  const existing = existsSync(ARCHIVE_LEDGER_PATH)
+    ? readFileSync(ARCHIVE_LEDGER_PATH, "utf8")
+    : ARCHIVE_LEDGER_HEADER;
+  writeFileSync(ARCHIVE_LEDGER_PATH, `${existing.endsWith("\n") ? existing : `${existing}\n`}${row}`);
 }
 
 function compactArchiveStatus(status) {
@@ -640,7 +623,7 @@ function featureRecords(stage) {
 }
 
 function formalFeatureSlugs() {
-  return new Set(VALIDATION_STAGES.flatMap((stage) => featureRecords(stage).map((record) => record.status.feature.slug)));
+  return new Set(STAGES.flatMap((stage) => featureRecords(stage).map((record) => record.status.feature.slug)));
 }
 
 function validatePlanRootStructure(failures) {
@@ -666,6 +649,12 @@ function validateStageStructure(stage, failures) {
 
   for (const entry of readdirSync(stageDir)) {
     const entryPath = join(stageDir, entry);
+    if (stage === "archive") {
+      failures.push(
+        `${entryPath}: archived hubs must not exist in the working tree; close hubs with move --to archive (ledger + deletion) — git history is the only archive`,
+      );
+      continue;
+    }
     if (!statSync(entryPath).isDirectory()) {
       failures.push(`${entryPath}: unsupported loose file; plan stages contain feature directories only`);
       continue;
@@ -674,29 +663,6 @@ function validateStageStructure(stage, failures) {
     if (!existsSync(statusPathForDir(entryPath))) {
       failures.push(`${entryPath}: missing status.json`);
       continue;
-    }
-
-    if (stage === "archive") {
-      const { status } = readFeatureStatus(entryPath);
-      const allowedEntries = archiveEntryNames(status);
-      const reportsError = reportsEntryError(entryPath);
-      if (reportsError) failures.push(reportsError);
-      for (const child of readdirSync(entryPath)) {
-        const childPath = join(entryPath, child);
-        if (!allowedEntries.has(child)) {
-          failures.push(
-            `${childPath}: archived hubs retain only status.json, reports, and their four linked plan documents`,
-          );
-        } else if (child === "reports") {
-          if (!reportsError && !statSync(childPath).isDirectory()) {
-            failures.push(`${childPath}: archived reports must remain in the reports directory`);
-          }
-        } else if (!statSync(childPath).isFile()) {
-          failures.push(`${childPath}: archived plan documents must be top-level files`);
-        } else if (child !== "status.json" && !readFileSync(childPath, "utf8").includes(ARCHIVE_DOCUMENT_MARKER)) {
-          failures.push(`${childPath}: archived plan documents must include the archived-record marker`);
-        }
-      }
     }
   }
 }
@@ -2272,7 +2238,7 @@ function moveFeature(flags, archiveLockHeld = false) {
   }
 
   const destinationDir = featureDir(toStage, slug);
-  if (existsSync(destinationDir)) {
+  if (toStage !== "archive" && existsSync(destinationDir)) {
     fail(`Destination already exists: ${destinationDir}`);
   }
 
@@ -2309,6 +2275,17 @@ function moveFeature(flags, archiveLockHeld = false) {
     }
   }
 
+  if (toStage === "archive") {
+    const historicalPath = `.plans/${found.stage}/${slug}`;
+    compactArchiveStatus(status);
+    appendArchiveLedgerEntry(status, historicalPath);
+    rmSync(found.dir, { recursive: true, force: true });
+    console.log(
+      `Closed ${slug}: deleted ${historicalPath} and recorded it in .plans/ARCHIVE.md (git history is the archive).`,
+    );
+    return;
+  }
+
   mkdirSync(planStageDir(toStage), { recursive: true });
   renameSync(found.dir, destinationDir);
   if (toStage === "active") {
@@ -2319,11 +2296,6 @@ function moveFeature(flags, archiveLockHeld = false) {
       DATE: movedAt,
       WORKFLOW_STATUS: STAGE_TO_STATUS[toStage],
     });
-  }
-  if (toStage === "archive") {
-    compactArchiveFeature(destinationDir, status);
-    compactArchiveStatus(status);
-    markArchivedDocuments(destinationDir, status);
   }
   saveJson(statusPathForDir(destinationDir), status);
 
@@ -2438,44 +2410,6 @@ function stale(flags) {
   }
 }
 
-function compactArchive(archiveLockHeld = false) {
-  if (!archiveLockHeld) {
-    return withArchiveLock(() => compactArchive(true));
-  }
-  const records = featureRecords("archive");
-  const failures = [];
-  const knownSlugs = formalFeatureSlugs();
-
-  for (const record of records) {
-    const reportsError = reportsEntryError(record.dir);
-    if (reportsError) failures.push(reportsError);
-    const errors = validateFeatureStatus(record.status, record.dir, "archive", knownSlugs).filter(
-      (error) =>
-        !error.startsWith("archive status must fold notes") &&
-        !error.startsWith("archive status has noncanonical fields") &&
-        !error.startsWith("archive Linear metadata has noncanonical fields") &&
-        !error.startsWith("archive status history must contain") &&
-        !error.startsWith("archive lane ") &&
-        !error.startsWith("archive status must not reference live plan paths"),
-    );
-    for (const error of errors) {
-      failures.push(`${record.dir}: ${error}`);
-    }
-  }
-
-  if (failures.length > 0) {
-    fail(failures.join("\n"));
-  }
-
-  for (const record of records) {
-    const status = compactArchiveStatus(record.status);
-    compactArchiveFeature(record.dir, status);
-    markArchivedDocuments(record.dir, status);
-    saveJson(statusPathForDir(record.dir), status);
-  }
-
-  console.log(`Compacted ${records.length} archived feature hub${records.length === 1 ? "" : "s"}.`);
-}
 
 function setLane(flags) {
   const slug = requireFlag(flags, "feature");
@@ -2791,7 +2725,7 @@ function validate() {
   }
   validateFencedYaml(failures);
 
-  const records = VALIDATION_STAGES.flatMap((stage) => featureRecords(stage));
+  const records = STAGES.flatMap((stage) => featureRecords(stage));
   const knownSlugs = new Set(records.map((record) => record.status.feature.slug));
 
   for (const record of records) {
@@ -2874,9 +2808,6 @@ switch (command) {
     break;
   case "stale":
     stale(flags);
-    break;
-  case "compact-archive":
-    compactArchive();
     break;
   case "check-branch":
     checkBranch(flags);

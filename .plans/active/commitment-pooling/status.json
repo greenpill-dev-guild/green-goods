@@ -105,7 +105,7 @@
       "docs/docs",
       ".plans/active/community-interface"
     ],
-    "depends_on_features": ["envio-hyperindex-v3-migration"]
+    "depends_on_features": []
   },
   "notes": [
     "Production-readiness checkpoint 2026-08-22: contracts, indexer source/config, shared, and the critical repository gate pass. The core tier remains REQUEST_CHANGES because the hosted indexer serves the old schema, Arbitrum ownership is still with the deployment sender, and the corrected working candidate needs a clean committed SHA. Settlement remains COMMENT_ONLY and does not block the core tier while paused and unavailable; the live Celo protocol Safe is 1-of-4 and its ownership dry run fails closed. Full evidence and the authorized-operations order are in reports/production-readiness-review-2026-08-22.md. No broadcast, hosted deployment, cutover, Safe mutation, availability flip, ping, canary, value movement, or Linear write was authorized.",

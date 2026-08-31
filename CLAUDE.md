@@ -10,8 +10,9 @@ in this file.
 - Path-scoped rules in `.claude/rules/*.md` load by file glob and point to their canonical context.
 - `.claude/skills/` is the shared Claude/Codex skill source. `.agents/skills` is its symlinked Codex
   discovery path; never create a second copy.
-- Feature execution truth lives in `.plans/{ideas|backlog|active|archive}/<feature-slug>/`; the
-  passive `plan` skill owns lifecycle and Linear mirroring.
+- Feature execution truth lives in `.plans/{ideas|backlog|active}/<feature-slug>/`; the passive
+  `plan` skill owns lifecycle and Linear mirroring. Closed hubs are deleted at closeout and
+  indexed in `.plans/ARCHIVE.md` — Git history is the only archive.
 - Use [`.claude/context/codebase-architecture.md`](.claude/context/codebase-architecture.md) for
   architecture opportunities, structural review, and deep-module or seam vocabulary.
 - Use [`.claude/context/validation-pipeline.md`](.claude/context/validation-pipeline.md) for the
