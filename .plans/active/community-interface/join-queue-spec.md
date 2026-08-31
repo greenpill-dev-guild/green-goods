@@ -149,7 +149,7 @@ The browser API already checks allowed origins and derives public rate-limit key
 - [ ] A request manually fulfilled while the agent is unavailable becomes welcomed on the next member or operator queue read.
 - [ ] Pending, resolved, and withdrawn records follow the accepted expiry/deletion policy; no personal request field reaches logs or analytics.
 - [ ] Rate limits, queue cap, and the aggregate operator spam signal are testable.
-- [ ] Every string is added in en/es/pt and avoids the glossary's disallowed copy (`docs/docs/reference/glossary-community.md:102-121`).
+- [ ] Every string is added in en/es/pt and avoids the banned-vocabulary policy (`scripts/data/banned-vocabulary.json`).
 - [x] API, database, and UI implementation is authorized locally; production request collection remains blocked by the activation checklist in `status.json`.
 
 **Out of scope:** public on-chain requests; Linear-as-queue; implicit localStorage transport; a protocol admin key; automatic membership grants; a new pool job kind; a new admin workspace or route; September Community UI; and activation of `community_membership` before RESR-64 accepts it.

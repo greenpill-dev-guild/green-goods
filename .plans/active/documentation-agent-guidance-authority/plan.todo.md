@@ -3,7 +3,7 @@
 **Feature Slug**: `documentation-agent-guidance-authority`
 **Status**: `ACTIVE`
 **Created**: `2026-08-30`
-**Last Updated**: `2026-08-30`
+**Last Updated**: `2026-08-31`
 
 ## Decision Log
 
@@ -22,14 +22,14 @@
 
 | Requirement | Step | Status |
 |---|---|---|
-| Clean ownership checkpoint and selected ledger | 0 | Local selection complete; committed integration SHA pending |
-| Vercel configuration and GitHub validation-only workflow | 1-2 | Checked-in docs configuration complete; live project Root Directory correction and successful preview pending |
+| Clean ownership checkpoint and selected ledger | 0 | Complete — landed on develop 2026-08-31 as `cfa4f2272`…`3562fd9c8` plus projection refresh `8190dc240` and reference repairs `b87446a27` |
+| Vercel configuration and GitHub validation-only workflow | 1-2 | Checked-in configuration complete; a head Vercel deployment reached READY with a 79-route sitemap; protected preview route-response checks pending (Vercel auth) |
 | Task-to-skill routing contract and generated page | 3 | Complete |
 | Internal/public authority reversal and skill consolidation | 4 | Complete; active predecessor citations now point directly to their owning DesignMD contracts |
 | Six ontology-backed Reference pages | 5 | Complete |
 | Twenty current Community pages | 6 | Complete |
 | Dead docs code, artifacts, and assets removed | 7 | Complete; docs Knip scan is clean |
-| Final hard gates and 79-route production sitemap | 8 | Local gates complete; production Vercel verification pending |
+| Final hard gates and 79-route production sitemap | 8 | Local gates complete and re-proven at the landed tree (`8190dc240`); production Vercel verification pending |
 
 ## Execution Steps
 

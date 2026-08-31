@@ -112,7 +112,7 @@ Prefix the message with `<@${DISCORD_USER_ID_AFO}>` only when a Phase 5 risk nee
 
 | Don't | Why |
 | --- | --- |
-| Hardcode the cadence/naming | Read it live from `releasing.mdx` so the brief follows the runbook |
+| Hardcode the cadence/naming | Read it live from `CONTRIBUTING.md` § Releases and hotfixes so the brief follows the runbook |
 | Claim `lint:vocab` validated the announcement | It only scans i18n JSON; prose is a manual term-list check |
 | Commit, open PRs, or tag | Read + draft only; the human cuts the release |
 | Treat the first large commit range as a bug | The first cadenced release is a catch-up; flag it as expected |
