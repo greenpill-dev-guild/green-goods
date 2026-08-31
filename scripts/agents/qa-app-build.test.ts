@@ -40,6 +40,17 @@ describe("QA app page", () => {
     expect(() => new Script(inlineScript())).not.toThrow();
   });
 
+  it("does not let overlay display rules override the hidden state", () => {
+    // The sign-in panel is a full-screen grid. Without an author-level hidden
+    // rule, `.signin { display: grid }` wins over the browser stylesheet after
+    // authentication: the session succeeds underneath, but the wallet prompt
+    // remains visible and sends the tester through another signature attempt.
+    const hiddenRule = page.match(/\[hidden\]\s*\{([^}]*)\}/)?.[1];
+    expect(hiddenRule, "index.html must force hidden overlays out of layout").toMatch(
+      /display\s*:\s*none\s*!important/,
+    );
+  });
+
   it("gives every selectable control a selected state and every note a name", () => {
     const script = inlineScript();
     // Selection lived only in the `on` class, which a screen reader cannot see.
