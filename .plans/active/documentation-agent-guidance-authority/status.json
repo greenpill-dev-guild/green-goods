@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-08-31T01:28:28.764Z",
-    "updated_at": "2026-08-31T06:31:17.311Z"
+    "updated_at": "2026-08-31T20:17:06.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -217,6 +217,14 @@
       "status": "tdd_recorded",
       "branch": null,
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-08-31T20:17:06.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "landed_recorded",
+      "branch": null,
+      "note": "Integration landed on develop as cfa4f2272..3562fd9c8 (rebased from chore/documentation-authority-migration; PR #785 is now zero-diff against develop) plus projection refresh 8190dc240 and stale-reference repairs b87446a27. Local docs, ontology, guidance, and skill gates re-run green at the landed tree. Remaining: protected preview route-response checks and production Vercel sitemap verification (need Vercel auth), plus one final eval:skills run (needs an authenticated non-nested CLI)."
     }
   ]
 }
