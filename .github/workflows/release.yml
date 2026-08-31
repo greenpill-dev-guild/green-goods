@@ -7,7 +7,7 @@
 # if present, else the current UTC month-year (tag on/after the 1st of the ship
 # month so it matches).
 #
-# Canonical runbook: docs/docs/builders/deployments/releasing.mdx
+# Canonical runbook: CONTRIBUTING.md § Releases and hotfixes
 name: Release
 
 on:

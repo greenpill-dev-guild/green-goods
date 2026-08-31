@@ -3,6 +3,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  readTaskRouting,
+  validateTaskRouting,
+} from "./task-routing-contract.mjs";
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const REPO_ROOT = path.resolve(path.dirname(SCRIPT_PATH), "../..");
@@ -462,17 +466,24 @@ function main() {
   }
 
   const report = evaluateSkillBehaviorContracts(sources);
-  if (!report.passed) {
+  let routingErrors = [];
+  try {
+    routingErrors = validateTaskRouting(REPO_ROOT, readTaskRouting(REPO_ROOT));
+  } catch (error) {
+    routingErrors = [error.message];
+  }
+  if (!report.passed || routingErrors.length) {
     console.error("skill behavior contracts: FAILED");
     for (const result of report.failures) {
       console.error(`- ${result.id}: ${result.summary}`);
       for (const failure of result.failures) console.error(`  - ${failure}`);
     }
+    for (const failure of routingErrors) console.error(`- task-routing: ${failure}`);
     process.exitCode = 1;
     return;
   }
 
-  console.log(`skill behavior contracts: ${report.results.length} scenarios passed`);
+  console.log(`skill behavior contracts: ${report.results.length} scenarios and ${readTaskRouting(REPO_ROOT).tasks.length} task routes passed`);
 }
 
 if (path.resolve(process.argv[1] ?? "") === SCRIPT_PATH) main();

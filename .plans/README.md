@@ -67,6 +67,9 @@ active feature hub.
   environment-local unless an explicit freshness, expiry, and ownership policy says otherwise
 - Do not promote a repo-level `.claude/agent-memory/` surface into committed truth by default
 - When the hub and a local memory artifact disagree, fix the hub or record the blocker in the hub
+- Keep decisions, acceptance criteria, evidence, ownership, and unresolved judgment in the hub.
+  Do not copy route, export, endpoint, deployment, or workflow inventories from code; cite their
+  owning source instead.
 
 ### Validation Posture
 

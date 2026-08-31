@@ -30,7 +30,7 @@ The product is considering removing passkeys because the current experience can 
 - Related research: Kernel guardian recovery is real, but is treated as a non-blocking spike because it requires account/plugin setup before loss and is not a small config flip in the current `permissionless` Kernel flow.
 - Guardrail: failed recovery stays in the recovery surface with retry/back only. Fresh account creation remains a separate entry/create flow and must not be started implicitly from recovery.
 - Production readiness gate: the implementation must prove canonical RP/origin configuration, address continuity, outage rollback, privacy-safe telemetry, and stale passkey docs cleanup before production enablement.
-- Related spec: `docs/docs/builders/specs/passkey-server-hardening-and-recovery-ready-auth-2026-03.md` remains an unlisted reference, but this active hub is the release execution truth.
+- Historical research: the March 2026 passkey-hardening proposal remains recoverable through Git history. This archived hub carries the durable release constraints and implementation record.
 
 ## Success Signal
 

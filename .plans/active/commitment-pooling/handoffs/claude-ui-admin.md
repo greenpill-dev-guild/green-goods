@@ -409,10 +409,10 @@ stays as written:
 - **A new architecture gate arrived from `develop`**, `node scripts/quality/check-react-patterns.js`,
   wired into the CI Gate by #750. It reports 0 violations across this lane's 100 files.
 
-Still open: decision 7. `check:design-generated` remains red on
-`docs/docs/builders/packages/client-pwa-token-audit.generated.md`; regenerating changes 95 rows,
-every one of them a `packages/client` path, so it is the client lane's artifact and this branch
-did not regenerate it.
+Still open: decision 7. `check:design-generated` remains red on the generated
+`output/design/client-pwa-token-audit.md` artifact; regenerating changes 95 rows, every one of
+them a `packages/client` path, so it is the client lane's artifact and this branch did not
+regenerate it.
 
 Proof on the merged tree (`e7afb8844`): shared 340 files / 3892 tests, admin 93 / 638, client
 92 / 814, root lint 0 errors, shared typecheck clean, admin `typecheck:source` clean,
@@ -469,8 +469,8 @@ derivation, and the fallback tests now go through their `answerWith()` fixture s
 and the viewer's own query are answered apart.
 
 **Decision 7 is closed, and not by this branch.** The parent's newest commit regenerated
-`client-pwa-token-audit.generated.md`, so `check:design-generated` and the Design Guardrails job
-are green here.
+`output/design/client-pwa-token-audit.md`, so `check:design-generated` and the Design Guardrails
+job are green here.
 
 Every check on PR #752 passes at `a91438fe9`: CI Gate, Design Guardrails, Storybook, Playwright
 Admin and Client, the four Lint/Typecheck/Build jobs, Ontology Drift, Supply-chain guardrails and

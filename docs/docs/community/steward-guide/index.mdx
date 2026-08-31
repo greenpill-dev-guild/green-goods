@@ -1,112 +1,35 @@
 ---
-title: Steward Guide
-sidebar_label: Steward Guide
+title: Steward and Evaluator Guide
+sidebar_label: Steward and Evaluator Guide
 slug: /community/steward-guide/
-description: "Core path for stewards: create gardens, make assessments, review work, and mint impact certificates."
+description: "Create and operate a Garden, assess its needs, review Work, certify impact, and manage funding."
 audience: steward
 owner: docs
-last_verified: 2026-07-03
+last_verified: 2026-08-30
 feature_status: Live
-image: /img/social/steward-overview.webp
-goal: "Give stewards the live path: create a garden, make an assessment, approve work, and mint an impact certificate."
+goal: "Route stewards and evaluators to the current authorized workflow."
 difficulty: "standard"
 estimated_time: "Varies by flow."
-prereqs: "A steward or deployer account, depending on the task."
+prereqs: "An account with the role required by the selected action."
 next_steps: "./creating-a-garden"
-persona_context: "Stewards setting up gardens, making assessments, keeping the work queue clean, and packaging verified work into impact certificates."
+persona_context: "Stewards operate Gardens; evaluators strengthen Assessments and impact methodology."
 source_of_truth:
-  - docs/sidebars.ts
+  - packages/admin/src/router.tsx
+  - packages/admin/src/views
+  - packages/shared/src/hooks/garden/useGardenPermissions.ts
   - packages/contracts/src/resolvers/WorkApproval.sol
   - packages/contracts/src/resolvers/Assessment.sol
-  - docs/docs/community/steward-guide/creating-a-garden.mdx
-  - docs/docs/community/steward-guide/making-an-assessment.mdx
-  - docs/docs/community/steward-guide/reviewing-work.mdx
-  - docs/docs/community/steward-guide/creating-impact-certificates.mdx
-keywords:
-  - steward
-  - create garden
-  - approve work
-  - assessment
-  - impact certificate
-  - hypercert
-  - user guide
 ---
 
-import {
-  RiAddLine,
-  RiMedalLine,
-  RiCheckboxCircleLine,
-  RiFileList3Line,
-} from "@remixicon/react";
-import {RolePathCard, StatusBadge} from "@site/src/components/docs";
-import styles from "@site/src/components/docs/styles.module.css";
+# Steward and Evaluator Guide
 
-# Steward Guide
+Stewards operate the Garden and record approval or rejection of submitted Work. Evaluators can help author or strengthen Assessments, methods, and impact claims; they do not approve Work.
 
-<StatusBadge status="Live" />
+- [Create a Garden](/community/steward-guide/creating-a-garden) when you have deployer authority.
+- [Manage Actions](/community/steward-guide/managing-actions) to define the work Gardeners can document.
+- [Create an Assessment](/community/steward-guide/making-an-assessment) to record baseline, outcome, and reporting context.
+- [Review Work](/community/steward-guide/reviewing-work) as a steward and leave actionable feedback.
+- [Mint an Impact Certificate](/community/steward-guide/creating-impact-certificates) only after the evidence chain is ready.
+- [Manage Funding and Governance](/community/steward-guide/funding-and-governance) through the mechanism that fits the decision.
 
-## What this helps you do
-
-This is the core steward path. Use it to create a garden, make an assessment, review incoming work, and mint an impact certificate when the evidence is ready.
-
-The key permission boundary is simple: owners, stewards, and evaluators can make assessments; only owners and stewards approve or reject work.
-
-Day to day the split is simple too: gardeners document work in the [Green Goods app](https://greengoods.app), and you review and approve it here in the [admin dashboard](https://admin.greengoods.app). More on which app to use in the [FAQ](/reference/faq#general).
-
-<div className={[styles.roleGrid, styles.roleGridTwo].join(" ")}>
-  <RolePathCard
-    title="Create a Garden"
-    href="/community/steward-guide/creating-a-garden"
-    image="/img/social/creating-a-garden.webp"
-    imageAlt="Illustrated steward preparing a new garden"
-    icon={<RiAddLine />}
-    roleAccent="steward"
-    audience="Deployers"
-    time="10-25 min"
-    description="Deploy a new garden, set its core details and domains, and prepare the first team and actions before inviting gardeners."
-    ctaLabel="Create"
-  />
-  <RolePathCard
-    title="Make an Assessment"
-    href="/community/steward-guide/making-an-assessment"
-    image="/img/social/making-an-assessment.webp"
-    imageAlt="Illustrated stewards organizing assessment evidence"
-    icon={<RiFileList3Line />}
-    roleAccent="assessment"
-    audience="Stewards and evaluators"
-    time="15-30 min"
-    description="Record the domain, reporting window, outcomes, and evidence context that later approvals and certificates should line up against."
-    ctaLabel="Assess"
-  />
-  <RolePathCard
-    title="Review and Approve Work"
-    href="/community/steward-guide/reviewing-work"
-    image="/img/social/approving-work.webp"
-    imageAlt="Illustrated steward reviewing submitted garden work"
-    icon={<RiCheckboxCircleLine />}
-    roleAccent="steward"
-    audience="Stewards"
-    time="2-10 min"
-    description="Review a gardener submission from the app or admin, approve good evidence, or reject with feedback the gardener can act on."
-    ctaLabel="Review"
-  />
-  <RolePathCard
-    title="Mint Impact Certificate"
-    href="/community/steward-guide/creating-impact-certificates"
-    image="/img/social/mint-impact-certificate.webp"
-    imageAlt="Illustrated steward minting an impact certificate from verified work"
-    icon={<RiMedalLine />}
-    roleAccent="assessment"
-    audience="Stewards"
-    time="20-40 min"
-    description="Bundle approved work and assessment context into the Hypercert-backed certificate flow, then review and mint."
-    ctaLabel="Mint"
-  />
-</div>
-
-## Good operating rhythm
-
-1. Create the garden and confirm its domains and eligible actions before inviting a wider group.
-2. Make an assessment early so stewards have clear context for later reviews.
-3. Approve or reject submissions with feedback that maps back to the action and assessment.
-4. Mint an impact certificate only after the evidence chain is strong enough to defend.
+Check the selected Garden, account, role, and network before any write action. A visible route does not by itself grant permission.

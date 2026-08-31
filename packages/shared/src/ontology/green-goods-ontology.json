@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "description": "Machine-readable Green Goods ontology: canonical entities, controlled vocabularies with per-layer representations and display labels, EAS schemas, cross-layer constraints, and lifecycle state machines. scripts/quality/check-ontology.mjs (bun run check:ontology) drift-gates the declared code and documentation representations; bun run ontology:generate renders five deterministic reference, matrix, human, claims, and agent-manifest projections. Entity and persona prose stays human-canonical in docs/docs/reference/glossary-community.md — this file mirrors it and the checker locks the two together.",
+  "version": 2,
+  "description": "Machine-readable Green Goods ontology: canonical entities, integrations, controlled vocabularies with per-layer representations and display labels, EAS schemas, cross-layer constraints, and lifecycle state machines. scripts/quality/check-ontology.mjs (bun run check:ontology) drift-gates declared code representations and renders the formal reference, Honest Claims page, and agent manifest. scripts/docs/generate.mjs projects the public glossary and integration matrix from this authority.",
   "meta": {
     "last_verified": "2026-08-22",
     "excluded_from_v1": [
@@ -18,6 +18,10 @@
       "reads": "entities, personas, vocabularies, schemas, constraints, state_machines, integration_matrix, known_issues"
     },
     {
+      "path": "scripts/docs/generate.mjs",
+      "reads": "integrations plus entities, personas, state_machines, and integration_matrix"
+    },
+    {
       "path": "docs/docs/reference/ontology.generated.mdx",
       "reads": "generated from all sections (do not edit; run bun run ontology:generate)"
     },
@@ -26,12 +30,77 @@
       "reads": "generated from integration_matrix (do not edit; run bun run ontology:generate)"
     },
     {
-      "path": "docs/docs/reference/glossary-community.md",
-      "reads": "entities + personas + capital ordering (human-readable canon; drift-locked by the docs-glossary guard)"
+      "path": "docs/docs/reference/glossary.generated.mdx",
+      "reads": "generated entities, personas, supporting terms, and capital ordering (do not edit; run bun run docs:generate)"
     },
     {
       "path": ".claude/context/ontology.md",
       "reads": "referenced, not parsed"
+    }
+  ],
+  "integrations": [
+    {
+      "id": "cookie-jar",
+      "display": "Cookie Jar",
+      "definition": "Cookie Jars are Garden-linked distribution primitives. Deployment artifacts and indexer configuration own recorded availability.",
+      "contract_source": "packages/contracts/src/modules/CookieJar.sol",
+      "deployment_fields": ["cookieJarFactory", "cookieJarModule"],
+      "indexer_contracts": ["CookieJarFactory"],
+      "additional_sources": []
+    },
+    {
+      "id": "ens",
+      "display": "ENS",
+      "definition": "ENS connects Garden identity to names across the configured registry, receiver, and application resolution paths.",
+      "contract_source": "packages/contracts/src/registries/ENS.sol",
+      "deployment_fields": ["ensReceiver", "greenGoodsENS"],
+      "indexer_contracts": [],
+      "additional_sources": ["packages/shared/src/utils/blockchain/ens.ts"]
+    },
+    {
+      "id": "gardens",
+      "display": "Gardens",
+      "definition": "The Gardens module connects a Green Goods Garden to governance communities and signal pools.",
+      "contract_source": "packages/contracts/src/modules/Gardens.sol",
+      "deployment_fields": ["gardensModule"],
+      "indexer_contracts": [],
+      "additional_sources": ["packages/shared/src/config/gardens-subgraph.ts"]
+    },
+    {
+      "id": "hats",
+      "display": "Hats Protocol",
+      "definition": "Hats provides the on-chain role hierarchy used to authorize Garden responsibilities.",
+      "contract_source": "packages/contracts/src/modules/Hats.sol",
+      "deployment_fields": ["hatsModule"],
+      "indexer_contracts": ["HatsModule"],
+      "additional_sources": []
+    },
+    {
+      "id": "hypercerts",
+      "display": "Hypercerts",
+      "definition": "Hypercerts represent certified impact claims and their fraction ownership.",
+      "contract_source": "packages/contracts/src/modules/Hypercerts.sol",
+      "deployment_fields": ["hypercertExchange", "hypercertMinter", "hypercertsModule"],
+      "indexer_contracts": ["HypercertMinter"],
+      "additional_sources": []
+    },
+    {
+      "id": "karma",
+      "display": "Karma GAP",
+      "definition": "Karma GAP connects Garden activity with project reporting and milestone records.",
+      "contract_source": "packages/contracts/src/modules/Karma.sol",
+      "deployment_fields": ["karmaGAPModule"],
+      "indexer_contracts": ["KarmaGAPModule"],
+      "additional_sources": []
+    },
+    {
+      "id": "octant",
+      "display": "Octant",
+      "definition": "Octant provides Garden vault creation, deposits, withdrawals, and yield-donation mechanics.",
+      "contract_source": "packages/contracts/src/modules/Octant.sol",
+      "deployment_fields": ["octantFactory", "octantModule"],
+      "indexer_contracts": ["OctantModule", "OctantVault"],
+      "additional_sources": []
     }
   ],
   "entities": [
@@ -49,7 +118,7 @@
           "type": "Garden"
         },
         "shared": ["packages/shared/src/types/domain.ts"],
-        "docs": "docs/docs/reference/glossary-community.md"
+        "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "relationships": [
         {
@@ -77,7 +146,7 @@
           "type": "Action"
         },
         "shared": ["packages/shared/src/types/domain.ts"],
-        "docs": "docs/docs/reference/glossary-community.md"
+        "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "relationships": [
         {
@@ -96,7 +165,7 @@
       "layers": {
         "solidity": ["packages/contracts/src/resolvers/Work.sol"],
         "shared": ["packages/shared/src/types/domain.ts"],
-        "docs": "docs/docs/reference/glossary-community.md"
+        "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "indexer_note": "Not indexed by Envio — work attestations are queried from EAS (easscan) per the indexing boundary.",
       "relationships": [
@@ -120,7 +189,7 @@
       "layers": {
         "solidity": ["packages/contracts/src/resolvers/WorkApproval.sol"],
         "shared": ["packages/shared/src/types/domain.ts"],
-        "docs": "docs/docs/reference/glossary-community.md"
+        "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "indexer_note": "Not indexed by Envio — approval attestations are queried from EAS (easscan) per the indexing boundary.",
       "relationships": [
@@ -149,7 +218,7 @@
       "layers": {
         "solidity": ["packages/contracts/src/resolvers/Assessment.sol"],
         "shared": ["packages/shared/src/types/domain.ts"],
-        "docs": "docs/docs/reference/glossary-community.md"
+        "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "indexer_note": "Not indexed by Envio — assessment attestations are queried from EAS (easscan) per the indexing boundary.",
       "relationships": [
@@ -173,7 +242,7 @@
           "type": "Hypercert"
         },
         "shared": ["packages/shared/src/types/hypercerts.ts"],
-        "docs": "docs/docs/reference/glossary-community.md"
+        "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "relationships": [
         {
@@ -200,7 +269,7 @@
           "type": "GardenVault"
         },
         "shared": ["packages/shared/src/types/vaults.ts"],
-        "docs": "docs/docs/reference/glossary-community.md"
+        "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "relationships": [
         {
@@ -222,7 +291,7 @@
           "type": "CampaignCookieJar"
         },
         "shared": ["packages/shared/src/types/cookie-jar.ts"],
-        "docs": "docs/docs/reference/glossary-community.md"
+        "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "indexer_note": "Only shared campaign jars are indexed; per-garden jars stay on-chain reads per the indexing boundary.",
       "relationships": [
@@ -241,7 +310,7 @@
       "layers": {
         "solidity": ["packages/contracts/src/Schemas.sol"],
         "shared": ["packages/shared/src/types/eas-responses.ts"],
-        "docs": "docs/docs/reference/glossary-community.md"
+        "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "indexer_note": "EAS attestations are deliberately outside the Envio boundary; queried from easscan.",
       "relationships": [
@@ -271,7 +340,7 @@
           "type": "Garden"
         },
         "shared": ["packages/shared/src/utils/blockchain/garden-roles.ts"],
-        "docs": "docs/docs/reference/glossary-community.md"
+        "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "indexer_note": "Role membership is flattened onto Garden role arrays (gardeners/operators/evaluators/owners/funders/communities).",
       "relationships": [
@@ -288,7 +357,7 @@
       "display": "Season",
       "definition": "A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown.",
       "layers": {
-        "docs": "docs/docs/reference/glossary-community.md"
+        "docs": "docs/docs/reference/glossary.generated.mdx"
       },
       "note": "No dedicated on-chain or typed representation today; the commitment-pooling Cycle (type Season) becomes its first formal representation.",
       "relationships": [
@@ -595,7 +664,7 @@
     }
   ],
   "personas_note": "The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the Steward surfaces.",
-  "supporting_terms_note": "Terms that appear in the community glossary's Term Reference section but are deliberately not canonical entities or personas. Declaring them here is what lets the docs-term-reference guard fail on an undeclared term instead of letting orphan nouns accumulate silently.",
+  "supporting_terms_note": "Terms projected into the generated glossary's Term Reference section but deliberately excluded from the canonical entity and persona sets. Declaring them here prevents public definitions from accumulating orphan nouns.",
   "supporting_terms": [
     {
       "id": "domain",
@@ -4044,9 +4113,9 @@
     },
     {
       "id": "community-surface-token",
-      "statement": "The glossary's Allowed surfaces column uses a `community` token on Need, Commitment, and Commitment Contributor, but the Surfaces table declares only four surfaces (admin, client, agent, public). Either promote the client's community section to a declared surface or fold the token into `client`; until then the sidecar carries it verbatim so the two sides stay locked.",
+      "statement": "The ontology uses a `community` surface token on Need, Commitment, and Commitment Contributor while the product still treats community experiences as part of the client and public surfaces. Either promote Community to a distinct product surface or fold the token into `client`; until then the generated glossary carries the declared value verbatim.",
       "anchors": [
-        "docs/docs/reference/glossary-community.md",
+        "docs/docs/reference/glossary.generated.mdx",
         "packages/shared/src/ontology/green-goods-ontology.json"
       ]
     }

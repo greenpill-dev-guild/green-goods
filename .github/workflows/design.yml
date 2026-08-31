@@ -19,7 +19,7 @@ on:
       - "docs/DESIGN.md"
       - "docs/docs/builders/packages/admin.mdx"
       - "docs/docs/builders/testing/storybook.mdx"
-      - "docs/docs/reference/banned-vocabulary.json"
+      - "scripts/data/banned-vocabulary.json"
       - "packages/admin/AGENTS.md"
       - "packages/admin/DESIGN.md"
       - "packages/admin/src/**"
@@ -57,7 +57,7 @@ on:
       - "docs/DESIGN.md"
       - "docs/docs/builders/packages/admin.mdx"
       - "docs/docs/builders/testing/storybook.mdx"
-      - "docs/docs/reference/banned-vocabulary.json"
+      - "scripts/data/banned-vocabulary.json"
       - "packages/admin/AGENTS.md"
       - "packages/admin/DESIGN.md"
       - "packages/admin/src/**"
@@ -118,6 +118,14 @@ jobs:
 
       - name: Check banned vocabulary
         run: bun run lint:vocab
+
+      - name: Upload client PWA token audit
+        if: always() && hashFiles('output/design/client-pwa-token-audit.md') != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: client-pwa-token-audit
+          path: output/design/client-pwa-token-audit.md
+          if-no-files-found: error
 
   storybook:
     name: Storybook

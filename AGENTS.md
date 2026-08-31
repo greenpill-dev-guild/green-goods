@@ -122,11 +122,12 @@ When you are dispatched from a Linear issue (delegated/assigned, labeled `ai:cod
 ## Agent Workflow
 
 1. Read the nearest `AGENTS.md`.
-2. Apply [the Implementation Quality Contract](.claude/context/values.md#implementation-quality-contract)
+2. For specialized work, route through [`.claude/context/task-routing.json`](.claude/context/task-routing.json); it defines each core task's skill, mutation boundary, output, and handoff.
+3. Apply [the Implementation Quality Contract](.claude/context/values.md#implementation-quality-contract)
    while planning, writing, and reviewing code.
-3. Keep the change inside the smallest sensible package boundary.
-4. Run the lightest validation loop that still proves the change.
-5. Escalate to cross-package verification when shared contracts, shared types, or public APIs move.
+4. Keep the change inside the smallest sensible package boundary.
+5. Run the lightest validation loop that still proves the change.
+6. Escalate to cross-package verification when shared contracts, shared types, or public APIs move.
 
 **Two-phase rhythm for ambiguous or multi-issue work**: investigate (read-only) → present numbered findings → wait for explicit scope lock from the human → fix only locked items → run the validation ladder. This paragraph is the canonical spec (the former `audit-then-ship` skill folded into it; Claude gets the same gate from plan mode + CLAUDE.md § Scope Discipline). Do not invent a parallel Codex-specific protocol.
 
@@ -223,7 +224,7 @@ browser or DOM evidence proves otherwise.
 
 ## Admin UI Defaults
 
-- For `packages/admin`, read `docs/docs/builders/packages/admin.mdx` alongside `packages/admin/AGENTS.md`; it is the active UI contract.
+- For `packages/admin`, the nearest `AGENTS.md`, `packages/admin/DESIGN.md`, exported admin primitives, and guard tests own UI behavior. The public Builder page is an explanatory map, not an implementation contract.
 - The canonical admin shell is `CanvasLayout`.
 - Use `/hub` as the reference admin canvas surface; `/work` is retired.
 - New admin UI should not start from `DashboardLayout`, `Sidebar`, or `Header`; treat them as legacy migration references only.
@@ -240,7 +241,7 @@ Single design language across frontend packages, with distinct admin, installed 
 **Tokens** — root `DESIGN.md` front matter is the canonical DesignMD token source; generated `--gg-*` tokens and runtime aliases live in `packages/shared/src/styles/theme.css`. Never hardcode `cubic-bezier`, `duration`, or raw color / radius values. Use `--spring-*` (6 tokens), `--color-*`, `--radius-*`, `--color-material-*`, `--blur-material-*`. Concentricity: `child_radius = parent_radius − padding`. 4-role volume hierarchy: canvas 80–90% / ink 8–15% / stone 3–5% / accent green 1–3%.
 
 **Banned vocabulary and prompt-only wording**:
-- Lint-enforced i18n terms (`bun run lint:vocab`, from `docs/docs/reference/banned-vocabulary.json` → `linter_enforced.terms`): `streak`, `countdown`, `leaderboard`, `FOMO`, `urgent`, `limited time`, `re-engagement`, `retention hook`.
+- Lint-enforced i18n terms (`bun run lint:vocab`, from `scripts/data/banned-vocabulary.json` → `linter_enforced.terms`): `streak`, `countdown`, `leaderboard`, `FOMO`, `urgent`, `limited time`, `re-engagement`, `retention hook`.
 - Admin prompt-only vocabulary (not parsed by `lint:vocab`): `hero moment`, `gallery`, `decorative gradient`, AppBar glass, glass outside Navigation/FAB chrome.
 - Client prompt-only vocabulary (not parsed by `lint:vocab`): `operator cockpit`, `utility copy`, `Plus Jakarta Sans`, `KPI tile`, `dashboard`.
 
@@ -282,7 +283,7 @@ When Codex is running unattended maintenance work:
 
 - Project config: `.codex/config.toml`
 - Environment and actions: `.codex/environments/environment.toml`
-- Reference doc: `docs/docs/builders/agentic/codex.mdx`
+- Shared skills: `.agents/skills` → `.claude/skills`
 
 ## Shared Skill Surface
 

@@ -1,105 +1,46 @@
 ---
 title: Persona Surfaces Matrix
-sidebar_position: 6
 slug: /builders/journeys/persona-surfaces
 audience: developer
 owner: docs
-last_verified: 2026-04-25
 feature_status: Live
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - packages/admin/src/router.tsx
+  - packages/admin/src/routes/views.tsx
+  - packages/client/src/config/pwaRouting.ts
+  - packages/client/src/config/routes.tsx
+  - packages/shared/src/ontology/green-goods-ontology.json
+source_digest: "sha256:f6ce0047a895f9fefb961e1eb1cf153e4f74678b4cab7a4ed7a07ae307941fae"
 source_of_truth:
-  - docs/docs/builders/specs/v1-0.mdx
-  - packages/client/src/router.config.tsx
-  - packages/admin/src/views
-  - packages/agent/src/handlers
-  - packages/shared/src/hooks
+  - packages/admin/src/router.tsx
+  - packages/admin/src/routes/views.tsx
+  - packages/client/src/config/pwaRouting.ts
+  - packages/client/src/config/routes.tsx
+  - packages/shared/src/ontology/green-goods-ontology.json
 ---
 
-import {StatusBadge} from "@site/src/components/docs";
-
+<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
 # Persona Surfaces Matrix
 
-<StatusBadge status="Live" />
+The ontology owns persona meaning. Route definitions own navigable paths. Paths below are literals as declared and may be nested under a parent route.
 
-A single-page reference: which view in which package serves which canonical persona. Use this to orient before changing a feature on a journey — a persona's surface is the canvas you have to fit your change into.
+## Personas
 
-## Canonical personas (from [v1.0 spec § 3.1](../specs/v1-0))
+| Persona | Hat | Surfaces | Definition |
+|---|---|---|---|
+| Gardener | `gardener` | admin, client, agent, public, docs | A person doing regenerative Work in a garden. Submits Work, holds gardener Hats, receives credit toward Hypercerts and yield splits. |
+| Steward | `steward` | admin, client, agent, public, docs | A person who stewards a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds the garden's steward Hats (the deployed Operator role). |
+| Evaluator | `evaluator` | admin, client, public, docs | A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to Stewards. |
+| Funder | `funder` | admin, client, public, docs | A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits. |
+| Community Member | `community` | client, public, docs | A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows. |
 
-| ID | Name | One-line role |
-| --- | --- | --- |
-| **A** | Gardener | Performs regenerative work; submits via PWA or agent |
-| **B** | Steward | Coordinates the garden; reviews work; mints hypercerts |
-| **C** | Evaluator | Hat-holder who attests assessments; gated by `HatsModule.isEvaluator` |
-| **D** | Funder | Deposits into vaults / cookie jars; receives Karma GAP linkage |
-| **E** | Community Member | Local resident; signals priorities via conviction |
+## Declared route literals
 
-## Public browser routes (canonical)
-
-There are exactly four public route families in `packages/client/src/router.config.tsx` (plus `/landing` as a legacy redirect). The Garden family includes its detail path. Installed PWA app routes are scoped separately under `/home`: `/home`, `/home/login`, `/home/garden`, `/home/profile`, and garden detail routes under `/home/:id`. The old `/login`, `/garden`, and `/profile` paths exist only as PWA-mode compatibility redirects.
-
-- `/gardens` — `views/Public/Gardens.tsx`
-- `/gardens/:id` — `views/Public/GardenDetail.tsx`
-- `/impact` — `views/Public/Impact.tsx`
-- `/fund` — `views/Public/Fund.tsx`
-- `/actions` — `views/Public/Actions.tsx`
-
-Use canonical Green Goods domain vocabulary throughout: **Garden, Action, Work, Vault, Cookie Jar, Hypercert, Assessment, Attestation, Hat, Season**.
-
-## Matrix
-
-| Persona | Primary surface | Package / view path | Secondary surfaces | Key hooks / services |
-| --- | --- | --- | --- | --- |
-| **A: Gardener** | Client PWA `/home` + `/home/garden` submit wizard | `packages/client/src/views/Home/index.tsx`, `packages/client/src/views/Garden/index.tsx` | Public `/gardens` browse (read-only), Telegram agent (`packages/agent/src/handlers/{start,join,submit}.ts`), `/home/profile` (`packages/client/src/views/Profile/`) | `useAuth`, `useGardener`, `useGardens`, `useWorkMutation`, `useDraftAutoSave`, `useDraftResume`, `useOffline`, job queue (`packages/shared/src/modules/job-queue/`) |
-| **B: Steward** | Admin Hub workspace | `packages/admin/src/views/Hub/index.tsx` (stages: work, assess, certify, history) | Garden workspace (`Garden/index.tsx`, tabs: overview, impact, settings), Community workspace (`Community/index.tsx`, tabs: treasury, governance, payouts, members), Actions workspace (`Actions/index.tsx`), Profile, Telegram agent (`handlers/{approve,reject,pending}.ts`) | `useHubWorkbenchController`, `useGardens`, `useGardenOperations`, `useWorkApproval`, `useBatchWorkApproval`, `useCreateAssessmentWorkflow`, `useCreateHypercertWorkflow`, `useEffectiveToolbarPermissions` |
-| **C: Evaluator** | Admin Garden workspace + Hub Assess/Certify, role-permissioned (no dedicated workspace) | Same Garden / Hub views as Steward; visibility gated by `garden.evaluators[]` and `useHasRole("evaluator")` | None — the surface is the same; the difference is the on-chain hat membership at attestation time | `useHasRole`, `useEffectiveToolbarPermissions` (`inEvaluators` slot), `useCreateAssessmentWorkflow` (the same hook the steward uses; the resolver is the gate) |
-| **D: Funder** | Public browser `/fund` page + Admin Garden Vault tab | `packages/client/src/views/Public/Fund.tsx`, `packages/admin/src/views/Garden/Vault.tsx` | Admin Hub Cookie Jar modals (`Hub/components/CookieJarDepositModal.tsx`, `CookieJarManageModal.tsx`, `CookieJarPayoutPanel.tsx`, `CookieJarWithdrawModal.tsx`), Admin Community Payouts (`Community/index.tsx` mode `payouts`), Public `/impact` (read-only) | `useAppKit`, `useGardens`, `useUser`, `useVaultDeposit`, `useVaultWithdraw`, `useVaultOperations`, `useFunderLeaderboard`, `useCookieJarDeposit`, `useCookieJarWithdraw` |
-| **E: Community Member** | Public browser `/gardens` + `/impact` (read) + Admin Community Governance/Strategies (write, when role-permissioned) | `packages/client/src/views/Public/Gardens.tsx`, `Public/Impact.tsx`, `Public/GardenDetail.tsx`; `packages/admin/src/views/Community/index.tsx` (mode `governance`), `views/Garden/Strategies.tsx`, `views/Garden/SignalPool.tsx` | None client-side for signal allocation (see gap below) | `usePublicGardens`, `usePublicGardenDetail`, `usePublicStats`, `usePublicSeason`, `useGardenCommunity`, `useConvictionStrategies`, `useAllocateHypercertSupport`, `useHypercertConviction`, `useMemberVotingPower` |
-
-## Surface design notes per persona
-
-### A: Gardener
-
-- Authentication: passkey (`useAuth.createPasskey`) is the primary path; wallet via AppKit is the fallback. The agent path provisions a custodial key in `agent/services/db.ts` for users without smartphones.
-- Offline-first is the **defining constraint** for this persona: the work submission flow has to function with intermittent connectivity. Job queue (`packages/shared/src/modules/job-queue/`) is the mechanic.
-- See [Onboarding](./onboarding) and [Work Submission](./work-submission) journeys.
-
-### B: Steward
-
-- The 4-stage Hub workspace (Work → Assess → Certify → History) is the canonical steward pipeline. Stage transitions correspond to journey steps; stage filtering is governed by `useHubWorkbenchController`.
-- Cross-garden context: `useEligibleAdminGardens` + `useAdminGardenWorkspaceSelection` constrain admin views to gardens the user holds a steward/owner hat on.
-- See [Work Submission](./work-submission), [Evaluation](./evaluation), [Harvest](./harvest) journeys.
-
-### C: Evaluator
-
-- **No dedicated workspace, no public profile, no separate route.** The Evaluator surface is the existing Garden + Hub workspace, gated by hat membership.
-- The authority boundary is **on-chain**: `AssessmentResolver.onAttest()` calls `HatsModule.isEvaluator(attester)`. The UI does not enforce a parallel separation between drafting and attesting; the resolver is the gate.
-- An evaluator who happens to also be a steward sees the same workspace as any steward; they additionally have on-chain authority to sign Assessment attestations.
-- See [Evaluation](./evaluation) journey for the full workflow.
-
-### D: Funder
-
-- Two parallel deposit channels: **Octant Vault** (yield-bearing ERC-4626, principal-preserving) and **Cookie Jar** (direct grant pool with on-chain access policy).
-- Public `/fund` is **deposit-only** by design (ADR D37). Withdraws live in the admin surface; the public page intentionally keeps the funder JTBD focused.
-- Hypercert listings are the funder's pull mechanism for impact purchase markets — funders can buy listed hypercerts via `useCreateListing` / marketplace flow.
-- See [Funding](./funding) journey.
-
-### E: Community Member
-
-- **Read access** is fully shipped via the four public routes (`/gardens`, `/gardens/:id`, `/impact`, `/actions`). A community member can browse a Garden, see its impact, and read its actions without authentication.
-- **Conviction signaling** is currently **steward-facing**: the conviction allocation hooks (`useAllocateHypercertSupport`, `useHypercertConviction`) and signal-pool primitives (`useGardenPools`, `useRegisteredHypercerts`) are wired into admin Community Governance / Strategies / SignalPool views, not into a public PWA surface.
-- Community members hold the role on `garden.communities[]` and `useEffectiveToolbarPermissions` recognizes the role for visibility, but the public browser site does not currently render a public-side "signal" allocation flow. This is the one persona-surface gap of note.
-
-## Gaps (vs [v1.0 spec § 3.1](../specs/v1-0))
-
-| Persona | Gap | Where it sits |
-| --- | --- | --- |
-| A: Gardener | None on the primary path. SMS path is documented but only Telegram is operationally live. | `packages/agent/src/handlers/` covers Telegram; SMS adapter is referenced in spec § 6.3 Flow 1 but not deployed. |
-| B: Steward | None material. | — |
-| C: Evaluator | None — Persona C is served by existing surfaces via role-permissioned visibility, not a dedicated workspace. | — |
-| D: Funder | Octant Vault auto-buy of listed hypercerts is aspirational; "automated Karma GAP report showing yield utilization" is partial — manual `Garden.gapProjectUID` linkage is shipped, automated reporting is not. | Spec § 3.3 + § 3.1 Persona D Definition of Success. |
-| E: Community Member | No public-side conviction allocation surface. Hooks exist (`useAllocateHypercertSupport`, `useHypercertConviction`) but no view in `packages/client/src/views/Public/` allows a community member to allocate signal from the public browser site. Steward-facing surfaces in `packages/admin/src/views/Community/` and `Garden/{Strategies,SignalPool}.tsx` cover it for hat-holders only. | Spec § 3.1 names "Public Signal Feed and Gardens Conviction Voting" as the Persona E key interface — partial. |
-
-## Reading guide
-
-- When picking up a feature: identify the persona, find its primary surface in this matrix, follow the link to the journey doc that describes the choreography, then read the source-of-truth file paths in the journey's frontmatter.
-- When introducing a new affordance: place it on the persona's primary surface unless there is a reason it must live elsewhere. Use the secondary-surface column to find the existing place a closely-related affordance already lives — that's where new related code should go.
-- When changing roles: `useEffectiveToolbarPermissions`, `useHasRole`, and the on-chain hat checks in resolvers are the three layers. Don't bypass any of them.
+| Authority | Paths or segments |
+|---|---|
+| Client route tree | `*`, `:id`, `actions`, `assessments/:assessmentId`, `commitments/:commitmentId`, `commitments/:commitmentId/proof`, `commitments/new`, `cookies`, `fund`, `gardens`, `gardens/:id`, `glossary`, `impact`, `landing`, `vaults`, `work/:workId` |
+| Client canonical PWA routes | `/home/garden`, `/home`, `/home/login`, `/home/profile` |
+| Admin shell route tree | `*`, `gardens`, `gardens/:gardenId`, `gardens/:gardenId/*`, `login` |
+| Admin canvas route segments | `:assessmentId`, `:commitmentId`, `:historyEventId`, `:id`, `:id/edit`, `:workId`, `actions`, `activity`, `assess`, `assess/create`, `certify`, `certify/create`, `community`, `confirm`, `cookies`, `coordination`, `create`, `deploy`, `endowment`, `garden`, `governance`, `health`, `history`, `hub`, `hypercerts/:hypercertId`, `impact`, `members`, `overview`, `payouts`, `pool`, `pools`, `profile`, `resources`, `seed`, `settings`, `signal-pool/:poolType`, `strategies`, `treasury`, `vault`, `vault/deposit`, `vault/withdraw`, `work`, `work/submit` |

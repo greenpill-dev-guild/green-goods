@@ -1,374 +1,122 @@
 ---
-title: Sequence Diagrams
-sidebar_position: 4
+title: Sequence and State Diagrams
 slug: /builders/architecture/sequence-diagrams
 audience: developer
 owner: docs
-last_verified: 2026-03-07
 feature_status: Live
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - scripts/quality/ontology-render.mjs
+source_digest: "sha256:4bce1e13332ad37c8d2a01e8789d7a63d28305024e3a5453853487c116d93452"
 source_of_truth:
-  - packages/contracts/src/tokens/Garden.sol
-  - packages/contracts/src/registries/Action.sol
-  - packages/contracts/src/resolvers/Work.sol
-  - packages/contracts/src/resolvers/WorkApproval.sol
-  - packages/shared/src/modules/job-queue
-  - packages/shared/src/modules/data/eas.ts
-  - packages/indexer/config.yaml
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - scripts/quality/ontology-render.mjs
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+# Sequence and State Diagrams
 
-# Sequence Diagrams
+These state diagrams project lifecycle transitions from the ontology. Mechanism labels point readers back to the code or configuration that enforces each transition.
 
-<StatusBadge status="Live" />
+## work-display-status
 
-This page collects all major transaction flows in Green Goods, showing how participants, contracts, and off-chain services interact step by step.
-
-## Garden minting
-
-When a steward mints a garden, GardenToken fans out to all configured modules in two phases. Phase 1 handles role setup and governance. Phase 2 handles integration wiring. Each optional module call is wrapped in `try/catch` so failures never block the mint.
+The union in types/domain.ts documents itself as the single source of truth: pending/approved/rejected reflect protocol state; syncing/uploading/sync_failed/offline are client-derived from the offline job queue.
 
 ```mermaid
-sequenceDiagram
-    actor Op as Steward
-    participant GT as GardenToken
-    participant TBA as GardenAccount (TBA)
-    participant HM as HatsModule
-    participant KG as KarmaGAPModule
-    participant OCT as OctantModule
-    participant GM as GardensModule
-    participant CJ as CookieJarModule
-    participant ENS as GreenGoodsENS
-
-    Op->>GT: mintGarden(name, desc, location, ...)
-    GT->>GT: _safeMint(tokenId)
-    GT->>TBA: Deploy tokenbound account (ERC-6551)
-
-    rect rgb(232, 245, 233)
-        Note over GT,GM: Phase 1 -- Role & Governance
-        GT->>HM: createGardenHatTree(garden, roles)
-        HM-->>HM: Create 6-role hat tree
-        GT->>KG: createProject(garden) [try/catch]
-        GT->>OCT: onGardenMinted(garden) [try/catch]
-        Note over OCT: Creates vault per supported asset
-        GT->>GM: onGardenMinted(garden) [try/catch]
-        Note over GM: Creates community + signal pools
-    end
-
-    rect rgb(255, 243, 224)
-        Note over GT,ENS: Phase 2 -- Integrations
-        GT->>CJ: onGardenMinted(garden) [try/catch]
-        Note over CJ: Deploys per-asset cookie jars
-        GT->>ENS: registerGarden(slug) [try/catch]
-        Note over ENS: CCIP message to L1
-    end
-
-    GT->>TBA: initialize(name, desc, location, ...)
-    GT-->>Op: GardenMinted event
+stateDiagram-v2
+  offline --> syncing: the offline job queue starts or retries the Work submission
+  sync_failed --> syncing: the offline job queue starts or retries the Work submission
+  syncing --> uploading: queued media begins uploading before the attestation is submitted
+  syncing --> sync_failed: a recoverable queue or upload failure preserves the job for retry
+  uploading --> sync_failed: a recoverable queue or upload failure preserves the job for retry
+  uploading --> pending: successful EAS Work attestation submission creates the pending public record
+  pending --> approved: a Steward records a separate Work Approval attestation
+  pending --> rejected: a Steward records a separate Work Approval attestation
 ```
 
-### What happens after minting
+## commitment-pool
 
-1. The Envio indexer picks up the `GardenMinted` event and creates the `Garden` entity.
-2. The indexer dynamically registers the TBA address for `GardenAccount` events.
-3. If OctantModule created vaults, those vault addresses are also registered for `Deposit`/`Withdraw` events.
-4. The admin dashboard invalidates its garden list query and shows the new garden.
-
----
-
-## Work submission and approval
-
-The core user flow: a gardener submits work, a steward reviews it, and the attestation chain is anchored on EAS. The WorkResolver validates that the gardener has the correct hat and the action is active. The WorkApprovalResolver validates the steward role and optionally triggers a Karma GAP impact attestation.
+Every pool state is on-chain; transitions are rare steward-console actions.
 
 ```mermaid
-sequenceDiagram
-    actor G as Gardener
-    actor Op as Steward
-    participant EAS as EAS Contract
-    participant WR as WorkResolver
-    participant WAR as WorkApprovalResolver
-    participant HM as HatsModule
-    participant AR as ActionRegistry
-    participant KG as KarmaGAPModule
-
-    G->>EAS: attest(WorkSchema)
-    EAS->>WR: onAttest() validation
-    WR->>HM: isGardener(attester)?
-    HM-->>WR: true
-    WR->>AR: getAction(actionUID) valid + active?
-    AR-->>WR: true
-    WR-->>EAS: allow
-    EAS-->>G: workUID
-
-    Note over G,Op: Later -- steward reviews
-
-    Op->>EAS: attest(WorkApprovalSchema)
-    EAS->>WAR: onAttest() validation
-    WAR->>WAR: Verify workUID matches garden
-    WAR->>HM: isOperator(attester)?
-    HM-->>WAR: true
-    WAR->>WAR: Validate confidence + method
-
-    alt approved == true
-        WAR->>KG: createImpact() [try/catch]
-        KG-->>WAR: impact attestation
-    end
-
-    WAR-->>EAS: allow
-    EAS-->>Op: approvalUID
+stateDiagram-v2
+  None --> NotReady: onGardenMinted (GardenToken-only, idempotent) or registerPool → PoolRegistered
+  NotReady --> Ready: markPoolReady — requires non-empty charter CID and a non-zero provider open-commitment cap → PoolReady
+  Ready --> Open: openPool → PoolOpened
+  Open --> Paused: pausePool with mandatory reasonCID → PoolPaused; resumePool returns to Open
+  Open --> Closed: closePool → PoolClosed
+  Paused --> Closed: closePool → PoolClosed
+  Closed --> Composted: compostPool → PoolComposted
+  Composted --> Ready: reopenPool(toOpen) → PoolReopened
+  Composted --> Open: reopenPool(toOpen) → PoolReopened
 ```
 
-### Validation rules
+## commitment-cycle
 
-| Check | Resolver | Description |
-| --- | --- | --- |
-| Gardener role | WorkResolver | Attester must wear the Gardener hat for the target garden. |
-| Action validity | WorkResolver | The action UID must exist in the ActionRegistry and its time window must be active. |
-| Steward role | WorkApprovalResolver | Attester must wear the Steward hat for the target garden. |
-| Work reference | WorkApprovalResolver | The referenced work UID must belong to the same garden. |
-| Confidence range | WorkApprovalResolver | Confidence must be 0-100. |
-
----
-
-## Vault and yield flow
-
-When gardens receive deposits, the yield accrues in an ERC-4626 vault. A steward triggers harvest, and the YieldSplitter divides the yield three ways.
+One open Season per pool (openSeasonCycleId guard); Campaigns overlap freely. Succession between cycles is derived by pool ordering — no on-chain predecessor pointer.
 
 ```mermaid
-graph TD
-    subgraph Deposit["Deposit Flow"]
-        D1["Funder deposits ERC-20"]
-        D2["OctantVault<br/><small>ERC-4626 vault</small>"]
-        D3["Strategy<br/><small>Yearn-style yield</small>"]
-    end
-
-    subgraph Harvest["Harvest Flow"]
-        H1["Steward calls harvest()"]
-        H2["OctantModule"]
-        H3["YieldSplitter"]
-    end
-
-    subgraph Split["Three-Way Split"]
-        S1["CookieJar<br/><small>Petty cash for gardeners</small>"]
-        S2["Hypercert Fractions<br/><small>Buy impact fractions</small>"]
-        S3["Juicebox<br/><small>Community endowment</small>"]
-    end
-
-    subgraph Governance["Conviction Voting"]
-        CV["Signal Pool<br/><small>Gardens V2</small>"]
-        HP["Registered Hypercerts"]
-    end
-
-    D1 --> D2
-    D2 --> D3
-    D3 -.->|yield accrues| D2
-
-    H1 --> H2
-    H2 --> D2
-    D2 -->|harvested yield| H3
-
-    H3 -->|cookieJarBps| S1
-    H3 -->|fractionsBps| S2
-    H3 -->|juiceboxBps| S3
-
-    S2 -.->|listed for yield| CV
-    CV --> HP
-
-    style Deposit fill:#e8f5e9,stroke:#388e3c
-    style Harvest fill:#fff3e0,stroke:#ef6c00
-    style Split fill:#e3f2fd,stroke:#1565c0
-    style Governance fill:#f3e5f5,stroke:#7b1fa2
+stateDiagram-v2
+  None --> Seeded: seedCycle(poolId, cycleType, startTime, endTime, metadataCID) → CycleSeeded; no allocation stored yet
+  Seeded --> Open: openCycle(cycleId, allocation, recognitionPolicy) — six-role allocation bps and two-part recognition bps each sum to 10000, both store immutably → CycleOpened
+  Open --> InProgress: first CommitmentAccepted for the cycle OR block time ≥ startTime
+  InProgress --> Reviewing: block time > endTime, OR all cycle commitments terminal or ReadyForConfirmation; new evidence/work flips back
+  Reviewing --> Reconciled: closeCycle (the reconcile act) requires liveCommitmentCount = 0 → CycleClosed; commitment-level Reconciled derives from this event
+  Reconciled --> Composted: compostCycle → CycleComposted
+  Seeded --> Cancelled: cancelCycle(reasonCID) requires liveCommitmentCount = 0 → CycleCancelled; Draft is discarded off-chain
+  Open --> Cancelled: cancelCycle(reasonCID) requires liveCommitmentCount = 0 → CycleCancelled; Draft is discarded off-chain
 ```
 
-### Deposit flow (sequence)
+## commitment
+
+Direction-aware fulfillment: the party receiving the team's work confirms by default (Offer → receiver, Request → creator), or a named group may be set before acceptance. A current local-garden steward/owner may use PoolFallback. When explicitly selected before acceptance and no ordinary/local confirmer is reachable, a current steward/owner of the registered Green Goods protocol garden may use ProtocolFallback. The authority paths are not time-based; module ownership alone grants neither fallback; every lead/contributor is excluded. Evidence/Work credit records only while Accepted and unfrozen; the contributor roster and credit ledger freeze atomically on the transition to ReadyForConfirmation or before a direct Fulfilled dispute resolution; Ready requires pre-freeze totalVerifiedCredits > 0 and a structurally reachable confirmer, while recognition additionally requires Fulfilled plus an opened cycle policy or the immutable cycle-less 20/80 default; disputes restore an explicitly stored prior state.
 
 ```mermaid
-sequenceDiagram
-    actor F as Funder
-    participant Token as ERC-20 Token
-    participant Vault as OctantVault
-    participant Idx as Envio Indexer
-    participant UI as Admin Dashboard
-
-    F->>Token: approve(vaultAddress, amount)
-    F->>Vault: deposit(amount, receiver)
-    Vault->>Vault: Mint shares proportional to assets
-    Vault-->>F: Deposit event (shares minted)
-
-    Idx->>Idx: Handle Deposit event
-    Idx->>Idx: Update GardenVault totals
-    Idx->>Idx: Upsert VaultDeposit for funder
-    Idx->>Idx: Create VaultEvent record
-
-    UI->>UI: Query cache invalidated
-    UI-->>F: Updated vault balance shown
+stateDiagram-v2
+  None --> Offered: createCommitment → CommitmentCreated (direction sets the initial state)
+  None --> Requested: createCommitment → CommitmentCreated (direction sets the initial state)
+  Offered --> Accepted: claimCommitment (runtime kind must equal immutable claimType; Open mode transitions immediately, ApprovalGated waits for steward acceptClaim) → CommitmentAccepted; register records committed units
+  Requested --> Accepted: claimCommitment (runtime kind must equal immutable claimType; Open mode transitions immediately, ApprovalGated waits for steward acceptClaim) → CommitmentAccepted; register records committed units
+  Accepted --> Active: first WorkLinked or EvidenceAttached after acceptance
+  Active --> EvidenceSubmitted: any EvidenceAttached or WorkLinked event
+  EvidenceSubmitted --> PartiallyApproved: ApprovedWorkCounted with some requirement counters below their required counts
+  Accepted --> ReadyForConfirmation: automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for evidence-only types requires evidenceCount ≥ 1; steward markReadyForConfirmation with reason; every path requires an Open cycle when scoped or the immutable cycle-less 20/80 policy, pre-freeze totalVerifiedCredits > 0, and either a reachable ordinary named/default confirmer threshold or an explicitly selected registered protocol-garden fallback; local-garden authority is confirmation-time PoolFallback provenance only and does not independently satisfy Ready reachability; contributor roster and credit ledger freeze atomically before the ready event
+  Active --> ReadyForConfirmation: automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for evidence-only types requires evidenceCount ≥ 1; steward markReadyForConfirmation with reason; every path requires an Open cycle when scoped or the immutable cycle-less 20/80 policy, pre-freeze totalVerifiedCredits > 0, and either a reachable ordinary named/default confirmer threshold or an explicitly selected registered protocol-garden fallback; local-garden authority is confirmation-time PoolFallback provenance only and does not independently satisfy Ready reachability; contributor roster and credit ledger freeze atomically before the ready event
+  EvidenceSubmitted --> ReadyForConfirmation: automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for evidence-only types requires evidenceCount ≥ 1; steward markReadyForConfirmation with reason; every path requires an Open cycle when scoped or the immutable cycle-less 20/80 policy, pre-freeze totalVerifiedCredits > 0, and either a reachable ordinary named/default confirmer threshold or an explicitly selected registered protocol-garden fallback; local-garden authority is confirmation-time PoolFallback provenance only and does not independently satisfy Ready reachability; contributor roster and credit ledger freeze atomically before the ready event
+  PartiallyApproved --> ReadyForConfirmation: automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for evidence-only types requires evidenceCount ≥ 1; steward markReadyForConfirmation with reason; every path requires an Open cycle when scoped or the immutable cycle-less 20/80 policy, pre-freeze totalVerifiedCredits > 0, and either a reachable ordinary named/default confirmer threshold or an explicitly selected registered protocol-garden fallback; local-garden authority is confirmation-time PoolFallback provenance only and does not independently satisfy Ready reachability; contributor roster and credit ledger freeze atomically before the ready event
+  ReadyForConfirmation --> Fulfilled: confirmFulfillment by named confirmer or direction-aware default, or confirmFulfillmentAsFallback with reason by current local-garden authority (PoolFallback) or explicitly selected registered protocol-garden authority (ProtocolFallback); local authority wins for dual-role callers; threshold N → CommitmentFulfilled with actor/path/reason; register converts units; every lead/contributor on the already-frozen roster is excluded from every confirmation path
+  Fulfilled --> Reconciled: CycleClosed for the commitment's cycle (or PoolClosed when cycle-less)
+  Offered --> Cancelled: cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units
+  Requested --> Cancelled: cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units
+  Accepted --> Cancelled: cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units
+  Offered --> Expired: expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units
+  Requested --> Expired: expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units
+  Accepted --> Expired: expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units
+  ReadyForConfirmation --> Expired: expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units
+  Accepted --> Disputed: raiseDispute(reasonCID) — module stores the exact prior state in preDisputeState → CommitmentDisputed
+  ReadyForConfirmation --> Disputed: raiseDispute(reasonCID) — module stores the exact prior state in preDisputeState → CommitmentDisputed
+  Expired --> Disputed: raiseDispute(reasonCID) — module stores the exact prior state in preDisputeState → CommitmentDisputed
+  Disputed --> Accepted: resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved
+  Disputed --> ReadyForConfirmation: resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved
+  Disputed --> Fulfilled: resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved
+  Disputed --> Cancelled: resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved
+  Disputed --> Expired: resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved
 ```
 
-### Yield split configuration
+## commitment-loan
 
-The three-way split is configured per garden in basis points (bps):
-
-| Destination | Default | Description |
-| --- | --- | --- |
-| CookieJar | 3,000 bps (30%) | Petty cash distributed to gardeners for small expenses. |
-| Hypercert Fractions | 4,000 bps (40%) | Used to buy fractions of impact certificates, funding verified work. |
-| Juicebox | 3,000 bps (30%) | Community endowment for long-term garden sustainability. |
-
----
-
-## Passkey onboarding flow
-
-New gardeners onboard using WebAuthn passkeys -- no seed phrases, no browser extensions. The passkey creates a smart account (ERC-4337) that serves as the gardener's on-chain identity. When `VITE_PASSKEY_SERVER_ENABLED=true`, registration and lookup use Pimlico's hosted passkey server with a normalized username or ENS-handle context; with the flag off, Green Goods stays on the legacy local-only passkey path.
+Records-only pool credit (CreditRegistry). Default is not terminal — a defaulted loan can still be repaid, recorded as LoanRepaid(recoveredFromDefault = true). Registry pause blocks every mutation except markDefaulted and cancelLoan (wind-down). The G$ leg binds the loan to exactly one Confirmed DisbursementKind.LoanPrincipal settlement child; nothing in this machine moves value. Drawn as D30 in the commitment-pooling gallery.
 
 ```mermaid
-sequenceDiagram
-    actor G as New Gardener
-    participant PWA as Client PWA
-    participant PKS as Pimlico Passkey Server
-    participant WebAuthn as WebAuthn API
-    participant Bundler as ERC-4337 Bundler
-    participant Factory as Account Factory
-    participant Chain as On-Chain
-
-    G->>PWA: Tap "Join Garden"
-    opt Hosted passkey server enabled
-        PWA->>PKS: startRegistration(context)
-    end
-    PWA->>WebAuthn: navigator.credentials.create()
-    WebAuthn-->>PWA: PublicKeyCredential (passkey)
-    opt Hosted passkey server enabled
-        PWA->>PKS: verifyRegistration(credential, context)
-        PKS-->>PWA: credential id + public key
-    end
-
-    PWA->>PWA: Derive smart account address (CREATE2)
-    PWA->>PWA: Cache credential metadata, username, RP ID, expected address in localStorage
-
-    Note over PWA,Bundler: First transaction sponsors gas
-
-    PWA->>Bundler: UserOperation (initCode + calldata)
-    Bundler->>Factory: Deploy smart account
-    Factory->>Chain: CREATE2 deploy
-    Chain-->>Factory: Smart account address
-    Bundler->>Chain: Execute first action
-
-    Chain-->>PWA: Transaction confirmed
-    PWA-->>G: "Welcome! Your account is ready."
-
-    Note over G,Chain: Subsequent transactions
-
-    G->>PWA: Submit work
-    opt Hosted passkey server enabled and local cache missing
-        PWA->>PKS: getCredentials(context)
-        PKS-->>PWA: credential id + public key
-        PWA->>PKS: startAuthentication()
-    end
-    PWA->>WebAuthn: navigator.credentials.get()
-    WebAuthn-->>PWA: Signed assertion
-    opt Hosted passkey server enabled
-        PWA->>PKS: verifyAuthentication(assertion)
-        PWA->>PWA: Fail closed if rebuilt address mismatches expected address
-    end
-    PWA->>Bundler: UserOperation (signed by passkey)
-    Bundler->>Chain: Execute via smart account
+stateDiagram-v2
+  None --> Requested: requestLoan(params) → LoanRequested; pool member for self or steward onBehalfOf; pool Open + credit enabled; principal within remaining borrowerCap
+  Requested --> Approved: approveLoan(loanId) → LoanApproved; steward, never the borrower (SelfApproval); re-checks authority and reserves cap exposure
+  Requested --> Cancelled: cancelLoan(loanId, reasonCID) → LoanCancelled; borrower or steward
+  Approved --> Disbursed: recordDisbursed(loanId, rail, executionRef) → LoanDisbursed; steward or pool executor; reservation becomes outstanding; the G$ rail requires the one field-matched Confirmed LoanPrincipal child
+  Approved --> Cancelled: cancelLoan(loanId, reasonCID) → LoanCancelled; steward; any settlement child must already be Cancelled; releases the cap reservation
+  Disbursed --> Repaid: recordRepayment(loanId, amount, executionRef) clearing principal + fee → RepaymentRecorded + LoanRepaid; steward or executor, never the borrower; Jar/Treasury only
+  Disbursed --> Defaulted: markDefaulted(loanId, reasonCID) → LoanDefaulted; steward; past dueDate only (NotDue); callable while paused
+  Defaulted --> Repaid: recordRepayment clearing the balance → LoanRepaid(recoveredFromDefault = true); default is not terminal
 ```
-
-### Key design decisions
-
-- **No wallet required**: Gardeners authenticate with device biometrics (fingerprint, face) via WebAuthn.
-- **Counterfactual deployment**: The smart account address is derived from the passkey public key before deployment. The account is only deployed on-chain with the first real transaction.
-- **Gas sponsorship**: The first transaction uses a paymaster so new users do not need to hold ETH.
-- **Credential storage and recovery**: LocalStorage caches the credential metadata, normalized username, RP ID, and expected smart-account address. With `VITE_PASSKEY_SERVER_ENABLED=true`, Pimlico's hosted passkey server is the lookup source for storage-loss recovery; local cache remains the legacy same-device fallback.
-- **Rollback**: Set `VITE_PASSKEY_SERVER_ENABLED=false` to keep legacy local-only passkey behavior.
-
----
-
-## Funding deposit flow
-
-Funders deposit ERC-20 tokens into garden vaults. The deposit flow handles token approval, vault deposit, and event propagation through the indexer to the frontend.
-
-```mermaid
-sequenceDiagram
-    actor F as Funder
-    participant UI as Admin Dashboard
-    participant Shared as @green-goods/shared
-    participant Token as ERC-20 Token
-    participant Vault as OctantVault (ERC-4626)
-    participant Idx as Envio Indexer
-
-    F->>UI: Enter deposit amount
-    UI->>Shared: useVaultOperations().deposit()
-
-    Shared->>Shared: Check allowance
-    alt Insufficient allowance
-        Shared->>Token: approve(vaultAddress, amount)
-        Token-->>Shared: Approval confirmed
-    end
-
-    Shared->>Vault: deposit(assets, receiver)
-    Vault->>Vault: Calculate shares (previewDeposit)
-    Vault->>Token: transferFrom(funder, vault, assets)
-    Vault->>Vault: Mint shares to receiver
-    Vault-->>Shared: Deposit event emitted
-
-    Idx->>Idx: Process Deposit event
-    Idx->>Idx: Update GardenVault.totalDeposited
-    Idx->>Idx: Update VaultDeposit.shares
-    Idx->>Idx: Create VaultEvent (DEPOSIT)
-
-    Shared->>Shared: Invalidate vault queries (2s delay)
-    UI-->>F: Updated balance + "Deposit successful"
-```
-
-### Withdrawal flow
-
-Withdrawals follow the reverse path: the funder specifies an amount of assets to withdraw, the vault burns the corresponding shares, and the underlying ERC-20 tokens are transferred back to the funder. The same event pipeline (VaultEvent with `WITHDRAW` type) updates the indexer and frontend.
-
----
-
-## Assessment flow
-
-Evaluators create garden-level assessments — a garden's baseline strategy for a domain and reporting period (diagnosis, SMART-outcome targets, selected actions). Unlike work approvals (which reference specific work submissions), an assessment is garden-level and set up front; the work is later measured against its outcomes.
-
-```mermaid
-sequenceDiagram
-    actor E as Evaluator
-    participant UI as Admin Dashboard
-    participant IPFS as IPFS (Pinata-backed)
-    participant EAS as EAS Contract
-    participant AR as AssessmentResolver
-    participant HM as HatsModule
-
-    E->>UI: Write assessment + attach media
-    UI->>IPFS: Upload media files
-    IPFS-->>UI: CIDs
-
-    UI->>EAS: attest(AssessmentSchema)
-    EAS->>AR: onAttest() validation
-    AR->>HM: isEvaluator(attester)?
-    HM-->>AR: true
-    AR->>AR: Validate garden exists
-    AR-->>EAS: allow
-    EAS-->>E: assessmentUID
-
-    Note over E: Assessment queryable via EAS GraphQL
-```
-
----
-
-## Further reading
-
-- [Local vs Global Balance](./local-vs-global) -- How the offline job queue and two-indexer path work together.
-- [Entity Relationship Diagram](./erd) -- The data model these flows create and update.
-- [Modular Approach](./modular-approach) -- How the hub-and-spoke module system enables graceful degradation.
-
-<NextBestAction
-  title="Next best action"
-  why="Understand the data entities these flows produce."
-  actionLabel="Entity Relationship Diagram"
-  actionHref="./erd"
-  alternatives={[
-    {label: "Modular Approach", href: "./modular-approach"},
-    {label: "Back to Architecture", href: "../architecture"},
-  ]}
-/>

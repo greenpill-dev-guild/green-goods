@@ -84,17 +84,17 @@ scripts/
 | `ci-gate.mjs` | `.github/workflows/ci-gate.yml` | Fail-closed PR aggregate that consumes the shared selector, fails immediately on terminal non-success, and keeps strict missing-workflow protection |
 | `ci-gate.test.mjs` | `bun run test:validation-system`, `.github/workflows/ci-gate.yml` | Fixture coverage for selector parity, immediate failure, missing registration, terminal conclusions, and stale reruns |
 | `workflow-performance-parity.test.mjs` | `bun run test:validation-system`, Supply Chain Guardrails | Static guard for exact JS pins, cache scope, workflow routing, production import seams, CI-only coverage reporters, and Contracts Realism setup equivalence |
-| `check-ontology.mjs` | `bun run check:ontology` / `ontology:generate`, `ontology.yml`, `drift-check.mjs` (ontology scope), `agentic:check` | Ontology drift gate: cross-checks the sidecar (`packages/shared/src/ontology/`) against Solidity enums, indexer GraphQL, shared TS vocabularies, EAS schema config, and glossary tables, with a burn-down baseline; `--generate` renders the two docs artifacts |
-| `ontology-render.mjs` | `check-ontology.mjs` | Pure MDX renderers for the generated ontology reference page and entity matrix |
+| `check-ontology.mjs` | `bun run check:ontology` / `ontology:generate`, `ontology.yml`, `drift-check.mjs` (ontology scope), `agentic:check` | Ontology drift gate: cross-checks the sidecar against code vocabularies, schemas, QA roles, generated glossary anchors, and projection evidence; `--generate` renders the formal reference, Honest Claims, and agent manifest |
+| `ontology-render.mjs` | `check-ontology.mjs`, `scripts/docs/generate.mjs` | Pure renderers for the formal ontology, Honest Claims, entity matrix, and agent manifest |
 | `check-ontology.test.mjs` | `node --test scripts/quality/check-ontology.test.mjs`, `ontology.yml` | Fixture tests for ontology extractors, baseline reconciliation, and renderers |
 
 ### `docs/` — deterministic documentation projections
 | Script | Caller | Purpose |
 |---|---|---|
-| `generate.mjs` | `bun run docs:generate` / `check:docs-generated`, Docs CI | Generate or drift-check all committed builder projections, optionally scoped to package, integration, ontology, workflow, or QA inputs |
+| `generate.mjs` | `bun run docs:generate` / `check:docs-generated`, Docs CI | Generate or drift-check committed public projections, optionally scoped to package, integration, ontology, workflow, QA, or agentic inputs |
 | `generator-core.mjs` | `generate.mjs`, `check-ontology.mjs` | Stable text normalization, source hashing, generated frontmatter, output synchronization, and orphan detection |
 | `source-readers.mjs` | `generate.mjs` | Static allowlisted readers for manifests, routes, deployments, indexer configuration, and workflows; never imports application modules or reads environment files |
-| `renderers.mjs` | `generate.mjs` | Pure MDX renderers for package, integration, ontology, workflow, and QA builder projections |
+| `renderers.mjs` | `generate.mjs` | Pure MDX renderers for package, integration, ontology, workflow, QA, and task-routing projections |
 | `generate.test.mjs` | Docs CI | Fixture proof for deterministic hashing, parsing failures, safe fields, and stale/missing/extra output detection |
 
 ### `design/` — design system enforcement
@@ -186,7 +186,7 @@ scripts/
 ## Companion locations
 
 - `.claude/scripts/` — Claude harness scripts (skill frontmatter check, codex lane dispatch, agent gates)
-- `docs/scripts/` — Docusaurus-specific audit tooling (`docs-audit.mjs`); builder projection generators live in `scripts/docs/`
+- `docs/scripts/` — Docusaurus-specific authority audit tooling and its failure fixtures (`docs-audit.mjs`, `docs-audit.test.mjs`); builder projection generators live in `scripts/docs/`
 - `packages/*/scripts/` — package-local scripts (e.g. `packages/indexer/scripts/`)
 - `packages/contracts/script/` — Foundry scripts and their Bun CLIs. Commitment Pooling deploys in four ordered steps, each step's output being the next step's input: `deploy/commitment-schemas.ts` + `DeployCommitmentSchemas.s.sol` **preparation** (CREATE2-deploys the testimony resolver via `lib/TestimonyResolverDeployment.sol`, registers assessment v3, and PINS the community testimony UID while the resolver stays inert), `deploy/release.ts` + `DeployPooling.s.sol` (module + register, deployed paused), `deploy/pooling-configure.ts` + `ConfigurePooling.s.sol` (three resolver calls; without the work-approval bridge the module is inert), and the same `commitment-schemas` target with `--finalize-community-testimony` (**finalization**: registers the exact record, then activates the resolver against the artifact-recorded module as the last action). The ordering is enforced by `lib/CommitmentSchemaRecovery.sol`, a pure classifier over the five recovery states — preparation accepts two, finalization exactly the three ordered ones, everything else fails closed. Shared logic: `utils/pooling-release.ts` (deterministic schema UIDs, grouped upgrade keys, configuration planning, live `owner()` preflight), `lib/PoolingConfiguration.sol` (the re-runnable configure sequence, driven by both the deploy script and the fork rehearsal), and `lib/NetworkSelectors.sol` (the single CCIP selector parser). The release rehearsal is `test/fork/ArbitrumCommitmentPooling.t.sol` on an Arbitrum One fork, not a testnet; callers are the root `contracts:pooling:*` scripts. The settlement lane's transport check is `test/fork/CrossChainSettlementLane.t.sol` via `contracts:settlement:verify-lane` — read-only proof that the Arbitrum One ↔ Celo Mainnet CCIP lane is live, priced, and matches `deployments/networks.json`; no broadcast, no funds
 

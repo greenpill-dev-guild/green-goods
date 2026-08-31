@@ -10,7 +10,7 @@
 
 ## 0. Component naming and one chrome supersession
 
-This spec names only canonical components per `.claude/skills/design/prompt-contract.md` and `client-prompt-contract.md`. One correction to the session plan's vocabulary: the admin `LeftSheet` / `RightSheet` / `BottomSheet` renderers are **retired**. Every admin overlay is a centered `AdminDialog` (detail/inspection) or an `AdminDialog` `variant="flow"` + `ActionFlowShell` (create/commit flows), per `.claude/skills/design/prompt-contract.md` Layout shell table and `.claude/skills/design/quick-reference.md § Sheet Slot Anatomy` (landed in PRs #610/#613). Flow-to-surface mappings below therefore use: **MainSheet route section** vs **AdminDialog detail** vs **flow AdminDialog**. Admin views compose `CanvasRouteFrame` + `CanvasRouteHeader` + `CanvasRouteContent` (mandated by `.claude/rules/frontend-design.md` Rule 1; verified in `packages/admin/src/views/Garden/Vault.tsx:28-31,151-158`).
+This spec names only canonical components per `.claude/skills/design/prompt-contract.md` and `client-prompt-contract.md`. One correction to the session plan's vocabulary: the admin `LeftSheet` / `RightSheet` / `BottomSheet` renderers are **retired**. Every admin overlay is a centered `AdminDialog` (detail/inspection) or an `AdminDialog` `variant="flow"` + `ActionFlowShell` (create/commit flows), per `.claude/skills/design/prompt-contract.md` § Overlays and its Layout shell table (landed in PRs #610/#613). Flow-to-surface mappings below therefore use: **MainSheet route section** vs **AdminDialog detail** vs **flow AdminDialog**. Admin views compose `CanvasRouteFrame` + `CanvasRouteHeader` + `CanvasRouteContent` (mandated by `.claude/rules/frontend-design.md` Rule 1; verified in `packages/admin/src/views/Garden/Vault.tsx:28-31,151-158`).
 
 Admin wrapper palette (15, filesystem is the count of record, `packages/admin/src/components/`): AdminBadge, AdminButton, AdminCard, AdminCheckbox, AdminDialog, AdminFab, AdminFilterChip, AdminLinearProgress, AdminListItem, AdminSearchToolbar, AdminSortSelect, AdminTabRail, AdminTextField, AdminTooltip, AdminViewActions. Client shared primitives per `client-prompt-contract.md`: DialogShell, Card, StatCard, StatusBadge, Alert, Skeleton, Spinner, HydrationFallback, FileUploadField, ListPrimitives, DatePicker, Surface, SyncStatusBar, AddressDisplay, DomainBadge. Missing primitives are flagged in §9, never invented.
 
@@ -18,7 +18,7 @@ Admin wrapper palette (15, filesystem is the count of record, `packages/admin/sr
 
 ## 1. Personas and roles recap (hat-based)
 
-Roles are Hats-tree roles, not app accounts (`IHatsModule.GardenRole`: Owner, Operator, Evaluator, Gardener, Funder, Community; corrections-log §6). Canonical personas per `docs/docs/builders/specs/v1-0.mdx § 3.1`: Gardener, Operator, Evaluator, Funder, Community.
+Roles are Hats-tree roles, not app accounts (`IHatsModule.GardenRole`: Owner, Operator, Evaluator, Gardener, Funder, Community; corrections-log §6). Canonical personas come from `packages/shared/src/ontology/green-goods-ontology.json`: Gardener, Steward, Evaluator, Funder, and Community Member.
 
 | Persona (hat) | Pool powers (per locked layer permissions) |
 |---|---|
@@ -550,7 +550,7 @@ Privacy boundary: no counterparty addresses, commitment titles, or reason texts 
 - **State never by color alone**: all state chips use `StatusBadge` (icon + color, `.claude/rules/frontend-design.md` Rule 12); the state timeline pairs icons with text labels.
 - **Progress meters** always carry text equivalents (for one commitment, units approved of target; confirmations recorded of required). Pool/cycle summaries use state counts and separate exact-label rows rather than a mixed-unit meter.
 - **Hero moments** respect `prefers-reduced-motion` (static celebratory frame) and never trap focus; dismissible by any input.
-- **Admin rail and tabs** inherit roving tabindex from `AdminTabRail` (quick-reference Tabs table); the new Confirm stage and Pool tab add no custom key handling.
+- **Admin rail and tabs** inherit roving tabindex from `AdminTabRail` (`packages/admin/src/components/AdminTabRail.tsx`); the new Confirm stage and Pool tab add no custom key handling.
 - **Touch targets**: claim/confirm CTAs and every other interactive control meet the 44px minimum on touch surfaces; queued/failed badges are not the tap target, the card or adjacent named action is.
 
 ## 13. Open UX questions from the brief, answered

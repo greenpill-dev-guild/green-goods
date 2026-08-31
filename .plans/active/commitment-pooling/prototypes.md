@@ -56,7 +56,7 @@
 **Frame ids** — `W1…W26` are the implemented legacy commitment-pooling family; `W2a` is the evidence sheet and `W2b` is the team/contribution sheet inside W2. The §18 additions include six deltas plus NET-NEW `W27`; the bilateral wave adds W28–W31. These remain planned rather than drawn in hi-fi. September community frames take a `CI-` prefix (`CI-W1…CI-W14`) because that file numbers its own W1–W14 independently (CI-WF:32-443).
 
 **Per-storyboard anatomy** — a meta line, a flow graph, then a numbered steps table:
-- **Meta**: persona (`docs/docs/builders/specs/v1-0.mdx` §3.1 archetype + named research persona, `docs/docs/reference/design-research.md:104-164`) · owning scenario(s) · surfaces · garden theme.
+- **Meta**: canonical ontology persona (`packages/shared/src/ontology/green-goods-ontology.json`) + named research persona (`docs/docs/reference/design-research.md:104-164`) · owning scenario(s) · surfaces · garden theme.
 - **Flow graph**: mermaid — screens as nodes, user actions as edge labels.
 - **Steps table**: **Screen** (frame cite) · **User action** · **System response** (contract event / job kind) · **State** (§4 table names; on-chain vs derived per CS §5) · **If it fails** (recovery pointer). A failure row worth its own walk points at a sibling storyboard rather than repeating it.
 

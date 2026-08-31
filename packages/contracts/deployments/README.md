@@ -36,3 +36,27 @@ non-zero guard following
 check that the configured address is present and not the zero-address sentinel
 before using it. `isGreenWillDeployed` itself guards `greenWill`; it is the
 pattern, not a guard for these three keys.
+
+## Deployment runbook
+
+Use package scripts and `script/deploy.ts`; never run raw `forge` deployment commands. The root
+environment supplies chain RPCs and keystore configuration.
+
+```bash
+cd packages/contracts
+
+# Compile-only preflight, then target-chain simulation.
+bun run deploy:preflight:sepolia
+bun run deploy:dry:sepolia
+
+# Broadcast only after release-owner approval.
+bun run deploy:sepolia
+bun run verify:post-deploy:sepolia
+```
+
+Equivalent `:arbitrum`, `:celo`, and `:mainnet` scripts exist in `package.json`. A deploy is not
+complete until its `*-latest.json` artifact is persisted, dependent indexer/config inputs are
+updated, and the matching post-deploy verifier passes.
+
+Approved immutable EAS schema additions use their standalone registration paths. Do not restore
+or use the retired bulk `--update-schemas` flow.

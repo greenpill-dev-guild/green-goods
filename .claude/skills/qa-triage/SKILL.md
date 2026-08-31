@@ -1,7 +1,7 @@
 ---
 name: qa-triage
 user-invocable: true
-description: Turn build sync QA meeting notes (the meeting formerly called product sync) into triaged Linear records + QA-sheet rows. Fires on any mention of a QA call/sync/meeting, build sync, product sync (legacy name), or filing/triaging bugs from a recent meeting — even without the word "qa-triage". For a live walkthrough where the user dictates observations in real time (or a dictated-walk transcript), use qa-session instead. Pulls the latest Gemini notes from Drive (~/Downloads fallback), cross-references PostHog + existing Linear/Sheet records, scope-locks, then writes Customer Needs/Issues and QA Sheet rows.
+description: Turn Build Sync QA notes or a qa-session deferred handoff into scope-locked Linear records and private QA Sheet rows. Fires on a QA call/sync/meeting, Build Sync, Product Sync (legacy name), or a request to file or triage recent meeting bugs. Pulls notes from Drive (Downloads fallback), enriches against PostHog and existing Linear/Sheet records, requires exact Test IDs for qa-session issues, then writes only after confirmation. For a live or dictated walkthrough, use qa-session instead.
 argument-hint: "[<notes-path|slug|qa-sync:YYYY-MM-DD>] [--dry-run] [--no-codex] [--no-sheet] [--fixture]"
 ---
 
@@ -9,7 +9,13 @@ argument-hint: "[<notes-path|slug|qa-sync:YYYY-MM-DD>] [--dry-run] [--no-codex] 
 
 Interactive sibling of the `bug-intake` cron'd routine. Pulls the latest **Build Sync** QA notes from Drive (with `~/Downloads` fallback), extracts bugs, ideas, and feedback, cross-references each item against PostHog telemetry and existing Linear + QA-sheet records, gates the triage with an explicit scope lock, then writes Linear records and appends rows to the **Green Goods v1.1 QA** Sheet.
 
-Mirror [`docs/routines/bug-intake.md`](../../../docs/routines/bug-intake.md) for the Linear protocol, label scheme, and privacy boundary — this skill is its **interactive, on-demand, single-source** sibling, not a replacement.
+Mirror [`docs/routines/bug-intake.md`](../../../docs/routines/bug-intake.md) for the Linear protocol
+and label scheme — this skill is its **interactive, on-demand, single-source** sibling, not a
+replacement.
+
+The system-wide QA layers, artifact ownership, result/privacy boundary, state queries, and Test ID
+linkage live in [`.claude/context/qa.md`](../../context/qa.md). This skill owns intake through the
+confirmed Linear and Sheet writes only.
 
 ## Activation
 
@@ -267,6 +273,12 @@ Hard rules:
 
 For each locked item, draft payloads using [`linear-templates.md`](./linear-templates.md).
 
+For a `source:qa-session` input, resolve every locked item's exact catalog Test ID from its
+`case:` field before drafting. If an item has no exact ID, pause that item and ask the user to
+select the case; do not invent or fuzzy-guess one. Put the ID in the Issue source line and the
+Sheet's `Linked Test ID` field. Apply the same source-line rule to every accepted
+`[derived:test-fail]` item. See [`.claude/context/qa.md § Test ID linkage`](../../context/qa.md#test-id-linkage).
+
 ### Linear API constraints
 
 Three hard constraints shape every payload — full detail, including the Codex-ready and autonomous-confident delegation bars, lives in [linear-templates.md § Linear API constraints](./linear-templates.md):
@@ -410,16 +422,6 @@ Then run Codex worktree cleanup for the current run only if dispatched (unless
 `tmp/qa-triage/<slug>/`; for dry runs, failed writes, or incomplete runs, keep it and
 surface the resume path.
 
-## Privacy boundary — one explicit exception
-
-The canonical boundary from [`bug-intake.md`](../../../docs/routines/bug-intake.md) and [`posthog-questions.md`](../../../docs/routines/posthog-questions.md) keeps replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers out of every shared surface.
-
-This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Session ID` and `PostHog Replay URL` columns. Conditions:
-
-1. Sheet permissions are tight (not `anyoneWithLink`, not `public`). Phase 0 hard-aborts if not.
-2. Every other surface still enforces the strict boundary. The Phase 6 privacy grep runs on Linear bodies and comments alike, and skips only `sheet-rows.csv`, by design.
-3. Distinct IDs and wallet addresses remain private-only **everywhere**, including the Sheet — the exception is narrow to session ID + replay URL.
-
 ## Anti-Patterns
 
 | Don't | Why |
@@ -451,5 +453,5 @@ This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Ses
 - **Read-only until Phase 6** — phases 0–4 never write to Linear or the Sheet.
 - **Scope lock is the contract** — recorded in `triage.md`, referenced through Phase 7.
 - **Every write needs evidence** — Linear payloads ride PostHog safe-summaries when available; Sheet rows carry the same plus the privacy-excepted private fields.
-- **The Sheet is the only exception** — never paint elsewhere.
+- **The privacy boundary is shared** — apply [`.claude/context/qa.md`](../../context/qa.md) before every write.
 - **One invocation, one build sync** — single-source by design. The async multi-source path is `bug-intake`'s job.

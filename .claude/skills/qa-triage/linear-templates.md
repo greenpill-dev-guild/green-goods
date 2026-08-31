@@ -23,6 +23,20 @@ Three hard constraints Linear enforces on every payload:
 
 ---
 
+## QA Test ID linkage
+
+Every Issue sourced from a `qa-session` deferred handoff, and every accepted
+`[derived:test-fail]` item, must carry its exact catalog Test ID. Resolve it before drafting and add
+the exact ID to the Issue's source line (`Test ID: ADM-012.`). Put the same value in the Defects row's
+`Linked Test ID` field.
+
+If a session-derived item has no exact `case:` ID, pause that item and ask the user to select the
+catalog case. Do not file it with an OBS number, Defect ID, blank value, or fuzzy guess. This is the
+reverse-lookup contract in [`.claude/context/qa.md`](../../context/qa.md): a case finds its open
+Issue, and the Issue returns to the case definition.
+
+---
+
 ## Customer Need body (terse — source-of-truth raw signal)
 
 The Customer Need is the durable record of what the reporter said. Keep it minimal: verbatim + speaker + link to the Issue. The Issue holds the actionable detail — the problem in prose with **Done when** outcomes in the body, and the safe PostHog/deploy enrichment in its first comment. Avoid duplicating Issue content here — the `issue` link is the integration.
@@ -65,6 +79,15 @@ evidence: "PostHog: 31 occurrences across 12 sessions, 4 users, first seen
 2026-08-07.">
 QA Sync — <meeting-title> on <YYYY-MM-DD>. [Notes](<drive-url>)
 ```
+
+For a `source:qa-session` Issue, replace the QA Sync source line with:
+
+```markdown
+QA session — <session-slug>. Test ID: `<ID>`.
+```
+
+For an accepted `[derived:test-fail]` Issue, append the exact Test ID to its source line in the
+same format.
 
 The Issue is the **actionable surface**; the linked Customer Need holds the
 verbatim quote and reporter context, so the Issue never repeats them.
@@ -190,6 +213,9 @@ product call" is a legitimate answer.>
 
 QA Sync — <meeting-title> on <YYYY-MM-DD>. Speaker: <name>. [Notes](<drive-url>)
 ```
+
+When this tracking Issue comes from `source:qa-session`, use the QA session source line and exact
+Test ID defined above. Track-only status does not weaken the linkage rule.
 
 The Customer Need then links to this Issue via the `issue` parameter and carries the full verbatim quote + Reporter context in its body.
 

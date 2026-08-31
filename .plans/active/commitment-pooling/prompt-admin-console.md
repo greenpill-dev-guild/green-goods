@@ -362,8 +362,8 @@ resolution: `Refs PRD-725` (partial work), plus `Relates to PRD-650` for context
 5. `.plans/active/commitment-pooling/acceptance-matrix.md` rows for `/garden/pool`,
    `/community/pools`, and the Hub Confirm queue (`:189-191`), and the Pool NotReady / Paused /
    confirmation-provenance / past-due expiry rows (`:13-14`, `:22`, `:106`).
-6. Design rules: `.claude/skills/design/quick-reference.md`,
-   `.claude/skills/design/prompt-contract.md` § Canonical Component Palette (admin),
+6. Design rules: `packages/admin/DESIGN.md`, `.claude/skills/design/prompt-contract.md`
+   § Canonical Component Palette (admin),
    `.claude/skills/design/review-checklist.md` (all four lenses for each new view),
    `.claude/skills/design/defect-grammar.md`, `.claude/rules/react-patterns.md`,
    `.claude/rules/frontend-design.md`, `packages/admin/AGENTS.md`, `.claude/context/shared.md`.

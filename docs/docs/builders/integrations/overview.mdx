@@ -4,11 +4,11 @@ sidebar_position: 1
 slug: /builders/integrations/overview
 audience: developer
 owner: docs
-last_verified: 2026-04-19
+last_verified: 2026-08-30
 feature_status: Live
-goal: "Complete Integrations with clear, role-specific next actions."
+goal: "Find the authority and operational boundary for a Green Goods integration."
 difficulty: "standard"
-estimated_time: "20-45 minutes."
+estimated_time: "5-10 minutes."
 prereqs: "Chain and deployment context."
 next_steps: "./eas"
 persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
@@ -25,66 +25,24 @@ keywords:
   - mcp
 ---
 
-import {FeatureState, NextBestAction, StatusBadge} from "@site/src/components/docs";
-
 # Integrations
 
-<StatusBadge status="Live" />
+Integrations cross different authority boundaries. Before changing one, identify which layer owns
+the fact you need.
 
-```mermaid
-graph TB
-    GG["Green Goods\nProtocol"]
+| Concern | Authority |
+|---|---|
+| Contract behavior | Contract source and tests |
+| Recorded deployment | Chain deployment artifact |
+| Schema identity | Schema configuration and deployment artifact |
+| Indexed events | `packages/indexer/config.yaml` and handlers |
+| Application access | Shared modules, hooks, and package exports |
+| Semantic mapping | Ontology and generated entity matrix |
 
-    GG --> EAS["EAS\nAttestations"]
-    GG --> Hats["Hats Protocol\nRBAC"]
-    GG --> HC["Hypercerts\nImpact Certs"]
-    GG --> TB["Tokenbound\nERC-6551"]
-    GG --> Octant["Octant\nYield Vaults"]
-    GG --> CJ["CookieJar\nPayouts"]
-    GG --> ENS["ENS\nGarden Names"]
-    GG --> Envio["Envio\nIndexer"]
-    GG --> Pinata["Pinata-backed\nIPFS"]
-    GG --> Pimlico["Pimlico\nAccount Abstraction"]
-```
+The generated integration pages own recorded status for Cookie Jar, ENS, Gardens, Hats,
+Hypercerts, Karma, and Octant. [EAS](./eas), [Authentication](./passkey), and [Tokenbound
+Accounts](./tokenbound) retain conceptual guidance because their cross-layer boundaries require
+explanation.
 
-## Integration surfaces
-
-<FeatureState
-  title="Indexer GraphQL"
-  status="Live"
-  summary="Use for gardens/actions/membership entities and chain-scoped metadata."
-/>
-
-<FeatureState
-  title="EAS GraphQL"
-  status="Live"
-  summary="Use for work/approval/assessment attestations and cryptographic traceability."
-/>
-
-<FeatureState
-  title="Pinata-backed IPFS uploads"
-  status="Live"
-  summary="Shared IPFS upload utilities and contract metadata utilities use the Pinata-backed upload path for media and metadata."
-/>
-
-<FeatureState
-  title="v1 module integrations"
-  status="Implemented (activation pending indexing)"
-  summary="Several modules are deployed on Arbitrum/Sepolia, but indexer coverage and UI readiness vary by surface."
-/>
-
-## Reference
-
-- [API Index](../packages/api-index)
-- [Agent/MCP Guide](../agentic/mcp-guide)
-- [Deployment Status](../deployments/status)
-
-<NextBestAction
-  title="Next best action"
-  why="Use canonical endpoint and activation references before implementing or debugging integrations."
-  actionLabel="Open API index"
-  actionHref="../packages/api-index"
-  alternatives={[
-    {label: "Deployment status", href: "../deployments/status"},
-  ]}
-/>
+Do not infer live health from an address or code path. Activation, indexing, and external-service
+availability need separate operational evidence.

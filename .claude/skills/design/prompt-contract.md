@@ -76,7 +76,7 @@ If a design tool emits a hero treatment in an admin screen, reject and regenerat
 
 ## Required Vocabulary
 
-> **Canonical glossary**: cross-surface domain terms (Garden, Action, Work, Assessment, Hypercert, Vault, Cookie Jar, Attestation, Hat, Season) and personas (Gardener, Steward, Evaluator, Funder, Community Member) live in [`docs/docs/reference/glossary-community.md § Design Vocabulary`](../../../docs/docs/reference/glossary-community.md#design-vocabulary). The table below is admin-specific component / cockpit vocabulary that does not live there.
+> **Terminology authority**: cross-surface domain terms and personas live in [`green-goods-ontology.json`](../../../packages/shared/src/ontology/green-goods-ontology.json). The generated public [glossary](../../../docs/docs/reference/glossary.generated.mdx) explains that vocabulary. The table below is admin-specific component and cockpit vocabulary.
 
 Use these terms when describing admin UI:
 
@@ -97,7 +97,7 @@ Use these terms when describing admin UI:
 
 ## Never Use (in admin prompts)
 
-> **Canonical source**: the full admin-banned phrase list lives in [`docs/docs/reference/glossary-community.md § Admin-Only Banned (AI Prompt Vocabulary)`](../../../docs/docs/reference/glossary-community.md#admin-only-banned-ai-prompt-vocabulary) and in [`docs/docs/reference/banned-vocabulary.json`](../../../docs/docs/reference/banned-vocabulary.json) (`prompt_vocabulary_admin_banned`). Lint-enforced cross-surface bans live in the same glossary § Lint-Enforced section — `bun run lint:vocab` parses the JSON.
+> **Machine policy**: the full admin-banned phrase list lives in [`scripts/data/banned-vocabulary.json`](../../../scripts/data/banned-vocabulary.json) (`prompt_vocabulary_admin_banned`). `bun run lint:vocab` reads the same file for lint-enforced cross-surface terms.
 
 The categories below are contract-specific framing — *why* admin output should reject these patterns. The exact phrase set is the glossary's job:
 

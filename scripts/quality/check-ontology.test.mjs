@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   BASELINE_MAX_DAYS,
   checkProjectionIntegrity,
+  checkQaCatalogRoles,
   checkSidecarIntegrity,
   collectAnchorFiles,
   collectPlannedAnchors,
@@ -40,7 +41,6 @@ import {
   escapeMdxTableCode,
   renderAgentManifest,
   renderEntityMatrixMdx,
-  renderHumanOntologyMdx,
   renderMarketingClaimsMdx,
   renderOntologyMdx,
 } from "./ontology-render.mjs";
@@ -322,6 +322,22 @@ test("parseGlossaryTable includes unbolded rows so they surface as drift", () =>
   ]);
 });
 
+test("parseGlossaryTable stops at the next level-two section", () => {
+  const source = `## Domain Entities
+
+| Term | Type | Availability | Allowed surfaces | Definition |
+|---|---|---|---|---|
+| **Garden** | entity | available | docs | A garden. |
+
+## Personas
+
+| Term | Type | Allowed surfaces | Definition |
+|---|---|---|---|
+| **Gardener** | persona | docs | A gardener. |
+`;
+  assert.deepEqual(parseGlossaryTable(source, "Domain Entities").map((row) => row.name), ["Garden"]);
+});
+
 test("parseCanonicalEntityCounts finds every prose count", () => {
   assert.deepEqual(
     parseCanonicalEntityCounts(
@@ -364,6 +380,13 @@ test("parseGlossaryAnchors collects explicit and slugified anchors at every leve
   assert.ok(anchors.has("domain-entities"));
   assert.ok(anchors.has("operator"));
   assert.ok(!anchors.has("garden-operator"));
+});
+
+test("parseGlossaryAnchors includes explicit HTML compatibility anchors", () => {
+  assert.deepEqual([...parseGlossaryAnchors('<a id="impact-certificate"></a>\n### Hypercert {#hypercert}')], [
+    "hypercert",
+    "impact-certificate",
+  ]);
 });
 
 test("parseClientGlossaryTerms reads ids and docs anchors from the TERMS array", () => {
@@ -719,7 +742,6 @@ test("renderers are deterministic", () => {
     renderOntologyMdx(miniOntology, miniProjections)
   );
   assert.equal(renderEntityMatrixMdx(miniOntology), renderEntityMatrixMdx(miniOntology));
-  assert.equal(renderHumanOntologyMdx(miniOntology, miniProjections), renderHumanOntologyMdx(miniOntology, miniProjections));
   assert.equal(renderMarketingClaimsMdx(miniProjections), renderMarketingClaimsMdx(miniProjections));
   assert.equal(renderAgentManifest(miniOntology, miniProjections), renderAgentManifest(miniOntology, miniProjections));
 });
@@ -753,6 +775,27 @@ test("integrity rejects undeclared executable transition endpoints and relations
   const errors = checkSidecarIntegrity(broken, () => true);
   assert.ok(errors.some((error) => error.includes('undeclared state "missing"')));
   assert.ok(errors.some((error) => error.includes('unknown entity "missing"')));
+});
+
+test("integration metadata requires unique deployment fields and existing sources", () => {
+  const broken = structuredClone(miniOntology);
+  broken.integrations = [
+    {
+      id: "Bad Integration",
+      display: "Bad",
+      definition: "Broken fixture.",
+      contract_source: "missing.sol",
+      deployment_fields: ["module", "module"],
+      indexer_contracts: [],
+      additional_sources: ["missing.ts"],
+    },
+  ];
+
+  const errors = checkSidecarIntegrity(broken, () => false);
+  assert.ok(errors.includes("integration Bad Integration: id must be kebab-case"));
+  assert.ok(errors.includes("integration Bad Integration: deployment_fields contains duplicates"));
+  assert.ok(errors.includes("integration Bad Integration: source does not exist: missing.sol"));
+  assert.ok(errors.includes("integration Bad Integration: source does not exist: missing.ts"));
 });
 
 test("specified constraints and state machines require specs and planned anchors", () => {
@@ -899,6 +942,14 @@ test("projection integrity rejects unsupported availability", () => {
   assert.ok(
     errors.includes("capability entity:garden: available requires deployed, active, and integrated")
   );
+});
+
+test("QA catalog roles resolve to ontology personas or sentinels", () => {
+  const catalog = {cases: [{id: "A", role: "gardener"}, {id: "B", role: "any"}, {id: "C", role: "none"}]};
+  assert.deepEqual(checkQaCatalogRoles(miniOntology, catalog), []);
+
+  const errors = checkQaCatalogRoles(miniOntology, {cases: [{id: "D", role: "deployer"}]});
+  assert.ok(errors.some((error) => error.includes('role "deployer"')));
 });
 
 test("projection integrity validates chain-scoped availability and evidence", () => {

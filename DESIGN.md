@@ -200,7 +200,7 @@ Tone shifts by context while voice stays constant:
 
 ### Terminology
 
-The names that carry the work. The canonical vocabulary contract — domain entities, personas, surfaces, and banned terms (streak, countdown, leaderboard, FOMO, growth-hacking language, plus admin-only and client-only AI-prompt bans) — lives in [`docs/docs/reference/glossary-community.md`](docs/docs/reference/glossary-community.md). This table is the positive copy-voice set; the glossary is the cross-surface single source of truth.
+The names that carry the work. Domain entities, personas, relationships, and lifecycle semantics live in [`green-goods-ontology.json`](packages/shared/src/ontology/green-goods-ontology.json); banned language lives in [`scripts/data/banned-vocabulary.json`](scripts/data/banned-vocabulary.json). The generated [public glossary](docs/docs/reference/glossary.generated.mdx) explains both without becoming another authority. This table is the positive copy-voice set.
 
 | Use | Don't Use | Why |
 |-----|-----------|-----|

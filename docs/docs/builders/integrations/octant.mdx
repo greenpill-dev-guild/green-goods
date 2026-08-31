@@ -1,46 +1,54 @@
 ---
-title: Octant Vaults
-sidebar_label: Octant Vaults
+title: Octant
 slug: /builders/integrations/octant
 audience: developer
 owner: docs
-last_verified: 2026-04-25
 feature_status: Live
-source_of_truth:
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
   - packages/contracts/src/modules/Octant.sol
-  - packages/contracts/src/strategies/AaveV3ERC4626.sol
-  - packages/shared/src/hooks/vault
-  - packages/admin/src/views/Garden/Vault.tsx
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
+source_digest: "sha256:085edcf35f82a5ea0b0e1e3c94f299ebb499590e61bbf59c7d7525c81db51c9e"
+source_of_truth:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
+  - packages/contracts/src/modules/Octant.sol
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+# Octant
 
-# Octant Vaults
+Octant provides Garden vault creation, deposits, withdrawals, and yield-donation mechanics.
 
-<StatusBadge status="Live" />
+## Checked-in deployment projection
 
-## Overview
-Octant-style vault support is deployed on Arbitrum and Sepolia and implemented in contracts, shared vault hooks, admin vault views, and indexer handlers. Celo artifacts keep the module/factory addresses at zero. Per-garden availability still depends on vault creation, strategy configuration, and chain readiness.
+| Network | Status | Recorded components |
+|---|---|---|
+| Ethereum Mainnet (`1`) | Not deployed | none |
+| Sepolia Testnet (`11155111`) | Deployed | `octantFactory`, `octantModule` |
+| Arbitrum One (`42161`) | Deployed | `octantFactory`, `octantModule` |
+| Celo (`42220`) | Not deployed | none |
 
-## Current surfaces
+## Indexer boundary
 
-- `Octant.sol`, `OctantVault`, and strategy code define the contract-side vault model.
-- Shared vault hooks cover deposits, withdrawals, previews, strategy rates, harvests, and vault events.
-- Admin surfaces include garden vault views, event history, and vault tests/stories.
-- The indexer handles `OctantModule`, `OctantVault`, and yield-split events for configured chains.
+Configured indexer contracts: `OctantModule`, `OctantVault`.
 
-## Builder notes
-
-- Gate live docs and UI states on non-zero vault/module addresses plus a created garden vault for the target chain.
-- Keep yield and deposit displays sourced from shared vault hooks.
-- Update deployment status when a chain becomes vault-active.
-
-<NextBestAction
-  title="Next best action"
-  why="Deployment status is the source for which vault surfaces are active per chain."
-  actionLabel="Deployment status"
-  actionHref="../deployments/status"
-  alternatives={[
-    {label: "Funder vault guide", href: "../../community/funder-guide/vaults-and-hypercerts"},
-  ]}
-/>
+A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. Follow the owning package runbook for operational verification.

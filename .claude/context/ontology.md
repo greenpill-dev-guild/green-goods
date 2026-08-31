@@ -84,7 +84,7 @@ Never merge or cross-map these vocabularies because they share only an identifie
 
 - `docs/docs/reference/ontology.generated.mdx`
 - `docs/docs/builders/integrations/entity-matrix.mdx`
-- `docs/docs/reference/ontology-human.generated.mdx`
+- `docs/docs/reference/glossary.generated.mdx`
 - `docs/docs/community/green-goods-claims.generated.mdx`
 - `packages/shared/src/ontology/agent-manifest.generated.json`
 

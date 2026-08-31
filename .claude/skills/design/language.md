@@ -26,7 +26,7 @@ Every surface, component, and interaction in Green Goods expresses:
 
 2. **Clarity** — Concentricity, functional layer separation, content-forward hierarchy, scroll edge effects. Structure is self-evident, never decorated into existence.
 
-3. **Purpose** — Every element serves the mission. No engagement hacking. No dark patterns. The regenerative design lens ([regenerative.md](./regenerative.md)) applies to visual expression too — solarpunk warmth, not trading-floor urgency.
+3. **Purpose** — Every element serves the mission. No engagement hacking. No dark patterns. The regenerative checks in [review-checklist.md § Lens 1](./review-checklist.md#lens-1-regenerative-design) apply to visual expression too — solarpunk warmth, not trading-floor urgency.
 
 ### What We Do NOT Take
 
@@ -623,7 +623,7 @@ Hero moments are designated places where all style dimensions amplify simultaneo
 
 ### Succession-Aware Expression
 
-Match expressiveness to garden maturity (see [regenerative.md](./regenerative.md) § Succession-Stage Awareness):
+Match expressiveness to garden maturity (see [review-checklist.md § Lens 1](./review-checklist.md#lens-1-regenerative-design)):
 
 | Garden Stage | Hero Moment Level | Why |
 |-------------|-------------------|-----|
@@ -656,7 +656,7 @@ append-only ledger where all ongoing design decisions land:
 
 - [SKILL.md](./SKILL.md) — Adaptive Surface paradigm, material metaphors, decision tree
 - [surfaces.md](./surfaces.md) — Z-layer model, material thickness system, glass pane, adaptive density, progressive disclosure, scroll-linked depth
-- [regenerative.md](./regenerative.md) — Seven principles, succession stages, growth-agnostic design
+- [review-checklist.md](./review-checklist.md) — Regenerative, spatial, ecosystem, and compliance checks
 - [ecosystem.md](./ecosystem.md) — 15 user archetypes, cascade awareness
 - Warm Earth's sources are recorded in § Philosophy above; the former SKILL.md reading-list appendix (books, designers, studios) was removed in the 2026-07 round-2 consolidation
 - [review-checklist.md](./review-checklist.md) — Unified 4-lens PR review (Regenerative + Spatial + Ecosystem + Compliance)

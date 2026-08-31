@@ -1,16 +1,19 @@
 ---
 title: Green Goods Ontology
 sidebar_label: Ontology
-slug: /reference/ontology.generated
-unlisted: false
+slug: /reference/ontology
 audience: developer
 owner: docs
-last_verified: 2026-08-22
 feature_status: Live
+generated: true
+generator: scripts/quality/check-ontology.mjs
+generated_from:
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
+source_digest: "sha256:2ccd38a88fb1a9d359f06b1174dd4b68a9cb6eae10222e6ab7e2c979bdfc5d6d"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-  - scripts/quality/check-ontology.mjs
 keywords:
   - ontology
   - vocabulary
@@ -65,7 +68,7 @@ The on-chain hat tree has six roles; the Owner hat carries full garden control b
 
 ## Supporting terms
 
-Terms that appear in the community glossary's Term Reference section but are deliberately not canonical entities or personas. Declaring them here is what lets the docs-term-reference guard fail on an undeclared term instead of letting orphan nouns accumulate silently.
+Terms projected into the generated glossary's Term Reference section but deliberately excluded from the canonical entity and persona sets. Declaring them here prevents public definitions from accumulating orphan nouns.
 
 | Term | Why it is not an entity |
 |---|---|
@@ -973,7 +976,7 @@ Use `maturity.availability` and the returned evidence before making a release cl
 
 - **`erd-stale-assessment-fields`** — The ERD's GardenAssessment shape lists only notes and mediaURIs, while the shipped assessment carries the full strategy kernel (domain, diagnosis, SMART outcomes, selected action UIDs, reporting period, assessmentConfigCID). _(`docs/docs/builders/architecture/erd.mdx`)_
 - **`missing-capital-mapping-fn`** — No runtime mapping function exists between the numeric Capital enum and the lowercase CapitalType union; index-based bridges are unsafe because the two declared orders currently differ. _(`packages/shared/src/types/domain.ts`, `packages/shared/src/types/hypercerts.ts`)_
-- **`community-surface-token`** — The glossary's Allowed surfaces column uses a `community` token on Need, Commitment, and Commitment Contributor, but the Surfaces table declares only four surfaces (admin, client, agent, public). Either promote the client's community section to a declared surface or fold the token into `client`; until then the sidecar carries it verbatim so the two sides stay locked. _(`docs/docs/reference/glossary-community.md`, `packages/shared/src/ontology/green-goods-ontology.json`)_
+- **`community-surface-token`** — The ontology uses a `community` surface token on Need, Commitment, and Commitment Contributor while the product still treats community experiences as part of the client and public surfaces. Either promote Community to a distinct product surface or fold the token into `client`; until then the generated glossary carries the declared value verbatim. _(`docs/docs/reference/glossary.generated.mdx`, `packages/shared/src/ontology/green-goods-ontology.json`)_
 
 ## Deliberately excluded from v1
 

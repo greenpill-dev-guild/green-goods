@@ -223,7 +223,7 @@ change any Linear state or create Linear records; Afo does that.
    `bun .plans/active/commitment-pooling/prototypes-artifact.build.ts` (or
    `OUT=/path/out.html bun …`); the build fails on any broken state/journey ref, which is the
    validator you want.
-5. Design rules: `.claude/skills/design/quick-reference.md`,
+5. Design rules: `packages/client/DESIGN.pwa.md`,
    `.claude/skills/design/client-prompt-contract.md` § Canonical Component Palette,
    `.claude/skills/design/review-checklist.md` (apply Lenses 1 + 4 per PR; all four for the two
    new screens), `.claude/rules/react-patterns.md`, `.claude/rules/frontend-design.md`,

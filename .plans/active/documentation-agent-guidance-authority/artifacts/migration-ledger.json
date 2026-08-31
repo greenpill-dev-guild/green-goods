@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "selectedAt": "2026-08-30",
+  "checkpointSha": "c881230a82a9d10c915ad060ed2b593f694af129",
+  "archivePolicy": "git-history-only",
+  "predecessors": [
+    ".plans/active/builder-docs-authority/",
+    ".plans/active/agent-research-grounding/",
+    ".plans/active/codebase-architecture-skills/"
+  ],
+  "publicSurfaces": {
+    "builders": {
+      "classificationAuthority": ".plans/active/builder-docs-authority/artifacts/migration-ledger.json",
+      "targetCount": 44,
+      "replace": {
+        "docs/docs/builders/glossary.mdx": "docs/docs/reference/glossary.generated.mdx"
+      },
+      "add": ["docs/docs/builders/agentic/task-routing.mdx"]
+    },
+    "community": {
+      "targetCount": 20,
+      "keep": [
+        "docs/docs/community/welcome.mdx",
+        "docs/docs/community/how-it-works.mdx",
+        "docs/docs/community/why-we-build.mdx",
+        "docs/docs/community/gardener-guide/index.mdx",
+        "docs/docs/community/gardener-guide/joining-a-garden.mdx",
+        "docs/docs/community/gardener-guide/uploading-your-work.mdx",
+        "docs/docs/community/gardener-guide/recovery-and-sync.mdx",
+        "docs/docs/community/gardener-guide/track-status-and-attestations.mdx",
+        "docs/docs/community/steward-guide/index.mdx",
+        "docs/docs/community/steward-guide/creating-a-garden.mdx",
+        "docs/docs/community/steward-guide/managing-actions.mdx",
+        "docs/docs/community/steward-guide/making-an-assessment.mdx",
+        "docs/docs/community/steward-guide/reviewing-work.mdx",
+        "docs/docs/community/steward-guide/creating-impact-certificates.mdx",
+        "docs/docs/community/steward-guide/funding-and-governance.mdx",
+        "docs/docs/community/funder-guide/index.mdx",
+        "docs/docs/community/funder-guide/donating-to-a-garden.mdx",
+        "docs/docs/community/funder-guide/funding-a-garden.mdx",
+        "docs/docs/community/funder-guide/withdraw-from-a-vault.mdx",
+        "docs/docs/community/green-goods-claims.generated.mdx"
+      ],
+      "deleteDirectories": [
+        "docs/docs/community/evaluator-guide/",
+        "docs/docs/community/community-member-guide/"
+      ],
+      "delete": [
+        "docs/docs/community/where-were-headed.mdx",
+        "docs/docs/community/gardener-guide/common-errors.mdx",
+        "docs/docs/community/gardener-guide/earning-badges.mdx",
+        "docs/docs/community/gardener-guide/garden-payouts.mdx",
+        "docs/docs/community/gardener-guide/offline-sync-and-drafts.mdx",
+        "docs/docs/community/gardener-guide/voting-governance.mdx",
+        "docs/docs/community/steward-guide/cookie-jars.mdx",
+        "docs/docs/community/steward-guide/earning-recognition.mdx",
+        "docs/docs/community/steward-guide/managing-certificates.mdx",
+        "docs/docs/community/steward-guide/managing-endowments.mdx",
+        "docs/docs/community/steward-guide/managing-governance.mdx",
+        "docs/docs/community/steward-guide/managing-payouts.mdx",
+        "docs/docs/community/steward-guide/reporting-and-gap.mdx",
+        "docs/docs/community/steward-guide/troubleshooting.mdx",
+        "docs/docs/community/funder-guide/earning-recognition.mdx",
+        "docs/docs/community/funder-guide/getting-started.mdx",
+        "docs/docs/community/funder-guide/vaults-and-hypercerts.mdx"
+      ]
+    },
+    "reference": {
+      "targetCount": 6,
+      "keep": [
+        "docs/docs/reference/faq.mdx",
+        "docs/docs/reference/glossary.generated.mdx",
+        "docs/docs/reference/ontology.generated.mdx",
+        "docs/docs/reference/product-history.mdx",
+        "docs/docs/reference/design-research.md",
+        "docs/docs/reference/credits.md"
+      ],
+      "delete": [
+        "docs/docs/reference/changelog.md",
+        "docs/docs/reference/glossary-community.md",
+        "docs/docs/reference/ontology-human.generated.mdx",
+        "docs/docs/reference/drs-2026-paper-outline.md",
+        "docs/docs/reference/proposals/octant-green-goods-proposal-pack-2026-04-01.md",
+        "docs/docs/reference/proposals/urban-greening-comment-package-2026-04-03.md",
+        "docs/docs/reference/regenerative-design-framework.md",
+        "docs/docs/reference/regenerative-design-principles.md"
+      ],
+      "move": {
+        "docs/docs/reference/banned-vocabulary.json": "scripts/data/banned-vocabulary.json"
+      }
+    }
+  },
+  "internalDocs": {
+    "keepPatterns": [
+      "docs/routines/**",
+      "packages/*/README.md",
+      "packages/*/AGENTS.md",
+      "**/DESIGN*.md",
+      ".plans/**",
+      "docs/static/llms.txt"
+    ],
+    "delete": [
+      "docs/admin-revamp/audit.md",
+      "docs/agentic-webmcp-strategy.md",
+      "docs/chrome-platform-tracker.md",
+      "docs/metrics/README.md",
+      "docs/presentations/red-coop-2026-05-22/"
+    ]
+  },
+  "skillSupport": {
+    "keepTopLevelSkills": 13,
+    "add": [".claude/context/task-routing.json"],
+    "delete": [
+      ".claude/skills/debug/health-diagnostics.md",
+      ".claude/skills/debug/monitoring.md",
+      ".claude/skills/debug/posthog.md",
+      ".claude/skills/design/quick-reference.md",
+      ".claude/skills/design/regenerative.md"
+    ]
+  },
+  "docsCode": {
+    "delete": [
+      "docs/src/data/endpoints.ts",
+      "docs/src/components/docs/AtAGlanceCard.tsx",
+      "docs/src/components/docs/ChainBadge.tsx",
+      "docs/src/components/docs/DecisionGuide.tsx",
+      "docs/src/components/docs/JourneyMap.tsx",
+      "docs/src/components/docs/QueryBlock.tsx"
+    ],
+    "removeScripts": [
+      "docs/package.json#scripts.protocol-status:generate",
+      "docs/package.json#scripts.deploy"
+    ],
+    "retain": ["docs/src/components/RevenueExplorer/**", "docs/package.json#dependencies.recharts"]
+  },
+  "assets": {
+    "policy": "retain-only-direct-consumers-or-docusaurus-config",
+    "socialCard": "docs/static/img/green-goods-social-card.webp"
+  },
+  "deployment": {
+    "add": ["docs/vercel.json"],
+    "deleteAfterDomainVerification": ["docs/static/.nojekyll", "docs/static/CNAME"],
+    "githubWorkflow": ".github/workflows/docs.yml#validation-only"
+  }
+}

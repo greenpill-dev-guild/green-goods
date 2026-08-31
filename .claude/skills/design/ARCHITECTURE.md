@@ -30,7 +30,6 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 | `docs/DESIGN.md` | Docusaurus documentation dialect, Manrope/Bricolage/IBM Plex Mono |
 | `design/language.md` | Implementation guide — shape, motion, color, material, hero moments |
 | `design/ai-ui-brief.md` | Reusable AI UI/CSS build brief and external reference role map |
-| `design/quick-reference.md` | One-page scannable cheat sheet (derivative of language.md) |
 | `packages/shared/src/styles/design-md.generated.css` | Generated DesignMD CSS projection |
 | `packages/shared/src/styles/theme.css` | Runtime consumer — springs, materials, blur, colors |
 | `packages/client/src/styles/typography.css` | Client type scale utilities |
@@ -42,7 +41,7 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 | I need… | Start here |
 |---------|-----------|
 | DesignMD color/radius values | Root `DESIGN.md` front matter |
-| Runtime spring/material usage | `design/quick-reference.md` → `language.md` for full detail |
+| Runtime spring/material usage | `design/language.md` and `packages/shared/src/styles/theme.css` |
 | Reusable UI/CSS prompt for agents | `design/ai-ui-brief.md` |
 | Prompt vocabulary for any AI design tool | `design/prompt-contract.md` (admin) or `client-prompt-contract.md` (client) |
 | How to feed an AI design tool the right context | `design/SKILL.md § Working with AI Design Tools` |
@@ -53,7 +52,7 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 | PR review (per-change, 4 lenses) | `design/review-checklist.md` — Regenerative → Spatial → Ecosystem → Compliance |
 | Design-system alignment (full repo, or stack-only self-audit) | `design/system-alignment-review.md` — DesignMD files, Warm Earth, `theme.css`, Storybook, admin, client PWA/browser, docs, agentic guidance, Claude + Codex instructions; § Stack-only mode for `design/` infrastructure alone |
 | Ecosystem / cascade / archetype analysis | `design/ecosystem.md` |
-| Regenerative lens specifics | `design/regenerative.md` |
+| Regenerative review checks | `design/review-checklist.md` § Lens 1 |
 | Inspiration / sources / research frameworks | `design/language.md § Philosophy` (Sources) |
 | View transitions API | `design/implementation.md § View Transitions` |
 
@@ -114,7 +113,6 @@ The filesystem is the registry: `design/SKILL.md` frontmatter (`name`, `descript
 - [SKILL.md](./SKILL.md) — Design philosophy, paradigms, decision tree
 - [language.md](./language.md) — Implementation guide
 - [ai-ui-brief.md](./ai-ui-brief.md) — Reusable AI UI/CSS prompt contract and reference role map
-- [quick-reference.md](./quick-reference.md) — One-page cheat sheet
 - [review-checklist.md](./review-checklist.md) — 4-lens PR review (per-change)
 - [system-alignment-review.md](./system-alignment-review.md) — Design-system alignment review: full-repo, plus § Stack-only mode for the `design/` stack itself
 - [prompt-contract.md](./prompt-contract.md) — Admin AI prompt vocabulary + palette

@@ -17,7 +17,7 @@
  *   bun run version:bump 1.2.0 --dry-run  # preview, write nothing
  *   bun run version:check 1.2.0            # fail unless every release marker matches
  *
- * Canonical release runbook: docs/docs/builders/deployments/releasing.mdx
+ * Canonical release runbook: CONTRIBUTING.md § Releases and hotfixes
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";

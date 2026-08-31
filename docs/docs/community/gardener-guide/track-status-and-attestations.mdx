@@ -11,7 +11,7 @@ goal: "Complete Track Status and Attestations with clear, role-specific next act
 difficulty: "standard"
 estimated_time: "5 minutes."
 prereqs: "At least one submitted work item."
-next_steps: "./common-errors"
+next_steps: "./recovery-and-sync"
 persona_context: "Gardeners documenting and syncing impact work in field conditions."
 source_of_truth:
   - packages/client/src/views/Home/WorkDashboard
@@ -23,7 +23,6 @@ keywords:
 ---
 
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";
-import {EAS_EXPLORER_ENDPOINTS} from "@site/src/data/endpoints";
 
 # Track Status and Attestations
 
@@ -40,20 +39,14 @@ import {EAS_EXPLORER_ENDPOINTS} from "@site/src/data/endpoints";
 
 1. Open approved work details.
 2. Copy/select attestation UID and chain.
-3. Verify on the matching EAS explorer endpoint.
+3. Open the matching network in the official EAS explorer and search for that UID.
 4. Confirm approval linkage and timestamps.
 
-## Explorer endpoints
-
-Season One gardens run on Arbitrum, so this is the explorer you will use:
-
-- Arbitrum: <code>{EAS_EXPLORER_ENDPOINTS[42161]}</code>
-
-If your garden runs on a different network, use that network's EAS explorer instead (for example, Celo: <code>{EAS_EXPLORER_ENDPOINTS[42220]}</code>).
+Do not copy an explorer URL from an old guide. Use the chain shown on the work record, then choose that network from the official [EAS explorer](https://easscan.org/).
 
 <NextBestAction
   title="Next best action"
   why="Keep momentum by moving to the next high-value step in this journey."
-  actionLabel="Common Errors"
-  actionHref="./common-errors"
+  actionLabel="Recovery and Sync"
+  actionHref="./recovery-and-sync"
 />

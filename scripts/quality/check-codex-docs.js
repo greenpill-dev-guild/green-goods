@@ -91,50 +91,6 @@ function validateCommand(command, scripts, relBaseDir, label) {
   }
 }
 
-function parseEnvironmentActions(toml) {
-  const actionRegex = /\[\[actions\]\]\s*name = "([^"]+)"\s*icon = "[^"]+"\s*command = """([\s\S]*?)"""/g;
-  const actions = new Map();
-
-  for (const match of toml.matchAll(actionRegex)) {
-    const name = match[1];
-    const command = match[2]
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith("export PATH="))
-      .join(" && ");
-    actions.set(name, normalizeForDocs(command));
-  }
-
-  return actions;
-}
-
-function parseDocActions(markdown) {
-  const section = getSection(markdown, "Predefined Actions");
-  const tableLines = section
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.startsWith("|"));
-
-  const actions = new Map();
-  for (const line of tableLines.slice(2)) {
-    const cells = line
-      .split("|")
-      .slice(1, -1)
-      .map((cell) => cell.trim());
-    if (cells.length !== 2) continue;
-    const [name, command] = cells;
-    actions.set(name, normalizeForDocs(command.replace(/^`|`$/g, "")));
-  }
-  return actions;
-}
-
-function normalizeForDocs(command) {
-  return command
-    .replace(/\$\{[A-Za-z_][A-Za-z0-9_]*:-([^}]+)\}/g, "$1")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 function policyBlocks(markdown, minWords) {
   const blocks = [];
   const lines = markdown.split(/\r?\n/);
@@ -218,31 +174,6 @@ export function findNearDuplicatePolicyBlocks(leftMarkdown, rightMarkdown, optio
   return matches;
 }
 
-function validateActions() {
-  const envActions = parseEnvironmentActions(read(".codex/environments/environment.toml"));
-  const docActions = parseDocActions(read("docs/docs/builders/agentic/codex.mdx"));
-
-  for (const [name, command] of envActions) {
-    if (!docActions.has(name)) {
-      fail(`docs/docs/builders/agentic/codex.mdx: missing action "${name}" from action table`);
-      continue;
-    }
-    if (docActions.get(name) !== command) {
-      fail(
-        `docs/docs/builders/agentic/codex.mdx: action "${name}" command mismatch\n` +
-          `  docs: ${docActions.get(name)}\n` +
-          `  env:  ${command}`
-      );
-    }
-  }
-
-  for (const name of docActions.keys()) {
-    if (!envActions.has(name)) {
-      fail(`.codex/environments/environment.toml: missing action "${name}" documented in codex.mdx`);
-    }
-  }
-}
-
 function validateRootGuide() {
   const rootGuide = read("AGENTS.md");
   const rootScripts = parseJson("package.json").scripts ?? {};
@@ -295,6 +226,7 @@ function validateRootGuide() {
   for (const reference of [
     ".claude/context/validation-pipeline.md",
     ".claude/context/codebase-architecture.md",
+    ".claude/context/task-routing.json",
   ]) {
     if (!rootGuide.includes(reference)) {
       fail(`AGENTS.md: missing canonical guidance reference ${reference}`);
@@ -382,7 +314,7 @@ function validateGuideReferences() {
     {
       relPath: "AGENTS.md",
       requiredTerms: [
-        "docs/docs/builders/packages/admin.mdx",
+        "packages/admin/DESIGN.md",
         "CanvasLayout",
         "DashboardLayout",
         "Sidebar",
@@ -392,7 +324,7 @@ function validateGuideReferences() {
     {
       relPath: "packages/admin/AGENTS.md",
       requiredTerms: [
-        "docs/docs/builders/packages/admin.mdx",
+        "packages/admin/DESIGN.md",
         "CanvasLayout",
         "DashboardLayout",
         "Sidebar",
@@ -420,7 +352,7 @@ function validateGuideReferences() {
     {
       relPath: "packages/shared/AGENTS.md",
       requiredTerms: [
-        "docs/docs/builders/packages/admin.mdx",
+        "packages/admin/DESIGN.md",
         "Storybook",
         "AppBar",
         "NavigationBar",
@@ -465,42 +397,6 @@ function validateSkillMirrorSymlink() {
 }
 
 function validateRepoDerivedGuidanceFacts() {
-  const skillsDir = path.join(repoRoot, ".claude/skills");
-  const skillNames = fs
-    .readdirSync(skillsDir, { withFileTypes: true })
-    .filter(
-      (entry) =>
-        entry.isDirectory() && fs.existsSync(path.join(skillsDir, entry.name, "SKILL.md")),
-    )
-    .map((entry) => entry.name)
-    .sort();
-
-  const skillDocs = [
-    "docs/docs/builders/agentic/claude-code.mdx",
-    "docs/docs/builders/agentic/context-engineering.mdx",
-    "docs/docs/builders/agentic/spec-engineering.mdx",
-  ];
-  for (const relPath of skillDocs) {
-    const doc = read(relPath);
-    const documentedCounts = Array.from(doc.matchAll(/\b(\d+) skills\b/g), (match) =>
-      Number(match[1]),
-    );
-    if (
-      documentedCounts.length === 0 ||
-      documentedCounts.some((count) => count !== skillNames.length)
-    ) {
-      fail(`${relPath}: documented skill count must match ${skillNames.length} skill directories`);
-    }
-  }
-  for (const relPath of [skillDocs[0], skillDocs[2]]) {
-    const doc = read(relPath);
-    for (const skillName of skillNames) {
-      if (!doc.includes(skillName)) {
-        fail(`${relPath}: skill inventory is missing ${skillName}`);
-      }
-    }
-  }
-
   const agenticDocs = fs
     .readdirSync(path.join(repoRoot, "docs/docs/builders/agentic"))
     .filter((name) => name.endsWith(".mdx"))
@@ -509,19 +405,6 @@ function validateRepoDerivedGuidanceFacts() {
     const doc = read(relPath);
     if (doc.includes(".claude/context/intent.md") || /(?:^|[^/])intent\.md\b/m.test(doc)) {
       fail(`${relPath}: references nonexistent intent.md; use product.md and values.md`);
-    }
-  }
-
-  const codexDoc = read("docs/docs/builders/agentic/codex.mdx");
-  if (/Skills\["\.agents\/skills\\nGenerated mirror"\]/.test(codexDoc)) {
-    fail("docs/docs/builders/agentic/codex.mdx: .agents/skills is a symlink, not a generated mirror");
-  }
-  if (/^model\s*=/m.test(codexDoc)) {
-    fail("docs/docs/builders/agentic/codex.mdx: project config must not invent a model setting");
-  }
-  for (const setting of ['model_verbosity = "low"', 'model_reasoning_summary = "concise"']) {
-    if (!codexDoc.includes(setting) || !read(".codex/config.toml").includes(setting)) {
-      fail(`docs/docs/builders/agentic/codex.mdx: config example drifted from .codex/config.toml (${setting})`);
     }
   }
 
@@ -592,11 +475,6 @@ function validateRepoDerivedGuidanceFacts() {
   }
 
   const playwrightDoc = read("docs/docs/builders/testing/playwright.mdx");
-  for (const marker of ["port 3006", "bun run dev:web", "fork and testnet projects get 120s"]) {
-    if (!playwrightDoc.includes(marker)) {
-      fail(`docs/docs/builders/testing/playwright.mdx: missing current config fact: ${marker}`);
-    }
-  }
   if (playwrightDoc.includes("npx playwright")) {
     fail("docs/docs/builders/testing/playwright.mdx: use the repo's Bun Playwright entrypoint");
   }
@@ -608,7 +486,6 @@ function validateRepoDerivedGuidanceFacts() {
 }
 
 function run() {
-  validateActions();
   validateRootGuide();
   validateGuideDuplication();
   validatePackageGuides();
