@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "description": "Machine-readable routing contract for Green Goods agent tasks. Skill frontmatter owns activation; this file owns cross-skill boundaries and handoffs.",
   "authorityOrder": [
     "nearest AGENTS.md",
@@ -7,6 +7,140 @@
     "packages/shared/src/ontology/green-goods-ontology.json",
     "owning Plan Hub",
     "task-specific skill"
+  ],
+  "authoritySurfaces": [
+    {
+      "id": "implementation",
+      "label": "Implementation",
+      "role": "authority",
+      "owns": "Runtime behavior, routes, exports, endpoints, deployment state, and workflows.",
+      "visibility": "repository"
+    },
+    {
+      "id": "ontology",
+      "label": "Ontology",
+      "role": "authority",
+      "owns": "Cross-package entities, vocabulary, relationships, schemas, and lifecycle meaning.",
+      "visibility": "repository"
+    },
+    {
+      "id": "maturity-projections",
+      "label": "Maturity projections",
+      "role": "authority",
+      "owns": "Derived feature maturity labels and projection rules.",
+      "visibility": "repository"
+    },
+    {
+      "id": "skills",
+      "label": "Agent skills",
+      "role": "authority",
+      "owns": "Task activation, mutation boundaries, proof rules, and handoffs for agent workflows.",
+      "visibility": "repository"
+    },
+    {
+      "id": "plan-hubs",
+      "label": "Plan Hubs",
+      "role": "authority",
+      "owns": "Accepted decisions, execution state, lane evidence, dependencies, and closeout rationale.",
+      "visibility": "repository"
+    },
+    {
+      "id": "qa-catalog",
+      "label": "QA catalog",
+      "role": "authority",
+      "owns": "Stable QA case definitions, expected outcomes, and evidence requirements.",
+      "visibility": "repository"
+    },
+    {
+      "id": "private-qa-evidence",
+      "label": "Private QA evidence",
+      "role": "evidence",
+      "owns": "Run-specific observations and private supporting evidence.",
+      "visibility": "private"
+    },
+    {
+      "id": "linear",
+      "label": "Linear",
+      "role": "coordination",
+      "owns": "Stakeholder-visible priorities, accepted work, and delivery state mirrored from repository authorities.",
+      "visibility": "external"
+    },
+    {
+      "id": "authored-docs",
+      "label": "Authored documentation",
+      "role": "projection",
+      "owns": "Stable explanations, user flows, recovery guidance, and navigation.",
+      "visibility": "public"
+    },
+    {
+      "id": "generated-docs",
+      "label": "Generated documentation",
+      "role": "projection",
+      "owns": "Deterministic public inventories and diagrams projected from checked-in authorities.",
+      "visibility": "public"
+    }
+  ],
+  "authorityFlows": [
+    {
+      "id": "implementation-to-generated-docs",
+      "from": "implementation",
+      "to": "generated-docs",
+      "relationship": "projects"
+    },
+    {
+      "id": "ontology-to-generated-docs",
+      "from": "ontology",
+      "to": "generated-docs",
+      "relationship": "projects"
+    },
+    {
+      "id": "maturity-projections-to-generated-docs",
+      "from": "maturity-projections",
+      "to": "generated-docs",
+      "relationship": "projects"
+    },
+    {
+      "id": "skills-to-generated-docs",
+      "from": "skills",
+      "to": "generated-docs",
+      "relationship": "projects"
+    },
+    {
+      "id": "qa-catalog-to-generated-docs",
+      "from": "qa-catalog",
+      "to": "generated-docs",
+      "relationship": "projects"
+    },
+    {
+      "id": "implementation-to-authored-docs",
+      "from": "implementation",
+      "to": "authored-docs",
+      "relationship": "explains"
+    },
+    {
+      "id": "ontology-to-authored-docs",
+      "from": "ontology",
+      "to": "authored-docs",
+      "relationship": "explains"
+    },
+    {
+      "id": "plan-hubs-to-linear",
+      "from": "plan-hubs",
+      "to": "linear",
+      "relationship": "mirrors visibility"
+    },
+    {
+      "id": "qa-catalog-to-private-qa-evidence",
+      "from": "qa-catalog",
+      "to": "private-qa-evidence",
+      "relationship": "defines runs"
+    },
+    {
+      "id": "private-qa-evidence-to-linear",
+      "from": "private-qa-evidence",
+      "to": "linear",
+      "relationship": "promotes accepted work"
+    }
   ],
   "tasks": [
     {

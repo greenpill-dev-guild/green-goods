@@ -21,6 +21,33 @@ export const CORE_TASK_IDS = [
   "doc-review-feedback",
 ];
 
+export const AUTHORITY_SURFACE_ROLES = new Set([
+  "authority",
+  "evidence",
+  "coordination",
+  "projection",
+]);
+export const AUTHORITY_VISIBILITIES = new Set(["repository", "public", "private", "external"]);
+export const AUTHORITY_FLOW_RELATIONSHIPS = new Set([
+  "projects",
+  "explains",
+  "mirrors visibility",
+  "defines runs",
+  "promotes accepted work",
+]);
+export const REQUIRED_AUTHORITY_FLOWS = new Map([
+  ["implementation->generated-docs", "projects"],
+  ["ontology->generated-docs", "projects"],
+  ["maturity-projections->generated-docs", "projects"],
+  ["skills->generated-docs", "projects"],
+  ["qa-catalog->generated-docs", "projects"],
+  ["implementation->authored-docs", "explains"],
+  ["ontology->authored-docs", "explains"],
+  ["plan-hubs->linear", "mirrors visibility"],
+  ["qa-catalog->private-qa-evidence", "defines runs"],
+  ["private-qa-evidence->linear", "promotes accepted work"],
+]);
+
 export const EXPECTED_MUTATION_BOUNDARIES = Object.freeze({
   "lookup-or-bounded-edit": "direct-bounded",
   research: "read-only-unless-persistence-requested",
@@ -57,7 +84,8 @@ export function readTaskRouting(root, source = TASK_ROUTING_PATH) {
 
 export function validateTaskRouting(root, contract = readTaskRouting(root)) {
   const errors = [];
-  if (contract.version !== 1) errors.push("task-routing version must be 1");
+  if (contract.version !== 2) errors.push("task-routing version must be 2");
+  validateAuthorityMap(contract, errors);
   if (!Array.isArray(contract.tasks)) return [...errors, "task-routing tasks must be an array"];
 
   const ids = new Set();
@@ -95,4 +123,74 @@ export function validateTaskRouting(root, contract = readTaskRouting(root)) {
   for (const id of ids) if (!CORE_TASK_IDS.includes(id)) errors.push(`unrecognized core task route: ${id}`);
   if (ids.size !== CORE_TASK_IDS.length) errors.push(`expected ${CORE_TASK_IDS.length} unambiguous core task routes, found ${ids.size}`);
   return errors;
+}
+
+function validateAuthorityMap(contract, errors) {
+  if (!Array.isArray(contract.authoritySurfaces)) {
+    errors.push("task-routing authoritySurfaces must be an array");
+    return;
+  }
+  if (!Array.isArray(contract.authorityFlows)) {
+    errors.push("task-routing authorityFlows must be an array");
+    return;
+  }
+
+  const surfaces = new Map();
+  for (const [index, surface] of contract.authoritySurfaces.entries()) {
+    const prefix = `authoritySurfaces[${index}]`;
+    if (!isNonEmptyString(surface?.id)) errors.push(`${prefix}.id must be a non-empty string`);
+    else if (surfaces.has(surface.id)) errors.push(`duplicate authority surface: ${surface.id}`);
+    else surfaces.set(surface.id, surface);
+    if (!isNonEmptyString(surface?.label)) errors.push(`${prefix}.label must be a non-empty string`);
+    if (!AUTHORITY_SURFACE_ROLES.has(surface?.role)) {
+      errors.push(`${prefix}.role must be a recognized authority role`);
+    }
+    if (!isNonEmptyString(surface?.owns)) errors.push(`${prefix}.owns must name its ownership`);
+    if (!AUTHORITY_VISIBILITIES.has(surface?.visibility)) {
+      errors.push(`${prefix}.visibility must be one of ${[...AUTHORITY_VISIBILITIES].join(", ")}`);
+    }
+  }
+
+  const flowIds = new Set();
+  const edges = new Set();
+  for (const [index, flow] of contract.authorityFlows.entries()) {
+    const prefix = `authorityFlows[${index}]`;
+    if (!isNonEmptyString(flow?.id)) errors.push(`${prefix}.id must be a non-empty string`);
+    else if (flowIds.has(flow.id)) errors.push(`duplicate authority flow id: ${flow.id}`);
+    else flowIds.add(flow.id);
+    if (!surfaces.has(flow?.from)) errors.push(`${prefix}.from references unknown node: ${flow?.from}`);
+    if (!surfaces.has(flow?.to)) errors.push(`${prefix}.to references unknown node: ${flow?.to}`);
+    if (!isNonEmptyString(flow?.relationship)) {
+      errors.push(`${prefix}.relationship must describe the one-way flow`);
+    } else if (!AUTHORITY_FLOW_RELATIONSHIPS.has(flow.relationship)) {
+      errors.push(`${prefix}.relationship must be one of ${[...AUTHORITY_FLOW_RELATIONSHIPS].join(", ")}`);
+    }
+
+    const edge = `${flow?.from}->${flow?.to}`;
+    if (edges.has(edge)) errors.push(`duplicate authority edge: ${edge}`);
+    else edges.add(edge);
+
+    const sourceRole = surfaces.get(flow?.from)?.role;
+    const targetRole = surfaces.get(flow?.to)?.role;
+    if (
+      sourceRole === "projection" ||
+      sourceRole === "coordination" ||
+      (sourceRole === "evidence" && targetRole !== "coordination")
+    ) {
+      errors.push(`downstream authority reversal is not allowed: ${edge}`);
+    }
+  }
+
+  for (const [required, expectedRelationship] of REQUIRED_AUTHORITY_FLOWS) {
+    if (!edges.has(required)) {
+      errors.push(`missing required authority flow: ${required}`);
+      continue;
+    }
+    const flow = contract.authorityFlows.find(({ from, to }) => `${from}->${to}` === required);
+    if (flow?.relationship !== expectedRelationship) {
+      errors.push(
+        `required authority flow ${required} must use relationship "${expectedRelationship}"`,
+      );
+    }
+  }
 }

@@ -141,6 +141,10 @@ const config: KnipConfig = {
     docs: {
       // Docusaurus site — skip TS analysis
       entry: ["src/**/*.{ts,tsx}"],
+      ignoreDependencies: [
+        // Re-exported by @docusaurus/preset-classic, not declared directly
+        "@docusaurus/plugin-content-docs",
+      ],
     },
   },
   ignore: [

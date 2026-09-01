@@ -43,5 +43,5 @@
 
 - Physical Android Chrome/WebAPK is required for install/open capture, system Share Target, badges,
   cold-offline launch, and two-version update proof.
-- The full Client test/typecheck gate is blocked by a checked-in WalletConnect/`uint8arrays`
-  resolver failure and concurrent address-typing changes.
+- The clean receipt above records the full Client test suite passing. It does not claim a current
+  Client typecheck result.

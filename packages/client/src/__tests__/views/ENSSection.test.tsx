@@ -8,6 +8,7 @@ import userEvent from "@testing-library/user-event";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Address } from "@green-goods/shared/types/domain";
 
 const mockUseENSRegistrationStatus = vi.fn((_slug?: string) => undefined);
 const mockMutateAsync = vi.fn();
@@ -135,7 +136,7 @@ import { ENSSection } from "../../views/Profile/ENSSection";
 
 const PRIMARY_ADDRESS = "0x1234567890123456789012345678901234567890" as const;
 
-function renderENSSection(primaryAddress: `0x${string}` = PRIMARY_ADDRESS) {
+function renderENSSection(primaryAddress: Address = PRIMARY_ADDRESS) {
   return render(
     createElement(
       IntlProvider,

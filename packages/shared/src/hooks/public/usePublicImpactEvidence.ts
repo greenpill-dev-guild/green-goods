@@ -121,7 +121,9 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
       }
 
       const records: PublicImpactEvidenceRecord[] = [];
-      const gardenById = new Map(cappedGardenSources.map((garden) => [garden.id, garden]));
+      const gardenById = new Map(
+        cappedGardenSources.map((garden) => [garden.id.toLowerCase(), garden])
+      );
 
       // Assessments — title + description; no media (CID-only).
       assessmentResults.forEach((result, index) => {
@@ -148,10 +150,9 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
       // Work — first-class evidence, carries `media[]` from the EAS Work schema.
       const cappedGardenIds = new Set(cappedGardenSources.map((garden) => garden.id.toLowerCase()));
       for (const work of worksResult) {
-        const garden = gardenById.get(work.gardenAddress);
-        if (!cappedGardenIds.has(work.gardenAddress.toLowerCase())) continue;
-        const gardenContext =
-          garden ?? cappedGardenSources.find((g) => g.id === work.gardenAddress);
+        const gardenKey = work.gardenAddress.toLowerCase();
+        if (!cappedGardenIds.has(gardenKey)) continue;
+        const gardenContext = gardenById.get(gardenKey);
         if (!gardenContext) continue;
         records.push({
           id: `work:${work.id}`,

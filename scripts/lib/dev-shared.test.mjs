@@ -6,11 +6,56 @@ import test from "node:test";
 
 import {
   findCompatibleNode,
+  parseSubmoduleStatus,
+  profileRequiresContractSubmodules,
   reexecUnderCompatibleNodeIfNeeded,
+  resolveSubmoduleSetupAction,
   resolveVitestMaxWorkers,
 } from "./dev-shared.js";
 
 const GIBIBYTE = 1024 ** 3;
+
+test("submodule status parser distinguishes every actionable git state", () => {
+  const fixtures = [
+    [" e2041f packages/contracts/lib/kernel\n", "ready"],
+    ["-e2041f packages/contracts/lib/kernel\n", "uninitialized"],
+    ["+e2041f packages/contracts/lib/kernel\n", "mismatched"],
+    ["Ue2041f packages/contracts/lib/kernel\n", "conflicted"],
+  ];
+
+  for (const [stdout, expected] of fixtures) {
+    assert.equal(parseSubmoduleStatus({ stdout, status: 0 }).state, expected);
+  }
+  assert.equal(parseSubmoduleStatus({ stdout: "", status: 0 }).state, "ready");
+  assert.equal(parseSubmoduleStatus({ stdout: "", status: 128 }).state, "command-error");
+  assert.equal(parseSubmoduleStatus({ stdout: "?unexpected" }).state, "command-error");
+});
+
+test("setup initializes only missing pinned submodules", () => {
+  assert.equal(resolveSubmoduleSetupAction({ state: "ready", installMode: "always" }), "none");
+  assert.equal(
+    resolveSubmoduleSetupAction({ state: "uninitialized", installMode: "auto" }),
+    "initialize",
+  );
+  assert.equal(
+    resolveSubmoduleSetupAction({ state: "uninitialized", installMode: "always" }),
+    "initialize",
+  );
+  for (const state of ["uninitialized", "mismatched", "conflicted", "modified", "command-error"]) {
+    assert.equal(resolveSubmoduleSetupAction({ state, installMode: "skip" }), "stop");
+  }
+  for (const state of ["mismatched", "conflicted", "modified", "command-error"]) {
+    assert.equal(resolveSubmoduleSetupAction({ state, installMode: "auto" }), "stop");
+  }
+});
+
+test("contract and full doctor profiles require pinned submodules", () => {
+  assert.equal(profileRequiresContractSubmodules("contracts"), true);
+  assert.equal(profileRequiresContractSubmodules("full"), true);
+  for (const profile of ["web", "upload", "prod", "prod-mirror"]) {
+    assert.equal(profileRequiresContractSubmodules(profile), false);
+  }
+});
 
 test("local Vitest workers respect CPU, memory, and concurrent package share", () => {
   const cases = [

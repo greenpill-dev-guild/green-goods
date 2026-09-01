@@ -22,7 +22,7 @@ generated_from:
   - .claude/skills/review/SKILL.md
   - .claude/skills/ship/SKILL.md
   - scripts/quality/task-routing-contract.mjs
-source_digest: "sha256:ad51f43ee8c7e349e9704a40643d84e6ad6496a1bd05c1a1d63400bc78a42c19"
+source_digest: "sha256:b5eeb71c4d82119a032c1969b475d6c34055cc71a7a372ab342dffd376a557c8"
 source_of_truth:
   - .claude/context/task-routing.json
   - .claude/skills/audit/SKILL.md
@@ -71,5 +71,46 @@ Use the smallest workflow that matches the task. Skill frontmatter decides activ
 3. packages/shared/src/ontology/green-goods-ontology.json
 4. owning Plan Hub
 5. task-specific skill
+
+## Ownership and synchronization
+
+The upstream surface owns truth. Public documentation explains or projects that truth; it does not publish live Plan Hub state, Linear status, or private QA evidence.
+
+| Surface | Role | Owns | Visibility |
+|---|---|---|---|
+| Implementation | `authority` | Runtime behavior, routes, exports, endpoints, deployment state, and workflows. | `repository` |
+| Ontology | `authority` | Cross-package entities, vocabulary, relationships, schemas, and lifecycle meaning. | `repository` |
+| Maturity projections | `authority` | Derived feature maturity labels and projection rules. | `repository` |
+| Agent skills | `authority` | Task activation, mutation boundaries, proof rules, and handoffs for agent workflows. | `repository` |
+| Plan Hubs | `authority` | Accepted decisions, execution state, lane evidence, dependencies, and closeout rationale. | `repository` |
+| QA catalog | `authority` | Stable QA case definitions, expected outcomes, and evidence requirements. | `repository` |
+| Private QA evidence | `evidence` | Run-specific observations and private supporting evidence. | `private` |
+| Linear | `coordination` | Stakeholder-visible priorities, accepted work, and delivery state mirrored from repository authorities. | `external` |
+| Authored documentation | `projection` | Stable explanations, user flows, recovery guidance, and navigation. | `public` |
+| Generated documentation | `projection` | Deterministic public inventories and diagrams projected from checked-in authorities. | `public` |
+
+```mermaid
+flowchart LR
+  implementation["Implementation"]
+  ontology["Ontology"]
+  maturity_projections["Maturity projections"]
+  skills["Agent skills"]
+  plan_hubs["Plan Hubs"]
+  qa_catalog["QA catalog"]
+  private_qa_evidence["Private QA evidence"]
+  linear["Linear"]
+  authored_docs["Authored documentation"]
+  generated_docs["Generated documentation"]
+  implementation -->|projects| generated_docs
+  ontology -->|projects| generated_docs
+  maturity_projections -->|projects| generated_docs
+  skills -->|projects| generated_docs
+  qa_catalog -->|projects| generated_docs
+  implementation -->|explains| authored_docs
+  ontology -->|explains| authored_docs
+  plan_hubs -->|mirrors visibility| linear
+  qa_catalog -->|defines runs| private_qa_evidence
+  private_qa_evidence -->|promotes accepted work| linear
+```
 
 A routed skill must not absorb neighboring work. When the requested outcome changes, follow the task's handoff instead of expanding the active workflow.

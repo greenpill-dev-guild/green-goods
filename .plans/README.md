@@ -126,13 +126,18 @@ than creating a second plan-history surface.
 3. Move the hub to `.plans/active/<feature-slug>/` when it is ready for automation
 4. Mark unused lanes as `n/a` in `status.json`
 5. Let lane automations claim work from `.plans/active/`
-6. Close the hub when the work is completed, superseded, closed, cancelled,
-   or intentionally paused: `move --to archive` validates the hub and the
-   requested `--resolution`, appends one row to `ARCHIVE.md`, and deletes the
-   hub directory. Do not label unfinished stale work as completed.
+6. For a mirrored hub, update the Plan Hub first, apply the stakeholder-visible
+   `linear-sync` manifest in Linear, and confirm that mirror with
+   `confirm-linear-sync --feature <slug> --actor <actor>`.
+7. Close the hub when the work is completed, superseded, closed, cancelled,
+   or intentionally paused: `move --to archive` rejects stale Linear mirrors,
+   validates the requested `--resolution`, appends one row to `ARCHIVE.md`, and
+   deletes the hub directory. Do not label unfinished stale work as completed.
+8. Keep implementation issues in `In Review` while a PR is open. Move them to
+   `Done` only after the human merge completes delivery.
 
 Git history is the only archive. The `ARCHIVE.md` ledger records each closed hub's
-slug, title, resolution, closeout reason, and historical path; recover full contents
+slug, Linear parent key when present, title, resolution, closeout reason, and historical path; recover full contents
 with `git log --oneline -- <historical path>` and `git checkout <sha>^ -- <historical path>`
 against the closeout commit. Dated reports under `reports/` remain byte-for-byte
 immutable while a hub is live and may only leave the tree with their whole hub at
@@ -163,6 +168,7 @@ node scripts/harness/plan-hub.mjs list --agent claude --lane ui
 node scripts/harness/plan-hub.mjs summary --json
 node scripts/harness/plan-hub.mjs stale --days 14 --json
 node scripts/harness/plan-hub.mjs set-lane --feature my-feature --lane ui --status in_progress --actor claude
+node scripts/harness/plan-hub.mjs confirm-linear-sync --feature my-feature --actor claude
 node scripts/harness/plan-hub.mjs move --feature my-feature --to archive --resolution completed --reason "Merged and verified."
 node scripts/harness/plan-hub.mjs validate
 ```

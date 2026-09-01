@@ -706,6 +706,60 @@ test("linear-sync manifest creates actionable lane issues for active hubs", () =
     assert.match(manifest.warnings.join("\n"), /unprojected/);
   }));
 
+test("terminal implementation lanes and their active parent move to In Review", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "review-linear-fixture", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "review-linear-fixture");
+    status.linear = {
+      parentIssue: "PRD-800",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "lane_issues",
+      lastSyncedAt: status.workflow.updated_at,
+      lanes: { state_api: { issue: "PRD-801" } },
+    };
+    status.lanes.ui.status = "n/a";
+    status.lanes.contracts.status = "n/a";
+    status.lanes.qa_pass_1.status = "n/a";
+    status.lanes.qa_pass_2.status = "n/a";
+    writeStatus(root, "active", "review-linear-fixture", status);
+    const recorded = runPlanHub(root, [
+      "record-tdd",
+      "--feature",
+      "review-linear-fixture",
+      "--lane",
+      "state-api",
+      "--red-command",
+      "bun run test review-linear-fixture.test.ts",
+      "--red-evidence",
+      "handoffs/codex-state-api.md#red",
+      "--green-command",
+      "bun run test review-linear-fixture.test.ts",
+      "--green-evidence",
+      "handoffs/codex-state-api.md#green",
+    ]);
+    assert.equal(recorded.status, 0, recorded.stderr);
+    writeValidationReceipt(root, "active", "review-linear-fixture", "state_api");
+    const passed = runPlanHub(root, [
+      "set-lane",
+      "--feature",
+      "review-linear-fixture",
+      "--lane",
+      "state-api",
+      "--status",
+      "passed",
+    ]);
+    assert.equal(passed.status, 0, passed.stderr);
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "review-linear-fixture", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(result.stdout);
+    assert.equal(manifest.parent.state, "In Review");
+    assert.deepEqual(
+      manifest.lanes.map((lane) => [lane.lane, lane.issue, lane.state]),
+      [["state_api", "PRD-801", "In Review"]],
+    );
+  }));
+
 test("linear-sync chooses package labels by lane for cross-package plans", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "lane-label-fixture", "--stage", "active"]).status, 0);
@@ -1551,8 +1605,96 @@ test("record-linear writes parent and lane issue ids into status.json", () =>
     assert.equal(status.linear.syncDirection, "plans_to_linear_visibility");
     assert.equal(status.linear.lanes.ui.issue, "PRD-501");
     assert.equal(status.linear.lanes.state_api.issue, "PRD-502");
+    assert.equal(status.linear.lastSyncedAt, null);
+    assert.notEqual(status.workflow.updated_at, null);
     assert.equal(status.history.at(-1).status, "linear_recorded");
+    assert.equal(status.history.at(-1).timestamp, status.workflow.updated_at);
+    const archiveWithoutConfirmation = runPlanHub(root, [
+      "move",
+      "--feature",
+      "record-linear-fixture",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed",
+    ]);
+    assert.notEqual(archiveWithoutConfirmation.status, 0);
+    assert.match(archiveWithoutConfirmation.stderr, /last confirmed Linear sync/);
     assert.equal(runPlanHub(root, ["validate"]).status, 0);
+  }));
+
+test("mirrored archives require a fresh confirmed Linear sync and retain the parent key", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "confirmed-linear-closeout", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "confirmed-linear-closeout");
+    status.linear = {
+      parentIssue: "PRD-900",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "parent_only",
+      lastSyncedAt: "2026-08-01T00:00:00.000Z",
+    };
+    status.workflow.updated_at = "2026-08-02T00:00:00.000Z";
+    writeStatus(root, "active", "confirmed-linear-closeout", status);
+
+    const stale = runPlanHub(root, [
+      "move",
+      "--feature",
+      "confirmed-linear-closeout",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed",
+      "--reason",
+      "Closeout proof is bounded.",
+    ]);
+    assert.notEqual(stale.status, 0);
+    assert.match(stale.stderr, /changed after its last confirmed Linear sync/);
+    assert.equal(existsSync(join(root, ".plans", "active", "confirmed-linear-closeout")), true);
+
+    status.linear.lastSyncedAt = status.workflow.updated_at;
+    writeStatus(root, "active", "confirmed-linear-closeout", status);
+    const timestampOnly = runPlanHub(root, [
+      "move",
+      "--feature",
+      "confirmed-linear-closeout",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed",
+      "--reason",
+      "Closeout proof is bounded.",
+    ]);
+    assert.notEqual(timestampOnly.status, 0);
+    assert.match(timestampOnly.stderr, /changed after its last confirmed Linear sync/);
+
+    const confirmed = runPlanHub(root, [
+      "confirm-linear-sync",
+      "--feature",
+      "confirmed-linear-closeout",
+      "--actor",
+      "codex",
+    ]);
+    assert.equal(confirmed.status, 0, confirmed.stderr);
+    const synchronized = readStatus(root, "active", "confirmed-linear-closeout");
+    assert.equal(synchronized.linear.lastSyncedAt, synchronized.workflow.updated_at);
+    assert.equal(synchronized.history.at(-1).status, "linear_sync_confirmed");
+    assert.equal(synchronized.history.at(-1).timestamp, synchronized.workflow.updated_at);
+
+    const moved = runPlanHub(root, [
+      "move",
+      "--feature",
+      "confirmed-linear-closeout",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed",
+      "--reason",
+      "Closeout proof is bounded.",
+    ]);
+    assert.equal(moved.status, 0, moved.stderr);
+    const ledger = readFileSync(join(root, ".plans", "ARCHIVE.md"), "utf8");
+    const row = ledger.split("\n").find((line) => line.includes("`confirmed-linear-closeout`"));
+    assert.match(row, /\| PRD-900 \|/);
   }));
 
 test("record-linear records repeated execution sub-lane issue ids", () =>

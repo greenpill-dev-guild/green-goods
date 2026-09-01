@@ -54,9 +54,10 @@ bun run deploy:sepolia
 bun run verify:post-deploy:sepolia
 ```
 
-Equivalent `:arbitrum`, `:celo`, and `:mainnet` scripts exist in `package.json`. A deploy is not
-complete until its `*-latest.json` artifact is persisted, dependent indexer/config inputs are
-updated, and the matching post-deploy verifier passes.
+Equivalent `:arbitrum` and `:mainnet` deployment scripts exist in `package.json`. The current
+`deploy:celo` wrapper is schema-only and must not be used as an equivalent core deployment path.
+A deploy is not complete until its `*-latest.json` artifact is persisted, dependent indexer/config
+inputs are updated, and the matching post-deploy verifier passes.
 
 Approved immutable EAS schema additions use their standalone registration paths. Do not restore
 or use the retired bulk `--update-schemas` flow.

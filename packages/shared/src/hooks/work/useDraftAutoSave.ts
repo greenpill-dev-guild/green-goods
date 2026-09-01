@@ -16,7 +16,7 @@ import { requestPersistentStorageOnce } from "../../utils/storage/quota";
 import { useDrafts } from "./useDrafts";
 
 interface DraftFormData {
-  gardenAddress: string | null;
+  gardenAddress: Address | null;
   actionUID: number | null;
   feedback: string;
   timeSpentMinutes?: number;
@@ -112,7 +112,7 @@ export function useDraftAutoSave(
       // Create a new draft if we don't have one
       if (!draftId) {
         draftId = await createDraft({
-          gardenAddress: currentFormData.gardenAddress as Address | null,
+          gardenAddress: currentFormData.gardenAddress,
           actionUID: currentFormData.actionUID,
           feedback: currentFormData.feedback,
           timeSpentMinutes: currentFormData.timeSpentMinutes,
@@ -124,7 +124,7 @@ export function useDraftAutoSave(
         await updateDraft({
           draftId,
           data: {
-            gardenAddress: currentFormData.gardenAddress as Address | null,
+            gardenAddress: currentFormData.gardenAddress,
             actionUID: currentFormData.actionUID,
             feedback: currentFormData.feedback,
             timeSpentMinutes: currentFormData.timeSpentMinutes,

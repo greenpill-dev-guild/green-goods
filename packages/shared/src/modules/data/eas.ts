@@ -6,7 +6,13 @@ import type {
   EASWorkApproval,
 } from "../../types/eas-responses";
 import { isZeroBytes32 } from "../../utils/blockchain/bytes";
-import { parseDataToGardenAssessment, parseDataToWork, parseDataToWorkApproval } from "./eas-parse";
+import { logger } from "../app/logger";
+import {
+  parseDataToGardenAssessment,
+  parseDataToWork,
+  parseDataToWorkApproval,
+  parseEasAttestationRecord,
+} from "./eas-parse";
 export { parseWorkApprovalAttestation } from "./eas-parse";
 import { easGraphQL } from "./graphql";
 import { createEasClient, type GraphQLReader } from "./graphql-client";
@@ -21,6 +27,27 @@ export class EASFetchError extends Error {
     super(message);
     this.name = "EASFetchError";
   }
+}
+
+function validatedAttestations(attestations: unknown, operation: string): EASAttestationRaw[] {
+  if (!Array.isArray(attestations)) return [];
+
+  return attestations.flatMap((attestation) => {
+    try {
+      return [parseEasAttestationRecord(attestation)];
+    } catch (error) {
+      logger.warn("Skipping malformed EAS attestation", {
+        source: "eas",
+        operation,
+        attestationId:
+          attestation && typeof attestation === "object" && "id" in attestation
+            ? String(attestation.id)
+            : undefined,
+        error,
+      });
+      return [];
+    }
+  });
 }
 
 /**
@@ -73,7 +100,7 @@ export const getGardenAssessments = async (
     return [];
   }
 
-  return (data.attestations as EASAttestationRaw[]).map(
+  return validatedAttestations(data.attestations, "getGardenAssessments").map(
     ({ id, attester, recipient, timeCreated, decodedDataJson }) => {
       const timestamp = typeof timeCreated === "string" ? Number(timeCreated) : (timeCreated ?? 0);
       return parseDataToGardenAssessment(
@@ -138,7 +165,7 @@ export const getWorks = async (
     return [];
   }
 
-  return (data.attestations as EASAttestationRaw[]).map(
+  return validatedAttestations(data.attestations, "getWorks").map(
     ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
       parseDataToWork(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
   );
@@ -191,7 +218,7 @@ export const getWorksByGardener = async (
     return [];
   }
 
-  return (data.attestations as EASAttestationRaw[]).map(
+  return validatedAttestations(data.attestations, "getWorksByGardener").map(
     ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
       parseDataToWork(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
   );
@@ -263,7 +290,7 @@ export const getWorkApprovals = async (
     return [];
   }
 
-  return (data.attestations as EASAttestationRaw[]).map(
+  return validatedAttestations(data.attestations, "getWorkApprovals").map(
     ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
       parseDataToWorkApproval(
         id,
@@ -314,7 +341,7 @@ export const getWorkApprovalsForWork = async (
       error
     );
   }
-  return ((data?.attestations ?? []) as EASAttestationRaw[])
+  return validatedAttestations(data?.attestations, "getWorkApprovalsForWork")
     .map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
       parseDataToWorkApproval(
         id,
@@ -379,7 +406,7 @@ export const getWorkApprovalsByUIDs = async (
     return [];
   }
 
-  return (data.attestations as EASAttestationRaw[]).map(
+  return validatedAttestations(data.attestations, "getWorkApprovalsByUIDs").map(
     ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
       parseDataToWorkApproval(
         id,
@@ -443,7 +470,7 @@ export const getWorksByUIDs = async (
     return [];
   }
 
-  return (data.attestations as EASAttestationRaw[]).map(
+  return validatedAttestations(data.attestations, "getWorksByUIDs").map(
     ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
       parseDataToWork(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
   );

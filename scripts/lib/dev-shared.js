@@ -257,6 +257,98 @@ export function majorVersion(version) {
   return match ? Number.parseInt(match[1], 10) : null;
 }
 
+export const SUBMODULE_RECOVERY_COMMAND = "git submodule update --init --recursive";
+
+const submoduleStateByPrefix = {
+  " ": "ready",
+  "-": "uninitialized",
+  "+": "mismatched",
+  U: "conflicted",
+};
+
+/**
+ * Parse `git submodule status --recursive` without reading or changing the filesystem.
+ */
+export function parseSubmoduleStatus({ stdout = "", status = 0, error = null } = {}) {
+  if (error || status !== 0) {
+    return {
+      state: "command-error",
+      ready: false,
+      entries: [],
+      detail: error?.message || `git submodule status exited with ${status}`,
+    };
+  }
+
+  const entries = [];
+  for (const line of stdout.split(/\r?\n/).filter(Boolean)) {
+    const match = line.match(/^(.)([0-9a-f]+)\s+(\S+)/i);
+    const state = match ? submoduleStateByPrefix[match[1]] : null;
+    if (!match || !state) {
+      return {
+        state: "command-error",
+        ready: false,
+        entries,
+        detail: `Unrecognized git submodule status line: ${line}`,
+      };
+    }
+    entries.push({ state, commit: match[2], path: match[3] });
+  }
+
+  const state = ["conflicted", "mismatched", "uninitialized"].find((candidate) =>
+    entries.some((entry) => entry.state === candidate),
+  ) ?? "ready";
+  return { state, ready: state === "ready", entries, detail: "" };
+}
+
+export function inspectPinnedSubmodules({ cwd = process.cwd(), run = spawnSync } = {}) {
+  const result = run("git", ["submodule", "status", "--recursive"], {
+    cwd,
+    encoding: "utf8",
+  });
+  const parsed = parseSubmoduleStatus(result);
+  if (!parsed.ready) return parsed;
+
+  const dirty = run(
+    "git",
+    [
+      "status",
+      "--porcelain=v1",
+      "--ignore-submodules=none",
+      "--",
+      "packages/contracts/lib/kernel",
+      "packages/contracts/lib/tokenbound",
+    ],
+    { cwd, encoding: "utf8" },
+  );
+  if (dirty.error || dirty.status !== 0) {
+    return {
+      ...parsed,
+      state: "command-error",
+      ready: false,
+      detail: dirty.error?.message || `git status exited with ${dirty.status}`,
+    };
+  }
+  if ((dirty.stdout || "").trim()) {
+    return {
+      ...parsed,
+      state: "modified",
+      ready: false,
+      detail: String(dirty.stdout).trim(),
+    };
+  }
+  return parsed;
+}
+
+export function resolveSubmoduleSetupAction({ state, installMode }) {
+  if (state === "ready") return "none";
+  if (state === "uninitialized" && installMode !== "skip") return "initialize";
+  return "stop";
+}
+
+export function profileRequiresContractSubmodules(profile) {
+  return profile === "contracts" || profile === "full";
+}
+
 const VITEST_WORKER_MEMORY_BYTES = 2 * 1024 ** 3;
 
 export function resolveVitestMaxWorkers({ cpus, totalMemoryBytes, ci, share = 1 }) {

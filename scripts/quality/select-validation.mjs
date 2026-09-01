@@ -6,6 +6,8 @@ import { existsSync, lstatSync, readFileSync, readlinkSync } from "node:fs";
 import { dirname, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { inspectPinnedSubmodules } from "../lib/dev-shared.js";
+
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDirectory, "../..");
 const defaultPolicyPath = resolve(projectRoot, "scripts/data/validation-policy.json");
@@ -1158,6 +1160,13 @@ export function detectCliToolchain(options = {}) {
   };
 }
 
+export function detectCliCapabilities(options = {}) {
+  const inspect = options.inspectPinnedSubmodules ?? inspectPinnedSubmodules;
+  return {
+    contractSubmodules: inspect({ cwd: options.cwd ?? projectRoot }).ready,
+  };
+}
+
 function showHelp() {
   console.log(`Usage: node scripts/quality/select-validation.mjs [options]
 
@@ -1205,7 +1214,7 @@ async function main() {
     environment: {
       profile: options.environmentProfile,
       toolchain: detectCliToolchain(),
-      capabilities: options.capabilities,
+      capabilities: { ...detectCliCapabilities(), ...options.capabilities },
     },
   });
   if (options.json) {

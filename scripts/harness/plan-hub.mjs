@@ -36,8 +36,8 @@ Closed feature hubs are deleted from the working tree; Git history is the only a
 Recover one with \`git log --oneline -- <historical path>\` and
 \`git checkout <sha>^ -- <historical path>\` against its closeout commit.
 
-| Archived (UTC) | Slug | Title | Resolution | Historical path | Closeout |
-|---|---|---|---|---|---|
+| Archived (UTC) | Slug | Linear | Title | Resolution | Historical path | Closeout |
+|---|---|---|---|---|---|---|
 `;
 const REQUIRED_LINK_ROLES = ["brief", "spec", "plan", "eval"];
 const ARCHIVE_STATUS_KEYS = new Set([
@@ -210,6 +210,7 @@ function usage() {
   node scripts/harness/plan-hub.mjs record-tdd --feature <feature-slug> --lane <ui|state-api|contracts> --red-command "..." --red-evidence "..." --green-command "..." --green-evidence "..." [--actor human]
   node scripts/harness/plan-hub.mjs linear-sync --feature <feature-slug> [--json]
   node scripts/harness/plan-hub.mjs record-linear --feature <feature-slug> [--parent PRD-123] [--lane ui=PRD-124] [--execution-lane contracts=PRD-125] [--lane-sync-mode <lane_issues|parent_only>] [--project <name-or-id>] [--initiative <name-or-id>] [--actor human]
+  node scripts/harness/plan-hub.mjs confirm-linear-sync --feature <feature-slug> --actor <actor>
   node scripts/harness/plan-hub.mjs summary [--initiative <initiative>] [--track <track>] [--json]
   node scripts/harness/plan-hub.mjs stale [--days 14] [--json]
   node scripts/harness/plan-hub.mjs check-branch --feature <feature-slug> --lane <lane>
@@ -412,7 +413,8 @@ function ledgerCell(value) {
 }
 
 function appendArchiveLedgerEntry(status, historicalPath) {
-  const row = `| ${ledgerCell(status.workflow.archived_at)} | \`${ledgerCell(status.feature.slug)}\` | ${ledgerCell(status.feature.title)} | ${ledgerCell(status.workflow.resolution)} | \`${ledgerCell(historicalPath)}\` | ${ledgerCell(status.workflow.archive_reason)} |\n`;
+  const linearParent = canonicalLinearParentIssue(status.linear) || "—";
+  const row = `| ${ledgerCell(status.workflow.archived_at)} | \`${ledgerCell(status.feature.slug)}\` | ${ledgerCell(linearParent)} | ${ledgerCell(status.feature.title)} | ${ledgerCell(status.workflow.resolution)} | \`${ledgerCell(historicalPath)}\` | ${ledgerCell(status.workflow.archive_reason)} |\n`;
   const existing = existsSync(ARCHIVE_LEDGER_PATH)
     ? readFileSync(ARCHIVE_LEDGER_PATH, "utf8")
     : ARCHIVE_LEDGER_HEADER;
@@ -515,7 +517,11 @@ function withFeatureLock(featureDirPath, work, timeoutMs = 5000) {
 }
 
 function withArchiveLock(work, timeoutMs = 5000) {
-  return withDirectoryLock(join(PLANS_ROOT, "_templates", ".archive.lock"), work, timeoutMs);
+  try {
+    return withDirectoryLock(join(PLANS_ROOT, "_templates", ".archive.lock"), work, timeoutMs);
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
+  }
 }
 
 function laneDependenciesMet(status, laneName) {
@@ -822,21 +828,33 @@ function linearStateForStage(stage) {
   return stage === "active" ? "Todo" : "Backlog";
 }
 
+function activeImplementationIsTerminal(status) {
+  if (status.feature.stage !== "active") return false;
+  const implementation = [...IMPLEMENTATION_LANES]
+    .map((laneName) => status.lanes?.[laneName])
+    .filter((lane) => lane && lane.status !== "n/a" && lane.status !== "skipped");
+  return (
+    implementation.length > 0 &&
+    implementation.every((lane) => PROOF_TERMINAL_STATUSES.has(lane.status))
+  );
+}
+
 function linearStateForLane(status, lane) {
   if (lane.status === "in_progress") {
     return "In Progress";
+  }
+  if (status.feature.stage === "active" && PROOF_TERMINAL_STATUSES.has(lane.status)) {
+    return "In Review";
   }
 
   return linearStateForStage(status.feature.stage);
 }
 
-function linearStateForParent(status, laneSyncMode) {
-  if (
-    laneSyncMode === "parent_only" &&
-    Object.values(status.lanes || {}).some((lane) => lane?.status === "in_progress")
-  ) {
+function linearStateForParent(status) {
+  if (Object.values(status.lanes || {}).some((lane) => lane?.status === "in_progress")) {
     return "In Progress";
   }
+  if (activeImplementationIsTerminal(status)) return "In Review";
 
   return linearStateForStage(status.feature.stage);
 }
@@ -1037,6 +1055,13 @@ function linearLaneIsActionable(status, laneName) {
 
   const lane = status.lanes[laneName];
   if (!lane || LINEAR_LANE_SKIP_STATUSES.has(lane.status)) {
+    if (
+      lane &&
+      IMPLEMENTATION_LANES.has(laneName) &&
+      PROOF_TERMINAL_STATUSES.has(lane.status)
+    ) {
+      return Boolean(linearLaneIssue(status.linear, laneName));
+    }
     return false;
   }
 
@@ -1074,7 +1099,7 @@ function buildLinearSyncManifest(status) {
     issue: parentIssue,
     title: `${normalized.feature.title} roadmap`,
     team,
-    state: linearStateForParent(normalized, laneSyncMode),
+    state: linearStateForParent(normalized),
     priority,
     labels: linearLabelsForStatus(normalized, LINEAR_PARENT_ACTIVITY_LABEL),
     project,
@@ -1419,9 +1444,9 @@ function validateExecutionSubLanes(status, featureDirPath, stage, errors) {
   }
 }
 
-function historyEntry({ actor, lane, status, branch, note }) {
+function historyEntry({ timestamp, actor, lane, status, branch, note }) {
   return {
-    timestamp: nowIso(),
+    timestamp: timestamp || nowIso(),
     actor,
     lane,
     status,
@@ -2243,6 +2268,19 @@ function moveFeature(flags, archiveLockHeld = false) {
   }
 
   const { status } = readFeatureStatus(found.dir);
+  if (toStage === "archive" && canonicalLinearParentIssue(status.linear)) {
+    const lastSyncedAt = status.linear?.lastSyncedAt;
+    const latestHistoryEntry = status.history?.at(-1);
+    const confirmedCurrentState =
+      latestHistoryEntry?.status === "linear_sync_confirmed" &&
+      latestHistoryEntry?.timestamp === lastSyncedAt &&
+      latestHistoryEntry?.timestamp === status.workflow.updated_at;
+    if (!hasText(lastSyncedAt) || !confirmedCurrentState) {
+      throw new Error(
+        `Mirrored feature "${slug}" changed after its last confirmed Linear sync. Apply the current linear-sync manifest, then run confirm-linear-sync --feature ${slug} --actor <actor> before archiving.`,
+      );
+    }
+  }
   const reportsError = toStage === "archive" ? reportsEntryError(found.dir) : null;
   if (reportsError) {
     fail(reportsError);
@@ -2614,8 +2652,8 @@ function recordLinear(flags) {
       return;
     }
 
+    const recordedAt = nowIso();
     linear.syncDirection = LINEAR_SYNC_DIRECTION;
-    linear.lastSyncedAt = nowIso();
     if (laneSyncMode) {
       linear.laneSyncMode = laneSyncMode;
     }
@@ -2667,9 +2705,10 @@ function recordLinear(flags) {
     }
 
     status.linear = linear;
-    status.workflow.updated_at = nowIso();
+    status.workflow.updated_at = recordedAt;
     status.history.push(
       historyEntry({
+        timestamp: recordedAt,
         actor,
         lane: "system",
         status: "linear_recorded",
@@ -2690,6 +2729,47 @@ function recordLinear(flags) {
   }
 
   console.log(`Recorded Linear sync metadata for ${slug}`);
+}
+
+function confirmLinearSync(flags) {
+  const slug = requireFlag(flags, "feature");
+  const actor = requireFlag(flags, "actor");
+  const found = findFeature(slug);
+  let validationErrors = [];
+
+  withFeatureLock(found.dir, () => {
+    const { path, status } = readFeatureStatus(found.dir);
+    if (!canonicalLinearParentIssue(status.linear)) {
+      validationErrors = [
+        `confirm-linear-sync requires a canonical Linear parent issue for feature "${slug}".`,
+      ];
+      return;
+    }
+
+    const confirmedAt = nowIso();
+    status.linear.syncDirection = LINEAR_SYNC_DIRECTION;
+    status.linear.lastSyncedAt = confirmedAt;
+    status.workflow.updated_at = confirmedAt;
+    status.history.push(
+      historyEntry({
+        timestamp: confirmedAt,
+        actor,
+        lane: "system",
+        status: "linear_sync_confirmed",
+        note: "Confirmed that the current Plan Hub state is reflected in Linear",
+      }),
+    );
+
+    const errors = validateFeatureStatus(status, found.dir, found.stage);
+    if (errors.length > 0) {
+      validationErrors = errors;
+      return;
+    }
+    saveJson(path, status);
+  });
+
+  if (validationErrors.length > 0) fail(validationErrors.join("\n"));
+  console.log(`Confirmed Linear sync for ${slug}`);
 }
 
 function checkBranch(flags) {
@@ -2802,6 +2882,9 @@ switch (command) {
     break;
   case "record-linear":
     recordLinear(flags);
+    break;
+  case "confirm-linear-sync":
+    confirmLinearSync(flags);
     break;
   case "summary":
     summary(flags);

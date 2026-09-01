@@ -15,7 +15,14 @@ import {
   foundryVersionMatches,
   readPinnedFoundryVersion,
 } from "../contracts/check-foundry-version.mjs";
-import { commandExists, commandVersion, majorVersion } from "../lib/dev-shared.js";
+import {
+  SUBMODULE_RECOVERY_COMMAND,
+  commandExists,
+  commandVersion,
+  inspectPinnedSubmodules,
+  majorVersion,
+  resolveSubmoduleSetupAction,
+} from "../lib/dev-shared.js";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const requiredFoundryVersion = readPinnedFoundryVersion(projectRoot);
@@ -382,6 +389,46 @@ function installEnvironment() {
   };
 }
 
+function ensurePinnedSubmodules() {
+  const status = inspectPinnedSubmodules({ cwd: projectRoot });
+  const action = resolveSubmoduleSetupAction({
+    state: status.state,
+    installMode: options.installMode,
+  });
+
+  if (action === "none") {
+    log.success("Pinned contract submodules are ready");
+    return;
+  }
+  if (action === "initialize") {
+    log.info(`Initializing pinned contract submodules (${SUBMODULE_RECOVERY_COMMAND})...`);
+    try {
+      execSync(SUBMODULE_RECOVERY_COMMAND, { cwd: projectRoot, stdio: "inherit" });
+    } catch {
+      log.error("Failed to initialize pinned contract submodules");
+      log.info(`Retry: ${SUBMODULE_RECOVERY_COMMAND}\n`);
+      process.exit(1);
+    }
+    const initialized = inspectPinnedSubmodules({ cwd: projectRoot });
+    if (!initialized.ready) {
+      log.error(`Contract submodules remain ${initialized.state} after initialization`);
+      process.exit(1);
+    }
+    log.success("Pinned contract submodules initialized");
+    return;
+  }
+
+  if (status.state === "uninitialized") {
+    log.error("Pinned contract submodules are not initialized and install mode is skip");
+    log.info(`Recovery: ${SUBMODULE_RECOVERY_COMMAND}\n`);
+  } else {
+    log.error(`Pinned contract submodules require human inspection (${status.state})`);
+    if (status.detail) log.warning(status.detail);
+    log.warning("Setup will not reset mismatched, conflicted, or locally modified submodules.\n");
+  }
+  process.exit(1);
+}
+
 function writeBaselineEnv() {
   const envPath = ".env";
   if (fs.existsSync(envPath)) {
@@ -453,6 +500,8 @@ if (!hasNode || !hasGit) {
   • Git: https://git-scm.com\n`);
   process.exit(1);
 }
+
+ensurePinnedSubmodules();
 
 if (!hasBun) {
   if (isCloud) {
