@@ -53,9 +53,11 @@ Phase 3b dedupe catches the other's records if both ran.
   past 3 Test IDs or a package boundary, cap 8 by priority with overflow named in the report.
   Payloads use [linear-templates.md § QA session report / § QA slice](./linear-templates.md) —
   one `QA session <date>` parent, slices as sub-issues via `parentId`. Before drafting the
-  parent, look for an existing `QA session <date>` by its exact dated title or the
-  `qa-sync:<date>` label — Phase 3b's package-scoped scan cannot see it (the parent carries no
-  `package:*`); an existing parent is reused, never duplicated. Verdict-backed slices
+  parent, look for an existing one — use the `qa-sync:<date>` label to narrow candidates, but
+  require the parent shape before reuse: the exact `QA session <date>` title and no `package:*`
+  label (the pulse stamps the same label on its pre-staged tracking Issues, and Phase 3b's
+  package-scoped scan cannot see the parent at all); an existing parent is reused, never
+  duplicated. Verdict-backed slices
   propose `Todo` + derived priority (P0-case fail → High, P1 → Medium, else Low; Urgent only for
   call-flagged release blockers); note-only items propose `Backlog`. The Phase 4 scope-lock gate
   runs unchanged over the slice list.

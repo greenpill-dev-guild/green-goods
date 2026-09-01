@@ -176,15 +176,22 @@ the Discord summary, never a stopped run.
 
 ## Phase 5: Dedupe against Linear
 
-First the parent itself: if a `QA session <date>` parent already exists (exact dated title, or
-the `qa-sync:<date>` label — the interactive sibling may have filed it), **reuse it** — add
-missing children under it and a comment for new context; never a second parent.
+First the parent itself: the `qa-sync:<date>` label only **narrows candidates** — the pulse
+stamps that label on its own pre-staged tracking Issues, so the label alone can point at an
+ordinary Backlog defect. Reuse requires the parent shape: the exact `QA session <date>` title
+and no `package:*` label. When that parent exists (the interactive sibling may have filed it),
+**reuse it** — add missing children under it and a comment for new context; never a second
+parent, and never attach slices to anything that fails the shape test.
 
-Then the findings: list open Product Issues carrying `activity:qa` or any `qa-sync:*` label. A
-finding already tracked gets a comment on the existing Issue (today's date + the new evidence,
-privacy-grepped before posting) **and a `relatedTo` link to the session parent**, and the report
-lists it under Slices as `already tracked: <key>` — so the fix queue and the parent's closure
-accounting still see it. Never a duplicate Issue.
+Then the findings: list open Product Issues carrying `activity:qa` or any `qa-sync:*` label.
+"Already tracked" needs an **exact key**: the same catalog Test ID in the existing Issue's
+source line, or the same PostHog error hash. Wording or surface similarity alone never earns it
+unattended — an uncertain match stays in this session's record (its slice, or `Not sliced`)
+with a `possible duplicate of <key>` note for a human to settle. A confirmed match gets a
+comment on the existing Issue (today's date + the new evidence, privacy-grepped before posting)
+**and a `relatedTo` link to the session parent**, and the report lists it under Slices as
+`already tracked: <key>` — so the fix queue and the parent's closure accounting still see it.
+Never a duplicate Issue.
 
 ## Phase 6: Privacy sweep
 

@@ -138,9 +138,11 @@ Fires for `qa_slice_fix` mode: working the slice sub-issues a QA call produced. 
 branch = one PR, and the posture is repair, not feature building.
 
 1. **List the slices.** Resolve the latest `QA session YYYY-MM-DD` parent on the Product team and
-   list its open sub-issues **and its related already-tracked Issues** in priority order.
-   Confirm which slice to take — or take the top one when the user already said to work through
-   them.
+   list its open sub-issues **and its related already-tracked Issues** in priority order. Only
+   `Todo`/`Backlog` items are available to take — a related Issue already `In Progress` or
+   `In Review` is someone's active work: show it as context, keep its state, never select it as
+   a slice. Confirm which slice to take — or take the top available one when the user already
+   said to work through them.
 2. **Take ONE slice.** Move it to `In Progress` only when work actually starts — after the
    grounding below and the branch go in step 5; a slice stopped before then (design call,
    declined branch, unsuitable checkout) goes back to `Todo` with a comment saying why. Never
