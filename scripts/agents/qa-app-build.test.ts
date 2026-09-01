@@ -300,3 +300,47 @@ describe("QA app build", () => {
     );
   });
 });
+
+describe("QA catalog contract", () => {
+  it("locks the six kinds and keeps transaction exactly aligned with the tx tag", () => {
+    const catalog = JSON.parse(
+      readFileSync(path.join(repoRoot, "scripts", "data", "qa-test-catalog.json"), "utf8"),
+    );
+    const expectedKindIds = [
+      "journey",
+      "transaction",
+      "data-integrity",
+      "content",
+      "accessibility",
+      "resilience",
+    ];
+    const kindIds = catalog.kinds.map((kind: { id: string }) => kind.id);
+    expect(kindIds).toEqual(expectedKindIds);
+    expect(new Set(kindIds).size).toBe(expectedKindIds.length);
+    for (const kind of catalog.kinds) {
+      expect(kind.label.trim()).not.toBe("");
+      expect(kind.verifies.trim()).not.toBe("");
+    }
+    const kinds = new Set(kindIds);
+    for (const testCase of catalog.cases) {
+      expect(kinds.has(testCase.kind)).toBe(true);
+      // The write boundary is negotiated per session, so the transaction kind
+      // and the tx tag must never drift apart.
+      expect(testCase.kind === "transaction").toBe(Boolean(testCase.tags?.includes("tx")));
+    }
+  });
+
+  it("keeps the concurrent steward decision inside the session write boundary", () => {
+    const catalog = JSON.parse(
+      readFileSync(path.join(repoRoot, "scripts", "data", "qa-test-catalog.json"), "utf8"),
+    );
+    const concurrentReview = catalog.cases.find(
+      (testCase: { id: string }) => testCase.id === "XPLAT-007",
+    );
+
+    expect(concurrentReview).toMatchObject({
+      kind: "transaction",
+      tags: expect.arrayContaining(["tx"]),
+    });
+  });
+});

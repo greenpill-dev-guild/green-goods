@@ -4,7 +4,7 @@ sidebar_label: Product Experience QA
 slug: /builders/quality/product-experience-qa
 audience: developer
 owner: product
-last_verified: 2026-08-31
+last_verified: 2026-09-01
 feature_status: In progress
 source_of_truth:
   - AGENTS.md
@@ -26,13 +26,103 @@ source_of_truth:
   - .github/workflows/design.yml
   - .github/workflows/client.yml
   - .github/workflows/admin.yml
-keywords: [QA, product experience, UI regression, admin, PWA, editorial website, accessibility]
+keywords: [QA, product experience, QA app, test cases, UI regression, admin, PWA, editorial website, accessibility]
 ---
 
 # Product Experience QA
 
-Product-experience QA asks whether a person can understand, complete, recover from, and trust a
-real flow. Passing unit tests and builds is necessary but does not prove that experience.
+Product-experience QA asks the one question the test suite cannot: can a real person understand,
+complete, recover from, and trust this flow? Passing builds prove the code runs; a QA walk proves
+the experience works. Anyone on the team can take one — if you can open the app and describe
+honestly what you saw, you are qualified.
+
+## Where QA happens
+
+Walks are recorded in the [QA app](https://qa.greengoods.app), a shared checklist where each
+tester signs in with their wallet and owns their own verdicts. Every test case gets a Pass, Fail,
+Blocked, or N/A call and a short note, saved as you go. Use Blocked when a required path cannot
+complete; use N/A only when a case is intentionally outside the agreed scope:
+
+<figure>
+  <img src="/img/screenshots/qa-app-priority-view.webp" alt="Synthetic QA app data in Priority view, with the P0 run-first band and priority chips visible" style={{maxWidth: '100%', borderRadius: 'var(--radius-md)', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+  <figcaption>The Priority view groups the run sheet into P0, P1, and P2 bands. This example uses synthetic data.</figcaption>
+</figure>
+
+Two more places complete the picture:
+
+- The QA app orders cases by priority or area. [Test Cases](./test-cases) is the public catalog
+  behind it, adding each scenario's kind, area, and expected evidence.
+- Findings land in Linear after the call, while screenshots and recordings go to the private Drive
+  QA folder. Linear, Drive, and staging links are shared in the private session charter rather than
+  published here.
+
+:::tip First walk?
+Start with [`PUB-001`](./test-cases#public-website-p0): open the public site and check that public
+routes use the website shell, not the PWA shell. No wallet or product role is required.
+:::
+
+## Walking a flow
+
+However you enter a session — on a call, solo, or paired with an agent — the loop is the same:
+
+1. Walk the real surface with the intended identity and environment.
+2. Capture each observation before diagnosing it.
+3. Reproduce visible defects from the rendered surface inward.
+4. Fix only bounded, reversible work that fits the agreed session scope.
+5. Revalidate in the same surface and record the remaining risk.
+6. Hand deferred findings to the private QA and Linear workflow.
+
+## The QA session
+
+A team session is a scheduled call where two or more people walk different surfaces at the same
+time, recording as they go. The QA app is the shared checklist; this page is what to read before
+opening it.
+
+### Before the call {#before-the-call}
+
+- Confirm every tester's wallet is on the QA app allowlist and each person can sign in once — a
+  five-minute smoke the day before saves twenty minutes of call time.
+- Pick the scope and split the surfaces. Walk priority-first (P0s before P1s), and where
+  possible each person tests surfaces they did not build.
+- Agree the write boundary up front: which funding and on-chain flows run end to end with real
+  transactions, and which stop at the review step. The catalog's Transaction kind marks the
+  cases this decision touches.
+- If test cases changed since the last deploy, redeploy the QA app first — a deployment pins the
+  catalog revision it shipped with.
+
+### During the call {#during-the-call}
+
+- Record a verdict and a short note per test case in the QA app as you walk. Screenshots and
+  recordings go to the private Drive QA folder, never into public artifacts.
+- The meeting notes capture the discussion on their own; nobody takes minutes. Spend the last
+  half hour walking the merged fail list together and aligning on the cross-surface calls —
+  those decisions are the most valuable output of the call.
+
+<figure>
+  <img src="/img/screenshots/qa-app-recorded-case.webp" alt="Synthetic QA case PUB-001 recorded as Pass with a saved note and one of thirty cases decided" loading="lazy" style={{maxWidth: '100%', borderRadius: 'var(--radius-md)', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+  <figcaption>A useful record pairs the verdict with a short, concrete observation. This example uses synthetic data.</figcaption>
+</figure>
+
+### After the call {#after-the-call}
+
+- Before everyone drops, spend five minutes on four questions: What did we cover, and what did we
+  consciously skip? What worked well enough to leave alone? Which fails worry us most? Would we
+  welcome a new garden onto this build tomorrow?
+- Trigger the `qa-call-report` routine (or run `/qa-triage --call` at a desk). It joins the QA
+  app's verdicts with the meeting notes and writes the session to Linear: one report issue per
+  session, with fix slices attached as sub-issues sized for one branch and one PR each.
+- Fix sessions then work slice by slice. Every fix is a repair grounded in the feature's history
+  and existing structure — updating or removing code before adding any — and is done when the
+  slice's test cases pass again.
+- Re-QA later in the week is a scoped walk of the affected cases. Whoever recorded a fail
+  re-records the pass, replacing their current verdict. The standing result remains the most
+  severe current verdict across testers, so someone else's pass cannot clear another tester's
+  fail or blocked result.
+
+<figure>
+  <img src="/img/screenshots/qa-session-report-example.webp" alt="Synthetic QA session 2026-08-31 in Done with coverage, release confidence, and two linked fix slices" loading="lazy" style={{maxWidth: '100%', borderRadius: 'var(--radius-md)', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+  <figcaption>The closed session report keeps the shared conclusion and its fix slices together. This is a synthetic example, not a live workspace record.</figcaption>
+</figure>
 
 ## What every journey must prove
 
@@ -43,54 +133,16 @@ real flow. Passing unit tests and builds is necessary but does not prove that ex
 - Protocol confirmation, indexed data, and local queue state are not conflated.
 - Private identities, wallets, session data, and defect evidence stay out of public artifacts.
 
-## Session loop
-
-1. Walk the real surface with the intended identity and environment.
-2. Capture each observation before diagnosing it.
-3. Reproduce visible defects from the rendered surface inward.
-4. Fix only bounded, reversible work that fits the agreed session scope.
-5. Revalidate in the same surface and record the remaining risk.
-6. Hand deferred findings to the private QA and Linear workflow.
-
-## Team QA sessions
-
-A team session is a scheduled call where two or more people walk different surfaces at the same
-time, recording as they go. The QA app is the shared checklist; this page is what to read before
-opening it.
-
-**Before the call**
-
-- Confirm every tester's wallet is on the QA app allowlist and each person can sign in once — a
-  five-minute smoke the day before saves twenty minutes of call time.
-- Pick the scope and split the surfaces. Walk priority-first (P0s before P1s), and where
-  possible each person tests surfaces they did not build.
-- Agree the write boundary up front: which funding and on-chain flows run end to end with real
-  transactions, and which stop at the review step.
-- If test cases changed since the last deploy, redeploy the QA app first — a deployment pins the
-  catalog revision it shipped with.
-
-**During the call**
-
-- Record a verdict and a short note per test case in the QA app as you walk. Screenshots and
-  recordings go to the private Drive QA folder, never into public artifacts.
-- The meeting notes capture the discussion on their own; nobody takes minutes. Spend the last
-  half hour walking the merged fail list together and aligning on the cross-surface calls —
-  those decisions are the most valuable output of the call.
-
-**After the call**
-
-- Trigger the `qa-call-report` routine (or run `/qa-triage --call` at a desk). It joins the QA
-  app's verdicts with the meeting notes and writes the session to Linear: one report issue per
-  session, with fix slices attached as sub-issues sized for one branch and one PR each.
-- Fix sessions then work slice by slice. Every fix is a repair grounded in the feature's history
-  and existing structure — updating or removing code before adding any — and is done when the
-  slice's test cases pass again.
-- Re-QA later in the week is a scoped walk of the affected cases. Whoever recorded a fail
-  re-records the pass: the standing verdict keeps each tester's most severe entry, so someone
-  else passing the case does not clear it.
-
-## Ownership
+## Ownership and related pages
 
 The generated [test-case catalog](./test-cases) owns public scenario definitions only.
-`.claude/context/qa.md` owns recording, attribution, privacy, result rollup, and artifact locations;
-the QA skills own session and triage mechanics.
+`.claude/context/qa.md` owns recording, attribution, privacy, result rollup, and artifact
+locations; the QA skills own session and triage mechanics.
+
+- [Test Cases](./test-cases) — every scenario, grouped by priority within each surface.
+- [Playwright](../testing/playwright) — browser-test entry points and the boundary between automated
+  checks and a human QA walk.
+- [Agent task routing](../agentic/task-routing) — where `qa-session` fits with triage and debugging.
+- [GitHub Actions](../deployments/gh-actions) — the automated gates that run before a human ever
+  walks.
+- [Getting Started](../getting-started) — local setup, if you want a dev build to walk against.

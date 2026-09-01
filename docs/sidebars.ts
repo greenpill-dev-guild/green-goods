@@ -147,18 +147,18 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Quality Assurance',
-      link: {type: 'generated-index', description: 'QA practice, catalog scenarios, and CI workflows.'},
+      link: {type: 'generated-index', description: 'How we QA the product experience, and the test-case catalog.'},
       items: [
         {type: 'doc', id: 'builders/quality/product-experience-qa', label: 'Product Experience QA'},
         {type: 'doc', id: 'builders/quality/test-cases', label: 'Test Cases'},
-        {type: 'doc', id: 'builders/quality/gh-actions', label: 'GitHub Actions'},
       ],
     },
     {
       type: 'category',
-      label: 'Build and Deployments',
-      link: {type: 'generated-index', description: 'Checked-in deployment state and release navigation.'},
+      label: 'Build, CI, and Deployments',
+      link: {type: 'generated-index', description: 'CI workflows, checked-in deployment state, and release navigation.'},
       items: [
+        {type: 'doc', id: 'builders/deployments/gh-actions', label: 'GitHub Actions'},
         {type: 'doc', id: 'builders/deployments/status', label: 'Deployment Status'},
       ],
     },
