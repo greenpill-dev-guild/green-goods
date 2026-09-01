@@ -84,8 +84,12 @@ test("guidance-consumer source changes also require supply-chain guardrails", ()
   ]);
 });
 
-test("raw contract source stays on contract, ontology, and global guardrail workflows", () => {
+test("raw contract source stays on contract and global guardrail workflows", () => {
   assert.deepEqual(expectedWorkflowNames(["packages/contracts/src/Gardens.sol"]), [
+    "Contracts",
+    "Supply Chain Guardrails",
+  ]);
+  assert.deepEqual(expectedWorkflowNames(["packages/contracts/src/Schemas.sol"]), [
     "Contracts",
     "Ontology",
     "Supply Chain Guardrails",
@@ -125,7 +129,6 @@ test("ontology-scoped changes require the ontology workflow", () => {
     "Admin",
     "Agent",
     "Client",
-    "Design",
     "Docs",
     "Ontology",
     "Shared",
@@ -186,8 +189,6 @@ test("ordinary source keeps global formatting ownership and live package routing
     "Admin",
     "Agent",
     "Client",
-    "Design",
-    "Ontology",
     "Shared",
     "Supply Chain Guardrails",
   ]);

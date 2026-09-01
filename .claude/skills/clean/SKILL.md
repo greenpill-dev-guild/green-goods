@@ -138,7 +138,7 @@ digraph clean_flow {
 
 1. **Collect implementation results** from the lanes/session, each tied to approved finding IDs.
 2. **When worktrees were authorized**, verify provenance, merge, and write the merge audit per [worktree-protocol.md](./worktree-protocol.md); skip for current-branch execution.
-3. **Run the non-mutating Review Readiness Gate** from `.claude/context/validation-pipeline.md`. Run the mutating Ship Gate only when the user separately requests ship, PR, commit, merge, or release readiness and its pre-flight passes.
+3. **Run the selector-chosen review evidence** from `.claude/context/validation-pipeline.md`. For ordinary publication, use targeted proof and the Ready-for-CI Push Gate; run the full local Ship Gate only for explicit offline/full-local readiness, critical work, or releases.
 4. **Run residue checks**: `git diff --check`, targeted removed-symbol scans, package TypeScript checks, and locally installed `knip` for unused export/dependency drift.
 5. **Revert only the specific approved change** if it caused a regression; do not fix unrelated failures.
 6. **Run the Codex final review** unless `--no-codex`; never auto-apply miss-hunt findings.

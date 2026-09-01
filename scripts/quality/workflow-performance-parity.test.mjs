@@ -3,6 +3,8 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import test from "node:test";
 
+import { classifySupplyChainChanges } from "./classify-supply-chain-changes.mjs";
+
 const root = resolve(import.meta.dirname, "../..");
 const workflowsDir = join(root, ".github/workflows");
 
@@ -106,17 +108,90 @@ test("dependency-installing workflow jobs use shared JS setup", () => {
   }
 });
 
-test("workflow parity is an early durable Supply Chain guard", () => {
+test("workflow parity is an independently classified Supply Chain guard", () => {
   const source = read(".github/workflows/supply-chain-guardrails.yml");
+  const parityJobIndex = source.indexOf("  parity:\n");
   const callerIndex = source.indexOf("name: Run workflow performance parity tests");
-  const formatIndex = source.indexOf("name: Check repository formatting");
 
-  assert.ok(callerIndex >= 0 && callerIndex < formatIndex);
+  assert.ok(parityJobIndex >= 0 && callerIndex > parityJobIndex);
+  assert.match(source.slice(parityJobIndex, callerIndex), /if: needs\.changes\.outputs\.parity == 'true'/);
   assert.match(
     source.slice(callerIndex, callerIndex + 180),
     /node --test scripts\/quality\/workflow-performance-parity\.test\.mjs/,
   );
   assert.equal(source.match(/- "\.mise\.toml"/g)?.length, 2);
+});
+
+test("Supply Chain classifies format, guidance, audit, and parity work independently", () => {
+  const source = read(".github/workflows/supply-chain-guardrails.yml");
+
+  assert.match(source, /changes:\s*\n\s+name: Classify changes/);
+  for (const output of ["format", "guidance", "supply", "parity"]) {
+    assert.match(source, new RegExp(`${output}:\\s*\\$\\{\\{\\s*steps\\.classify\\.outputs\\.${output}`));
+  }
+  assert.match(source, /format:\s*\n\s+name: Repository formatting/);
+  assert.match(source, /guidance:\s*\n\s+name: Guidance integrity/);
+  assert.match(source, /audit:\s*\n\s+name: Supply-chain guardrails/);
+  assert.match(source, /parity:\s*\n\s+name: Workflow performance parity/);
+  assert.match(source, /if: needs\.changes\.outputs\.guidance == 'true'/);
+  assert.match(source, /if: needs\.changes\.outputs\.supply == 'true'/);
+  assert.match(source, /if: needs\.changes\.outputs\.parity == 'true'/);
+  assert.match(source, /node scripts\/quality\/classify-supply-chain-changes\.mjs/);
+});
+
+test("Supply Chain classifier routes each change class without broad fallthrough", () => {
+  assert.deepEqual(classifySupplyChainChanges(["packages/shared/src/utils/calendar-date.ts"]), {
+    format: true,
+    guidance: false,
+    supply: false,
+    parity: false,
+  });
+  assert.deepEqual(classifySupplyChainChanges([".claude/skills/ship/SKILL.md"]), {
+    format: true,
+    guidance: true,
+    supply: false,
+    parity: false,
+  });
+  assert.deepEqual(classifySupplyChainChanges(["bun.lock"]), {
+    format: true,
+    guidance: false,
+    supply: true,
+    parity: false,
+  });
+  assert.deepEqual(classifySupplyChainChanges([".github/workflows/design.yml"]), {
+    format: true,
+    guidance: false,
+    supply: true,
+    parity: true,
+  });
+  assert.deepEqual(classifySupplyChainChanges([], { workflowDispatch: true }), {
+    format: true,
+    guidance: true,
+    supply: true,
+    parity: true,
+  });
+});
+
+test("local hooks keep commit light and reuse the focused push contract", () => {
+  const preCommit = read(".husky/pre-commit");
+  const prePush = read(".husky/pre-push");
+  const settings = JSON.parse(read(".claude/settings.json"));
+  const completionGate = read(".claude/scripts/task-completion-gate.sh");
+
+  assert.match(preCommit, /bunx lint-staged/);
+  assert.doesNotMatch(preCommit, /ci-local|bun run lint|bun run test|typecheck/);
+  assert.match(
+    prePush,
+    /node scripts\/dev\/ci-local\.js --intent push --reuse-passing-receipts/,
+  );
+  assert.doesNotMatch(prePush, /verify:contracts|format:check|check:source-structure|agentic:check/);
+
+  const preToolCommands = JSON.stringify(settings.hooks.PreToolUse ?? []);
+  const postToolCommands = JSON.stringify(settings.hooks.PostToolUse ?? []);
+  assert.doesNotMatch(preToolCommands, /bun run lint/);
+  assert.doesNotMatch(postToolCommands, /@green-goods\/shared typecheck/);
+  assert.doesNotMatch(completionGate, /bun run|ci-local\.js|typecheck/);
+  assert.match(completionGate, /coordinator owns validation/);
 });
 
 test("every direct Node and Bun setup uses the exact repository versions", () => {
