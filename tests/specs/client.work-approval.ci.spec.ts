@@ -81,6 +81,7 @@ test.describe("Work Approval CI Tests", () => {
 
       if (isDashboardVisible) {
         // Dashboard button exists — verify it can be clicked
+        await expect(dashboardButton).toBeEnabled({ timeout: 30000 });
         await dashboardButton.click();
         await page.waitForTimeout(500);
 

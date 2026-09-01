@@ -224,7 +224,7 @@ test.describe("Offline Sync CI Tests", () => {
       await expect(dashboardButton).toBeVisible({ timeout: 10000 });
 
       // Verify button is enabled while online
-      await expect(dashboardButton).toBeEnabled();
+      await expect(dashboardButton).toBeEnabled({ timeout: 30000 });
 
       await context.setOffline(true);
       await expect(page.getByRole("status", { name: "App is in offline mode" })).toBeVisible({

@@ -2,10 +2,25 @@ import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCloudOffLine, RiLoader4Line, RiTaskLine } from "@remixicon/react";
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { useIntl } from "react-intl";
 import { type PwaStatusTone, pwaStatusStyles } from "@/components/Pwa/statusStyles";
-import { WorkDashboard } from ".";
+
+type WorkDashboardModule = { default: typeof import(".").WorkDashboard };
+
+let workDashboardModulePromise: Promise<WorkDashboardModule> | undefined;
+
+function loadWorkDashboard(): Promise<WorkDashboardModule> {
+  workDashboardModulePromise ??= import(".")
+    .then((module) => ({ default: module.WorkDashboard }))
+    .catch((error: unknown) => {
+      workDashboardModulePromise = undefined;
+      throw error;
+    });
+  return workDashboardModulePromise;
+}
+
+const WorkDashboard = lazy(loadWorkDashboard);
 
 interface WorkDashboardIconProps {
   className?: string;
@@ -17,6 +32,27 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
   const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
   const closeWorkDashboard = useUIStore((s) => s.closeWorkDashboard);
+  const [isDashboardReady, setIsDashboardReady] = React.useState(false);
+
+  // Offline work management is a core promise. Warm the exact promise React
+  // will render, and expose the launcher as ready only after that chunk has
+  // arrived. Resetting the module promise above permits a later online retry.
+  React.useEffect(() => {
+    if (!isOnline) return;
+
+    let isCurrent = true;
+    void loadWorkDashboard()
+      .then(() => {
+        if (isCurrent) setIsDashboardReady(true);
+      })
+      .catch(() => {
+        if (isCurrent) setIsDashboardReady(false);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [isOnline]);
 
   // Only show notifications for actual pending work items
   const isSyncing = syncStatus === "syncing";
@@ -50,6 +86,7 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
     <>
       <button
         onClick={() => openWorkDashboard()}
+        disabled={!isDashboardReady}
         className={cn(
           "relative p-1 rounded-lg border",
           "transition-[color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
@@ -66,6 +103,7 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
           id: "app.workDashboard.openButton",
           defaultMessage: "Open Your Work",
         })}
+        aria-busy={!isDashboardReady}
         data-testid="work-dashboard-button"
       >
         {primaryIcon}
@@ -102,7 +140,11 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
       </button>
 
       {/* Dashboard Modal */}
-      {isWorkDashboardOpen ? <WorkDashboard onClose={closeWorkDashboard} /> : null}
+      {isWorkDashboardOpen ? (
+        <Suspense fallback={null}>
+          <WorkDashboard onClose={closeWorkDashboard} />
+        </Suspense>
+      ) : null}
     </>
   );
 };
