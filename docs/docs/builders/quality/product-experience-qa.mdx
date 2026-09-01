@@ -40,7 +40,8 @@ honestly what you saw, you are qualified.
 
 Walks are recorded in the [QA app](https://qa.greengoods.app), a shared checklist where each
 tester signs in with their wallet and owns their own verdicts. Every test case gets a Pass, Fail,
-or Blocked call and a short note, saved as you go:
+Blocked, or N/A call and a short note, saved as you go. Use Blocked when a required path cannot
+complete; use N/A only when a case is intentionally outside the agreed scope:
 
 <figure>
   <img src="/img/screenshots/qa-app-priority-view.png" alt="Synthetic QA app data in Priority view, with the P0 run-first band and priority chips visible" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
@@ -114,8 +115,9 @@ opening it.
   and existing structure — updating or removing code before adding any — and is done when the
   slice's test cases pass again.
 - Re-QA later in the week is a scoped walk of the affected cases. Whoever recorded a fail
-  re-records the pass: the standing verdict keeps each tester's most severe entry, so someone
-  else passing the case does not clear it.
+  re-records the pass, replacing their current verdict. The standing result remains the most
+  severe current verdict across testers, so someone else's pass cannot clear another tester's
+  fail or blocked result.
 
 <figure>
   <img src="/img/screenshots/qa-session-report-example.png" alt="Synthetic completed QA session report with coverage, release confidence, and two linked fix slices" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />

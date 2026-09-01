@@ -304,9 +304,9 @@ export function renderGitHubActions({ root, sources, digest }) {
 // same shape as the QA app's Priority view, so the page and the run sheet read
 // the same way. Priority meaning lives here; kind meaning lives in the catalog.
 const QA_PRIORITY_MEANINGS = [
-  ["P0", "run these first — a core promise fails outright if this breaks, and there is no workaround"],
-  ["P1", "fix quickly — an important flow or state degrades, but a reasonable workaround exists"],
-  ["P2", "quality — polish, edge presentation, and consistency; scheduled, never urgent"],
+  ["P0", "walk first — the highest-priority coverage for an applicable session"],
+  ["P1", "walk next — important coverage after the P0 band"],
+  ["P2", "walk after P0 and P1 when the session scope allows"],
 ];
 
 export function renderQaCatalog({ root, sources, digest }) {
@@ -320,6 +320,7 @@ export function renderQaCatalog({ root, sources, digest }) {
   );
   body += "Each surface groups its cases by priority — the same P0/P1/P2 bands as the [QA app's](https://qa.greengoods.app) Priority view — and sorts by ID within a band. IDs are permanent addresses: never renumbered, never reused; retired cases keep their ID in the catalog history.\n\n";
   body += QA_PRIORITY_MEANINGS.map(([priority, meaning]) => `- **${priority}** — ${meaning}.`).join("\n");
+  body += "\n\nPriority sets run order only. A failure's severity is assigned separately during triage.";
   body += "\n\nEach case carries one **kind**, the category axis:\n\n";
   body += catalog.kinds.map((kind) => `- **${esc(kind.label)}** — ${esc(kind.verifies)}.`).join("\n");
   body += "\n\n";

@@ -783,7 +783,7 @@
       "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P0",
-      "kind": "transaction",
+      "kind": "journey",
       "area": "Certify",
       "scenario": "Certification flow does not overpromise transaction state",
       "preconditions": ["Admin role available"],
@@ -791,7 +791,7 @@
       "expected": "Disabled/loading/error states are explicit before transaction",
       "evidence": "Screenshot",
       "role": "steward",
-      "tags": ["certify", "tx"],
+      "tags": ["certify"],
       "requiresProduction": false,
       "status": "active",
       "source": "sheet-v1.1"

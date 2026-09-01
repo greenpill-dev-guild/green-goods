@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:93bcfc8e45a158d4b2f6006c492b1a7da61f3563834aa1a96a4b62e478659ed8"
+source_digest: "sha256:b389bbc4d6f584fe610c5c7edab73f147a4bdaaea46aad40dea4b566996f3464"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -34,9 +34,11 @@ This page projects scenario definitions only. Live results, identities, owners, 
 
 Each surface groups its cases by priority — the same P0/P1/P2 bands as the [QA app's](https://qa.greengoods.app) Priority view — and sorts by ID within a band. IDs are permanent addresses: never renumbered, never reused; retired cases keep their ID in the catalog history.
 
-- **P0** — run these first — a core promise fails outright if this breaks, and there is no workaround.
-- **P1** — fix quickly — an important flow or state degrades, but a reasonable workaround exists.
-- **P2** — quality — polish, edge presentation, and consistency; scheduled, never urgent.
+- **P0** — walk first — the highest-priority coverage for an applicable session.
+- **P1** — walk next — important coverage after the P0 band.
+- **P2** — walk after P0 and P1 when the session scope allows.
+
+Priority sets run order only. A failure's severity is assigned separately during triage.
 
 Each case carries one **kind**, the category axis:
 
@@ -170,7 +172,7 @@ Each case carries one **kind**, the category axis:
 | `ADM-003` | Journey | Auth Gates | Unauthenticated admin state is clear | Screenshot |
 | `ADM-004` | Journey | Work Queue | Work queue/detail state is usable | Screenshot |
 | `ADM-005` | Journey | Assess | Assessment create flow gates invalid input | Screenshot or video |
-| `ADM-006` | Transaction | Certify | Certification flow does not overpromise transaction state | Screenshot |
+| `ADM-006` | Journey | Certify | Certification flow does not overpromise transaction state | Screenshot |
 | `ADM-007` | Journey | Endowment | Endowment and vault routes are role-gated and readable | Screenshot |
 | `ADM-012` | Transaction | Hub Work Review | Full review decision path completes with actions visible | Screen recording; screenshot of the action region at ~1084x637 |
 | `ADM-013` | Transaction | Hub Confirmations | Commitment confirmation states who and what before commit | Screenshots of confirmation and result |
