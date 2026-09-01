@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import type { Action, Domain, Garden } from "../../../types/domain";
+import { ZERO_ADDRESS } from "../../../utils/blockchain/address-constants";
 import { findActionByUID } from "../../../utils/action/parsers";
 import { useActionTranslation } from "../../translation/useActionTranslation";
 import { useGardenTranslation } from "../../translation/useGardenTranslation";
@@ -99,9 +100,9 @@ export function useWorkSubmissionPresentationModel({
   const detailInputs = useMemo(() => translatedAction?.inputs ?? [], [translatedAction]);
   const reviewData = useMemo(() => {
     const garden: Garden = translatedGarden || {
-      id: gardenAddress || "",
+      id: gardenAddress ?? ZERO_ADDRESS,
       chainId: DEFAULT_CHAIN_ID,
-      tokenAddress: "",
+      tokenAddress: ZERO_ADDRESS,
       tokenID: 0n,
       name: intl.formatMessage({ id: "app.garden.unknown", defaultMessage: "Unknown Garden" }),
       description: "",

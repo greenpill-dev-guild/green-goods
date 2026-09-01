@@ -16,7 +16,15 @@ import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiFilterLine } from "@remixicon/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type ComponentType,
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useMatch, useNavigate } from "react-router-dom";
 
@@ -32,10 +40,15 @@ import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 const CommitmentsDrawer = lazy(() =>
   import("./CommitmentsDrawer").then(({ CommitmentsDrawer }) => ({ default: CommitmentsDrawer }))
 );
-const CommitmentsDrawerLauncher = lazy(() =>
-  import("./CommitmentsDrawer/Launcher").then(({ CommitmentsDrawerLauncher }) => ({
-    default: CommitmentsDrawerLauncher,
-  }))
+const CommitmentsDrawerLauncher = lazy(
+  (): Promise<{ default: ComponentType<{ onClick: () => void }> }> =>
+    import("./CommitmentsDrawer/Launcher")
+      .then(({ CommitmentsDrawerLauncher }) => ({
+        default: CommitmentsDrawerLauncher,
+      }))
+      // Ambient adjunct: if the launcher chunk cannot load (offline dev serving),
+      // hide it rather than failing the whole Home route.
+      .catch(() => ({ default: () => null }))
 );
 const GardensFilterDrawer = lazy(() =>
   import("./GardenFilters").then(({ GardensFilterDrawer }) => ({ default: GardensFilterDrawer }))

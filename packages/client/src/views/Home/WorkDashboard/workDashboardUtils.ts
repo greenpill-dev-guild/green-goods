@@ -1,5 +1,5 @@
 import type { Address, Work } from "@green-goods/shared/types/domain";
-import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
+import { compareAddresses, ZERO_ADDRESS } from "@green-goods/shared/utils/blockchain/address";
 
 /**
  * Build a lookup map of work by ID for efficient access.
@@ -64,6 +64,10 @@ function toActionUID(value: number | string | undefined) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function isConcreteGardenAddress(address: Address | undefined): address is Address {
+  return Boolean(address) && !compareAddresses(address, ZERO_ADDRESS);
+}
+
 /**
  * Convert completed approvals (reviewed by you) to Work shape for MinimalWorkCard.
  */
@@ -74,8 +78,8 @@ export function approvalsToCompletedWorks(approvals: CompletedApproval[]): Work[
       id: approval.workUID,
       title: approval.title || `Work ${String(approval.workUID || "").slice(0, 8)}...`,
       actionUID: toActionUID(approval.actionUID),
-      gardenerAddress: approval.gardenerAddress,
-      gardenAddress: approval.gardenId || "",
+      gardenerAddress: approval.gardenerAddress as Address,
+      gardenAddress: (approval.gardenId || ZERO_ADDRESS) as Address,
       feedback: approval.feedback || "",
       metadata: "",
       media: [],
@@ -97,8 +101,8 @@ export function receivedApprovalsToWorks(
       id: a.workUID,
       title: originalWork?.title || `Work ${String(a.workUID || "").slice(0, 8)}...`,
       actionUID: originalWork?.actionUID ?? toActionUID(a.actionUID),
-      gardenerAddress: originalWork?.gardenerAddress ?? a.gardenerAddress,
-      gardenAddress: originalWork?.gardenAddress ?? "",
+      gardenerAddress: (originalWork?.gardenerAddress ?? a.gardenerAddress) as Address,
+      gardenAddress: originalWork?.gardenAddress ?? ZERO_ADDRESS,
       feedback: a.feedback ?? "",
       metadata: originalWork?.metadata ?? "",
       media: originalWork?.media ?? [],
@@ -112,7 +116,9 @@ export function receivedApprovalsToWorks(
  * Extract unique garden addresses from a list of works.
  */
 export function extractWorkGardenIds(works: Work[]): string[] {
-  return Array.from(new Set(works.map((work) => work.gardenAddress).filter(Boolean)));
+  return Array.from(
+    new Set(works.map((work) => work.gardenAddress).filter(isConcreteGardenAddress))
+  );
 }
 
 /**
@@ -126,7 +132,7 @@ export function resolveWorkNavigation(
   let workId = "id" in work ? work.id : (work as { workUID?: string }).workUID;
   let gardenId = work.gardenAddress;
 
-  if (!gardenId && "workUID" in work && work.workUID) {
+  if (!isConcreteGardenAddress(gardenId) && "workUID" in work && work.workUID) {
     const found = stewardWorksById.get(work.workUID);
     if (found) {
       gardenId = found.gardenAddress;
@@ -134,6 +140,6 @@ export function resolveWorkNavigation(
     }
   }
 
-  if (!gardenId || !workId) return null;
+  if (!isConcreteGardenAddress(gardenId) || !workId) return null;
   return { workId, gardenId };
 }

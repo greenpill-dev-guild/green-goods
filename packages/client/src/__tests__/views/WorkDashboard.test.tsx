@@ -297,7 +297,7 @@ describe("WorkDashboard", () => {
           title: "Queued tree planting",
           actionUID: 1,
           gardenerAddress: "0xabc",
-          gardenAddress: "garden-1",
+          gardenAddress: "0x00000000000000000000000000000000000000a1",
           feedback: "",
           metadata: "",
           media: [],
@@ -382,7 +382,7 @@ describe("WorkDashboard", () => {
   });
 
   it("waits for review-exclusion approvals before showing steward work as needing review", () => {
-    mockReviewerGardenIds = ["garden-1"];
+    mockReviewerGardenIds = ["0x00000000000000000000000000000000000000a1"];
     mockReviewerWorksState = {
       data: [
         {
@@ -390,7 +390,7 @@ describe("WorkDashboard", () => {
           title: "Already reviewed planting",
           actionUID: 1,
           gardenerAddress: "0xdef",
-          gardenAddress: "garden-1",
+          gardenAddress: "0x00000000000000000000000000000000000000a1",
           feedback: "",
           metadata: "",
           media: [],

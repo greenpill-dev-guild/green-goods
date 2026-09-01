@@ -140,6 +140,8 @@ describe("local contract event indexer config", () => {
             address: '${TEST_CONTRACTS.commitmentPoolingModule}'
           - name: CommitmentRegistry
             address: '${TEST_CONTRACTS.commitmentRegistry}'
+          - name: CreditRegistry
+            address: '${TEST_CONTRACTS.creditRegistry}'
 `;
     const deployment = JSON.stringify(TEST_CONTRACTS);
 

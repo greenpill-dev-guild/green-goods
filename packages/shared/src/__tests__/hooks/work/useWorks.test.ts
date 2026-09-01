@@ -12,6 +12,7 @@ import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Job, WorkJobPayload } from "../../../types/job-queue";
+import { ZERO_ADDRESS } from "../../../utils/blockchain/address-constants";
 
 // ── Constants ───────────────────────────────────────────────────────────────
 const TEST_CHAIN_ID = 11155111;
@@ -425,7 +426,7 @@ describe("hooks/work/useWorks", () => {
       expect(work.actionUID).toBe(42);
       expect(work.gardenAddress).toBe(TEST_GARDEN);
       expect(work.feedback).toBe("Planted 50 oaks");
-      expect(work.gardenerAddress).toBe("pending");
+      expect(work.gardenerAddress).toBe(ZERO_ADDRESS);
       expect(work.media).toEqual([]);
       // createdAt should be converted from ms to seconds (EAS format)
       expect(work.createdAt).toBe(Math.floor(1700000000000 / 1000));

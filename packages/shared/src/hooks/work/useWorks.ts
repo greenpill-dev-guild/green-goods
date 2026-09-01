@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { ZERO_ADDRESS } from "../../utils/blockchain/address-constants";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
 import { getWorkApprovals, getWorks } from "../../modules/data/eas";
@@ -70,7 +71,7 @@ export function jobToWork(job: Job<WorkJobPayload>): Work {
     id: job.id, // Use job ID as temporary work ID
     title: job.payload.title || `Action ${job.payload.actionUID}`,
     actionUID: job.payload.actionUID,
-    gardenerAddress: "pending", // Will be resolved when online
+    gardenerAddress: ZERO_ADDRESS, // Unresolved offline; hydration overwrites with the active address
     gardenAddress: job.payload.gardenAddress,
     feedback: job.payload.feedback,
     metadata: JSON.stringify({

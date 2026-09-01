@@ -6,7 +6,24 @@ import React, { lazy, Suspense } from "react";
 import { useIntl } from "react-intl";
 import { type PwaStatusTone, pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
-const WorkDashboard = lazy(() => import(".").then((module) => ({ default: module.WorkDashboard })));
+function importWorkDashboard() {
+  return import(".").then((module) => ({ default: module.WorkDashboard }));
+}
+
+let workDashboardModulePromise: ReturnType<typeof importWorkDashboard> | null = null;
+
+function loadWorkDashboard() {
+  if (workDashboardModulePromise) return workDashboardModulePromise;
+
+  const pendingModule = importWorkDashboard().catch((error) => {
+    workDashboardModulePromise = null;
+    throw error;
+  });
+  workDashboardModulePromise = pendingModule;
+  return pendingModule;
+}
+
+const WorkDashboard = lazy(loadWorkDashboard);
 
 interface WorkDashboardIconProps {
   className?: string;
@@ -15,9 +32,25 @@ interface WorkDashboardIconProps {
 export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className }) => {
   const intl = useIntl();
   const { isOnline, pendingCount, syncStatus } = useOffline();
+  const [isDashboardReady, setIsDashboardReady] = React.useState(false);
   const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
   const closeWorkDashboard = useUIStore((s) => s.closeWorkDashboard);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void loadWorkDashboard().then(
+      () => {
+        if (!cancelled) setIsDashboardReady(true);
+      },
+      () => {
+        // A reconnect changes isOnline and retries the failed preload.
+      }
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [isOnline]);
 
   // Only show notifications for actual pending work items
   const isSyncing = syncStatus === "syncing";
@@ -51,6 +84,7 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
     <>
       <button
         onClick={() => openWorkDashboard()}
+        disabled={!isDashboardReady}
         className={cn(
           "relative p-1 rounded-lg border",
           "transition-[color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
@@ -67,6 +101,7 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
           id: "app.workDashboard.openButton",
           defaultMessage: "Open Your Work",
         })}
+        aria-busy={!isDashboardReady}
         data-testid="work-dashboard-button"
       >
         {primaryIcon}
@@ -102,7 +137,7 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
         )}
       </button>
 
-      {/* Dashboard Modal */}
+      {/* The launcher is enabled only after this split module is cached locally. */}
       {isWorkDashboardOpen ? (
         <Suspense fallback={null}>
           <WorkDashboard onClose={closeWorkDashboard} />

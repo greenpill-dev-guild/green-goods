@@ -25,14 +25,16 @@
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: none; work remains uncommitted in a shared dirty checkout
-- Run at (UTC): 2026-08-30T21:14:30Z
-- Exact command(s): focused Shared Vitest; Shared lint/typechecks; direct Client Vite production
-  build; PWA budget checker; generated-worker/manifest inspection
-- Result: lane proof passes; external/full-checkout gates remain
-- Validated paths: Shared install/update/storage/share/job-queue boundaries and Client SW/build graph
-- Worktree identity command and result: `git status --short`; shared `develop` checkout contains
-  unrelated concurrent changes that were preserved
+- Tested implementation commit SHA: `d788fa2e8d9f9555dcb80c94422d08a3ac0786c2`
+- Run at (UTC): 2026-08-31T21:45:24.000Z
+- Exact command(s): `cd packages/shared && bun run test` (full shared Vitest suite)
+- Result: 414 test files passed (2 skipped), 4474 tests passed (18 skipped); exit 0
+- Validated paths: `packages/shared` install/update/storage/share/job-queue boundaries and the
+  client SW/build graph surfaces they feed
+- Worktree identity command and result: `git rev-parse HEAD` =
+  `d788fa2e8d9f9555dcb80c94422d08a3ac0786c2`;
+  `git status --porcelain=v1 --untracked-files=all -- packages/client packages/shared` returned
+  empty (clean)
 - Evidence-only diff command and result (if applicable): not applicable
 - Evidence-only worktree-status command and result (if applicable): not applicable
 

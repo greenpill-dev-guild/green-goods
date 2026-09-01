@@ -1,3 +1,4 @@
+import { ZERO_ADDRESS } from "../../utils/blockchain/address-constants";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useIntl } from "react-intl";
 import { encodeFunctionData } from "viem";
@@ -127,7 +128,7 @@ export function useGardenerProfile() {
 
   // TODO: Replace with GraphQL query once indexer supports gardener profiles
   const profileQuery = useQuery({
-    queryKey: gardenerProfileKeys.byAddress(smartAccountAddress ?? "", DEFAULT_CHAIN_ID),
+    queryKey: gardenerProfileKeys.byAddress(smartAccountAddress ?? ZERO_ADDRESS, DEFAULT_CHAIN_ID),
     queryFn: async () => {
       if (!smartAccountAddress) return null;
       return null as GardenerProfile | null;

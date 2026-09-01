@@ -226,7 +226,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       // the catch block inserts an optimistic entry at that point.
       const isWalletOnline = authMode === "wallet" && navigator.onLine;
       let previousMerged: Work[] | undefined;
-      if (gardenAddress) {
+      if (gardenAddress && userAddress) {
         await queryClient.cancelQueries({
           queryKey: worksKeys.merged(gardenAddress, chainId),
         });
@@ -239,7 +239,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
             id: `0xoffline_optimistic_${Date.now()}`,
             title: actionTitle || "",
             actionUID: actionUID ?? 0,
-            gardenerAddress: userAddress ?? "",
+            gardenerAddress: userAddress,
             gardenAddress,
             feedback: variables.draft.feedback || "",
             metadata: JSON.stringify({

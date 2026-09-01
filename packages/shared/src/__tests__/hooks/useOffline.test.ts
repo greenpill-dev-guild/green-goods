@@ -26,9 +26,8 @@ vi.mock("../../providers/JobQueue", () => ({
   useQueueFlush: () => mockFlush,
 }));
 
-vi.mock("../../hooks/work/useWorks", () => ({
+vi.mock("../../hooks/work/usePendingWorksCount", () => ({
   usePendingWorksCount: () => ({ data: 0 }),
-  useQueueStatistics: () => ({ data: { pending: 0, failed: 0 } }),
 }));
 
 import { useOffline } from "../../hooks/app/useOffline";
