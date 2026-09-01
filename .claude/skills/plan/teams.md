@@ -189,9 +189,10 @@ Tasks can depend on other tasks — a pending task with unresolved dependencies 
 
 ---
 
-## Part 7: Quality Gates (Hooks)
+## Part 7: Coordination Signals (Hooks)
 
-Two hook types enforce quality when teammates finish their assigned work.
+Two hook types surface error signals when teammates finish assigned work. The coordinating agent
+owns validation; completion hooks do not run package or repository suites.
 
 ### TeammateIdle Hook
 Runs when a teammate is about to go idle. Exit code 2 sends feedback and keeps them working.
@@ -201,11 +202,12 @@ Script: `.claude/scripts/teammate-idle-gate.sh`
 - Requires retry or blocker report to lead
 
 ### TaskCompleted Hook
-Runs when a task is being marked complete. Exit code 2 prevents completion and sends feedback.
+Runs when a task is being marked complete. Exit code 2 prevents completion only when the task output
+contains an explicit error signal.
 
 Script: `.claude/scripts/task-completion-gate.sh`
-- Validates the task has a clear deliverable
 - Blocks completion on error signals in the task output
+- Otherwise reports an advisory pass and leaves validation to the coordinator
 
 ---
 

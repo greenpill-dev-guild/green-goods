@@ -18,9 +18,9 @@ repository-wide architecture opportunity discovery to `plan`; this skill judges 
 
 It answers three questions with fresh evidence: **regression safety** (Pass 1), **requirement closure**
 (Pass 2), and the user's requested **evidence or readiness level** (Pass 3). `APPROVE` is reserved for
-an explicit production-quality, approval, PR/merge-readiness, or equivalent request whose full
-non-mutating readiness gate passed. It is a bounded verdict for the reviewed scope, not a claim that
-unrelated repository or production failures are impossible.
+an explicit production-quality, approval, PR/merge-readiness, or equivalent request whose required
+local evidence and current-head GitHub CI passed. It is a bounded verdict for the reviewed scope,
+not a claim that unrelated repository or production failures are impossible.
 
 ## Scoping
 
@@ -43,11 +43,15 @@ Resolve intent separately from code scope:
   audit evidence, or a specific question. Inspect first and run only the non-mutating checks needed
   to prove findings. A clean targeted review returns `COMMENT_ONLY`, not a readiness approval.
 - **Production readiness** — explicit requests for production quality, approval, PR/merge readiness,
-  or whether the branch is ready. Run the full Production Review Readiness Gate.
+  or whether the branch is ready. For a live PR, combine direct local evidence with required GitHub
+  CI on the current head SHA. Run the full local Production Review Readiness Gate only for explicit
+  offline/full-local readiness or a critical surface.
 
-Render the planned checks with `bun run validation:plan -- --intent review`. For explicit production
-readiness, use `--intent readiness` so the plan remains non-mutating while criticality can only add
-checks. Execute the returned plan. If the selector is unavailable or fails, follow CLAUDE.md's
+Render the planned checks with `bun run validation:plan -- --intent review`. For explicit
+offline/full-local production readiness, use `--intent readiness` so the plan remains non-mutating
+while criticality can only add checks. For a live PR, use `--intent review` for direct local
+evidence and inspect required CI at the current head SHA; criticality may still escalate the local
+plan. Execute the returned plan. If the selector is unavailable or fails, follow CLAUDE.md's
 intent ladder and the shared validation
 pipeline directly, report the selector problem, and preserve every hard gate.
 
@@ -133,18 +137,23 @@ Evidence review runs only the selector-chosen, non-mutating checks needed to pro
 findings. Do not add full tests or builds merely to make the command count look comprehensive. A
 clean evidence review is not production certification and returns `COMMENT_ONLY`.
 
-Explicit production-readiness review runs the non-mutating **Production Review Readiness Gate**
-defined in [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md)
-(`format:check`, lint, tests, pinned `VITE_CHAIN_ID=11155111` root build, plus scope-conditional
-additions including Agent or Docs builds). Run every selected stage fresh unless an exact matching
-receipt satisfies the shared freshness contract. A required stage that fails → `REQUEST_CHANGES`; a
+Explicit offline/full-local production-readiness review runs the non-mutating **Production Review
+Readiness Gate** defined in
+[`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md). Critical changes
+also retain that complete local override. A required stage that fails → `REQUEST_CHANGES`; a
 required stage that cannot run → `COMMENT_ONLY`, never silently downgraded or substituted.
+
+For a live PR readiness verdict, inspect every required GitHub workflow at the PR's current head
+SHA. Green CI is the broad regression authority. Pending, missing, stale-SHA, or unavailable CI →
+`COMMENT_ONLY`; a failure → `REQUEST_CHANGES`. Never replace pending CI with a local full-suite run
+and call the PR approved.
 
 For narrower explicit intents, pick the lightest honest rung per CLAUDE.md § Validation Intent Ladder:
 
 - isolated fix → targeted package-local test/proof
 - cross-package or shared-surface impact → Repo Quick Gate
-- explicit ship/merge readiness → full Ship Gate + conditional design/vocab/story gates when those surfaces moved
+- live PR approval → direct local evidence + required current-head CI
+- explicit offline/full-local readiness or critical work → full readiness gate + conditional gates
 
 For every selected check, name its risk, expected signal, freshness rule, and stopping condition.
 State what ran with real output. Record the tested commit SHA, UTC timestamp, exact command, and
@@ -201,7 +210,7 @@ Lead with findings, keep the list actionable:
 3. **Remaining Gaps** — unfinished intent, each with the smallest completing step
 4. **Human Call-Outs** — dependencies, auth/permissions, migrations, contract deploys, trust-boundary changes (never auto-fix these)
 5. **Verification** — what ran, real results, what remains unverified
-6. **Verdict** — `APPROVE` | `REQUEST_CHANGES` | `COMMENT_ONLY`. Rules: any `MISSING` requirement or failed required check → `REQUEST_CHANGES`; any `BLOCKED` requirement/check, no authoritative requirements, or evidence-review-only intent → `COMMENT_ONLY`; `APPROVE` only for explicit production-readiness intent when every requirement is `SATISFIED`/`OUT_OF_SCOPE` and the full readiness gate passed under the freshness contract.
+6. **Verdict** — `APPROVE` | `REQUEST_CHANGES` | `COMMENT_ONLY`. Any `MISSING` requirement or failed required check → `REQUEST_CHANGES`. Any `BLOCKED` requirement/check → `COMMENT_ONLY`; so do missing authoritative requirements, evidence-review-only intent, or pending/unavailable current-head PR CI. `APPROVE` only for explicit production-readiness intent when every requirement is `SATISFIED`/`OUT_OF_SCOPE`, applicable local proof passed, and required GitHub CI is green for the current SHA. Explicit offline/full-local and critical reviews additionally require the complete readiness gate under the freshness contract.
 
 Finding format: `[Title] — severity · type · file:line · why it matters · next step`.
 

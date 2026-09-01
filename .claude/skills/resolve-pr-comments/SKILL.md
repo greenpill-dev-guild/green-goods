@@ -1,6 +1,6 @@
 ---
 name: resolve-pr-comments
-description: Resolve actionable GitHub pull request review feedback with a validate, bounded-sweep, fix, proof, and publish workflow. Use when the user asks to address, fix, clear, or resolve unresolved PR review threads, requested changes on a pull request, review-level feedback, or GitHub PR comments. Confirm feedback against the current PR head, search the changed scope and direct consumers for the same root-cause class, fix approved instances, prove recurrence is closed, then commit and push scoped fixes to the existing PR branch by default after the full Ship Gate passes. Make GitHub replies, reviews, reactions, and thread-resolution writes only with explicit authorization.
+description: Resolve actionable GitHub pull request review feedback with a validate, bounded-sweep, fix, targeted proof, push gate, and current-head CI workflow. Use when the user asks to address, fix, clear, or resolve unresolved PR review threads, requested changes on a pull request, review-level feedback, or GitHub PR comments. Make GitHub replies, reviews, reactions, and thread-resolution writes only with explicit authorization.
 ---
 
 # Resolve PR Comments
@@ -121,7 +121,8 @@ unresolved actionable feedback item.
 Interpret "fix all comments" as authorization to fix all `ACTIONABLE` feedback items and their
 approved in-scope sibling instances. On a safe existing PR branch, it also authorizes staging only
 the scoped files, creating a conventional commit, and pushing normally to that tracked branch after
-the full Ship Gate passes. It does not authorize:
+targeted proof and the ready-for-CI Push Gate pass. Critical surfaces retain their complete local
+override. It does not authorize:
 
 - ambiguous or conflicting changes;
 - unrelated repository cleanup;
@@ -146,22 +147,16 @@ Do not resolve a thread merely because a local edit exists.
 ## 6. Prove closure
 
 1. Run the lightest honest targeted proof for the touched behavior.
-2. Before a mutating Ship Gate, use an isolated clean writable checkout, or prove the entire
-   formatter-covered working tree and index contain only the approved feedback paths. If unrelated
-   changes exist anywhere the formatter can rewrite, refuse publication instead of running the gate.
-   Apply the credential-free sandbox requirement from phase 1 to every untrusted head.
-3. When commit or push is in scope, define the exact approved path allowlist, require an empty index,
-   stage only those paths, and inspect the full cached diff before the Ship Gate. Select conditional
-   checks from the union of the committed PR diff and every allowlisted staged, unstaged, and
-   untracked path so new fixes cannot escape touched-surface detection.
-4. Run the full Ship Gate from [`validation-pipeline.md`](../../context/validation-pipeline.md),
-   including every conditional addition selected in step 3. Every required stage must pass in the
-   current invocation before committing or pushing. After each mutating stage, require every changed
-   path to remain inside the allowlist; restage approved formatter changes and rerun the affected
-   stage, but stop on any extra path. Inspect enabled commit and push hooks, and run every validation
-   command they require explicitly inside the same credential-free validation boundary. Treat
-   repository-controlled hooks as untrusted code; do not defer their execution until credentials are
-   available for publication.
+2. Use an isolated clean writable checkout, or prove the working tree and index contain only the
+   approved feedback paths. Apply the credential-free sandbox requirement from phase 1 to every
+   untrusted head.
+3. Define the exact approved path allowlist, require an empty index, stage only those paths, and
+   inspect the full cached diff. Select local proof from the union of the committed PR diff and every
+   allowlisted staged, unstaged, and untracked path so new fixes cannot escape touched-surface
+   detection.
+4. If the selector identifies a critical surface, run its complete mandatory local override before
+   publication. Do not run the full local Ship Gate for ordinary comment fixes merely because a
+   commit or push is in scope.
 5. For visible UI changes, obtain the required authenticated Brave rendered proof or report browser
    QA as blocked.
 6. Repeat the root-cause search after all fixes. Any remaining approved manifestation keeps the
@@ -171,16 +166,16 @@ Do not resolve a thread merely because a local edit exists.
    tested index from fixes present in a commit or on the live PR head.
 
 Failed or unavailable targeted proof keeps the affected actionable feedback cluster unresolved. A
-failed or unavailable Ship Gate blocks commit and push even when the failure appears unrelated or
-environmental. Do not use `--no-verify` or hook isolation to bypass a failed required hook check.
-Report the blocker, fix it only when it is inside the locked scope, and do not claim ship readiness.
+failed or unavailable critical override blocks commit and push. Do not use compatibility flags,
+receipts, `--no-verify`, or hook isolation to bypass a failed required check. Report the blocker,
+fix it only when it is inside the locked scope, and do not claim readiness.
 
 ## 7. Publish, reply, and resolve safely
 
 Unless the user asks to keep changes local, finish an existing-PR feedback task by committing and
 pushing the scoped, proven fixes to the current tracked PR branch:
 
-1. After the Ship Gate, re-fetch the PR and every feedback surface to pagination completion. Require
+1. After targeted proof, re-fetch the PR and every feedback surface to pagination completion. Require
    it to remain open with the same base repository and branch, non-protected head repository and
    branch, and live head SHA used for classification. A base change alters the PR diff, changed-file
    sweep, and conditional validation scope even when the head is unchanged; stop and repeat the
@@ -191,22 +186,28 @@ pushing the scoped, proven fixes to the current tracked PR branch:
    SHA does not prove stable feedback. Reconfirm the push destination, trust boundary, and
    tested-tree invariants from phases 1 and 6. Stop if the remote advanced or any invariant changed.
 2. Re-inspect `git diff --cached --name-only` and the full cached diff. Require every staged path and
-   hunk to belong to the locked feedback scope and require `git write-tree` to equal the tested tree
-   recorded after the Ship Gate; stop on any extra path, mixed-ownership hunk, or tree drift.
+   hunk to belong to the locked feedback scope and require `git write-tree` to equal the tested tree;
+   stop on any extra path, mixed-ownership hunk, or tree drift.
 3. Create a conventional commit from that verified index while preventing repository-controlled
    hooks from executing with publication credentials. Use a command-scoped `core.hooksPath` that
    points to a freshly created, verified-empty directory outside the PR tree; never change persistent
    Git configuration. This is execution isolation, not a validation bypass: phase 6 must already have
-   run and passed every required hook check explicitly. Compare `git rev-parse HEAD^{tree}` with the
+   run and passed its targeted proof and any critical override. Compare `git rev-parse HEAD^{tree}` with the
    tested tree after the guarded commit; stop on any mismatch and repeat proof at the new tree.
-4. Immediately before pushing, repeat the complete feedback-delta check from step 1 and require the
+4. Run the post-commit Ready-for-CI Push Gate with
+   `node scripts/dev/ci-local.js --intent push --reuse-passing-receipts` and the direct
+   `--test-path <surface>:<path>` proof. `needs-focus`, `budget-exceeded`, a failed check, or a blocked
+   critical override stops publication. An exact pass may be reused by the pre-push hook.
+5. Immediately before pushing, repeat the complete feedback-delta check from step 1 and require the
    ledger and locked scope to remain valid. Revalidate the commit tree, live head SHA, remote
    repository identity, URL, and target ref. Push normally to that verified destination with the
    same command-scoped empty hook path so a repository-controlled pre-push hook cannot execute with
    credentials. Never use `--no-verify`, force-push, rewrite history, switch branches, create another
    branch, or open another PR without explicit authorization.
-5. Fetch the PR head again and record the pushed SHA. A local commit or successful `git push` message
+6. Fetch the PR head again and record the pushed SHA. A local commit or successful `git push` message
    alone is not proof that the live PR contains the fix.
+7. Wait for required GitHub CI on that pushed SHA. Pending, missing, or unavailable CI keeps the
+   publication result blocked/comment-only; a broad local fallback cannot substitute for approval.
 
 GitHub replies, reactions, thread resolution, and review submission remain separate conversational
 writes. Perform them only when the user explicitly authorizes them.

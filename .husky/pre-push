@@ -16,51 +16,11 @@ if [ -n "${BASH_VERSION-}" ] && [ -f .nvmrc ]; then
   fi
 fi
 
-echo "🔍 Running pre-push checks..."
+echo "🔍 Running the focused ready-for-CI gate..."
 
 # Bun is the repository's required package manager.
 if ! command -v bun >/dev/null 2>&1; then
   echo "Error: Bun is required. Install bun: https://bun.sh"
   exit 1
 fi
-RUNNER="bun run"
-
-# Print the recovery commands when any check fails, so users don't have to
-# remember the auto-fix path.
-on_failure() {
-  status=$?
-  echo ""
-  echo "❌ Pre-push checks failed."
-  echo "   To fix locally, run:"
-  echo "     bun run format && bun run format:contracts"
-  echo "     bun run lint"
-  echo "     bun run design:generate"
-  echo "   Then commit (or amend) and push again."
-  exit $status
-}
-trap on_failure EXIT
-
-# 1. Format check (non-mutating)
-echo "📐 Checking formatting..."
-$RUNNER check:foundry-version
-$RUNNER format:check
-$RUNNER format:contracts:check
-
-# 2. Lint check (non-mutating)
-echo "🔎 Running linter..."
-$RUNNER lint
-
-# 3. Source structure check (scoped to commits being pushed when possible)
-echo "🏗️  Checking source structure..."
-if git rev-parse --verify --quiet origin/develop >/dev/null; then
-  SOURCE_STRUCTURE_BASE_REF="${SOURCE_STRUCTURE_BASE_REF:-origin/develop}" $RUNNER check:source-structure
-else
-  $RUNNER check:source-structure
-fi
-
-# 4. Generated design artifact check
-echo "🎨 Checking generated design artifacts..."
-$RUNNER check:design-generated
-
-trap - EXIT
-echo "✅ Pre-push checks passed!"
+node scripts/dev/ci-local.js --intent push --reuse-passing-receipts

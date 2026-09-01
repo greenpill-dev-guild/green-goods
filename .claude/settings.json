@@ -81,16 +81,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CMD=$(cat | jq -r '.tool_input.command // empty'); if printf '%s' \"$CMD\" | grep -qE '(^|[;&|] *)git commit'; then cd \"$CLAUDE_PROJECT_DIR\" && bun run lint 2>&1 | tail -5; fi; exit 0",
-            "statusMessage": "Pre-commit lint check..."
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
             "command": "CMD=$(cat | jq -r '.tool_input.command // empty'); if printf '%s' \"$CMD\" | grep -qE '(cat|head|tail|less|more|source|bat)\\s+(\\./)?\\.(env|env\\.[a-z]+)' || printf '%s' \"$CMD\" | grep -qE 'grep\\s+.*\\s+(\\./)?\\.(env|env\\.[a-z]+)'; then echo 'BLOCKED: Direct .env file access via Bash is not allowed. Secrets must not be read in Claude sessions.' >&2; exit 2; fi",
             "statusMessage": "Checking .env access..."
           }
@@ -161,12 +151,6 @@
           {
             "type": "command",
             "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE '\\.(ts|tsx|js|jsx|json)$' && ! echo \"$FILE\" | grep -q 'packages/contracts/out/'; then bunx @biomejs/biome format --write \"$FILE\" 2>/dev/null; fi; exit 0"
-          },
-          {
-            "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR/packages/shared\" && bun run typecheck 2>&1 | head -10; exit 0",
-            "if": "Edit|Write(**/packages/shared/src/**)",
-            "statusMessage": "Type-checking shared..."
           },
           {
             "type": "command",
