@@ -478,7 +478,7 @@ if (!hasForge) {
     log.warning(`Foundry ${requiredFoundryVersion} is missing or mismatched. Attempting to install...\n`);
     foundryInstalled = installFoundry();
     if (!foundryInstalled) {
-      log.warning("Continuing without Foundry — contract scripts and pre-push hooks will fail until installed.\n");
+      log.warning("Continuing without Foundry — contract scripts and critical contract push validation will fail until installed.\n");
     }
   } else {
     log.warning(`Foundry ${requiredFoundryVersion} is required for contracts work in this profile.\n`);
