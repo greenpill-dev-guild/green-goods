@@ -1,8 +1,6 @@
 // Utilities — EXPLICIT EXPORTS for tree-shaking
 
-// ============================================================================
 // QUERY INVALIDATION
-// ============================================================================
 export type {
   InvalidationDelay,
   ProgressiveInvalidationOptions,
@@ -13,9 +11,7 @@ export {
   scheduleInvalidationForKey,
   scheduleProgressiveInvalidation,
 } from "../config/query-keys/schedule";
-// ============================================================================
 // ACTION
-// ============================================================================
 export {
   buildActionId,
   findActionByUID,
@@ -469,6 +465,7 @@ export {
   toSafeDate,
   toSafeInstant,
 } from "./time";
+export { fromCalendarDateKey, toCalendarDateKey } from "./calendar-date";
 export { formatRelativeTime, getRelativeTimeParts } from "./relativeTime";
 // ============================================================================
 // WORK

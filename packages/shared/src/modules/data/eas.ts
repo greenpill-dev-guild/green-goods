@@ -73,18 +73,20 @@ export const getGardenAssessments = async (
     return [];
   }
 
-  return data.attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) => {
-    const timestamp = typeof timeCreated === "string" ? Number(timeCreated) : (timeCreated ?? 0);
-    return parseDataToGardenAssessment(
-      id,
-      {
-        attester,
-        recipient,
-        time: timestamp,
-      },
-      decodedDataJson
-    );
-  });
+  return (data.attestations as EASAttestationRaw[]).map(
+    ({ id, attester, recipient, timeCreated, decodedDataJson }) => {
+      const timestamp = typeof timeCreated === "string" ? Number(timeCreated) : (timeCreated ?? 0);
+      return parseDataToGardenAssessment(
+        id,
+        {
+          attester,
+          recipient,
+          time: timestamp,
+        },
+        decodedDataJson
+      );
+    }
+  );
 };
 
 /** Queries work attestations for a garden or multiple gardens */
@@ -136,8 +138,9 @@ export const getWorks = async (
     return [];
   }
 
-  return data.attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-    parseDataToWork(id, { attester, recipient, time: timeCreated }, decodedDataJson)
+  return (data.attestations as EASAttestationRaw[]).map(
+    ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+      parseDataToWork(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
   );
 };
 
@@ -188,9 +191,9 @@ export const getWorksByGardener = async (
     return [];
   }
 
-  return data.attestations.map(
-    ({ id, attester, recipient, timeCreated, decodedDataJson }: EASAttestationRaw) =>
-      parseDataToWork(id, { attester, recipient, time: timeCreated as number }, decodedDataJson)
+  return (data.attestations as EASAttestationRaw[]).map(
+    ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+      parseDataToWork(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
   );
 };
 
@@ -260,8 +263,13 @@ export const getWorkApprovals = async (
     return [];
   }
 
-  return data.attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-    parseDataToWorkApproval(id, { attester, recipient, time: timeCreated }, decodedDataJson)
+  return (data.attestations as EASAttestationRaw[]).map(
+    ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+      parseDataToWorkApproval(
+        id,
+        { attester, recipient, time: Number(timeCreated) },
+        decodedDataJson
+      )
   );
 };
 
@@ -306,9 +314,13 @@ export const getWorkApprovalsForWork = async (
       error
     );
   }
-  return (data?.attestations ?? [])
+  return ((data?.attestations ?? []) as EASAttestationRaw[])
     .map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-      parseDataToWorkApproval(id, { attester, recipient, time: timeCreated }, decodedDataJson)
+      parseDataToWorkApproval(
+        id,
+        { attester, recipient, time: Number(timeCreated) },
+        decodedDataJson
+      )
     )
     .filter((approval) => approval.workUID.toLowerCase() === workUID.toLowerCase());
 };
@@ -367,8 +379,13 @@ export const getWorkApprovalsByUIDs = async (
     return [];
   }
 
-  return data.attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-    parseDataToWorkApproval(id, { attester, recipient, time: timeCreated }, decodedDataJson)
+  return (data.attestations as EASAttestationRaw[]).map(
+    ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+      parseDataToWorkApproval(
+        id,
+        { attester, recipient, time: Number(timeCreated) },
+        decodedDataJson
+      )
   );
 };
 
@@ -426,7 +443,8 @@ export const getWorksByUIDs = async (
     return [];
   }
 
-  return data.attestations.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-    parseDataToWork(id, { attester, recipient, time: timeCreated }, decodedDataJson)
+  return (data.attestations as EASAttestationRaw[]).map(
+    ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+      parseDataToWork(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
   );
 };

@@ -163,7 +163,7 @@ export function useOctantVaultRedeem(options: VaultMutationOptions = {}) {
           message: formatMessage({ id: "public.vaults.manage.redeem.toastSuccess" }),
         });
       }
-      const owner = (params.owner ?? primaryAddress ?? "").toLowerCase();
+      const owner = (params.owner ?? primaryAddress)?.toLowerCase() as Address | undefined;
       if (owner) {
         queryClient.invalidateQueries({
           queryKey: vaultsKeys.octantPositions(owner, params.chainId),

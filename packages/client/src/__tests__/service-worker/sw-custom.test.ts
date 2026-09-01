@@ -20,7 +20,7 @@ function shellDigest(entries: Array<[asset: string, contents: string]>): string 
   return createHash("sha256").update(digestInput).digest("hex").slice(0, 16);
 }
 
-async function loadServiceWorker() {
+async function loadServiceWorker(locationHref = "https://www.greengoods.app/sw.js") {
   const listeners: Record<string, Listener[]> = {};
   const cacheStores = new Map<string, Map<string, Response>>();
   const cacheObjects = new Map<
@@ -76,7 +76,7 @@ async function loadServiceWorker() {
     clients,
     skipWaiting: vi.fn(),
     crypto: { randomUUID: vi.fn(() => "share-token"), subtle: webcrypto.subtle },
-    location: { origin: "https://www.greengoods.app" },
+    location: { href: locationHref, origin: new URL(locationHref).origin },
   };
 
   vm.runInNewContext(await readFile(swCustomPath, "utf8"), {
@@ -171,6 +171,22 @@ describe("client public service worker migration", () => {
     listeners.message?.[0]?.({ data: { type: "SKIP_WAITING" } });
 
     expect(self.skipWaiting).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips production shell population for the Vite development worker", async () => {
+    const { fetchMock, listeners } = await loadServiceWorker(
+      "https://localhost:3001/dev-sw.js?dev-sw"
+    );
+    let installation: Promise<unknown> | undefined;
+
+    listeners.install[0]({
+      waitUntil: vi.fn((promise: Promise<unknown>) => {
+        installation = promise;
+      }),
+    });
+
+    await expect(installation).resolves.toBeUndefined();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("rolls back a failed shell install without replacing the active metadata", async () => {

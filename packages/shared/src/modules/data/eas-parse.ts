@@ -1,4 +1,4 @@
-import type { WorkApproval } from "../../types/domain";
+import type { Address, WorkApproval } from "../../types/domain";
 import type {
   EASDecodedField,
   EASGardenAssessment,
@@ -46,7 +46,7 @@ function toNumberFromField(value: NumberConvertibleValue): number | null {
 
 export function parseDataToGardenAssessment(
   gardenAssessmentUID: string,
-  attestation: { attester: string; recipient: string; time: number },
+  attestation: { attester: Address; recipient: Address; time: number },
   decodedDataJson: string | EASDecodedField[]
 ): EASGardenAssessment {
   const fields: EASDecodedField[] = Array.isArray(decodedDataJson)
@@ -73,7 +73,7 @@ export function parseDataToGardenAssessment(
 
 export function parseDataToWork(
   workUID: string,
-  attestation: { attester: string; recipient: string; time: number },
+  attestation: { attester: Address; recipient: Address; time: number },
   decodedDataJson: string
 ): EASWork {
   const data: EASDecodedField[] = JSON.parse(decodedDataJson);
@@ -100,7 +100,7 @@ export function parseDataToWork(
 
 export function parseDataToWorkApproval(
   workApprovalUID: string,
-  attestation: { attester: string; recipient: string; time: number },
+  attestation: { attester: Address; recipient: Address; time: number },
   decodedDataJson: string
 ): EASWorkApproval {
   const data: EASDecodedField[] = JSON.parse(decodedDataJson);
@@ -131,8 +131,8 @@ export function parseDataToWorkApproval(
 
 interface WorkApprovalAttestationRecord {
   id: string;
-  attester: string;
-  recipient: string;
+  attester: Address;
+  recipient: Address;
   timeCreated: number;
   decodedDataJson: string;
 }

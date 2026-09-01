@@ -68,7 +68,7 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
 
   const manualAddress: Address | null = queryIsAddress
     ? (trimmed as Address)
-    : (resolvedEns ?? null);
+    : ((resolvedEns as Address | undefined) ?? null);
   const showResolveFailed = looksLikeEns && !ensResolving && !resolvedEns;
   const showInvalid =
     trimmed.length > 0 && !queryIsAddress && !looksLikeEns && searchResults.length === 0;

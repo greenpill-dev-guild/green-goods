@@ -14,7 +14,7 @@ import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { validateWorkSubmissionContext } from "../../modules/work/work-submission";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import { WorkTab } from "../../stores/workFlowTypes";
-import type { Action, Domain, Garden, WorkDraft } from "../../types/domain";
+import type { Action, Address, Domain, Garden, WorkDraft } from "../../types/domain";
 import { findActionByUID } from "../../utils/action/parsers";
 import {
   compareAddresses,
@@ -37,8 +37,8 @@ export interface WorkSelectionValue {
   isLoading: boolean;
   activeTab: WorkTab;
   setActiveTab: (value: WorkTab) => void;
-  gardenAddress: string | null;
-  setGardenAddress: (value: string | null) => void;
+  gardenAddress: Address | null;
+  setGardenAddress: (value: Address | null) => void;
   actionUID: number | null;
   setActionUID: (value: number | null) => void;
   selectedDomain: Domain | null;
@@ -78,8 +78,8 @@ export interface WorkDataProps {
     setValue: UseFormSetValue<WorkFormData>;
     control: Control<WorkFormData>;
     uploadWork: (event?: BaseSyntheticEvent) => Promise<void>;
-    gardenAddress: string | null;
-    setGardenAddress: (value: string | null) => void;
+    gardenAddress: Address | null;
+    setGardenAddress: (value: Address | null) => void;
     feedback: string;
     timeSpentMinutes: number | undefined;
     values: Record<string, unknown>;
@@ -100,7 +100,7 @@ export function useWorkSubmissionFlow(): {
   const rootGardenAddress = getDefaultChain().rootGarden?.address;
   const { data: actionsData = [], isLoading: actionsLoading } = useActions(chainId);
   const { data: gardensData = [], isLoading: gardensLoading } = useGardens(chainId);
-  const userAddress = normalizeAddress(primaryAddress);
+  const userAddress = primaryAddress ? normalizeAddress(primaryAddress) : null;
   const pendingJoinsVersion = usePendingJoinsVersion();
   const userGardens = useMemo(
     () =>
@@ -174,9 +174,12 @@ export function useWorkSubmissionFlow(): {
           : {}),
         ...(audioNotes.length > 0 ? { audioNotes } : {}),
       };
-      const errors = validateWorkSubmissionContext(gardenAddress, actionUID, images, {
-        minRequired: minRequiredImages,
-      });
+      const errors = [
+        ...(userAddress ? [] : ["User address is required for work submission"]),
+        ...validateWorkSubmissionContext(gardenAddress, actionUID, images, {
+          minRequired: minRequiredImages,
+        }),
+      ];
       if (errors.length > 0) {
         setValidationErrors(errors);
         validationToasts.formError(errors[0]);
@@ -203,7 +206,7 @@ export function useWorkSubmissionFlow(): {
         throw error;
       }
     },
-    [gardenAddress, actionUID, images, workMutation, minRequiredImages]
+    [gardenAddress, actionUID, images, workMutation, minRequiredImages, userAddress]
   );
   const uploadWork = workForm.handleSubmit(handleUploadWork);
   const isLoading = actionsLoading || gardensLoading;

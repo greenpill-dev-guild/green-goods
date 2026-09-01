@@ -4,6 +4,7 @@ const PWA_SHELL_CACHE_PREFIX = "gg-pwa-shell-";
 const PWA_SHELL_META_CACHE = "gg-pwa-shell-meta";
 const PWA_SHELL_META_URL = "/__gg_pwa_shell_current__";
 const PWA_SHELL_MANIFEST_URL = "/pwa-shell-assets.json";
+const IS_DEV_SERVICE_WORKER = new URL(self.location.href).searchParams.has("dev-sw");
 const SHARE_TARGET_PATH = "/home/share";
 const SHARE_INBOX_CACHE = "gg-share-inbox-v1";
 const SHARE_ENVELOPE_PREFIX = "/__gg_share_envelope__/";
@@ -156,6 +157,8 @@ async function cacheShellAsset(shellCache, asset) {
 }
 
 async function populatePwaShell() {
+  if (IS_DEV_SERVICE_WORKER) return;
+
   const manifest = await readShellManifest();
   const cacheName = `${PWA_SHELL_CACHE_PREFIX}${manifest.digest}`;
   const currentCacheName = await getCurrentShellCacheName();

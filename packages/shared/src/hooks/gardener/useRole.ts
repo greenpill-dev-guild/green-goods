@@ -1,3 +1,4 @@
+import type { Address } from "../../types/domain";
 import { useQuery } from "@tanstack/react-query";
 import { STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
@@ -81,7 +82,7 @@ export function useRole(): RoleInfo {
   // authenticated smart account and produce zero steward gardens despite a
   // valid on-chain role grant.
   const address = usePrimaryAddress();
-  const normalizedAddress = address?.toLowerCase();
+  const normalizedAddress = address?.toLowerCase() as Address | undefined;
 
   const ready = auth.isReady;
 

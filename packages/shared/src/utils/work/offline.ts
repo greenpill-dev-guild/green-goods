@@ -8,7 +8,7 @@
 
 import { jobToWork } from "../../hooks/work/useWorks";
 import { jobQueueDB } from "../../modules/job-queue/db";
-import type { Work } from "../../types/domain";
+import type { Address, Work } from "../../types/domain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 
 /**
@@ -22,7 +22,7 @@ import type { Job, WorkJobPayload } from "../../types/job-queue";
  */
 export async function convertJobsToWorks(
   jobs: Job<WorkJobPayload>[],
-  activeAddress?: string
+  activeAddress?: Address
 ): Promise<Work[]> {
   return Promise.all(
     jobs.map(async (job) => {
@@ -45,7 +45,7 @@ export async function convertJobsToWorks(
  * @param gardenId - Optional garden ID to filter by
  * @returns Work objects from job queue
  */
-export async function fetchOfflineWorks(userAddress: string, gardenId?: string): Promise<Work[]> {
+export async function fetchOfflineWorks(userAddress: Address, gardenId?: string): Promise<Work[]> {
   if (!userAddress) {
     return [];
   }
