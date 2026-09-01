@@ -117,6 +117,7 @@ const directRootTestChecks = new Map([
   ["scripts/dev/ci-local.test.mjs", "validation-system-test"],
   ["scripts/dev/surface-leases.test.mjs", "validation-system-test"],
   ["scripts/quality/ci-gate.test.mjs", "validation-system-test"],
+  ["scripts/quality/classify-supply-chain-changes.mjs", "validation-system-test"],
   ["scripts/quality/workflow-performance-parity.test.mjs", "validation-system-test"],
 ]);
 
@@ -269,14 +270,16 @@ function addSurfaceChecks(select, surface, { includeBuilds, intent }) {
   if (includeBuilds && builds[surface]) select(builds[surface], `surface:${surface}:build`);
 }
 
-function addValidationOnlyChecks(select, surface, paths) {
+function addValidationOnlyChecks(select, surface, paths, { includeTypecheck = true } = {}) {
   const testTypechecks = {
     shared: "shared-test-typecheck",
     client: "client-test-typecheck",
     admin: "admin-test-typecheck",
     agent: "agent-test-typecheck",
   };
-  if (testTypechecks[surface]) select(testTypechecks[surface], `validation-only:${surface}:types`);
+  if (includeTypecheck && testTypechecks[surface]) {
+    select(testTypechecks[surface], `validation-only:${surface}:types`);
+  }
   if (paths.some(isTestPath)) select(`${surface}-test`, `validation-only:${surface}:tests`);
   if (paths.some(isStoryPath)) select("story-quality", `validation-only:${surface}:stories`);
   if (paths.some(isStorybookConfigPath)) {
@@ -293,6 +296,32 @@ function isUiBuildImpact(paths, surface) {
       path === `packages/${surface}/package.json` ||
       path.startsWith(`packages/${surface}/vite.config.`),
   );
+}
+
+function needsOwnerCompileProof(paths, surface) {
+  return paths.some((path) => {
+    if (owningSurface(path) !== surface) return false;
+    if (classifyChangedPath(path) === "public-source") return true;
+    if (path === `packages/${surface}/package.json`) return true;
+    if (["client", "admin"].includes(surface) && isUiBuildImpact([path], surface)) return true;
+    return (
+      path.startsWith(`packages/${surface}/src/`) &&
+      /(^|\/)(index|main|router|routes|config)(\.[^/]+)?$/i.test(path)
+    );
+  });
+}
+
+function focusedProofMissing(changedPaths, testPaths, requestedChecks) {
+  if (requestedChecks.length > 0) return [];
+  const missing = new Set();
+  for (const path of changedPaths) {
+    if (!/^packages\/[^/]+\/src\//.test(path) || isValidationOnlyPath(path)) continue;
+    const surface = owningSurface(path);
+    if (!surface || testPaths[surface]?.length > 0) continue;
+    if (needsOwnerCompileProof(changedPaths, surface)) continue;
+    missing.add(surface);
+  }
+  return [...missing].sort();
 }
 
 function normalizeTestPaths(testPaths = {}) {
@@ -373,14 +402,23 @@ export function selectValidation(input = {}, options = {}) {
   const pathRiskRules = (policy.riskRules ?? []).filter((rule) => ruleMatches(changedPaths, rule));
   const risk = maxRisk(policy, [
     baseRisk,
+    changedPaths.some((path) => {
+      const surface = owningSurface(path);
+      return surface ? needsOwnerCompileProof(changedPaths, surface) : false;
+    })
+      ? "sensitive"
+      : "routine",
     ...pathRiskRules.map((rule) => rule.risk),
     ...hardRules.map((rule) => rule.risk),
   ]);
+  const fastPush = intent === "push" && risk !== "critical";
   const localMerge = intent === "merge" && !ci;
-  const strictIntent = ["readiness", "push", "ship", "release"].includes(intent);
+  const strictIntent =
+    ["readiness", "ship", "release"].includes(intent) ||
+    (intent === "push" && risk === "critical");
   const fullRepository =
     ["readiness", "release"].includes(intent) ||
-    ((["push", "ship"].includes(intent) || localMerge) && changedPaths.length === 0);
+    ((intent === "ship" || localMerge) && changedPaths.length === 0);
   const strictScope = strictIntent || fullRepository;
   const surfaces = impactedSurfaces(policy, changedPaths, fullRepository);
   const selected = new Set();
@@ -419,12 +457,42 @@ export function selectValidation(input = {}, options = {}) {
     }
   }
 
-  const includeBuilds = ["readiness", "push", "ship", "merge", "release"].includes(intent);
+  const includeBuilds =
+    ["readiness", "ship", "merge", "release"].includes(intent) ||
+    (intent === "push" && risk === "critical");
   if (evidenceOnly) {
     for (const surface of Object.keys(testPaths)) {
       const testId = `${surface}-test`;
       if (!knownCheckIds.has(testId)) throw new Error(`Unknown focused-test surface: ${surface}`);
       select(testId, `focused-test:${surface}`);
+    }
+  } else if (fastPush) {
+    for (const surface of Object.keys(testPaths)) {
+      const testId = `${surface}-test`;
+      if (!knownCheckIds.has(testId)) throw new Error(`Unknown focused-test surface: ${surface}`);
+      select(testId, `focused-test:${surface}`);
+    }
+    for (const surface of new Set(changedPaths.map(owningSurface).filter(Boolean))) {
+      const surfacePaths = changedPaths.filter((path) => owningSurface(path) === surface);
+      if (surfacePaths.some(isValidationOnlyPath)) {
+        addValidationOnlyChecks(select, surface, surfacePaths, { includeTypecheck: false });
+      }
+      if (needsOwnerCompileProof(changedPaths, surface)) {
+        const typechecks = {
+          shared: "shared-typecheck",
+          agent: "agent-typecheck",
+        };
+        const builds = {
+          shared: "shared-build",
+          indexer: "indexer-build",
+          client: "client-build",
+          admin: "admin-build",
+          agent: "agent-build",
+        };
+        if (typechecks[surface]) select(typechecks[surface], `push-owner-compile:${surface}`);
+        if (builds[surface]) select(builds[surface], `push-owner-compile:${surface}`);
+      }
+      if (surface === "docs") select("docs-authority", "push-owner-proof:docs");
     }
   } else {
     for (const surface of surfaces) {
@@ -490,6 +558,7 @@ export function selectValidation(input = {}, options = {}) {
   for (const rule of policy.conditionalRules ?? []) {
     if (evidenceOnly && rule.runInEvidence !== true) continue;
     if (rule.intents && !rule.intents.includes(intent)) continue;
+    if (fastPush && ["design-guardrails", "supply-chain"].includes(rule.check)) continue;
     const matchingPaths = changedPaths.filter((path) => {
       if (!groupMatches(path, rule)) return false;
       if (rule.exact?.includes(path)) return true;
@@ -532,6 +601,7 @@ export function selectValidation(input = {}, options = {}) {
       ({
         ...materializeCheck(check, environment, mandatory.has(check.id), testPaths, {
           intent,
+          risk,
           ci,
           changedPaths,
           deletedPaths,
@@ -550,15 +620,33 @@ export function selectValidation(input = {}, options = {}) {
     }));
   }
   const blockedChecks = checks.filter((check) => check.state === "blocked");
-  const budget = summarizeBudget(intent, checks);
+  const budget = summarizeBudget(intent, checks, risk);
+  const missingFocus = fastPush
+    ? focusedProofMissing(changedPaths, testPaths, requestedChecks)
+    : [];
+  const plannedOverBudget = budget.enforced && budget.estimatedWallSeconds > budget.hardLimitSeconds;
+  const needsFocus = missingFocus.length > 0 || plannedOverBudget;
+  const blocked = blockedChecks.length > 0 || toolchainBlockers.length > 0;
+  const status = blocked ? "blocked" : needsFocus ? "needs-focus" : "ready";
+  const stopReason = blocked
+    ? "required-environment-unavailable"
+    : missingFocus.length > 0
+      ? "focused-proof-required"
+      : plannedOverBudget
+        ? "local-budget-exceeded"
+        : null;
+  const remediation =
+    status === "needs-focus"
+      ? missingFocus.length > 0
+        ? `Add focused proof with ${missingFocus.map((surface) => `--test-path ${surface}:<package-relative-test>`).join(", ")}, select an existing acceptance check with --check, or narrow the change.`
+        : "Narrow the changed scope, provide a more focused test path, or select a smaller existing acceptance check."
+      : null;
 
   return {
     ...planIdentity,
-    status: blockedChecks.length > 0 || toolchainBlockers.length > 0 ? "blocked" : "ready",
-    stopReason:
-      blockedChecks.length > 0 || toolchainBlockers.length > 0
-        ? "required-environment-unavailable"
-        : null,
+    status,
+    stopReason,
+    remediation,
     risk,
     surfaces: [...surfaces],
     environment,
@@ -569,7 +657,8 @@ export function selectValidation(input = {}, options = {}) {
       cacheReuseAllowed: true,
       optInRequired: true,
       failuresCacheable: false,
-      note: "Only opt-in exact-fingerprint passing receipts may be reused.",
+      criticalReuseAllowed: false,
+      note: "Only opt-in exact-fingerprint passing receipts may be reused; critical plans always run fresh.",
     },
   };
 }
@@ -610,7 +699,7 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
   );
   const surface = check.id.endsWith("-test") ? check.id.slice(0, -5) : null;
   const focusedPaths =
-    surface && ["diagnose", "review", "qa", "checkpoint"].includes(context.intent)
+    surface && ["diagnose", "review", "qa", "checkpoint", "push"].includes(context.intent)
       ? testPaths[surface] ?? []
       : [];
   let command = check.command;
@@ -634,16 +723,13 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
   const existingChangedPaths = context.changedPaths.filter(
     (path) => !deletedPaths.has(path),
   );
-  if (
-    check.id === "format" &&
-    !context.ci &&
-    ["push", "ship", "merge", "release"].includes(context.intent)
-  ) {
+  if (check.id === "format" && !context.ci && ["ship", "merge", "release"].includes(context.intent)) {
     command = "bun format";
   }
+  const fastPush = context.intent === "push" && context.risk !== "critical";
   if (
     check.id === "format" &&
-    (["diagnose", "review", "qa"].includes(context.intent) || laneCheckpoint) &&
+    (["diagnose", "review", "qa"].includes(context.intent) || laneCheckpoint || fastPush) &&
     context.changedPaths.length > 0
   ) {
     // Biome exits non-zero when every supplied path is one it does not handle,
@@ -654,7 +740,7 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
         ? `bunx @biomejs/biome format --no-errors-on-unmatched ${existingChangedPaths.map(shellQuote).join(" ")}`
         : `node -e "console.log('format: no existing changed paths')"`;
   }
-  if (check.id === "lint" && (context.intent === "qa" || laneCheckpoint)) {
+  if (check.id === "lint" && (context.intent === "qa" || laneCheckpoint || fastPush)) {
     const lintablePrefixes = [
       "packages/client/src/",
       "packages/admin/src/",
@@ -677,14 +763,17 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
           ? `bunx @biomejs/biome lint --no-errors-on-unmatched ${existingChangedPaths.map(shellQuote).join(" ")}`
           : `node -e "console.log('lint: no existing changed paths')"`;
   }
-  let budgetSeconds = focusedPaths.length > 0 ? Math.min(check.budgetSeconds, 60) : check.budgetSeconds;
+  let budgetSeconds =
+    focusedPaths.length > 0
+      ? Math.min(check.budgetSeconds, fastPush ? 30 : 60)
+      : check.budgetSeconds;
   if (
     check.id === "format" &&
-    (["diagnose", "review", "qa"].includes(context.intent) || laneCheckpoint)
+    (["diagnose", "review", "qa"].includes(context.intent) || laneCheckpoint || fastPush)
   ) {
     budgetSeconds = Math.min(budgetSeconds, 10);
   }
-  if (check.id === "lint" && (context.intent === "qa" || laneCheckpoint)) {
+  if (check.id === "lint" && (context.intent === "qa" || laneCheckpoint || fastPush)) {
     budgetSeconds = Math.min(budgetSeconds, 15);
   }
   return {
@@ -698,23 +787,53 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
   };
 }
 
-function summarizeBudget(intent, checks) {
-  const targetSeconds = { qa: 90, checkpoint: 180, push: 180 }[intent] ?? null;
+function estimatedWallSeconds(checks) {
+  const automated = checks.filter((check) => !check.manual);
+  let total = 0;
+  for (let index = 0; index < automated.length; ) {
+    const check = automated[index];
+    if (!check.concurrencyGroup) {
+      total += check.budgetSeconds;
+      index += 1;
+      continue;
+    }
+    const batch = [check];
+    for (let look = index + 1; look < automated.length; look += 1) {
+      if (automated[look].concurrencyGroup !== check.concurrencyGroup) break;
+      batch.push(automated[look]);
+    }
+    total += Math.max(...batch.map((member) => member.budgetSeconds));
+    index += batch.length;
+  }
+  return total;
+}
+
+export function summarizeBudget(intent, checks, risk = "routine") {
+  const hardLimitSeconds =
+    intent === "push" && risk !== "critical" ? (risk === "sensitive" ? 180 : 90) : null;
+  const targetSeconds = hardLimitSeconds ?? { qa: 90, checkpoint: 180 }[intent] ?? null;
   const automatedSeconds = checks
     .filter((check) => !check.manual)
     .reduce((total, check) => total + check.budgetSeconds, 0);
   const manualSeconds = checks
     .filter((check) => check.manual)
     .reduce((total, check) => total + check.budgetSeconds, 0);
+  const wallSeconds = estimatedWallSeconds(checks);
   return {
     targetSeconds,
+    estimatedWallSeconds: wallSeconds,
+    hardLimitSeconds,
+    enforced: hardLimitSeconds !== null,
     automatedSeconds,
     manualSeconds,
-    withinTarget: targetSeconds === null ? null : automatedSeconds <= targetSeconds,
+    withinTarget: targetSeconds === null ? null : wallSeconds <= targetSeconds,
     mandatoryChecksMayExceedTarget: checks.some((check) => check.mandatory) &&
       targetSeconds !== null &&
       automatedSeconds > targetSeconds,
-    rule: "Budgets warn and profile; they never skip selected or mandatory checks.",
+    rule:
+      hardLimitSeconds === null
+        ? "Budgets warn and profile; they never skip selected or mandatory checks."
+        : "Routine and sensitive push budgets stop over-broad plans and time out noncritical local work; critical overrides remain uncapped.",
   };
 }
 
@@ -922,8 +1041,39 @@ function workingCopyFingerprint(cwd, committedPatch, stagedPatch, unstagedPatch,
   return hash.digest("hex");
 }
 
+const LIVE_PR_BASE_INTENTS = new Set(["push", "ship", "merge", "readiness", "release"]);
+
+export function resolveComparisonBase(options = {}, dependencies = {}) {
+  if (options.base) return options.base;
+
+  const environment = dependencies.environment ?? process.env;
+  if (environment.GITHUB_BASE_REF) return `origin/${environment.GITHUB_BASE_REF}`;
+  if (!LIVE_PR_BASE_INTENTS.has(options.intent)) return "origin/develop";
+
+  const execute = dependencies.execFileSync ?? execFileSync;
+  try {
+    const baseRefName = String(
+      execute(
+        "gh",
+        ["pr", "view", "--json", "baseRefName", "--jq", ".baseRefName"],
+        {
+          cwd: dependencies.cwd ?? projectRoot,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "ignore"],
+          timeout: 3_000,
+          env: { ...environment, GH_PROMPT_DISABLED: "1" },
+        },
+      ),
+    ).trim();
+    if (baseRefName) return `origin/${baseRefName}`;
+  } catch {
+    // No live PR, no GitHub CLI, or no authenticated access: use the repository default base.
+  }
+  return "origin/develop";
+}
+
 export function resolveGitInputs(options, { cwd = projectRoot } = {}) {
-  const base = options.base ?? "origin/develop";
+  const base = resolveComparisonBase(options, { cwd });
   const head = options.head ?? "HEAD";
   const resolvedBase = gitOutput(["rev-parse", base], cwd);
   const resolvedHead = gitOutput(["rev-parse", head], cwd);
@@ -1011,9 +1161,10 @@ export function detectCliToolchain(options = {}) {
 function showHelp() {
   console.log(`Usage: node scripts/quality/select-validation.mjs [options]
 
-Scope: readiness and release always cover the full repository. Push, ship, and local merge use
-changed-path scope, falling back to the full repository only when no changed paths are found.
-CI-authoritative merge remains changed-path scoped.
+Scope: readiness and release always cover the full repository. Push uses the live PR base when
+available, otherwise origin/develop, and an empty push is a no-op. Ship and local merge use
+changed-path scope, falling back to full scope only when no changed paths are found. CI-authoritative
+merge remains changed-path scoped.
 
 Options:
   --intent <intent>       diagnose|qa|review|checkpoint|readiness|push|ship|merge|release

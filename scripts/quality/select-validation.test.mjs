@@ -10,6 +10,7 @@ import {
   buildReceiptInputs,
   detectCliToolchain,
   loadPolicy,
+  resolveComparisonBase,
   resolveGitInputs,
   selectExpectedWorkflows,
   selectValidation,
@@ -43,8 +44,10 @@ test("CLI help describes strict path scope and full-scope fallbacks", () => {
   );
 
   assert.match(output, /readiness and release always cover the full repository/i);
-  assert.match(output, /push, ship, and local merge use\nchanged-path scope/i);
-  assert.match(output, /CI-authoritative merge remains changed-path scoped/i);
+  assert.match(output, /Push uses the live PR base/i);
+  assert.match(output, /empty push is a no-op/i);
+  assert.match(output, /Ship and local merge use\nchanged-path scope/i);
+  assert.match(output, /CI-authoritative\s+merge remains changed-path scoped/i);
 });
 
 test("docs-only QA stays on the docs surface", () => {
@@ -445,6 +448,119 @@ test("routing changes add the package build in QA", () => {
   assert.ok(ids(plan).includes("lint"));
 });
 
+test("routine push uses focused owner proof inside the hard 90-second limit", () => {
+  const changedPath = "packages/shared/src/utils/calendar-date.ts";
+  const plan = selectValidation({
+    intent: "push",
+    changedPaths: [changedPath],
+    testPaths: { shared: ["src/__tests__/utils/calendar-date.test.ts"] },
+  });
+
+  assert.equal(plan.status, "ready");
+  assert.deepEqual(ids(plan), ["format", "lint", "shared-test", "source-structure"]);
+  assert.equal(
+    plan.checks.find((check) => check.id === "format").command,
+    `bunx @biomejs/biome format --no-errors-on-unmatched '${changedPath}'`,
+  );
+  assert.equal(
+    plan.checks.find((check) => check.id === "lint").command,
+    `bun --bun run oxlint '${changedPath}' --deny-warnings`,
+  );
+  assert.equal(
+    plan.checks.find((check) => check.id === "shared-test").command,
+    "bun run test src/__tests__/utils/calendar-date.test.ts",
+  );
+  assert.equal(plan.budget.hardLimitSeconds, 90);
+  assert.equal(plan.budget.enforced, true);
+  assert.ok(plan.budget.estimatedWallSeconds <= 90);
+  for (const broadCheck of [
+    "shared-typecheck",
+    "shared-build",
+    "client-test",
+    "admin-test",
+    "agent-test",
+    "ontology",
+  ]) {
+    assert.ok(!ids(plan).includes(broadCheck), broadCheck);
+  }
+});
+
+test("routine push without focused behavior proof stops before execution", () => {
+  const plan = selectValidation({
+    intent: "push",
+    changedPaths: ["packages/shared/src/utils/calendar-date.ts"],
+  });
+
+  assert.equal(plan.status, "needs-focus");
+  assert.equal(plan.stopReason, "focused-proof-required");
+  assert.equal(plan.budget.hardLimitSeconds, 90);
+  assert.match(plan.remediation, /--test-path shared:/);
+});
+
+test("sensitive push uses the hard 180-second limit when direct proof is present", () => {
+  const plan = selectValidation({
+    intent: "push",
+    changedPaths: ["scripts/dev/ci-local.js", "scripts/dev/ci-local.test.mjs"],
+  });
+
+  assert.equal(plan.risk, "sensitive");
+  assert.equal(plan.status, "ready");
+  assert.equal(plan.budget.hardLimitSeconds, 180);
+  assert.equal(plan.budget.enforced, true);
+  assert.ok(ids(plan).includes("validation-system-test"));
+});
+
+test("critical push keeps mandatory checks uncapped", () => {
+  const plan = selectValidation({
+    intent: "push",
+    changedPaths: ["packages/shared/src/hooks/work/useWorkMutation.ts"],
+    testPaths: { shared: ["src/hooks/work/useWorkMutation.test.ts"] },
+  });
+
+  assert.equal(plan.risk, "critical");
+  assert.equal(plan.status, "ready");
+  assert.equal(plan.budget.hardLimitSeconds, null);
+  assert.equal(plan.budget.enforced, false);
+  assert.equal(plan.receiptPolicy.criticalReuseAllowed, false);
+  for (const checkId of [
+    "shared-typecheck",
+    "shared-test",
+    "client-test",
+    "admin-test",
+    "agent-test",
+  ]) {
+    assert.equal(plan.checks.find((check) => check.id === checkId)?.mandatory, true, checkId);
+  }
+});
+
+test("narrow Shared utilities keep consumer CI but skip unrelated Design and Ontology", () => {
+  assert.deepEqual(
+    selectExpectedWorkflows({
+      changedPaths: ["packages/shared/src/utils/calendar-date.ts"],
+      intent: "merge",
+      ci: true,
+    }),
+    ["Admin", "Agent", "Client", "Shared", "Supply Chain Guardrails"],
+  );
+});
+
+test("Design and Ontology CI retain their owning Shared paths", () => {
+  const componentWorkflows = selectExpectedWorkflows({
+    changedPaths: ["packages/shared/src/components/Button/Button.tsx"],
+    intent: "merge",
+    ci: true,
+  });
+  assert.ok(componentWorkflows.includes("Design"));
+  assert.ok(!componentWorkflows.includes("Ontology"));
+
+  const ontologyWorkflows = selectExpectedWorkflows({
+    changedPaths: ["packages/shared/src/ontology/green-goods-ontology.json"],
+    intent: "merge",
+    ci: true,
+  });
+  assert.ok(ontologyWorkflows.includes("Ontology"));
+});
+
 test("critical contract paths cannot be downgraded by QA intent", () => {
   const plan = selectValidation({
     intent: "qa",
@@ -459,7 +575,6 @@ test("critical contract paths cannot be downgraded by QA intent", () => {
     "contracts-build",
     "contracts-test",
     "contracts-verify-fast",
-    "ontology",
   ]);
   assert.ok(plan.checks.filter((check) => check.mandatory).length >= 3);
 });
@@ -525,8 +640,6 @@ test("shared public API changes include direct consumers", () => {
     "agent-typecheck",
     "agent-test",
     "source-structure",
-    "design-guardrails",
-    "ontology",
   ]);
   for (const surface of ["shared", "client", "admin", "agent"]) {
     assert.equal(
@@ -557,7 +670,6 @@ test("eligible local package tests route through Turbo with package-relative bin
   for (const [intent, changedPaths, expectedSurfaces] of [
     ["checkpoint", ["packages/client/src/components/Panel.tsx"], ["client"]],
     ["readiness", ["docs/README.md"], ["shared", "client", "admin", "agent", "indexer", "docs"]],
-    ["push", ["packages/admin/src/views/Garden/SubmitWork.tsx"], ["admin"]],
     ["ship", ["packages/agent/src/index.ts"], ["agent"]],
     ["merge", ["packages/indexer/src/EventHandlers.ts"], ["indexer"]],
   ]) {
@@ -817,8 +929,43 @@ test("ship scopes docs-only work to the exact impacted strict surface", () => {
   assert.ok(plan.checks.every((check) => check.mandatory));
 });
 
-test("push and ship scope client work to the exact impacted strict checks", () => {
-  const expected = [
+test("push requires focused client proof while ship retains the full local surface", () => {
+  const changedPath = "packages/client/src/components/Panel.tsx";
+  const push = selectValidation({
+    intent: "push",
+    checkpointScope: "lane",
+    changedPaths: [changedPath],
+  });
+  assert.equal(push.status, "needs-focus");
+  assert.deepEqual(ids(push), [
+    "format",
+    "lint",
+    "staged-modules",
+    "source-structure",
+    "browser-proof",
+  ]);
+
+  const focusedPush = selectValidation({
+    intent: "push",
+    changedPaths: [changedPath],
+    testPaths: { client: ["src/components/Panel.test.tsx"] },
+  });
+  assert.equal(focusedPush.status, "ready");
+  assert.deepEqual(ids(focusedPush), [
+    "format",
+    "lint",
+    "client-test",
+    "staged-modules",
+    "source-structure",
+    "browser-proof",
+  ]);
+
+  const ship = selectValidation({
+    intent: "ship",
+    checkpointScope: "lane",
+    changedPaths: [changedPath],
+  });
+  const shipExpected = [
     "format",
     "lint",
     "client-test-typecheck",
@@ -829,29 +976,28 @@ test("push and ship scope client work to the exact impacted strict checks", () =
     "design-guardrails",
     "browser-proof",
   ];
-
-  for (const intent of ["push", "ship"]) {
-    const plan = selectValidation({
-      intent,
-      checkpointScope: "lane",
-      changedPaths: ["packages/client/src/components/Panel.tsx"],
-    });
-
-    assert.equal(plan.requestedCheckpointScope, "lane", intent);
-    assert.equal(plan.checkpointScope, "workspace", intent);
-    assert.deepEqual(plan.surfaces, ["client"], intent);
-    assert.deepEqual(ids(plan), expected, intent);
-    assert.equal(plan.checks.find((check) => check.id === "format").command, "bun format");
-    assert.ok(plan.checks.every((check) => check.mandatory), intent);
-  }
+  assert.deepEqual(ids(ship), shipExpected);
+  assert.equal(ship.checks.find((check) => check.id === "format").command, "bun format");
+  assert.ok(ship.checks.every((check) => check.mandatory));
 });
 
-test("strict intents preserve owning surface gates for test-only changes", () => {
+test("push keeps test-only proof focused while strict intents preserve owning gates", () => {
   for (const [changedPath, surface] of [
     ["packages/admin/src/__tests__/components/CanvasLayout.test.tsx", "admin"],
     ["packages/shared/src/__tests__/components/FormWizard.test.tsx", "shared"],
   ]) {
-    for (const intent of ["push", "ship", "merge"]) {
+    const push = selectValidation({ intent: "push", changedPaths: [changedPath] });
+    assert.deepEqual(ids(push), [
+      "format",
+      "lint",
+      `${surface}-test`,
+    ]);
+    assert.equal(
+      push.checks.find((check) => check.id === `${surface}-test`)?.command,
+      `bun run test ${changedPath.slice(`packages/${surface}/`.length)}`,
+    );
+
+    for (const intent of ["ship", "merge"]) {
       const plan = selectValidation({
         intent,
         changedPaths: [changedPath],
@@ -933,8 +1079,6 @@ test("critical Work path packages/shared/src/modules/work/submit.ts retains its 
         "agent-test",
         "agent-build",
         "source-structure",
-        "design-guardrails",
-        "ontology",
       ],
       changedPath,
     );
@@ -1101,7 +1245,11 @@ test("readiness and release remain full scope while empty ship falls back to ful
     }
   }
 
-  for (const intent of ["push", "ship", "merge"]) {
+  const emptyPush = selectValidation({ intent: "push", changedPaths: [] });
+  assert.deepEqual(emptyPush.surfaces, []);
+  assert.deepEqual(emptyPush.checks, []);
+
+  for (const intent of ["ship", "merge"]) {
     const plan = selectValidation({ intent, changedPaths: [] });
     assert.deepEqual(plan.surfaces, allSurfaceNames, intent);
     assert.deepEqual(ids(plan), fullStrictChecks, intent);
@@ -1170,6 +1318,36 @@ test("receipt inputs fingerprint the materialized Turbo command", () => {
 
   assert.equal(receipt.command, turboTestCommand("client"));
   assert.match(receipt.fingerprint, /^[a-f0-9]{64}$/);
+});
+
+test("publication base resolution uses the live PR base and otherwise origin/develop", () => {
+  const liveBase = resolveComparisonBase(
+    { intent: "push" },
+    {
+      environment: {},
+      execFileSync(command, args) {
+        assert.equal(command, "gh");
+        assert.deepEqual(args, ["pr", "view", "--json", "baseRefName", "--jq", ".baseRefName"]);
+        return "release/1.4\n";
+      },
+    },
+  );
+  assert.equal(liveBase, "origin/release/1.4");
+
+  const fallback = resolveComparisonBase(
+    { intent: "push" },
+    {
+      environment: {},
+      execFileSync() {
+        throw new Error("no live PR");
+      },
+    },
+  );
+  assert.equal(fallback, "origin/develop");
+  assert.equal(
+    resolveComparisonBase({ intent: "push" }, { environment: { GITHUB_BASE_REF: "staging" } }),
+    "origin/staging",
+  );
 });
 
 test("git inputs include dirty and untracked paths and fingerprint their content", (t) => {
@@ -1337,7 +1515,7 @@ test("workflow mapping follows observable contract artifacts", () => {
       intent: "merge",
       ci: true,
     }),
-    ["Contracts", "Ontology", "Supply Chain Guardrails"],
+    ["Contracts", "Supply Chain Guardrails"],
   );
 
   assert.deepEqual(
@@ -1390,7 +1568,7 @@ test("workflow mapping includes global formatting ownership for ordinary source"
       intent: "merge",
       ci: true,
     }),
-    ["Admin", "Agent", "Client", "Design", "Ontology", "Shared", "Supply Chain Guardrails"],
+    ["Admin", "Agent", "Client", "Shared", "Supply Chain Guardrails"],
   );
   assert.deepEqual(
     selectExpectedWorkflows({
@@ -1460,7 +1638,7 @@ test("workflow mapping preserves exact live and intended trigger parity", () => 
     ["packages/indexer/schema.graphql", ["Docs", "Indexer", "Ontology"]],
     [
       "packages/indexer/src/handlers/commitment-pool-claims.ts",
-      ["Indexer", "Ontology", "Supply Chain Guardrails"],
+      ["Indexer", "Supply Chain Guardrails"],
     ],
     ["docs/docs/reference/ontology.generated.mdx", ["Docs", "Ontology", "Supply Chain Guardrails"]],
     ["scripts/quality/ontology-render.mjs", ["Docs", "Ontology", "Supply Chain Guardrails"]],

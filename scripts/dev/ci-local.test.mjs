@@ -143,6 +143,59 @@ test("cancellation is terminal and starts no checks", async () => {
   assert.deepEqual(calls, []);
 });
 
+test("a needs-focus plan starts no checks and exits non-zero", async () => {
+  const calls = [];
+  const input = {
+    ...plan(["format", "lint"]),
+    status: "needs-focus",
+    stopReason: "focused-proof-required",
+  };
+  const result = await executePlan(input, {
+    runCheck: async (check) => calls.push(check.id),
+  });
+
+  assert.equal(result.status, "needs-focus");
+  assert.equal(result.exitCode, 2);
+  assert.deepEqual(calls, []);
+});
+
+test("hard deadline stops noncritical work and preserves completed passing receipts", async () => {
+  const receiptStore = new Map();
+  const input = plan(["fast", "slow"]);
+  input.requestedIntent = "push";
+  input.effectiveIntent = "push";
+  input.budget = {
+    hardLimitSeconds: 0.03,
+    enforced: true,
+    estimatedWallSeconds: 0.02,
+    automatedSeconds: 0.02,
+    manualSeconds: 0,
+  };
+
+  const result = await executePlan(input, {
+    reusePassingReceipts: true,
+    receiptStore,
+    runCheck: async (check, { signal }) => {
+      if (check.id === "fast") return { ok: true, exitCode: 0, durationSeconds: 0.001 };
+      return new Promise((resolve) => {
+        signal.addEventListener(
+          "abort",
+          () => resolve({ ok: false, cancelled: true, exitCode: 124, durationSeconds: 0.03 }),
+          { once: true },
+        );
+      });
+    },
+  });
+
+  assert.equal(result.status, "budget-exceeded");
+  assert.equal(result.exitCode, 124);
+  assert.equal(receiptStore.size, 1);
+  assert.equal(result.results[0].id, "fast");
+  assert.equal(result.results[0].ok, true);
+  assert.equal(result.results[1].id, "slow");
+  assert.equal(result.results[1].ok, false);
+});
+
 test("blocked checks remain explicit while runnable evidence is collected", async () => {
   const input = plan(["format", "contracts-test"], "blocked");
   input.checks[1].state = "blocked";
@@ -182,7 +235,7 @@ test("a fully blocked plan runs zero checks and exits non-zero", async () => {
   assert.equal(result.blocked.length, 2);
 });
 
-test("passing receipt reuse is opt-in, exact, and never stores failures", async () => {
+test("post-commit push receipt reuse is exact and invalidates on tree or policy drift", async () => {
   const receiptStore = new Map();
   let calls = 0;
   const input = plan(["first"]);
@@ -207,16 +260,26 @@ test("passing receipt reuse is opt-in, exact, and never stores failures", async 
   assert.equal(second.results[0].reused, true);
   assert.equal(calls, 1);
 
-  const dirtyChanged = { ...input, workingCopyFingerprint: "working-copy-2" };
-  await executePlan(dirtyChanged, {
-    reusePassingReceipts: true,
-    receiptStore,
-    runCheck: async () => {
-      calls += 1;
-      return { ok: true, exitCode: 0 };
+  const driftedPlans = [
+    { ...input, head: "head-2" },
+    { ...input, workingCopyFingerprint: "working-copy-2" },
+    { ...input, policyVersion: 2 },
+    {
+      ...input,
+      checks: input.checks.map((check) => ({ ...check, command: `${check.command} --changed` })),
     },
-  });
-  assert.equal(calls, 2);
+  ];
+  for (const drifted of driftedPlans) {
+    await executePlan(drifted, {
+      reusePassingReceipts: true,
+      receiptStore,
+      runCheck: async () => {
+        calls += 1;
+        return { ok: true, exitCode: 0 };
+      },
+    });
+  }
+  assert.equal(calls, 1 + driftedPlans.length);
 
   const failureStore = new Map();
   await executePlan(input, {
@@ -245,6 +308,29 @@ test("persisted receipt store rejects tampered receipt inputs", async (t) => {
   stored.receipts[fingerprint].receiptInputs.command = "tampered command";
   writeFileSync(path, JSON.stringify(stored));
   assert.equal(loadPassingReceiptStore(path).size, 0);
+});
+
+test("critical plans never store or reuse passing receipts", async () => {
+  const receiptStore = new Map();
+  const critical = plan(["contracts-test"]);
+  critical.risk = "critical";
+  critical.checks[0].mandatory = true;
+  let calls = 0;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const result = await executePlan(critical, {
+      reusePassingReceipts: true,
+      receiptStore,
+      runCheck: async () => {
+        calls += 1;
+        return { ok: true, exitCode: 0 };
+      },
+    });
+    assert.equal(result.status, "passed");
+  }
+
+  assert.equal(calls, 2);
+  assert.equal(receiptStore.size, 0);
 });
 
 test("legacy and selector arguments remain parseable", () => {

@@ -17,6 +17,7 @@ import {
   fingerprintReceiptInputs,
   resolveGitInputs,
   selectValidation,
+  summarizeBudget,
 } from "../quality/select-validation.mjs";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
@@ -191,7 +192,7 @@ Selector options:
   --head <revision>       Head revision (default: HEAD)
   --changed <paths>       Comma-separated changed paths; repeatable
   --risk <risk>           routine|sensitive|critical
-  --test-path <pkg:path>  Focus a package test command; repeatable
+  --test-path <pkg:path>  Direct behavior proof for push, e.g. shared:src/utils/date.test.ts
   --check <check-id>      Add an explicit acceptance check; repeatable
   --capability k=true     Declare an environment capability; repeatable
   --plan-json             Print the exact plan as JSON without running it
@@ -326,25 +327,7 @@ export function applyCompatibilityFilters(plan, options) {
   const stillBlocked =
     checks.some((check) => check.state === "blocked") || plan.environmentBlockers?.length > 0;
   const status = stillBlocked ? "blocked" : plan.status === "blocked" ? "ready" : plan.status;
-  const automatedSeconds = checks
-    .filter((check) => !check.manual)
-    .reduce((total, check) => total + check.budgetSeconds, 0);
-  const manualSeconds = checks
-    .filter((check) => check.manual)
-    .reduce((total, check) => total + check.budgetSeconds, 0);
-  const budget = {
-    ...plan.budget,
-    automatedSeconds,
-    manualSeconds,
-    withinTarget:
-      plan.budget.targetSeconds === null
-        ? null
-        : automatedSeconds <= plan.budget.targetSeconds,
-    mandatoryChecksMayExceedTarget:
-      checks.some((check) => check.mandatory) &&
-      plan.budget.targetSeconds !== null &&
-      automatedSeconds > plan.budget.targetSeconds,
-  };
+  const budget = summarizeBudget(plan.effectiveIntent, checks, plan.risk);
   return { ...plan, checks, status, budget, skipped };
 }
 
@@ -487,14 +470,30 @@ export async function runCommandCheck(
       child.stderr?.on("data", collect);
     }
     let cancelled = false;
+    let forceKillTimer = null;
     const abort = () => {
       cancelled = true;
-      if (process.platform === "win32") child.kill("SIGTERM");
-      else if (child.pid) process.kill(-child.pid, "SIGTERM");
+      if (process.platform === "win32") {
+        child.kill("SIGTERM");
+      } else if (child.pid) {
+        try {
+          process.kill(-child.pid, "SIGTERM");
+        } catch {
+          return;
+        }
+        forceKillTimer = setTimeout(() => {
+          try {
+            process.kill(-child.pid, "SIGKILL");
+          } catch {
+            // The process group already exited after SIGTERM.
+          }
+        }, 2_000);
+      }
     };
     signal?.addEventListener("abort", abort, { once: true });
     child.once("close", (code) => {
       signal?.removeEventListener("abort", abort);
+      if (forceKillTimer) clearTimeout(forceKillTimer);
       resolvePromise({
         ok: !cancelled && code === 0,
         cancelled,
@@ -505,6 +504,7 @@ export async function runCommandCheck(
     });
     child.once("error", (error) => {
       signal?.removeEventListener("abort", abort);
+      if (forceKillTimer) clearTimeout(forceKillTimer);
       resolvePromise({
         ok: false,
         cancelled,
@@ -519,7 +519,7 @@ export async function runCommandCheck(
 export async function executePlan(plan, options = {}) {
   const failFast = options.failFast !== false;
   const runCheck = options.runCheck ?? runCommandCheck;
-  const signal = options.signal;
+  const externalSignal = options.signal;
   const results = [];
   const blocked = [];
   const receiptStore = options.receiptStore ?? new Map();
@@ -528,12 +528,33 @@ export async function executePlan(plan, options = {}) {
   const resolveBatchEnvironment =
     options.resolveBatchEnvironment ?? resolveVitestBatchEnvironment;
 
-  if (plan.status === "cancelled" || signal?.aborted) {
+  if (plan.status === "cancelled" || externalSignal?.aborted) {
     return { status: "cancelled", exitCode: 130, results, blocked };
   }
+  if (plan.status === "needs-focus") {
+    return { status: "needs-focus", exitCode: 2, results, blocked };
+  }
+
+  const deadlineController = plan.budget?.enforced ? new AbortController() : null;
+  const signal = deadlineController
+    ? externalSignal
+      ? AbortSignal.any([externalSignal, deadlineController.signal])
+      : deadlineController.signal
+    : externalSignal;
+  let budgetExpired = false;
+  const deadlineTimer = deadlineController
+    ? setTimeout(() => {
+        budgetExpired = true;
+        deadlineController.abort();
+      }, plan.budget.hardLimitSeconds * 1000)
+    : null;
+  const finish = (result) => {
+    if (deadlineTimer) clearTimeout(deadlineTimer);
+    return result;
+  };
 
   const recordPass = (receiptInputs) => {
-    if (!reusePassingReceipts) return;
+    if (!reusePassingReceipts || plan.risk === "critical") return;
     receiptStore.set(receiptInputs.fingerprint, {
       status: "passed",
       passedAt: new Date().toISOString(),
@@ -544,6 +565,7 @@ export async function executePlan(plan, options = {}) {
     const receiptInputs = buildReceiptInputs(plan, check);
     const cached = reusePassingReceipts ? receiptStore.get(receiptInputs.fingerprint) : null;
     const reusable =
+      plan.risk !== "critical" &&
       cached?.status === "passed" &&
       cached.receiptInputs?.fingerprint === receiptInputs.fingerprint;
     return { receiptInputs, reusable };
@@ -553,7 +575,13 @@ export async function executePlan(plan, options = {}) {
 
   let index = 0;
   while (index < plan.checks.length) {
-    if (signal?.aborted) return { status: "cancelled", exitCode: 130, results, blocked };
+    if (signal?.aborted) {
+      return finish(
+        budgetExpired
+          ? { status: "budget-exceeded", exitCode: 124, results, blocked }
+          : { status: "cancelled", exitCode: 130, results, blocked },
+      );
+    }
     const check = plan.checks[index];
 
     if (check.state === "blocked") {
@@ -605,10 +633,14 @@ export async function executePlan(plan, options = {}) {
       options.onCheckComplete?.(check, evidence);
 
       if (result.cancelled || signal?.aborted) {
-        return { status: "cancelled", exitCode: 130, results, blocked };
+        return finish(
+          budgetExpired
+            ? { status: "budget-exceeded", exitCode: 124, results, blocked }
+            : { status: "cancelled", exitCode: 130, results, blocked },
+        );
       }
       if (!result.ok && failFast) {
-        return { status: "failed", exitCode: result.exitCode || 1, results, blocked };
+        return finish({ status: "failed", exitCode: result.exitCode || 1, results, blocked });
       }
       if (result.ok) recordPass(receiptInputs);
       index += 1;
@@ -635,11 +667,15 @@ export async function executePlan(plan, options = {}) {
     // The whole batch is already in flight, so let every member report before
     // stopping. Fail-fast still prevents anything after the batch from starting.
     if (settled.some((result) => result.cancelled) || signal?.aborted) {
-      return { status: "cancelled", exitCode: 130, results, blocked };
+      return finish(
+        budgetExpired
+          ? { status: "budget-exceeded", exitCode: 124, results, blocked }
+          : { status: "cancelled", exitCode: 130, results, blocked },
+      );
     }
     const failure = settled.find((result) => !result.ok);
     if (failure && failFast) {
-      return { status: "failed", exitCode: failure.exitCode || 1, results, blocked };
+      return finish({ status: "failed", exitCode: failure.exitCode || 1, results, blocked });
     }
     for (const [position, member] of batch.entries()) {
       if (settled[position].ok) recordPass(buildReceiptInputs(plan, member));
@@ -647,11 +683,13 @@ export async function executePlan(plan, options = {}) {
     index += batch.length;
   }
 
-  if (results.some((result) => !result.ok)) return { status: "failed", exitCode: 1, results, blocked };
-  if (blocked.length > 0 || plan.status === "blocked") {
-    return { status: "blocked", exitCode: 2, results, blocked };
+  if (results.some((result) => !result.ok)) {
+    return finish({ status: "failed", exitCode: 1, results, blocked });
   }
-  return { status: "passed", exitCode: 0, results, blocked };
+  if (blocked.length > 0 || plan.status === "blocked") {
+    return finish({ status: "blocked", exitCode: 2, results, blocked });
+  }
+  return finish({ status: "passed", exitCode: 0, results, blocked });
 }
 
 export function loadPassingReceiptStore(path = defaultReceiptPath) {
@@ -690,8 +728,11 @@ function printPlan(plan) {
     `${colors.blue}Validation plan${colors.reset}: ${plan.effectiveIntent} · ${plan.risk} · ${plan.changedPaths.length} changed path(s)`,
   );
   console.log(
-    `${colors.blue}Budget${colors.reset}: ${plan.budget.automatedSeconds}s automated` +
-      (plan.budget.targetSeconds === null ? "" : ` / ${plan.budget.targetSeconds}s target`),
+    `${colors.blue}Budget${colors.reset}: ${plan.budget.estimatedWallSeconds}s estimated wall` +
+      ` (${plan.budget.automatedSeconds}s summed)` +
+      (plan.budget.hardLimitSeconds === null
+        ? " / uncapped"
+        : ` / ${plan.budget.hardLimitSeconds}s hard limit`),
   );
   for (const check of plan.checks) {
     const flags = [
@@ -788,6 +829,13 @@ async function main() {
     }
   } else if (execution.status === "cancelled") {
     console.log(`\n${colors.yellow}Validation cancelled; no additional checks will run.${colors.reset}`);
+  } else if (execution.status === "needs-focus") {
+    console.log(`\n${colors.yellow}Validation needs focused proof; no checks were started.${colors.reset}`);
+    for (const instruction of plan.remediation ?? []) console.log(`  - ${instruction}`);
+  } else if (execution.status === "budget-exceeded") {
+    console.log(
+      `\n${colors.red}Validation exceeded its ${plan.budget.hardLimitSeconds}s local budget; remaining noncritical checks were stopped.${colors.reset}`,
+    );
   } else if (execution.status === "passed") {
     console.log(`\n${colors.green}Selected validation plan passed.${colors.reset}`);
   } else {
