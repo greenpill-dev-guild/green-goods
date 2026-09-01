@@ -78,6 +78,7 @@
   .theme-control select { min-height:36px; border:1px solid var(--line); border-radius:8px;
     background:var(--surface); color:var(--ink); padding:5px 28px 5px 9px; font:inherit; cursor:pointer; }
   .theme-control select:focus-visible { outline:2px solid var(--green); outline-offset:2px; }
+  .header-actions { display:flex; align-items:center; gap:12px; }
   .header-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px; }
   .tabs { display:flex; gap:6px; flex:1 1 440px; flex-wrap:wrap; }
   .tab { border:1px solid var(--line); background:var(--surface); color:var(--ink);
@@ -93,6 +94,10 @@
   .row.done { opacity:0.68; }
   .rid { font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--soft); padding-top:3px; }
   .rid b { display:block; color:var(--ink); font-weight:500; }
+  .pri { display:inline-block; font-size:9px; font-weight:700; letter-spacing:0.05em;
+    border-radius:999px; padding:0 6px; margin-top:2px; color:var(--soft); background:var(--linen); }
+  .pri.p0 { color:var(--red); background:var(--red-wash); }
+  .pri.p1 { color:var(--amber); background:var(--amber-wash); }
   .scen { font-size:13.5px; }
   .scen .why { display:block; font-size:11.5px; color:var(--soft); margin-top:1px; }
   .flag { display:inline-block; font-size:10px; font-weight:600; letter-spacing:0.05em;
@@ -139,7 +144,7 @@
   .notes-toggle:focus-visible { outline:2px solid var(--green); outline-offset:2px; }
   .overview-notes { margin-top:4px; }
   .no-notes { color:var(--soft); font-size:11.5px; }
-  .filters { display:flex; gap:6px; align-items:center; }
+  .filters, .orderrow { display:flex; gap:6px; align-items:center; }
   .signin { position:fixed; inset:0; z-index:50; display:grid; place-items:center;
     background:var(--paper); padding:24px; }
   .signin-card { max-width:400px; text-align:center; }
@@ -155,14 +160,15 @@
   .signin-err { color:var(--red); margin-top:14px !important; font-size:13px; }
   .signout-btn { border:0; background:transparent; color:var(--soft); padding:2px 4px; font:inherit;
     font-size:11.5px; text-decoration:underline; cursor:pointer; }
-  .filt, .scope-btn { border:1px solid var(--line); background:var(--surface);
+  .filt, .ord { border:1px solid var(--line); background:var(--surface);
     color:var(--soft); border-radius:999px; padding:2px 10px; font-size:11.5px;
     font-weight:600; cursor:pointer; }
-  .filt.on { color:var(--ink); border-color:var(--soft); }
-  .scope-btn.on { background:var(--ink); border-color:var(--ink); color:var(--paper); }
-  .scope-btn small { font-weight:500; opacity:0.7; margin-left:5px; }
-  .scope-btn .you { font-size:9px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase;
-    margin-left:5px; opacity:0.7; }
+  .filt.on, .ord.on { color:var(--ink); border-color:var(--soft); }
+  .view-control { display:flex; align-items:center; gap:7px; }
+  .view-control select { min-height:32px; max-width:220px; border:1px solid var(--line);
+    border-radius:8px; background:var(--surface); color:var(--ink); padding:3px 26px 3px 9px;
+    font:inherit; font-size:12px; font-weight:600; cursor:pointer; }
+  .view-control select:focus-visible { outline:2px solid var(--green); outline-offset:2px; }
   .grouplabel { font-size:11px; color:var(--soft); letter-spacing:0.04em;
     text-transform:uppercase; margin-right:2px; }
   .scoperow { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-left:auto; }
@@ -235,6 +241,9 @@
 
   let activeTab = "";
   let filter = "all";
+  // "walk" keeps catalog order grouped by area; "priority" regroups the tab
+  // under P0/P1/P2 bands so a release sweep starts at the top of the page.
+  let sort = "walk";
   // Null is the aggregate Overview. A display name may literally be
   // "overview", so it cannot safely double as the internal mode sentinel.
   let scope = null;
@@ -597,7 +606,14 @@
     return "overview-notes-" + String(caseId).replace(/[^a-zA-Z0-9_-]/g, "-");
   }
 
-  function renderOverviewRows(rows) {
+  // Priority as a chip, not plain text — the walk order is priority-driven, so
+  // the level has to read at a glance. Class from a lookup, never the raw value.
+  const PRI_CLASS = { P0: "p0", P1: "p1", P2: "p2" };
+  function caseRid(testCase) {
+    return `<div class="rid"><b>${esc(testCase.id)}</b><span class="pri ${PRI_CLASS[testCase.pri] || ""}">${esc(testCase.pri)}</span></div>`;
+  }
+
+  function renderOverviewRows(rows, showArea) {
     return rows.map((testCase) => {
       const caseVerdict = verdict(testCase.id);
       const quietlyResolved = caseVerdict && !isIssue(testCase.id);
@@ -616,15 +632,15 @@
             `<div class="onote"><b>${esc(person)}:</b> ${esc(entry.n)}</div>`).join("")}</div>`
         : '<span class="no-notes">No notes</span>';
       return `<div class="row overview-row ${quietlyResolved ? "done" : ""}">
-        <div class="rid"><b>${esc(testCase.id)}</b>${esc(testCase.pri)}</div>
-        <div class="scen">${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${esc(testCase.expected)}</span></div>
+        ${caseRid(testCase)}
+        <div class="scen">${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span></div>
         <div class="team-statuses" role="list" aria-label="${esc(testCase.id)} team verdicts">${statuses}</div>
         <div class="overview-note-summary">${noteSummary}</div>
       </div>`;
     }).join("");
   }
 
-  function renderPersonRows(rows) {
+  function renderPersonRows(rows, showArea) {
     const selected = scope;
     const editable = selected === who;
     return rows.map((testCase) => {
@@ -639,8 +655,8 @@
         ? `<div class="note"><textarea data-note="${esc(testCase.id)}" rows="1" maxlength="4000" aria-label="${esc(testCase.id)} — ${esc(who)}'s notes" placeholder="${esc(who)}'s notes — saves as you go…">${esc(entry ? entry.n || "" : "")}</textarea></div>`
         : `<div class="note"><div class="readonly-note ${entry && entry.n ? "has-note" : ""}"><b>${esc(selected)}:</b> ${entry && entry.n ? esc(entry.n) : "No note recorded."}</div></div>`;
       return `<div class="row ${quietlyResolved ? "done" : ""}">
-        <div class="rid"><b>${esc(testCase.id)}</b>${esc(testCase.pri)}</div>
-        <div class="scen">${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${esc(testCase.expected)}</span></div>
+        ${caseRid(testCase)}
+        <div class="scen">${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span></div>
         ${controls}${note}
       </div>`;
     }).join("");
@@ -667,31 +683,47 @@
         ? `Recording as ${esc(who)} — your wallet owns these entries`
         : `Reviewing ${esc(scope)} — read only`;
     const head = `<header>
-      <div class="title-row"><div><h1>Green Goods QA</h1><div class="runline">${modeDescription}</div></div>${themeControl()}</div>
+      <div class="title-row"><div><h1>Green Goods QA</h1><div class="runline">${modeDescription}</div></div><div class="header-actions">${themeControl()}${who ? '<button type="button" class="signout-btn">Sign out</button>' : ""}</div></div>
       <div class="header-row tab-row">
         <div class="tabs" role="group" aria-label="QA surface">${TABS.map((t) => {
           const k = counts(t);
           return `<button class="tab ${t === activeTab ? "on" : ""}" data-tab="${esc(t)}" aria-pressed="${t === activeTab ? "true" : "false"}">${esc(t)}<small>${k.done}/${k.total}${k.fails ? " · " + k.fails + "F" : ""}</small></button>`;
         }).join("")}</div>
-        <div class="scoperow" role="group" aria-label="QA view"><span class="grouplabel">view</span>
-          <button class="scope-btn ${scope === null ? "on" : ""}" data-overview aria-pressed="${scope === null ? "true" : "false"}">Overview<small>${scopeCount(activeTab, null)}</small></button>
-          ${TEAM.map((name) => `<button class="scope-btn ${scope === name ? "on" : ""}" data-person="${esc(name)}" aria-pressed="${scope === name ? "true" : "false"}">${esc(name)}${name === who ? '<span class="you">You</span>' : ""}<small>${scopeCount(activeTab, name)}</small></button>`).join("")}
-        </div>
+        <div class="scoperow"><label class="view-control" for="qa-view-select"><span class="grouplabel">view</span>
+          <select id="qa-view-select" data-view-select aria-label="QA view">
+            <option value=""${scope === null ? " selected" : ""}>Overview · ${scopeCount(activeTab, null)}</option>
+            ${TEAM.map((name) => `<option value="${esc(name)}"${scope === name ? " selected" : ""}>${esc(name)}${name === who ? " (you)" : ""} · ${scopeCount(activeTab, name)}</option>`).join("")}
+          </select>
+        </label></div>
       </div>
       <div class="header-row filter-row">
         <div class="filters" role="group" aria-label="case status">${[["all", "All"], ["issues", "Issues"], ["open", "Undecided"]].map(([k, l]) =>
           `<button class="filt ${filter === k ? "on" : ""}" data-f="${k}" aria-pressed="${filter === k ? "true" : "false"}">${l}</button>`).join("")}</div>
-        <div class="counts">${tally()}${who ? ' · <button type="button" class="signout-btn">Sign out</button>' : ' · <b class="warn">recording unavailable</b>'}</div>
+        <div class="orderrow" role="group" aria-label="case order"><span class="grouplabel">order</span>${[["walk", "Walk"], ["priority", "Priority"]].map(([k, l]) =>
+          `<button class="ord ${sort === k ? "on" : ""}" data-sort="${k}" aria-pressed="${sort === k ? "true" : "false"}">${l}</button>`).join("")}</div>
+        <div class="counts">${tally()}${who ? "" : ' · <b class="warn">recording unavailable</b>'}</div>
       </div>
     </header>`;
 
     const rows = CASES.filter((testCase) => testCase.tab === activeTab).filter(matchesCurrentView);
 
-    const areas = [...new Set(rows.map((c) => c.area))];
-    const body = areas.map((area) => {
-      const areaRows = rows.filter((testCase) => testCase.area === area);
-      return `<div class="area">${esc(area)}</div>${scope === null ? renderOverviewRows(areaRows) : renderPersonRows(areaRows)}`;
-    }).join("");
+    // Priority order regroups the tab under P0/P1/P2 bands (catalog order
+    // within a band) and moves the area context inline onto each row.
+    let body;
+    if (sort === "priority") {
+      const bands = [...new Set(["P0", "P1", "P2"].concat(rows.map((c) => c.pri)))];
+      body = bands.map((pri) => {
+        const bandRows = rows.filter((testCase) => testCase.pri === pri);
+        if (!bandRows.length) return "";
+        return `<div class="area">${esc(pri)} · ${bandRows.length}</div>${scope === null ? renderOverviewRows(bandRows, true) : renderPersonRows(bandRows, true)}`;
+      }).join("");
+    } else {
+      const areas = [...new Set(rows.map((c) => c.area))];
+      body = areas.map((area) => {
+        const areaRows = rows.filter((testCase) => testCase.area === area);
+        return `<div class="area">${esc(area)}</div>${scope === null ? renderOverviewRows(areaRows) : renderPersonRows(areaRows)}`;
+      }).join("");
+    }
 
     const empty = scope === null
       ? `No cases match this filter on the ${esc(activeTab)} tab.`
@@ -711,8 +743,11 @@
     mount.querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => {
       filter = b.dataset.f; saveView(); render();
     }));
-    mount.querySelectorAll(".scope-btn").forEach((b) => b.addEventListener("click", () => {
-      scope = b.hasAttribute("data-overview") ? null : b.dataset.person; saveView(); render();
+    mount.querySelector("[data-view-select]")?.addEventListener("change", (event) => {
+      scope = event.target.value === "" ? null : event.target.value; saveView(); render();
+    });
+    mount.querySelectorAll(".ord").forEach((b) => b.addEventListener("click", () => {
+      sort = b.dataset.sort === "priority" ? "priority" : "walk"; saveView(); render();
     }));
     mount.querySelectorAll("[data-notes-toggle]").forEach((button) => button.addEventListener("click", () => {
       const panel = document.getElementById(button.dataset.notesToggle);
@@ -760,7 +795,7 @@
   function saveView() {
     try {
       sessionStorage.setItem("qa-view", JSON.stringify({
-        tab: activeTab, filter, scope: scope === null ? OVERVIEW : scope, scroll: window.scrollY,
+        tab: activeTab, filter, sort, scope: scope === null ? OVERVIEW : scope, scroll: window.scrollY,
       }));
     } catch (e) {}
   }
@@ -1165,6 +1200,7 @@
 
       activeTab = TABS.includes(view.tab) ? view.tab : TABS[0];
       filter = ["all", "issues", "open"].includes(view.filter) ? view.filter : "all";
+      sort = view.sort === "priority" ? "priority" : "walk";
       const storedScope = view.scope === "all" ? OVERVIEW : view.scope;
       scope = storedScope === OVERVIEW ? null : TEAM.includes(storedScope) ? storedScope : who || null;
 

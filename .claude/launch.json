@@ -14,6 +14,12 @@
       "port": 3002
     },
     {
+      "name": "qa-app",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["packages/qa/dev.mjs"],
+      "port": 4610
+    },
+    {
       "name": "proto",
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "4601", "--bind", "127.0.0.1", "-d", "/tmp/gg-proto"],

@@ -102,7 +102,7 @@ describe("QA app page", () => {
     const script = inlineScript("qa-app");
     // Selection lived only in the `on` class, which a screen reader cannot see.
     // Every group that renders `on` has to render the matching state as well.
-    const selectable = ["tab", "filt", "scope-btn", "st"];
+    const selectable = ["tab", "filt", "ord", "st"];
     for (const control of selectable) {
       const rendered = script.slice(script.indexOf(`class="${control} `));
       expect(rendered.slice(0, 400), `${control} has no selected state`).toContain("aria-pressed");
