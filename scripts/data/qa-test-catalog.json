@@ -1112,7 +1112,7 @@
       "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P2",
-      "kind": "data-integrity",
+      "kind": "transaction",
       "area": "Hub Work Review",
       "scenario": "Two stewards acting on the same submission converge on one state",
       "preconditions": ["Two steward sessions on the same garden with a pending submission"],
@@ -1124,7 +1124,7 @@
       "expected": "The final state is consistent in both sessions; the second steward sees the decided state, not a stale actionable one",
       "evidence": "Screenshots from both sessions",
       "role": "steward",
-      "tags": ["concurrency", "review", "stale-data"],
+      "tags": ["concurrency", "review", "stale-data", "tx"],
       "requiresProduction": false,
       "status": "active",
       "source": "drive-test-cases-2025-12"

@@ -329,4 +329,18 @@ describe("QA catalog contract", () => {
       expect(testCase.kind === "transaction").toBe(Boolean(testCase.tags?.includes("tx")));
     }
   });
+
+  it("keeps the concurrent steward decision inside the session write boundary", () => {
+    const catalog = JSON.parse(
+      readFileSync(path.join(repoRoot, "scripts", "data", "qa-test-catalog.json"), "utf8"),
+    );
+    const concurrentReview = catalog.cases.find(
+      (testCase: { id: string }) => testCase.id === "XPLAT-007",
+    );
+
+    expect(concurrentReview).toMatchObject({
+      kind: "transaction",
+      tags: expect.arrayContaining(["tx"]),
+    });
+  });
 });
