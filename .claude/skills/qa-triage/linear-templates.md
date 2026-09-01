@@ -173,7 +173,7 @@ This parent is filed as `Todo`, so **`Done when` is required** — without check
 
 **The contributing Customer Needs are not listed in the body.** Link each one through Linear's relation surface, which renders them in the right rail and stays correct as the list grows. A markdown copy is a second home for the same fact, and an unbounded one — the body has a 600-word backstop, so a long-lived pattern would eventually make its own refresh unwritable.
 
-**Labels**: `protocol:green-goods`, `activity:qa`, `package:<inferred>`, `ai:claude`, plus `pattern:posthog-<hash-prefix>` if the pattern label family exists on the team. If `pattern:*` is missing, fail loud and skip the recurring-pattern parent rather than inventing a label.
+**Labels**: `protocol:green-goods`, `activity:qa`, `package:<inferred>`, `ai:claude`, plus `pattern:posthog-<hash-prefix>` if the pattern label family already exists on the team — a pre-existing exception to the label-namespace list in [`linear-routing-rules.md`](../../context/linear-routing-rules.md) § Invariant rules: use it only where it already exists, never create the family. If `pattern:*` is missing, fail loud and skip the recurring-pattern parent rather than inventing a label.
 
 **Title format**: a plain verb-led sentence naming the failure — "Fix the credential request that never resolves on garden join". The `Recurring:` prefix was retired 2026-08-27 (a `PreToolUse` hook rejects it); the `pattern:posthog-*` label is what marks this as the recurring parent.
 
@@ -181,8 +181,10 @@ This parent is filed as `Todo`, so **`Done when` is required** — without check
 
 ## QA session report — parent Issue (`/qa-triage --call` + the `qa-call-report` routine)
 
-One per QA call, titled exactly `QA session YYYY-MM-DD` — that title shape (date required) is what
-earns the word-backstop exemption in the lint hook. The report is the session's durable record in
+One per QA call, titled exactly `QA session YYYY-MM-DD` — a second call on the same date appends
+its counter, `QA session YYYY-MM-DD · 2`, which is also that call's identity for parent lookup
+and reuse. That title shape (date required; only the ` · N` counter may follow it) is what earns
+the word-backstop exemption in the lint hook. The report is the session's durable record in
 Linear; slices attach as **sub-issues via `parentId`**, so the board shows one collapsible tree per
 session and an agent with only Linear access can navigate parent → slices.
 

@@ -102,6 +102,15 @@ const accepts = [
     },
   },
   {
+    // A second call on the same date is titled with the ` · N` counter — the
+    // only suffix the anchored exemption pattern tolerates.
+    name: "same-day counter suffix keeps the report exemption",
+    input: {
+      title: "QA session 2026-08-31 · 2",
+      description: "Where the work stands and what needs a person. ".repeat(80),
+    },
+  },
+  {
     name: "a bulleted list is not an empty-placeholder section",
     input: {
       title: "Populate chapter pages with steward content",
@@ -444,6 +453,16 @@ const rejects = [
     name: "long update without the title loses the exemption",
     input: {
       id: "PRD-800",
+      description: "Where the work stands and what needs a person. ".repeat(80),
+    },
+    expect: /words \(backstop 600/,
+  },
+  {
+    // The exemption pattern is anchored: a free-form suffix after the date
+    // would make it an unbounded title prefix, so only the counter passes.
+    name: "wordy QA session suffix loses the exemption",
+    input: {
+      title: "QA session 2026-08-31 follow-up",
       description: "Where the work stands and what needs a person. ".repeat(80),
     },
     expect: /words \(backstop 600/,

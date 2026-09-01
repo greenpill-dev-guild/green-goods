@@ -14,15 +14,12 @@ env-vars:
   - DISCORD_USER_ID_AFO
   - POSTHOG_PROJECT_ID_APP    # 163591 — PWA + editorial website telemetry
   - POSTHOG_PROJECT_ID_ADMIN  # 262122 — admin cockpit telemetry
-  - SENTRY_ORG                # optional — Sentry-ready, not Sentry-dependent
-  - SENTRY_CLIENT_PROJECT     # optional
-  - SENTRY_ADMIN_PROJECT      # optional
 connectors:
   - google-drive  # source: the call's Gemini-generated notes
   - linear        # writes: one `QA session YYYY-MM-DD` parent Issue + slice sub-issues
   - posthog       # window-scoped enrichment: the testers' own product sessions during the call
   - vercel        # build under test: which deploys were live during the session window
-  - sentry        # when available — stack/release context for window errors; absent = skip silently
+  - sentry        # when available — resolves projects by name through the connector, no env vars; absent = skip silently
 model: claude-opus-5
 allow-unrestricted-branch-pushes: false  # Linear + Discord only; no PRs, no Sheet writes, no GitHub Issues
 last_updated: "2026-08-31"
@@ -95,7 +92,9 @@ and modifiedTime > '<24h-ago RFC3339>' and mimeType = 'application/vnd.google-ap
 
 ## Phase 2: Pull the QA app state
 
-Run `bun run qa:pull --slug <YYYY-MM-DD>` (the call date). It writes
+Run `bun run qa:pull --slug <YYYY-MM-DD>` (the call date; a **second call on the same date**
+takes the slug `<YYYY-MM-DD>-2`, mirroring qa-session's slug rule, and everything downstream —
+window, parent title, artifacts — keys off that slug). It writes
 `tmp/qa-session/<date>/results.csv` and `qa-state.json` from the Blob shards. **The store is
 long-lived and the pull merges every shard ever written**, so scope the session first: a *session
 entry* is one whose `at` timestamp falls inside the **call interval** — the meeting's start and
@@ -161,10 +160,11 @@ the Discord summary, never a stopped run.
      so it may be the testers or ordinary production traffic. It is a lead, not a session
      finding, and derived lines never become slices unattended.
 3. **Sentry, when wired** — routines are Sentry-ready, not Sentry-dependent
-   ([`README.md`](./README.md) § Sentry environment). When the connector is available, search
-   the matching project (`SENTRY_CLIENT_PROJECT` / `SENTRY_ADMIN_PROJECT`) for issues first-seen
-   or active inside the window; stash the issue link, top frame, and release as safe summary. An
-   absent connector skips this step silently.
+   ([`README.md`](./README.md) § Sentry environment). When the connector is available, resolve
+   the matching project **by name through the connector** (`green-goods-client` /
+   `green-goods-admin` — no env vars needed) and search it for issues first-seen or active
+   inside the window; stash the issue link, top frame, and release as safe summary. An absent
+   connector skips this step silently.
 4. **Placement** — enrichment lands in each slice's **first comment**, per the Evidence-comment
    pattern in [`linear-templates.md`](../../.claude/skills/qa-triage/linear-templates.md), plus
    at most one counts line in the report body. Slice bodies stay prose.
@@ -178,8 +178,9 @@ the Discord summary, never a stopped run.
 
 First the parent itself: the `qa-sync:<date>` label only **narrows candidates** — the pulse
 stamps that label on its own pre-staged tracking Issues, so the label alone can point at an
-ordinary Backlog defect. Reuse requires the parent shape: the exact `QA session <date>` title
-and no `package:*` label. When that parent exists (the interactive sibling may have filed it),
+ordinary Backlog defect. Reuse requires the parent shape: **this run's exact expected title**
+(`QA session <date>`, or `QA session <date> · 2` for a second same-day call — the counter is
+the call's identity, since the week's `qa-sync` label is shared) and no `package:*` label. When that parent exists (the interactive sibling may have filed it),
 **reuse it** — add missing children under it and a comment for new context; never a second
 parent, and never attach slices to anything that fails the shape test.
 
@@ -203,14 +204,18 @@ exposure: redact in place and fail loud in the Discord summary.
 
 ## Phase 7: Write to Linear
 
-1. **Parent first**: title exactly `QA session <YYYY-MM-DD>` (this title earns the word-backstop
-   exemption), body per the § QA session report template — lede, Results by priority, Decisions
+1. **Parent first**: title exactly `QA session <YYYY-MM-DD>` — a second same-day call appends
+   its counter, `QA session <YYYY-MM-DD> · 2` (only that ` · N` counter keeps the
+   word-backstop exemption; a wordier suffix loses it) — body per the § QA session report
+   template — lede, Results by priority, Decisions
    from the call (omit in app-only mode), Slices, Not sliced, `Done when`, source line with the
    Drive notes link. State `Todo`. Labels: `green-goods` + `qa` + `qa-session` + `routine` +
    `qa-sync:<date>`; **no `package:*`** on the parent. The parent's `Done when` defines its
    closure — every slice Done or explicitly deferred, re-QA re-recorded; the fix flow closes it,
-   never this routine. App-only runs use the app-state source-line variant from the template —
-   never a fabricated Drive link.
+   never this routine. **One exception**: an all-pass session (zero slices, zero related
+   Issues) creates its parent directly in `Done` — it is a record with nothing to fix, and
+   nothing downstream would ever close a `Todo` shell. App-only runs use the app-state
+   source-line variant from the template — never a fabricated Drive link.
 2. **Then each slice** as a sub-issue via `parentId`, body per the § QA slice template (problem
    cluster in prose with Test IDs and verdicts, "Where to start" map, "Done when" = the Test IDs
    re-record as pass, fix-posture pointer, validation command, source line).
@@ -258,7 +263,7 @@ the @mention.
 | Don't | Why |
 |-------|-----|
 | Create one Issue per failed test case | The slice is the work unit (one slice = one branch = one PR); test-case detail lives inside the slice body and the report |
-| Set `Done`, `In Progress`, or assignees | Fix sessions and humans drive those; you only create `Todo`/`Backlog` records |
+| Set `In Progress` or assignees — or `Done` on anything with open work | Fix sessions and humans drive those; you create `Todo`/`Backlog` records, plus the one carve-out: an all-pass session's parent is created `Done`, a record with nothing to fix |
 | Write Customer Needs or Sheet rows | The report + slices are the session record; the Sheet belongs to the interactive skill with its privacy re-acknowledgement |
 | Hand-count coverage or severity | Rollups come from `qa:pull` joined to the catalog; severity derives from case priority + verdict per the mandate above |
 | Copy tester names, wallets, or replay URLs into Linear | Aggregate coverage only — the privacy boundary in [`.claude/context/qa.md`](../../.claude/context/qa.md) |
@@ -274,7 +279,9 @@ the @mention.
 2. Paste the prompt from this file (everything after the `# Prompt` heading).
 3. Configure per the frontmatter: repo `green-goods` at branch `develop`; environment
    `green-goods` with `BLOB_READ_WRITE_TOKEN` added (copy from the QA app's Vercel Blob store —
-   Storage → the private QA store → tokens) plus the Discord vars; connectors Google Drive +
-   Linear; model per the frontmatter; **no schedule** — manual trigger only.
+   Storage → the private QA store → tokens) plus the Discord vars and the two PostHog project
+   IDs; connectors **Google Drive + Linear + PostHog + Vercel**, and Sentry when available (it
+   resolves projects by name — no Sentry env vars); model per the frontmatter; **no schedule**
+   — manual trigger only.
 4. Save. Trigger it right after each QA call; then start a fix session with "pull in the QA
    slices from Linear" (the `debug` skill's QA Slice Fix Protocol picks them up).
