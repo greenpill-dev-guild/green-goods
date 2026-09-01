@@ -640,14 +640,25 @@ async function displayLabelHarness() {
     await flush();
     assert.equal(collision.dom.window.document.querySelector(".current-tester")?.textContent, ownLabel);
     assert.equal(collision.dom.window.document.querySelectorAll(".who-btn").length, 0);
-    assert.equal(collision.dom.window.document.querySelectorAll(".mark").length, 2);
-    assert.deepEqual(
-      [...collision.dom.window.document.querySelectorAll(".onote b")].map((node) => node.textContent),
-      [otherLabel],
-    );
+    assert.equal(collision.dom.window.document.querySelectorAll(".mark").length, 0);
+    assert.equal(collision.dom.window.document.querySelectorAll(".onote").length, 0);
     assert.equal(
       collision.dom.window.document.querySelector('[data-note="PUB-001"]')?.value,
       "mine, still pending during relabel",
+    );
+    collision.dom.window.document.querySelector("[data-overview]")?.click();
+    await flush();
+    assert.equal(collision.dom.window.document.querySelectorAll("textarea").length, 0);
+    assert.equal(collision.dom.window.document.querySelectorAll("button.st").length, 0);
+    assert.deepEqual(
+      [...collision.dom.window.document.querySelectorAll(".person-status b")].map((node) => node.textContent),
+      [`${ownLabel}:`, `${otherLabel}:`],
+    );
+    assert.deepEqual(
+      [...collision.dom.window.document.querySelectorAll(".overview-notes .onote b")].map(
+        (node) => node.textContent,
+      ),
+      [`${ownLabel}:`, `${otherLabel}:`],
     );
   } finally {
     collision.dom.window.close();
@@ -669,7 +680,7 @@ async function displayLabelHarness() {
       "true",
     );
     assert.equal(prototype.dom.window.document.querySelector(".row")?.classList.contains("done"), true);
-    assert.equal(prototype.dom.window.document.querySelectorAll(".mark").length, 1);
+    assert.equal(prototype.dom.window.document.querySelectorAll(".mark").length, 0);
     assert.equal(prototype.dom.window.document.querySelector(".tab small")?.textContent, "1/1");
   } finally {
     prototype.dom.window.close();

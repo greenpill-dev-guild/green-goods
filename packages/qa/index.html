@@ -4,23 +4,64 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
 <title>Green Goods QA</title>
+<script id="theme-bootstrap">
+(() => {
+  "use strict";
+
+  const key = "qa-theme";
+  const choices = ["system", "light", "dark"];
+  const root = document.documentElement;
+  const meta = document.querySelector('meta[name="color-scheme"]');
+
+  function read() {
+    try {
+      const saved = localStorage.getItem(key);
+      return choices.includes(saved) ? saved : "system";
+    } catch (error) {
+      return "system";
+    }
+  }
+
+  function apply(choice, persist) {
+    const theme = choices.includes(choice) ? choice : "system";
+    if (theme === "system") delete root.dataset.theme;
+    else root.dataset.theme = theme;
+    root.style.colorScheme = theme === "system" ? "light dark" : theme;
+    if (meta) meta.content = theme === "system" ? "light dark" : theme;
+    if (persist) {
+      try { localStorage.setItem(key, theme); } catch (error) {}
+    }
+    return theme;
+  }
+
+  globalThis.qaTheme = { apply, read };
+  apply(read(), false);
+})();
+</script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
 <style>
   :root {
+    color-scheme:light dark;
     --paper:#FBF9F3; --surface:#FFFFFF; --linen:#F5F1E8; --ink:#26231C; --soft:#6E675A;
     --green:#1A7544; --green-wash:#E8F1EA; --red:#A8402F; --red-wash:#F7E6E1;
     --amber:#8F6516; --amber-wash:#F7EEDA; --line:#E2DBCC; --mono-bg:#F0EBDF;
+    --on-green:#FFFFFF; --on-red:#FFFFFF; --on-amber:#FFFFFF;
   }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
     --paper:#1B1914; --surface:#24211A; --linen:#2A261E; --ink:#EDE8DC; --soft:#A89F8E;
     --green:#4CAE7A; --green-wash:#223A2C; --red:#E08A76; --red-wash:#422A24;
     --amber:#D9A84E; --amber-wash:#3A3021; --line:#3A352A; --mono-bg:#2E2A21;
+    --on-green:#102319; --on-red:#2A1510; --on-amber:#2B1D07;
   }}
+  :root[data-theme="light"] { color-scheme:light; }
   :root[data-theme="dark"] {
+    color-scheme:dark;
     --paper:#1B1914; --surface:#24211A; --linen:#2A261E; --ink:#EDE8DC; --soft:#A89F8E;
     --green:#4CAE7A; --green-wash:#223A2C; --red:#E08A76; --red-wash:#422A24;
     --amber:#D9A84E; --amber-wash:#3A3021; --line:#3A352A; --mono-bg:#2E2A21;
+    --on-green:#102319; --on-red:#2A1510; --on-amber:#2B1D07;
   }
   * { box-sizing:border-box; }
   [hidden] { display:none !important; }
@@ -28,14 +69,20 @@
     font-family:"Inter",system-ui,sans-serif; font-size:14px; line-height:1.45; }
   header { position:sticky; top:0; z-index:5; background:var(--paper);
     border-bottom:1px solid var(--line); padding:14px 18px 10px; }
+  .title-row { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
   h1 { font-family:"Plus Jakarta Sans",sans-serif; font-size:19px; font-weight:800;
     margin:0 0 2px; letter-spacing:-0.01em; }
   .runline { font-size:12px; color:var(--soft); }
+  .theme-control { display:flex; align-items:center; gap:7px; color:var(--soft); font-size:11.5px;
+    font-weight:600; white-space:nowrap; }
+  .theme-control select { min-height:36px; border:1px solid var(--line); border-radius:8px;
+    background:var(--surface); color:var(--ink); padding:5px 28px 5px 9px; font:inherit; cursor:pointer; }
+  .theme-control select:focus-visible { outline:2px solid var(--green); outline-offset:2px; }
   .header-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px; }
   .tabs { display:flex; gap:6px; flex:1 1 440px; flex-wrap:wrap; }
   .tab { border:1px solid var(--line); background:var(--surface); color:var(--ink);
     border-radius:999px; padding:4px 12px; font-size:12.5px; font-weight:600; cursor:pointer; }
-  .tab.on { background:var(--green); border-color:var(--green); color:#fff; }
+  .tab.on { background:var(--green); border-color:var(--green); color:var(--on-green); }
   .tab small { font-weight:500; opacity:0.75; margin-left:4px; }
   main { max-width:880px; margin:0 auto; padding:12px 18px 90px; }
   .area { font-family:"Plus Jakarta Sans",sans-serif; font-weight:700; font-size:12.5px;
@@ -46,11 +93,6 @@
   .row.done { opacity:0.68; }
   .rid { font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--soft); padding-top:3px; }
   .rid b { display:block; color:var(--ink); font-weight:500; }
-  .rid .mark { display:inline-block; font-style:normal; font-size:9.5px; font-weight:600;
-    border-radius:999px; padding:0 5px; margin:2px 3px 0 0; background:var(--linen); color:var(--soft); }
-  .rid .mark.pass { background:var(--green-wash); color:var(--green); }
-  .rid .mark.fail { background:var(--red-wash); color:var(--red); }
-  .rid .mark.blocked { background:var(--amber-wash); color:var(--amber); }
   .scen { font-size:13.5px; }
   .scen .why { display:block; font-size:11.5px; color:var(--soft); margin-top:1px; }
   .flag { display:inline-block; font-size:10px; font-weight:600; letter-spacing:0.05em;
@@ -61,11 +103,10 @@
   .st { width:34px; height:28px; border-radius:7px; border:1px solid var(--line);
     background:var(--surface); color:var(--soft); font-weight:700; font-size:11.5px; cursor:pointer; }
   .st:focus-visible { outline:2px solid var(--green); outline-offset:1px; }
-  .st.pass.on { background:var(--green); border-color:var(--green); color:#fff; }
-  .st.fail.on { background:var(--red); border-color:var(--red); color:#fff; }
-  .st.blocked.on { background:var(--amber); border-color:var(--amber); color:#fff; }
+  .st.pass.on { background:var(--green); border-color:var(--green); color:var(--on-green); }
+  .st.fail.on { background:var(--red); border-color:var(--red); color:var(--on-red); }
+  .st.blocked.on { background:var(--amber); border-color:var(--amber); color:var(--on-amber); }
   .st.na.on { background:var(--soft); border-color:var(--soft); color:var(--paper); }
-  .st:disabled { opacity:0.4; cursor:not-allowed; }
   .note { grid-column:2 / -1; }
   .note textarea { width:100%; min-height:34px; border:1px solid var(--line); border-radius:7px;
     background:var(--surface); color:var(--ink); font:inherit; font-size:12.5px; padding:5px 9px;
@@ -74,6 +115,30 @@
   .onote { font-size:12px; color:var(--ink); background:var(--linen); border-radius:7px;
     padding:5px 9px; margin-bottom:4px; }
   .onote b { color:var(--soft); font-weight:600; margin-right:6px; }
+  .readonly-note { font-size:12px; color:var(--soft); background:var(--linen); border-radius:7px;
+    padding:7px 9px; }
+  .readonly-note.has-note { color:var(--ink); }
+  .readonly-status { display:inline-flex; min-height:28px; align-items:center; border:1px solid var(--line);
+    border-radius:7px; padding:3px 9px; background:var(--surface); color:var(--soft);
+    font-size:11.5px; font-weight:700; }
+  .readonly-status.pass { background:var(--green-wash); border-color:var(--green); color:var(--green); }
+  .readonly-status.fail { background:var(--red-wash); border-color:var(--red); color:var(--red); }
+  .readonly-status.blocked { background:var(--amber-wash); border-color:var(--amber); color:var(--amber); }
+  .team-statuses { grid-column:2 / -1; display:flex; flex-wrap:wrap; gap:5px; }
+  .person-status { display:inline-flex; align-items:center; gap:5px; border:1px solid var(--line);
+    border-radius:999px; padding:3px 8px; background:var(--surface); color:var(--soft);
+    font-size:10.5px; }
+  .person-status b { color:var(--ink); font-weight:600; }
+  .person-status.pass { background:var(--green-wash); border-color:var(--green); color:var(--green); }
+  .person-status.fail { background:var(--red-wash); border-color:var(--red); color:var(--red); }
+  .person-status.blocked { background:var(--amber-wash); border-color:var(--amber); color:var(--amber); }
+  .person-status.untested { border-style:dashed; }
+  .overview-note-summary { grid-column:2 / -1; }
+  .notes-toggle { border:0; background:transparent; color:var(--soft); padding:3px 0;
+    font:inherit; font-size:11.5px; font-weight:600; text-decoration:underline; cursor:pointer; }
+  .notes-toggle:focus-visible { outline:2px solid var(--green); outline-offset:2px; }
+  .overview-notes { margin-top:4px; }
+  .no-notes { color:var(--soft); font-size:11.5px; }
   .filters { display:flex; gap:6px; align-items:center; }
   .signin { position:fixed; inset:0; z-index:50; display:grid; place-items:center;
     background:var(--paper); padding:24px; }
@@ -81,9 +146,10 @@
   .signin-card h2 { margin:0 0 10px; font-size:20px; }
   .signin-card p { color:var(--soft); margin:0 0 18px; font-size:14px; line-height:1.55; }
   .signin-card label { display:block; text-align:left; margin-bottom:5px; font-size:12px; font-weight:600; }
+  .signin-card .theme-control { display:flex; justify-content:flex-end; margin-bottom:14px; }
   #signin-name { display:block; width:100%; margin:0 0 14px; padding:10px 12px; font:inherit;
     border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); }
-  #signin-btn { border:1px solid var(--green); background:var(--green); color:#fff;
+  #signin-btn { border:1px solid var(--green); background:var(--green); color:var(--on-green);
     border-radius:8px; padding:11px 20px; font:inherit; font-weight:600; cursor:pointer; }
   #signin-btn:disabled { opacity:.6; cursor:progress; }
   .signin-err { color:var(--red); margin-top:14px !important; font-size:13px; }
@@ -95,6 +161,8 @@
   .filt.on { color:var(--ink); border-color:var(--soft); }
   .scope-btn.on { background:var(--ink); border-color:var(--ink); color:var(--paper); }
   .scope-btn small { font-weight:500; opacity:0.7; margin-left:5px; }
+  .scope-btn .you { font-size:9px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase;
+    margin-left:5px; opacity:0.7; }
   .grouplabel { font-size:11px; color:var(--soft); letter-spacing:0.04em;
     text-transform:uppercase; margin-right:2px; }
   .scoperow { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-left:auto; }
@@ -103,6 +171,7 @@
   .counts .current-tester { color:var(--ink); font-weight:700; }
   .counts .warn { color:var(--amber); }
   @media (max-width:720px) {
+    .title-row { align-items:center; }
     .tabs { flex-basis:100%; }
     .scoperow, .counts { margin-left:0; }
     .counts { flex-basis:100%; text-align:left; }
@@ -110,6 +179,7 @@
     .scen { min-width:0; overflow-wrap:anywhere; }
     .ctl { grid-column:2; justify-self:start; }
     .note { grid-column:1 / -1; }
+    .team-statuses, .overview-note-summary { grid-column:1 / -1; }
   }
   .empty { color:var(--soft); font-size:13px; padding:22px 4px; }
   .savebar { position:fixed; right:14px; bottom:14px; z-index:6; font-size:12px; font-weight:600;
@@ -127,16 +197,24 @@
   <div class="signin-card">
     <h2 id="signin-title">Green Goods QA</h2>
     <p id="signin-why">Sign in with the wallet on the QA allowlist. Your address is your identity here — nobody can record entries as you.</p>
+    <label class="theme-control" for="signin-theme">Theme
+      <select id="signin-theme" data-theme-select>
+        <option value="system">System</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </label>
     <button type="button" id="signin-btn">Sign in with Ethereum</button>
     <p class="signin-err" id="signin-err" role="alert" aria-live="assertive" hidden></p>
   </div>
 </div>
-<script>
+<script id="qa-app">
 (() => {
   "use strict";
 
   const STATUSES = ["pass", "fail", "blocked", "na"];
   const LABEL = { pass: "P", fail: "F", blocked: "B", na: "–" };
+  const STATUS_NAME = { pass: "Pass", fail: "Fail", blocked: "Blocked", na: "N/A" };
   // Each verdict button renders a single glyph, so "P" would be its whole
   // accessible name. Screen readers get the word instead, and `aria-pressed`
   // carries the selection that is otherwise only in the `on` class.
@@ -144,6 +222,7 @@
   // Rollup when testers disagree on one case: the most severe verdict stands.
   const RANK = { fail: 4, blocked: 3, pass: 2, na: 1 };
   const POLL_MS = 4000;
+  const OVERVIEW = "overview";
   const OUTBOX_PREFIX = "qa-outbox:";
   /** The single shared key this page used before it kept one queue per tester. */
   const LEGACY_OUTBOX_KEY = "qa-outbox";
@@ -156,7 +235,9 @@
 
   let activeTab = "";
   let filter = "all";
-  let scope = "all";
+  // Null is the aggregate Overview. A display name may literally be
+  // "overview", so it cannot safely double as the internal mode sentinel.
+  let scope = null;
   let who = "";
   // Stable signing address in production; the loopback development bypass
   // falls back to its fixed name. Display names are never durable identifiers.
@@ -451,45 +532,151 @@
     return Object.values(entries[caseId] || {}).some((e) => e.s === "fail" || e.s === "blocked");
   }
   function hasEntry(caseId, person) { return Boolean(entryFor(caseId, person)); }
+  function statusFor(caseId, person) {
+    const entry = entryFor(caseId, person);
+    return entry && entry.s ? entry.s : "";
+  }
+  function isPersonIssue(caseId, person) {
+    return statusFor(caseId, person) === "fail" || statusFor(caseId, person) === "blocked";
+  }
+
+  function bindThemeControls(root) {
+    root.querySelectorAll("[data-theme-select]").forEach((select) => {
+      select.value = globalThis.qaTheme.read();
+      select.addEventListener("change", () => {
+        const applied = globalThis.qaTheme.apply(select.value, true);
+        document.querySelectorAll("[data-theme-select]").forEach((peer) => { peer.value = applied; });
+      });
+    });
+  }
+
+  function themeControl() {
+    const theme = globalThis.qaTheme.read();
+    return `<label class="theme-control" for="qa-theme">Theme
+      <select id="qa-theme" data-theme-select>
+        ${[["system", "System"], ["light", "Light"], ["dark", "Dark"]].map(([value, label]) =>
+          `<option value="${value}"${theme === value ? " selected" : ""}>${label}</option>`).join("")}
+      </select>
+    </label>`;
+  }
 
   // ── Counts ──────────────────────────────────────────────────────────
-  function counts(tab) {
+  function counts(tab, viewScope) {
+    const selected = viewScope === undefined ? scope : viewScope;
     const rows = CASES.filter((c) => c.tab === tab);
+    const overview = selected === null;
     return {
       total: rows.length,
-      done: rows.filter((c) => verdict(c.id)).length,
-      fails: rows.filter((c) => isIssue(c.id)).length,
+      touched: rows.filter((c) => overview
+        ? Object.keys(entries[c.id] || {}).length > 0
+        : hasEntry(c.id, selected)).length,
+      done: rows.filter((c) => overview ? verdict(c.id) : statusFor(c.id, selected)).length,
+      fails: rows.filter((c) => overview ? isIssue(c.id) : isPersonIssue(c.id, selected)).length,
     };
   }
   function scopeCount(tab, key) {
-    const rows = CASES.filter((c) => c.tab === tab);
-    return key === "all" ? rows.length : rows.filter((c) => hasEntry(c.id, key)).length;
+    const metrics = counts(tab, key);
+    return key === null ? metrics.total : metrics.touched;
   }
   function tally() {
-    // Display names are self-declared data. Escape them here just as we do in
-    // buttons and notes; this summary is also written through `innerHTML`.
-    const per = TEAM.map((n) => {
-      const name = `<span class="${n === who ? "current-tester" : "tester-name"}">${esc(n)}</span>`;
-      return `${name} ${CASES.filter((c) => hasEntry(c.id, n)).length}`;
-    });
-    const undecided = CASES.filter((c) => !verdict(c.id)).length;
-    return `${per.join(" · ")} · <b>${undecided}</b> still undecided (all tabs)`;
+    const metrics = counts(activeTab);
+    if (scope === null) {
+      return `<b>${metrics.done}/${metrics.total}</b> decided · <b>${metrics.fails}</b> issues · <b>${metrics.total - metrics.done}</b> undecided`;
+    }
+    const nameClass = scope === who ? "current-tester" : "tester-name";
+    const you = scope === who ? ' <span class="you-summary">(You)</span>' : "";
+    return `<span class="${nameClass}">${esc(scope)}</span>${you} · <b>${metrics.touched}</b> touched · <b>${metrics.done}/${metrics.total}</b> decided · <b>${metrics.fails}</b> issues`;
+  }
+
+  function caseFlags(testCase) {
+    return (testCase.rp ? '<span class="flag">prod</span>' : testCase.rd ? '<span class="flag">device</span>' : "")
+      + (testCase.tx ? '<span class="flag txf">tx</span>' : "");
+  }
+
+  function notePanelId(caseId) {
+    return "overview-notes-" + String(caseId).replace(/[^a-zA-Z0-9_-]/g, "-");
+  }
+
+  function renderOverviewRows(rows) {
+    return rows.map((testCase) => {
+      const caseVerdict = verdict(testCase.id);
+      const quietlyResolved = caseVerdict && !isIssue(testCase.id);
+      const statuses = TEAM.map((person) => {
+        const status = statusFor(testCase.id, person);
+        const statusClass = status || "untested";
+        const statusName = status ? STATUS_NAME[status] : "Not tested";
+        return `<span class="person-status ${statusClass}" role="listitem"><b>${esc(person)}:</b>${esc(statusName)}</span>`;
+      }).join("");
+      const notes = TEAM.map((person) => [person, entryFor(testCase.id, person)])
+        .filter(([, entry]) => entry && entry.n && entry.n.trim());
+      const notesId = notePanelId(testCase.id);
+      const noteSummary = notes.length
+        ? `<button type="button" class="notes-toggle" data-notes-toggle="${esc(notesId)}" data-case="${esc(testCase.id)}" data-count="${notes.length}" aria-expanded="false" aria-controls="${esc(notesId)}" aria-label="Show ${notes.length} ${notes.length === 1 ? "note" : "notes"} for ${esc(testCase.id)}">Show ${notes.length} ${notes.length === 1 ? "note" : "notes"}</button>
+          <div class="overview-notes" id="${esc(notesId)}" hidden>${notes.map(([person, entry]) =>
+            `<div class="onote"><b>${esc(person)}:</b> ${esc(entry.n)}</div>`).join("")}</div>`
+        : '<span class="no-notes">No notes</span>';
+      return `<div class="row overview-row ${quietlyResolved ? "done" : ""}">
+        <div class="rid"><b>${esc(testCase.id)}</b>${esc(testCase.pri)}</div>
+        <div class="scen">${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${esc(testCase.expected)}</span></div>
+        <div class="team-statuses" role="list" aria-label="${esc(testCase.id)} team verdicts">${statuses}</div>
+        <div class="overview-note-summary">${noteSummary}</div>
+      </div>`;
+    }).join("");
+  }
+
+  function renderPersonRows(rows) {
+    const selected = scope;
+    const editable = selected === who;
+    return rows.map((testCase) => {
+      const entry = entryFor(testCase.id, selected);
+      const status = entry && entry.s ? entry.s : "";
+      const quietlyResolved = status === "pass" || status === "na";
+      const controls = editable
+        ? `<div class="ctl" role="group" aria-label="${esc(testCase.id)} verdict">${STATUSES.map((candidate) =>
+          `<button class="st ${candidate} ${status === candidate ? "on" : ""}" data-id="${esc(testCase.id)}" data-s="${candidate}" aria-pressed="${status === candidate ? "true" : "false"}" aria-label="${esc(SPOKEN[candidate])}" title="${esc(who)}: ${candidate}">${LABEL[candidate]}</button>`).join("")}</div>`
+        : `<div class="ctl"><span class="readonly-status ${status}">${esc(status ? STATUS_NAME[status] : "Undecided")}</span></div>`;
+      const note = editable
+        ? `<div class="note"><textarea data-note="${esc(testCase.id)}" rows="1" maxlength="4000" aria-label="${esc(testCase.id)} — ${esc(who)}'s notes" placeholder="${esc(who)}'s notes — saves as you go…">${esc(entry ? entry.n || "" : "")}</textarea></div>`
+        : `<div class="note"><div class="readonly-note ${entry && entry.n ? "has-note" : ""}"><b>${esc(selected)}:</b> ${entry && entry.n ? esc(entry.n) : "No note recorded."}</div></div>`;
+      return `<div class="row ${quietlyResolved ? "done" : ""}">
+        <div class="rid"><b>${esc(testCase.id)}</b>${esc(testCase.pri)}</div>
+        <div class="scen">${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${esc(testCase.expected)}</span></div>
+        ${controls}${note}
+      </div>`;
+    }).join("");
+  }
+
+  function matchesCurrentView(testCase) {
+    if (scope === null) {
+      if (filter === "issues") return isIssue(testCase.id);
+      if (filter === "open") return !verdict(testCase.id);
+      return true;
+    }
+    const entry = entryFor(testCase.id, scope);
+    if (scope !== who && !entry) return false;
+    if (filter === "issues") return isPersonIssue(testCase.id, scope);
+    if (filter === "open") return !statusFor(testCase.id, scope);
+    return true;
   }
 
   // ── Render ──────────────────────────────────────────────────────────
   function render() {
+    const modeDescription = scope === null
+      ? "Compare team coverage, verdicts, and notes"
+      : scope === who
+        ? `Recording as ${esc(who)} — your wallet owns these entries`
+        : `Reviewing ${esc(scope)} — read only`;
     const head = `<header>
-      <h1>Green Goods QA</h1>
-      <div class="runline">${CASES.length} cases · each signed-in tester keeps their own verdict and notes</div>
+      <div class="title-row"><div><h1>Green Goods QA</h1><div class="runline">${modeDescription}</div></div>${themeControl()}</div>
       <div class="header-row tab-row">
         <div class="tabs" role="group" aria-label="QA surface">${TABS.map((t) => {
           const k = counts(t);
           return `<button class="tab ${t === activeTab ? "on" : ""}" data-tab="${esc(t)}" aria-pressed="${t === activeTab ? "true" : "false"}">${esc(t)}<small>${k.done}/${k.total}${k.fails ? " · " + k.fails + "F" : ""}</small></button>`;
         }).join("")}</div>
-        <div class="scoperow" role="group" aria-label="whose entries to show"><span class="grouplabel">showing</span>${
-          [["all", "Everyone"]].concat(TEAM.map((n) => [n, n])).map(([k, l]) =>
-            `<button class="scope-btn ${scope === k ? "on" : ""}" data-scope="${esc(k)}" aria-pressed="${scope === k ? "true" : "false"}">${esc(l)}<small>${scopeCount(activeTab, k)}</small></button>`).join("")
-        }</div>
+        <div class="scoperow" role="group" aria-label="QA view"><span class="grouplabel">view</span>
+          <button class="scope-btn ${scope === null ? "on" : ""}" data-overview aria-pressed="${scope === null ? "true" : "false"}">Overview<small>${scopeCount(activeTab, null)}</small></button>
+          ${TEAM.map((name) => `<button class="scope-btn ${scope === name ? "on" : ""}" data-person="${esc(name)}" aria-pressed="${scope === name ? "true" : "false"}">${esc(name)}${name === who ? '<span class="you">You</span>' : ""}<small>${scopeCount(activeTab, name)}</small></button>`).join("")}
+        </div>
       </div>
       <div class="header-row filter-row">
         <div class="filters" role="group" aria-label="case status">${[["all", "All"], ["issues", "Issues"], ["open", "Undecided"]].map(([k, l]) =>
@@ -498,36 +685,25 @@
       </div>
     </header>`;
 
-    const rows = CASES.filter((c) => c.tab === activeTab).filter((c) => {
-      if (filter === "issues" && !isIssue(c.id)) return false;
-      if (filter === "open" && verdict(c.id)) return false;
-      if (scope !== "all" && !hasEntry(c.id, scope)) return false;
-      return true;
-    });
+    const rows = CASES.filter((testCase) => testCase.tab === activeTab).filter(matchesCurrentView);
 
     const areas = [...new Set(rows.map((c) => c.area))];
-    const body = areas.map((a) => `<div class="area">${esc(a)}</div>` + rows.filter((c) => c.area === a).map((c) => {
-      const ents = entries[c.id] || {};
-      const own = who ? ents[who] : null;
-      const flag = (c.rp ? '<span class="flag">prod</span>' : c.rd ? '<span class="flag">device</span>' : "")
-        + (c.tx ? '<span class="flag txf">tx</span>' : "");
-      const marks = Object.entries(ents).filter(([, e]) => e.s).map(([p, e]) =>
-        `<i class="mark ${esc(e.s)}" title="${esc(p)}: ${esc(e.s)}">${esc(p)} ${LABEL[e.s] || "?"}</i>`).join("");
-      // Other testers' notes stay visible and untouched while you write yours.
-      const others = Object.entries(ents).filter(([p, e]) => p !== who && e.n).map(([p, e]) =>
-        `<div class="onote"><b>${esc(p)}</b>${esc(e.n)}</div>`).join("");
-      return `<div class="row ${verdict(c.id) ? "done" : ""}">
-        <div class="rid"><b>${esc(c.id)}</b>${esc(c.pri)}${marks}</div>
-        <div class="scen">${esc(c.scenario)}${flag}<span class="why">${esc(c.expected)}</span></div>
-        <div class="ctl" role="group" aria-label="${esc(c.id)} verdict">${STATUSES.map((s) =>
-          `<button class="st ${s} ${own && own.s === s ? "on" : ""}" data-id="${esc(c.id)}" data-s="${s}" aria-pressed="${own && own.s === s ? "true" : "false"}" aria-label="${esc(SPOKEN[s])}" title="${who ? esc(who) + ": " + s : "pick your name first"}"${who ? "" : " disabled"}>${LABEL[s]}</button>`).join("")}</div>
-        <div class="note">${others}<textarea data-note="${esc(c.id)}" rows="1" maxlength="4000" aria-label="${esc(c.id)} — ${who ? esc(who) + "'s notes" : "notes"}" placeholder="${who ? esc(who) + "'s notes — saves as you go…" : "pick your name above to add notes"}"${who ? "" : " disabled"}>${esc(own ? own.n || "" : "")}</textarea></div>
-      </div>`;
-    }).join("")).join("");
+    const body = areas.map((area) => {
+      const areaRows = rows.filter((testCase) => testCase.area === area);
+      return `<div class="area">${esc(area)}</div>${scope === null ? renderOverviewRows(areaRows) : renderPersonRows(areaRows)}`;
+    }).join("");
+
+    const empty = scope === null
+      ? `No cases match this filter on the ${esc(activeTab)} tab.`
+      : scope === who
+        ? `No cases match your ${filter === "all" ? "current" : esc(filter)} filter on the ${esc(activeTab)} tab.`
+        : `${esc(scope)} has no matching recorded cases on the ${esc(activeTab)} tab.`;
 
     mount.innerHTML = head + (rows.length
       ? `<main>${body}</main>`
-      : `<main><p class="empty">No cases match — ${scope === "all" ? "this filter" : esc(scope) + " has not recorded anything"} on the ${esc(activeTab)} tab.</p></main>`);
+      : `<main><p class="empty">${empty}</p></main>`);
+
+    bindThemeControls(mount);
 
     mount.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => {
       activeTab = b.dataset.tab; saveView(); render();
@@ -536,11 +712,23 @@
       filter = b.dataset.f; saveView(); render();
     }));
     mount.querySelectorAll(".scope-btn").forEach((b) => b.addEventListener("click", () => {
-      scope = b.dataset.scope; saveView(); render();
+      scope = b.hasAttribute("data-overview") ? null : b.dataset.person; saveView(); render();
+    }));
+    mount.querySelectorAll("[data-notes-toggle]").forEach((button) => button.addEventListener("click", () => {
+      const panel = document.getElementById(button.dataset.notesToggle);
+      if (!panel) return;
+      const expanded = button.getAttribute("aria-expanded") === "true";
+      const next = !expanded;
+      const count = Number(button.dataset.count) || 0;
+      const noun = count === 1 ? "note" : "notes";
+      panel.hidden = !next;
+      button.setAttribute("aria-expanded", String(next));
+      button.textContent = `${next ? "Hide" : "Show"} ${count} ${noun}`;
+      button.setAttribute("aria-label", `${next ? "Hide" : "Show"} ${count} ${noun} for ${button.dataset.case}`);
     }));
     mount.querySelector(".signout-btn")?.addEventListener("click", signOut);
     mount.querySelectorAll(".st").forEach((b) => b.addEventListener("click", () => {
-      if (!who) return;
+      if (!who || scope !== who) return;
       const id = b.dataset.id;
       const cur = entryFor(id, who) || { s: "", n: "" };
       const next = cur.s === b.dataset.s ? "" : b.dataset.s;
@@ -551,7 +739,7 @@
     mount.querySelectorAll("[data-note]").forEach((i) => {
       growEl(i);
       i.addEventListener("input", () => {
-        if (!who) return;
+        if (!who || scope !== who) return;
         growEl(i);
         const id = i.dataset.note;
         const cur = entryFor(id, who) || { s: "" };
@@ -572,7 +760,7 @@
   function saveView() {
     try {
       sessionStorage.setItem("qa-view", JSON.stringify({
-        tab: activeTab, filter, scope, scroll: window.scrollY,
+        tab: activeTab, filter, scope: scope === null ? OVERVIEW : scope, scroll: window.scrollY,
       }));
     } catch (e) {}
   }
@@ -901,7 +1089,7 @@
       TEAM = nextTeam;
       who = nextWho;
       if (scope === previousWho && previousWho !== nextWho) scope = nextWho;
-      else if (scope !== "all" && !TEAM.includes(scope)) scope = "all";
+      else if (scope !== null && !TEAM.includes(scope)) scope = who || null;
       entries = remote;
       const changed = before !== JSON.stringify({ team: TEAM, who, entries });
       if (changed) {
@@ -928,6 +1116,7 @@
     }
   }
 
+  bindThemeControls(document.getElementById("signin"));
   document.getElementById("signin-btn").addEventListener("click", signIn);
 
   // ── Boot ────────────────────────────────────────────────────────────
@@ -976,7 +1165,8 @@
 
       activeTab = TABS.includes(view.tab) ? view.tab : TABS[0];
       filter = ["all", "issues", "open"].includes(view.filter) ? view.filter : "all";
-      scope = ["all"].concat(TEAM).includes(view.scope) ? view.scope : "all";
+      const storedScope = view.scope === "all" ? OVERVIEW : view.scope;
+      scope = storedScope === OVERVIEW ? null : TEAM.includes(storedScope) ? storedScope : who || null;
 
       adoptRecoveredOutbox();
 
