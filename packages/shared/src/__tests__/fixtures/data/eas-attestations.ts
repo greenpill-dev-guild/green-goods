@@ -1,7 +1,7 @@
 export const gardenAssessmentAttestation = {
   id: "0xAssessment1",
-  attester: "0xAttester",
-  recipient: "0xGarden",
+  attester: "0x04D60647836bcA09c37B379550038BdaaFD82503",
+  recipient: "0x1111111111111111111111111111111111111111",
   timeCreated: 1_700_000_000,
   decodedDataJson: JSON.stringify([
     { name: "title", value: { value: "Test Assessment" } },
@@ -16,8 +16,8 @@ export const gardenAssessmentAttestation = {
 
 export const workAttestation = {
   id: "0xWork1",
-  attester: "0xGardener",
-  recipient: "0xGardenAddress",
+  attester: "0x1234567890123456789012345678901234567890",
+  recipient: "0x1111111111111111111111111111111111111111",
   timeCreated: 1_700_000_000,
   decodedDataJson: JSON.stringify([
     { name: "feedback", value: { value: "Great work" } },
@@ -28,8 +28,8 @@ export const workAttestation = {
 
 export const workApprovalAttestation = {
   id: "0xApproval1",
-  attester: "0xOperator",
-  recipient: "0xGardener",
+  attester: "0x04D60647836bcA09c37B379550038BdaaFD82503",
+  recipient: "0x1234567890123456789012345678901234567890",
   timeCreated: 1_700_000_000,
   decodedDataJson: JSON.stringify([
     { name: "workUID", value: { value: "0xWork1" } },

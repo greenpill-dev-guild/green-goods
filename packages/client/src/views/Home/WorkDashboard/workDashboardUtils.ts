@@ -41,8 +41,8 @@ interface CompletedApproval {
   workUID: string;
   title?: string;
   actionUID: number | string;
-  gardenerAddress: string;
-  gardenId?: string;
+  gardenerAddress: Address;
+  gardenId?: Address;
   feedback?: string;
   createdAt: number;
   status: "approved" | "rejected" | "pending" | "syncing" | "failed";
@@ -52,7 +52,7 @@ interface CompletedApproval {
 interface ReceivedApproval {
   workUID: string;
   actionUID: number | string;
-  gardenerAddress: string;
+  gardenerAddress: Address;
   feedback?: string;
   createdAt: number;
   approved: boolean;
@@ -78,8 +78,8 @@ export function approvalsToCompletedWorks(approvals: CompletedApproval[]): Work[
       id: approval.workUID,
       title: approval.title || `Work ${String(approval.workUID || "").slice(0, 8)}...`,
       actionUID: toActionUID(approval.actionUID),
-      gardenerAddress: approval.gardenerAddress as Address,
-      gardenAddress: (approval.gardenId || ZERO_ADDRESS) as Address,
+      gardenerAddress: approval.gardenerAddress,
+      gardenAddress: approval.gardenId ?? ZERO_ADDRESS,
       feedback: approval.feedback || "",
       metadata: "",
       media: [],
@@ -101,7 +101,7 @@ export function receivedApprovalsToWorks(
       id: a.workUID,
       title: originalWork?.title || `Work ${String(a.workUID || "").slice(0, 8)}...`,
       actionUID: originalWork?.actionUID ?? toActionUID(a.actionUID),
-      gardenerAddress: (originalWork?.gardenerAddress ?? a.gardenerAddress) as Address,
+      gardenerAddress: originalWork?.gardenerAddress ?? a.gardenerAddress,
       gardenAddress: originalWork?.gardenAddress ?? ZERO_ADDRESS,
       feedback: a.feedback ?? "",
       metadata: originalWork?.metadata ?? "",

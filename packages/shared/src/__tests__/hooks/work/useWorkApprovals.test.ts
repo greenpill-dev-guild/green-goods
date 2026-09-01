@@ -117,6 +117,29 @@ describe("useWorkApprovals", () => {
       expect(result.current.isLoading).toBe(false);
       expect(result.current.approvals).toEqual([]);
     });
+
+    it("skips malformed GraphQL approval addresses", async () => {
+      mockQueryFn.mockResolvedValue({
+        data: {
+          attestations: [
+            {
+              id: "0xApproval",
+              attester: "not-an-address",
+              recipient: MOCK_ADDRESSES.gardener,
+              timeCreated: 1_700_000_000,
+              decodedDataJson: "[]",
+            },
+          ],
+        },
+      });
+
+      const { result } = renderHook(() => useWorkApprovals(MOCK_ADDRESSES.steward), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.approvals).toEqual([]);
+    });
   });
 
   // ------------------------------------------

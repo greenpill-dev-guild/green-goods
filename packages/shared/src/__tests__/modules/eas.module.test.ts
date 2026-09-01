@@ -151,6 +151,16 @@ describe("modules/data/eas", () => {
 
       expect(result).toEqual([]);
     });
+
+    it("skips attestations with invalid GraphQL addresses", async () => {
+      mockQuery.mockResolvedValue({
+        data: {
+          attestations: [{ ...workApprovalAttestation, recipient: "not-an-address" }],
+        },
+      });
+
+      await expect(getWorkApprovals(undefined, 11155111, reader)).resolves.toEqual([]);
+    });
   });
 
   describe("getWorkApprovalsForWork", () => {
@@ -182,13 +192,13 @@ describe("modules/data/eas", () => {
     it("preserves a mismatched historical recipient for the classifier to reject", async () => {
       const historical = {
         ...workApprovalAttestation,
-        recipient: "0xHistoricalGardener",
+        recipient: "0x9999999999999999999999999999999999999999",
       };
       mockQuery.mockResolvedValue({ data: { attestations: [historical] } });
 
       const [approval] = await getWorkApprovalsForWork("0xWork1", 11155111, reader);
 
-      expect(approval.gardenerAddress).toBe("0xHistoricalGardener");
+      expect(approval.gardenerAddress).toBe("0x9999999999999999999999999999999999999999");
     });
   });
 });

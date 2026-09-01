@@ -195,7 +195,7 @@ export function useDrafts() {
    * Create a new draft or get existing one for the current garden/action
    */
   const createOrGetDraft = useCallback(
-    async (gardenAddress: string | null, actionUID: number | null): Promise<string> => {
+    async (gardenAddress: Address | null, actionUID: number | null): Promise<string> => {
       if (!userAddress) throw new Error("User not authenticated");
 
       // Check if there's already an active draft for this garden/action
@@ -211,7 +211,7 @@ export function useDrafts() {
 
       // Create new draft
       const draftId = await createDraftMutation.mutateAsync({
-        gardenAddress: gardenAddress as Address | null,
+        gardenAddress,
         actionUID,
         currentStep: "intro",
         firstIncompleteStep: "intro",

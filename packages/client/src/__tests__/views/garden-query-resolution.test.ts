@@ -13,6 +13,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
+import type { Address } from "@green-goods/shared/types/domain";
 
 // Stubbed `deriveSlug` mirrors the shared helper without pulling the wallet
 // runtime barrel into this test (the worktree environment cannot resolve
@@ -88,7 +89,7 @@ describe("resolveGardenQuery", () => {
     const twin: PublicGardenSummary = {
       ...solar,
       id: solar.id.slice(0, 8) + "9999999999999999999999999999999999",
-      address: (solar.id.slice(0, 8) + "9999999999999999999999999999999999") as `0x${string}`,
+      address: (solar.id.slice(0, 8) + "9999999999999999999999999999999999") as Address,
       name: solar.name,
     };
     const slug = fakeDeriveSlug(solar.name, solar.id);

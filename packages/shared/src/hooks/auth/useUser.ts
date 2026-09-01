@@ -48,9 +48,9 @@ export interface UseUserReturn {
   /** Whether auth state is ready (not initializing) */
   ready: boolean;
   /** EOA object (only set when authMode === "wallet") */
-  eoa: { address: string } | null;
+  eoa: { address: Address } | null;
   /** Smart account address (only set when authMode === "passkey") */
-  smartAccountAddress: string | null;
+  smartAccountAddress: Address | null;
   /** Smart account client for transactions (passkey mode only) */
   smartAccountClient: SmartAccountClient | null;
   /** Current authentication mode */
@@ -62,7 +62,7 @@ export interface UseUserReturn {
   /** External wallet connected (available for switching) */
   externalWalletConnected: boolean;
   /** External wallet address (may differ from walletAddress in passkey mode) */
-  externalWalletAddress: string | null;
+  externalWalletAddress: Address | null;
   /** Primary address based on current auth mode */
   primaryAddress: Address | null;
 }

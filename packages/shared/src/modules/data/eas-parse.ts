@@ -1,5 +1,7 @@
+import { getAddress, isAddress } from "viem";
 import type { Address, WorkApproval } from "../../types/domain";
 import type {
+  EASAttestationRaw,
   EASDecodedField,
   EASGardenAssessment,
   EASWork,
@@ -7,6 +9,37 @@ import type {
 } from "../../types/eas-responses";
 import { logger } from "../app/logger";
 import { resolveIPFSUrl } from "./ipfs/resolve";
+
+/** Validate and normalize an untrusted EAS GraphQL attestation record. */
+export function parseEasAttestationRecord(attestation: unknown): EASAttestationRaw {
+  if (!attestation || typeof attestation !== "object" || Array.isArray(attestation)) {
+    throw new TypeError("EAS attestation must be an object");
+  }
+
+  const candidate = attestation as Record<string, unknown>;
+  if (typeof candidate.id !== "string" || typeof candidate.decodedDataJson !== "string") {
+    throw new TypeError("EAS attestation is missing its id or decoded data");
+  }
+  if (typeof candidate.attester !== "string" || !isAddress(candidate.attester)) {
+    throw new TypeError("EAS attestation has an invalid attester address");
+  }
+  if (typeof candidate.recipient !== "string" || !isAddress(candidate.recipient)) {
+    throw new TypeError("EAS attestation has an invalid recipient address");
+  }
+  if (typeof candidate.timeCreated !== "number" && typeof candidate.timeCreated !== "string") {
+    throw new TypeError("EAS attestation has an invalid creation time");
+  }
+
+  return {
+    id: candidate.id,
+    attester: getAddress(candidate.attester),
+    recipient: getAddress(candidate.recipient),
+    timeCreated: candidate.timeCreated,
+    decodedDataJson: candidate.decodedDataJson,
+    ...(typeof candidate.revoked === "boolean" ? { revoked: candidate.revoked } : {}),
+    ...(typeof candidate.schemaId === "string" ? { schemaId: candidate.schemaId } : {}),
+  };
+}
 
 type NumberConvertibleValue =
   | number
@@ -133,7 +166,7 @@ interface WorkApprovalAttestationRecord {
   id: string;
   attester: Address;
   recipient: Address;
-  timeCreated: number;
+  timeCreated: number | string;
   decodedDataJson: string;
 }
 
@@ -145,7 +178,7 @@ export function parseWorkApprovalAttestation(
     {
       attester: attestation.attester,
       recipient: attestation.recipient,
-      time: attestation.timeCreated,
+      time: Number(attestation.timeCreated),
     },
     attestation.decodedDataJson
   );

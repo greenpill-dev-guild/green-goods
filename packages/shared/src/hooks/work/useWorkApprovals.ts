@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getEASConfig } from "../../config/blockchain";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { logger } from "../../modules/app/logger";
+import { parseEasAttestationRecord } from "../../modules/data/eas-parse";
 import { parseWorkApprovalAttestation } from "../../modules/data/eas";
 import { easGraphQL } from "../../modules/data/graphql";
 import { createEasClient } from "../../modules/data/graphql-client";
@@ -18,14 +19,14 @@ export interface EnhancedWorkApproval extends WorkApproval {
   // Add missing properties that UI expects
   title: string;
   description: string;
-  gardenId: string;
+  gardenId?: Address;
 }
 
 // Function to get work approvals by attester address.
 // Throws on network/server errors so React Query can surface them.
 // Individual attestation parse failures are logged and skipped gracefully.
 async function getWorkApprovalsByAttester(
-  attesterAddress: string,
+  attesterAddress: Address,
   chainId: number
 ): Promise<WorkApproval[]> {
   const QUERY = easGraphQL(/* GraphQL */ `
@@ -63,13 +64,7 @@ async function getWorkApprovalsByAttester(
 
   return (data.attestations as unknown[]).flatMap((attestation: unknown) => {
     try {
-      const att = attestation as {
-        id: string;
-        attester: Address;
-        recipient: Address;
-        timeCreated: number;
-        decodedDataJson: string;
-      };
+      const att = parseEasAttestationRecord(attestation);
       const approval: WorkApproval = parseWorkApprovalAttestation(att);
       return [approval];
     } catch (parseError) {
@@ -87,7 +82,7 @@ async function getWorkApprovalsByAttester(
  * Hook for work approvals where the user is the attester (reviewer)
  * Used by WorkDashboard to show all work the user has reviewed
  */
-export function useWorkApprovals(attesterAddress?: string) {
+export function useWorkApprovals(attesterAddress?: Address) {
   const chainId = DEFAULT_CHAIN_ID;
 
   // Online work approvals query (where user is attester)
@@ -113,7 +108,6 @@ export function useWorkApprovals(attesterAddress?: string) {
         title: `Work ${(approval.workUID || "").slice(0, 8) || "Unknown"}...`,
         description:
           approval.feedback || `${approval.approved ? "Approved" : "Rejected"} work submission`,
-        gardenId: approval.workUID || approval.id, // Use workUID as gardenId fallback
       })
     ),
   ];
