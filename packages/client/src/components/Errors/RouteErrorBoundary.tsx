@@ -167,7 +167,7 @@ function buildBugReport(error: NormalizedError, category: ErrorCategory, locale:
 export const RouteErrorBoundary: React.FC = () => {
   const rawError = useRouteError();
   const error = useMemo(() => normalizeRouteError(rawError), [rawError]);
-  const category = useMemo(() => classifyErrorMessage(error.message), [error]);
+  const category = useMemo(() => classifyErrorMessage(error.message), [error.message]);
   const [locale] = useState<Locale>(getBrowserLocale);
   const [messages, setMessages] = useState<Messages>(defaultErrorBoundaryMessages);
   const [showDetails, setShowDetails] = useState(false);

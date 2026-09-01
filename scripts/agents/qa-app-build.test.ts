@@ -21,23 +21,70 @@ const apiDir = path.join(appDir, "api");
 const endpointFiles = readdirSync(apiDir).filter((file) => file.endsWith(".ts")).sort();
 const page = readFileSync(path.join(appDir, "index.html"), "utf8");
 
-function inlineScript(): string {
+function inlineScript(id: "theme-bootstrap" | "qa-app"): string {
   // Literal slicing rather than a tag-shaped regex. This is not sanitizing
   // hostile HTML — it reads one file we author — but a regex that pattern-
   // matches an HTML tag reads as a broken sanitizer to scanners, and the
   // string search is both clearer and exactly as correct here.
-  const OPEN = "<script>";
+  const OPEN = `<script id="${id}">`;
   const start = page.indexOf(OPEN);
-  const end = page.lastIndexOf("</script>");
-  if (start < 0 || end < start) throw new Error("index.html has no inline <script>");
+  const end = page.indexOf("</script>", start);
+  if (start < 0 || end < start) throw new Error(`index.html has no ${id} script`);
   return page.slice(start + OPEN.length, end);
 }
 
+function sourceBetween(source: string, start: string, end: string): string {
+  const from = source.indexOf(start);
+  const to = source.indexOf(end, from);
+  if (from < 0 || to < from) throw new Error(`Could not find source between ${start} and ${end}`);
+  return source.slice(from, to);
+}
+
 describe("QA app page", () => {
-  it("has an inline script that actually parses", () => {
+  it("has theme bootstrap and app scripts that both parse", () => {
     // `new Script` compiles without running: a missing brace or a stray `*/`
     // fails here instead of at the top of Tuesday's session.
-    expect(() => new Script(inlineScript())).not.toThrow();
+    expect(() => new Script(inlineScript("theme-bootstrap"))).not.toThrow();
+    expect(() => new Script(inlineScript("qa-app"))).not.toThrow();
+  });
+
+  it("applies and persists System, Light, and Dark before first paint", () => {
+    expect(page).toContain('<meta name="color-scheme" content="light dark">');
+    expect(page.indexOf('<script id="theme-bootstrap">')).toBeLessThan(page.indexOf("<style>"));
+
+    const saved = new Map<string, string>([["qa-theme", "dark"]]);
+    const root = { dataset: {} as Record<string, string>, style: { colorScheme: "" } };
+    const meta = { content: "light dark" };
+    const context = {
+      document: {
+        documentElement: root,
+        querySelector: () => meta,
+      },
+      localStorage: {
+        getItem: (key: string) => saved.get(key) ?? null,
+        setItem: (key: string, value: string) => saved.set(key, value),
+      },
+    } as {
+      document: unknown;
+      localStorage: unknown;
+      qaTheme?: { apply: (theme: string, persist: boolean) => string };
+    };
+
+    new Script(inlineScript("theme-bootstrap")).runInNewContext(context);
+    expect(root.dataset.theme).toBe("dark");
+    expect(root.style.colorScheme).toBe("dark");
+    expect(meta.content).toBe("dark");
+
+    context.qaTheme?.apply("light", true);
+    expect(saved.get("qa-theme")).toBe("light");
+    expect(root.dataset.theme).toBe("light");
+    expect(meta.content).toBe("light");
+
+    context.qaTheme?.apply("system", true);
+    expect(saved.get("qa-theme")).toBe("system");
+    expect(root.dataset.theme).toBeUndefined();
+    expect(root.style.colorScheme).toBe("light dark");
+    expect(meta.content).toBe("light dark");
   });
 
   it("does not let overlay display rules override the hidden state", () => {
@@ -52,7 +99,7 @@ describe("QA app page", () => {
   });
 
   it("gives every selectable control a selected state and every note a name", () => {
-    const script = inlineScript();
+    const script = inlineScript("qa-app");
     // Selection lived only in the `on` class, which a screen reader cannot see.
     // Every group that renders `on` has to render the matching state as well.
     const selectable = ["tab", "filt", "scope-btn", "st"];
@@ -61,7 +108,7 @@ describe("QA app page", () => {
       expect(rendered.slice(0, 400), `${control} has no selected state`).toContain("aria-pressed");
     }
     // The textareas render one per case and would otherwise share a placeholder.
-    expect(script).toMatch(/data-note="\$\{esc\(c\.id\)\}"[^>]*aria-label=/);
+    expect(script).toMatch(/data-note="\$\{esc\(testCase\.id\)\}"[^>]*aria-label=/);
     // The verdict glyphs need a spoken name; "P" is not one.
     expect(script).toContain('const SPOKEN = { pass: "pass", fail: "fail", blocked: "blocked", na: "not applicable" }');
   });
@@ -76,7 +123,38 @@ describe("QA app page", () => {
     expect(page).not.toContain('>testing as<');
   });
 
-  it("keeps tabs and showing controls together, then filters and summary together", () => {
+  it("separates the read-only Overview from personal recording", () => {
+    const script = inlineScript("qa-app");
+    const overview = sourceBetween(script, "function renderOverviewRows", "function renderPersonRows");
+    const personal = sourceBetween(script, "function renderPersonRows", "function matchesCurrentView");
+
+    expect(page).not.toContain("Everyone");
+    expect(overview).toContain('class="person-status');
+    expect(overview).toContain("data-notes-toggle");
+    expect(overview).not.toContain("data-note=");
+    expect(overview).not.toContain('class="st ');
+    expect(personal).toContain("const editable = selected === who");
+    expect(personal).toContain('class="readonly-status');
+    expect(personal).toContain("data-note=");
+  });
+
+  it("scopes filters and defaults to the signed-in tester", () => {
+    const script = inlineScript("qa-app");
+    const matching = sourceBetween(script, "function matchesCurrentView", "// ── Render");
+
+    expect(matching).toContain('if (scope === null)');
+    expect(matching).toContain('if (filter === "issues") return isIssue(testCase.id)');
+    expect(matching).toContain('if (filter === "open") return !verdict(testCase.id)');
+    expect(matching).toContain("if (scope !== who && !entry) return false");
+    expect(matching).toContain('if (filter === "issues") return isPersonIssue(testCase.id, scope)');
+    expect(matching).toContain('if (filter === "open") return !statusFor(testCase.id, scope)');
+    expect(script).toContain('const storedScope = view.scope === "all" ? OVERVIEW : view.scope');
+    expect(script).toContain(
+      "scope = storedScope === OVERVIEW ? null : TEAM.includes(storedScope) ? storedScope : who || null",
+    );
+  });
+
+  it("keeps tabs and view controls together, then filters and summary together", () => {
     // These are the two scan lines a tester uses throughout a walk. Keep each
     // pair in one flex row so wide screens do not spend four lines on controls.
     expect(page).toMatch(/class="header-row tab-row"[\s\S]*class="tabs"[\s\S]*class="scoperow"/);

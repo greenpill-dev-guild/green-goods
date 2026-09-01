@@ -193,7 +193,7 @@ export const getWorksByGardener = async (
 
   return (data.attestations as EASAttestationRaw[]).map(
     ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-      parseDataToWork(id, { attester, recipient, time: timeCreated as number }, decodedDataJson)
+      parseDataToWork(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
   );
 };
 

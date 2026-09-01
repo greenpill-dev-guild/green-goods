@@ -49,30 +49,66 @@ async function waitForActiveServiceWorker(page: import("@playwright/test").Page)
     "Offline reload requires service-worker support on a secure localhost or HTTPS origin."
   ).toEqual({ secureContext: true, supported: true });
 
-  // The app registers the dev service worker itself during boot (and sweeps
-  // legacy scopes while doing so), so this helper observes rather than drives:
-  // racing a second register/update against the app's own registration made
-  // Chromium reject with "Failed to update a ServiceWorker … Not found".
-  await expect(async () => {
-    const state = await page.evaluate(
-      async ({ scriptUrl, scope }) => {
-        const existing = await navigator.serviceWorker.getRegistration(scope);
-        if (existing?.active) return "active";
-        if (!existing) {
-          try {
-            await navigator.serviceWorker.register(scriptUrl, { scope, updateViaCache: "none" });
-          } catch {
-            // The app may be registering the same scope concurrently; the poll retries.
-          }
+  // The app normally registers the dev worker during boot. If that has not
+  // started yet, register once, then observe that worker's lifecycle instead
+  // of racing repeated register/update calls against the app.
+  await page.evaluate(
+    async ({ scriptUrl, scope, timeoutMs }) => {
+      let registration = await navigator.serviceWorker.getRegistration(scope);
+      let registrationError: unknown;
+
+      if (!registration) {
+        try {
+          registration = await navigator.serviceWorker.register(scriptUrl, {
+            scope,
+            updateViaCache: "none",
+          });
+        } catch (error) {
+          registrationError = error;
+          registration = await navigator.serviceWorker.getRegistration(scope);
         }
-        const registration = await navigator.serviceWorker.getRegistration(scope);
-        if (registration?.active) return "active";
-        return registration ? "pending" : "absent";
-      },
-      { scriptUrl: PWA_DEV_SERVICE_WORKER_SCRIPT, scope: PWA_APP_SCOPE }
-    );
-    expect(state).toBe("active");
-  }).toPass({ timeout: 30000 });
+      }
+
+      if (!registration) {
+        const detail = registrationError instanceof Error ? `: ${registrationError.message}` : "";
+        throw new Error(`Service worker registration failed${detail}`);
+      }
+      if (registration.active?.state === "activated") return;
+
+      const worker = registration.installing ?? registration.waiting ?? registration.active;
+      if (!worker) {
+        throw new Error("Service worker registration has no installing, waiting, or active worker");
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        const cleanup = () => {
+          window.clearTimeout(timeout);
+          worker.removeEventListener("statechange", onStateChange);
+        };
+        const onStateChange = () => {
+          if (worker.state === "activated" || registration.active?.state === "activated") {
+            cleanup();
+            resolve();
+          } else if (worker.state === "redundant") {
+            cleanup();
+            reject(new Error("Service worker became redundant before activation"));
+          }
+        };
+        const timeout = window.setTimeout(() => {
+          cleanup();
+          reject(new Error(`Service worker remained ${worker.state} after ${timeoutMs}ms`));
+        }, timeoutMs);
+
+        worker.addEventListener("statechange", onStateChange);
+        onStateChange();
+      });
+    },
+    {
+      scriptUrl: PWA_DEV_SERVICE_WORKER_SCRIPT,
+      scope: PWA_APP_SCOPE,
+      timeoutMs: 20000,
+    }
+  );
 
   await expect
     .poll(
@@ -224,7 +260,7 @@ test.describe("Offline Sync CI Tests", () => {
       await expect(dashboardButton).toBeVisible({ timeout: 10000 });
 
       // Verify button is enabled while online
-      await expect(dashboardButton).toBeEnabled({ timeout: 30000 });
+      await expect(dashboardButton).toBeEnabled();
 
       await context.setOffline(true);
       await expect(page.getByRole("status", { name: "App is in offline mode" })).toBeVisible({

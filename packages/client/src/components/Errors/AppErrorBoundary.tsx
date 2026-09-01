@@ -34,7 +34,8 @@ function getBrowserLocale(): Locale {
 }
 
 function classifyError(error: Error | null): ErrorCategory {
-  return error ? classifyErrorMessage(error.message || "") : "unknown";
+  if (!error) return "unknown";
+  return classifyErrorMessage(error.message || "");
 }
 
 function readSessionFlag(key: string): boolean {

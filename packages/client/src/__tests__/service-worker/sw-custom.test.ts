@@ -20,7 +20,7 @@ function shellDigest(entries: Array<[asset: string, contents: string]>): string 
   return createHash("sha256").update(digestInput).digest("hex").slice(0, 16);
 }
 
-async function loadServiceWorker(options: { pathname?: string } = {}) {
+async function loadServiceWorker(locationHref = "https://www.greengoods.app/sw.js") {
   const listeners: Record<string, Listener[]> = {};
   const cacheStores = new Map<string, Map<string, Response>>();
   const cacheObjects = new Map<
@@ -76,10 +76,7 @@ async function loadServiceWorker(options: { pathname?: string } = {}) {
     clients,
     skipWaiting: vi.fn(),
     crypto: { randomUUID: vi.fn(() => "share-token"), subtle: webcrypto.subtle },
-    location: {
-      origin: "https://www.greengoods.app",
-      pathname: options.pathname ?? "/sw.js",
-    },
+    location: { href: locationHref, origin: new URL(locationHref).origin },
   };
 
   vm.runInNewContext(await readFile(swCustomPath, "utf8"), {
@@ -176,13 +173,19 @@ describe("client public service worker migration", () => {
     expect(self.skipWaiting).toHaveBeenCalledTimes(1);
   });
 
-  it("allows the Vite development worker to install without a production shell manifest", async () => {
-    const { fetchMock, listeners } = await loadServiceWorker({ pathname: "/dev-sw.js" });
-    const waitUntil = vi.fn();
+  it("skips production shell population for the Vite development worker", async () => {
+    const { fetchMock, listeners } = await loadServiceWorker(
+      "https://localhost:3001/dev-sw.js?dev-sw"
+    );
+    let installation: Promise<unknown> | undefined;
 
-    listeners.install[0]({ waitUntil });
+    listeners.install[0]({
+      waitUntil: vi.fn((promise: Promise<unknown>) => {
+        installation = promise;
+      }),
+    });
 
-    expect(waitUntil).not.toHaveBeenCalled();
+    await expect(installation).resolves.toBeUndefined();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

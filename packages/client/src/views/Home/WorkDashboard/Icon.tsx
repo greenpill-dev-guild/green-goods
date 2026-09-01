@@ -6,18 +6,21 @@ import React, { lazy, Suspense } from "react";
 import { useIntl } from "react-intl";
 import { type PwaStatusTone, pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
-type WorkDashboardModule = { default: typeof import(".").WorkDashboard };
+function importWorkDashboard() {
+  return import(".").then((module) => ({ default: module.WorkDashboard }));
+}
 
-let workDashboardModulePromise: Promise<WorkDashboardModule> | undefined;
+let workDashboardModulePromise: ReturnType<typeof importWorkDashboard> | null = null;
 
-function loadWorkDashboard(): Promise<WorkDashboardModule> {
-  workDashboardModulePromise ??= import(".")
-    .then((module) => ({ default: module.WorkDashboard }))
-    .catch((error: unknown) => {
-      workDashboardModulePromise = undefined;
-      throw error;
-    });
-  return workDashboardModulePromise;
+function loadWorkDashboard() {
+  if (workDashboardModulePromise) return workDashboardModulePromise;
+
+  const pendingModule = importWorkDashboard().catch((error) => {
+    workDashboardModulePromise = null;
+    throw error;
+  });
+  workDashboardModulePromise = pendingModule;
+  return pendingModule;
 }
 
 const WorkDashboard = lazy(loadWorkDashboard);
@@ -29,28 +32,23 @@ interface WorkDashboardIconProps {
 export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className }) => {
   const intl = useIntl();
   const { isOnline, pendingCount, syncStatus } = useOffline();
+  const [isDashboardReady, setIsDashboardReady] = React.useState(false);
   const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
   const closeWorkDashboard = useUIStore((s) => s.closeWorkDashboard);
-  const [isDashboardReady, setIsDashboardReady] = React.useState(false);
 
-  // Offline work management is a core promise. Warm the exact promise React
-  // will render, and expose the launcher as ready only after that chunk has
-  // arrived. Resetting the module promise above permits a later online retry.
   React.useEffect(() => {
-    if (!isOnline) return;
-
-    let isCurrent = true;
-    void loadWorkDashboard()
-      .then(() => {
-        if (isCurrent) setIsDashboardReady(true);
-      })
-      .catch(() => {
-        if (isCurrent) setIsDashboardReady(false);
-      });
-
+    let cancelled = false;
+    void loadWorkDashboard().then(
+      () => {
+        if (!cancelled) setIsDashboardReady(true);
+      },
+      () => {
+        // A reconnect changes isOnline and retries the failed preload.
+      }
+    );
     return () => {
-      isCurrent = false;
+      cancelled = true;
     };
   }, [isOnline]);
 
@@ -139,7 +137,7 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
         )}
       </button>
 
-      {/* Dashboard Modal */}
+      {/* The launcher is enabled only after this split module is cached locally. */}
       {isWorkDashboardOpen ? (
         <Suspense fallback={null}>
           <WorkDashboard onClose={closeWorkDashboard} />

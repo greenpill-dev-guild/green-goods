@@ -64,6 +64,10 @@ function toActionUID(value: number | string | undefined) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function isConcreteGardenAddress(address: Address | undefined): address is Address {
+  return Boolean(address) && !compareAddresses(address, ZERO_ADDRESS);
+}
+
 /**
  * Convert completed approvals (reviewed by you) to Work shape for MinimalWorkCard.
  */
@@ -112,7 +116,9 @@ export function receivedApprovalsToWorks(
  * Extract unique garden addresses from a list of works.
  */
 export function extractWorkGardenIds(works: Work[]): string[] {
-  return Array.from(new Set(works.map((work) => work.gardenAddress).filter(Boolean)));
+  return Array.from(
+    new Set(works.map((work) => work.gardenAddress).filter(isConcreteGardenAddress))
+  );
 }
 
 /**
@@ -126,7 +132,7 @@ export function resolveWorkNavigation(
   let workId = "id" in work ? work.id : (work as { workUID?: string }).workUID;
   let gardenId = work.gardenAddress;
 
-  if (!gardenId && "workUID" in work && work.workUID) {
+  if (!isConcreteGardenAddress(gardenId) && "workUID" in work && work.workUID) {
     const found = stewardWorksById.get(work.workUID);
     if (found) {
       gardenId = found.gardenAddress;
@@ -134,6 +140,6 @@ export function resolveWorkNavigation(
     }
   }
 
-  if (!gardenId || !workId) return null;
+  if (!isConcreteGardenAddress(gardenId) || !workId) return null;
   return { workId, gardenId };
 }

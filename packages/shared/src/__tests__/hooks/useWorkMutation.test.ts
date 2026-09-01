@@ -162,6 +162,7 @@ vi.mock("../../utils/errors/contract-errors", () => ({
 }));
 
 import { walletProgressToasts, workToasts } from "../../components/toast";
+import { worksKeys } from "../../config/query-keys/work";
 import { useWorkMutation } from "../../hooks/work/useWorkMutation";
 import { submitWorkDirectly } from "../../modules/work/wallet-submission";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
@@ -353,6 +354,11 @@ describe("hooks/work/useWorkMutation", () => {
       expect(submitWorkToQueue).toHaveBeenCalled();
       expect(submitWorkDirectly).not.toHaveBeenCalled();
       expect(workToasts.savedOffline).toHaveBeenCalled();
+      expect(
+        queryClient.getQueryData<{ gardenerAddress: string }[]>(
+          worksKeys.merged(MOCK_ADDRESSES.garden, 11155111)
+        )?.[0]?.gardenerAddress
+      ).toBe(MOCK_ADDRESSES.user);
     });
 
     it("lets admin-style consumers disable offline queue fallback", async () => {
@@ -512,6 +518,24 @@ describe("hooks/work/useWorkMutation", () => {
   });
 
   describe("Error handling", () => {
+    it("does not insert optimistic work without a user address", async () => {
+      Object.defineProperty(navigator, "onLine", { value: false });
+      const { result } = renderHook(
+        () => useWorkMutation({ ...defaultOptions, userAddress: null }),
+        { wrapper: createWrapper() }
+      );
+
+      await act(async () => {
+        await expect(
+          result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] })
+        ).rejects.toThrow("User address is required for work submission");
+      });
+
+      expect(
+        queryClient.getQueryData(worksKeys.merged(MOCK_ADDRESSES.garden, 11155111))
+      ).toBeUndefined();
+    });
+
     it("shows error toast on submission failure", async () => {
       const error = new Error("Submission failed");
       mock(submitWorkDirectly).mockRejectedValue(error);
