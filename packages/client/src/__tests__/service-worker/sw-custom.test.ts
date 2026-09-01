@@ -20,7 +20,7 @@ function shellDigest(entries: Array<[asset: string, contents: string]>): string 
   return createHash("sha256").update(digestInput).digest("hex").slice(0, 16);
 }
 
-async function loadServiceWorker() {
+async function loadServiceWorker(options: { pathname?: string } = {}) {
   const listeners: Record<string, Listener[]> = {};
   const cacheStores = new Map<string, Map<string, Response>>();
   const cacheObjects = new Map<
@@ -76,7 +76,10 @@ async function loadServiceWorker() {
     clients,
     skipWaiting: vi.fn(),
     crypto: { randomUUID: vi.fn(() => "share-token"), subtle: webcrypto.subtle },
-    location: { origin: "https://www.greengoods.app" },
+    location: {
+      origin: "https://www.greengoods.app",
+      pathname: options.pathname ?? "/sw.js",
+    },
   };
 
   vm.runInNewContext(await readFile(swCustomPath, "utf8"), {
@@ -171,6 +174,16 @@ describe("client public service worker migration", () => {
     listeners.message?.[0]?.({ data: { type: "SKIP_WAITING" } });
 
     expect(self.skipWaiting).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows the Vite development worker to install without a production shell manifest", async () => {
+    const { fetchMock, listeners } = await loadServiceWorker({ pathname: "/dev-sw.js" });
+    const waitUntil = vi.fn();
+
+    listeners.install[0]({ waitUntil });
+
+    expect(waitUntil).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("rolls back a failed shell install without replacing the active metadata", async () => {

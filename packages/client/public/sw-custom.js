@@ -408,6 +408,10 @@ async function receiveShareTarget(request) {
 }
 
 self.addEventListener("install", (event) => {
+  // Vite's development worker does not emit the production shell manifest.
+  // Requiring it here rejects the install and leaves CI without an active
+  // worker, even though the dev worker's own Workbox precache is valid.
+  if (self.location.pathname === "/dev-sw.js") return;
   event.waitUntil(populatePwaShell());
 });
 
