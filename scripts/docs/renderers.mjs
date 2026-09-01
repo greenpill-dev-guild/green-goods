@@ -250,6 +250,20 @@ export function renderTaskRouting({ root, sources, digest }) {
   }
   body += "\n## Authority order\n\n";
   for (const [index, authority] of contract.authorityOrder.entries()) body += `${index + 1}. ${esc(authority)}\n`;
+  body += "\n## Ownership and synchronization\n\n";
+  body += "The upstream surface owns truth. Public documentation explains or projects that truth; it does not publish live Plan Hub state, Linear status, or private QA evidence.\n\n";
+  body += "| Surface | Role | Owns | Visibility |\n|---|---|---|---|\n";
+  for (const surface of contract.authoritySurfaces) {
+    body += `| ${esc(surface.label)} | \`${esc(surface.role)}\` | ${esc(surface.owns)} | \`${esc(surface.visibility)}\` |\n`;
+  }
+  body += "\n```mermaid\nflowchart LR\n";
+  for (const surface of contract.authoritySurfaces) {
+    body += `  ${surface.id.replaceAll("-", "_")}["${esc(surface.label)}"]\n`;
+  }
+  for (const flow of contract.authorityFlows) {
+    body += `  ${flow.from.replaceAll("-", "_")} -->|${esc(flow.relationship)}| ${flow.to.replaceAll("-", "_")}\n`;
+  }
+  body += "```\n";
   body += "\nA routed skill must not absorb neighboring work. When the requested outcome changes, follow the task's handoff instead of expanding the active workflow.\n";
   return body;
 }

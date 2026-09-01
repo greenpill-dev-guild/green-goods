@@ -290,6 +290,16 @@ restate them here. Plan-specific deltas:
 Update `.plans/.../status.json` and the plan files first. If a Linear issue exists, mirror only
 the safe, stakeholder-relevant status, respecting the routing-rules privacy boundary.
 
+Close a mirrored implementation in this order:
+
+1. Update the Plan Hub lane state, handoff, and evidence.
+2. Apply the current `linear-sync` manifest so terminal implementation issues and their active
+   parent are `In Review`.
+3. Run `node scripts/harness/plan-hub.mjs confirm-linear-sync --feature <slug> --actor <actor>`.
+4. Archive the hub with the honest resolution. The command refuses a mirror that changed after
+   its last confirmation.
+5. Move the Linear implementation issue and parent to `Done` only after a human merges the PR.
+
 ### PR Linkage
 
 PR descriptions may link the `.plans` hub and the Linear issue. Use neutral references such as
@@ -316,7 +326,7 @@ BLOCKED → ACTIVE        (dependency resolved)
 
 2. **One canonical plan per feature**: Never have 2+ active plans for the same feature area. If you're writing a v2 plan, delete or archive v1 first.
 
-3. **Status updates on implementation**: When work ships that partially or fully implements a plan, update the plan's `**Status**` and `**Last Updated**` headers and the feature hub's `status.json`. If fully implemented, close the hub with `plan-hub.mjs move --to archive --resolution completed` (ledger row + deletion; Git history is the archive).
+3. **Status updates on implementation**: When work fully implements a plan, update the plan's `**Status**` and `**Last Updated**` headers and the feature hub's `status.json`; make the same updates for a partial implementation without closing the hub. If fully implemented, close the hub with `plan-hub.mjs move --to archive` after following the mirrored closeout sequence above. Use `completed` only when the evidence supports it; otherwise choose the honest terminal resolution. The archive ledger retains the Linear parent key, and Git history retains the closed hub.
 
 4. **Divergence notes**: If implementation diverges from the plan (different approach, dropped scope), add a `## Implementation Notes` section explaining what changed and why. Don't leave the plan as-if it was followed when it wasn't.
 

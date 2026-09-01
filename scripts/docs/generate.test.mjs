@@ -252,23 +252,14 @@ test("persona surfaces consume the PWA and admin canvas route authorities", () =
   assert.match(rendered, /Admin canvas route segments[^\n]*`hub`/);
 });
 
-test("the migration ledger's generated authorities are declared by their projection", () => {
-  const ledger = readJson(
-    REPO_ROOT,
-    ".plans/active/builder-docs-authority/artifacts/migration-ledger.json",
+test("task routing projects public ownership and one-way synchronization", () => {
+  const projection = createProjections(REPO_ROOT).find(
+    (item) => item.output === "docs/docs/builders/agentic/task-routing.mdx",
   );
-  const projections = new Map(createProjections(REPO_ROOT).map((item) => [item.output, item]));
-
-  for (const page of ledger.pages.filter((item) => item.action === "generate")) {
-    const projection = projections.get(page.path);
-    assert.ok(projection, `${page.path} must have a projection`);
-    for (const authority of page.authority) {
-      assert.ok(
-        projection.sources.some(
-          (source) => source === authority || source.startsWith(`${authority.replace(/\/$/, "")}/`),
-        ),
-        `${page.path} must declare ledger authority ${authority}`,
-      );
-    }
-  }
+  assert.ok(projection);
+  const rendered = renderProjection(REPO_ROOT, projection);
+  assert.match(rendered, /## Ownership and synchronization/);
+  assert.match(rendered, /plan_hubs -->\|mirrors visibility\| linear/);
+  assert.match(rendered, /qa_catalog -->\|defines runs\| private_qa_evidence/);
+  assert.doesNotMatch(rendered, /PRD-\d+|In Progress|authenticated Vercel/);
 });
