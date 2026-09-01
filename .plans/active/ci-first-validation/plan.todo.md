@@ -33,7 +33,7 @@
 | Duplicate local hooks removed with safe receipt reuse | `state_api` | Step 3 | ✅ |
 | Design/Ontology/Supply CI safely narrowed | `state_api` | Step 4 | ✅ |
 | Agent workflows use current-head CI authority | `state_api` | Step 5 | ✅ |
-| Critical overrides and final readiness remain intact | `qa_pass_1`, `qa_pass_2` | Step 6 | ⏳ |
+| Critical overrides and final readiness remain intact | `qa_pass_1`, `qa_pass_2` | Step 6 | ⏳ CI |
 
 ## TDD / Proof Order
 
@@ -87,9 +87,9 @@
 
 ## Validation
 
-- [ ] `bun run validation:plan -- --intent qa`
-- [ ] Validation selector and runner test suites
-- [ ] Workflow routing, ontology anchor, and performance parity tests
-- [ ] Three warm routine push probes complete within 90 seconds
-- [ ] `node scripts/dev/ci-local.js --intent ship`
+- [x] `bun run validation:plan -- --intent ship`
+- [x] Validation selector and runner test suites
+- [x] Workflow routing, ontology anchor, and performance parity tests
+- [x] Three warm routine push probes complete within 90 seconds
+- [x] `node scripts/dev/ci-local.js --intent ship --reuse-passing-receipts`
 - [ ] Required GitHub CI checks pass at the current PR head
