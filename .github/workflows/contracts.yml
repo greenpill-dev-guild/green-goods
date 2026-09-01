@@ -66,7 +66,7 @@ jobs:
       # subdirectories (out/test and out/production) because the required gate
       # below compiles both.
       - name: Cache Foundry build
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: |
             packages/contracts/.generated/foundry/cache
@@ -113,7 +113,7 @@ jobs:
         uses: ./.github/actions/setup-js
 
       - name: Cache Foundry build
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: |
             packages/contracts/.generated/foundry/cache
@@ -308,7 +308,7 @@ jobs:
       # Also cache Foundry's RPC response cache: fork tests pin block numbers,
       # so remote chain state is fully reusable across runs.
       - name: Cache Foundry build
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: |
             packages/contracts/.generated/foundry/cache
@@ -412,7 +412,7 @@ jobs:
           echo "::notice::Arbitrum sequential fork shards blocks: arbitrum=$ARBITRUM_FORK_BLOCK_NUMBER sepolia=$SEPOLIA_FORK_BLOCK_NUMBER ethereum=$ETHEREUM_FORK_BLOCK_NUMBER"
 
       - name: Cache Foundry build
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: |
             packages/contracts/.generated/foundry/cache
