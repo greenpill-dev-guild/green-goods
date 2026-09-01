@@ -192,7 +192,7 @@ testers, on which surfaces, and the headline — "P0 coverage is green except
 review actions; two cross-surface failures trace to shared date handling.">
 
 ## Results by priority
-- P0: <walked>/<total> — <pass> pass · <fail> fail · <blocked> blocked
+- P0: <walked>/<total> — <pass> pass · <fail> fail · <blocked> blocked · <na> n/a · <noted> noted only
 - P1: <walked>/<total> — …
 - P2: <walked>/<total> — …
 
@@ -206,14 +206,21 @@ review actions; two cross-surface failures trace to shared date handling.">
 ## Not sliced
 - <note-only follow-ups and anything past the slice cap, one line each>
 
+**Done when**
+- every slice below is Done or explicitly deferred, and the re-QA walk has re-recorded its Test IDs
+
 Session <slug>. [Meeting notes](<drive-url>)
 ```
 
 Coverage numbers come from `bun run qa:pull` joined to the catalog's per-case priority — never
-hand-counted. No tester attribution, wallet addresses, session IDs, or replay URLs anywhere;
+hand-counted — and cover **this session's entries only** (the call-window rule; the store is
+long-lived). Include the `n/a` and noted-without-a-verdict counts: they are recorded states, and
+without them the walked numerator does not reconcile — drop a zero segment rather than rendering
+it. No tester attribution, wallet addresses, session IDs, or replay URLs anywhere;
 per-tester detail stays in the pulled results and the private Sheet. Parent labels:
 `protocol:green-goods` + `activity:qa` + `source:qa-session` + `qa-sync:<date>` + one `ai:*` —
-no `package:*` (a session spans surfaces).
+no `package:*` (a session spans surfaces). The parent closes when its `Done when` holds — the
+fix flow closes it, never the writer that filed it.
 
 ## QA slice — sub-issue (one slice = one branch = one PR)
 
@@ -240,10 +247,13 @@ Fix posture: `.claude/context/qa.md § Fix posture` (via `AGENTS.md § Linear-Sp
 Validation: `<command>`. QA session — <slug>. Test IDs: `<ID>, <ID>`.
 ```
 
-**State + priority**: verdict-backed (a tester recorded fail/blocked in the QA app, exact Test
-IDs) → `Todo`; priority High for a P0-case fail, Medium for P1, Low otherwise — Urgent only when
-the call flagged it release-blocking. Reconstructed from meeting notes alone (no app verdict) →
-`Backlog`, priority unset. **Labels**: the parent set plus ONE `package:*` for the slice's
+**State + priority**: verdict-backed (a tester recorded fail/blocked in the QA app during the
+session window, exact Test IDs) → `Todo`; priority High for a P0-case fail, Medium for P1, Low
+otherwise — Urgent only when the call flagged it release-blocking. The seeded priority is a
+queue-ordering default (walk priority × verdict), **not a severity judgment** — the fix session
+re-judges it at take-up, and Sheet severity stays independently assigned
+(`.claude/context/qa.md` § Verdict and severity rules). Reconstructed from meeting notes alone
+(no app verdict) → `Backlog`, priority unset. **Labels**: the parent set plus ONE `package:*` for the slice's
 primary surface (secondary packages named in the prose, as always).
 
 ---

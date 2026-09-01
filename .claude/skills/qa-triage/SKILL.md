@@ -40,8 +40,12 @@ Phase 3b dedupe catches the other's records if both ran.
 
 - **Phases 1-2** — the source is twofold: `bun run qa:pull --slug <date>` (the QA app's verdicts
   and notes, exact Test IDs) plus the call's Gemini notes from Drive (title contains "QA" or
-  "Build Sync"). App verdicts are ground truth; note items without a Test ID fuzzy-match the
-  catalog as usual.
+  "Build Sync"). App verdicts recorded **during the call window** are ground truth — the store
+  is long-lived and the pull merges every shard ever written, so filter joined entries by their
+  `at` timestamps (the routine's session-window rule) before calling anything verdict-backed;
+  older entries are standing state. Note items without a Test ID may be fuzzy-matched into
+  *proposals* here, because the Phase 4 gate confirms each one with you — the unattended routine
+  never guesses an ID.
 - **Phases 3-5** — findings cluster into slices: same catalog area + same suspected seam, split
   past 3 Test IDs or a package boundary, cap 8 by priority with overflow named in the report.
   Payloads use [linear-templates.md § QA session report / § QA slice](./linear-templates.md) —

@@ -127,7 +127,10 @@ as walked but not judged.
 
 Case priority and defect severity are different decisions. Catalog priority says how important it
 is to walk a case. Severity says how badly a particular failure affects the product. Severity is
-assigned during triage and is never derived from catalog priority.
+assigned during triage and is never derived from catalog priority. The call-report path seeds a
+slice's Linear *priority* from case priority plus verdict — a queue-ordering default the fix
+session re-judges at take-up, not a severity judgment; Sheet severity stays independently
+assigned.
 
 ## Roster and attribution
 

@@ -141,15 +141,21 @@ branch = one PR, and the posture is repair, not feature building.
    list its open sub-issues in priority order. Confirm which slice to take — or take the top one
    when the user already said to work through them.
 2. **Take ONE slice**; move it to `In Progress`. Never batch slices into one branch.
+   Sanity-check its seeded priority — it derives from catalog walk priority plus verdict, not
+   judged severity; re-rank if the defect is plainly cosmetic or plainly worse.
 3. **Ground per [`qa.md § Fix posture`](../../context/qa.md)**: history first (shipping PR, plan
    hub, new vs. established), map the feature's modules/seams, hold the update-or-remove-over-add
    default. A slice that turns out to need a new module or a design call goes back to the user
    before any code.
 4. **Diagnose with the protocols below** — UI Regression or Data/API/Contract, chosen by symptom;
    reproduce before fixing, as always.
-5. **Branch** `fix/<work-description>` off fresh `develop` — describing the work, never the
-   session, date, or issue number (`AGENTS.md § Branch + PR`); traceability lives in the PR's
-   `Fixes PRD-NNN` line.
+5. **Branch — only with the user's explicit go.** At the first slice, ask once for the branch
+   action (the same first-accepted-fix ask qa-session uses): propose `fix/<work-description>`
+   off fresh `develop` — describing the work, never the session, date, or issue number
+   (`AGENTS.md § Branch + PR`) — and proceed only on a yes; on an existing work branch, commit
+   there. Never create or switch branches without that answer (Safety Rules above;
+   `AGENTS.md § Multi-Agent Repo Safety` — a concurrent session may share this checkout).
+   Traceability lives in the PR's `Fixes PRD-NNN` line.
 6. **Repair to the slice's "Done when"** — the catalog Test IDs' expected results — and stop
    there.
 7. **Validate**: the slice's named validation command plus the touched package's suites.
@@ -157,7 +163,9 @@ branch = one PR, and the posture is repair, not feature building.
    slice per PR.
 9. **Hand back**: issue → `In Review` with the PR linked. It reaches `Done` only when its Test
    IDs re-record as pass in the QA app (whoever recorded the fail re-records).
-10. **Next slice or stop** — the user's call at each boundary.
+10. **Next slice or stop** — the user's call at each boundary. When the parent report's last
+    open slice lands, close the parent against its `Done when` (every slice Done or explicitly
+    deferred, re-QA re-recorded) — or say what still holds it open.
 
 ### User-Observed UI Regression Protocol
 

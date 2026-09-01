@@ -88,7 +88,7 @@ Only safe-summary fields cross into the Customer Need body. Replay URLs, session
 1. **Drive query** for the notes file Gemini wrote during today's sync:
 
    ```
-   (name contains 'Build Sync' or name contains 'Product Sync') and name contains 'Notes by Gemini' and modifiedTime > '<6h-ago RFC3339>' and mimeType = 'application/vnd.google-apps.document'
+   (title contains 'Build Sync' or title contains 'Product Sync') and title contains 'Notes by Gemini' and modifiedTime > '<6h-ago RFC3339>' and mimeType = 'application/vnd.google-apps.document'
    ```
 
    The legacy 'Product Sync' clause covers the meeting's pre-June-2026 name (a straggling calendar title still produces old-name notes); drop it once it stops matching. The 6-hour window starts at routine-fire time and reaches back through the sync window. If zero matches, the sync didn't happen or notes haven't landed — post the Phase 6 one-line no-sync note and exit cleanly. Do not fail loud; not every Wednesday has a sync.

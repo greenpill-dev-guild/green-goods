@@ -65,10 +65,14 @@ decision log is a human-gated local step, never yours.
 Query the team Drive for the Gemini notes of today's call:
 
 ```text
-(name contains 'QA' or name contains 'Build Sync') and name contains 'Notes by Gemini'
+(title contains 'QA' or title contains 'Build Sync') and title contains 'Notes by Gemini'
 and modifiedTime > '<24h-ago RFC3339>' and mimeType = 'application/vnd.google-apps.document'
 ```
 
+- The connector exposes only `title`, `fullText`, `mimeType`, and `modifiedTime` query terms
+  (documented in [`bug-intake.md`](./bug-intake.md) § Drive discovery) — never query `name`: a
+  rejected field reads as zero matches, and this routine would silently drop the call's decisions
+  by entering app-only mode.
 - Multiple candidates: pick the newest whose title names Green Goods or the QA call; list the
   alternates in the Discord summary.
 - Zero candidates: continue in **app-only mode** — the report says "no meeting notes found (query
@@ -80,23 +84,33 @@ and modifiedTime > '<24h-ago RFC3339>' and mimeType = 'application/vnd.google-ap
 ## Phase 2: Pull the QA app state
 
 Run `bun run qa:pull --slug <YYYY-MM-DD>` (the call date). It writes
-`tmp/qa-session/<date>/results.csv` and `qa-state.json` from the Blob shards. Then join every
-entry to `scripts/data/qa-test-catalog.json` by Test ID — the pull summary is not
-priority-aware, so per-priority rollups (P0/P1/P2 × pass/fail/blocked/untouched) come from this
-join, never from hand counting.
+`tmp/qa-session/<date>/results.csv` and `qa-state.json` from the Blob shards. **The store is
+long-lived and the pull merges every shard ever written**, so scope the session first: a *session
+entry* is one whose `at` timestamp falls inside the same 24-hour window Phase 1 uses. Only
+session entries are this call's verdicts — they alone back slices and the Results rollup. Older
+entries are standing state: at most one context line in the report, and never the backing for a
+slice. Then join the session entries to `scripts/data/qa-test-catalog.json` by Test ID — the
+pull summary is not priority-aware, so per-priority rollups (P0/P1/P2 ×
+pass/fail/blocked/n-a/noted-without-verdict) come from this join, never from hand counting.
 
-- No shards or zero entries: **notes-only mode** — extract from the notes alone; every slice
-  lands `Backlog` (no verdict backing), and the report says the app carried no entries.
-- A shard that fails validation: report "partial state" naming the missing tester count (never
-  wallet addresses), and continue with the shards that parsed.
+- No shards or zero **session-window** entries: **notes-only mode** — extract from the notes
+  alone; every slice lands `Backlog` (no verdict backing), and the report says the app carried
+  no session entries.
+- A malformed shard fails the whole pull **by design** — `qa:pull` refuses to write a
+  confident-but-incomplete sheet. Post the failure loud (the failing shard path and the command
+  error) and stop; do not fall back to notes-only silently. Rerun after the store is fixed.
 
 ## Phase 3: Join and cluster into slices
 
 1. Key every finding by **exact Test ID** where one exists (all app entries have one; notes
-   items may name one). Notes items without an ID fuzzy-match the catalog by surface nouns and
-   scenario keywords; an unmatched item stays a note-only follow-up.
-2. Dedupe notes↔app by Test ID first, then title similarity — one finding, both evidences (the
-   verdict plus the scrubbed quote).
+   items may name one). A notes item **without** an exact ID never gets one guessed for it — the
+   linkage contract ([`.claude/context/qa.md`](../../.claude/context/qa.md) § Test ID linkage)
+   forbids fuzzy-guessing, and unattended is where a plausible-but-wrong match does the most
+   damage: the fixing agent would repair and re-record the wrong case. ID-less items go to the
+   parent's `Not sliced` list as note-only follow-ups; the interactive `/qa-triage --call` may
+   propose fuzzy candidates because a human confirms each one at its gate.
+2. Dedupe notes↔app by exact Test ID; when only title similarity suggests a match, keep the
+   notes item separate rather than merging — a wrong merge attaches the quote to the wrong case.
 3. **Cluster into slices**: same catalog `area` + same suspected seam (the module/component the
    failures share). Split a cluster past 3 Test IDs or when it crosses packages. A cross-surface
    cluster whose root cause sits in shared code is ONE slice on the shared package.
@@ -121,15 +135,20 @@ exposure: redact in place and fail loud in the Discord summary.
 
 1. **Parent first**: title exactly `QA session <YYYY-MM-DD>` (this title earns the word-backstop
    exemption), body per the § QA session report template — lede, Results by priority, Decisions
-   from the call (omit in app-only mode), Slices, Not sliced, source line with the Drive notes
-   link. State `Todo`. Labels: `green-goods` + `qa` + `qa-session` + `routine` +
-   `qa-sync:<date>`; **no `package:*`** on the parent.
+   from the call (omit in app-only mode), Slices, Not sliced, `Done when`, source line with the
+   Drive notes link. State `Todo`. Labels: `green-goods` + `qa` + `qa-session` + `routine` +
+   `qa-sync:<date>`; **no `package:*`** on the parent. The parent's `Done when` defines its
+   closure — every slice Done or explicitly deferred, re-QA re-recorded; the fix flow closes it,
+   never this routine.
 2. **Then each slice** as a sub-issue via `parentId`, body per the § QA slice template (problem
    cluster in prose with Test IDs and verdicts, "Where to start" map, "Done when" = the Test IDs
    re-record as pass, fix-posture pointer, validation command, source line).
-   - **Verdict-backed** (a tester recorded fail/blocked in the app): `Todo`; priority High for a
-     P0-case fail, Medium for P1, Low otherwise — Urgent only when the notes flag it
-     release-blocking.
+   - **Verdict-backed** (a tester recorded fail/blocked in the app **during the session
+     window**): `Todo`; priority High for a P0-case fail, Medium for P1, Low otherwise — Urgent
+     only when the notes flag it release-blocking. This seeded priority is a queue-ordering
+     default derived from walk priority, not a severity judgment
+     ([`.claude/context/qa.md`](../../.claude/context/qa.md) § Verdict and severity rules); the
+     fix session re-judges it at take-up.
    - **Notes-only** (no app verdict): `Backlog`, priority unset.
    - Labels: the parent set plus ONE `package:*` (primary surface; secondary named in prose).
 3. A failed parent write aborts the run (children without a parent are orphans); a failed child
