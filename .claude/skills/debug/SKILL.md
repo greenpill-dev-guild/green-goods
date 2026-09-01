@@ -1,7 +1,7 @@
 ---
 name: debug
 user-invocable: false
-description: Debugging & Troubleshooting — fires passively when the user describes a bug, pastes an error or stack trace, reports unexpected behavior, mentions failing tests or builds, or signals an incident. Routes to user_bug_triage when an external party (user / gardener / steward / customer / team member / partner) reports broken product behavior, incident_hotfix on urgency signals, tdd_bugfix on red-test signals, default on general bug reports.
+description: Debugging & Troubleshooting — fires passively when the user describes a bug, pastes an error or stack trace, reports unexpected behavior, mentions failing tests or builds, or signals an incident. Routes to user_bug_triage when an external party (user / gardener / steward / customer / team member / partner) reports broken product behavior, incident_hotfix on urgency signals, tdd_bugfix on red-test signals, qa_slice_fix when the user asks to pull in or work the QA slices/issues a QA session filed in Linear, default on general bug reports.
 argument-hint: "[error-description]"
 ---
 
@@ -50,6 +50,15 @@ message, attached user screenshot, paraphrased complaint — they all engage thi
 - See the User-Facing Bug Triage Protocol in Part 1 — it gates the choice between UI Regression
   and Data/API/Contract protocols.
 
+### QA-slice signals → qa_slice_fix mode
+
+- "pull in the QA issues", "work the QA slices", "fix what we found in QA", "pick up the
+  qa-sync slices", "did QA earlier — start on the findings"
+- The work objects are slice sub-issues of a `QA session YYYY-MM-DD` parent in Linear, written
+  by `/qa-triage --call` or the `qa-call-report` routine after a team QA call.
+- Focus: one slice at a time, measured repair per `.claude/context/qa.md § Fix posture` — never
+  a feature build.
+
 ### Verification signals
 
 - "verify this works", "prove completion", "evidence this is done"
@@ -81,6 +90,8 @@ message, attached user screenshot, paraphrased complaint — they all engage thi
 - External-party bug report: run the **User-Facing Bug Triage Protocol** first — it's the gating frame that decides which deeper protocol applies.
 - User-visible UI regression: inspect the rendered component first (DOM, geometry, computed styles, event target, state change).
 - Data/API/contract symptom: trace data flow backward from the failing output.
+- QA slices from Linear: run the **QA Slice Fix Protocol** — it wraps the protocols below with
+  the slice loop and the fix posture.
 
 ### User-Facing Bug Triage Protocol
 
@@ -120,6 +131,33 @@ protocols; this decides which one fits.
    - Accepting an opaque category (`Failed to fetch`, etc.) as a diagnosis.
 9. **After fix, if the symptom→cause mapping is reusable**, persist it as a project memory
    (e.g., `project_<subsystem>_known_failures.md`) so the next session resolves it faster.
+
+### QA Slice Fix Protocol
+
+Fires for `qa_slice_fix` mode: working the slice sub-issues a QA call produced. One slice = one
+branch = one PR, and the posture is repair, not feature building.
+
+1. **List the slices.** Resolve the latest `QA session YYYY-MM-DD` parent on the Product team and
+   list its open sub-issues in priority order. Confirm which slice to take — or take the top one
+   when the user already said to work through them.
+2. **Take ONE slice**; move it to `In Progress`. Never batch slices into one branch.
+3. **Ground per [`qa.md § Fix posture`](../../context/qa.md)**: history first (shipping PR, plan
+   hub, new vs. established), map the feature's modules/seams, hold the update-or-remove-over-add
+   default. A slice that turns out to need a new module or a design call goes back to the user
+   before any code.
+4. **Diagnose with the protocols below** — UI Regression or Data/API/Contract, chosen by symptom;
+   reproduce before fixing, as always.
+5. **Branch** `fix/<work-description>` off fresh `develop` — describing the work, never the
+   session, date, or issue number (`AGENTS.md § Branch + PR`); traceability lives in the PR's
+   `Fixes PRD-NNN` line.
+6. **Repair to the slice's "Done when"** — the catalog Test IDs' expected results — and stop
+   there.
+7. **Validate**: the slice's named validation command plus the touched package's suites.
+8. **Ship**: the `ship` skill gates the push; the PR references the issue (`Fixes PRD-NNN`), one
+   slice per PR.
+9. **Hand back**: issue → `In Review` with the PR linked. It reaches `Done` only when its Test
+   IDs re-record as pass in the QA app (whoever recorded the fail re-records).
+10. **Next slice or stop** — the user's call at each boundary.
 
 ### User-Observed UI Regression Protocol
 
@@ -250,7 +288,9 @@ After debugging provide:
 
 ## Linear Routing
 
-This skill is read-only on Linear while debugging. The shared routing core (team routing,
+This skill is read-only on Linear while debugging. The one exception is the QA Slice Fix
+Protocol's state transitions (`In Progress` on take-up, `In Review` on hand-back) — and only on
+the slice being worked. The shared routing core (team routing,
 `.plans`/`source:plans`, projects, labels, privacy, prompt-before-create) lives at
 [`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md).
 

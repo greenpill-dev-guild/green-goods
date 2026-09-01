@@ -14,8 +14,9 @@ Guild-level routines live in [`greenpill-dev-guild/.github/routines/claude/`](ht
 | `qa-triage-pulse.md` | active | Wed 21:00 UTC = 13:00 PST / 14:00 PDT (3h after the 10am PST Build Sync start) | `#product` (item-led summary when items exist; no-sync day = one line; @mention when there's something to triage) | Linear Customer Needs only (pre-staged, label `source:qa-triage-pulse` + `qa-sync:<date>`) from Build Sync notes **plus the biweekly Engineering Sync notes** (2026-07-18 extension; off-weeks skip silently); `/qa-triage` promotes them to Issues + QA-sheet rows interactively. Routine id: `trig_01GSagDiEV9Y8QTBzKeZsPSw` |
 | `release-prep.md` | active (2026-07-18) | Weekdays 16:00 UTC, **self-gating**: full brief posts 3 days before the Linear release project's target date (or on target-moved / Monday cadence-slip / any manual run); other runs exit quietly. Routine id: `trig_01FA23vPDQ1aYaBbZwdJ8gb1` | `#engineering` (readiness brief; @mention on decision-needed risk) | none — read + draft only; no Linear/GitHub writes |
 | `pr-review.md` | active | event-driven (PR opened / ready_for_review) | **Linear comment** on the issue(s) referenced in the PR body (OAuth connector, no stored tokens — steward decision 2026-07-18); PRs with **no Linear reference** get one `#engineering` flag line | one idempotent review comment per referenced Linear issue; never writes GitHub |
+| `qa-call-report.md` | active | **on-demand** — manual run right after a team QA call (no cron) | `#product` (one summary linking the report; failures loud) | One `QA session YYYY-MM-DD` parent Issue (the session report) + slice sub-issues via `parentId` — `Todo` + derived priority when backed by a QA-app verdict, `Backlog` for notes-only items. Interactive sibling: `/qa-triage --call`. |
 
-That's it — five scheduled cadences plus one event-driven, all cloud routines hosted at [claude.ai/code/routines](https://claude.ai/code/routines). Anything else previously in this folder (engineering-pulse, plan-executor, hotfix, drift-watch, metrics) has been removed: cut from the portfolio or converted to Claude Code skills (`/plan`, `/debug`).
+That's it — five scheduled cadences, one event-driven, and one on-demand, all cloud routines hosted at [claude.ai/code/routines](https://claude.ai/code/routines). Anything else previously in this folder (engineering-pulse, plan-executor, hotfix, drift-watch, metrics) has been removed: cut from the portfolio or converted to Claude Code skills (`/plan`, `/debug`).
 
 ## Connector Matrix
 
@@ -27,6 +28,7 @@ That's it — five scheduled cadences plus one event-driven, all cloud routines 
 | `qa-triage-pulse` | Google Drive, Linear, PostHog, Vercel | Drive = the Wed Build Sync's Gemini notes · Linear = Customer Need pre-stage surface (raw signal, unprojected) · PostHog = per-surface telemetry cross-reference · Vercel = deploy correlation gated on PostHog-matched items only (anchored to `first_seen`, skipped for items without telemetry signal). |
 | `release-prep` | GitHub (read-only), Linear (read-only) | GitHub = open PRs + commit range (`main..develop`) + existing releases/tags · Linear = the active release project's targetDate drives the self-gating window (brief posts at target − 3 days). No Drive/PostHog — a pure readiness draft; reads the release runbook live from the checkout. |
 | `pr-review` | Vercel, Linear (OAuth, the posting surface), Sentry | Vercel = preview deployment status + Lighthouse delta (commentary, not an invariant) · Linear = where the review posts (one idempotent comment per issue referenced in the PR body; no stored GitHub token by steward decision) · Sentry = open-issue context on touched surfaces. |
+| `qa-call-report` | Google Drive, Linear | Drive = the call's Gemini notes · Linear = the session report + slice sub-issues. Also needs `BLOB_READ_WRITE_TOKEN` (env var, not a connector) so `bun run qa:pull` can read the QA app's private shards, and a **`develop` checkout** — the qa scripts are not on `main`. PostHog/Vercel deliberately not wired: app verdicts are the ground truth; enrichment belongs to the interactive `--call` mode. |
 
 Gmail is intentionally NOT wired on any GG routine (personal-inbox pollution risk).
 
@@ -51,6 +53,7 @@ Routines @mention Afo only when his action is required (via `DISCORD_USER_ID_AFO
 - `health-watch` — on real (🔴) anomalies only
 - `growth-pulse` — when an anomaly is opened in Linear OR a setup failure needs attention
 - `qa-triage-pulse` — when ≥1 Customer Need was pre-staged from **either** source it reads (the Wednesday Build Sync, or the biweekly Engineering Sync on on-weeks; signal that `/qa-triage` is ready to run) OR a Linear/Drive setup failure needs attention. A run with nothing to pre-stage and nothing failing posts one line without a mention.
+- `qa-call-report` — when ≥1 slice was filed (the fix work is ready to pull) OR any failure needs attention (missing Blob token, wrong checkout branch, Linear write rejected, privacy-grep hit). Every run posts its summary — the run is manual, so the post is the receipt.
 
 `pr-review` posts its review to Linear (the referenced issue), never to GitHub — in-PR commentary is CodeRabbit's and Codex's lane; its only Discord output is the `#engineering` missing-issue flag line. Healthy weekly heartbeats with zero anomalies = no @mention.
 
@@ -188,6 +191,7 @@ Three routines write to Linear:
 - `growth-pulse` writes **Issues** for accepted growth/strategy anomalies (funnel, retention, dormancy) once they cross the anomaly threshold.
 - `health-watch` writes **Issues** for accepted operational health work (indexer, Vercel deploy/runtime, contracts) once a 🔴 anomaly is confirmed.
 - `qa-triage-pulse` writes **Customer Needs only** (pre-stage from Wednesday Build Sync notes, label `source:qa-triage-pulse` + `qa-sync:<YYYY-MM-DD>`). Never creates Issues. The interactive `/qa-triage` skill promotes them to Issues with human judgment in the loop.
+- `qa-call-report` writes the QA-session record directly: one `QA session YYYY-MM-DD` parent **Issue** plus slice sub-issues — `Todo` with derived priority when a QA-app verdict backs the slice, `Backlog` otherwise. It is the one routine allowed to create `Todo` work, because the verdicts it transcribes were recorded by humans on the call; notes-only reconstructions keep the pre-stage posture. No Customer Needs, no Sheet writes.
 
 ### Project routing
 

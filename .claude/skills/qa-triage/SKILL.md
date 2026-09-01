@@ -2,7 +2,7 @@
 name: qa-triage
 user-invocable: true
 description: Turn Build Sync QA notes or a qa-session deferred handoff into scope-locked Linear records and private QA Sheet rows. Fires on a QA call/sync/meeting, Build Sync, Product Sync (legacy name), or a request to file or triage recent meeting bugs. Pulls notes from Drive (Downloads fallback), enriches against PostHog and existing Linear/Sheet records, requires exact Test IDs for qa-session issues, then writes only after confirmation. For a live or dictated walkthrough, use qa-session instead.
-argument-hint: "[<notes-path|slug|qa-sync:YYYY-MM-DD>] [--dry-run] [--no-codex] [--no-sheet] [--fixture]"
+argument-hint: "[<notes-path|slug|qa-sync:YYYY-MM-DD>] [--call [<date>]] [--dry-run] [--no-codex] [--no-sheet] [--fixture]"
 ---
 
 # QA Triage Skill
@@ -25,10 +25,35 @@ confirmed Linear and Sheet writes only.
 | `/qa-triage <path>` | Use the supplied notes path (absolute, relative, or `~/Downloads/...`). A `tmp/qa-session/<slug>/deferred-<slug>.md` extract from the qa-session skill is a supported source — it contains only deferred observations (never fixed/answered/dropped ones), the slugged filename keeps each handoff's workspace distinct, its numbered, typed, verbatim-quoted items parse directly, and its exact `case:` Test IDs bypass fuzzy matching. For session-log inputs, use `source:qa-session` (resolve-or-create) instead of `source:drive` in Phase 6 |
 | `/qa-triage <slug>` | Resume an incomplete run from `tmp/qa-triage/<slug>/notes.md` |
 | `/qa-triage qa-sync:<YYYY-MM-DD>` | Resume from routine-pre-staged Customer Needs carrying that `qa-sync:*` label. Phases 1-3 are skipped (already done by `qa-triage-pulse`); triage gate fires immediately. |
+| `/qa-triage --call [<date>]` | Post-QA-call mode (§ Call mode below): join the QA app's pulled state with the call's Gemini notes, cluster into slices, and — after the Phase 4 gate — write the `QA session <date>` parent report + slice sub-issues. Interactive sibling of the [`qa-call-report`](../../../docs/routines/qa-call-report.md) routine. |
 | `/qa-triage … --dry-run` | Print payloads instead of writing to Linear; still emit Sheet CSVs |
 | `/qa-triage … --no-codex` | Skip the Codex parallel pass (default is automatic dispatch) |
 | `/qa-triage … --no-sheet` | Skip the QA-sheet write branch entirely |
 | `/qa-triage … --fixture` | Validation-only run against the synthetic fixture — see § Fixture mode |
+
+## Call mode (`--call`)
+
+The post-QA-call variant: same phases, three deltas. The unattended sibling is the
+[`qa-call-report`](../../../docs/routines/qa-call-report.md) routine — same join, clustering, and
+write rules; this mode runs them interactively at the desk. Run one of the two per session; the
+Phase 3b dedupe catches the other's records if both ran.
+
+- **Phases 1-2** — the source is twofold: `bun run qa:pull --slug <date>` (the QA app's verdicts
+  and notes, exact Test IDs) plus the call's Gemini notes from Drive (title contains "QA" or
+  "Build Sync"). App verdicts are ground truth; note items without a Test ID fuzzy-match the
+  catalog as usual.
+- **Phases 3-5** — findings cluster into slices: same catalog area + same suspected seam, split
+  past 3 Test IDs or a package boundary, cap 8 by priority with overflow named in the report.
+  Payloads use [linear-templates.md § QA session report / § QA slice](./linear-templates.md) —
+  one `QA session <date>` parent, slices as sub-issues via `parentId`. Verdict-backed slices
+  propose `Todo` + derived priority (P0-case fail → High, P1 → Medium, else Low; Urgent only for
+  call-flagged release blockers); note-only items propose `Backlog`. The Phase 4 scope-lock gate
+  runs unchanged over the slice list.
+- **Phase 6** — write the parent first, then the children. Sheet Defects rows are still offered
+  per slice member with the usual confirmation (the routine never writes the Sheet).
+
+Downstream, fix sessions pull the slices via the `debug` skill's QA Slice Fix Protocol — one
+slice = one branch = one PR, posture per [`.claude/context/qa.md § Fix posture`](../../context/qa.md).
 
 ## Required surfaces
 
@@ -439,6 +464,7 @@ surface the resume path.
 | Apply multiple `ai:*` or `package:*` labels to one Issue | Linear enforces single-value-per-group on these families; the API silently drops the second label OR rejects the write entirely. Pick the most actionable label; name the secondary package in the problem sentence, and put a delegation note in a comment. The `## Provenance` and `## Surface` sections were retired 2026-08-27 |
 | Create a Customer Need without an `issue` (or `project`) parameter | Linear API rejects with `Exactly one of projectId or issueId must be defined`. If the extracted item has no actionable Issue, create a lightweight `activity:maintenance` Backlog Issue first as the attach point |
 | Request workspace-level label-group config changes from inside the skill | The single-value-per-group constraint is a workspace setting in Linear. Changing it (to multi-value) is a config decision for the workspace owner, not a skill change. Document the constraint and work within it |
+| Double-file a session by running `--call` after the `qa-call-report` routine (or vice versa) | The routine owns unattended session writes; `--call` is its interactive sibling. One writer per session — and if both ran, the Phase 3b dedupe must link, not re-file |
 
 ## Related Skills
 

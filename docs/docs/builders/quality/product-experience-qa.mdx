@@ -4,7 +4,7 @@ sidebar_label: Product Experience QA
 slug: /builders/quality/product-experience-qa
 audience: developer
 owner: product
-last_verified: 2026-08-30
+last_verified: 2026-08-31
 feature_status: In progress
 source_of_truth:
   - AGENTS.md
@@ -14,6 +14,8 @@ source_of_truth:
   - packages/client/src/config/routes.tsx
   - scripts/data/qa-test-catalog.json
   - scripts/agents/qa-workbook-build.ts
+  - docs/routines/qa-call-report.md
+  - .claude/skills/qa-triage/SKILL.md
   - .claude/context/qa.md
   - .claude/skills/debug/SKILL.md
   - .claude/skills/design/review-checklist.md
@@ -49,6 +51,45 @@ real flow. Passing unit tests and builds is necessary but does not prove that ex
 4. Fix only bounded, reversible work that fits the agreed session scope.
 5. Revalidate in the same surface and record the remaining risk.
 6. Hand deferred findings to the private QA and Linear workflow.
+
+## Team QA sessions
+
+A team session is a scheduled call where two or more people walk different surfaces at the same
+time, recording as they go. The QA app is the shared checklist; this page is what to read before
+opening it.
+
+**Before the call**
+
+- Confirm every tester's wallet is on the QA app allowlist and each person can sign in once — a
+  five-minute smoke the day before saves twenty minutes of call time.
+- Pick the scope and split the surfaces. Walk priority-first (P0s before P1s), and where
+  possible each person tests surfaces they did not build.
+- Agree the write boundary up front: which funding and on-chain flows run end to end with real
+  transactions, and which stop at the review step.
+- If test cases changed since the last deploy, redeploy the QA app first — a deployment pins the
+  catalog revision it shipped with.
+
+**During the call**
+
+- Record a verdict and a short note per test case in the QA app as you walk. Screenshots and
+  recordings go to the private Drive QA folder, never into public artifacts.
+- The meeting notes capture the discussion on their own; nobody takes minutes. Spend the last
+  half hour walking the merged fail list together and aligning on the cross-surface calls —
+  those decisions are the most valuable output of the call.
+
+**After the call**
+
+- Trigger the `qa-call-report` routine (or run `/qa-triage --call` at a desk). It joins the QA
+  app's verdicts with the meeting notes and writes the session to Linear: one report issue per
+  session, with fix slices attached as sub-issues sized for one branch and one PR each.
+- Fix sessions then work slice by slice. Every fix is a repair grounded in the feature's history
+  and existing structure — updating or removing code before adding any — and is done when the
+  slice's test cases pass again.
+- Re-QA later in the week is a scoped walk of the affected cases. Whoever recorded a fail
+  re-records the pass: the standing verdict keeps each tester's most severe entry, so someone
+  else passing the case does not clear it.
+
+## Ownership
 
 The generated [test-case catalog](./test-cases) owns public scenario definitions only.
 `.claude/context/qa.md` owns recording, attribution, privacy, result rollup, and artifact locations;

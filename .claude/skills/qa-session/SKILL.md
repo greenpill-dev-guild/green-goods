@@ -27,6 +27,8 @@ duplicate them:
 | Locked design decisions (DL-NNN ledger, graduation ladder) | [`design/decision-log.md`](../design/decision-log.md) |
 | In-session fast validation rungs (QA Speed Mode) | [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md) § Partial rungs |
 | Journey matrices, receipt fields, defect labels, evidence hierarchy | `docs/docs/builders/quality/product-experience-qa.mdx` |
+| Post-call report + fix slices for team calls (app + Meet notes → Linear) | [`qa-call-report`](../../../docs/routines/qa-call-report.md) routine / `/qa-triage --call` |
+| Fix posture for any QA fix (history, seams, update-over-add) | [`.claude/context/qa.md § Fix posture`](../../context/qa.md) |
 | Pre-merge gate at close | [`ship`](../ship/SKILL.md) |
 
 ## Activation
@@ -180,6 +182,9 @@ accepted fix per `AGENTS.md § Branch + PR` (`fix/<work-description>`, e.g.
 `fix/qa-session-…`. Session traceability lives in the commit messages (`OBS-NN` refs), not the
 branch name. On an existing work branch, commit there.
 
+Fixes follow [`.claude/context/qa.md § Fix posture`](../../context/qa.md) scaled to the fix-now
+gate — even a 10-minute fix edits the owning component rather than adding a parallel one.
+
 Per accepted fix (or batched in a fix window):
 
 1. Edit in THIS checkout → Vite HMR → the user revalidates in their open tab. On a full reload,
@@ -271,7 +276,10 @@ same-checkout guard (Phase 0.1) applies per walker — a fix must land in the ch
 that walker's ports.
 
 **Close is shared, once.** A single `bun run qa:pull` collects both testers' work; it does not
-need running per person. Each walker still produces their own OBS log, deferred handoff, and
+need running per person. For a team call where walkers recorded app-only (no per-walker OBS
+logs), the close IS the [`qa-call-report`](../../../docs/routines/qa-call-report.md) routine or
+`/qa-triage --call`: it joins the app state with the Meet notes and writes the session report
+plus fix slices to Linear. Each walker still produces their own OBS log, deferred handoff, and
 receipt, because dispositions and fixes are theirs. The decision lock gate (Phase 4.4) runs
 **once, together** — a design ruling is not per walker.
 

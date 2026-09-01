@@ -232,8 +232,8 @@ before posting.
 
 This obeys the shared contract in
 [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md)
-§ Issue structure — cap 3 headings, ~150 words, 300 ceiling — and a
-`PreToolUse` hook rejects writes that break it.
+§ Issue structure — clear, simple, concise, human-friendly (backstops: 6
+headings / 600 words) — and a `PreToolUse` hook rejects writes that break it.
 
 Never apply old `health:*`, `area:*`, `work:*`, or `automation:*` labels — those are retired. Never attach the Issue to a GitHub Project, never set a `Sprints` field, and never write to the retired `Green Goods` umbrella project.
 

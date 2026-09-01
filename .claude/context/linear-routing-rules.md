@@ -48,7 +48,7 @@ this file is the operational contract for skills that create records.
 Both structures are the same shape. Research issues ask a question and end in a
 decision-ready artifact; Product issues name a defect or outcome and end in
 shipped work. Voice rules live in `AGENTS.md § Linear Workspace`; this section
-owns the shape and the caps.
+owns the shape and the length backstops.
 
 **Title** — what a person would say broke, or what should exist. A plain
 sentence fragment, no trailing period.
@@ -75,20 +75,25 @@ sentence fragment, no trailing period.
    tables, not the description. Raw output stays a linked file either way; see
    the never-paste rule below.
 
-**Caps.**
+**Length: principles first, backstops second.** A body is as long as it needs
+to be and as short as it can be — clear, simple, concise, human-friendly,
+written for a teammate, not a parser. Get short by cutting content that would
+not change what the reader does next, never by compressing what remains into
+fragments. The hook enforces only runaway shapes:
 
-| | Limit |
+| | Backstop |
 |---|---|
-| Headings | 3 (a defect usually needs 0) |
-| Words | ~150 target · 300 ceiling for a defect |
+| Headings | 6 (a defect usually needs 0) |
+| Words | 600 (most defects land well under 200) |
 | Plan mirror | 3 sentences plus the hub link |
 | Telemetry in the body | one line of counts |
 
-An umbrella tracker or roadmap issue may exceed the word ceiling when the prose
-stays plain — label it `plans` **plus** `architecture` (a parent titled
-`<feature> roadmap` also qualifies) and keep the three-block order. `plans`
-alone does not earn the exemption: plan-hub stamps it on every mirror, lane
-issues included, and those obey the ceiling.
+An umbrella tracker, roadmap, or QA session report may exceed the word backstop
+when the prose stays plain — label it `plans` **plus** `architecture`, title
+the parent `<feature> roadmap`, or title it `QA session YYYY-MM-DD` (the
+call-report parent) — and keep the three-block order. `plans` alone does not
+earn the exemption: plan-hub stamps it on every mirror, lane issues included,
+and those obey the backstop.
 
 **Never render an empty section.** If a block has nothing to say, drop it. A
 heading followed by "—", "needs repro", or a paragraph explaining that the
@@ -150,7 +155,7 @@ When creating or rewriting a Linear *project* description (not an issue),
 follow the companion shape in `.claude/context/linear-project-template.md`.
 
 **Enforcement.** `.claude/scripts/lint-linear-issue.sh` runs as a `PreToolUse`
-hook on `save_issue` and blocks writes that break the caps or carry banned
+hook on `save_issue` and blocks writes that break the backstops or carry banned
 tokens, registered in both `.claude/settings.json` and `.codex/hooks.json`. It
 checks shape only — prefixes, heading and word counts, lane metadata, empty
 placeholders — never whether the prose is any good, because a wrong block costs
