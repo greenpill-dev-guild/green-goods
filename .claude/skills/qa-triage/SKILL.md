@@ -53,8 +53,12 @@ Phase 3b dedupe catches the other's records if both ran.
   propose `Todo` + derived priority (P0-case fail → High, P1 → Medium, else Low; Urgent only for
   call-flagged release blockers); note-only items propose `Backlog`. The Phase 4 scope-lock gate
   runs unchanged over the slice list.
-- **Phase 6** — write the parent first, then the children. Sheet Defects rows are still offered
-  per slice member with the usual confirmation (the routine never writes the Sheet).
+- **Phase 6** — write the parent first, then the children. The routine's window-scoped
+  enrichment runs here too (build under test via Vercel; PostHog/Sentry safe summaries into each
+  slice's first comment — see `qa-call-report.md` § Phase 4); Sheet Defects rows are still
+  offered per slice member with the usual confirmation (the routine never writes the Sheet), and
+  the Sheet rows remain the one place replay URLs and session IDs may land, under its existing
+  private exception.
 
 Downstream, fix sessions pull the slices via the `debug` skill's QA Slice Fix Protocol — one
 slice = one branch = one PR, posture per [`.claude/context/qa.md § Fix posture`](../../context/qa.md).

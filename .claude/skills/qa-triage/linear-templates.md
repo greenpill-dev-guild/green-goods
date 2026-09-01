@@ -191,6 +191,8 @@ session and an agent with only Linear access can navigate parent → slices.
 testers, on which surfaces, and the headline — "P0 coverage is green except
 review actions; two cross-surface failures trace to shared date handling.">
 
+Build under test: client `<sha>` · admin `<sha>`
+
 ## Results by priority
 - P0: <walked>/<total> — <pass> pass · <fail> fail · <blocked> blocked · <na> n/a · <noted> noted only
 - P1: <walked>/<total> — …
@@ -204,7 +206,8 @@ review actions; two cross-surface failures trace to shared date handling.">
   sub-issue links; this list gives the reading order and the overflow context>
 
 ## Not sliced
-- <note-only follow-ups and anything past the slice cap, one line each>
+- <note-only follow-ups, anything past the slice cap, and `[derived:telemetry]`
+  window errors nobody recorded — one line each>
 
 **Done when**
 - every slice below is Done or explicitly deferred, and the re-QA walk has re-recorded its Test IDs
@@ -246,6 +249,11 @@ the seam the failures share. A starting map, not a certified diagnosis.>
 Fix posture: `.claude/context/qa.md § Fix posture` (via `AGENTS.md § Linear-Spawned Issue Contract`).
 Validation: `<command>`. QA session — <slug>. Test IDs: `<ID>, <ID>`.
 ```
+
+**Evidence comment (slice)**: window-scoped enrichment — PostHog safe summary, Sentry issue link
+and top frame, deploy correlation — goes in the slice's first comment per § Evidence comment
+above, never the body. Replay URLs, session IDs, and distinct IDs never reach Linear; the
+parent's recipe line points a human at the recordings view instead.
 
 **State + priority**: verdict-backed (a tester recorded fail/blocked in the QA app during the
 session window, exact Test IDs) → `Todo`; priority High for a P0-case fail, Medium for P1, Low

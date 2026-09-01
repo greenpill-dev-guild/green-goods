@@ -12,9 +12,17 @@ env-vars:
   - DISCORD_BOT_TOKEN
   - DISCORD_PRODUCT_CHANNEL_ID
   - DISCORD_USER_ID_AFO
+  - POSTHOG_PROJECT_ID_APP    # 163591 — PWA + editorial website telemetry
+  - POSTHOG_PROJECT_ID_ADMIN  # 262122 — admin cockpit telemetry
+  - SENTRY_ORG                # optional — Sentry-ready, not Sentry-dependent
+  - SENTRY_CLIENT_PROJECT     # optional
+  - SENTRY_ADMIN_PROJECT      # optional
 connectors:
   - google-drive  # source: the call's Gemini-generated notes
   - linear        # writes: one `QA session YYYY-MM-DD` parent Issue + slice sub-issues
+  - posthog       # window-scoped enrichment: the testers' own product sessions during the call
+  - vercel        # build under test: which deploys were live during the session window
+  - sentry        # when available — stack/release context for window errors; absent = skip silently
 model: claude-opus-5
 allow-unrestricted-branch-pushes: false  # Linear + Discord only; no PRs, no Sheet writes, no GitHub Issues
 last_updated: "2026-08-31"
@@ -117,13 +125,49 @@ pass/fail/blocked/n-a/noted-without-verdict) come from this join, never from han
 4. Cap **8 slices**, ordered by highest member priority; overflow findings are listed in the
    parent's "Not sliced" section, not silently dropped.
 
-## Phase 4: Dedupe against Linear
+## Phase 4: Enrich from the product (non-blocking)
+
+The session window is a correlation key: the testers were *in* the product during the call, so
+the product's own telemetry from that window is first-party evidence of what they hit.
+Enrichment never blocks the report — an unavailable or degraded source becomes one flag line in
+the Discord summary, never a stopped run.
+
+1. **Build under test (Vercel)** — for `client` and `admin`, find the production deploy live
+   during the session window (state `READY`, target production, most recent `finishedAt` before
+   the window opened). Record each as `surface @ <commit-sha>` in the report's lede — the Blob
+   store has no build SHA, so this line is what ties the session's verdicts to a deployable.
+2. **PostHog, window-scoped** — `switch-project` per surface (App `163591` for PWA/website,
+   Admin `262122` for admin; skip docs). Run the degraded-telemetry probe first
+   ([`qa-triage-pulse.md`](./qa-triage-pulse.md) § Phase 3): structurally empty exception
+   payloads → flag `posthog: degraded` and skip per-slice matching. When healthy:
+   - per fail/blocked slice, match exceptions inside the session window against the slice's
+     surface and route; stash safe-summary fields only (error hash, sessions, users, first/last
+     seen, confidence).
+   - report-level: exception counts per surface inside the window; a window error hash that
+     matched **no recorded case** becomes a `[derived:telemetry]` line in the parent's
+     `Not sliced` list — the testers hit it, nobody recorded it. Derived lines never become
+     slices unattended.
+3. **Sentry, when wired** — routines are Sentry-ready, not Sentry-dependent
+   ([`README.md`](./README.md) § Sentry environment). When the connector is available, search
+   the matching project (`SENTRY_CLIENT_PROJECT` / `SENTRY_ADMIN_PROJECT`) for issues first-seen
+   or active inside the window; stash the issue link, top frame, and release as safe summary. An
+   absent connector skips this step silently.
+4. **Placement** — enrichment lands in each slice's **first comment**, per the Evidence-comment
+   pattern in [`linear-templates.md`](../../.claude/skills/qa-triage/linear-templates.md), plus
+   at most one counts line in the report body. Slice bodies stay prose.
+5. **Privacy does not move for enrichment** — error hashes, counts, commit SHAs, and Sentry
+   issue links are safe; **replay URLs, session IDs, and distinct IDs never reach Linear** (the
+   private Sheet remains the only exception, and this routine does not write it). The report may
+   carry one recipe line — "recordings: PostHog App project, session window <start>–<end>" — so
+   a human is one click from the testers' replays without a URL landing in Linear.
+
+## Phase 5: Dedupe against Linear
 
 List open Product Issues carrying `activity:qa` or any `qa-sync:*` label. A finding already
 tracked gets a comment on the existing Issue (today's date + the new evidence, privacy-grepped
 before posting) and is marked "already tracked" in the report — never a duplicate Issue.
 
-## Phase 5: Privacy sweep
+## Phase 6: Privacy sweep
 
 Grep every draft body and comment for `replay`, `session_id`, `distinct_id`, `0x`, and any
 tester or reporter identifier seen this run. The report carries **no tester attribution** —
@@ -131,7 +175,7 @@ aggregate coverage only; per-tester detail stays in the pulled results and the p
 Wallet addresses, session IDs, and replay URLs appear nowhere. A hit after a write is an
 exposure: redact in place and fail loud in the Discord summary.
 
-## Phase 6: Write to Linear
+## Phase 7: Write to Linear
 
 1. **Parent first**: title exactly `QA session <YYYY-MM-DD>` (this title earns the word-backstop
    exemption), body per the § QA session report template — lede, Results by priority, Decisions
@@ -154,7 +198,7 @@ exposure: redact in place and fail loud in the Discord summary.
 3. A failed parent write aborts the run (children without a parent are orphans); a failed child
    write is retried once, then reported.
 
-## Phase 7: Discord summary to #product
+## Phase 8: Discord summary to #product
 
 House style v2 — ONE message, lede first:
 
@@ -170,8 +214,10 @@ Report: <{parent-url}> · {N} slices ({T} Todo · {B} Backlog){if overflow: " ·
 {if any_failure: "⚠ {short failure list}"}
 ```
 
-No per-surface count tables in the post — they live in the report. Quiet failure is forbidden: a
-run that wrote nothing because something broke posts the failure with the @mention.
+No per-surface count tables in the post — they live in the report. Enrichment flags
+(`posthog: degraded`, `sentry: unavailable`) join the failure list when they occurred. Quiet
+failure is forbidden: a run that wrote nothing because something broke posts the failure with
+the @mention.
 
 ## Anti-patterns
 
@@ -184,6 +230,9 @@ run that wrote nothing because something broke posts the failure with the @menti
 | Copy tester names, wallets, or replay URLs into Linear | Aggregate coverage only — the privacy boundary in [`.claude/context/qa.md`](../../.claude/context/qa.md) |
 | File when `/qa-triage --call` already ran this session | One writer per session — dedupe links instead |
 | Run against a `main` checkout | The qa scripts live on `develop`; a main checkout cannot pull the app state |
+| Block the report on enrichment | PostHog/Vercel/Sentry are context, not the record; flag a degraded source and continue |
+| Paste replay URLs, session IDs, or distinct IDs anywhere in Linear | The privacy boundary does not move for enrichment; the recipe line replaces the link |
+| Promote a `[derived:telemetry]` line into a slice | Nobody recorded it — unattended promotion invents work; a human decides at the next triage |
 
 ## Rebuilding the cloud routine from this file
 
