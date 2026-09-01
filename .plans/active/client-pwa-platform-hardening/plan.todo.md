@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Status**: `ACTIVE`
 **Created**: `2026-08-30T19:17:02.663Z`
-**Last Updated**: `2026-08-30T21:14:30Z`
+**Last Updated**: `2026-09-01T03:28:01Z`
 
 ## Decision Log
 
@@ -45,18 +45,19 @@
 ## TDD / Proof Order
 
 - [x] Run existing launch/update tests to establish the baseline.
-- [x] Add focused regression tests for every implementation slice.
+- [ ] Record a reproducible RED for the reopened state/API public-API and job-queue boundary.
+- [x] Add focused regression coverage for every implementation slice.
 - [x] Implement Shared boundaries before Client consumers.
 - [x] Run focused GREEN checks for the Client and Shared PWA surfaces.
-- [ ] Complete the repository-wide selected gates and physical-device proof. The shared checkout's
-  unrelated address-typing work and the WalletConnect/`uint8arrays` resolver failure currently
-  block the full Client typecheck/test gate; Android/WebAPK proof requires a physical device.
+- [ ] Complete the repository-wide selected gates and physical-device proof. The clean receipt
+  records the full Client test suite passing; Client typecheck is not currently claimed. Android/
+  WebAPK proof requires a physical device.
 
 ## Validation
 
 - [x] Targeted Shared and Client Vitest suites (44 Shared + 101 Client assertions)
-- [ ] Shared typecheck and Client production build (Shared and direct Vite production build pass;
-  Client `tsc -b` is blocked by concurrent address-typing changes)
+- [ ] Shared typecheck and Client production build (not part of the clean receipt and therefore not
+  currently claimed)
 - [x] PWA precache/startup budget checks and generated-worker invariants
 - [ ] `bun run agentic:check` and selector-required frontend checks (`agentic:check` reaches the
   unrelated stale generated client token audit; vocab, tokens, ontology, stories, and story quality

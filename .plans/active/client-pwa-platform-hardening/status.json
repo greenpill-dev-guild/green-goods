@@ -10,7 +10,7 @@
     "overall_status": "implementation_checkpoint_blocked_on_external_proof",
     "priority": "p2",
     "created_at": "2026-08-30T19:17:02.663Z",
-    "updated_at": "2026-08-31T21:45:24.000Z"
+    "updated_at": "2026-09-01T03:28:01.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -46,7 +46,7 @@
     "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",
     "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
     ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist.",
-    "All five implementation slices are complete. Final acceptance is held for physical Android/WebAPK proof and repository-wide gates blocked by concurrent checkout failures."
+    "Implementation is present, but the state/API lane is reopened because its required historical RED proof was not retained. Final acceptance is also held for physical Android/WebAPK proof and repository-wide gates."
   ],
   "lanes": {
     "ui": {
@@ -72,22 +72,22 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "completed",
+      "status": "in_progress",
       "branch": null,
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
       "tdd": {
-        "mode": "proof_limit",
-        "status": "green_recorded",
+        "mode": "required",
+        "status": "pending",
         "red": {
           "command": "",
-          "evidence": "Focused regression tests were added before and during implementation; individual failing snapshots were not retained in the shared checkout."
+          "evidence": ""
         },
         "green": {
-          "command": "cd packages/shared && bun run test",
-          "evidence": "Full shared suite at d788fa2e8 on 2026-08-31: 414 test files passed (2 skipped), 4474 tests passed (18 skipped), exit 0."
+          "command": "",
+          "evidence": ""
         },
-        "note": "Direct Vite production build and PWA budget checker pass. Full Client typecheck remains blocked by unrelated concurrent address-typing changes. Proof limit: RED failing snapshots were not retained from the shared dirty checkout; fallback validation is the full shared suite re-run green at a clean committed SHA (see Validation Receipt, 2026-08-31)."
+        "note": "Reopened on 2026-09-01 because missing historical RED snapshots cannot be replaced by a later GREEN run for shared public-API and job-queue behavior. The lane must record a reproducible RED and matching GREEN before returning to a terminal state."
       },
       "skill_tags": ["react", "tanstack-query", "data-layer"]
     },
@@ -166,6 +166,14 @@
       "status": "receipts_rerecorded",
       "branch": "chore/documentation-authority-migration",
       "note": "Re-recorded lane receipts with fresh commit-attributable evidence at d788fa2e8: repaired three test harnesses that still mocked the retired hooks/work/useWorks path for usePendingWorksCount (display-mode, AppShell, useOffline), then re-ran the full client (1021 passed) and shared (4474 passed, 18 skipped) suites with packages/client and packages/shared clean. TDD mode set to proof_limit because the original RED snapshots were not retained from the shared dirty checkout."
+    },
+    {
+      "timestamp": "2026-09-01T03:28:01.000Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "chore/documentation-authority-migration",
+      "note": "Reopened the state/API lane and restored required TDD because a later GREEN suite cannot substitute for missing RED evidence on shared public-API and job-queue behavior."
     }
   ]
 }
