@@ -88,8 +88,72 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Classify changes
+    runs-on: ubuntu-latest
+    outputs:
+      format: ${{ steps.classify.outputs.format }}
+      guidance: ${{ steps.classify.outputs.guidance }}
+      supply: ${{ steps.classify.outputs.supply }}
+      parity: ${{ steps.classify.outputs.parity }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22.22.1"
+
+      - name: Classify changed paths
+        id: classify
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          changed_file="$RUNNER_TEMP/supply-chain-changed-paths.txt"
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            node scripts/quality/classify-supply-chain-changes.mjs \
+              --workflow-dispatch \
+              --github-output "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            BASE_SHA="$(git rev-list --max-parents=0 "$HEAD_SHA")"
+          fi
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" > "$changed_file"
+          node scripts/quality/classify-supply-chain-changes.mjs \
+            --changed-file "$changed_file" \
+            --github-output "$GITHUB_OUTPUT"
+
+  format:
+    name: Repository formatting
+    needs: changes
+    if: needs.changes.outputs.format == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Setup JavaScript toolchain and dependencies
+        uses: ./.github/actions/setup-js
+
+      - name: Check repository formatting
+        run: bun run format:check
+
   audit:
     name: Supply-chain guardrails
+    needs: changes
+    if: needs.changes.outputs.supply == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout consumer repo
@@ -124,6 +188,8 @@ jobs:
 
   guidance:
     name: Guidance integrity
+    needs: changes
+    if: needs.changes.outputs.guidance == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -134,12 +200,6 @@ jobs:
 
       - name: Setup JavaScript toolchain and dependencies
         uses: ./.github/actions/setup-js
-
-      - name: Run workflow performance parity tests
-        run: node --test scripts/quality/workflow-performance-parity.test.mjs
-
-      - name: Check repository formatting
-        run: bun run format:check
 
       - name: Check Codex guidance parity
         run: node scripts/quality/check-codex-docs.js
@@ -168,3 +228,22 @@ jobs:
 
       - name: Run plan-hub tests
         run: node --test scripts/harness/plan-hub.test.mjs
+
+  parity:
+    name: Workflow performance parity
+    needs: changes
+    if: needs.changes.outputs.parity == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22.22.1"
+
+      - name: Run workflow performance parity tests
+        run: node --test scripts/quality/workflow-performance-parity.test.mjs
