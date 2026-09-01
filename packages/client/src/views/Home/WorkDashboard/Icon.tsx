@@ -2,11 +2,10 @@ import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCloudOffLine, RiLoader4Line, RiTaskLine } from "@remixicon/react";
-import React, { lazy, Suspense } from "react";
+import React from "react";
 import { useIntl } from "react-intl";
 import { type PwaStatusTone, pwaStatusStyles } from "@/components/Pwa/statusStyles";
-
-const WorkDashboard = lazy(() => import(".").then((module) => ({ default: module.WorkDashboard })));
+import { WorkDashboard } from ".";
 
 interface WorkDashboardIconProps {
   className?: string;
@@ -15,15 +14,6 @@ interface WorkDashboardIconProps {
 export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className }) => {
   const intl = useIntl();
   const { isOnline, pendingCount, syncStatus } = useOffline();
-
-  // Offline work management is a core promise: warm the dashboard module as
-  // soon as the launcher mounts, so opening it offline never hits a failed
-  // dynamic import (which would surface the error boundary instead of the
-  // sheet). Deferring to idle time proved too late when the network drops
-  // shortly after load.
-  React.useEffect(() => {
-    void import(".").catch(() => {});
-  }, []);
   const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
   const closeWorkDashboard = useUIStore((s) => s.closeWorkDashboard);
@@ -112,11 +102,7 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
       </button>
 
       {/* Dashboard Modal */}
-      {isWorkDashboardOpen ? (
-        <Suspense fallback={null}>
-          <WorkDashboard onClose={closeWorkDashboard} />
-        </Suspense>
-      ) : null}
+      {isWorkDashboardOpen ? <WorkDashboard onClose={closeWorkDashboard} /> : null}
     </>
   );
 };
