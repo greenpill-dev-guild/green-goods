@@ -8,6 +8,8 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
+  SUBMODULE_RECOVERY_COMMAND,
+  inspectPinnedSubmodules,
   reexecUnderCompatibleNodeIfNeeded,
   reexecUnderSystemNodeIfNeeded,
   resolveVitestMaxWorkers,
@@ -261,8 +263,13 @@ export async function arbitrumForkAvailable({
 }
 
 export function capabilityRecoveryHint(capability) {
-  if (capability !== "arbitrumFork") return null;
-  return "Start the local fork with `bun run dev:contracts:arbitrum-fork`.";
+  if (capability === "arbitrumFork") {
+    return "Start the local fork with `bun run dev:contracts:arbitrum-fork`.";
+  }
+  if (capability === "contractSubmodules") {
+    return `Initialize the pinned commits with \`${SUBMODULE_RECOVERY_COMMAND}\`.`;
+  }
+  return null;
 }
 
 async function detectEnvironment(options) {
@@ -275,6 +282,7 @@ async function detectEnvironment(options) {
   const bunVersion = await commandOutput("bun");
   const foundryOutput = await commandOutput("forge");
   const foundryVersion = foundryOutput?.match(/\d+\.\d+\.\d+/)?.[0] ?? null;
+  const contractSubmodules = inspectPinnedSubmodules({ cwd: projectRoot });
   return {
     profile: "local-ci",
     toolchain: {
@@ -285,6 +293,7 @@ async function detectEnvironment(options) {
     capabilities: {
       dependencies,
       foundry: await commandExists("forge"),
+      contractSubmodules: contractSubmodules.ready,
       docker: await commandExists("docker"),
       indexerCodegen: dependencies,
       arbitrumFork: await arbitrumForkAvailable(),

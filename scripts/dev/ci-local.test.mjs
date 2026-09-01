@@ -70,8 +70,12 @@ test("ci-local detects the Arbitrum fork from an RPC override or port probe", as
   assert.equal(probes, 1);
 });
 
-test("the Arbitrum fork blocker names its recovery command", () => {
+test("environment blockers name their recovery commands", () => {
   assert.match(capabilityRecoveryHint("arbitrumFork"), /bun run dev:contracts:arbitrum-fork/);
+  assert.match(
+    capabilityRecoveryHint("contractSubmodules"),
+    /git submodule update --init --recursive/,
+  );
   assert.equal(capabilityRecoveryHint("docker"), null);
 });
 

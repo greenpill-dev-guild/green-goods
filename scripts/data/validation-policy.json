@@ -545,7 +545,14 @@
       "freshness": "exact-inputs-and-toolchain-and-local-fork",
       "budgetSeconds": 480,
       "stopRule": "stop-dependent-checks",
-      "capabilities": ["dependencies", "indexerCodegen", "foundry", "docker", "arbitrumFork"]
+      "capabilities": [
+        "dependencies",
+        "indexerCodegen",
+        "foundry",
+        "contractSubmodules",
+        "docker",
+        "arbitrumFork"
+      ]
     },
     {
       "id": "contracts-build",
@@ -556,7 +563,7 @@
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 90,
       "stopRule": "stop-dependent-checks",
-      "capabilities": ["dependencies", "foundry"]
+      "capabilities": ["dependencies", "foundry", "contractSubmodules"]
     },
     {
       "id": "contracts-test",
@@ -567,7 +574,7 @@
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 180,
       "stopRule": "stop-dependent-checks",
-      "capabilities": ["dependencies", "foundry"]
+      "capabilities": ["dependencies", "foundry", "contractSubmodules"]
     },
     {
       "id": "contracts-verify-fast",
@@ -577,7 +584,7 @@
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 180,
       "stopRule": "stop-dependent-checks",
-      "capabilities": ["dependencies", "foundry"]
+      "capabilities": ["dependencies", "foundry", "contractSubmodules"]
     },
     {
       "id": "docs-authority",

@@ -16,7 +16,14 @@ import {
   foundryVersionMatches,
   readPinnedFoundryVersion,
 } from "../contracts/check-foundry-version.mjs";
-import { commandExists, commandVersion, majorVersion } from "../lib/dev-shared.js";
+import {
+  SUBMODULE_RECOVERY_COMMAND,
+  commandExists,
+  commandVersion,
+  inspectPinnedSubmodules,
+  majorVersion,
+  profileRequiresContractSubmodules,
+} from "../lib/dev-shared.js";
 import { inspectSurface } from "./surface-leases.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -341,6 +348,31 @@ function checkDocker() {
       { check: "docker-daemon" }
     );
   }
+}
+
+function checkContractSubmodules() {
+  if (!profileRequiresContractSubmodules(options.profile)) return;
+  const status = inspectPinnedSubmodules({ cwd: projectRoot });
+  if (status.ready) {
+    add(
+      "pass",
+      "Pinned contract submodules are ready",
+      "kernel and tokenbound match their recursive gitlinks.",
+      "",
+      { check: "contracts:submodules" },
+    );
+    return;
+  }
+
+  add(
+    "fail",
+    `Pinned contract submodules are ${status.state}`,
+    status.detail,
+    status.state === "uninitialized"
+      ? `Run ${SUBMODULE_RECOVERY_COMMAND}.`
+      : "Inspect the reported submodule state; the doctor will not reset local or mismatched content.",
+    { check: "contracts:submodules", submoduleState: status.state },
+  );
 }
 
 function checkOpReadiness() {
@@ -873,6 +905,7 @@ function printText() {
 
 checkPlatform();
 checkTools();
+checkContractSubmodules();
 checkDocker();
 checkEnv();
 checkIndexerGenerated();

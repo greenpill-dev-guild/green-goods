@@ -7,6 +7,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import {
+  detectCliCapabilities,
   buildReceiptInputs,
   detectCliToolchain,
   loadPolicy,
@@ -675,13 +676,29 @@ test("missing required environment capability is explicitly blocked", () => {
   const plan = selectValidation({
     intent: "qa",
     changedPaths: ["packages/contracts/src/Garden.sol"],
-    environment: { capabilities: { dependencies: true, foundry: false } },
+    environment: {
+      capabilities: { dependencies: true, foundry: true, contractSubmodules: false },
+    },
   });
 
   assert.equal(plan.status, "blocked");
   const blocked = plan.checks.filter((check) => check.state === "blocked");
   assert.ok(blocked.length > 0);
-  assert.ok(blocked.every((check) => check.blockedBy.includes("foundry")));
+  assert.ok(blocked.every((check) => check.blockedBy.includes("contractSubmodules")));
+});
+
+test("CLI capability detection reports pinned submodule readiness", () => {
+  const calls = [];
+  const capabilities = detectCliCapabilities({
+    cwd: "/workspace",
+    inspectPinnedSubmodules(options) {
+      calls.push(options);
+      return { ready: false };
+    },
+  });
+
+  assert.deepEqual(calls, [{ cwd: "/workspace" }]);
+  assert.deepEqual(capabilities, { contractSubmodules: false });
 });
 
 test("conditional validation rules honor their declared intents", () => {
@@ -727,6 +744,7 @@ test("strict indexer contract changes select the real event integration", () => 
         "dependencies",
         "indexerCodegen",
         "foundry",
+        "contractSubmodules",
         "docker",
         "arbitrumFork",
       ]);
