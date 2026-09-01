@@ -10,6 +10,47 @@ import type {
 import { logger } from "../app/logger";
 import { resolveIPFSUrl } from "./ipfs/resolve";
 
+function isDecodedField(field: unknown): field is EASDecodedField {
+  if (!field || typeof field !== "object" || Array.isArray(field)) return false;
+
+  const candidate = field as Record<string, unknown>;
+  if (typeof candidate.name !== "string") return false;
+  if (!candidate.value || typeof candidate.value !== "object" || Array.isArray(candidate.value)) {
+    return false;
+  }
+
+  const value = candidate.value as Record<string, unknown>;
+  return "value" in value && (value.hex === undefined || typeof value.hex === "string");
+}
+
+function validateDecodedDataJson(decodedDataJson: string): void {
+  let decoded: unknown;
+  try {
+    decoded = JSON.parse(decodedDataJson);
+  } catch {
+    throw new TypeError("EAS attestation has invalid decoded data JSON");
+  }
+
+  if (!Array.isArray(decoded) || !decoded.every(isDecodedField)) {
+    throw new TypeError("EAS attestation has an invalid decoded data payload");
+  }
+}
+
+function parseEasCreationTime(value: unknown): number {
+  if (typeof value !== "number" && typeof value !== "string") {
+    throw new TypeError("EAS attestation has an invalid creation time");
+  }
+  if (typeof value === "string" && value.trim() === "") {
+    throw new TypeError("EAS attestation has an invalid creation time");
+  }
+
+  const timestamp = Number(value);
+  if (!Number.isFinite(timestamp)) {
+    throw new TypeError("EAS attestation has an invalid creation time");
+  }
+  return timestamp;
+}
+
 /** Validate and normalize an untrusted EAS GraphQL attestation record. */
 export function parseEasAttestationRecord(attestation: unknown): EASAttestationRaw {
   if (!attestation || typeof attestation !== "object" || Array.isArray(attestation)) {
@@ -26,15 +67,14 @@ export function parseEasAttestationRecord(attestation: unknown): EASAttestationR
   if (typeof candidate.recipient !== "string" || !isAddress(candidate.recipient)) {
     throw new TypeError("EAS attestation has an invalid recipient address");
   }
-  if (typeof candidate.timeCreated !== "number" && typeof candidate.timeCreated !== "string") {
-    throw new TypeError("EAS attestation has an invalid creation time");
-  }
+  const timeCreated = parseEasCreationTime(candidate.timeCreated);
+  validateDecodedDataJson(candidate.decodedDataJson);
 
   return {
     id: candidate.id,
     attester: getAddress(candidate.attester),
     recipient: getAddress(candidate.recipient),
-    timeCreated: candidate.timeCreated,
+    timeCreated,
     decodedDataJson: candidate.decodedDataJson,
     ...(typeof candidate.revoked === "boolean" ? { revoked: candidate.revoked } : {}),
     ...(typeof candidate.schemaId === "string" ? { schemaId: candidate.schemaId } : {}),
@@ -178,7 +218,7 @@ export function parseWorkApprovalAttestation(
     {
       attester: attestation.attester,
       recipient: attestation.recipient,
-      time: Number(attestation.timeCreated),
+      time: parseEasCreationTime(attestation.timeCreated),
     },
     attestation.decodedDataJson
   );

@@ -45,6 +45,7 @@ import {
   getWorkApprovalsForWork,
   getWorks,
   getWorksByGardener,
+  parseWorkApprovalAttestation,
 } from "../../modules/data/eas";
 import type { GraphQLReader } from "../../modules/data/graphql-client";
 import {
@@ -115,6 +116,40 @@ describe("modules/data/eas", () => {
         "Failed to fetch works: Query failed"
       );
     });
+
+    it.each([
+      ["malformed JSON", "{"],
+      ["invalid decoded payload", JSON.stringify({ name: "title" })],
+    ])("skips %s without rejecting valid records", async (_label, decodedDataJson) => {
+      mockQuery.mockResolvedValue({
+        data: {
+          attestations: [
+            { ...workAttestation, id: "0xMalformed", decodedDataJson },
+            workAttestation,
+          ],
+        },
+      });
+
+      await expect(getWorks(undefined, 11155111, reader)).resolves.toMatchObject([
+        { id: workAttestation.id },
+      ]);
+    });
+
+    it.each([
+      "",
+      "not-a-time",
+      "Infinity",
+    ])("skips invalid creation time %j without rejecting valid records", async (timeCreated) => {
+      mockQuery.mockResolvedValue({
+        data: {
+          attestations: [{ ...workAttestation, id: "0xMalformed", timeCreated }, workAttestation],
+        },
+      });
+
+      await expect(getWorks(undefined, 11155111, reader)).resolves.toMatchObject([
+        { id: workAttestation.id },
+      ]);
+    });
   });
 
   describe("getWorksByGardener", () => {
@@ -160,6 +195,15 @@ describe("modules/data/eas", () => {
       });
 
       await expect(getWorkApprovals(undefined, 11155111, reader)).resolves.toEqual([]);
+    });
+
+    it("rejects invalid creation times in direct approval parsing", () => {
+      expect(() =>
+        parseWorkApprovalAttestation({
+          ...workApprovalAttestation,
+          timeCreated: "not-a-time",
+        })
+      ).toThrow("EAS attestation has an invalid creation time");
     });
   });
 
