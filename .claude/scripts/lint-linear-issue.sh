@@ -151,6 +151,20 @@ esac
 if [ "$is_umbrella" = "no" ] && printf '%s' "$title" | grep -qiE '(^|[[:space:]])roadmap$'; then
   is_umbrella=yes
 fi
+# QA session reports (the call-report parent issue) legitimately run long too:
+# coverage rollups, call decisions, and a slice index. Title-matched for the
+# same reason as roadmap — label IDs are unresolvable here — and the required
+# date keeps the pattern specific enough that ordinary defect titles cannot
+# drift into it. Anchored: only the ` · N` same-day-call counter may follow
+# the date — a free-form suffix would turn the exemption into an unbounded
+# title prefix.
+# Every exemption resolves from the payload alone (the gate cannot fetch the
+# issue), so an update that rewrites an exempt body past the word backstop must
+# resend the unchanged title — or labels, for the label-based umbrella. The
+# templates document this; append fragments under the backstop pass regardless.
+if [ "$is_umbrella" = "no" ] && printf '%s' "$title" | grep -qE '^QA session [0-9]{4}-[0-9]{2}-[0-9]{2}( · [0-9]+)?$'; then
+  is_umbrella=yes
+fi
 
 # A create must carry the problem/outcome block; the contract calls it the one
 # section that is never optional. An update may touch state, labels, or
@@ -209,11 +223,11 @@ if [ -n "$description" ]; then
   headings=$(printf '%s\n' "$description_prose" | grep -cE '^ {0,3}#{1,6}([[:space:]]|$)' || true)
   words=$(printf '%s' "$description" | wc -w | tr -d ' ')
 
-  if [ "$headings" -gt 3 ]; then
-    add "Body has $headings headings (cap 3). Most defects need none — problem, 'Done when', one source line."
+  if [ "$headings" -gt 6 ]; then
+    add "Body has $headings headings (backstop 6). Keep it clear and simple — most defects need none: problem, 'Done when', one source line."
   fi
-  if [ "$is_umbrella" = "no" ] && [ "$words" -gt 300 ]; then
-    add "Body is $words words (cap 300, target ~150). Move evidence dumps, repro transcripts, and file inventories into the first comment. (Umbrella trackers labeled plans + architecture, or titled '<feature> roadmap', are exempt.)"
+  if [ "$is_umbrella" = "no" ] && [ "$words" -gt 600 ]; then
+    add "Body is $words words (backstop 600). Keep it clear, simple, concise — move evidence dumps, repro transcripts, and file inventories into the first comment. (Umbrella trackers labeled plans + architecture, roadmap-titled parents, and 'QA session YYYY-MM-DD' reports are exempt.)"
   fi
 
   # Lane metadata: the tokens that made plan mirrors unreadable in the
@@ -251,11 +265,11 @@ if [ -n "${patch_text//[$'\r\n\t ']/}" ]; then
     append_prose="$(strip_fenced_code "$append_text")"
     append_headings=$(printf '%s\n' "$append_prose" | grep -cE '^ {0,3}#{1,6}([[:space:]]|$)' || true)
     append_words=$(printf '%s' "$append_text" | wc -w | tr -d ' ')
-    if [ "${append_headings:-0}" -gt 3 ]; then
-      add "Appended text alone carries $append_headings headings — the whole body is capped at 3. Send the full description instead, so the result can be checked against the contract."
+    if [ "${append_headings:-0}" -gt 6 ]; then
+      add "Appended text alone carries $append_headings headings — the whole body's backstop is 6. Send the full description instead, so the result can be checked against the contract."
     fi
-    if [ "$is_umbrella" = "no" ] && [ "${append_words:-0}" -gt 300 ]; then
-      add "Appended text alone is $append_words words — the whole body is capped at 300. Move the evidence to the first comment, or send the full description."
+    if [ "$is_umbrella" = "no" ] && [ "${append_words:-0}" -gt 600 ]; then
+      add "Appended text alone is $append_words words — the whole body's backstop is 600. Move the evidence to the first comment, or send the full description."
     fi
   fi
 fi

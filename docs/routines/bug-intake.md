@@ -330,7 +330,7 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
 
    Associate the Customer Need with the customer/garden when known. Customer Needs live unprojected on the Product team — do not associate with the retired `Green Goods` umbrella project or any other staging/completed project. The Customer Need carries **no labels** — `save_customer_need` has no `labels` field; provenance and triage metadata live in the body, and the canonical labels go on the linked Issue created in step 6. Before saving the record, re-check the body against the privacy boundary table in `## PostHog telemetry enrichment`; if any forbidden field slipped in, drop it.
 
-6. **Create accepted-bug Issue** only when the report is actionable per the table above. Issue title is a concise verb-led sentence with no prefix. Body follows the contract in [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md) § Issue structure — **cap 3 headings, ~150 words, 300 ceiling**, and a `PreToolUse` hook rejects writes that break it:
+6. **Create accepted-bug Issue** only when the report is actionable per the table above. Issue title is a concise verb-led sentence with no prefix. Body follows the contract in [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md) § Issue structure — clear, simple, concise, human-friendly (**backstops: 6 headings / 600 words**), and a `PreToolUse` hook rejects writes that break it:
 
    ```markdown
    {What breaks, for whom, and where — one or two short paragraphs of plain
@@ -526,7 +526,7 @@ After Phases 1–3, before the umbrella check, fold every PostHog match collecte
      below already backlinks each one through Linear's relation surface, which
      renders them in the Issue's right rail and stays correct as the list
      grows. A markdown copy would be a second home for the same fact, and an
-     unbounded one — the body is capped at 300 words, so a long-lived pattern
+     unbounded one — the body has a 600-word backstop, so a long-lived pattern
      would eventually make its own refresh unwritable.
 
    - If a parent Issue already exists, add the new Customer Needs through the relation surface (step 4) and refresh the counts and last-seen date in the body. Do not accumulate URLs in the description — the relations are the list.

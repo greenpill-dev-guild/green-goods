@@ -69,15 +69,45 @@ const accepts = [
     name: "long roadmap parent carrying plans and architecture",
     input: {
       title: "Commitment Pooling roadmap",
-      description: `${"Where the work stands and what needs a person. ".repeat(60)}`,
+      description: `${"Where the work stands and what needs a person. ".repeat(80)}`,
       labels: ["plans", "architecture"],
     },
   },
   {
-    name: "three headings sits on the cap, not over it",
+    name: "six headings sits on the backstop, not over it",
     input: {
       title: "Reconcile work status on app resume",
-      description: "## Problem\nx\n\n## Done when\ny\n\n## Source\nz",
+      description: "## Problem\nx\n\n## Done when\ny\n\n## Source\nz\n\n## Context\na\n\n## Risks\nb\n\n## Rollout\nc",
+    },
+  },
+  {
+    // The call-report parent legitimately runs long (coverage rollups plus a
+    // slice index). The dated title is the exemption signal — labels can be
+    // opaque IDs here just like the roadmap case above.
+    name: "QA session report title earns the length exemption",
+    input: {
+      title: "QA session 2026-08-31",
+      description: "Where the work stands and what needs a person. ".repeat(80),
+    },
+  },
+  {
+    // The gate resolves exemptions from the payload alone, so refreshing an
+    // exempt report's body works by resending the unchanged title. The
+    // templates document this requirement; this pins that it keeps working.
+    name: "report update that resends the dated title keeps the exemption",
+    input: {
+      id: "PRD-800",
+      title: "QA session 2026-08-31",
+      description: "Where the work stands and what needs a person. ".repeat(80),
+    },
+  },
+  {
+    // A second call on the same date is titled with the ` · N` counter — the
+    // only suffix the anchored exemption pattern tolerates.
+    name: "same-day counter suffix keeps the report exemption",
+    input: {
+      title: "QA session 2026-08-31 · 2",
+      description: "Where the work stands and what needs a person. ".repeat(80),
     },
   },
   {
@@ -91,7 +121,7 @@ const accepts = [
     name: "namespaced label forms also earn the length exemption",
     input: {
       title: "Commitment Pooling roadmap",
-      description: "Where the work stands and what needs a person. ".repeat(60),
+      description: "Where the work stands and what needs a person. ".repeat(80),
       labels: ["source:plans", "activity:architecture"],
     },
   },
@@ -115,7 +145,7 @@ const accepts = [
     name: "roadmap identified by title when labels are opaque IDs",
     input: {
       title: "Commitment Pooling roadmap",
-      description: "Where the work stands and what needs a person. ".repeat(60),
+      description: "Where the work stands and what needs a person. ".repeat(80),
       labels: ["a1b2c3d4-0000-0000-0000-000000000001"],
     },
   },
@@ -246,20 +276,20 @@ const rejects = [
     expect: /plan-hub internals/,
   },
   {
-    name: "more than three headings",
+    name: "more than six headings",
     input: {
       title: "Prevent duplicate role assignment",
-      description: "## Summary\na\n## Surface\nb\n## Suggested fix\nc\n## Safe evidence\nd\n## Source\ne",
+      description: "## Summary\na\n## Surface\nb\n## Suggested fix\nc\n## Safe evidence\nd\n## Source\ne\n## Repro\nf\n## Notes\ng",
     },
-    expect: /headings \(cap 3\)/,
+    expect: /headings \(backstop 6\)/,
   },
   {
     name: "defect body past the word ceiling without the plans label",
     input: {
       title: "Fix the admin approval revert",
-      description: "The admin work approval reverts with a garden membership error. ".repeat(45),
+      description: "The admin work approval reverts with a garden membership error. ".repeat(70),
     },
-    expect: /words \(cap 300/,
+    expect: /words \(backstop 600/,
   },
   {
     name: "screen codes",
@@ -374,15 +404,15 @@ const rejects = [
   {
     // Markdown renders up to three leading spaces as a heading, so the count
     // has to see them or the cap is trivially bypassed.
-    name: "indented headings still count toward the cap",
-    input: { title: "Fix the stuck cancel button", description: "   ## A\nx\n   ## B\ny\n   ## C\nz\n   ## D\nw" },
-    expect: /headings \(cap 3\)/,
+    name: "indented headings still count toward the backstop",
+    input: { title: "Fix the stuck cancel button", description: "   ## A\nx\n   ## B\ny\n   ## C\nz\n   ## D\nw\n   ## E\nv\n   ## F\nu\n   ## G\nt" },
+    expect: /headings \(backstop 6\)/,
   },
   {
     // A tab delimits an ATX heading just as a space does.
-    name: "tab-delimited headings count toward the cap",
-    input: { title: "Fix the stuck cancel button", description: "##\tA\nx\n##\tB\ny\n##\tC\nz\n##\tD\nw" },
-    expect: /headings \(cap 3\)/,
+    name: "tab-delimited headings count toward the backstop",
+    input: { title: "Fix the stuck cancel button", description: "##\tA\nx\n##\tB\ny\n##\tC\nz\n##\tD\nw\n##\tE\nv\n##\tF\nu\n##\tG\nt" },
+    expect: /headings \(backstop 6\)/,
   },
   {
     name: "list-form empty placeholder",
@@ -400,10 +430,42 @@ const rejects = [
     name: "long lane mirror does not inherit the roadmap exemption",
     input: {
       title: "Build the contracts for Commitment Pooling",
-      description: "Where the work stands and what needs a person. ".repeat(60),
+      description: "Where the work stands and what needs a person. ".repeat(80),
       labels: ["plans", "build"],
     },
-    expect: /words \(cap 300/,
+    expect: /words \(backstop 600/,
+  },
+  {
+    // The QA-report exemption requires the dated title. A vague "QA session"
+    // title without the date is an ordinary issue and obeys the backstop.
+    name: "dateless QA session title does not earn the exemption",
+    input: {
+      title: "QA session notes",
+      description: "Where the work stands and what needs a person. ".repeat(80),
+    },
+    expect: /words \(backstop 600/,
+  },
+  {
+    // Deliberate: a title-less `{id, description}` rewrite cannot prove the
+    // exemption, so it is rejected — the caller resends the unchanged title
+    // (documented in linear-templates § QA session report). Pinned so nobody
+    // "fixes" this silently by weakening the update path's backstop.
+    name: "long update without the title loses the exemption",
+    input: {
+      id: "PRD-800",
+      description: "Where the work stands and what needs a person. ".repeat(80),
+    },
+    expect: /words \(backstop 600/,
+  },
+  {
+    // The exemption pattern is anchored: a free-form suffix after the date
+    // would make it an unbounded title prefix, so only the counter passes.
+    name: "wordy QA session suffix loses the exemption",
+    input: {
+      title: "QA session 2026-08-31 follow-up",
+      description: "Where the work stands and what needs a person. ".repeat(80),
+    },
+    expect: /words \(backstop 600/,
   },
   {
     // \r must count as whitespace: a CRLF-only body is as empty as no body.
@@ -436,21 +498,21 @@ const rejects = [
     expect: /Patched text stacks 2 metadata lines/,
   },
   {
-    // An append cannot remove content, so four appended headings prove the
-    // resulting body exceeds the three-heading cap whatever it held before.
-    name: "append fragment that alone breaches the heading cap",
+    // An append cannot remove content, so seven appended headings prove the
+    // resulting body exceeds the six-heading backstop whatever it held before.
+    name: "append fragment that alone breaches the heading backstop",
     input: {
       id: "PRD-800",
-      patch: [{ op: "append", text: "## A\nx\n## B\ny\n## C\nz\n## D\nw" }],
+      patch: [{ op: "append", text: "## A\nx\n## B\ny\n## C\nz\n## D\nw\n## E\nv\n## F\nu\n## G\nt" }],
     },
-    expect: /Appended text alone carries 4 headings/,
+    expect: /Appended text alone carries 7 headings/,
   },
   {
     name: "append fragment that alone breaches the word cap",
     input: {
       id: "PRD-800",
       patch: [
-        { op: "append", text: "Where the work stands and what needs a person. ".repeat(45) },
+        { op: "append", text: "Where the work stands and what needs a person. ".repeat(80) },
       ],
     },
     expect: /Appended text alone is \d+ words/,
@@ -521,10 +583,10 @@ const ignores = [
     input: { id: "PRD-800", patch: [{ op: "append", text: "Fixed in the 2026-08-27 deploy." }] },
   },
   {
-    // Three appended headings cannot prove the result exceeds the cap of
-    // three, so the fragment passes; only self-sufficient breaches reject.
-    name: "append fragment at the heading cap",
-    input: { id: "PRD-800", patch: [{ op: "append", text: "## A\nx\n## B\ny\n## C\nz" }] },
+    // Six appended headings cannot prove the result exceeds the backstop of
+    // six, so the fragment passes; only self-sufficient breaches reject.
+    name: "append fragment at the heading backstop",
+    input: { id: "PRD-800", patch: [{ op: "append", text: "## A\nx\n## B\ny\n## C\nz\n## D\nw\n## E\nv\n## F\nu" }] },
   },
   {
     // A replace fragment can shrink what it touches, so a long new_string is
@@ -536,7 +598,7 @@ const ignores = [
         {
           op: "replace",
           old_string: "x",
-          new_string: "Where the work stands and what needs a person. ".repeat(45),
+          new_string: "Where the work stands and what needs a person. ".repeat(80),
         },
       ],
     },

@@ -107,6 +107,11 @@
       "expect": "debug"
     },
     {
+      "id": "debug-02",
+      "query": "We did our QA call earlier today — pull in the QA slices from Linear and start working through the fixes, top priority first",
+      "expect": "debug"
+    },
+    {
       "id": "research-01",
       "query": "Before we decide what to build at the hackathon, research what Commitment Pooling already defines about repeated Offers, member-funded claims, current implementation state, and open gates. Ground the discussion in the active Plan Hub and code before asking me product questions.",
       "expect": "research"

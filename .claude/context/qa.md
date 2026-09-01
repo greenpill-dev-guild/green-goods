@@ -22,10 +22,37 @@ connects them.
    not a public coverage report.
 5. **Triage** — [`qa-triage`](../skills/qa-triage/SKILL.md) enriches and scope-locks accepted
    findings, then writes safe Issue and Customer Need records to Linear and appends private defect
-   rows to the Green Goods v1.1 QA Sheet.
+   rows to the Green Goods v1.1 QA Sheet. After a team QA call, the
+   [`qa-call-report`](../../docs/routines/qa-call-report.md) routine (or `/qa-triage --call`)
+   writes the session to Linear instead: one `QA session YYYY-MM-DD` parent issue carrying the
+   report, with slice sub-issues sized one slice = one branch = one PR.
 6. **Decisions** — only user-locked design decisions enter
    [`design/decision-log.md`](../skills/design/decision-log.md). Observations and verdicts do not
    become design policy by implication.
+
+## Fix posture
+
+QA fixing is repair, not feature building. Any agent picking up a QA slice — from Linear, a
+deferred handoff, or a live session — works in this order:
+
+1. **History first.** `git log --follow` the files the defect implicates, find the PR that
+   shipped the behavior and its plan hub or Linear issue, and say whether the feature is new or
+   established. A defect in week-old code is usually an unfinished edge; a defect in year-old
+   code usually means an assumption changed around it. Code proves what exists, not why it was
+   chosen — the history carries the why.
+2. **Map before editing.** List the modules, seams, and components that make up the feature —
+   owning module, public entry points, direct consumers, where state lives (vocabulary:
+   [`codebase-architecture.md`](codebase-architecture.md)). Map, don't certify: two or three
+   lines that place the defect inside the feature's real structure.
+3. **Update or remove over add.** The default fix edits or deletes existing code. Before any new
+   file, hook, or component, run the Cathedral Check in
+   [`values.md § Implementation Quality Contract`](values.md#implementation-quality-contract):
+   find the most similar existing code and extend it, never a parallel approach. A fix that
+   seems to require a new module or component is a redesign wearing a fix's clothes — stop and
+   surface it instead of building it.
+4. **Repair to the acceptance criteria, no further.** The slice's catalog Test IDs and their
+   expected results are the whole scope. The fix is done when those re-record as pass — never
+   expanded because the neighborhood looked improvable on the way through.
 
 ## Artifact ownership
 
@@ -36,6 +63,7 @@ connects them.
 | Session log, pulled results, local handoff | `tmp/qa-session/<slug>/` | `qa-session` and `qa:pull`; local and gitignored |
 | Coverage report | Standard output from `bun run qa:status` | Read-only command; nothing is persisted |
 | Defect tracking | Linear plus the private Green Goods v1.1 QA Sheet | `qa-triage`, after explicit scope and write confirmation |
+| Session report and fix slices | Linear Product team — `QA session YYYY-MM-DD` parent plus slice sub-issues | [`qa-call-report`](../../docs/routines/qa-call-report.md) after a team call, or `/qa-triage --call` interactively |
 | Session receipts and cleared evidence | Restricted Drive QA folder | `qa-session`, after content inspection |
 | Locked design decisions | `.claude/skills/design/decision-log.md` in git | `qa-session`, after the decision lock gate |
 
@@ -99,7 +127,10 @@ as walked but not judged.
 
 Case priority and defect severity are different decisions. Catalog priority says how important it
 is to walk a case. Severity says how badly a particular failure affects the product. Severity is
-assigned during triage and is never derived from catalog priority.
+assigned during triage and is never derived from catalog priority. The call-report path seeds a
+slice's Linear *priority* from case priority plus verdict — a queue-ordering default the fix
+session re-judges at take-up, not a severity judgment; Sheet severity stays independently
+assigned.
 
 ## Roster and attribution
 

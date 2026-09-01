@@ -5,10 +5,11 @@ These templates mirror [`bug-intake`](../../../docs/routines/bug-intake.md) Phas
 **Drop any section you cannot fill.** A heading followed by `—`, "needs repro",
 or a paragraph explaining that PostHog matched nothing costs the reader a stop
 and tells them nothing; report tooling gaps in the run summary instead. The
-issue body obeys the caps in
+issue body follows the length principles in
 [`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md)
-§ Issue structure — **3 headings, ~150 words, 300 ceiling** — and a
-`PreToolUse` hook blocks writes that break them. A defect usually needs zero
+§ Issue structure — clear, simple, concise, human-friendly; as long as it needs
+to be, as short as it can be — with **6-heading / 600-word backstops** that a
+`PreToolUse` hook enforces. A defect usually needs zero
 headings: the problem in prose, a short **Done when**, one source line.
 
 ---
@@ -170,11 +171,111 @@ Seen <S> sessions and <U> users over 30 days, first <YYYY-MM-DD>, last
 
 This parent is filed as `Todo`, so **`Done when` is required** — without checkable outcomes a Codex hand-off stops at the readiness gate. If no outcome can be named yet, file it `Backlog` instead.
 
-**The contributing Customer Needs are not listed in the body.** Link each one through Linear's relation surface, which renders them in the right rail and stays correct as the list grows. A markdown copy is a second home for the same fact, and an unbounded one — the body is capped at 300 words, so a long-lived pattern would eventually make its own refresh unwritable.
+**The contributing Customer Needs are not listed in the body.** Link each one through Linear's relation surface, which renders them in the right rail and stays correct as the list grows. A markdown copy is a second home for the same fact, and an unbounded one — the body has a 600-word backstop, so a long-lived pattern would eventually make its own refresh unwritable.
 
-**Labels**: `protocol:green-goods`, `activity:qa`, `package:<inferred>`, `ai:claude`, plus `pattern:posthog-<hash-prefix>` if the pattern label family exists on the team. If `pattern:*` is missing, fail loud and skip the recurring-pattern parent rather than inventing a label.
+**Labels**: `protocol:green-goods`, `activity:qa`, `package:<inferred>`, `ai:claude`, plus `pattern:posthog-<hash-prefix>` if the pattern label family already exists on the team — a pre-existing exception to the label-namespace list in [`linear-routing-rules.md`](../../context/linear-routing-rules.md) § Invariant rules: use it only where it already exists, never create the family. If `pattern:*` is missing, fail loud and skip the recurring-pattern parent rather than inventing a label.
 
 **Title format**: a plain verb-led sentence naming the failure — "Fix the credential request that never resolves on garden join". The `Recurring:` prefix was retired 2026-08-27 (a `PreToolUse` hook rejects it); the `pattern:posthog-*` label is what marks this as the recurring parent.
+
+---
+
+## QA session report — parent Issue (`/qa-triage --call` + the `qa-call-report` routine)
+
+One per QA call, titled exactly `QA session YYYY-MM-DD` — a second call on the same date appends
+its counter, `QA session YYYY-MM-DD · 2`, which is also that call's identity for parent lookup
+and reuse. That title shape (date required; only the ` · N` counter may follow it) is what earns
+the word-backstop exemption in the lint hook. The report is the session's durable record in
+Linear; slices attach as **sub-issues via `parentId`**, so the board shows one collapsible tree per
+session and an agent with only Linear access can navigate parent → slices.
+
+```markdown
+<Two or three sentences a teammate would write: what was walked, by how many
+testers, on which surfaces, and the headline — "P0 coverage is green except
+review actions; two cross-surface failures trace to shared date handling.">
+
+Build under test: client `<sha>` · admin `<sha>`
+
+## Results by priority
+- P0: <walked>/<total> — <pass> pass · <fail> fail · <blocked> blocked · <na> n/a · <noted> noted only
+- P1: <walked>/<total> — …
+- P2: <walked>/<total> — …
+
+## Decisions from the call
+- <ruling the team aligned on, one line each — drop the section when none>
+
+## Slices
+- <one line per slice: what it covers and its Test IDs — Linear renders the
+  sub-issue links; this list gives the reading order and the overflow context>
+- already tracked: <PRD-NNN> — <one line> (an existing open Issue, related to
+  this parent so the fix queue still sees it)
+
+## Not sliced
+- <note-only follow-ups, anything past the slice cap, and `[derived:telemetry]`
+  uncorrelated window errors (testers or ordinary production traffic — the
+  telemetry has no tester predicate) — one line each>
+
+**Done when**
+- every slice below — and every related already-tracked Issue — is Done or explicitly
+  deferred, and the re-QA walk has re-recorded its Test IDs
+
+Session <slug>. [Meeting notes](<drive-url>)
+```
+
+**Source-line variants**: with notes, `Session <slug>. [Meeting notes](<drive-url>)`; app-only
+(no notes found in the discovery window), `Session <slug>. App-only run — no meeting notes
+found.` Never fabricate a Drive link. **Refreshing the report later**: send the unchanged
+`title` in the same `save_issue` payload — the lint gate resolves the length exemption from the
+payload alone, so an `{id, description}` update without the title is rejected as oversized
+(append patches under the backstop pass either way).
+
+Coverage numbers come from `bun run qa:pull` joined to the catalog's per-case priority — never
+hand-counted — and cover **this session's entries only** (the call-window rule; the store is
+long-lived). Include the `n/a` and noted-without-a-verdict counts: they are recorded states, and
+without them the walked numerator does not reconcile — drop a zero segment rather than rendering
+it. No tester attribution, wallet addresses, session IDs, or replay URLs anywhere;
+per-tester detail stays in the pulled results and the private Sheet. Parent labels:
+`protocol:green-goods` + `activity:qa` + `source:qa-session` + `qa-sync:<date>` + one `ai:*` —
+no `package:*` (a session spans surfaces). The parent closes when its `Done when` holds — the
+fix flow closes it, never the writer that filed it.
+
+## QA slice — sub-issue (one slice = one branch = one PR)
+
+Children of the session report via `parentId`. A slice is a root-cause cluster — same catalog
+area, same suspected seam — split when it exceeds 3 Test IDs or crosses packages. Target zero
+headings like any defect; the bold labels below are lines, not headings.
+
+```markdown
+<The problem cluster in prose: what fails, for whom, on which surface(s), and
+why these belong together. Name each catalog case inline — "Review actions sit
+below the fold (`ADM-012`, fail) and a second decision is not blocked
+(`ADM-018`, fail)." Keep a scrubbed verbatim quote only when it carries intent
+a paraphrase would lose.>
+
+**Where to start**
+<One or two lines mapping the feature: the owning module/component paths and
+the seam the failures share. A starting map, not a certified diagnosis.>
+
+**Done when**
+- <each Test ID's expected result holds and is re-recorded as pass in the QA app>
+- <second observable outcome when the slice has two halves>
+
+Fix posture: `.claude/context/qa.md § Fix posture` (via `AGENTS.md § Linear-Spawned Issue Contract`).
+Validation: `<command>`. QA session — <slug>. Test IDs: `<ID>, <ID>`.
+```
+
+**Evidence comment (slice)**: window-scoped enrichment — PostHog safe summary, Sentry issue link
+and top frame, deploy correlation — goes in the slice's first comment per § Evidence comment
+above, never the body. Replay URLs, session IDs, and distinct IDs never reach Linear; the
+parent's recipe line points a human at the recordings view instead.
+
+**State + priority**: verdict-backed (a tester recorded fail/blocked in the QA app during the
+session window, exact Test IDs) → `Todo`; priority High for a P0-case fail, Medium for P1, Low
+otherwise — Urgent only when the call flagged it release-blocking. The seeded priority is a
+queue-ordering default (walk priority × verdict), **not a severity judgment** — the fix session
+re-judges it at take-up, and Sheet severity stays independently assigned
+(`.claude/context/qa.md` § Verdict and severity rules). Reconstructed from meeting notes alone
+(no app verdict) → `Backlog`, priority unset. **Labels**: the parent set plus ONE `package:*` for the slice's
+primary surface (secondary packages named in the prose, as always).
 
 ---
 
@@ -237,5 +338,7 @@ Linear's API constraint that Customer Needs must link to an Issue eliminates the
 | `[derived:posthog]` accepted in Phase 4 | Main (`activity:qa`) | `Todo` | Yes, linked (telemetry-only body) |
 | `[derived:test-fail]` accepted in Phase 4 | Main (`activity:qa`) | `Todo` | Yes, linked (Test ID reference) |
 | `[derived:recurring]` accepted in Phase 4 | linked to parent Issue | yes (recurring-pattern parent) |
+| Verdict-backed cluster (call report) | QA slice sub-issue of the session report | `Todo` + derived priority | No — the report is the record |
+| Notes-only cluster (call report) | QA slice sub-issue of the session report | `Backlog` | No |
 
 The default for ambiguous items is **track-only** — create a Customer Need linked to a lightweight Backlog tracking Issue. The Issue exists only because Linear requires a link target; it is not committed work until a human promotes it.
