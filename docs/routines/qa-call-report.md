@@ -113,8 +113,10 @@ pass/fail/blocked/n-a/noted-without-verdict) come from this join, never from han
   alone; every slice lands `Backlog` (no verdict backing), and the report says the app carried
   no session entries.
 - A malformed shard fails the whole pull **by design** — `qa:pull` refuses to write a
-  confident-but-incomplete sheet. Post the failure loud (the failing shard path and the command
-  error) and stop; do not fall back to notes-only silently. Rerun after the store is fixed.
+  confident-but-incomplete sheet. Post the failure loud and stop — but redacted: name it as an
+  opaque shard reference (`shard 2 of 3 failed validation`), never the shard path or the raw
+  parse error, both of which embed the tester's wallet address. Do not fall back to notes-only
+  silently; rerun after the store is fixed.
 
 ## Phase 3: Join and cluster into slices
 
@@ -140,10 +142,12 @@ the product's own telemetry from that window is first-party evidence of what the
 Enrichment never blocks the report — an unavailable or degraded source becomes one flag line in
 the Discord summary, never a stopped run.
 
-1. **Build under test (Vercel)** — for `client` and `admin`, find the production deploy live
-   during the session window (state `READY`, target production, most recent `finishedAt` before
-   the window opened). Record each as `surface @ <commit-sha>` in the report's lede — the Blob
-   store has no build SHA, so this line is what ties the session's verdicts to a deployable.
+1. **Build under test (Vercel)** — for `client` and `admin`, find every production deploy active
+   during any part of the session window (state `READY`, target production: the one live when
+   the window opened, plus any that finished mid-call). One deploy → record it as
+   `surface @ <commit-sha>` in the report's lede; more than one → flag `build: mixed` with all
+   SHAs, so slices are not investigated against the wrong release. The Blob store has no build
+   SHA — this line is what ties the session's verdicts to a deployable.
 2. **PostHog, window-scoped** — `switch-project` per surface (App `163591` for PWA/website,
    Admin `262122` for admin; skip docs). Run the degraded-telemetry probe first
    ([`qa-triage-pulse.md`](./qa-triage-pulse.md) § Phase 3): structurally empty exception
@@ -153,8 +157,9 @@ the Discord summary, never a stopped run.
      seen, confidence).
    - report-level: exception counts per surface inside the window; a window error hash that
      matched **no recorded case** becomes a `[derived:telemetry]` line in the parent's
-     `Not sliced` list — the testers hit it, nobody recorded it. Derived lines never become
-     slices unattended.
+     `Not sliced` list — an **uncorrelated window error**: the query has no tester predicate,
+     so it may be the testers or ordinary production traffic. It is a lead, not a session
+     finding, and derived lines never become slices unattended.
 3. **Sentry, when wired** — routines are Sentry-ready, not Sentry-dependent
    ([`README.md`](./README.md) § Sentry environment). When the connector is available, search
    the matching project (`SENTRY_CLIENT_PROJECT` / `SENTRY_ADMIN_PROJECT`) for issues first-seen
@@ -207,13 +212,20 @@ exposure: redact in place and fail loud in the Discord summary.
      only when the notes flag it release-blocking. This seeded priority is a queue-ordering
      default derived from walk priority, not a severity judgment
      ([`.claude/context/qa.md`](../../.claude/context/qa.md) § Verdict and severity rules); the
-     fix session re-judges it at take-up.
+     fix session re-judges it at take-up. Todo-on-write is a deliberate, owner-approved
+     exception to the routines-never-claim-Todo rule: the human judgment already happened on
+     the call — a person recorded the verdict — and the fix session is the second human gate,
+     because every slice remains a proposal until a person takes it up.
    - **Notes-only** (no app verdict): `Backlog`, priority unset.
    - Labels: the parent set plus ONE `package:*` (primary surface; secondary named in prose).
 3. A failed parent write aborts the run (children without a parent are orphans); a failed child
    write is retried once, then reported.
 
 ## Phase 8: Discord summary to #product
+
+Channel guard first, per [`README.md`](./README.md) § Scope discipline: post only to
+`DISCORD_PRODUCT_CHANNEL_ID`; when it is unset or invalid, log the skipped receipt in the run
+output and never substitute another channel.
 
 House style v2 — ONE message, lede first:
 

@@ -209,7 +209,8 @@ Build under test: client `<sha>` · admin `<sha>`
 
 ## Not sliced
 - <note-only follow-ups, anything past the slice cap, and `[derived:telemetry]`
-  window errors nobody recorded — one line each>
+  uncorrelated window errors (testers or ordinary production traffic — the
+  telemetry has no tester predicate) — one line each>
 
 **Done when**
 - every slice below — and every related already-tracked Issue — is Done or explicitly

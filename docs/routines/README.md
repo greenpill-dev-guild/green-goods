@@ -185,7 +185,7 @@ Active routines are Sentry-ready, not Sentry-dependent: when a Sentry connector/
 
 The workspace has five teams as of 2026-07-14 (Product `PRD`, Research `RESR`, Community `COM`, Growth `GROW`, Marketing `MAR`; charters in [`greenpill-dev-guild/.github` → `docs/teams/`](https://github.com/greenpill-dev-guild/.github/tree/main/docs/teams)). **Green Goods routines write only to the Product team** — the funding pipeline lives on Growth (guild grant-scout's turf), marketing briefs on Marketing, cohort work on Community.
 
-Three routines write to Linear:
+These routines write to Linear:
 
 - `bug-intake` writes **Customer Needs** (raw signal — every validated user/community report) and creates linked **Issues** only when the report is accepted as committed product work.
 - `growth-pulse` writes **Issues** for accepted growth/strategy anomalies (funnel, retention, dormancy) once they cross the anomaly threshold.

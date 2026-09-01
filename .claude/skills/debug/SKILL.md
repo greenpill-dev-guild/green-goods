@@ -141,9 +141,12 @@ branch = one PR, and the posture is repair, not feature building.
    list its open sub-issues **and its related already-tracked Issues** in priority order.
    Confirm which slice to take — or take the top one when the user already said to work through
    them.
-2. **Take ONE slice**; move it to `In Progress`. Never batch slices into one branch.
-   Sanity-check its seeded priority — it derives from catalog walk priority plus verdict, not
-   judged severity; re-rank if the defect is plainly cosmetic or plainly worse.
+2. **Take ONE slice.** Move it to `In Progress` only when work actually starts — after the
+   grounding below and the branch go in step 5; a slice stopped before then (design call,
+   declined branch, unsuitable checkout) goes back to `Todo` with a comment saying why. Never
+   batch slices into one branch. Sanity-check its seeded priority — it derives from catalog
+   walk priority plus verdict, not judged severity; re-rank if the defect is plainly cosmetic
+   or plainly worse.
 3. **Ground per [`qa.md § Fix posture`](../../context/qa.md)**: history first (shipping PR, plan
    hub, new vs. established), map the feature's modules/seams, hold the update-or-remove-over-add
    default. A slice that turns out to need a new module or a design call goes back to the user
@@ -160,7 +163,9 @@ branch = one PR, and the posture is repair, not feature building.
    in the PR's `Fixes PRD-NNN` line.
 6. **Repair to the slice's "Done when"** — the catalog Test IDs' expected results — and stop
    there.
-7. **Validate**: the slice's named validation command plus the touched package's suites.
+7. **Validate via the selector**: render `bun run validation:plan -- --intent qa` for the
+   touched paths and run the returned plan, plus the slice's named validation command — never an
+   invented fixed suite (the selector owns criticality overrides and stop conditions).
 8. **Ship**: the `ship` skill gates the push; the PR references the issue (`Fixes PRD-NNN`), one
    slice per PR.
 9. **Hand back**: issue → `In Review` with the PR linked. It reaches `Done` only when its Test
