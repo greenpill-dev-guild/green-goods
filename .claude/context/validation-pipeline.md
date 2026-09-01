@@ -10,7 +10,10 @@ exactly one place.
 2. Add package typecheck or build only when types, routing, rendering, generated output, or a
    runtime contract moved.
 3. Run the Repo Quick Gate after a coherent cross-package batch or shared public-interface change.
-4. Run the full Ship Gate once, when the work reaches explicit readiness intent.
+4. Before an ordinary push, run the targeted ready-for-CI gate. Let GitHub CI own broad regression
+   coverage and merge readiness.
+5. Run the full local Ship Gate only for an explicit offline/full-readiness request or when a
+   critical/release override requires it.
 
 Coverage stays an outer-loop regression floor. It does not replace direct behavior, consumer
 wiring, production composition, or a fresh readiness gate.
@@ -43,23 +46,35 @@ Every selected check states:
 - **Stop** — which dependent checks stop after a deterministic failure and which explicitly
   independent diagnostics may continue.
 
+Push plans also report a concurrency-aware `budget.estimatedWallSeconds`,
+`budget.hardLimitSeconds`, and `budget.enforced`. Routine pushes have a 90-second hard limit;
+sensitive pushes have 180 seconds. Critical checks are uncapped and cannot be suppressed by a
+budget, receipt, or compatibility flag. Manual authenticated-browser proof is reported separately
+and is not part of the automated deadline.
+
+If a push plan lacks direct behavior proof or its estimated critical path already exceeds the
+limit, the selector returns `needs-focus` and executes nothing. Supply a focused test with
+`--test-path <surface>:<path>`, narrow the change, or select an existing explicit acceptance check.
+If execution reaches the deadline, the runner terminates the active noncritical process group,
+returns `budget-exceeded`, preserves receipts for checks that already passed, and starts no further
+checks.
+
 Receipt reuse is opt-in and off by default. Pass `--reuse-passing-receipts` to
 `node scripts/dev/ci-local.js` to skip checks whose exact fingerprint already passed. The store
 lives in `.cache/validation`, holds passes only, and any change to the command, policy, toolchain,
 validated paths, or environment profile invalidates the fingerprint. A tampered store is rejected
 rather than trusted.
 
-`node scripts/dev/ci-local.js` renders and executes Ship intent by default. When Git identifies a
-non-empty change set, Ship is path-scoped to the affected package surfaces and their strict extras.
-An empty change set falls back to the full repository. Critical overrides remain mandatory, and
-merge, readiness, and release keep their selector-defined scope. Use `bun run test:fast` for a
-cache-aware full-scope iteration loop; keep the exact uncached `bun run test` for gates that name it.
+`node scripts/dev/ci-local.js` renders and executes Ship intent by default. Prefer an explicit
+intent in agent workflows: `--intent push` for the ready-for-CI contract and `--intent ship` only
+for a requested full local gate. Use `bun run test:fast` for a cache-aware full-scope iteration
+loop; keep the exact uncached `bun run test` for gates that name it.
 
 Never reuse failures. User cancellation is terminal: stop active validation, schedule nothing else,
 and report only evidence already collected. An unavailable browser, RPC, secret, service, or other
 capability produces `BLOCKED`, not passing; do not retry the identical check until that capability
-changes. Budgets warn and profile but never skip contract, deployment/release, authentication,
-JobQueue, Work-provider, mutation-hook, security, ontology, supply-chain, or release gates. Contracts use Bun
+changes. Enforced push budgets never skip contract, deployment/release, authentication, JobQueue,
+Work-provider, mutation-hook, security, ontology, supply-chain, or release gates. Contracts use Bun
 wrappers only, never raw Forge.
 
 ## Diagnosis and evidence review (non-mutating)
@@ -72,7 +87,7 @@ readiness verdict, use the full Production Review Readiness Gate below.
 
 ## Production Review Readiness Gate (non-mutating)
 
-The strict evidence gate for an explicit production-readiness review. It proves bounded production
+The strict local evidence gate for an explicit production-readiness review. It proves bounded local
 readiness without editing tracked files:
 
 ```bash
@@ -82,6 +97,11 @@ bun format:check && bun lint && bun run test && VITE_CHAIN_ID=11155111 bun run b
 Run every selected stage fresh unless an exact matching receipt satisfies the freshness contract
 above. A required failure means `REQUEST_CHANGES`. A required check that cannot run means
 `COMMENT_ONLY`; do not downgrade or replace the proof silently.
+
+For a PR readiness verdict, local evidence is necessary but not sufficient. Required GitHub CI
+workflows must also be green for the PR's current head SHA. Pending, missing, stale-SHA, or
+unavailable CI produces `COMMENT_ONLY`/`BLOCKED`; never substitute a local full-suite run and call
+the PR approved.
 
 Conditional additions when the change touches the relevant surface:
 
@@ -112,17 +132,43 @@ that path is unavailable, record browser proof as `BLOCKED` and return `COMMENT_
 confirmed finding already requires changes. Isolated Browser, Playwright, DevTools MCP, and
 clean-room browser-proof commands cannot substitute for authenticated local QA.
 
-## Ship Gate (full pipeline)
+## Ready-for-CI Push Gate
 
-The pre-merge/pre-push gate — required before claiming a branch is ready:
+The ordinary local publication contract is “safe to send to CI”:
+
+```bash
+node scripts/dev/ci-local.js --intent push --reuse-passing-receipts \
+  --test-path <surface>:<focused-test-path>
+```
+
+The focused path may be inferred when the changed file is itself a direct test. The push selector
+chooses changed-path format/lint, direct behavior proof, and owner-package typecheck/build only when
+an interface, route, generated artifact, or runtime composition moved. Ordinary Shared
+implementation changes do not run complete Client, Admin, or Agent suites locally; those remain CI
+responsibilities.
+
+Comparison scope comes from the live PR base when available, otherwise `origin/develop`. A
+successful exact post-commit receipt is reusable by the pre-push hook. Commit, working-tree,
+command, policy, toolchain, or environment drift invalidates it.
+
+Pre-commit runs `lint-staged` only. Pre-push runs this ready-for-CI gate. Per-file formatting and
+critical-surface warnings may run during editing, but package-wide validation is owned by the
+coordinating agent rather than edit or task-completion hooks.
+
+## Ship Gate (explicit full local pipeline)
+
+The uncached full local gate for an explicit offline/full-readiness request, critical surface, or
+release:
 
 ```bash
 bun format && bun lint && bun run test && bun run build
 ```
 
-Ship uses the same conditional additions listed in the Production Review Readiness Gate. Unlike review, ship
-may run mutating format and branch/commit safety steps because the user explicitly requested ship,
-PR, commit, merge, or release readiness.
+Ship uses the same conditional additions listed in the Production Review Readiness Gate. Unlike
+review, ship may run mutating format and branch/commit safety steps because the user explicitly
+requested the full local gate. Ordinary commit, push, and PR creation use targeted proof plus the
+Ready-for-CI Push Gate, then rely on current-head GitHub CI for merge approval. Critical surfaces
+still require their selector-mandated complete local override before push and CI afterward.
 
 ## Repo Quick Gate
 

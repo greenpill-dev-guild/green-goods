@@ -1,192 +1,135 @@
 ---
 name: ship
 user-invocable: false
-description: Pre-merge gate — validates the branch is safe to push/merge. Format + lint + test + build + conventional-commit + branch safety + vocab/design-token lint when applicable. Absorbs verification-before-completion and finishing-a-development-branch — evidence before claims, always.
-argument-hint: "[--dry-run] [--no-commit] [--pr]"
+description: Publish changes safely with targeted local proof, a budgeted push gate, and current-head GitHub CI. Runs the explicit full local gate only for offline/full-readiness requests, critical surfaces, or releases.
+argument-hint: "[--dry-run] [--no-commit] [--pr] [--full-local]"
 ---
 
 # Ship Skill
 
-Pre-merge gate for Green Goods. Validates that the current branch is safe to push, merge, or turn into a PR.
+Publish Green Goods changes without duplicating CI locally. Ordinary work proves the changed
+behavior, passes the ready-for-CI push gate, and lets GitHub CI own broad regression coverage and
+merge approval. Critical and release work retain the complete local override.
 
-**Core principle**: evidence before claims. If the validation command didn't run in this invocation, you cannot claim it passes.
+## Iron law
 
----
+```
+NO READINESS CLAIM WITHOUT FRESH EVIDENCE FOR THE CURRENT SHA
+```
+
+For ordinary publication, fresh evidence means targeted behavior proof, the post-commit Push Gate,
+and required GitHub CI green for the PR's current head SHA. Pending, missing, stale-SHA, or
+unavailable CI is `BLOCKED`; a local full-suite run is not a substitute for PR approval.
+
+For critical surfaces, releases, or an explicit offline/full-local readiness request, fresh
+evidence also includes the complete local Ship Gate from
+[`validation-pipeline.md`](../../context/validation-pipeline.md).
 
 ## Activation
 
 | Trigger | Action |
-|---------|--------|
-| "ready to ship" | Full validation + guided commit/push/PR |
-| "dry-run ship check" | Validation only, no commit/push |
-| "stage but don't commit" | Validate + stage applicable files, stop before commit |
-| "open a PR" | Validate + create PR via `gh pr create` |
+|---|---|
+| “commit”, “push”, or “open a PR” | Targeted proof → commit → Push Gate → push/PR → current-head CI |
+| “ready to ship” or `--full-local` | Full local Ship Gate, then the publication flow |
+| Critical or release surface | Mandatory full local override, then the publication flow |
+| “dry-run ship check” | Selected validation only; no commit, push, or PR |
 
-Do not activate this skill for "QA mode", "quick fix", "get this to staging", or
-similar requests unless the user also asks to commit, open a PR, merge, release,
-or prove the branch is ready. Those requests use QA Speed Mode from `CLAUDE.md`.
+Do not activate this skill for "QA mode", "quick fix", "get this to staging", or similar requests
+unless the user also asks to commit, open a PR, merge, release, or prove the branch is ready.
+QA-only requests stay in QA Speed Mode and do not activate publication.
 
----
+## 1. Resolve branch and comparison base
 
-## Iron Law
-
-```
-NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
-```
-
-If the full Ship Gate ([`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md)) didn't run cleanly in this invocation, do not say the branch is ready. "Should", "probably", a green run from an hour ago, or "just the lint was enough" do not count — caches go stale, tests get flaky, and lint ≠ compile ≠ test.
-
-This iron law applies to ship/PR/commit/merge/release readiness claims. It does
-not require every narrow QA-speed fix to run the full pipeline before handoff;
-QA-speed handoffs must clearly say which targeted proof ran and must not claim
-the branch is ready to ship.
-
----
-
-## Pipeline
-
-### 1. Pre-flight safety
-
-Before running any validation, confirm the branch is safe to ship:
+Confirm the branch, worktree, staging area, and remote before validation:
 
 ```bash
-git rev-parse --abbrev-ref HEAD              # Not main/master/develop
+git rev-parse --abbrev-ref HEAD
 node scripts/quality/branch-name-policy.mjs "$(git branch --show-current)"
-git status --short                            # Know what's staged vs modified
-git log --oneline origin/main..HEAD -20       # Commits diverging from main
-git diff --stat origin/main...HEAD | tail -5  # Size of the change
+git status --short
+git remote -v
 ```
 
-**Abort conditions:**
-- On detached HEAD, `main`, `master`, or `develop` → refuse, tell user to create a work branch first
-- Branch fails `scripts/quality/branch-name-policy.mjs` → refuse. Branches describe the work; user, agent, Linear-ID, and lane-only names are invalid.
-- Unstaged changes to `.env`, `*.env.*`, or files matching `credentials*`, `*.pem`, `*.key` → refuse, flag
-- Staged file larger than 5MB → warn, ask user to confirm (likely unintended binary)
-- No commits ahead of `origin/main` and no staged changes → nothing to ship; exit
+Use the live PR base branch when one exists. Otherwise use `origin/develop`. Fetch the resolved base
+before computing the change set, then inspect commits and diff against that base. Never assume
+`origin/main`.
 
-**Linear linkage check** (PR-creation mode):
-- Never derive Linear linkage from the branch name.
-- If the work has a Linear issue, require one explicit magic-word reference on its own line in the PR body: `Fixes PRD-NNN` when merge completes the issue, `Refs PRD-NNN` for partial or stacked work, or `Relates to PRD-NNN` for context.
-- If no Linear issue is associated with the work, proceed without inventing one.
+Stop on a detached HEAD, `main`, `master`, or `develop`; an invalid branch name; credential-like
+files; a staged file larger than 5 MB without confirmation; unrelated working-tree changes that
+overlap the publication scope; or no actual change to publish.
 
-### 2. Validation gate
+For PR creation, never infer Linear linkage from the branch. Use exactly one explicit reference in
+the PR body when an issue exists: `Fixes PRD-NNN`, `Refs PRD-NNN`, or `Relates to PRD-NNN`.
 
-Run the **Ship Gate** exactly as defined in
-[`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md) — the core
-pipeline plus every conditional addition matching the touched surfaces. That file is the single
-definition of the gate commands; never restate or improvise stages here.
+## 2. Prove the changed behavior
 
-Ship-specific handling on top of the shared definition:
+Render the selector plan before running validation. Run the smallest direct acceptance check for
+the changed behavior. Add owner-package typecheck/build only when an interface, route, generated
+artifact, or runtime composition moved.
 
-- Run stages in the file's order; stop at the first FAIL and report exit code plus the last
-  relevant lines of output per stage.
-- If `bun format` modifies files, stage the modifications automatically (`git add -u` for
-  files already tracked and modified) and re-run the stage.
-- Gather touched paths with `git diff --name-only origin/main...HEAD` plus
-  `git diff --name-only --cached` to decide which conditional additions apply.
+Use `--test-path <surface>:<path>` to give the selector direct proof. A `needs-focus` plan starts
+nothing: provide a focused test, narrow the change, or choose an existing explicit acceptance
+check.
 
-### 3. Commit-message check (if commits exist ahead of main)
+If the selector marks any surface critical, run its complete mandatory local override. For a
+release or explicit `--full-local` request, run the complete Ship Gate. Do not use compatibility
+flags or receipts to suppress critical checks.
+
+## 3. Commit the proven change
+
+Stage only the approved paths and inspect the complete cached diff. Pre-commit is limited to
+`lint-staged`; it is not a repository readiness gate. Create a conventional commit, then verify the
+resulting commit tree and working tree before continuing.
+
+Commit subjects use `type(scope): description` with the repository's allowed types and scopes.
+Never commit secrets, environment files, or unrelated work.
+
+## 4. Run the post-commit Push Gate
+
+Run the exact ready-for-CI contract against the committed tree:
 
 ```bash
-git log origin/main..HEAD --format='%s'
+node scripts/dev/ci-local.js --intent push --reuse-passing-receipts \
+  --test-path <surface>:<focused-test-path>
 ```
 
-Each subject line must match conventional commits with a Green Goods scope:
-- Types: `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `perf`, `ci`
-- Scopes: `contracts`, `indexer`, `shared`, `client`, `admin`, `agent`
-- Format: `type(scope): description` or `type(scope,scope): description`
+Routine work has a 90-second hard limit; sensitive work has 180 seconds. `needs-focus` and
+`budget-exceeded` block publication. Passing receipts are reusable only when the commit,
+working-tree fingerprint, command, policy, toolchain, validated paths, and environment match
+exactly. The pre-push hook calls the same command and may reuse that exact pass.
 
-Flag any that don't match. Offer to amend via `git commit --amend` (only if the offending commit is the HEAD commit; for earlier commits, suggest a rebase but don't auto-run it).
+## 5. Push and create or update the PR
 
----
+Push normally to the verified branch and remote. Never force-push or publish directly to a
+protected branch. Create the PR only when requested, using the repository PR template, draft label,
+automation label, validation evidence, and Linear reference when applicable.
 
-## Decision tree after validation passes
+After publication, fetch the live PR metadata again and record its current head SHA. A local commit
+or successful push message alone is not proof that the PR contains the change.
 
-```
-Is work staged or committed?
-├─ Nothing staged, no commits → "Nothing to ship" — exit.
-├─ Staged but uncommitted → Offer to commit (--no-commit skips this).
-└─ Commits ahead of origin/main → Push or PR branch.
+## 6. Require current-head CI for readiness
 
-Are you pushing or opening a PR?
-├─ --pr flag → gh pr create (use the PR creation flow from CLAUDE.md)
-├─ Commits on a non-main branch + tracked remote → git push (confirm first)
-├─ Commits on a branch with no remote → offer git push -u origin <branch>
-└─ Default: ask — push, PR, or hold?
-```
+Wait for all required workflows selected for the changed paths to finish on the current PR head
+SHA. A failure blocks readiness. Pending, missing, or unavailable CI yields a blocked report; do not
+run a broad local fallback and call the PR approved.
 
-### Commit-creation mode
+Critical surfaces require both the complete local override and current-head CI. Ordinary work needs
+the targeted local contract and current-head CI.
 
-If the user accepts committing, follow the `Committing changes with git` rules from the system prompt:
-- Parallel `git status` + `git diff` + `git log` for context
-- Draft conventional-commit message with Green Goods scope
-- Never commit `.env`, credentials, or large binaries
-- HEREDOC the commit body
-- Verify success with `git status` after
+## Output
 
-### PR-creation mode
+Report the resolved base, branch and head SHA, targeted proof, Push Gate status and elapsed time,
+whether the full local gate was required, commit and push result, PR URL, and current-head CI state.
+Use one of these outcomes:
 
-If `--pr` is set (or the user picks PR):
-- Follow the `Creating pull requests` rules from the system prompt
-- Use `gh pr create` with a short title + HEREDOC body
-- Include a Test Plan checklist
-- Return the PR URL
+- `READY`: current-head required CI is green and every applicable local contract passed.
+- `BLOCKED`: local proof, push budget, publication, or current-head CI is pending/unavailable.
+- `FAILED`: a required local or CI check failed.
 
----
+## Anti-patterns
 
-## Output format
-
-Use this exact shape. Tables and short sentences — no prose.
-
-```markdown
-# Ship Report — <branch-name>
-
-## Pre-flight
-- Branch: feature/foo (not main ✓)
-- Staged: N files | Modified: N | Untracked: N (ignored)
-- Commits ahead of origin/main: N
-- Diff size: +X / -Y lines
-
-## Pipeline
-| Stage | Status | Detail |
-|-------|--------|--------|
-| Format | PASS | 0 files modified |
-| Lint | PASS | 2 warnings, 0 errors |
-| Tests | PASS | 47/47 |
-| Build | PASS | all 6 packages |
-| Design tokens | N/A | no token changes |
-| Vocab lint | PASS | 0 violations |
-
-## Commits
-| Subject | Status |
-|---------|--------|
-| feat(client): add deposit dialog | ✓ valid |
-| fix: typo | ✗ missing scope |
-
-## Next
-- Amend HEAD commit: `git commit --amend -m "fix(client): typo"`
-- Then: push / PR / hold?
-```
-
----
-
-## Anti-Patterns
-
-| Don't | Why |
-|-------|-----|
-| Auto-push to main/master | Hard blocker — refuse |
-| Force-push anywhere without explicit user permission | Destructive action — confirm first |
-| Commit `.env`, credentials, or binaries > 5MB | Safety check — refuse |
-| Amend commits not authored in this branch | Destroys prior-author attribution |
-| Treat "get this to QA/staging" as ship readiness | QA Speed Mode uses targeted proof; ship runs only for explicit commit/PR/merge/release readiness |
-| Turn every ship check into a PR | Not all work needs a PR; match scope to request |
-
----
-
-## Related Surfaces
-
-- `CLAUDE.md § Git Workflow` — branch strategy and commit conventions
-- `.claude/context/validation-pipeline.md` — the single definition of the gate commands
-- `review` — pre-merge code review that complements the ship flow
-- `.claude/context/testing.md` — test discipline referenced by the pipeline
-- `clean` — large-scale cleanup before shipping big diffs
+- Do not run full Client, Admin, and Agent suites locally for an ordinary Shared implementation
+  change; CI owns that regression fanout.
+- Do not treat PR creation, commit, or push alone as a reason to run the full local Ship Gate.
+- Do not approve a PR from local evidence while required CI is pending or stale.
+- Do not bypass `needs-focus`, the hard deadline, critical overrides, hooks, or receipt freshness.
+- Do not assume `origin/main`; resolve the live PR base or use `origin/develop`.

@@ -69,7 +69,7 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 | Only implementation guidance in `implementation.md` | Nothing to bump |
 | Only direction in `design/` | `design/SKILL.md version` only |
 
-**Drift detection** (wire into CI + pre-commit):
+**Drift detection** (wire into Design CI and selector-chosen local validation):
 ```bash
 bun run check:design-generated # verifies DesignMD generated artifacts are current
 bun run check:design-tokens   # verifies implementation tokens and versions are synced

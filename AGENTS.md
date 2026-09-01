@@ -30,6 +30,7 @@ Read the nearest guide before editing a package. It narrows this root contract f
 - `bun run test:fast` — cache-aware full-scope iteration after targeted proof is green
 - `bun run test:fast:force` — repeat the same full scope without cache reuse
 - `node scripts/dev/ci-local.js --quick` — cross-package checkpoint
+- `node scripts/dev/ci-local.js --intent push --reuse-passing-receipts --test-path <surface>:<path>` — targeted ready-for-CI gate
 - `bun run test` — exact uncached full test gate
 - `VITE_CHAIN_ID=11155111 bun run build` — deterministic root application build
 - `bun run build:agent` / `bun run build:docs` — Agent and Docs builds, which the root build does not include
@@ -117,7 +118,10 @@ When you are dispatched from a Linear issue (delegated/assigned, labeled `ai:cod
 - **Codex-ready gate.** Start implementing only if the issue gives all of: clear **acceptance criteria**, a named **surface / `package:*`**, and **validation** (explicit commands, or inferable from the Validation Ladder below). If any is missing, the scope is ambiguous, or it asks for a cross-lane or architecture decision — **stop and comment on the issue with what's missing; do not guess.** A vague issue is a no-op, not a green light. This is the Linear entry to the same two-phase scope-lock rhythm in `## Codex Workflow`.
 - **Executor, not orchestrator.** Implement only the issue's scoped unit. Cross-lane order and coupling live in `.plans/<feature>/status.json` + the human — do not reorder lanes, pull in sibling lanes, or expand past the acceptance criteria. Coupled-feature order: shared/types + contracts → state/API → UI.
 - **Branch + PR.** Branch names describe the work, never the worker, tool, Linear issue, or orchestration lane: `<type>/<work-description>`, where type is `feature`, `fix`, `refactor`, `docs`, `chore`, `test`, `perf`, `ci`, `release`, or `research`. Use a concrete kebab-case outcome such as `feature/commitment-pooling-indexer`; never use `codex/`, `claude/`, `<user>/PRD-NNN-...`, or generic lane prefixes. When an issue or plan supplies a branch, it must follow this contract, and so does a branch you inherit: sessions frequently begin on an auto-created branch that predates this rule, so check the name before your first push or PR and, if it does not conform, ask the user before renaming. Never rename unprompted — concurrent sessions share this checkout, and `git branch -m` moves the branch under all of them. With approval, rename while the branch is still local; renaming after a PR exists closes that PR and forces a new one. The PR body is the issue↔PR source of truth: use `Fixes PRD-NNN` when merge completes the issue, `Refs PRD-NNN` for partial or stacked work, or `Relates to PRD-NNN` for context. One issue per PR; keep unattended-maintenance PRs as drafts with the right labels (see `## Scope Constraints For Automated Maintenance`); never self-merge. `critical` and `packages/contracts` surfaces get extra human/Claude review.
-- **Before the PR**, run the Ship Gate from `## Validation` and produce evidence per `## Verify Before Claiming Success`. Honor the privacy boundary above and `## Multi-Agent Repo Safety`.
+- **Before an ordinary PR**, run targeted behavior proof, commit, run the ready-for-CI Push Gate,
+  push, and require the current-head GitHub CI checks before a readiness approval. Critical and
+  release surfaces also run their complete local override. Honor the privacy boundary above and
+  `## Multi-Agent Repo Safety`.
 
 ## Agent Workflow
 
@@ -191,12 +195,15 @@ check. Use these rungs:
 - **QA Speed Mode**: targeted behavior proof; add package typecheck/build only for the runtime or
   interface risk that needs it.
 - **Repo Quick Gate**: cross-package checkpoints and shared public-contract changes.
-- **Ship Gate**: full uncached readiness proof for ship, PR, commit, merge, release, or critical
-  surfaces.
+- **Ready-for-CI Push Gate**: changed-path checks plus direct behavior proof, capped at 90 seconds
+  for routine work and 180 seconds for sensitive work.
+- **Ship Gate**: explicit full uncached local proof for offline/full-readiness requests, critical
+  surfaces, and releases. Ordinary PR, commit, and push workflows rely on the Push Gate plus CI.
 
 Each selected check names its risk, expected signal, freshness rule, and stopping condition. Never
 reuse a failure. User cancellation is terminal, unavailable capabilities remain `BLOCKED`, and no
-speed budget may suppress a critical override. Multiple agents prove their own lanes; one
+speed budget may suppress a critical override. PR approval additionally requires required GitHub CI
+checks green for the current SHA; pending or unavailable CI remains `BLOCKED`. Multiple agents prove their own lanes; one
 coordinator runs the broader checkpoint. The canonical commands and conditional gates are in
 [`.claude/context/validation-pipeline.md`](.claude/context/validation-pipeline.md).
 

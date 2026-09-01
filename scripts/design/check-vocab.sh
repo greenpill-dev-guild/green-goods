@@ -7,7 +7,7 @@
 # Framework: .claude/skills/design/review-checklist.md § Lens 1
 #
 # Exits 1 if any banned term appears in translated message values.
-# Runs as `bun run lint:vocab` from repo root. Intended for pre-commit and CI.
+# Runs as `bun run lint:vocab` from repo root. Selected locally for vocabulary changes and run in CI.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
