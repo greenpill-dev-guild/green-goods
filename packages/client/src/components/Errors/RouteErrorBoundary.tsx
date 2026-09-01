@@ -46,23 +46,8 @@ import {
   type ErrorBoundaryMessages as Messages,
   loadErrorBoundaryMessages,
 } from "./messages";
-const CHUNK_ERROR_PATTERNS: RegExp[] = [
-  /chunkloaderror/i,
-  /loading chunk\s+\S+\s+failed/i,
-  /failed to fetch dynamically imported module/i,
-  /importing a module script failed/i,
-  /unable to preload css/i,
-];
-const LOOP_ERROR_PATTERNS: RegExp[] = [
-  /maximum update depth exceeded/i,
-  /minified react error #301/i,
-  /minified react error #310/i,
-  /rendered more hooks than during the previous render/i,
-  /rendered fewer hooks than expected/i,
-];
+import { classifyErrorMessage, type ErrorCategory } from "./errorClassification";
 const CHUNK_RELOAD_SESSION_KEY = "gg-route-eb-chunk-reload";
-
-type ErrorCategory = "chunk" | "loop" | "network" | "offline" | "unknown";
 
 interface NormalizedError {
   message: string;
@@ -118,29 +103,6 @@ function normalizeRouteError(raw: unknown): NormalizedError {
     message: "Unknown route error",
     toString: () => "Unknown route error",
   };
-}
-
-function classifyError(error: NormalizedError): ErrorCategory {
-  const message = (error.message || "").toLowerCase();
-  if (CHUNK_ERROR_PATTERNS.some((p) => p.test(message))) {
-    // A dynamic import that fails while the browser is offline is an offline
-    // condition, not a stale deploy — auto-reloading offline strands the user
-    // on the update screen instead of the offline experience.
-    if (typeof navigator !== "undefined" && navigator.onLine === false) return "offline";
-    return "chunk";
-  }
-  if (LOOP_ERROR_PATTERNS.some((p) => p.test(message))) return "loop";
-  if (
-    ["network error", "fetch failed", "failed to fetch", "network request failed"].some((m) =>
-      message.includes(m)
-    )
-  ) {
-    return "network";
-  }
-  if (["offline", "job_queue", "sync", "indexeddb"].some((m) => message.includes(m))) {
-    return "offline";
-  }
-  return "unknown";
 }
 
 function readSessionFlag(key: string): boolean {
@@ -205,7 +167,7 @@ function buildBugReport(error: NormalizedError, category: ErrorCategory, locale:
 export const RouteErrorBoundary: React.FC = () => {
   const rawError = useRouteError();
   const error = useMemo(() => normalizeRouteError(rawError), [rawError]);
-  const category = useMemo(() => classifyError(error), [error]);
+  const category = useMemo(() => classifyErrorMessage(error.message), [error]);
   const [locale] = useState<Locale>(getBrowserLocale);
   const [messages, setMessages] = useState<Messages>(defaultErrorBoundaryMessages);
   const [showDetails, setShowDetails] = useState(false);
