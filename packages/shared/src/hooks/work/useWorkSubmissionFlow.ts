@@ -174,9 +174,12 @@ export function useWorkSubmissionFlow(): {
           : {}),
         ...(audioNotes.length > 0 ? { audioNotes } : {}),
       };
-      const errors = validateWorkSubmissionContext(gardenAddress, actionUID, images, {
-        minRequired: minRequiredImages,
-      });
+      const errors = [
+        ...(userAddress ? [] : ["User address is required for work submission"]),
+        ...validateWorkSubmissionContext(gardenAddress, actionUID, images, {
+          minRequired: minRequiredImages,
+        }),
+      ];
       if (errors.length > 0) {
         setValidationErrors(errors);
         validationToasts.formError(errors[0]);
@@ -203,7 +206,7 @@ export function useWorkSubmissionFlow(): {
         throw error;
       }
     },
-    [gardenAddress, actionUID, images, workMutation, minRequiredImages]
+    [gardenAddress, actionUID, images, workMutation, minRequiredImages, userAddress]
   );
   const uploadWork = workForm.handleSubmit(handleUploadWork);
   const isLoading = actionsLoading || gardensLoading;

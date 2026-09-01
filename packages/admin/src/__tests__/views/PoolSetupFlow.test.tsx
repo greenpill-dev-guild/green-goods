@@ -20,7 +20,11 @@ import type {
 import { useState } from "react";
 import { createMemoryRouter, RouterProvider, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { STEPS_BY_INTENT, type StepId } from "@/views/Garden/Pool/SetupFlow/setupFlowModel";
+import {
+  defaultCycleDates,
+  STEPS_BY_INTENT,
+  type StepId,
+} from "@/views/Garden/Pool/SetupFlow/setupFlowModel";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
@@ -500,8 +504,9 @@ describe("PoolSetupFlow (W11)", () => {
     const startField = () => within(dialog()).getByLabelText(/^starts/i) as HTMLInputElement;
     const endField = () => within(dialog()).getByLabelText(/runs through/i) as HTMLInputElement;
     const toggle = () => screen.getByRole("button", { name: /toggle flow/i, hidden: true });
-    const today = new Date().toISOString().slice(0, 10);
-    expect(startField().value).toBe(today);
+    const initialDates = defaultCycleDates();
+    expect(startField().value).toBe(initialDates.start);
+    expect(endField().value).toBe(initialDates.end);
 
     // A steward names the campaign, moves the range, then thinks better of it.
     fillCycle();
@@ -514,8 +519,9 @@ describe("PoolSetupFlow (W11)", () => {
     fireEvent.click(toggle());
 
     // Nothing unmounted, so the fresh-open reset is the only thing that clears it.
-    expect(startField().value).toBe(today);
-    expect(endField().value).not.toBe("2099-01-30");
+    const reopenedDates = defaultCycleDates();
+    expect(startField().value).toBe(reopenedDates.start);
+    expect(endField().value).toBe(reopenedDates.end);
     expect((within(dialog()).getByLabelText(/^name/i) as HTMLInputElement).value).toBe("");
   });
 

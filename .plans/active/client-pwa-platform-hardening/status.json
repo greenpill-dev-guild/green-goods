@@ -165,7 +165,7 @@
       "lane": "system",
       "status": "receipts_rerecorded",
       "branch": "chore/documentation-authority-migration",
-      "note": "Re-recorded lane receipts with fresh commit-attributable evidence at d788fa2e8: repaired three test harnesses that still mocked the retired hooks/work/useWorks path for usePendingWorksCount (display-mode, AppShell, useOffline), then re-ran the full client (1021 passed) and shared (4474 passed, 18 skipped) suites at a clean checkout. TDD mode set to proof_limit because the original RED snapshots were not retained from the shared dirty checkout."
+      "note": "Re-recorded lane receipts with fresh commit-attributable evidence at d788fa2e8: repaired three test harnesses that still mocked the retired hooks/work/useWorks path for usePendingWorksCount (display-mode, AppShell, useOffline), then re-ran the full client (1021 passed) and shared (4474 passed, 18 skipped) suites with packages/client and packages/shared clean. TDD mode set to proof_limit because the original RED snapshots were not retained from the shared dirty checkout."
     }
   ]
 }

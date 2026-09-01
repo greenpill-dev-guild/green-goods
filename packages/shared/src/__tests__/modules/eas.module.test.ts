@@ -44,6 +44,7 @@ import {
   getWorkApprovals,
   getWorkApprovalsForWork,
   getWorks,
+  getWorksByGardener,
 } from "../../modules/data/eas";
 import type { GraphQLReader } from "../../modules/data/graphql-client";
 import {
@@ -113,6 +114,19 @@ describe("modules/data/eas", () => {
       await expect(getWorks("0xGarden", 11155111, reader)).rejects.toThrow(
         "Failed to fetch works: Query failed"
       );
+    });
+  });
+
+  describe("getWorksByGardener", () => {
+    it("converts GraphQL string timestamps to numbers", async () => {
+      mockQuery.mockResolvedValue({
+        data: { attestations: [{ ...workAttestation, timeCreated: "1700000000" }] },
+      });
+
+      const [work] = await getWorksByGardener("0xGardener", 11155111, reader);
+
+      expect(work.createdAt).toBe(1_700_000_000);
+      expect(typeof work.createdAt).toBe("number");
     });
   });
 

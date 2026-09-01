@@ -503,6 +503,33 @@ describe("providers/WorkProvider", () => {
   });
 
   describe("Work mutation integration", () => {
+    it("does not call mutateAsync without a user address", async () => {
+      const mockMutateAsync = vi.fn();
+      mockUseWorkMutation.mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false,
+        isError: false,
+      });
+      mockUseUser.mockReturnValue(
+        createMockUserContext({ authMode: null, smartAccountAddress: null, walletAddress: null })
+      );
+      mockWorkFlowStore.gardenAddress = MOCK_ADDRESSES.garden;
+      mockWorkFlowStore.actionUID = 1;
+
+      const { result } = renderHook(() => useWork(), {
+        wrapper: createFullWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.form.uploadWork();
+      });
+
+      expect(mockMutateAsync).not.toHaveBeenCalled();
+      expect(validationToasts.formError).toHaveBeenCalledWith(
+        "User address is required for work submission"
+      );
+    });
+
     it("calls mutateAsync on successful submission", async () => {
       const mockMutateAsync = vi.fn().mockResolvedValue("0xTxHash");
       mockUseWorkMutation.mockReturnValue({
