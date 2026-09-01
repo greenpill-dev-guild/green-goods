@@ -15,8 +15,8 @@
     },
     {
       "name": "qa-app",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["packages/qa/dev.mjs"],
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "node packages/qa/build.mjs && exec node packages/qa/dev.mjs"],
       "port": 4610
     },
     {
