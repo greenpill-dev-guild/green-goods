@@ -646,7 +646,10 @@ async function displayLabelHarness() {
       collision.dom.window.document.querySelector('[data-note="PUB-001"]')?.value,
       "mine, still pending during relabel",
     );
-    collision.dom.window.document.querySelector("[data-overview]")?.click();
+    const viewSelect = collision.dom.window.document.querySelector("[data-view-select]");
+    assert.ok(viewSelect, "view select did not render");
+    viewSelect.value = "";
+    viewSelect.dispatchEvent(new collision.dom.window.Event("change", { bubbles: true }));
     await flush();
     assert.equal(collision.dom.window.document.querySelectorAll("textarea").length, 0);
     assert.equal(collision.dom.window.document.querySelectorAll("button.st").length, 0);
