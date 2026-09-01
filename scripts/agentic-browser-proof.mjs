@@ -49,6 +49,7 @@ const surfaces = [
       "/builders/testing/storybook",
       "/builders/quality/product-experience-qa",
       "/builders/quality/test-cases",
+      "/builders/quality/gh-actions",
       "/builders/deployments/gh-actions",
     ],
   },

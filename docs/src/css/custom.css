@@ -1,9 +1,8 @@
-@import "../../../packages/shared/src/styles/design-md.generated.css";
 @import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Manrope:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 
 :root {
-  /* Public alias for the shared DesignMD radius used by docs media. */
-  --radius-md: var(--gg-radius-md);
+  /* Root DESIGN.md rounded.md, projected locally for docs media. */
+  --radius-md: 8px;
 
   /* Primary green — matches shared theme green-500 */
   --ifm-color-primary: #1a7544;
