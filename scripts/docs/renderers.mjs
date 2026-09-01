@@ -289,7 +289,7 @@ export function renderGitHubActions({ root, sources, digest }) {
   const workflows = workflowInventory(root, sources.filter((source) => source.startsWith(".github/workflows/")));
   const rootManifest = readJson(root, declaredSource(sources, "package.json"));
   let body = pageHeader(
-    { title: "GitHub Actions", slug: "/builders/quality/gh-actions", sources, digest },
+    { title: "GitHub Actions", slug: "/builders/deployments/gh-actions", sources, digest },
     "GitHub Actions",
     "Workflow files own CI triggers and jobs. Root package scripts own reusable local commands. This projection is an inventory, not a claim that a workflow is currently passing."
   );
@@ -300,18 +300,46 @@ export function renderGitHubActions({ root, sources, digest }) {
   return body;
 }
 
+// Cases group under P0/P1/P2 bands per surface, ID-sorted within a band — the
+// same shape as the QA app's Priority view, so the page and the run sheet read
+// the same way. Priority meaning lives here; kind meaning lives in the catalog.
+const QA_PRIORITY_MEANINGS = [
+  ["P0", "run these first — a core promise fails outright if this breaks, and there is no workaround"],
+  ["P1", "fix quickly — an important flow or state degrades, but a reasonable workaround exists"],
+  ["P2", "quality — polish, edge presentation, and consistency; scheduled, never urgent"],
+];
+
 export function renderQaCatalog({ root, sources, digest }) {
   const catalog = readJson(root, declaredSource(sources, "scripts/data/qa-test-catalog.json"));
   const active = catalog.cases.filter((item) => item.status === "active").sort((a, b) => a.id.localeCompare(b.id));
+  const kindLabels = new Map(catalog.kinds.map((kind) => [kind.id, kind.label]));
+  const roleLabel = (role) => role.charAt(0).toUpperCase() + role.slice(1);
   let body = pageHeader(
     { title: "Test Cases", slug: "/builders/quality/test-cases", featureStatus: "In progress", sources, digest },
     "Test Cases",
     "This page projects scenario definitions only. Live results, identities, owners, defect links, and session evidence are intentionally excluded."
   );
+  body += "Each surface groups its cases by priority — the same P0/P1/P2 bands as the [QA app's](https://qa.greengoods.app) Priority view — and sorts by ID within a band. IDs are permanent addresses: never renumbered, never reused; retired cases keep their ID in the catalog history.\n\n";
+  body += QA_PRIORITY_MEANINGS.map(([priority, meaning]) => `- **${priority}** — ${meaning}.`).join("\n");
+  body += "\n\nEach case carries one **kind**, the category axis:\n\n";
+  body += catalog.kinds.map((kind) => `- **${esc(kind.label)}** — ${esc(kind.verifies)}.`).join("\n");
+  body += "\n\n";
   for (const tab of catalog.tabs) {
-    body += `## ${tab}\n\n| ID | Priority | Area | Scenario | Evidence requested |\n|---|---|---|---|---|\n`;
-    for (const item of active.filter((candidate) => candidate.tab === tab)) body += `| \`${esc(item.id)}\` | ${esc(item.priority)} | ${esc(item.area)} | ${esc(item.scenario)} | ${esc(item.evidence)} |\n`;
-    body += "\n";
+    const tabCases = active.filter((candidate) => candidate.tab === tab);
+    const tabSlug = tab.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    let rendered = 0;
+    body += `## ${tab}\n\n`;
+    for (const [priority] of QA_PRIORITY_MEANINGS) {
+      const band = tabCases.filter((candidate) => candidate.priority === priority);
+      if (band.length === 0) continue;
+      rendered += band.length;
+      const bandTitle = priority === "P0" ? `${priority} — run these first` : priority;
+      body += `### ${bandTitle} (${band.length}) {#${tabSlug}-${priority.toLowerCase()}}\n\n`;
+      body += "| ID | Kind | Area | Role | Scenario | Evidence requested |\n|---|---|---|---|---|---|\n";
+      for (const item of band) body += `| \`${esc(item.id)}\` | ${esc(kindLabels.get(item.kind) ?? item.kind)} | ${esc(item.area)} | ${roleLabel(item.role)} | ${esc(item.scenario)} | ${esc(item.evidence)} |\n`;
+      body += "\n";
+    }
+    if (rendered !== tabCases.length) throw new Error(`qa docs: tab "${tab}" has cases outside the P0/P1/P2 bands`);
   }
   return body;
 }

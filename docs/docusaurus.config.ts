@@ -71,6 +71,7 @@ const config: Config = {
       '@docusaurus/plugin-client-redirects',
       {
         redirects: [
+          {from: ['/builders/quality/gh-actions'], to: '/builders/deployments/gh-actions'},
           {
             from: [
               '/welcome/quickstart-gardener',
