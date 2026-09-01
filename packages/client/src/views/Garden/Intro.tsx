@@ -1,6 +1,7 @@
 import { type Action, Domain, type Garden } from "@green-goods/shared/types/domain";
 import { expandDomainMask, hasDomain } from "@green-goods/shared/utils/domain";
 import { hapticSelection } from "@green-goods/shared/utils/app/haptics";
+import { parseActionUID } from "@green-goods/shared/utils/action/parsers";
 import { localizeAction } from "@green-goods/shared/utils/action/translations";
 import { RiHammerFill, RiLoader4Line, RiPlantFill, RiUserAddLine } from "@remixicon/react";
 import React, { useMemo } from "react";
@@ -78,19 +79,17 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
 }) => {
   const intl = useIntl();
 
-  const uidFromActionId = (id: string): number | null => {
-    const last = id.split("-").pop();
-    const n = Number(last);
-    return Number.isFinite(n) ? n : null;
-  };
-
   // Single useMemo: compute available domains, filtered actions, filtered gardens (Rule 9)
   const { availableDomains, filteredActions, unknownActions, filteredGardens, effectiveDomain } =
     useMemo(() => {
       const now = Date.now();
 
-      // Active actions only
-      const active = actions.filter((a) => now >= a.startTime && now <= a.endTime);
+      // Active actions only. Drop any action whose id yields no UID so the
+      // carousel never renders an unselectable card — and never parses a
+      // missing id at render time.
+      const active = actions.filter(
+        (a) => now >= a.startTime && now <= a.endTime && parseActionUID(a.id) !== null
+      );
 
       // Derive available domains from gardens' domain masks (decision 13),
       // falling back to action-derived domains for backward compatibility
@@ -123,7 +122,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
       // A selected unknown-domain action has no named domain, so the garden
       // list must not inherit whichever named tab happened to be active.
       const selectedActionIsUnknown = unknownDomainActions.some(
-        (a) => uidFromActionId(a.id) === selectedActionUID
+        (a) => parseActionUID(a.id) === selectedActionUID
       );
       const domainGardens =
         effective !== null && !selectedActionIsUnknown
@@ -237,7 +236,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
 
           {filteredActions.length > 0 &&
             filteredActions.map((action) => {
-              const uid = uidFromActionId(action.id);
+              const uid = parseActionUID(action.id);
               const displayAction = localizeAction(action, intl.locale);
               return (
                 <CarouselItem
@@ -271,7 +270,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
           <Carousel opts={{ align: "start" }}>
             <CarouselContent>
               {unknownActions.map((action) => {
-                const uid = uidFromActionId(action.id);
+                const uid = parseActionUID(action.id);
                 const displayAction = localizeAction(action, intl.locale);
                 return (
                   <CarouselItem

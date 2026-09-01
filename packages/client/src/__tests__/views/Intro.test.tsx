@@ -274,6 +274,18 @@ describe("WorkIntro", () => {
     expect(screen.queryByTestId("action-card-Expired Action")).not.toBeInTheDocument();
   });
 
+  it("skips an action with a missing id instead of crashing", () => {
+    const actions = [
+      makeAction({ id: "action-1", title: "Valid Action" }),
+      makeAction({ id: undefined as unknown as string, title: "Broken Action" }),
+    ];
+
+    renderIntro({ actions });
+
+    expect(screen.getByTestId("action-card-Valid Action")).toBeInTheDocument();
+    expect(screen.queryByTestId("action-card-Broken Action")).not.toBeInTheDocument();
+  });
+
   it("reserves selection-card space when a selected domain has no active actions", () => {
     const actions = [makeAction({ id: "action-1", title: "Repair Event", domain: Domain.WASTE })];
     const gardens = [
