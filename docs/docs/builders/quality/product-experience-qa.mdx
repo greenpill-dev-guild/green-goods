@@ -42,29 +42,23 @@ Walks are recorded in the [QA app](https://qa.greengoods.app), a shared checklis
 tester signs in with their wallet and owns their own verdicts. Every test case gets a Pass, Fail,
 or Blocked call and a short note, saved as you go:
 
-<img src="/img/screenshots/qa-app-checklist.png" alt="The QA app checklist: one tab per surface, priority chips on each case, and Pass / Fail / Blocked buttons beside a notes field" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+<figure>
+  <img src="/img/screenshots/qa-app-priority-view.png" alt="Synthetic QA app data in Priority view, with the P0 run-first band and priority chips visible" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+  <figcaption>The Priority view groups the run sheet into P0, P1, and P2 bands. This example uses synthetic data.</figcaption>
+</figure>
 
 Two more places complete the picture:
 
 - The QA app orders cases by priority or area. [Test Cases](./test-cases) is the public catalog
-  behind it, adding each scenario's kind, role, and expected evidence.
-- Findings land in Linear after the call (one report issue per session, fix slices as sub-issues),
-  and screenshots or recordings go to the private Drive QA folder — never into public artifacts.
+  behind it, adding each scenario's kind, area, and expected evidence.
+- Findings land in Linear after the call, while screenshots and recordings go to the private Drive
+  QA folder. Linear, Drive, and staging links are shared in the private session charter rather than
+  published here.
 
 :::tip First walk?
 Start with [`PUB-001`](./test-cases#public-website-p0): open the public site and check that public
-routes use the website shell, not the PWA shell. No wallet, no role, about ten minutes.
+routes use the website shell, not the PWA shell. No wallet or product role is required.
 :::
-
-Most cases walk the product itself. The heart of Green Goods is a gardener submitting real work —
-pick a garden, choose an action, add media, review, submit:
-
-<div style={{display: 'flex', gap: '0.5rem', flexWrap: 'wrap', margin: '1rem 0'}}>
-  <img src="/img/screenshots/qa-pwa-gardens.webp" alt="Gardens list in the PWA" style={{width: 'calc(25% - 0.4rem)', minWidth: '150px', flexGrow: 1, borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
-  <img src="/img/screenshots/qa-pwa-action-selection.webp" alt="Choosing an action for a work submission" style={{width: 'calc(25% - 0.4rem)', minWidth: '150px', flexGrow: 1, borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
-  <img src="/img/screenshots/qa-pwa-media.webp" alt="Adding photos to a work submission" style={{width: 'calc(25% - 0.4rem)', minWidth: '150px', flexGrow: 1, borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
-  <img src="/img/screenshots/qa-pwa-review.webp" alt="Reviewing a work submission before upload" style={{width: 'calc(25% - 0.4rem)', minWidth: '150px', flexGrow: 1, borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
-</div>
 
 ## Walking a flow
 
@@ -103,6 +97,11 @@ opening it.
   half hour walking the merged fail list together and aligning on the cross-surface calls —
   those decisions are the most valuable output of the call.
 
+<figure>
+  <img src="/img/screenshots/qa-app-recorded-case.png" alt="Synthetic QA case PUB-001 recorded as Pass with a saved note and one of thirty cases decided" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+  <figcaption>A useful record pairs the verdict with a short, concrete observation. This example uses synthetic data.</figcaption>
+</figure>
+
 ### After the call {#after-the-call}
 
 - Before everyone drops, spend five minutes on four questions: What did we cover, and what did we
@@ -117,6 +116,11 @@ opening it.
 - Re-QA later in the week is a scoped walk of the affected cases. Whoever recorded a fail
   re-records the pass: the standing verdict keeps each tester's most severe entry, so someone
   else passing the case does not clear it.
+
+<figure>
+  <img src="/img/screenshots/qa-session-report-example.png" alt="Synthetic completed QA session report with coverage, release confidence, and two linked fix slices" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+  <figcaption>The closed session report keeps the shared conclusion and its fix slices together. This is a synthetic example, not a live workspace record.</figcaption>
+</figure>
 
 ## What every journey must prove
 
@@ -134,6 +138,9 @@ The generated [test-case catalog](./test-cases) owns public scenario definitions
 locations; the QA skills own session and triage mechanics.
 
 - [Test Cases](./test-cases) — every scenario, grouped by priority within each surface.
+- [Playwright](../testing/playwright) — browser-test entry points and the boundary between automated
+  checks and a human QA walk.
+- [Agent task routing](../agentic/task-routing) — where `qa-session` fits with triage and debugging.
 - [GitHub Actions](../deployments/gh-actions) — the automated gates that run before a human ever
   walks.
 - [Getting Started](../getting-started) — local setup, if you want a dev build to walk against.

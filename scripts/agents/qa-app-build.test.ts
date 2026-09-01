@@ -302,12 +302,26 @@ describe("QA app build", () => {
 });
 
 describe("QA catalog contract", () => {
-  it("gives every case one kind from the kinds list, transaction exactly when tx-tagged", () => {
+  it("locks the six kinds and keeps transaction exactly aligned with the tx tag", () => {
     const catalog = JSON.parse(
       readFileSync(path.join(repoRoot, "scripts", "data", "qa-test-catalog.json"), "utf8"),
     );
-    const kinds = new Set(catalog.kinds.map((kind: { id: string }) => kind.id));
-    expect(kinds.size).toBeGreaterThan(0);
+    const expectedKindIds = [
+      "journey",
+      "transaction",
+      "data-integrity",
+      "content",
+      "accessibility",
+      "resilience",
+    ];
+    const kindIds = catalog.kinds.map((kind: { id: string }) => kind.id);
+    expect(kindIds).toEqual(expectedKindIds);
+    expect(new Set(kindIds).size).toBe(expectedKindIds.length);
+    for (const kind of catalog.kinds) {
+      expect(kind.label.trim()).not.toBe("");
+      expect(kind.verifies.trim()).not.toBe("");
+    }
+    const kinds = new Set(kindIds);
     for (const testCase of catalog.cases) {
       expect(kinds.has(testCase.kind)).toBe(true);
       // The write boundary is negotiated per session, so the transaction kind

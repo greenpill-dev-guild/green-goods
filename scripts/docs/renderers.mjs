@@ -313,7 +313,6 @@ export function renderQaCatalog({ root, sources, digest }) {
   const catalog = readJson(root, declaredSource(sources, "scripts/data/qa-test-catalog.json"));
   const active = catalog.cases.filter((item) => item.status === "active").sort((a, b) => a.id.localeCompare(b.id));
   const kindLabels = new Map(catalog.kinds.map((kind) => [kind.id, kind.label]));
-  const roleLabel = (role) => role.charAt(0).toUpperCase() + role.slice(1);
   let body = pageHeader(
     { title: "Test Cases", slug: "/builders/quality/test-cases", featureStatus: "In progress", sources, digest },
     "Test Cases",
@@ -335,8 +334,8 @@ export function renderQaCatalog({ root, sources, digest }) {
       rendered += band.length;
       const bandTitle = priority === "P0" ? `${priority} — run these first` : priority;
       body += `### ${bandTitle} (${band.length}) {#${tabSlug}-${priority.toLowerCase()}}\n\n`;
-      body += "| ID | Kind | Area | Role | Scenario | Evidence requested |\n|---|---|---|---|---|---|\n";
-      for (const item of band) body += `| \`${esc(item.id)}\` | ${esc(kindLabels.get(item.kind) ?? item.kind)} | ${esc(item.area)} | ${roleLabel(item.role)} | ${esc(item.scenario)} | ${esc(item.evidence)} |\n`;
+      body += "| ID | Kind | Area | Scenario | Evidence requested |\n|---|---|---|---|---|\n";
+      for (const item of band) body += `| \`${esc(item.id)}\` | ${esc(kindLabels.get(item.kind) ?? item.kind)} | ${esc(item.area)} | ${esc(item.scenario)} | ${esc(item.evidence)} |\n`;
       body += "\n";
     }
     if (rendered !== tabCases.length) throw new Error(`qa docs: tab "${tab}" has cases outside the P0/P1/P2 bands`);

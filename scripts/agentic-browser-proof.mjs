@@ -43,7 +43,14 @@ const surfaces = [
     root: path.join(repoRoot, "docs/build"),
     publicRoot: true,
     spaFallback: false,
-    routes: ["/", "/builders/agentic/mcp-guide", "/builders/testing/storybook", "/builders/deployments/gh-actions"],
+    routes: [
+      "/",
+      "/builders/agentic/mcp-guide",
+      "/builders/testing/storybook",
+      "/builders/quality/product-experience-qa",
+      "/builders/quality/test-cases",
+      "/builders/deployments/gh-actions",
+    ],
   },
 ];
 
