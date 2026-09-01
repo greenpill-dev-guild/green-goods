@@ -156,6 +156,10 @@ fi
 # same reason as roadmap — label IDs are unresolvable here — and the required
 # date keeps the pattern specific enough that ordinary defect titles cannot
 # drift into it. A suffix after the date is tolerated on purpose.
+# Every exemption resolves from the payload alone (the gate cannot fetch the
+# issue), so an update that rewrites an exempt body past the word backstop must
+# resend the unchanged title — or labels, for the label-based umbrella. The
+# templates document this; append fragments under the backstop pass regardless.
 if [ "$is_umbrella" = "no" ] && printf '%s' "$title" | grep -qE '^QA session [0-9]{4}-[0-9]{2}-[0-9]{2}'; then
   is_umbrella=yes
 fi

@@ -91,6 +91,17 @@ const accepts = [
     },
   },
   {
+    // The gate resolves exemptions from the payload alone, so refreshing an
+    // exempt report's body works by resending the unchanged title. The
+    // templates document this requirement; this pins that it keeps working.
+    name: "report update that resends the dated title keeps the exemption",
+    input: {
+      id: "PRD-800",
+      title: "QA session 2026-08-31",
+      description: "Where the work stands and what needs a person. ".repeat(80),
+    },
+  },
+  {
     name: "a bulleted list is not an empty-placeholder section",
     input: {
       title: "Populate chapter pages with steward content",
@@ -421,6 +432,18 @@ const rejects = [
     name: "dateless QA session title does not earn the exemption",
     input: {
       title: "QA session notes",
+      description: "Where the work stands and what needs a person. ".repeat(80),
+    },
+    expect: /words \(backstop 600/,
+  },
+  {
+    // Deliberate: a title-less `{id, description}` rewrite cannot prove the
+    // exemption, so it is rejected — the caller resends the unchanged title
+    // (documented in linear-templates § QA session report). Pinned so nobody
+    // "fixes" this silently by weakening the update path's backstop.
+    name: "long update without the title loses the exemption",
+    input: {
+      id: "PRD-800",
       description: "Where the work stands and what needs a person. ".repeat(80),
     },
     expect: /words \(backstop 600/,

@@ -160,7 +160,10 @@ tokens, registered in both `.claude/settings.json` and `.codex/hooks.json`. It
 checks shape only — prefixes, heading and word counts, lane metadata, empty
 placeholders — never whether the prose is any good, because a wrong block costs
 an agent a retry loop it cannot reason its way out of. Treat it as a backstop:
-write to this structure directly rather than letting a rejection tell you.
+write to this structure directly rather than letting a rejection tell you. The
+gate resolves length exemptions from the payload alone, so an update that
+rewrites an exempt body (roadmap, QA session report) past the word backstop
+must resend the unchanged title — or labels, for the label-based umbrella.
 
 Linear's own issue templates cannot help — `save_issue` exposes no template
 parameter, so templates only reach the composer, Slack and email intake, and

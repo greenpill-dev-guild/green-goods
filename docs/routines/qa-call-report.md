@@ -4,7 +4,7 @@ trigger:
   manual: true  # on-demand only — Afo runs it right after a team QA call (claude.ai/code/routines "Run", or RemoteTrigger from a Claude session). No cron: QA calls are scheduled ad hoc.
 max-duration: 30m
 repos:
-  - green-goods  # MUST check out `develop` — the qa scripts (qa:pull, qa-state-pull.ts) are not on main
+  - green-goods  # needs the qa scripts (qa:pull, qa-state-pull.ts); today that means `develop` — verify by file, not branch name
 environment: green-goods
 network-access: full
 env-vars:
@@ -52,8 +52,10 @@ decision log is a human-gated local step, never yours.
 - All env vars are loaded; do not read `.env`. `BLOB_READ_WRITE_TOKEN` must be present — without
   it `bun run qa:pull` cannot read the QA app's shards; fail loud in the Discord summary rather
   than shipping a notes-only report silently.
-- The repo checkout must be on `develop` (the qa scripts do not exist on `main`). If
-  `scripts/agents/qa-state-pull.ts` is missing, report the checkout problem and stop.
+- The capability check is the file, not the branch name: `scripts/agents/qa-state-pull.ts` and
+  the root `qa:pull` script must exist in the checkout. Today that means `develop` (they have not
+  shipped to `main` yet); once a release carries them, either branch works. Missing → report the
+  checkout problem and stop.
 - Resolve Linear team (`Product`), workflow states (`Todo`, `Backlog`, `In Progress`), and label
   families by name at run start; never hardcode IDs. Required label families:
   `protocol:green-goods`, `package:*`, `activity:qa`, `source:qa-session` (resolve-or-create),
@@ -83,6 +85,8 @@ and modifiedTime > '<24h-ago RFC3339>' and mimeType = 'application/vnd.google-ap
   by entering app-only mode.
 - Multiple candidates: pick the newest whose title names Green Goods or the QA call; list the
   alternates in the Discord summary.
+- When notes are found, extract the meeting's start and end from the document header (Gemini
+  stamps the event time) — they define the **call interval** Phase 2 filters by.
 - Zero candidates: continue in **app-only mode** — the report says "no meeting notes found (query
   window 24h)" and the Decisions section is dropped. Do not fail: the app state alone is a valid
   session record.
@@ -94,10 +98,14 @@ and modifiedTime > '<24h-ago RFC3339>' and mimeType = 'application/vnd.google-ap
 Run `bun run qa:pull --slug <YYYY-MM-DD>` (the call date). It writes
 `tmp/qa-session/<date>/results.csv` and `qa-state.json` from the Blob shards. **The store is
 long-lived and the pull merges every shard ever written**, so scope the session first: a *session
-entry* is one whose `at` timestamp falls inside the same 24-hour window Phase 1 uses. Only
-session entries are this call's verdicts — they alone back slices and the Results rollup. Older
-entries are standing state: at most one context line in the report, and never the backing for a
-slice. Then join the session entries to `scripts/data/qa-test-catalog.json` by Test ID — the
+entry* is one whose `at` timestamp falls inside the **call interval** — the meeting's start and
+end from the notes header, padded 15 minutes before and 60 after (late recording is normal). A
+rolling day is not the session: a rehearsal that morning or yesterday's solo pass must not back
+this call's slices. App-only runs (no notes, so no meeting times) fall back to the slug date's
+calendar day up to run time — say so in the report and treat that wider window's verdicts with
+proportionate caution. Only session entries are this call's verdicts — they alone back slices
+and the Results rollup; the same interval bounds the Phase 4 telemetry queries. Older entries
+are standing state: at most one context line in the report, and never the backing for a slice. Then join the session entries to `scripts/data/qa-test-catalog.json` by Test ID — the
 pull summary is not priority-aware, so per-priority rollups (P0/P1/P2 ×
 pass/fail/blocked/n-a/noted-without-verdict) come from this join, never from hand counting.
 
@@ -163,9 +171,15 @@ the Discord summary, never a stopped run.
 
 ## Phase 5: Dedupe against Linear
 
-List open Product Issues carrying `activity:qa` or any `qa-sync:*` label. A finding already
-tracked gets a comment on the existing Issue (today's date + the new evidence, privacy-grepped
-before posting) and is marked "already tracked" in the report — never a duplicate Issue.
+First the parent itself: if a `QA session <date>` parent already exists (exact dated title, or
+the `qa-sync:<date>` label — the interactive sibling may have filed it), **reuse it** — add
+missing children under it and a comment for new context; never a second parent.
+
+Then the findings: list open Product Issues carrying `activity:qa` or any `qa-sync:*` label. A
+finding already tracked gets a comment on the existing Issue (today's date + the new evidence,
+privacy-grepped before posting) **and a `relatedTo` link to the session parent**, and the report
+lists it under Slices as `already tracked: <key>` — so the fix queue and the parent's closure
+accounting still see it. Never a duplicate Issue.
 
 ## Phase 6: Privacy sweep
 
@@ -183,7 +197,8 @@ exposure: redact in place and fail loud in the Discord summary.
    Drive notes link. State `Todo`. Labels: `green-goods` + `qa` + `qa-session` + `routine` +
    `qa-sync:<date>`; **no `package:*`** on the parent. The parent's `Done when` defines its
    closure — every slice Done or explicitly deferred, re-QA re-recorded; the fix flow closes it,
-   never this routine.
+   never this routine. App-only runs use the app-state source-line variant from the template —
+   never a fabricated Drive link.
 2. **Then each slice** as a sub-issue via `parentId`, body per the § QA slice template (problem
    cluster in prose with Test IDs and verdicts, "Where to start" map, "Done when" = the Test IDs
    re-record as pass, fix-posture pointer, validation command, source line).
@@ -229,7 +244,7 @@ the @mention.
 | Hand-count coverage or severity | Rollups come from `qa:pull` joined to the catalog; severity derives from case priority + verdict per the mandate above |
 | Copy tester names, wallets, or replay URLs into Linear | Aggregate coverage only — the privacy boundary in [`.claude/context/qa.md`](../../.claude/context/qa.md) |
 | File when `/qa-triage --call` already ran this session | One writer per session — dedupe links instead |
-| Run against a `main` checkout | The qa scripts live on `develop`; a main checkout cannot pull the app state |
+| Run from a checkout missing the qa scripts | Verify `scripts/agents/qa-state-pull.ts` exists rather than trusting a branch name; today the scripts ship on `develop` only |
 | Block the report on enrichment | PostHog/Vercel/Sentry are context, not the record; flag a degraded source and continue |
 | Paste replay URLs, session IDs, or distinct IDs anywhere in Linear | The privacy boundary does not move for enrichment; the recipe line replaces the link |
 | Promote a `[derived:telemetry]` line into a slice | Nobody recorded it — unattended promotion invents work; a human decides at the next triage |

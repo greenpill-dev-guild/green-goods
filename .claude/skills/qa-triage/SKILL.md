@@ -45,11 +45,17 @@ Phase 3b dedupe catches the other's records if both ran.
   `at` timestamps (the routine's session-window rule) before calling anything verdict-backed;
   older entries are standing state. Note items without a Test ID may be fuzzy-matched into
   *proposals* here, because the Phase 4 gate confirms each one with you — the unattended routine
-  never guesses an ID.
+  never guesses an ID. If `tmp/qa-session/<date>/` already holds a pulled session (a local
+  close, or an earlier failed run), `qa:pull` refuses to overwrite it: pull to a fresh directory
+  with `--out tmp/qa-session/<date>-call` and continue from that path — never `--force` over an
+  existing pull, whose severity edits and redactions are sacred.
 - **Phases 3-5** — findings cluster into slices: same catalog area + same suspected seam, split
   past 3 Test IDs or a package boundary, cap 8 by priority with overflow named in the report.
   Payloads use [linear-templates.md § QA session report / § QA slice](./linear-templates.md) —
-  one `QA session <date>` parent, slices as sub-issues via `parentId`. Verdict-backed slices
+  one `QA session <date>` parent, slices as sub-issues via `parentId`. Before drafting the
+  parent, look for an existing `QA session <date>` by its exact dated title or the
+  `qa-sync:<date>` label — Phase 3b's package-scoped scan cannot see it (the parent carries no
+  `package:*`); an existing parent is reused, never duplicated. Verdict-backed slices
   propose `Todo` + derived priority (P0-case fail → High, P1 → Medium, else Low; Urgent only for
   call-flagged release blockers); note-only items propose `Backlog`. The Phase 4 scope-lock gate
   runs unchanged over the slice list.

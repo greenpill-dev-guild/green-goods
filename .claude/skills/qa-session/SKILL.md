@@ -282,7 +282,7 @@ deferred handoff, or per-walker receipt to produce, and none should be fabricate
 close IS the [`qa-call-report`](../../../docs/routines/qa-call-report.md) routine or
 `/qa-triage --call`: it joins the app state with the Meet notes, and the Linear session report
 plus slices are the close-out artifacts. Per-walker artifacts remain required only for walks an
-agent drove. Each walker still produces their own OBS log, deferred handoff, and
+agent drove: each agent-driven walker still produces their own OBS log, deferred handoff, and
 receipt, because dispositions and fixes are theirs. The decision lock gate (Phase 4.4) runs
 **once, together** — a design ruling is not per walker.
 

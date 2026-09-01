@@ -138,8 +138,9 @@ Fires for `qa_slice_fix` mode: working the slice sub-issues a QA call produced. 
 branch = one PR, and the posture is repair, not feature building.
 
 1. **List the slices.** Resolve the latest `QA session YYYY-MM-DD` parent on the Product team and
-   list its open sub-issues in priority order. Confirm which slice to take — or take the top one
-   when the user already said to work through them.
+   list its open sub-issues **and its related already-tracked Issues** in priority order.
+   Confirm which slice to take — or take the top one when the user already said to work through
+   them.
 2. **Take ONE slice**; move it to `In Progress`. Never batch slices into one branch.
    Sanity-check its seeded priority — it derives from catalog walk priority plus verdict, not
    judged severity; re-rank if the defect is plainly cosmetic or plainly worse.
@@ -149,13 +150,14 @@ branch = one PR, and the posture is repair, not feature building.
    before any code.
 4. **Diagnose with the protocols below** — UI Regression or Data/API/Contract, chosen by symptom;
    reproduce before fixing, as always.
-5. **Branch — only with the user's explicit go.** At the first slice, ask once for the branch
-   action (the same first-accepted-fix ask qa-session uses): propose `fix/<work-description>`
+5. **Branch — only with the user's explicit go, once per slice.** One slice = one branch = one
+   PR, so every slice boundary gets its own ask: propose `fix/<work-description>` for THIS slice
    off fresh `develop` — describing the work, never the session, date, or issue number
-   (`AGENTS.md § Branch + PR`) — and proceed only on a yes; on an existing work branch, commit
-   there. Never create or switch branches without that answer (Safety Rules above;
-   `AGENTS.md § Multi-Agent Repo Safety` — a concurrent session may share this checkout).
-   Traceability lives in the PR's `Fixes PRD-NNN` line.
+   (`AGENTS.md § Branch + PR`) — and proceed only on a yes. Never reuse the previous slice's
+   branch, and never create or switch branches without that answer (Safety Rules above;
+   `AGENTS.md § Multi-Agent Repo Safety` — a concurrent session may share this checkout). A
+   standing "work through them all" covers taking slices, not branch actions. Traceability lives
+   in the PR's `Fixes PRD-NNN` line.
 6. **Repair to the slice's "Done when"** — the catalog Test IDs' expected results — and stop
    there.
 7. **Validate**: the slice's named validation command plus the touched package's suites.

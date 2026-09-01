@@ -204,16 +204,26 @@ Build under test: client `<sha>` · admin `<sha>`
 ## Slices
 - <one line per slice: what it covers and its Test IDs — Linear renders the
   sub-issue links; this list gives the reading order and the overflow context>
+- already tracked: <PRD-NNN> — <one line> (an existing open Issue, related to
+  this parent so the fix queue still sees it)
 
 ## Not sliced
 - <note-only follow-ups, anything past the slice cap, and `[derived:telemetry]`
   window errors nobody recorded — one line each>
 
 **Done when**
-- every slice below is Done or explicitly deferred, and the re-QA walk has re-recorded its Test IDs
+- every slice below — and every related already-tracked Issue — is Done or explicitly
+  deferred, and the re-QA walk has re-recorded its Test IDs
 
 Session <slug>. [Meeting notes](<drive-url>)
 ```
+
+**Source-line variants**: with notes, `Session <slug>. [Meeting notes](<drive-url>)`; app-only
+(no notes found in the discovery window), `Session <slug>. App-only run — no meeting notes
+found.` Never fabricate a Drive link. **Refreshing the report later**: send the unchanged
+`title` in the same `save_issue` payload — the lint gate resolves the length exemption from the
+payload alone, so an `{id, description}` update without the title is rejected as oversized
+(append patches under the backstop pass either way).
 
 Coverage numbers come from `bun run qa:pull` joined to the catalog's per-case priority — never
 hand-counted — and cover **this session's entries only** (the call-window rule; the store is
