@@ -2270,7 +2270,12 @@ function moveFeature(flags, archiveLockHeld = false) {
   const { status } = readFeatureStatus(found.dir);
   if (toStage === "archive" && canonicalLinearParentIssue(status.linear)) {
     const lastSyncedAt = status.linear?.lastSyncedAt;
-    if (!hasText(lastSyncedAt) || lastSyncedAt !== status.workflow.updated_at) {
+    const latestHistoryEntry = status.history?.at(-1);
+    const confirmedCurrentState =
+      latestHistoryEntry?.status === "linear_sync_confirmed" &&
+      latestHistoryEntry?.timestamp === lastSyncedAt &&
+      latestHistoryEntry?.timestamp === status.workflow.updated_at;
+    if (!hasText(lastSyncedAt) || !confirmedCurrentState) {
       throw new Error(
         `Mirrored feature "${slug}" changed after its last confirmed Linear sync. Apply the current linear-sync manifest, then run confirm-linear-sync --feature ${slug} --actor <actor> before archiving.`,
       );
@@ -2649,7 +2654,6 @@ function recordLinear(flags) {
 
     const recordedAt = nowIso();
     linear.syncDirection = LINEAR_SYNC_DIRECTION;
-    linear.lastSyncedAt = recordedAt;
     if (laneSyncMode) {
       linear.laneSyncMode = laneSyncMode;
     }

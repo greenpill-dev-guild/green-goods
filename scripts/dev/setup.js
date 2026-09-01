@@ -406,7 +406,7 @@ function ensurePinnedSubmodules() {
       execSync(SUBMODULE_RECOVERY_COMMAND, { cwd: projectRoot, stdio: "inherit" });
     } catch {
       log.error("Failed to initialize pinned contract submodules");
-      console.log(`${c.dim}Retry: ${SUBMODULE_RECOVERY_COMMAND}${c.reset}\n`);
+      log.info(`Retry: ${SUBMODULE_RECOVERY_COMMAND}\n`);
       process.exit(1);
     }
     const initialized = inspectPinnedSubmodules({ cwd: projectRoot });
@@ -420,13 +420,11 @@ function ensurePinnedSubmodules() {
 
   if (status.state === "uninitialized") {
     log.error("Pinned contract submodules are not initialized and install mode is skip");
-    console.log(`${c.dim}Recovery: ${SUBMODULE_RECOVERY_COMMAND}${c.reset}\n`);
+    log.info(`Recovery: ${SUBMODULE_RECOVERY_COMMAND}\n`);
   } else {
     log.error(`Pinned contract submodules require human inspection (${status.state})`);
-    if (status.detail) console.log(`${c.dim}${status.detail}${c.reset}`);
-    console.log(
-      `${c.dim}Setup will not reset mismatched, conflicted, or locally modified submodules.${c.reset}\n`,
-    );
+    if (status.detail) log.warning(status.detail);
+    log.warning("Setup will not reset mismatched, conflicted, or locally modified submodules.\n");
   }
   process.exit(1);
 }

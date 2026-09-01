@@ -28,17 +28,24 @@ export const AUTHORITY_SURFACE_ROLES = new Set([
   "projection",
 ]);
 export const AUTHORITY_VISIBILITIES = new Set(["repository", "public", "private", "external"]);
-export const REQUIRED_AUTHORITY_FLOWS = new Set([
-  "implementation->generated-docs",
-  "ontology->generated-docs",
-  "maturity-projections->generated-docs",
-  "skills->generated-docs",
-  "qa-catalog->generated-docs",
-  "implementation->authored-docs",
-  "ontology->authored-docs",
-  "plan-hubs->linear",
-  "qa-catalog->private-qa-evidence",
-  "private-qa-evidence->linear",
+export const AUTHORITY_FLOW_RELATIONSHIPS = new Set([
+  "projects",
+  "explains",
+  "mirrors visibility",
+  "defines runs",
+  "promotes accepted work",
+]);
+export const REQUIRED_AUTHORITY_FLOWS = new Map([
+  ["implementation->generated-docs", "projects"],
+  ["ontology->generated-docs", "projects"],
+  ["maturity-projections->generated-docs", "projects"],
+  ["skills->generated-docs", "projects"],
+  ["qa-catalog->generated-docs", "projects"],
+  ["implementation->authored-docs", "explains"],
+  ["ontology->authored-docs", "explains"],
+  ["plan-hubs->linear", "mirrors visibility"],
+  ["qa-catalog->private-qa-evidence", "defines runs"],
+  ["private-qa-evidence->linear", "promotes accepted work"],
 ]);
 
 export const EXPECTED_MUTATION_BOUNDARIES = Object.freeze({
@@ -155,6 +162,8 @@ function validateAuthorityMap(contract, errors) {
     if (!surfaces.has(flow?.to)) errors.push(`${prefix}.to references unknown node: ${flow?.to}`);
     if (!isNonEmptyString(flow?.relationship)) {
       errors.push(`${prefix}.relationship must describe the one-way flow`);
+    } else if (!AUTHORITY_FLOW_RELATIONSHIPS.has(flow.relationship)) {
+      errors.push(`${prefix}.relationship must be one of ${[...AUTHORITY_FLOW_RELATIONSHIPS].join(", ")}`);
     }
 
     const edge = `${flow?.from}->${flow?.to}`;
@@ -172,7 +181,16 @@ function validateAuthorityMap(contract, errors) {
     }
   }
 
-  for (const required of REQUIRED_AUTHORITY_FLOWS) {
-    if (!edges.has(required)) errors.push(`missing required authority flow: ${required}`);
+  for (const [required, expectedRelationship] of REQUIRED_AUTHORITY_FLOWS) {
+    if (!edges.has(required)) {
+      errors.push(`missing required authority flow: ${required}`);
+      continue;
+    }
+    const flow = contract.authorityFlows.find(({ from, to }) => `${from}->${to}` === required);
+    if (flow?.relationship !== expectedRelationship) {
+      errors.push(
+        `required authority flow ${required} must use relationship "${expectedRelationship}"`,
+      );
+    }
   }
 }

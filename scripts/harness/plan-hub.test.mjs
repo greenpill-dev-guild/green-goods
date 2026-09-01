@@ -1605,9 +1605,21 @@ test("record-linear writes parent and lane issue ids into status.json", () =>
     assert.equal(status.linear.syncDirection, "plans_to_linear_visibility");
     assert.equal(status.linear.lanes.ui.issue, "PRD-501");
     assert.equal(status.linear.lanes.state_api.issue, "PRD-502");
-    assert.equal(status.linear.lastSyncedAt, status.workflow.updated_at);
+    assert.equal(status.linear.lastSyncedAt, null);
+    assert.notEqual(status.workflow.updated_at, null);
     assert.equal(status.history.at(-1).status, "linear_recorded");
     assert.equal(status.history.at(-1).timestamp, status.workflow.updated_at);
+    const archiveWithoutConfirmation = runPlanHub(root, [
+      "move",
+      "--feature",
+      "record-linear-fixture",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed",
+    ]);
+    assert.notEqual(archiveWithoutConfirmation.status, 0);
+    assert.match(archiveWithoutConfirmation.stderr, /last confirmed Linear sync/);
     assert.equal(runPlanHub(root, ["validate"]).status, 0);
   }));
 
@@ -1638,6 +1650,22 @@ test("mirrored archives require a fresh confirmed Linear sync and retain the par
     assert.notEqual(stale.status, 0);
     assert.match(stale.stderr, /changed after its last confirmed Linear sync/);
     assert.equal(existsSync(join(root, ".plans", "active", "confirmed-linear-closeout")), true);
+
+    status.linear.lastSyncedAt = status.workflow.updated_at;
+    writeStatus(root, "active", "confirmed-linear-closeout", status);
+    const timestampOnly = runPlanHub(root, [
+      "move",
+      "--feature",
+      "confirmed-linear-closeout",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed",
+      "--reason",
+      "Closeout proof is bounded.",
+    ]);
+    assert.notEqual(timestampOnly.status, 0);
+    assert.match(timestampOnly.stderr, /changed after its last confirmed Linear sync/);
 
     const confirmed = runPlanHub(root, [
       "confirm-linear-sync",

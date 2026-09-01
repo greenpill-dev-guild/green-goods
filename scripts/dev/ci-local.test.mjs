@@ -73,9 +73,13 @@ test("ci-local detects the Arbitrum fork from an RPC override or port probe", as
 test("environment blockers name their recovery commands", () => {
   assert.match(capabilityRecoveryHint("arbitrumFork"), /bun run dev:contracts:arbitrum-fork/);
   assert.match(
-    capabilityRecoveryHint("contractSubmodules"),
+    capabilityRecoveryHint("contractSubmodules", "uninitialized"),
     /git submodule update --init --recursive/,
   );
+  assert.match(capabilityRecoveryHint("contractSubmodules", "modified"), /local changes/);
+  assert.match(capabilityRecoveryHint("contractSubmodules", "mismatched"), /pinned gitlinks/);
+  assert.match(capabilityRecoveryHint("contractSubmodules", "conflicted"), /Resolve the conflicted/);
+  assert.match(capabilityRecoveryHint("contractSubmodules", "command-error"), /git submodule status/);
   assert.equal(capabilityRecoveryHint("docker"), null);
 });
 

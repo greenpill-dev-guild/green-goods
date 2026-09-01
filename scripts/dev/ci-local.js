@@ -262,11 +262,23 @@ export async function arbitrumForkAvailable({
   return probe({ host: "127.0.0.1", port: 3009 });
 }
 
-export function capabilityRecoveryHint(capability) {
+export function capabilityRecoveryHint(capability, contractSubmoduleState) {
   if (capability === "arbitrumFork") {
     return "Start the local fork with `bun run dev:contracts:arbitrum-fork`.";
   }
   if (capability === "contractSubmodules") {
+    if (contractSubmoduleState === "modified") {
+      return "Inspect and preserve, commit, stash, or discard the local changes in the contract submodules; validation will not reset them.";
+    }
+    if (contractSubmoduleState === "mismatched") {
+      return "Inspect the mismatched contract submodule commits and restore the pinned gitlinks manually; validation will not reset them.";
+    }
+    if (contractSubmoduleState === "conflicted") {
+      return "Resolve the conflicted contract submodule gitlinks before retrying validation.";
+    }
+    if (contractSubmoduleState === "command-error") {
+      return "Run `git submodule status --recursive` and resolve the reported Git error before retrying validation.";
+    }
     return `Initialize the pinned commits with \`${SUBMODULE_RECOVERY_COMMAND}\`.`;
   }
   return null;
@@ -285,6 +297,7 @@ async function detectEnvironment(options) {
   const contractSubmodules = inspectPinnedSubmodules({ cwd: projectRoot });
   return {
     profile: "local-ci",
+    contractSubmoduleState: contractSubmodules.state,
     toolchain: {
       node: process.version.replace(/^v/, ""),
       ...(bunVersion ? { bun: bunVersion } : {}),
@@ -791,7 +804,7 @@ async function main() {
     for (const entry of execution.blocked) {
       console.log(`  - ${entry.id}: ${entry.blockedBy.join(", ")}`);
       for (const capability of entry.blockedBy) {
-        const hint = capabilityRecoveryHint(capability);
+        const hint = capabilityRecoveryHint(capability, environment.contractSubmoduleState);
         if (hint) console.log(`    ${hint}`);
       }
     }

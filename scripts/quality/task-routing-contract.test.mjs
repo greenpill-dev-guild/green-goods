@@ -39,6 +39,7 @@ test("authority map rejects drift, duplicates, missing ownership, and reverse au
   broken.authoritySurfaces[1].visibility = "team-only";
   broken.authoritySurfaces.push(structuredClone(broken.authoritySurfaces[2]));
   broken.authorityFlows[0].to = "missing-node";
+  broken.authorityFlows[1].relationship = "overrides";
   broken.authorityFlows.push(structuredClone(broken.authorityFlows[1]));
   broken.authorityFlows.push({
     id: "generated-docs-to-implementation",
@@ -52,6 +53,8 @@ test("authority map rejects drift, duplicates, missing ownership, and reverse au
   assert.ok(errors.some((error) => error.includes("visibility must be one of")));
   assert.ok(errors.some((error) => error.includes("duplicate authority surface")));
   assert.ok(errors.some((error) => error.includes("unknown node")));
+  assert.ok(errors.some((error) => error.includes("relationship must be one of")));
+  assert.ok(errors.some((error) => error.includes("must use relationship \"projects\"")));
   assert.ok(errors.some((error) => error.includes("duplicate authority flow id")));
   assert.ok(errors.some((error) => error.includes("duplicate authority edge")));
   assert.ok(errors.some((error) => error.includes("downstream authority reversal")));
