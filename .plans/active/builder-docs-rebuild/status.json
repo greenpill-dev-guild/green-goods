@@ -1,0 +1,155 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "builder-docs-rebuild",
+    "title": "Builder Docs Rebuild",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-09-02T16:54:52.541Z",
+    "updated_at": "2026-09-02T17:00:53.586Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-862",
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {},
+    "laneSyncMode": "parent_only"
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["docs"],
+    "work_types": ["implementation"],
+    "surfaces": ["docs", "scripts/docs", ".claude/skills"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Docs rebuild executes as five sequential phases (plan.todo.md); each phase ships as its own PR to develop, cutting a fresh branch after the prior phase merges.",
+    "Lane mapping: state_api = docs generators and scripts (scripts/docs/*); ui = docs-site surface (pages, components, CSS, sidebars). Phase progress is tracked in plan.todo.md, not as custom lanes.",
+    "Blueprint (decisions D1-D12) lives in spec.md; the full research artifact link is in brief.md.",
+    "QA pages under docs/docs/builders/quality are owned by the qa-report stream; this effort only re-parents and cross-links them.",
+    ".plans/ is the durable repo truth; status.json is authoritative for lane state."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Docs-site surface (MDX pages, components, CSS, sidebar, redirects): no unit-testable behavior seam; proof is docs:audit:ci, check:docs-generated, build:docs, and the eval.md outcome gates."
+      },
+      "skill_tags": ["docs", "ui", "humanize-writing"]
+    },
+    "state_api": {
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "depends_on": [],
+      "handoff": "handoffs/claude-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Generator behavior (renderErd layering, integration projection mechanism, renderSkills) is covered by scripts/docs/generate.test.mjs."
+      },
+      "skill_tags": ["docs", "generators", "node"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract work in a docs rebuild."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review", "docs"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-09-02T16:54:52.601Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-09-02T17:05:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "reshaped",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Blueprint D1-D12 locked with Afo; five-phase execution recorded in plan.todo.md; ui + state_api lanes started for Phase 1 (generators & mechanics)."
+    },
+    {
+      "timestamp": "2026-09-02T17:00:53.586Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    }
+  ]
+}
