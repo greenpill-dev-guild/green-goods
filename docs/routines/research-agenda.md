@@ -18,6 +18,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
   - `graduated` — the decision landed; implementation lives on Product and in `.plans/`; research only watches for new questions.
   - `blocked (external)` — the next step needs a party outside the team.
   - `horizon` — direction-setting work with its own gates.
+- **Note** — optional; the qualifiers that do not fit the two lists (what already graduated, what is unowned, which phase is running). `Horizon` and `Stage` carry exactly one value each from the lists above, so the routine can compare them literally.
 - **Question** — the one question the track exists to answer, in product terms.
 - **Anchors** — the Linear project, issues, and documents; the `.plans/` hub; the Drive doc. The routine reads these first and treats them as the corpus for the track.
 - **Status surface** — where the routine writes the weekly state of the track (a project status update, an initiative status update, or a comment on the anchor issue).
@@ -30,8 +31,8 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 | # | Track | Horizon | Stage | Anchor | The frontier, in one line |
 |---|---|---|---|---|---|
-| 1 | Commitment pooling | now | graduated (v1) · evidencing (exchange) | Linear project *Commitment Pooling* · RESR-73 / RESR-74 | Read the live Cosmo-Local Credit deployment and decide network membership; prove whether vouchers move through a third party |
-| 2 | Impact methodology and verifiable reporting | quarter | evidencing · prerequisite unowned | Linear project *Impact Framework v0.1 Refresh* · RESR-46 / RESR-65 | Ground the base attestation schema in the live schemas and define the public metric set before the 2026-09-30 House of Alignment report |
+| 1 | Commitment pooling | now | evidencing | Linear project *Commitment Pooling* · RESR-73 / RESR-74 | Read the live Cosmo-Local Credit deployment and decide network membership; prove whether vouchers move through a third party |
+| 2 | Impact methodology and verifiable reporting | quarter | evidencing | Linear project *Impact Framework v0.1 Refresh* · RESR-46 / RESR-65 | Ground the base attestation schema in the live schemas and define the public metric set before the 2026-09-30 House of Alignment report |
 | 3 | Yield strategies for garden endowments | quarter | evidencing | RESR-9 / RESR-15 / RESR-8 | A strategy and preset recommendation with live APY evidence, plus the funding-rail map it sits in |
 | 4 | Capital access: off-ramps and on-ramps by geography | quarter | blocked (external) | Linear project *Capital Off-Ramp Corridors* · RESR-70 | Five provider facts that only direct contact can settle; the on-ramp side is unframed |
 | 5 | Accessible impact reporting via WhatsApp and SMS | quarter | framing | RESR-75 · Linear project *Agent Messaging Channels (WhatsApp + SMS)* | Write the entry criteria the strategy already requires (RESR-75, unowned) |
@@ -42,7 +43,8 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 ## 1. Commitment pooling
 
-**Horizon:** now · **Stage:** graduated (v1 contracts and indexer merged) · evidencing (exchange and interoperability)
+**Horizon:** now · **Stage:** evidencing
+**Note:** v1 (contracts and indexer) has graduated to Product; the open frontier is exchange and interoperability.
 
 **Question.** Can gardens coordinate, keep, and settle commitments on Green Goods, and can kept commitments become value that moves beyond the garden without Green Goods holding funds?
 
@@ -77,7 +79,8 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 ## 2. Impact methodology and verifiable reporting
 
-**Horizon:** quarter · **Stage:** evidencing, with the prerequisite issue unowned
+**Horizon:** quarter · **Stage:** evidencing
+**Note:** the prerequisite issue (RESR-46) is unowned.
 
 **Question.** How does the data generated on Green Goods (work, approvals, assessments, hypercerts) become an impact report that fits a named standard, is verifiable by outsiders, and is a credible asset a funder can invest in or support?
 
@@ -110,7 +113,8 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 ## 3. Yield strategies for garden endowments
 
-**Horizon:** quarter · **Stage:** evidencing (owned, unstarted)
+**Horizon:** quarter · **Stage:** evidencing
+**Note:** owned, not yet started.
 
 **Question.** Which vault strategies and presets give garden endowments materially better yield than today's Aave-only position while staying conservative, who controls principal and yield, and how does yield turn into funded impact?
 
@@ -142,7 +146,8 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 ## 4. Capital access: off-ramps and on-ramps by geography
 
-**Horizon:** quarter · **Stage:** blocked (external); desk research complete
+**Horizon:** quarter · **Stage:** blocked (external)
+**Note:** desk research is complete; the next step is provider contact.
 
 **Question.** How can a gardener in Nigeria, South Africa, Brazil, or the United States turn a payout of roughly $5 to $100 into local money from inside the app, and how can supporters bring capital in, without Green Goods taking custody?
 
@@ -174,7 +179,8 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 ## 5. Accessible impact reporting via WhatsApp and SMS
 
-**Horizon:** quarter for the research gate; build afterwards · **Stage:** framing
+**Horizon:** quarter · **Stage:** framing
+**Note:** the horizon covers the research gate; the build follows it.
 
 **Question.** What must be true before gardeners can report impact from WhatsApp or SMS with no app install and no sign-up, and what is the smallest pilot that proves lower total reporting burden rather than burden moved onto operators?
 
@@ -206,7 +212,8 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 ## 6. Revenue token models (Revnets) for a goods and services layer
 
-**Horizon:** next (framing now, decision next quarter) · **Stage:** framing
+**Horizon:** next · **Stage:** framing
+**Note:** framing now, decision next quarter.
 
 **Question.** Could a Revnet-style revenue token let a garden sell goods and services through Green Goods with transparent, rule-based revenue sharing, and how would it relate to commitment vouchers, vault endowments, and cash-out?
 
@@ -234,7 +241,8 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 ## 7. Community infrastructure with AI for data sovereignty (Community Evidence Mesh)
 
-**Horizon:** 12 months (August 2026 to July 2027) · **Stage:** horizon; Phase 0 foundation runs August to September 2026
+**Horizon:** 12mo · **Stage:** horizon
+**Note:** August 2026 to July 2027; Phase 0 (foundation) runs August to September 2026.
 
 **Question.** How does Green Goods become a community-owned evidence layer where AI proposes but never originates evidence, raw data stays local by default, and communities can run, export, and stop the infrastructure themselves?
 

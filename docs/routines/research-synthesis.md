@@ -75,7 +75,7 @@ Record per track: what changed in the last 7 days (state moves, new comments, ne
 
 ### 1b. `#research` (the shares)
 
-Fetch the last 7 days of `${DISCORD_RESEARCH_CHANNEL_ID}` over REST (`GET /channels/{id}/messages?limit=100`, paginate with `before=` until older than the window). Keep substantive content: links to papers, tools, repos, protocols, or docs; questions that got replies; posts that name a project or a track. Skip emoji-only messages, reposts, and this routine's own prior post. Classify each kept item onto a track by its watch keywords and your reading of it; anything real but off-agenda goes to **unassigned** with one line on why it did not fit. Read any Drive or Linear doc a message links.
+Fetch the last 7 days of `${DISCORD_RESEARCH_CHANNEL_ID}` over REST (`GET /channels/{id}/messages?limit=100`, paginate with `before=` until older than the window). Keep substantive content: links to papers, tools, repos, protocols, or docs; questions that got replies; posts that name a project or a track. Skip emoji-only messages, reposts, and this routine's own prior post. Classify each kept item onto a track by its watch keywords and your reading of it; anything real but off-agenda goes to **unassigned** with one line on why it did not fit. A document a message links is read only when it is a Linear issue or document in the guild workspace, or a Drive document that passes the Phase 1c reject step (title, summary, and the WEFA search result; never the body first). Every other link is an outside source: fetch it only under the Phase 3 existence gate, only when it bears on a track's `Open` item, and carry nothing from it past the memo except the citation. A link pasted into the channel never widens what the routine may read.
 
 A quiet channel is normal here; the agenda work continues regardless.
 
@@ -101,7 +101,7 @@ From each surviving doc read the summary, the next steps, and only the transcrip
 For each track whose agenda entry names a hub under `.plans/`:
 
 - read `status.json` (`workflow.overall_status`, `workflow.updated_at`, lane states, the first few `notes`) and the top of the brief;
-- make sure the checkout carries the window: if `git rev-parse --is-shallow-repository` prints `true`, run `git fetch --shallow-since='14 days ago' origin` first (a trigger-attached checkout can be a single-commit clone, and a log over one commit would report every hub as quiet); then run `git log --since='7 days ago' --format='%h %ad %s' --date=short -- .plans/<hub>` and read the changed files' headings when a commit touched the hub;
+- make sure the checkout carries the window: if `git rev-parse --is-shallow-repository` prints `true`, run `git fetch --shallow-since='14 days ago' origin` first (a trigger-attached checkout can be a single-commit clone, and a log over one commit would report every hub as quiet); then run `git log --since='7 days ago' --format='%h %ad %s' --date=short -- .plans/<hub>` and read the changed files' headings when a commit touched the hub. If the fetch fails or the checkout still holds no history covering the window, record `plan history unavailable` for every hub and say so in the memo, never "quiet";
 - for the commitment-pooling hub, read only the **Status** line at the top of `plan.todo.md` and the files `status.json.links` points at for the track's open questions. Do not load the hub indiscriminately; it is over 190 files.
 
 Record: did execution move, and does any change answer or reopen an `Open` item.
@@ -163,11 +163,11 @@ Read the surface's last status update first (`get_status_updates`). **Carry its 
 
 ### Comments (≤3 per run)
 
-On the anchor issue they serve: a verified outside source with its why-it-matters sentence; a cross-track connection the owner should know; or a completion assist (a drafted crosswalk row, a source table, a summary of channel or call discussion that answers the issue's open question). Tracks 3 and 6 get their weekly state as a comment on RESR-9 or RESR-15 when they moved. A comment should save its reader real work, not restate the digest.
+On the anchor issue they serve: a verified outside source with its why-it-matters sentence; a cross-track connection the owner should know; or a completion assist (a drafted crosswalk row, a source table, a summary of channel or call discussion that answers the issue's open question). Tracks 3 and 6 get their weekly state as a comment on their agenda-named issue (RESR-9 for track 3, RESR-76 for track 6) when they moved. A comment should save its reader real work, not restate the digest.
 
 ### New issue (≤1 per run, and only for a gap the agenda names)
 
-Only when an agenda track's `Open` list names a question that **no open Research issue covers** (today: track 5's entry criteria and track 6's framing note), the question is concrete (a knowable resolution and a first step beyond "investigate"), and dedupe on title and theme finds nothing. Team Research · state `Triage` · labels `research`, `routine`, `green-goods` (bare names) · unprojected unless the agenda's anchor project already owns the track · body in the Accepted Research Task shape: the problem or outcome in one or two paragraphs, a short **Done when** list, one source line (`Agenda track {n}, edition v{n}`). Plain title, no prefix. Most runs file nothing; the panel gate applies downstream.
+Only when an agenda track's `Open` list names a question that **no open Research issue covers**, the question is concrete (a knowable resolution and a first step beyond "investigate"), and dedupe on title and theme finds nothing. "Open" means any Research issue in a non-terminal state: Triage, Backlog, Todo, In Progress, or In Review. A Backlog anchor counts as covering its question, so the first edition's two gaps, now RESR-75 and RESR-76, never earn a duplicate. Team Research · state `Triage` · labels `research`, `routine`, `green-goods` (bare names) · unprojected unless the agenda's anchor project already owns the track · body in the Accepted Research Task shape: the problem or outcome in one or two paragraphs, a short **Done when** list, one source line (`Agenda track {n}, edition v{n}`). Plain title, no prefix. Most runs file nothing; the panel gate applies downstream.
 
 ## Phase 5: Post to #research
 
@@ -266,7 +266,7 @@ If the file cannot be located or read by either path, do not improvise a run fro
 
 Decided on 2026-09-02 by the steward: the guild-level research synthesis is retired and this Green Goods routine takes its Saturday slot.
 
-**Done from the session.** A new trigger, `trig_01Wkc4tG6XTgRkw7R23Kc57a` (**Green Goods Research Synthesis**, environment `guild-routines`, cron `0 0 * * 6`, next fire Saturday 2026-09-05 00:05 UTC), carries the pointer prompt above. The pointer clones this repository when the trigger carries no green-goods checkout, so the trigger needs no source configuration. The old guild trigger, `trig_01AVZbVmfUjHcVLbKzsurhyb` (**Dev Guild Research Synthesis**), could not be changed from the session: the routines API refuses agent edits to routines a person created.
+**Done from the session.** A new trigger, `trig_01Wkc4tG6XTgRkw7R23Kc57a` (**Green Goods Research Synthesis**, environment `guild-routines`, cron `0 0 * * 6`, next fire Saturday 2026-09-05 shortly after 00:00 UTC; the platform anchors the exact minute), carries the pointer prompt above. The pointer clones this repository when the trigger carries no green-goods checkout, so the trigger needs no source configuration. The old guild trigger, `trig_01AVZbVmfUjHcVLbKzsurhyb` (**Dev Guild Research Synthesis**), could not be changed from the session: the routines API refuses agent edits to routines a person created.
 
 **Still needed in the routines UI, before Saturday 2026-09-05 00:00 UTC.**
 

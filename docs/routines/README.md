@@ -187,7 +187,7 @@ Active routines are Sentry-ready, not Sentry-dependent: when a Sentry connector/
 
 ## Linear environment
 
-The workspace has five teams as of 2026-07-14 (Product `PRD`, Research `RESR`, Community `COM`, Growth `GROW`, Marketing `MAR`; charters in [`greenpill-dev-guild/.github` → `docs/teams/`](https://github.com/greenpill-dev-guild/.github/tree/main/docs/teams)). **Green Goods routines write only to the Product team** — the funding pipeline lives on Growth (guild grant-scout's turf), marketing briefs on Marketing, cohort work on Community.
+The workspace has five teams as of 2026-07-14 (Product `PRD`, Research `RESR`, Community `COM`, Growth `GROW`, Marketing `MAR`; charters in [`greenpill-dev-guild/.github` → `docs/teams/`](https://github.com/greenpill-dev-guild/.github/tree/main/docs/teams)). **Green Goods routines write only to the Product team** — the funding pipeline lives on Growth (guild grant-scout's turf), marketing briefs on Marketing, cohort work on Community. The one exception is `research-synthesis`: it is the research surface, so it comments on Research-team issues, posts project and initiative status updates, and may file at most one Research issue per run (see its row below).
 
 These routines write to Linear:
 
