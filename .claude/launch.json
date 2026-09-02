@@ -38,6 +38,12 @@
         "packages/shared/storybook-static"
       ],
       "port": 4620
+    },
+    {
+      "name": "docs",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "docs", "serve", "--port", "3013", "--no-open"],
+      "port": 3013
     }
   ]
 }
