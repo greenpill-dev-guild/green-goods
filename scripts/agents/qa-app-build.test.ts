@@ -330,6 +330,37 @@ describe("QA catalog contract", () => {
     }
   });
 
+  it("enshrines the case lifecycle: active or retired, every retirement dated and explained", () => {
+    const catalog = JSON.parse(
+      readFileSync(path.join(repoRoot, "scripts", "data", "qa-test-catalog.json"), "utf8"),
+    );
+    expect(catalog.statuses.map((status: { id: string }) => status.id)).toEqual(["active", "retired"]);
+    const activeIds = new Set(
+      catalog.cases
+        .filter((testCase: { status: string }) => testCase.status === "active")
+        .map((testCase: { id: string }) => testCase.id),
+    );
+    const seen = new Set<string>();
+    for (const testCase of catalog.cases) {
+      // IDs are permanent addresses: an OBS record or a Linear slice keyed on one
+      // must never resolve to a different check later.
+      expect(seen.has(testCase.id)).toBe(false);
+      seen.add(testCase.id);
+      expect(["active", "retired"]).toContain(testCase.status);
+      expect(["P0", "P1", "P2"]).toContain(testCase.priority);
+      expect(String(testCase.source ?? "").trim()).not.toBe("");
+      if (testCase.status === "retired") {
+        expect(testCase.retiredOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(String(testCase.retiredReason ?? "").trim()).not.toBe("");
+        for (const successor of testCase.replacedBy ?? []) expect(activeIds.has(successor)).toBe(true);
+      } else {
+        expect(testCase.retiredOn).toBeUndefined();
+        expect(testCase.retiredReason).toBeUndefined();
+        expect(testCase.replacedBy).toBeUndefined();
+      }
+    }
+  });
+
   it("keeps the concurrent steward decision inside the session write boundary", () => {
     const catalog = JSON.parse(
       readFileSync(path.join(repoRoot, "scripts", "data", "qa-test-catalog.json"), "utf8"),

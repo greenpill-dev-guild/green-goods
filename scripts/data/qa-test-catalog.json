@@ -1,7 +1,17 @@
 {
-  "$comment": "Upstream source of truth for QA scenario DEFINITIONS only — results, owners, and defect links live in the Google Sheet and per-run artifacts, never here. Active tabs merged in v2: the installed-PWA iOS/Android tabs became one 'PWA' tab (device-specific rows keep their [iOS]/[Android] scenario prefix and MUST carry requiresProduction or requiresDevice), and 'Cross Surface' dissolved into concrete per-surface rows. Retired cases keep their historical tab and are never deleted; IDs are never reused. requiresProduction = cannot pass on localhost; requiresDevice = needs a real installed device; the 'tx' tag marks rows whose walk involves real wallet transactions. Every case carries exactly one 'kind' from the top-level kinds list — the public docs expose this category axis, while the QA app keeps its priority and area views; kind 'transaction' if and only if the row carries the 'tx' tag.",
+  "$comment": "Upstream source of truth for QA scenario DEFINITIONS only — results, owners, and defect links live in the Google Sheet and per-run artifacts, never here. Active tabs merged in v2: the installed-PWA iOS/Android tabs became one 'PWA' tab (device-specific rows keep their [iOS]/[Android] scenario prefix and MUST carry requiresProduction or requiresDevice), and 'Cross Surface' dissolved into concrete per-surface rows. Retired cases keep their historical tab and are never deleted; IDs are never reused. requiresProduction = cannot pass on localhost; requiresDevice = needs a real installed device; the 'tx' tag marks rows whose walk involves real wallet transactions. Every case carries exactly one 'kind' from the top-level kinds list — the public docs expose this category axis, while the QA app keeps its priority and area views; kind 'transaction' if and only if the row carries the 'tx' tag. Lifecycle: every case carries a 'status' from the top-level statuses list. A new case enters as active by pull request with the next number in its surface prefix; wording, step, and evidence edits stay in place; when what a case proves changes it is retired (retiredOn, retiredReason, optional replacedBy naming active successors) and the new check gets a new ID, so past verdicts keep their meaning.",
   "version": 2,
   "tabs": ["Public Website", "PWA", "Admin Dashboard", "Docs"],
+  "statuses": [
+    {
+      "id": "active",
+      "means": "Walked in sessions; ships to the QA app run sheet and the Test Cases page"
+    },
+    {
+      "id": "retired",
+      "means": "No longer walked; keeps its ID, retirement date, and reason in the catalog and never ships to a run sheet"
+    }
+  ],
   "kinds": [
     {
       "id": "journey",
@@ -284,7 +294,7 @@
       "id": "PWA-IOS-005",
       "tab": "PWA",
       "platform": "iOS Safari Installed PWA",
-      "priority": "P0",
+      "priority": "P1",
       "kind": "data-integrity",
       "area": "Upload",
       "scenario": "[iOS] HEIC or library image survives submission draft",
@@ -629,7 +639,7 @@
       "id": "PWA-ROLE-004",
       "tab": "PWA",
       "platform": "Android Chrome Installed PWA",
-      "priority": "P0",
+      "priority": "P1",
       "kind": "transaction",
       "area": "Review",
       "scenario": "Approve pending work with valid role on Android",
@@ -648,7 +658,7 @@
       "id": "PWA-ROLE-005",
       "tab": "PWA",
       "platform": "Android Chrome Installed PWA",
-      "priority": "P0",
+      "priority": "P1",
       "kind": "transaction",
       "area": "Review",
       "scenario": "Reject pending work with reason on Android",
@@ -667,7 +677,7 @@
       "id": "PWA-ROLE-006",
       "tab": "PWA",
       "platform": "Android Chrome Installed PWA",
-      "priority": "P0",
+      "priority": "P1",
       "kind": "journey",
       "area": "Permissions",
       "scenario": "Insufficient-role user cannot approve or reject on Android",
@@ -1734,7 +1744,7 @@
       "id": "PWA-029",
       "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
-      "priority": "P0",
+      "priority": "P1",
       "kind": "transaction",
       "area": "Wallet",
       "scenario": "Send tokens: recipient search/QR/browse, amount+Max, review with note, confirm",
@@ -1802,7 +1812,7 @@
       "id": "PWA-032",
       "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
-      "priority": "P0",
+      "priority": "P1",
       "kind": "transaction",
       "area": "Commitments",
       "scenario": "Compose a commitment: beats, draft resume, read-to-end gate, place offer/request",
@@ -2751,6 +2761,9 @@
       "tags": ["funding", "wallet"],
       "requiresProduction": false,
       "status": "retired",
+      "retiredOn": "2026-08-29",
+      "retiredReason": "Superseded by the end-to-end funding walks in catalog v2",
+      "replacedBy": ["PUB-014", "PUB-030"],
       "source": "sheet-v1.1"
     },
     {
@@ -2769,6 +2782,9 @@
       "tags": ["funding", "responsive", "dialog"],
       "requiresProduction": false,
       "status": "retired",
+      "retiredOn": "2026-08-29",
+      "retiredReason": "Mobile funding-dialog coverage folded into the end-to-end donate walk in catalog v2",
+      "replacedBy": ["PUB-014"],
       "source": "sheet-v1.1"
     },
     {
@@ -2793,6 +2809,9 @@
       "tags": ["funding", "vaults", "wallet"],
       "requiresProduction": false,
       "status": "retired",
+      "retiredOn": "2026-08-29",
+      "retiredReason": "Vaults explanation and safe-failure coverage folded into the vault checkout and read-only browse walks",
+      "replacedBy": ["PUB-017", "PUB-030"],
       "source": "mdx-matrix"
     },
     {
@@ -2819,6 +2838,9 @@
       "requiresProduction": false,
       "requiresDevice": true,
       "status": "retired",
+      "retiredOn": "2026-08-29",
+      "retiredReason": "PWA tabs merged in catalog v2; commitments are covered by device-neutral rows",
+      "replacedBy": ["PWA-032", "PWA-033", "PWA-034"],
       "source": "mdx-matrix"
     },
     {
@@ -2844,6 +2866,9 @@
       "requiresProduction": false,
       "requiresDevice": true,
       "status": "retired",
+      "retiredOn": "2026-08-29",
+      "retiredReason": "PWA tabs merged in catalog v2; profile is covered by the device-neutral row",
+      "replacedBy": ["PWA-038"],
       "source": "mdx-matrix"
     },
     {
@@ -2862,6 +2887,8 @@
       "tags": ["visual", "states"],
       "requiresProduction": false,
       "status": "retired",
+      "retiredOn": "2026-08-29",
+      "retiredReason": "Cross Surface dissolved in catalog v2; visual integrity is checked inside each surface's shell and accessibility rows",
       "source": "sheet-v1.1"
     },
     {
@@ -2880,6 +2907,9 @@
       "tags": ["copy", "vocabulary"],
       "requiresProduction": false,
       "status": "retired",
+      "retiredOn": "2026-08-29",
+      "retiredReason": "Cross Surface dissolved in catalog v2; replaced by per-surface vocabulary rows",
+      "replacedBy": ["PUB-033", "PWA-045", "ADM-035"],
       "source": "sheet-v1.1"
     },
     {
@@ -2898,6 +2928,9 @@
       "tags": ["error-recovery", "network"],
       "requiresProduction": false,
       "status": "retired",
+      "retiredOn": "2026-08-29",
+      "retiredReason": "Cross Surface dissolved in catalog v2; replaced by per-surface error-recovery rows",
+      "replacedBy": ["PUB-008", "PWA-040", "ADM-032"],
       "source": "sheet-v1.1"
     },
     {
@@ -2916,6 +2949,8 @@
       "tags": ["process"],
       "requiresProduction": false,
       "status": "retired",
+      "retiredOn": "2026-08-29",
+      "retiredReason": "Cross Surface dissolved in catalog v2; evidence expectations now live on every row's evidence field",
       "source": "sheet-v1.1"
     },
     {
@@ -2938,6 +2973,9 @@
       "tags": ["theme", "contrast", "visual"],
       "requiresProduction": false,
       "status": "retired",
+      "retiredOn": "2026-08-29",
+      "retiredReason": "Cross Surface dissolved in catalog v2; theme legibility is covered per surface",
+      "replacedBy": ["PUB-025", "DOCS-006"],
       "source": "mdx-matrix"
     },
     {
@@ -2960,6 +2998,9 @@
       "tags": ["performance", "lists"],
       "requiresProduction": false,
       "status": "retired",
+      "retiredOn": "2026-08-29",
+      "retiredReason": "Cross Surface dissolved in catalog v2; behavior at real data volume is covered per surface",
+      "replacedBy": ["PUB-003", "ADM-031"],
       "source": "drive-test-cases-2025-12"
     },
     {

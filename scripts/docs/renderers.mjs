@@ -323,7 +323,14 @@ export function renderQaCatalog({ root, sources, digest }) {
   body += "\n\nPriority sets run order only. A failure's severity is assigned separately during triage.";
   body += "\n\nEach case carries one **kind**, the category axis:\n\n";
   body += catalog.kinds.map((kind) => `- **${esc(kind.label)}** — ${esc(kind.verifies)}.`).join("\n");
-  body += "\n\n";
+  body += "\n\n## How this catalog changes {#lifecycle}\n\n";
+  body += "`scripts/data/qa-test-catalog.json` is the source of truth, and it changes the way code does: by pull request. Every case carries one **status**:\n\n";
+  body += catalog.statuses.map((status) => `- **${esc(status.id)}** — ${esc(status.means)}.`).join("\n");
+  body += "\n\n- A new case enters as `active`, takes the next number in its surface prefix, and names where it came from in `source`.\n";
+  body += "- Wording, step, and evidence edits happen in place — the ID keeps meaning the same check.\n";
+  body += "- When what a case proves changes, it is retired with `retiredOn`, `retiredReason`, and `replacedBy` when successors exist, and the new check gets a new ID — so every past verdict keeps its meaning.\n";
+  body += "- After a catalog change merges, redeploy the QA app (a deployment pins the catalog revision it shipped with) and regenerate this page with `bun run docs:generate`; CI rejects a stale copy.\n\n";
+  body += "The catalog contract test enforces all of this, and [retired cases](#retired-cases) are listed at the end of this page.\n\n";
   for (const tab of catalog.tabs) {
     const tabCases = active.filter((candidate) => candidate.tab === tab);
     const tabSlug = tab.toLowerCase().replace(/[^a-z0-9]+/g, "-");
@@ -341,5 +348,13 @@ export function renderQaCatalog({ root, sources, digest }) {
     }
     if (rendered !== tabCases.length) throw new Error(`qa docs: tab "${tab}" has cases outside the P0/P1/P2 bands`);
   }
+  const retired = catalog.cases.filter((item) => item.status === "retired").sort((a, b) => a.id.localeCompare(b.id));
+  body += "## Retired cases {#retired-cases}\n\nRetired cases never ship to a run sheet, but their IDs stay reserved and their history stays here.\n\n";
+  body += "| ID | Was | Retired on | Why | Covered now by |\n|---|---|---|---|---|\n";
+  for (const item of retired) {
+    const successors = (item.replacedBy ?? []).map((id) => `\`${esc(id)}\``).join(", ") || "—";
+    body += `| \`${esc(item.id)}\` | ${esc(item.tab)} · ${esc(item.scenario)} | ${esc(item.retiredOn)} | ${esc(item.retiredReason)} | ${successors} |\n`;
+  }
+  body += "\n";
   return body;
 }
