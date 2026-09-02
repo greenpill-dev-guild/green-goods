@@ -89,6 +89,8 @@ export interface CatalogCase {
   expected: string;
   evidence: string;
   role: string;
+  /** One id from the catalog's `kinds` list — the category axis the report groups by. */
+  kind: string;
   tags?: string[];
   requiresProduction?: boolean;
   /** Case-specific reason shown when a --local sheet pre-blocks this row. */
@@ -98,9 +100,16 @@ export interface CatalogCase {
   source: string;
 }
 
+export interface CatalogKind {
+  id: string;
+  label: string;
+  verifies: string;
+}
+
 export interface Catalog {
   version: number;
   tabs: string[];
+  kinds: CatalogKind[];
   cases: CatalogCase[];
 }
 

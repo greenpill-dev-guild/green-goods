@@ -24,6 +24,7 @@ function makeCase(overrides: Partial<CatalogCase> = {}): CatalogCase {
     expected: "Two prompts complete",
     evidence: "Screenshot",
     role: "none",
+    kind: "transaction",
     status: "active",
     source: "qa-session-2026-08-29",
     ...overrides,

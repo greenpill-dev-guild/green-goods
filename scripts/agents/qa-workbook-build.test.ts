@@ -33,6 +33,7 @@ function makeCase(overrides: Partial<CatalogCase> = {}): CatalogCase {
     expected: "Shell loads",
     evidence: "Screenshot",
     role: "steward",
+    kind: "journey",
     status: "active",
     source: "sheet-v1.1",
     ...overrides,
