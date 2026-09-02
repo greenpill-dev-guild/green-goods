@@ -211,7 +211,13 @@ Per accepted fix (or batched in a fix window):
    meeting notes; this input is agent-authored and structured. qa-triage's PostHog cross-ref,
    scope lock, Linear templates, and Sheet Defects flow run unchanged. If the user is out of
    time, the handoff command is the named next step in the receipt.
-3. **Pull results.** Run `bun run qa:pull --slug <slug>` and inspect the close-out artifacts under
+3. **Pull results, then report.** Run `bun run qa:pull --slug <slug>`, then
+   `bun run qa:report --slug <slug> --window <walk start>..<walk end>` — the UTC times the walk
+   actually began and ended, noted at pre-flight and at close (an OBS span would drop pass-only
+   stretches, and an all-pass session has no OBS at all; the slug day is the fallback) — to write
+   `tmp/qa-session/<slug>/report.md` — the deterministic core
+   every session record shares: results by priority and by kind, the fail/blocked list, coverage
+   gaps, standing state, per-tester coverage. Inspect the close-out artifacts under
    `tmp/qa-session/<slug>/`. Apply the result, rollup, severity, and privacy contract in
    [`.claude/context/qa.md`](../../context/qa.md); never transcribe app results by hand.
 4. **Decision lock gate.** List all `decision` OBS verbatim and ask: *"Lock which of these as
@@ -220,8 +226,9 @@ Per accepted fix (or batched in a fix window):
    each with a proposed codification target per the ledger's graduation ladder. Small
    codifications may land in the same session; larger ones become deferred items in the handoff.
 5. **Receipt — privacy-gated upload.** Write `tmp/qa-session/<slug>/receipt.md`: environment
-   header (commit, branch, surfaces, gardens, identities, write boundary), catalog cases
-   exercised with result counts, OBS totals by disposition, fix list (OBS → commit SHA →
+   header (commit, branch, surfaces, gardens, identities, write boundary), the results-by-priority
+   and results-by-kind blocks and the fail/blocked list from `report.md` (never re-counted), OBS
+   totals by disposition, fix list (OBS → commit SHA →
    revalidated), deferred list, locked DL IDs, environment notes (watchdog trips,
    dep-optimization reloads, restarts), remaining risk. Apply the text, media, destination, and
    public-repository boundary in [`.claude/context/qa.md`](../../context/qa.md). An unresolved

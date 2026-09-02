@@ -28,7 +28,11 @@ connects them.
    receipt preparation.
 4. **Pull** — `bun run qa:pull --slug <slug>` reads the live shards into gitignored
    `tmp/qa-session/<slug>/results.csv` and `qa-state.json`. It is the private close-out artifact,
-   not a public coverage report.
+   not a public coverage report. `bun run qa:report --slug <slug>` then derives `report.md` from
+   that pull — results by priority and by kind, the fail/blocked list, coverage gaps, standing
+   state, and per-tester coverage, private and attributed — and, with `--public`,
+   `report.public.md` under the `qa:status` projection rule. The public file exists only for the
+   docs example and the Discord lede; every session record embeds the private one.
 5. **Triage** — [`qa-triage`](../skills/qa-triage/SKILL.md) enriches and scope-locks accepted
    findings, then writes safe Issue and Customer Need records to Linear and appends private defect
    rows to the Green Goods v1.1 QA Sheet. After a team QA call, the
@@ -69,7 +73,7 @@ deferred handoff, or a live session — works in this order:
 | --- | --- | --- |
 | Test-case definitions | `scripts/data/qa-test-catalog.json` in git | Product or engineering change, reviewed like code |
 | Verdicts and notes | QA app private Blob store | The allowlisted signing address through the app |
-| Session log, pulled results, local handoff | `tmp/qa-session/<slug>/` | `qa-session` and `qa:pull`; local and gitignored |
+| Session log, pulled results, generated report, local handoff | `tmp/qa-session/<slug>/` | `qa-session`, `qa:pull`, and `qa:report`; local and gitignored — only `report.public.md` may leave, for the docs example or the Discord lede |
 | Coverage report | Standard output from `bun run qa:status` | Read-only command; nothing is persisted |
 | Defect tracking | Linear plus the private Green Goods v1.1 QA Sheet | `qa-triage`, after explicit scope and write confirmation |
 | Session report and fix slices | Linear Product team — `QA session YYYY-MM-DD` parent plus slice sub-issues | [`qa-call-report`](../../docs/routines/qa-call-report.md) after a team call, or `/qa-triage --call` interactively |

@@ -340,6 +340,8 @@
         "scripts/agents/qa-state-pull.ts",
         "scripts/agents/qa-status.ts",
         "scripts/agents/qa-status.test.ts",
+        "scripts/agents/qa-report.ts",
+        "scripts/agents/qa-report.test.ts",
         "scripts/agents/qa-app-parity.test.ts",
         "packages/qa/api/state.ts",
         "packages/qa/dev.mjs",

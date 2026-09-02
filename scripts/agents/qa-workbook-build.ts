@@ -89,6 +89,8 @@ export interface CatalogCase {
   expected: string;
   evidence: string;
   role: string;
+  /** One id from the catalog's `kinds` list — the category axis the report groups by. */
+  kind: string;
   tags?: string[];
   requiresProduction?: boolean;
   /** Case-specific reason shown when a --local sheet pre-blocks this row. */
@@ -98,9 +100,22 @@ export interface CatalogCase {
   source: string;
 }
 
+export interface CatalogKind {
+  id: string;
+  label: string;
+  verifies: string;
+}
+
+export interface CatalogStatus {
+  id: string;
+  means: string;
+}
+
 export interface Catalog {
   version: number;
   tabs: string[];
+  kinds: CatalogKind[];
+  statuses: CatalogStatus[];
   cases: CatalogCase[];
 }
 
@@ -251,15 +266,44 @@ export function filterCases(
 
 export function validateCatalog(catalog: Catalog): string[] {
   const problems: string[] = [];
+  // The kind axis is consumed at runtime by qa:report; a typo would otherwise
+  // become a silent unknown bucket in a published rollup.
+  const kindIds = new Set<string>();
+  if (!Array.isArray(catalog.kinds) || catalog.kinds.length === 0) {
+    problems.push("kinds: missing or empty");
+  } else {
+    for (const kind of catalog.kinds) {
+      if (!kind?.id?.trim()) problems.push("kinds: entry without an id");
+      else if (kind.id in Object.prototype) problems.push(`kinds: id '${kind.id}' collides with an Object.prototype member`);
+      else if (kindIds.has(kind.id)) problems.push(`kinds: duplicate id '${kind.id}'`);
+      else kindIds.add(kind.id);
+    }
+  }
+  // The lifecycle vocabulary is data too: the Test Cases page renders it and cases must use it.
+  const statusIds = new Set<string>();
+  if (!Array.isArray(catalog.statuses) || catalog.statuses.length === 0) {
+    problems.push("statuses: missing or empty");
+  } else {
+    for (const status of catalog.statuses) {
+      if (!status?.id?.trim()) problems.push("statuses: entry without an id");
+      else if (statusIds.has(status.id)) problems.push(`statuses: duplicate id '${status.id}'`);
+      else statusIds.add(status.id);
+    }
+  }
   const seen = new Set<string>();
   for (const testCase of catalog.cases) {
     if (seen.has(testCase.id)) problems.push(`duplicate id: ${testCase.id}`);
     seen.add(testCase.id);
+    if (!kindIds.has(testCase.kind)) {
+      problems.push(`${testCase.id}: kind '${testCase.kind}' not in kinds`);
+    }
     if (!SEVERITY_VALUES.includes(testCase.priority as (typeof SEVERITY_VALUES)[number])) {
       problems.push(`${testCase.id}: priority '${testCase.priority}' not in ${SEVERITY_VALUES.join("/")}`);
     }
     if (!["active", "retired"].includes(testCase.status)) {
       problems.push(`${testCase.id}: status '${testCase.status}' not active|retired`);
+    } else if (statusIds.size > 0 && !statusIds.has(testCase.status)) {
+      problems.push(`${testCase.id}: status '${testCase.status}' not declared in statuses`);
     }
     // The immutable case definition stays valid forever, retired or not —
     // retired rows are the historical audit record, not a validation escape.

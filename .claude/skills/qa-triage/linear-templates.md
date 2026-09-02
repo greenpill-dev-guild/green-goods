@@ -200,6 +200,11 @@ Build under test: client `<sha>` · admin `<sha>`
 - P1: <walked>/<total> — …
 - P2: <walked>/<total> — …
 
+## Results by kind
+- Journey: <walked>/<total> — …
+- Transaction: <walked>/<total> — …
+- <one line per catalog kind, in catalog order>
+
 ## Decisions from the call
 - <ruling the team aligned on, one line each — drop the section when none>
 
@@ -228,11 +233,12 @@ found.` Never fabricate a Drive link. **Refreshing the report later**: send the 
 payload alone, so an `{id, description}` update without the title is rejected as oversized
 (append patches under the backstop pass either way).
 
-Coverage numbers come from `bun run qa:pull` joined to the catalog's per-case priority — never
-hand-counted — and cover **this session's entries only** (the call-window rule; the store is
-long-lived). Include the `n/a` and noted-without-a-verdict counts: they are recorded states, and
-without them the walked numerator does not reconcile — drop a zero segment rather than rendering
-it. No tester attribution, wallet addresses, session IDs, or replay URLs anywhere;
+Both results blocks are pasted verbatim from `tmp/qa-session/<slug>/report.md`, written by
+`bun run qa:report --slug <slug> --window <start>..<end>` — the pull joined to the catalog's
+per-case priority and kind, never hand-counted — and cover **this session's entries only** (the
+call-window rule; the store is long-lived). The generator already includes the `n/a` and
+noted-without-a-verdict counts (recorded states without which the walked numerator does not
+reconcile) and drops zero segments rather than rendering them. No tester attribution, wallet addresses, session IDs, or replay URLs anywhere;
 per-tester detail stays in the pulled results and the private Sheet. Parent labels:
 `protocol:green-goods` + `activity:qa` + `source:qa-session` + `qa-sync:<date>` + one `ai:*` —
 no `package:*` (a session spans surfaces). The parent closes when its `Done when` holds — the

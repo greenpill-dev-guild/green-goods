@@ -33,11 +33,21 @@ function makeCase(overrides: Partial<CatalogCase> = {}): CatalogCase {
     expected: "Shell loads",
     evidence: "Screenshot",
     role: "steward",
+    kind: "journey",
     status: "active",
     source: "sheet-v1.1",
     ...overrides,
   };
 }
+
+const kinds = [
+  { id: "journey", label: "Journey", verifies: "a flow completes" },
+  { id: "transaction", label: "Transaction", verifies: "a wallet write lands" },
+];
+const statuses = [
+  { id: "active", means: "walked" },
+  { id: "retired", means: "kept as history" },
+];
 
 describe("qa-test-catalog.json", () => {
   it("loads and validates the real catalog", async () => {
@@ -48,6 +58,10 @@ describe("qa-test-catalog.json", () => {
     expect(filterCases(catalog.cases, { tabs: ["Docs"] }).length).toBeGreaterThanOrEqual(13);
     // Retired rows stay forever (never delete, never reuse ids).
     expect(catalog.cases.some((testCase) => testCase.status === "retired")).toBe(true);
+    expect(catalog.kinds.length).toBeGreaterThan(0);
+    expect(catalog.statuses.map((status) => status.id)).toEqual(["active", "retired"]);
+    const kindIds = new Set(catalog.kinds.map((kind) => kind.id));
+    for (const testCase of catalog.cases) expect(kindIds.has(testCase.kind)).toBe(true);
   });
 });
 
@@ -55,7 +69,7 @@ describe("validateCatalog", () => {
   const tabs = ["Public Website", "PWA", "Admin Dashboard", "Docs"];
 
   it("accepts a well-formed catalog", () => {
-    const catalog: Catalog = { version: 2, tabs, cases: [makeCase()] };
+    const catalog: Catalog = { version: 2, tabs, kinds, statuses, cases: [makeCase()] };
     expect(validateCatalog(catalog)).toEqual([]);
   });
 
@@ -63,6 +77,8 @@ describe("validateCatalog", () => {
     const catalog: Catalog = {
       version: 2,
       tabs,
+      kinds,
+      statuses,
       cases: [
         makeCase(),
         makeCase({ scenario: "duplicate id" }),
@@ -83,6 +99,8 @@ describe("validateCatalog", () => {
     const problems = validateCatalog({
       version: 2,
       tabs,
+      kinds,
+      statuses,
       cases: [unflagged, flagged, desktopJourney],
     });
     expect(problems).toHaveLength(1);
@@ -97,8 +115,8 @@ describe("validateCatalog", () => {
       tab: "Cross Surface",
       status: "retired",
     });
-    expect(validateCatalog({ version: 2, tabs, cases: [onPwa, retiredLegacy] })).toEqual([]);
-    expect(validateCatalog({ version: 2, tabs, cases: [onAdmin] })).not.toEqual([]);
+    expect(validateCatalog({ version: 2, tabs, kinds, statuses, cases: [onPwa, retiredLegacy] })).toEqual([]);
+    expect(validateCatalog({ version: 2, tabs, kinds, statuses, cases: [onAdmin] })).not.toEqual([]);
   });
 
   it("still validates the immutable definition of retired rows", () => {
@@ -111,15 +129,41 @@ describe("validateCatalog", () => {
       steps: [],
       expected: "",
     });
-    const problems = validateCatalog({ version: 2, tabs, cases: [gutted] });
+    const problems = validateCatalog({ version: 2, tabs, kinds, statuses, cases: [gutted] });
     expect(problems.some((problem) => problem.includes("empty steps"))).toBe(true);
     expect(problems.some((problem) => problem.includes("empty expected"))).toBe(true);
+  });
+
+  it("rejects a case whose kind is not in the catalog's kinds, and duplicate kinds", () => {
+    const typo = makeCase({ kind: "jorney" });
+    expect(validateCatalog({ version: 2, tabs, kinds, statuses, cases: [typo] })).toEqual([
+      "ADM-001: kind 'jorney' not in kinds",
+    ]);
+    const duplicated = [...kinds, { id: "journey", label: "Again", verifies: "twice" }];
+    expect(validateCatalog({ version: 2, tabs, kinds: duplicated, statuses, cases: [makeCase()] })).toEqual([
+      "kinds: duplicate id 'journey'",
+    ]);
+    expect(validateCatalog({ version: 2, tabs, kinds: [], statuses, cases: [makeCase()] })[0]).toBe("kinds: missing or empty");
+    expect(validateCatalog({ version: 2, tabs, kinds: [...kinds, { id: "constructor", label: "x", verifies: "x" }], statuses, cases: [makeCase()] })).toEqual([
+      "kinds: id 'constructor' collides with an Object.prototype member",
+    ]);
+  });
+
+  it("requires the lifecycle statuses to be declared and used", () => {
+    expect(validateCatalog({ version: 2, tabs, kinds, statuses: [], cases: [makeCase()] })[0]).toBe("statuses: missing or empty");
+    const onlyActive = [{ id: "active", means: "walked" }];
+    expect(validateCatalog({ version: 2, tabs, kinds, statuses: onlyActive, cases: [makeCase({ status: "retired" })] })).toEqual([
+      "ADM-001: status 'retired' not declared in statuses",
+    ]);
+    expect(validateCatalog({ version: 2, tabs, kinds, statuses: [...statuses, statuses[0]], cases: [makeCase()] })).toEqual([
+      "statuses: duplicate id 'active'",
+    ]);
   });
 
   it("rejects the legacy 'transaction' tag on active rows", () => {
     const legacy = makeCase({ tags: ["transaction"] });
     const canonical = makeCase({ id: "ADM-002", tags: ["tx"] });
-    const problems = validateCatalog({ version: 2, tabs, cases: [legacy, canonical] });
+    const problems = validateCatalog({ version: 2, tabs, kinds, statuses, cases: [legacy, canonical] });
     expect(problems).toHaveLength(1);
     expect(problems[0]).toMatch(/legacy tag 'transaction'/);
   });

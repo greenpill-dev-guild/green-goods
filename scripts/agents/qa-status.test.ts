@@ -21,6 +21,7 @@ function makeCase(overrides: Partial<CatalogCase> = {}): CatalogCase {
     expected: "The page is usable",
     evidence: "Screenshot",
     role: "none",
+    kind: "journey",
     status: "active",
     source: "qa-status-test",
     ...overrides,

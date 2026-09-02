@@ -1,0 +1,172 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "qa-report",
+    "title": "QA Session Report Generator",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-09-02T02:56:50.292Z",
+    "updated_at": "2026-09-02T03:14:17.463Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["ops", "docs"],
+    "work_types": ["implementation"],
+    "surfaces": ["scripts/agents", "docs/routines", ".claude/skills", ".claude/context"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Mark unused lanes as n/a before promoting QA.",
+    "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",
+    "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react"],
+      "manual_blocked": false
+    },
+    "state_api": {
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": "feature/qa-report",
+      "depends_on": [],
+      "handoff": "handoffs/claude-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun --bun x vitest run scripts/agents/qa-report.test.ts",
+          "evidence": "2026-09-02T03:12:16Z: Test Files 1 failed — Error: Cannot find module './qa-report' (module absent, 7 specs unrun)"
+        },
+        "green": {
+          "command": "bun --bun x vitest run scripts/agents/qa-report.test.ts && bun --bun x vitest run --dir scripts/agents",
+          "evidence": "2026-09-02T03:13:56Z: Tests 7 passed (7); whole dir Test Files 11 passed, Tests 165 passed"
+        },
+        "note": ""
+      },
+      "skill_tags": ["scripts", "qa", "vitest", "data-layer"],
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["contracts"],
+      "manual_blocked": false
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-09-02T02:56:50.295Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-09-02T02:59:51.623Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "n/a",
+      "branch": null,
+      "note": "No UI surface: CLI plus markdown output only"
+    },
+    {
+      "timestamp": "2026-09-02T02:59:52.149Z",
+      "actor": "claude",
+      "lane": "contracts",
+      "status": "n/a",
+      "branch": null,
+      "note": "No contract changes"
+    },
+    {
+      "timestamp": "2026-09-02T03:10:37.220Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/qa-report",
+      "note": "Batch 1 (steps 1-3) starting on feature/qa-report off develop; Linear mirror deferred to a later session per Afo 2026-09-01"
+    },
+    {
+      "timestamp": "2026-09-02T03:14:17.463Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/qa-report",
+      "note": "Recorded RED/GREEN TDD proof"
+    }
+  ]
+}
