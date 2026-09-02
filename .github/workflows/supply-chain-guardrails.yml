@@ -217,8 +217,13 @@ jobs:
           PLAN_REPORTS_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
         run: bun run check:immutable-plan-reports
 
+      - name: Check the QA Test ID ledger is append-only
+        env:
+          QA_LEDGER_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
+        run: bun run check:qa-id-ledger
+
       - name: Run guidance guardrail tests
-        run: node --test scripts/quality/branch-name-policy.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs
+        run: node --test scripts/quality/branch-name-policy.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs scripts/quality/check-qa-id-ledger.test.mjs
 
       - name: Check test quality
         run: bun run check:test-quality

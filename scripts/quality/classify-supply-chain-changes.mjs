@@ -19,6 +19,7 @@ const guidancePrefixes = [
   "scripts/quality/check-guidance-links",
   "scripts/quality/check-skill-behavior-contracts",
   "scripts/quality/check-immutable-plan-reports",
+  "scripts/quality/check-qa-id-ledger",
 ];
 
 const supplyExact = new Set([

@@ -736,7 +736,7 @@
     },
     {
       "id": "supply-chain",
-      "command": "bun run check:codex-guidance && bun run check:guidance-links && bun run check:immutable-plan-reports && bun run check:test-quality && node scripts/harness/plan-hub.mjs validate && node --test scripts/harness/plan-hub.test.mjs",
+      "command": "bun run check:codex-guidance && bun run check:guidance-links && bun run check:immutable-plan-reports && bun run check:qa-id-ledger && bun run check:test-quality && node scripts/harness/plan-hub.mjs validate && node --test scripts/harness/plan-hub.test.mjs",
       "risk": "dependency or repository guidance integrity regresses",
       "expectedSignal": "supply-chain and guidance guardrails pass",
       "freshness": "exact-inputs-and-toolchain",

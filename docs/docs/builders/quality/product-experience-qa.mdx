@@ -62,7 +62,8 @@ Take [`PUB-001`](./test-cases#public-website-p0), the simplest P0 on the sheet. 
 [greengoods.app](https://greengoods.app) in a desktop browser and visit `/`, `/gardens`, `/fund`,
 `/impact`, `/actions`, and `/cookies`. Every page should show the website header and no app-style
 bottom navigation. Record **Pass** with a one-line note, or **Fail** naming the route that looked
-like the installed app instead. No wallet or product role needed.
+like the installed app instead. The walk itself needs no wallet or product role; recording the
+verdict still needs your allowlisted wallet signed in to the QA app.
 :::
 
 ## Walking a flow
@@ -114,9 +115,10 @@ opening it.
   consciously skip? What worked well enough to leave alone? Which fails worry us most? Would we
   welcome a new garden onto this build tomorrow?
 - Trigger the `qa-call-report` routine (or run `/qa-triage --call` at a desk). It pulls every
-  tester's verdicts from the QA app (`qa:pull`, scoped to the call window), finds the call's
-  Gemini notes in Drive, joins the two by Test ID, and clusters failures into at most eight fix
-  slices — each sized for one branch and one PR.
+  tester's verdicts from the QA app (`qa:pull` merges every shard ever written, so the pulled
+  entries are then filtered to the call window by their timestamps), finds the call's Gemini notes
+  in Drive, joins the two by Test ID, and clusters failures into at most eight fix slices — each
+  sized for one branch and one PR.
 - It then enriches without blocking: the Vercel deploys live during the call, so every slice names
   the build under test; PostHog exceptions from the same window, per surface; and Sentry issues
   when that connector is wired. Finally it writes one `QA session YYYY-MM-DD` parent issue (a

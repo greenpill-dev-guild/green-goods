@@ -15,8 +15,10 @@ connects them.
    append-only [`qa-test-id-ledger.json`](../../scripts/data/qa-test-id-ledger.json) — and a
    retirement carries `retiredOn`, `retiredReason`, and, when active successors exist,
    `replacedBy`. The contract test in
-   [`qa-app-build.test.ts`](../../scripts/agents/qa-app-build.test.ts) enforces all of it and the
-   public [Test Cases](../../docs/docs/builders/quality/test-cases.mdx) page renders it.
+   [`qa-app-build.test.ts`](../../scripts/agents/qa-app-build.test.ts) enforces all of it at one
+   revision, [`check-qa-id-ledger.mjs`](../../scripts/quality/check-qa-id-ledger.mjs) rejects any
+   id removed since the merge-base, and the public
+   [Test Cases](../../docs/docs/builders/quality/test-cases.mdx) page renders it.
    [`packages/qa/build.mjs`](../../packages/qa/build.mjs) projects active cases into the deployed
    app; retired cases remain in git as audit history.
 2. **Recording** — the wallet-authenticated [QA app](../../packages/qa/README.md) records one private
