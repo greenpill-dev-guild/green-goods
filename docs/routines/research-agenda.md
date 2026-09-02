@@ -34,11 +34,11 @@ Each track carries the same fields. The routine reads them literally, so keep th
 | 2 | Impact methodology and verifiable reporting | quarter | evidencing · prerequisite unowned | Linear project *Impact Framework v0.1 Refresh* · RESR-46 / RESR-65 | Ground the base attestation schema in the live schemas and define the public metric set before the 2026-09-30 House of Alignment report |
 | 3 | Yield strategies for garden endowments | quarter | evidencing | RESR-9 / RESR-15 / RESR-8 | A strategy and preset recommendation with live APY evidence, plus the funding-rail map it sits in |
 | 4 | Capital access: off-ramps and on-ramps by geography | quarter | blocked (external) | Linear project *Capital Off-Ramp Corridors* · RESR-70 | Five provider facts that only direct contact can settle; the on-ramp side is unframed |
-| 5 | Accessible impact reporting via WhatsApp and SMS | quarter | framing | Linear project *Agent Messaging Channels (WhatsApp + SMS)* | Write the entry criteria the strategy already requires; no research issue exists yet |
-| 6 | Revenue token models (Revnets) for a goods and services layer | next | framing | none yet (RESR-15 rail row; AgroforestDAO case) | Frame what a Revnet adds beyond pooling, vaults, and cash-out, using AgroforestDAO's live setup as the case |
+| 5 | Accessible impact reporting via WhatsApp and SMS | quarter | framing | RESR-75 · Linear project *Agent Messaging Channels (WhatsApp + SMS)* | Write the entry criteria the strategy already requires (RESR-75, unowned) |
+| 6 | Revenue token models (Revnets) for a goods and services layer | next | framing | RESR-76 (RESR-15 rail row; AgroforestDAO case) | Frame what a Revnet adds beyond pooling, vaults, and cash-out, using AgroforestDAO's live setup as the case (RESR-76, unowned) |
 | 7 | Community infrastructure with AI for data sovereignty | 12mo | horizon (Phase 0) | Linear initiative *Community Evidence Mesh* | Phase 0 outputs: burden baseline, metric registry v0, Evidence Envelope v0, the ADR |
 
-**Why this order.** Commitment pooling is the core loop and the current cycle theme, so it leads. Impact methodology is second because it has the hardest deadline (the House of Alignment quarterly report on 2026-09-30 needs RESR-65), it is the Q3 strategy's third focus, and it feeds tracks 3, 5, and 7. Yield is third because the Sustainability & Monetization initiative is at risk and the research already has an owner and a cycle slot. Capital access is fourth: the desk research is finished and the next step is external, so weekly synthesis can only track and watch for regulatory movement. Accessible reporting is fifth because the strategy gates the build on entry criteria nobody has written, which is exactly research work. Revnets is sixth because it is the newest and least framed. The evidence mesh is the long horizon by the steward's own framing; it is reviewed monthly and connected to the near-term tracks rather than synthesized weekly.
+**Why this order.** Commitment pooling is the core loop and the current cycle theme, so it leads. Impact methodology is second because it has the hardest deadline (the House of Alignment quarterly report on 2026-09-30 needs RESR-65), it is the Q3 strategy's third focus, and it feeds tracks 3, 5, and 7. Yield is third because the Sustainability & Monetization initiative is at risk and the research already has an owner and a cycle slot. Capital access is fourth: the desk research is finished and the next step is external, so weekly synthesis can only track and watch for regulatory movement. Accessible reporting is fifth because the strategy gates the build on entry criteria nobody had written until RESR-75, which is exactly research work. Revnets is sixth because it is the newest and least framed. The evidence mesh is the long horizon by the steward's own framing; it is reviewed monthly and connected to the near-term tracks rather than synthesized weekly.
 
 ## 1. Commitment pooling
 
@@ -178,9 +178,10 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 **Question.** What must be true before gardeners can report impact from WhatsApp or SMS with no app install and no sign-up, and what is the smallest pilot that proves lower total reporting burden rather than burden moved onto operators?
 
-**Why it matters.** The *Accessible Participation* initiative (Planned, target 2026-10-31) sets "real pilot submissions" as the bar. The Q3 strategy says "no agent-channel implementation until entry criteria pass", and the Community Evidence Mesh roadmap's Phase 1 (September to November 2026) is exactly familiar-channel capture. Nobody has written the entry criteria as an accepted research artifact.
+**Why it matters.** The *Accessible Participation* initiative (Planned, target 2026-10-31) sets "real pilot submissions" as the bar. The Q3 strategy says "no agent-channel implementation until entry criteria pass", and the Community Evidence Mesh roadmap's Phase 1 (September to November 2026) is exactly familiar-channel capture. The entry criteria became an accepted research question on 2026-09-02 (RESR-75); nobody has written them yet.
 
 **Anchors.**
+- RESR-75 (define the entry criteria for reporting impact over WhatsApp and SMS; Backlog, unowned, filed 2026-09-02). The project below is Product-only, so the research issue stays unprojected and relates to PRD-834.
 - Linear project [Agent Messaging Channels (WhatsApp + SMS)](https://linear.app/greenpill-dev-guild/project/agent-messaging-channels-whatsapp-sms-71cda634fcf7) (Product, Backlog, target 2026-12-31): "research to entry criteria, then build behind the gate, then a pilot channel". PRD-290 (the epic) is Done as a spec. PRD-834 (third-party bot integration path for partner-run gardens; Backlog).
 - `.plans/ideas/agent-messaging-channels/` (session keys scoped by ERC-4337, tiered rate limits, a dual revoke path).
 - The evidence mesh roadmap's Phase 1 evidence list (minutes per accepted submission, completion and abandonment, correction rate, operator minutes, data cost, language and device coverage, consent comprehension).
@@ -194,7 +195,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 - Capture creates a private candidate, never an immediate public record, and every channel must produce the same candidate-evidence contract (evidence mesh thesis, locked).
 
 **Open.**
-1. The entry criteria themselves: identity and verification without sign-up, expected support load, cost per accepted submission by country, consent comprehension, and the manual fallback. There is no RESR issue for this; it is the first candidate the routine should propose. Next step: file the research issue and draft the criteria from the roadmap's Phase 1 gate.
+1. The entry criteria themselves: identity and verification without sign-up, expected support load, cost per accepted submission by country, consent comprehension, and the manual fallback. RESR-75 holds this question. Next step: an owner drafts the criteria from the roadmap's Phase 1 gate and the panel accepts or returns them.
 2. Provider and policy constraints for the WhatsApp Business platform and SMS in the pilot geographies: template approval, opt-in rules, per-country pricing, and number provisioning. Next step: a dated source table.
 3. The minimal "report impact" payload (photo, text, location) and how it maps to the base attestation schema in track 2. Next step: one worked example per pilot domain.
 4. Which pilot garden and which metric set. Next step: the evidence mesh 90-day go or no-go.
@@ -214,15 +215,15 @@ Each track carries the same fields. The routine reads them literally, so keep th
 **Anchors.**
 - RESR-15 lists Juicebox and Revnet as a Season Two funding rail to compare (initiator, principal control, yield control, evidence trigger, funder view).
 - `.plans/active/commitment-pooling/reports/linear/linear-apply-pack.md` section B3 (AgroforestDAO's Revnet stays outside pooling v1 scope; the module never custodies funds).
-- No dedicated Linear issue, project, or plan hub exists. That is the gap.
+- RESR-76 (frame what a Revnet would add to a garden's goods and services beyond pooling and vaults; Backlog, unowned, filed 2026-09-02; related to RESR-15 and RESR-73). No project or plan hub exists, by design, until the framing lands.
 
-**Status surface.** Comment on RESR-15 until a dedicated research issue exists; then that issue.
+**Status surface.** Comment on RESR-76.
 
 **Settled.**
 - Nothing about the mechanism is settled. Revnet integration is outside pooling v1 and the pooling module never custodies funds.
 
 **Open.**
-1. Frame the question: what a Revnet provides that pooling plus vaults plus cash-out do not (continuous rule-based issuance and redemption against revenue, automated splits, no discretionary governance) and what it costs (which chains carry the contracts, Arbitrum availability, fees, audit status, and the legal posture of a revenue token for a garden). Next step: a one-page framing note; the routine's second candidate new issue.
+1. Frame the question: what a Revnet provides that pooling plus vaults plus cash-out do not (continuous rule-based issuance and redemption against revenue, automated splits, no discretionary governance) and what it costs (which chains carry the contracts, Arbitrum availability, fees, audit status, and the legal posture of a revenue token for a garden). Next step: the one-page framing note that RESR-76 asks for.
 2. Who issues (a garden Safe or Green Goods), who holds, how goods and services are priced and delivered, and what "revenue" means for a garden with mostly in-kind output.
 3. Interaction with Cosmo-Local vouchers: two tokens per garden is a smell, and the no-universal-price rule from track 1 applies here too.
 4. AgroforestDAO's actual Revnet configuration as the case study. Next step: read it and record it before designing anything.
@@ -268,4 +269,4 @@ These live on the Research team but are not agenda tracks this quarter. The rout
 
 ## Change log
 
-- **v1 · 2026-09-02.** First edition. Seven tracks ordered from the steward's brief of 2026-09-02, grounded in the live Linear board, the `.plans/` hubs, and the routine's own August memos.
+- **v1 · 2026-09-02.** First edition. Seven tracks ordered from the steward's brief of 2026-09-02, grounded in the live Linear board, the `.plans/` hubs, and the routine's own August memos. The two gaps the edition named were filed the same day as RESR-75 (track 5) and RESR-76 (track 6).

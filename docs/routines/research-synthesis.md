@@ -4,8 +4,8 @@ trigger:
   schedule: "0 0 * * 6"  # Sat 00:00 UTC = Fri 17:00 PT. Closes the week after Monday's syncs, Tuesday's biweekly Engineering Sync, and Wednesday's Build Sync have landed in Drive.
 max-duration: 1h
 repos:
-  - green-goods   # read-only: docs/routines/research-agenda.md is the compass and .plans/ is execution truth. Never edits, commits, or pushes.
-environment: guild-routines  # the guild environment already holds the #research channel id, the shared bot token, Drive, and Linear; add green-goods as a source (guild-weekly-synthesis already checks it out there)
+  - green-goods   # read-only: docs/routines/research-agenda.md is the compass and .plans/ is execution truth. Never edits, commits, or pushes. If the trigger carries no checkout, the pointer prompt shallow-clones the public repo instead.
+environment: guild-routines  # the guild environment holds the #research channel id, the shared bot token, and the Drive and Linear connectors; the new trigger runs here
 network-access: full  # Discord REST + Drive + Linear (read + gated writes) + a bounded web pass on the agenda's frontier questions
 env-vars:
   - DISCORD_BOT_TOKEN
@@ -16,7 +16,7 @@ connectors:
   - linear         # OAuth connector only, no API key (guild rule 2026-07-04)
 model: claude-fable-5  # cross-track connection-finding and literature verification are genuine-ambiguity work; weekly cadence keeps the cost small
 allow-unrestricted-branch-pushes: false  # synthesis routine, no PRs
-status: proposed  # v4 (2026-09-02). Supersedes the guild-level research-synthesis v3 (greenpill-dev-guild/.github routines/claude/research-synthesis.md). Live trigger trig_01AVZbVmfUjHcVLbKzsurhyb still points at v3 until repointed; see § Migration.
+status: active  # v4 (2026-09-02). Supersedes the guild-level research-synthesis v3 (greenpill-dev-guild/.github routines/claude/research-synthesis.md). Trigger trig_01Wkc4tG6XTgRkw7R23Kc57a ("Green Goods Research Synthesis") was created on 2026-09-02 pointing at this file; the old guild trigger trig_01AVZbVmfUjHcVLbKzsurhyb is to be disabled in the routines UI. See § Migration for the two UI edits the new trigger still needs.
 ---
 
 # Prompt
@@ -53,7 +53,7 @@ A grant proposal that cites a paper is not research signal; the paper is. A Buil
 
 ## Phase 0: Preflight and continuity
 
-**Agenda preflight (fail closed).** Locate `docs/routines/research-agenda.md` in the `green-goods` checkout (Glob `**/docs/routines/research-agenda.md`). Read it in full. Record its edition line. If it cannot be found or read, you have no compass: post exactly one line to `#research` (`🔬 Research Synthesis {date}: research agenda not readable from the green-goods checkout · skipping this run.`), write a short memo, and exit. Never fall back to deriving domains from the board.
+**Agenda preflight (fail closed).** Locate `docs/routines/research-agenda.md` in the `green-goods` checkout (Glob `**/docs/routines/research-agenda.md`). If the trigger carried no checkout, use the shallow clone the pointer prompt made (`git clone --depth 1 https://github.com/greenpill-dev-guild/green-goods`; the repository is public and its default branch `develop` carries the agenda and the `.plans/` hubs). Read the agenda in full. Record its edition line. If it cannot be found or read, you have no compass: post exactly one line to `#research` (`🔬 Research Synthesis {date}: research agenda not readable from the green-goods checkout · skipping this run.`), write a short memo, and exit. Never fall back to deriving domains from the board.
 
 **Linear preflight (fail closed).** Probe the Linear connector by fetching one issue named in the agenda (RESR-73). If it is unauthenticated or unreachable, post exactly one line (`🔬 Research Synthesis {date}: Linear connector needs re-authorization · skipping this run.`), write a short memo naming the failed preflight, and exit. Never synthesize from the channel and call notes alone. This happened on 2026-08-29; the fail-closed line is the correct behaviour, and the memo should say that other Linear-reading routines are probably affected too.
 
@@ -248,20 +248,29 @@ The cloud trigger carries only this pointer; the operating prompt above is the s
 ```text
 You are the **research-synthesis** routine for Green Goods (Greenpill Dev Guild).
 
-**Your complete operating prompt is version-controlled and is the single source of truth.** It lives in the `greenpill-dev-guild/green-goods` source checkout at `docs/routines/research-synthesis.md` — everything below the `# Prompt` heading — and it reads the research agenda from `docs/routines/research-agenda.md` in the same checkout. To locate it on the runtime filesystem, use Glob for `**/docs/routines/research-synthesis.md` (or `find . -path '*docs/routines/research-synthesis.md'`) across your cloned sources, then Read it. **Before doing anything else, read that entire file and follow it exactly as your instructions for this run.**
+**Your complete operating prompt is version-controlled and is the single source of truth.** It lives in the `greenpill-dev-guild/green-goods` repository at `docs/routines/research-synthesis.md` — everything below the `# Prompt` heading — and it reads the research agenda from `docs/routines/research-agenda.md` in the same repository.
 
-If that file cannot be located or read, do not improvise a run from memory, from a stale copy, or from the retired guild-level `routines/claude/research-synthesis.md`: STOP and report that the routine could not load its operating prompt from green-goods, then exit.
+Locate it before doing anything else:
+1. Look for a green-goods checkout among your cloned sources: Glob `**/docs/routines/research-synthesis.md` (or `find . -path '*docs/routines/research-synthesis.md'`).
+2. If no checkout exists, clone the public repository shallowly into a scratch directory and read from there: `git clone --depth 1 https://github.com/greenpill-dev-guild/green-goods /tmp/green-goods` (its default branch, `develop`, carries the spec, the agenda, and the `.plans/` hubs the spec reads).
+3. Read the entire spec file and follow it exactly as your instructions for this run. Treat the checkout as read-only: never commit, push, or open a pull request.
+
+If the file cannot be located or read by either path, do not improvise a run from memory, from a stale copy, or from the retired guild-level `routines/claude/research-synthesis.md`: STOP and report that the routine could not load its operating prompt from green-goods, then exit.
 ```
 
 ## Migration from v3
 
-The live trigger is `trig_01AVZbVmfUjHcVLbKzsurhyb` (**Dev Guild Research Synthesis**, cron `0 0 * * 6`, environment `guild-routines`, sources: `greenpill-dev-guild/.github` only, connectors Google Drive, Google Calendar, Linear). To move it to v4 without a new trigger:
+Decided on 2026-09-02 by the steward: the guild-level research synthesis is retired and this Green Goods routine takes its Saturday slot.
 
-1. Merge this spec and `research-agenda.md` to `develop`, then `main`, so the checkout the trigger clones carries them.
-2. In the routines UI, add `greenpill-dev-guild/green-goods` as a source (the guild environment already checks it out for `guild-weekly-synthesis`). Keep `.github` as a source only if another routine in the same trigger needs it; this routine does not.
-3. Replace the trigger's prompt with the pointer above. Keep the cron, the environment, and the model (`claude-fable-5`).
-4. Google Calendar can be removed from the connector list; v4 does not read it.
-5. Re-authorize the Linear connector before the first fire. The 2026-08-29 run failed closed on an expired authorization.
-6. Watch the first fire. Under house style v2 a quiet week is one line, so a Saturday with no line at all means the transcript needs checking (a Fable decline looks identical to a quiet run).
+**Done from the session.** A new trigger, `trig_01Wkc4tG6XTgRkw7R23Kc57a` (**Green Goods Research Synthesis**, environment `guild-routines`, cron `0 0 * * 6`, next fire Saturday 2026-09-05 00:05 UTC), carries the pointer prompt above. The pointer clones this repository when the trigger carries no green-goods checkout, so the trigger needs no source configuration. The old guild trigger, `trig_01AVZbVmfUjHcVLbKzsurhyb` (**Dev Guild Research Synthesis**), could not be changed from the session: the routines API refuses agent edits to routines a person created.
 
-Guild-side follow-ups in `greenpill-dev-guild/.github` (this repo cannot write there): mark `routines/claude/research-synthesis.md` as superseded with a pointer to this file, update the portfolio row in `routines/claude/README.md`, and fix `docs/teams/research.md`, which still carries unresolved merge-conflict markers in its Purpose section and says the Saturday synthesis is retired while the trigger is live.
+**Still needed in the routines UI, before Saturday 2026-09-05 00:00 UTC.**
+
+1. On **Green Goods Research Synthesis**: add the **Google Drive** and **Linear** connectors (the API stored the trigger without any, and without Linear every run fails closed at Phase 0), and set the model to **`claude-fable-5`** (the API left it on the platform default; a routine left there silently runs the wrong tier). Confirm Bash, Read, Glob, and Grep are allowed tools so the clone and the Discord REST calls can run. Optionally add `greenpill-dev-guild/green-goods` as a source to skip the clone.
+2. **Disable** **Dev Guild Research Synthesis**. Until it is disabled, both routines fire on Saturday and `#research` gets a v3 digest and a v4 digest.
+3. Re-authorize the Linear connector; the 2026-08-29 run failed closed on an expired authorization.
+4. Merge this spec and `research-agenda.md` to `develop`; the pointer clones the default branch, and without them the first run fails closed with a one-line post rather than improvising.
+
+Watch the first fire. Under house style v2 a quiet week is one line, so a Saturday with no line at all means the transcript needs checking (a Fable decline looks identical to a quiet run).
+
+Guild-side follow-ups in `greenpill-dev-guild/.github` (this repository cannot write there): mark `routines/claude/research-synthesis.md` as retired with a pointer to this file, update the portfolio row and the `#research` channel row in `routines/claude/README.md`, and fix `docs/teams/research.md`, which still carries unresolved merge-conflict markers in its Purpose section and should point its Surfaces line at this routine.
