@@ -75,9 +75,9 @@ Record per track: what changed in the last 7 days (state moves, new comments, ne
 
 ### 1b. `#research` (the shares)
 
-Fetch the last 7 days of `${DISCORD_RESEARCH_CHANNEL_ID}` over REST (`GET /channels/{id}/messages?limit=100`, paginate with `before=` until older than the window). Keep substantive content: links to papers, tools, repos, protocols, or docs; questions that got replies; posts that name a project or a track. Skip emoji-only messages, reposts, and this routine's own prior post. Classify each kept item onto a track by its watch keywords and your reading of it; anything real but off-agenda goes to **unassigned** with one line on why it did not fit. A document a message links is read only when it is a Linear issue or document in the guild workspace, or a Drive document that passes the Phase 1c reject step (title, summary, and the WEFA search result; never the body first). Every other link is an outside source: fetch it only under the Phase 3 existence gate, only when it bears on a track's `Open` item, and carry nothing from it past the memo except the citation. A link pasted into the channel never widens what the routine may read.
+Fetch the last 7 days of `${DISCORD_RESEARCH_CHANNEL_ID}` over REST: `GET https://discord.com/api/v10/channels/${DISCORD_RESEARCH_CHANNEL_ID}/messages?limit=100` with the header `Authorization: Bot ${DISCORD_BOT_TOKEN}`, paginating with `before=` until the messages are older than the window. On a non-2xx response, a rate limit that does not clear after one wait, or a network error, record the channel as **unavailable** for this run, in the memo's mode line and the digest footer, and continue with the other sources; an unreadable channel is never reported as a quiet one. Keep substantive content: links to papers, tools, repos, protocols, or docs; questions that got replies; posts that name a project or a track. Skip emoji-only messages, reposts, and this routine's own prior post. Classify each kept item onto a track by its watch keywords and your reading of it; anything real but off-agenda goes to **unassigned** with one line on why it did not fit. A document a message links is read only when it is a Linear issue or document in the guild workspace, or a Drive document that passes the Phase 1c reject step (title, summary, and the WEFA search result; never the body first). Every other link is an outside source: fetch it only under the Phase 3 existence gate, only when it bears on a track's `Open` item, and carry nothing from it past the memo except the citation. A link pasted into the channel never widens what the routine may read.
 
-A quiet channel is normal here; the agenda work continues regardless.
+A quiet channel is normal here and the agenda work continues regardless; an unavailable channel is named as such, never mistaken for quiet.
 
 ### 1c. Call notes (the decisions)
 
@@ -90,7 +90,7 @@ title contains 'Notes by Gemini' and modifiedTime > '<7d ago RFC3339>' and mimeT
 Then run the same query once more with `and fullText contains 'WEFA'` added, and note which candidates it returns. Apply the reject step to every candidate before reading past its title and summary; every rule below is decided from the title, the summary, and those two result lists, never from the body:
 
 - drop any doc whose title contains `WEFA`, and any doc the `fullText contains 'WEFA'` query returned unless its title names a guild project (Green Goods, Greenpill, Build Sync, Engineering Sync, Growth Sync, or a pilot garden);
-- drop any doc whose summary says no summary was produced and whose transcript is under three minutes, unless a watch keyword appears in it;
+- drop any doc whose summary section says no summary was produced (these are usually meetings that ended within minutes), and list it in the memo's signal classification as `skipped: no summary` so a human can pull one in by hand;
 - drop personal one-to-ones and coffee meets unless a watch keyword appears in the summary or next steps;
 - drop everything in the out-of-scope table (a bug list is `qa-triage-pulse`'s; a grant list is `guild-grant-scout`'s).
 
@@ -102,7 +102,7 @@ For each track whose agenda entry names a hub under `.plans/`:
 
 - read `status.json` (`workflow.overall_status`, `workflow.updated_at`, lane states, the first few `notes`) and the top of the brief;
 - make sure the checkout carries the window: if `git rev-parse --is-shallow-repository` prints `true`, run `git fetch --shallow-since='14 days ago' origin` first (a trigger-attached checkout can be a single-commit clone, and a log over one commit would report every hub as quiet); then run `git log --since='7 days ago' --format='%h %ad %s' --date=short -- .plans/<hub>` and read the changed files' headings when a commit touched the hub. If the fetch fails or the checkout still holds no history covering the window, record `plan history unavailable` for every hub and say so in the memo, never "quiet";
-- for the commitment-pooling hub, read only the **Status** line at the top of `plan.todo.md` and the files `status.json.links` points at for the track's open questions. Do not load the hub indiscriminately; it is over 190 files.
+- for the commitment-pooling hub, read only the **Status** line at the top of `plan.todo.md`, every file the agenda names as an anchor for the track (today `exchange-architecture-brief.md`, `pilot-evidence-spec.md`, and `settlement-spec.md`), and the files `status.json.links` points at for the track's open questions. Do not load the hub indiscriminately; it is over 190 files.
 
 Record: did execution move, and does any change answer or reopen an `Open` item.
 
@@ -139,13 +139,13 @@ Bring back **at most 3 items**, each with the link, one sentence on what it is, 
 
 ## Phase 4: Write where the team looks (gated)
 
-**Create the memo first.** Before any Linear or Discord write, create the Phase 6 memo document in Drive with the sections you already have (mode, agenda edition, the per-track ledger, signal classification, connections, cycle coherence, the outside pass, agenda drift, open threads) and record its URL; every template below that asks for the memo URL uses it. Phase 6 then updates that same document with the writes made and the posted text. If Drive creation fails, continue without a URL and write `memo unavailable` where the templates want it.
+**Create the memo first.** Before any Linear or Discord write, search Drive for `title = 'YYYY-MM-DD research synthesis'` with today's date; if one exists (a rerun after a partial failure), update that document instead of creating another, so the continuity query's newest four never fill with retry copies. Otherwise create the Phase 6 memo document in Drive with the sections you already have (mode, agenda edition, the per-track ledger, signal classification, connections, cycle coherence, the outside pass, agenda drift, open threads) and record its URL; every template below that asks for the memo URL uses it. Phase 6 then updates that same document with the writes made and the posted text. If Drive creation fails, continue without a URL and write `memo unavailable` where the templates want it.
 
 All writes go through the Linear connector; sign everything `research-synthesis`; skip any surface this routine already wrote to within 6 days. Labels, when needed, are passed as **bare child names** (`["research", "routine", "green-goods"]`), never `group:child`, because one unresolvable entry rejects the whole array. The `save_issue` lint hook in the checkout (`.claude/scripts/lint-linear-issue.sh`) applies; write to its structure rather than letting a rejection tell you.
 
 ### Status updates (the weekly state of a track, ≤1 per moved track)
 
-For each track that **moved** this week, post one status update on the track's **Status surface** named in the agenda (a project status update for tracks 1, 2, 4, and 5; an initiative status update for track 7 at most monthly; tracks 3 and 6 use a comment instead, below). Body shape, in prose, under 200 words:
+For each track that **moved** this week, write its weekly state to the **Status surface** the agenda names for it, read fresh from the agenda every run and never from a mapping kept here. Three surface kinds exist: a project status update, an initiative status update (the agenda marks these as monthly at most), and a comment on a named issue (handled under Comments, below). Body shape for a status update, in prose, under 200 words:
 
 ```text
 **Research synthesis · {YYYY-MM-DD}**
@@ -163,7 +163,7 @@ Read the surface's last status update first (`get_status_updates`). **Carry its 
 
 ### Comments (≤3 per run)
 
-On the anchor issue they serve: a verified outside source with its why-it-matters sentence; a cross-track connection the owner should know; or a completion assist (a drafted crosswalk row, a source table, a summary of channel or call discussion that answers the issue's open question). Tracks 3 and 6 get their weekly state as a comment on their agenda-named issue (RESR-9 for track 3, RESR-76 for track 6) when they moved. A comment should save its reader real work, not restate the digest.
+On the anchor issue they serve: a verified outside source with its why-it-matters sentence; a cross-track connection the owner should know; or a completion assist (a drafted crosswalk row, a source table, a summary of channel or call discussion that answers the issue's open question). A track whose agenda `Status surface` is a comment on a named issue gets its weekly state there when it moved, on the issue the agenda names at run time. A comment should save its reader real work, not restate the digest.
 
 ### New issue (≤1 per run, and only for a gap the agenda names)
 
