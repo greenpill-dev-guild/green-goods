@@ -14,10 +14,31 @@
 
 ## TDD proof
 
-_To be recorded: red command/evidence (failing test for new renderer behavior), green
-command/evidence after implementation._
+- **Red** (2026-09-02, pre-implementation): `node --test scripts/docs/generate.test.mjs` fails at
+  load — `renderSkills` unexported, skills and integration-data projections absent; 1 file-level
+  failure covering the 4 new behavior tests.
+- **Green**: same command at `ade03f693` — 19 tests, 19 pass, 0 fail (Node 22.22.1). Recorded in
+  `status.json` via `record-tdd`.
 
-## Validation Receipt
+## Validation Receipt — Phase 1 (mechanics)
 
-_Pending — filled with tested commit SHA, UTC timestamp, exact commands, and summarized output
-before this lane is marked passed._
+- **Tested implementation commit SHA**: `ade03f69342ac2a8842057c1b56234ad2e80388d`
+- **Run at (UTC)**: `2026-09-02T17:27:52Z`
+- **Commands and results**:
+  - `node --test scripts/docs/generate.test.mjs` → 19 tests, 19 pass, 0 fail
+  - `bun run docs:audit:ci` → "docs-audit: no errors or warnings."
+  - `bun run check:docs-generated` → "Checked documentation projections (13)." (idempotent)
+  - `bun run test:docs` → 45 pass, 0 fail (4 files)
+  - `bun run build:docs` → SUCCESS; search index covers 71 live source routes
+- **Validated paths**: `scripts/docs/**`, `docs/**` (content, components, client modules, config),
+  `biome.json`, `.claude/launch.json`
+- **Worktree identity**: `git status --porcelain=v1 --untracked-files=all -- scripts/docs docs` →
+  empty
+- **Known limit**: svg-pan-zoom attaches on first visibility via IntersectionObserver; the embedded
+  verification pane reports `document.visibilityState === "hidden"` permanently, so the attach step
+  is queued-but-unfired there (states verified as `queued` on all three ERD diagrams). Confirm the
+  zoom controls once in a visible browser (Vercel preview or local `bun run --cwd docs serve`).
+  Discovery, sizing, accent, conditional sections, and all build gates are machine-verified above.
+- **Pre-existing, out of scope**: `cd docs && bun run typecheck` fails on two recharts formatter
+  types in `RevenueProjectionChart.tsx` (present on develop since the TS7 upgrade, #639); zero
+  errors reference Phase 1 files.

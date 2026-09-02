@@ -9,3 +9,12 @@ docs gates in eval.md.
 ## Validation Receipt
 
 _Pending — filled per phase before terminal claims._
+
+## Phase 1 receipt pointer
+
+Phase 1 ui-lane changes (client modules, accent CSS, converted integration pages, sidebar, config)
+were validated together with the state_api lane; the shared Fresh Evidence Receipt lives in
+`claude-state-api.md` (commit `ade03f693`, 2026-09-02T17:27:52Z). Browser-verified: builders teal
+holds on `/category/user-journeys` (computed `rgb(45, 212, 191)` on the active sidebar link,
+post-hydration), Hats page renders its indexer section, ENS page renders none, skills catalog
+renders all 13 skills.

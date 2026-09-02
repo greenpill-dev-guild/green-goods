@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-02T16:54:52.541Z",
-    "updated_at": "2026-09-02T17:00:53.586Z"
+    "updated_at": "2026-09-02T17:28:36.370Z"
   },
   "links": {
     "brief": "brief.md",
@@ -61,7 +61,8 @@
         },
         "note": "Docs-site surface (MDX pages, components, CSS, sidebar, redirects): no unit-testable behavior seam; proof is docs:audit:ci, check:docs-generated, build:docs, and the eval.md outcome gates."
       },
-      "skill_tags": ["docs", "ui", "humanize-writing"]
+      "skill_tags": ["docs", "ui", "humanize-writing"],
+      "manual_blocked": false
     },
     "state_api": {
       "owner": "claude",
@@ -71,18 +72,19 @@
       "handoff": "handoffs/claude-state-api.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "node --test scripts/docs/generate.test.mjs",
+          "evidence": "2026-09-02 pre-implementation: suite fails at load (renderSkills unexported; skills + integration-data projections absent) — 1 file-level failure covering the 4 new behavior tests"
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "node --test scripts/docs/generate.test.mjs",
+          "evidence": "2026-09-02 at ade03f693: 19 tests, 19 pass, 0 fail (Node 22.22.1)"
         },
-        "note": "Generator behavior (renderErd layering, integration projection mechanism, renderSkills) is covered by scripts/docs/generate.test.mjs."
+        "note": ""
       },
-      "skill_tags": ["docs", "generators", "node"]
+      "skill_tags": ["docs", "generators", "node"],
+      "manual_blocked": false
     },
     "contracts": {
       "owner": "codex",
@@ -150,6 +152,30 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-09-02T17:28:29.511Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-02T17:28:32.209Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Phase 1 generator work landed in 26e2f6cf3: layered ERD, skills catalog, hybrid integration data projection; phases 2-5 pending"
+    },
+    {
+      "timestamp": "2026-09-02T17:28:36.371Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Phase 1 site mechanics landed in ade03f693: mermaid pan-zoom, builders accent fallback (incl. /category/*), converted integration pages; phases 2-5 pending"
     }
   ]
 }
