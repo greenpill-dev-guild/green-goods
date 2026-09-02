@@ -44,9 +44,11 @@ Phase 3b dedupe catches the other's records if both ran.
   is long-lived and the pull merges every shard ever written, so filter joined entries by their
   `at` timestamps (the routine's session-window rule) before calling anything verdict-backed;
   older entries are standing state. Then `bun run qa:report --slug <date> --window <start>..<end>`
-  (add `--build client=<sha>,admin=<sha>` once Phase 6 has the deploys): its
-  `tmp/qa-session/<date>/report.md` is where both results blocks of the parent come from — never
-  count by hand. Note items without a Test ID may be fuzzy-matched into
+  — with `--out <the directory you pulled into>` whenever the collision branch below sent the pull
+  to `tmp/qa-session/<date>-call`, so the report reads that pull and not the earlier session's
+  (add `--build client=<sha>,admin=<sha>` once Phase 6 has the deploys): the `report.md` written
+  beside that pull is where both results blocks of the parent come from — never count by hand.
+  Note items without a Test ID may be fuzzy-matched into
   *proposals* here, because the Phase 4 gate confirms each one with you — the unattended routine
   never guesses an ID. If `tmp/qa-session/<date>/` already holds a pulled session (a local
   close, or an earlier failed run), `qa:pull` refuses to overwrite it: pull to a fresh directory

@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { buildReportModel, parseArgs, parseWindow, renderReport, runReport } from "./qa-report";
+import { buildReportModel, parseArgs, parseWindow, renderReport, resultsNotes, runReport } from "./qa-report";
 import { mergeShards, type Shard } from "./qa-state";
 import type { Catalog, CatalogCase } from "./qa-workbook-build";
 
@@ -38,6 +38,8 @@ function shard(
 const SLUG = "2026-09-02";
 const WINDOW = parseWindow("2026-09-02T17:45:00Z..2026-09-02T19:30:00Z", SLUG);
 const IN_WINDOW = "2026-09-02T18:00:00.000Z";
+// The snapshot must postdate the window, or the report clamps the window to the pull time.
+const PULLED_AT = "2026-09-02T19:40:00.000Z";
 const BEFORE_WINDOW = "2026-09-01T18:00:00.000Z";
 
 function bucketSum(bucket: { pass: number; fail: number; blocked: number; na: number; noted: number }) {
@@ -75,7 +77,7 @@ describe("QA report session window", () => {
       }),
     ]);
 
-    const model = buildReportModel(cases, merged, { slug: SLUG, window: WINDOW, pulledAt: IN_WINDOW });
+    const model = buildReportModel(cases, merged, { slug: SLUG, window: WINDOW, pulledAt: PULLED_AT });
 
     expect(model.byPriority.P0.walked).toBe(2);
     expect(model.byPriority.P0.pass).toBe(2);
@@ -104,7 +106,7 @@ describe("QA report buckets", () => {
       }),
     ]);
 
-    const model = buildReportModel(cases, merged, { slug: SLUG, window: WINDOW, pulledAt: IN_WINDOW });
+    const model = buildReportModel(cases, merged, { slug: SLUG, window: WINDOW, pulledAt: PULLED_AT });
 
     expect(model.byPriority.P0).toEqual({ total: 2, walked: 2, pass: 0, fail: 1, blocked: 1, na: 0, noted: 0 });
     expect(model.byPriority.P1).toEqual({ total: 2, walked: 2, pass: 0, fail: 0, blocked: 0, na: 1, noted: 1 });
@@ -129,7 +131,7 @@ describe("QA report buckets", () => {
       }),
     ]);
 
-    const model = buildReportModel(cases, merged, { slug: SLUG, window: WINDOW, pulledAt: IN_WINDOW });
+    const model = buildReportModel(cases, merged, { slug: SLUG, window: WINDOW, pulledAt: PULLED_AT });
 
     expect(model.byPriority.P0.walked).toBe(0);
     expect(model.standing).toEqual({ failing: ["PUB-001"], blocked: ["PUB-002"] });
@@ -150,7 +152,7 @@ describe("QA report issues and testers", () => {
       }),
     ]);
 
-    const model = buildReportModel(cases, merged, { slug: SLUG, window: WINDOW, pulledAt: IN_WINDOW });
+    const model = buildReportModel(cases, merged, { slug: SLUG, window: WINDOW, pulledAt: PULLED_AT });
 
     expect(model.issues).toEqual([
       { id: "PUB-001", priority: "P0", kind: "journey", area: "Garden Discovery", verdict: "Fail", notes: "Afo: blank page on Safari" },
@@ -173,7 +175,7 @@ describe("QA report issues and testers", () => {
       }),
     ]);
 
-    const model = buildReportModel(cases, merged, { slug: SLUG, window: WINDOW, pulledAt: IN_WINDOW });
+    const model = buildReportModel(cases, merged, { slug: SLUG, window: WINDOW, pulledAt: PULLED_AT });
 
     expect(model.testers).toEqual({
       count: 2,
@@ -189,7 +191,7 @@ const KINDS = [
 ];
 
 function model(cases: CatalogCase[], shards: Shard[], extra: Partial<Parameters<typeof buildReportModel>[2]> = {}) {
-  return buildReportModel(cases, mergeShards(shards), { slug: SLUG, window: WINDOW, pulledAt: IN_WINDOW, ...extra });
+  return buildReportModel(cases, mergeShards(shards), { slug: SLUG, window: WINDOW, pulledAt: PULLED_AT, ...extra });
 }
 
 describe("QA report rendering", () => {
@@ -284,9 +286,11 @@ describe("QA report delta and gaps", () => {
       fixed: ["PUB-001"],
       stillFailing: ["PUB-004"],
       stillBlocked: ["PUB-003"],
+      cleared: [],
       unknown: ["XPLAT-001"],
     });
-    const report = renderReport(built, { kinds: KINDS }, { variant: "public" });
+    // The path and unknown ids are private detail; the public variant withholds them.
+    const report = renderReport(built, { kinds: KINDS }, { variant: "private" });
     expect(report).toContain(`## Delta vs ${baseline}\n`);
     expect(report).toContain("- Fixed (1): `PUB-001`\n");
     expect(report).toContain("- Unknown or retired on one side (1): `XPLAT-001`\n");
@@ -355,7 +359,7 @@ describe("QA report CLI", () => {
       path.join(sessionDir, "qa-state.json"),
       JSON.stringify({
         slug: SLUG,
-        pulledAt: IN_WINDOW,
+        pulledAt: PULLED_AT,
         summary: {},
         entries: { "PUB-001": { Afo: { s: "fail", n: "PRIVATE NOTE CANARY", at: IN_WINDOW } } },
       }),
@@ -390,5 +394,124 @@ describe("QA report CLI", () => {
       message = error instanceof Error ? error.message : String(error);
     }
     expect(message).toBe("qa-state.json is not valid JSON");
+  });
+});
+
+describe("QA report review hardening", () => {
+  it("rejects a window whose values carry no time zone", () => {
+    expect(() => parseWindow("2026-09-02T17:45:00..2026-09-02T19:30:00", SLUG)).toThrow(/time zone/);
+    expect(parseWindow("2026-09-02T17:45:00+02:00..2026-09-02T19:30:00+02:00", SLUG).start).toBe("2026-09-02T15:45:00.000Z");
+  });
+
+  it("clamps a window that outlives the snapshot and says so in both variants", () => {
+    const built = buildReportModel([makeCase()], mergeShards([]), {
+      slug: SLUG,
+      window: WINDOW,
+      pulledAt: "2026-09-02T18:30:00.000Z",
+    });
+    expect(built.window).toMatchObject({ end: "2026-09-02T18:30:00.000Z", clampedTo: "2026-09-02T18:30:00.000Z" });
+    expect(built.windowNote).toMatch(/clamped to the pull time/);
+    expect(renderReport(built, { kinds: KINDS }, { variant: "public" })).toContain("Caveat: Window end clamped");
+  });
+
+  it("reports a baseline failure that was cleared without a pass instead of dropping it", () => {
+    const cases = [makeCase(), makeCase({ id: "PUB-002" })];
+    const previous = mergeShards([
+      shard("Afo", { "PUB-001": { s: "fail", n: "", at: BEFORE_WINDOW }, "PUB-002": { s: "blocked", n: "", at: BEFORE_WINDOW } }),
+    ]);
+    const current = [shard("Afo", { "PUB-001": { s: "", n: "looked at it", at: IN_WINDOW }, "PUB-002": { s: "na", n: "", at: IN_WINDOW } })];
+
+    const built = model(cases, current, { previous: { path: "tmp/qa-session/2026-08-31/qa-state.json", entries: previous } });
+
+    expect(built.delta).toMatchObject({ fixed: [], cleared: ["PUB-001", "PUB-002"], stillFailing: [], stillBlocked: [] });
+    expect(renderReport(built, { kinds: KINDS }, { variant: "public" })).toContain("- Cleared without a pass (2): `PUB-001`, `PUB-002`\n");
+  });
+
+  it("flattens multiline notes and tester names so a note cannot forge a heading", () => {
+    const report = renderReport(
+      model([makeCase()], [shard("Afo\nGui", { "PUB-001": { s: "fail", n: "first line\n## Forged heading\n- forged item", at: IN_WINDOW } })]),
+      { kinds: KINDS },
+      { variant: "private" },
+    );
+    expect(report).toContain("— Fail — Afo / Gui: first line / ## Forged heading / - forged item");
+    expect(report).not.toMatch(/^## Forged heading$/m);
+    expect(report).not.toMatch(/^- forged item$/m);
+    expect(report).toContain("- Afo / Gui: 1 touched · 1 decided");
+  });
+
+  it("tallies a tester named __proto__ without touching Object.prototype", () => {
+    const built = model([makeCase()], [shard("__proto__", { "PUB-001": { s: "pass", n: "", at: IN_WINDOW } })]);
+    expect(built.testers.count).toBe(1);
+    expect(Object.hasOwn(built.testers.perPerson, "__proto__")).toBe(true);
+    expect(built.testers.perPerson.__proto__).toEqual({ touched: 1, decided: 1 });
+    expect(Object.hasOwn(Object.prototype, "touched")).toBe(false);
+  });
+
+  it("withholds unknown ids and the baseline path from the public variant", () => {
+    const previous = mergeShards([shard("Afo", { "0xdeadbeefcafe": { s: "fail", n: "", at: BEFORE_WINDOW } })]);
+    const baseline = "/home/afo/tmp/qa-session/2026-08-31/qa-state.json";
+    const built = model([makeCase()], [], { previous: { path: baseline, entries: previous } });
+
+    const privateReport = renderReport(built, { kinds: KINDS }, { variant: "private" });
+    const publicReport = renderReport(built, { kinds: KINDS }, { variant: "public" });
+
+    expect(privateReport).toContain(`## Delta vs ${baseline}`);
+    expect(privateReport).toContain("`0xdeadbeefcafe`");
+    expect(publicReport).toContain("## Delta vs previous snapshot\n");
+    expect(publicReport).toContain("- Unknown or retired on one side (1): withheld in the public variant\n");
+    for (const secret of ["0xdeadbeef", "/home/afo"]) expect(publicReport).not.toContain(secret);
+  });
+
+  it("refuses an output directory outside the gitignored tmp/ root", async () => {
+    const root = mkdtempSync(path.join(tmpdir(), "qa-report-"));
+    const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
+    await expect(runReport(parseArgs(["--slug", SLUG, "--out", "/elsewhere"]), { catalog, repoRoot: root })).rejects.toThrow(/tmp\//);
+    await expect(runReport(parseArgs(["--slug", SLUG, "--out", "../outside"]), { catalog, repoRoot: root })).rejects.toThrow(/tmp\//);
+  });
+
+  it("prefers results.csv notes over the raw state, so redactions hold", async () => {
+    const root = mkdtempSync(path.join(tmpdir(), "qa-report-"));
+    const sessionDir = path.join(root, "tmp", "qa-session", SLUG);
+    mkdirSync(sessionDir, { recursive: true });
+    writeFileSync(
+      path.join(sessionDir, "qa-state.json"),
+      JSON.stringify({
+        slug: SLUG,
+        pulledAt: "2026-09-02T19:40:00.000Z",
+        summary: {},
+        entries: {
+          "PUB-001": { Afo: { s: "fail", n: "PRIVATE NOTE CANARY", at: IN_WINDOW } },
+          "PUB-002": { Afo: { s: "fail", n: "keep me", at: IN_WINDOW } },
+          "PUB-003": { Afo: { s: "blocked", n: "erase me", at: IN_WINDOW } },
+        },
+      }),
+    );
+    writeFileSync(
+      path.join(sessionDir, "results.csv"),
+      'Test ID,Result,Severity,Notes\nPUB-001,Fail,,"Afo: redacted, wallet removed"\nPUB-003,Blocked,,\n',
+    );
+    const catalog: Catalog = {
+      version: 2,
+      tabs: ["Public Website"],
+      kinds: KINDS,
+      statuses: [],
+      cases: [makeCase(), makeCase({ id: "PUB-002" }), makeCase({ id: "PUB-003" })],
+    };
+
+    const written = await runReport(parseArgs(["--slug", SLUG, "--window", "2026-09-02T17:45:00Z..2026-09-02T19:30:00Z"]), { catalog, repoRoot: root });
+    const report = readFileSync(written.report, "utf8");
+
+    expect(report).toContain("Notes: results.csv for 2 case(s)");
+    expect(report).toContain("`PUB-001` · P0 · Journey · Home — Fail — Afo: redacted, wallet removed");
+    expect(report).toContain("`PUB-002` · P0 · Journey · Home — Fail — Afo: keep me");
+    expect(report).toContain("`PUB-003` · P0 · Journey · Home — Blocked\n");
+    for (const erased of ["PRIVATE NOTE CANARY", "erase me"]) expect(report).not.toContain(erased);
+  });
+
+  it("reads our own csv shape back, including quoted newlines and formula escapes", () => {
+    const notes = resultsNotes('Test ID,Result,Severity,Notes\n"PUB-001",Fail,,"line one\nline ""two"""\n\'=1+1,Pass,,\'@note\n');
+    expect(notes.get("PUB-001")).toBe('line one\nline "two"');
+    expect(notes.get("=1+1")).toBe("@note");
+    expect(() => resultsNotes("Result,Severity\nFail,")).toThrow(/Test ID and Notes/);
   });
 });

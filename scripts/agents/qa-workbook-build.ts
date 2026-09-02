@@ -106,10 +106,16 @@ export interface CatalogKind {
   verifies: string;
 }
 
+export interface CatalogStatus {
+  id: string;
+  means: string;
+}
+
 export interface Catalog {
   version: number;
   tabs: string[];
   kinds: CatalogKind[];
+  statuses: CatalogStatus[];
   cases: CatalogCase[];
 }
 
@@ -260,10 +266,25 @@ export function filterCases(
 
 export function validateCatalog(catalog: Catalog): string[] {
   const problems: string[] = [];
+  // The kind axis is consumed at runtime by qa:report; a typo would otherwise
+  // become a silent unknown bucket in a published rollup.
+  const kindIds = new Set<string>();
+  if (!Array.isArray(catalog.kinds) || catalog.kinds.length === 0) {
+    problems.push("kinds: missing or empty");
+  } else {
+    for (const kind of catalog.kinds) {
+      if (!kind?.id?.trim()) problems.push("kinds: entry without an id");
+      else if (kindIds.has(kind.id)) problems.push(`kinds: duplicate id '${kind.id}'`);
+      else kindIds.add(kind.id);
+    }
+  }
   const seen = new Set<string>();
   for (const testCase of catalog.cases) {
     if (seen.has(testCase.id)) problems.push(`duplicate id: ${testCase.id}`);
     seen.add(testCase.id);
+    if (!kindIds.has(testCase.kind)) {
+      problems.push(`${testCase.id}: kind '${testCase.kind}' not in kinds`);
+    }
     if (!SEVERITY_VALUES.includes(testCase.priority as (typeof SEVERITY_VALUES)[number])) {
       problems.push(`${testCase.id}: priority '${testCase.priority}' not in ${SEVERITY_VALUES.join("/")}`);
     }

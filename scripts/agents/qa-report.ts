@@ -13,9 +13,12 @@
  *     [--build client=sha,admin=sha] [--public] [--stale-days n] [--out dir]
  *
  * `report.md` is the private variant: attributed notes and per-tester coverage,
- * kept under gitignored tmp/ behind the receipt's upload gate. `--public` adds
- * `report.public.md`, projected by the qa:status rule — catalog IDs, counts, and
- * timestamps only — for the docs example and the Discord lede, nothing else.
+ * kept under gitignored tmp/ behind the receipt's upload gate — `--out` cannot
+ * leave that directory. Notes come from `results.csv` when the pull directory
+ * has one: redactions and corrections live only there, so the raw state must
+ * not reintroduce them. `--public` adds `report.public.md`, projected by the
+ * qa:status rule — catalog IDs, counts, and timestamps only — for the docs
+ * example and the Discord lede, nothing else.
  */
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -34,6 +37,8 @@ export interface ReportWindow {
   end: string;
   /** Whether the caller scoped the session or the slug's calendar day stood in for it. */
   source: "flag" | "slug-day";
+  /** Set when the end was pulled back to the snapshot time, so the report says what it covers. */
+  clampedTo?: string;
 }
 
 /** Session-scoped counts for one group of cases; `walked` always equals the verdict sum. */
@@ -53,7 +58,7 @@ export interface ReportIssue {
   kind: string;
   area: string;
   verdict: "Fail" | "Blocked";
-  /** Attributed session notes — private detail the public renderer never reads. */
+  /** Attributed notes — private detail the public renderer never reads. */
   notes: string;
 }
 
@@ -65,16 +70,21 @@ export interface ReportDelta {
   fixed: string[];
   stillFailing: string[];
   stillBlocked: string[];
-  /** IDs on either side that are not active catalog cases — reported, never dropped. */
+  /** Fail or Blocked in the baseline, now missing, note-only, or N/A — a cleared entry is not a fix. */
+  cleared: string[];
+  /** Keys on either side that are not active catalog cases — reported, never dropped, never published. */
   unknown: string[];
 }
 
 export interface ReportModel {
   slug: string;
   window: ReportWindow;
+  windowNote?: string;
   pulledAt: string;
   build?: { client?: string; admin?: string };
   staleDays: number;
+  /** How many issue notes came from results.csv rather than the raw state. */
+  notesFromResults: number;
   byPriority: Record<string, Bucket>;
   byKind: Record<string, Bucket>;
   byTab: Record<string, Bucket>;
@@ -98,9 +108,14 @@ export interface ReportOptions {
    * the only place a pre-session verdict survives.
    */
   previous?: { path: string; entries: MergedEntries };
+  /** Test ID → notes text from results.csv; wins over the raw state when present. */
+  noteOverrides?: Map<string, string>;
 }
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
+// A zone-less ISO string parses as host-local time, and the same command would
+// then select different entries on different machines.
+const ZONED = /(?:Z|[+-]\d{2}:?\d{2})$/i;
 
 /**
  * The store is long-lived and the pull merges every shard ever written, so only
@@ -115,11 +130,14 @@ export function parseWindow(flag: string | undefined, slug: string): ReportWindo
     }
     return { start: `${day}T00:00:00.000Z`, end: `${day}T23:59:59.999Z`, source: "slug-day" };
   }
-  const parts = flag.split("..");
-  const start = Date.parse(parts[0] ?? "");
-  const end = Date.parse(parts[1] ?? "");
-  if (parts.length !== 2 || !Number.isFinite(start) || !Number.isFinite(end)) {
-    throw new Error("--window must be <startISO>..<endISO>");
+  const parts = flag.split("..").map((part) => part.trim());
+  if (parts.length !== 2 || !parts.every((part) => ZONED.test(part))) {
+    throw new Error("--window must be <startISO>..<endISO>, each with a time zone (Z or ±HH:MM)");
+  }
+  const start = Date.parse(parts[0]);
+  const end = Date.parse(parts[1]);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) {
+    throw new Error("--window must be <startISO>..<endISO>, each with a time zone (Z or ±HH:MM)");
   }
   if (end < start) throw new Error("--window end precedes its start");
   return { start: new Date(start).toISOString(), end: new Date(end).toISOString(), source: "flag" };
@@ -172,6 +190,7 @@ function compareStanding(cases: CatalogCase[], current: MergedEntries, previous:
     fixed: [],
     stillFailing: [],
     stillBlocked: [],
+    cleared: [],
     unknown: [],
   };
   for (const testCase of cases) {
@@ -179,7 +198,7 @@ function compareStanding(cases: CatalogCase[], current: MergedEntries, previous:
     const now = rollupVerdict(current[testCase.id]);
     if (now === "Fail") (before === "Fail" ? delta.stillFailing : delta.newlyFailing).push(testCase.id);
     else if (now === "Blocked") (before === "Blocked" ? delta.stillBlocked : delta.newlyBlocked).push(testCase.id);
-    else if (now === "Pass" && (before === "Fail" || before === "Blocked")) delta.fixed.push(testCase.id);
+    else if (before === "Fail" || before === "Blocked") (now === "Pass" ? delta.fixed : delta.cleared).push(testCase.id);
   }
   const active = new Set(cases.map((testCase) => testCase.id));
   delta.unknown = [...new Set([...Object.keys(previous.entries), ...Object.keys(current)])]
@@ -189,7 +208,16 @@ function compareStanding(cases: CatalogCase[], current: MergedEntries, previous:
 }
 
 export function buildReportModel(cases: CatalogCase[], entries: MergedEntries, options: ReportOptions): ReportModel {
-  const window = options.window ?? parseWindow(undefined, options.slug);
+  let window = options.window ?? parseWindow(undefined, options.slug);
+  let windowNote: string | undefined;
+  const pulledAtMs = Date.parse(options.pulledAt);
+  // The routine pads the call end by an hour but pulls right away; a snapshot
+  // cannot hold entries recorded after it, so say exactly what the report covers.
+  if (Number.isFinite(pulledAtMs) && pulledAtMs < Date.parse(window.end)) {
+    const clampedTo = new Date(pulledAtMs).toISOString();
+    windowNote = `Window end clamped to the pull time ${clampedTo}: entries recorded after it are not in this snapshot — re-run qa:pull once the window has closed, then re-run this report.`;
+    window = { ...window, end: clampedTo, clampedTo };
+  }
   const staleDays = options.staleDays ?? DEFAULT_STALE_DAYS;
   const session = new Map(cases.map((testCase) => [testCase.id, sessionEntries(entries[testCase.id], window)]));
   // null = nobody touched the case inside the window; "" = touched, no verdict yet.
@@ -200,16 +228,19 @@ export function buildReportModel(cases: CatalogCase[], entries: MergedEntries, o
   const walked = cases.filter((testCase) => verdictOf(testCase) !== null);
   const untouched = cases.filter((testCase) => verdictOf(testCase) === null);
 
+  let notesFromResults = 0;
   const issues = walked.flatMap((testCase): ReportIssue[] => {
     const verdict = verdictOf(testCase);
     if (verdict !== "Fail" && verdict !== "Blocked") return [];
+    const override = options.noteOverrides?.get(testCase.id);
+    if (override !== undefined) notesFromResults += 1;
     return [{
       id: testCase.id,
       priority: testCase.priority,
       kind: testCase.kind,
       area: testCase.area,
       verdict,
-      notes: notesFor(session.get(testCase.id)),
+      notes: override ?? notesFor(session.get(testCase.id)),
     }];
   });
 
@@ -217,22 +248,26 @@ export function buildReportModel(cases: CatalogCase[], entries: MergedEntries, o
   const neverWalked: Record<string, string[]> = {};
   for (const testCase of untouched) (neverWalked[testCase.priority] ??= []).push(testCase.id);
 
-  const perPerson: Record<string, { touched: number; decided: number }> = {};
+  // Tester labels are self-declared display names: a Map keeps "__proto__" a tester, not a prototype.
+  const perPerson = new Map<string, { touched: number; decided: number }>();
   for (const byPerson of session.values()) {
     for (const [person, entry] of Object.entries(byPerson)) {
-      const tally = (perPerson[person] ??= { touched: 0, decided: 0 });
+      const tally = perPerson.get(person) ?? { touched: 0, decided: 0 };
       tally.touched += 1;
       if (rollupVerdict({ [person]: entry })) tally.decided += 1;
+      perPerson.set(person, tally);
     }
   }
-  const sortedPeople = Object.fromEntries(Object.entries(perPerson).sort(([a], [b]) => a.localeCompare(b)));
+  const sortedPeople = Object.fromEntries([...perPerson].sort(([a], [b]) => a.localeCompare(b)));
 
   return {
     slug: options.slug,
     window,
+    windowNote,
     pulledAt: options.pulledAt,
     build: options.build,
     staleDays,
+    notesFromResults,
     byPriority: groupBuckets(cases, (testCase) => testCase.priority, SEVERITY_VALUES, verdictOf),
     byKind: groupBuckets(cases, (testCase) => testCase.kind, [], verdictOf),
     byTab: groupBuckets(cases, (testCase) => testCase.tab, [...new Set(cases.map((testCase) => testCase.tab))], verdictOf),
@@ -243,7 +278,7 @@ export function buildReportModel(cases: CatalogCase[], entries: MergedEntries, o
       blocked: untouched.filter((testCase) => standingVerdict(testCase) === "Blocked").map((testCase) => testCase.id),
     },
     delta: options.previous ? compareStanding(cases, entries, options.previous) : null,
-    testers: { count: Object.keys(sortedPeople).length, perPerson: sortedPeople },
+    testers: { count: perPerson.size, perPerson: sortedPeople },
   };
 }
 
@@ -253,6 +288,8 @@ export interface RenderOptions {
 
 const idList = (ids: string[]) => ids.map((id) => `\`${id}\``).join(", ");
 const countedLine = (label: string, ids: string[]) => `- ${label} (${ids.length}): ${ids.length ? idList(ids) : "none"}`;
+/** Notes and tester names are free text: a line break must never start a heading or list item. */
+const oneLine = (text: string) => text.replace(/\s*[\r\n]+\s*/g, " / ").trim();
 
 /** The parent template's line shape: zero segments are dropped rather than rendered. */
 function resultsLine(label: string, counts: Bucket): string {
@@ -279,7 +316,11 @@ export function renderReport(model: ReportModel, catalog: Pick<Catalog, "kinds">
   const header = [
     `QA session ${model.slug}`,
     `Window: ${model.window.start} – ${model.window.end} (${model.window.source === "flag" ? "from --window" : "slug day, UTC"}) · pulled ${model.pulledAt}`,
+    ...(model.windowNote ? [`Caveat: ${model.windowNote}`] : []),
     ...(build.length ? [`Build under test: ${build.join(" · ")}`] : []),
+    ...(!isPublic && model.notesFromResults
+      ? [`Notes: results.csv for ${model.notesFromResults} case(s) — redactions and corrections honored`]
+      : []),
   ];
   // P0 gaps are what a release sweep must see, so they are listed in full; the
   // lower bands are counts only — a lightly walked session would otherwise
@@ -292,15 +333,24 @@ export function renderReport(model: ReportModel, catalog: Pick<Catalog, "kinds">
   const neverWalkedCounts = neverWalked.map(([priority, ids]) => `${priority} (${ids.length})`);
   const neverWalkedP0 = model.gaps.neverWalked.P0 ?? [];
   const stale = model.gaps.stale.map(({ id, lastEntryAt }) => `\`${id}\` — last entry ${lastEntryAt}`);
+  // Unknown keys and the baseline path are the two delta fields not drawn from the
+  // catalog; the public variant carries their counts, never their text.
   const delta = model.delta
     ? [
-        `## Delta vs ${model.delta.baseline}`,
+        isPublic ? "## Delta vs previous snapshot" : `## Delta vs ${model.delta.baseline}`,
         countedLine("Newly failing", model.delta.newlyFailing),
         countedLine("Newly blocked", model.delta.newlyBlocked),
         countedLine("Fixed", model.delta.fixed),
+        countedLine("Cleared without a pass", model.delta.cleared),
         countedLine("Still failing", model.delta.stillFailing),
         countedLine("Still blocked", model.delta.stillBlocked),
-        ...(model.delta.unknown.length ? [countedLine("Unknown or retired on one side", model.delta.unknown)] : []),
+        ...(model.delta.unknown.length
+          ? [
+              isPublic
+                ? `- Unknown or retired on one side (${model.delta.unknown.length}): withheld in the public variant`
+                : countedLine("Unknown or retired on one side", model.delta.unknown),
+            ]
+          : []),
       ]
     : ["## Delta", "- No baseline supplied — pass --previous <earlier qa-state.json> to compare."];
   const testerCount = `- ${model.testers.count} ${model.testers.count === 1 ? "tester" : "testers"}`;
@@ -314,7 +364,8 @@ export function renderReport(model: ReportModel, catalog: Pick<Catalog, "kinds">
       ...(model.issues.length
         ? model.issues.map((issue) => {
             const line = `- \`${issue.id}\` · ${issue.priority} · ${kindLabel(issue.kind)} · ${issue.area} — ${issue.verdict}`;
-            return isPublic || !issue.notes ? line : `${line} — ${issue.notes}`;
+            const notes = oneLine(issue.notes);
+            return isPublic || !notes ? line : `${line} — ${notes}`;
           })
         : ["- None"]),
     ],
@@ -335,7 +386,9 @@ export function renderReport(model: ReportModel, catalog: Pick<Catalog, "kinds">
       testerCount,
       ...(isPublic
         ? []
-        : Object.entries(model.testers.perPerson).map(([person, tally]) => `- ${person}: ${tally.touched} touched · ${tally.decided} decided`)),
+        : Object.entries(model.testers.perPerson).map(
+            ([person, tally]) => `- ${oneLine(person)}: ${tally.touched} touched · ${tally.decided} decided`,
+          )),
     ],
   ];
   return `${sections.map((lines) => `${lines.join("\n")}\n`).join("\n")}`;
@@ -413,11 +466,74 @@ function readState(filePath: string, label: string): PulledState {
   return parsed as PulledState;
 }
 
+/** Minimal RFC 4180 reader for our own results.csv: quoted fields, doubled quotes, newlines inside quotes. */
+export function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let quoted = false;
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
+    if (quoted) {
+      if (char !== '"') field += char;
+      else if (text[index + 1] === '"') {
+        field += '"';
+        index++;
+      } else quoted = false;
+    } else if (char === '"') quoted = true;
+    else if (char === ",") {
+      row.push(field);
+      field = "";
+    } else if (char === "\n" || char === "\r") {
+      if (char === "\r" && text[index + 1] === "\n") index++;
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
+    } else field += char;
+  }
+  if (field.length || row.length) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows;
+}
+
+/** csvField prefixes a formula-looking cell with an apostrophe on the way out; take it off on the way in. */
+const unescapeFormula = (value: string) => (/^'[=+\-@\t\r]/.test(value) ? value.slice(1) : value);
+
+/**
+ * Test ID → notes from results.csv. A row's Notes cell is authoritative even when
+ * empty: the pull refuses to overwrite that file precisely because redactions and
+ * corrections live only there.
+ */
+export function resultsNotes(text: string): Map<string, string> {
+  const [header, ...rows] = parseCsv(text);
+  const idAt = header?.indexOf("Test ID") ?? -1;
+  const notesAt = header?.indexOf("Notes") ?? -1;
+  if (idAt < 0 || notesAt < 0) throw new Error("results.csv has no Test ID and Notes columns");
+  const notes = new Map<string, string>();
+  for (const row of rows) {
+    const id = unescapeFormula(row[idAt] ?? "").trim();
+    if (id) notes.set(id, unescapeFormula(row[notesAt] ?? "").trim());
+  }
+  return notes;
+}
+
 export async function runReport(
   options: CliOptions,
   deps: { catalog: Catalog; repoRoot: string },
-): Promise<{ report: string; publicReport?: string }> {
+): Promise<{ report: string; publicReport?: string; windowNote?: string }> {
+  const privateRoot = path.join(deps.repoRoot, "tmp");
   const outDir = path.resolve(deps.repoRoot, options.out ?? path.join("tmp", "qa-session", options.slug));
+  const relativeToPrivateRoot = path.relative(privateRoot, outDir);
+  if (
+    relativeToPrivateRoot === ".." ||
+    relativeToPrivateRoot.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relativeToPrivateRoot)
+  ) {
+    throw new Error("--out must stay under the repo's gitignored tmp/ directory — the report carries tester names and notes");
+  }
   const statePath = path.join(outDir, "qa-state.json");
   if (!existsSync(statePath)) {
     throw new Error(
@@ -425,6 +541,8 @@ export async function runReport(
     );
   }
   const state = readState(statePath, "qa-state.json");
+  const resultsPath = path.join(outDir, "results.csv");
+  const noteOverrides = existsSync(resultsPath) ? resultsNotes(readFileSync(resultsPath, "utf8")) : undefined;
   let previous: ReportOptions["previous"];
   if (options.previous) {
     const previousPath = path.resolve(deps.repoRoot, options.previous);
@@ -440,14 +558,15 @@ export async function runReport(
     build: options.build,
     staleDays: options.staleDays,
     previous,
+    noteOverrides,
   });
 
   const report = path.join(outDir, "report.md");
   writeFileSync(report, renderReport(model, deps.catalog, { variant: "private" }));
-  if (!options.public) return { report };
+  if (!options.public) return { report, windowNote: model.windowNote };
   const publicReport = path.join(outDir, "report.public.md");
   writeFileSync(publicReport, renderReport(model, deps.catalog, { variant: "public" }));
-  return { report, publicReport };
+  return { report, publicReport, windowNote: model.windowNote };
 }
 
 async function main(): Promise<void> {
@@ -455,6 +574,7 @@ async function main(): Promise<void> {
   const catalog = await loadCatalog();
   const written = await runReport(options, { catalog, repoRoot: defaultRepoRoot });
   const relative = (target: string) => path.relative(defaultRepoRoot, target);
+  if (written.windowNote) process.stderr.write(`qa:report: ${written.windowNote}\n`);
   process.stdout.write(
     `qa:report: wrote ${relative(written.report)}${written.publicReport ? ` and ${relative(written.publicReport)}` : ""}\n`,
   );

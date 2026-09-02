@@ -212,8 +212,10 @@ Per accepted fix (or batched in a fix window):
    scope lock, Linear templates, and Sheet Defects flow run unchanged. If the user is out of
    time, the handoff command is the named next step in the receipt.
 3. **Pull results, then report.** Run `bun run qa:pull --slug <slug>`, then
-   `bun run qa:report --slug <slug> --window <first OBS>..<last OBS>` (the session's own span; the
-   slug day is the fallback) to write `tmp/qa-session/<slug>/report.md` — the deterministic core
+   `bun run qa:report --slug <slug> --window <walk start>..<walk end>` — the UTC times the walk
+   actually began and ended, noted at pre-flight and at close (an OBS span would drop pass-only
+   stretches, and an all-pass session has no OBS at all; the slug day is the fallback) — to write
+   `tmp/qa-session/<slug>/report.md` — the deterministic core
    every session record shares: results by priority and by kind, the fail/blocked list, coverage
    gaps, standing state, per-tester coverage. Inspect the close-out artifacts under
    `tmp/qa-session/<slug>/`. Apply the result, rollup, severity, and privacy contract in

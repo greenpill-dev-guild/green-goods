@@ -111,7 +111,10 @@ are standing state: at most one context line in the report, and never the backin
 results by priority and by kind, the fail/blocked list with attributed notes, coverage gaps,
 and standing state. Every rollup in the parent comes from that file, never from hand counting.
 Once Phase 4 has the deploys, re-run it with `--build client=<sha>,admin=<sha>` (the report is
-deterministic, so re-running is free) and add `--public` for the Discord lede.
+deterministic, so re-running is free) and add `--public` for the Discord lede. The snapshot must
+postdate the window: a pull taken before the padded window closes cannot hold entries recorded
+later, so `qa:report` clamps such a window to the pull time and says so in its header — re-pull
+before the `--build` re-run so late recording is counted.
 
 - No shards or zero **session-window** entries: **notes-only mode** — extract from the notes
   alone; every slice lands `Backlog` (no verdict backing), and the report says the app carried
