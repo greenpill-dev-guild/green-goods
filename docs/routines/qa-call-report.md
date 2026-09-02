@@ -265,8 +265,9 @@ Report: <{parent-url}> · {N} slices ({T} Todo · {B} Backlog){if overflow: " ·
 ```
 
 No per-surface count tables in the post — they live in the report. The lede may quote the `P0:`
-line from `report.public.md`; that public projection is the only report text that leaves `tmp/`,
-and `report.md` (attributed notes, per-tester coverage) never does. Enrichment flags
+line from `report.public.md`; that public projection is the only report text that reaches a public
+surface. The private `report.md` feeds the Linear parent's results blocks (Phase 7), but its
+attributed notes and per-tester sections never leave `tmp/`. Enrichment flags
 (`posthog: degraded`, `sentry: unavailable`) join the failure list when they occurred. Quiet
 failure is forbidden: a run that wrote nothing because something broke posts the failure with
 the @mention.

@@ -313,13 +313,16 @@ function resultsLine(label: string, counts: Bucket): string {
 export function renderReport(model: ReportModel, catalog: Pick<Catalog, "kinds">, options: RenderOptions): string {
   const isPublic = options.variant === "public";
   const kindLabel = (id: string) => catalog.kinds.find((kind) => kind.id === id)?.label ?? id;
+  // hasOwn, not `in`: a declared kind named like an Object.prototype member must not become a bucket.
   const kindOrder = [
-    ...catalog.kinds.map((kind) => kind.id).filter((id) => id in model.byKind),
+    ...catalog.kinds.map((kind) => kind.id).filter((id) => Object.hasOwn(model.byKind, id)),
     ...Object.keys(model.byKind).filter((id) => !catalog.kinds.some((kind) => kind.id === id)),
   ];
-  const build = model.build
-    ? [model.build.client && `client \`${model.build.client}\``, model.build.admin && `admin \`${model.build.admin}\``].filter(Boolean)
-    : [];
+  // Build shas stay in the private report: the public projection is catalog ids, counts, and timestamps.
+  const build =
+    model.build && !isPublic
+      ? [model.build.client && `client \`${model.build.client}\``, model.build.admin && `admin \`${model.build.admin}\``].filter(Boolean)
+      : [];
   const header = [
     `QA session ${model.slug}`,
     `Window: ${model.window.start} – ${model.window.end} (${model.window.source === "flag" ? "from --window" : "slug day, UTC"}) · pulled ${model.pulledAt}`,

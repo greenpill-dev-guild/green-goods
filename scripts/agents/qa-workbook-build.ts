@@ -274,8 +274,20 @@ export function validateCatalog(catalog: Catalog): string[] {
   } else {
     for (const kind of catalog.kinds) {
       if (!kind?.id?.trim()) problems.push("kinds: entry without an id");
+      else if (kind.id in Object.prototype) problems.push(`kinds: id '${kind.id}' collides with an Object.prototype member`);
       else if (kindIds.has(kind.id)) problems.push(`kinds: duplicate id '${kind.id}'`);
       else kindIds.add(kind.id);
+    }
+  }
+  // The lifecycle vocabulary is data too: the Test Cases page renders it and cases must use it.
+  const statusIds = new Set<string>();
+  if (!Array.isArray(catalog.statuses) || catalog.statuses.length === 0) {
+    problems.push("statuses: missing or empty");
+  } else {
+    for (const status of catalog.statuses) {
+      if (!status?.id?.trim()) problems.push("statuses: entry without an id");
+      else if (statusIds.has(status.id)) problems.push(`statuses: duplicate id '${status.id}'`);
+      else statusIds.add(status.id);
     }
   }
   const seen = new Set<string>();
@@ -290,6 +302,8 @@ export function validateCatalog(catalog: Catalog): string[] {
     }
     if (!["active", "retired"].includes(testCase.status)) {
       problems.push(`${testCase.id}: status '${testCase.status}' not active|retired`);
+    } else if (statusIds.size > 0 && !statusIds.has(testCase.status)) {
+      problems.push(`${testCase.id}: status '${testCase.status}' not declared in statuses`);
     }
     // The immutable case definition stays valid forever, retired or not —
     // retired rows are the historical audit record, not a validation escape.

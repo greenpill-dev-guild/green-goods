@@ -58,6 +58,10 @@ describe("qa-test-catalog.json", () => {
     expect(filterCases(catalog.cases, { tabs: ["Docs"] }).length).toBeGreaterThanOrEqual(13);
     // Retired rows stay forever (never delete, never reuse ids).
     expect(catalog.cases.some((testCase) => testCase.status === "retired")).toBe(true);
+    expect(catalog.kinds.length).toBeGreaterThan(0);
+    expect(catalog.statuses.map((status) => status.id)).toEqual(["active", "retired"]);
+    const kindIds = new Set(catalog.kinds.map((kind) => kind.id));
+    for (const testCase of catalog.cases) expect(kindIds.has(testCase.kind)).toBe(true);
   });
 });
 
@@ -140,6 +144,20 @@ describe("validateCatalog", () => {
       "kinds: duplicate id 'journey'",
     ]);
     expect(validateCatalog({ version: 2, tabs, kinds: [], statuses, cases: [makeCase()] })[0]).toBe("kinds: missing or empty");
+    expect(validateCatalog({ version: 2, tabs, kinds: [...kinds, { id: "constructor", label: "x", verifies: "x" }], statuses, cases: [makeCase()] })).toEqual([
+      "kinds: id 'constructor' collides with an Object.prototype member",
+    ]);
+  });
+
+  it("requires the lifecycle statuses to be declared and used", () => {
+    expect(validateCatalog({ version: 2, tabs, kinds, statuses: [], cases: [makeCase()] })[0]).toBe("statuses: missing or empty");
+    const onlyActive = [{ id: "active", means: "walked" }];
+    expect(validateCatalog({ version: 2, tabs, kinds, statuses: onlyActive, cases: [makeCase({ status: "retired" })] })).toEqual([
+      "ADM-001: status 'retired' not declared in statuses",
+    ]);
+    expect(validateCatalog({ version: 2, tabs, kinds, statuses: [...statuses, statuses[0]], cases: [makeCase()] })).toEqual([
+      "statuses: duplicate id 'active'",
+    ]);
   });
 
   it("rejects the legacy 'transaction' tag on active rows", () => {

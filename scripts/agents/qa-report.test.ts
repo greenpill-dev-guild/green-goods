@@ -364,7 +364,13 @@ describe("QA report CLI", () => {
         entries: { "PUB-001": { Afo: { s: "fail", n: "PRIVATE NOTE CANARY", at: IN_WINDOW } } },
       }),
     );
-    const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, cases: [makeCase(), makeCase({ id: "XPLAT-001", status: "retired" })] };
+    const catalog: Catalog = {
+      version: 2,
+      tabs: ["Public Website"],
+      kinds: KINDS,
+      statuses: [],
+      cases: [makeCase(), makeCase({ id: "XPLAT-001", status: "retired" })],
+    };
 
     const written = await runReport(parseArgs(["--slug", SLUG, "--window", "2026-09-02T17:45:00Z..2026-09-02T19:30:00Z", "--public"]), { catalog, repoRoot: root });
 
@@ -380,7 +386,7 @@ describe("QA report CLI", () => {
 
   it("names qa:pull when the session has not been pulled, and never echoes a malformed state file", async () => {
     const root = mkdtempSync(path.join(tmpdir(), "qa-report-"));
-    const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, cases: [makeCase()] };
+    const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
 
     await expect(runReport(parseArgs(["--slug", "2026-09-03"]), { catalog, repoRoot: root })).rejects.toThrow(/qa:pull --slug 2026-09-03/);
 
@@ -545,5 +551,21 @@ describe("QA report second-round hardening", () => {
     expect(() => parseArgs(["--slug", "Afo's call\n## Forged"])).toThrow(/--slug must be an identifier/);
     expect(() => parseArgs(["--slug", "2026-09-02", "--build", "client=0xdeadbeef wallet"])).toThrow(/hex commit shas/);
     expect(parseArgs(["--slug", "2026-09-02-2", "--build", "client=abc1234"]).build).toEqual({ client: "abc1234" });
+  });
+});
+
+describe("QA report third-round hardening", () => {
+  it("keeps build shas out of the public variant", () => {
+    const built = model([makeCase()], [], { build: { client: "abc1234", admin: "def5678" } });
+    expect(renderReport(built, { kinds: KINDS }, { variant: "private" })).toContain("Build under test: client `abc1234` · admin `def5678`");
+    const publicReport = renderReport(built, { kinds: KINDS }, { variant: "public" });
+    for (const sha of ["abc1234", "def5678", "Build under test"]) expect(publicReport).not.toContain(sha);
+  });
+
+  it("never turns a prototype-named kind with no cases into a results bucket", () => {
+    const kinds = [...KINDS, { id: "constructor", label: "Constructor", verifies: "nothing" }];
+    const report = renderReport(model([makeCase()], []), { kinds }, { variant: "public" });
+    expect(report).toContain("## Results by kind\n- Journey: 0/1\n\n");
+    expect(report).not.toContain("Constructor");
   });
 });
