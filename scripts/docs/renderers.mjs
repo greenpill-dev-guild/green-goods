@@ -326,7 +326,7 @@ export function renderQaCatalog({ root, sources, digest }) {
   body += "\n\n## How this catalog changes {#lifecycle}\n\n";
   body += "`scripts/data/qa-test-catalog.json` is the source of truth, and it changes the way code does: by pull request. Every case carries one **status**:\n\n";
   body += catalog.statuses.map((status) => `- **${esc(status.id)}** — ${esc(status.means)}.`).join("\n");
-  body += "\n\n- A new case enters as `active`, takes the next number in its surface prefix, and names where it came from in `source`.\n";
+  body += "\n\n- A new case enters as `active`, takes the next number in its surface prefix, is appended to the ID ledger (`scripts/data/qa-test-id-ledger.json`), and names where it came from in `source`.\n";
   body += "- Wording, step, and evidence edits happen in place — the ID keeps meaning the same check.\n";
   body += "- When what a case proves changes, it is retired with `retiredOn`, `retiredReason`, and `replacedBy` when successors exist, and the new check gets a new ID — so every past verdict keeps its meaning.\n";
   body += "- After a catalog change merges, redeploy the QA app (a deployment pins the catalog revision it shipped with) and regenerate this page with `bun run docs:generate`; CI rejects a stale copy.\n\n";

@@ -11,10 +11,12 @@ connects them.
 
 1. **Definitions** — [`scripts/data/qa-test-catalog.json`](../../scripts/data/qa-test-catalog.json)
    versions the test cases and owns their lifecycle: every case is `active` or `retired` per the
-   catalog's `statuses` list, IDs are never reused, and a retirement carries `retiredOn`,
-   `retiredReason`, and `replacedBy`. The contract test in
-   [`qa-app-build.test.ts`](../../scripts/agents/qa-app-build.test.ts) enforces it and the public
-   [Test Cases](../../docs/docs/builders/quality/test-cases.mdx) page renders it.
+   catalog's `statuses` list; IDs are never reused — every issued id stays registered in the
+   append-only [`qa-test-id-ledger.json`](../../scripts/data/qa-test-id-ledger.json) — and a
+   retirement carries `retiredOn`, `retiredReason`, and, when active successors exist,
+   `replacedBy`. The contract test in
+   [`qa-app-build.test.ts`](../../scripts/agents/qa-app-build.test.ts) enforces all of it and the
+   public [Test Cases](../../docs/docs/builders/quality/test-cases.mdx) page renders it.
    [`packages/qa/build.mjs`](../../packages/qa/build.mjs) projects active cases into the deployed
    app; retired cases remain in git as audit history.
 2. **Recording** — the wallet-authenticated [QA app](../../packages/qa/README.md) records one private

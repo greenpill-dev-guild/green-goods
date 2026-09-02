@@ -1,5 +1,5 @@
 {
-  "$comment": "Upstream source of truth for QA scenario DEFINITIONS only — results, owners, and defect links live in the Google Sheet and per-run artifacts, never here. Active tabs merged in v2: the installed-PWA iOS/Android tabs became one 'PWA' tab (device-specific rows keep their [iOS]/[Android] scenario prefix and MUST carry requiresProduction or requiresDevice), and 'Cross Surface' dissolved into concrete per-surface rows. Retired cases keep their historical tab and are never deleted; IDs are never reused. requiresProduction = cannot pass on localhost; requiresDevice = needs a real installed device; the 'tx' tag marks rows whose walk involves real wallet transactions. Every case carries exactly one 'kind' from the top-level kinds list — the public docs expose this category axis, while the QA app keeps its priority and area views; kind 'transaction' if and only if the row carries the 'tx' tag. Lifecycle: every case carries a 'status' from the top-level statuses list. A new case enters as active by pull request with the next number in its surface prefix; wording, step, and evidence edits stay in place; when what a case proves changes it is retired (retiredOn, retiredReason, optional replacedBy naming active successors) and the new check gets a new ID, so past verdicts keep their meaning.",
+  "$comment": "Upstream source of truth for QA scenario DEFINITIONS only — results, owners, and defect links live in the Google Sheet and per-run artifacts, never here. Active tabs merged in v2: the installed-PWA iOS/Android tabs became one 'PWA' tab (device-specific rows keep their [iOS]/[Android] scenario prefix and MUST carry requiresProduction or requiresDevice), and 'Cross Surface' dissolved into concrete per-surface rows. Retired cases keep their historical tab and are never deleted; IDs are never reused. requiresProduction = cannot pass on localhost; requiresDevice = needs a real installed device; the 'tx' tag marks rows whose walk involves real wallet transactions. Every case carries exactly one 'kind' from the top-level kinds list — the public docs expose this category axis, while the QA app keeps its priority and area views; kind 'transaction' if and only if the row carries the 'tx' tag. Lifecycle: every case carries a 'status' from the top-level statuses list. A new case enters as active by pull request with the next number in its surface prefix; wording, step, and evidence edits stay in place; when what a case proves changes it is retired (retiredOn, retiredReason, optional replacedBy naming active successors) and the new check gets a new ID, so past verdicts keep their meaning. Every id ever issued is also registered in scripts/data/qa-test-id-ledger.json (append-only); the contract test rejects a catalog whose ids drift from that ledger.",
   "version": 2,
   "tabs": ["Public Website", "PWA", "Admin Dashboard", "Docs"],
   "statuses": [
@@ -2929,8 +2929,8 @@
       "requiresProduction": false,
       "status": "retired",
       "retiredOn": "2026-08-29",
-      "retiredReason": "Cross Surface dissolved in catalog v2; replaced by per-surface error-recovery rows",
-      "replacedBy": ["PUB-008", "PWA-040", "ADM-032"],
+      "retiredReason": "Cross Surface dissolved in catalog v2; replaced by per-surface error-recovery rows, with the image-failure half covered by the editorial media-fallback row",
+      "replacedBy": ["PUB-008", "PWA-040", "ADM-032", "PUB-025"],
       "source": "sheet-v1.1"
     },
     {
@@ -2974,8 +2974,8 @@
       "requiresProduction": false,
       "status": "retired",
       "retiredOn": "2026-08-29",
-      "retiredReason": "Cross Surface dissolved in catalog v2; theme legibility is covered per surface",
-      "replacedBy": ["PUB-025", "DOCS-006"],
+      "retiredReason": "Cross Surface dissolved in catalog v2; theme legibility is covered per surface (editorial, docs, and admin)",
+      "replacedBy": ["PUB-025", "DOCS-006", "ADM-036"],
       "source": "mdx-matrix"
     },
     {
@@ -3068,6 +3068,28 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-session-2026-08-29"
+    },
+    {
+      "id": "ADM-036",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "accessibility",
+      "area": "Accessibility",
+      "scenario": "Admin light and dark themes keep every control legible",
+      "preconditions": ["Signed in as a steward with at least one garden"],
+      "steps": [
+        "Switch between light and dark (the account panel's theme setting, or the OS scheme with System selected)",
+        "Inspect the hub queue, a work detail, a dialog, and a wizard step in each theme",
+        "Check primary CTAs, status chips, and text-on-color controls for text rendered in its background color"
+      ],
+      "expected": "No invisible text or unreadable control in either theme; contrast holds on chips, CTAs, and dialog surfaces",
+      "evidence": "Paired light/dark screenshots of any issue",
+      "role": "steward",
+      "tags": ["theme", "contrast", "accessibility"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pr-792-review"
     }
   ]
 }

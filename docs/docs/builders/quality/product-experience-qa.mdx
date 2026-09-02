@@ -119,9 +119,11 @@ opening it.
   slices — each sized for one branch and one PR.
 - It then enriches without blocking: the Vercel deploys live during the call, so every slice names
   the build under test; PostHog exceptions from the same window, per surface; and Sentry issues
-  when that connector is wired. Finally it writes one `QA session YYYY-MM-DD` parent issue plus
-  slice sub-issues to Linear — deduplicated against open QA issues and privacy-swept to aggregate
-  coverage only — and posts a one-message summary to #product on Discord.
+  when that connector is wired. Finally it writes one `QA session YYYY-MM-DD` parent issue (a
+  second call on the same day appends `· 2`) plus slice sub-issues to Linear — deduplicated
+  against open QA issues and privacy-swept: no tester attribution, wallets, or replay links
+  anywhere, while slices keep redacted case-level evidence — and posts a one-message aggregate
+  summary to #product on Discord.
 - Fix sessions then work slice by slice. Every fix is a repair grounded in the feature's history
   and existing structure — updating or removing code before adding any — and is done when the
   slice's test cases pass again.
@@ -130,30 +132,35 @@ opening it.
   severe current verdict across testers, so someone else's pass cannot clear another tester's
   fail or blocked result.
 
-The parent issue follows one template, so every session reads the same way:
+The parent issue is titled `QA session YYYY-MM-DD` (` · 2` appended for a second call on the
+same day) and follows one template, so every session reads the same way:
 
 ```markdown
-QA session YYYY-MM-DD
-
 <Two or three sentences a teammate would write: what was walked, by how
 many testers, on which surfaces, and the headline.>
 
-Build under test: client <sha> · admin <sha>
+Build under test: client `<sha>` · admin `<sha>`
 
 ## Results by priority
-- P0: <walked>/<total> — <pass> pass · <fail> fail · <blocked> blocked · <n/a> n/a · <noted> noted only
-- P1: …
-- P2: …
+- P0: <walked>/<total> — <pass> pass · <fail> fail · <blocked> blocked · <na> n/a · <noted> noted only
+- P1: <walked>/<total> — …
+- P2: <walked>/<total> — …
 
 ## Decisions from the call
-- <one ruling per line — dropped when the call made none>
+- <one ruling per line — drop the section when the call made none>
 
 ## Slices
 - <one line per slice: what it covers and its Test IDs>
 - already tracked: <existing issue> — <one line>
 
 ## Not sliced
-## Done when
+- <note-only follow-ups and anything past the slice cap, one line each — drop the section when empty>
+
+**Done when**
+- every slice — and every related already-tracked issue — is Done or explicitly deferred, and
+  the re-QA walk has re-recorded its Test IDs
+
+Session <slug>. [Meeting notes](<drive-url>) — or "App-only run — no meeting notes found."
 ```
 
 ## What every journey must prove

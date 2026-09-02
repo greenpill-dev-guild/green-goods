@@ -322,6 +322,7 @@
       "runInEvidence": true,
       "exact": [
         "scripts/data/qa-test-catalog.json",
+        "scripts/data/qa-test-id-ledger.json",
         "scripts/agents/qa-workbook-build.ts",
         "scripts/agents/qa-workbook-build.test.ts",
         "scripts/agents/qa-state.ts",

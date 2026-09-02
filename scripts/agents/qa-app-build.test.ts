@@ -350,7 +350,9 @@ describe("QA catalog contract", () => {
       expect(["P0", "P1", "P2"]).toContain(testCase.priority);
       expect(String(testCase.source ?? "").trim()).not.toBe("");
       if (testCase.status === "retired") {
-        expect(testCase.retiredOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        const retiredOn = String(testCase.retiredOn ?? "");
+        // Shape and calendar validity together: "2026-02-31" round-trips to another day.
+        expect(new Date(`${retiredOn}T00:00:00.000Z`).toISOString().slice(0, 10)).toBe(retiredOn);
         expect(String(testCase.retiredReason ?? "").trim()).not.toBe("");
         for (const successor of testCase.replacedBy ?? []) expect(activeIds.has(successor)).toBe(true);
       } else {
@@ -359,6 +361,22 @@ describe("QA catalog contract", () => {
         expect(testCase.replacedBy).toBeUndefined();
       }
     }
+  });
+
+  it("keeps every issued Test ID registered in the append-only ledger", () => {
+    const catalog = JSON.parse(
+      readFileSync(path.join(repoRoot, "scripts", "data", "qa-test-catalog.json"), "utf8"),
+    );
+    const ledger = JSON.parse(
+      readFileSync(path.join(repoRoot, "scripts", "data", "qa-test-id-ledger.json"), "utf8"),
+    );
+    const ledgerIds: string[] = ledger.ids;
+    expect(new Set(ledgerIds).size).toBe(ledgerIds.length);
+    // Duplicate detection inside one snapshot cannot see a deleted case whose id a
+    // later revision reuses; the ledger keeps every issued id visible across
+    // revisions, so deleting or reusing one becomes a two-file act reviewers see.
+    const catalogIds = catalog.cases.map((testCase: { id: string }) => testCase.id);
+    expect([...catalogIds].sort()).toEqual([...ledgerIds].sort());
   });
 
   it("keeps the concurrent steward decision inside the session write boundary", () => {

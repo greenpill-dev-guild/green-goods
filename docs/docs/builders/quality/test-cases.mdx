@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:e56f2e66dcf59123d2b48a280a6742e1981dfebceea07a1b8fc05e18846c2fcb"
+source_digest: "sha256:b515912ed7e3d4396e1575d122dfaad7efcc47016dd90cd0ea3fa5535cb604b6"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -56,7 +56,7 @@ Each case carries one **kind**, the category axis:
 - **active** — Walked in sessions; ships to the QA app run sheet and the Test Cases page.
 - **retired** — No longer walked; keeps its ID, retirement date, and reason in the catalog and never ships to a run sheet.
 
-- A new case enters as `active`, takes the next number in its surface prefix, and names where it came from in `source`.
+- A new case enters as `active`, takes the next number in its surface prefix, is appended to the ID ledger (`scripts/data/qa-test-id-ledger.json`), and names where it came from in `source`.
 - Wording, step, and evidence edits happen in place — the ID keeps meaning the same check.
 - When what a case proves changes, it is retired with `retiredOn`, `retiredReason`, and `replacedBy` when successors exist, and the new check gets a new ID — so every past verdict keeps its meaning.
 - After a catalog change merges, redeploy the QA app (a deployment pins the catalog revision it shipped with) and regenerate this page with `bun run docs:generate`; CI rejects a stale copy.
@@ -218,7 +218,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-031` | Journey | Work Queue | Hub queue at volume: full scroll, search/sort, deep item open and return | Recording of scroll return |
 | `ADM-033` | Transaction | Garden Lifecycle | First-run: zero-garden steward sees an honest no-access state; a deployer gets the create funnel | Screenshot of empty state |
 
-### P2 (5) {#admin-dashboard-p2}
+### P2 (6) {#admin-dashboard-p2}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -226,6 +226,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-032` | Resilience | Error Recovery | Data-source failure on the hub: throttle/offline the network and load | Screenshot of error + recovery |
 | `ADM-034` | Accessibility | Accessibility | Admin keyboard smoke: palette, dialogs, wizard focus order | Notes + screenshots |
 | `ADM-035` | Content & vocabulary | Vocabulary | Admin vocabulary holds: cockpit language, no editorial 'hero/story' terms | List of offending terms with routes (or a clean pass note) |
+| `ADM-036` | Accessibility | Accessibility | Admin light and dark themes keep every control legible | Paired light/dark screenshots of any issue |
 | `XPLAT-007` | Transaction | Hub Work Review | Two stewards acting on the same submission converge on one state | Screenshots from both sessions |
 
 ## Docs
@@ -271,7 +272,7 @@ Retired cases never ship to a run sheet, but their IDs stay reserved and their h
 | `PWA-IOS-011` | PWA iOS · Profile handles identity, language, and session exit | 2026-08-29 | PWA tabs merged in catalog v2; profile is covered by the device-neutral row | `PWA-038` |
 | `XPLAT-001` | Cross Surface · No code-correct but visually broken controls | 2026-08-29 | Cross Surface dissolved in catalog v2; visual integrity is checked inside each surface's shell and accessibility rows | — |
 | `XPLAT-002` | Cross Surface · No banned or wrong-surface vocabulary appears | 2026-08-29 | Cross Surface dissolved in catalog v2; replaced by per-surface vocabulary rows | `PUB-033`, `PWA-045`, `ADM-035` |
-| `XPLAT-003` | Cross Surface · Network/media failures degrade gracefully | 2026-08-29 | Cross Surface dissolved in catalog v2; replaced by per-surface error-recovery rows | `PUB-008`, `PWA-040`, `ADM-032` |
+| `XPLAT-003` | Cross Surface · Network/media failures degrade gracefully | 2026-08-29 | Cross Surface dissolved in catalog v2; replaced by per-surface error-recovery rows, with the image-failure half covered by the editorial media-fallback row | `PUB-008`, `PWA-040`, `ADM-032`, `PUB-025` |
 | `XPLAT-004` | Cross Surface · Every failing test has enough evidence to triage | 2026-08-29 | Cross Surface dissolved in catalog v2; evidence expectations now live on every row's evidence field | — |
-| `XPLAT-006` | Cross Surface · Light and dark themes keep every control legible | 2026-08-29 | Cross Surface dissolved in catalog v2; theme legibility is covered per surface | `PUB-025`, `DOCS-006` |
+| `XPLAT-006` | Cross Surface · Light and dark themes keep every control legible | 2026-08-29 | Cross Surface dissolved in catalog v2; theme legibility is covered per surface (editorial, docs, and admin) | `PUB-025`, `DOCS-006`, `ADM-036` |
 | `XPLAT-008` | Cross Surface · Long lists stay usable at real data volumes | 2026-08-29 | Cross Surface dissolved in catalog v2; behavior at real data volume is covered per surface | `PUB-003`, `ADM-031` |
