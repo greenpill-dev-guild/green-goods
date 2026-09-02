@@ -108,7 +108,11 @@ export interface ReportOptions {
    * the only place a pre-session verdict survives.
    */
   previous?: { path: string; entries: MergedEntries };
-  /** Test ID → notes text from results.csv; wins over the raw state when present. */
+  /**
+   * Test ID → notes text from results.csv. results.csv is unwindowed, so a cell
+   * only wins when it differs from what the raw state would have written there —
+   * that is, when someone redacted or corrected it.
+   */
   noteOverrides?: Map<string, string>;
 }
 
@@ -125,8 +129,10 @@ const ZONED = /(?:Z|[+-]\d{2}:?\d{2})$/i;
 export function parseWindow(flag: string | undefined, slug: string): ReportWindow {
   if (!flag) {
     const day = slug.slice(0, 10);
-    if (!DAY.test(day) || !Number.isFinite(Date.parse(`${day}T00:00:00.000Z`))) {
-      throw new Error(`slug '${slug}' does not start with a YYYY-MM-DD date; pass --window`);
+    // Round-trip the parse: "2026-02-30" would otherwise silently become March 2.
+    const parsed = Date.parse(`${day}T00:00:00.000Z`);
+    if (!DAY.test(day) || !Number.isFinite(parsed) || new Date(parsed).toISOString().slice(0, 10) !== day) {
+      throw new Error(`slug '${slug}' does not start with a real YYYY-MM-DD date; pass --window`);
     }
     return { start: `${day}T00:00:00.000Z`, end: `${day}T23:59:59.999Z`, source: "slug-day" };
   }
@@ -232,7 +238,8 @@ export function buildReportModel(cases: CatalogCase[], entries: MergedEntries, o
   const issues = walked.flatMap((testCase): ReportIssue[] => {
     const verdict = verdictOf(testCase);
     if (verdict !== "Fail" && verdict !== "Blocked") return [];
-    const override = options.noteOverrides?.get(testCase.id);
+    const cell = options.noteOverrides?.get(testCase.id);
+    const override = cell !== undefined && cell !== notesFor(entries[testCase.id]) ? cell : undefined;
     if (override !== undefined) notesFromResults += 1;
     return [{
       id: testCase.id,
@@ -405,13 +412,16 @@ export interface CliOptions {
 }
 
 const VALUE_FLAGS = new Set(["--slug", "--window", "--previous", "--build", "--stale-days", "--out"]);
+// Both values are printed in report headers, the public one included: keep them to identifiers.
+const SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
+const COMMIT_SHA = /^[0-9a-f]{7,40}$/;
 
 function parseBuild(value: string): { client?: string; admin?: string } {
   const build: { client?: string; admin?: string } = {};
   for (const pair of value.split(",")) {
     const [surface, sha] = pair.split("=");
-    if ((surface !== "client" && surface !== "admin") || !sha?.trim()) {
-      throw new Error("--build must be client=<sha>,admin=<sha> (either or both)");
+    if ((surface !== "client" && surface !== "admin") || !COMMIT_SHA.test(sha?.trim() ?? "")) {
+      throw new Error("--build must be client=<sha>,admin=<sha> (either or both, hex commit shas)");
     }
     build[surface] = sha.trim();
   }
@@ -430,7 +440,10 @@ export function parseArgs(argv: string[]): CliOptions {
     const value = argv[index + 1];
     if (!value || value.startsWith("--")) throw new Error(`missing value for '${flag}'`);
     index++;
-    if (flag === "--slug") options.slug = value;
+    if (flag === "--slug") {
+      if (!SLUG.test(value)) throw new Error("--slug must be an identifier (letters, digits, . _ -; max 64)");
+      options.slug = value;
+    }
     else if (flag === "--window") options.window = value;
     else if (flag === "--previous") options.previous = value;
     else if (flag === "--out") options.out = value;

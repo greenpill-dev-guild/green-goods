@@ -113,8 +113,11 @@ and standing state. Every rollup in the parent comes from that file, never from 
 Once Phase 4 has the deploys, re-run it with `--build client=<sha>,admin=<sha>` (the report is
 deterministic, so re-running is free) and add `--public` for the Discord lede. The snapshot must
 postdate the window: a pull taken before the padded window closes cannot hold entries recorded
-later, so `qa:report` clamps such a window to the pull time and says so in its header — re-pull
-before the `--build` re-run so late recording is counted.
+later, so `qa:report` clamps such a window to the pull time and says so in its header. When that
+happens, pull again once the window has closed — into a fresh directory
+(`bun run qa:pull --slug <slug> --out tmp/qa-session/<slug>-final`; the pull refuses to overwrite a
+pulled session and `--force` would discard any redactions) — and run `qa:report` with the same
+`--out` so the final report and its `--build` re-run read the complete snapshot.
 
 - No shards or zero **session-window** entries: **notes-only mode** — extract from the notes
   alone; every slice lands `Backlog` (no verdict backing), and the report says the app carried

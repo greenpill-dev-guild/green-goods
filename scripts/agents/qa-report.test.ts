@@ -326,7 +326,7 @@ describe("QA report CLI", () => {
         "--slug", "2026-09-02",
         "--window", "2026-09-02T17:45:00Z..2026-09-02T19:30:00Z",
         "--previous", "tmp/qa-session/2026-08-31/qa-state.json",
-        "--build", "client=abc123,admin=def456",
+        "--build", "client=abc1234,admin=def5678",
         "--public",
         "--stale-days", "14",
         "--out", "tmp/qa-session/2026-09-02-call",
@@ -335,7 +335,7 @@ describe("QA report CLI", () => {
       slug: "2026-09-02",
       window: "2026-09-02T17:45:00Z..2026-09-02T19:30:00Z",
       previous: "tmp/qa-session/2026-08-31/qa-state.json",
-      build: { client: "abc123", admin: "def456" },
+      build: { client: "abc1234", admin: "def5678" },
       public: true,
       staleDays: 14,
       out: "tmp/qa-session/2026-09-02-call",
@@ -513,5 +513,37 @@ describe("QA report review hardening", () => {
     expect(notes.get("PUB-001")).toBe('line one\nline "two"');
     expect(notes.get("=1+1")).toBe("@note");
     expect(() => resultsNotes("Result,Severity\nFail,")).toThrow(/Test ID and Notes/);
+  });
+});
+
+describe("QA report second-round hardening", () => {
+  it("rejects an impossible slug date instead of normalizing it", () => {
+    expect(() => parseWindow(undefined, "2026-02-30")).toThrow(/real YYYY-MM-DD/);
+    expect(parseWindow(undefined, "2026-02-28").end).toBe("2026-02-28T23:59:59.999Z");
+  });
+
+  it("keeps an untouched results.csv cell from attributing an old note to the session", () => {
+    const cases = [makeCase()];
+    const entries = mergeShards([
+      shard("Afo", { "PUB-001": { s: "fail", n: "in the window", at: IN_WINDOW } }),
+      shard("Gui", { "PUB-001": { s: "fail", n: "from last month", at: BEFORE_WINDOW } }),
+    ]);
+    // What qa:pull writes into results.csv for that row: every tester, no window.
+    const untouched = new Map([["PUB-001", "Afo: in the window | Gui: from last month"]]);
+    const edited = new Map([["PUB-001", "Afo: redacted"]]);
+
+    const asPulled = buildReportModel(cases, entries, { slug: SLUG, window: WINDOW, pulledAt: PULLED_AT, noteOverrides: untouched });
+    const redacted = buildReportModel(cases, entries, { slug: SLUG, window: WINDOW, pulledAt: PULLED_AT, noteOverrides: edited });
+
+    expect(asPulled.issues[0].notes).toBe("Afo: in the window");
+    expect(asPulled.notesFromResults).toBe(0);
+    expect(redacted.issues[0].notes).toBe("Afo: redacted");
+    expect(redacted.notesFromResults).toBe(1);
+  });
+
+  it("rejects a slug or build sha that is not an identifier before it can reach a header", () => {
+    expect(() => parseArgs(["--slug", "Afo's call\n## Forged"])).toThrow(/--slug must be an identifier/);
+    expect(() => parseArgs(["--slug", "2026-09-02", "--build", "client=0xdeadbeef wallet"])).toThrow(/hex commit shas/);
+    expect(parseArgs(["--slug", "2026-09-02-2", "--build", "client=abc1234"]).build).toEqual({ client: "abc1234" });
   });
 });
