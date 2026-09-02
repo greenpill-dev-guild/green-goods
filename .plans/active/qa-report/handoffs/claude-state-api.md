@@ -81,26 +81,24 @@
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `642a708c09d0872f35153e664991621ce7171b00` (PR
-  [#793](https://github.com/greenpill-dev-guild/green-goods/pull/793) head after merging
-  `origin/develop` at `96cc9f484`, which carried PR #792)
-- Run at (UTC): `2026-09-02T07:54:20Z`
+- Tested implementation commit SHA: `07f83903a585eb84ae38c1f658702c4fdec06d18` (PR
+  [#793](https://github.com/greenpill-dev-guild/green-goods/pull/793) head after the review
+  hardening round: public-projection redactions, `--out` confinement, zoned windows with
+  pull-time clamping, cleared-transition delta, prototype-safe tallies, one-line notes,
+  `results.csv` note precedence, runtime `kinds` validation)
+- Run at (UTC): `2026-09-02T08:24:08Z`
 - Exact command(s): `bun --bun x vitest run --dir scripts/agents`;
-  `bun run test:validation-system`; `bun run test:review-guardrails`;
-  `bun run check:qa-id-ledger`; `bun run check:docs-generated`;
-  `node scripts/quality/check-guidance-links.mjs`; `node scripts/quality/check-ontology.mjs`;
-  `node scripts/dev/ci-local.js --intent push --reuse-passing-receipts`
-- Result: agent tools 11 files / 177 tests passed; validation-system 193 pass / 0 fail;
-  review guardrails 202 pass / 0 fail; ledger guard 139 ids none removed since `origin/develop`;
-  18 projections current; 61 guidance files OK; ontology guards passed; push plan passed
-  (format, lint, docs-authority, agent-guidance, agent-tools-test)
+  `node scripts/quality/check-guidance-links.mjs`; `bun run check:skill-behavior`;
+  `bun run check:docs-generated`; `node scripts/dev/ci-local.js --intent push --reuse-passing-receipts`
+- Result: agent tools 11 files / 187 tests passed; 61 guidance files OK; 15 skill scenarios and
+  15 task routes passed; 18 projections current; push plan passed (format, lint, docs-authority,
+  agent-guidance, agent-tools-test)
 - Validated paths: `scripts/agents/qa-report.ts`, `scripts/agents/qa-report.test.ts`,
-  `scripts/agents/qa-workbook-build.ts`, `package.json`, `scripts/data/validation-policy.json`
+  `scripts/agents/qa-workbook-build.ts`, `scripts/agents/qa-workbook-build.test.ts`,
+  `package.json`, `scripts/data/validation-policy.json`
 - Worktree identity command and result:
-  `git status --porcelain=v1 --untracked-files=all -- scripts/agents/qa-report.ts scripts/agents/qa-report.test.ts scripts/agents/qa-workbook-build.ts package.json scripts/data/validation-policy.json`
+  `git status --porcelain=v1 --untracked-files=all -- scripts/agents/qa-report.ts scripts/agents/qa-report.test.ts scripts/agents/qa-workbook-build.ts scripts/agents/qa-workbook-build.test.ts package.json scripts/data/validation-policy.json`
   → empty
-- Superseded receipt: `a371f05eb3f2195eb3729ba7f3211033eb14d53d` (2026-09-02T04:15:57Z) — the merge
-  changed `package.json` and the validation policy, so a fresh run was required rather than an
-  evidence-only citation.
-- Publication: PR #793 → `develop`, mergeable after the merge commit; readiness follows
-  current-head GitHub CI, not this local receipt.
+- Superseded receipts: `642a708c0` (merge of develop) and `a371f05eb` (initial publication) —
+  each superseded because a validated path changed afterwards.
+- Publication: PR #793 → `develop`; readiness follows current-head GitHub CI, not this receipt.
