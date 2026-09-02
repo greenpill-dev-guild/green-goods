@@ -3,55 +3,18 @@ title: ENS
 slug: /builders/integrations/ens
 audience: developer
 owner: docs
+last_verified: 2026-09-02
 feature_status: Live
-generated: true
-generator: scripts/docs/generate.mjs
-generated_from:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/registries/ENS.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
-  - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
-  - packages/shared/src/utils/blockchain/ens.ts
-source_digest: "sha256:15e2445f6b9e1f4b34e4cdd4c72cb96bc9633ca6c0e4ca23be14f6af07368a31"
 source_of_truth:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/registries/ENS.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
   - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
-  - packages/shared/src/utils/blockchain/ens.ts
+  - docs/src/data/integration-projections.json
+  - packages/contracts/src/registries/ENS.sol
 ---
 
-<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+import {IntegrationProjection} from "@site/src/components/docs";
+
 # ENS
 
 ENS connects Garden identity to names across the configured registry, receiver, and application resolution paths.
 
-## Checked-in deployment projection
-
-| Network | Status | Recorded components |
-|---|---|---|
-| Ethereum Mainnet (`1`) | Partial | `ensReceiver` |
-| Sepolia Testnet (`11155111`) | Deployed | `ensReceiver`, `greenGoodsENS` |
-| Arbitrum One (`42161`) | Partial | `greenGoodsENS` |
-
-Networks without recorded components are omitted; per-network state lives in the [deployment status projection](/builders/deployments/status).
-
-## Indexer boundary
-
-No integration-specific contract is declared in the checked-in indexer configuration.
-
-A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. Follow the owning package runbook for operational verification.
+<IntegrationProjection id="ens" />

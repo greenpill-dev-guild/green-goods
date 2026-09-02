@@ -6,3 +6,4 @@ export {FeatureState} from "./FeatureState";
 export {QuickAnswer} from "./QuickAnswer";
 export {NextBestAction} from "./NextBestAction";
 export {ProtocolRevenueExplorer} from "./ProtocolRevenueExplorer";
+export {IntegrationProjection} from "./IntegrationProjection";

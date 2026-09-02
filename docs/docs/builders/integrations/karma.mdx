@@ -3,52 +3,18 @@ title: Karma GAP
 slug: /builders/integrations/karma
 audience: developer
 owner: docs
+last_verified: 2026-09-02
 feature_status: Live
-generated: true
-generator: scripts/docs/generate.mjs
-generated_from:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/Karma.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
-  - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:78d859c98113548a97637d556564bef21500a278c323639488328e332c90d32e"
 source_of_truth:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/Karma.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
   - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
+  - docs/src/data/integration-projections.json
+  - packages/contracts/src/modules/Karma.sol
 ---
 
-<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+import {IntegrationProjection} from "@site/src/components/docs";
+
 # Karma GAP
 
 Karma GAP connects Garden activity with project reporting and milestone records.
 
-## Checked-in deployment projection
-
-| Network | Status | Recorded components |
-|---|---|---|
-| Sepolia Testnet (`11155111`) | Deployed | `karmaGAPModule` |
-| Arbitrum One (`42161`) | Deployed | `karmaGAPModule` |
-
-Networks without recorded components are omitted; per-network state lives in the [deployment status projection](/builders/deployments/status).
-
-## Indexer boundary
-
-Configured indexer contracts: `KarmaGAPModule`.
-
-A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. Follow the owning package runbook for operational verification.
+<IntegrationProjection id="karma" />

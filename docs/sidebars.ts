@@ -129,6 +129,7 @@ const sidebars: SidebarsConfig = {
       label: 'Agentic Development',
       link: {type: 'generated-index', description: 'Agent tools and task-to-skill routing.'},
       items: [
+        {type: 'doc', id: 'builders/agentic/skills', label: 'Skills'},
         {type: 'doc', id: 'builders/agentic/task-routing', label: 'Task Routing'},
         {type: 'doc', id: 'builders/agentic/mcp-guide', label: 'MCP Guide'},
       ],

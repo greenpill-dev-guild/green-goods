@@ -1,0 +1,121 @@
+---
+title: Skills Catalog
+slug: /builders/agentic/skills
+audience: developer
+owner: docs
+feature_status: Live
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - .claude/skills/audit/SKILL.md
+  - .claude/skills/clean/SKILL.md
+  - .claude/skills/debug/SKILL.md
+  - .claude/skills/design/SKILL.md
+  - .claude/skills/doc-feedback/SKILL.md
+  - .claude/skills/module-seams-review/SKILL.md
+  - .claude/skills/plan/SKILL.md
+  - .claude/skills/qa-session/SKILL.md
+  - .claude/skills/qa-triage/SKILL.md
+  - .claude/skills/research/SKILL.md
+  - .claude/skills/resolve-pr-comments/SKILL.md
+  - .claude/skills/review/SKILL.md
+  - .claude/skills/ship/SKILL.md
+source_digest: "sha256:9fc57c05a1cd7132ed0d7e5304f985a836b31d907f84ddd26737391a0a11d4fc"
+source_of_truth:
+  - .claude/skills/audit/SKILL.md
+  - .claude/skills/clean/SKILL.md
+  - .claude/skills/debug/SKILL.md
+  - .claude/skills/design/SKILL.md
+  - .claude/skills/doc-feedback/SKILL.md
+  - .claude/skills/module-seams-review/SKILL.md
+  - .claude/skills/plan/SKILL.md
+  - .claude/skills/qa-session/SKILL.md
+  - .claude/skills/qa-triage/SKILL.md
+  - .claude/skills/research/SKILL.md
+  - .claude/skills/resolve-pr-comments/SKILL.md
+  - .claude/skills/review/SKILL.md
+  - .claude/skills/ship/SKILL.md
+---
+
+<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+# Skills Catalog
+
+Each skill is a packaged workflow a coding agent — or a contributor driving one — invokes by name for a specific kind of task. This catalog projects each skill's purpose from its folder; the folder's README and SKILL.md stay the source of truth.
+
+### audit {#audit}
+
+Repo-health audit and drift classifier for Green Goods — dead code, dependency health, invariant drift, stale guidance/plans/docs drift, and concrete broken or brittle spots. Use when the user asks for an audit, a drift check, "is the repo healthy", stale guidance, cleanup readiness, or whether to run clean. Read-only; routes accepted findings to a fix pass, /clean, or Linear.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/audit)
+
+### clean {#clean}
+
+Scope-locked codebase cleanup with 8 focused assessment lanes — deduplication, type consolidation, dead code removal, circular dependencies, type strengthening, defensive code removal, legacy cleanup, and AI slop removal. Use when the user wants to clean up the codebase or improve code quality at scale.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/clean)
+
+### debug {#debug}
+
+Debugging & Troubleshooting — fires passively when the user describes a bug, pastes an error or stack trace, reports unexpected behavior, mentions failing tests or builds, or signals an incident. Routes to user_bug_triage when an external party (user / gardener / steward / customer / team member / partner) reports broken product behavior, incident_hotfix on urgency signals, tdd_bugfix on red-test signals, qa_slice_fix when the user asks to pull in or work the QA slices/issues a QA session filed in Linear, default on general bug reports.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/debug)
+
+### design {#design}
+
+Green Goods design direction — the Warm Earth design language (shape, motion, color, material tokens), admin cockpit vs client PWA surface identities, paradigm selection, layout composition, AI design-tool prompt contracts, and design review lenses. Use for design direction, visual language decisions, what paradigm or material a view should use, new views or components, UI polish passes, and preparing prompts for AI design tools.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/design)
+
+### doc-feedback {#doc-feedback}
+
+Process review feedback on any Green Goods Google Doc downloaded as `.docx` — `docs/` drafts, research notes, grant proposals, product feedback. Parses comments and tracked-changes into a triage-able markdown record, then walks through addressing each item with a scope-lock gate between phases and an in-repo or out-of-repo address mode (auto-inferred from doc title/filename). Use when the team has finished reviewing a doc and you have (or can produce) a `.docx` export.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/doc-feedback)
+
+### module-seams-review {#module-seams-review}
+
+Deep, read-only review of Green Goods module boundaries, public exports, dependency direction, composition roots, direct-test seams, mock fidelity, and validation velocity. Use for modules-and-seams audits, import-boundary or barrel migrations, testability-architecture reviews, or verification of the Module Seams and Velocity program. Do not use for ordinary small diffs or general dependency and dead-code health.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/module-seams-review)
+
+### plan {#plan}
+
+Planning, architecture opportunity discovery, and execution for Green Goods. Creates structured implementation plans, checks progress, manages lifecycle, and coordinates explicitly requested agent teams. Also use when the user asks to improve architecture, deepen modules, reduce coupling, improve testability, or increase agentic coding velocity across a codebase.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/plan)
+
+### qa-session {#qa-session}
+
+Run a live, paired, or transcript-based Green Goods product-experience QA walk. Capture stable OBS records, triage bounded fix-now work, revalidate in the serving checkout, hand deferred findings to qa-triage with exact Test IDs, and lock user-approved design decisions at close. Fires on "QA session", "QA walk/walkthrough", "I'll walk the flows and call out issues", "fix live while I test", "we're QAing together", or a dictated-walk transcript. Not for meeting-notes triage (qa-triage), a single reported bug (debug), or diff review (review).
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/qa-session)
+
+### qa-triage {#qa-triage}
+
+Turn Build Sync QA notes or a qa-session deferred handoff into scope-locked Linear records and private QA Sheet rows. Fires on a QA call/sync/meeting, Build Sync, Product Sync (legacy name), or a request to file or triage recent meeting bugs. Pulls notes from Drive (Downloads fallback), enriches against PostHog and existing Linear/Sheet records, requires exact Test IDs for qa-session issues, then writes only after confirmation. For a live or dictated walkthrough, use qa-session instead.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/qa-triage)
+
+### research {#research}
+
+Evidence-first research for a bounded product, architecture, implementation, or external-fact question before planning or decision discussion. Use when a question requires reconciling repository or primary-source evidence. Read-only by default. Do not use for debugging, change review, repo-health audit, simple lookup, or historical-rationale tracing.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/research)
+
+### resolve-pr-comments {#resolve-pr-comments}
+
+Resolve actionable GitHub pull request review feedback with a validate, bounded-sweep, fix, targeted proof, push gate, and current-head CI workflow. Use when the user asks to address, fix, clear, or resolve unresolved PR review threads, requested changes on a pull request, review-level feedback, or GitHub PR comments. Make GitHub replies, reviews, reactions, and thread-resolution writes only with explicit authorization.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/resolve-pr-comments)
+
+### review {#review}
+
+Full change review for Green Goods — regressions, remaining gaps, and production quality in one pass. Use when the user asks for a review, asks "any regressions?", "remaining gaps?", "is this production quality / ready?", or wants a PR, branch, working-copy, or cross-package change reviewed. Produces severity-ordered findings, a gap list vs intent, validation evidence, and a verdict.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/review)
+
+### ship {#ship}
+
+Publish changes safely with targeted local proof, a budgeted push gate, and current-head GitHub CI. Runs the explicit full local gate only for offline/full-readiness requests, critical surfaces, or releases.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/ship)

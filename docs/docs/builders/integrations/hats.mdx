@@ -3,52 +3,18 @@ title: Hats Protocol
 slug: /builders/integrations/hats
 audience: developer
 owner: docs
+last_verified: 2026-09-02
 feature_status: Live
-generated: true
-generator: scripts/docs/generate.mjs
-generated_from:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/Hats.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
-  - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:b35d0a25b5abc10e65e173e098307e8dbab0ef594de1acee25b8c6a5d4c5ec93"
 source_of_truth:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/Hats.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
   - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
+  - docs/src/data/integration-projections.json
+  - packages/contracts/src/modules/Hats.sol
 ---
 
-<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+import {IntegrationProjection} from "@site/src/components/docs";
+
 # Hats Protocol
 
 Hats provides the on-chain role hierarchy used to authorize Garden responsibilities.
 
-## Checked-in deployment projection
-
-| Network | Status | Recorded components |
-|---|---|---|
-| Sepolia Testnet (`11155111`) | Deployed | `hatsModule` |
-| Arbitrum One (`42161`) | Deployed | `hatsModule` |
-
-Networks without recorded components are omitted; per-network state lives in the [deployment status projection](/builders/deployments/status).
-
-## Indexer boundary
-
-Configured indexer contracts: `HatsModule`.
-
-A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. Follow the owning package runbook for operational verification.
+<IntegrationProjection id="hats" />

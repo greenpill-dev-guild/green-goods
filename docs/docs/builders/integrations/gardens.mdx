@@ -3,54 +3,18 @@ title: Gardens
 slug: /builders/integrations/gardens
 audience: developer
 owner: docs
+last_verified: 2026-09-02
 feature_status: Live
-generated: true
-generator: scripts/docs/generate.mjs
-generated_from:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/Gardens.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
-  - packages/shared/src/config/gardens-subgraph.ts
-  - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:90db3bf530105787f97abda1db852eea8c71f8b495643dce7fed90ec04cd52d6"
 source_of_truth:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/Gardens.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
-  - packages/shared/src/config/gardens-subgraph.ts
   - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
+  - docs/src/data/integration-projections.json
+  - packages/contracts/src/modules/Gardens.sol
 ---
 
-<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+import {IntegrationProjection} from "@site/src/components/docs";
+
 # Gardens
 
 The Gardens module connects a Green Goods Garden to governance communities and signal pools.
 
-## Checked-in deployment projection
-
-| Network | Status | Recorded components |
-|---|---|---|
-| Sepolia Testnet (`11155111`) | Deployed | `gardensModule` |
-| Arbitrum One (`42161`) | Deployed | `gardensModule` |
-
-Networks without recorded components are omitted; per-network state lives in the [deployment status projection](/builders/deployments/status).
-
-## Indexer boundary
-
-No integration-specific contract is declared in the checked-in indexer configuration.
-
-A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. Follow the owning package runbook for operational verification.
+<IntegrationProjection id="gardens" />

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 export const GENERATOR_PATH = "scripts/docs/generate.mjs";
@@ -95,7 +95,10 @@ export function syncProjections({ root, projections, scope = null, check = false
     const current = existsSync(absolute) ? normalizeText(readFileSync(absolute, "utf8")) : null;
     if (current !== rendered) {
       if (check) problems.push(`${current === null ? "missing" : "stale"}: ${projection.output}`);
-      else writeFileSync(absolute, rendered);
+      else {
+        mkdirSync(path.dirname(absolute), { recursive: true });
+        writeFileSync(absolute, rendered);
+      }
     }
   }
 

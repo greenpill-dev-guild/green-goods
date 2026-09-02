@@ -1,4 +1,4 @@
-import { generatedFrontmatter } from "./generator-core.mjs";
+import { GENERATOR_PATH, generatedFrontmatter } from "./generator-core.mjs";
 import {
   deploymentAddressFields,
   deploymentInventory,
@@ -9,6 +9,7 @@ import {
   parseStringObject,
   publicRouteRegistrations,
   readJson,
+  readText,
   routeLiterals,
   workflowInventory,
 } from "./source-readers.mjs";
@@ -122,57 +123,156 @@ export function renderDeploymentStatus({ root, sources, digest }) {
   return body;
 }
 
-export function renderIntegration({ root, sources, digest }, integrationId) {
+export function renderIntegrationProjections({ root, sources, digest }) {
   const ontology = readJson(root, declaredSource(sources, "packages/shared/src/ontology/green-goods-ontology.json"));
-  const integration = (ontology.integrations ?? []).find((item) => item.id === integrationId);
-  if (!integration) throw new Error(`Unknown ontology integration: ${integrationId}`);
   const deploymentSources = sources.filter((source) => /deployments\/\d+-latest\.json$/.test(source));
-  const rows = deploymentInventory(root, deploymentSources, integration.deployment_fields);
   const names = networkNames(root, declaredSource(sources, "packages/contracts/deployments/networks.json"));
   const indexed = indexerContracts(root, declaredSource(sources, "packages/indexer/config.yaml"));
-  let body = pageHeader(
-    { title: integration.display, slug: `/builders/integrations/${integration.id}`, sources, digest },
-    integration.display,
-    integration.definition
-  );
-  body += "## Checked-in deployment projection\n\n";
-  const recordedByRow = rows.map((row) =>
-    integration.deployment_fields.filter((field) => isRecordedAddress(row.values[field]))
-  );
-  const recordedRows = rows.filter((_, index) => recordedByRow[index].length > 0);
-  if (recordedRows.length === 0) {
-    body +=
-      "No checked-in deployment artifact records components for this integration on any supported network. Per-network state lives in the [deployment status projection](/builders/deployments/status).\n";
-  } else {
-    body += "| Network | Status | Recorded components |\n|---|---|---|\n";
-    rows.forEach((row, index) => {
-      const recorded = recordedByRow[index];
-      if (recorded.length === 0) return;
-      body += `| ${esc(names.get(Number(row.chainId)) ?? row.chainId)} (\`${row.chainId}\`) | ${deploymentState(row.values, integration.deployment_fields)} | ${recorded.map((field) => `\`${field}\``).join(", ")} |\n`;
-    });
-    if (recordedRows.length < rows.length) {
-      body +=
-        "\nNetworks without recorded components are omitted; per-network state lives in the [deployment status projection](/builders/deployments/status).\n";
-    }
+  const integrations = {};
+  for (const integration of [...(ontology.integrations ?? [])].sort((a, b) => a.id.localeCompare(b.id))) {
+    const rows = deploymentInventory(root, deploymentSources, integration.deployment_fields);
+    const networks = rows
+      .map((row) => ({
+        chainId: Number(row.chainId),
+        name: names.get(Number(row.chainId)) ?? String(row.chainId),
+        status: deploymentState(row.values, integration.deployment_fields),
+        recorded: integration.deployment_fields.filter((field) => isRecordedAddress(row.values[field])),
+      }))
+      .filter((network) => network.recorded.length > 0);
+    integrations[integration.id] = {
+      display: integration.display,
+      definition: integration.definition,
+      networks,
+      totalNetworks: rows.length,
+      indexedContracts: integration.indexer_contracts.filter((name) => indexed.includes(name)),
+    };
   }
-  const indexedSignals = integration.indexer_contracts.filter((name) => indexed.includes(name));
-  body += `\n## Indexer boundary\n\n${indexedSignals.length ? `Configured indexer contracts: ${indexedSignals.map((name) => `\`${name}\``).join(", ")}.` : "No integration-specific contract is declared in the checked-in indexer configuration."}\n\n`;
-  body += "A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. Follow the owning package runbook for operational verification.\n";
-  return body;
+  const payload = {
+    $generated: "GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope integration`.",
+    generator: GENERATOR_PATH,
+    digest,
+    integrations,
+  };
+  return `${JSON.stringify(payload, null, 2)}\n`;
 }
+
+// Diagram grouping is a rendering choice, not ontology data: every entity must be
+// placed in exactly one group, so an ontology addition fails loudly here instead
+// of silently bloating a diagram past legibility.
+const ERD_GROUPS = [
+  {
+    title: "Core protocol",
+    intro: "Gardens, actions, and the attested work loop.",
+    members: ["garden", "action", "work", "work-approval", "assessment", "attestation", "hat", "season", "need"],
+  },
+  {
+    title: "Funding and recognition",
+    intro: "How approved work connects to certificates, vaults, and distributions.",
+    members: ["hypercert", "vault", "cookie-jar"],
+  },
+  {
+    title: "Commitment pooling",
+    intro: "The commitment subsystem: pools, cycles, series, and settlement records.",
+    members: [
+      "commitment-pool",
+      "commitment-cycle",
+      "commitment-series",
+      "commitment-provider-exposure",
+      "commitment-unit-summary",
+      "commitment-series-cycle-summary",
+      "commitment",
+      "commitment-contributor",
+      "commitment-payout-plan",
+    ],
+  },
+];
 
 export function renderErd({ root, sources, digest }) {
   const ontology = readJson(root, declaredSource(sources, "packages/shared/src/ontology/green-goods-ontology.json"));
+  const byId = new Map(ontology.entities.map((entity) => [entity.id, entity]));
+  const groupOf = new Map();
+  for (const group of ERD_GROUPS) for (const member of group.members) groupOf.set(member, group.title);
+  const unassigned = ontology.entities.filter((entity) => !groupOf.has(entity.id)).map((entity) => entity.id);
+  const unknown = [...groupOf.keys()].filter((id) => !byId.has(id));
+  if (unassigned.length || unknown.length) {
+    throw new Error(
+      `ERD grouping is out of date. Unassigned entities: ${unassigned.join(", ") || "none"}. Unknown group members: ${unknown.join(", ") || "none"}.`
+    );
+  }
+  const node = (id) => id.replaceAll("-", "_");
   let body = pageHeader(
     { title: "Entity Relationship Diagram", slug: "/builders/architecture/erd", sources, digest },
     "Entity Relationship Diagram",
-    "The diagram projects the ontology's declared entity relationships. It explains semantic relationships, not database foreign keys."
+    "These diagrams project the ontology's declared entity relationships in three layers so each one stays readable. Solid nodes belong to the layer; dashed nodes are context from another layer. Diagrams are pan-and-zoomable. They explain semantic relationships, not database foreign keys."
   );
-  body += "```mermaid\nflowchart LR\n";
-  for (const entity of ontology.entities) body += `  ${entity.id.replaceAll("-", "_")}[\"${entity.display}\"]\n`;
-  for (const entity of ontology.entities) for (const relationship of entity.relationships ?? []) body += `  ${entity.id.replaceAll("-", "_")} -->|${relationship.kind}| ${relationship.to.replaceAll("-", "_")}\n`;
-  body += "```\n\n## Entity definitions\n\n| Entity | Definition | Surfaces |\n|---|---|---|\n";
-  for (const entity of ontology.entities) body += `| ${esc(entity.display)} | ${esc(entity.definition)} | ${entity.surfaces.map(esc).join(", ")} |\n`;
+  for (const group of ERD_GROUPS) {
+    const members = new Set(group.members);
+    body += `## ${group.title}\n\n${group.intro}\n\n`;
+    body += "```mermaid\nflowchart LR\n";
+    for (const id of group.members) body += `  ${node(id)}["${byId.get(id).display}"]:::member\n`;
+    const contextIds = new Set();
+    const edges = [];
+    for (const id of group.members) {
+      for (const relationship of byId.get(id).relationships ?? []) {
+        if (!members.has(relationship.to)) contextIds.add(relationship.to);
+        edges.push(`  ${node(id)} -->|${relationship.kind}| ${node(relationship.to)}\n`);
+      }
+    }
+    for (const id of [...contextIds].sort()) body += `  ${node(id)}["${byId.get(id).display}"]:::context\n`;
+    for (const edge of edges) body += edge;
+    body += "  classDef member stroke-width:2px\n";
+    body += "  classDef context opacity:0.55,stroke-dasharray:4 3\n";
+    body += "```\n\n";
+    body += "| Entity | Definition | Surfaces |\n|---|---|---|\n";
+    for (const id of group.members) {
+      const entity = byId.get(id);
+      body += `| ${esc(entity.display)} | ${esc(entity.definition)} | ${entity.surfaces.map(esc).join(", ")} |\n`;
+    }
+    body += "\n";
+  }
+  return body;
+}
+
+function skillFrontmatterDescription(root, source) {
+  const text = readText(root, source);
+  const frontmatter = /^---\n([\s\S]*?)\n---/.exec(text);
+  const match = frontmatter ? /^description:\s*(.+)$/m.exec(frontmatter[1]) : null;
+  if (!match) throw new Error(`Skill source has no frontmatter description: ${source}`);
+  return match[1].trim().replace(/^["']|["']$/g, "");
+}
+
+function readmeLeadParagraph(root, source) {
+  const text = readText(root, source).replace(/^---\n[\s\S]*?\n---\n/, "");
+  const paragraphs = text
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter((block) => block && !block.startsWith("#"));
+  if (!paragraphs.length) throw new Error(`Skill README has no lead paragraph: ${source}`);
+  return paragraphs[0].replaceAll("\n", " ");
+}
+
+export function renderSkills({ root, sources, digest }) {
+  const byName = new Map();
+  for (const source of sources) {
+    const match = /^\.claude\/skills\/([^/]+)\/(SKILL|README)\.md$/.exec(source);
+    if (!match) continue;
+    const entry = byName.get(match[1]) ?? {};
+    entry[match[2] === "README" ? "readme" : "skill"] = source;
+    byName.set(match[1], entry);
+  }
+  let body = pageHeader(
+    { title: "Skills Catalog", slug: "/builders/agentic/skills", sources, digest },
+    "Skills Catalog",
+    "Each skill is a packaged workflow a coding agent — or a contributor driving one — invokes by name for a specific kind of task. This catalog projects each skill's purpose from its folder; the folder's README and SKILL.md stay the source of truth."
+  );
+  for (const [name, entry] of [...byName.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    if (!entry.skill) throw new Error(`Skill ${name} is missing SKILL.md`);
+    const purpose = entry.readme
+      ? readmeLeadParagraph(root, declaredSource(sources, entry.readme))
+      : skillFrontmatterDescription(root, declaredSource(sources, entry.skill));
+    body += `### ${name} {#${name}}\n\n${purpose}\n\n`;
+    body += `[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/${name})\n\n`;
+  }
   return body;
 }
 

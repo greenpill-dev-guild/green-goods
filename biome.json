@@ -5,7 +5,13 @@
     "clientKind": "git",
     "useIgnoreFile": true
   },
-  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
   "linter": {
     "enabled": false
   },
@@ -89,6 +95,7 @@
       "!**/coverage/**",
       "!**/dev-dist/**",
       "!**/*.css",
+      "!**/docs/src/data/**",
       "!**/packages/contracts/.generated/**",
       "!**/packages/contracts/out/**",
       "!**/packages/contracts/broadcast/**",
