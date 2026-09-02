@@ -51,14 +51,19 @@ complete; use N/A only when a case is intentionally outside the agreed scope:
 Two more places complete the picture:
 
 - The QA app orders cases by priority or area. [Test Cases](./test-cases) is the public catalog
-  behind it, adding each scenario's kind, area, and expected evidence.
+  behind it, adding each scenario's kind, area, and expected evidence — and
+  [how cases are added, changed, and retired](./test-cases#lifecycle).
 - Findings land in Linear after the call, while screenshots and recordings go to the private Drive
   QA folder. Linear, Drive, and staging links are shared in the private session charter rather than
   published here.
 
 :::tip First walk?
-Start with [`PUB-001`](./test-cases#public-website-p0): open the public site and check that public
-routes use the website shell, not the PWA shell. No wallet or product role is required.
+Take [`PUB-001`](./test-cases#public-website-p0), the simplest P0 on the sheet. Open
+[greengoods.app](https://greengoods.app) in a desktop browser and visit `/`, `/gardens`, `/fund`,
+`/impact`, `/actions`, and `/cookies`. Every page should show the website header and no app-style
+bottom navigation. Record **Pass** with a one-line note, or **Fail** naming the route that looked
+like the installed app instead. The walk itself needs no wallet or product role; recording the
+verdict still needs your allowlisted wallet signed in to the QA app.
 :::
 
 ## Walking a flow
@@ -70,7 +75,8 @@ However you enter a session — on a call, solo, or paired with an agent — the
 3. Reproduce visible defects from the rendered surface inward.
 4. Fix only bounded, reversible work that fits the agreed session scope.
 5. Revalidate in the same surface and record the remaining risk.
-6. Hand deferred findings to the private QA and Linear workflow.
+6. Hand deferred findings to the agent-run QA triage workflow — `qa-triage`, or the
+   `qa-call-report` routine after a call — which files them in Linear as fix slices.
 
 ## The QA session
 
@@ -99,8 +105,8 @@ opening it.
   those decisions are the most valuable output of the call.
 
 <figure>
-  <img src="/img/screenshots/qa-app-recorded-case.webp" alt="Synthetic QA case PUB-001 recorded as Pass with a saved note and one of thirty cases decided" loading="lazy" style={{maxWidth: '100%', borderRadius: 'var(--radius-md)', border: '1px solid var(--ifm-color-emphasis-300)'}} />
-  <figcaption>A useful record pairs the verdict with a short, concrete observation. This example uses synthetic data.</figcaption>
+  <img src="/img/screenshots/qa-app-recorded-issues.webp" alt="Synthetic QA app data filtered to Issues: PUB-013 recorded as Fail with a reproduction note, and PUB-014 recorded as Blocked with the reason it could not proceed" loading="lazy" style={{maxWidth: '100%', borderRadius: 'var(--radius-md)', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+  <figcaption>Notes earn their keep on a Fail or a Blocked: say what you saw, where, and on which device. The Issues filter collects them for the end-of-call walk. This example uses synthetic data.</figcaption>
 </figure>
 
 ### After the call {#after-the-call}
@@ -108,9 +114,18 @@ opening it.
 - Before everyone drops, spend five minutes on four questions: What did we cover, and what did we
   consciously skip? What worked well enough to leave alone? Which fails worry us most? Would we
   welcome a new garden onto this build tomorrow?
-- Trigger the `qa-call-report` routine (or run `/qa-triage --call` at a desk). It joins the QA
-  app's verdicts with the meeting notes and writes the session to Linear: one report issue per
-  session, with fix slices attached as sub-issues sized for one branch and one PR each.
+- Trigger the `qa-call-report` routine (or run `/qa-triage --call` at a desk). It pulls every
+  tester's verdicts from the QA app (`qa:pull` merges every shard ever written, so the pulled
+  entries are then filtered to the call window by their timestamps), finds the call's Gemini notes
+  in Drive, joins the two by Test ID, and clusters failures into at most eight fix slices — each
+  sized for one branch and one PR.
+- It then enriches without blocking: the Vercel deploys live during the call, so every slice names
+  the build under test; PostHog exceptions from the same window, per surface; and Sentry issues
+  when that connector is wired. Finally it writes one `QA session YYYY-MM-DD` parent issue (a
+  second call on the same day appends `· 2`) plus slice sub-issues to Linear — deduplicated
+  against open QA issues and privacy-swept: no tester attribution, wallets, or replay links
+  anywhere, while slices keep redacted case-level evidence — and posts a one-message aggregate
+  summary to #product on Discord.
 - Fix sessions then work slice by slice. Every fix is a repair grounded in the feature's history
   and existing structure — updating or removing code before adding any — and is done when the
   slice's test cases pass again.
@@ -119,18 +134,46 @@ opening it.
   severe current verdict across testers, so someone else's pass cannot clear another tester's
   fail or blocked result.
 
-<figure>
-  <img src="/img/screenshots/qa-session-report-example.webp" alt="Synthetic QA session 2026-08-31 in Done with coverage, release confidence, and two linked fix slices" loading="lazy" style={{maxWidth: '100%', borderRadius: 'var(--radius-md)', border: '1px solid var(--ifm-color-emphasis-300)'}} />
-  <figcaption>The closed session report keeps the shared conclusion and its fix slices together. This is a synthetic example, not a live workspace record.</figcaption>
-</figure>
+The parent issue is titled `QA session YYYY-MM-DD` (` · 2` appended for a second call on the
+same day) and follows one template, so every session reads the same way:
+
+```markdown
+<Two or three sentences a teammate would write: what was walked, by how
+many testers, on which surfaces, and the headline.>
+
+Build under test: client `<sha>` · admin `<sha>`
+
+## Results by priority
+- P0: <walked>/<total> — <pass> pass · <fail> fail · <blocked> blocked · <na> n/a · <noted> noted only
+- P1: <walked>/<total> — …
+- P2: <walked>/<total> — …
+
+## Decisions from the call
+- <one ruling per line — drop the section when the call made none>
+
+## Slices
+- <one line per slice: what it covers and its Test IDs>
+- already tracked: <existing issue> — <one line>
+
+## Not sliced
+- <note-only follow-ups and anything past the slice cap, one line each — drop the section when empty>
+
+**Done when**
+- every slice — and every related already-tracked issue — is Done or explicitly deferred, and
+  the re-QA walk has re-recorded its Test IDs
+
+Session <slug>. [Meeting notes](<drive-url>) — or "App-only run — no meeting notes found."
+```
 
 ## What every journey must prove
 
-- The entrypoint, role, and selected Garden or chain are clear.
+- The entrypoint, role, and selected Garden are clear; a wallet on the wrong network is told so
+  and pointed to the fix.
 - Loading, empty, disabled, error, offline, and recovery states are usable.
 - A visible interaction changes state and provides legible feedback.
 - Keyboard, focus, labels, touch targets, contrast, and reduced motion remain accessible.
-- Protocol confirmation, indexed data, and local queue state are not conflated.
+- Saved-offline, pending-confirmation, and confirmed states look different and say which one
+  you are in.
 - Private identities, wallets, session data, and defect evidence stay out of public artifacts.
 
 ## Ownership and related pages

@@ -330,6 +330,55 @@ describe("QA catalog contract", () => {
     }
   });
 
+  it("enshrines the case lifecycle: active or retired, every retirement dated and explained", () => {
+    const catalog = JSON.parse(
+      readFileSync(path.join(repoRoot, "scripts", "data", "qa-test-catalog.json"), "utf8"),
+    );
+    expect(catalog.statuses.map((status: { id: string }) => status.id)).toEqual(["active", "retired"]);
+    const activeIds = new Set(
+      catalog.cases
+        .filter((testCase: { status: string }) => testCase.status === "active")
+        .map((testCase: { id: string }) => testCase.id),
+    );
+    const seen = new Set<string>();
+    for (const testCase of catalog.cases) {
+      // IDs are permanent addresses: an OBS record or a Linear slice keyed on one
+      // must never resolve to a different check later.
+      expect(seen.has(testCase.id)).toBe(false);
+      seen.add(testCase.id);
+      expect(["active", "retired"]).toContain(testCase.status);
+      expect(["P0", "P1", "P2"]).toContain(testCase.priority);
+      expect(String(testCase.source ?? "").trim()).not.toBe("");
+      if (testCase.status === "retired") {
+        const retiredOn = String(testCase.retiredOn ?? "");
+        // Shape and calendar validity together: "2026-02-31" round-trips to another day.
+        expect(new Date(`${retiredOn}T00:00:00.000Z`).toISOString().slice(0, 10)).toBe(retiredOn);
+        expect(String(testCase.retiredReason ?? "").trim()).not.toBe("");
+        for (const successor of testCase.replacedBy ?? []) expect(activeIds.has(successor)).toBe(true);
+      } else {
+        expect(testCase.retiredOn).toBeUndefined();
+        expect(testCase.retiredReason).toBeUndefined();
+        expect(testCase.replacedBy).toBeUndefined();
+      }
+    }
+  });
+
+  it("keeps every issued Test ID registered in the append-only ledger", () => {
+    const catalog = JSON.parse(
+      readFileSync(path.join(repoRoot, "scripts", "data", "qa-test-catalog.json"), "utf8"),
+    );
+    const ledger = JSON.parse(
+      readFileSync(path.join(repoRoot, "scripts", "data", "qa-test-id-ledger.json"), "utf8"),
+    );
+    const ledgerIds: string[] = ledger.ids;
+    expect(new Set(ledgerIds).size).toBe(ledgerIds.length);
+    // Duplicate detection inside one snapshot cannot see a deleted case whose id a
+    // later revision reuses; the ledger keeps every issued id visible across
+    // revisions, so deleting or reusing one becomes a two-file act reviewers see.
+    const catalogIds = catalog.cases.map((testCase: { id: string }) => testCase.id);
+    expect([...catalogIds].sort()).toEqual([...ledgerIds].sort());
+  });
+
   it("keeps the concurrent steward decision inside the session write boundary", () => {
     const catalog = JSON.parse(
       readFileSync(path.join(repoRoot, "scripts", "data", "qa-test-catalog.json"), "utf8"),

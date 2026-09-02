@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:aeaabd2e94c64f155e16f592434601afb3f3e6166d358834e2a827fc7050184b"
+source_digest: "sha256:2badfeec172c43ec9acf9adeea59fcd49e265ff68b13f3b139c7e79c6e6c3aef"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -48,6 +48,20 @@ Each case carries one **kind**, the category axis:
 - **Content & vocabulary** — Copy, vocabulary, locale quality, and guide truth hold on the rendered surface.
 - **Accessibility** — Keyboard, focus, contrast, touch targets, safe areas, and responsive layout stay usable.
 - **Resilience** — Offline behavior, error recovery, updates, and performance degrade and recover honestly.
+
+## How this catalog changes {#lifecycle}
+
+`scripts/data/qa-test-catalog.json` is the source of truth, and it changes the way code does: by pull request. Every case carries one **status**:
+
+- **active** — Walked in sessions; ships to the QA app run sheet and the Test Cases page.
+- **retired** — No longer walked; keeps its ID, retirement date, and reason in the catalog and never ships to a run sheet.
+
+- A new case enters as `active`, takes the next number in its surface prefix, is appended to the ID ledger (`scripts/data/qa-test-id-ledger.json`), and names where it came from in `source`.
+- Wording, step, and evidence edits happen in place — the ID keeps meaning the same check.
+- When what a case proves changes, it is retired with `retiredOn`, `retiredReason`, and `replacedBy` when successors exist, and the new check gets a new ID — so every past verdict keeps its meaning.
+- After a catalog change merges, redeploy the QA app (a deployment pins the catalog revision it shipped with) and regenerate this page with `bun run docs:generate`; CI rejects a stale copy.
+
+The catalog contract test enforces all of this, and [retired cases](#retired-cases) are listed at the end of this page.
 
 ## Public Website
 
@@ -98,17 +112,15 @@ Each case carries one **kind**, the category axis:
 
 ## PWA
 
-### P0 — run these first (26) {#pwa-p0}
+### P0 — run these first (20) {#pwa-p0}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
 | `PWA-020` | Journey | Auth | Desktop-shell wallet login connects, signs, and recovers from a rejected signature | Recording of reject + retry |
 | `PWA-021` | Transaction | Garden Join | Join flows: open joining, request-to-join with note, withdraw request, steward welcome/decline | Screenshots of each toast |
 | `PWA-028` | Transaction | Cookies | Claim from a garden cookie jar in the Wallet drawer (purpose required) | Screenshot of claim result |
-| `PWA-029` | Transaction | Wallet | Send tokens: recipient search/QR/browse, amount+Max, review with note, confirm | Recording of the full send |
 | `PWA-030` | Journey | My Work | Work dashboard: drafts resume/delete, pending and completed filters, open items | Screenshot of dashboard states |
 | `PWA-031` | Transaction | Work Submission | Full work submission on desktop shell: action, garden, media upload, audio note, details, location, review, submit | Recording of wizard + submit |
-| `PWA-032` | Transaction | Commitments | Compose a commitment: beats, draft resume, read-to-end gate, place offer/request | Screenshot of done screen |
 | `PWA-033` | Transaction | Commitments | Commitment detail acts: take up, withdraw with reason, confirm / not-yet, link work, steward claim decisions | Screenshots per act |
 | `PWA-035` | Transaction | Review | Review work on desktop shell: approve with optional feedback, reject requires feedback | Screenshot of decided states |
 | `PWA-AND-001` | Journey | Install | [Android] Fresh Android install launches standalone | Screen recording |
@@ -119,17 +131,13 @@ Each case carries one **kind**, the category axis:
 | `PWA-IOS-002` | Resilience | Update | [iOS] Existing iOS install updates without split state | Screen recording |
 | `PWA-IOS-003` | Resilience | Auth | Login/passkey/wallet gate is recoverable on iOS | Screen recording plus account role |
 | `PWA-IOS-004` | Data integrity | Upload | [iOS] Camera capture preview and draft persist on iOS | Screen recording |
-| `PWA-IOS-005` | Data integrity | Upload | [iOS] HEIC or library image survives submission draft | Screenshot before and after reopen |
 | `PWA-IOS-006` | Transaction | Offline Queue | Offline work submission queues and flushes once | Screen recording plus queue/status screenshot |
 | `PWA-IOS-014` | Transaction | Upload | Submission validation blocks incomplete work and rapid double-taps | Screenshot of validation errors; work list showing a single submission |
 | `PWA-ROLE-001` | Transaction | Review | Approve pending work with valid role on iOS | Screen recording plus account role |
 | `PWA-ROLE-002` | Transaction | Review | Reject pending work with reason on iOS | Screen recording plus account role |
 | `PWA-ROLE-003` | Journey | Permissions | Insufficient-role user cannot approve or reject on iOS | Screenshot plus account role |
-| `PWA-ROLE-004` | Transaction | Review | Approve pending work with valid role on Android | Screen recording plus account role |
-| `PWA-ROLE-005` | Transaction | Review | Reject pending work with reason on Android | Screen recording plus account role |
-| `PWA-ROLE-006` | Journey | Permissions | Insufficient-role user cannot approve or reject on Android | Screenshot plus account role |
 
-### P1 (19) {#pwa-p1}
+### P1 (25) {#pwa-p1}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -137,6 +145,8 @@ Each case carries one **kind**, the category axis:
 | `PWA-025` | Content & vocabulary | Locale Quality | Portuguese/Spanish render dates, plurals, and diacritics on the client | Screenshots per locale |
 | `PWA-026` | Resilience | Auth | In-app wallet edge states: wrong network and mid-session disconnect recover | Screenshot of the network gate |
 | `PWA-027` | Journey | Home | Home orientation: pull-to-refresh (online/offline), filters, drawer entry points, arrival toast | Screenshot of filters + drawer |
+| `PWA-029` | Transaction | Wallet | Send tokens: recipient search/QR/browse, amount+Max, review with note, confirm | Recording of the full send |
+| `PWA-032` | Transaction | Commitments | Compose a commitment: beats, draft resume, read-to-end gate, place offer/request | Screenshot of done screen |
 | `PWA-034` | Transaction | Commitments | Proof composer: media and audio capture, beats, submit proof | Screenshot of composer |
 | `PWA-036` | Transaction | Governance | Allocate conviction support points in the governance drawer | Screenshot of updated stake |
 | `PWA-037` | Transaction | Endowment | Garden endowment drawer: vault deposit, own-deposit withdraw, in-drawer jar claim | Screenshot of drawer states |
@@ -146,11 +156,15 @@ Each case carries one **kind**, the category axis:
 | `PWA-042` | Accessibility | Accessibility | Keyboard and focus smoke on core PWA flows: wizard, drawers, dialogs | Notes per surface + screenshots |
 | `PWA-043` | Resilience | Performance | Boot performance: warm reload locally; cold-start budget on a production build | Console timings screenshot |
 | `PWA-AND-005` | Accessibility | Mobile UI | Keyboard and drawer layout remain usable on Android | Screenshots |
+| `PWA-IOS-005` | Data integrity | Upload | [iOS] HEIC or library image survives submission draft | Screenshot before and after reopen |
 | `PWA-IOS-007` | Accessibility | Mobile UI | Drawers and bottom nav respect safe areas | Screenshots with drawer and keyboard |
 | `PWA-IOS-008` | Data integrity | Garden Discovery | Home and Garden discovery handle real, empty, and stale data | Screenshots of home, list, and detail |
 | `PWA-IOS-010` | Journey | Assessments | Assessment detail is readable without losing garden context | Screenshots of assessment and return |
 | `PWA-IOS-012` | Journey | Installed Navigation | Bottom AppBar behavior holds through flows and back navigation | Screen recording of navigation loop |
 | `PWA-IOS-013` | Journey | Auth | Logout clears the session and re-login works cleanly | Screen recording of the loop |
+| `PWA-ROLE-004` | Transaction | Review | Approve pending work with valid role on Android | Screen recording plus account role |
+| `PWA-ROLE-005` | Transaction | Review | Reject pending work with reason on Android | Screen recording plus account role |
+| `PWA-ROLE-006` | Journey | Permissions | Insufficient-role user cannot approve or reject on Android | Screenshot plus account role |
 | `XPLAT-005` | Journey | Install | Website-to-install handoff keeps browser and PWA shells separate | Screen recording across the handoff |
 
 ### P2 (3) {#pwa-p2}
@@ -204,7 +218,7 @@ Each case carries one **kind**, the category axis:
 | `ADM-031` | Journey | Work Queue | Hub queue at volume: full scroll, search/sort, deep item open and return | Recording of scroll return |
 | `ADM-033` | Transaction | Garden Lifecycle | First-run: zero-garden steward sees an honest no-access state; a deployer gets the create funnel | Screenshot of empty state |
 
-### P2 (5) {#admin-dashboard-p2}
+### P2 (6) {#admin-dashboard-p2}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -212,6 +226,7 @@ Each case carries one **kind**, the category axis:
 | `ADM-032` | Resilience | Error Recovery | Data-source failure on the hub: throttle/offline the network and load | Screenshot of error + recovery |
 | `ADM-034` | Accessibility | Accessibility | Admin keyboard smoke: palette, dialogs, wizard focus order | Notes + screenshots |
 | `ADM-035` | Content & vocabulary | Vocabulary | Admin vocabulary holds: cockpit language, no editorial 'hero/story' terms | List of offending terms with routes (or a clean pass note) |
+| `ADM-036` | Accessibility | Accessibility | Admin light and dark themes keep every control legible | Paired light/dark screenshots of any issue |
 | `XPLAT-007` | Transaction | Hub Work Review | Two stewards acting on the same submission converge on one state | Screenshots from both sessions |
 
 ## Docs
@@ -243,3 +258,21 @@ Each case carries one **kind**, the category axis:
 | `DOCS-006` | Accessibility | Theme & Diagrams | Dark mode and mermaid diagrams render legibly | Paired light/dark screenshots |
 | `DOCS-012` | Content & vocabulary | Builder Docs | Builder journeys and quality pages describe shipped reality | List of drifted pages |
 | `DOCS-013` | Content & vocabulary | Reference | Reference layer truth: FAQ, changelog, generated ontology/claims pages, glossary consistency | List of stale entries |
+
+## Retired cases {#retired-cases}
+
+Retired cases never ship to a run sheet, but their IDs stay reserved and their history stays here.
+
+| ID | Was | Retired on | Why | Covered now by |
+|---|---|---|---|---|
+| `PUB-004` | Public Website · Fund page and funding dialog render without provider crash | 2026-08-29 | Superseded by the end-to-end funding walks in catalog v2 | `PUB-014`, `PUB-030` |
+| `PUB-005` | Public Website · Funding dialog is usable on mobile | 2026-08-29 | Mobile funding-dialog coverage folded into the end-to-end donate walk in catalog v2 | `PUB-014` |
+| `PUB-009` | Public Website · Vaults page explains donate/endow boundaries and fails safely | 2026-08-29 | Vaults explanation and safe-failure coverage folded into the vault checkout and read-only browse walks | `PUB-017`, `PUB-030` |
+| `PWA-IOS-009` | PWA iOS · Commitment compose, accept/decline, and proof loop is coherent | 2026-08-29 | PWA tabs merged in catalog v2; commitments are covered by device-neutral rows | `PWA-032`, `PWA-033`, `PWA-034` |
+| `PWA-IOS-011` | PWA iOS · Profile handles identity, language, and session exit | 2026-08-29 | PWA tabs merged in catalog v2; profile is covered by the device-neutral row | `PWA-038` |
+| `XPLAT-001` | Cross Surface · No code-correct but visually broken controls | 2026-08-29 | Cross Surface dissolved in catalog v2; visual integrity is checked inside each surface's shell and accessibility rows | — |
+| `XPLAT-002` | Cross Surface · No banned or wrong-surface vocabulary appears | 2026-08-29 | Cross Surface dissolved in catalog v2; replaced by per-surface vocabulary rows | `PUB-033`, `PWA-045`, `ADM-035` |
+| `XPLAT-003` | Cross Surface · Network/media failures degrade gracefully | 2026-08-29 | Cross Surface dissolved in catalog v2; replaced by per-surface error-recovery rows, with the image-failure half covered by the editorial media-fallback row | `PUB-008`, `PWA-040`, `ADM-032`, `PUB-025` |
+| `XPLAT-004` | Cross Surface · Every failing test has enough evidence to triage | 2026-08-29 | Cross Surface dissolved in catalog v2; evidence expectations now live on every row's evidence field | — |
+| `XPLAT-006` | Cross Surface · Light and dark themes keep every control legible | 2026-08-29 | Cross Surface dissolved in catalog v2; theme legibility is covered per surface (editorial, docs, and admin) | `PUB-025`, `DOCS-006`, `ADM-036` |
+| `XPLAT-008` | Cross Surface · Long lists stay usable at real data volumes | 2026-08-29 | Cross Surface dissolved in catalog v2; behavior at real data volume is covered per surface | `PUB-003`, `ADM-031` |

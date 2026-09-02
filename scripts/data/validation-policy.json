@@ -279,6 +279,16 @@
       "prefixes": [".claude/skills/"]
     },
     {
+      "check": "qa-id-ledger",
+      "runInQa": true,
+      "runInEvidence": true,
+      "exact": [
+        "scripts/data/qa-test-catalog.json",
+        "scripts/data/qa-test-id-ledger.json",
+        "scripts/quality/check-qa-id-ledger.mjs"
+      ]
+    },
+    {
       "check": "test-quality",
       "runInEvidence": true,
       "exact": [
@@ -322,6 +332,7 @@
       "runInEvidence": true,
       "exact": [
         "scripts/data/qa-test-catalog.json",
+        "scripts/data/qa-test-id-ledger.json",
         "scripts/agents/qa-workbook-build.ts",
         "scripts/agents/qa-workbook-build.test.ts",
         "scripts/agents/qa-state.ts",
@@ -730,6 +741,16 @@
       "expectedSignal": "Codex guidance, skill behavior, and guidance links agree with the canonical skill tree",
       "freshness": "exact-guidance-inputs-and-toolchain",
       "budgetSeconds": 30,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "qa-id-ledger",
+      "command": "bun run check:qa-id-ledger",
+      "risk": "a QA Test ID is removed or reused, so OBS records, Linear slices, and past verdicts keyed on it change meaning",
+      "expectedSignal": "every Test ID present at the merge-base survives into the working tree and none repeats",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 15,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },

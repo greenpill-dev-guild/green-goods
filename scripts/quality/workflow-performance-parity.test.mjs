@@ -170,6 +170,16 @@ test("Supply Chain classifier routes each change class without broad fallthrough
     supply: true,
     parity: true,
   });
+  // Catalog and ledger edits reach the guidance job, where the cross-revision
+  // Test ID guard runs; a data-only PR must not skip it.
+  for (const dataPath of ["scripts/data/qa-test-catalog.json", "scripts/data/qa-test-id-ledger.json"]) {
+    assert.deepEqual(classifySupplyChainChanges([dataPath]), {
+      format: true,
+      guidance: true,
+      supply: false,
+      parity: false,
+    });
+  }
 });
 
 test("local hooks keep commit light and reuse the focused push contract", () => {
