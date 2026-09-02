@@ -81,8 +81,20 @@
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending
-- Run at (UTC): pending
-- Exact command(s): pending
-- Result: pending
-- Validated paths: pending
+- Tested implementation commit SHA: `a371f05eb3f2195eb3729ba7f3211033eb14d53d` (PR
+  [#793](https://github.com/greenpill-dev-guild/green-goods/pull/793) head at publication)
+- Run at (UTC): `2026-09-02T04:15:57Z`
+- Exact command(s): `node scripts/dev/ci-local.js --intent push --reuse-passing-receipts`
+  (push intent, sensitive tier: format, lint, docs-authority, agent-guidance, agent-tools-test);
+  `bun run test:validation-system`; `bun run test:review-guardrails`
+- Result: selected validation plan passed in 10 s — `agent-tools-test` 11 files / 175 tests,
+  skill behavior contracts 15 scenarios and 15 task routes, docs projections current; the
+  validation-system suite 193 pass / 0 fail; review guardrails 198 pass / 0 fail
+- Validated paths: `scripts/agents/qa-report.ts`, `scripts/agents/qa-report.test.ts`,
+  `scripts/agents/qa-workbook-build.ts`, `package.json`, `scripts/data/validation-policy.json`
+- Worktree identity command and result:
+  `git status --porcelain=v1 --untracked-files=all -- scripts/agents/qa-report.ts scripts/agents/qa-report.test.ts scripts/agents/qa-workbook-build.ts package.json scripts/data/validation-policy.json`
+  → empty
+- Publication: PR #793 → `develop`; the docs-guide polish this stacks on is PR
+  [#792](https://github.com/greenpill-dev-guild/green-goods/pull/792). Readiness follows
+  current-head GitHub CI on #793, not this local receipt.
