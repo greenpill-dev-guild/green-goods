@@ -9,6 +9,10 @@ const guidanceExact = new Set([
   "CLAUDE.md",
   "ONBOARDING.md",
   "scripts/quality/check-codex-docs.js",
+  // Catalog and ledger edits must reach the guidance job: it is where the
+  // cross-revision Test ID guard (check:qa-id-ledger) runs.
+  "scripts/data/qa-test-catalog.json",
+  "scripts/data/qa-test-id-ledger.json",
 ]);
 const guidancePrefixes = [
   ".codex/",
@@ -19,6 +23,7 @@ const guidancePrefixes = [
   "scripts/quality/check-guidance-links",
   "scripts/quality/check-skill-behavior-contracts",
   "scripts/quality/check-immutable-plan-reports",
+  "scripts/quality/check-qa-id-ledger",
 ];
 
 const supplyExact = new Set([
