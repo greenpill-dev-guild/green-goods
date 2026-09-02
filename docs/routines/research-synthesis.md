@@ -53,7 +53,7 @@ A grant proposal that cites a paper is not research signal; the paper is. A Buil
 
 ## Phase 0: Preflight and continuity
 
-**Agenda preflight (fail closed).** Locate `docs/routines/research-agenda.md` in the `green-goods` checkout (Glob `**/docs/routines/research-agenda.md`). If the trigger carried no checkout, use the shallow clone the pointer prompt made (`git clone --depth 1 https://github.com/greenpill-dev-guild/green-goods`; the repository is public and its default branch `develop` carries the agenda and the `.plans/` hubs). Read the agenda in full. Record its edition line. If it cannot be found or read, you have no compass: post exactly one line to `#research` (`🔬 Research Synthesis {date}: research agenda not readable from the green-goods checkout · skipping this run.`), write a short memo, and exit. Never fall back to deriving domains from the board.
+**Agenda preflight (fail closed).** Locate `docs/routines/research-agenda.md` in the `green-goods` checkout (Glob `**/docs/routines/research-agenda.md`). If the trigger carried no checkout, use the shallow clone the pointer prompt made (`git clone --shallow-since='14 days ago' https://github.com/greenpill-dev-guild/green-goods`; the repository is public and its default branch `develop` carries the agenda and the `.plans/` hubs). Read the agenda in full. Record its edition line. If it cannot be found or read, you have no compass: post exactly one line to `#research` (`🔬 Research Synthesis {date}: research agenda not readable from the green-goods checkout · skipping this run.`), write a short memo, and exit. Never fall back to deriving domains from the board.
 
 **Linear preflight (fail closed).** Probe the Linear connector by fetching one issue named in the agenda (RESR-73). If it is unauthenticated or unreachable, post exactly one line (`🔬 Research Synthesis {date}: Linear connector needs re-authorization · skipping this run.`), write a short memo naming the failed preflight, and exit. Never synthesize from the channel and call notes alone. This happened on 2026-08-29; the fail-closed line is the correct behaviour, and the memo should say that other Linear-reading routines are probably affected too.
 
@@ -87,9 +87,9 @@ Query Drive for Gemini notes modified in the last 7 days:
 title contains 'Notes by Gemini' and modifiedTime > '<7d ago RFC3339>' and mimeType = 'application/vnd.google-apps.document'
 ```
 
-Apply the reject step to every candidate before reading past its title and summary:
+Then run the same query once more with `and fullText contains 'WEFA'` added, and note which candidates it returns. Apply the reject step to every candidate before reading past its title and summary; every rule below is decided from the title, the summary, and those two result lists, never from the body:
 
-- drop any doc whose title contains `WEFA`, or whose body mentions `WEFA` five or more times without a guild project name;
+- drop any doc whose title contains `WEFA`, and any doc the `fullText contains 'WEFA'` query returned unless its title names a guild project (Green Goods, Greenpill, Build Sync, Engineering Sync, Growth Sync, or a pilot garden);
 - drop any doc whose summary says no summary was produced and whose transcript is under three minutes, unless a watch keyword appears in it;
 - drop personal one-to-ones and coffee meets unless a watch keyword appears in the summary or next steps;
 - drop everything in the out-of-scope table (a bug list is `qa-triage-pulse`'s; a grant list is `guild-grant-scout`'s).
@@ -101,7 +101,7 @@ From each surviving doc read the summary, the next steps, and only the transcrip
 For each track whose agenda entry names a hub under `.plans/`:
 
 - read `status.json` (`workflow.overall_status`, `workflow.updated_at`, lane states, the first few `notes`) and the top of the brief;
-- run `git log --since='7 days ago' --format='%h %ad %s' --date=short -- .plans/<hub>` in the checkout and read the changed files' headings when a commit touched the hub;
+- make sure the checkout carries the window: if `git rev-parse --is-shallow-repository` prints `true`, run `git fetch --shallow-since='14 days ago' origin` first (a trigger-attached checkout can be a single-commit clone, and a log over one commit would report every hub as quiet); then run `git log --since='7 days ago' --format='%h %ad %s' --date=short -- .plans/<hub>` and read the changed files' headings when a commit touched the hub;
 - for the commitment-pooling hub, read only the **Status** line at the top of `plan.todo.md` and the files `status.json.links` points at for the track's open questions. Do not load the hub indiscriminately; it is over 190 files.
 
 Record: did execution move, and does any change answer or reopen an `Open` item.
@@ -138,6 +138,8 @@ Bring back **at most 3 items**, each with the link, one sentence on what it is, 
 - **Papers and ecosystem writing are welcome only through the frontier.** An interesting paper on mutual credit is in scope when track 1's `Open` list asks the question it answers, and not otherwise.
 
 ## Phase 4: Write where the team looks (gated)
+
+**Create the memo first.** Before any Linear or Discord write, create the Phase 6 memo document in Drive with the sections you already have (mode, agenda edition, the per-track ledger, signal classification, connections, cycle coherence, the outside pass, agenda drift, open threads) and record its URL; every template below that asks for the memo URL uses it. Phase 6 then updates that same document with the writes made and the posted text. If Drive creation fails, continue without a URL and write `memo unavailable` where the templates want it.
 
 All writes go through the Linear connector; sign everything `research-synthesis`; skip any surface this routine already wrote to within 6 days. Labels, when needed, are passed as **bare child names** (`["research", "routine", "green-goods"]`), never `group:child`, because one unresolvable entry rejects the whole array. The `save_issue` lint hook in the checkout (`.claude/scripts/lint-linear-issue.sh`) applies; write to its structure rather than letting a rejection tell you.
 
@@ -178,7 +180,7 @@ POST https://discord.com/api/v10/channels/${DISCORD_RESEARCH_CHANNEL_ID}/message
   -d '{ "content": "<message>", "allowed_mentions": { "users": ["${DISCORD_USER_ID_AFO}"] } }'
 ```
 
-On a non-2xx response, log the status and body and exit non-zero. Never treat a failed post as success.
+On a non-2xx response, log the status and body, finalize the Phase 6 memo anyway with the intended text and the failure recorded in its mode line (so the next run sees a degraded run and widens its windows), then exit non-zero. Never treat a failed post as success.
 
 **House style v2, one message** (~900 characters target, ~1,500 ceiling; cut content rather than chunk). Wrap URLs in `<...>` to suppress embeds, except up to 2 bare URLs for the week's best new sources. Omit any empty section. Tracks appear in agenda order, and only when they moved or need a human. Shape:
 
@@ -207,12 +209,14 @@ On a non-2xx response, log the status and body and exit non-zero. Never treat a 
 **Quiet week** (no track moved, channel silent, no call-note decisions, nothing gathered, nothing written): exactly one line, no mention:
 
 ```text
-🔬 Research Synthesis · week of {YYYY-MM-DD}: quiet week · {cycle name} · agenda v{n}, nothing moved, nothing blocked. Memo → <url>
+🔬 Research Synthesis · week of {YYYY-MM-DD}: quiet week · {cycle name} · agenda v{n}, nothing moved, nothing newly blocked{ · still waiting: {track} on {the external party}}. Memo → <url>
 ```
+
+The `still waiting` clause lists every track whose agenda `Stage` is `blocked (external)`, in a few words each, so a quiet week never reads as a week in which standing blockers cleared.
 
 ## Phase 6: Memo (memory substrate)
 
-Always write the memo, at `Greenpill Dev Guild / Research / YYYY-MM-DD research synthesis` (the same folder and title convention as v3, so continuity queries keep working). Sections, in order:
+Finalize the memo created at the start of Phase 4, at `Greenpill Dev Guild / Research / YYYY-MM-DD research synthesis` (the same folder and title convention as v3, so continuity queries keep working), by updating it with the writes made and the posted text. Sections, in order:
 
 1. **Mode** (active, quiet, or degraded) and the agenda edition read.
 2. **Per-track ledger**, in agenda order: moved or quiet · state line · movement with citations · frontier check (answered, unchanged, new) · stage check · next step and who · needs-a-human, if any.
@@ -226,7 +230,7 @@ Always write the memo, at `Greenpill Dev Guild / Research / YYYY-MM-DD research 
 10. **Spec observation** (one line, only if the spec seemed wrong this run).
 11. The exact **posted text**.
 
-If the Drive write fails, the run still counts (the post is the primary deliverable); log the failure, do not retry.
+If the Drive update fails, the run still counts (the post is the primary deliverable); log the failure, do not retry. If the memo could not be created in Phase 4 at all, write it now as a last attempt so the next run can see this one.
 
 ## Guardrails
 
@@ -252,7 +256,7 @@ You are the **research-synthesis** routine for Green Goods (Greenpill Dev Guild)
 
 Locate it before doing anything else:
 1. Look for a green-goods checkout among your cloned sources: Glob `**/docs/routines/research-synthesis.md` (or `find . -path '*docs/routines/research-synthesis.md'`).
-2. If no checkout exists, clone the public repository shallowly into a scratch directory and read from there: `git clone --depth 1 https://github.com/greenpill-dev-guild/green-goods /tmp/green-goods` (its default branch, `develop`, carries the spec, the agenda, and the `.plans/` hubs the spec reads).
+2. If no checkout exists, clone the public repository into a scratch directory with two weeks of history and read from there: `git clone --shallow-since='14 days ago' https://github.com/greenpill-dev-guild/green-goods /tmp/green-goods` (its default branch, `develop`, carries the spec, the agenda, and the `.plans/` hubs the spec reads; the history is what the spec's seven-day plan scan needs, with room to widen after a failed run).
 3. Read the entire spec file and follow it exactly as your instructions for this run. Treat the checkout as read-only: never commit, push, or open a pull request.
 
 If the file cannot be located or read by either path, do not improvise a run from memory, from a stale copy, or from the retired guild-level `routines/claude/research-synthesis.md`: STOP and report that the routine could not load its operating prompt from green-goods, then exit.
@@ -266,7 +270,7 @@ Decided on 2026-09-02 by the steward: the guild-level research synthesis is reti
 
 **Still needed in the routines UI, before Saturday 2026-09-05 00:00 UTC.**
 
-1. On **Green Goods Research Synthesis**: add the **Google Drive** and **Linear** connectors (the API stored the trigger without any, and without Linear every run fails closed at Phase 0), and set the model to **`claude-fable-5`** (the API left it on the platform default; a routine left there silently runs the wrong tier). Confirm Bash, Read, Glob, and Grep are allowed tools so the clone and the Discord REST calls can run. Optionally add `greenpill-dev-guild/green-goods` as a source to skip the clone.
+1. On **Green Goods Research Synthesis**: set the model to **`claude-fable-5`** (the API left it on the platform default; a routine left there silently runs the wrong tier). The Google Drive and Linear connectors were attached in the UI on 2026-09-02 (PostHog and Miro are attached too and unused). Bash, Read, Glob, Grep, and WebFetch are already allowed, so the clone, the outside pass, and the Discord REST calls can run. Optionally add `greenpill-dev-guild/green-goods` as a source to skip the clone.
 2. **Disable** **Dev Guild Research Synthesis**. Until it is disabled, both routines fire on Saturday and `#research` gets a v3 digest and a v4 digest.
 3. Re-authorize the Linear connector; the 2026-08-29 run failed closed on an expired authorization.
 4. Merge this spec and `research-agenda.md` to `develop`; the pointer clones the default branch, and without them the first run fails closed with a one-line post rather than improvising.
