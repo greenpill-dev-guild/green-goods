@@ -10,7 +10,7 @@
 | # | Decision | Rationale |
 |---|----------|-----------|
 | 1 | Five phases, each an independently shippable PR to `develop` | Diátaxis anti-big-bang; site never worse mid-migration; avoids stacked-PR CI Gate gaps |
-| 2 | One lane branch per phase, cut from fresh `develop` after the prior phase merges | Keeps CI Gate firing normally (gate filters on base) |
+| 2 | ~~One lane branch per phase~~ **Amended by Afo 2026-09-02: all phases proceed on `feature/builder-docs-rebuild`**; PR #795 grows with each phase | Afo's explicit direction after Phase 1 review; single review surface, one CI stream |
 | 3 | Hybrid integration mechanism: pages become hand-owned MDX that render generated projection data via a component | Meaning stays human-editable (D4); concrete details keep digest-gated provenance |
 | 4 | Skills catalog generated from `.claude/skills/*/README.md` with `SKILL.md` description fallback | Catalog complete on day one (D8); improves as READMEs land |
 | 5 | Mermaid zoom implemented site-wide, not per-page | Every diagram benefits; one mechanism to maintain |

@@ -57,17 +57,13 @@ const sidebars: SidebarsConfig = {
 
   buildersSidebar: [
     {type: 'doc', id: 'builders/getting-started', label: 'Getting Started'},
-    {type: 'doc', id: 'builders/how-to-contribute', label: 'How To Contribute'},
-    {type: 'doc', id: 'builders/env-management', label: 'Environment Management'},
-    {type: 'doc', id: 'builders/ethereum-alignment', label: 'Ethereum Alignment'},
+    {type: 'doc', id: 'builders/how-to-contribute', label: 'First Contribution'},
     {
       type: 'category',
       label: 'Architecture',
       link: {type: 'doc', id: 'builders/architecture'},
       items: [
-        {type: 'doc', id: 'builders/architecture/local-vs-global', label: 'Local vs Global'},
         {type: 'doc', id: 'builders/architecture/erd', label: 'Entity Relationships'},
-        {type: 'doc', id: 'builders/architecture/modular-approach', label: 'Modular Approach'},
         {type: 'doc', id: 'builders/architecture/sequence-diagrams', label: 'Sequences and States'},
       ],
     },

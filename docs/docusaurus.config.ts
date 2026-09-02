@@ -77,6 +77,15 @@ const config: Config = {
       {
         redirects: [
           {from: ['/builders/quality/gh-actions'], to: '/builders/deployments/gh-actions'},
+          {from: ['/builders/env-management'], to: '/builders/getting-started'},
+          {
+            from: [
+              '/builders/ethereum-alignment',
+              '/builders/architecture/local-vs-global',
+              '/builders/architecture/modular-approach',
+            ],
+            to: '/builders/architecture',
+          },
           {
             from: [
               '/welcome/quickstart-gardener',

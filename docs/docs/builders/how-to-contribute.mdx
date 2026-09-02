@@ -1,36 +1,115 @@
 ---
-title: How To Contribute
-sidebar_label: How To Contribute
+title: First Contribution
+sidebar_label: First Contribution
 slug: /builders/how-to-contribute
 sidebar_position: 2
 audience: developer
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-09-02
 feature_status: Live
 source_of_truth:
+  - CONTRIBUTING.md
   - AGENTS.md
-  - CLAUDE.md
   - package.json
-  - docs/scripts/docs-audit.mjs
 keywords:
   - contributing
   - pull request
+  - dev guild
   - git workflow
-  - coding standards
 ---
 
-# How To Contribute
+# First Contribution
 
-`CONTRIBUTING.md` owns the full branch, release, and pull-request process. This page is the shortest
-safe path for a code change.
+Green Goods is open-source infrastructure built by the
+[Greenpill Dev Guild](https://paragraph.com/@greenpilldevguild), and contributions of any size are
+welcome — a fixed typo teaches you the PR flow just as well as a feature does. This page walks the
+whole path: finding something to work on, making the change, proving it, and getting it merged.
 
-1. Read the root and nearest package `AGENTS.md` files.
-2. Confirm the owning package and keep the change within its public boundary.
-3. Preserve unrelated working-tree changes; multiple agents may share the checkout.
-4. Make the smallest coherent change and add direct proof for the behavior or contract moved.
-5. Run `bun run validation:plan -- --intent <your change>` and execute its selected checks.
-6. Follow the repository commit and PR conventions in `AGENTS.md` and `CONTRIBUTING.md`.
+The repository's [CONTRIBUTING.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/CONTRIBUTING.md)
+is the canonical process reference — branch model, release cadence, quality gate. This page is the
+guided version of that flow.
 
-For documentation, cite exact authority paths, keep conceptual prose stable, and use generated
-pages for routes, exports, deployments, workflows, ontology matrices, and QA inventories. Run
-`bun run docs:audit:ci`, `bun run check:docs-generated`, and `bun run build:docs` before handoff.
+## Find something to work on
+
+Green Goods tracks its work in Linear, not GitHub issues — GitHub is for pull requests and code
+review. That means the best first step is a conversation: say hello on
+[Telegram](https://t.me/+n7g-u8wYtwQ2YjVi) or [Discord](https://discord.gg/ZJjft2EKz7), tell us
+what interests you, and a maintainer will point you at a scoped task that fits.
+
+Two honest ground rules from the
+[contribution flow](https://github.com/greenpill-dev-guild/green-goods/blob/develop/CONTRIBUTING.md#contribution-flow):
+confirm scope with a maintainer before investing serious time, and don't treat unlabeled roadmap
+items as funded work — paid implementation is grant-dependent and always scoped in writing first.
+
+## Set up
+
+If you haven't run the project yet, [Getting Started](./getting-started) takes 15–30 minutes and
+ends with the app running on your machine. Come back here once you've seen it work.
+
+## Make the change
+
+1. Branch from `develop`, named `<type>/<short-work-description>` — for example
+   `fix/garden-join-toast` or `feature/assessment-export`. PRs target `develop` (the staging
+   branch); maintainers promote to `main` in monthly releases.
+2. Read the nearest `AGENTS.md` before editing a package — the root one maps the monorepo, and
+   each package carries its own with the rules that actually bite.
+3. Keep the change inside the smallest package boundary that solves the problem, and add or update
+   tests when behavior changes.
+
+A few repo-wide rules worth knowing before your first diff: React hooks live in
+`@green-goods/shared`, Ethereum addresses use the shared `Address` type, logging goes through the
+shared `logger` (never `console.log`), user-facing strings ship in `en`, `es`, and `pt` together,
+and there's exactly one `.env` — at the root. The full list lives in
+[CONTRIBUTING.md § Repo Rules](https://github.com/greenpill-dev-guild/green-goods/blob/develop/CONTRIBUTING.md#repo-rules).
+
+## Prove it
+
+Ask the repository which checks your change actually needs — it picks the smallest honest set:
+
+```bash
+bun run validation:plan -- --intent "what you changed"
+```
+
+Run what it selects. Before opening a normal PR, the baseline gate is:
+
+```bash
+bun run format:check
+bun run lint
+bun run check:source-structure
+bun run test
+bun run build
+```
+
+(Always `bun run test` — never `bun test`; the repo's test orchestration depends on it.) For
+end-to-end or authentication changes, run the matching Playwright project — the commands are in
+[CONTRIBUTING.md § Quality Gate](https://github.com/greenpill-dev-guild/green-goods/blob/develop/CONTRIBUTING.md#quality-gate).
+
+## Open the pull request
+
+Open the PR into `develop` and say three things: what changed, why, and how you validated it.
+Then expect some robot company:
+
+- **CI Gate** is the required check — it aggregates every workflow your change triggered, and the
+  PR merges only when it's green.
+- **CodeRabbit and Codex review every push.** Respond to what's right, explain what isn't — they
+  re-review each time you push.
+- Merging to `develop` deploys to staging. Your change reaches production with the next
+  [monthly release](https://github.com/greenpill-dev-guild/green-goods/blob/develop/CONTRIBUTING.md#releases-and-hotfixes).
+
+## Join the guild {#join-the-guild}
+
+- [Telegram](https://t.me/+n7g-u8wYtwQ2YjVi) and [Discord](https://discord.gg/ZJjft2EKz7) — where
+  the conversation happens.
+- The [guild-wide contributing guide](https://github.com/greenpill-dev-guild/.github/blob/main/CONTRIBUTING.md) —
+  how the Dev Guild works across all its projects.
+- The [blog](https://paragraph.com/@greenpilldevguild) — what we're building and why.
+- The [Code of Conduct](https://github.com/greenpill-dev-guild/.github/blob/main/CODE_OF_CONDUCT.md)
+  applies everywhere; report security issues through the
+  [Security Policy](https://github.com/greenpill-dev-guild/.github/blob/main/SECURITY.md), never a
+  public issue.
+
+## Next steps
+
+- [Getting Started](./getting-started) — run the project first.
+- [System Overview](./architecture) — find the package your change belongs in.
+- [Vitest](./testing/vitest) — the everyday unit-test runner behind `bun run test`.

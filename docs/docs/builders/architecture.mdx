@@ -1,48 +1,108 @@
 ---
-title: Architecture
+title: System Overview
+sidebar_label: System Overview
 sidebar_position: 3
 slug: /builders/architecture
 audience: developer
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-09-02
 feature_status: Live
 source_of_truth:
   - AGENTS.md
   - package.json
-  - docs/sidebars.ts
-  - packages/client/AGENTS.md
-  - packages/admin/AGENTS.md
-  - packages/shared/AGENTS.md
-  - packages/indexer/AGENTS.md
-  - scripts/data/module-seam-registry.json
+  - packages/shared/package.json
+  - packages/contracts/src/modules
+  - packages/shared/src/modules/job-queue
+keywords:
+  - architecture
+  - monorepo
+  - data flow
+  - attestations
 ---
 
-# Architecture
+# System Overview
 
-Green Goods is a Bun monorepo with six runtime packages: contracts, shared, indexer, client,
-admin, and agent. Code and package guides own their boundaries; this page is the map for finding
-the right owner.
+Green Goods turns community environmental work into verifiable on-chain records: gardeners capture
+work in a mobile app that works offline, stewards review it, and approved work becomes an
+[EAS](https://docs.attest.org/docs/welcome) attestation that funders and apps can trust. Everything
+below exists to serve that loop.
 
-## Dependency direction
+## The shape of the system
 
-```text
-contracts → shared → client / admin / agent
-    └─────→ indexer
+```mermaid
+flowchart LR
+  gardener([Gardener]) --> client["Client PWA<br/>(capture, offline)"]
+  client --> queue["Job queue<br/>(local-first)"]
+  queue --> contracts["Contracts + EAS resolvers<br/>(authorization, attestations)"]
+  contracts --> indexer["Envio indexer<br/>(event projection)"]
+  indexer --> graphql[("GraphQL<br/>read models")]
+  graphql --> client
+  graphql --> admin["Admin cockpit<br/>(review, approve)"]
+  graphql --> agent["Agent<br/>(bots, public API)"]
+  steward([Steward]) --> admin
+  admin --> contracts
 ```
 
-- `packages/contracts` owns protocol state, authorization, attestations, and deployment artifacts.
-- `packages/shared` owns cross-application hooks, modules, providers, types, and UI foundations.
-- `packages/indexer` projects contract events into queryable read models.
-- `packages/client` owns the public website and installed PWA.
-- `packages/admin` owns the steward cockpit.
-- `packages/agent` owns messaging and public HTTP surfaces.
+Work flows left to right: capture happens in the client, becomes protocol truth in the contracts,
+and comes back to every surface through the indexer. Nothing reads chain state directly in the
+apps — the indexer's read models are the query layer.
 
-Read the nearest package `AGENTS.md` before changing a package. Use the generated [API
-index](./packages/api-index), [entity diagram](./architecture/erd), and [deployment
-status](./deployments/status) for volatile inventories.
+## The packages
 
-## Decisions that do not belong in code
+| Package | What it owns | In production |
+|---|---|---|
+| [`contracts`](./packages/contracts) | Protocol state, authorization, attestation resolvers, deployment artifacts | [Arbitrum One and others](./deployments/status) |
+| [`shared`](./packages/shared) | Cross-app hooks, providers, protocol modules, UI foundations | Inside every app bundle |
+| [`indexer`](./packages/indexer) | Envio handlers projecting contract events into GraphQL read models | Envio hosted service |
+| [`client`](./packages/client) | Public website and the installed PWA | [greengoods.app](https://greengoods.app) |
+| [`admin`](./packages/admin) | The steward cockpit | [admin.greengoods.app](https://admin.greengoods.app) |
+| [`agent`](./packages/agent) | Messaging bots and the public HTTP API | Hosted service |
+| `qa` | The team's two-writer QA checklist app | [qa.greengoods.app](https://qa.greengoods.app) |
 
-Architecture rationale, rejected alternatives, and cross-package sequencing belong in the owning
-Plan Hub or an ADR-style record. Public docs explain stable boundaries and user flows; they do not
-copy exports, routes, addresses, or implementation walkthroughs.
+Dependencies point one way: `contracts → shared → client / admin / agent`, with `indexer` fed by
+contracts events. Apps import shared code only through its
+[declared package exports](./packages/api-index) — never `src/` paths.
+
+## Where data lives
+
+The system deliberately splits state into two homes:
+
+- **Local-first** — drafts, media being prepared, retry state, and install caches stay on the
+  device. The shared job queue holds captured work safely offline and replays it when
+  connectivity and authorization allow.
+- **Chain-global** — attestations, Garden roles, approvals, and contract state are the durable
+  coordination layer, scoped to a chain and shared by everyone.
+
+The rule that keeps this honest: UI may explain that something is syncing or failed, but it never
+presents unconfirmed work as protocol truth. If you're changing this boundary, start at the shared
+job-queue and service-worker modules, and prove offline recovery before touching interface copy.
+
+## The module boundary
+
+Two contracts anchor the protocol: the **Garden token** (each garden is an on-chain account) and
+the **Action registry** (what kinds of work exist). Everything else — roles via
+[Hats](./integrations/hats), vaults via [Octant](./integrations/octant), distributions via
+[Cookie Jar](./integrations/cookie-jar), certification via
+[Hypercerts](./integrations/hypercerts) — is an optional module a garden may or may not have on a
+given chain. A module's deployment artifact, not its source code, decides whether it exists
+somewhere: the [deployment status page](./deployments/status) is the canonical record.
+
+## Design principles
+
+Five tests guide the tradeoffs, in the spirit of the Ethereum ecosystem Green Goods builds on:
+
+- **Verifiability** — work, approvals, roles, and deployments all have inspectable sources of
+  truth.
+- **User agency** — a participant can keep their evidence and records without depending on any
+  single interface vendor.
+- **Least disclosure** — public records carry only what coordination requires; identities and
+  private evidence stay off-chain.
+- **Open implementation** — protocol and client behavior can be inspected, tested, and replaced.
+- **Operational honesty** — a deployed address is never presented as a live, healthy feature
+  without separate evidence.
+
+## Next steps
+
+- [Entity Relationships](./architecture/erd) — the data model, layer by layer.
+- [API Index](./packages/api-index) — every public export and route, generated from the code.
+- [Deployment Status](./deployments/status) — what's actually deployed where.
