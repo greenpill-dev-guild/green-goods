@@ -23,6 +23,7 @@ test("accepts appends and an empty base", () => {
 test("rejects a ledger that is not JSON or has no string ids", () => {
   assert.throws(() => parseLedger("{ nope", "fixture"), /not valid JSON/);
   assert.throws(() => parseLedger('{"ids": "PUB-001"}', "fixture"), /string array/);
+  assert.throws(() => parseLedger('{"ids": []}', "fixture"), /string array/);
   assert.throws(() => parseLedger('{"ids": ["PUB-001", 7]}', "fixture"), /string array/);
 });
 

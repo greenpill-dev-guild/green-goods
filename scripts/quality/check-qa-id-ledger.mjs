@@ -28,7 +28,7 @@ export function parseLedger(text, label) {
     throw new Error(`${label} is not valid JSON`);
   }
   const ids = parsed?.ids;
-  if (!Array.isArray(ids) || ids.some((id) => typeof id !== "string" || !id.trim())) {
+  if (!Array.isArray(ids) || ids.length === 0 || ids.some((id) => typeof id !== "string" || !id.trim())) {
     throw new Error(`${label} must carry a non-empty string array at ids`);
   }
   return ids;
