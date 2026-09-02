@@ -151,9 +151,9 @@ paste the results blocks into the Linear parent; confirm no hand-counted numbers
 - [ ] `bun run validation:plan -- --intent push` before the push gate
 
 ### Fresh Evidence Receipt
-- **Tested implementation commit SHA**: `84226a4e4b83dc21722c85e102cda9a2e3a7e81e`
-- **Run at (UTC)**: `2026-09-02T08:37:02Z`
+- **Tested implementation commit SHA**: `fafa5d0c2c64dc206463d8a1c05fac9de394b92d`
+- **Run at (UTC)**: `2026-09-02T08:46:34Z`
 - **Command**: see `handoffs/claude-state-api.md` § Validation Receipt (agent tools, validation-system, review guardrails, ledger guard, docs gate, guidance links, ontology, push plan)
-- **Result**: 190 agent-tool tests passed; guidance and skill guards green; push plan passed
+- **Result**: 193 agent-tool tests passed; guidance and skill guards green; push plan passed
 - **Validated paths**: `scripts/agents/qa-report.ts`, `scripts/agents/qa-report.test.ts`, `scripts/agents/qa-workbook-build.ts`, `package.json`, `scripts/data/validation-policy.json`
 - **Worktree identity command and result**: `git status --porcelain=v1 --untracked-files=all -- <validated paths>` → empty

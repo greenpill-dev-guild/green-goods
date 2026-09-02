@@ -79,18 +79,20 @@
 - `bun --bun x vitest run --dir scripts/agents` green at the GREEN timestamp above (see receipt at
   lane close; this is batch evidence, not the terminal receipt).
 
+Batch sections above record each batch's proof at its own moment (their test counts grew as suites were added); this receipt is the current terminal evidence.
+
 ## Validation Receipt
 
-- Tested implementation commit SHA: `84226a4e4b83dc21722c85e102cda9a2e3a7e81e` (PR
+- Tested implementation commit SHA: `fafa5d0c2c64dc206463d8a1c05fac9de394b92d` (PR
   [#793](https://github.com/greenpill-dev-guild/green-goods/pull/793) head after the review
   hardening round: public-projection redactions, `--out` confinement, zoned windows with
   pull-time clamping, cleared-transition delta, prototype-safe tallies, one-line notes,
   `results.csv` note precedence, runtime `kinds` validation)
-- Run at (UTC): `2026-09-02T08:37:02Z`
-- Exact command(s): `bun --bun x vitest run --dir scripts/agents`;
+- Run at (UTC): `2026-09-02T08:46:34Z`
+- Exact command(s): `bun run test:agent-tools` (`bun --bun x vitest run --dir scripts/agents`);
   `node scripts/quality/check-guidance-links.mjs`; `bun run check:skill-behavior`;
   `bun run check:docs-generated`; `node scripts/dev/ci-local.js --intent push --reuse-passing-receipts`
-- Result: agent tools 11 files / 190 tests passed; 61 guidance files OK; 15 skill scenarios and
+- Result: agent tools 11 files / 193 tests passed; 61 guidance files OK; 15 skill scenarios and
   15 task routes passed; 18 projections current; push plan passed (format, lint, docs-authority,
   agent-guidance, agent-tools-test)
 - Validated paths: `scripts/agents/qa-report.ts`, `scripts/agents/qa-report.test.ts`,
@@ -99,6 +101,6 @@
 - Worktree identity command and result:
   `git status --porcelain=v1 --untracked-files=all -- scripts/agents/qa-report.ts scripts/agents/qa-report.test.ts scripts/agents/qa-workbook-build.ts scripts/agents/qa-workbook-build.test.ts package.json scripts/data/validation-policy.json`
   → empty
-- Superseded receipts: `07f83903a` (first hardening round), `642a708c0` (merge of develop), and `a371f05eb` (initial publication) —
+- Superseded receipts: `84226a4e4` (second hardening round), `07f83903a` (first hardening round), `642a708c0` (merge of develop), and `a371f05eb` (initial publication) —
   each superseded because a validated path changed afterwards.
 - Publication: PR #793 → `develop`; readiness follows current-head GitHub CI, not this receipt.
