@@ -103,6 +103,7 @@
     "qa:workbook": "bun scripts/agents/qa-workbook-build.ts",
     "qa:pull": "bun scripts/agents/qa-state-pull.ts",
     "qa:status": "bun scripts/agents/qa-status.ts",
+    "qa:report": "bun scripts/agents/qa-report.ts",
     "test:agent-tools": "bun --bun x vitest run --dir scripts/agents",
     "dev:contracts": "cd packages/contracts && bun run dev",
     "dev:contracts:arbitrum-fork": "cd packages/contracts && bun run dev:arbitrum-fork",

@@ -14,14 +14,14 @@ derived from the code and open to challenge before Step 2.
 
 | Requirement | Planned Step | Status |
 |-------------|--------------|--------|
-| Results by priority and by kind from the join, never hand-counted | Steps 2–4 | ⏳ |
-| Session-window scoping with the slug-day default | Steps 2–3 | ⏳ |
-| Fail/blocked list with attributed notes (private) | Steps 3–4 | ⏳ |
-| Coverage gaps: never-walked by priority, stale | Step 5 | ⏳ |
-| Delta against a previous snapshot | Step 5 | ⏳ |
-| Per-tester coverage, private variant only | Steps 3–4 | ⏳ |
-| `--public` projection with privacy proof | Step 4 | ⏳ |
-| CLI + `qa:report` script | Step 6 | ⏳ |
+| Results by priority and by kind from the join, never hand-counted | Steps 2–4 | ✅ |
+| Session-window scoping with the slug-day default | Steps 2–3 | ✅ |
+| Fail/blocked list with attributed notes (private) | Steps 3–4 | ✅ |
+| Coverage gaps: never-walked by priority, stale | Step 5 | ✅ |
+| Delta against a previous snapshot | Step 5 | ✅ |
+| Per-tester coverage, private variant only | Steps 3–4 | ✅ |
+| `--public` projection with privacy proof | Step 4 | ✅ |
+| CLI + `qa:report` script | Step 6 | ✅ |
 | Routine, skills, templates, and contract embed the generated sections | Step 7 | ⏳ |
 | Docs name the generator; real example after the first call | Step 8 | ⏳ |
 | First real report for the 2026-09-02 call | Step 9 | ⏳ |

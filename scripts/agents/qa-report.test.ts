@@ -1,8 +1,12 @@
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
 import { describe, expect, it } from "vitest";
 
-import { buildReportModel, parseWindow } from "./qa-report";
+import { buildReportModel, parseArgs, parseWindow, renderReport, runReport } from "./qa-report";
 import { mergeShards, type Shard } from "./qa-state";
-import type { CatalogCase } from "./qa-workbook-build";
+import type { Catalog, CatalogCase } from "./qa-workbook-build";
 
 function makeCase(overrides: Partial<CatalogCase> = {}): CatalogCase {
   return {
@@ -175,5 +179,216 @@ describe("QA report issues and testers", () => {
       count: 2,
       perPerson: { Afo: { touched: 2, decided: 1 }, Gui: { touched: 1, decided: 1 } },
     });
+  });
+});
+
+const KINDS = [
+  { id: "journey", label: "Journey", verifies: "A person completes a flow" },
+  { id: "transaction", label: "Transaction", verifies: "Real wallet writes" },
+  { id: "content", label: "Content & vocabulary", verifies: "Copy holds" },
+];
+
+function model(cases: CatalogCase[], shards: Shard[], extra: Partial<Parameters<typeof buildReportModel>[2]> = {}) {
+  return buildReportModel(cases, mergeShards(shards), { slug: SLUG, window: WINDOW, pulledAt: IN_WINDOW, ...extra });
+}
+
+describe("QA report rendering", () => {
+  it("renders the parent template's results line shape and drops zero segments", () => {
+    const p0 = ["pass", "pass", "pass", "fail", "blocked", "", ""];
+    const p1 = ["pass", "fail", "blocked", "na", "note", "", "", "", ""];
+    const cases = [
+      ...p0.map((_, index) => makeCase({ id: `PUB-00${index + 1}`, priority: "P0" })),
+      ...p1.map((_, index) => makeCase({ id: `PUB-10${index + 1}`, priority: "P1" })),
+      makeCase({ id: "PUB-201", priority: "P2" }),
+      makeCase({ id: "PUB-202", priority: "P2" }),
+    ];
+    const entries: Record<string, { s: string; n: string; at: string }> = {};
+    p0.forEach((status, index) => {
+      if (status) entries[`PUB-00${index + 1}`] = { s: status, n: "", at: IN_WINDOW };
+    });
+    p1.forEach((status, index) => {
+      if (status === "note") entries[`PUB-10${index + 1}`] = { s: "", n: "seen", at: IN_WINDOW };
+      else if (status) entries[`PUB-10${index + 1}`] = { s: status, n: "", at: IN_WINDOW };
+    });
+
+    const report = renderReport(model(cases, [shard("Afo", entries)]), { kinds: KINDS }, { variant: "private" });
+
+    expect(report).toContain(
+      "## Results by priority\n- P0: 5/7 — 3 pass · 1 fail · 1 blocked\n- P1: 5/9 — 1 pass · 1 fail · 1 blocked · 1 n/a · 1 noted only\n- P2: 0/2\n",
+    );
+  });
+
+  it("labels kinds from the catalog, in catalog order", () => {
+    const cases = [
+      makeCase({ id: "PUB-001", kind: "content" }),
+      makeCase({ id: "PUB-002", kind: "journey", priority: "P1" }),
+      makeCase({ id: "PUB-003", kind: "transaction", priority: "P2" }),
+    ];
+    const report = renderReport(
+      model(cases, [shard("Afo", { "PUB-001": { s: "pass", n: "", at: IN_WINDOW }, "PUB-002": { s: "fail", n: "", at: IN_WINDOW } })]),
+      { kinds: KINDS },
+      { variant: "public" },
+    );
+
+    expect(report).toContain("## Results by kind\n- Journey: 1/1 — 1 fail\n- Transaction: 0/1\n- Content & vocabulary: 1/1 — 1 pass\n");
+  });
+
+  it("keeps notes and testers private, and lets no label, note, or address into the public variant", () => {
+    const cases = [makeCase({ area: "Garden Discovery" }), makeCase({ id: "PUB-002" })];
+    const shards: Shard[] = [
+      shard("Afo", { "PUB-001": { s: "fail", n: "wallet 0xdeadbeef prompted twice", at: IN_WINDOW } }),
+      { address: "0x1234567890abcdef1234567890abcdef12345678", entries: { "PUB-002": { s: "pass", n: "", at: IN_WINDOW } } },
+    ];
+
+    const privateReport = renderReport(model(cases, shards), { kinds: KINDS }, { variant: "private" });
+    const publicReport = renderReport(model(cases, shards), { kinds: KINDS }, { variant: "public" });
+
+    expect(privateReport).toContain("- `PUB-001` · P0 · Journey · Garden Discovery — Fail — Afo: wallet 0xdeadbeef prompted twice");
+    expect(privateReport).toContain("- Afo: 1 touched · 1 decided");
+    expect(privateReport).toContain("- 0x1234…5678: 1 touched · 1 decided");
+    expect(publicReport).toContain("- `PUB-001` · P0 · Journey · Garden Discovery — Fail\n");
+    expect(publicReport).toContain("## Testers\n- 2 testers\n");
+    for (const secret of ["Afo", "0x", "prompted twice"]) expect(publicReport).not.toContain(secret);
+  });
+});
+
+describe("QA report delta and gaps", () => {
+  it("compares standing verdicts against a previous snapshot and reports unknown ids", () => {
+    const cases = ["PUB-001", "PUB-002", "PUB-003", "PUB-004", "PUB-005"].map((id) => makeCase({ id }));
+    const previous = mergeShards([
+      shard("Afo", {
+        "PUB-001": { s: "fail", n: "", at: BEFORE_WINDOW },
+        "PUB-002": { s: "pass", n: "", at: BEFORE_WINDOW },
+        "PUB-003": { s: "blocked", n: "", at: BEFORE_WINDOW },
+        "PUB-004": { s: "fail", n: "", at: BEFORE_WINDOW },
+        "XPLAT-001": { s: "fail", n: "", at: BEFORE_WINDOW },
+      }),
+    ]);
+    const current = [
+      shard("Afo", {
+        "PUB-001": { s: "pass", n: "", at: IN_WINDOW },
+        "PUB-002": { s: "fail", n: "", at: IN_WINDOW },
+        "PUB-003": { s: "blocked", n: "", at: BEFORE_WINDOW },
+        "PUB-004": { s: "fail", n: "", at: IN_WINDOW },
+        "PUB-005": { s: "blocked", n: "", at: IN_WINDOW },
+      }),
+    ];
+    const baseline = "tmp/qa-session/2026-08-31/qa-state.json";
+
+    const built = model(cases, current, { previous: { path: baseline, entries: previous } });
+
+    expect(built.delta).toEqual({
+      baseline,
+      newlyFailing: ["PUB-002"],
+      newlyBlocked: ["PUB-005"],
+      fixed: ["PUB-001"],
+      stillFailing: ["PUB-004"],
+      stillBlocked: ["PUB-003"],
+      unknown: ["XPLAT-001"],
+    });
+    const report = renderReport(built, { kinds: KINDS }, { variant: "public" });
+    expect(report).toContain(`## Delta vs ${baseline}\n`);
+    expect(report).toContain("- Fixed (1): `PUB-001`\n");
+    expect(report).toContain("- Unknown or retired on one side (1): `XPLAT-001`\n");
+  });
+
+  it("names the missing baseline instead of faking a delta", () => {
+    const report = renderReport(model([makeCase()], []), { kinds: KINDS }, { variant: "public" });
+    expect(report).toContain("## Delta\n- No baseline supplied — pass --previous <earlier qa-state.json> to compare.\n");
+  });
+
+  it("groups never-walked cases by priority and measures staleness from the window end", () => {
+    const cases = [makeCase(), makeCase({ id: "PUB-002" }), makeCase({ id: "PUB-003", priority: "P1" })];
+    const built = model(
+      cases,
+      [shard("Afo", { "PUB-001": { s: "pass", n: "", at: IN_WINDOW }, "PUB-002": { s: "pass", n: "", at: "2026-07-01T12:00:00.000Z" } })],
+      { staleDays: 30 },
+    );
+
+    expect(built.gaps).toEqual({
+      neverWalked: { P0: ["PUB-002"], P1: ["PUB-003"] },
+      stale: [{ id: "PUB-002", lastEntryAt: "2026-07-01T12:00:00.000Z" }],
+    });
+    const report = renderReport(built, { kinds: KINDS }, { variant: "public" });
+    expect(report).toContain("## Coverage gaps\n- Never walked this session: P0 (1) · P1 (1)\n- P0 not walked: `PUB-002`\n");
+    expect(report).toContain("- Stale (>30 days by entry timestamp) (1): `PUB-002` — last entry 2026-07-01T12:00:00.000Z\n");
+  });
+});
+
+describe("QA report CLI", () => {
+  it("parses the full flag set", () => {
+    expect(
+      parseArgs([
+        "--slug", "2026-09-02",
+        "--window", "2026-09-02T17:45:00Z..2026-09-02T19:30:00Z",
+        "--previous", "tmp/qa-session/2026-08-31/qa-state.json",
+        "--build", "client=abc123,admin=def456",
+        "--public",
+        "--stale-days", "14",
+        "--out", "tmp/qa-session/2026-09-02-call",
+      ]),
+    ).toEqual({
+      slug: "2026-09-02",
+      window: "2026-09-02T17:45:00Z..2026-09-02T19:30:00Z",
+      previous: "tmp/qa-session/2026-08-31/qa-state.json",
+      build: { client: "abc123", admin: "def456" },
+      public: true,
+      staleDays: 14,
+      out: "tmp/qa-session/2026-09-02-call",
+    });
+    expect(parseArgs(["--slug", "2026-09-02"])).toEqual({ slug: "2026-09-02", public: false, staleDays: 30 });
+  });
+
+  it("rejects unknown flags, missing values, and malformed values before any file is touched", () => {
+    expect(() => parseArgs([])).toThrow(/--slug/);
+    expect(() => parseArgs(["--slug"])).toThrow(/missing value/);
+    expect(() => parseArgs(["--slug", "2026-09-02", "--bogus"])).toThrow(/unknown argument/);
+    expect(() => parseArgs(["--slug", "2026-09-02", "--stale-days", "0"])).toThrow(/--stale-days/);
+    expect(() => parseArgs(["--slug", "2026-09-02", "--build", "web=abc"])).toThrow(/--build/);
+  });
+
+  it("writes report.md and, with --public, report.public.md beside the pulled session", async () => {
+    const root = mkdtempSync(path.join(tmpdir(), "qa-report-"));
+    const sessionDir = path.join(root, "tmp", "qa-session", SLUG);
+    mkdirSync(sessionDir, { recursive: true });
+    writeFileSync(
+      path.join(sessionDir, "qa-state.json"),
+      JSON.stringify({
+        slug: SLUG,
+        pulledAt: IN_WINDOW,
+        summary: {},
+        entries: { "PUB-001": { Afo: { s: "fail", n: "PRIVATE NOTE CANARY", at: IN_WINDOW } } },
+      }),
+    );
+    const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, cases: [makeCase(), makeCase({ id: "XPLAT-001", status: "retired" })] };
+
+    const written = await runReport(parseArgs(["--slug", SLUG, "--window", "2026-09-02T17:45:00Z..2026-09-02T19:30:00Z", "--public"]), { catalog, repoRoot: root });
+
+    expect(written).toEqual({ report: path.join(sessionDir, "report.md"), publicReport: path.join(sessionDir, "report.public.md") });
+    const privateReport = readFileSync(written.report, "utf8");
+    const publicReport = readFileSync(written.publicReport as string, "utf8");
+    expect(privateReport).toContain("QA session 2026-09-02");
+    expect(privateReport).toContain("PRIVATE NOTE CANARY");
+    expect(privateReport).toContain("- P0: 1/1 — 1 fail");
+    expect(publicReport).not.toContain("PRIVATE NOTE CANARY");
+    expect(publicReport).not.toContain("Afo");
+  });
+
+  it("names qa:pull when the session has not been pulled, and never echoes a malformed state file", async () => {
+    const root = mkdtempSync(path.join(tmpdir(), "qa-report-"));
+    const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, cases: [makeCase()] };
+
+    await expect(runReport(parseArgs(["--slug", "2026-09-03"]), { catalog, repoRoot: root })).rejects.toThrow(/qa:pull --slug 2026-09-03/);
+
+    const sessionDir = path.join(root, "tmp", "qa-session", "2026-09-03");
+    mkdirSync(sessionDir, { recursive: true });
+    writeFileSync(path.join(sessionDir, "qa-state.json"), "{ PRIVATE_CANARY: ");
+    let message = "";
+    try {
+      await runReport(parseArgs(["--slug", "2026-09-03"]), { catalog, repoRoot: root });
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+    expect(message).toBe("qa-state.json is not valid JSON");
   });
 });

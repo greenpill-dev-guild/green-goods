@@ -35,10 +35,26 @@
   per-tester touched/decided). `delta` is typed `null` until Step 5 adds the `--previous` baseline.
 - Test fixtures in `qa-status`, `qa-state`, and `qa-workbook-build` gained `kind`.
 
+## Batch 2 (Steps 4–6) — what changed
+
+- RED (2026-09-02T03:26:03Z): ten new specs (renderer parity and privacy, delta and gaps, CLI
+  parsing and file writes) failed on the missing exports; the seven Batch 1 specs stayed green.
+- GREEN (2026-09-02T03:29:15Z): `bun --bun x vitest run scripts/agents/qa-report.test.ts` →
+  `Tests 17 passed (17)`; `--dir scripts/agents` → `Test Files 11 passed (11)`, `Tests 175 passed (175)`;
+  `oxlint --deny-warnings` clean on both files.
+- `qa-report.ts`: `renderReport` (private/public; "Results by priority" lines match the parent
+  template with zero segments dropped; the public variant carries no label, note, or address —
+  asserted on a fixture containing all three), `--previous` standing-verdict delta with an
+  unknown/retired trailer, `parseArgs` in the `qa-status` style, `runReport` (reads the pulled
+  `qa-state.json`, writes `report.md` and optionally `report.public.md`, never echoes file
+  contents in errors), `import.meta.main` entry. `package.json` gained `qa:report`.
+- Rendering call made after a real-catalog smoke: never-walked gaps list P0 IDs in full and
+  collapse P1/P2 to counts — a lightly walked session otherwise printed a hundred IDs inline.
+
 ## What remains
 
-- Step 4 renderers (private/public) with template byte-parity and the privacy negative test.
-- Step 5 delta + gap tests; Step 6 CLI and `qa:report` script; Steps 7–9 wiring, docs, first real run.
+- Step 7 wiring (routine, both skills, template, `qa.md`); Step 8 docs clause after the polish PR
+  merges; Step 9 first real report from the 2026-09-02 call.
 
 ## Validation
 
