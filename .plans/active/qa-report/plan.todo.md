@@ -22,9 +22,27 @@ derived from the code and open to challenge before Step 2.
 | Per-tester coverage, private variant only | Steps 3–4 | ✅ |
 | `--public` projection with privacy proof | Step 4 | ✅ |
 | CLI + `qa:report` script | Step 6 | ✅ |
-| Routine, skills, templates, and contract embed the generated sections | Step 7 | ⏳ |
-| Docs name the generator; real example after the first call | Step 8 | ⏳ |
-| First real report for the 2026-09-02 call | Step 9 | ⏳ |
+| Routine, skills, templates, and contract embed the generated sections | Step 7 | ✅ |
+| Docs name the generator; real example after the first call | Step 8 | ⏳ after the polish PR merges |
+| First real report for the 2026-09-02 call | Step 9 | ⏳ needs the pulled call |
+
+## Implementation Notes
+
+- **Base branch.** `feature/qa-report` is based on `develop`, which carries `kind` (#791) but not
+  the lifecycle fields on the unmerged `chore/qa-lifecycle-polish`; the `statuses` typing planned
+  in Step 1 is deferred to whichever branch lands second, and the generator needs only `kind` and
+  `priority`.
+- **Step 3 scope.** Never-walked and stale gaps landed with the model (they reuse
+  `findStaleCases`); only the `--previous` delta waited for Step 5.
+- **Rendering.** Never-walked gaps list P0 IDs in full and collapse P1/P2 to counts — a
+  lightly walked session otherwise printed a hundred IDs inline.
+- **Decision 1, second half.** A Linear parent for a *solo* session that produced slices needs
+  `qa-triage`'s default mode to file a handoff's slices under a `QA session <slug>` parent; today
+  it files loose Issues and `--call` reads notes plus the app, not the deferred file. Tracked as a
+  follow-up, not asserted in the wiring.
+- **Cloud routine.** `qa-call-report.md` is pasted into the claude.ai routine by hand; the wiring
+  takes effect there only after the prompt is re-pasted and `qa:report` has merged to `develop`,
+  which the routine's own capability check now verifies by file.
 
 ## CLAUDE.md Compliance
 

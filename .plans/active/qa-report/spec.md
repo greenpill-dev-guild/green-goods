@@ -7,7 +7,7 @@ open to challenge before implementation starts.
 
 | # | Decision | Rationale |
 |---|----------|-----------|
-| 1 | Every session writes `report.md`; a Linear parent is filed only for team calls and for sessions that produced fix slices | An all-pass solo session would otherwise leave a `Todo` shell in Linear with nothing to close |
+| 1 | Every session writes `report.md`; a Linear parent is filed only for team calls and for sessions that produced fix slices | An all-pass solo session would otherwise leave a `Todo` shell in Linear with nothing to close. Implementation status: calls ✅ (routine and `--call` paste the generated blocks); the solo-session parent is a follow-up in `qa-triage`'s default mode, which today files a handoff's items as loose Issues and has no parent concept |
 | 2 | `--public` output exists only for the docs page's real example and the Discord lede | The privacy boundary in `.claude/context/qa.md`; nothing is public by default |
 | 3 | The generator lives at `scripts/agents/qa-report.ts` beside `qa-state-pull.ts`, tested like `qa-status.ts` | Existing pattern: an IO-free core with a thin CLI, pure functions covered by vitest fixtures |
 | 4 | Metric core = results by priority × kind, session-vs-baseline delta, and per-tester coverage (private variant only) | Priority is walk order, kind is the category axis, Transaction doubles as write-boundary coverage; testers are private detail |

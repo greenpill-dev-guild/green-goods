@@ -51,10 +51,28 @@
 - Rendering call made after a real-catalog smoke: never-walked gaps list P0 IDs in full and
   collapse P1/P2 to counts — a lightly walked session otherwise printed a hundred IDs inline.
 
+## Batch 3 (Step 7) — what changed
+
+- Guidance only, no runtime change. `linear-templates.md` § QA session report gained the
+  `## Results by kind` block and states both results blocks are pasted verbatim from
+  `report.md`; `qa-call-report.md` runs `qa:report` after the pull (re-run with `--build` once
+  Phase 4 has the deploys, `--public` for the Discord lede), pastes the blocks in Phase 7, and
+  its capability check and anti-patterns name the script; `qa-triage` § Call mode mirrors the
+  routine; `qa-session` Phase 4 runs `qa:report` after `qa:pull` (window = the session's OBS span)
+  and the receipt embeds the generated blocks; `qa.md` § Pull and the artifact table name
+  `report.md` / `report.public.md` and the variant rule; `scripts/README.md` documents the script
+  and its test.
+- Proof (2026-09-02T03:34:40Z): `bun run test:review-guardrails` → 198 pass, 0 fail;
+  `node scripts/quality/check-guidance-links.mjs` → 61 guidance files OK;
+  `node scripts/harness/plan-hub.mjs validate` → 29 hubs valid.
+- Decision 1's solo-session parent is recorded as a `qa-triage` follow-up in `spec.md` and
+  `plan.todo.md`, not asserted in the wiring.
+
 ## What remains
 
-- Step 7 wiring (routine, both skills, template, `qa.md`); Step 8 docs clause after the polish PR
-  merges; Step 9 first real report from the 2026-09-02 call.
+- Step 8 docs clause after the `chore/qa-lifecycle-polish` PR merges (the page differs between
+  the branches); Step 9 first real report from the 2026-09-02 call (needs the pulled session and
+  the cloud routine prompt re-pasted after `qa:report` reaches `develop`).
 
 ## Validation
 
