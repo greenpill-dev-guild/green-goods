@@ -21,16 +21,16 @@
 
 | Requirement (decision) | Phase | Status |
 |------------------------|-------|--------|
-| D1 consolidated Testing Guide | 4 | ⏳ |
+| D1 consolidated Testing Guide | 4 | ✅ |
 | D2 journeys deleted + redirects | 3 | ✅ |
-| D3 Economics Explorer → Reference | 4 | ⏳ |
+| D3 Economics Explorer → Reference | 4 | ✅ |
 | D4 hybrid integration pages | 1 (mechanism) + 3 (prose) | ✅ |
 | D5 llms.txt + .md twins | 5 | ⏳ |
-| D7 real category landings | 1 (CSS fallback) + 3 (pages) | ✅ Packages + Integrations landings live; remaining categories Phase 4 |
-| D8 Skills catalog + Working with Agents | 1 (generator) + 4 (prose/READMEs) | ✅ generator 26e2f6cf3; prose pending |
-| D9 Design page under Architecture | 4 | ⏳ |
-| D10 License page in Reference | 4 | ⏳ |
-| D11 CI & GH Actions under Testing & QA | 4 | ⏳ |
+| D7 real category landings | 1 (CSS fallback) + 3 (pages) | ✅ all categories |
+| D8 Skills catalog + Working with Agents | 1 (generator) + 4 (prose/READMEs) | ✅ (13 READMEs authored) |
+| D9 Design page under Architecture | 4 | ✅ |
+| D10 License page in Reference | 4 | ✅ |
+| D11 CI & GH Actions under Testing & QA | 4 | ✅ |
 | D12 Anatomy of a Work Submission (tentative) | 3 | ✅ built; Afo judgment pending |
 | ERD layered + zoomable | 1 | ✅ 26e2f6cf3 + ade03f693 |
 | Spine rewrites (Getting Started, First Contribution, System Overview) | 2 | ✅ 6b7d408c4 (tone gate open) |

@@ -1,0 +1,68 @@
+---
+title: Working with Agents
+sidebar_label: Working with Agents
+slug: /builders/agentic
+audience: developer
+owner: docs
+last_verified: 2026-09-02
+feature_status: Live
+source_of_truth:
+  - AGENTS.md
+  - ONBOARDING.md
+  - CLAUDE.md
+keywords:
+  - ai agents
+  - agents.md
+  - claude code
+  - codex
+---
+
+# Working with Agents
+
+Green Goods is built with AI agents as a daily practice, not an experiment. The maintainers
+develop with [Claude Code](https://claude.com/claude-code) and Codex, agents review every pull
+request, and the repository is deliberately shaped so that an agent, or a person pairing with one,
+can work here safely. This page is the high-level map; the pages below it are the machinery.
+
+## The contract
+
+Everything starts with
+[`AGENTS.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/AGENTS.md): the
+repo-level contract that maps the monorepo, names the invariants, and defines how validation and
+publication work. Every package carries its own `AGENTS.md` with the rules that actually bite
+there. Agents read these before touching a package, and so should you; they encode what the team
+will assume you know.
+
+Three design choices make agent-assisted work trustworthy here:
+
+- **Generated truth.** Deployment tables, the data model, the skills catalog, and other volatile
+  facts are projected from code with digest gates, so neither humans nor agents can let them
+  drift silently.
+- **Selected validation.** `bun run validation:plan -- --intent "..."` picks the smallest honest
+  check set for a change, and the push gate runs it again before anything leaves the machine.
+- **No shortcuts for anyone.** Agent-made changes pass the same CI Gate, the same review bots,
+  and the same repo rules as human-made ones.
+
+## Start your agent
+
+Open
+[`ONBOARDING.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/ONBOARDING.md)
+and paste it into your agent. It's written to be read by one: the agent becomes an onboarding
+buddy that checks your setup against the team's, walks the checklist with you, and hands you a
+starter task. The [Bring an agent](/builders/how-to-contribute#bring-an-agent) section of First
+Contribution places this in the wider contribution flow.
+
+## What's on this section
+
+- [Skills](/builders/agentic/skills): the catalog of packaged workflows an agent can invoke by name, from
+  repo audits to QA triage, generated from the skill folders themselves.
+- [Task Routing](/builders/agentic/task-routing): which workflow owns which kind of task, with each one's
+  mutation boundary and handoff.
+- [MCP Guide](/builders/agentic/mcp-guide): the project-scoped MCP servers agents may use here, and the
+  safety boundary around them.
+
+## Next steps
+
+- [First Contribution](/builders/how-to-contribute) for the human flow your agent plugs into.
+- [Skills](/builders/agentic/skills) to see what's already packaged.
+- [Getting Started](/builders/getting-started) if the repo isn't running on your machine yet.
