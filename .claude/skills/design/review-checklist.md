@@ -196,8 +196,8 @@ A checklist agents run once per PR catches what we remember. Automated checks ca
 
 ## Related
 
-- Regenerative rationale and sources: `docs/docs/reference/design-research.md`
+- Regenerative rationale and sources: `docs/docs/builders/architecture/design.mdx`
 - Spatial patterns: [surfaces.md](./surfaces.md)
 - Ecosystem archetypes: [ecosystem.md](./ecosystem.md)
 - Implementation details: [implementation.md](./implementation.md)
-- Green Goods personas: `docs/docs/reference/design-research.md`
+- Green Goods personas: `docs/docs/builders/architecture/design.mdx`

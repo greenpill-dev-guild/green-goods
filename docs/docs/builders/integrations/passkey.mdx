@@ -1,34 +1,48 @@
 ---
-title: Authentication
-sidebar_label: Authentication
+title: Passkeys
+sidebar_label: Passkeys
 slug: /builders/integrations/passkey
 audience: developer
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-09-02
 feature_status: Live
 source_of_truth:
-  - packages/shared/src/config/passkeyServer.ts
   - packages/shared/src/hooks/auth
-  - packages/shared/src/modules/auth
-  - packages/client/AGENTS.md
+  - packages/client/src/routes/WalletRuntimeProviders.tsx
+keywords:
+  - passkeys
+  - webauthn
+  - authentication
+  - smart accounts
 ---
 
-# Authentication
+# Passkeys
 
-The client supports passkey-backed accounts and wallet-aware recovery through shared auth modules.
-The implementation and provider configuration own ceremony details; this page explains the user
-boundary.
+Gardeners should never need a seed phrase to plant trees. Passkey authentication signs people in
+with the platform authenticator they already have (Face ID, a fingerprint, a device PIN) and backs
+their identity with a smart account, so field workers get real on-chain records without wallet
+onboarding. Wallets remain available for stewards and power users; passkeys are the default path.
 
-## Flow
+## Where it lives in the code
 
-1. The client establishes the intended presentation and chain context.
-2. Shared auth hooks start sign-in or registration with the configured relying party.
-3. The resulting account/session becomes the identity used by application and transaction flows.
-4. Recovery paths must preserve account continuity and make failure states explicit.
+| Layer | Source |
+|---|---|
+| Auth hooks and providers | `packages/shared/src/hooks/auth` |
+| Runtime wiring and the dev bypass | `packages/client/src/routes/WalletRuntimeProviders.tsx` |
 
-## Testing boundary
+Authentication branches through the shared auth APIs everywhere; no surface implements its own
+sign-in. One behavior worth knowing: signing in is not the same as joining a garden, and the two
+recover independently.
 
-Passkey ceremonies depend on the configured relying-party domain and cannot be treated as proven by
-localhost mocks. Use mocks for deterministic component and state tests; use the authenticated Brave
-profile on the appropriate deployed origin for real ceremony proof. Never log credentials,
-challenge material, wallet state, or session identifiers.
+## Working with it locally
+
+You rarely need a real passkey ceremony in development. The dev-only bypass from
+[Getting Started](../getting-started#path-a-run-the-web-surfaces)
+(`?mockAuth=steward&presentation=pwa`) signs you in as a test identity; real passkey flows are
+exercised in the Playwright authentication projects.
+
+## Canonical upstream docs
+
+- [passkeys.dev](https://passkeys.dev) for the practical, platform-by-platform guidance.
+- [The WebAuthn specification](https://www.w3.org/TR/webauthn-2/) when you need the exact
+  ceremony semantics.

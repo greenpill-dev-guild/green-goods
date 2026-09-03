@@ -1,0 +1,181 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "builder-docs-rebuild",
+    "title": "Builder Docs Rebuild",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-09-02T16:54:52.541Z",
+    "updated_at": "2026-09-02T17:28:36.370Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-862",
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {},
+    "laneSyncMode": "parent_only"
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["docs"],
+    "work_types": ["implementation"],
+    "surfaces": ["docs", "scripts/docs", ".claude/skills"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Docs rebuild executes as five sequential phases (plan.todo.md); each phase ships as its own PR to develop, cutting a fresh branch after the prior phase merges.",
+    "Lane mapping: state_api = docs generators and scripts (scripts/docs/*); ui = docs-site surface (pages, components, CSS, sidebars). Phase progress is tracked in plan.todo.md, not as custom lanes.",
+    "Blueprint (decisions D1-D12) lives in spec.md; the full research artifact link is in brief.md.",
+    "QA pages under docs/docs/builders/quality are owned by the qa-report stream; this effort only re-parents and cross-links them.",
+    ".plans/ is the durable repo truth; status.json is authoritative for lane state."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Docs-site surface (MDX pages, components, CSS, sidebar, redirects): no unit-testable behavior seam; proof is docs:audit:ci, check:docs-generated, build:docs, and the eval.md outcome gates."
+      },
+      "skill_tags": ["docs", "ui", "humanize-writing"],
+      "manual_blocked": false
+    },
+    "state_api": {
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "depends_on": [],
+      "handoff": "handoffs/claude-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "node --test scripts/docs/generate.test.mjs",
+          "evidence": "2026-09-02 pre-implementation: suite fails at load (renderSkills unexported; skills + integration-data projections absent) — 1 file-level failure covering the 4 new behavior tests"
+        },
+        "green": {
+          "command": "node --test scripts/docs/generate.test.mjs",
+          "evidence": "2026-09-02 at ade03f693: 19 tests, 19 pass, 0 fail (Node 22.22.1)"
+        },
+        "note": ""
+      },
+      "skill_tags": ["docs", "generators", "node"],
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract work in a docs rebuild."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review", "docs"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-09-02T16:54:52.601Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-09-02T17:05:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "reshaped",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Blueprint D1-D12 locked with Afo; five-phase execution recorded in plan.todo.md; ui + state_api lanes started for Phase 1 (generators & mechanics)."
+    },
+    {
+      "timestamp": "2026-09-02T17:00:53.586Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-09-02T17:28:29.511Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-02T17:28:32.209Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Phase 1 generator work landed in 26e2f6cf3: layered ERD, skills catalog, hybrid integration data projection; phases 2-5 pending"
+    },
+    {
+      "timestamp": "2026-09-02T17:28:36.371Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Phase 1 site mechanics landed in ade03f693: mermaid pan-zoom, builders accent fallback (incl. /category/*), converted integration pages; phases 2-5 pending"
+    }
+  ]
+}

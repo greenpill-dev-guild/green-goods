@@ -1,54 +1,45 @@
 ---
 title: Karma GAP
+sidebar_label: Karma GAP
 slug: /builders/integrations/karma
 audience: developer
 owner: docs
+last_verified: 2026-09-02
 feature_status: Live
-generated: true
-generator: scripts/docs/generate.mjs
-generated_from:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/Karma.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
-  - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:78d859c98113548a97637d556564bef21500a278c323639488328e332c90d32e"
 source_of_truth:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/Karma.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
   - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
+  - docs/src/data/integration-projections.json
+  - packages/contracts/src/modules/Karma.sol
+keywords:
+  - karma gap
+  - milestones
+  - reporting
 ---
 
-<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+import {IntegrationProjection} from "@site/src/components/docs";
+
 # Karma GAP
 
-Karma GAP connects Garden activity with project reporting and milestone records.
+[Karma GAP](https://gap.karmahq.xyz) (the Grantee Accountability Protocol) connects garden
+activity to project reporting and milestone records. When the module is active, a garden's
+assessment mirrors to a GAP milestone, so grant programs that already track accountability
+through GAP see Green Goods work in the format they trust.
 
-## Checked-in deployment projection
+## Where it lives in the code
 
-| Network | Status | Recorded components |
-|---|---|---|
-| Sepolia Testnet (`11155111`) | Deployed | `karmaGAPModule` |
-| Arbitrum One (`42161`) | Deployed | `karmaGAPModule` |
+| Layer | Source |
+|---|---|
+| Module | `packages/contracts/src/modules/Karma.sol` |
+| Data access | `packages/shared/src/modules/data/karma.ts` |
 
-Networks without recorded components are omitted; per-network state lives in the [deployment status projection](/builders/deployments/status).
+<IntegrationProjection id="karma" />
 
-## Indexer boundary
+## Working with it locally
 
-Configured indexer contracts: `KarmaGAPModule`.
+The [full-stack path](../getting-started#path-b-run-the-full-local-stack) forks Arbitrum One with
+the module state present; mirroring to the live GAP registry needs the real chain.
 
-A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. Follow the owning package runbook for operational verification.
+## Canonical upstream docs
+
+- [Karma GAP documentation](https://docs.gap.karmahq.xyz) for projects, grants, and milestones.
+- [gap.karmahq.xyz](https://gap.karmahq.xyz) to browse live records.

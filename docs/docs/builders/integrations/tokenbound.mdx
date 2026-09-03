@@ -1,27 +1,50 @@
 ---
-title: Tokenbound Accounts (ERC-6551)
-sidebar_label: Tokenbound
+title: Tokenbound Accounts
+sidebar_label: Tokenbound Accounts
 slug: /builders/integrations/tokenbound
 audience: developer
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-09-02
 feature_status: Live
 source_of_truth:
   - packages/contracts/src/accounts/Garden.sol
   - packages/contracts/src/tokens/Garden.sol
-  - packages/contracts/src/lib/TBA.sol
-  - packages/shared/src/utils/blockchain/contracts.ts
+  - packages/shared/src/ontology/green-goods-ontology.json
+keywords:
+  - erc-6551
+  - token-bound account
+  - garden account
 ---
 
-# Tokenbound Accounts (ERC-6551)
+# Tokenbound Accounts
 
-Each Garden token is associated with a deterministic tokenbound account that holds Garden-owned
-assets and participates in module flows.
+[ERC-6551](https://eips.ethereum.org/EIPS/eip-6551) token-bound accounts are why a Green Goods
+garden is more than a database row: each garden is an ERC-721 token whose bound account is the
+garden on-chain. That account holds the treasury, wears the [Hats](./hats) role tree, and receives
+the garden's [attestations](./eas). Transfer the token and you've transferred the garden, assets
+and history included; no app of ours has to exist for a garden to keep being real.
 
-The Garden token and account contracts own creation, authorization, and execution behavior. Shared
-blockchain utilities own application-side resolution. Callers must resolve with the selected chain,
-token contract, and token ID; an address from another chain is not interchangeable.
+## Where it lives in the code
 
-Treat the account as a protocol identity and treasury boundary, not as a generic user wallet.
-Changes to execution or ownership require contract-level tests, deployment rehearsal, and explicit
-recovery analysis.
+| Layer | Source |
+|---|---|
+| Garden token | `packages/contracts/src/tokens/Garden.sol` |
+| Garden account and action routing | `packages/contracts/src/accounts/` |
+| Account addresses per chain | The `accountProxy` and `gardenAccountImpl` fields in the [deployment record](/builders/reference/deployments) |
+
+One consequence for consumers: the indexer's `Garden.id` is the garden account address, which is
+why it stays a bare address rather than a composite id (a documented exception in the
+[indexer package](../packages/indexer)).
+
+## Working with it locally
+
+The [full-stack path](../getting-started#path-b-run-the-full-local-stack) forks Arbitrum One, so
+every live garden account exists locally; creating a new garden on the fork exercises the full
+token-plus-account flow without gas.
+
+## Canonical upstream docs
+
+- [EIP-6551](https://eips.ethereum.org/EIPS/eip-6551), the standard itself; short and worth
+  reading in full.
+- [Tokenbound documentation](https://docs.tokenbound.org) for the reference implementation the
+  ecosystem builds against.

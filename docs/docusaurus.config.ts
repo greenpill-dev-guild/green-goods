@@ -39,6 +39,11 @@ const config: Config = {
 
   onBrokenLinks: 'throw',
 
+  clientModules: [
+    './src/clientModules/buildersAccent.ts',
+    './src/clientModules/mermaidExpand.ts',
+  ],
+
   // Even if you don't use internationalization, you can use this field to set
   // useful metadata like html lang. For example, if your site is Chinese, you
   // may want to replace "en" with "zh-Hans".
@@ -71,7 +76,44 @@ const config: Config = {
       '@docusaurus/plugin-client-redirects',
       {
         redirects: [
-          {from: ['/builders/quality/gh-actions'], to: '/builders/deployments/gh-actions'},
+          {from: ['/builders/deployments/gh-actions'], to: '/builders/quality/gh-actions'},
+          {from: ['/builders/deployments/status'], to: '/builders/reference/deployments'},
+          {from: ['/builders/specs/revenue-explorer'], to: '/builders/reference/economics-explorer'},
+          {from: ['/reference/design-research'], to: '/builders/architecture/design'},
+          {
+            from: [
+              '/builders/testing/forge',
+              '/builders/testing/playwright',
+              '/builders/testing/vitest',
+              '/builders/testing/storybook',
+            ],
+            to: '/builders/testing',
+          },
+          {
+            from: ['/builders/architecture/erd', '/builders/architecture/sequence-diagrams'],
+            to: '/builders/architecture/data-model',
+          },
+          {from: ['/builders/integrations/entity-matrix'], to: '/builders/architecture/entity-matrix'},
+          {from: ['/builders/integrations/overview'], to: '/builders/integrations'},
+          {
+            from: [
+              '/builders/journeys/onboarding',
+              '/builders/journeys/work-submission',
+              '/builders/journeys/evaluation',
+              '/builders/journeys/funding',
+            ],
+            to: '/builders/architecture/anatomy',
+          },
+          {from: ['/builders/journeys/persona-surfaces'], to: '/builders/reference/persona-surfaces'},
+          {from: ['/builders/env-management'], to: '/builders/getting-started'},
+          {
+            from: [
+              '/builders/ethereum-alignment',
+              '/builders/architecture/local-vs-global',
+              '/builders/architecture/modular-approach',
+            ],
+            to: '/builders/architecture',
+          },
           {
             from: [
               '/welcome/quickstart-gardener',
@@ -143,7 +185,7 @@ const config: Config = {
               '/developer/auto-translation-flow',
               '/developer/translation-troubleshooting',
             ],
-            to: '/builders/integrations/overview',
+            to: '/builders/integrations',
           },
           {
             from: [
@@ -153,7 +195,7 @@ const config: Config = {
               '/developer/monitoring',
               '/developer/contracts-handbook',
             ],
-            to: '/builders/deployments/status',
+            to: '/builders/reference/deployments',
           },
           {from: ['/developer/api-reference'], to: '/builders/packages/api-index'},
           {
@@ -268,14 +310,14 @@ const config: Config = {
           // developers/ → builders/
           {from: ['/developers/getting-started'], to: '/builders/getting-started'},
           {from: ['/developers/architecture'], to: '/builders/architecture'},
-          {from: ['/developers/integrations'], to: '/builders/integrations/overview'},
+          {from: ['/developers/integrations'], to: '/builders/integrations'},
           {from: ['/developers/build-patterns', '/builders/build-patterns'], to: '/builders/getting-started'},
           {from: ['/developers/operations', '/builders/operations'], to: '/builders/getting-started'},
           {from: ['/developers/reference'], to: '/builders/getting-started'},
-          {from: ['/developers/reference/entity-matrix'], to: '/builders/integrations/overview'},
+          {from: ['/developers/reference/entity-matrix'], to: '/builders/architecture/entity-matrix'},
           {from: ['/developers/reference/api-index'], to: '/builders/packages/api-index'},
           {from: ['/developers/reference/docs-writing-guide'], to: '/builders/how-to-contribute'},
-          {from: ['/developers/reference/deployment-indexer-status'], to: '/builders/deployments/status'},
+          {from: ['/developers/reference/deployment-indexer-status'], to: '/builders/reference/deployments'},
           {from: ['/developers/reference/agent-mcp-guide'], to: '/builders/agentic/mcp-guide'},
           {from: ['/developers/reference/docs-frontmatter-contract'], to: '/builders/how-to-contribute'},
           {
@@ -378,11 +420,11 @@ const config: Config = {
           {from: ['/reference/changelog'], to: '/reference/product-history'},
           {
             from: ['/reference/regenerative-design-framework'],
-            to: '/reference/design-research#sources',
+            to: '/builders/architecture/design#sources',
           },
           {
             from: ['/reference/regenerative-design-principles'],
-            to: '/reference/design-research#seven-principles',
+            to: '/builders/architecture/design#seven-principles',
           },
           {
             from: [
@@ -594,7 +636,7 @@ const config: Config = {
           items: [
             { label: 'Getting Started', to: '/builders/getting-started' },
             { label: 'Architecture', to: '/builders/architecture' },
-            { label: 'Integrations', to: '/builders/integrations/overview' },
+            { label: 'Integrations', to: '/builders/integrations' },
             { label: 'How To Contribute', to: '/builders/how-to-contribute' },
           ],
         },

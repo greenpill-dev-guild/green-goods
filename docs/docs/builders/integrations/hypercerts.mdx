@@ -1,54 +1,51 @@
 ---
 title: Hypercerts
+sidebar_label: Hypercerts
 slug: /builders/integrations/hypercerts
 audience: developer
 owner: docs
+last_verified: 2026-09-02
 feature_status: Live
-generated: true
-generator: scripts/docs/generate.mjs
-generated_from:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/Hypercerts.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
-  - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:9088e07d29def8ad3d3e850d2bb4f374d5403353bb7f42a3d33d8c882a93f13a"
 source_of_truth:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/Hypercerts.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
   - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
+  - docs/src/data/integration-projections.json
+  - packages/contracts/src/modules/Hypercerts.sol
+keywords:
+  - hypercerts
+  - impact certificates
+  - fractions
 ---
 
-<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+import {IntegrationProjection} from "@site/src/components/docs";
+
 # Hypercerts
 
-Hypercerts represent certified impact claims and their fraction ownership.
+[Hypercerts](https://hypercerts.org) turn a body of approved work into a certified impact claim
+with ownable fractions. When a steward mints an impact certificate for a garden's season of work,
+funders can hold a piece of that claim; it's how verified work becomes something the funding side
+can actually own and retro-fund.
 
-## Checked-in deployment projection
+## Where it lives in the code
 
-| Network | Status | Recorded components |
-|---|---|---|
-| Sepolia Testnet (`11155111`) | Partial | `hypercertsModule` |
-| Arbitrum One (`42161`) | Deployed | `hypercertExchange`, `hypercertMinter`, `hypercertsModule` |
+| Layer | Source |
+|---|---|
+| Module | `packages/contracts/src/modules/Hypercerts.sol` |
+| Data access | `packages/shared/src/modules/data/hypercerts*.ts` (fetch, metadata, repository, attestations) |
+| Hooks | `packages/shared/src/hooks/hypercerts` |
 
-Networks without recorded components are omitted; per-network state lives in the [deployment status projection](/builders/deployments/status).
+The steward-facing flow lives in the community docs'
+[minting guide](/community/steward-guide/creating-impact-certificates); these sources are the
+machinery under it.
 
-## Indexer boundary
+<IntegrationProjection id="hypercerts" />
 
-Configured indexer contracts: `HypercertMinter`.
+## Working with it locally
 
-A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. Follow the owning package runbook for operational verification.
+The [full-stack path](../getting-started#path-b-run-the-full-local-stack) forks Arbitrum One with
+the minter and exchange contracts present, so mint flows run locally without real funds.
+
+## Canonical upstream docs
+
+- [hypercerts.org](https://hypercerts.org) for the standard and its ecosystem.
+- [The Hypercerts docs](https://hypercerts.org/docs) for minting, metadata, and fraction
+  mechanics.

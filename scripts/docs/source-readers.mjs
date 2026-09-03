@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
 export function readJson(root, source) {
@@ -173,4 +173,22 @@ export function deploymentInventory(root, sources, fields) {
 
 export function isRecordedAddress(value) {
   return typeof value === "string" && ADDRESS_VALUE.test(value) && !ZERO_ADDRESS.test(value);
+}
+
+export function readText(root, source) {
+  return readFileSync(path.join(root, source), "utf8");
+}
+
+export function skillCatalogSources(root) {
+  const skillsRoot = ".claude/skills";
+  const sources = [];
+  for (const entry of readdirSync(path.join(root, skillsRoot), { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const skillFile = `${skillsRoot}/${entry.name}/SKILL.md`;
+    if (!existsSync(path.join(root, skillFile))) continue;
+    sources.push(skillFile);
+    const readme = `${skillsRoot}/${entry.name}/README.md`;
+    if (existsSync(path.join(root, readme))) sources.push(readme);
+  }
+  return sources.sort();
 }

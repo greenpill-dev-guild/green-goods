@@ -5,49 +5,171 @@ sidebar_position: 1
 slug: /builders/getting-started
 audience: developer
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-09-02
 feature_status: Live
-goal: "Run the repository, find the owning package, and select honest validation."
+goal: "Run Green Goods locally and see the app working before you change anything."
 difficulty: "standard"
-estimated_time: "20-40 minutes."
-prereqs: "Node.js 22+ and Git. Docker for indexer or full-stack work."
+estimated_time: "15-30 minutes."
+prereqs: "Node.js 22.19+ and Git. Docker Desktop only for the full local stack."
 next_steps: "./architecture"
-persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
+persona_context: "Developers running Green Goods for the first time, on the web surfaces or the full local stack."
 source_of_truth:
-  - AGENTS.md
-  - CLAUDE.md
+  - CONTRIBUTING.md
+  - ONBOARDING.md
   - package.json
+  - scripts/README.md
+  - scripts/dev/doctor.js
 keywords:
   - developer quickstart
   - green goods monorepo
+  - local development
 ---
 
 # Getting Started
 
-## First run
+By the end of this page you'll have Green Goods running on your machine: the public site and
+installed-app experience, the steward cockpit, this docs site, and Storybook, with a clear check
+at each step so you know it worked.
 
-1. Clone the repository and run `npm run setup` only if Bun is not installed yet.
-2. Configure the root environment through [Environment Management](./env-management).
-3. Run `bun run setup:doctor` to check the local toolchain.
-4. Read `AGENTS.md`, then the nearest package `AGENTS.md` for the surface you will change.
-5. Start only the surface you need using the scripts documented in `scripts/README.md`.
+Green Goods is a [Bun](https://bun.sh) monorepo with seven packages spanning a React PWA, Solidity
+contracts, and an [Envio](https://envio.dev) indexer. You don't need to understand the whole
+system to run it. When you're curious, the [Architecture](./architecture) page has the map.
 
-## Find the owner
+## Before you start
 
-| Goal | Start here |
-|---|---|
-| Protocol or deployment behavior | `packages/contracts` |
-| Shared hooks, modules, providers, or UI foundations | `packages/shared` |
-| Public website or installed PWA | `packages/client` |
-| Steward cockpit | `packages/admin` |
-| Bot, webhook, or public Agent API | `packages/agent` |
-| Event-derived read models | `packages/indexer` |
+- **Node.js 22.19+** and **Git**. Everything else installs itself: `npm run setup` brings in Bun
+  when it's missing.
+- **Docker Desktop**, only if you take the full-stack path below.
+- Optional: if you use [mise](https://mise.jdx.dev), `mise install` in the repo pins the exact
+  Node, Bun, and Foundry versions CI uses (they live in `.mise.toml`).
 
-Use the generated [API index](./packages/api-index), [persona surfaces](./journeys/persona-surfaces),
-and [deployment status](./deployments/status) for volatile inventories.
+## Choose your path
 
-## Validate
+- **Web surfaces**: the right start for almost everyone doing UI, docs, or design work, or taking
+  a first look around. No Docker.
+- **Full local stack**: for contract, indexer, or agent work. Everything above plus a local
+  indexer, database, and an Arbitrum chain fork.
 
-Run `bun run validation:plan -- --intent <your change>` before selecting tests. Start with the
-targeted proof it returns, then escalate only when a public contract, shared dependency, or critical
-surface requires it.
+You can switch paths any time; they share the same checkout and environment.
+
+## Path A: run the web surfaces
+
+1. Clone and enter the repo:
+
+   ```bash
+   git clone https://github.com/greenpill-dev-guild/green-goods.git
+   cd green-goods
+   ```
+
+2. Run first-time setup. This installs Bun if needed, installs workspace dependencies, and creates
+   the root `.env` from `.env.schema`:
+
+   ```bash
+   npm run setup
+   ```
+
+   This is the only time you'll type `npm` here. After setup, every command is `bun run ...`.
+
+3. Check readiness. The doctor is non-mutating: it checks your tools, ports, and environment for
+   the web profile and names anything missing, so fix exactly what it flags and rerun:
+
+   ```bash
+   bun run dev:doctor
+   ```
+
+4. Start the web stack:
+
+   ```bash
+   bun run dev:web
+   ```
+
+5. **Checkpoint**: open the surfaces.
+
+   | Surface | URL |
+   |---|---|
+   | Client (public site + PWA) | [localhost:3001](http://localhost:3001) |
+   | Admin (steward cockpit) | [localhost:3002](http://localhost:3002) |
+   | Docs (this site) | [localhost:3003](http://localhost:3003) |
+   | Storybook | [localhost:3004](http://localhost:3004) |
+
+   To see the installed-app experience without connecting a wallet, open
+   [localhost:3001/?mockAuth=steward&presentation=pwa](http://localhost:3001/?mockAuth=steward&presentation=pwa).
+   Mock auth signs you in as a test steward, in the PWA presentation.
+
+6. When you're done:
+
+   ```bash
+   bun run dev:stop
+   ```
+
+## Path B: run the full local stack
+
+The full stack adds the agent API, the Envio indexer with its GraphQL endpoint and Postgres, and
+an [Anvil](https://getfoundry.sh/anvil/overview) fork of Arbitrum One, so protocol changes are
+testable end to end without touching a live chain.
+
+1. Start Docker Desktop.
+
+2. Check full-profile readiness:
+
+   ```bash
+   bun run dev:health
+   ```
+
+3. Start everything:
+
+   ```bash
+   bun run dev
+   ```
+
+   On top of the four web surfaces, this brings up the agent on port 3005, the indexer GraphQL on
+   3006, Envio on 3007, Postgres on 3008, and the Arbitrum fork (chain id `42161`) on 3009.
+
+4. **Checkpoint**: verify the whole stack in one command.
+
+   ```bash
+   bun run dev:smoke:full
+   ```
+
+   The smoke test confirms the browser surfaces respond, the local agent and indexer are healthy,
+   the fork has the deployed bytecode, and the test accounts are funded.
+
+5. `bun run dev:stop` shuts the stack down.
+
+**Working against real data:** `bun run dev:prod` runs the local browser surfaces against
+read-only production services (agent, indexer, Arbitrum RPC) and smoke-checks the connection.
+It's useful when you're debugging something only live data reproduces.
+
+## Bring an AI agent
+
+Green Goods is built with AI agents as a core practice, and the repository is set up so yours can
+onboard itself: paste
+[`ONBOARDING.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/ONBOARDING.md)
+into your agent and it will check your setup and walk you through the rest. The
+[Bring an agent](./how-to-contribute#bring-an-agent) section of First Contribution has the full
+picture.
+
+## About the environment
+
+Green Goods uses one root `.env`; packages never carry their own. Setup seeds it from
+`.env.schema`, `bun run env:check` validates it, and the doctor runs that check for you. If a
+required key is empty, the doctor names it, and `bun run env:bootstrap` fills any missing keys
+that have schema defaults. Team members hydrate shared secrets from 1Password with
+`bun run env:sync`; external contributors don't need it for the web path.
+
+## If something goes wrong
+
+- **A port is busy.** Another session may own it. `bun run dev:stop` releases repo-owned
+  services, and the doctor's output shows which ports matter for your profile.
+- **The doctor flags environment keys.** Run `bun run env:bootstrap`, then `bun run env:check`
+  to confirm.
+- **Path B fails early.** Make sure Docker Desktop is actually running; the full profile needs it.
+- **Anything else.** `bun run dev:doctor` output is the source of truth for what your machine is
+  missing. [Ask us on Telegram or Discord](./how-to-contribute#join-the-guild) if it doesn't get
+  you unstuck.
+
+## Next steps
+
+- [Architecture](./architecture) shows how the pieces you just ran fit together.
+- [First Contribution](./how-to-contribute) goes from finding work to a merged pull request.
+- [Testing Guide](/builders/testing) covers the runners behind `bun run test`.

@@ -1,0 +1,117 @@
+---
+title: Entity Matrix
+slug: /builders/architecture/entity-matrix
+audience: developer
+owner: docs
+feature_status: Planned
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - scripts/quality/check-ontology.mjs
+  - scripts/quality/ontology-render.mjs
+source_digest: "sha256:2c73096ef80f67dd0ae7d632216dd872425117ae486e3e5eecb6e3bc99deb796"
+source_of_truth:
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - scripts/quality/check-ontology.mjs
+  - scripts/quality/ontology-render.mjs
+sidebar_position: 2
+---
+
+<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+
+# Entity Matrix
+
+<StatusBadge status="Planned" />
+
+This matrix is generated from the tracked ontology sidecar (`packages/shared/src/ontology/green-goods-ontology.json`, `integration_matrix` section). Cell mappings remain a draft vocabulary aid until each integration ships — a cell is a naming translation, not a shipped integration contract. The planned status keeps that maturity visible without hiding the reference from navigation or the sitemap.
+
+## How to read this table
+
+- **Rows** are grouped as entities, schemas, personas, or integration-facing concepts.
+- **Columns** are partner protocols. Each cell shows the equivalent concept in that protocol.
+- **Empty cells** (`—`) mean no mapping exists — the protocol does not have an equivalent concept.
+- **Role entities** (Garden Operator through Data Scientist/Researcher) map to protocol-specific role or permission types.
+
+## Integration Matrix
+
+### Entities
+
+| Green Goods | Karma GAP | Hypercerts | Octant | Gardens V2 | Hats Protocol | Silvi | Cookie Jar | Unlock | ENS | Lido | FTC |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Garden | Project | Hypercert Holder | Vault Owner | Community | Top Hat | Project | Jar | — | — | — | — |
+| Assessment | Project Milestone | Hypercert Data | — | — | — | — | — | — | — | — | — |
+| Action | Partial Project Update | Hypercert Data | — | — | — | — | — | — | — | — | — |
+| Work | Partial Project Update | Hypercert Data | — | — | — | — | — | — | — | — | — |
+
+### Schemas
+
+| Green Goods | Karma GAP | Hypercerts | Octant | Gardens V2 | Hats Protocol | Silvi | Cookie Jar | Unlock | ENS | Lido | FTC |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Work Approval | Partial Project Update | Hypercert Data | — | — | — | — | — | — | — | — | — |
+
+### Personas
+
+| Green Goods | Karma GAP | Hypercerts | Octant | Gardens V2 | Hats Protocol | Silvi | Cookie Jar | Unlock | ENS | Lido | FTC |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Garden Steward | Project Owner | Creator | Vault Admin, TAM Operator | Council Member | Steward Hat | — | — | — | — | — | — |
+| Gardener | Project Member | Creator | TAM Proposer | Community Member | Gardener Hat | — | — | — | — | — | — |
+| Community Member | Project Explorer | Evaluator | TAM Voter | Community Member | Community Member | — | — | — | — | — | — |
+
+### Integration-facing concepts
+
+| Green Goods | Karma GAP | Hypercerts | Octant | Gardens V2 | Hats Protocol | Silvi | Cookie Jar | Unlock | ENS | Lido | FTC |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Funder/Evaluator | Grant Evaluator | Funder | Vault Depositor | Community Funder | Garden Supporter | — | — | — | — | — | — |
+| Data Scientist/Researcher | Grant Evaluator | Evaluator | — | Community Explorer | Garden Analyst | — | — | — | — | — | — |
+| Impact | — | Hypercert Token | — | — | — | — | — | — | — | — | — |
+| Badges | — | — | — | — | — | — | — | Unlock NFT | — | — | — |
+
+## Protocol integration notes
+
+### Active integrations
+
+These protocols have draft entity mappings and active or planned code integrations:
+
+- **Karma GAP**: Project reporting and milestone tracking. Maps all 5 core entities (Garden through Work Approval) and all role types.
+- **Hypercerts**: Impact certification tokens. Maps core entities to Hypercert Data and roles to Creator/Funder/Evaluator.
+- **Octant**: Vault and treasury management. Maps Garden to Vault Owner, with role mappings for admin, proposer, voter, and depositor flows.
+- **Gardens V2**: Community governance primitives. Maps Garden to Community, with role mappings for council and community membership.
+- **Hats Protocol**: On-chain role management. Maps all 6 role types to protocol-specific hat levels (Top Hat, Operator Hat, Gardener Hat, Community Member, Garden Supporter, Garden Analyst).
+- **Silvi**: Forestry and agroforestry partner. Currently maps only Garden to Project.
+- **Cookie Jar**: Payout and reward primitive. Currently maps only Garden to Jar.
+- **Unlock**: Credential and badge primitive. Currently maps only Badges to Unlock NFT.
+
+### Integration planned
+
+These protocols appear in the matrix but have no entity mappings yet:
+
+- **ENS**: Ethereum Name Service — name resolution integration planned.
+- **Lido**: Liquid staking — yield integration planned.
+- **FTC**: Integration scope to be defined.
+
+## Using the matrix
+
+### For developers
+
+When implementing a new protocol integration, consult this matrix to understand which Green Goods entities have equivalents in the target protocol. This prevents naming confusion and ensures API boundaries align with established mappings.
+
+### For agents
+
+When a task involves a partner protocol, use this matrix to translate between vocabularies. For example, if a Karma GAP issue references "Project Milestones", map that to Green Goods Assessments.
+
+### Maintenance
+
+The mapping data lives in the ontology sidecar's `integration_matrix` section. When a new protocol partnership is established, add a column only after its source-backed implementation or specification exists — edit the sidecar and run `bun run ontology:generate`. `bun run check:ontology` fails CI whenever this page drifts from the sidecar.
+
+<NextBestAction
+  title="Next best action"
+  why="See the full integrations overview with surface-level status for each protocol connection."
+  actionLabel="Integrations overview"
+  actionHref="/builders/integrations"
+  alternatives={[
+    {label: "EAS integration", href: "/builders/integrations/eas"},
+  ]}
+/>

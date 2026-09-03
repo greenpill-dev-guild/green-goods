@@ -1,0 +1,46 @@
+---
+title: Deployment Status
+slug: /builders/reference/deployments
+audience: developer
+owner: docs
+feature_status: Live
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
+source_digest: "sha256:5dca33612bda7fbe43349fa8c195a159588e3d6ee2a02436ca551ff2333c0bd0"
+source_of_truth:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
+---
+
+<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+# Deployment Status
+
+This page reports checked-in artifacts, not live RPC state. A nonzero address means an artifact records a deployment; activation and operational health require their own evidence.
+
+| Network | Recorded address fields | Zero or absent fields |
+|---|---|---|
+| Ethereum Mainnet (`1`) | `ensReceiver`, `previousEnsReceiver` | 40 |
+| Sepolia Testnet (`11155111`) | `accountProxy`, `actionRegistry`, `assessmentResolver`, `cookieJarFactory`, `cookieJarModule`, `deploymentRegistry`, `ensReceiver`, `gardenAccountImpl`, `gardenToken`, `gardensModule`, `greenGoodsENS`, `guardian`, `hatsModule`, `hypercertsModule`, `karmaGAPModule`, `marketplaceAdapter`, `octantFactory`, `octantModule`, `unifiedPowerRegistry`, `workApprovalResolver`, `workResolver`, `yieldSplitter` | 20 |
+| Arbitrum One (`42161`) | `accountProxy`, `actionRegistry`, `assessmentResolver`, `commitmentPoolingModule`, `commitmentPoolingModuleImpl`, `commitmentRegistry`, `commitmentRegistryImpl`, `cookieJarFactory`, `cookieJarModule`, `creditRegistry`, `creditRegistryImpl`, `deploymentRegistry`, `gardenAccountImpl`, `gardenToken`, `gardensModule`, `greenGoodsENS`, `greenWill`, `guardian`, `hatsModule`, `hypercertExchange`, `hypercertMinter`, `hypercertsModule`, `karmaGAPModule`, `marketplaceAdapter`, `octantFactory`, `octantModule`, `settlementModule`, `settlementModuleImpl`, `strategyHypercertFractionOffer`, `testimonyResolver`, `testimonyResolverImpl`, `transferManager`, `unifiedPowerRegistry`, `workApprovalResolver`, `workResolver`, `yieldSplitter` | 6 |
+| Celo (`42220`) | `accountProxy`, `actionRegistry`, `assessmentResolver`, `celoSettlementExecutor`, `celoSettlementExecutorImpl`, `deploymentRegistry`, `gardenAccountImpl`, `gardenToken`, `guardian`, `workApprovalResolver`, `workResolver` | 31 |
+
+Regenerate after a checked-in deployment artifact, schema configuration, indexer configuration, or capability projection changes.

@@ -1,56 +1,47 @@
 ---
 title: Gardens
+sidebar_label: Gardens
 slug: /builders/integrations/gardens
 audience: developer
 owner: docs
+last_verified: 2026-09-02
 feature_status: Live
-generated: true
-generator: scripts/docs/generate.mjs
-generated_from:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/Gardens.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
-  - packages/shared/src/config/gardens-subgraph.ts
-  - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:90db3bf530105787f97abda1db852eea8c71f8b495643dce7fed90ec04cd52d6"
 source_of_truth:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/Gardens.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
-  - packages/shared/src/config/gardens-subgraph.ts
   - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
+  - docs/src/data/integration-projections.json
+  - packages/contracts/src/modules/Gardens.sol
+keywords:
+  - gardens
+  - conviction voting
+  - signal pools
 ---
 
-<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+import {IntegrationProjection} from "@site/src/components/docs";
+
 # Gardens
 
-The Gardens module connects a Green Goods Garden to governance communities and signal pools.
+The Gardens module connects a Green Goods garden to
+[Gardens](https://gardens.fund), the conviction-voting platform for community governance. Through
+it, a garden's community can participate in signal pools: expressing sustained preference over
+where support should flow, rather than one-off votes.
 
-## Checked-in deployment projection
+## Where it lives in the code
 
-| Network | Status | Recorded components |
-|---|---|---|
-| Sepolia Testnet (`11155111`) | Deployed | `gardensModule` |
-| Arbitrum One (`42161`) | Deployed | `gardensModule` |
+| Layer | Source |
+|---|---|
+| Module | `packages/contracts/src/modules/Gardens.sol` |
+| Data access | `packages/shared/src/modules/data/gardens.ts` |
+| Conviction hooks | `packages/shared/src/hooks/conviction` |
 
-Networks without recorded components are omitted; per-network state lives in the [deployment status projection](/builders/deployments/status).
+<IntegrationProjection id="gardens" />
 
-## Indexer boundary
+## Working with it locally
 
-No integration-specific contract is declared in the checked-in indexer configuration.
+The [full-stack path](../getting-started#path-b-run-the-full-local-stack) forks Arbitrum One, so
+recorded module state is available locally; live signal-pool behavior on the Gardens platform
+itself needs the real chain.
 
-A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. Follow the owning package runbook for operational verification.
+## Canonical upstream docs
+
+- [gardens.fund](https://gardens.fund) for the platform and its conviction-voting model.
+- [Gardens documentation](https://docs.gardens.fund) for the concepts and mechanics.

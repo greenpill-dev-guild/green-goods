@@ -1,54 +1,50 @@
 ---
 title: Cookie Jar
+sidebar_label: Cookie Jar
 slug: /builders/integrations/cookie-jar
 audience: developer
 owner: docs
+last_verified: 2026-09-02
 feature_status: Live
-generated: true
-generator: scripts/docs/generate.mjs
-generated_from:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/CookieJar.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
-  - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:8ee904785458311f2e31bbb91fac61a3fa3a06953db36a10527fe42f997f4da5"
 source_of_truth:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/CookieJar.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
   - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
+  - docs/src/data/integration-projections.json
+  - packages/contracts/src/modules/CookieJar.sol
+keywords:
+  - cookie jar
+  - distribution
+  - allowance
 ---
 
-<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+import {IntegrationProjection} from "@site/src/components/docs";
+
 # Cookie Jar
 
-Cookie Jars are Garden-linked distribution primitives. Deployment artifacts and indexer configuration own recorded availability.
+Cookie Jars are Green Goods' own distribution primitive: a garden-linked jar that lets a
+community hand out small, capped allowances without a proposal process for every withdrawal.
+Where vaults hold an endowment, a jar holds spending money; it's the difference between a
+treasury and a kitchen tin everyone trusts each other to dip into.
 
-## Checked-in deployment projection
+## Where it lives in the code
 
-| Network | Status | Recorded components |
-|---|---|---|
-| Sepolia Testnet (`11155111`) | Deployed | `cookieJarFactory`, `cookieJarModule` |
-| Arbitrum One (`42161`) | Deployed | `cookieJarFactory`, `cookieJarModule` |
+| Layer | Source |
+|---|---|
+| Module and factory | `packages/contracts/src/modules/CookieJar.sol` |
+| Data access | `packages/shared/src/modules/data/campaign-cookie-jars.ts` |
+| Hooks | `packages/shared/src/hooks/cookie-jar` |
 
-Networks without recorded components are omitted; per-network state lives in the [deployment status projection](/builders/deployments/status).
+Unlike the other integrations, this one is native: there is no external protocol to link, and the
+contract source above is the whole story.
 
-## Indexer boundary
+<IntegrationProjection id="cookie-jar" />
 
-Configured indexer contracts: `CookieJarFactory`.
+## Working with it locally
 
-A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. Follow the owning package runbook for operational verification.
+The [full-stack path](../getting-started#path-b-run-the-full-local-stack) forks Arbitrum One with
+the factory and module present, so jar creation and claim flows run locally without real funds.
+
+## Go deeper
+
+- [`CookieJar.sol`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/contracts/src/modules/CookieJar.sol)
+  is the contract itself.
+- The public [Cookies surface](https://greengoods.app/cookies) shows jars in the product.

@@ -3,6 +3,11 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+// git exports GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE to hook subprocesses; without
+// stripping them, fixture git commands would operate on the real repository
+// instead of the temp fixture (observed 2026-09-02 from the pre-push gate).
+const {GIT_DIR: _gitDir, GIT_WORK_TREE: _gitWorkTree, GIT_INDEX_FILE: _gitIndexFile, ...fixtureGitEnv} = process.env;
+
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -1371,7 +1376,7 @@ test("publication base resolution uses the live PR base and otherwise origin/dev
 test("git inputs include dirty and untracked paths and fingerprint their content", (t) => {
   const directory = mkdtempSync(join(tmpdir(), "validation-selector-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
-  const git = (...args) => execFileSync("git", args, { cwd: directory, stdio: "ignore" });
+  const git = (...args) => execFileSync("git", args, { cwd: directory, stdio: "ignore", env: fixtureGitEnv });
   git("init");
   git("config", "user.email", "validation@example.com");
   git("config", "user.name", "Validation Test");
@@ -1417,7 +1422,7 @@ test("git inputs include dirty and untracked paths and fingerprint their content
 test("git inputs fingerprint committed patches larger than Node's default buffer", (t) => {
   const directory = mkdtempSync(join(tmpdir(), "validation-large-diff-selector-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
-  const git = (...args) => execFileSync("git", args, { cwd: directory, stdio: "ignore" });
+  const git = (...args) => execFileSync("git", args, { cwd: directory, stdio: "ignore", env: fixtureGitEnv });
   git("init");
   git("config", "user.email", "validation@example.com");
   git("config", "user.name", "Validation Test");
@@ -1443,7 +1448,7 @@ test("git inputs fingerprint committed patches larger than Node's default buffer
 test("deleted tests are not inferred as focused Vitest paths", (t) => {
   const directory = mkdtempSync(join(tmpdir(), "validation-deleted-test-selector-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
-  const git = (...args) => execFileSync("git", args, { cwd: directory, stdio: "ignore" });
+  const git = (...args) => execFileSync("git", args, { cwd: directory, stdio: "ignore", env: fixtureGitEnv });
   git("init");
   git("config", "user.email", "validation@example.com");
   git("config", "user.name", "Validation Test");
@@ -1482,7 +1487,7 @@ test("deleted tests are not inferred as focused Vitest paths", (t) => {
 test("lane fingerprint ignores an unrelated dirty plan while workspace fingerprint remains broad", (t) => {
   const directory = mkdtempSync(join(tmpdir(), "validation-lane-selector-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
-  const git = (...args) => execFileSync("git", args, { cwd: directory, stdio: "ignore" });
+  const git = (...args) => execFileSync("git", args, { cwd: directory, stdio: "ignore", env: fixtureGitEnv });
   git("init");
   git("config", "user.email", "validation@example.com");
   git("config", "user.name", "Validation Test");
@@ -1662,7 +1667,7 @@ test("workflow mapping preserves exact live and intended trigger parity", () => 
     ["scripts/quality/ontology-render.mjs", ["Docs", "Ontology", "Supply Chain Guardrails"]],
     ["scripts/data/ontology-drift-baseline.json", ["Ontology", "Supply Chain Guardrails"]],
     [".plans/active/commitment-pooling/contract-spec.md", ["Ontology", "Supply Chain Guardrails"]],
-    ["docs/docs/builders/architecture/erd.mdx", ["Docs", "Ontology", "Supply Chain Guardrails"]],
+    ["docs/docs/builders/architecture/data-model.mdx", ["Docs", "Ontology", "Supply Chain Guardrails"]],
     ["packages/contracts/script/DeployBadgeSchema.s.sol", ["Contracts", "Ontology", "Supply Chain Guardrails"]],
     ["bunfig.toml", ["Supply Chain Guardrails"]],
     [".npmrc", ["Supply Chain Guardrails"]],

@@ -1,0 +1,63 @@
+---
+title: QA
+sidebar_label: QA
+slug: /builders/packages/qa
+audience: developer
+owner: docs
+last_verified: 2026-09-02
+feature_status: Live
+source_of_truth:
+  - packages/qa/README.md
+  - packages/qa/package.json
+keywords:
+  - qa app
+  - checklist
+  - blob storage
+---
+
+# QA
+
+`packages/qa` is the team's QA recording surface at [qa.greengoods.app](https://qa.greengoods.app):
+a deployed checklist where two people can record the same test case at the same time, each keeping
+their own verdict and notes. It exists because a shared artifact checklist could only ever have one
+writer; this is the same interface with a real store behind it.
+
+## How it stays correct with two writers
+
+The design is small but sharp, and worth reading as a case study in conflict-free coordination:
+
+- Each tester owns exactly one blob shard, keyed by their address, and only ever writes that one.
+  Two testers touching the same case touch different objects, so there is nothing to merge between
+  them.
+- Within one tester (a phone on the PWA and a laptop on admin at once), saves send field-level
+  deltas conditioned on the ETag that was read; a losing write re-reads and retries instead of
+  overwriting blind.
+- Ordering trusts server arrival time, never client clocks, and every keystroke lands in
+  `localStorage` before any network call, so a crash or failed save never costs anyone their
+  notes.
+
+Identity is the signing address: the server accepts reads and writes only from a valid session for
+an allowlisted address. Display names are labels, never authority.
+
+## Run and build
+
+```bash
+cd packages/qa
+bun run build
+```
+
+The app deploys through Vercel, and each deployment pins the
+[test-case catalog](../quality/test-cases) revision it shipped with. When catalog changes merge,
+redeploy the QA app and regenerate the docs page; CI rejects a stale copy.
+
+## How it connects
+
+The catalog source is `scripts/data/qa-test-catalog.json`, shared with the generated
+[Test Cases](../quality/test-cases) page, and the app is the recording half of the
+[Product Experience QA](../quality/product-experience-qa) practice.
+
+## Go deeper
+
+- [`packages/qa/README.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/qa/README.md)
+  explains the concurrency design in full, including the caching and retry details that look like
+  bugs if you don't know them.

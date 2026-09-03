@@ -1,0 +1,201 @@
+{
+  "$generated": "GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope integration`.",
+  "generator": "scripts/docs/generate.mjs",
+  "digest": "sha256:07a1efc88c78f75685e8a592f48e18cc4cfbd4f4cc1a319306d6aa9b760300c4",
+  "integrations": {
+    "cookie-jar": {
+      "display": "Cookie Jar",
+      "definition": "Cookie Jars are Garden-linked distribution primitives. Deployment artifacts and indexer configuration own recorded availability.",
+      "networks": [
+        {
+          "chainId": 11155111,
+          "name": "Sepolia Testnet",
+          "status": "Deployed",
+          "recorded": [
+            "cookieJarFactory",
+            "cookieJarModule"
+          ]
+        },
+        {
+          "chainId": 42161,
+          "name": "Arbitrum One",
+          "status": "Deployed",
+          "recorded": [
+            "cookieJarFactory",
+            "cookieJarModule"
+          ]
+        }
+      ],
+      "totalNetworks": 4,
+      "indexedContracts": [
+        "CookieJarFactory"
+      ]
+    },
+    "ens": {
+      "display": "ENS",
+      "definition": "ENS connects Garden identity to names across the configured registry, receiver, and application resolution paths.",
+      "networks": [
+        {
+          "chainId": 1,
+          "name": "Ethereum Mainnet",
+          "status": "Partial",
+          "recorded": [
+            "ensReceiver"
+          ]
+        },
+        {
+          "chainId": 11155111,
+          "name": "Sepolia Testnet",
+          "status": "Deployed",
+          "recorded": [
+            "ensReceiver",
+            "greenGoodsENS"
+          ]
+        },
+        {
+          "chainId": 42161,
+          "name": "Arbitrum One",
+          "status": "Partial",
+          "recorded": [
+            "greenGoodsENS"
+          ]
+        }
+      ],
+      "totalNetworks": 4,
+      "indexedContracts": []
+    },
+    "gardens": {
+      "display": "Gardens",
+      "definition": "The Gardens module connects a Green Goods Garden to governance communities and signal pools.",
+      "networks": [
+        {
+          "chainId": 11155111,
+          "name": "Sepolia Testnet",
+          "status": "Deployed",
+          "recorded": [
+            "gardensModule"
+          ]
+        },
+        {
+          "chainId": 42161,
+          "name": "Arbitrum One",
+          "status": "Deployed",
+          "recorded": [
+            "gardensModule"
+          ]
+        }
+      ],
+      "totalNetworks": 4,
+      "indexedContracts": []
+    },
+    "hats": {
+      "display": "Hats Protocol",
+      "definition": "Hats provides the on-chain role hierarchy used to authorize Garden responsibilities.",
+      "networks": [
+        {
+          "chainId": 11155111,
+          "name": "Sepolia Testnet",
+          "status": "Deployed",
+          "recorded": [
+            "hatsModule"
+          ]
+        },
+        {
+          "chainId": 42161,
+          "name": "Arbitrum One",
+          "status": "Deployed",
+          "recorded": [
+            "hatsModule"
+          ]
+        }
+      ],
+      "totalNetworks": 4,
+      "indexedContracts": [
+        "HatsModule"
+      ]
+    },
+    "hypercerts": {
+      "display": "Hypercerts",
+      "definition": "Hypercerts represent certified impact claims and their fraction ownership.",
+      "networks": [
+        {
+          "chainId": 11155111,
+          "name": "Sepolia Testnet",
+          "status": "Partial",
+          "recorded": [
+            "hypercertsModule"
+          ]
+        },
+        {
+          "chainId": 42161,
+          "name": "Arbitrum One",
+          "status": "Deployed",
+          "recorded": [
+            "hypercertExchange",
+            "hypercertMinter",
+            "hypercertsModule"
+          ]
+        }
+      ],
+      "totalNetworks": 4,
+      "indexedContracts": [
+        "HypercertMinter"
+      ]
+    },
+    "karma": {
+      "display": "Karma GAP",
+      "definition": "Karma GAP connects Garden activity with project reporting and milestone records.",
+      "networks": [
+        {
+          "chainId": 11155111,
+          "name": "Sepolia Testnet",
+          "status": "Deployed",
+          "recorded": [
+            "karmaGAPModule"
+          ]
+        },
+        {
+          "chainId": 42161,
+          "name": "Arbitrum One",
+          "status": "Deployed",
+          "recorded": [
+            "karmaGAPModule"
+          ]
+        }
+      ],
+      "totalNetworks": 4,
+      "indexedContracts": [
+        "KarmaGAPModule"
+      ]
+    },
+    "octant": {
+      "display": "Octant",
+      "definition": "Octant provides Garden vault creation, deposits, withdrawals, and yield-donation mechanics.",
+      "networks": [
+        {
+          "chainId": 11155111,
+          "name": "Sepolia Testnet",
+          "status": "Deployed",
+          "recorded": [
+            "octantFactory",
+            "octantModule"
+          ]
+        },
+        {
+          "chainId": 42161,
+          "name": "Arbitrum One",
+          "status": "Deployed",
+          "recorded": [
+            "octantFactory",
+            "octantModule"
+          ]
+        }
+      ],
+      "totalNetworks": 4,
+      "indexedContracts": [
+        "OctantModule",
+        "OctantVault"
+      ]
+    }
+  }
+}

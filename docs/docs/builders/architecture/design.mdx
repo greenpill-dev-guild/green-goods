@@ -1,0 +1,131 @@
+---
+title: Design
+sidebar_label: Design
+slug: /builders/architecture/design
+audience: developer
+owner: docs
+last_verified: 2026-09-02
+feature_status: Live
+source_of_truth:
+  - DESIGN.md
+  - docs/DESIGN.md
+  - packages/admin/DESIGN.md
+  - .claude/skills/design/SKILL.md
+keywords:
+  - design system
+  - warm earth
+  - storybook
+  - surfaces
+---
+
+# Design
+
+Green Goods uses one design language, Warm Earth, spoken in three dialects. This page explains why
+the product feels the way it does, how the system is governed in the repo, and where to start when
+you change anything visual.
+
+## Why the product feels this way {#why-warm-earth}
+
+Regenerative work happens in places, over seasons, and through relationships. The interface
+therefore favors natural light, earth tones, legible material layers, calm motion, and language
+that names the work plainly. The [ontology](./data-model) supplies the names for entities,
+personas, and lifecycle states; the design system decides how those concepts look and move on each
+surface. The [generated glossary](/glossary) is the public bridge between the two.
+
+## Three surfaces, one language {#surfaces}
+
+- **The client's public pages** speak in an editorial voice: storytelling layouts, generous
+  imagery, an invitation to explore.
+- **The installed PWA** feels like a field journal: capture-first, offline-calm, bottom
+  navigation, one task at a time.
+- **The admin cockpit** stays restrained and operational: utility copy, one dominant workspace
+  per route, restrained color, strong typography.
+
+The dialects share tokens and terminology without pretending every audience has the same needs.
+The [client](../packages/client) and [admin](../packages/admin) package pages describe the shells
+that enforce the split.
+
+## How the system is governed {#governance}
+
+DesignMD files own the visual rules, and they nest: start at the root
+[`DESIGN.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/DESIGN.md), then
+read the DesignMD nearest the surface you're changing (for example
+[`packages/admin/DESIGN.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/admin/DESIGN.md)
+for the cockpit). Shared UI foundations live in [shared](../packages/shared) with Storybook
+coverage, and the **live Storybook at [design.greengoods.app](https://design.greengoods.app)** is
+the source of truth for what every primitive looks like in both themes. Executable guards keep
+token usage and shell composition honest in CI, so drift is caught by machines, not memory.
+
+When you change UI: reuse a shared primitive before composing raw layouts, keep new strings in all
+three locales, and check the matching Storybook story in the same pass.
+
+## Seven regenerative principles {#seven-principles}
+
+### Make the mycelium visible {#make-the-mycelium-visible}
+
+Show how work, evidence, recognition, and funding connect. A user should be able to follow a value
+flow without learning protocol internals.
+
+### Design for succession {#design-for-succession}
+
+Match complexity to the community's current capability. New gardens need clear starting points;
+established gardens can carry denser coordination tools.
+
+### Enrich the edges {#enrich-the-edges}
+
+Give extra care to transitions between people and systems: gardener to steward, funder to garden,
+online to offline, and familiar web behavior to onchain records.
+
+### Treat failure as a path forward {#failure-is-succession}
+
+Recovery states should explain what happened, preserve work where possible, and make the next
+useful action obvious. Rejection, disconnection, and delayed confirmation need context, not blame.
+
+### Stay growth-agnostic {#be-growth-agnostic}
+
+Measure verified regenerative outcomes and growing community capability, not compulsive
+engagement. Seasonal rhythms replace artificial urgency, rankings, and fear-of-missing-out
+patterns.
+
+### Make capability the deliverable {#capability-is-the-deliverable}
+
+The product should help communities do more for themselves. A useful test is whether the people
+and records could remain legible if Green Goods were no longer the interface.
+
+### Choose regen over degen {#regen-not-degen}
+
+Avoid trading-terminal aesthetics, financialized status displays, and dark patterns. Favor
+collective context, clear evidence, garden-level stories, and calm action.
+
+## Source traditions {#sources}
+
+These principles synthesize several traditions rather than claiming a new formal discipline:
+
+- Ethan Roland and Gregory Landua's Eight Forms of Capital broaden how value is described beyond
+  money.
+- Kate Raworth's distributive and regenerative design framing asks systems to share value and
+  operate within living limits.
+- Elinor Ostrom's commons research informs local rules, transparent roles, monitoring, and nested
+  governance.
+- Suzanne Simard's work on forest networks and ecological research on succession and edge effects
+  provide metaphors for visible flows, maturity, and boundary conditions.
+- Regenesis, biomimicry, post-growth HCI, and Self-Determination Theory inform the emphasis on
+  capability, context, autonomy, and non-extractive motivation.
+- Solarpunk and Greenpill writing provide an optimistic visual and cultural frame for coordination
+  around public goods.
+
+## Design resources {#resources}
+
+- The live [Storybook](https://design.greengoods.app) for every shared primitive and its states.
+- The [Figma design system](https://www.figma.com/design/aNmqUjGZ5wR4eNaRqfhbQZ/Green-Goods) for
+  exploration; checked-in DesignMD and code remain the implementation authorities.
+- The [product vision post](https://paragraph.com/@greenpilldevguild/green-goods-simplifying-impact-capture-and-exchange)
+  and a [product walkthrough](https://www.loom.com/share/e09225ec813147a6aacd4dc8816ce8be?sid=985a42f4-574b-499d-9dc8-03051b797f3d)
+  for the wider story.
+
+## Next steps
+
+- [Architecture](../architecture) for the system these surfaces sit on.
+- [Client](../packages/client) and [Admin](../packages/admin) for the shells that enforce the
+  dialects.
+- [Anatomy of a Work Submission](./anatomy) to see the field-journal surface doing its job.

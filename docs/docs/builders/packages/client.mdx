@@ -1,33 +1,69 @@
 ---
-title: Client PWA
+title: Client
 sidebar_label: Client
 slug: /builders/packages/client
 audience: developer
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-09-02
 feature_status: Live
 source_of_truth:
   - packages/client/AGENTS.md
   - packages/client/package.json
-  - packages/client/src/config/routes.tsx
-  - packages/client/src/config/pwaRouting.ts
-  - packages/client/vite.config.ts
-  - packages/shared/src/modules/app/service-worker-registration.ts
+keywords:
+  - pwa
+  - offline-first
+  - react
 ---
 
-# Client PWA
+# Client
 
-Client contains two presentations with one domain language: the public browser site and the
-installed PWA.
+`packages/client` is the end-user app at [greengoods.app](https://greengoods.app): one codebase,
+two presentations. Visitors get an editorial public website; gardeners get an installed PWA that
+captures work offline in the field. Most business logic comes from [shared](./shared); this
+package owns route composition and presentation.
 
-## Boundary
+## The two shells
 
-- Route configuration owns public, installed-app, and compatibility paths.
-- The public site uses editorial navigation and public-safe data access.
-- The installed PWA uses the app shell, authentication, offline capture, and bottom navigation.
-- Shared owns reusable hooks, stores, providers, service-worker registration, and protocol modules.
-- Client owns route composition and presentation-specific components.
+- Public browser routes render through `PublicShell` with the site header, editorial navigation,
+  and public-safe data access.
+- Installed and authenticated PWA routes render through `AppShell` with the bottom navigation
+  bar, offline capture, and the app experience.
 
-Do not mix browser and PWA chrome or treat a compatibility redirect as a canonical route. Read
-`packages/client/AGENTS.md` and `packages/client/README.md` before editing. Use the generated
-[persona surfaces](../journeys/persona-surfaces) for the route inventory.
+Never mix the two. If a route or shell change blurs the paths, check `router.tsx`, the shell
+component, and the matching Storybook story in the same pass. To tour the PWA without a wallet,
+use the [mock-auth URL from Getting Started](../getting-started#path-a-run-the-web-surfaces).
+
+## Run and test
+
+```bash
+cd packages/client
+bun run test
+bun run build
+```
+
+Run `bun run build` whenever route wiring, render output, or PWA packaging moves; tests alone
+don't prove those.
+
+## How it connects
+
+The client reads garden and membership state through the [indexer](./indexer)'s read models,
+reads and writes work through shared's [EAS data layer](../integrations/eas), and pushes captured
+work through the shared job queue. The
+[Anatomy of a Work Submission](../architecture/anatomy) traces that whole path.
+
+## Conventions that will bite you
+
+- Work submission must preserve the offline-first queue flow. Bypassing the queue for passkey
+  users breaks recovery.
+- Blob URLs go through shared's `mediaResourceManager`; a stray `URL.createObjectURL` leaks
+  memory on capture-heavy flows.
+- Authentication branches through shared auth APIs, and wallet chain state is never the source of
+  truth for app defaults.
+- No local hooks or providers for logic that belongs in shared.
+- New user-facing strings ship in `en`, `es`, and `pt` together.
+
+## Go deeper
+
+- [`packages/client/AGENTS.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/client/AGENTS.md)
+  is the full package contract, including the design-surface rules.
+- [Persona Surfaces](../reference/persona-surfaces) is the generated route inventory.

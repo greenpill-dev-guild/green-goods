@@ -1,0 +1,54 @@
+---
+title: Integrations
+sidebar_label: Integrations
+slug: /builders/integrations
+audience: developer
+owner: docs
+last_verified: 2026-09-02
+feature_status: Live
+source_of_truth:
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - docs/src/data/integration-projections.json
+keywords:
+  - integrations
+  - protocols
+  - deployments
+---
+
+# Integrations
+
+Green Goods composes existing protocols instead of reinventing them: attestations from EAS,
+accounts from ERC-6551, roles from Hats, funding rails from Octant, Gardens, and Hypercerts. Each
+integration page explains why Green Goods uses the protocol, where it lives in the code, and what
+the checked-in artifacts say is deployed where.
+
+## Who owns which fact
+
+Each integration touches several layers, and changing the right one starts with knowing which
+layer owns the fact you need:
+
+| Concern | Authority |
+|---|---|
+| Contract behavior | Contract source and tests |
+| Recorded deployment | Chain deployment artifact |
+| Schema identity | Schema configuration and deployment artifact |
+| Indexed events | `packages/indexer/config.yaml` and handlers |
+| Application access | Shared modules, hooks, and package exports |
+| Semantic mapping | The ontology and the [entity matrix](/builders/architecture/entity-matrix) |
+
+Deployment tables on these pages regenerate from checked-in artifacts. An address proves a
+deployment was recorded, never that a feature is live and healthy; the
+[deployment status page](/builders/reference/deployments) is the canonical per-chain record.
+
+## The integrations
+
+- [EAS](/builders/integrations/eas): the attestation layer every protocol record lives on.
+- [Hats Protocol](/builders/integrations/hats): on-chain role trees that decide who may do what.
+- [Tokenbound Accounts](/builders/integrations/tokenbound): the ERC-6551 accounts that make each garden an owner.
+- [Passkeys](/builders/integrations/passkey): wallet-free sign-in for gardeners.
+- [Octant](/builders/integrations/octant): garden vaults and yield-donation mechanics.
+- [Gardens](/builders/integrations/gardens): conviction-voting communities and signal pools.
+- [Hypercerts](/builders/integrations/hypercerts): certified impact claims and their fractions.
+- [Karma GAP](/builders/integrations/karma): project reporting and milestone records.
+- [ENS](/builders/integrations/ens): names for gardens.
+- [Cookie Jar](/builders/integrations/cookie-jar): Green Goods' own allowance-jar distribution primitive.

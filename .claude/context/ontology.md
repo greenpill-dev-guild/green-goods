@@ -83,7 +83,7 @@ Never merge or cross-map these vocabularies because they share only an identifie
 `bun run ontology:generate` owns all five outputs:
 
 - `docs/docs/reference/ontology.generated.mdx`
-- `docs/docs/builders/integrations/entity-matrix.mdx`
+- `docs/docs/builders/architecture/entity-matrix.mdx`
 - `docs/docs/reference/glossary.generated.mdx`
 - `docs/docs/community/green-goods-claims.generated.mdx`
 - `packages/shared/src/ontology/agent-manifest.generated.json`

@@ -1,0 +1,147 @@
+---
+title: Skills Catalog
+slug: /builders/agentic/skills
+audience: developer
+owner: docs
+feature_status: Live
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - .claude/skills/audit/README.md
+  - .claude/skills/audit/SKILL.md
+  - .claude/skills/clean/README.md
+  - .claude/skills/clean/SKILL.md
+  - .claude/skills/debug/README.md
+  - .claude/skills/debug/SKILL.md
+  - .claude/skills/design/README.md
+  - .claude/skills/design/SKILL.md
+  - .claude/skills/doc-feedback/README.md
+  - .claude/skills/doc-feedback/SKILL.md
+  - .claude/skills/module-seams-review/README.md
+  - .claude/skills/module-seams-review/SKILL.md
+  - .claude/skills/plan/README.md
+  - .claude/skills/plan/SKILL.md
+  - .claude/skills/qa-session/README.md
+  - .claude/skills/qa-session/SKILL.md
+  - .claude/skills/qa-triage/README.md
+  - .claude/skills/qa-triage/SKILL.md
+  - .claude/skills/research/README.md
+  - .claude/skills/research/SKILL.md
+  - .claude/skills/resolve-pr-comments/README.md
+  - .claude/skills/resolve-pr-comments/SKILL.md
+  - .claude/skills/review/README.md
+  - .claude/skills/review/SKILL.md
+  - .claude/skills/ship/README.md
+  - .claude/skills/ship/SKILL.md
+source_digest: "sha256:d6fe8de4a42cafc031aafdc68bb2b4922d99fbb498d4d77958bfa56f47bc4341"
+source_of_truth:
+  - .claude/skills/audit/README.md
+  - .claude/skills/audit/SKILL.md
+  - .claude/skills/clean/README.md
+  - .claude/skills/clean/SKILL.md
+  - .claude/skills/debug/README.md
+  - .claude/skills/debug/SKILL.md
+  - .claude/skills/design/README.md
+  - .claude/skills/design/SKILL.md
+  - .claude/skills/doc-feedback/README.md
+  - .claude/skills/doc-feedback/SKILL.md
+  - .claude/skills/module-seams-review/README.md
+  - .claude/skills/module-seams-review/SKILL.md
+  - .claude/skills/plan/README.md
+  - .claude/skills/plan/SKILL.md
+  - .claude/skills/qa-session/README.md
+  - .claude/skills/qa-session/SKILL.md
+  - .claude/skills/qa-triage/README.md
+  - .claude/skills/qa-triage/SKILL.md
+  - .claude/skills/research/README.md
+  - .claude/skills/research/SKILL.md
+  - .claude/skills/resolve-pr-comments/README.md
+  - .claude/skills/resolve-pr-comments/SKILL.md
+  - .claude/skills/review/README.md
+  - .claude/skills/review/SKILL.md
+  - .claude/skills/ship/README.md
+  - .claude/skills/ship/SKILL.md
+---
+
+<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+# Skills Catalog
+
+Each skill is a packaged workflow that a coding agent (or a contributor driving one) invokes by name for a specific kind of task. This catalog projects each skill's purpose from its folder; the folder's README and SKILL.md stay the source of truth.
+
+### audit {#audit}
+
+The repo-health check. Audit sweeps Green Goods for drift and decay: dead code, dependency health, stale guidance and plans, invariant drift, and concrete broken or brittle spots. It reads everything and changes nothing; accepted findings route to a fix pass, a cleanup run, or Linear.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/audit)
+
+### clean {#clean}
+
+Scope-locked cleanup at scale. Clean runs eight focused assessment lanes over the codebase (deduplication, type consolidation, dead code, circular dependencies, type strengthening, defensive-code removal, legacy cleanup, and AI-slop removal) and only changes what a human locked into scope first.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/clean)
+
+### debug {#debug}
+
+The bug entry point. Describe a bug, paste a stack trace, or report a failing build and this workflow fires on its own, then routes the work: reports from real users get reproduced first, urgent incidents take the hotfix lane, red tests get test-driven fixes, and QA slices get pulled from Linear.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/debug)
+
+### design {#design}
+
+The keeper of the Warm Earth design language. Design holds the direction for shape, motion, color, and material tokens, the split between the admin cockpit and client PWA identities, and the review lenses for UI work. Reach for it before new views, polish passes, or prompts for AI design tools.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/design)
+
+### doc-feedback {#doc-feedback}
+
+Turns a reviewed Google Doc into tracked work. Point it at a .docx export carrying comments and tracked changes and it parses the feedback into a triage-able record, then walks each item to resolution with a scope-lock gate between phases.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/doc-feedback)
+
+### module-seams-review {#module-seams-review}
+
+A deep, read-only review of module boundaries: public exports, dependency direction, composition roots, direct-test seams, and mock fidelity. Use it for import-boundary migrations and testability-architecture reviews, not for ordinary small diffs.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/module-seams-review)
+
+### plan {#plan}
+
+Planning and execution for Green Goods. Plan creates structured implementation plans in `.plans` feature hubs, tracks lane state and proof, mirrors visibility to Linear, and coordinates agent teams when they are explicitly requested.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/plan)
+
+### qa-session {#qa-session}
+
+Live product QA with fixes in the loop. Run it during a walk of the product (paired, live, or from a transcript) and it captures stable records, triages bounded fix-now work, revalidates in the serving checkout, and hands deferred findings to qa-triage with exact test IDs.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/qa-session)
+
+### qa-triage {#qa-triage}
+
+Turns QA notes into tracked records. After a Build Sync or a qa-session handoff, it enriches findings against PostHog and existing Linear records, then files scope-locked issues and private QA-sheet rows, and it writes only after confirmation.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/qa-triage)
+
+### research {#research}
+
+Evidence-first answers before decisions. Research reconciles repository and primary-source evidence for a bounded question, labels every conclusion by how established it is, and returns a brief that drives the next decision. It is read-only by default.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/research)
+
+### resolve-pr-comments {#resolve-pr-comments}
+
+Works a pull request's review feedback to done. It validates each unresolved thread, sweeps for related instances, fixes with targeted proof, and pushes through the gate. GitHub replies and thread resolution happen only with explicit authorization.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/resolve-pr-comments)
+
+### review {#review}
+
+The full change review. Review hunts regressions, remaining gaps, and production quality in one pass over a PR, branch, or working copy, and returns severity-ordered findings with validation evidence and a verdict.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/review)
+
+### ship {#ship}
+
+Publication without ceremony. Ship proves the changed behavior locally, runs the budgeted push gate, and lets GitHub CI own broad regression coverage; the complete local gate is reserved for releases, critical surfaces, and explicit full-local requests.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/ship)

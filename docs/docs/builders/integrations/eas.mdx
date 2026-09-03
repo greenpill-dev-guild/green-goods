@@ -4,7 +4,7 @@ sidebar_label: EAS
 slug: /builders/integrations/eas
 audience: developer
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-09-02
 feature_status: Live
 source_of_truth:
   - packages/contracts/src/resolvers/Work.sol
@@ -15,27 +15,58 @@ source_of_truth:
 keywords:
   - eas
   - attestation
-  - work submission
   - resolver
   - schema
 ---
 
 # EAS (Attestation Service)
 
-Green Goods uses EAS for signed protocol records whose meaning is enforced by resolver contracts.
-Schema IDs and endpoints are chain-specific; read them from the current deployment and schema
-configuration rather than copying them into application code or prose.
+The [Ethereum Attestation Service](https://docs.attest.org/docs/welcome) is the record layer of
+Green Goods. Every protocol claim that matters (work submitted, work approved, an assessment
+authored) is an EAS attestation, and that's a deliberate choice: attestations are portable, signed,
+inspectable records that outlive any app Green Goods ships.
 
-## Record flow
+What makes the integration more than "we write attestations" is the resolver pattern. Each Green
+Goods schema is bound to a resolver contract that validates authorization at write time, so an
+approval signed by someone without a steward hat cannot be recorded at all. Meaning is enforced,
+not implied.
 
-- A Work attestation records submitted evidence for a Garden and Action.
-- A separate Work Approval attestation records the Steward's decision.
-- An Assessment attestation records evaluation context and its content reference.
-- Contract resolvers own authorization and structural validation.
-- Shared EAS modules own client-side encoding, querying, and decoding.
+## The records
 
-## Failure recovery
+- A **Work** attestation records submitted evidence for a garden and action.
+- A separate **Work Approval** attestation records the steward's decision, referencing the work it
+  judges.
+- An **Assessment** attestation records evaluation strategy and its content reference.
 
-Confirm the selected chain, schema UID, resolver address, and signer authority independently. A
-successful query with no records is different from an unavailable source; preserve that distinction
-in UI and APIs. Use the generated [deployment status](../deployments/status) for checked-in state.
+The [Anatomy of a Work Submission](../architecture/anatomy) follows one record through the whole
+stack, and the [Data Model](../architecture/data-model) shows how they relate.
+
+## Where it lives in the code
+
+| Layer | Source |
+|---|---|
+| Resolvers | `packages/contracts/src/resolvers/` (Work, WorkApproval, Assessment) |
+| Schema definitions | `packages/contracts/src/Schemas.sol` and `packages/contracts/config/schemas.json` |
+| Client-side encode, query, decode | `packages/shared/src/modules/data/eas.ts` |
+
+Schema UIDs and EAS endpoints are chain-specific. Read them from the deployment artifacts and
+schema configuration rather than copying them into code or prose; the
+[deployment status page](/builders/reference/deployments) is the checked-in record.
+
+## Working with it locally
+
+The [full-stack path](../getting-started#path-b-run-the-full-local-stack) forks Arbitrum One, so
+the EAS contracts and Green Goods resolvers are present with real state and no gas cost. A
+successful query with no records is different from an unavailable source; preserve that
+distinction in anything you build.
+
+## Canonical upstream docs
+
+- [EAS welcome](https://docs.attest.org/docs/welcome) for the mental model.
+- [Schemas](https://docs.attest.org/docs/core--concepts/schemas) for UIDs, resolvers, and
+  revocability.
+- [The EAS SDK](https://docs.attest.org/docs/developer-tools/eas-sdk), which the shared data layer
+  builds on.
+- [Per-chain contracts](https://docs.attest.org/docs/quick--start/contracts) for official EAS
+  addresses.
+- [arbitrum.easscan.org](https://arbitrum.easscan.org) to browse Green Goods records live.

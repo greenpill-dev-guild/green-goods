@@ -1,37 +1,73 @@
 ---
-title: Contracts Package
+title: Contracts
 sidebar_label: Contracts
 slug: /builders/packages/contracts
 audience: developer
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-09-02
 feature_status: Live
 source_of_truth:
   - packages/contracts/AGENTS.md
   - packages/contracts/package.json
-  - packages/contracts/src/tokens/Garden.sol
-  - packages/contracts/src/registries/Action.sol
-  - packages/contracts/src/modules/Hats.sol
-  - packages/contracts/src/modules/Octant.sol
-  - packages/contracts/src/resolvers/Work.sol
-  - packages/contracts/deployments
-keywords: [solidity, smart contracts, foundry, EAS resolvers, deployment, UUPS, CREATE2, hats protocol]
+keywords:
+  - solidity
+  - foundry
+  - resolvers
+  - deployments
 ---
 
-# Contracts Package
+# Contracts
 
-Contracts own Green Goods protocol state, roles, resolver enforcement, integration modules, and
-checked-in deployment evidence.
+`packages/contracts` is the Solidity protocol, built with [Foundry](https://getfoundry.sh). It
+owns everything the chain enforces: garden accounts, authorization, attestation schemas and their
+resolvers, and the deployment artifacts that record what exists where. The
+[deployment status page](/builders/reference/deployments) is the generated view of those artifacts.
 
-## Navigation
+## Map
 
-- `src/tokens` and `src/accounts` define Garden identity and tokenbound ownership.
-- `src/registries` define durable protocol registries.
-- `src/resolvers` enforce EAS record rules.
-- `src/modules` connect optional protocol capabilities.
-- `script` owns deployment, upgrade, and release tooling.
-- `deployments` records chain artifacts and its README owns the operator runbook.
+| Directory | What lives there |
+|---|---|
+| `src/accounts/` | Garden token-bound accounts, action routing, Celo relay and coordinator |
+| `src/resolvers/` | EAS resolvers for work, approval, assessment, testimony, and yield |
+| `src/modules/` | Opt-in integrations plus the pooling and settlement control planes |
+| `src/registries/` | Action, commitment, credit, deployment, ENS, power, GreenWill |
+| `src/tokens/` | The Garden and Goods tokens |
+| `src/Schemas.sol` | EAS schema definitions |
+| `deployments/` | Per-chain artifacts, the canonical record of what is deployed |
 
-Read `packages/contracts/AGENTS.md` before any change. Use Bun package scripts rather than raw Forge
-commands. Deployment artifacts prove recorded addresses, not activation or live health; see the
-generated [deployment status](../deployments/status).
+## Run and test
+
+```bash
+cd packages/contracts
+bun run build
+bun run test
+```
+
+For one behavior, `bun run test:match -- test/<path>.t.sol` is the fast loop; add
+`bun run build:target -- src/<path>.sol` when the compiled surface moves. The full audit suite is
+`bun run test:audit:full`.
+
+## How it connects
+
+Contracts sit at the top of the dependency arrow. Their events feed the
+[indexer](./indexer)'s read models, their ABIs and addresses reach the apps through
+[shared](./shared), and their EAS schemas give the [attestation layer](../integrations/eas) its
+meaning. The [Architecture page](../architecture) shows the whole loop.
+
+## Conventions that will bite you
+
+- Deploys, upgrades, and migrations go through package scripts, never raw `forge` commands. The
+  root `contracts:*:arbitrum` wrappers set the keystore account for you.
+- A deployment artifact records that something was deployed, not that it is live and healthy.
+  Never present an address as an active feature without separate evidence.
+- Storage-layout, contract-size, and fork checks are selected by the root validation pipeline for
+  risky changes; when selected, they all have to pass.
+- Shared Solidity helpers live in `src/lib/` (EAS, strings, token-bound accounts); reach for them
+  before writing new ones.
+
+## Go deeper
+
+- [`packages/contracts/AGENTS.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/contracts/AGENTS.md)
+  is the full package contract, deployment lanes included.
+- [Deployment Status](/builders/reference/deployments) for what's recorded per chain.
+- [Data Model & Ontology](../architecture/data-model) for how contract records relate.

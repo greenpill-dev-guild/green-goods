@@ -1,5 +1,5 @@
 {
-  "$comment": "Upstream source of truth for QA scenario DEFINITIONS only — results, owners, and defect links live in the Google Sheet and per-run artifacts, never here. Active tabs merged in v2: the installed-PWA iOS/Android tabs became one 'PWA' tab (device-specific rows keep their [iOS]/[Android] scenario prefix and MUST carry requiresProduction or requiresDevice), and 'Cross Surface' dissolved into concrete per-surface rows. Retired cases keep their historical tab and are never deleted; IDs are never reused. requiresProduction = cannot pass on localhost; requiresDevice = needs a real installed device; the 'tx' tag marks rows whose walk involves real wallet transactions. Every case carries exactly one 'kind' from the top-level kinds list — the public docs expose this category axis, while the QA app keeps its priority and area views; kind 'transaction' if and only if the row carries the 'tx' tag. Lifecycle: every case carries a 'status' from the top-level statuses list. A new case enters as active by pull request with the next number in its surface prefix; wording, step, and evidence edits stay in place; when what a case proves changes it is retired (retiredOn, retiredReason, optional replacedBy naming active successors) and the new check gets a new ID, so past verdicts keep their meaning. Every id ever issued is also registered in scripts/data/qa-test-id-ledger.json (append-only); the contract test rejects a catalog whose ids drift from that ledger.",
+  "$comment": "Upstream source of truth for QA scenario DEFINITIONS only \u2014 results, owners, and defect links live in the Google Sheet and per-run artifacts, never here. Active tabs merged in v2: the installed-PWA iOS/Android tabs became one 'PWA' tab (device-specific rows keep their [iOS]/[Android] scenario prefix and MUST carry requiresProduction or requiresDevice), and 'Cross Surface' dissolved into concrete per-surface rows. Retired cases keep their historical tab and are never deleted; IDs are never reused. requiresProduction = cannot pass on localhost; requiresDevice = needs a real installed device; the 'tx' tag marks rows whose walk involves real wallet transactions. Every case carries exactly one 'kind' from the top-level kinds list \u2014 the public docs expose this category axis, while the QA app keeps its priority and area views; kind 'transaction' if and only if the row carries the 'tx' tag. Lifecycle: every case carries a 'status' from the top-level statuses list. A new case enters as active by pull request with the next number in its surface prefix; wording, step, and evidence edits stay in place; when what a case proves changes it is retired (retiredOn, retiredReason, optional replacedBy naming active successors) and the new check gets a new ID, so past verdicts keep their meaning. Every id ever issued is also registered in scripts/data/qa-test-id-ledger.json (append-only); the contract test rejects a catalog whose ids drift from that ledger.",
   "version": 2,
   "tabs": ["Public Website", "PWA", "Admin Dashboard", "Docs"],
   "statuses": [
@@ -16,7 +16,7 @@
     {
       "id": "journey",
       "label": "Journey",
-      "verifies": "A person completes, or is honestly gated out of, a flow in the UI — no wallet transaction involved"
+      "verifies": "A person completes, or is honestly gated out of, a flow in the UI \u2014 no wallet transaction involved"
     },
     {
       "id": "transaction",
@@ -97,7 +97,7 @@
       "preconditions": ["Indexer or deployed public data available"],
       "steps": [
         "Open /gardens and scroll the full listing; watch for layout jumps and lazy-image pop-in",
-        "Search for a term and confirm the live count narrows (note: the query is lost on refresh — known)",
+        "Search for a term and confirm the live count narrows (note: the query is lost on refresh \u2014 known)",
         "Search for gibberish and read the empty state",
         "Open a garden detail URL from a card"
       ],
@@ -1012,7 +1012,7 @@
         "Check action descriptions for diacritics",
         "Repeat spot checks in Spanish"
       ],
-      "expected": "No English-formatted dates, no raw '1 sessions'-style plurals, diacritics intact — locale-key parity alone is not language-quality proof",
+      "expected": "No English-formatted dates, no raw '1 sessions'-style plurals, diacritics intact \u2014 locale-key parity alone is not language-quality proof",
       "evidence": "Screenshots of pt/es views with real records",
       "role": "steward",
       "tags": ["i18n", "locale"],
@@ -1063,7 +1063,7 @@
         "Retry with a wallet on the wrong network",
         "Confirm a switch-network prompt gates the action"
       ],
-      "expected": "No wallet shows clear instructions, wrong network prompts a switch and blocks the transaction path — never a blank or broken state",
+      "expected": "No wallet shows clear instructions, wrong network prompts a switch and blocks the transaction path \u2014 never a blank or broken state",
       "evidence": "Screenshots of both states",
       "role": "none",
       "tags": ["wallet", "error-recovery", "funding"],
@@ -1085,7 +1085,7 @@
         "Immediately attempt a second decision on the same submission",
         "Where safely reproducible, interrupt the approval transaction and observe the result"
       ],
-      "expected": "A second decision is blocked or disabled; a failed approval transaction surfaces an error and the submission stays Pending — status never lies",
+      "expected": "A second decision is blocked or disabled; a failed approval transaction surfaces an error and the submission stays Pending \u2014 status never lies",
       "evidence": "Screenshots of the blocked second decision and the failure state",
       "role": "steward",
       "tags": ["review", "tx", "integrity"],
@@ -1171,7 +1171,7 @@
       "area": "Search",
       "scenario": "Local search returns relevant results with keyboard flow",
       "preconditions": [
-        "Built docs site (bun run build:docs, served) or the deployed docs site — the dev server has no search index"
+        "Built docs site (bun run build:docs, served) or the deployed docs site \u2014 the dev server has no search index"
       ],
       "steps": [
         "Focus the search input",
@@ -1194,7 +1194,7 @@
       "priority": "P1",
       "kind": "content",
       "area": "Glossary Anchors",
-      "scenario": "Glossary anchor links resolve — they are a client API",
+      "scenario": "Glossary anchor links resolve \u2014 they are a client API",
       "preconditions": ["Docs site available"],
       "steps": [
         "Open two or three /glossary#term URLs that the client links to",
@@ -1333,7 +1333,7 @@
       "scenario": "Refresh and direct deep links preserve garden/work context",
       "preconditions": ["Authenticated session"],
       "steps": ["Hard-refresh on a deep work route", "Paste a deep URL into a fresh tab"],
-      "expected": "Hard refresh on a deep route and pasting a deep URL both land correctly — no blank page, no lost context",
+      "expected": "Hard refresh on a deep route and pasting a deep URL both land correctly \u2014 no blank page, no lost context",
       "evidence": "Screenshot after refresh",
       "role": "gardener",
       "tags": ["routing"],
@@ -1427,14 +1427,14 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Funding",
-      "scenario": "Donate end to end from /fund: token pick, USD⇄WETH switch, connect-from-card, approve+deposit, reject recovery",
+      "scenario": "Donate end to end from /fund: token pick, USD\u21c4WETH switch, connect-from-card, approve+deposit, reject recovery",
       "preconditions": [
         "Local dev:prod stack (production data) or hosted production",
         "Wallet with test funds"
       ],
       "steps": [
         "Open /fund and pick a garden row",
-        "Choose token (DAI/WETH) and flip the USD⇄WETH denomination",
+        "Choose token (DAI/WETH) and flip the USD\u21c4WETH denomination",
         "Connect from the card, enter an amount, submit",
         "Approve then deposit at the wallet; also test rejecting one prompt",
         "Try closing the card mid-flow"
@@ -1464,7 +1464,7 @@
         "Submit an amount; sign reset/approve/deposit as prompted",
         "Repeat on a garden without a vault"
       ],
-      "expected": "Up to three prompts (reset→approve→deposit) narrated honestly; gardens without vaults say so; success updates the position",
+      "expected": "Up to three prompts (reset\u2192approve\u2192deposit) narrated honestly; gardens without vaults say so; success updates the position",
       "evidence": "Screenshot of success + no-vault message",
       "role": "funder",
       "tags": ["funding", "tx"],
@@ -1511,7 +1511,7 @@
         "Enter an amount, connect, follow the step counter through wrap/approve/deposit",
         "Press Escape while connecting and confirm the 15s unlock"
       ],
-      "expected": "Step counter (2–4 transactions) matches reality; wrap path narrates; success offers View transaction; Escape isn't permanently swallowed while connecting (15s unlock)",
+      "expected": "Step counter (2\u20134 transactions) matches reality; wrap path narrates; success offers View transaction; Escape isn't permanently swallowed while connecting (15s unlock)",
       "evidence": "Recording of the multi-step checkout",
       "role": "funder",
       "tags": ["funding", "tx"],
@@ -1595,7 +1595,7 @@
       "scenario": "Install App branches: desktop QR dialog, mobile steps, copy-URL, Open App flip",
       "preconditions": ["Public URL available"],
       "steps": [
-        "Click Install App on desktop — verify the QR dialog and copy-URL",
+        "Click Install App on desktop \u2014 verify the QR dialog and copy-URL",
         "Repeat at mobile width for the step list",
         "If installed, confirm the label flips to Open App"
       ],
@@ -1892,7 +1892,7 @@
       "steps": [
         "Open a pending submission as steward on desktop",
         "Approve one with optional feedback",
-        "Reject another — confirm feedback is required",
+        "Reject another \u2014 confirm feedback is required",
         "Cancel a third; follow the fulfills chip"
       ],
       "expected": "Approve/reject respect the role gate; reject stays disabled until feedback exists; cancel writes nothing; the fulfills chip opens the commitment",
@@ -2199,14 +2199,14 @@
       "priority": "P1",
       "kind": "transaction",
       "area": "Impact",
-      "scenario": "Hypercert marketplace: approvals gate, list for yield, cancel listing — including whether it's reachable at all",
+      "scenario": "Hypercert marketplace: approvals gate, list for yield, cancel listing \u2014 including whether it's reachable at all",
       "preconditions": ["Minted hypercert"],
       "steps": [
         "Open the hypercert marketplace panel (note if unreachable)",
         "Complete approvals; list for yield",
         "Cancel the listing"
       ],
-      "expected": "The approvals gate unlocks listing; listing walks its signing steps honestly; cancel works (currently a bare unguarded button, and the whole panel may be dead due to a hardcoded permission — reachability is part of the test)",
+      "expected": "The approvals gate unlocks listing; listing walks its signing steps honestly; cancel works (currently a bare unguarded button, and the whole panel may be dead due to a hardcoded permission \u2014 reachability is part of the test)",
       "evidence": "Screenshot of listing state",
       "role": "steward",
       "tags": ["impact", "tx"],
@@ -2221,11 +2221,11 @@
       "priority": "P1",
       "kind": "journey",
       "area": "Shell",
-      "scenario": "Global chrome: garden switch chip, command palette (⌘K), notifications sheet, view-public",
+      "scenario": "Global chrome: garden switch chip, command palette (\u2318K), notifications sheet, view-public",
       "preconditions": ["Steward of 2+ gardens"],
       "steps": [
         "Switch gardens via the chip and watch every workspace re-scope",
-        "Run quick actions from ⌘K",
+        "Run quick actions from \u2318K",
         "Open notifications; open view-public"
       ],
       "expected": "Switching gardens re-scopes every workspace and syncs the URL; palette finds pages/gardens/actions and runs quick actions; notifications render (no mark-as-read exists); view-public opens the public page",
@@ -2294,7 +2294,7 @@
         "Load the hub; read the error state",
         "Restore and retry"
       ],
-      "expected": "The canvas shows an honest error/retry state — never a blank shell — and recovers on retry once the network returns",
+      "expected": "The canvas shows an honest error/retry state \u2014 never a blank shell \u2014 and recovers on retry once the network returns",
       "evidence": "Screenshot of error + recovery",
       "role": "steward",
       "tags": ["error-recovery"],
@@ -2382,7 +2382,7 @@
         "Open the certificates section and follow an external link",
         "Check steward names resolve (ENS where set) and avatars fall back"
       ],
-      "expected": "Certificates render with working external links (new tab); stewards show resolved names — ENS where available, truncated addresses otherwise — with graceful avatar fallbacks",
+      "expected": "Certificates render with working external links (new tab); stewards show resolved names \u2014 ENS where available, truncated addresses otherwise \u2014 with graceful avatar fallbacks",
       "evidence": "Screenshot of both sections",
       "role": "none",
       "tags": ["garden-records"],
@@ -2465,7 +2465,7 @@
       "priority": "P1",
       "kind": "content",
       "area": "Guide Truth",
-      "scenario": "Funder guide walks true against the editorial funding surfaces (donate, fund, vaults, withdraw) — read-only",
+      "scenario": "Funder guide walks true against the editorial funding surfaces (donate, fund, vaults, withdraw) \u2014 read-only",
       "preconditions": ["Production site + docs"],
       "steps": [
         "Open the funder guide beside /fund and /vaults",
@@ -2509,14 +2509,14 @@
       "priority": "P1",
       "kind": "content",
       "area": "Builder Docs",
-      "scenario": "Builder onboarding path: getting-started and env-management commands run on a fresh checkout",
+      "scenario": "Builder onboarding path: getting-started commands (including environment setup) run on a fresh checkout",
       "preconditions": ["Clean repo checkout"],
       "steps": [
         "On a fresh checkout, run every getting-started and env-management command",
         "Verify ports and URLs",
         "Check how-to-contribute against the real gate model"
       ],
-      "expected": "Every quoted command works, ports and URLs are right, and how-to-contribute matches the real CI-Gate and develop→main model",
+      "expected": "Every quoted command works, ports and URLs are right, and how-to-contribute matches the real CI-Gate and develop\u2192main model",
       "evidence": "Terminal transcript",
       "role": "any",
       "tags": ["builder-docs"],
@@ -2625,10 +2625,10 @@
       ],
       "steps": [
         "Local dev:prod: warm-reload the app and confirm fast interactive with no re-optimization reload loop",
-        "Local dev:prod: note (but do not fail on) cold-transform watchdog trips — reproduce warm before judging",
+        "Local dev:prod: note (but do not fail on) cold-transform watchdog trips \u2014 reproduce warm before judging",
         "Production build or hosted origin: clear caches, cold-start, and time to interactive against the watchdog budget"
       ],
-      "expected": "Local dev:prod: warm reloads are fast and no dependency re-optimization reload loop appears — a cold Vite transform tripping the boot watchdog locally is an environment artifact, never a defect. Hosted/production build: a cleared-cache cold start stays under the boot watchdog threshold and never shows the recovery screen",
+      "expected": "Local dev:prod: warm reloads are fast and no dependency re-optimization reload loop appears \u2014 a cold Vite transform tripping the boot watchdog locally is an environment artifact, never a defect. Hosted/production build: a cleared-cache cold start stays under the boot watchdog threshold and never shows the recovery screen",
       "evidence": "Console timings screenshot",
       "role": "none",
       "tags": ["performance"],
@@ -2700,7 +2700,7 @@
       "requiresProduction": true,
       "status": "active",
       "source": "qa-session-2026-08-29",
-      "requiresProductionReason": "Needs the public production URL — link-preview debuggers cannot reach localhost"
+      "requiresProductionReason": "Needs the public production URL \u2014 link-preview debuggers cannot reach localhost"
     },
     {
       "id": "ADM-033",
@@ -2716,7 +2716,7 @@
         "Sign in as a deployer; follow the funnel into /garden/create",
         "Complete creation and confirm landing in the new workspace"
       ],
-      "expected": "A steward with no gardens gets an honest empty/no-access state — never a blank shell and never a create CTA (creation is deployer-gated); a fresh deployer is funneled into create-garden and lands in the new workspace on completion",
+      "expected": "A steward with no gardens gets an honest empty/no-access state \u2014 never a blank shell and never a create CTA (creation is deployer-gated); a fresh deployer is funneled into create-garden and lands in the new workspace on completion",
       "evidence": "Screenshot of empty state",
       "role": "steward",
       "tags": ["garden-lifecycle", "tx"],
@@ -2737,7 +2737,7 @@
         "Drive palette, dialogs, and a wizard by keyboard only",
         "Check focus trap, Escape order, and focus return"
       ],
-      "expected": "⌘K palette, dialogs, and wizards trap and return focus correctly; Escape behaves in the right order throughout",
+      "expected": "\u2318K palette, dialogs, and wizards trap and return focus correctly; Escape behaves in the right order throughout",
       "evidence": "Notes + screenshots",
       "role": "steward",
       "tags": ["accessibility"],
@@ -2992,7 +2992,7 @@
         "Scroll through the full list",
         "Open an item deep in the list and return"
       ],
-      "expected": "Lists scroll smoothly, load progressively or paginate, and returning preserves position — no jank or unbounded loading",
+      "expected": "Lists scroll smoothly, load progressively or paginate, and returning preserves position \u2014 no jank or unbounded loading",
       "evidence": "Screen recording of the scroll",
       "role": "any",
       "tags": ["performance", "lists"],
@@ -3011,7 +3011,7 @@
       "kind": "content",
       "area": "Vocabulary",
       "scenario": "Editorial vocabulary holds: no admin/cockpit jargon on public pages",
-      "expected": "Public pages use the editorial vocabulary only — no cockpit/internal terms, frozen names intact; lint:vocab excludes prompt-only wording, so this human sweep is the gate",
+      "expected": "Public pages use the editorial vocabulary only \u2014 no cockpit/internal terms, frozen names intact; lint:vocab excludes prompt-only wording, so this human sweep is the gate",
       "preconditions": ["Frozen-name list and surface prompt contracts (design skill)"],
       "steps": [
         "Sweep the surface's primary routes reading every heading, label, and empty state",
@@ -3055,7 +3055,7 @@
       "kind": "content",
       "area": "Vocabulary",
       "scenario": "Admin vocabulary holds: cockpit language, no editorial 'hero/story' terms",
-      "expected": "Cockpit copy stays in the admin vocabulary — no client editorial terms; Title Case action labels per DL-012; frozen names intact",
+      "expected": "Cockpit copy stays in the admin vocabulary \u2014 no client editorial terms; Title Case action labels per DL-012; frozen names intact",
       "preconditions": ["Frozen-name list and surface prompt contracts (design skill)"],
       "steps": [
         "Sweep the surface's primary routes reading every heading, label, and empty state",

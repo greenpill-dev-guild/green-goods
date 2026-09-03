@@ -26,6 +26,7 @@ import {
   sourcePathsContaining,
   workflowSourcePaths,
 } from "./source-readers.mjs";
+import { renderSkills } from "./renderers.mjs";
 import { selectExpectedWorkflows } from "../quality/select-validation.mjs";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
@@ -244,12 +245,112 @@ test("every projection source is routed to the Docs workflow", () => {
 
 test("persona surfaces consume the PWA and admin canvas route authorities", () => {
   const projection = createProjections(REPO_ROOT).find(
-    (item) => item.output === "docs/docs/builders/journeys/persona-surfaces.mdx",
+    (item) => item.output === "docs/docs/builders/reference/persona-surfaces.mdx",
   );
   assert.ok(projection);
   const rendered = renderProjection(REPO_ROOT, projection);
   assert.match(rendered, /Client canonical PWA routes[^\n]*`\/home`/);
   assert.match(rendered, /Admin canvas route segments[^\n]*`hub`/);
+});
+
+test("data model projects layered diagrams, every relationship, and all lifecycles", () => {
+  const projection = createProjections(REPO_ROOT).find(
+    (item) => item.output === "docs/docs/builders/architecture/data-model.mdx",
+  );
+  assert.ok(projection);
+  const rendered = renderProjection(REPO_ROOT, projection);
+  const blocks = [...rendered.matchAll(/```mermaid\n([\s\S]*?)```/g)].map((match) => match[1]);
+  const ontology = readJson(REPO_ROOT, "packages/shared/src/ontology/green-goods-ontology.json");
+  const flowcharts = blocks.filter((block) => block.startsWith("flowchart"));
+  const machines = blocks.filter((block) => block.startsWith("stateDiagram-v2"));
+  assert.equal(flowcharts.length, 3);
+  assert.equal(machines.length, ontology.state_machines.length);
+  assert.match(rendered, /## Lifecycles/);
+  const memberCount = (blocks.join("\n").match(/\]:::member/g) ?? []).length;
+  assert.equal(memberCount, ontology.entities.length);
+  const expectedEdges = ontology.entities.reduce(
+    (sum, entity) => sum + (entity.relationships ?? []).length,
+    0,
+  );
+  const renderedEdges = flowcharts.join("\n").split("\n").filter((line) => line.includes("-->")).length;
+  assert.equal(renderedEdges, expectedEdges);
+  assert.match(flowcharts[0], /garden\[[^\]]*\]:::member/);
+  assert.doesNotMatch(flowcharts[0], /commitment_pool\[[^\]]*\]:::member/);
+  assert.match(flowcharts[2], /commitment_pool\[[^\]]*\]:::member/);
+});
+
+test("skills catalog prefers a skill README and falls back to the SKILL.md description", () => {
+  const root = fixture();
+  try {
+    mkdirSync(path.join(root, ".claude/skills/alpha"), { recursive: true });
+    mkdirSync(path.join(root, ".claude/skills/beta"), { recursive: true });
+    writeFileSync(
+      path.join(root, ".claude/skills/alpha/SKILL.md"),
+      "---\nname: alpha\ndescription: Alpha description sentence.\n---\nBody\n",
+    );
+    writeFileSync(
+      path.join(root, ".claude/skills/alpha/README.md"),
+      "# Alpha\n\nAlpha readme purpose paragraph.\n\n## More\n\nDetail\n",
+    );
+    writeFileSync(
+      path.join(root, ".claude/skills/beta/SKILL.md"),
+      "---\nname: beta\ndescription: Beta description sentence.\n---\nBody\n",
+    );
+    const sources = [
+      ".claude/skills/alpha/README.md",
+      ".claude/skills/alpha/SKILL.md",
+      ".claude/skills/beta/SKILL.md",
+    ];
+    const rendered = renderSkills({ root, sources, digest: "sha256:test" });
+    assert.match(rendered, /Alpha readme purpose paragraph\./);
+    assert.doesNotMatch(rendered, /Alpha description sentence\./);
+    assert.match(rendered, /Beta description sentence\./);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("skills catalog projects every repository skill", () => {
+  const projection = createProjections(REPO_ROOT).find(
+    (item) => item.output === "docs/docs/builders/agentic/skills.mdx",
+  );
+  assert.ok(projection);
+  const rendered = renderProjection(REPO_ROOT, projection);
+  for (const skill of ["research", "review", "ship", "plan", "debug", "qa-session"]) {
+    assert.match(rendered, new RegExp(`### ${skill}\\b`));
+  }
+  assert.match(rendered, /tree\/main\/\.claude\/skills\/research/);
+});
+
+test("integration projections move to one data file with per-network and indexing facts", () => {
+  const projections = createProjections(REPO_ROOT);
+  assert.ok(
+    !projections.some((item) => item.output === "docs/docs/builders/integrations/hats.mdx"),
+    "per-integration MDX projections should be retired in favor of the data file",
+  );
+  const projection = projections.find(
+    (item) => item.output === "docs/src/data/integration-projections.json",
+  );
+  assert.ok(projection);
+  const payload = JSON.parse(renderProjection(REPO_ROOT, projection));
+  assert.deepEqual(Object.keys(payload.integrations), [
+    "cookie-jar",
+    "ens",
+    "gardens",
+    "hats",
+    "hypercerts",
+    "karma",
+    "octant",
+  ]);
+  const hats = payload.integrations.hats;
+  assert.ok(
+    hats.networks.some(
+      (network) => network.chainId === 42161 && network.recorded.includes("hatsModule"),
+    ),
+  );
+  assert.ok(Array.isArray(hats.indexedContracts));
+  assert.equal(typeof payload.digest, "string");
+  assert.ok(hats.totalNetworks >= hats.networks.length);
 });
 
 test("task routing projects public ownership and one-way synchronization", () => {

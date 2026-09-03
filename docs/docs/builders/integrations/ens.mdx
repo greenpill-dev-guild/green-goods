@@ -1,57 +1,46 @@
 ---
 title: ENS
+sidebar_label: ENS
 slug: /builders/integrations/ens
 audience: developer
 owner: docs
+last_verified: 2026-09-02
 feature_status: Live
-generated: true
-generator: scripts/docs/generate.mjs
-generated_from:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/registries/ENS.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
-  - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
-  - packages/shared/src/utils/blockchain/ens.ts
-source_digest: "sha256:15e2445f6b9e1f4b34e4cdd4c72cb96bc9633ca6c0e4ca23be14f6af07368a31"
 source_of_truth:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/registries/ENS.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
   - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
-  - packages/shared/src/utils/blockchain/ens.ts
+  - docs/src/data/integration-projections.json
+  - packages/contracts/src/registries/ENS.sol
+keywords:
+  - ens
+  - names
+  - identity
 ---
 
-<!-- GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope <scope>`. -->
+import {IntegrationProjection} from "@site/src/components/docs";
+
 # ENS
 
-ENS connects Garden identity to names across the configured registry, receiver, and application resolution paths.
+[ENS](https://ens.domains) gives gardens names. Instead of an address, a garden can carry a
+human-readable identity that resolves across the ecosystem, and the module wires the registry,
+the receiver, and the application resolution paths that make those names work.
 
-## Checked-in deployment projection
+## Where it lives in the code
 
-| Network | Status | Recorded components |
-|---|---|---|
-| Ethereum Mainnet (`1`) | Partial | `ensReceiver` |
-| Sepolia Testnet (`11155111`) | Deployed | `ensReceiver`, `greenGoodsENS` |
-| Arbitrum One (`42161`) | Partial | `greenGoodsENS` |
+| Layer | Source |
+|---|---|
+| Registry | `packages/contracts/src/registries/ENS.sol` |
+| Resolution hooks | `packages/shared/src/hooks/ens` |
+| Recorded components | The `greenGoodsENS` and `ensReceiver` fields in the [deployment record](/builders/reference/deployments) |
 
-Networks without recorded components are omitted; per-network state lives in the [deployment status projection](/builders/deployments/status).
+<IntegrationProjection id="ens" />
 
-## Indexer boundary
+## Working with it locally
 
-No integration-specific contract is declared in the checked-in indexer configuration.
+The [full-stack path](../getting-started#path-b-run-the-full-local-stack) forks Arbitrum One, so
+recorded name state resolves locally; registering new names against mainnet ENS needs the real
+chain.
 
-A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. Follow the owning package runbook for operational verification.
+## Canonical upstream docs
+
+- [ENS documentation](https://docs.ens.domains) for names, resolvers, and cross-chain resolution.
+- [ens.domains](https://ens.domains) for the app.
