@@ -279,4 +279,4 @@ These are already part of the core product baseline and should be treated as liv
 - Organizational mission and values → `docs/docs/community/why-we-build.mdx`
 - Impact model (CIDS) and action domains → `docs/docs/community/how-it-works.mdx`
 - Public capability boundaries → `docs/docs/community/green-goods-claims.generated.mdx`
-- Real communities and localization → `docs/docs/reference/design-research.md`
+- Real communities and localization → `docs/docs/builders/architecture/design.mdx`
