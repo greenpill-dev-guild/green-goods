@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-02T02:56:50.292Z",
-    "updated_at": "2026-09-02T03:14:17.463Z"
+    "updated_at": "2026-09-03T07:31:04Z"
   },
   "links": {
     "brief": "brief.md",
@@ -167,6 +167,14 @@
       "status": "tdd_recorded",
       "branch": "feature/qa-report",
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-03T07:31:04Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "review_fixes_in_progress",
+      "branch": null,
+      "note": "Reopened after review for private-output confinement, Test ID lifecycle enforcement, session-state consistency, and guidance alignment; Step 9 still needs the private 2026-09-02 pull and Linear comparison"
     }
   ]
 }

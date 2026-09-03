@@ -298,6 +298,19 @@ describe("QA app build", () => {
     expect(Object.keys(built.cases[0]).sort()).toEqual(
       ["area", "expected", "id", "pri", "rd", "rp", "scenario", "tab", "tx"],
     );
+    expect(built.journeys.map((journey: { id: string }) => journey.id)).toEqual([
+      "service-relay",
+      "protocol-treasury-top-up",
+    ]);
+    const activeIds = new Set(built.cases.map((testCase: { id: string }) => testCase.id));
+    for (const journey of built.journeys) {
+      for (const step of journey.steps) expect(activeIds.has(step.caseId)).toBe(true);
+    }
+    const gated = built.journeys.flatMap((journey: { steps: Array<{ knownGate?: string }> }) =>
+      journey.steps.filter((step) => step.knownGate),
+    );
+    expect(gated).toHaveLength(3);
+    expect(gated.every((step: { knownGate: string }) => step.knownGate.trim().length > 0)).toBe(true);
   });
 });
 

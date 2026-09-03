@@ -16,7 +16,20 @@
  * Results never enter git: everything lands under gitignored tmp/.
  */
 
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import {
+  closeSync,
+  constants,
+  existsSync,
+  fsyncSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  realpathSync,
+  renameSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -36,9 +49,313 @@ interface Options {
 }
 
 /** What a completed pull leaves behind, and therefore what a rerun would replace. */
-export const SESSION_ARTIFACTS = ["results.csv", "qa-state.json"] as const;
+const PULL_DATA_ARTIFACTS = ["results.csv", "qa-state.json"] as const;
+export const PULL_IN_PROGRESS_ARTIFACT = ".qa-pull-in-progress";
+export const SESSION_ARTIFACTS = [...PULL_DATA_ARTIFACTS] as const;
+type PullArtifactContents = Record<(typeof PULL_DATA_ARTIFACTS)[number], string>;
 const SHARD_STATUSES = new Set(["pass", "fail", "blocked", "na", ""]);
 type BlobAccess = Pick<typeof import("@vercel/blob"), "get" | "list">;
+
+const PRIVATE_OUTPUT_ERROR = "private QA output must resolve under the repo's gitignored tmp/ directory";
+
+function isWithin(root: string, candidate: string): boolean {
+  const relative = path.relative(root, candidate);
+  return (
+    relative === "" ||
+    (relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))
+  );
+}
+
+/** Resolve symlinks in the nearest existing ancestor without requiring the final path to exist. */
+function projectedPhysicalPath(candidate: string): string {
+  const missing: string[] = [];
+  let existing = candidate;
+  while (!existsSync(existing)) {
+    const parent = path.dirname(existing);
+    if (parent === existing) throw new Error(PRIVATE_OUTPUT_ERROR);
+    missing.unshift(path.basename(existing));
+    existing = parent;
+  }
+  return path.join(realpathSync(existing), ...missing);
+}
+
+/** Follow directory links before trusting the private-output boundary. */
+export function assertPrivateOutputPath(root: string, outDir: string): void {
+  try {
+    const physicalRepoRoot = realpathSync(root);
+    const physicalPrivateRoot = projectedPhysicalPath(path.join(root, "tmp"));
+    const physicalOutDir = projectedPhysicalPath(outDir);
+    if (!isWithin(physicalRepoRoot, physicalPrivateRoot) || !isWithin(physicalPrivateRoot, physicalOutDir)) {
+      throw new Error(PRIVATE_OUTPUT_ERROR);
+    }
+  } catch {
+    throw new Error(PRIVATE_OUTPUT_ERROR);
+  }
+}
+
+/** Replace a private artifact atomically so an existing symlink or hard link is never followed. */
+export function writePrivateFileAtomically(target: string, content: string): void {
+  const temporary = path.join(path.dirname(target), `.${path.basename(target)}.${process.pid}.${randomUUID()}.tmp`);
+  let descriptor: number | undefined;
+  try {
+    descriptor = openSync(
+      temporary,
+      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
+      0o600,
+    );
+    writeFileSync(descriptor, content);
+    fsyncSync(descriptor);
+    closeSync(descriptor);
+    descriptor = undefined;
+    renameSync(temporary, target);
+  } catch {
+    if (descriptor !== undefined) {
+      try {
+        closeSync(descriptor);
+      } catch {
+        // Preserve the write failure below.
+      }
+    }
+    try {
+      unlinkSync(temporary);
+    } catch {
+      // The temporary file may never have been created.
+    }
+    throw new Error("private QA output must be a writable regular file under tmp/");
+  }
+}
+
+/** Acquire the shared session marker without replacing another operation's marker. */
+function acquirePrivateSessionMarker(target: string, content: string): void {
+  let descriptor: number | undefined;
+  try {
+    descriptor = openSync(
+      target,
+      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
+      0o600,
+    );
+    writeFileSync(descriptor, content);
+    fsyncSync(descriptor);
+    closeSync(descriptor);
+    descriptor = undefined;
+  } catch (error) {
+    if (descriptor !== undefined) {
+      try {
+        closeSync(descriptor);
+      } catch {
+        // Preserve the acquisition failure below.
+      }
+    }
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+      throw new Error("QA session artifacts are already locked for this destination");
+    }
+    throw new Error("QA session artifacts could not acquire their exclusive lock");
+  }
+}
+
+interface ArtifactSetOperations {
+  write: (target: string, content: string) => void;
+  move: (source: string, target: string) => void;
+  remove: (target: string) => void;
+  exists: (target: string) => boolean;
+  acquire?: (target: string, content: string) => void;
+  read?: (target: string) => string;
+}
+
+export interface PrivateSessionLock {
+  outDir: string;
+  markerPath: string;
+  markerContent: string;
+}
+
+function releasePrivateSessionMarker(
+  markerPath: string,
+  markerContent: string,
+  operations: Pick<ArtifactSetOperations, "exists" | "remove"> & Required<Pick<ArtifactSetOperations, "read">>,
+): void {
+  if (!operations.exists(markerPath) || operations.read(markerPath) !== markerContent) {
+    throw new Error("QA session lock ownership changed; leaving the marker in place");
+  }
+  operations.remove(markerPath);
+}
+
+/** Hold the same exclusive marker used by qa:pull for another session-artifact operation. */
+export function acquirePrivateSessionLock(outDir: string, owner: "qa:report"): PrivateSessionLock {
+  const markerPath = path.join(outDir, PULL_IN_PROGRESS_ARTIFACT);
+  const markerContent = `${owner}:${randomUUID()}\n`;
+  acquirePrivateSessionMarker(markerPath, markerContent);
+  return { outDir, markerPath, markerContent };
+}
+
+export function releasePrivateSessionLock(lock: PrivateSessionLock): void {
+  releasePrivateSessionMarker(lock.markerPath, lock.markerContent, {
+    exists: existsSync,
+    read: (target) => readFileSync(target, "utf8"),
+    remove: unlinkSync,
+  });
+}
+
+class PrivateArtifactOverwriteError extends Error {}
+
+/**
+ * Stage and commit both pulled artifacts as one recoverable replacement.
+ *
+ * POSIX cannot atomically rename two files together. The marker blocks readers
+ * during the replacement. Both new files are fully staged before either current
+ * artifact moves, and a failed commit restores the previous pair. The marker is
+ * left behind only if rollback itself cannot restore a consistent directory.
+ */
+export function writePrivateArtifactSetAtomically(
+  outDir: string,
+  artifacts: PullArtifactContents,
+  operations: ArtifactSetOperations = {
+    write: writePrivateFileAtomically,
+    move: renameSync,
+    remove: unlinkSync,
+    exists: existsSync,
+  },
+  replaceExisting = false,
+): void {
+  const generation = randomUUID();
+  const markerPath = path.join(outDir, PULL_IN_PROGRESS_ARTIFACT);
+  const paths = PULL_DATA_ARTIFACTS.map((name) => ({
+    name,
+    target: path.join(outDir, name),
+    staged: path.join(outDir, `.${name}.${generation}.staged`),
+    backup: path.join(outDir, `.${name}.${generation}.backup`),
+  }));
+  const backedUp: typeof paths = [];
+  const committed: typeof paths = [];
+  let rollbackFailed = false;
+  let markerAcquired = false;
+  const markerContent = `${generation}\n`;
+  const acquire = operations.acquire ?? acquirePrivateSessionMarker;
+  const read = operations.read ?? ((target: string) => readFileSync(target, "utf8"));
+
+  try {
+    acquire(markerPath, markerContent);
+    markerAcquired = true;
+    const conflicts = PULL_DATA_ARTIFACTS.filter((name) => operations.exists(path.join(outDir, name)));
+    if (conflicts.length && !replaceExisting) {
+      throw new PrivateArtifactOverwriteError(
+        `Refusing to overwrite ${conflicts.join(" and ")} after acquiring the session lock; retry with --force only if that local copy is expendable`,
+      );
+    }
+    for (const artifact of paths) {
+      operations.write(artifact.staged, artifacts[artifact.name]);
+    }
+    for (const artifact of paths) {
+      if (!operations.exists(artifact.target)) continue;
+      operations.move(artifact.target, artifact.backup);
+      backedUp.push(artifact);
+    }
+    for (const artifact of paths) {
+      operations.move(artifact.staged, artifact.target);
+      committed.push(artifact);
+    }
+  } catch (error) {
+    if (!markerAcquired) throw error;
+    for (const artifact of [...committed].reverse()) {
+      try {
+        if (operations.exists(artifact.target)) operations.remove(artifact.target);
+      } catch {
+        rollbackFailed = true;
+      }
+    }
+    for (const artifact of [...backedUp].reverse()) {
+      try {
+        if (operations.exists(artifact.backup)) operations.move(artifact.backup, artifact.target);
+      } catch {
+        rollbackFailed = true;
+      }
+    }
+    for (const artifact of paths) {
+      try {
+        if (operations.exists(artifact.staged)) operations.remove(artifact.staged);
+      } catch {
+        rollbackFailed = true;
+      }
+    }
+    if (!rollbackFailed) {
+      try {
+        releasePrivateSessionMarker(markerPath, markerContent, { ...operations, read });
+      } catch {
+        rollbackFailed = true;
+      }
+    }
+    if (!rollbackFailed && error instanceof PrivateArtifactOverwriteError) throw error;
+    throw new Error(
+      rollbackFailed
+        ? "private QA artifact set is incomplete; confirm no qa:pull process is active, repair the destination, and retry"
+        : "private QA artifact set replacement failed; previous artifacts were restored",
+    );
+  }
+
+  for (const artifact of backedUp) {
+    try {
+      if (operations.exists(artifact.backup)) operations.remove(artifact.backup);
+    } catch {
+      // The committed pair is complete; a hidden backup can be cleaned on the next pull.
+    }
+  }
+  try {
+    releasePrivateSessionMarker(markerPath, markerContent, { ...operations, read });
+  } catch (error) {
+    if (error instanceof Error && /lock ownership changed/i.test(error.message)) throw error;
+    throw new Error("private QA artifact set is complete but still marked in progress");
+  }
+}
+
+export function assertPullNotInProgress(
+  outDir: string,
+  exists: (target: string) => boolean = existsSync,
+): void {
+  if (exists(path.join(outDir, PULL_IN_PROGRESS_ARTIFACT))) {
+    throw new Error(
+      "incomplete qa:pull artifact set; confirm no qa:pull process is active before repairing the destination",
+    );
+  }
+}
+
+/** Re-read the pull after parsing so a concurrent replacement cannot mix generations. */
+export function verifyPrivateArtifactSet(
+  outDir: string,
+  artifacts: Partial<PullArtifactContents>,
+  operations: {
+    exists: (target: string) => boolean;
+    read: (target: string) => string;
+  } = {
+    exists: existsSync,
+    read: (target) => readFileSync(target, "utf8"),
+  },
+  lock?: PrivateSessionLock,
+): void {
+  const assertReadable = () => {
+    if (!lock) {
+      assertPullNotInProgress(outDir, operations.exists);
+      return;
+    }
+    if (
+      path.resolve(lock.outDir) !== path.resolve(outDir) ||
+      lock.markerPath !== path.join(outDir, PULL_IN_PROGRESS_ARTIFACT) ||
+      !operations.exists(lock.markerPath) ||
+      operations.read(lock.markerPath) !== lock.markerContent
+    ) {
+      throw new Error("QA session lock ownership changed while reading the pulled artifacts");
+    }
+  };
+
+  assertReadable();
+  for (const name of PULL_DATA_ARTIFACTS) {
+    const content = artifacts[name];
+    if (content === undefined) continue;
+    const target = path.join(outDir, name);
+    if (!operations.exists(target) || operations.read(target) !== content) {
+      throw new Error(`${name} changed while the qa:report snapshot was being read`);
+    }
+  }
+  assertReadable();
+}
 
 export function parseArgs(argv: string[]): Options {
   let slug = new Date().toISOString().slice(0, 10);
@@ -82,7 +399,9 @@ export function parseArgs(argv: string[]): Options {
  * `--force` is how the operator says the local copy is expendable.
  */
 export function existingArtifacts(outDir: string, exists: (target: string) => boolean = existsSync): string[] {
-  return SESSION_ARTIFACTS.filter((name) => exists(path.join(outDir, name)));
+  return [...SESSION_ARTIFACTS, PULL_IN_PROGRESS_ARTIFACT].filter((name) =>
+    exists(path.join(outDir, name)),
+  );
 }
 
 /**
@@ -224,6 +543,7 @@ export async function readShards(token: string, access?: BlobAccess): Promise<Ar
 
 async function main(): Promise<void> {
   const options = parseArgs(process.argv.slice(2));
+  assertPrivateOutputPath(repoRoot, options.outDir);
   const token = resolveBlobToken();
 
   // Before the store fan-out, so a refused pull costs nothing and reads clearly.
@@ -233,6 +553,12 @@ async function main(): Promise<void> {
       `${path.relative(repoRoot, options.outDir)} already has ${clashes.join(" and ")}. ` +
         "Refusing to overwrite a pulled session — severity, redactions and hand-added rows " +
         "live only there. Pull to a fresh --out, or pass --force to replace it.",
+    );
+  }
+  if (clashes.includes(PULL_IN_PROGRESS_ARTIFACT)) {
+    throw new Error(
+      `${path.relative(repoRoot, options.outDir)} is marked as an active or incomplete pull. ` +
+        "Confirm no qa:pull process is using it, then remove the marker before retrying.",
     );
   }
 
@@ -245,10 +571,14 @@ async function main(): Promise<void> {
   mkdirSync(options.outDir, { recursive: true });
   const csvPath = path.join(options.outDir, "results.csv");
   const statePath = path.join(options.outDir, "qa-state.json");
-  writeFileSync(csvPath, toResultsCsv(active, merged));
-  writeFileSync(
-    statePath,
-    `${JSON.stringify({ slug: options.slug, pulledAt: new Date().toISOString(), summary, entries: merged }, null, 2)}\n`,
+  writePrivateArtifactSetAtomically(
+    options.outDir,
+    {
+      "results.csv": toResultsCsv(active, merged),
+      "qa-state.json": `${JSON.stringify({ slug: options.slug, pulledAt: new Date().toISOString(), summary, entries: merged }, null, 2)}\n`,
+    },
+    undefined,
+    options.force,
   );
 
   const per = Object.entries(summary.perPerson)

@@ -3,7 +3,7 @@
 **Feature Slug**: `qa-report`
 **Status**: ACTIVE
 **Created**: 2026-09-02
-**Last Updated**: 2026-09-02
+**Last Updated**: 2026-09-03
 
 ## Decision Log
 
@@ -23,7 +23,7 @@ derived from the code and open to challenge before Step 2.
 | `--public` projection with privacy proof | Step 4 | ✅ |
 | CLI + `qa:report` script | Step 6 | ✅ |
 | Routine, skills, templates, and contract embed the generated sections | Step 7 | ✅ |
-| Docs name the generator; real example after the first call | Step 8 | ⏳ after the polish PR merges |
+| Docs name the generator and both result blocks; real example after the first call | Step 8 | Generator and blocks documented ✅; real example waits on Step 9 |
 | First real report for the 2026-09-02 call | Step 9 | ⏳ needs the pulled call |
 
 ## Implementation Notes
@@ -43,6 +43,10 @@ derived from the code and open to challenge before Step 2.
 - **Cloud routine.** `qa-call-report.md` is pasted into the claude.ai routine by hand; the wiring
   takes effect there only after the prompt is re-pasted and `qa:report` has merged to `develop`,
   which the routine's own capability check now verifies by file.
+- **Review hardening.** The 2026-09-03 review reopened the implementation lane to enforce the
+  physical `tmp/` boundary and atomic private writes in `qa:pull` and `qa:report`, lock retired
+  Test IDs across revisions, reject mismatched or temporally impossible session state, and align
+  the routine and product-facing docs. Step 9 remains external-evidence work.
 
 ## CLAUDE.md Compliance
 

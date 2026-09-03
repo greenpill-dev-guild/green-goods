@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:e735c99fef5f0f6d15172ca822ae7c7240188ba33376571e2ef5a789bead3679"
+source_digest: "sha256:1079fe8eea7112349758f36bb88f9d87b01a72660f1191325ddb76d263d00f88"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -48,6 +48,76 @@ Each case carries one **kind**, the category axis:
 - **Content & vocabulary** — Copy, vocabulary, locale quality, and guide truth hold on the rendered surface.
 - **Accessibility** — Keyboard, focus, contrast, touch targets, safe areas, and responsive layout stay usable.
 - **Resilience** — Offline behavior, error recovery, updates, and performance degrade and recover honestly.
+
+## Guided journeys
+
+Guided journeys choreograph active Test IDs across surfaces. A case's kind still describes that individual check; a guided journey describes who acts, who verifies, and when the handoff happens.
+
+### Service relay: Green Goods → Garden → members
+
+Two people follow a protocol Request from the Green Goods pool through Garden delivery, then use a separate Garden commitment to recognize the member's work.
+
+**Parts**
+
+- **Protocol & review** — Protocol steward and independent steward or evaluator of the test Garden; never a contributor.
+- **Garden & member** — Steward and member of the test Garden; institutional claimant, accountable lead, and contributor.
+
+**Phases and Test IDs**
+
+**Prepare**
+
+1. `ADM-037` — Act: Protocol & review; verify: Garden & member
+2. `PWA-046` — Act: Garden & member
+3. `ADM-038` — Act: Protocol & review; verify: Garden & member
+
+**Protocol asks**
+
+4. `ADM-039` — Act: Protocol & review; verify: Garden & member
+5. `PWA-047` — Act: Garden & member; verify: Protocol & review
+6. `ADM-040` — Act: Protocol & review; verify: Garden & member
+
+**Garden delivers**
+
+7. `PWA-048` — Act: Garden & member; verify: Protocol & review
+8. `ADM-041` — Act: Protocol & review
+9. `ADM-042` — Act: Protocol & review; verify: Garden & member
+
+**Garden earns**
+
+10. `ADM-043` — Act: Protocol & review; verify: Garden & member
+
+**Garden distributes**
+
+11. `ADM-026` — Act: Protocol & review; verify: Garden & member
+12. `PWA-049` — Act: Garden & member
+13. `PWA-050` — Act: Garden & member; verify: Protocol & review
+14. `ADM-012` — Act: Protocol & review
+15. `ADM-013` — Act: Protocol & review; verify: Garden & member
+
+**Member receives**
+
+16. `ADM-044` — Act: Protocol & review; verify: Garden & member
+
+### Protocol treasury top-up
+
+Check discretionary funding readiness, queue a ProtocolToGarden top-up when authorized, and verify the Garden balance without referencing a commitment.
+
+**Parts**
+
+- **Protocol & review** — Protocol steward with authority to inspect and, when approved, queue treasury funding.
+- **Garden & member** — Test-Garden steward who verifies the destination Garden and its balance.
+
+**Phases and Test IDs**
+
+**Check readiness**
+
+1. `ADM-014` — Act: Protocol & review
+
+**Queue top-up**
+
+2. `ADM-045` — Act: Protocol & review; verify: Garden & member
+
+
 
 ## How this catalog changes {#lifecycle}
 
@@ -112,7 +182,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 
 ## PWA
 
-### P0 — run these first (20) {#pwa-p0}
+### P0 — run these first (24) {#pwa-p0}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -123,6 +193,10 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-031` | Transaction | Work Submission | Full work submission on desktop shell: action, garden, media upload, audio note, details, location, review, submit | Recording of wizard + submit |
 | `PWA-033` | Transaction | Commitments | Commitment detail acts: take up, withdraw with reason, confirm / not-yet, link work, steward claim decisions | Screenshots per act |
 | `PWA-035` | Transaction | Review | Review work on desktop shell: approve with optional feedback, reject requires feedback | Screenshot of decided states |
+| `PWA-047` | Transaction | Protocol Pool | Claim the protocol Request for the test Garden | Screenshot of the pending Garden claim |
+| `PWA-048` | Transaction | Protocol Request Work | Submit Work and evidence against the original protocol Request | Screenshot of the linked Work and evidence on the Request |
+| `PWA-049` | Transaction | Garden Commitment | Take up the separate local Garden commitment | Screenshot with the local commitment ID and Garden Campaign context |
+| `PWA-050` | Transaction | Garden Commitment Work | Submit Work and evidence for the local Garden commitment | Screenshot of the local Work and evidence link |
 | `PWA-AND-001` | Journey | Install | [Android] Fresh Android install launches standalone | Screen recording |
 | `PWA-AND-002` | Resilience | Update | [Android] Existing Android install updates without split state | Screen recording |
 | `PWA-AND-003` | Data integrity | Upload | [Android] Camera and gallery image handling works on Android | Screen recording |
@@ -137,7 +211,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-ROLE-002` | Transaction | Review | Reject pending work with reason on iOS | Screen recording plus account role |
 | `PWA-ROLE-003` | Journey | Permissions | Insufficient-role user cannot approve or reject on iOS | Screenshot plus account role |
 
-### P1 (25) {#pwa-p1}
+### P1 (26) {#pwa-p1}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -155,6 +229,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-041` | Resilience | Update | Desktop service-worker update: banner on a new deploy, refresh applies cleanly | Screenshot of the banner |
 | `PWA-042` | Accessibility | Accessibility | Keyboard and focus smoke on core PWA flows: wizard, drawers, dialogs | Notes per surface + screenshots |
 | `PWA-043` | Resilience | Performance | Boot performance: warm reload locally; cold-start budget on a production build | Console timings screenshot |
+| `PWA-046` | Journey | Garden Assessment | Garden member can read the starting assessment | Screenshot of the assessment in the test Garden |
 | `PWA-AND-005` | Accessibility | Mobile UI | Keyboard and drawer layout remain usable on Android | Screenshots |
 | `PWA-IOS-005` | Data integrity | Upload | [iOS] HEIC or library image survives submission draft | Screenshot before and after reopen |
 | `PWA-IOS-007` | Accessibility | Mobile UI | Drawers and bottom nav respect safe areas | Screenshots with drawer and keyboard |
@@ -177,7 +252,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 
 ## Admin Dashboard
 
-### P0 — run these first (15) {#admin-dashboard-p0}
+### P0 — run these first (23) {#admin-dashboard-p0}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -196,8 +271,16 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-022` | Transaction | Garden Pool | Pool lifecycle: set up commitments, start/open a season or campaign, cancel with reason, pause/resume, close/archive/reopen | Screenshots per lifecycle step |
 | `ADM-023` | Transaction | Endowment | Endowment operations: vault deposit with limits, withdraw, harvest & distribute, emergency pause, auto-allocate | Screenshot of harvest report |
 | `ADM-025` | Transaction | Hub Confirmations | Commitment inspector steward acts: confirm ordinary/fallback, raise & resolve dispute, expire, recovery overrides | Screenshots per act |
+| `ADM-026` | Transaction | Garden Pool | Seed a commitment: 4-step wizard, named confirmers, review, queued creation | Screenshot of queued row |
+| `ADM-038` | Transaction | Garden Cycle | Open the test Season and Campaign independently of assessment state | Screenshot of the open Season and Campaign |
+| `ADM-039` | Transaction | Protocol Pool | Seed an approval-gated protocol Request for a concrete service | Screenshot of the Request in the protocol pool |
+| `ADM-040` | Transaction | Protocol Pool | Accept the test Garden's institutional claim | Screenshot showing Accepted, the Garden provider, and protocol-pool context |
+| `ADM-041` | Transaction | Protocol Request Work | Approve Work linked to the protocol Request without joining its contributors | Screenshot of the approved Work and contributor roster |
+| `ADM-042` | Transaction | Protocol Pool | Confirm the protocol Request after its Work is approved | Screenshot of the Fulfilled protocol Request |
+| `ADM-043` | Transaction | Earned Compensation | Settle earned G$ compensation from the protocol to the Garden | Screenshot of the Garden beneficiary and completed settlement or visible gate |
+| `ADM-044` | Transaction | Member Compensation | Settle the Garden's contributor payout to the member | Screenshot of the member recipient and completed payout or visible gate |
 
-### P1 (16) {#admin-dashboard-p1}
+### P1 (17) {#admin-dashboard-p1}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -210,13 +293,14 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-016` | Content & vocabulary | Locale Quality | Portuguese and Spanish render dates, plurals, and units correctly | Screenshots of pt/es views with real records |
 | `ADM-017` | Transaction | Garden Lifecycle | Garden creation reviews before submit and lands usable | Screenshots of validation, review, and landing |
 | `ADM-024` | Transaction | Payouts | Cookie jar payouts: deposit, withdraw with purpose within limits and cooldown | Screenshot of withdraw result |
-| `ADM-026` | Transaction | Garden Pool | Seed a commitment: 4-step wizard, named confirmers, review, queued creation | Screenshot of queued row |
 | `ADM-027` | Transaction | Coordination | Coordination: create signal pools, manage strategies, register/deregister items, allocate weights | Screenshot of saved weights |
 | `ADM-028` | Transaction | Impact | Hypercert marketplace: approvals gate, list for yield, cancel listing — including whether it's reachable at all | Screenshot of listing state |
 | `ADM-029` | Journey | Shell | Global chrome: garden switch chip, command palette (⌘K), notifications sheet, view-public | Screenshot of palette |
 | `ADM-030` | Transaction | Work Submission | Admin submit-work wizard with review-step edit jumps and offline queueing | Screenshot of review step |
 | `ADM-031` | Journey | Work Queue | Hub queue at volume: full scroll, search/sort, deep item open and return | Recording of scroll return |
 | `ADM-033` | Transaction | Garden Lifecycle | First-run: zero-garden steward sees an honest no-access state; a deployer gets the create funnel | Screenshot of empty state |
+| `ADM-037` | Transaction | Garden Assessment | Record a starting assessment for the test Garden | Screenshot of the recorded assessment with the Garden identity visible |
+| `ADM-045` | Transaction | Protocol Treasury | Queue a discretionary ProtocolToGarden treasury top-up | Screenshot of the ProtocolToGarden review and resulting balance or visible gate |
 
 ### P2 (6) {#admin-dashboard-p2}
 

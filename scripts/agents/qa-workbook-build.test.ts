@@ -52,8 +52,12 @@ const statuses = [
 describe("qa-test-catalog.json", () => {
   it("loads and validates the real catalog", async () => {
     const catalog = await loadCatalog();
-    expect(catalog.version).toBe(2);
+    expect(catalog.version).toBe(3);
     expect(catalog.cases.length).toBeGreaterThanOrEqual(120);
+    expect(catalog.journeys?.map((journey) => journey.id)).toEqual([
+      "service-relay",
+      "protocol-treasury-top-up",
+    ]);
     // Docs is a first-class surface with content-truth cases of its own.
     expect(filterCases(catalog.cases, { tabs: ["Docs"] }).length).toBeGreaterThanOrEqual(13);
     // Retired rows stay forever (never delete, never reuse ids).
@@ -166,6 +170,123 @@ describe("validateCatalog", () => {
     const problems = validateCatalog({ version: 2, tabs, kinds, statuses, cases: [legacy, canonical] });
     expect(problems).toHaveLength(1);
     expect(problems[0]).toMatch(/legacy tag 'transaction'/);
+  });
+
+  it("validates journey ids, references, verifier lanes, and handoff copy", () => {
+    const cases = [
+      makeCase(),
+      makeCase({ id: "ADM-002" }),
+      makeCase({ id: "ADM-003", status: "retired" }),
+    ];
+    const journeys = [
+      {
+        id: "relay",
+        label: "Service relay",
+        summary: "Follow the work across both surfaces.",
+        lanes: [
+          { id: "review", label: "Protocol & review", role: "Protocol steward" },
+          { id: "member", label: "Garden & member", role: "Garden member" },
+        ],
+        phases: [{ id: "prepare", label: "Prepare" }],
+        steps: [
+          {
+            caseId: "ADM-001",
+            phaseId: "prepare",
+            leadLaneId: "review",
+            verifyLaneIds: ["member"],
+            handoff: "Wait until both people see the same cycle.",
+          },
+          {
+            caseId: "ADM-001",
+            phaseId: "missing-phase",
+            leadLaneId: "missing-lane",
+            verifyLaneIds: ["member", "member", "missing-lane"],
+            knownGate: " ",
+          },
+          { caseId: "ADM-003", phaseId: "prepare", leadLaneId: "review" },
+          { caseId: "NOPE-999", phaseId: "prepare", leadLaneId: "review", handoff: "" },
+        ],
+      },
+      {
+        id: "relay",
+        label: "Duplicate",
+        summary: "Duplicate journey id.",
+        lanes: [
+          { id: "review", label: "Review", role: "Reviewer" },
+          { id: "review", label: "Duplicate review", role: "Second reviewer" },
+        ],
+        phases: [
+          { id: "prepare", label: "Prepare" },
+          { id: "prepare", label: "Duplicate phase" },
+        ],
+        steps: [{ caseId: "ADM-002", phaseId: "prepare", leadLaneId: "review" }],
+      },
+    ];
+
+    const problems = validateCatalog({ version: 3, tabs, kinds, statuses, cases, journeys });
+    expect(problems.join("\n")).toMatch(/journeys: duplicate id 'relay'/);
+    expect(problems.join("\n")).toMatch(/relay: duplicate case 'ADM-001'/);
+    expect(problems.join("\n")).toMatch(/missing-phase/);
+    expect(problems.join("\n")).toMatch(/missing-lane/);
+    expect(problems.join("\n")).toMatch(/duplicate verifier lane 'member'/);
+    expect(problems.join("\n")).toMatch(/duplicate lane id 'review'/);
+    expect(problems.join("\n")).toMatch(/retired case 'ADM-003'/);
+    expect(problems.join("\n")).toMatch(/unknown case 'NOPE-999'/);
+    expect(problems.join("\n")).toMatch(/empty handoff/);
+    expect(problems.join("\n")).toMatch(/empty knownGate/);
+    expect(problems.join("\n")).toMatch(/duplicate phase id 'prepare'/);
+  });
+
+  it("rejects journeys without lanes, phases, or steps", () => {
+    const emptyJourney = {
+      id: "empty",
+      label: "Empty journey",
+      summary: "This journey cannot be rehearsed.",
+      lanes: [],
+      phases: [],
+      steps: [],
+    };
+
+    const problems = validateCatalog({
+      version: 3,
+      tabs,
+      kinds,
+      statuses,
+      cases: [makeCase()],
+      journeys: [emptyJourney],
+    });
+
+    expect(problems).toContain("empty: lanes missing or empty");
+    expect(problems).toContain("empty: phases missing or empty");
+    expect(problems).toContain("empty: steps missing or empty");
+  });
+
+  it("accepts an active, well-formed journey", () => {
+    const journeys = [
+      {
+        id: "relay",
+        label: "Service relay",
+        summary: "Follow the work across both surfaces.",
+        lanes: [
+          { id: "review", label: "Protocol & review", role: "Protocol steward" },
+          { id: "member", label: "Garden & member", role: "Garden member" },
+        ],
+        phases: [{ id: "prepare", label: "Prepare" }],
+        steps: [
+          {
+            caseId: "ADM-001",
+            phaseId: "prepare",
+            leadLaneId: "review",
+            verifyLaneIds: ["member"],
+            handoff: "Wait until both people see the same cycle.",
+            knownGate: "Settlement is not enabled in this environment.",
+          },
+        ],
+      },
+    ];
+    expect(
+      validateCatalog({ version: 3, tabs, kinds, statuses, cases: [makeCase()], journeys }),
+    ).toEqual([]);
   });
 });
 

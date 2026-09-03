@@ -78,7 +78,36 @@ read the shared run and change only their own address-owned shard.
 
 Case **definitions** come from `scripts/data/qa-test-catalog.json` at build time, so a deployment is
 pinned to the catalog revision it shipped with and a case cannot change shape mid-session. Only
-active cases ship; retired rows stay in the catalog as an audit trail.
+active cases ship; retired rows stay in the catalog as an audit trail. Catalog v3 also projects
+top-level `journeys`: ordered choreography over active Test IDs, with lanes, phases, Act/Verify
+roles, handoffs, and known gates. `case.kind: "journey"` remains the category of an individual
+case; top-level journeys describe how multiple cases are walked together.
+
+## Journey mode
+
+**Walk** remains the default order. **Priority** keeps its P0/P1/P2 bands. **Journey** can cross
+Admin and PWA in the order two people experience a workflow, grouping rows by phase instead of area
+or priority.
+
+- **Journey** chooses the shared flow. **Part** narrows to steps where that lane acts or verifies.
+- **View** remains independent: it chooses whose recorded results are shown, not which role the
+  current browser is playing.
+- Journey starts at **All surfaces** and can be narrowed to a participating surface.
+- Journey, Part, surface, and scroll position live only in `sessionStorage`. Tester names and role
+  assignments do not enter the public catalog or shared store.
+- A known gate is shown as context and never writes a verdict. The tester records Blocked only
+  after they encounter that gate.
+
+The first pair of journeys covers the service relay from the Green Goods protocol pool to a Garden
+and then to its member, plus a separate discretionary Protocol treasury top-up. The relay uses two
+commitment records: the protocol Request stays in the protocol pool with the Garden as provider,
+then the Garden creates a separate local commitment for its member. The treasury top-up has no
+commitment identity and does not substitute for earned compensation.
+
+Two-person sessions use two allowlisted wallets throughout. The protocol reviewer and Garden member
+each select their own Part, wait for the other person to observe every named handoff, and may both
+record a verdict on explicitly shared verification cases. Existing results remain keyed only by Test
+ID and signing wallet, so Journey mode needs no state API, Blob, or migration change.
 
 ## Run it locally
 

@@ -111,11 +111,43 @@ export interface CatalogStatus {
   means: string;
 }
 
+export interface QaJourneyLane {
+  id: string;
+  label: string;
+  role: string;
+}
+
+export interface QaJourneyPhase {
+  id: string;
+  label: string;
+}
+
+export interface QaJourneyStep {
+  caseId: string;
+  phaseId: string;
+  leadLaneId: string;
+  verifyLaneIds?: string[];
+  handoff?: string;
+  knownGate?: string;
+}
+
+/** Ordered, role-aware choreography over immutable catalog case ids. */
+export interface QaJourney {
+  id: string;
+  label: string;
+  summary: string;
+  lanes: QaJourneyLane[];
+  phases: QaJourneyPhase[];
+  steps: QaJourneyStep[];
+}
+
 export interface Catalog {
   version: number;
   tabs: string[];
   kinds: CatalogKind[];
   statuses: CatalogStatus[];
+  /** Added in catalog v3. Optional here so older deployed catalogs remain readable. */
+  journeys?: QaJourney[];
   cases: CatalogCase[];
 }
 
@@ -341,6 +373,85 @@ export function validateCatalog(catalog: Catalog): string[] {
         problems.push(
           `${testCase.id}: installed-PWA case must set requiresProduction or requiresDevice`,
         );
+      }
+    }
+  }
+
+  const activeCaseIds = new Set(
+    catalog.cases.filter((testCase) => testCase.status === "active").map((testCase) => testCase.id),
+  );
+  const retiredCaseIds = new Set(
+    catalog.cases.filter((testCase) => testCase.status === "retired").map((testCase) => testCase.id),
+  );
+  const journeyIds = new Set<string>();
+  for (const journey of catalog.journeys ?? []) {
+    if (!journey.id?.trim()) {
+      problems.push("journeys: entry without an id");
+      continue;
+    }
+    if (journeyIds.has(journey.id)) problems.push(`journeys: duplicate id '${journey.id}'`);
+    journeyIds.add(journey.id);
+    if (!journey.label?.trim()) problems.push(`${journey.id}: empty label`);
+    if (!journey.summary?.trim()) problems.push(`${journey.id}: empty summary`);
+    if (!journey.lanes?.length) problems.push(`${journey.id}: lanes missing or empty`);
+    if (!journey.phases?.length) problems.push(`${journey.id}: phases missing or empty`);
+    if (!journey.steps?.length) problems.push(`${journey.id}: steps missing or empty`);
+
+    const laneIds = new Set<string>();
+    for (const lane of journey.lanes ?? []) {
+      if (!lane.id?.trim()) problems.push(`${journey.id}: lane without an id`);
+      else if (laneIds.has(lane.id)) {
+        problems.push(`${journey.id}: duplicate lane id '${lane.id}'`);
+      } else laneIds.add(lane.id);
+      if (!lane.label?.trim()) problems.push(`${journey.id}/${lane.id || "lane"}: empty label`);
+      if (!lane.role?.trim()) problems.push(`${journey.id}/${lane.id || "lane"}: empty role`);
+    }
+
+    const phaseIds = new Set<string>();
+    for (const phase of journey.phases ?? []) {
+      if (!phase.id?.trim()) problems.push(`${journey.id}: phase without an id`);
+      else if (phaseIds.has(phase.id)) {
+        problems.push(`${journey.id}: duplicate phase id '${phase.id}'`);
+      } else phaseIds.add(phase.id);
+      if (!phase.label?.trim()) problems.push(`${journey.id}/${phase.id || "phase"}: empty label`);
+    }
+
+    const journeyCaseIds = new Set<string>();
+    for (const step of journey.steps ?? []) {
+      const stepName = `${journey.id}/${step.caseId || "step"}`;
+      if (journeyCaseIds.has(step.caseId)) {
+        problems.push(`${journey.id}: duplicate case '${step.caseId}'`);
+      }
+      journeyCaseIds.add(step.caseId);
+      if (retiredCaseIds.has(step.caseId)) {
+        problems.push(`${stepName}: retired case '${step.caseId}'`);
+      } else if (!activeCaseIds.has(step.caseId)) {
+        problems.push(`${stepName}: unknown case '${step.caseId}'`);
+      }
+      if (!phaseIds.has(step.phaseId)) {
+        problems.push(`${stepName}: unknown phase '${step.phaseId}'`);
+      }
+      if (!laneIds.has(step.leadLaneId)) {
+        problems.push(`${stepName}: unknown lead lane '${step.leadLaneId}'`);
+      }
+      const verifierIds = new Set<string>();
+      for (const verifierLaneId of step.verifyLaneIds ?? []) {
+        if (verifierIds.has(verifierLaneId)) {
+          problems.push(`${stepName}: duplicate verifier lane '${verifierLaneId}'`);
+        }
+        verifierIds.add(verifierLaneId);
+        if (!laneIds.has(verifierLaneId)) {
+          problems.push(`${stepName}: unknown verifier lane '${verifierLaneId}'`);
+        }
+        if (verifierLaneId === step.leadLaneId) {
+          problems.push(`${stepName}: lead lane cannot also verify`);
+        }
+      }
+      if (step.handoff !== undefined && !step.handoff.trim()) {
+        problems.push(`${stepName}: empty handoff`);
+      }
+      if (step.knownGate !== undefined && !step.knownGate.trim()) {
+        problems.push(`${stepName}: empty knownGate`);
       }
     }
   }

@@ -16,11 +16,13 @@ connects them.
    retirement carries `retiredOn`, `retiredReason`, and, when active successors exist,
    `replacedBy`. The contract test in
    [`qa-app-build.test.ts`](../../scripts/agents/qa-app-build.test.ts) enforces all of it at one
-   revision, [`check-qa-id-ledger.mjs`](../../scripts/quality/check-qa-id-ledger.mjs) rejects any
-   id removed since the merge-base, and the public
+   revision, [`check-qa-id-ledger.mjs`](../../scripts/quality/check-qa-id-ledger.mjs) rejects ids
+   removed from the catalog or ledger, reintroduced after removal, or reactivated after retirement,
+   and the public
    [Test Cases](../../docs/docs/builders/quality/test-cases.mdx) page renders it.
    [`packages/qa/build.mjs`](../../packages/qa/build.mjs) projects active cases into the deployed
-   app; retired cases remain in git as audit history.
+   app; retired cases remain in git as audit history. Catalog v3's top-level `journeys` are ordered,
+   role-aware choreography over active Test IDs. They do not replace the per-case `kind` axis.
 2. **Recording** — the wallet-authenticated [QA app](../../packages/qa/README.md) records one private
    shard per allowlisted signing address in the Blob store. Testers enter verdicts and notes there.
 3. **Session** — [`qa-session`](../skills/qa-session/SKILL.md) runs the live, paired, or transcript
@@ -156,6 +158,36 @@ switches wallet accounts, the existing cookie remains bound to the address that 
 sign out before starting as another allowlisted address. When a session expires with unsent work, the
 page keeps the address-keyed outbox locally and requires the same wallet before it will resume that
 work.
+
+## Journey choreography
+
+The QA app supports two complementary paired styles. A broad session may split by surface for
+coverage. A role-choreographed session selects one **Journey** and gives each person a **Part**, so
+they meet at shared handoffs across Admin and PWA. Neither style replaces the other.
+
+Journey, Part, surface narrowing, and scroll position are presentation state in `sessionStorage`
+only. **View** continues to choose whose results are shown. Tester names and session role assignments
+never enter the public catalog or shared state; verdicts remain keyed by Test ID and signing address.
+
+For the commitment relay, two people keep two distinct allowlisted wallets and one identity each for
+the entire walk:
+
+- **Protocol & review** is the protocol steward and independent steward or evaluator of the test
+  Garden. This person must remain outside both contributor rosters.
+- **Garden & member** is a steward and member of the test Garden. This person makes the institutional
+  claim and contributes the Work and evidence.
+
+The protocol Request stays in the protocol pool after the Garden claims it. The protocol-to-Garden
+payout is earned compensation. The Garden-to-member obligation is a separate Garden-pool commitment.
+The Protocol treasury top-up is discretionary funding with no commitment ID and never substitutes
+for earned compensation. A starting assessment adds context but does not gate opening a Season or
+Campaign.
+
+At a named handoff, the acting person waits until the receiving person can see the state. Both people
+may record independent verdicts on a case explicitly shared for verification. A catalog
+`knownGate` is explanatory text, never a default verdict: attempt the step, record Blocked only when
+the gate is encountered, and continue every remaining non-value step without implying settlement
+completed.
 
 ## Reading current state
 

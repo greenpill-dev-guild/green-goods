@@ -82,7 +82,7 @@
   .header-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px; }
   .tabs { display:flex; gap:6px; flex:1 1 440px; flex-wrap:wrap; }
   .tab { border:1px solid var(--line); background:var(--surface); color:var(--ink);
-    border-radius:999px; padding:4px 12px; font-size:12.5px; font-weight:600; cursor:pointer; }
+    border-radius:999px; min-height:32px; padding:4px 12px; font-size:12.5px; font-weight:600; cursor:pointer; }
   .tab.on { background:var(--green); border-color:var(--green); color:var(--on-green); }
   .tab small { font-weight:500; opacity:0.75; margin-left:4px; }
   main { max-width:880px; margin:0 auto; padding:12px 18px 90px; }
@@ -100,6 +100,17 @@
   .pri.p1 { color:var(--amber); background:var(--amber-wash); }
   .scen { font-size:13.5px; }
   .scen .why { display:block; font-size:11.5px; color:var(--soft); margin-top:1px; }
+  .journey-meta { display:flex; flex-wrap:wrap; gap:4px; margin-top:5px; }
+  .journey-chip { display:inline-flex; gap:4px; align-items:center; border:1px solid var(--line);
+    border-radius:999px; padding:2px 7px; color:var(--soft); background:var(--surface);
+    font-size:10.5px; line-height:1.35; }
+  .journey-chip b { color:var(--ink); font-weight:700; }
+  .journey-chip.surface { background:var(--linen); }
+  .journey-handoff, .known-gate { margin:6px 0 0; border-left:3px solid var(--line);
+    padding:5px 8px; color:var(--soft); background:var(--linen); border-radius:0 7px 7px 0;
+    font-size:11.5px; }
+  .journey-handoff b, .known-gate b { color:var(--ink); }
+  .known-gate { border-left-color:var(--amber); background:var(--amber-wash); color:var(--ink); }
   .flag { display:inline-block; font-size:10px; font-weight:600; letter-spacing:0.05em;
     text-transform:uppercase; color:var(--amber); background:var(--amber-wash);
     border-radius:999px; padding:1px 7px; margin-left:6px; vertical-align:1px; }
@@ -161,14 +172,22 @@
   .signout-btn { border:0; background:transparent; color:var(--soft); padding:2px 4px; font:inherit;
     font-size:11.5px; text-decoration:underline; cursor:pointer; }
   .filt, .ord { border:1px solid var(--line); background:var(--surface);
-    color:var(--soft); border-radius:999px; padding:2px 10px; font-size:11.5px;
+    color:var(--soft); border-radius:999px; min-height:30px; padding:2px 10px; font-size:11.5px;
     font-weight:600; cursor:pointer; }
   .filt.on, .ord.on { color:var(--ink); border-color:var(--soft); }
+  .tab:focus-visible, .filt:focus-visible, .ord:focus-visible, .signout-btn:focus-visible,
+  .note textarea:focus-visible { outline:2px solid var(--green); outline-offset:2px; }
   .view-control { display:flex; align-items:center; gap:7px; }
-  .view-control select { min-height:32px; max-width:220px; border:1px solid var(--line);
+  .view-control select, .journey-control select { min-height:32px; max-width:220px; border:1px solid var(--line);
     border-radius:8px; background:var(--surface); color:var(--ink); padding:3px 26px 3px 9px;
     font:inherit; font-size:12px; font-weight:600; cursor:pointer; }
-  .view-control select:focus-visible { outline:2px solid var(--green); outline-offset:2px; }
+  .view-control select:focus-visible, .journey-control select:focus-visible {
+    outline:2px solid var(--green); outline-offset:2px; }
+  .journey-row { align-items:flex-start; }
+  .journey-control { display:flex; align-items:center; gap:7px; min-width:0; }
+  .journey-control:first-child { flex:1 1 360px; }
+  .journey-control:first-child select { max-width:440px; }
+  .journey-summary { flex:1 0 100%; color:var(--soft); font-size:11.5px; }
   .grouplabel { font-size:11px; color:var(--soft); letter-spacing:0.04em;
     text-transform:uppercase; margin-right:2px; }
   .scoperow { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-left:auto; }
@@ -177,23 +196,31 @@
   .counts .current-tester { color:var(--ink); font-weight:700; }
   .counts .warn { color:var(--amber); }
   @media (max-width:720px) {
+    header { position:static; padding-inline:14px; }
     .title-row { align-items:center; }
     .tabs { flex-basis:100%; }
     .scoperow, .counts { margin-left:0; }
     .counts { flex-basis:100%; text-align:left; }
+    .journey-control { flex:1 1 100%; align-items:flex-start; flex-direction:column; gap:3px; }
+    .journey-control select, .journey-control:first-child select { width:100%; max-width:none; min-height:40px; }
+    .tab, .filt, .ord { min-height:40px; }
     .row { grid-template-columns:72px minmax(0,1fr); }
     .scen { min-width:0; overflow-wrap:anywhere; }
     .ctl { grid-column:2; justify-self:start; }
+    .st { width:44px; height:44px; }
     .note { grid-column:1 / -1; }
     .team-statuses, .overview-note-summary { grid-column:1 / -1; }
   }
   .empty { color:var(--soft); font-size:13px; padding:22px 4px; }
   .savebar { position:fixed; right:14px; bottom:14px; z-index:6; font-size:12px; font-weight:600;
     background:var(--surface); border:1px solid var(--line); border-radius:999px;
-    padding:6px 14px; color:var(--soft); }
+    padding:6px 14px; color:var(--soft); pointer-events:none; }
   .savebar.saving { color:var(--amber); }
   .savebar.saved { color:var(--green); }
   .savebar.ro { color:var(--red); }
+  @media (max-width:720px) {
+    .savebar { position:static; width:max-content; max-width:calc(100% - 28px); margin:12px 14px 14px auto; }
+  }
 </style>
 </head>
 <body>
@@ -235,14 +262,18 @@
 
   let CASES = [];
   let TABS = [];
+  let JOURNEYS = [];
   let TEAM = [];
   /** caseId -> person -> { s, n, at }. This browser is authoritative for `who`. */
   let entries = Object.create(null);
 
   let activeTab = "";
+  let activeJourney = "";
+  let activePart = "";
+  let journeySurface = "all";
   let filter = "all";
-  // "walk" keeps catalog order grouped by area; "priority" regroups the tab
-  // under P0/P1/P2 bands so a release sweep starts at the top of the page.
+  // "walk" keeps catalog order grouped by area; "priority" regroups the tab;
+  // "journey" follows role-aware steps across surfaces and groups by phase.
   let sort = "walk";
   // Null is the aggregate Overview. A display name may literally be
   // "overview", so it cannot safely double as the internal mode sentinel.
@@ -569,10 +600,46 @@
     </label>`;
   }
 
+  function journeyDefinition() {
+    return JOURNEYS.find((journey) => journey.id === activeJourney) || null;
+  }
+
+  function journeyRows(surface = journeySurface, part = activePart) {
+    const journey = journeyDefinition();
+    if (!journey) return [];
+    const casesById = new Map(CASES.map((testCase) => [testCase.id, testCase]));
+    return journey.steps.flatMap((step) => {
+      const testCase = casesById.get(step.caseId);
+      if (!testCase) return [];
+      if (surface !== "all" && testCase.tab !== surface) return [];
+      if (
+        part &&
+        step.leadLaneId !== part &&
+        !(step.verifyLaneIds || []).includes(part)
+      ) return [];
+      return [{ ...testCase, journeyStep: step }];
+    });
+  }
+
+  function currentRows(surface = sort === "journey" ? journeySurface : activeTab) {
+    return sort === "journey"
+      ? journeyRows(surface)
+      : CASES.filter((testCase) => testCase.tab === surface);
+  }
+
+  function journeySurfaces() {
+    const seen = new Set(journeyRows("all", "").map((testCase) => testCase.tab));
+    return TABS.filter((tab) => seen.has(tab));
+  }
+
+  function currentSurface() {
+    return sort === "journey" ? journeySurface : activeTab;
+  }
+
   // ── Counts ──────────────────────────────────────────────────────────
-  function counts(tab, viewScope) {
+  function counts(surface, viewScope) {
     const selected = viewScope === undefined ? scope : viewScope;
-    const rows = CASES.filter((c) => c.tab === tab);
+    const rows = currentRows(surface);
     const overview = selected === null;
     return {
       total: rows.length,
@@ -583,12 +650,12 @@
       fails: rows.filter((c) => overview ? isIssue(c.id) : isPersonIssue(c.id, selected)).length,
     };
   }
-  function scopeCount(tab, key) {
-    const metrics = counts(tab, key);
+  function scopeCount(surface, key) {
+    const metrics = counts(surface, key);
     return key === null ? metrics.total : metrics.touched;
   }
   function tally() {
-    const metrics = counts(activeTab);
+    const metrics = counts(currentSurface());
     if (scope === null) {
       return `<b>${metrics.done}/${metrics.total}</b> decided · <b>${metrics.fails}</b> issues · <b>${metrics.total - metrics.done}</b> undecided`;
     }
@@ -613,6 +680,25 @@
     return `<div class="rid"><b>${esc(testCase.id)}</b><span class="pri ${PRI_CLASS[testCase.pri] || ""}">${esc(testCase.pri)}</span></div>`;
   }
 
+  function journeyCaseContext(testCase) {
+    const step = testCase.journeyStep;
+    const journey = journeyDefinition();
+    if (!step || !journey) return "";
+    const laneLabel = (laneId) => journey.lanes.find((lane) => lane.id === laneId)?.label || laneId;
+    const act = `<span class="journey-chip act"><b>Act</b>${esc(laneLabel(step.leadLaneId))}</span>`;
+    const verify = (step.verifyLaneIds || []).map((laneId) =>
+      `<span class="journey-chip verify"><b>Verify</b>${esc(laneLabel(laneId))}</span>`).join("");
+    const handoff = step.handoff
+      ? `<p class="journey-handoff"><b>Handoff</b> ${esc(step.handoff)}</p>`
+      : "";
+    const gate = step.knownGate
+      ? `<aside class="known-gate" aria-label="Known gate"><b>Known gate</b> ${esc(step.knownGate)}</aside>`
+      : "";
+    return `<div class="journey-meta" aria-label="Journey roles">
+        <span class="journey-chip surface"><b>Surface</b>${esc(testCase.tab)}</span>${act}${verify}
+      </div>${handoff}${gate}`;
+  }
+
   function renderOverviewRows(rows, showArea) {
     return rows.map((testCase) => {
       const caseVerdict = verdict(testCase.id);
@@ -633,7 +719,7 @@
         : '<span class="no-notes">No notes</span>';
       return `<div class="row overview-row ${quietlyResolved ? "done" : ""}">
         ${caseRid(testCase)}
-        <div class="scen">${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span></div>
+        <div class="scen">${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span>${journeyCaseContext(testCase)}</div>
         <div class="team-statuses" role="list" aria-label="${esc(testCase.id)} team verdicts">${statuses}</div>
         <div class="overview-note-summary">${noteSummary}</div>
       </div>`;
@@ -656,7 +742,7 @@
         : `<div class="note"><div class="readonly-note ${entry && entry.n ? "has-note" : ""}"><b>${esc(selected)}:</b> ${entry && entry.n ? esc(entry.n) : "No note recorded."}</div></div>`;
       return `<div class="row ${quietlyResolved ? "done" : ""}">
         ${caseRid(testCase)}
-        <div class="scen">${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span></div>
+        <div class="scen">${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span>${journeyCaseContext(testCase)}</div>
         ${controls}${note}
       </div>`;
     }).join("");
@@ -675,6 +761,36 @@
     return true;
   }
 
+  function surfaceButtons() {
+    const choices = sort === "journey" ? ["all", ...journeySurfaces()] : TABS;
+    const selected = currentSurface();
+    return choices.map((surface) => {
+      const metrics = counts(surface);
+      const label = surface === "all" ? "All surfaces" : surface;
+      return `<button class="tab ${surface === selected ? "on" : ""}" data-tab="${esc(surface)}" aria-pressed="${surface === selected ? "true" : "false"}">${esc(label)}<small>${metrics.done}/${metrics.total}${metrics.fails ? " · " + metrics.fails + "F" : ""}</small></button>`;
+    }).join("");
+  }
+
+  function journeyControls() {
+    if (sort !== "journey") return "";
+    const journey = journeyDefinition();
+    if (!journey) return "";
+    return `<div class="header-row journey-row">
+      <label class="journey-control" for="qa-journey-select"><span class="grouplabel">Journey</span>
+        <select id="qa-journey-select" data-journey-select>
+          ${JOURNEYS.map((candidate) => `<option value="${esc(candidate.id)}"${candidate.id === activeJourney ? " selected" : ""}>${esc(candidate.label)}</option>`).join("")}
+        </select>
+      </label>
+      <label class="journey-control" for="qa-part-select"><span class="grouplabel">Part</span>
+        <select id="qa-part-select" data-part-select>
+          <option value=""${activePart === "" ? " selected" : ""}>All parts</option>
+          ${journey.lanes.map((lane) => `<option value="${esc(lane.id)}"${lane.id === activePart ? " selected" : ""}>${esc(lane.label)}</option>`).join("")}
+        </select>
+      </label>
+      <div class="journey-summary">${esc(journey.summary)}</div>
+    </div>`;
+  }
+
   // ── Render ──────────────────────────────────────────────────────────
   function render() {
     const modeDescription = scope === null
@@ -685,51 +801,62 @@
     const head = `<header>
       <div class="title-row"><div><h1>Green Goods QA</h1><div class="runline">${modeDescription}</div></div><div class="header-actions">${themeControl()}${who ? '<button type="button" class="signout-btn">Sign out</button>' : ""}</div></div>
       <div class="header-row tab-row">
-        <div class="tabs" role="group" aria-label="QA surface">${TABS.map((t) => {
-          const k = counts(t);
-          return `<button class="tab ${t === activeTab ? "on" : ""}" data-tab="${esc(t)}" aria-pressed="${t === activeTab ? "true" : "false"}">${esc(t)}<small>${k.done}/${k.total}${k.fails ? " · " + k.fails + "F" : ""}</small></button>`;
-        }).join("")}</div>
+        <div class="tabs" role="group" aria-label="QA surface">${surfaceButtons()}</div>
         <div class="scoperow"><label class="view-control" for="qa-view-select"><span class="grouplabel">view</span>
           <select id="qa-view-select" data-view-select aria-label="QA view">
-            <option value=""${scope === null ? " selected" : ""}>Overview · ${scopeCount(activeTab, null)}</option>
-            ${TEAM.map((name) => `<option value="${esc(name)}"${scope === name ? " selected" : ""}>${esc(name)}${name === who ? " (you)" : ""} · ${scopeCount(activeTab, name)}</option>`).join("")}
+            <option value=""${scope === null ? " selected" : ""}>Overview · ${scopeCount(currentSurface(), null)}</option>
+            ${TEAM.map((name) => `<option value="${esc(name)}"${scope === name ? " selected" : ""}>${esc(name)}${name === who ? " (you)" : ""} · ${scopeCount(currentSurface(), name)}</option>`).join("")}
           </select>
         </label></div>
       </div>
+      ${journeyControls()}
       <div class="header-row filter-row">
         <div class="filters" role="group" aria-label="case status">${[["all", "All"], ["issues", "Issues"], ["open", "Undecided"]].map(([k, l]) =>
           `<button class="filt ${filter === k ? "on" : ""}" data-f="${k}" aria-pressed="${filter === k ? "true" : "false"}">${l}</button>`).join("")}</div>
-        <div class="orderrow" role="group" aria-label="case order"><span class="grouplabel">order</span>${[["walk", "Walk"], ["priority", "Priority"]].map(([k, l]) =>
+        <div class="orderrow" role="group" aria-label="case order"><span class="grouplabel">order</span>${[["walk", "Walk"], ["priority", "Priority"], ...(JOURNEYS.length ? [["journey", "Journey"]] : [])].map(([k, l]) =>
           `<button class="ord ${sort === k ? "on" : ""}" data-sort="${k}" aria-pressed="${sort === k ? "true" : "false"}">${l}</button>`).join("")}</div>
         <div class="counts">${tally()}${who ? "" : ' · <b class="warn">recording unavailable</b>'}</div>
       </div>
     </header>`;
 
-    const rows = CASES.filter((testCase) => testCase.tab === activeTab).filter(matchesCurrentView);
+    const rows = currentRows().filter(matchesCurrentView);
 
-    // Priority order regroups the tab under P0/P1/P2 bands (catalog order
-    // within a band) and moves the area context inline onto each row.
+    // Priority groups by severity, Journey by its authored phases, and Walk by
+    // area. Catalog order remains stable within every group.
     let body;
-    if (sort === "priority") {
+    if (sort === "journey") {
+      const journey = journeyDefinition();
+      body = journey.phases.map((phase) => {
+        const phaseRows = rows.filter((testCase) => testCase.journeyStep.phaseId === phase.id);
+        if (!phaseRows.length) return "";
+        const headingId = `phase-${String(phase.id).replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+        return `<section><h2 class="area" id="${esc(headingId)}">${esc(phase.label)} · ${phaseRows.length}</h2>${scope === null ? renderOverviewRows(phaseRows, true) : renderPersonRows(phaseRows, true)}</section>`;
+      }).join("");
+    } else if (sort === "priority") {
       const bands = [...new Set(["P0", "P1", "P2"].concat(rows.map((c) => c.pri)))];
       body = bands.map((pri) => {
         const bandRows = rows.filter((testCase) => testCase.pri === pri);
         if (!bandRows.length) return "";
-        return `<div class="area">${esc(pri)} · ${bandRows.length}</div>${scope === null ? renderOverviewRows(bandRows, true) : renderPersonRows(bandRows, true)}`;
+        const headingId = `priority-${String(pri).replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+        return `<section><h2 class="area" id="${esc(headingId)}">${esc(pri)} · ${bandRows.length}</h2>${scope === null ? renderOverviewRows(bandRows, true) : renderPersonRows(bandRows, true)}</section>`;
       }).join("");
     } else {
       const areas = [...new Set(rows.map((c) => c.area))];
-      body = areas.map((area) => {
+      body = areas.map((area, index) => {
         const areaRows = rows.filter((testCase) => testCase.area === area);
-        return `<div class="area">${esc(area)}</div>${scope === null ? renderOverviewRows(areaRows) : renderPersonRows(areaRows)}`;
+        const headingId = `area-${index}`;
+        return `<section><h2 class="area" id="${headingId}">${esc(area)}</h2>${scope === null ? renderOverviewRows(areaRows) : renderPersonRows(areaRows)}</section>`;
       }).join("");
     }
 
+    const place = sort === "journey"
+      ? journeySurface === "all" ? "this journey" : `${journeySurface} in this journey`
+      : `the ${activeTab} tab`;
     const empty = scope === null
-      ? `No cases match this filter on the ${esc(activeTab)} tab.`
+      ? `No cases match this filter in ${esc(place)}.`
       : scope === who
-        ? `No cases match your ${filter === "all" ? "current" : esc(filter)} filter on the ${esc(activeTab)} tab.`
-        : `${esc(scope)} has no matching recorded cases on the ${esc(activeTab)} tab.`;
+        ? `No cases match your ${filter === "all" ? "current" : esc(filter)} filter in ${esc(place)}.`
+        : `${esc(scope)} has no matching recorded cases in ${esc(place)}.`;
 
     mount.innerHTML = head + (rows.length
       ? `<main>${body}</main>`
@@ -738,7 +865,9 @@
     bindThemeControls(mount);
 
     mount.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => {
-      activeTab = b.dataset.tab; saveView(); render();
+      if (sort === "journey") journeySurface = b.dataset.tab;
+      else activeTab = b.dataset.tab;
+      saveView(); render();
     }));
     mount.querySelectorAll(".filt").forEach((b) => b.addEventListener("click", () => {
       filter = b.dataset.f; saveView(); render();
@@ -747,8 +876,20 @@
       scope = event.target.value === "" ? null : event.target.value; saveView(); render();
     });
     mount.querySelectorAll(".ord").forEach((b) => b.addEventListener("click", () => {
-      sort = b.dataset.sort === "priority" ? "priority" : "walk"; saveView(); render();
+      const requested = b.dataset.sort;
+      sort = requested === "priority" ? "priority" : requested === "journey" && JOURNEYS.length ? "journey" : "walk";
+      saveView(); render();
     }));
+    mount.querySelector("[data-journey-select]")?.addEventListener("change", (event) => {
+      activeJourney = event.target.value;
+      activePart = "";
+      journeySurface = "all";
+      saveView(); renderAndRestoreFocus("[data-journey-select]");
+    });
+    mount.querySelector("[data-part-select]")?.addEventListener("change", (event) => {
+      activePart = event.target.value;
+      saveView(); renderAndRestoreFocus("[data-part-select]");
+    });
     mount.querySelectorAll("[data-notes-toggle]").forEach((button) => button.addEventListener("click", () => {
       const panel = document.getElementById(button.dataset.notesToggle);
       if (!panel) return;
@@ -785,6 +926,11 @@
     });
   }
 
+  function renderAndRestoreFocus(selector) {
+    render();
+    mount.querySelector(selector)?.focus({ preventScroll: true });
+  }
+
   function growEl(t) {
     t.style.height = "auto";
     const h = t.scrollHeight;
@@ -795,7 +941,14 @@
   function saveView() {
     try {
       sessionStorage.setItem("qa-view", JSON.stringify({
-        tab: activeTab, filter, sort, scope: scope === null ? OVERVIEW : scope, scroll: window.scrollY,
+        tab: activeTab,
+        filter,
+        sort,
+        scope: scope === null ? OVERVIEW : scope,
+        journey: activeJourney,
+        part: activePart,
+        surface: journeySurface,
+        scroll: window.scrollY,
       }));
     } catch (e) {}
   }
@@ -1165,6 +1318,7 @@
       const catalog = await catalogResponse.json();
       CASES = catalog.cases || [];
       TABS = catalog.tabs || [...new Set(CASES.map((c) => c.tab))];
+      JOURNEYS = Array.isArray(catalog.journeys) ? catalog.journeys : [];
 
       if (stateResponse.ok) {
         const data = await stateResponse.json();
@@ -1200,7 +1354,20 @@
 
       activeTab = TABS.includes(view.tab) ? view.tab : TABS[0];
       filter = ["all", "issues", "open"].includes(view.filter) ? view.filter : "all";
-      sort = view.sort === "priority" ? "priority" : "walk";
+      sort = view.sort === "priority"
+        ? "priority"
+        : view.sort === "journey" && JOURNEYS.length
+          ? "journey"
+          : "walk";
+      activeJourney = JOURNEYS.some((journey) => journey.id === view.journey)
+        ? view.journey
+        : JOURNEYS[0]?.id || "";
+      const selectedJourney = journeyDefinition();
+      activePart = selectedJourney?.lanes.some((lane) => lane.id === view.part) ? view.part : "";
+      const selectedSurfaces = new Set(journeySurfaces());
+      journeySurface = view.surface === "all" || selectedSurfaces.has(view.surface)
+        ? view.surface
+        : "all";
       const storedScope = view.scope === "all" ? OVERVIEW : view.scope;
       scope = storedScope === OVERVIEW ? null : TEAM.includes(storedScope) ? storedScope : who || null;
 

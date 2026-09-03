@@ -35,9 +35,38 @@ function projectCase(testCase) {
   };
 }
 
+function projectJourney(journey, activeIds) {
+  for (const step of journey.steps) {
+    if (!activeIds.has(step.caseId)) {
+      throw new Error(
+        `qa build: journey '${journey.id}' references missing or retired case '${step.caseId}'`,
+      );
+    }
+  }
+  return {
+    id: journey.id,
+    label: journey.label,
+    summary: journey.summary,
+    lanes: journey.lanes.map(({ id, label, role }) => ({ id, label, role })),
+    phases: journey.phases.map(({ id, label }) => ({ id, label })),
+    steps: journey.steps.map(
+      ({ caseId, phaseId, leadLaneId, verifyLaneIds, handoff, knownGate }) => ({
+        caseId,
+        phaseId,
+        leadLaneId,
+        ...(verifyLaneIds?.length ? { verifyLaneIds } : {}),
+        ...(handoff ? { handoff } : {}),
+        ...(knownGate ? { knownGate } : {}),
+      }),
+    ),
+  };
+}
+
 const catalogPath = path.join(repoRoot, "scripts", "data", "qa-test-catalog.json");
 const catalog = JSON.parse(readFileSync(catalogPath, "utf8"));
 const active = catalog.cases.filter((testCase) => testCase.status !== "retired");
+const activeIds = new Set(active.map((testCase) => testCase.id));
+const journeys = (catalog.journeys ?? []).map((journey) => projectJourney(journey, activeIds));
 
 if (active.length === 0) {
   throw new Error(`qa build: no active cases found in ${catalogPath}`);
@@ -47,7 +76,12 @@ mkdirSync(outDir, { recursive: true });
 copyFileSync(path.join(packageDir, "index.html"), path.join(outDir, "index.html"));
 writeFileSync(
   path.join(outDir, "catalog.json"),
-  `${JSON.stringify({ version: catalog.version, tabs: catalog.tabs, cases: active.map(projectCase) })}\n`,
+  `${JSON.stringify({
+    version: catalog.version,
+    tabs: catalog.tabs,
+    journeys,
+    cases: active.map(projectCase),
+  })}\n`,
 );
 
 const perTab = catalog.tabs.map((tab) => `${tab} ${active.filter((c) => c.tab === tab).length}`);

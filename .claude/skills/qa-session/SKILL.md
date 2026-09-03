@@ -1,8 +1,8 @@
 ---
 name: qa-session
 user-invocable: true
-description: Run a live, paired, or transcript-based Green Goods product-experience QA walk. Capture stable OBS records, triage bounded fix-now work, revalidate in the serving checkout, hand deferred findings to qa-triage with exact Test IDs, and lock user-approved design decisions at close. Fires on "QA session", "QA walk/walkthrough", "I'll walk the flows and call out issues", "fix live while I test", "we're QAing together", or a dictated-walk transcript. Not for meeting-notes triage (qa-triage), a single reported bug (debug), or diff review (review).
-argument-hint: "[<transcript-path>] [--surface admin|pwa|website|docs|all] [--cases <IDs|area>] [--paired]"
+description: Run a live, paired, role-choreographed, or transcript-based Green Goods product-experience QA walk. Capture stable OBS records, triage bounded fix-now work, revalidate in the serving checkout, hand deferred findings to qa-triage with exact Test IDs, and lock user-approved design decisions at close. Fires on "QA session", "QA walk/walkthrough", "I'll walk the flows and call out issues", "fix live while I test", "we're QAing together", or a dictated-walk transcript. Not for meeting-notes triage (qa-triage), a single reported bug (debug), or diff review (review).
+argument-hint: "[<transcript-path>] [--surface admin|pwa|website|docs|all] [--cases <IDs|area>] [--paired] [--journey <id>] [--part <lane>]"
 ---
 
 # QA Session Skill
@@ -40,6 +40,7 @@ duplicate them:
 | `/qa-session --surface admin` | Scope the session (and the printed walk checklist) to one surface; aliases `admin\|pwa\|website\|docs\|all` (catalog v2 merged the installed-PWA tabs; scope device rows with `--cases PWA-IOS-…`/`PWA-AND-…` instead) |
 | `/qa-session --cases ADM-012,ADM-013` | Scope to specific catalog Test IDs or an `Area` name |
 | `/qa-session --paired` | Two testers walking different surfaces at once, each with their own agent; section-scoped handoffs (§ Paired sessions) |
+| `/qa-session --journey service-relay --part protocol-review` | Role-choreographed pairing: follow one guided journey and one Act/Verify lane across surfaces (§ Paired sessions) |
 | Prose: "starting a QA session", "I'll walk the app and dictate", "fix these live while I test" | Same as `/qa-session` |
 | Prose: "Gui and I are QAing together", "we're both walking", "I'll take PWA, he'll take the website" | Same as `--paired` |
 
@@ -58,6 +59,10 @@ duplicate them:
   OWN agent, with the QA app as the shared record. The unit of work is a **section**, not an
   observation: the walker finishes a surface or area, hands that slice to their agent, and keeps
   walking while the agent works. See § Paired sessions.
+- **Paired journey**: two testers select the same QA Journey and different Parts, keep one wallet
+  identity each, and meet at the authored handoffs across surfaces. Act/Verify lanes coordinate
+  depth; they do not replace the split-by-surface style used for broad coverage. See § Paired
+  sessions.
 - **Batch transcript**: the walk already happened; the input is a transcript file. Same phases,
   three deltas (§ Batch mode): parse first, a **scope-lock gate before any edit**, and
   agent-side reproduction/validation per the `debug` protocols with asynchronous founder
@@ -119,13 +124,16 @@ Run before the user starts walking. Print the checklist results compactly; stop 
    and reuse that exact slug for every artifact this session (directory, log, results, receipt,
    handoff). Create `tmp/qa-session/<slug>/` and open
    `qa-session-<slug>.md` with the header: commit SHA, branch, surfaces in scope, gardens,
-   identity modes, write boundary, and the in-scope catalog case IDs. The session **stays on the
+   identity modes, pairing style, Journey and Part assignments when used, write boundary, and the
+   in-scope catalog case IDs. The session **stays on the
    current branch** — per `AGENTS.md § Multi-Agent Repo Safety`, never create or switch branches
    without the user explicitly asking for that branch action; branching is decided at the first
    accepted fix (Phase 3), not at session start.
 7. **Recording readiness.** Apply the recording, attribution, and workbook-exception contract in
    [`.claude/context/qa.md`](../../context/qa.md). Confirm its app pre-flight before the walk; use
-   the app as the checklist and read the catalog only to print requested scope.
+   the app as the checklist and read the catalog only to print requested scope. For a guided walk,
+   confirm both people can select the same Journey, each person's Part is correct, All surfaces is
+   available, and each person remains signed into their own allowlisted wallet.
 
 ## Phase 1 — Capture
 
@@ -243,14 +251,18 @@ Per accepted fix (or batched in a fix window):
    (receipt, results, screenshots/recordings) is uploaded — deleting first destroys the visual
    proof behind filed defects. Keep the directory for resume on failure or interruption.
 
-## Paired sessions (two testers, two agents)
+## Paired sessions
 
-Two people walk different surfaces at the same time, each dictating to their own agent. The QA
-app is the shared record; the OBS log and the fix branch are **per walker**. Nothing about this
-mode is shared between the two agents except the app — which is exactly why it works: each
-tester writes only their own shard, so simultaneous recording cannot collide.
+The QA app supports two paired styles. Choose one in pre-flight and record it in the session header:
+**split by surface** for breadth, or **follow one Journey by role** for a connected workflow. The QA
+app is the shared record in both. Each tester writes only their own address-owned shard, so
+simultaneous recording cannot collide.
 
-**Division of labour.** Split by surface, and use overlap deliberately rather than by accident:
+### Split by surface
+
+Two people walk different surfaces at the same time, each dictating to their own agent. The OBS log
+and fix branch are **per walker**. Divide work by surface and use overlap deliberately rather than by
+accident:
 
 - Each tester owns whole surfaces for the session (e.g. one takes PWA, the other Public
   Website). Agree the split in the session header before anyone starts.
@@ -259,6 +271,27 @@ tester writes only their own shard, so simultaneous recording cannot collide.
 - Deliberate overlap is for cases where a second opinion is worth more than a second surface:
   anything previously disputed, anything a decision was locked on, and the smoke path. Recording
   the same case twice is supported and is signal, not duplication.
+
+### Follow one Journey by role
+
+Two people select the same Journey in the QA app. Each selects their own Part while **View** remains
+free to show their own, their partner's, or the Overview results. Use two distinct allowlisted
+wallets and never exchange identities or role assignments midway through the flow.
+
+- Read the lane's role before starting and verify each wallet can actually hold it. For the service
+  relay, **Protocol & review** stays outside both contributor rosters; **Garden & member** is a
+  steward and member of the test Garden.
+- Follow the phase order. **Act** identifies the person changing state; **Verify** identifies the
+  person who must independently observe it. The actor waits at every named handoff.
+- Both people may record their own verdict on cases explicitly shared for verification. A known gate
+  never records Blocked automatically: attempt the step, name the visible gate when it blocks, then
+  continue the remaining non-value steps.
+- Preserve the product model in observations: the protocol Request stays in the protocol pool; the
+  Garden's member obligation is a separate Garden commitment; a Protocol treasury top-up has no
+  commitment ID and is not earned compensation; a starting assessment is context, not a cycle gate.
+
+One agent may guide both people on the same call, or each person may use their own agent. With two
+agents, the per-walker OBS logs, branch rules, and collision rule below still apply.
 
 **The section is the unit.** Unlike solo mode's per-observation micro-consent, work is handed
 off a slice at a time:

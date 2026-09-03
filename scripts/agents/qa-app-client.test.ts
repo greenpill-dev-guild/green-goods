@@ -120,6 +120,11 @@ async function clientRaceHarness() {
     assert.equal(signInPanel?.hidden, true);
     assert.equal(dom.window.getComputedStyle(signInPanel).display, "none");
     assert.ok(pollCallback, jsdomError || "poll interval was not registered");
+    assert.equal(
+      dom.window.document.querySelector('[data-sort="journey"]'),
+      null,
+      "older deployed catalogs must not show empty Journey controls",
+    );
     const pendingPoll = pollCallback();
     await flush();
     assert.ok(releaseStalePoll, "slow poll did not start");
@@ -706,6 +711,207 @@ async function displayLabelHarness() {
   }
 }
 
+async function journeyModeHarness() {
+  const dynamicImport = new Function("specifier", "return import(specifier)");
+  const assert = (await dynamicImport("node:assert/strict")).default;
+  const { readFileSync } = await dynamicImport("node:fs");
+  const path = await dynamicImport("node:path");
+  const { JSDOM, VirtualConsole } = await dynamicImport("jsdom");
+
+  const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
+  const cases = [
+    { id: "ADM-002", tab: "Admin Dashboard", area: "Delivery", pri: "P0", scenario: "Third", expected: "Third", rp: false, rd: false, tx: true },
+    { id: "PWA-001", tab: "PWA", area: "Claim", pri: "P0", scenario: "Second", expected: "Second", rp: false, rd: false, tx: true },
+    { id: "ADM-001", tab: "Admin Dashboard", area: "Prepare", pri: "P1", scenario: "First", expected: "First", rp: false, rd: false, tx: true },
+  ];
+  const lanes = [
+    { id: "review", label: "Protocol & review", role: "Protocol steward" },
+    { id: "member", label: "Garden & member", role: "Garden member" },
+  ];
+  const journeys = [
+    {
+      id: "relay",
+      label: "Service relay",
+      summary: "Two people follow one service relay.",
+      lanes,
+      phases: [
+        { id: "prepare", label: "Prepare" },
+        { id: "deliver", label: "Deliver" },
+      ],
+      steps: [
+        { caseId: "ADM-001", phaseId: "prepare", leadLaneId: "review" },
+        {
+          caseId: "PWA-001",
+          phaseId: "deliver",
+          leadLaneId: "member",
+          verifyLaneIds: ["review"],
+          handoff: "Wait for the reviewer.",
+          knownGate: "Settlement is not enabled.",
+        },
+        { caseId: "ADM-002", phaseId: "deliver", leadLaneId: "member" },
+      ],
+    },
+    {
+      id: "treasury",
+      label: "Treasury top-up",
+      summary: "Review one separate funding rail.",
+      lanes,
+      phases: [{ id: "fund", label: "Fund" }],
+      steps: [{ caseId: "ADM-002", phaseId: "fund", leadLaneId: "review" }],
+    },
+  ];
+  const response = (body) => ({ ok: true, status: 200, json: async () => structuredClone(body) });
+  const flush = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+  const posts = [];
+  let restoredScroll = null;
+  const virtualConsole = new VirtualConsole();
+  let jsdomError = "";
+  virtualConsole.on("jsdomError", (error) => {
+    jsdomError = error.cause?.stack || error.cause?.message || error.message;
+  });
+
+  const dom = new JSDOM(page, {
+    runScripts: "dangerously",
+    url: "http://localhost:4610/",
+    virtualConsole,
+    beforeParse(window) {
+      Object.defineProperty(window, "innerWidth", { value: 375, configurable: true });
+      window.sessionStorage.setItem("qa-view", JSON.stringify({
+        tab: "Admin Dashboard",
+        filter: "all",
+        sort: "journey",
+        scope: "overview",
+        journey: "relay",
+        part: "",
+        surface: "all",
+        scroll: 73,
+      }));
+      window.scrollTo = (_x, y) => { restoredScroll = y; };
+      window.setTimeout = () => 1;
+      window.clearTimeout = () => {};
+      window.setInterval = () => 1;
+      window.fetch = async (input, init = {}) => {
+        const target = String(input);
+        if (target === "catalog.json") {
+          return response({ tabs: ["PWA", "Admin Dashboard"], journeys, cases });
+        }
+        if (target !== "/api/state") throw new Error(`unexpected fetch ${target}`);
+        if (init.method === "POST") {
+          posts.push(JSON.parse(String(init.body)));
+          return response({ ok: true });
+        }
+        return response({
+          team: ["Tester A", "Tester B"],
+          you: "Tester A",
+          address: "0x0000000000000000000000000000000000000001",
+          entries: { "PWA-001": { "Tester B": { s: "fail", n: "visible issue" } } },
+        });
+      };
+    },
+  });
+
+  try {
+    await flush();
+    const document = dom.window.document;
+    assert.equal(restoredScroll, 73, jsdomError || "journey scroll was not restored");
+    assert.equal(document.querySelector('[data-sort="journey"]')?.getAttribute("aria-pressed"), "true");
+    assert.equal(document.querySelector('[data-tab="all"]')?.textContent.startsWith("All surfaces"), true);
+    assert.equal(document.querySelector('label[for="qa-journey-select"]')?.textContent.includes("Journey"), true);
+    assert.equal(document.querySelector('label[for="qa-part-select"]')?.textContent.includes("Part"), true);
+    assert.equal(document.querySelector("#qa-part-select option")?.textContent, "All parts");
+    assert.deepEqual(
+      [...document.querySelectorAll(".rid b")].map((node) => node.textContent),
+      ["ADM-001", "PWA-001", "ADM-002"],
+      "journey steps did not override catalog/surface order",
+    );
+    assert.deepEqual(
+      [...document.querySelectorAll("h2.area")].map((node) => node.textContent),
+      ["Prepare · 1", "Deliver · 2"],
+    );
+    assert.equal(document.querySelector(".known-gate")?.textContent.includes("Settlement is not enabled"), true);
+    assert.equal(posts.length, 0, "rendering a known gate must not write a Blocked verdict");
+
+    const initialJourneySelect = document.querySelector("#qa-journey-select");
+    initialJourneySelect.focus();
+    initialJourneySelect.value = "treasury";
+    initialJourneySelect.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    assert.equal(document.activeElement?.id, "qa-journey-select");
+    assert.deepEqual([...document.querySelectorAll(".rid b")].map((node) => node.textContent), ["ADM-002"]);
+
+    const treasuryJourneySelect = document.querySelector("#qa-journey-select");
+    treasuryJourneySelect.value = "relay";
+    treasuryJourneySelect.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    assert.equal(document.activeElement?.id, "qa-journey-select");
+
+    const viewSelect = document.querySelector("#qa-view-select");
+    viewSelect.value = "Tester A";
+    viewSelect.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    const gatedRow = [...document.querySelectorAll(".row")].find((row) =>
+      row.querySelector(".rid b")?.textContent === "PWA-001"
+    );
+    assert.equal(gatedRow?.querySelectorAll("button.st").length, 4);
+    assert.equal(gatedRow?.querySelectorAll('button.st[aria-pressed="true"]').length, 0);
+    gatedRow?.querySelector('[data-s="blocked"]')?.click();
+    assert.equal(
+      document.querySelector('[data-id="PWA-001"][data-s="blocked"]')?.getAttribute("aria-pressed"),
+      "true",
+    );
+    assert.equal(posts.length, 0, "a known gate must wait for the tester to choose Blocked");
+
+    const part = document.querySelector("#qa-part-select");
+    part.focus();
+    part.value = "review";
+    part.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    assert.equal(document.activeElement?.id, "qa-part-select");
+    assert.deepEqual(
+      [...document.querySelectorAll(".rid b")].map((node) => node.textContent),
+      ["ADM-001", "PWA-001"],
+    );
+    const roleText = [...document.querySelectorAll(".journey-meta")].map((node) => node.textContent);
+    assert.equal(roleText[0].includes("ActProtocol & review"), true);
+    assert.equal(roleText[1].includes("VerifyProtocol & review"), true);
+    assert.equal(JSON.parse(dom.window.sessionStorage.getItem("qa-view")).part, "review");
+
+    const mobileRules = [...document.styleSheets[0].cssRules]
+      .filter((rule) => rule.conditionText === "(max-width:720px)")
+      .flatMap((rule) => [...rule.cssRules]);
+    const mobileVerdicts = mobileRules.find((rule) => rule.selectorText === ".st");
+    const mobileSavebar = mobileRules.find((rule) => rule.selectorText === ".savebar");
+    assert.equal(mobileVerdicts.style.width, "44px");
+    assert.equal(mobileVerdicts.style.height, "44px");
+    assert.equal(mobileSavebar.style.position, "static");
+
+    document.querySelector('[data-f="issues"]')?.click();
+    assert.deepEqual([...document.querySelectorAll(".rid b")].map((node) => node.textContent), ["PWA-001"]);
+    document.querySelector('[data-f="open"]')?.click();
+    assert.deepEqual([...document.querySelectorAll(".rid b")].map((node) => node.textContent), ["ADM-001"]);
+    document.querySelector('[data-f="all"]')?.click();
+    document.querySelector('[data-tab="Admin Dashboard"]')?.click();
+    assert.deepEqual([...document.querySelectorAll(".rid b")].map((node) => node.textContent), ["ADM-001"]);
+    assert.equal(posts.length, 0, "filtering journey rows must remain read-only");
+
+    document.querySelector('[data-sort="walk"]')?.click();
+    assert.equal(document.querySelector("#qa-journey-select"), null);
+    assert.deepEqual(
+      [...document.querySelectorAll(".rid b")].map((node) => node.textContent),
+      ["ADM-002", "ADM-001"],
+      "Walk should keep the selected tab's catalog order",
+    );
+    document.querySelector('[data-sort="priority"]')?.click();
+    assert.deepEqual(
+      [...document.querySelectorAll("h2.area")].map((node) => node.textContent),
+      ["P0 · 1", "P1 · 1"],
+      "Priority should keep its severity bands",
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 describe("QA app client races", () => {
   // Each case spawns a Node subprocess and boots JSDOM once per page life, which
   // runs past Vitest's 5s default — the cause of the intermittent timeout here.
@@ -776,6 +982,20 @@ describe("QA app client races", () => {
         "--input-type=module",
         "--eval",
         `await (${displayLabelHarness.toString()})()`,
+      ],
+      { cwd: repoRoot, stdio: "pipe" },
+    );
+  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
+
+  it("orders a cross-surface journey, restores its view, and separates Act from Verify", () => {
+    execFileSync(
+      "node",
+      [
+        "scripts/dev/node-cli.js",
+        "node",
+        "--input-type=module",
+        "--eval",
+        `await (${journeyModeHarness.toString()})()`,
       ],
       { cwd: repoRoot, stdio: "pipe" },
     );

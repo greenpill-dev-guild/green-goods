@@ -438,6 +438,19 @@ test("isolated client behavior accepts focused proof without forcing a package b
   assert.equal(plan.checks.at(-1).state, "pending");
 });
 
+test("QA app UI changes require rendered browser proof for readiness", () => {
+  const plan = selectValidation({
+    intent: "readiness",
+    changedPaths: ["packages/qa/index.html"],
+  });
+  const browserProof = plan.checks.find((check) => check.id === "browser-proof");
+
+  assert.ok(browserProof);
+  assert.ok(browserProof.selectedBy.includes("conditional:browser-proof"));
+  assert.equal(browserProof.manual, true);
+  assert.equal(plan.budget.manualSeconds, 90);
+});
+
 test("routing changes add the package build in QA", () => {
   const plan = selectValidation({
     intent: "qa",
