@@ -1,6 +1,6 @@
 ---
-title: System Overview
-sidebar_label: System Overview
+title: Architecture
+sidebar_label: Architecture
 sidebar_position: 3
 slug: /builders/architecture
 audience: developer
@@ -11,23 +11,25 @@ source_of_truth:
   - AGENTS.md
   - package.json
   - packages/shared/package.json
+  - packages/shared/src/ontology/green-goods-ontology.json
   - packages/contracts/src/modules
   - packages/shared/src/modules/job-queue
 keywords:
   - architecture
   - monorepo
-  - data flow
   - attestations
+  - token-bound accounts
+  - data flow
 ---
 
-# System Overview
+# Architecture
 
-Green Goods turns community environmental work into verifiable on-chain records: gardeners capture
-work in a mobile app that works offline, stewards review it, and approved work becomes an
-[EAS](https://docs.attest.org/docs/welcome) attestation that funders and apps can trust. Everything
-below exists to serve that loop.
+Green Goods carries one piece of work between two very different worlds. Regenerative work happens
+in gardens, on phones, often without signal. Verification and funding happen on-chain, where
+records are cheap to check and hard to fake. The whole architecture is the machinery for moving a
+work submission from the first world to the second without losing truth along the way.
 
-## The shape of the system
+## One submission, end to end
 
 ```mermaid
 flowchart LR
@@ -43,11 +45,59 @@ flowchart LR
   admin --> contracts
 ```
 
-Work flows left to right: capture happens in the client, becomes protocol truth in the contracts,
-and comes back to every surface through the indexer. Nothing reads chain state directly in the
-apps — the indexer's read models are the query layer.
+Follow the arrows once and you have the system. A gardener documents work in the
+[client PWA](./packages/client), offline if needed; the shared
+[job queue](./packages/shared) holds it locally and replays it when connectivity returns. The
+submission lands in the [contracts](./packages/contracts) as an
+[EAS](./integrations/eas) attestation, validated by a resolver at write time. The
+[indexer](./packages/indexer) picks up the resulting events and projects them into GraphQL read
+models, which is where every surface reads from: the client showing the gardener their status, the
+[admin cockpit](./packages/admin) where a steward reviews and approves, and the
+[agent](./packages/agent) serving bots and the public API. An approval travels the same road as
+the work it approves.
 
-## The packages
+Two consequences of this shape are worth internalizing early. Apps never read the chain directly;
+if a surface shows protocol data, it came through the indexer. And writes have exactly one door;
+everything that becomes protocol truth goes through the contracts.
+
+## Three ideas carry the protocol
+
+The contract layer is small, and its elegance is that three ideas do most of the work.
+
+### A garden is an account
+
+Each garden is an ERC-721 token whose
+[ERC-6551 token-bound account](./integrations/tokenbound) is the garden itself, on-chain: it holds
+the garden's treasury, wears its role tree, and receives its attestations. Nothing about a garden
+lives in an app database that could disappear. Transfer the token and you've transferred the
+garden, assets and history included. The [Garden account sources](./packages/contracts) and the
+[deployment record](./deployments/status) show what this looks like per chain.
+
+### A record is an attestation with enforced meaning
+
+Work, approvals, and assessments are [EAS attestations](./integrations/eas), but not free-form
+ones. Each schema is bound to a resolver contract that validates authorization at write time, so a
+Work Approval signed by someone without steward authority simply cannot be recorded. That single
+move relocates trust: you don't have to believe an app's database that a steward approved
+something, because the record could not exist otherwise. The
+[entity relationship diagrams](./architecture/erd) show how these records relate.
+
+### Authority is a hat
+
+Roles are [Hats Protocol](./integrations/hats) tokens arranged in a small tree per garden: steward
+hats can approve work, gardener hats can submit it, evaluator hats can attest assessments. Because
+hats are on-chain tokens, the resolvers above can check them directly, and because they're a tree,
+a garden's whole authority structure is inspectable at once.
+
+Everything else is a module a garden opts into per chain: vaults through
+[Octant](./integrations/octant), distributions through [Cookie Jar](./integrations/cookie-jar),
+impact certificates through [Hypercerts](./integrations/hypercerts), milestone reporting through
+[Karma GAP](./integrations/karma), names through [ENS](./integrations/ens). A module exists where
+its deployment artifact says it does, and nowhere else; the
+[deployment status page](./deployments/status) is the canonical record, and no page in these docs
+claims a module is live anywhere without it.
+
+## The monorepo that serves it
 
 | Package | What it owns | In production |
 |---|---|---|
@@ -60,49 +110,41 @@ apps — the indexer's read models are the query layer.
 | `qa` | The team's two-writer QA checklist app | [qa.greengoods.app](https://qa.greengoods.app) |
 
 Dependencies point one way: `contracts → shared → client / admin / agent`, with `indexer` fed by
-contracts events. Apps import shared code only through its
-[declared package exports](./packages/api-index) — never `src/` paths.
+contract events. Apps import shared code only through its
+[declared package exports](./packages/api-index), never `src/` paths, which is what keeps seven
+packages refactorable by a small team (and its agents) without fear.
 
 ## Where data lives
 
 The system deliberately splits state into two homes:
 
-- **Local-first** — drafts, media being prepared, retry state, and install caches stay on the
+- **Local-first**: drafts, media being prepared, retry state, and install caches stay on the
   device. The shared job queue holds captured work safely offline and replays it when
   connectivity and authorization allow.
-- **Chain-global** — attestations, Garden roles, approvals, and contract state are the durable
+- **Chain-global**: attestations, garden roles, approvals, and contract state form the durable
   coordination layer, scoped to a chain and shared by everyone.
 
-The rule that keeps this honest: UI may explain that something is syncing or failed, but it never
-presents unconfirmed work as protocol truth. If you're changing this boundary, start at the shared
-job-queue and service-worker modules, and prove offline recovery before touching interface copy.
-
-## The module boundary
-
-Two contracts anchor the protocol: the **Garden token** (each garden is an on-chain account) and
-the **Action registry** (what kinds of work exist). Everything else — roles via
-[Hats](./integrations/hats), vaults via [Octant](./integrations/octant), distributions via
-[Cookie Jar](./integrations/cookie-jar), certification via
-[Hypercerts](./integrations/hypercerts) — is an optional module a garden may or may not have on a
-given chain. A module's deployment artifact, not its source code, decides whether it exists
-somewhere: the [deployment status page](./deployments/status) is the canonical record.
+One rule keeps the boundary honest: UI may explain that something is syncing or failed, but it
+never presents unconfirmed work as protocol truth. If you're changing this boundary, start at the
+shared job-queue and service-worker modules, and prove offline recovery before touching interface
+copy.
 
 ## Design principles
 
 Five tests guide the tradeoffs, in the spirit of the Ethereum ecosystem Green Goods builds on:
 
-- **Verifiability** — work, approvals, roles, and deployments all have inspectable sources of
+- **Verifiability.** Work, approvals, roles, and deployments all have inspectable sources of
   truth.
-- **User agency** — a participant can keep their evidence and records without depending on any
+- **User agency.** A participant can keep their evidence and records without depending on any
   single interface vendor.
-- **Least disclosure** — public records carry only what coordination requires; identities and
+- **Least disclosure.** Public records carry only what coordination requires; identities and
   private evidence stay off-chain.
-- **Open implementation** — protocol and client behavior can be inspected, tested, and replaced.
-- **Operational honesty** — a deployed address is never presented as a live, healthy feature
+- **Open implementation.** Protocol and client behavior can be inspected, tested, and replaced.
+- **Operational honesty.** A deployed address is never presented as a live, healthy feature
   without separate evidence.
 
 ## Next steps
 
-- [Entity Relationships](./architecture/erd) — the data model, layer by layer.
-- [API Index](./packages/api-index) — every public export and route, generated from the code.
-- [Deployment Status](./deployments/status) — what's actually deployed where.
+- [Entity Relationships](./architecture/erd) maps the data model, layer by layer.
+- [EAS integration](./integrations/eas) goes deeper on the attestation and resolver mechanics.
+- [Deployment Status](./deployments/status) shows what's actually deployed where.

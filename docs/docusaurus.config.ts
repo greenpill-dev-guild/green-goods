@@ -41,7 +41,7 @@ const config: Config = {
 
   clientModules: [
     './src/clientModules/buildersAccent.ts',
-    './src/clientModules/mermaidZoom.ts',
+    './src/clientModules/mermaidExpand.ts',
   ],
 
   // Even if you don't use internationalization, you can use this field to set

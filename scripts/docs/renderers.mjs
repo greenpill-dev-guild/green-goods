@@ -203,7 +203,7 @@ export function renderErd({ root, sources, digest }) {
   let body = pageHeader(
     { title: "Entity Relationship Diagram", slug: "/builders/architecture/erd", sources, digest },
     "Entity Relationship Diagram",
-    "These diagrams project the ontology's declared entity relationships in three layers so each one stays readable. Solid nodes belong to the layer; dashed nodes are context from another layer. Diagrams are pan-and-zoomable. They explain semantic relationships, not database foreign keys."
+    "These diagrams project the ontology's declared entity relationships in three layers so each one stays readable. Solid nodes belong to the layer; dashed nodes are context from another layer. Use a diagram's Expand control to open it full screen and zoom. They explain semantic relationships, not database foreign keys."
   );
   for (const group of ERD_GROUPS) {
     const members = new Set(group.members);
@@ -263,7 +263,7 @@ export function renderSkills({ root, sources, digest }) {
   let body = pageHeader(
     { title: "Skills Catalog", slug: "/builders/agentic/skills", sources, digest },
     "Skills Catalog",
-    "Each skill is a packaged workflow a coding agent — or a contributor driving one — invokes by name for a specific kind of task. This catalog projects each skill's purpose from its folder; the folder's README and SKILL.md stay the source of truth."
+    "Each skill is a packaged workflow that a coding agent (or a contributor driving one) invokes by name for a specific kind of task. This catalog projects each skill's purpose from its folder; the folder's README and SKILL.md stay the source of truth."
   );
   for (const [name, entry] of [...byName.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     if (!entry.skill) throw new Error(`Skill ${name} is missing SKILL.md`);

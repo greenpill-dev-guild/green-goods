@@ -237,3 +237,83 @@ body.gg-builders-route .menu__link--active {
 body.gg-builders-route .menu__link--active:hover {
   color: var(--docs-accent-builders);
 }
+
+/* ── Diagram expand overlay ──────────────────────────────────────────
+   Every mermaid container gets an Expand control (mermaidExpand.ts);
+   the overlay zooms with CSS transforms, so no library is involved. */
+.gg-diagram-container {
+  position: relative;
+}
+
+.gg-diagram-expand {
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  z-index: 2;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.78rem;
+  font-family: var(--ifm-font-family-base);
+  color: var(--ifm-font-color-secondary);
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 999px;
+  cursor: pointer;
+  opacity: 0.75;
+}
+
+.gg-diagram-expand:hover,
+.gg-diagram-expand:focus-visible {
+  opacity: 1;
+  color: var(--docs-accent-builders);
+  border-color: var(--docs-accent-builders);
+}
+
+.gg-diagram-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--ifm-background-color) 92%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.gg-diagram-overlay-open {
+  overflow: hidden;
+}
+
+.gg-diagram-toolbar {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: flex-end;
+  padding: 0.75rem 1rem;
+}
+
+.gg-diagram-button {
+  min-width: 2.2rem;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.95rem;
+  font-family: var(--ifm-font-family-base);
+  color: var(--ifm-font-color-base);
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.gg-diagram-button:hover,
+.gg-diagram-button:focus-visible {
+  color: var(--docs-accent-builders);
+  border-color: var(--docs-accent-builders);
+}
+
+.gg-diagram-viewport {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
+  cursor: grab;
+}
+
+.gg-diagram-stage {
+  margin: 0 auto;
+}

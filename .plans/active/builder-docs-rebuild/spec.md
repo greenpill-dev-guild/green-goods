@@ -82,8 +82,10 @@ sidebar; its slug redirects.
 Hand-written pages adopt the community track's register adapted for developers; generated
 reference pages stay terse. Rules: (1) second person, active voice; (2) why before what;
 (3) goal/condition before instruction; (4) plain declaratives, one idea per sentence; (5) links
-say where they go, and every page has next steps + external links. Sentence-case headings;
-contractions fine; no marketing superlatives.
+say where they go, and every page has next steps + external links; (6) **no em dashes** (Afo,
+2026-09-02: they read as AI writing; restructure with periods, colons, commas, or parentheses).
+Sentence-case headings; contractions fine; no marketing superlatives. Ontology-sourced definitions
+are canon and keep their punctuation.
 
 ## Working rules (from reference-site research)
 

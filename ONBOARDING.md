@@ -26,7 +26,7 @@ Top Browser MCP Usage:
 ## Your Setup Checklist
 
 ### Codebases
-- [ ] green-goods — https://github.com/greenpill-dev-guild/green-goods (Bun monorepo: `packages/{contracts,indexer,shared,client,admin,agent}` + `docs/` at root)
+- [ ] green-goods — https://github.com/greenpill-dev-guild/green-goods (Bun monorepo: `packages/{contracts,indexer,shared,client,admin,agent,qa}` + `docs/` at root)
 - [ ] greenpill-dev-guild/.github — https://github.com/greenpill-dev-guild/.github (org-wide community defaults; only clone if you'll touch guild routines)
 
 ### Local Setup
@@ -43,17 +43,20 @@ Slash-invokable (type the command):
 - [ ] `/audit` — Read-only repo-health audit; `/audit drift` for the quick drift classifier.
 - [ ] `/clean` — 8 parallel cleanup agents after findings are accepted (`--dry-run`, `--scope`, `--agents`).
 - [ ] `/qa-triage` and `/doc-feedback` — Build Sync QA notes → Linear records + QA-sheet rows; Google-Doc review feedback processing.
+- [ ] `/qa-session` — Live or paired product-experience QA walks: stable records, bounded fix-now work, deferred findings handed to `/qa-triage` with exact Test IDs.
 
 Intent-triggered (no slash — just describe it in plain English):
 - [ ] `plan` — Fires on "plan this", "break down X", "coordinate a team", or cross-package work. Plans land in `.plans/active/<feature-name>/plan.todo.md`.
 - [ ] `debug` — Fires when you describe a bug, paste a stack trace, or report a failing test.
-- [ ] `ship` — Pre-merge gate (format, lint, test, build, conventional-commit, vocab/design-token lint); fires on ship/merge-readiness intent.
+- [ ] `ship` — Publication workflow (targeted proof, post-commit push gate, PR, current-head CI); fires on commit/push/PR/merge-readiness intent.
 
 Loaded by context (you usually don't pick these manually):
 - [ ] `design` — Warm Earth design language, M3 anatomy, and implementation guidance (`design/implementation.md`).
 - [ ] Per-package knowledge lives in `.claude/context/*.md` (not skills) — shared, client, admin, contracts, indexer, agent, testing, plus the cross-cutting ontology update protocol (`ontology.md`). The curated PostHog question library lives in `docs/routines/posthog-questions.md`.
 
-(The skill directory itself is the index: `ls .claude/skills/`.)
+(The skill directory itself is the index: `ls .claude/skills/`. The generated
+[Skills Catalog](https://docs.greengoods.app/builders/agentic/skills) is the same list with
+purposes, kept current by the docs pipeline.)
 
 ## Team Tips
 

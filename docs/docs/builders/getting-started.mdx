@@ -15,6 +15,7 @@ next_steps: "./architecture"
 persona_context: "Developers running Green Goods for the first time, on the web surfaces or the full local stack."
 source_of_truth:
   - CONTRIBUTING.md
+  - ONBOARDING.md
   - package.json
   - scripts/README.md
   - scripts/dev/doctor.js
@@ -27,12 +28,12 @@ keywords:
 # Getting Started
 
 By the end of this page you'll have Green Goods running on your machine: the public site and
-installed-app experience, the steward cockpit, this docs site, and Storybook — with a clear check
+installed-app experience, the steward cockpit, this docs site, and Storybook, with a clear check
 at each step so you know it worked.
 
 Green Goods is a [Bun](https://bun.sh) monorepo with seven packages spanning a React PWA, Solidity
-contracts, and an [Envio](https://envio.dev) indexer. You don't need to understand the whole system
-to run it — when you're curious, the [System Overview](./architecture) has the map.
+contracts, and an [Envio](https://envio.dev) indexer. You don't need to understand the whole
+system to run it. When you're curious, the [Architecture](./architecture) page has the map.
 
 ## Before you start
 
@@ -44,14 +45,14 @@ to run it — when you're curious, the [System Overview](./architecture) has the
 
 ## Choose your path
 
-- **Web surfaces** — the right start for almost everyone: UI, docs, and design work, or a first
-  look around. No Docker.
-- **Full local stack** — for contract, indexer, or agent work: everything above plus a local
+- **Web surfaces**: the right start for almost everyone doing UI, docs, or design work, or taking
+  a first look around. No Docker.
+- **Full local stack**: for contract, indexer, or agent work. Everything above plus a local
   indexer, database, and an Arbitrum chain fork.
 
 You can switch paths any time; they share the same checkout and environment.
 
-## Path A — run the web surfaces
+## Path A: run the web surfaces
 
 1. Clone and enter the repo:
 
@@ -67,7 +68,7 @@ You can switch paths any time; they share the same checkout and environment.
    npm run setup
    ```
 
-   This is the only time you'll type `npm` here — after setup, every command is `bun run ...`.
+   This is the only time you'll type `npm` here. After setup, every command is `bun run ...`.
 
 3. Check readiness. The doctor is non-mutating: it checks your tools, ports, and environment for
    the web profile and names anything missing, so fix exactly what it flags and rerun:
@@ -82,7 +83,7 @@ You can switch paths any time; they share the same checkout and environment.
    bun run dev:web
    ```
 
-5. **Checkpoint** — open the surfaces:
+5. **Checkpoint**: open the surfaces.
 
    | Surface | URL |
    |---|---|
@@ -92,8 +93,8 @@ You can switch paths any time; they share the same checkout and environment.
    | Storybook | [localhost:3004](http://localhost:3004) |
 
    To see the installed-app experience without connecting a wallet, open
-   [localhost:3001/?mockAuth=steward&presentation=pwa](http://localhost:3001/?mockAuth=steward&presentation=pwa)
-   — mock auth signs you in as a test steward, in the PWA presentation.
+   [localhost:3001/?mockAuth=steward&presentation=pwa](http://localhost:3001/?mockAuth=steward&presentation=pwa).
+   Mock auth signs you in as a test steward, in the PWA presentation.
 
 6. When you're done:
 
@@ -101,10 +102,10 @@ You can switch paths any time; they share the same checkout and environment.
    bun run dev:stop
    ```
 
-## Path B — run the full local stack
+## Path B: run the full local stack
 
 The full stack adds the agent API, the Envio indexer with its GraphQL endpoint and Postgres, and
-an [Anvil](https://getfoundry.sh/anvil/overview) fork of Arbitrum One — so protocol changes are
+an [Anvil](https://getfoundry.sh/anvil/overview) fork of Arbitrum One, so protocol changes are
 testable end to end without touching a live chain.
 
 1. Start Docker Desktop.
@@ -124,7 +125,7 @@ testable end to end without touching a live chain.
    On top of the four web surfaces, this brings up the agent on port 3005, the indexer GraphQL on
    3006, Envio on 3007, Postgres on 3008, and the Arbitrum fork (chain id `42161`) on 3009.
 
-4. **Checkpoint** — verify the whole stack in one command:
+4. **Checkpoint**: verify the whole stack in one command.
 
    ```bash
    bun run dev:smoke:full
@@ -136,30 +137,39 @@ testable end to end without touching a live chain.
 5. `bun run dev:stop` shuts the stack down.
 
 **Working against real data:** `bun run dev:prod` runs the local browser surfaces against
-read-only production services (agent, indexer, Arbitrum RPC) and smoke-checks the connection —
-useful when you're debugging something only live data reproduces.
+read-only production services (agent, indexer, Arbitrum RPC) and smoke-checks the connection.
+It's useful when you're debugging something only live data reproduces.
+
+## Bring an AI agent
+
+Green Goods is built with AI agents as a core practice, and the repository is set up so yours can
+onboard itself: paste
+[`ONBOARDING.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/ONBOARDING.md)
+into your agent and it will check your setup and walk you through the rest. The
+[Bring an agent](./how-to-contribute#bring-an-agent) section of First Contribution has the full
+picture.
 
 ## About the environment
 
-Green Goods uses one root `.env` — packages never carry their own. Setup seeds it from
+Green Goods uses one root `.env`; packages never carry their own. Setup seeds it from
 `.env.schema`, `bun run env:check` validates it, and the doctor runs that check for you. If a
-required key is empty, the doctor names it; `bun run env:bootstrap` fills any missing keys that
-have schema defaults. Team members hydrate shared secrets from 1Password with `bun run env:sync`;
-external contributors don't need it for the web path.
+required key is empty, the doctor names it, and `bun run env:bootstrap` fills any missing keys
+that have schema defaults. Team members hydrate shared secrets from 1Password with
+`bun run env:sync`; external contributors don't need it for the web path.
 
 ## If something goes wrong
 
-- **A port is busy** — another session may own it. `bun run dev:stop` releases repo-owned
-  services; the doctor's output shows which ports matter for your profile.
-- **The doctor flags environment keys** — run `bun run env:bootstrap`, then `bun run env:check`
+- **A port is busy.** Another session may own it. `bun run dev:stop` releases repo-owned
+  services, and the doctor's output shows which ports matter for your profile.
+- **The doctor flags environment keys.** Run `bun run env:bootstrap`, then `bun run env:check`
   to confirm.
-- **Path B fails early** — make sure Docker Desktop is actually running; the full profile needs it.
-- **Anything else** — `bun run dev:doctor` output is the source of truth for what your machine is
-  missing; [ask us on Telegram or Discord](./how-to-contribute#join-the-guild) if it doesn't get
+- **Path B fails early.** Make sure Docker Desktop is actually running; the full profile needs it.
+- **Anything else.** `bun run dev:doctor` output is the source of truth for what your machine is
+  missing. [Ask us on Telegram or Discord](./how-to-contribute#join-the-guild) if it doesn't get
   you unstuck.
 
 ## Next steps
 
-- [System Overview](./architecture) — how the pieces you just ran fit together.
-- [First Contribution](./how-to-contribute) — from finding work to a merged pull request.
-- [Vitest](./testing/vitest) — the everyday unit-test runner behind `bun run test`.
+- [Architecture](./architecture) shows how the pieces you just ran fit together.
+- [First Contribution](./how-to-contribute) goes from finding work to a merged pull request.
+- [Vitest](./testing/vitest) is the everyday unit-test runner behind `bun run test`.
