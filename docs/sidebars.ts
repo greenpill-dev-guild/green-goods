@@ -49,7 +49,6 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'reference/glossary.generated', label: 'Glossary'},
         {type: 'doc', id: 'reference/ontology.generated', label: 'Formal Ontology'},
         {type: 'doc', id: 'reference/product-history', label: 'Product History'},
-        {type: 'doc', id: 'reference/design-research', label: 'Design Rationale'},
         {type: 'doc', id: 'reference/credits', label: 'Credits'},
       ],
     },
@@ -66,6 +65,7 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'builders/architecture/anatomy', label: 'Anatomy of a Work Submission'},
         {type: 'doc', id: 'builders/architecture/data-model', label: 'Data Model & Ontology'},
         {type: 'doc', id: 'builders/architecture/entity-matrix', label: 'Entity Matrix'},
+        {type: 'doc', id: 'builders/architecture/design', label: 'Design'},
       ],
     },
     {
@@ -81,14 +81,6 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'builders/packages/indexer', label: 'Indexer'},
         {type: 'doc', id: 'builders/packages/qa', label: 'QA'},
         {type: 'doc', id: 'builders/packages/api-index', label: 'API Index'},
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Product Specifications',
-      link: {type: 'generated-index', description: 'The retained interactive specification.'},
-      items: [
-        {type: 'doc', id: 'builders/specs/revenue-explorer', label: 'Revenue Explorer'},
       ],
     },
     {
@@ -111,7 +103,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Agentic Development',
-      link: {type: 'generated-index', description: 'Agent tools and task-to-skill routing.'},
+      link: {type: 'doc', id: 'builders/agentic/index'},
       items: [
         {type: 'doc', id: 'builders/agentic/skills', label: 'Skills'},
         {type: 'doc', id: 'builders/agentic/task-routing', label: 'Task Routing'},
@@ -120,31 +112,12 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Testing',
-      link: {type: 'generated-index', description: 'How and when to use the repository test tools.'},
-      items: [
-        {type: 'doc', id: 'builders/testing/forge', label: 'Forge'},
-        {type: 'doc', id: 'builders/testing/playwright', label: 'Playwright'},
-        {type: 'doc', id: 'builders/testing/vitest', label: 'Vitest'},
-        {type: 'doc', id: 'builders/testing/storybook', label: 'Storybook'},
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Quality Assurance',
-      link: {type: 'generated-index', description: 'How we QA the product experience, and the test-case catalog.'},
+      label: 'Testing & QA',
+      link: {type: 'doc', id: 'builders/testing/index'},
       items: [
         {type: 'doc', id: 'builders/quality/product-experience-qa', label: 'Product Experience QA'},
         {type: 'doc', id: 'builders/quality/test-cases', label: 'Test Cases'},
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Build, CI, and Deployments',
-      link: {type: 'generated-index', description: 'CI workflows, checked-in deployment state, and release navigation.'},
-      items: [
-        {type: 'doc', id: 'builders/deployments/gh-actions', label: 'GitHub Actions'},
-        {type: 'doc', id: 'builders/deployments/status', label: 'Deployment Status'},
+        {type: 'doc', id: 'builders/quality/gh-actions', label: 'CI & GitHub Actions'},
       ],
     },
     {
@@ -152,7 +125,10 @@ const sidebars: SidebarsConfig = {
       label: 'Reference',
       collapsed: true,
       items: [
+        {type: 'doc', id: 'builders/reference/deployments', label: 'Deployments & Addresses'},
         {type: 'doc', id: 'builders/reference/persona-surfaces', label: 'Persona Surfaces'},
+        {type: 'doc', id: 'builders/reference/economics-explorer', label: 'Economics Explorer'},
+        {type: 'doc', id: 'builders/reference/license', label: 'License'},
       ],
     },
   ],

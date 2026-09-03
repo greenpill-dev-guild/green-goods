@@ -43,7 +43,7 @@ export function IntegrationProjection({id}: IntegrationProjectionProps) {
         <p>
           No checked-in deployment artifact records components for this integration on any supported
           network. Per-network state lives in the{" "}
-          <Link to="/builders/deployments/status">deployment status projection</Link>.
+          <Link to="/builders/reference/deployments">deployment status projection</Link>.
         </p>
       ) : (
         <>
@@ -77,7 +77,7 @@ export function IntegrationProjection({id}: IntegrationProjectionProps) {
           {integration.networks.length < integration.totalNetworks ? (
             <p>
               Networks without recorded components are omitted; per-network state lives in the{" "}
-              <Link to="/builders/deployments/status">deployment status projection</Link>.
+              <Link to="/builders/reference/deployments">deployment status projection</Link>.
             </p>
           ) : null}
         </>

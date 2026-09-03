@@ -37,7 +37,7 @@ Green Goods is the verified impact operations layer for community-led regenerati
 - Steward copy: may reference on-chain verification as a trust mechanism, but not Solidity internals
 - Evaluator copy: may use research/assessment terminology freely
 - Funder copy: may reference attestation integrity; never use "guaranteed returns"
-- For full persona profiles with behavioral scenarios: `docs/docs/reference/design-research.md#user-personas`
+- For full persona profiles with behavioral scenarios: `docs/docs/builders/architecture/design.mdx`
 - For vocabulary constraints (Use/Avoid lists): see Messaging Constraints below
 
 ## UX Quality Bars

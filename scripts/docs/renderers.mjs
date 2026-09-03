@@ -109,7 +109,7 @@ export function renderDeploymentStatus({ root, sources, digest }) {
   const rows = deploymentInventory(root, deploymentSources, fields);
   const names = networkNames(root, declaredSource(sources, "packages/contracts/deployments/networks.json"));
   let body = pageHeader(
-    { title: "Deployment Status", slug: "/builders/deployments/status", sources, digest },
+    { title: "Deployment Status", slug: "/builders/reference/deployments", sources, digest },
     "Deployment Status",
     "This page reports checked-in artifacts, not live RPC state. A nonzero address means an artifact records a deployment; activation and operational health require their own evidence."
   );
@@ -380,7 +380,7 @@ export function renderGitHubActions({ root, sources, digest }) {
   const workflows = workflowInventory(root, sources.filter((source) => source.startsWith(".github/workflows/")));
   const rootManifest = readJson(root, declaredSource(sources, "package.json"));
   let body = pageHeader(
-    { title: "GitHub Actions", slug: "/builders/deployments/gh-actions", sources, digest },
+    { title: "GitHub Actions", slug: "/builders/quality/gh-actions", sources, digest },
     "GitHub Actions",
     "Workflow files own CI triggers and jobs. Root package scripts own reusable local commands. This projection is an inventory, not a claim that a workflow is currently passing."
   );

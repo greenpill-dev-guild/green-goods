@@ -73,7 +73,7 @@ Each garden is an ERC-721 token whose
 the garden's treasury, wears its role tree, and receives its attestations. Nothing about a garden
 lives in an app database that could disappear. Transfer the token and you've transferred the
 garden, assets and history included. The [Garden account sources](./packages/contracts) and the
-[deployment record](./deployments/status) show what this looks like per chain.
+[deployment record](/builders/reference/deployments) show what this looks like per chain.
 
 ### A record is an attestation with enforced meaning
 
@@ -96,14 +96,14 @@ Everything else is a module a garden opts into per chain: vaults through
 impact certificates through [Hypercerts](./integrations/hypercerts), milestone reporting through
 [Karma GAP](./integrations/karma), names through [ENS](./integrations/ens). A module exists where
 its deployment artifact says it does, and nowhere else; the
-[deployment status page](./deployments/status) is the canonical record, and no page in these docs
+[deployment status page](/builders/reference/deployments) is the canonical record, and no page in these docs
 claims a module is live anywhere without it.
 
 ## The monorepo that serves it
 
 | Package | What it owns | In production |
 |---|---|---|
-| [`contracts`](./packages/contracts) | Protocol state, authorization, attestation resolvers, deployment artifacts | [Arbitrum One and others](./deployments/status) |
+| [`contracts`](./packages/contracts) | Protocol state, authorization, attestation resolvers, deployment artifacts | [Arbitrum One and others](/builders/reference/deployments) |
 | [`shared`](./packages/shared) | Cross-app hooks, providers, protocol modules, UI foundations | Inside every app bundle |
 | [`indexer`](./packages/indexer) | Envio handlers projecting contract events into GraphQL read models | Envio hosted service |
 | [`client`](./packages/client) | Public website and the installed PWA | [greengoods.app](https://greengoods.app) |
@@ -149,4 +149,4 @@ Five tests guide the tradeoffs, in the spirit of the Ethereum ecosystem Green Go
 
 - [Anatomy of a Work Submission](./architecture/anatomy) follows one real record through every stage.
 - [Data Model & Ontology](./architecture/data-model) maps the entities and lifecycles, layer by layer.
-- [Deployment Status](./deployments/status) shows what's actually deployed where.
+- [Deployment Status](/builders/reference/deployments) shows what's actually deployed where.

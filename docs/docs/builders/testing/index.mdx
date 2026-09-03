@@ -1,0 +1,113 @@
+---
+title: Testing Guide
+sidebar_label: Testing Guide
+slug: /builders/testing
+audience: developer
+owner: docs
+last_verified: 2026-09-02
+feature_status: Live
+source_of_truth:
+  - CONTRIBUTING.md
+  - package.json
+  - playwright.config.ts
+  - scripts/data/validation-policy.json
+keywords:
+  - testing
+  - vitest
+  - playwright
+  - storybook
+  - foundry
+---
+
+# Testing Guide
+
+Four runners cover the stack, and one selector decides which of them your change actually needs.
+This page is the map, the everyday loop, and the commands per surface; the runners' own excellent
+docs cover everything deeper.
+
+## The test map
+
+| Runner | What it proves | Where it lives | Learn it |
+|---|---|---|---|
+| Vitest | Unit and component behavior in `shared`, `client`, `admin`, and `agent` | `src/__tests__/` in each package | [vitest.dev](https://vitest.dev) |
+| Playwright | End-to-end flows and authentication across client and admin | `tests/` at the root, projects in `playwright.config.ts` | [playwright.dev](https://playwright.dev) |
+| Storybook | Shared UI states, variants, and interactions in isolation | Stories beside shared components; live at [design.greengoods.app](https://design.greengoods.app) | [storybook.js.org/docs](https://storybook.js.org/docs) |
+| Foundry (forge) | Contract behavior, invariants, gas, and upgrade safety | `packages/contracts/test/*.t.sol` | [getfoundry.sh](https://getfoundry.sh) |
+
+## The everyday loop
+
+Ask the repository what your change needs, run exactly that, and escalate only when the selection
+says to:
+
+```bash
+bun run validation:plan -- --intent "what you changed"
+```
+
+For cache-aware full-scope iteration after targeted proof, `bun run test:fast` runs everything
+turbo knows is affected. Two rules apply everywhere: always `bun run test`, never `bun test` (the
+orchestration depends on it), and the [pre-push gate](/builders/quality/gh-actions) reruns the honest
+subset before anything leaves your machine.
+
+## Commands per surface
+
+- **Shared**: `bun run test`, `bun run typecheck`, and `bun run check:stories` when UI foundations
+  move.
+- **Client**: `bun run test`, plus `bun run build` when routes, rendering, or PWA packaging
+  change.
+- **Admin**: `bun run test`; `bun run test:coverage` for the fuller pass.
+- **Contracts**: `bun run test:match -- test/<file>.t.sol` for one behavior,
+  `bun run test` for the package, `bun run test:audit:full` for the audit suite.
+- **Indexer**: `bun run check:indexing-boundary && bun run test && bun run build`, with
+  `bun run codegen` first after schema or config changes.
+- **Agent**: `bun run test && bun run typecheck`; response-shape changes need both.
+
+For end-to-end work, run the CI-parity Playwright project that matches your surface:
+
+```bash
+PLAYWRIGHT_APP=client APP_ENV=test bunx playwright test --project=client-ci
+```
+
+(`admin-ci` for admin work; `critical-path`, `performance`, and `client-full` exist for deeper
+runs.)
+
+## Manual QA
+
+- Tour authenticated client surfaces without a wallet:
+  [localhost:3001/?mockAuth=steward&presentation=pwa](http://localhost:3001/?mockAuth=steward&presentation=pwa)
+  from [Getting Started](/builders/getting-started).
+- Check shared UI in Storybook, locally on port 3004 or live at
+  [design.greengoods.app](https://design.greengoods.app), including dark mode and viewport
+  variants.
+- Structured product QA lives in [Product Experience QA](/builders/quality/product-experience-qa), with
+  the prioritized [test cases](/builders/quality/test-cases) and the QA app.
+
+## Reproducing CI locally
+
+CI Gate aggregates every workflow your change triggers; the
+[GitHub Actions page](/builders/quality/gh-actions) is the generated inventory of them. The local
+equivalent of the gate is exactly what the pre-push hook runs, and you can invoke it yourself:
+
+```bash
+node scripts/dev/ci-local.js --intent push --reuse-passing-receipts
+```
+
+If a CI check fails that didn't run locally, the selector chose differently under CI conditions;
+the failing workflow's log names the command to reproduce.
+
+## Writing new tests
+
+Put the test where its surface keeps them and copy the house style from a neighbor:
+
+- A shared unit test: `packages/shared/src/__tests__/ontology/query.test.ts`.
+- A client component test: `packages/client/src/__tests__/bootFallback.test.tsx`.
+- A contract test: `packages/contracts/test/E2EWorkflow.t.sol`.
+- An end-to-end spec: any file under `tests/specs/`, wired through `playwright.config.ts`.
+
+Behavior changes ship with their test in the same PR; the
+[First Contribution](/builders/how-to-contribute#prove-it) page shows where proving fits in the flow.
+
+## Next steps
+
+- [Product Experience QA](/builders/quality/product-experience-qa) for the human side of quality.
+- [Test Cases](/builders/quality/test-cases) for the prioritized catalog.
+- [First Contribution](/builders/how-to-contribute) for the full path to a merged PR.

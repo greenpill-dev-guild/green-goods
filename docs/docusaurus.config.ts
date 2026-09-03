@@ -76,7 +76,19 @@ const config: Config = {
       '@docusaurus/plugin-client-redirects',
       {
         redirects: [
-          {from: ['/builders/quality/gh-actions'], to: '/builders/deployments/gh-actions'},
+          {from: ['/builders/deployments/gh-actions'], to: '/builders/quality/gh-actions'},
+          {from: ['/builders/deployments/status'], to: '/builders/reference/deployments'},
+          {from: ['/builders/specs/revenue-explorer'], to: '/builders/reference/economics-explorer'},
+          {from: ['/reference/design-research'], to: '/builders/architecture/design'},
+          {
+            from: [
+              '/builders/testing/forge',
+              '/builders/testing/playwright',
+              '/builders/testing/vitest',
+              '/builders/testing/storybook',
+            ],
+            to: '/builders/testing',
+          },
           {
             from: ['/builders/architecture/erd', '/builders/architecture/sequence-diagrams'],
             to: '/builders/architecture/data-model',
@@ -183,7 +195,7 @@ const config: Config = {
               '/developer/monitoring',
               '/developer/contracts-handbook',
             ],
-            to: '/builders/deployments/status',
+            to: '/builders/reference/deployments',
           },
           {from: ['/developer/api-reference'], to: '/builders/packages/api-index'},
           {
@@ -305,7 +317,7 @@ const config: Config = {
           {from: ['/developers/reference/entity-matrix'], to: '/builders/architecture/entity-matrix'},
           {from: ['/developers/reference/api-index'], to: '/builders/packages/api-index'},
           {from: ['/developers/reference/docs-writing-guide'], to: '/builders/how-to-contribute'},
-          {from: ['/developers/reference/deployment-indexer-status'], to: '/builders/deployments/status'},
+          {from: ['/developers/reference/deployment-indexer-status'], to: '/builders/reference/deployments'},
           {from: ['/developers/reference/agent-mcp-guide'], to: '/builders/agentic/mcp-guide'},
           {from: ['/developers/reference/docs-frontmatter-contract'], to: '/builders/how-to-contribute'},
           {
@@ -408,11 +420,11 @@ const config: Config = {
           {from: ['/reference/changelog'], to: '/reference/product-history'},
           {
             from: ['/reference/regenerative-design-framework'],
-            to: '/reference/design-research#sources',
+            to: '/builders/architecture/design#sources',
           },
           {
             from: ['/reference/regenerative-design-principles'],
-            to: '/reference/design-research#seven-principles',
+            to: '/builders/architecture/design#seven-principles',
           },
           {
             from: [
