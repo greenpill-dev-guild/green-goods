@@ -44,11 +44,36 @@ function projectCase(testCase) {
     area: testCase.area,
     pri: testCase.priority,
     scenario: testCase.scenario,
+    steps: testCase.steps,
     expected: testCase.expected,
     rp: Boolean(testCase.requiresProduction),
     rd: Boolean(testCase.requiresDevice),
     tx: Boolean(testCase.tags?.includes("tx")),
   };
+}
+
+function projectLocaleCase(localeCode, source, translated) {
+  const prefix = `locale '${localeCode}' case '${source.id}'`;
+  requireExactKeys(translated, ["scenario", "steps", "expected"], prefix);
+  if (!Array.isArray(translated.steps) || translated.steps.length !== source.steps.length) {
+    throw new Error(`qa build: ${prefix} steps must match the canonical step count`);
+  }
+  const projected = {
+    scenario: requireText(translated.scenario, `${prefix} scenario`),
+    steps: translated.steps.map((step, index) => requireText(step, `${prefix} step ${index + 1}`)),
+    expected: requireText(translated.expected, `${prefix} expected`),
+  };
+  if (localeCode === "en") {
+    const canonical = {
+      scenario: source.scenario,
+      steps: source.steps,
+      expected: source.expected,
+    };
+    if (JSON.stringify(projected) !== JSON.stringify(canonical)) {
+      throw new Error(`qa build: ${prefix} must match the canonical catalog`);
+    }
+  }
+  return projected;
 }
 
 function projectJourney(journey, activeIds) {
@@ -152,22 +177,31 @@ function projectLocaleJourney(localeCode, source, translated) {
   return projected;
 }
 
-function loadJourneyLocales(journeys) {
+function loadJourneyLocales(journeys, activeCases) {
+  const activeById = new Map(activeCases.map((testCase) => [testCase.id, testCase]));
+  const journeyCaseIds = [...new Set(journeys.flatMap((journey) =>
+    journey.steps.map((step) => step.caseId),
+  ))];
   return Object.fromEntries(localeCodes.map((localeCode) => {
     const localePath = path.join(packageDir, "locales", `${localeCode}.json`);
     const source = JSON.parse(readFileSync(localePath, "utf8"));
-    requireExactKeys(source, ["locale", "name", "ui", "journeys"], `locale '${localeCode}'`);
+    requireExactKeys(source, ["locale", "name", "ui", "journeys", "cases"], `locale '${localeCode}'`);
     if (source.locale !== localeCode) throw new Error(`qa build: ${localePath} declares '${source.locale}'`);
     requireText(source.name, `locale '${localeCode}' name`);
     requireExactKeys(source.ui, localeUiKeys, `locale '${localeCode}' UI`);
     for (const key of localeUiKeys) requireText(source.ui[key], `locale '${localeCode}' UI '${key}'`);
     requireExactKeys(source.journeys, journeys.map((journey) => journey.id), `locale '${localeCode}' journeys`);
+    requireExactKeys(source.cases, journeyCaseIds, `locale '${localeCode}' cases`);
     return [localeCode, {
       name: source.name,
       ui: source.ui,
       journeys: Object.fromEntries(journeys.map((journey) => [
         journey.id,
         projectLocaleJourney(localeCode, journey, source.journeys[journey.id]),
+      ])),
+      cases: Object.fromEntries(journeyCaseIds.map((caseId) => [
+        caseId,
+        projectLocaleCase(localeCode, activeById.get(caseId), source.cases[caseId]),
       ])),
     }];
   }));
@@ -178,7 +212,7 @@ const catalog = JSON.parse(readFileSync(catalogPath, "utf8"));
 const active = catalog.cases.filter((testCase) => testCase.status !== "retired");
 const activeIds = new Set(active.map((testCase) => testCase.id));
 const journeys = (catalog.journeys ?? []).map((journey) => projectJourney(journey, activeIds));
-const locales = loadJourneyLocales(journeys);
+const locales = loadJourneyLocales(journeys, active);
 
 if (active.length === 0) {
   throw new Error(`qa build: no active cases found in ${catalogPath}`);

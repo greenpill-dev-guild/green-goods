@@ -43,7 +43,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(scriptDir, "..", "..");
 const privateOutputRoot = path.join(repoRoot, "tmp");
 
-interface Options {
+export interface Options {
   slug: string;
   outDir: string;
   force: boolean;
@@ -185,7 +185,10 @@ function releasePrivateSessionMarker(
 }
 
 /** Hold the same exclusive marker used by qa:pull for another session-artifact operation. */
-export function acquirePrivateSessionLock(outDir: string, owner: "qa:report"): PrivateSessionLock {
+export function acquirePrivateSessionLock(
+  outDir: string,
+  owner: "qa:pull" | "qa:report",
+): PrivateSessionLock {
   const markerPath = path.join(outDir, PULL_IN_PROGRESS_ARTIFACT);
   const markerContent = `${owner}:${randomUUID()}\n`;
   acquirePrivateSessionMarker(markerPath, markerContent);
@@ -201,6 +204,23 @@ export function releasePrivateSessionLock(lock: PrivateSessionLock): void {
 }
 
 class PrivateArtifactOverwriteError extends Error {}
+class PrivateArtifactSetIncompleteError extends Error {}
+
+function assertPrivateSessionLockOwnership(
+  outDir: string,
+  lock: PrivateSessionLock,
+  operations: Pick<ArtifactSetOperations, "exists"> & Required<Pick<ArtifactSetOperations, "read">>,
+  message: string,
+): void {
+  if (
+    path.resolve(lock.outDir) !== path.resolve(outDir) ||
+    lock.markerPath !== path.join(outDir, PULL_IN_PROGRESS_ARTIFACT) ||
+    !operations.exists(lock.markerPath) ||
+    operations.read(lock.markerPath) !== lock.markerContent
+  ) {
+    throw new Error(message);
+  }
+}
 
 /**
  * Stage and commit both pulled artifacts as one recoverable replacement.
@@ -220,6 +240,7 @@ export function writePrivateArtifactSetAtomically(
     exists: existsSync,
   },
   replaceExisting = false,
+  lock?: PrivateSessionLock,
 ): void {
   const generation = randomUUID();
   const markerPath = path.join(outDir, PULL_IN_PROGRESS_ARTIFACT);
@@ -233,13 +254,25 @@ export function writePrivateArtifactSetAtomically(
   const committed: typeof paths = [];
   let rollbackFailed = false;
   let markerAcquired = false;
-  const markerContent = `${generation}\n`;
+  let sessionLockHeld = false;
+  const markerContent = lock?.markerContent ?? `${generation}\n`;
   const acquire = operations.acquire ?? acquirePrivateSessionMarker;
   const read = operations.read ?? ((target: string) => readFileSync(target, "utf8"));
 
   try {
-    acquire(markerPath, markerContent);
-    markerAcquired = true;
+    if (lock) {
+      assertPrivateSessionLockOwnership(
+        outDir,
+        lock,
+        { ...operations, read },
+        "QA session lock ownership changed before committing the pulled artifacts",
+      );
+      sessionLockHeld = true;
+    } else {
+      acquire(markerPath, markerContent);
+      markerAcquired = true;
+      sessionLockHeld = true;
+    }
     const conflicts = PULL_DATA_ARTIFACTS.filter((name) => operations.exists(path.join(outDir, name)));
     if (conflicts.length && !replaceExisting) {
       throw new PrivateArtifactOverwriteError(
@@ -259,7 +292,7 @@ export function writePrivateArtifactSetAtomically(
       committed.push(artifact);
     }
   } catch (error) {
-    if (!markerAcquired) throw error;
+    if (!sessionLockHeld) throw error;
     for (const artifact of [...committed].reverse()) {
       try {
         if (operations.exists(artifact.target)) operations.remove(artifact.target);
@@ -281,7 +314,7 @@ export function writePrivateArtifactSetAtomically(
         rollbackFailed = true;
       }
     }
-    if (!rollbackFailed) {
+    if (!rollbackFailed && markerAcquired) {
       try {
         releasePrivateSessionMarker(markerPath, markerContent, { ...operations, read });
       } catch {
@@ -289,11 +322,12 @@ export function writePrivateArtifactSetAtomically(
       }
     }
     if (!rollbackFailed && error instanceof PrivateArtifactOverwriteError) throw error;
-    throw new Error(
-      rollbackFailed
-        ? "private QA artifact set is incomplete; confirm no qa:pull process is active, repair the destination, and retry"
-        : "private QA artifact set replacement failed; previous artifacts were restored",
-    );
+    if (rollbackFailed) {
+      throw new PrivateArtifactSetIncompleteError(
+        "private QA artifact set is incomplete; confirm no qa:pull process is active, repair the destination, and retry",
+      );
+    }
+    throw new Error("private QA artifact set replacement failed; previous artifacts were restored");
   }
 
   for (const artifact of backedUp) {
@@ -303,11 +337,13 @@ export function writePrivateArtifactSetAtomically(
       // The committed pair is complete; a hidden backup can be cleaned on the next pull.
     }
   }
-  try {
-    releasePrivateSessionMarker(markerPath, markerContent, { ...operations, read });
-  } catch (error) {
-    if (error instanceof Error && /lock ownership changed/i.test(error.message)) throw error;
-    throw new Error("private QA artifact set is complete but still marked in progress");
+  if (markerAcquired) {
+    try {
+      releasePrivateSessionMarker(markerPath, markerContent, { ...operations, read });
+    } catch (error) {
+      if (error instanceof Error && /lock ownership changed/i.test(error.message)) throw error;
+      throw new Error("private QA artifact set is complete but still marked in progress");
+    }
   }
 }
 
@@ -340,14 +376,12 @@ export function verifyPrivateArtifactSet(
       assertPullNotInProgress(outDir, operations.exists);
       return;
     }
-    if (
-      path.resolve(lock.outDir) !== path.resolve(outDir) ||
-      lock.markerPath !== path.join(outDir, PULL_IN_PROGRESS_ARTIFACT) ||
-      !operations.exists(lock.markerPath) ||
-      operations.read(lock.markerPath) !== lock.markerContent
-    ) {
-      throw new Error("QA session lock ownership changed while reading the pulled artifacts");
-    }
+    assertPrivateSessionLockOwnership(
+      outDir,
+      lock,
+      operations,
+      "QA session lock ownership changed while reading the pulled artifacts",
+    );
   };
 
   assertReadable();
@@ -546,45 +580,80 @@ export async function readShards(token: string, access?: BlobAccess): Promise<Ar
   return Promise.all(shards.map((blob) => readShard(blob.pathname, token, access)));
 }
 
-async function main(): Promise<void> {
-  const options = parseArgs(process.argv.slice(2));
-  assertPrivateOutputPath(repoRoot, options.outDir);
-  const token = resolveBlobToken();
+export async function runPull(
+  options: Options,
+  deps: {
+    repoRoot: string;
+    token: string;
+    loadCatalog: typeof loadCatalog;
+    readShards: typeof readShards;
+    now?: () => Date;
+  },
+): Promise<{
+  csvPath: string;
+  statePath: string;
+  summary: ReturnType<typeof summarize>;
+}> {
+  assertPrivateOutputPath(deps.repoRoot, options.outDir);
 
   // Before the store fan-out, so a refused pull costs nothing and reads clearly.
   const clashes = existingArtifacts(options.outDir);
+  if (clashes.includes(PULL_IN_PROGRESS_ARTIFACT)) {
+    throw new Error(
+      `${path.relative(deps.repoRoot, options.outDir)} is marked as an active or incomplete session operation. ` +
+        "Confirm no qa:pull or qa:report process is using it, then remove the marker before retrying.",
+    );
+  }
   if (clashes.length && !options.force) {
     throw new Error(
-      `${path.relative(repoRoot, options.outDir)} already has ${clashes.join(" and ")}. ` +
+      `${path.relative(deps.repoRoot, options.outDir)} already has ${clashes.join(" and ")}. ` +
         "Refusing to overwrite a pulled session — severity, redactions and hand-added rows " +
         "live only there. Pull to a fresh --out, or pass --force to replace it.",
     );
   }
-  if (clashes.includes(PULL_IN_PROGRESS_ARTIFACT)) {
-    throw new Error(
-      `${path.relative(repoRoot, options.outDir)} is marked as an active or incomplete pull. ` +
-        "Confirm no qa:pull process is using it, then remove the marker before retrying.",
-    );
-  }
-
-  const catalog = await loadCatalog();
-  const active = catalog.cases.filter((testCase) => testCase.status !== "retired");
-  const shards = await readShards(token);
-  const merged = mergeShards(shards);
-  const summary = summarize(active, merged);
 
   mkdirSync(options.outDir, { recursive: true });
   const csvPath = path.join(options.outDir, "results.csv");
   const statePath = path.join(options.outDir, "qa-state.json");
-  writePrivateArtifactSetAtomically(
-    options.outDir,
-    {
-      "results.csv": toResultsCsv(active, merged),
-      "qa-state.json": `${JSON.stringify({ slug: options.slug, pulledAt: new Date().toISOString(), summary, entries: merged }, null, 2)}\n`,
-    },
-    undefined,
-    options.force,
-  );
+  const lock = acquirePrivateSessionLock(options.outDir, "qa:pull");
+  let releaseLock = true;
+  try {
+    const catalog = await deps.loadCatalog();
+    const active = catalog.cases.filter((testCase) => testCase.status !== "retired");
+    const shards = await deps.readShards(deps.token);
+    const merged = mergeShards(shards);
+    const summary = summarize(active, merged);
+
+    try {
+      writePrivateArtifactSetAtomically(
+        options.outDir,
+        {
+          "results.csv": toResultsCsv(active, merged),
+          "qa-state.json": `${JSON.stringify({ slug: options.slug, pulledAt: (deps.now?.() ?? new Date()).toISOString(), summary, entries: merged }, null, 2)}\n`,
+        },
+        undefined,
+        options.force,
+        lock,
+      );
+    } catch (error) {
+      if (error instanceof PrivateArtifactSetIncompleteError) releaseLock = false;
+      throw error;
+    }
+    return { csvPath, statePath, summary };
+  } finally {
+    if (releaseLock) releasePrivateSessionLock(lock);
+  }
+}
+
+async function main(): Promise<void> {
+  const options = parseArgs(process.argv.slice(2));
+  const token = resolveBlobToken();
+  const { csvPath, statePath, summary } = await runPull(options, {
+    repoRoot,
+    token,
+    loadCatalog,
+    readShards,
+  });
 
   const per = Object.entries(summary.perPerson)
     .filter(([, count]) => count > 0)

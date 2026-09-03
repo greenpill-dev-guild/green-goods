@@ -362,6 +362,11 @@
       })),
     };
   }
+  function localizedCase(source) {
+    const translated = LOCALES[locale]?.cases?.[source.id]
+      || LOCALES.en?.cases?.[source.id];
+    return translated ? { ...source, ...translated } : source;
+  }
   function entryRows(source) {
     const result = Object.create(null);
     if (!source || typeof source !== "object") return result;
@@ -666,7 +671,7 @@
         step.leadLaneId !== part &&
         !(step.verifyLaneIds || []).includes(part)
       ) return [];
-      return [{ ...testCase, journeyStep: step }];
+      return [{ ...localizedCase(testCase), journeyStep: step }];
     });
   }
 
@@ -768,7 +773,7 @@
         : '<span class="no-notes">No notes</span>';
       return `<div class="row overview-row ${quietlyResolved ? "done" : ""}">
         ${caseRid(testCase)}
-        <div class="scen">${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span>${journeyCaseContext(testCase)}</div>
+        <div class="scen"${testCase.journeyStep ? ` lang="${esc(locale)}"` : ""}>${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span>${journeyCaseContext(testCase)}</div>
         <div class="team-statuses" role="list" aria-label="${esc(testCase.id)} team verdicts">${statuses}</div>
         <div class="overview-note-summary">${noteSummary}</div>
       </div>`;
@@ -791,7 +796,7 @@
         : `<div class="note"><div class="readonly-note ${entry && entry.n ? "has-note" : ""}"><b>${esc(selected)}:</b> ${entry && entry.n ? esc(entry.n) : "No note recorded."}</div></div>`;
       return `<div class="row ${quietlyResolved ? "done" : ""}">
         ${caseRid(testCase)}
-        <div class="scen">${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span>${journeyCaseContext(testCase)}</div>
+        <div class="scen"${testCase.journeyStep ? ` lang="${esc(locale)}"` : ""}>${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span>${journeyCaseContext(testCase)}</div>
         ${controls}${note}
       </div>`;
     }).join("");

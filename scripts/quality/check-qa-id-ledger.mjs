@@ -59,6 +59,7 @@ export function parseCatalogCases(text, label) {
   }
   if (
     !Array.isArray(parsed?.cases) ||
+    parsed.cases.length === 0 ||
     parsed.cases.some(
       (testCase) =>
         typeof testCase?.id !== "string" ||
@@ -67,6 +68,10 @@ export function parseCatalogCases(text, label) {
     )
   ) {
     throw new Error(`${label} must carry cases with string ids and active|retired status`);
+  }
+  const ids = new Set(parsed.cases.map((testCase) => testCase.id));
+  if (ids.size !== parsed.cases.length) {
+    throw new Error(`${label} must not carry duplicate case ids`);
   }
   return parsed.cases.map(({ id, status }) => ({ id, status }));
 }

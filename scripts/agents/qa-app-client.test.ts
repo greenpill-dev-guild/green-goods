@@ -720,9 +720,9 @@ async function journeyModeHarness() {
 
   const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
   const cases = [
-    { id: "ADM-002", tab: "Admin Dashboard", area: "Delivery", pri: "P0", scenario: "Third", expected: "Third", rp: false, rd: false, tx: true },
-    { id: "PWA-001", tab: "PWA", area: "Claim", pri: "P0", scenario: "Second", expected: "Second", rp: false, rd: false, tx: true },
-    { id: "ADM-001", tab: "Admin Dashboard", area: "Prepare", pri: "P1", scenario: "First", expected: "First", rp: false, rd: false, tx: true },
+    { id: "ADM-002", tab: "Admin Dashboard", area: "Delivery", pri: "P0", scenario: "Third", steps: ["Third step"], expected: "Third result", rp: false, rd: false, tx: true },
+    { id: "PWA-001", tab: "PWA", area: "Claim", pri: "P0", scenario: "Second", steps: ["Second step"], expected: "Second result", rp: false, rd: false, tx: true },
+    { id: "ADM-001", tab: "Admin Dashboard", area: "Prepare", pri: "P1", scenario: "First", steps: ["First step"], expected: "First result", rp: false, rd: false, tx: true },
   ];
   const lanes = [
     { id: "review", label: "Protocol & review", role: "Protocol steward" },
@@ -806,6 +806,11 @@ async function journeyModeHarness() {
         orderJourney: "Recorrido",
       },
       journeys: localizedJourney,
+      cases: {
+        "ADM-001": { scenario: "Primero en español", steps: ["Primer paso"], expected: "Primer resultado" },
+        "PWA-001": { scenario: "Segundo en español", steps: ["Segundo paso"], expected: "Segundo resultado" },
+        "ADM-002": { scenario: "Tercero en español", steps: ["Tercer paso"], expected: "Tercer resultado" },
+      },
     },
     pt: {
       name: "Português",
@@ -843,6 +848,11 @@ async function journeyModeHarness() {
           },
         },
       },
+      cases: {
+        "ADM-001": { scenario: "Primeiro em português", steps: ["Primeiro passo"], expected: "Primeiro resultado" },
+        "PWA-001": { scenario: "Segundo em português", steps: ["Segundo passo"], expected: "Segundo resultado" },
+        "ADM-002": { scenario: "Terceiro em português", steps: ["Terceiro passo"], expected: "Terceiro resultado" },
+      },
     },
   };
   const response = (body) => ({ ok: true, status: 200, json: async () => structuredClone(body) });
@@ -852,6 +862,8 @@ async function journeyModeHarness() {
     await new Promise((resolve) => setImmediate(resolve));
   };
   const posts = [];
+  const timers = new Map();
+  let timerId = 0;
   let restoredScroll = null;
   const virtualConsole = new VirtualConsole();
   let jsdomError = "";
@@ -877,8 +889,12 @@ async function journeyModeHarness() {
       }));
       window.localStorage.setItem("qa-locale", "es");
       window.scrollTo = (_x, y) => { restoredScroll = y; };
-      window.setTimeout = () => 1;
-      window.clearTimeout = () => {};
+      window.setTimeout = (callback, delay = 0) => {
+        const id = ++timerId;
+        timers.set(id, { callback, delay });
+        return id;
+      };
+      window.clearTimeout = (id) => timers.delete(id);
       window.setInterval = () => 1;
       window.fetch = async (input, init = {}) => {
         const target = String(input);
@@ -900,6 +916,14 @@ async function journeyModeHarness() {
     },
   });
 
+  const runTimer = async (delay) => {
+    const timer = [...timers.entries()].find(([, pending]) => pending.delay === delay);
+    assert.ok(timer, `expected a ${delay}ms timer`);
+    timers.delete(timer[0]);
+    await timer[1].callback();
+    await flush();
+  };
+
   try {
     await flush();
     const document = dom.window.document;
@@ -919,12 +943,16 @@ async function journeyModeHarness() {
       ["ADM-001", "PWA-001", "ADM-002"],
       "journey steps did not override catalog/surface order",
     );
+    assert.equal(document.querySelector(".scen")?.textContent.includes("Primero en español"), true);
+    assert.equal(document.querySelector(".scen")?.textContent.includes("Primer resultado"), true);
+    assert.equal(document.querySelector(".scen")?.getAttribute("lang"), "es");
     assert.deepEqual(
       [...document.querySelectorAll("h2.area")].map((node) => node.textContent),
       ["Preparar · 1", "Entregar · 2"],
     );
     assert.equal(document.querySelector(".known-gate")?.textContent.includes("La liquidación no está habilitada"), true);
     assert.equal(document.querySelector(".journey-handoff")?.textContent.includes("Espera a que la persona revisora"), true);
+    assert.equal([...timers.values()].filter((timer) => timer.delay === 900).length, 0);
     assert.equal(posts.length, 0, "rendering a known gate must not write a Blocked verdict");
 
     const initialJourneySelect = document.querySelector("#qa-journey-select");
@@ -952,7 +980,8 @@ async function journeyModeHarness() {
       document.querySelector('[data-id="PWA-001"][data-s="blocked"]')?.getAttribute("aria-pressed"),
       "true",
     );
-    assert.equal(posts.length, 0, "a known gate must wait for the tester to choose Blocked");
+    await runTimer(900);
+    assert.deepEqual(posts[0]?.entries, { "PWA-001": { s: "blocked" } });
 
     const part = document.querySelector("#qa-part-select");
     part.focus();
@@ -977,6 +1006,9 @@ async function journeyModeHarness() {
     assert.equal(document.activeElement?.id, "qa-locale-select");
     assert.equal(document.querySelector(".journey-row")?.getAttribute("lang"), "pt");
     assert.equal(document.querySelector('label[for="qa-journey-select"]')?.textContent.includes("Jornada"), true);
+    assert.equal(document.querySelector(".scen")?.textContent.includes("Primeiro em português"), true);
+    assert.equal(document.querySelector(".scen")?.textContent.includes("Primeiro resultado"), true);
+    assert.equal(document.querySelector(".scen")?.getAttribute("lang"), "pt");
     assert.equal(dom.window.localStorage.getItem("qa-locale"), "pt");
 
     const mobileRules = [...document.styleSheets[0].cssRules]
@@ -995,10 +1027,13 @@ async function journeyModeHarness() {
     document.querySelector('[data-f="all"]')?.click();
     document.querySelector('[data-tab="Admin Dashboard"]')?.click();
     assert.deepEqual([...document.querySelectorAll(".rid b")].map((node) => node.textContent), ["ADM-001"]);
-    assert.equal(posts.length, 0, "filtering journey rows must remain read-only");
+    assert.equal([...timers.values()].filter((timer) => timer.delay === 900).length, 0);
+    assert.equal(posts.length, 1, "filtering journey rows must remain read-only");
 
     document.querySelector('[data-sort="walk"]')?.click();
     assert.equal(document.querySelector("#qa-journey-select"), null);
+    assert.equal(document.querySelector(".scen")?.textContent.includes("Third"), true);
+    assert.equal(document.querySelector(".scen")?.textContent.includes("Terceiro em português"), false);
     assert.deepEqual(
       [...document.querySelectorAll(".rid b")].map((node) => node.textContent),
       ["ADM-002", "ADM-001"],

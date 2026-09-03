@@ -73,7 +73,7 @@ read the shared run and change only their own address-owned shard.
 | `auth.ts` | SIWE message, nonce, allowlist, cookie, and session verification |
 | `api/auth.ts` | `GET` issues a challenge, `POST` consumes it once and creates a session, `DELETE` signs out |
 | `api/state.ts` | Authenticated `GET` merges shards; authenticated `POST` merges the caller's delta |
-| `locales/{en,es,pt}.json` | Journey controls, roles, handoffs, and gates in each supported language |
+| `locales/{en,es,pt}.json` | Journey controls, roles, case instructions, handoffs, and gates in each supported language |
 | `build.mjs` | Copies the page and Warm Earth radius tokens, then projects the active catalog and journey locales into `dist/catalog.json` |
 | `dev.mjs` | Loopback-only rehearsal server with a local identity bypass and state in `tmp/qa/` |
 
@@ -84,8 +84,8 @@ top-level `journeys`: ordered choreography over active Test IDs, with lanes, pha
 roles, handoffs, and known gates. `case.kind: "journey"` remains the category of an individual
 case; top-level journeys describe how multiple cases are walked together.
 Journey copy lives in the three locale files beside the page. The build requires every locale to
-cover the same journeys, lanes, phases, handoffs, and gates, and requires English to match the
-canonical catalog so the two sources cannot quietly drift.
+cover the same journeys, lanes, phases, case instructions, handoffs, and gates, and requires English
+to match the canonical catalog so the two sources cannot quietly drift.
 
 ## Journey mode
 
@@ -99,7 +99,8 @@ or priority.
   current browser is playing.
 - Journey starts at **All surfaces** and can be narrowed to a participating surface.
 - Journey language follows the tester's saved choice, then their browser language, with English as
-  the fallback. The rest of the established checklist remains in English.
+  the fallback. It covers the controls, choreography, and case instructions; cases outside Journey
+  mode retain the established English copy.
 - Journey, Part, surface, and scroll position live only in `sessionStorage`. Tester names and role
   assignments do not enter the public catalog or shared store.
 - A known gate is shown as context and never writes a verdict. The tester records Blocked only

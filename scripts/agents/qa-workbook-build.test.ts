@@ -193,7 +193,7 @@ describe("validateCatalog", () => {
             caseId: "ADM-001",
             phaseId: "prepare",
             leadLaneId: "review",
-            verifyLaneIds: ["member"],
+            verifyLaneIds: ["member", "review"],
             handoff: "Wait until both people see the same cycle.",
           },
           {
@@ -229,6 +229,7 @@ describe("validateCatalog", () => {
     expect(problems.join("\n")).toMatch(/missing-phase/);
     expect(problems.join("\n")).toMatch(/missing-lane/);
     expect(problems.join("\n")).toMatch(/duplicate verifier lane 'member'/);
+    expect(problems.join("\n")).toMatch(/lead lane cannot also verify/);
     expect(problems.join("\n")).toMatch(/duplicate lane id 'review'/);
     expect(problems.join("\n")).toMatch(/retired case 'ADM-003'/);
     expect(problems.join("\n")).toMatch(/unknown case 'NOPE-999'/);

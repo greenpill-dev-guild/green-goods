@@ -312,15 +312,19 @@ describe("QA app build", () => {
     // A retired case on a run sheet is a tester walking a scenario we removed.
     for (const testCase of built.cases) expect(retired.has(testCase.id)).toBe(false);
     expect(Object.keys(built.cases[0]).sort()).toEqual(
-      ["area", "expected", "id", "pri", "rd", "rp", "scenario", "tab", "tx"],
+      ["area", "expected", "id", "pri", "rd", "rp", "scenario", "steps", "tab", "tx"],
     );
     expect(built.journeys.map((journey: { id: string }) => journey.id)).toEqual([
       "service-relay",
       "protocol-treasury-top-up",
     ]);
     const activeIds = new Set(built.cases.map((testCase: { id: string }) => testCase.id));
+    const journeyCaseIds = new Set<string>();
     for (const journey of built.journeys) {
-      for (const step of journey.steps) expect(activeIds.has(step.caseId)).toBe(true);
+      for (const step of journey.steps) {
+        expect(activeIds.has(step.caseId)).toBe(true);
+        journeyCaseIds.add(step.caseId);
+      }
     }
     const gated = built.journeys.flatMap((journey: { steps: Array<{ knownGate?: string }> }) =>
       journey.steps.filter((step) => step.knownGate),
@@ -331,6 +335,7 @@ describe("QA app build", () => {
     for (const locale of Object.values(built.locales) as Array<{
       ui: Record<string, string>;
       journeys: Record<string, unknown>;
+      cases: Record<string, { scenario: string; steps: string[]; expected: string }>;
     }>) {
       expect(locale.ui.journey.trim()).not.toBe("");
       expect(locale.ui.roleRequirements.trim()).not.toBe("");
@@ -338,6 +343,12 @@ describe("QA app build", () => {
         "protocol-treasury-top-up",
         "service-relay",
       ]);
+      expect(Object.keys(locale.cases).sort()).toEqual([...journeyCaseIds].sort());
+      for (const copy of Object.values(locale.cases)) {
+        expect(copy.scenario.trim()).not.toBe("");
+        expect(copy.steps.every((step) => step.trim().length > 0)).toBe(true);
+        expect(copy.expected.trim()).not.toBe("");
+      }
     }
   });
 });

@@ -23,11 +23,14 @@ import {
   PULL_IN_PROGRESS_ARTIFACT,
   readShard,
   readShards,
+  runPull,
   SESSION_ARTIFACTS,
   verifyPrivateArtifactSet,
   writePrivateArtifactSetAtomically,
   writePrivateFileAtomically,
 } from "./qa-state-pull";
+import { parseArgs as parseReportArgs, runReport } from "./qa-report";
+import type { Catalog, CatalogCase } from "./qa-workbook-build";
 
 /** Shards live at their owner address. */
 const PATH = "qa/entries/0x2aa64e6d80390f5c017f0313cb908051be2fd35e.json";
@@ -135,6 +138,26 @@ describe("qa:pull overwrite guard", () => {
       outDir: path.join(repoRoot, "tmp", "qa-session", "rehearsal"),
     });
   });
+
+  it.each([false, true])("reports the active marker recovery path with force=%s", async (force) => {
+    mkdirSync(path.join(repoRoot, "tmp"), { recursive: true });
+    const destination = mkdtempSync(path.join(repoRoot, "tmp", "qa-pull-marker-"));
+    writeFileSync(path.join(destination, PULL_IN_PROGRESS_ARTIFACT), "another-operation\n");
+
+    try {
+      await expect(runPull(
+        { slug: "2026-09-02", outDir: destination, force },
+        {
+          repoRoot,
+          token: "unused",
+          loadCatalog: vi.fn(),
+          readShards: vi.fn(),
+        },
+      )).rejects.toThrow(/confirm no qa:pull or qa:report process.*remove the marker/i);
+    } finally {
+      rmSync(destination, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("qa:pull artifact-set commit", () => {
@@ -153,6 +176,87 @@ describe("qa:pull artifact-set commit", () => {
       expect(lstatSync(path.join(outDir, "qa-state.json")).mode & 0o777).toBe(0o600);
       expect(() => verifyPrivateArtifactSet(outDir, artifacts)).not.toThrow();
       expect(() => lstatSync(path.join(outDir, PULL_IN_PROGRESS_ARTIFACT))).toThrow();
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  });
+
+  it("locks before the Blob snapshot so a report cannot publish from the generation being replaced", async () => {
+    mkdirSync(path.join(repoRoot, "tmp"), { recursive: true });
+    const outDir = mkdtempSync(path.join(repoRoot, "tmp", "qa-pull-snapshot-lock-"));
+    const testCase: CatalogCase = {
+      id: "PUB-001",
+      tab: "Public Website",
+      platform: "Desktop Browser",
+      priority: "P0",
+      kind: "journey",
+      area: "Home",
+      scenario: "Open the public home page",
+      preconditions: [],
+      steps: ["Open /"],
+      expected: "The page is usable",
+      evidence: "Screenshot",
+      role: "none",
+      status: "active",
+      source: "qa-state-pull-test",
+    };
+    const catalog: Catalog = {
+      version: 3,
+      tabs: ["Public Website"],
+      kinds: [{ id: "journey", label: "Journey", verifies: "An end-to-end journey" }],
+      statuses: [],
+      cases: [testCase],
+    };
+    writeFileSync(path.join(outDir, "results.csv"), "Test ID,Result,Severity,Notes\nPUB-001,Fail,,old\n");
+    writeFileSync(path.join(outDir, "qa-state.json"), JSON.stringify({
+      slug: "2026-09-02",
+      pulledAt: "2026-09-02T19:40:00.000Z",
+      entries: { "PUB-001": { Tester: { s: "fail", n: "old", at: "2026-09-02T18:00:00.000Z" } } },
+    }));
+    let reportError: unknown;
+
+    try {
+      await runPull(
+        { slug: "2026-09-02", outDir, force: true },
+        {
+          repoRoot,
+          token: "test-token",
+          loadCatalog: async () => catalog,
+          async readShards() {
+            try {
+              await runReport(
+                parseReportArgs(["--slug", "2026-09-02", "--out", path.relative(repoRoot, outDir)]),
+                { catalog, repoRoot },
+              );
+            } catch (error) {
+              reportError = error;
+            }
+            return [{
+              address: "0x2aa64e6d80390f5c017f0313cb908051be2fd35e",
+              person: "Tester",
+              updatedAt: "2026-09-02T20:00:00.000Z",
+              entries: {
+                "PUB-001": { s: "pass", n: "new", at: "2026-09-02T20:00:00.000Z" },
+              },
+            }];
+          },
+          now: () => new Date("2026-09-02T20:00:00.000Z"),
+        },
+      );
+
+      expect(reportError).toBeInstanceOf(Error);
+      expect((reportError as Error).message).toMatch(/already locked/i);
+      expect(existsSync(path.join(outDir, "report.md"))).toBe(false);
+      expect(readFileSync(path.join(outDir, "qa-state.json"), "utf8")).toContain('"s": "pass"');
+      expect(existsSync(path.join(outDir, PULL_IN_PROGRESS_ARTIFACT))).toBe(false);
+
+      const written = await runReport(
+        parseReportArgs(["--slug", "2026-09-02", "--out", path.relative(repoRoot, outDir)]),
+        { catalog, repoRoot },
+      );
+      const report = readFileSync(written.report, "utf8");
+      expect(report).toContain("- P0: 1/1 — 1 pass");
+      expect(report).not.toContain("1 fail");
     } finally {
       rmSync(outDir, { recursive: true, force: true });
     }

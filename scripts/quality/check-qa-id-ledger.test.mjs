@@ -65,7 +65,15 @@ test("rejects a ledger that is not JSON or has no string ids", () => {
 
 test("rejects malformed catalog lifecycle snapshots", () => {
   assert.throws(() => parseCatalogCases("{ nope", "fixture"), /not valid JSON/);
+  assert.throws(() => parseCatalogCases('{"cases": []}', "fixture"), /must carry cases/);
   assert.throws(() => parseCatalogCases('{"cases": [{"id": "PUB-001"}]}', "fixture"), /active\|retired/);
+  assert.throws(
+    () => parseCatalogCases(
+      '{"cases": [{"id": "PUB-001", "status": "active"}, {"id": "PUB-001", "status": "retired"}]}',
+      "fixture",
+    ),
+    /duplicate case ids/,
+  );
 });
 
 test("passes against its own commit", () => {

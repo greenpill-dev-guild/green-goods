@@ -16,6 +16,199 @@
     "language": "Journey language",
     "orderJourney": "Journey"
   },
+  "cases": {
+    "ADM-012": {
+      "scenario": "Full review decision path completes with actions visible",
+      "steps": [
+        "Open /hub/work",
+        "Open a pending submission",
+        "Inspect evidence media",
+        "Choose confidence and enter feedback",
+        "Verify Approve and Reject are visible in the pinned dialog action region without scrolling",
+        "Reject or approve",
+        "Confirm the queue updates"
+      ],
+      "expected": "The complete decision path works and commit/cancel actions are never hidden inside a clipped scrolling region"
+    },
+    "ADM-013": {
+      "scenario": "Commitment confirmation states who and what before commit",
+      "steps": [
+        "Open /hub/confirm",
+        "Open a commitment",
+        "Verify who and what is affected is stated",
+        "Confirm or decline",
+        "Reopen after an external change to exercise stale data"
+      ],
+      "expected": "Consequences are named before the act, stale data is handled honestly, and the resulting state is visible"
+    },
+    "ADM-014": {
+      "scenario": "Pool console statuses, seeding, and detail are coherent",
+      "steps": [
+        "Open /garden/pool",
+        "Inspect funding and readiness status",
+        "Open /garden/pool/seed and review before any commit",
+        "Open a commitment detail",
+        "Cancel out safely"
+      ],
+      "expected": "Statuses are honest, destructive/chain actions are gated behind review, and cancel preserves state"
+    },
+    "ADM-026": {
+      "scenario": "Seed a commitment: 4-step wizard, named confirmers, review, queued creation",
+      "steps": [
+        "Run the 4-step seed wizard",
+        "Add named confirmers incl. one bad address",
+        "Review, queue, and watch the queued row"
+      ],
+      "expected": "Beats validate; a bad/duplicate confirmer address is rejected visibly (currently a silent no-op); review precedes queueing; the queued row appears before the indexer catches up"
+    },
+    "ADM-037": {
+      "scenario": "Record a starting assessment for the test Garden",
+      "steps": [
+        "Select the test Garden and start a new assessment",
+        "Record the Garden's starting context with enough detail for Tester B to recognize it",
+        "Review and submit the assessment",
+        "Wait for the submitted assessment to appear on the Garden"
+      ],
+      "expected": "The assessment is recorded against the test Garden and is visible as starting context, without being described as a prerequisite for opening a Season or Campaign"
+    },
+    "PWA-046": {
+      "scenario": "Garden member can read the starting assessment",
+      "steps": [
+        "Open the test Garden",
+        "Open its assessment history",
+        "Find the starting assessment recorded by Tester A",
+        "Read enough detail to confirm it belongs to this QA cycle"
+      ],
+      "expected": "The same starting assessment is readable from the Garden experience and is presented as context, not as a gate on the cycle"
+    },
+    "ADM-038": {
+      "scenario": "Open the test Season and Campaign independently of assessment state",
+      "steps": [
+        "Open the test Garden's pool setup",
+        "Create or select the QA Season",
+        "Open one Campaign for the commitment relay",
+        "Confirm the open cycle is visible before seeding commitments"
+      ],
+      "expected": "The Season and Campaign open successfully whether or not the starting assessment has finished indexing; the assessment remains contextual"
+    },
+    "ADM-039": {
+      "scenario": "Seed an approval-gated protocol Request for a concrete service",
+      "steps": [
+        "Open the Green Goods protocol pool",
+        "Seed a Request that names a concrete service and clear evidence",
+        "Require approval before a claimant is accepted",
+        "Review and submit the Request",
+        "Wait for the Request to appear in the protocol pool"
+      ],
+      "expected": "One approval-gated Request appears in the protocol pool with its service, evidence, and confirmation expectations intact"
+    },
+    "PWA-047": {
+      "scenario": "Claim the protocol Request for the test Garden",
+      "steps": [
+        "Open the protocol Request",
+        "Choose to take it up for the test Garden",
+        "Review the Garden identity and submit the claim",
+        "Wait for the claim to show as pending approval"
+      ],
+      "expected": "The claim is pending for the test Garden; it is not presented as a personal claim and the Request has not moved out of the protocol pool"
+    },
+    "ADM-040": {
+      "scenario": "Accept the test Garden's institutional claim",
+      "steps": [
+        "Open pending claims for the protocol Request",
+        "Identify the claim from the test Garden",
+        "Accept the Garden claim",
+        "Reopen the Request after the state updates"
+      ],
+      "expected": "The claim becomes Accepted, the Garden is the institutional provider, and the original Request remains in the protocol pool"
+    },
+    "PWA-048": {
+      "scenario": "Submit Work and evidence against the original protocol Request",
+      "steps": [
+        "Open the Accepted protocol Request",
+        "Start or link the Work completed for the service",
+        "Add clear evidence from Tester B",
+        "Submit the Work",
+        "Return to the Request and verify the Work is linked"
+      ],
+      "expected": "Tester B's Work and evidence link to the original protocol-pool Request while the test Garden remains the accountable provider"
+    },
+    "ADM-041": {
+      "scenario": "Approve Work linked to the protocol Request without joining its contributors",
+      "steps": [
+        "Open the pending Work linked to the protocol Request",
+        "Inspect Tester B's evidence and Garden context",
+        "Approve the Work",
+        "Verify the review state updates without adding Tester A as a contributor"
+      ],
+      "expected": "The linked Work is approved by an independent reviewer and Tester A remains outside the contributor roster"
+    },
+    "ADM-042": {
+      "scenario": "Confirm the protocol Request after its Work is approved",
+      "steps": [
+        "Open the protocol Request awaiting confirmation",
+        "Verify the approved Work and evidence are named",
+        "Confirm fulfillment as the Request creator",
+        "Reopen the Request after the state updates"
+      ],
+      "expected": "The Request becomes Fulfilled with the test Garden still named as provider and Tester B's Work preserved as evidence"
+    },
+    "ADM-043": {
+      "scenario": "Settle earned G$ compensation from the protocol to the Garden",
+      "steps": [
+        "Open the Fulfilled protocol Request's settlement action",
+        "Verify the beneficiary is the destination Garden Safe",
+        "If settlement UI and value authority are available, review and submit the payout",
+        "Otherwise stop at the visible gate and record Blocked",
+        "Ask Tester B to verify the destination state"
+      ],
+      "expected": "When enabled, earned compensation targets the Garden Safe and the result is visible; when unavailable, the UI states the gate and no value movement is implied"
+    },
+    "PWA-049": {
+      "scenario": "Take up the separate local Garden commitment",
+      "steps": [
+        "Open the test Garden's current Campaign",
+        "Open the local commitment seeded for the member",
+        "Take up the commitment with Tester B's own identity",
+        "Verify its identity differs from the protocol Request"
+      ],
+      "expected": "Tester B takes up a separate Garden-pool commitment; it is neither moved from nor mirrored to the protocol pool"
+    },
+    "PWA-050": {
+      "scenario": "Submit Work and evidence for the local Garden commitment",
+      "steps": [
+        "Open the local Garden commitment",
+        "Start or link its Work",
+        "Add evidence that identifies the local delivery",
+        "Submit the Work",
+        "Verify the Work is linked to the local commitment"
+      ],
+      "expected": "The member's Work and evidence are submitted against the separate Garden commitment and are ready for independent review"
+    },
+    "ADM-044": {
+      "scenario": "Settle the Garden's contributor payout to the member",
+      "steps": [
+        "Open the completed local Garden commitment's payout action",
+        "Verify Tester B is the intended contributor recipient",
+        "If contributor payout UI and value authority are available, review and submit the payout",
+        "Otherwise stop at the visible gate and record Blocked",
+        "Ask Tester B to verify the receiving state"
+      ],
+      "expected": "When enabled, the Garden pays the contributing member and the result is visible; when unavailable, the UI states the gate while the completed non-value workflow remains intact"
+    },
+    "ADM-045": {
+      "scenario": "Queue a discretionary ProtocolToGarden treasury top-up",
+      "steps": [
+        "Open the protocol treasury funding action",
+        "Choose ProtocolToGarden and identify the destination Garden",
+        "Verify no commitment ID is requested or attached",
+        "If value authority is available, review and queue the top-up",
+        "Otherwise stop at the visible gate and record Blocked",
+        "Ask Tester B to verify the Garden balance or readiness state"
+      ],
+      "expected": "When authorized and enabled, a discretionary top-up is queued for the correct Garden and its balance reflects the result; it never substitutes for earned compensation or references a commitment"
+    }
+  },
   "journeys": {
     "service-relay": {
       "label": "Service relay: Green Goods → Garden → members",
