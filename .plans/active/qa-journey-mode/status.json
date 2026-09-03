@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-03T08:26:11Z",
-    "updated_at": "2026-09-03T08:30:30Z"
+    "updated_at": "2026-09-03T23:21:34Z"
   },
   "links": {
     "brief": "brief.md",
@@ -40,15 +40,15 @@
     "depends_on_features": []
   },
   "notes": [
-    "The implementation is present in the shared dirty develop checkout and is not yet attributable to a commit.",
+    "The implementation is on feature/qa-journey-mode in PR #796.",
     "Automated and single-browser rehearsal evidence is green; redeployment and the human two-wallet smoke remain release blockers.",
     "No Linear mirror was requested for this repository-local QA tool change."
   ],
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "in_progress",
-      "branch": null,
+      "status": "completed",
+      "branch": "feature/qa-journey-mode",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
       "tdd": {
@@ -60,7 +60,7 @@
         },
         "green": {
           "command": "bun --bun x vitest run scripts/agents/qa-state-pull.test.ts scripts/agents/qa-workbook-build.test.ts scripts/agents/qa-report.test.ts",
-          "evidence": "2026-09-03T08:30:25Z: Test Files 12 passed; Tests 289 passed. The run includes the QA build, client, catalog, report, state, and pull regression suites."
+          "evidence": "2026-09-03T08:30:25Z: Test Files 3 passed; Tests 93 passed. The focused run covered pull, workbook/catalog validation, and report regressions."
         },
         "note": "Journey Mode was implemented before this complete hub existed, so no trustworthy pre-implementation RED run can be reconstructed. Focused automated proof and visible browser evidence are recorded instead."
       },
@@ -113,7 +113,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "ready",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": null,
@@ -153,9 +153,17 @@
       "timestamp": "2026-09-03T08:30:30Z",
       "actor": "codex",
       "lane": "ui",
-      "status": "in_progress",
+      "status": "completed",
       "branch": null,
-      "note": "Recorded the review-fix regression proof: 12 test files and 289 tests passed, and the Plan Hub validator accepted all 30 hubs."
+      "note": "Recorded the focused review-fix proof accurately: 3 test files and 93 tests passed. The UI implementation and local proof are complete; deployment and the two-wallet smoke belong to qa_pass_1."
+    },
+    {
+      "timestamp": "2026-09-03T23:10:40Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "ready",
+      "branch": "feature/qa-journey-mode",
+      "note": "Marked the QA pass ready after its UI, state API, and contract dependencies reached terminal states. Redeployment and the two-wallet smoke remain this lane's release proof."
     }
   ]
 }
