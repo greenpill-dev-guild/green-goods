@@ -35,3 +35,20 @@ renders all 13 skills.
   in the QA catalog (ID unchanged).
 - **Human gate open**: Afo's tone review of the three pages (plan.todo Phase 2 gate) — voice
   changes sweep all three.
+
+## Validation Receipt — Tone-gate feedback round
+
+- **Tested implementation commit SHA**: `79b499b116e1c6987622d013d299f51a71507bae`
+- **Run at (UTC)**: `2026-09-03T01:09:16Z`
+- **Results**: generator tests 19/19 · docs:audit:ci clean · check:docs-generated idempotent (13)
+  · test:docs 45/45 · build:docs green at the pre-amend tree (content-identical) · push gate passed.
+- **Feedback addressed** (Afo, 2026-09-02): (1) em dashes removed from all hand-written builder
+  prose; tone-contract rule 6 recorded in spec.md; ontology definitions keep canon punctuation.
+  (2) Bring-an-agent section in First Contribution + Getting Started pointer; ONBOARDING.md
+  reviewed and refreshed (qa package, qa-session, ship wording, Skills Catalog link). (3) Landing
+  retitled Architecture and rewritten around grounded protocol ideas with links woven through.
+  (4) svg-pan-zoom replaced by a visible per-diagram Expand control with a full-screen zoom
+  overlay; headlessly verified in the built site: 3 buttons, overlay open, scale 1.00 on open,
+  zoom to 1.56x, Escape closes, cloned SVG id + embedded stylesheet rewritten.
+- **Open question for Afo**: ONBOARDING.md uses Telegram invite `+N3o3_43iRec1Y2Jh` while the org
+  CONTRIBUTING (and the docs) use `+n7g-u8wYtwQ2YjVi`; which is canonical?
