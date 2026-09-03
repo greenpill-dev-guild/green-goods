@@ -474,14 +474,12 @@ function validateRepoDerivedGuidanceFacts() {
     }
   }
 
-  const playwrightDoc = read("docs/docs/builders/testing/playwright.mdx");
-  if (playwrightDoc.includes("npx playwright")) {
-    fail("docs/docs/builders/testing/playwright.mdx: use the repo's Bun Playwright entrypoint");
+  const testingGuide = read("docs/docs/builders/testing/index.mdx");
+  if (testingGuide.includes("npx playwright")) {
+    fail("docs/docs/builders/testing/index.mdx: use the repo's Bun Playwright entrypoint");
   }
-
-  const forgeDoc = read("docs/docs/builders/testing/forge.mdx");
-  if (/\bbun build:(?:fast|full|target)\b/.test(forgeDoc)) {
-    fail("docs/docs/builders/testing/forge.mdx: package scripts require `bun run`");
+  if (/\bbun build:(?:fast|full|target)\b/.test(testingGuide)) {
+    fail("docs/docs/builders/testing/index.mdx: package scripts require `bun run`");
   }
 }
 
