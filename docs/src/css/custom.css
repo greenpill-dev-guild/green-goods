@@ -317,3 +317,25 @@ body.gg-builders-route .menu__link--active:hover {
 .gg-diagram-stage {
   margin: 0 auto;
 }
+
+/* ── Screenshot rows in builder docs ─────────────────────────────── */
+.gg-shot-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.gg-shot-row img {
+  flex: 1 1 180px;
+  min-width: 0;
+  max-width: 240px;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 12px;
+}
+
+.gg-shot-caption {
+  font-size: 0.85rem;
+  color: var(--ifm-font-color-secondary);
+  margin-top: -0.25rem;
+}

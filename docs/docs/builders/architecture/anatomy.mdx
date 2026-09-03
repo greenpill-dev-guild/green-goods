@@ -33,10 +33,18 @@ and every stage names the code that owns it.
 
 ## 1. Capture
 
-A gardener documents work in the [client PWA](../packages/client): media first, then details,
-then review. The flow controller behind those screens lives in
+A gardener documents work in the [client PWA](../packages/client): pick the action, capture the
+media, review before submitting. The flow controller behind those screens lives in
 `packages/shared/src/hooks/client-ui/work/useWorkSubmissionFlowController.ts`. Nothing here
 requires connectivity; photos, notes, and the chosen action all stay on the device.
+
+<div className="gg-shot-row">
+  <img src="/img/builders/green-goods-action-selection-pwa.webp" alt="The PWA's action selection screen, listing garden actions a gardener can document" />
+  <img src="/img/builders/green-goods-media-section-pwa.webp" alt="The PWA's media capture step with photos attached to a work submission" />
+  <img src="/img/builders/green-goods-review-section-pwa.webp" alt="The PWA's review step summarizing the submission before it is sent" />
+</div>
+
+<p className="gg-shot-caption">The capture flow in the installed PWA: action, media, review.</p>
 
 ## 2. Queue
 
@@ -96,6 +104,10 @@ Approved work is what everything downstream builds on: it feeds the garden's
 [hypercert](../integrations/hypercerts), and justifies the flows moving through
 [vaults](../integrations/octant) and [jars](../integrations/cookie-jar). The community docs'
 [How It Works](/community/how-it-works) tells this same story in product language.
+
+<img src="/img/builders/gpdg-graphic-green-goods-impact-value-cycle.webp" alt="The Green Goods impact value cycle: work is captured, verified, certified, and funded, and funding flows back into more work" style={{maxWidth: '520px', width: '100%', borderRadius: '12px'}} />
+
+<p className="gg-shot-caption">The full cycle this page traced one lap of.</p>
 
 ## Next steps
 
