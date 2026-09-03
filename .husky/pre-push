@@ -18,6 +18,12 @@ fi
 
 echo "🔍 Running the focused ready-for-CI gate..."
 
+# git exports GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE to hooks. Any test fixture
+# that spawns git in a temp directory would inherit them and operate on THIS
+# repository instead (observed 2026-09-02: fixture commits and core.bare=true
+# written into the real repo from the push gate). Hooks must not leak them.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
+
 # Bun is the repository's required package manager.
 if ! command -v bun >/dev/null 2>&1; then
   echo "Error: Bun is required. Install bun: https://bun.sh"
