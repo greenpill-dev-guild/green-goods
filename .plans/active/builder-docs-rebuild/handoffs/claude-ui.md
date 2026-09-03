@@ -52,3 +52,21 @@ renders all 13 skills.
   zoom to 1.56x, Escape closes, cloned SVG id + embedded stylesheet rewritten.
 - **Open question for Afo**: ONBOARDING.md uses Telegram invite `+N3o3_43iRec1Y2Jh` while the org
   CONTRIBUTING (and the docs) use `+n7g-u8wYtwQ2YjVi`; which is canonical?
+
+## Validation Receipt — Phase 3 (sections)
+
+- **Tested implementation commit SHA**: `e8ba51dc8e9a38e5e9cc677623ddd9ba7e68e08d`
+- **Run at (UTC)**: `2026-09-03T01:46:36Z`
+- **Results**: generator tests 19/19 · docs pkg tests 45/45 · docs:audit:ci exit 0 (2 advisory
+  endpoint-literal warnings on the deliberate easscan links) · check:docs-generated idempotent
+  (12) · check-ontology all guards passed · build:docs green (search index 65 routes) · push gate
+  (sensitive plan, explicit checks docs-authority + ontology) fully green incl. agent-tools 193
+  tests · digests re-verified post-commit.
+- **Scope**: Monorepo Map + 7 package pages (qa new) · Integrations landing + 10 hybrid pages
+  with upstream links · Anatomy of a Work Submission (D12, live Arbitrum schema links) · Data
+  Model & Ontology consolidation (3 layers + 5 lifecycles) · entity matrix relocated · journeys
+  deleted (D2) · Persona Surfaces → Reference · redirects for every move · ontology watch anchor
+  and validation-policy path retargets (mechanical, meaning unchanged).
+- **Browser spot-check**: Anatomy renders; sidebar shape verified (no User Journeys; Packages
+  with QA; Integrations landing; Reference present).
+- **Human gate open**: D12, Afo judges the rendered Anatomy page.
