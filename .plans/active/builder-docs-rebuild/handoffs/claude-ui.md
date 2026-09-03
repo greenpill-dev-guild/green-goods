@@ -70,3 +70,23 @@ renders all 13 skills.
 - **Browser spot-check**: Anatomy renders; sidebar shape verified (no User Journeys; Packages
   with QA; Integrations landing; Reference present).
 - **Human gate open**: D12, Afo judges the rendered Anatomy page.
+
+## Validation Receipt — Phase 4 (design, agents, testing, reference)
+
+- **Tested implementation commit SHAs**: `acb13e7b9` (content) + `8d0202ab8` (guidance retargets)
+- **Results**: generator tests 19/19 · select-validation 71/71 · docs pkg tests 45/45 ·
+  docs:audit:ci exit 0 (advisory endpoint notes only) · check:docs-generated idempotent (12) ·
+  agent-guidance green (codex-docs parity, 15 skill scenarios, 74 guidance files) · build:docs
+  green, search index 64 routes · delta-scoped push gate green through the hook
+  (GG_PUSH_GATE_ARGS="--base origin/feature/builder-docs-rebuild"; full-branch plan exceeds the
+  180s sensitive budget by design, so the last CI-green push is the honest base).
+- **Scope**: Design page moved+revamped under Architecture (D9) · Working with Agents landing +
+  13 skill READMEs projected by the catalog (D8) · Testing Guide consolidates 4 tool pages (D1) ·
+  Testing & QA category merged with CI & GitHub Actions moved back (D11, redirect direction
+  swapped) · Deployment Status promoted to Reference as Deployments & Addresses with all consumer
+  links retargeted · Economics Explorer (D3) and new License page (D10) in Reference · Product
+  Specifications and deployments categories dissolved · guidance/guard references retargeted.
+- **Browser spot-check**: all 7 new/moved routes return 200; sidebar shows the blueprint's final
+  shape.
+- **Session note**: the previous process exited mid-phase; resumed, completed agent-guidance
+  fixes, and pushed.
