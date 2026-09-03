@@ -154,7 +154,7 @@ function sendJson(response, status, body) {
 }
 
 /**
- * The build emits exactly two files, so the request never contributes to the
+ * The build emits a fixed set of files, so the request never contributes to the
  * path at all: it selects a key in a fixed map. Sanitizing a request-derived
  * path would work too, but only as long as the check stays correct — this
  * cannot traverse because there is nothing to traverse.
@@ -163,6 +163,7 @@ const SERVABLE = new Map([
   ["/", "index.html"],
   ["/index.html", "index.html"],
   ["/catalog.json", "catalog.json"],
+  ["/design-md.generated.css", "design-md.generated.css"],
 ]);
 
 function resolveStatic(requestPath) {

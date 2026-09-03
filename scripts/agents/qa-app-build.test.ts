@@ -196,6 +196,19 @@ describe("QA app page", () => {
     }
   });
 
+  it("loads the generated Warm Earth radius tokens", () => {
+    const dev = readFileSync(path.join(appDir, "dev.mjs"), "utf8");
+    expect(page).toContain('<link rel="stylesheet" href="design-md.generated.css">');
+    expect(dev).toContain('["/design-md.generated.css", "design-md.generated.css"]');
+    expect(dev).toContain('".css": "text/css; charset=utf-8"');
+    expect(page).toMatch(/--radius-md\s*:\s*var\(--gg-radius-md\)/);
+    expect(page).toMatch(/--radius-full\s*:\s*var\(--gg-radius-full\)/);
+    expect(page).toMatch(/\.journey-chip\s*\{[^}]*border-radius\s*:\s*var\(--radius-full\)/s);
+    expect(page).toMatch(
+      /\.journey-handoff, \.known-gate\s*\{[^}]*border-radius\s*:\s*0 var\(--radius-md\) var\(--radius-md\) 0/s,
+    );
+  });
+
   it("names an unnamed tester the same way on both sides", () => {
     // Shards are keyed by address and the display name is self-declared, so
     // there is no roster to agree on any more — but a tester who has not named
@@ -283,6 +296,9 @@ describe("QA app build", () => {
     execFileSync("node", [path.join(appDir, "build.mjs")], { stdio: "pipe" });
     const dist = path.join(appDir, "dist");
     expect(existsSync(path.join(dist, "index.html"))).toBe(true);
+    expect(readFileSync(path.join(dist, "design-md.generated.css"), "utf8")).toBe(
+      readFileSync(path.join(repoRoot, "packages", "shared", "src", "styles", "design-md.generated.css"), "utf8"),
+    );
 
     const built = JSON.parse(readFileSync(path.join(dist, "catalog.json"), "utf8"));
     const source = JSON.parse(
@@ -311,6 +327,18 @@ describe("QA app build", () => {
     );
     expect(gated).toHaveLength(3);
     expect(gated.every((step: { knownGate: string }) => step.knownGate.trim().length > 0)).toBe(true);
+    expect(Object.keys(built.locales).sort()).toEqual(["en", "es", "pt"]);
+    for (const locale of Object.values(built.locales) as Array<{
+      ui: Record<string, string>;
+      journeys: Record<string, unknown>;
+    }>) {
+      expect(locale.ui.journey.trim()).not.toBe("");
+      expect(locale.ui.roleRequirements.trim()).not.toBe("");
+      expect(Object.keys(locale.journeys).sort()).toEqual([
+        "protocol-treasury-top-up",
+        "service-relay",
+      ]);
+    }
   });
 });
 

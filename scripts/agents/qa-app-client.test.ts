@@ -760,6 +760,91 @@ async function journeyModeHarness() {
       steps: [{ caseId: "ADM-002", phaseId: "fund", leadLaneId: "review" }],
     },
   ];
+  const localizedJourney = {
+    relay: {
+      label: "Relevo de servicios",
+      summary: "Dos personas siguen un relevo de servicios.",
+      lanes: {
+        review: { label: "Protocolo y revisión", role: "Responsable del protocolo" },
+        member: { label: "Garden y miembro", role: "Steward y miembro del Garden" },
+      },
+      phases: { prepare: "Preparar", deliver: "Entregar" },
+      steps: {
+        "PWA-001": {
+          handoff: "Espera a que la persona revisora continúe.",
+          knownGate: "La liquidación no está habilitada.",
+        },
+      },
+    },
+    treasury: {
+      label: "Recarga de tesorería",
+      summary: "Revisa una vía de financiación separada.",
+      lanes: {
+        review: { label: "Protocolo y revisión", role: "Responsable del protocolo" },
+        member: { label: "Garden y miembro", role: "Steward y miembro del Garden" },
+      },
+      phases: { fund: "Financiar" },
+      steps: {},
+    },
+  };
+  const locales = {
+    es: {
+      name: "Español",
+      ui: {
+        journey: "Recorrido",
+        part: "Parte",
+        allParts: "Todas las partes",
+        allSurfaces: "Todas las superficies",
+        act: "Actuar",
+        verify: "Verificar",
+        surface: "Superficie",
+        handoff: "Coordinación",
+        knownGate: "Condición conocida",
+        journeyRoles: "Roles del recorrido",
+        roleRequirements: "Responsabilidades del rol",
+        language: "Idioma del recorrido",
+        orderJourney: "Recorrido",
+      },
+      journeys: localizedJourney,
+    },
+    pt: {
+      name: "Português",
+      ui: {
+        journey: "Jornada",
+        part: "Parte",
+        allParts: "Todas as partes",
+        allSurfaces: "Todas as superfícies",
+        act: "Agir",
+        verify: "Verificar",
+        surface: "Superfície",
+        handoff: "Passagem",
+        knownGate: "Limitação conhecida",
+        journeyRoles: "Papéis da jornada",
+        roleRequirements: "Responsabilidades do papel",
+        language: "Idioma da jornada",
+        orderJourney: "Jornada",
+      },
+      journeys: {
+        ...localizedJourney,
+        relay: {
+          ...localizedJourney.relay,
+          label: "Revezamento de serviços",
+          summary: "Duas pessoas acompanham um revezamento de serviços.",
+          lanes: {
+            review: { label: "Protocolo e revisão", role: "Responsável pelo protocolo" },
+            member: { label: "Garden e membro", role: "Steward e membro do Garden" },
+          },
+          phases: { prepare: "Preparar", deliver: "Entregar" },
+          steps: {
+            "PWA-001": {
+              handoff: "Espere a pessoa revisora continuar.",
+              knownGate: "A liquidação não está habilitada.",
+            },
+          },
+        },
+      },
+    },
+  };
   const response = (body) => ({ ok: true, status: 200, json: async () => structuredClone(body) });
   const flush = async () => {
     await Promise.resolve();
@@ -790,6 +875,7 @@ async function journeyModeHarness() {
         surface: "all",
         scroll: 73,
       }));
+      window.localStorage.setItem("qa-locale", "es");
       window.scrollTo = (_x, y) => { restoredScroll = y; };
       window.setTimeout = () => 1;
       window.clearTimeout = () => {};
@@ -797,7 +883,7 @@ async function journeyModeHarness() {
       window.fetch = async (input, init = {}) => {
         const target = String(input);
         if (target === "catalog.json") {
-          return response({ tabs: ["PWA", "Admin Dashboard"], journeys, cases });
+          return response({ tabs: ["PWA", "Admin Dashboard"], journeys, locales, cases });
         }
         if (target !== "/api/state") throw new Error(`unexpected fetch ${target}`);
         if (init.method === "POST") {
@@ -819,10 +905,15 @@ async function journeyModeHarness() {
     const document = dom.window.document;
     assert.equal(restoredScroll, 73, jsdomError || "journey scroll was not restored");
     assert.equal(document.querySelector('[data-sort="journey"]')?.getAttribute("aria-pressed"), "true");
-    assert.equal(document.querySelector('[data-tab="all"]')?.textContent.startsWith("All surfaces"), true);
-    assert.equal(document.querySelector('label[for="qa-journey-select"]')?.textContent.includes("Journey"), true);
-    assert.equal(document.querySelector('label[for="qa-part-select"]')?.textContent.includes("Part"), true);
-    assert.equal(document.querySelector("#qa-part-select option")?.textContent, "All parts");
+    assert.equal(document.querySelector('[data-tab="all"]')?.textContent.startsWith("Todas las superficies"), true);
+    assert.equal(document.querySelector('label[for="qa-journey-select"]')?.textContent.includes("Recorrido"), true);
+    assert.equal(document.querySelector('label[for="qa-part-select"]')?.textContent.includes("Parte"), true);
+    assert.equal(document.querySelector("#qa-part-select option")?.textContent, "Todas las partes");
+    assert.equal(document.querySelector(".journey-row")?.getAttribute("lang"), "es");
+    assert.equal(document.querySelector("#qa-part-select")?.getAttribute("aria-describedby"), "qa-part-role");
+    assert.equal(document.querySelector("#qa-part-role")?.textContent.includes("Responsabilidades del rol"), true);
+    assert.equal(document.querySelector("#qa-part-role")?.textContent.includes("Responsable del protocolo"), true);
+    assert.equal(document.querySelector("#qa-part-role")?.textContent.includes("miembro del Garden"), true);
     assert.deepEqual(
       [...document.querySelectorAll(".rid b")].map((node) => node.textContent),
       ["ADM-001", "PWA-001", "ADM-002"],
@@ -830,9 +921,10 @@ async function journeyModeHarness() {
     );
     assert.deepEqual(
       [...document.querySelectorAll("h2.area")].map((node) => node.textContent),
-      ["Prepare · 1", "Deliver · 2"],
+      ["Preparar · 1", "Entregar · 2"],
     );
-    assert.equal(document.querySelector(".known-gate")?.textContent.includes("Settlement is not enabled"), true);
+    assert.equal(document.querySelector(".known-gate")?.textContent.includes("La liquidación no está habilitada"), true);
+    assert.equal(document.querySelector(".journey-handoff")?.textContent.includes("Espera a que la persona revisora"), true);
     assert.equal(posts.length, 0, "rendering a known gate must not write a Blocked verdict");
 
     const initialJourneySelect = document.querySelector("#qa-journey-select");
@@ -867,14 +959,25 @@ async function journeyModeHarness() {
     part.value = "review";
     part.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
     assert.equal(document.activeElement?.id, "qa-part-select");
+    assert.equal(document.querySelector("#qa-part-role")?.textContent.includes("Responsable del protocolo"), true);
+    assert.equal(document.querySelector("#qa-part-role")?.textContent.includes("miembro del Garden"), false);
     assert.deepEqual(
       [...document.querySelectorAll(".rid b")].map((node) => node.textContent),
       ["ADM-001", "PWA-001"],
     );
     const roleText = [...document.querySelectorAll(".journey-meta")].map((node) => node.textContent);
-    assert.equal(roleText[0].includes("ActProtocol & review"), true);
-    assert.equal(roleText[1].includes("VerifyProtocol & review"), true);
+    assert.equal(roleText[0].includes("ActuarProtocolo y revisión"), true);
+    assert.equal(roleText[1].includes("VerificarProtocolo y revisión"), true);
     assert.equal(JSON.parse(dom.window.sessionStorage.getItem("qa-view")).part, "review");
+
+    const locale = document.querySelector("#qa-locale-select");
+    locale.focus();
+    locale.value = "pt";
+    locale.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    assert.equal(document.activeElement?.id, "qa-locale-select");
+    assert.equal(document.querySelector(".journey-row")?.getAttribute("lang"), "pt");
+    assert.equal(document.querySelector('label[for="qa-journey-select"]')?.textContent.includes("Jornada"), true);
+    assert.equal(dom.window.localStorage.getItem("qa-locale"), "pt");
 
     const mobileRules = [...document.styleSheets[0].cssRules]
       .filter((rule) => rule.conditionText === "(max-width:720px)")

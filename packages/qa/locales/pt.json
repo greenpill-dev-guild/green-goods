@@ -1,0 +1,107 @@
+{
+  "locale": "pt",
+  "name": "Português",
+  "ui": {
+    "journey": "Jornada",
+    "part": "Parte",
+    "allParts": "Todas as partes",
+    "allSurfaces": "Todas as superfícies",
+    "act": "Agir",
+    "verify": "Verificar",
+    "surface": "Superfície",
+    "handoff": "Passagem",
+    "knownGate": "Limitação conhecida",
+    "journeyRoles": "Papéis da jornada",
+    "roleRequirements": "Responsabilidades do papel",
+    "language": "Idioma da jornada",
+    "orderJourney": "Jornada"
+  },
+  "journeys": {
+    "service-relay": {
+      "label": "Revezamento de serviços: Green Goods → Garden → membros",
+      "summary": "Duas pessoas acompanham uma Solicitação do pool da Green Goods durante a entrega pelo Garden e depois usam um compromisso separado do Garden para reconhecer o trabalho da pessoa integrante.",
+      "lanes": {
+        "protocol-review": {
+          "label": "Protocolo e revisão",
+          "role": "Responsável pelo protocolo e steward ou pessoa avaliadora independente do Garden de teste; nunca participa como contribuinte"
+        },
+        "garden-member": {
+          "label": "Garden e membro",
+          "role": "Steward e membro do Garden de teste; representa o Garden na solicitação, lidera a entrega e contribui"
+        }
+      },
+      "phases": {
+        "prepare": "Preparar",
+        "protocol-asks": "Solicitação do protocolo",
+        "garden-delivers": "O Garden entrega",
+        "garden-earns": "O Garden recebe",
+        "garden-distributes": "O Garden distribui",
+        "member-receives": "O membro recebe"
+      },
+      "steps": {
+        "ADM-037": {
+          "handoff": "Espere até que a pessoa integrante do Garden consiga ver a avaliação inicial."
+        },
+        "ADM-038": {
+          "handoff": "As duas pessoas confirmam que veem o mesmo Garden e o ciclo aberto; a avaliação oferece contexto, mas não é um pré-requisito."
+        },
+        "ADM-039": {
+          "handoff": "Espere até que a Solicitação apareça no pool do protocolo para a pessoa integrante do Garden."
+        },
+        "PWA-047": {
+          "handoff": "A pessoa revisora do protocolo espera a solicitação pendente do Garden antes de aceitá-la."
+        },
+        "ADM-040": {
+          "handoff": "As duas pessoas verificam que a Solicitação continua no pool do protocolo e indica o Garden como prestador."
+        },
+        "PWA-048": {
+          "handoff": "A pessoa revisora espera até que o Trabalho vinculado e as evidências estejam visíveis antes de decidir."
+        },
+        "ADM-042": {
+          "handoff": "As duas pessoas verificam que a Solicitação aprovada consta como Concluída antes de avançar para a compensação."
+        },
+        "ADM-043": {
+          "handoff": "A pessoa integrante do Garden verifica o Safe de destino do Garden ou seu estado de preparação.",
+          "knownGate": "A liquidação de G$ do protocolo para o Garden exige uma interface de liquidação habilitada e autorização para movimentar valor. Se uma delas não estiver disponível, registre Bloqueado e continue com as etapas que não movimentam valor."
+        },
+        "ADM-026": {
+          "handoff": "Espere até que o compromisso local separado apareça na Campanha aberta do Garden."
+        },
+        "PWA-050": {
+          "handoff": "A pessoa revisora espera o Trabalho local e as evidências antes de abrir a revisão."
+        },
+        "ADM-013": {
+          "handoff": "As duas pessoas verificam que o compromisso local está concluído e continua distinto da Solicitação do protocolo."
+        },
+        "ADM-044": {
+          "handoff": "A pessoa integrante do Garden verifica a conta de recebimento ou o estado de preparação visível.",
+          "knownGate": "A liquidação de G$ do Garden para a pessoa integrante exige uma interface de pagamento a contribuintes habilitada e autorização para movimentar valor. Se uma delas não estiver disponível, registre Bloqueado sem alterar o fluxo sem valor já concluído."
+        }
+      }
+    },
+    "protocol-treasury-top-up": {
+      "label": "Recarga da tesouraria do protocolo",
+      "summary": "Confira se o financiamento discricionário está pronto, coloque uma recarga ProtocolToGarden na fila quando houver autorização e verifique o saldo do Garden sem fazer referência a um compromisso.",
+      "lanes": {
+        "protocol-review": {
+          "label": "Protocolo e revisão",
+          "role": "Responsável pelo protocolo com autoridade para inspecionar e, quando aprovado, colocar o financiamento da tesouraria na fila"
+        },
+        "garden-member": {
+          "label": "Garden e membro",
+          "role": "Steward do Garden de teste que verifica o Garden de destino e seu saldo"
+        }
+      },
+      "phases": {
+        "check-readiness": "Conferir preparação",
+        "queue-top-up": "Colocar recarga na fila"
+      },
+      "steps": {
+        "ADM-045": {
+          "handoff": "O steward do Garden verifica o Garden de destino e o saldo; nenhum ID de compromisso está envolvido.",
+          "knownGate": "O financiamento da tesouraria do protocolo exige autorização explícita para movimentar valor e um caminho ProtocolToGarden ativo. Se não estiverem disponíveis, registre Bloqueado e não indique que os fundos foram movimentados."
+        }
+      }
+    }
+  }
+}

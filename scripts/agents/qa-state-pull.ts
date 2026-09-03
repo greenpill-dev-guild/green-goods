@@ -22,6 +22,7 @@ import {
   constants,
   existsSync,
   fsyncSync,
+  lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -82,8 +83,12 @@ function projectedPhysicalPath(candidate: string): string {
 /** Follow directory links before trusting the private-output boundary. */
 export function assertPrivateOutputPath(root: string, outDir: string): void {
   try {
+    const privateRoot = path.join(root, "tmp");
+    if (existsSync(privateRoot) && lstatSync(privateRoot).isSymbolicLink()) {
+      throw new Error(PRIVATE_OUTPUT_ERROR);
+    }
     const physicalRepoRoot = realpathSync(root);
-    const physicalPrivateRoot = projectedPhysicalPath(path.join(root, "tmp"));
+    const physicalPrivateRoot = projectedPhysicalPath(privateRoot);
     const physicalOutDir = projectedPhysicalPath(outDir);
     if (!isWithin(physicalRepoRoot, physicalPrivateRoot) || !isWithin(physicalPrivateRoot, physicalOutDir)) {
       throw new Error(PRIVATE_OUTPUT_ERROR);

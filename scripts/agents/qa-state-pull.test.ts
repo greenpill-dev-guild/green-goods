@@ -72,6 +72,23 @@ describe("qa:pull output boundary", () => {
     }
   });
 
+  it("refuses a symlinked top-level tmp directory even when it stays inside the repository", () => {
+    mkdirSync(path.join(repoRoot, "tmp"), { recursive: true });
+    const fixtureRoot = mkdtempSync(path.join(repoRoot, "tmp", "qa-pull-private-root-"));
+    const trackedDirectory = path.join(fixtureRoot, "docs");
+    const privateRoot = path.join(fixtureRoot, "tmp");
+    mkdirSync(trackedDirectory, { recursive: true });
+    symlinkSync(trackedDirectory, privateRoot);
+
+    try {
+      expect(() =>
+        assertPrivateOutputPath(fixtureRoot, path.join(privateRoot, "qa-session", "run")),
+      ).toThrow(/must resolve under.*tmp/i);
+    } finally {
+      rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
   it("replaces an artifact symlink without overwriting its target", () => {
     mkdirSync(path.join(repoRoot, "tmp"), { recursive: true });
     const fixtureRoot = mkdtempSync(path.join(repoRoot, "tmp", "qa-pull-atomic-"));

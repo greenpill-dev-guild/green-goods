@@ -1,0 +1,107 @@
+{
+  "locale": "en",
+  "name": "English",
+  "ui": {
+    "journey": "Journey",
+    "part": "Part",
+    "allParts": "All parts",
+    "allSurfaces": "All surfaces",
+    "act": "Act",
+    "verify": "Verify",
+    "surface": "Surface",
+    "handoff": "Handoff",
+    "knownGate": "Known gate",
+    "journeyRoles": "Journey roles",
+    "roleRequirements": "Role requirements",
+    "language": "Journey language",
+    "orderJourney": "Journey"
+  },
+  "journeys": {
+    "service-relay": {
+      "label": "Service relay: Green Goods → Garden → members",
+      "summary": "Two people follow a protocol Request from the Green Goods pool through Garden delivery, then use a separate Garden commitment to recognize the member's work.",
+      "lanes": {
+        "protocol-review": {
+          "label": "Protocol & review",
+          "role": "Protocol steward and independent steward or evaluator of the test Garden; never a contributor"
+        },
+        "garden-member": {
+          "label": "Garden & member",
+          "role": "Steward and member of the test Garden; institutional claimant, accountable lead, and contributor"
+        }
+      },
+      "phases": {
+        "prepare": "Prepare",
+        "protocol-asks": "Protocol asks",
+        "garden-delivers": "Garden delivers",
+        "garden-earns": "Garden earns",
+        "garden-distributes": "Garden distributes",
+        "member-receives": "Member receives"
+      },
+      "steps": {
+        "ADM-037": {
+          "handoff": "Wait until the Garden member can see the starting assessment."
+        },
+        "ADM-038": {
+          "handoff": "Both people confirm the same Garden and open cycle are visible; the assessment is context, not a prerequisite."
+        },
+        "ADM-039": {
+          "handoff": "Wait until the Request appears in the protocol pool for the Garden member."
+        },
+        "PWA-047": {
+          "handoff": "The protocol reviewer waits for the pending Garden claim before accepting it."
+        },
+        "ADM-040": {
+          "handoff": "Both people verify the Request remains in the protocol pool and names the Garden as provider."
+        },
+        "PWA-048": {
+          "handoff": "The reviewer waits until the linked Work and evidence are visible before deciding."
+        },
+        "ADM-042": {
+          "handoff": "Both people verify the approved Request is Fulfilled before moving to compensation."
+        },
+        "ADM-043": {
+          "handoff": "The Garden member verifies the destination Garden Safe or its readiness state.",
+          "knownGate": "Protocol-to-Garden G$ settlement requires enabled settlement UI and value authority. If either is unavailable, record Blocked and continue with the non-value steps."
+        },
+        "ADM-026": {
+          "handoff": "Wait until the separate local commitment appears in the open Garden Campaign."
+        },
+        "PWA-050": {
+          "handoff": "The reviewer waits for the local Work and evidence before opening review."
+        },
+        "ADM-013": {
+          "handoff": "Both people verify the local commitment is complete and remains distinct from the protocol Request."
+        },
+        "ADM-044": {
+          "handoff": "The Garden member verifies the receiving account or the visible readiness state.",
+          "knownGate": "Garden-to-member G$ settlement requires enabled contributor payout UI and value authority. If either is unavailable, record Blocked without changing the completed non-value workflow."
+        }
+      }
+    },
+    "protocol-treasury-top-up": {
+      "label": "Protocol treasury top-up",
+      "summary": "Check discretionary funding readiness, queue a ProtocolToGarden top-up when authorized, and verify the Garden balance without referencing a commitment.",
+      "lanes": {
+        "protocol-review": {
+          "label": "Protocol & review",
+          "role": "Protocol steward with authority to inspect and, when approved, queue treasury funding"
+        },
+        "garden-member": {
+          "label": "Garden & member",
+          "role": "Test-Garden steward who verifies the destination Garden and its balance"
+        }
+      },
+      "phases": {
+        "check-readiness": "Check readiness",
+        "queue-top-up": "Queue top-up"
+      },
+      "steps": {
+        "ADM-045": {
+          "handoff": "The Garden steward verifies the destination Garden and balance; no commitment ID is involved.",
+          "knownGate": "Protocol treasury funding requires explicit value authority and a live ProtocolToGarden funding path. If unavailable, record Blocked and do not imply that funds moved."
+        }
+      }
+    }
+  }
+}

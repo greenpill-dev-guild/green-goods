@@ -40,6 +40,7 @@
   apply(read(), false);
 })();
 </script>
+<link rel="stylesheet" href="design-md.generated.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
 <style>
   :root {
@@ -48,6 +49,7 @@
     --green:#1A7544; --green-wash:#E8F1EA; --red:#A8402F; --red-wash:#F7E6E1;
     --amber:#8F6516; --amber-wash:#F7EEDA; --line:#E2DBCC; --mono-bg:#F0EBDF;
     --on-green:#FFFFFF; --on-red:#FFFFFF; --on-amber:#FFFFFF;
+    --radius-md:var(--gg-radius-md); --radius-full:var(--gg-radius-full);
   }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
     --paper:#1B1914; --surface:#24211A; --linen:#2A261E; --ink:#EDE8DC; --soft:#A89F8E;
@@ -102,12 +104,13 @@
   .scen .why { display:block; font-size:11.5px; color:var(--soft); margin-top:1px; }
   .journey-meta { display:flex; flex-wrap:wrap; gap:4px; margin-top:5px; }
   .journey-chip { display:inline-flex; gap:4px; align-items:center; border:1px solid var(--line);
-    border-radius:999px; padding:2px 7px; color:var(--soft); background:var(--surface);
+    border-radius:var(--radius-full); padding:2px 7px; color:var(--soft); background:var(--surface);
     font-size:10.5px; line-height:1.35; }
   .journey-chip b { color:var(--ink); font-weight:700; }
   .journey-chip.surface { background:var(--linen); }
   .journey-handoff, .known-gate { margin:6px 0 0; border-left:3px solid var(--line);
-    padding:5px 8px; color:var(--soft); background:var(--linen); border-radius:0 7px 7px 0;
+    padding:5px 8px; color:var(--soft); background:var(--linen);
+    border-radius:0 var(--radius-md) var(--radius-md) 0;
     font-size:11.5px; }
   .journey-handoff b, .known-gate b { color:var(--ink); }
   .known-gate { border-left-color:var(--amber); background:var(--amber-wash); color:var(--ink); }
@@ -179,7 +182,7 @@
   .note textarea:focus-visible { outline:2px solid var(--green); outline-offset:2px; }
   .view-control { display:flex; align-items:center; gap:7px; }
   .view-control select, .journey-control select { min-height:32px; max-width:220px; border:1px solid var(--line);
-    border-radius:8px; background:var(--surface); color:var(--ink); padding:3px 26px 3px 9px;
+    border-radius:var(--radius-md); background:var(--surface); color:var(--ink); padding:3px 26px 3px 9px;
     font:inherit; font-size:12px; font-weight:600; cursor:pointer; }
   .view-control select:focus-visible, .journey-control select:focus-visible {
     outline:2px solid var(--green); outline-offset:2px; }
@@ -188,6 +191,10 @@
   .journey-control:first-child { flex:1 1 360px; }
   .journey-control:first-child select { max-width:440px; }
   .journey-summary { flex:1 0 100%; color:var(--soft); font-size:11.5px; }
+  .journey-role { flex:1 0 100%; display:grid; gap:4px; padding:8px 10px;
+    border-radius:var(--radius-md); background:var(--linen); color:var(--soft); font-size:11.5px; }
+  .journey-role-item { display:block; }
+  .journey-role-item b { color:var(--ink); margin-right:5px; }
   .grouplabel { font-size:11px; color:var(--soft); letter-spacing:0.04em;
     text-transform:uppercase; margin-right:2px; }
   .scoperow { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-left:auto; }
@@ -257,12 +264,14 @@
   const POLL_MS = 4000;
   const OVERVIEW = "overview";
   const OUTBOX_PREFIX = "qa-outbox:";
+  const LOCALE_KEY = "qa-locale";
   /** The single shared key this page used before it kept one queue per tester. */
   const LEGACY_OUTBOX_KEY = "qa-outbox";
 
   let CASES = [];
   let TABS = [];
   let JOURNEYS = [];
+  let LOCALES = Object.create(null);
   let TEAM = [];
   /** caseId -> person -> { s, n, at }. This browser is authoritative for `who`. */
   let entries = Object.create(null);
@@ -271,6 +280,7 @@
   let activeJourney = "";
   let activePart = "";
   let journeySurface = "all";
+  let locale = "en";
   let filter = "all";
   // "walk" keeps catalog order grouped by area; "priority" regroups the tab;
   // "journey" follows role-aware steps across surfaces and groups by phase.
@@ -312,6 +322,45 @@
     if (!source || typeof source !== "object") return result;
     for (const [key, value] of Object.entries(source)) result[key] = value;
     return result;
+  }
+  function preferredLocale() {
+    const supported = Object.keys(LOCALES);
+    if (!supported.length) return "en";
+    try {
+      const saved = localStorage.getItem(LOCALE_KEY);
+      if (saved && supported.includes(saved)) return saved;
+    } catch (e) {}
+    const requested = Array.isArray(navigator.languages) && navigator.languages.length
+      ? navigator.languages
+      : [navigator.language];
+    for (const candidate of requested) {
+      const base = String(candidate || "").toLowerCase().split("-")[0];
+      if (supported.includes(base)) return base;
+    }
+    return supported.includes("en") ? "en" : supported[0];
+  }
+  function uiText(key, fallback) {
+    return LOCALES[locale]?.ui?.[key] || LOCALES.en?.ui?.[key] || fallback;
+  }
+  function localizedJourney(source) {
+    if (!source) return null;
+    const translated = LOCALES[locale]?.journeys?.[source.id]
+      || LOCALES.en?.journeys?.[source.id];
+    if (!translated) return source;
+    return {
+      ...source,
+      label: translated.label || source.label,
+      summary: translated.summary || source.summary,
+      lanes: source.lanes.map((lane) => ({ ...lane, ...(translated.lanes?.[lane.id] || {}) })),
+      phases: source.phases.map((phase) => ({
+        ...phase,
+        label: translated.phases?.[phase.id] || phase.label,
+      })),
+      steps: source.steps.map((step) => ({
+        ...step,
+        ...(translated.steps?.[step.caseId] || {}),
+      })),
+    };
   }
   function entryRows(source) {
     const result = Object.create(null);
@@ -601,7 +650,7 @@
   }
 
   function journeyDefinition() {
-    return JOURNEYS.find((journey) => journey.id === activeJourney) || null;
+    return localizedJourney(JOURNEYS.find((journey) => journey.id === activeJourney) || null);
   }
 
   function journeyRows(surface = journeySurface, part = activePart) {
@@ -685,18 +734,18 @@
     const journey = journeyDefinition();
     if (!step || !journey) return "";
     const laneLabel = (laneId) => journey.lanes.find((lane) => lane.id === laneId)?.label || laneId;
-    const act = `<span class="journey-chip act"><b>Act</b>${esc(laneLabel(step.leadLaneId))}</span>`;
+    const act = `<span class="journey-chip act"><b>${esc(uiText("act", "Act"))}</b>${esc(laneLabel(step.leadLaneId))}</span>`;
     const verify = (step.verifyLaneIds || []).map((laneId) =>
-      `<span class="journey-chip verify"><b>Verify</b>${esc(laneLabel(laneId))}</span>`).join("");
+      `<span class="journey-chip verify"><b>${esc(uiText("verify", "Verify"))}</b>${esc(laneLabel(laneId))}</span>`).join("");
     const handoff = step.handoff
-      ? `<p class="journey-handoff"><b>Handoff</b> ${esc(step.handoff)}</p>`
+      ? `<p class="journey-handoff"><b>${esc(uiText("handoff", "Handoff"))}</b> ${esc(step.handoff)}</p>`
       : "";
     const gate = step.knownGate
-      ? `<aside class="known-gate" aria-label="Known gate"><b>Known gate</b> ${esc(step.knownGate)}</aside>`
+      ? `<aside class="known-gate" aria-label="${esc(uiText("knownGate", "Known gate"))}"><b>${esc(uiText("knownGate", "Known gate"))}</b> ${esc(step.knownGate)}</aside>`
       : "";
-    return `<div class="journey-meta" aria-label="Journey roles">
-        <span class="journey-chip surface"><b>Surface</b>${esc(testCase.tab)}</span>${act}${verify}
-      </div>${handoff}${gate}`;
+    return `<div class="journey-context" lang="${esc(locale)}"><div class="journey-meta" aria-label="${esc(uiText("journeyRoles", "Journey roles"))}">
+        <span class="journey-chip surface"><b>${esc(uiText("surface", "Surface"))}</b>${esc(testCase.tab)}</span>${act}${verify}
+      </div>${handoff}${gate}</div>`;
   }
 
   function renderOverviewRows(rows, showArea) {
@@ -766,8 +815,9 @@
     const selected = currentSurface();
     return choices.map((surface) => {
       const metrics = counts(surface);
-      const label = surface === "all" ? "All surfaces" : surface;
-      return `<button class="tab ${surface === selected ? "on" : ""}" data-tab="${esc(surface)}" aria-pressed="${surface === selected ? "true" : "false"}">${esc(label)}<small>${metrics.done}/${metrics.total}${metrics.fails ? " · " + metrics.fails + "F" : ""}</small></button>`;
+      const label = surface === "all" ? uiText("allSurfaces", "All surfaces") : surface;
+      const language = surface === "all" ? ` lang="${esc(locale)}"` : "";
+      return `<button class="tab ${surface === selected ? "on" : ""}" data-tab="${esc(surface)}" aria-pressed="${surface === selected ? "true" : "false"}"${language}>${esc(label)}<small>${metrics.done}/${metrics.total}${metrics.fails ? " · " + metrics.fails + "F" : ""}</small></button>`;
     }).join("");
   }
 
@@ -775,19 +825,38 @@
     if (sort !== "journey") return "";
     const journey = journeyDefinition();
     if (!journey) return "";
-    return `<div class="header-row journey-row">
-      <label class="journey-control" for="qa-journey-select"><span class="grouplabel">Journey</span>
+    const roleLanes = activePart
+      ? journey.lanes.filter((lane) => lane.id === activePart)
+      : journey.lanes;
+    const availableLocales = Object.entries(LOCALES);
+    const languageControl = availableLocales.length > 1
+      ? `<label class="journey-control" for="qa-locale-select"><span class="grouplabel">${esc(uiText("language", "Journey language"))}</span>
+          <select id="qa-locale-select" data-locale-select>
+            ${availableLocales.map(([code, copy]) => `<option value="${esc(code)}"${code === locale ? " selected" : ""}>${esc(copy.name || code)}</option>`).join("")}
+          </select>
+        </label>`
+      : "";
+    return `<div class="header-row journey-row" lang="${esc(locale)}">
+      <label class="journey-control" for="qa-journey-select"><span class="grouplabel">${esc(uiText("journey", "Journey"))}</span>
         <select id="qa-journey-select" data-journey-select>
-          ${JOURNEYS.map((candidate) => `<option value="${esc(candidate.id)}"${candidate.id === activeJourney ? " selected" : ""}>${esc(candidate.label)}</option>`).join("")}
+          ${JOURNEYS.map((candidate) => {
+            const translated = localizedJourney(candidate);
+            return `<option value="${esc(candidate.id)}"${candidate.id === activeJourney ? " selected" : ""}>${esc(translated.label)}</option>`;
+          }).join("")}
         </select>
       </label>
-      <label class="journey-control" for="qa-part-select"><span class="grouplabel">Part</span>
-        <select id="qa-part-select" data-part-select>
-          <option value=""${activePart === "" ? " selected" : ""}>All parts</option>
+      <label class="journey-control" for="qa-part-select"><span class="grouplabel">${esc(uiText("part", "Part"))}</span>
+        <select id="qa-part-select" data-part-select aria-describedby="qa-part-role">
+          <option value=""${activePart === "" ? " selected" : ""}>${esc(uiText("allParts", "All parts"))}</option>
           ${journey.lanes.map((lane) => `<option value="${esc(lane.id)}"${lane.id === activePart ? " selected" : ""}>${esc(lane.label)}</option>`).join("")}
         </select>
       </label>
+      ${languageControl}
       <div class="journey-summary">${esc(journey.summary)}</div>
+      <div class="journey-role" id="qa-part-role">
+        <span class="grouplabel">${esc(uiText("roleRequirements", "Role requirements"))}</span>
+        ${roleLanes.map((lane) => `<span class="journey-role-item"><b>${esc(lane.label)}:</b> ${esc(lane.role)}</span>`).join("")}
+      </div>
     </div>`;
   }
 
@@ -813,8 +882,8 @@
       <div class="header-row filter-row">
         <div class="filters" role="group" aria-label="case status">${[["all", "All"], ["issues", "Issues"], ["open", "Undecided"]].map(([k, l]) =>
           `<button class="filt ${filter === k ? "on" : ""}" data-f="${k}" aria-pressed="${filter === k ? "true" : "false"}">${l}</button>`).join("")}</div>
-        <div class="orderrow" role="group" aria-label="case order"><span class="grouplabel">order</span>${[["walk", "Walk"], ["priority", "Priority"], ...(JOURNEYS.length ? [["journey", "Journey"]] : [])].map(([k, l]) =>
-          `<button class="ord ${sort === k ? "on" : ""}" data-sort="${k}" aria-pressed="${sort === k ? "true" : "false"}">${l}</button>`).join("")}</div>
+        <div class="orderrow" role="group" aria-label="case order"><span class="grouplabel">order</span>${[["walk", "Walk"], ["priority", "Priority"], ...(JOURNEYS.length ? [["journey", uiText("orderJourney", "Journey")]] : [])].map(([k, l]) =>
+          `<button class="ord ${sort === k ? "on" : ""}" data-sort="${k}" aria-pressed="${sort === k ? "true" : "false"}"${k === "journey" ? ` lang="${esc(locale)}"` : ""}>${esc(l)}</button>`).join("")}</div>
         <div class="counts">${tally()}${who ? "" : ' · <b class="warn">recording unavailable</b>'}</div>
       </div>
     </header>`;
@@ -830,7 +899,7 @@
         const phaseRows = rows.filter((testCase) => testCase.journeyStep.phaseId === phase.id);
         if (!phaseRows.length) return "";
         const headingId = `phase-${String(phase.id).replace(/[^a-zA-Z0-9_-]/g, "-")}`;
-        return `<section><h2 class="area" id="${esc(headingId)}">${esc(phase.label)} · ${phaseRows.length}</h2>${scope === null ? renderOverviewRows(phaseRows, true) : renderPersonRows(phaseRows, true)}</section>`;
+        return `<section><h2 class="area" id="${esc(headingId)}" lang="${esc(locale)}">${esc(phase.label)} · ${phaseRows.length}</h2>${scope === null ? renderOverviewRows(phaseRows, true) : renderPersonRows(phaseRows, true)}</section>`;
       }).join("");
     } else if (sort === "priority") {
       const bands = [...new Set(["P0", "P1", "P2"].concat(rows.map((c) => c.pri)))];
@@ -889,6 +958,12 @@
     mount.querySelector("[data-part-select]")?.addEventListener("change", (event) => {
       activePart = event.target.value;
       saveView(); renderAndRestoreFocus("[data-part-select]");
+    });
+    mount.querySelector("[data-locale-select]")?.addEventListener("change", (event) => {
+      if (!hasOwn(LOCALES, event.target.value)) return;
+      locale = event.target.value;
+      try { localStorage.setItem(LOCALE_KEY, locale); } catch (e) {}
+      renderAndRestoreFocus("[data-locale-select]");
     });
     mount.querySelectorAll("[data-notes-toggle]").forEach((button) => button.addEventListener("click", () => {
       const panel = document.getElementById(button.dataset.notesToggle);
@@ -1319,6 +1394,8 @@
       CASES = catalog.cases || [];
       TABS = catalog.tabs || [...new Set(CASES.map((c) => c.tab))];
       JOURNEYS = Array.isArray(catalog.journeys) ? catalog.journeys : [];
+      LOCALES = dictionary(catalog.locales);
+      locale = preferredLocale();
 
       if (stateResponse.ok) {
         const data = await stateResponse.json();

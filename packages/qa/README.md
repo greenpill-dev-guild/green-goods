@@ -73,7 +73,8 @@ read the shared run and change only their own address-owned shard.
 | `auth.ts` | SIWE message, nonce, allowlist, cookie, and session verification |
 | `api/auth.ts` | `GET` issues a challenge, `POST` consumes it once and creates a session, `DELETE` signs out |
 | `api/state.ts` | Authenticated `GET` merges shards; authenticated `POST` merges the caller's delta |
-| `build.mjs` | Copies the page and projects the active catalog into `dist/catalog.json` |
+| `locales/{en,es,pt}.json` | Journey controls, roles, handoffs, and gates in each supported language |
+| `build.mjs` | Copies the page and Warm Earth radius tokens, then projects the active catalog and journey locales into `dist/catalog.json` |
 | `dev.mjs` | Loopback-only rehearsal server with a local identity bypass and state in `tmp/qa/` |
 
 Case **definitions** come from `scripts/data/qa-test-catalog.json` at build time, so a deployment is
@@ -82,6 +83,9 @@ active cases ship; retired rows stay in the catalog as an audit trail. Catalog v
 top-level `journeys`: ordered choreography over active Test IDs, with lanes, phases, Act/Verify
 roles, handoffs, and known gates. `case.kind: "journey"` remains the category of an individual
 case; top-level journeys describe how multiple cases are walked together.
+Journey copy lives in the three locale files beside the page. The build requires every locale to
+cover the same journeys, lanes, phases, handoffs, and gates, and requires English to match the
+canonical catalog so the two sources cannot quietly drift.
 
 ## Journey mode
 
@@ -89,10 +93,13 @@ case; top-level journeys describe how multiple cases are walked together.
 Admin and PWA in the order two people experience a workflow, grouping rows by phase instead of area
 or priority.
 
-- **Journey** chooses the shared flow. **Part** narrows to steps where that lane acts or verifies.
+- **Journey** chooses the shared flow. **Part** narrows to steps where that lane acts or verifies,
+  with the selected role requirements shown beside it.
 - **View** remains independent: it chooses whose recorded results are shown, not which role the
   current browser is playing.
 - Journey starts at **All surfaces** and can be narrowed to a participating surface.
+- Journey language follows the tester's saved choice, then their browser language, with English as
+  the fallback. The rest of the established checklist remains in English.
 - Journey, Part, surface, and scroll position live only in `sessionStorage`. Tester names and role
   assignments do not enter the public catalog or shared store.
 - A known gate is shown as context and never writes a verdict. The tester records Blocked only
@@ -118,7 +125,8 @@ node packages/qa/build.mjs && node packages/qa/dev.mjs
 Serves <http://127.0.0.1:4610> with state in gitignored `tmp/qa/`. It binds only to `127.0.0.1` and
 does not use a wallet or the production allowlist. Open `?as=Afo`, `?as=Nansel`, or `?as=Gui` to pin
 that browser to a local test identity. The bypass is implemented only by `dev.mjs`; it is not imported
-by either deployed function and `dist/` contains only the static page and catalog.
+by either deployed function and `dist/` contains only the static page, catalog, and generated
+radius-token stylesheet.
 
 Loopback is a network boundary, not user authentication. Other processes or users on the same
 machine can reach the rehearsal server. Keep only disposable local QA state there.
