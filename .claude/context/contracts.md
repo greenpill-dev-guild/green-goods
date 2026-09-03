@@ -433,5 +433,5 @@ Read these docs pages when you need deployment context or protocol details:
 
 - Deployment runbook: `packages/contracts/deployments/README.md`
 - System architecture and contract relationships: `docs/docs/builders/architecture.mdx`
-- Cross-protocol entity matrix: `docs/docs/builders/integrations/entity-matrix.mdx`
+- Cross-protocol entity matrix: `docs/docs/builders/architecture/entity-matrix.mdx`
 - EAS integration reference: `docs/docs/builders/integrations/eas.mdx`
