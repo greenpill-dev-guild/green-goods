@@ -1,0 +1,104 @@
+---
+title: Anatomy of a Work Submission
+sidebar_label: Anatomy of a Work Submission
+slug: /builders/architecture/anatomy
+audience: developer
+owner: docs
+last_verified: 2026-09-02
+feature_status: Live
+source_of_truth:
+  - packages/shared/src/hooks/client-ui/work/useWorkSubmissionFlowController.ts
+  - packages/shared/src/modules/job-queue
+  - packages/shared/src/modules/data/eas.ts
+  - packages/contracts/src/resolvers/Work.sol
+  - packages/contracts/src/resolvers/WorkApproval.sol
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/42161-latest.json
+keywords:
+  - work submission
+  - attestation
+  - lifecycle
+  - end to end
+---
+
+# Anatomy of a Work Submission
+
+The fastest way to understand Green Goods is to follow one piece of work all the way through:
+from a phone in a garden with no signal to a verifiable record a funder can check. Every package
+appears here in its real role, so by the end you'll know where any change you're planning would
+live.
+
+The trace below follows the real thing on Arbitrum One. The schema links open the live registry,
+and every stage names the code that owns it.
+
+## 1. Capture
+
+A gardener documents work in the [client PWA](../packages/client): media first, then details,
+then review. The flow controller behind those screens lives in
+`packages/shared/src/hooks/client-ui/work/useWorkSubmissionFlowController.ts`. Nothing here
+requires connectivity; photos, notes, and the chosen action all stay on the device.
+
+## 2. Queue
+
+Submission hands the work to the shared job queue
+(`packages/shared/src/modules/job-queue`), the bridge between the offline world and the chain. The
+queue persists the job locally, survives restarts, and replays when connectivity and
+authorization are both available. This is why a gardener in a dead zone loses nothing.
+
+## 3. Attest
+
+When the queue replays, the shared EAS module (`packages/shared/src/modules/data/eas.ts`) encodes
+the submission against the
+[Green Goods Work Submission schema](https://arbitrum.easscan.org/schema/view/0x43ebd37da5479df9d495a4c6514e7cb7f370e9f4166a0a58e14a3baf466078c4)
+and writes the attestation. The write succeeds only if
+[`Work.sol`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/contracts/src/resolvers/Work.sol)
+approves it: the resolver checks that the submitter wears a gardener [hat](../integrations/hats)
+for that garden. An unauthorized submission doesn't become a bad record; it never becomes a
+record at all.
+
+## 4. Land in the read paths
+
+Two read paths pick the work up, deliberately separate:
+
+- The **attestation itself** is read through the shared [EAS data layer](../integrations/eas);
+  attestations stay out of the Envio indexer on purpose, so the record's truth path is
+  independent of ours.
+- The **protocol events around it** (garden state, membership, module activity) flow through the
+  [indexer](../packages/indexer)'s GraphQL read models.
+
+## 5. Review
+
+A steward opens the [admin cockpit](../packages/admin)'s Garden workspace and sees the submission
+with its evidence. Review is a human judgment; the protocol's job was getting the evidence here
+intact.
+
+## 6. Approve
+
+The steward's decision becomes its own attestation against the
+[Work Approval schema](https://arbitrum.easscan.org/schema/view/0x6f44cac380791858e86c67c75de1f10b186fb6534c00f85b596709a3cd51f381),
+referencing the work it judges, with feedback and a confidence score.
+[`WorkApproval.sol`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/contracts/src/resolvers/WorkApproval.sol)
+enforces that only a steward hat for that garden can record it. Submission and judgment are two
+records, by two people, under two authorities; that separation is the protocol's honesty.
+
+## 7. Display
+
+Status flows back to the gardener through the
+[work-display-status lifecycle](./data-model#work-display-status): pending, approved, or rejected
+with feedback, plus the syncing states the queue adds on top. The UI rule from the
+[Architecture page](../architecture#where-data-lives) applies here: unconfirmed work is never
+shown as protocol truth.
+
+## 8. Onward
+
+Approved work is what everything downstream builds on: it feeds the garden's
+[assessments](/community/steward-guide/making-an-assessment), can be bundled into a
+[hypercert](../integrations/hypercerts), and justifies the flows moving through
+[vaults](../integrations/octant) and [jars](../integrations/cookie-jar). The community docs'
+[How It Works](/community/how-it-works) tells this same story in product language.
+
+## Next steps
+
+- [Data Model & Ontology](./data-model) for every entity and lifecycle this trace touched.
+- [EAS integration](../integrations/eas) for the resolver mechanics in depth.
+- [Getting Started](../getting-started) to run this whole loop locally on the Arbitrum fork.

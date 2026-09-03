@@ -1,5 +1,6 @@
 ---
 title: ENS
+sidebar_label: ENS
 slug: /builders/integrations/ens
 audience: developer
 owner: docs
@@ -9,12 +10,37 @@ source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - docs/src/data/integration-projections.json
   - packages/contracts/src/registries/ENS.sol
+keywords:
+  - ens
+  - names
+  - identity
 ---
 
 import {IntegrationProjection} from "@site/src/components/docs";
 
 # ENS
 
-ENS connects Garden identity to names across the configured registry, receiver, and application resolution paths.
+[ENS](https://ens.domains) gives gardens names. Instead of an address, a garden can carry a
+human-readable identity that resolves across the ecosystem, and the module wires the registry,
+the receiver, and the application resolution paths that make those names work.
+
+## Where it lives in the code
+
+| Layer | Source |
+|---|---|
+| Registry | `packages/contracts/src/registries/ENS.sol` |
+| Resolution hooks | `packages/shared/src/hooks/ens` |
+| Recorded components | The `greenGoodsENS` and `ensReceiver` fields in the [deployment record](../deployments/status) |
 
 <IntegrationProjection id="ens" />
+
+## Working with it locally
+
+The [full-stack path](../getting-started#path-b-run-the-full-local-stack) forks Arbitrum One, so
+recorded name state resolves locally; registering new names against mainnet ENS needs the real
+chain.
+
+## Canonical upstream docs
+
+- [ENS documentation](https://docs.ens.domains) for names, resolvers, and cross-chain resolution.
+- [ens.domains](https://ens.domains) for the app.

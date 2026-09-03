@@ -26,7 +26,7 @@
       "reads": "generated from all sections (do not edit; run bun run ontology:generate)"
     },
     {
-      "path": "docs/docs/builders/integrations/entity-matrix.mdx",
+      "path": "docs/docs/builders/architecture/entity-matrix.mdx",
       "reads": "generated from integration_matrix (do not edit; run bun run ontology:generate)"
     },
     {
@@ -4104,7 +4104,7 @@
     {
       "id": "erd-stale-assessment-fields",
       "statement": "The ERD's GardenAssessment shape lists only notes and mediaURIs, while the shipped assessment carries the full strategy kernel (domain, diagnosis, SMART outcomes, selected action UIDs, reporting period, assessmentConfigCID).",
-      "anchors": ["docs/docs/builders/architecture/erd.mdx"]
+      "anchors": ["docs/docs/builders/architecture/data-model.mdx"]
     },
     {
       "id": "missing-capital-mapping-fn",

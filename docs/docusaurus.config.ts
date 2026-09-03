@@ -77,6 +77,22 @@ const config: Config = {
       {
         redirects: [
           {from: ['/builders/quality/gh-actions'], to: '/builders/deployments/gh-actions'},
+          {
+            from: ['/builders/architecture/erd', '/builders/architecture/sequence-diagrams'],
+            to: '/builders/architecture/data-model',
+          },
+          {from: ['/builders/integrations/entity-matrix'], to: '/builders/architecture/entity-matrix'},
+          {from: ['/builders/integrations/overview'], to: '/builders/integrations'},
+          {
+            from: [
+              '/builders/journeys/onboarding',
+              '/builders/journeys/work-submission',
+              '/builders/journeys/evaluation',
+              '/builders/journeys/funding',
+            ],
+            to: '/builders/architecture/anatomy',
+          },
+          {from: ['/builders/journeys/persona-surfaces'], to: '/builders/reference/persona-surfaces'},
           {from: ['/builders/env-management'], to: '/builders/getting-started'},
           {
             from: [
@@ -157,7 +173,7 @@ const config: Config = {
               '/developer/auto-translation-flow',
               '/developer/translation-troubleshooting',
             ],
-            to: '/builders/integrations/overview',
+            to: '/builders/integrations',
           },
           {
             from: [
@@ -282,11 +298,11 @@ const config: Config = {
           // developers/ → builders/
           {from: ['/developers/getting-started'], to: '/builders/getting-started'},
           {from: ['/developers/architecture'], to: '/builders/architecture'},
-          {from: ['/developers/integrations'], to: '/builders/integrations/overview'},
+          {from: ['/developers/integrations'], to: '/builders/integrations'},
           {from: ['/developers/build-patterns', '/builders/build-patterns'], to: '/builders/getting-started'},
           {from: ['/developers/operations', '/builders/operations'], to: '/builders/getting-started'},
           {from: ['/developers/reference'], to: '/builders/getting-started'},
-          {from: ['/developers/reference/entity-matrix'], to: '/builders/integrations/overview'},
+          {from: ['/developers/reference/entity-matrix'], to: '/builders/architecture/entity-matrix'},
           {from: ['/developers/reference/api-index'], to: '/builders/packages/api-index'},
           {from: ['/developers/reference/docs-writing-guide'], to: '/builders/how-to-contribute'},
           {from: ['/developers/reference/deployment-indexer-status'], to: '/builders/deployments/status'},
@@ -608,7 +624,7 @@ const config: Config = {
           items: [
             { label: 'Getting Started', to: '/builders/getting-started' },
             { label: 'Architecture', to: '/builders/architecture' },
-            { label: 'Integrations', to: '/builders/integrations/overview' },
+            { label: 'Integrations', to: '/builders/integrations' },
             { label: 'How To Contribute', to: '/builders/how-to-contribute' },
           ],
         },

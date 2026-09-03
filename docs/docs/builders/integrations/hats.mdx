@@ -1,5 +1,6 @@
 ---
 title: Hats Protocol
+sidebar_label: Hats Protocol
 slug: /builders/integrations/hats
 audience: developer
 owner: docs
@@ -9,12 +10,51 @@ source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - docs/src/data/integration-projections.json
   - packages/contracts/src/modules/Hats.sol
+keywords:
+  - hats
+  - roles
+  - authorization
 ---
 
 import {IntegrationProjection} from "@site/src/components/docs";
 
 # Hats Protocol
 
-Hats provides the on-chain role hierarchy used to authorize Garden responsibilities.
+[Hats Protocol](https://docs.hatsprotocol.xyz) provides the on-chain role hierarchy that decides
+who may do what in a garden. Steward hats can approve work, gardener hats can submit it, and
+evaluator hats can attest assessments. Because hats are tokens, the
+[EAS resolvers](./eas) check them directly at write time, and because each garden's hats form a
+tree, its whole authority structure is inspectable at once.
+
+## Where it lives in the code
+
+| Layer | Source |
+|---|---|
+| Module | `packages/contracts/src/modules/Hats.sol` |
+| Role helpers | `packages/shared/src/utils/blockchain/garden-roles.ts` |
+| Persona mapping | The [ontology](../architecture/data-model), which binds each persona to its hat |
+
+## A gotcha worth knowing early
+
+Hats has no on-chain wearer enumeration, and revoking a hat is a transfer. Never build a guard on
+hat supply; when you need "who wears this hat", the answer comes from
+[the Hats subgraph](https://docs.hatsprotocol.xyz/for-developers/v1-sdk/subgraph), not a contract
+call.
 
 <IntegrationProjection id="hats" />
+
+## Working with it locally
+
+The [full-stack path](../getting-started#path-b-run-the-full-local-stack) forks Arbitrum One, so
+the Hats contract and every existing garden tree are available locally with no gas cost.
+
+## Canonical upstream docs
+
+- [Hats for developers](https://docs.hatsprotocol.xyz/for-developers/hats-protocol-for-developers)
+  for the concepts: hats, trees, wearers, eligibility.
+- [The Hats SDK](https://docs.hatsprotocol.xyz/for-developers/v1-sdk/core/getting-started), built
+  on viem like this repo.
+- [The subgraph](https://docs.hatsprotocol.xyz/for-developers/v1-sdk/subgraph) for wearer queries.
+- [Supported chains](https://docs.hatsprotocol.xyz/using-hats/hats-protocol-supported-chains) for
+  official addresses.
+- [app.hatsprotocol.xyz](https://app.hatsprotocol.xyz) to view a garden's tree.

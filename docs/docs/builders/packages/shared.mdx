@@ -1,31 +1,76 @@
 ---
-title: Shared Library
+title: Shared
 sidebar_label: Shared
 slug: /builders/packages/shared
 audience: developer
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-09-02
 feature_status: Live
 source_of_truth:
   - packages/shared/AGENTS.md
   - packages/shared/package.json
-  - packages/shared/src/MODULES.md
-  - packages/shared/.storybook/main.ts
+keywords:
+  - hooks
+  - providers
+  - storybook
+  - i18n
 ---
 
-# Shared Library
+# Shared
 
-Shared is the public application library for domain types, hooks, providers, stores, data modules,
-workflows, i18n, and reusable UI foundations.
+`@green-goods/shared` is the single home for everything the apps have in common: hooks,
+providers, stores, protocol data modules, domain types, translations, and the Storybook-backed UI
+foundations. If logic could ever serve two surfaces, it lives here first; the client, admin, and
+agent packages stay thin on purpose.
 
-## Boundary
+## Map
 
-- Public entrypoints are the exports in `packages/shared/package.json`.
-- Hooks are implemented here and consumed by client, admin, or agent through those exports.
-- Modules isolate protocol and provider behavior from presentation packages.
-- Storybook documents and tests shared UI foundations.
-- The ontology sidecar owns cross-package vocabulary and lifecycle semantics.
+| Directory | What lives there |
+|---|---|
+| `src/hooks/` | Domain hooks by area: auth, garden, work, assessment, vault, cookie-jar, hypercerts, conviction, and more |
+| `src/modules/data/` | Protocol data access: EAS, gardens, vaults, hypercerts, Karma, IPFS, GraphQL clients |
+| `src/modules/job-queue/` | The offline-first work queue |
+| `src/providers/` | App-level providers (auth, chain, query) |
+| `src/components/` | Shared UI primitives with Storybook coverage |
+| `src/i18n/` | `en.json`, `es.json`, `pt.json`; every user-facing string ships in all three |
+| `src/ontology/` | The domain ontology the docs and guards project from |
 
-Do not import `@green-goods/shared/src/**` from consumers. Read `packages/shared/AGENTS.md` and
-`src/MODULES.md` before adding a module or public export. Use the generated [API index](./api-index)
-for the current export inventory.
+## Run and test
+
+```bash
+cd packages/shared
+bun run test
+bun run typecheck
+```
+
+`bun run check:stories` proves story coverage when UI foundations change; `bun run coverage` is
+the fuller pass.
+
+## How it connects
+
+Everything downstream imports shared through its
+[declared package exports](./api-index), never `src/**` paths. That boundary is what lets a hook
+change ship with confidence: consumers see only the public surface. The flip side is fan-out, so
+when you change a hook signature, data shape, or exported utility, validate from the repo root
+rather than only inside this package.
+
+## Conventions that will bite you
+
+- All reusable hooks live here. A hook created in `client` or `admin` is a bug by convention.
+- **The Tailwind v4 trap**: utility classes written in shared JSX are invisible to the apps'
+  content scans, so a component looks perfect in Storybook and breaks in the running app. Use
+  inline styles or CSS custom properties for layout in shared components, or apply the class in
+  the consumer's JSX.
+- Query keys come from the central `queryKeys`; ad-hoc query arrays break invalidation.
+- Application defaults use `useCurrentChain()` or `DEFAULT_CHAIN_ID`, never wallet chain state.
+- Prefer event-driven invalidation over polling.
+- New user-facing strings land in all three locale files in the same change, or the i18n gate
+  fails.
+
+## Go deeper
+
+- [`packages/shared/AGENTS.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/shared/AGENTS.md)
+  is the full package contract.
+- The live Storybook at [design.greengoods.app](https://design.greengoods.app) is the source of
+  truth for shared UI foundations.
+- [API Index](./api-index) lists every declared export.

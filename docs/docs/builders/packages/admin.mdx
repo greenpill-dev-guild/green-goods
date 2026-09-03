@@ -1,36 +1,68 @@
 ---
-title: Admin Dashboard
+title: Admin
 sidebar_label: Admin
 slug: /builders/packages/admin
 audience: developer
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-09-02
 feature_status: Live
 source_of_truth:
-  - AGENTS.md
   - packages/admin/AGENTS.md
-  - packages/admin/DESIGN.md
-  - packages/admin/src/App.tsx
-  - packages/admin/src/router.tsx
-  - packages/admin/src/index.css
-  - packages/admin/src/styles/admin-m3-tokens.css
-  - packages/admin/src/styles/admin-m3-components.css
-  - packages/shared/.storybook/main.ts
+  - packages/admin/package.json
+keywords:
+  - cockpit
+  - steward
+  - canvas
 ---
 
-# Admin Dashboard
+# Admin
 
-Admin is the steward cockpit for Garden configuration, Work review, assessments, roles, vaults,
-and operational actions.
+`packages/admin` is the steward cockpit at [admin.greengoods.app](https://admin.greengoods.app):
+where stewards review submitted work, manage gardens and actions, and run their community's
+operations. It's an operator surface by design, so it favors utility copy, one dominant workspace
+per route, and restrained color over marketing polish.
 
-## Boundary
+## The shell
 
-- `packages/admin/src/router.tsx` and route views own navigation and composition.
-- Shared hooks and modules own reusable state, data access, and protocol mutations.
-- Admin wrappers and its DesignMD authority own the restrained cockpit presentation.
-- `CanvasLayout` and the `/hub` family are the current shell reference; legacy dashboard shell
-  components are migration references only.
+The canonical shell is `CanvasLayout`: an admin-owned top `AppBar` (garden chip, search, account
+actions), the `.workspace-canvas`, a `MainSheet`, and a bottom `NavigationBar` with exactly four
+items: Hub, Garden, Community, Actions. Every workspace overlay is a centered `AdminDialog`;
+profile, settings, and notifications render in a right-docked `AdminSideSheet` (bottom sheet on
+mobile). The `/hub` route is the reference surface for new page composition.
 
-Read `packages/admin/AGENTS.md` before editing. Use `packages/admin/README.md` for local operation
-and deployment, the generated [persona surfaces](../journeys/persona-surfaces) for routes, and the
-[API index](./api-index) for shared entrypoints.
+## Run and test
+
+```bash
+cd packages/admin
+bun run test
+bun run build
+```
+
+`bun run test:coverage` is the fuller pass. Visible UI changes also want rendered proof; the
+package guide describes the authenticated browser QA path.
+
+## How it connects
+
+The admin reads through the same [indexer](./indexer) read models and shared
+[EAS data layer](../integrations/eas) as the client, and writes approvals through the
+[contracts](./contracts). Its building blocks come from [shared](./shared); the admin package owns
+the forked cockpit shell and the `Admin*` wrapper components.
+
+## Conventions that will bite you
+
+- Use the admin wrapper inventory (`components/Admin*.tsx`) and the surface classes
+  (`.surface-section`, `.surface-card`, `.workspace-canvas`) before composing raw
+  border-and-shadow layouts.
+- `NavigationBar` is pure navigation. No leading or trailing slots, no extra items.
+- The client PWA's `AppBar` pattern doesn't belong here; admin has its own.
+- `DashboardLayout`, `Sidebar`, and `Header` are legacy migration code, not templates for new
+  work.
+- Cards mark discrete records or action targets, not decoration; avoid nested bordered-panel
+  mosaics, hero sections, and promo banners.
+
+## Go deeper
+
+- [`packages/admin/AGENTS.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/admin/AGENTS.md)
+  and `packages/admin/DESIGN.md` own the UI contract in full.
+- The live Storybook at [design.greengoods.app](https://design.greengoods.app) shows the shared
+  primitives the cockpit composes.

@@ -1,5 +1,6 @@
 ---
 title: Karma GAP
+sidebar_label: Karma GAP
 slug: /builders/integrations/karma
 audience: developer
 owner: docs
@@ -9,12 +10,36 @@ source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - docs/src/data/integration-projections.json
   - packages/contracts/src/modules/Karma.sol
+keywords:
+  - karma gap
+  - milestones
+  - reporting
 ---
 
 import {IntegrationProjection} from "@site/src/components/docs";
 
 # Karma GAP
 
-Karma GAP connects Garden activity with project reporting and milestone records.
+[Karma GAP](https://gap.karmahq.xyz) (the Grantee Accountability Protocol) connects garden
+activity to project reporting and milestone records. When the module is active, a garden's
+assessment mirrors to a GAP milestone, so grant programs that already track accountability
+through GAP see Green Goods work in the format they trust.
+
+## Where it lives in the code
+
+| Layer | Source |
+|---|---|
+| Module | `packages/contracts/src/modules/Karma.sol` |
+| Data access | `packages/shared/src/modules/data/karma.ts` |
 
 <IntegrationProjection id="karma" />
+
+## Working with it locally
+
+The [full-stack path](../getting-started#path-b-run-the-full-local-stack) forks Arbitrum One with
+the module state present; mirroring to the live GAP registry needs the real chain.
+
+## Canonical upstream docs
+
+- [Karma GAP documentation](https://docs.gap.karmahq.xyz) for projects, grants, and milestones.
+- [gap.karmahq.xyz](https://gap.karmahq.xyz) to browse live records.

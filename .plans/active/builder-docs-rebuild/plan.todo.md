@@ -22,19 +22,19 @@
 | Requirement (decision) | Phase | Status |
 |------------------------|-------|--------|
 | D1 consolidated Testing Guide | 4 | ⏳ |
-| D2 journeys deleted + redirects | 3 | ⏳ |
+| D2 journeys deleted + redirects | 3 | ✅ |
 | D3 Economics Explorer → Reference | 4 | ⏳ |
-| D4 hybrid integration pages | 1 (mechanism) + 3 (prose) | ✅ mechanism 26e2f6cf3; prose pending |
+| D4 hybrid integration pages | 1 (mechanism) + 3 (prose) | ✅ |
 | D5 llms.txt + .md twins | 5 | ⏳ |
-| D7 real category landings | 1 (CSS fallback) + 3 (pages) | ✅ fallback ade03f693; pages pending |
+| D7 real category landings | 1 (CSS fallback) + 3 (pages) | ✅ Packages + Integrations landings live; remaining categories Phase 4 |
 | D8 Skills catalog + Working with Agents | 1 (generator) + 4 (prose/READMEs) | ✅ generator 26e2f6cf3; prose pending |
 | D9 Design page under Architecture | 4 | ⏳ |
 | D10 License page in Reference | 4 | ⏳ |
 | D11 CI & GH Actions under Testing & QA | 4 | ⏳ |
-| D12 Anatomy of a Work Submission (tentative) | 3 | ⏳ |
+| D12 Anatomy of a Work Submission (tentative) | 3 | ✅ built; Afo judgment pending |
 | ERD layered + zoomable | 1 | ✅ 26e2f6cf3 + ade03f693 |
 | Spine rewrites (Getting Started, First Contribution, System Overview) | 2 | ✅ 6b7d408c4 (tone gate open) |
-| Package template ×7 incl. new QA page | 3 | ⏳ |
+| Package template ×7 incl. new QA page | 3 | ✅ |
 | Link audit: every page has next steps + external links | 5 | ⏳ |
 | CONTRIBUTING.md circularity fix | 5 | ⏳ |
 
@@ -109,3 +109,13 @@ CONTRIBUTING.md one-way pointer · final `docs:audit` green · redirect map veri
 ## Validation
 - [ ] Phase 1: docs generator tests pass · docs:generate idempotent · docs:audit:ci green · build:docs green
 - [ ] Fresh Evidence Receipt recorded in `handoffs/claude-state-api.md` before lane marked passed
+
+## Implementation Notes
+
+- Phase 3 divergences: the entity matrix relocated to its own generated page under Architecture
+  instead of being absorbed into Data Model (a 3,600-word merge helped no reader); all five
+  lifecycle state machines live on Data Model, and Anatomy links the work-display-status anchor
+  rather than embedding the diagram.
+- Deferred (Afo, 2026-09-02): revisit the Architecture landing for stronger protocol capture once
+  Phases 3-4 surround it; reassess what it should still say that Anatomy and Data Model now cover.
+- Tone rule 6 (no em dashes) applied to all Phase 3 prose.

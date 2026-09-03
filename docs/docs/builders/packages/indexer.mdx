@@ -1,31 +1,72 @@
 ---
-title: Indexer Package
+title: Indexer
 sidebar_label: Indexer
 slug: /builders/packages/indexer
 audience: developer
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-09-02
 feature_status: Live
 source_of_truth:
   - packages/indexer/AGENTS.md
   - packages/indexer/package.json
-  - packages/indexer/config.yaml
-  - packages/indexer/src/EventHandlers.ts
+keywords:
+  - envio
+  - graphql
+  - read models
 ---
 
-# Indexer Package
+# Indexer
 
-The Envio indexer turns configured contract events into queryable read models. It does not own
-EAS-only records or protocol truth.
+`packages/indexer` runs the [Envio](https://envio.dev) pipeline that turns contract events into
+the GraphQL read models every surface queries. It exists so apps never crawl the chain: gardens,
+memberships, vaults, and module state arrive as queryable entities instead of raw logs.
 
-## Boundary
+One boundary defines this package: **it indexes protocol events, not EAS attestations**. Work,
+approval, and assessment records are read through shared's [EAS data layer](../integrations/eas);
+keeping attestations out of Envio keeps the two truth paths independently verifiable.
 
-- `config.yaml` owns indexed contracts, events, networks, and start points.
-- `schema.graphql` owns the read-model shape.
-- `src/EventHandlers.ts` owns deterministic event-to-entity projection.
-- Contract artifacts and ABIs must match the configured deployment context.
-- Work and other attestation-only records are read through EAS unless explicitly indexed.
+## Map
 
-Read `packages/indexer/AGENTS.md` and `packages/indexer/README.md` before editing or operating the
-service. An indexed entity may lag chain state; consumers must handle unavailable and partial data
-without inventing a default.
+| Path | What lives there |
+|---|---|
+| `schema.graphql` | The entity shapes consumers query |
+| `config.yaml` | Which contracts and events are indexed, per chain |
+| `src/EventHandlers.ts` and `src/handlers/` | Event-to-entity projection logic |
+| `.envio/` | Generated types; regenerate rather than edit |
+
+## Run and test
+
+```bash
+cd packages/indexer
+bun run check:indexing-boundary
+bun run test
+bun run build
+```
+
+After any change to `schema.graphql`, `config.yaml`, or generated types, run `bun run codegen`
+first; skipping it makes failures show up late. Local development uses the Docker-based scripts
+from the repo's [full-stack path](../getting-started#path-b-run-the-full-local-stack).
+
+## How it connects
+
+Contract events in, GraphQL out. The [client](./client), [admin](./admin), and [agent](./agent)
+read these models through shared's data layer, and the hosted Envio service serves production.
+Merging an indexer change does not deploy it; the hosted deployment is a separate, deliberate
+step.
+
+## Conventions that will bite you
+
+- Every persisted entity carries a `chainId`, and IDs are composite with the chain to prevent
+  cross-chain collisions. One documented exception: `Garden.id` stays the bare garden account
+  address for GraphQL compatibility; don't convert it.
+- When a relationship changes, update both sides of it.
+- `envio dev` preserves the local database. `bun run dev:restart` is a destructive local replay;
+  use it only when that's explicitly intended.
+- Envio v3 registrations use `indexer.onEvent` and `indexer.contractRegister`; the v2 patterns
+  (generated imports, `MockDb`) are gone and must not come back.
+
+## Go deeper
+
+- [`packages/indexer/AGENTS.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/indexer/AGENTS.md)
+  is the full package contract.
+- [Envio's documentation](https://docs.envio.dev) covers the indexing framework itself.

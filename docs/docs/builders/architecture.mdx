@@ -56,9 +56,11 @@ models, which is where every surface reads from: the client showing the gardener
 [agent](./packages/agent) serving bots and the public API. An approval travels the same road as
 the work it approves.
 
-Two consequences of this shape are worth internalizing early. Apps never read the chain directly;
-if a surface shows protocol data, it came through the indexer. And writes have exactly one door;
-everything that becomes protocol truth goes through the contracts.
+Two consequences of this shape are worth internalizing early. Apps never crawl the chain: garden
+and module state arrives through the indexer's read models, and attestation records arrive through
+the shared EAS data layer, which deliberately stays outside the indexer so the two truth paths
+verify independently. And writes have exactly one door; everything that becomes protocol truth
+goes through the contracts.
 
 ## Three ideas carry the protocol
 
@@ -80,7 +82,7 @@ ones. Each schema is bound to a resolver contract that validates authorization a
 Work Approval signed by someone without steward authority simply cannot be recorded. That single
 move relocates trust: you don't have to believe an app's database that a steward approved
 something, because the record could not exist otherwise. The
-[entity relationship diagrams](./architecture/erd) show how these records relate.
+[data model](./architecture/data-model) shows how these records relate.
 
 ### Authority is a hat
 
@@ -145,6 +147,6 @@ Five tests guide the tradeoffs, in the spirit of the Ethereum ecosystem Green Go
 
 ## Next steps
 
-- [Entity Relationships](./architecture/erd) maps the data model, layer by layer.
-- [EAS integration](./integrations/eas) goes deeper on the attestation and resolver mechanics.
+- [Anatomy of a Work Submission](./architecture/anatomy) follows one real record through every stage.
+- [Data Model & Ontology](./architecture/data-model) maps the entities and lifecycles, layer by layer.
 - [Deployment Status](./deployments/status) shows what's actually deployed where.

@@ -1,5 +1,6 @@
 ---
 title: Octant
+sidebar_label: Octant
 slug: /builders/integrations/octant
 audience: developer
 owner: docs
@@ -9,12 +10,42 @@ source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - docs/src/data/integration-projections.json
   - packages/contracts/src/modules/Octant.sol
+keywords:
+  - octant
+  - vaults
+  - yield donation
 ---
 
 import {IntegrationProjection} from "@site/src/components/docs";
 
 # Octant
 
-Octant provides Garden vault creation, deposits, withdrawals, and yield-donation mechanics.
+[Octant](https://docs.octant.app) provides the vault mechanics that let a garden hold an
+endowment: funders deposit into a garden vault, the principal stays theirs to withdraw, and the
+yield flows to the garden's work. The Octant module owns vault creation, deposits, withdrawals,
+and that yield-donation routing.
+
+## Where it lives in the code
+
+| Layer | Source |
+|---|---|
+| Module | `packages/contracts/src/modules/Octant.sol` |
+| Vault data access | `packages/shared/src/modules/data/vaults.ts` and `vault-repository.ts` |
+| Yield routing | `packages/shared/src/modules/data/yield-allocations.ts` |
+
+The funder-facing behavior lives in the community docs'
+[funder guide](/community/funder-guide); these sources are the machinery under it.
 
 <IntegrationProjection id="octant" />
+
+## Working with it locally
+
+The [full-stack path](../getting-started#path-b-run-the-full-local-stack) forks Arbitrum One with
+the deployed vault contracts present, so deposit and withdrawal flows run locally without real
+funds.
+
+## Canonical upstream docs
+
+- [Octant documentation](https://docs.octant.app) for the platform and its vault model.
+- [Octant's developer section](https://docs.octant.app/docs/developers/introduction/) for the
+  contract-level reference.

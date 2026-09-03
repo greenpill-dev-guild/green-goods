@@ -1,7 +1,7 @@
 {
   "$generated": "GENERATED FILE: do not edit. Run `bun run docs:generate` or `bun run docs:generate -- --scope integration`.",
   "generator": "scripts/docs/generate.mjs",
-  "digest": "sha256:033dd4a7959a2d4e831cad0a2ac14b8f82ee76b6903becd567b3418fd74c995d",
+  "digest": "sha256:07a1efc88c78f75685e8a592f48e18cc4cfbd4f4cc1a319306d6aa9b760300c4",
   "integrations": {
     "cookie-jar": {
       "display": "Cookie Jar",

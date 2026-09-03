@@ -245,7 +245,7 @@ test("every projection source is routed to the Docs workflow", () => {
 
 test("persona surfaces consume the PWA and admin canvas route authorities", () => {
   const projection = createProjections(REPO_ROOT).find(
-    (item) => item.output === "docs/docs/builders/journeys/persona-surfaces.mdx",
+    (item) => item.output === "docs/docs/builders/reference/persona-surfaces.mdx",
   );
   assert.ok(projection);
   const rendered = renderProjection(REPO_ROOT, projection);
@@ -253,26 +253,30 @@ test("persona surfaces consume the PWA and admin canvas route authorities", () =
   assert.match(rendered, /Admin canvas route segments[^\n]*`hub`/);
 });
 
-test("erd projects layered diagrams that keep every entity and relationship", () => {
+test("data model projects layered diagrams, every relationship, and all lifecycles", () => {
   const projection = createProjections(REPO_ROOT).find(
-    (item) => item.output === "docs/docs/builders/architecture/erd.mdx",
+    (item) => item.output === "docs/docs/builders/architecture/data-model.mdx",
   );
   assert.ok(projection);
   const rendered = renderProjection(REPO_ROOT, projection);
   const blocks = [...rendered.matchAll(/```mermaid\n([\s\S]*?)```/g)].map((match) => match[1]);
-  assert.equal(blocks.length, 3);
   const ontology = readJson(REPO_ROOT, "packages/shared/src/ontology/green-goods-ontology.json");
+  const flowcharts = blocks.filter((block) => block.startsWith("flowchart"));
+  const machines = blocks.filter((block) => block.startsWith("stateDiagram-v2"));
+  assert.equal(flowcharts.length, 3);
+  assert.equal(machines.length, ontology.state_machines.length);
+  assert.match(rendered, /## Lifecycles/);
   const memberCount = (blocks.join("\n").match(/\]:::member/g) ?? []).length;
   assert.equal(memberCount, ontology.entities.length);
   const expectedEdges = ontology.entities.reduce(
     (sum, entity) => sum + (entity.relationships ?? []).length,
     0,
   );
-  const renderedEdges = blocks.join("\n").split("\n").filter((line) => line.includes("-->")).length;
+  const renderedEdges = flowcharts.join("\n").split("\n").filter((line) => line.includes("-->")).length;
   assert.equal(renderedEdges, expectedEdges);
-  assert.match(blocks[0], /garden\[[^\]]*\]:::member/);
-  assert.doesNotMatch(blocks[0], /commitment_pool\[[^\]]*\]:::member/);
-  assert.match(blocks[2], /commitment_pool\[[^\]]*\]:::member/);
+  assert.match(flowcharts[0], /garden\[[^\]]*\]:::member/);
+  assert.doesNotMatch(flowcharts[0], /commitment_pool\[[^\]]*\]:::member/);
+  assert.match(flowcharts[2], /commitment_pool\[[^\]]*\]:::member/);
 });
 
 test("skills catalog prefers a skill README and falls back to the SKILL.md description", () => {

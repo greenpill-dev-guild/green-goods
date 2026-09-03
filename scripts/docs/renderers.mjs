@@ -82,7 +82,7 @@ export function renderPersonaSurfaces({ root, sources, digest }) {
   const adminShellRoutes = routeLiterals(root, declaredSource(sources, "packages/admin/src/router.tsx"));
   const adminCanvasRoutes = routeLiterals(root, declaredSource(sources, "packages/admin/src/routes/views.tsx"));
   let body = pageHeader(
-    { title: "Persona Surfaces Matrix", slug: "/builders/journeys/persona-surfaces", sources, digest },
+    { title: "Persona Surfaces Matrix", slug: "/builders/reference/persona-surfaces", sources, digest },
     "Persona Surfaces Matrix",
     "The ontology owns persona meaning. Route definitions own navigable paths. Paths below are literals as declared and may be nested under a parent route."
   );
@@ -187,7 +187,7 @@ const ERD_GROUPS = [
   },
 ];
 
-export function renderErd({ root, sources, digest }) {
+export function renderDataModel({ root, sources, digest }) {
   const ontology = readJson(root, declaredSource(sources, "packages/shared/src/ontology/green-goods-ontology.json"));
   const byId = new Map(ontology.entities.map((entity) => [entity.id, entity]));
   const groupOf = new Map();
@@ -196,14 +196,14 @@ export function renderErd({ root, sources, digest }) {
   const unknown = [...groupOf.keys()].filter((id) => !byId.has(id));
   if (unassigned.length || unknown.length) {
     throw new Error(
-      `ERD grouping is out of date. Unassigned entities: ${unassigned.join(", ") || "none"}. Unknown group members: ${unknown.join(", ") || "none"}.`
+      `Data model grouping is out of date. Unassigned entities: ${unassigned.join(", ") || "none"}. Unknown group members: ${unknown.join(", ") || "none"}.`
     );
   }
   const node = (id) => id.replaceAll("-", "_");
   let body = pageHeader(
-    { title: "Entity Relationship Diagram", slug: "/builders/architecture/erd", sources, digest },
-    "Entity Relationship Diagram",
-    "These diagrams project the ontology's declared entity relationships in three layers so each one stays readable. Solid nodes belong to the layer; dashed nodes are context from another layer. Use a diagram's Expand control to open it full screen and zoom. They explain semantic relationships, not database foreign keys."
+    { title: "Data Model & Ontology", slug: "/builders/architecture/data-model", sources, digest },
+    "Data Model & Ontology",
+    "This page projects the ontology: entity relationships in three layers, then the lifecycle state machines that govern how records change. Solid nodes belong to a layer; dashed nodes are context from another layer. Use a diagram's Expand control to open it full screen and zoom. Relationships here are semantic, not database foreign keys."
   );
   for (const group of ERD_GROUPS) {
     const members = new Set(group.members);
@@ -229,6 +229,14 @@ export function renderErd({ root, sources, digest }) {
       body += `| ${esc(entity.display)} | ${esc(entity.definition)} | ${entity.surfaces.map(esc).join(", ")} |\n`;
     }
     body += "\n";
+  }
+  body += "## Lifecycles\n\nThese state machines project lifecycle transitions from the ontology. Mechanism labels point back to the code or configuration that enforces each transition.\n\n";
+  for (const machine of ontology.state_machines) {
+    body += `### ${machine.id} {#${machine.id}}\n\n${machine.note ? `${machine.note}\n\n` : ""}\`\`\`mermaid\nstateDiagram-v2\n`;
+    for (const transition of machine.transitions) {
+      for (const from of transition.from) for (const to of transition.to) body += `  ${from.replaceAll("-", "_")} --> ${to.replaceAll("-", "_")}: ${transition.mechanism.replaceAll("\n", " ").replaceAll(":", "-")}\n`;
+    }
+    body += "```\n\n";
   }
   return body;
 }
@@ -365,23 +373,6 @@ export function renderTaskRouting({ root, sources, digest }) {
   }
   body += "```\n";
   body += "\nA routed skill must not absorb neighboring work. When the requested outcome changes, follow the task's handoff instead of expanding the active workflow.\n";
-  return body;
-}
-
-export function renderSequenceDiagrams({ root, sources, digest }) {
-  const ontology = readJson(root, declaredSource(sources, "packages/shared/src/ontology/green-goods-ontology.json"));
-  let body = pageHeader(
-    { title: "Sequence and State Diagrams", slug: "/builders/architecture/sequence-diagrams", sources, digest },
-    "Sequence and State Diagrams",
-    "These state diagrams project lifecycle transitions from the ontology. Mechanism labels point readers back to the code or configuration that enforces each transition."
-  );
-  for (const machine of ontology.state_machines) {
-    body += `## ${machine.id}\n\n${machine.note ? `${machine.note}\n\n` : ""}\`\`\`mermaid\nstateDiagram-v2\n`;
-    for (const transition of machine.transitions) {
-      for (const from of transition.from) for (const to of transition.to) body += `  ${from.replaceAll("-", "_")} --> ${to.replaceAll("-", "_")}: ${transition.mechanism.replaceAll("\n", " ").replaceAll(":", "-")}\n`;
-    }
-    body += "```\n\n";
-  }
   return body;
 }
 

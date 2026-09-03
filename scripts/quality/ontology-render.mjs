@@ -416,7 +416,7 @@ export function renderEntityMatrixMdx(
   lines.push(
     generatedFrontmatter({
       title: "Entity Matrix",
-      slug: "/builders/integrations/entity-matrix",
+      slug: "/builders/architecture/entity-matrix",
       featureStatus: "Planned",
       sources,
       digest,
@@ -522,9 +522,9 @@ export function renderEntityMatrixMdx(
   lines.push('  title="Next best action"');
   lines.push('  why="See the full integrations overview with surface-level status for each protocol connection."');
   lines.push('  actionLabel="Integrations overview"');
-  lines.push('  actionHref="./overview"');
+  lines.push('  actionHref="/builders/integrations"');
   lines.push("  alternatives={[");
-  lines.push('    {label: "EAS integration", href: "./eas"},');
+  lines.push('    {label: "EAS integration", href: "/builders/integrations/eas"},');
   lines.push("  ]}");
   lines.push("/>");
   lines.push("");

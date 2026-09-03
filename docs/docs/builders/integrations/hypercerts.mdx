@@ -1,5 +1,6 @@
 ---
 title: Hypercerts
+sidebar_label: Hypercerts
 slug: /builders/integrations/hypercerts
 audience: developer
 owner: docs
@@ -9,12 +10,42 @@ source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - docs/src/data/integration-projections.json
   - packages/contracts/src/modules/Hypercerts.sol
+keywords:
+  - hypercerts
+  - impact certificates
+  - fractions
 ---
 
 import {IntegrationProjection} from "@site/src/components/docs";
 
 # Hypercerts
 
-Hypercerts represent certified impact claims and their fraction ownership.
+[Hypercerts](https://hypercerts.org) turn a body of approved work into a certified impact claim
+with ownable fractions. When a steward mints an impact certificate for a garden's season of work,
+funders can hold a piece of that claim; it's how verified work becomes something the funding side
+can actually own and retro-fund.
+
+## Where it lives in the code
+
+| Layer | Source |
+|---|---|
+| Module | `packages/contracts/src/modules/Hypercerts.sol` |
+| Data access | `packages/shared/src/modules/data/hypercerts*.ts` (fetch, metadata, repository, attestations) |
+| Hooks | `packages/shared/src/hooks/hypercerts` |
+
+The steward-facing flow lives in the community docs'
+[minting guide](/community/steward-guide/creating-impact-certificates); these sources are the
+machinery under it.
 
 <IntegrationProjection id="hypercerts" />
+
+## Working with it locally
+
+The [full-stack path](../getting-started#path-b-run-the-full-local-stack) forks Arbitrum One with
+the minter and exchange contracts present, so mint flows run locally without real funds.
+
+## Canonical upstream docs
+
+- [hypercerts.org](https://hypercerts.org) for the standard and its ecosystem.
+- [The Hypercerts docs](https://hypercerts.org/docs) for minting, metadata, and fraction
+  mechanics.

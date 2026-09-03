@@ -1,5 +1,6 @@
 ---
 title: Cookie Jar
+sidebar_label: Cookie Jar
 slug: /builders/integrations/cookie-jar
 audience: developer
 owner: docs
@@ -9,12 +10,41 @@ source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - docs/src/data/integration-projections.json
   - packages/contracts/src/modules/CookieJar.sol
+keywords:
+  - cookie jar
+  - distribution
+  - allowance
 ---
 
 import {IntegrationProjection} from "@site/src/components/docs";
 
 # Cookie Jar
 
-Cookie Jars are Garden-linked distribution primitives. Deployment artifacts and indexer configuration own recorded availability.
+Cookie Jars are Green Goods' own distribution primitive: a garden-linked jar that lets a
+community hand out small, capped allowances without a proposal process for every withdrawal.
+Where vaults hold an endowment, a jar holds spending money; it's the difference between a
+treasury and a kitchen tin everyone trusts each other to dip into.
+
+## Where it lives in the code
+
+| Layer | Source |
+|---|---|
+| Module and factory | `packages/contracts/src/modules/CookieJar.sol` |
+| Data access | `packages/shared/src/modules/data/campaign-cookie-jars.ts` |
+| Hooks | `packages/shared/src/hooks/cookie-jar` |
+
+Unlike the other integrations, this one is native: there is no external protocol to link, and the
+contract source above is the whole story.
 
 <IntegrationProjection id="cookie-jar" />
+
+## Working with it locally
+
+The [full-stack path](../getting-started#path-b-run-the-full-local-stack) forks Arbitrum One with
+the factory and module present, so jar creation and claim flows run locally without real funds.
+
+## Go deeper
+
+- [`CookieJar.sol`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/contracts/src/modules/CookieJar.sol)
+  is the contract itself.
+- The public [Cookies surface](https://greengoods.app/cookies) shows jars in the product.

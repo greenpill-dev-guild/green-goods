@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:2ccd38a88fb1a9d359f06b1174dd4b68a9cb6eae10222e6ab7e2c979bdfc5d6d"
+source_digest: "sha256:211b6f4e72ddce38b5b2a69448d1dbd8749b36c6425e8d7eac1d01836e267e09"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -974,7 +974,7 @@ Use `maturity.availability` and the returned evidence before making a release cl
 
 ## Known Issues
 
-- **`erd-stale-assessment-fields`** — The ERD's GardenAssessment shape lists only notes and mediaURIs, while the shipped assessment carries the full strategy kernel (domain, diagnosis, SMART outcomes, selected action UIDs, reporting period, assessmentConfigCID). _(`docs/docs/builders/architecture/erd.mdx`)_
+- **`erd-stale-assessment-fields`** — The ERD's GardenAssessment shape lists only notes and mediaURIs, while the shipped assessment carries the full strategy kernel (domain, diagnosis, SMART outcomes, selected action UIDs, reporting period, assessmentConfigCID). _(`docs/docs/builders/architecture/data-model.mdx`)_
 - **`missing-capital-mapping-fn`** — No runtime mapping function exists between the numeric Capital enum and the lowercase CapitalType union; index-based bridges are unsafe because the two declared orders currently differ. _(`packages/shared/src/types/domain.ts`, `packages/shared/src/types/hypercerts.ts`)_
 - **`community-surface-token`** — The ontology uses a `community` surface token on Need, Commitment, and Commitment Contributor while the product still treats community experiences as part of the client and public surfaces. Either promote Community to a distinct product surface or fold the token into `client`; until then the generated glossary carries the declared value verbatim. _(`docs/docs/reference/glossary.generated.mdx`, `packages/shared/src/ontology/green-goods-ontology.json`)_
 

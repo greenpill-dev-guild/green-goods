@@ -1,5 +1,6 @@
 ---
 title: Gardens
+sidebar_label: Gardens
 slug: /builders/integrations/gardens
 audience: developer
 owner: docs
@@ -9,12 +10,38 @@ source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - docs/src/data/integration-projections.json
   - packages/contracts/src/modules/Gardens.sol
+keywords:
+  - gardens
+  - conviction voting
+  - signal pools
 ---
 
 import {IntegrationProjection} from "@site/src/components/docs";
 
 # Gardens
 
-The Gardens module connects a Green Goods Garden to governance communities and signal pools.
+The Gardens module connects a Green Goods garden to
+[Gardens](https://gardens.fund), the conviction-voting platform for community governance. Through
+it, a garden's community can participate in signal pools: expressing sustained preference over
+where support should flow, rather than one-off votes.
+
+## Where it lives in the code
+
+| Layer | Source |
+|---|---|
+| Module | `packages/contracts/src/modules/Gardens.sol` |
+| Data access | `packages/shared/src/modules/data/gardens.ts` |
+| Conviction hooks | `packages/shared/src/hooks/conviction` |
 
 <IntegrationProjection id="gardens" />
+
+## Working with it locally
+
+The [full-stack path](../getting-started#path-b-run-the-full-local-stack) forks Arbitrum One, so
+recorded module state is available locally; live signal-pool behavior on the Gardens platform
+itself needs the real chain.
+
+## Canonical upstream docs
+
+- [gardens.fund](https://gardens.fund) for the platform and its conviction-voting model.
+- [Gardens documentation](https://docs.gardens.fund) for the concepts and mechanics.
