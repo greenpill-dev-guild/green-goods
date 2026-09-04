@@ -254,6 +254,10 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       chunkSizeWarningLimit: 2000,
       rolldownOptions: {
         output: {
+          // Keep lazy chunk URLs opaque. Browser privacy filters can block
+          // semantic names (the boot-critical `AdminRoot-*` chunk was blocked
+          // in Brave even though Vercel served it as valid JavaScript).
+          chunkFileNames: "assets/[hash].js",
           codeSplitting: {
             groups: [
               { name: "vendor-react", test: ADMIN_REACT_MODULES, priority: 20 },
