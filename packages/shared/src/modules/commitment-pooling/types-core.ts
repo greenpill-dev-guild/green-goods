@@ -44,6 +44,29 @@ export interface CommitmentReadModel {
   considerationRail?: keyof typeof CommitmentConsiderationRail | null;
   considerationPaid?: boolean;
   /**
+   * The G$ amount the payer declared for a Celo settlement, in token units.
+   * Null until a consideration is declared or when the record is unseen.
+   */
+  considerationAmount?: bigint | null;
+  /**
+   * The declared source and token. A Celo settlement stores zero-address
+   * sentinels for both and the settlement module freezes the real Safe and
+   * token when the payout plan is created.
+   */
+  considerationSource?: Address | null;
+  considerationToken?: Address | null;
+  /**
+   * The garden that pays: the pool garden on a Request, the claiming garden
+   * on an Offer. The settlement module lets only that garden's stewards and
+   * owners run the payout plan. Null until set.
+   */
+  payerGarden?: Address | null;
+  /**
+   * The one payout plan the settlement module recorded for this commitment,
+   * mirrored from the chain's `payoutPlanOfCommitment`. Null before it exists.
+   */
+  payoutPlanId?: bigint | null;
+  /**
    * The other side of the agreement, written at acceptance and null before it.
    * On an Offer this is the person who took it up. On a Request the contract
    * stores the taker here as well, so it repeats `leadProvider` on an

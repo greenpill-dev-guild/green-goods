@@ -37,6 +37,10 @@ function createIDBPersister({
 }: Required<Pick<CreateQueryPersisterOptions, "dbName" | "storeName">>):
   | QueryPersister
   | undefined {
+  // idb-keyval opens the database lazily on first use, so a missing
+  // IndexedDB would otherwise be discovered only when persisting; probe it
+  // here so the storage fallback actually takes over.
+  if (typeof indexedDB === "undefined" || !indexedDB) return undefined;
   try {
     const store = createStore(dbName, storeName);
     return {
@@ -112,12 +116,40 @@ function createStoragePersister(storage?: Storage): QueryPersister {
   } satisfies QueryPersister;
 }
 
-export function createQueryPersister({
-  dbName,
-  storeName = "rq",
-  storage = typeof window !== "undefined" ? window.localStorage : undefined,
-}: CreateQueryPersisterOptions): QueryPersister {
-  return createIDBPersister({ dbName, storeName }) ?? createStoragePersister(storage);
+/**
+ * Resolve the browser's local storage without letting the lookup itself
+ * throw. Browsers that block site storage (strict cookie shields, storage
+ * partitioning, some private modes) raise a `SecurityError` on the mere
+ * property read of `window.localStorage`; that read used to sit in a
+ * destructuring default, so the throw escaped every guard below and took the
+ * whole entry module down before React mounted.
+ */
+function resolveDefaultStorage(): Storage | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    return window.localStorage ?? undefined;
+  } catch (error) {
+    debugWarn("[Persister] Browser storage is not accessible; caching in memory only:", {
+      error,
+    });
+    return undefined;
+  }
+}
+
+/**
+ * Build the query persister for an app. Never throws: IndexedDB is preferred,
+ * web storage is the fallback, and when neither can be reached the persister
+ * quietly does nothing so the app still renders with an in-memory cache.
+ */
+export function createQueryPersister(options: CreateQueryPersisterOptions): QueryPersister {
+  const { dbName, storeName = "rq" } = options;
+  try {
+    const storage = "storage" in options ? options.storage : resolveDefaultStorage();
+    return createIDBPersister({ dbName, storeName }) ?? createStoragePersister(storage);
+  } catch (error) {
+    debugWarn("[Persister] Query persistence is disabled for this session:", { error });
+    return createStoragePersister(undefined);
+  }
 }
 
 export function createShouldDehydrateQuery({
@@ -133,4 +165,31 @@ export function createShouldDehydrateQuery({
 
     return !excludedGroups.includes(String(key[1] ?? ""));
   };
+}
+
+/**
+ * Forget an app's persisted query cache. A boot-recovery surface calls this
+ * before reloading, so a corrupt or stale snapshot can never wedge the next
+ * start. Best effort and never throws: an unavailable store is simply skipped.
+ */
+export async function clearPersistedQueryClient(
+  options: Pick<CreateQueryPersisterOptions, "dbName">
+): Promise<void> {
+  try {
+    if (typeof indexedDB !== "undefined" && indexedDB) {
+      await new Promise<void>((resolve) => {
+        const request = indexedDB.deleteDatabase(options.dbName);
+        request.onsuccess = () => resolve();
+        request.onerror = () => resolve();
+        request.onblocked = () => resolve();
+      });
+    }
+  } catch (error) {
+    debugWarn("[Persister] Failed to delete the IndexedDB cache:", { error });
+  }
+  try {
+    resolveDefaultStorage()?.removeItem(QUERY_PERSISTENCE_KEY);
+  } catch (error) {
+    debugWarn("[Persister] Failed to clear the storage cache:", { error });
+  }
 }

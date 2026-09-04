@@ -550,28 +550,36 @@
         "implementation": "implemented",
         "deployment": "deployed",
         "activation": "active",
-        "integration": "partial",
-        "availability": "deployed-not-available",
+        "integration": "integrated",
+        "availability": "available",
         "evidence": [
           {
             "file": ".plans/active/commitment-pooling/status.json",
-            "note": "Pooling contracts are active and the shared/API read contract is implemented; the hosted indexer still needs its manual pooling-schema deployment before reads are available."
+            "note": "Pooling contracts are active and the shared read and write contract is implemented; the pool console, seeding, confirmation, and settlement hooks consume the indexed schema."
+          },
+          {
+            "file": "packages/indexer/schema.graphql",
+            "note": "The hosted Envio deployment that serves the pooling QA environment (hyperindex 95c2129) exposes CommitmentPool, Commitment, CommitmentPayoutPlan, Disbursement, SettlementAccount, and SettlementConfiguration; it returned the 18 registered Arbitrum pools on 2026-09-03. The environment selects the deployment through its indexer URL setting."
           }
         ],
-        "verified_at": "2026-08-16",
+        "verified_at": "2026-09-03",
         "chains": {
           "42161": {
             "deployment": "deployed",
             "activation": "active",
-            "integration": "partial",
-            "availability": "deployed-not-available",
+            "integration": "integrated",
+            "availability": "available",
             "evidence": [
               {
-                "file": ".plans/active/commitment-pooling/status.json",
-                "note": "Arbitrum pooling contracts are active and shared selectors are implemented, but the hosted indexer has not yet received the pooling schema through the manual Envio deployment step."
+                "file": "packages/contracts/deployments/42161-latest.json",
+                "note": "Arbitrum pooling and settlement modules are deployed; commitmentPoolingModulePaused is false and the settlement module read paused() = false on 2026-09-03."
+              },
+              {
+                "file": "packages/indexer/schema.graphql",
+                "note": "The hosted pooling indexer deployment (hyperindex 95c2129) returns Arbitrum commitment pools, settlement accounts, and settlement configuration, so shared reads and mutations are integrated on this chain; the indexer URL comes from the environment, never from runtime code."
               }
             ],
-            "verified_at": "2026-08-16"
+            "verified_at": "2026-09-03"
           },
           "11155111": {
             "deployment": "not-deployed",
@@ -593,7 +601,7 @@
           "id": "commitment-pooling",
           "maturity": "deployed-not-available",
           "safe_wording": "The coordination protocol is deployed, but it is not yet an available Green Goods product flow.",
-          "verified_at": "2026-08-15"
+          "verified_at": "2026-09-03"
         }
       ]
     },
@@ -827,7 +835,7 @@
           "id": "commitment-pooling",
           "maturity": "deployed-not-available",
           "safe_wording": "The coordination protocol is deployed, but it is not yet an available Green Goods product flow.",
-          "verified_at": "2026-08-15"
+          "verified_at": "2026-09-03"
         },
         {
           "id": "community-needs",

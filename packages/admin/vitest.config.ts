@@ -52,6 +52,13 @@ export default defineConfig({
         ),
       },
       // Shared package aliases
+      // Mirrors vite.config.ts: the boot sequence loads Sentry through the
+      // declared `./sentry` subpath, which the generic prefix alias below
+      // would otherwise resolve to a non-existent `src/sentry`.
+      {
+        find: "@green-goods/shared/sentry",
+        replacement: resolve(__dirname, "../shared/src/modules/app/sentry.ts"),
+      },
       {
         find: "@green-goods/shared/hooks",
         replacement: resolve(__dirname, "../shared/src/hooks"),

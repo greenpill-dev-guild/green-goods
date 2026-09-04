@@ -5,5 +5,8 @@
  */
 export * from "./controller.types";
 export * from "./useCommitmentDialogController";
+export * from "./useCommitmentSettlementController";
 export * from "./useHubConfirmQueueController";
 export * from "./usePoolConsoleController";
+export * from "./useProtocolFundingOperationsController";
+export * from "./useSettlementOperationsController";

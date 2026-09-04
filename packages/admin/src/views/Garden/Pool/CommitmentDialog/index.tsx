@@ -23,6 +23,7 @@ import {
 import { CommitmentExpireDialog } from "../CommitmentExpireDialog";
 import { CommitmentRecovery } from "./CommitmentRecovery";
 import { CommitmentResolveDialog } from "./CommitmentResolveDialog";
+import { CommitmentSettlementSection, showsSettlement } from "./CommitmentSettlement";
 import { CommitmentSummary } from "./CommitmentSummary";
 import { CommitmentTimeline } from "./CommitmentTimeline";
 import {
@@ -126,6 +127,15 @@ function CommitmentRecord({
       />
 
       <CommitmentFacts commitment={commitment} detail={detail} />
+
+      {showsSettlement(commitment) ? (
+        <CommitmentSettlementSection
+          chainId={chainId}
+          commitment={commitment}
+          detail={detail}
+          tone={tone}
+        />
+      ) : null}
 
       {dialog.isLocalSteward &&
       (commitment.onchainState === "ACCEPTED" ||

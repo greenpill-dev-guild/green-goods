@@ -152,8 +152,8 @@ export const ROLES_ALLOWANCE_ABI = [
       { name: "refill", type: "uint128" },
       { name: "maxRefill", type: "uint128" },
       { name: "period", type: "uint64" },
-      { name: "timestamp", type: "uint64" },
       { name: "balance", type: "uint128" },
+      { name: "timestamp", type: "uint64" },
     ],
   },
 ] as const;
@@ -200,8 +200,8 @@ export function allowanceTuple(value: unknown): ZodiacAllowance | null {
     refill: integer(row.refill ?? row[0]),
     maxRefill: integer(row.maxRefill ?? row[1]),
     period: integer(row.period ?? row[2]),
-    timestamp: integer(row.timestamp ?? row[3]),
-    balance: integer(row.balance ?? row[4]),
+    balance: integer(row.balance ?? row[3]),
+    timestamp: integer(row.timestamp ?? row[4]),
   };
 }
 

@@ -39,6 +39,8 @@ function snapshot(overrides: Partial<PoolFundingSnapshot> = {}): PoolFundingSnap
     settlementUnavailableReasons: [],
     obligations: [],
     transit: { dispatched: 20n * G, executedAwaitingConfirmation: 10n * G, incoming: 30n * G },
+    disbursements: [],
+    executions: [],
     limits: {
       rolesAllowanceRemaining: 500n * G,
       periodAllowanceRemaining: 800n * G,

@@ -24,6 +24,17 @@ import type { Address } from "../../../types/domain";
 import type { EASGardenAssessment } from "../../../types/eas-responses";
 import type { CommitmentWorkDecision } from "../../../modules/commitment-pooling/work-decisions";
 import type { PoolFundingSnapshot } from "../../../modules/commitment-pooling/pool-funding";
+import type {
+  CommitmentSettlementChainState,
+  SettlementChainAccount,
+} from "../../../modules/commitment-pooling/data-settlement-chain";
+import type {
+  SettlementChainPlan,
+  SettlementChainRow,
+  SettlementEligibility,
+  SettlementPayoutKind,
+  SettlementWorkflow,
+} from "../../../modules/commitment-pooling/settlement-workflow";
 
 export interface PoolFundingControllerView {
   snapshot: PoolFundingSnapshot | null;
@@ -182,4 +193,147 @@ export interface CommitmentDialogController {
   unavailable: boolean;
   notFound: boolean;
   refetch: () => Promise<unknown[]>;
+}
+
+export type SettlementActPhase = "signing" | "submitted" | "confirmed" | "failed";
+
+export type SettlementActKind =
+  | "queue-funding"
+  | "create-plan"
+  | "finalize-plan"
+  | "prepare-beneficiary"
+  | "prepare-contributor"
+  | "dispatch"
+  | "retry"
+  | "requeue"
+  | "cancel"
+  | "set-gardener-delivery";
+
+/** The last settlement transaction a panel sent: wallet, confirmed or failed feedback. */
+export interface SettlementActStatus {
+  kind: SettlementActKind;
+  phase: SettlementActPhase;
+  hash?: HexString;
+  error?: unknown;
+}
+
+export interface CommitmentSettlementActs {
+  createPlan: () => Promise<HexString>;
+  finalizePlan: () => Promise<HexString>;
+  prepareBeneficiary: () => Promise<HexString>;
+  prepareContributor: (contributor: Address) => Promise<HexString>;
+  dispatch: (disbursementId: bigint) => Promise<HexString>;
+  retry: (disbursementId: bigint) => Promise<HexString>;
+  requeue: (disbursementId: bigint) => Promise<HexString>;
+  /** The reason is pinned first; the chain stores its CID. */
+  cancel: (disbursementId: bigint, reason: string) => Promise<HexString>;
+}
+
+export interface SettlementAuthority {
+  /** Steward or owner of the garden that pays: may create, finalize and prepare. */
+  isPayerSteward: boolean;
+  /** Executor-garden steward or exact dispatcher: may dispatch and retry. */
+  canDispatchOrRetry: boolean;
+  /** Executor-garden steward only: may requeue and cancel. */
+  canRequeueOrCancel: boolean;
+  /** False while any role read is still in flight. */
+  resolved: boolean;
+}
+
+export interface CommitmentSettlementController {
+  chainId: number;
+  commitmentId: bigint;
+  viewer?: Address;
+  isOnline: boolean;
+  availability: CommitmentPoolingAvailability;
+  eligibility: SettlementEligibility;
+  kind: SettlementPayoutKind | null;
+  payerGarden: Address | null;
+  payerAccount: SettlementChainAccount | null;
+  beneficiaryGarden: Address | null;
+  beneficiaryAccount: SettlementChainAccount | null;
+  declaredAmount: bigint | null;
+  token: Address | null;
+  chain: CommitmentSettlementChainState | null;
+  chainRead: "ready" | "pending" | "failed";
+  plan: SettlementChainPlan | null;
+  rows: SettlementChainRow[];
+  workflow: SettlementWorkflow;
+  /** The payer garden's funding snapshot: caps, fee and peer readiness, Safe balance. */
+  funding: PoolFundingControllerView;
+  authority: SettlementAuthority;
+  acts: CommitmentSettlementActs;
+  lastAct: SettlementActStatus | null;
+  isActing: boolean;
+  refetch: () => Promise<unknown>;
+}
+
+export interface SettlementOperationsController {
+  chainId: number;
+  viewer?: Address;
+  availability: CommitmentPoolingAvailability;
+  /** Null until the chain has answered. */
+  gardenerDeliveryEnabled: boolean | null;
+  sourcePaused: boolean | null;
+  owner: Address | null;
+  isSettlementOwner: boolean;
+  isDeployer: boolean;
+  /** Only the module owner may flip the gate; the chain enforces the same rule. */
+  canConfigureDelivery: boolean;
+  /** Owners and deployers see the card; everyone else does not. */
+  showControl: boolean;
+  isLoading: boolean;
+  isError: boolean;
+  isPending: boolean;
+  lastAct: SettlementActStatus | null;
+  setGardenerDelivery: (enabled: boolean) => Promise<HexString>;
+  /** Re-read the switch and confirm a submitted request only when the chain matches it. */
+  checkDeliveryStatus: () => Promise<void>;
+  refetch: () => Promise<unknown>;
+}
+
+export type ProtocolFundingDisplayState =
+  | "queued"
+  | "dispatched"
+  | "acknowledgement-pending"
+  | "confirmed"
+  | "failed"
+  | "cancelled"
+  | "unknown";
+
+export interface ProtocolFundingRow {
+  id: string;
+  disbursementId: bigint;
+  recipient: Address;
+  amount: bigint;
+  state: ProtocolFundingDisplayState;
+  executionKey: HexString | null;
+  canDispatch: boolean;
+  canRetry: boolean;
+  canRequeue: boolean;
+  canCancel: boolean;
+}
+
+export interface ProtocolFundingOperationsController {
+  chainId: number;
+  viewer?: Address;
+  protocolGarden: Address | null;
+  targetGarden: Address | null;
+  isOnline: boolean;
+  canQueueFunding: boolean;
+  canDispatchOrRetry: boolean;
+  canRequeueOrCancel: boolean;
+  authorityResolved: boolean;
+  showOperations: boolean;
+  sourceFunding: PoolFundingControllerView;
+  targetFunding: PoolFundingControllerView;
+  rows: ProtocolFundingRow[];
+  lastAct: SettlementActStatus | null;
+  isActing: boolean;
+  queueFunding: (garden: Address, amount: bigint) => Promise<HexString>;
+  dispatch: (disbursementId: bigint) => Promise<HexString>;
+  retry: (disbursementId: bigint) => Promise<HexString>;
+  requeue: (disbursementId: bigint) => Promise<HexString>;
+  cancel: (disbursementId: bigint, reason: string) => Promise<HexString>;
+  refetch: () => Promise<unknown>;
 }

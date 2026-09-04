@@ -71,6 +71,8 @@ export function storyPoolFunding(
       settlementUnavailableReasons: [],
       obligations: [],
       transit: { dispatched: 0n, executedAwaitingConfirmation: 0n, incoming: 0n },
+      disbursements: [],
+      executions: [],
       limits: {
         rolesAllowanceRemaining: 5_000n * G,
         periodAllowanceRemaining: 10_000n * G,

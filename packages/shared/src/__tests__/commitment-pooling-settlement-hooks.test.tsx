@@ -430,7 +430,8 @@ describe("useSettlementOperationsCapabilities", () => {
     );
     expect(owner.result.current).toMatchObject({
       canQueueFunding: true,
-      canOperateSettlement: true,
+      canDispatchOrRetry: false,
+      canRequeueOrCancel: false,
       showOperations: true,
       isLoading: false,
     });
@@ -454,7 +455,8 @@ describe("useSettlementOperationsCapabilities", () => {
     );
     expect(stewardDispatcher.result.current).toMatchObject({
       canQueueFunding: true,
-      canOperateSettlement: true,
+      canDispatchOrRetry: true,
+      canRequeueOrCancel: false,
       showOperations: true,
     });
   });
@@ -472,7 +474,8 @@ describe("useSettlementOperationsCapabilities", () => {
     );
     expect(unresolved.result.current).toMatchObject({
       canQueueFunding: false,
-      canOperateSettlement: false,
+      canDispatchOrRetry: false,
+      canRequeueOrCancel: false,
       showOperations: true,
       isLoading: true,
     });
@@ -490,7 +493,8 @@ describe("useSettlementOperationsCapabilities", () => {
     );
     expect(errored.result.current).toMatchObject({
       canQueueFunding: false,
-      canOperateSettlement: false,
+      canDispatchOrRetry: false,
+      canRequeueOrCancel: false,
       showOperations: false,
     });
     errored.unmount();
@@ -507,7 +511,8 @@ describe("useSettlementOperationsCapabilities", () => {
     );
     expect(unavailable.result.current).toMatchObject({
       canQueueFunding: false,
-      canOperateSettlement: false,
+      canDispatchOrRetry: false,
+      canRequeueOrCancel: false,
       showOperations: false,
     });
     expect(mocks.useReadContract).toHaveBeenLastCalledWith(

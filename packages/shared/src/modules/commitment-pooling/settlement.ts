@@ -181,6 +181,49 @@ export function hashBeneficiarySnapshot(input: {
   );
 }
 
+export interface RecognitionEntryInput {
+  contributor: Address;
+  recognitionWeightBps: number;
+}
+
+/**
+ * The hash `createCommitmentPayoutPlan` expects beside the recognition vector.
+ * Mirrors RecognitionLib.validateRecognitionSnapshot, which proves the entries
+ * equal the recomputed vector and then hashes
+ * `abi.encode(block.chainid, commitmentId, entries)`; a vector in the wrong
+ * order or with a stale weight produces a different hash and the chain refuses
+ * it by name (`InvalidAllocation`), so nothing is created against a stale roster.
+ */
+export function hashRecognitionSnapshot(input: {
+  chainId: number;
+  commitmentId: bigint;
+  entries: readonly RecognitionEntryInput[];
+}): Hex {
+  return keccak256(
+    encodeAbiParameters(
+      [
+        { type: "uint256" },
+        { type: "uint256" },
+        {
+          type: "tuple[]",
+          components: [
+            { name: "contributor", type: "address" },
+            { name: "recognitionWeightBps", type: "uint16" },
+          ],
+        },
+      ],
+      [
+        BigInt(input.chainId),
+        input.commitmentId,
+        input.entries.map((entry) => ({
+          contributor: entry.contributor,
+          recognitionWeightBps: entry.recognitionWeightBps,
+        })),
+      ]
+    )
+  );
+}
+
 export function deriveCommitmentSettlementFlow(input: {
   payerGarden: Address;
   providerGarden: Address;
@@ -206,19 +249,22 @@ export function selectSettlementActions(input: {
     | "GARDEN_BENEFICIARY"
     | "REFUND";
   sourcePaused: boolean;
-  canOperate: boolean;
+  canDispatchOrRetry: boolean;
+  canRequeueOrCancel: boolean;
 }) {
-  const enabled = input.canOperate;
+  const canDispatchOrRetry = input.canDispatchOrRetry;
+  const canRequeueOrCancel = input.canRequeueOrCancel;
   return {
-    dispatch: enabled && !input.sourcePaused && input.state === "QUEUED",
-    retrySameCommand: enabled && !input.sourcePaused && input.state === "DISPATCHED",
-    startNewAttempt: enabled && !input.sourcePaused && !input.isBatch && input.state === "FAILED",
+    dispatch: canDispatchOrRetry && !input.sourcePaused && input.state === "QUEUED",
+    retrySameCommand: canDispatchOrRetry && !input.sourcePaused && input.state === "DISPATCHED",
+    startNewAttempt:
+      canRequeueOrCancel && !input.sourcePaused && !input.isBatch && input.state === "FAILED",
     cancelIndividual:
-      enabled &&
+      canRequeueOrCancel &&
       !input.isBatch &&
       input.kind !== "REFUND" &&
       (input.state === "FAILED" || (input.state === "QUEUED" && !input.isBatchMember)),
-    cancelBatch: enabled && input.isBatch && input.state === "QUEUED",
+    cancelBatch: canRequeueOrCancel && input.isBatch && input.state === "QUEUED",
   } as const;
 }
 
@@ -233,17 +279,19 @@ export function selectOperationsCapabilities(input: {
   if (!input.authorityResolved) {
     return {
       canQueueFunding: false,
-      canOperateSettlement: false,
+      canDispatchOrRetry: false,
+      canRequeueOrCancel: false,
       showOperations: input.isDeployer,
     };
   }
   const canQueueFunding = input.isSettlementOwner || input.isProtocolSteward;
-  const canOperateSettlement =
-    input.isSettlementOwner || input.isExecutorSteward || input.isDispatcher;
+  const canDispatchOrRetry = input.isExecutorSteward || input.isDispatcher;
+  const canRequeueOrCancel = input.isExecutorSteward;
   return {
     canQueueFunding,
-    canOperateSettlement,
-    showOperations: input.isDeployer || canQueueFunding || canOperateSettlement,
+    canDispatchOrRetry,
+    canRequeueOrCancel,
+    showOperations: input.isDeployer || canQueueFunding || canDispatchOrRetry || canRequeueOrCancel,
   };
 }
 

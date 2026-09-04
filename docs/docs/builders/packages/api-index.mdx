@@ -18,7 +18,7 @@ generated_from:
   - packages/indexer/package.json
   - packages/shared/package.json
   - packages/shared/src/public-contracts/routes.ts
-source_digest: "sha256:77d618377650bc61aff256ea7c79a4f879612f8fecb598a695721d4e24ef21a3"
+source_digest: "sha256:95705ddf407ef3dcac553bb69c20436514df2a327010e4f447b7748490ab9325"
 source_of_truth:
   - packages/admin/package.json
   - packages/agent/package.json
@@ -183,8 +183,11 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./hooks/admin-ui/navigation/workspaceNavigation` | `./src/hooks/admin-ui/navigation/workspaceNavigation.ts` |
 | @green-goods/shared | `./hooks/admin-ui/pool/controller.types` | `./src/hooks/admin-ui/pool/controller.types.ts` |
 | @green-goods/shared | `./hooks/admin-ui/pool/useCommitmentDialogController` | `./src/hooks/admin-ui/pool/useCommitmentDialogController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/pool/useCommitmentSettlementController` | `./src/hooks/admin-ui/pool/useCommitmentSettlementController.ts` |
 | @green-goods/shared | `./hooks/admin-ui/pool/useHubConfirmQueueController` | `./src/hooks/admin-ui/pool/useHubConfirmQueueController.ts` |
 | @green-goods/shared | `./hooks/admin-ui/pool/usePoolConsoleController` | `./src/hooks/admin-ui/pool/usePoolConsoleController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/pool/useProtocolFundingOperationsController` | `./src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts` |
+| @green-goods/shared | `./hooks/admin-ui/pool/useSettlementOperationsController` | `./src/hooks/admin-ui/pool/useSettlementOperationsController.ts` |
 | @green-goods/shared | `./hooks/admin-ui/useAdminAccessState` | `./src/hooks/admin-ui/useAdminAccessState.ts` |
 | @green-goods/shared | `./hooks/admin-ui/useCanvasChromeProbe` | `./src/hooks/admin-ui/useCanvasChromeProbe.ts` |
 | @green-goods/shared | `./hooks/admin-ui/useDirtyClose` | `./src/hooks/admin-ui/useDirtyClose.ts` |
@@ -385,12 +388,14 @@ Use package export specifiers and public route constants as the stable entrypoin
 | @green-goods/shared | `./modules/app/posthog` | `./src/modules/app/posthog.ts` |
 | @green-goods/shared | `./modules/auth/session` | `./src/modules/auth/session.ts` |
 | @green-goods/shared | `./modules/commitment-pooling/cycle-metadata` | `./src/modules/commitment-pooling/cycle-metadata.ts` |
+| @green-goods/shared | `./modules/commitment-pooling/data-settlement-chain` | `./src/modules/commitment-pooling/data-settlement-chain.ts` |
 | @green-goods/shared | `./modules/commitment-pooling/disclosure` | `./src/modules/commitment-pooling/disclosure.ts` |
 | @green-goods/shared | `./modules/commitment-pooling/pool-charter` | `./src/modules/commitment-pooling/pool-charter.ts` |
 | @green-goods/shared | `./modules/commitment-pooling/pool-console` | `./src/modules/commitment-pooling/pool-console.ts` |
 | @green-goods/shared | `./modules/commitment-pooling/pool-funding` | `./src/modules/commitment-pooling/pool-funding.ts` |
 | @green-goods/shared | `./modules/commitment-pooling/pool-lifecycle` | `./src/modules/commitment-pooling/pool-lifecycle.ts` |
 | @green-goods/shared | `./modules/commitment-pooling/pool-setup` | `./src/modules/commitment-pooling/pool-setup.ts` |
+| @green-goods/shared | `./modules/commitment-pooling/settlement-workflow` | `./src/modules/commitment-pooling/settlement-workflow.ts` |
 | @green-goods/shared | `./modules/commitment-pooling/types-core` | `./src/modules/commitment-pooling/types-core.ts` |
 | @green-goods/shared | `./modules/data/hypercerts-filters` | `./src/modules/data/hypercerts-filters.ts` |
 | @green-goods/shared | `./modules/data/ipfs/client` | `./src/modules/data/ipfs/client.ts` |

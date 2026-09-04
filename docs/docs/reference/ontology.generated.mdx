@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:2ccd38a88fb1a9d359f06b1174dd4b68a9cb6eae10222e6ab7e2c979bdfc5d6d"
+source_digest: "sha256:4b0b1d06ee2617eb7146004bb1ba8376efdf1dae60a09eecf28f1f33e2c8ce77"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -44,7 +44,7 @@ The formal specification of the Green Goods shared vocabulary: the entities the 
 | **Hat** | canonical | available | implemented · deployed · active · integrated | admin · client · public · docs | A Hats Protocol role token. Determines on-chain authority — steward hats can approve Work; gardener hats can submit Work; evaluator hats can attest. | contracts · indexer (Garden) · shared · docs |
 | **Season** | canonical | planned | partial · not-applicable · not-applicable · partial | admin · client · agent · public · docs | A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown. | docs |
 | **Need** | canonical | planned | not-implemented · not-deployed · inactive · not-integrated | community · admin · client · public · docs | A community-authored statement of a place-based problem paired with a desired outcome. A Need can gather signals, moderation, linked commitments, and verified funding attribution without becoming a commitment or payment itself. | spec |
-| **Commitment Pool** | canonical | deployed-not-available | implemented · deployed · active · partial | admin · client · docs | A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter. | contracts · indexer (CommitmentPool) · spec |
+| **Commitment Pool** | canonical | available | implemented · deployed · active · integrated | admin · client · docs | A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter. | contracts · indexer (CommitmentPool) · spec |
 | **Commitment Cycle** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | admin · client · docs | A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open. | contracts · indexer (CommitmentCycle) · spec |
 | **Commitment Series** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | admin · client · docs | The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun. | contracts · indexer (CommitmentSeries) · spec |
 | **Commitment Provider Exposure** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | admin · client · docs | The current count of open commitments held by one accountable lead provider in one pool, derived only from self-describing register unit events. | indexer (CommitmentProviderExposure) · spec |

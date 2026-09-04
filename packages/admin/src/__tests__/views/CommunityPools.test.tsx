@@ -76,6 +76,34 @@ vi.mock("@green-goods/shared/hooks/commitment-pooling/useProtocolPool", async (i
   };
 });
 
+// The operations card reads the settlement module through its own controller;
+// this surface only needs to know it renders nothing for an ordinary steward.
+vi.mock("@green-goods/shared/hooks/admin-ui/pool/useSettlementOperationsController", () => ({
+  useSettlementOperationsController: () => ({
+    chainId: 42161,
+    viewer: VIEWER,
+    availability: { status: "unknown-chain" },
+    gardenerDeliveryEnabled: null,
+    sourcePaused: null,
+    owner: null,
+    isSettlementOwner: false,
+    isDeployer: false,
+    canConfigureDelivery: false,
+    showControl: false,
+    isLoading: false,
+    isError: false,
+    isPending: false,
+    lastAct: null,
+    setGardenerDelivery: async () => "0x0",
+    checkDeliveryStatus: async () => undefined,
+    refetch: async () => undefined,
+  }),
+}));
+
+vi.mock("@/views/Community/components/ProtocolFundingOperationsPanel", () => ({
+  ProtocolFundingOperationsPanel: () => <div data-testid="protocol-funding-operations" />,
+}));
+
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();
   return { ...actual, useNavigate: () => mocks.navigate };

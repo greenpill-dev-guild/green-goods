@@ -143,8 +143,8 @@ export interface ZodiacAllowance {
   refill: bigint;
   maxRefill: bigint;
   period: bigint;
-  timestamp: bigint;
   balance: bigint;
+  timestamp: bigint;
 }
 
 export interface PoolFundingLimits {
@@ -217,6 +217,10 @@ export interface PoolFundingSnapshot {
   settlementUnavailableReasons: SettlementUnavailableReason[];
   obligations: PoolFundingObligationGroup[];
   transit: PoolFundingTransit;
+  /** Indexed settlement rows touching this Safe, retained for steward operations. */
+  disbursements: PoolFundingDisbursement[];
+  /** Indexed execution outcomes used to distinguish dispatch from acknowledgement pending. */
+  executions: PoolFundingExecution[];
   limits: PoolFundingLimits;
   nativeFeeBalance: bigint | null;
 }

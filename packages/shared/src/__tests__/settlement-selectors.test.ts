@@ -144,17 +144,92 @@ describe("settlement snapshot hashes", () => {
 });
 
 describe("settlement authority and action separation", () => {
-  it("does not treat deployer visibility as funding authority", () => {
-    expect(
-      selectOperationsCapabilities({
-        authorityResolved: true,
+  it.each([
+    {
+      name: "module owner only",
+      roles: {
+        isSettlementOwner: true,
+        isProtocolSteward: false,
+        isExecutorSteward: false,
+        isDispatcher: false,
+        isDeployer: false,
+      },
+      expected: {
+        canQueueFunding: true,
+        canDispatchOrRetry: false,
+        canRequeueOrCancel: false,
+        showOperations: true,
+      },
+    },
+    {
+      name: "protocol steward only",
+      roles: {
+        isSettlementOwner: false,
+        isProtocolSteward: true,
+        isExecutorSteward: false,
+        isDispatcher: false,
+        isDeployer: false,
+      },
+      expected: {
+        canQueueFunding: true,
+        canDispatchOrRetry: false,
+        canRequeueOrCancel: false,
+        showOperations: true,
+      },
+    },
+    {
+      name: "dispatcher only",
+      roles: {
+        isSettlementOwner: false,
+        isProtocolSteward: false,
+        isExecutorSteward: false,
+        isDispatcher: true,
+        isDeployer: false,
+      },
+      expected: {
+        canQueueFunding: false,
+        canDispatchOrRetry: true,
+        canRequeueOrCancel: false,
+        showOperations: true,
+      },
+    },
+    {
+      name: "executor steward",
+      roles: {
+        isSettlementOwner: false,
+        isProtocolSteward: false,
+        isExecutorSteward: true,
+        isDispatcher: false,
+        isDeployer: false,
+      },
+      expected: {
+        canQueueFunding: false,
+        canDispatchOrRetry: true,
+        canRequeueOrCancel: true,
+        showOperations: true,
+      },
+    },
+    {
+      name: "deployer only",
+      roles: {
         isSettlementOwner: false,
         isProtocolSteward: false,
         isExecutorSteward: false,
         isDispatcher: false,
         isDeployer: true,
-      })
-    ).toEqual({ canQueueFunding: false, canOperateSettlement: false, showOperations: true });
+      },
+      expected: {
+        canQueueFunding: false,
+        canDispatchOrRetry: false,
+        canRequeueOrCancel: false,
+        showOperations: true,
+      },
+    },
+  ])("maps $name to the contract's action-level authority", ({ roles, expected }) => {
+    expect(selectOperationsCapabilities({ authorityResolved: true, ...roles })).toEqual(expected);
+  });
+
+  it("fails closed while settlement authority is unresolved", () => {
     expect(
       selectOperationsCapabilities({
         authorityResolved: false,
@@ -164,7 +239,12 @@ describe("settlement authority and action separation", () => {
         isDispatcher: true,
         isDeployer: false,
       })
-    ).toEqual({ canQueueFunding: false, canOperateSettlement: false, showOperations: false });
+    ).toEqual({
+      canQueueFunding: false,
+      canDispatchOrRetry: false,
+      canRequeueOrCancel: false,
+      showOperations: false,
+    });
   });
 
   it("offers batch cancellation atomically and never on a queued member", () => {
@@ -174,7 +254,8 @@ describe("settlement authority and action separation", () => {
         isBatch: true,
         isBatchMember: false,
         sourcePaused: false,
-        canOperate: true,
+        canDispatchOrRetry: true,
+        canRequeueOrCancel: true,
       })
     ).toMatchObject({ cancelBatch: true, cancelIndividual: false });
     expect(
@@ -183,7 +264,8 @@ describe("settlement authority and action separation", () => {
         isBatch: false,
         isBatchMember: true,
         sourcePaused: false,
-        canOperate: true,
+        canDispatchOrRetry: true,
+        canRequeueOrCancel: true,
       })
     ).toMatchObject({ cancelBatch: false, cancelIndividual: false });
     expect(
@@ -192,9 +274,33 @@ describe("settlement authority and action separation", () => {
         isBatch: false,
         isBatchMember: false,
         sourcePaused: false,
-        canOperate: true,
+        canDispatchOrRetry: true,
+        canRequeueOrCancel: true,
       })
     ).toMatchObject({ retrySameCommand: false, startNewAttempt: true });
+  });
+
+  it("keeps dispatcher recovery actions hidden while allowing dispatch and retry", () => {
+    expect(
+      selectSettlementActions({
+        state: "QUEUED",
+        isBatch: false,
+        isBatchMember: false,
+        sourcePaused: false,
+        canDispatchOrRetry: true,
+        canRequeueOrCancel: false,
+      })
+    ).toMatchObject({ dispatch: true, cancelIndividual: false });
+    expect(
+      selectSettlementActions({
+        state: "FAILED",
+        isBatch: false,
+        isBatchMember: false,
+        sourcePaused: false,
+        canDispatchOrRetry: true,
+        canRequeueOrCancel: false,
+      })
+    ).toMatchObject({ startNewAttempt: false, cancelIndividual: false });
   });
 
   it("derives flow only from payer, provider, and protocol Garden identities", () => {
