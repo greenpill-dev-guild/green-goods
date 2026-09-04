@@ -322,7 +322,8 @@
     },
     {
       "check": "browser-proof",
-      "exact": ["packages/qa/index.html"]
+      "exact": ["packages/qa/index.html"],
+      "prefixes": ["packages/qa/locales/"]
     },
     {
       "check": "browser-proof",
@@ -334,6 +335,7 @@
       "check": "agent-tools-test",
       "runInQa": true,
       "runInEvidence": true,
+      "prefixes": ["packages/qa/locales/"],
       "exact": [
         "scripts/data/qa-test-catalog.json",
         "scripts/data/qa-test-id-ledger.json",

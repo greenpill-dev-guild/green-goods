@@ -102,6 +102,9 @@
   .pri.p1 { color:var(--amber); background:var(--amber-wash); }
   .scen { font-size:13.5px; }
   .scen .why { display:block; font-size:11.5px; color:var(--soft); margin-top:1px; }
+  .journey-steps { margin:6px 0 0; padding-inline-start:20px; color:var(--ink);
+    font-size:11.5px; line-height:1.45; }
+  .journey-steps li + li { margin-top:2px; }
   .journey-meta { display:flex; flex-wrap:wrap; gap:4px; margin-top:5px; }
   .journey-chip { display:inline-flex; gap:4px; align-items:center; border:1px solid var(--line);
     border-radius:var(--radius-full); padding:2px 7px; color:var(--soft); background:var(--surface);
@@ -753,6 +756,11 @@
       </div>${handoff}${gate}</div>`;
   }
 
+  function journeyCaseSteps(testCase) {
+    if (!testCase.journeyStep || !Array.isArray(testCase.steps) || !testCase.steps.length) return "";
+    return `<ol class="journey-steps">${testCase.steps.map((step) => `<li>${esc(step)}</li>`).join("")}</ol>`;
+  }
+
   function renderOverviewRows(rows, showArea) {
     return rows.map((testCase) => {
       const caseVerdict = verdict(testCase.id);
@@ -773,7 +781,7 @@
         : '<span class="no-notes">No notes</span>';
       return `<div class="row overview-row ${quietlyResolved ? "done" : ""}">
         ${caseRid(testCase)}
-        <div class="scen"${testCase.journeyStep ? ` lang="${esc(locale)}"` : ""}>${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span>${journeyCaseContext(testCase)}</div>
+        <div class="scen"${testCase.journeyStep ? ` lang="${esc(locale)}"` : ""}>${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span>${journeyCaseSteps(testCase)}${journeyCaseContext(testCase)}</div>
         <div class="team-statuses" role="list" aria-label="${esc(testCase.id)} team verdicts">${statuses}</div>
         <div class="overview-note-summary">${noteSummary}</div>
       </div>`;
@@ -796,7 +804,7 @@
         : `<div class="note"><div class="readonly-note ${entry && entry.n ? "has-note" : ""}"><b>${esc(selected)}:</b> ${entry && entry.n ? esc(entry.n) : "No note recorded."}</div></div>`;
       return `<div class="row ${quietlyResolved ? "done" : ""}">
         ${caseRid(testCase)}
-        <div class="scen"${testCase.journeyStep ? ` lang="${esc(locale)}"` : ""}>${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span>${journeyCaseContext(testCase)}</div>
+        <div class="scen"${testCase.journeyStep ? ` lang="${esc(locale)}"` : ""}>${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span>${journeyCaseSteps(testCase)}${journeyCaseContext(testCase)}</div>
         ${controls}${note}
       </div>`;
     }).join("");

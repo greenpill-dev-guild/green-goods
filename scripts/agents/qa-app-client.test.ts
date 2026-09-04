@@ -807,7 +807,11 @@ async function journeyModeHarness() {
       },
       journeys: localizedJourney,
       cases: {
-        "ADM-001": { scenario: "Primero en español", steps: ["Primer paso"], expected: "Primer resultado" },
+        "ADM-001": {
+          scenario: "Primero en español",
+          steps: ["Primer paso", "Segundo paso detallado"],
+          expected: "Primer resultado",
+        },
         "PWA-001": { scenario: "Segundo en español", steps: ["Segundo paso"], expected: "Segundo resultado" },
         "ADM-002": { scenario: "Tercero en español", steps: ["Tercer paso"], expected: "Tercer resultado" },
       },
@@ -946,6 +950,12 @@ async function journeyModeHarness() {
     assert.equal(document.querySelector(".scen")?.textContent.includes("Primero en español"), true);
     assert.equal(document.querySelector(".scen")?.textContent.includes("Primer resultado"), true);
     assert.equal(document.querySelector(".scen")?.getAttribute("lang"), "es");
+    const firstJourneySteps = document.querySelector(".journey-steps");
+    assert.equal(firstJourneySteps?.tagName, "OL");
+    assert.deepEqual(
+      [...firstJourneySteps.querySelectorAll("li")].map((node) => node.textContent),
+      ["Primer paso", "Segundo paso detallado"],
+    );
     assert.deepEqual(
       [...document.querySelectorAll("h2.area")].map((node) => node.textContent),
       ["Preparar · 1", "Entregar · 2"],
@@ -1032,6 +1042,7 @@ async function journeyModeHarness() {
 
     document.querySelector('[data-sort="walk"]')?.click();
     assert.equal(document.querySelector("#qa-journey-select"), null);
+    assert.equal(document.querySelector(".journey-steps"), null);
     assert.equal(document.querySelector(".scen")?.textContent.includes("Third"), true);
     assert.equal(document.querySelector(".scen")?.textContent.includes("Terceiro em português"), false);
     assert.deepEqual(

@@ -451,6 +451,23 @@ test("QA app UI changes require rendered browser proof for readiness", () => {
   assert.equal(plan.budget.manualSeconds, 90);
 });
 
+test("QA locale changes require catalog tests and rendered browser proof", () => {
+  for (const locale of ["en", "es", "pt"]) {
+    const plan = selectValidation({
+      intent: "merge",
+      ci: true,
+      changedPaths: [`packages/qa/locales/${locale}.json`],
+    });
+    const browserProof = plan.checks.find((check) => check.id === "browser-proof");
+    const agentTools = plan.checks.find((check) => check.id === "agent-tools-test");
+
+    assert.ok(browserProof, `${locale} must select browser proof`);
+    assert.ok(agentTools, `${locale} must select QA catalog tests`);
+    assert.ok(browserProof.selectedBy.includes("conditional:browser-proof"));
+    assert.ok(agentTools.selectedBy.includes("conditional:agent-tools-test"));
+  }
+});
+
 test("routing changes add the package build in QA", () => {
   const plan = selectValidation({
     intent: "qa",
