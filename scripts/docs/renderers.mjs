@@ -343,7 +343,9 @@ export function renderQaCatalog({ root, sources, digest }) {
             .map((laneId) => lanes.get(laneId)?.label ?? laneId)
             .join(", ");
           const roles = `Act: ${esc(lead)}${verify ? `; verify: ${esc(verify)}` : ""}`;
-          return `${stepNumber}. \`${esc(step.caseId)}\` — ${roles}`;
+          const handoff = step.handoff ? `\n   - **Handoff:** ${esc(step.handoff)}` : "";
+          const knownGate = step.knownGate ? `\n   - **Known gate:** ${esc(step.knownGate)}` : "";
+          return `${stepNumber}. \`${esc(step.caseId)}\` — ${roles}${handoff}${knownGate}`;
         });
         body += `**${esc(phase.label)}**\n\n${renderedSteps.join("\n")}\n\n`;
       }

@@ -252,6 +252,43 @@ test("persona surfaces consume the PWA and admin canvas route authorities", () =
   assert.match(rendered, /Admin canvas route segments[^\n]*`hub`/);
 });
 
+test("guided journeys keep each handoff and known gate beside its Test ID", () => {
+  const projection = createProjections(REPO_ROOT).find(
+    (item) => item.output === "docs/docs/builders/quality/test-cases.mdx",
+  );
+  assert.ok(projection);
+  const rendered = renderProjection(REPO_ROOT, projection);
+  const catalog = readJson(REPO_ROOT, "scripts/data/qa-test-catalog.json");
+  const escapeMarkdown = (value) => String(value).replaceAll("|", "\\|").replaceAll("`", "&#96;");
+
+  for (const journey of catalog.journeys) {
+    let stepNumber = 0;
+    for (const [index, step] of journey.steps.entries()) {
+      stepNumber += 1;
+      const start = rendered.indexOf(`${stepNumber}. \`${step.caseId}\``);
+      assert.notEqual(start, -1, `${step.caseId} must be rendered in journey order`);
+      const nextStep = journey.steps[index + 1];
+      const nextStart = nextStep
+        ? rendered.indexOf(`${stepNumber + 1}. \`${nextStep.caseId}\``, start)
+        : rendered.indexOf("\n### ", start);
+      const section = rendered.slice(start, nextStart === -1 ? undefined : nextStart);
+
+      if (step.handoff) {
+        assert.ok(
+          section.includes(`- **Handoff:** ${escapeMarkdown(step.handoff)}`),
+          `${step.caseId} must retain its handoff`,
+        );
+      }
+      if (step.knownGate) {
+        assert.ok(
+          section.includes(`- **Known gate:** ${escapeMarkdown(step.knownGate)}`),
+          `${step.caseId} must retain its known gate`,
+        );
+      }
+    }
+  }
+});
+
 test("task routing projects public ownership and one-way synchronization", () => {
   const projection = createProjections(REPO_ROOT).find(
     (item) => item.output === "docs/docs/builders/agentic/task-routing.mdx",

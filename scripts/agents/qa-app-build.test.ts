@@ -312,7 +312,7 @@ describe("QA app build", () => {
     // A retired case on a run sheet is a tester walking a scenario we removed.
     for (const testCase of built.cases) expect(retired.has(testCase.id)).toBe(false);
     expect(Object.keys(built.cases[0]).sort()).toEqual(
-      ["area", "expected", "id", "pri", "rd", "rp", "scenario", "steps", "tab", "tx"],
+      ["area", "expected", "id", "preconditions", "pri", "rd", "role", "rp", "scenario", "steps", "tab", "tx"],
     );
     expect(built.journeys.map((journey: { id: string }) => journey.id)).toEqual([
       "service-relay",
@@ -335,9 +335,17 @@ describe("QA app build", () => {
     for (const locale of Object.values(built.locales) as Array<{
       ui: Record<string, string>;
       journeys: Record<string, unknown>;
-      cases: Record<string, { scenario: string; steps: string[]; expected: string }>;
+      cases: Record<string, {
+        scenario: string;
+        preconditions: string[];
+        steps: string[];
+        expected: string;
+        role: string;
+      }>;
     }>) {
       expect(locale.ui.journey.trim()).not.toBe("");
+      expect(locale.ui.caseRole.trim()).not.toBe("");
+      expect(locale.ui.preconditions.trim()).not.toBe("");
       expect(locale.ui.roleRequirements.trim()).not.toBe("");
       expect(Object.keys(locale.journeys).sort()).toEqual([
         "protocol-treasury-top-up",
@@ -346,8 +354,28 @@ describe("QA app build", () => {
       expect(Object.keys(locale.cases).sort()).toEqual([...journeyCaseIds].sort());
       for (const copy of Object.values(locale.cases)) {
         expect(copy.scenario.trim()).not.toBe("");
+        expect(copy.preconditions.every((item) => item.trim().length > 0)).toBe(true);
         expect(copy.steps.every((step) => step.trim().length > 0)).toBe(true);
         expect(copy.expected.trim()).not.toBe("");
+        expect(copy.role.trim()).not.toBe("");
+      }
+    }
+    const builtById = new Map(built.cases.map((testCase: { id: string }) => [testCase.id, testCase]));
+    expect(builtById.get("ADM-038").preconditions).toContain(
+      "The test Garden commitment pool is ready",
+    );
+    expect(builtById.get("ADM-043").preconditions).toContain(
+      "The destination Garden Safe is known",
+    );
+    expect(builtById.get("ADM-045").preconditions).toContain(
+      "The destination Garden and amount are explicitly authorized",
+    );
+    expect(builtById.get("ADM-045").role).toBe("steward");
+    for (const locale of Object.values(built.locales) as Array<{
+      cases: Record<string, { preconditions: string[] }>;
+    }>) {
+      for (const [caseId, copy] of Object.entries(locale.cases)) {
+        expect(copy.preconditions).toHaveLength(builtById.get(caseId).preconditions.length);
       }
     }
   });

@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:73426fcb576289729b2a7a0f3297f6e7ac4d8a186cc4a1a9ff59ea1b80628f97"
+source_digest: "sha256:51540840bb8f3bec737fcbec04746d0d8ed8c81495290fe3e95d7a35b1beb172"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -67,36 +67,50 @@ Two people follow a protocol Request from the Green Goods pool through Garden de
 **Prepare**
 
 1. `ADM-037` — Act: Protocol & review; verify: Garden & member
+   - **Handoff:** Wait until the Garden member can see the starting assessment.
 2. `PWA-046` — Act: Garden & member
 3. `ADM-038` — Act: Protocol & review; verify: Garden & member
+   - **Handoff:** Both people confirm the same Garden and open cycle are visible; the assessment is context, not a prerequisite.
 
 **Protocol asks**
 
 4. `ADM-039` — Act: Protocol & review; verify: Garden & member
+   - **Handoff:** Wait until the Request appears in the protocol pool for the Garden member.
 5. `PWA-047` — Act: Garden & member; verify: Protocol & review
+   - **Handoff:** The protocol reviewer waits for the pending Garden claim before accepting it.
 6. `ADM-040` — Act: Protocol & review; verify: Garden & member
+   - **Handoff:** Both people verify the Request remains in the protocol pool and names the Garden as provider.
 
 **Garden delivers**
 
 7. `PWA-048` — Act: Garden & member; verify: Protocol & review
+   - **Handoff:** The reviewer waits until the linked Work and evidence are visible before deciding.
 8. `ADM-041` — Act: Protocol & review
 9. `ADM-042` — Act: Protocol & review; verify: Garden & member
+   - **Handoff:** Both people verify the approved Request is Fulfilled before moving to compensation.
 
 **Garden earns**
 
 10. `ADM-043` — Act: Protocol & review; verify: Garden & member
+   - **Handoff:** The Garden member verifies the destination Garden Safe or its readiness state.
+   - **Known gate:** Protocol-to-Garden G$ settlement requires enabled settlement UI and value authority. If either is unavailable, record Blocked and continue with the non-value steps.
 
 **Garden distributes**
 
 11. `ADM-026` — Act: Protocol & review; verify: Garden & member
+   - **Handoff:** Wait until the separate local commitment appears in the open Garden Campaign.
 12. `PWA-049` — Act: Garden & member
 13. `PWA-050` — Act: Garden & member; verify: Protocol & review
+   - **Handoff:** The reviewer waits for the local Work and evidence before opening review.
 14. `ADM-012` — Act: Protocol & review
 15. `ADM-013` — Act: Protocol & review; verify: Garden & member
+   - **Handoff:** Both people verify the local commitment is complete and remains distinct from the protocol Request.
 
 **Member receives**
 
 16. `ADM-044` — Act: Protocol & review; verify: Garden & member
+   - **Handoff:** The Garden member verifies the receiving account or the visible readiness state.
+   - **Known gate:** Garden-to-member G$ settlement requires enabled contributor payout UI and value authority. If either is unavailable, record Blocked without changing the completed non-value workflow.
 
 ### Protocol treasury top-up
 
@@ -116,6 +130,8 @@ Check discretionary funding readiness, queue a ProtocolToGarden top-up when auth
 **Queue top-up**
 
 2. `ADM-045` — Act: Protocol & review; verify: Garden & member
+   - **Handoff:** The Garden steward verifies the destination Garden and balance; no commitment ID is involved.
+   - **Known gate:** Protocol treasury funding requires explicit value authority and a live ProtocolToGarden funding path. If unavailable, record Blocked and do not imply that funds moved.
 
 
 

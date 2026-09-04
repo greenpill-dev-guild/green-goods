@@ -720,9 +720,9 @@ async function journeyModeHarness() {
 
   const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
   const cases = [
-    { id: "ADM-002", tab: "Admin Dashboard", area: "Delivery", pri: "P0", scenario: "Third", steps: ["Third step"], expected: "Third result", rp: false, rd: false, tx: true },
-    { id: "PWA-001", tab: "PWA", area: "Claim", pri: "P0", scenario: "Second", steps: ["Second step"], expected: "Second result", rp: false, rd: false, tx: true },
-    { id: "ADM-001", tab: "Admin Dashboard", area: "Prepare", pri: "P1", scenario: "First", steps: ["First step"], expected: "First result", rp: false, rd: false, tx: true },
+    { id: "ADM-002", tab: "Admin Dashboard", area: "Delivery", pri: "P0", scenario: "Third", preconditions: ["Third condition"], steps: ["Third step"], expected: "Third result", role: "steward", rp: false, rd: false, tx: true },
+    { id: "PWA-001", tab: "PWA", area: "Claim", pri: "P0", scenario: "Second", preconditions: ["Second condition"], steps: ["Second step"], expected: "Second result", role: "gardener", rp: false, rd: false, tx: true },
+    { id: "ADM-001", tab: "Admin Dashboard", area: "Prepare", pri: "P1", scenario: "First", preconditions: ["First condition", "Shared cycle visible"], steps: ["First step"], expected: "First result", role: "steward", rp: false, rd: false, tx: true },
   ];
   const lanes = [
     { id: "review", label: "Protocol & review", role: "Protocol steward" },
@@ -798,6 +798,8 @@ async function journeyModeHarness() {
         act: "Actuar",
         verify: "Verificar",
         surface: "Superficie",
+        caseRole: "Rol requerido",
+        preconditions: "Antes de empezar",
         handoff: "Coordinación",
         knownGate: "Condición conocida",
         journeyRoles: "Roles del recorrido",
@@ -809,11 +811,13 @@ async function journeyModeHarness() {
       cases: {
         "ADM-001": {
           scenario: "Primero en español",
+          preconditions: ["Primera condición", "El ciclo compartido está visible"],
           steps: ["Primer paso", "Segundo paso detallado"],
           expected: "Primer resultado",
+          role: "Steward",
         },
-        "PWA-001": { scenario: "Segundo en español", steps: ["Segundo paso"], expected: "Segundo resultado" },
-        "ADM-002": { scenario: "Tercero en español", steps: ["Tercer paso"], expected: "Tercer resultado" },
+        "PWA-001": { scenario: "Segundo en español", preconditions: ["Segunda condición"], steps: ["Segundo paso"], expected: "Segundo resultado", role: "Miembro del Garden" },
+        "ADM-002": { scenario: "Tercero en español", preconditions: ["Tercera condición"], steps: ["Tercer paso"], expected: "Tercer resultado", role: "Steward" },
       },
     },
     pt: {
@@ -826,6 +830,8 @@ async function journeyModeHarness() {
         act: "Agir",
         verify: "Verificar",
         surface: "Superfície",
+        caseRole: "Papel necessário",
+        preconditions: "Antes de começar",
         handoff: "Passagem",
         knownGate: "Limitação conhecida",
         journeyRoles: "Papéis da jornada",
@@ -853,9 +859,9 @@ async function journeyModeHarness() {
         },
       },
       cases: {
-        "ADM-001": { scenario: "Primeiro em português", steps: ["Primeiro passo"], expected: "Primeiro resultado" },
-        "PWA-001": { scenario: "Segundo em português", steps: ["Segundo passo"], expected: "Segundo resultado" },
-        "ADM-002": { scenario: "Terceiro em português", steps: ["Terceiro passo"], expected: "Terceiro resultado" },
+        "ADM-001": { scenario: "Primeiro em português", preconditions: ["Primeira condição", "O ciclo compartilhado está visível"], steps: ["Primeiro passo"], expected: "Primeiro resultado", role: "Steward" },
+        "PWA-001": { scenario: "Segundo em português", preconditions: ["Segunda condição"], steps: ["Segundo passo"], expected: "Segundo resultado", role: "Pessoa integrante do Garden" },
+        "ADM-002": { scenario: "Terceiro em português", preconditions: ["Terceira condição"], steps: ["Terceiro passo"], expected: "Terceiro resultado", role: "Steward" },
       },
     },
   };
@@ -950,8 +956,20 @@ async function journeyModeHarness() {
     assert.equal(document.querySelector(".scen")?.textContent.includes("Primero en español"), true);
     assert.equal(document.querySelector(".scen")?.textContent.includes("Primer resultado"), true);
     assert.equal(document.querySelector(".scen")?.getAttribute("lang"), "es");
+    const firstJourneyPrerequisites = document.querySelector(".journey-prerequisites");
+    assert.equal(firstJourneyPrerequisites?.textContent.includes("Antes de empezar"), true);
+    assert.equal(firstJourneyPrerequisites?.textContent.includes("Rol requerido: Steward"), true);
+    assert.deepEqual(
+      [...firstJourneyPrerequisites.querySelectorAll(".journey-preconditions li")].map((node) => node.textContent),
+      ["Primera condición", "El ciclo compartido está visible"],
+    );
     const firstJourneySteps = document.querySelector(".journey-steps");
     assert.equal(firstJourneySteps?.tagName, "OL");
+    assert.ok(
+      firstJourneyPrerequisites.compareDocumentPosition(firstJourneySteps)
+        & dom.window.Node.DOCUMENT_POSITION_FOLLOWING,
+      "the prerequisites must appear before authored actions",
+    );
     assert.deepEqual(
       [...firstJourneySteps.querySelectorAll("li")].map((node) => node.textContent),
       ["Primer paso", "Segundo paso detallado"],
@@ -1019,6 +1037,8 @@ async function journeyModeHarness() {
     assert.equal(document.querySelector(".scen")?.textContent.includes("Primeiro em português"), true);
     assert.equal(document.querySelector(".scen")?.textContent.includes("Primeiro resultado"), true);
     assert.equal(document.querySelector(".scen")?.getAttribute("lang"), "pt");
+    assert.equal(document.querySelector(".journey-prerequisites")?.textContent.includes("Antes de começar"), true);
+    assert.equal(document.querySelector(".journey-preconditions")?.textContent.includes("Primeira condição"), true);
     assert.equal(dom.window.localStorage.getItem("qa-locale"), "pt");
 
     const mobileRules = [...document.styleSheets[0].cssRules]
@@ -1042,6 +1062,7 @@ async function journeyModeHarness() {
 
     document.querySelector('[data-sort="walk"]')?.click();
     assert.equal(document.querySelector("#qa-journey-select"), null);
+    assert.equal(document.querySelector(".journey-prerequisites"), null);
     assert.equal(document.querySelector(".journey-steps"), null);
     assert.equal(document.querySelector(".scen")?.textContent.includes("Third"), true);
     assert.equal(document.querySelector(".scen")?.textContent.includes("Terceiro em português"), false);

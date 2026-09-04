@@ -24,6 +24,7 @@ const localeUiKeys = [
   "act",
   "allParts",
   "allSurfaces",
+  "caseRole",
   "handoff",
   "journey",
   "journeyRoles",
@@ -31,6 +32,7 @@ const localeUiKeys = [
   "language",
   "orderJourney",
   "part",
+  "preconditions",
   "roleRequirements",
   "surface",
   "verify",
@@ -44,8 +46,10 @@ function projectCase(testCase) {
     area: testCase.area,
     pri: testCase.priority,
     scenario: testCase.scenario,
+    preconditions: testCase.preconditions,
     steps: testCase.steps,
     expected: testCase.expected,
+    role: testCase.role,
     rp: Boolean(testCase.requiresProduction),
     rd: Boolean(testCase.requiresDevice),
     tx: Boolean(testCase.tags?.includes("tx")),
@@ -54,20 +58,31 @@ function projectCase(testCase) {
 
 function projectLocaleCase(localeCode, source, translated) {
   const prefix = `locale '${localeCode}' case '${source.id}'`;
-  requireExactKeys(translated, ["scenario", "steps", "expected"], prefix);
+  requireExactKeys(translated, ["scenario", "preconditions", "steps", "expected", "role"], prefix);
+  if (
+    !Array.isArray(translated.preconditions)
+    || translated.preconditions.length !== source.preconditions.length
+  ) {
+    throw new Error(`qa build: ${prefix} preconditions must match the canonical count`);
+  }
   if (!Array.isArray(translated.steps) || translated.steps.length !== source.steps.length) {
     throw new Error(`qa build: ${prefix} steps must match the canonical step count`);
   }
   const projected = {
     scenario: requireText(translated.scenario, `${prefix} scenario`),
+    preconditions: translated.preconditions.map((item, index) =>
+      requireText(item, `${prefix} precondition ${index + 1}`)),
     steps: translated.steps.map((step, index) => requireText(step, `${prefix} step ${index + 1}`)),
     expected: requireText(translated.expected, `${prefix} expected`),
+    role: requireText(translated.role, `${prefix} role`),
   };
   if (localeCode === "en") {
     const canonical = {
       scenario: source.scenario,
+      preconditions: source.preconditions,
       steps: source.steps,
       expected: source.expected,
+      role: source.role,
     };
     if (JSON.stringify(projected) !== JSON.stringify(canonical)) {
       throw new Error(`qa build: ${prefix} must match the canonical catalog`);

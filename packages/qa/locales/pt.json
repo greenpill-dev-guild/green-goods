@@ -9,6 +9,8 @@
     "act": "Agir",
     "verify": "Verificar",
     "surface": "Superfície",
+    "caseRole": "Papel necessário",
+    "preconditions": "Antes de começar",
     "handoff": "Passagem",
     "knownGate": "Limitação conhecida",
     "journeyRoles": "Papéis da jornada",
@@ -19,6 +21,7 @@
   "cases": {
     "ADM-012": {
       "scenario": "O fluxo completo de decisão da revisão termina com as ações visíveis",
+      "preconditions": ["Sessão de Steward; pelo menos um envio pendente no Garden selecionado"],
       "steps": [
         "Abra /hub/work",
         "Abra uma entrega pendente",
@@ -28,10 +31,12 @@
         "Rejeite ou aprove",
         "Confirme que a fila foi atualizada"
       ],
-      "expected": "O fluxo completo de decisão funciona e as ações de confirmar ou cancelar nunca ficam ocultas em uma área de rolagem cortada"
+      "expected": "O fluxo completo de decisão funciona e as ações de confirmar ou cancelar nunca ficam ocultas em uma área de rolagem cortada",
+      "role": "Steward"
     },
     "ADM-013": {
       "scenario": "A confirmação do compromisso informa quem e o que será afetado antes da confirmação",
+      "preconditions": ["Sessão de Steward; pelo menos uma confirmação de compromisso pendente"],
       "steps": [
         "Abra /hub/confirm",
         "Abra um compromisso",
@@ -39,10 +44,12 @@
         "Confirme ou recuse",
         "Abra novamente depois de uma mudança externa para testar dados desatualizados"
       ],
-      "expected": "As consequências são apresentadas antes da ação, os dados desatualizados são tratados com clareza e o estado resultante fica visível"
+      "expected": "As consequências são apresentadas antes da ação, os dados desatualizados são tratados com clareza e o estado resultante fica visível",
+      "role": "Steward"
     },
     "ADM-014": {
       "scenario": "Os estados, a criação e os detalhes do console do pool são coerentes",
+      "preconditions": ["Sessão de Steward; Garden com um pool"],
       "steps": [
         "Abra /garden/pool",
         "Confira o estado de financiamento e preparação",
@@ -50,49 +57,74 @@
         "Abra os detalhes de um compromisso",
         "Cancele com segurança"
       ],
-      "expected": "Os estados são claros, ações destrutivas ou onchain exigem revisão e o cancelamento preserva o estado"
+      "expected": "Os estados são claros, ações destrutivas ou onchain exigem revisão e o cancelamento preserva o estado",
+      "role": "Steward"
     },
     "ADM-026": {
       "scenario": "Crie um compromisso: assistente de 4 etapas, confirmadores identificados, revisão e criação na fila",
+      "preconditions": ["O pool do Garden está aberto"],
       "steps": [
         "Conclua o assistente de criação de 4 etapas",
         "Adicione confirmadores identificados, incluindo um endereço incorreto",
         "Revise, coloque na fila e acompanhe a linha em espera"
       ],
-      "expected": "As etapas validam; um endereço de confirmador incorreto ou duplicado é rejeitado de forma visível (atualmente nada acontece); a revisão vem antes da fila e a linha aparece antes da atualização do indexador"
+      "expected": "As etapas validam; um endereço de confirmador incorreto ou duplicado é rejeitado de forma visível (atualmente nada acontece); a revisão vem antes da fila e a linha aparece antes da atualização do indexador",
+      "role": "Steward"
     },
     "ADM-037": {
       "scenario": "Registre uma avaliação inicial para o Garden de teste",
+      "preconditions": [
+        "Sessão iniciada com a wallet autorizada de Tester A",
+        "Tester A pode avaliar o Garden de teste"
+      ],
       "steps": [
         "Selecione o Garden de teste e inicie uma avaliação",
         "Registre o contexto inicial do Garden com detalhes suficientes para Tester B reconhecê-lo",
         "Revise e envie a avaliação",
         "Espere a avaliação enviada aparecer no Garden"
       ],
-      "expected": "A avaliação fica registrada no Garden de teste e aparece como contexto inicial, sem ser descrita como requisito para abrir uma Temporada ou Campanha"
+      "expected": "A avaliação fica registrada no Garden de teste e aparece como contexto inicial, sem ser descrita como requisito para abrir uma Temporada ou Campanha",
+      "role": "Steward"
     },
     "PWA-046": {
       "scenario": "A pessoa integrante do Garden consegue ler a avaliação inicial",
+      "preconditions": [
+        "Sessão iniciada com a wallet autorizada de Tester B",
+        "Tester B é uma pessoa integrante do Garden de teste",
+        "ADM-037 está concluído"
+      ],
       "steps": [
         "Abra o Garden de teste",
         "Abra o histórico de avaliações",
         "Encontre a avaliação inicial registrada por Tester A",
         "Leia detalhes suficientes para confirmar que ela pertence a este ciclo de QA"
       ],
-      "expected": "A mesma avaliação inicial pode ser lida na experiência do Garden e é apresentada como contexto, não como uma limitação do ciclo"
+      "expected": "A mesma avaliação inicial pode ser lida na experiência do Garden e é apresentada como contexto, não como uma limitação do ciclo",
+      "role": "Pessoa integrante do Garden"
     },
     "ADM-038": {
       "scenario": "Abra a Temporada e a Campanha de teste independentemente do estado da avaliação",
+      "preconditions": [
+        "Sessão iniciada com a wallet autorizada de Tester A",
+        "Tester A é Steward do Garden de teste",
+        "O pool de compromissos do Garden de teste está pronto"
+      ],
       "steps": [
         "Abra a configuração do pool do Garden de teste",
         "Crie ou selecione a Temporada de QA",
         "Abra uma Campanha para o revezamento de compromissos",
         "Confirme que o ciclo aberto está visível antes de criar compromissos"
       ],
-      "expected": "A Temporada e a Campanha abrem mesmo que a avaliação inicial ainda não tenha terminado de ser indexada; a avaliação continua sendo contextual"
+      "expected": "A Temporada e a Campanha abrem mesmo que a avaliação inicial ainda não tenha terminado de ser indexada; a avaliação continua sendo contextual",
+      "role": "Steward"
     },
     "ADM-039": {
       "scenario": "Crie no protocolo uma Solicitação de serviço concreto que exija aprovação",
+      "preconditions": [
+        "Sessão iniciada com a wallet autorizada de Tester A",
+        "Tester A é Steward do protocolo",
+        "O pool do protocolo tem um ciclo aberto"
+      ],
       "steps": [
         "Abra o pool do protocolo Green Goods",
         "Crie uma Solicitação que indique um serviço concreto e evidências claras",
@@ -100,30 +132,48 @@
         "Revise e envie a Solicitação",
         "Espere a Solicitação aparecer no pool do protocolo"
       ],
-      "expected": "Uma Solicitação sujeita a aprovação aparece no pool do protocolo com o serviço, as evidências e as expectativas de confirmação intactos"
+      "expected": "Uma Solicitação sujeita a aprovação aparece no pool do protocolo com o serviço, as evidências e as expectativas de confirmação intactos",
+      "role": "Steward"
     },
     "PWA-047": {
       "scenario": "Reivindique a Solicitação do protocolo para o Garden de teste",
+      "preconditions": [
+        "Sessão iniciada com a wallet autorizada de Tester B",
+        "Tester B é Steward do Garden de teste",
+        "ADM-039 está concluído"
+      ],
       "steps": [
         "Abra a Solicitação do protocolo",
         "Escolha assumi-la para o Garden de teste",
         "Revise a identidade do Garden e envie a reivindicação",
         "Espere a reivindicação aparecer como pendente de aprovação"
       ],
-      "expected": "A reivindicação fica pendente para o Garden de teste; ela não é apresentada como pessoal e a Solicitação não sai do pool do protocolo"
+      "expected": "A reivindicação fica pendente para o Garden de teste; ela não é apresentada como pessoal e a Solicitação não sai do pool do protocolo",
+      "role": "Steward"
     },
     "ADM-040": {
       "scenario": "Aceite a reivindicação institucional do Garden de teste",
+      "preconditions": [
+        "Sessão iniciada com a wallet autorizada de Tester A",
+        "Tester A é Steward do protocolo",
+        "PWA-047 está concluído"
+      ],
       "steps": [
         "Abra as reivindicações pendentes da Solicitação do protocolo",
         "Identifique a reivindicação do Garden de teste",
         "Aceite a reivindicação do Garden",
         "Abra novamente a Solicitação depois que o estado for atualizado"
       ],
-      "expected": "A reivindicação passa a Aceita, o Garden é o prestador institucional e a Solicitação original permanece no pool do protocolo"
+      "expected": "A reivindicação passa a Aceita, o Garden é o prestador institucional e a Solicitação original permanece no pool do protocolo",
+      "role": "Steward"
     },
     "PWA-048": {
       "scenario": "Envie o Trabalho e as evidências para a Solicitação original do protocolo",
+      "preconditions": [
+        "Sessão iniciada com a wallet autorizada de Tester B",
+        "Tester B é a pessoa responsável pela entrega e contribui para o Garden de teste",
+        "ADM-040 está concluído"
+      ],
       "steps": [
         "Abra a Solicitação Aceita do protocolo",
         "Inicie ou vincule o Trabalho realizado para o serviço",
@@ -131,30 +181,48 @@
         "Envie o Trabalho",
         "Volte à Solicitação e confirme que o Trabalho está vinculado"
       ],
-      "expected": "O Trabalho e as evidências de Tester B ficam vinculados à Solicitação original do pool do protocolo enquanto o Garden de teste continua sendo o prestador responsável"
+      "expected": "O Trabalho e as evidências de Tester B ficam vinculados à Solicitação original do pool do protocolo enquanto o Garden de teste continua sendo o prestador responsável",
+      "role": "Pessoa integrante do Garden"
     },
     "ADM-041": {
       "scenario": "Aprove o Trabalho vinculado à Solicitação do protocolo sem entrar na lista de contribuintes",
+      "preconditions": [
+        "Sessão iniciada com a wallet autorizada de Tester A",
+        "Tester A pode revisar o Garden de teste, mas não contribui",
+        "PWA-048 está concluído"
+      ],
       "steps": [
         "Abra o Trabalho pendente vinculado à Solicitação do protocolo",
         "Confira as evidências de Tester B e o contexto do Garden",
         "Aprove o Trabalho",
         "Confirme que o estado da revisão foi atualizado sem adicionar Tester A como contribuinte"
       ],
-      "expected": "Uma pessoa revisora independente aprova o Trabalho vinculado e Tester A permanece fora da lista de contribuintes"
+      "expected": "Uma pessoa revisora independente aprova o Trabalho vinculado e Tester A permanece fora da lista de contribuintes",
+      "role": "Steward"
     },
     "ADM-042": {
       "scenario": "Confirme a Solicitação do protocolo depois que o Trabalho for aprovado",
+      "preconditions": [
+        "Sessão iniciada com a wallet autorizada de Tester A",
+        "Tester A criou a Solicitação do protocolo",
+        "ADM-041 está concluído"
+      ],
       "steps": [
         "Abra a Solicitação do protocolo que aguarda confirmação",
         "Confirme que o Trabalho aprovado e as evidências estão indicados",
         "Confirme a conclusão como criador da Solicitação",
         "Abra novamente a Solicitação depois que o estado for atualizado"
       ],
-      "expected": "A Solicitação passa a Concluída com o Garden de teste ainda indicado como prestador e o Trabalho de Tester B preservado como evidência"
+      "expected": "A Solicitação passa a Concluída com o Garden de teste ainda indicado como prestador e o Trabalho de Tester B preservado como evidência",
+      "role": "Steward"
     },
     "ADM-043": {
       "scenario": "Liquide a compensação em G$ recebida pelo Garden a partir do protocolo",
+      "preconditions": [
+        "Sessão iniciada com a wallet autorizada de Tester A",
+        "ADM-042 está concluído",
+        "O Safe de destino do Garden é conhecido"
+      ],
       "steps": [
         "Abra a ação de liquidação da Solicitação Concluída do protocolo",
         "Confirme que o beneficiário é o Safe de destino do Garden",
@@ -162,20 +230,31 @@
         "Caso contrário, pare na limitação visível e registre Bloqueado",
         "Peça a Tester B para verificar o estado de destino"
       ],
-      "expected": "Quando habilitada, a compensação recebida é destinada ao Safe do Garden e o resultado fica visível; quando indisponível, a interface explica a limitação e não indica que houve movimentação de valor"
+      "expected": "Quando habilitada, a compensação recebida é destinada ao Safe do Garden e o resultado fica visível; quando indisponível, a interface explica a limitação e não indica que houve movimentação de valor",
+      "role": "Steward"
     },
     "PWA-049": {
       "scenario": "Assuma o compromisso local separado do Garden",
+      "preconditions": [
+        "Sessão iniciada com a wallet autorizada de Tester B",
+        "Tester B é uma pessoa integrante do Garden de teste",
+        "ADM-026 está concluído"
+      ],
       "steps": [
         "Abra a Campanha atual do Garden de teste",
         "Abra o compromisso local criado para a pessoa integrante",
         "Assuma o compromisso com a identidade de Tester B",
         "Confirme que a identidade dele é diferente da Solicitação do protocolo"
       ],
-      "expected": "Tester B assume um compromisso separado do pool do Garden; ele não é movido do pool do protocolo nem espelhado nele"
+      "expected": "Tester B assume um compromisso separado do pool do Garden; ele não é movido do pool do protocolo nem espelhado nele",
+      "role": "Pessoa integrante do Garden"
     },
     "PWA-050": {
       "scenario": "Envie o Trabalho e as evidências do compromisso local do Garden",
+      "preconditions": [
+        "Sessão iniciada com a wallet autorizada de Tester B",
+        "PWA-049 está concluído"
+      ],
       "steps": [
         "Abra o compromisso local do Garden",
         "Inicie ou vincule o Trabalho",
@@ -183,10 +262,16 @@
         "Envie o Trabalho",
         "Confirme que o Trabalho está vinculado ao compromisso local"
       ],
-      "expected": "O Trabalho e as evidências da pessoa integrante são enviados para o compromisso separado do Garden e ficam prontos para revisão independente"
+      "expected": "O Trabalho e as evidências da pessoa integrante são enviados para o compromisso separado do Garden e ficam prontos para revisão independente",
+      "role": "Pessoa integrante do Garden"
     },
     "ADM-044": {
       "scenario": "Liquide o pagamento do Garden para a pessoa integrante que contribuiu",
+      "preconditions": [
+        "Sessão iniciada com a wallet autorizada de Tester A",
+        "O compromisso local do Garden está concluído",
+        "A conta de recebimento de Tester B é conhecida"
+      ],
       "steps": [
         "Abra a ação de pagamento do compromisso local concluído do Garden",
         "Confirme que Tester B é a pessoa contribuinte que deve receber o pagamento",
@@ -194,10 +279,16 @@
         "Caso contrário, pare na limitação visível e registre Bloqueado",
         "Peça a Tester B para verificar o estado de recebimento"
       ],
-      "expected": "Quando habilitado, o Garden paga a pessoa integrante que contribuiu e o resultado fica visível; quando indisponível, a interface explica a limitação e mantém intacto o fluxo sem valor já concluído"
+      "expected": "Quando habilitado, o Garden paga a pessoa integrante que contribuiu e o resultado fica visível; quando indisponível, a interface explica a limitação e mantém intacto o fluxo sem valor já concluído",
+      "role": "Steward"
     },
     "ADM-045": {
       "scenario": "Coloque na fila uma recarga discricionária da tesouraria ProtocolToGarden",
+      "preconditions": [
+        "Sessão iniciada com a wallet autorizada de Tester A",
+        "ADM-014 confirmou que o financiamento está pronto",
+        "O Garden de destino e o valor foram autorizados explicitamente"
+      ],
       "steps": [
         "Abra a ação de financiamento da tesouraria do protocolo",
         "Escolha ProtocolToGarden e identifique o Garden de destino",
@@ -206,7 +297,8 @@
         "Caso contrário, pare na limitação visível e registre Bloqueado",
         "Peça a Tester B para verificar o saldo ou o estado de preparação do Garden"
       ],
-      "expected": "Quando autorizada e habilitada, a recarga entra na fila para o Garden correto e o saldo reflete o resultado; ela nunca substitui a compensação recebida nem faz referência a um compromisso"
+      "expected": "Quando autorizada e habilitada, a recarga entra na fila para o Garden correto e o saldo reflete o resultado; ela nunca substitui a compensação recebida nem faz referência a um compromisso",
+      "role": "Steward"
     }
   },
   "journeys": {

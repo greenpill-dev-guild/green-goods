@@ -322,7 +322,7 @@
     },
     {
       "check": "browser-proof",
-      "exact": ["packages/qa/index.html"],
+      "exact": ["packages/qa/index.html", "scripts/data/qa-test-catalog.json"],
       "prefixes": ["packages/qa/locales/"]
     },
     {

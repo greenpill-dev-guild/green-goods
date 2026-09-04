@@ -102,6 +102,10 @@
   .pri.p1 { color:var(--amber); background:var(--amber-wash); }
   .scen { font-size:13.5px; }
   .scen .why { display:block; font-size:11.5px; color:var(--soft); margin-top:1px; }
+  .journey-prerequisites { margin-top:6px; color:var(--ink); font-size:11.5px; line-height:1.45; }
+  .journey-case-role { margin:0; }
+  .journey-preconditions { margin:2px 0 0; padding-inline-start:20px; }
+  .journey-preconditions li + li { margin-top:2px; }
   .journey-steps { margin:6px 0 0; padding-inline-start:20px; color:var(--ink);
     font-size:11.5px; line-height:1.45; }
   .journey-steps li + li { margin-top:2px; }
@@ -761,6 +765,18 @@
     return `<ol class="journey-steps">${testCase.steps.map((step) => `<li>${esc(step)}</li>`).join("")}</ol>`;
   }
 
+  function journeyCasePrerequisites(testCase) {
+    if (!testCase.journeyStep) return "";
+    const preconditions = Array.isArray(testCase.preconditions) ? testCase.preconditions : [];
+    const items = preconditions.length
+      ? `<ul class="journey-preconditions">${preconditions.map((item) => `<li>${esc(item)}</li>`).join("")}</ul>`
+      : "";
+    return `<div class="journey-prerequisites">
+      <p class="journey-case-role"><b>${esc(uiText("caseRole", "Required role"))}:</b> ${esc(testCase.role)}</p>
+      ${items ? `<b>${esc(uiText("preconditions", "Before you start"))}:</b>${items}` : ""}
+    </div>`;
+  }
+
   function renderOverviewRows(rows, showArea) {
     return rows.map((testCase) => {
       const caseVerdict = verdict(testCase.id);
@@ -781,7 +797,7 @@
         : '<span class="no-notes">No notes</span>';
       return `<div class="row overview-row ${quietlyResolved ? "done" : ""}">
         ${caseRid(testCase)}
-        <div class="scen"${testCase.journeyStep ? ` lang="${esc(locale)}"` : ""}>${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span>${journeyCaseSteps(testCase)}${journeyCaseContext(testCase)}</div>
+        <div class="scen"${testCase.journeyStep ? ` lang="${esc(locale)}"` : ""}>${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span>${journeyCasePrerequisites(testCase)}${journeyCaseSteps(testCase)}${journeyCaseContext(testCase)}</div>
         <div class="team-statuses" role="list" aria-label="${esc(testCase.id)} team verdicts">${statuses}</div>
         <div class="overview-note-summary">${noteSummary}</div>
       </div>`;
@@ -804,7 +820,7 @@
         : `<div class="note"><div class="readonly-note ${entry && entry.n ? "has-note" : ""}"><b>${esc(selected)}:</b> ${entry && entry.n ? esc(entry.n) : "No note recorded."}</div></div>`;
       return `<div class="row ${quietlyResolved ? "done" : ""}">
         ${caseRid(testCase)}
-        <div class="scen"${testCase.journeyStep ? ` lang="${esc(locale)}"` : ""}>${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span>${journeyCaseSteps(testCase)}${journeyCaseContext(testCase)}</div>
+        <div class="scen"${testCase.journeyStep ? ` lang="${esc(locale)}"` : ""}>${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span>${journeyCasePrerequisites(testCase)}${journeyCaseSteps(testCase)}${journeyCaseContext(testCase)}</div>
         ${controls}${note}
       </div>`;
     }).join("");
