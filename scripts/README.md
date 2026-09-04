@@ -114,6 +114,7 @@ scripts/
 ### `contracts/` — contract audits + verification
 | Script | Caller | Purpose |
 |---|---|---|
+| `check-contract-lint.mjs` | `packages/contracts lint:check`, root `bun run lint`, production contract verifier | Run the pinned Foundry format check and Solhint through the repository's real-Node wrapper so nested Bun workspace scripts do not lose access to their temporary directory |
 | `check-foundry-version.mjs` | critical contract Push Gate, contracts format/lint wrappers, production verifier, Contracts CI | Require the exact Forge version pinned in `.mise.toml` before formatter-sensitive commands |
 | `check-foundry-version.test.mjs` | `bun run test:review-guardrails` | Fixture tests for the pinned Foundry version parser and comparison guard |
 | `check-test-realism.sh` | `contracts.yml`, `packages/contracts test:audit:realism` | Audit fork/E2E tests for mocks, generic reverts, CI skip-returns |
