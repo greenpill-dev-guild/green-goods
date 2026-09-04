@@ -4,7 +4,7 @@ sidebar_label: Product Experience QA
 slug: /builders/quality/product-experience-qa
 audience: developer
 owner: product
-last_verified: 2026-09-01
+last_verified: 2026-09-02
 feature_status: In progress
 source_of_truth:
   - AGENTS.md
@@ -50,8 +50,9 @@ complete; use N/A only when a case is intentionally outside the agreed scope:
 
 Two more places complete the picture:
 
-- The QA app orders cases by priority or area. [Test Cases](./test-cases) is the public catalog
-  behind it, adding each scenario's kind, area, and expected evidence — and
+- The QA app can follow the catalog by area (**Walk**), group it by urgency (**Priority**), or
+  choreograph a cross-surface flow (**Journey**). [Test Cases](./test-cases) is the public catalog
+  behind it, adding each scenario's kind, area, expected evidence, and guided journeys — and
   [how cases are added, changed, and retired](./test-cases#lifecycle).
 - Findings land in Linear after the call, while screenshots and recordings go to the private Drive
   QA folder. Linear, Drive, and staging links are shared in the private session charter rather than
@@ -78,6 +79,42 @@ However you enter a session — on a call, solo, or paired with an agent — the
 6. Hand deferred findings to the agent-run QA triage workflow — `qa-triage`, or the
    `qa-call-report` routine after a call — which files them in Linear as fix slices.
 
+## Walking one journey together
+
+Journey mode is for two people who need to meet at the same handoffs instead of splitting the app
+into unrelated surfaces. Both people select the same **Journey**. Tester A selects **Protocol &
+review**; Tester B selects **Garden & member**. **View** still chooses whose recorded results you
+are reading, while **Part** chooses which side of the workflow is relevant to you.
+
+Use two real, allowlisted wallets and keep the same identity from beginning to end. Tester A is the
+protocol steward and an independent steward or evaluator of the test Garden, but never joins either
+contributor roster. Tester B is a steward and member of that Garden, so they can claim for it and
+contribute the Work.
+
+| Phase | Tester A — Protocol & review | Tester B — Garden & member | Meet here |
+|---|---|---|---|
+| Prepare | Record a starting assessment, then open the test Season and one Campaign. | Read the assessment and confirm the open cycle is visible. | Both people see the same Garden and cycle. The assessment adds context; it is not a prerequisite. |
+| Protocol asks | Seed an approval-gated protocol Request, then accept B's Garden claim. | Open the Request and choose to take it up **for this Garden**. | The claim becomes Accepted. The Request stays in the protocol pool and names the Garden as provider. |
+| Garden delivers | Review B's linked Work and evidence, approve it, then confirm fulfillment as the Request creator. | As accountable lead, submit Work and evidence against the original protocol Request. | Approved Work makes the Request ready, then Fulfilled. A stays outside the contributor roster. |
+| Garden earns | Exercise the protocol-to-Garden earned payout step. | Verify the destination Garden Safe or its readiness state. | If settlement is unavailable, both record Blocked with the visible gate; nobody says value moved. |
+| Garden distributes | Seed a separate commitment in the open Garden Campaign, then review and confirm B's delivery. | Take up the local commitment and submit its Work and evidence. | This is a second record, not a moved or mirrored protocol Request. |
+| Member receives | Exercise the Garden-to-member contributor payout. | Verify the receiving account when the path is enabled. | If settlement is unavailable, record Blocked and keep the completed non-value workflow intact. |
+
+<figure>
+  <img src="/img/screenshots/qa-app-journey-view.jpg" alt="Synthetic QA app Journey view showing Prepare and Protocol asks phases, Admin and PWA surfaces, and explicit Act, Verify, and Handoff labels" loading="lazy" style={{maxWidth: '100%', borderRadius: 'var(--radius-md)', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+  <figcaption>Journey mode keeps the handoff in view: each row names the surface, who acts, and who verifies. This example uses the neutral synthetic identity Tester A.</figcaption>
+</figure>
+
+Think of the service relay as **two records, one treasury relay**. The protocol Request stays in the
+protocol pool while the Garden earns for delivering it. The Garden then creates its own commitment
+for the member who did the Work. A **Protocol treasury top-up** is different again: it is
+discretionary funding, carries no commitment ID, and never stands in for earned compensation.
+
+At every handoff, the acting person pauses until the receiving person can see the new state. If a
+case explicitly asks both people to verify the handoff, both may record their own verdict and note.
+A known gate is context, not an automatic verdict: try the step, record Blocked only when the gate
+is present, name what is missing, and continue with every remaining non-value step.
+
 ## The QA session
 
 A team session is a scheduled call where two or more people walk different surfaces at the same
@@ -88,8 +125,11 @@ opening it.
 
 - Confirm every tester's wallet is on the QA app allowlist and each person can sign in once — a
   five-minute smoke the day before saves twenty minutes of call time.
-- Pick the scope and split the surfaces. Walk priority-first (P0s before P1s), and where
-  possible each person tests surfaces they did not build.
+- Pick the scope. For a broad session, split the surfaces and walk priority-first (P0s before P1s).
+  For a shared flow, select one Journey and assign each person a Part; where possible, people test
+  work they did not build.
+- Keep one wallet identity and one product-role assignment for the whole Journey. Confirm both
+  people can see the test Garden before the first handoff.
 - Agree the write boundary up front: which funding and on-chain flows run end to end with real
   transactions, and which stop at the review step. The catalog's Transaction kind marks the
   cases this decision touches.
@@ -100,6 +140,9 @@ opening it.
 
 - Record a verdict and a short note per test case in the QA app as you walk. Screenshots and
   recordings go to the private Drive QA folder, never into public artifacts.
+- In Journey mode, wait for the receiving person to observe each handoff before moving on. Both
+  people record a verdict on cases explicitly shared for verification. If settlement is Blocked,
+  preserve that result and continue through the remaining non-value steps.
 - The meeting notes capture the discussion on their own; nobody takes minutes. Spend the last
   half hour walking the merged fail list together and aligning on the cross-surface calls —
   those decisions are the most valuable output of the call.
@@ -119,6 +162,8 @@ opening it.
   entries are then filtered to the call window by their timestamps), finds the call's Gemini notes
   in Drive, joins the two by Test ID, and clusters failures into at most eight fix slices — each
   sized for one branch and one PR.
+- `qa:report` derives the results-by-priority and results-by-kind blocks from that pulled session;
+  those numbers are pasted into the session record and never hand-counted.
 - It then enriches without blocking: the Vercel deploys live during the call, so every slice names
   the build under test; PostHog exceptions from the same window, per surface; and Sentry issues
   when that connector is wired. Finally it writes one `QA session YYYY-MM-DD` parent issue (a
@@ -147,6 +192,11 @@ Build under test: client `<sha>` · admin `<sha>`
 - P0: <walked>/<total> — <pass> pass · <fail> fail · <blocked> blocked · <na> n/a · <noted> noted only
 - P1: <walked>/<total> — …
 - P2: <walked>/<total> — …
+
+## Results by kind
+- Journey: <walked>/<total> — …
+- Transaction: <walked>/<total> — …
+- <one line per remaining catalog kind, in catalog order>
 
 ## Decisions from the call
 - <one ruling per line — drop the section when the call made none>

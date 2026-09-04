@@ -217,7 +217,7 @@ jobs:
           PLAN_REPORTS_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
         run: bun run check:immutable-plan-reports
 
-      - name: Check the QA Test ID ledger is append-only
+      - name: Check the QA Test ID lifecycle is append-only
         env:
           QA_LEDGER_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
         run: bun run check:qa-id-ledger

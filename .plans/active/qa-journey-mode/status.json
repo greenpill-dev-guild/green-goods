@@ -1,0 +1,169 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "qa-journey-mode",
+    "title": "QA Journey Mode",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-09-03T08:26:11Z",
+    "updated_at": "2026-09-03T23:21:34Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["ops", "docs"],
+    "work_types": ["implementation", "qa", "hardening"],
+    "surfaces": [
+      "packages/qa",
+      "scripts/agents",
+      "scripts/data/qa-test-catalog.json",
+      "scripts/data/qa-test-id-ledger.json",
+      "docs/docs/builders/quality"
+    ],
+    "depends_on_features": []
+  },
+  "notes": [
+    "The implementation is on feature/qa-journey-mode in PR #796.",
+    "Automated and single-browser rehearsal evidence is green; redeployment and the human two-wallet smoke remain release blockers.",
+    "No Linear mirror was requested for this repository-local QA tool change."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "completed",
+      "branch": "feature/qa-journey-mode",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "proof_limit",
+        "status": "green_recorded",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "bun --bun x vitest run scripts/agents/qa-state-pull.test.ts scripts/agents/qa-workbook-build.test.ts scripts/agents/qa-report.test.ts",
+          "evidence": "2026-09-03T08:30:25Z: Test Files 3 passed; Tests 93 passed. The focused run covered pull, workbook/catalog validation, and report regressions."
+        },
+        "note": "Journey Mode was implemented before this complete hub existed, so no trustworthy pre-implementation RED run can be reconstructed. Focused automated proof and visible browser evidence are recorded instead."
+      },
+      "skill_tags": ["ui", "qa", "accessibility"],
+      "manual_blocked": false
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Journey Mode consumes the existing test-ID keyed state and does not change persistence or API behavior."
+      },
+      "skill_tags": ["not-applicable"],
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No Solidity, ABI, deployment, upgrade, or onchain behavior changes."
+      },
+      "skill_tags": ["not-applicable"],
+      "manual_blocked": false
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "ready",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-09-03T08:26:11Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "approved",
+      "branch": null,
+      "note": "Approved Journey Mode for implementation."
+    },
+    {
+      "timestamp": "2026-09-03T08:26:11Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Completed the missing active hub after production review. Implementation and local proof are present; redeployment and two-wallet smoke remain pending."
+    },
+    {
+      "timestamp": "2026-09-03T08:30:30Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "completed",
+      "branch": null,
+      "note": "Recorded the focused review-fix proof accurately: 3 test files and 93 tests passed. The UI implementation and local proof are complete; deployment and the two-wallet smoke belong to qa_pass_1."
+    },
+    {
+      "timestamp": "2026-09-03T23:10:40Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "ready",
+      "branch": "feature/qa-journey-mode",
+      "note": "Marked the QA pass ready after its UI, state API, and contract dependencies reached terminal states. Redeployment and the two-wallet smoke remain this lane's release proof."
+    }
+  ]
+}

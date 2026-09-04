@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import { buildReportModel, parseArgs, parseWindow, renderReport, resultsNotes, runReport } from "./qa-report";
 import { mergeShards, type Shard } from "./qa-state";
+import { writePrivateArtifactSetAtomically } from "./qa-state-pull";
 import type { Catalog, CatalogCase } from "./qa-workbook-build";
 
 function makeCase(overrides: Partial<CatalogCase> = {}): CatalogCase {
@@ -420,6 +421,23 @@ describe("QA report review hardening", () => {
     expect(renderReport(built, { kinds: KINDS }, { variant: "public" })).toContain("Caveat: Window end clamped");
   });
 
+  it("rejects an invalid snapshot pull time or one before the window starts", () => {
+    expect(() =>
+      buildReportModel([makeCase()], mergeShards([]), {
+        slug: SLUG,
+        window: WINDOW,
+        pulledAt: "unknown",
+      }),
+    ).toThrow(/valid timestamp with a time zone/);
+    expect(() =>
+      buildReportModel([makeCase()], mergeShards([]), {
+        slug: SLUG,
+        window: WINDOW,
+        pulledAt: "2026-09-02T16:00:00.000Z",
+      }),
+    ).toThrow(/precedes the report window/);
+  });
+
   it("reports a baseline failure that was cleared without a pass instead of dropping it", () => {
     const cases = [makeCase(), makeCase({ id: "PUB-002" })];
     const previous = mergeShards([
@@ -473,6 +491,138 @@ describe("QA report review hardening", () => {
     const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
     await expect(runReport(parseArgs(["--slug", SLUG, "--out", "/elsewhere"]), { catalog, repoRoot: root })).rejects.toThrow(/tmp\//);
     await expect(runReport(parseArgs(["--slug", SLUG, "--out", "../outside"]), { catalog, repoRoot: root })).rejects.toThrow(/tmp\//);
+  });
+
+  it("refuses an output directory whose physical path escapes tmp through a symlink", async () => {
+    const root = mkdtempSync(path.join(tmpdir(), "qa-report-"));
+    const privateParent = path.join(root, "tmp", "qa-session");
+    const outside = path.join(root, "public-output");
+    mkdirSync(privateParent, { recursive: true });
+    mkdirSync(outside);
+    symlinkSync(outside, path.join(privateParent, SLUG), "dir");
+    writeFileSync(
+      path.join(outside, "qa-state.json"),
+      JSON.stringify({ slug: SLUG, pulledAt: PULLED_AT, entries: {} }),
+    );
+    const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
+
+    await expect(runReport(parseArgs(["--slug", SLUG]), { catalog, repoRoot: root })).rejects.toThrow(/must resolve under/);
+    expect(existsSync(path.join(outside, "report.md"))).toBe(false);
+  });
+
+  it("atomically replaces a report symlink without overwriting its target", async () => {
+    const root = mkdtempSync(path.join(tmpdir(), "qa-report-"));
+    const sessionDir = path.join(root, "tmp", "qa-session", SLUG);
+    const outside = path.join(root, "public-report.md");
+    mkdirSync(sessionDir, { recursive: true });
+    writeFileSync(
+      path.join(sessionDir, "qa-state.json"),
+      JSON.stringify({ slug: SLUG, pulledAt: PULLED_AT, entries: {} }),
+    );
+    writeFileSync(outside, "do not overwrite");
+    symlinkSync(outside, path.join(sessionDir, "report.md"));
+    const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
+
+    const written = await runReport(parseArgs(["--slug", SLUG]), { catalog, repoRoot: root });
+
+    expect(readFileSync(outside, "utf8")).toBe("do not overwrite");
+    expect(lstatSync(written.report).isSymbolicLink()).toBe(false);
+    expect(readFileSync(written.report, "utf8")).toContain(`QA session ${SLUG}`);
+  });
+
+  it("rejects a pulled state from another session before writing", async () => {
+    const root = mkdtempSync(path.join(tmpdir(), "qa-report-"));
+    const sessionDir = path.join(root, "tmp", "qa-session", SLUG);
+    mkdirSync(sessionDir, { recursive: true });
+    writeFileSync(
+      path.join(sessionDir, "qa-state.json"),
+      JSON.stringify({ slug: "2026-09-01", pulledAt: PULLED_AT, entries: {} }),
+    );
+    const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
+
+    await expect(runReport(parseArgs(["--slug", SLUG]), { catalog, repoRoot: root })).rejects.toThrow(/different session slug/);
+    expect(existsSync(path.join(sessionDir, "report.md"))).toBe(false);
+  });
+
+  it("refuses to report while qa:pull is replacing the session artifacts", async () => {
+    const root = mkdtempSync(path.join(tmpdir(), "qa-report-"));
+    const sessionDir = path.join(root, "tmp", "qa-session", SLUG);
+    mkdirSync(sessionDir, { recursive: true });
+    writeFileSync(
+      path.join(sessionDir, "qa-state.json"),
+      JSON.stringify({ slug: SLUG, pulledAt: PULLED_AT, entries: {} }),
+    );
+    writeFileSync(path.join(sessionDir, "results.csv"), "Test ID,Result,Severity,Notes\n");
+    writeFileSync(path.join(sessionDir, ".qa-pull-in-progress"), "generation\n");
+    const catalog: Catalog = {
+      version: 2,
+      tabs: ["Public Website"],
+      kinds: KINDS,
+      statuses: [],
+      cases: [makeCase()],
+    };
+
+    await expect(runReport(parseArgs(["--slug", SLUG]), { catalog, repoRoot: root })).rejects.toThrow(
+      /already locked/i,
+    );
+    expect(existsSync(path.join(sessionDir, "report.md"))).toBe(false);
+  });
+
+  it("holds the session lock from snapshot verification through report publication", async () => {
+    const root = mkdtempSync(path.join(tmpdir(), "qa-report-"));
+    const sessionDir = path.join(root, "tmp", "qa-session", SLUG);
+    mkdirSync(sessionDir, { recursive: true });
+    const oldState = JSON.stringify({
+      slug: SLUG,
+      pulledAt: PULLED_AT,
+      entries: { "PUB-001": { Afo: { s: "fail", n: "old generation", at: IN_WINDOW } } },
+    });
+    const oldResults = 'Test ID,Result,Severity,Notes\nPUB-001,Fail,,"Afo: old generation"\n';
+    writeFileSync(path.join(sessionDir, "qa-state.json"), oldState);
+    writeFileSync(path.join(sessionDir, "results.csv"), oldResults);
+    const catalog: Catalog = {
+      version: 2,
+      tabs: ["Public Website"],
+      kinds: KINDS,
+      statuses: [],
+      cases: [makeCase()],
+    };
+    let replacementAttempted = false;
+    let replacementError: unknown;
+
+    const written = await runReport(parseArgs(["--slug", SLUG, "--window", "2026-09-02T17:45:00Z..2026-09-02T19:30:00Z"]), {
+      catalog,
+      repoRoot: root,
+      afterSnapshotVerified() {
+        replacementAttempted = true;
+        try {
+          writePrivateArtifactSetAtomically(
+            sessionDir,
+            {
+              "results.csv": "Test ID,Result,Severity,Notes\nPUB-001,Pass,,new generation\n",
+              "qa-state.json": JSON.stringify({
+                slug: SLUG,
+                pulledAt: PULLED_AT,
+                entries: { "PUB-001": { Afo: { s: "pass", n: "new generation", at: IN_WINDOW } } },
+              }),
+            },
+            undefined,
+            true,
+          );
+        } catch (error) {
+          replacementError = error;
+        }
+      },
+    });
+
+    expect(replacementAttempted).toBe(true);
+    expect(replacementError).toBeInstanceOf(Error);
+    expect((replacementError as Error).message).toMatch(/already in progress|locked/i);
+    expect(readFileSync(path.join(sessionDir, "qa-state.json"), "utf8")).toBe(oldState);
+    expect(readFileSync(path.join(sessionDir, "results.csv"), "utf8")).toBe(oldResults);
+    expect(readFileSync(written.report, "utf8")).toContain("old generation");
+    expect(readFileSync(written.report, "utf8")).not.toContain("new generation");
+    expect(existsSync(path.join(sessionDir, ".qa-pull-in-progress"))).toBe(false);
   });
 
   it("prefers results.csv notes over the raw state, so redactions hold", async () => {

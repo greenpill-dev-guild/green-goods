@@ -1,6 +1,6 @@
 {
-  "$comment": "Upstream source of truth for QA scenario DEFINITIONS only — results, owners, and defect links live in the Google Sheet and per-run artifacts, never here. Active tabs merged in v2: the installed-PWA iOS/Android tabs became one 'PWA' tab (device-specific rows keep their [iOS]/[Android] scenario prefix and MUST carry requiresProduction or requiresDevice), and 'Cross Surface' dissolved into concrete per-surface rows. Retired cases keep their historical tab and are never deleted; IDs are never reused. requiresProduction = cannot pass on localhost; requiresDevice = needs a real installed device; the 'tx' tag marks rows whose walk involves real wallet transactions. Every case carries exactly one 'kind' from the top-level kinds list — the public docs expose this category axis, while the QA app keeps its priority and area views; kind 'transaction' if and only if the row carries the 'tx' tag. Lifecycle: every case carries a 'status' from the top-level statuses list. A new case enters as active by pull request with the next number in its surface prefix; wording, step, and evidence edits stay in place; when what a case proves changes it is retired (retiredOn, retiredReason, optional replacedBy naming active successors) and the new check gets a new ID, so past verdicts keep their meaning. Every id ever issued is also registered in scripts/data/qa-test-id-ledger.json (append-only); the contract test rejects a catalog whose ids drift from that ledger.",
-  "version": 2,
+  "$comment": "Upstream source of truth for QA scenario DEFINITIONS only — results, owners, and defect links live in the Google Sheet and per-run artifacts, never here. Active tabs merged in v2: the installed-PWA iOS/Android tabs became one 'PWA' tab (device-specific rows keep their [iOS]/[Android] scenario prefix and MUST carry requiresProduction or requiresDevice), and 'Cross Surface' dissolved into concrete per-surface rows. Catalog v3 adds top-level journeys: ordered, role-aware choreography over active Test IDs. A case's kind may still be 'journey'; that category describes what the individual case verifies, while top-level journeys describe how people walk multiple cases together. Retired cases keep their historical tab and are never deleted; IDs are never reused. requiresProduction = cannot pass on localhost; requiresDevice = needs a real installed device; the 'tx' tag marks rows whose walk involves real wallet transactions. Every case carries exactly one 'kind' from the top-level kinds list — the public docs expose this category axis, while the QA app keeps its priority and area views; kind 'transaction' if and only if the row carries the 'tx' tag. Lifecycle: every case carries a 'status' from the top-level statuses list. A new case enters as active by pull request with the next number in its surface prefix; wording, step, and evidence edits stay in place; when what a case proves changes it is retired (retiredOn, retiredReason, optional replacedBy naming active successors) and the new check gets a new ID, so past verdicts keep their meaning. Every id ever issued is also registered in scripts/data/qa-test-id-ledger.json (append-only); the contract test rejects a catalog whose ids drift from that ledger.",
+  "version": 3,
   "tabs": ["Public Website", "PWA", "Admin Dashboard", "Docs"],
   "statuses": [
     {
@@ -42,6 +42,177 @@
       "id": "resilience",
       "label": "Resilience",
       "verifies": "Offline behavior, error recovery, updates, and performance degrade and recover honestly"
+    }
+  ],
+  "journeys": [
+    {
+      "id": "service-relay",
+      "label": "Service relay: Green Goods → Garden → members",
+      "summary": "Two people follow a protocol Request from the Green Goods pool through Garden delivery, then use a separate Garden commitment to recognize the member's work.",
+      "lanes": [
+        {
+          "id": "protocol-review",
+          "label": "Protocol & review",
+          "role": "Protocol steward and independent steward or evaluator of the test Garden; never a contributor"
+        },
+        {
+          "id": "garden-member",
+          "label": "Garden & member",
+          "role": "Steward and member of the test Garden; institutional claimant, accountable lead, and contributor"
+        }
+      ],
+      "phases": [
+        { "id": "prepare", "label": "Prepare" },
+        { "id": "protocol-asks", "label": "Protocol asks" },
+        { "id": "garden-delivers", "label": "Garden delivers" },
+        { "id": "garden-earns", "label": "Garden earns" },
+        { "id": "garden-distributes", "label": "Garden distributes" },
+        { "id": "member-receives", "label": "Member receives" }
+      ],
+      "steps": [
+        {
+          "caseId": "ADM-037",
+          "phaseId": "prepare",
+          "leadLaneId": "protocol-review",
+          "verifyLaneIds": ["garden-member"],
+          "handoff": "Wait until the Garden member can see the starting assessment."
+        },
+        {
+          "caseId": "PWA-046",
+          "phaseId": "prepare",
+          "leadLaneId": "garden-member"
+        },
+        {
+          "caseId": "ADM-038",
+          "phaseId": "prepare",
+          "leadLaneId": "protocol-review",
+          "verifyLaneIds": ["garden-member"],
+          "handoff": "Both people confirm the same Garden and open cycle are visible; the assessment is context, not a prerequisite."
+        },
+        {
+          "caseId": "ADM-039",
+          "phaseId": "protocol-asks",
+          "leadLaneId": "protocol-review",
+          "verifyLaneIds": ["garden-member"],
+          "handoff": "Wait until the Request appears in the protocol pool for the Garden member."
+        },
+        {
+          "caseId": "PWA-047",
+          "phaseId": "protocol-asks",
+          "leadLaneId": "garden-member",
+          "verifyLaneIds": ["protocol-review"],
+          "handoff": "The protocol reviewer waits for the pending Garden claim before accepting it."
+        },
+        {
+          "caseId": "ADM-040",
+          "phaseId": "protocol-asks",
+          "leadLaneId": "protocol-review",
+          "verifyLaneIds": ["garden-member"],
+          "handoff": "Both people verify the Request remains in the protocol pool and names the Garden as provider."
+        },
+        {
+          "caseId": "PWA-048",
+          "phaseId": "garden-delivers",
+          "leadLaneId": "garden-member",
+          "verifyLaneIds": ["protocol-review"],
+          "handoff": "The reviewer waits until the linked Work and evidence are visible before deciding."
+        },
+        {
+          "caseId": "ADM-041",
+          "phaseId": "garden-delivers",
+          "leadLaneId": "protocol-review"
+        },
+        {
+          "caseId": "ADM-042",
+          "phaseId": "garden-delivers",
+          "leadLaneId": "protocol-review",
+          "verifyLaneIds": ["garden-member"],
+          "handoff": "Both people verify the approved Request is Fulfilled before moving to compensation."
+        },
+        {
+          "caseId": "ADM-043",
+          "phaseId": "garden-earns",
+          "leadLaneId": "protocol-review",
+          "verifyLaneIds": ["garden-member"],
+          "handoff": "The Garden member verifies the destination Garden Safe or its readiness state.",
+          "knownGate": "Protocol-to-Garden G$ settlement requires enabled settlement UI and value authority. If either is unavailable, record Blocked and continue with the non-value steps."
+        },
+        {
+          "caseId": "ADM-026",
+          "phaseId": "garden-distributes",
+          "leadLaneId": "protocol-review",
+          "verifyLaneIds": ["garden-member"],
+          "handoff": "Wait until the separate local commitment appears in the open Garden Campaign."
+        },
+        {
+          "caseId": "PWA-049",
+          "phaseId": "garden-distributes",
+          "leadLaneId": "garden-member"
+        },
+        {
+          "caseId": "PWA-050",
+          "phaseId": "garden-distributes",
+          "leadLaneId": "garden-member",
+          "verifyLaneIds": ["protocol-review"],
+          "handoff": "The reviewer waits for the local Work and evidence before opening review."
+        },
+        {
+          "caseId": "ADM-012",
+          "phaseId": "garden-distributes",
+          "leadLaneId": "protocol-review"
+        },
+        {
+          "caseId": "ADM-013",
+          "phaseId": "garden-distributes",
+          "leadLaneId": "protocol-review",
+          "verifyLaneIds": ["garden-member"],
+          "handoff": "Both people verify the local commitment is complete and remains distinct from the protocol Request."
+        },
+        {
+          "caseId": "ADM-044",
+          "phaseId": "member-receives",
+          "leadLaneId": "protocol-review",
+          "verifyLaneIds": ["garden-member"],
+          "handoff": "The Garden member verifies the receiving account or the visible readiness state.",
+          "knownGate": "Garden-to-member G$ settlement requires enabled contributor payout UI and value authority. If either is unavailable, record Blocked without changing the completed non-value workflow."
+        }
+      ]
+    },
+    {
+      "id": "protocol-treasury-top-up",
+      "label": "Protocol treasury top-up",
+      "summary": "Check discretionary funding readiness, queue a ProtocolToGarden top-up when authorized, and verify the Garden balance without referencing a commitment.",
+      "lanes": [
+        {
+          "id": "protocol-review",
+          "label": "Protocol & review",
+          "role": "Protocol steward with authority to inspect and, when approved, queue treasury funding"
+        },
+        {
+          "id": "garden-member",
+          "label": "Garden & member",
+          "role": "Test-Garden steward who verifies the destination Garden and its balance"
+        }
+      ],
+      "phases": [
+        { "id": "check-readiness", "label": "Check readiness" },
+        { "id": "queue-top-up", "label": "Queue top-up" }
+      ],
+      "steps": [
+        {
+          "caseId": "ADM-014",
+          "phaseId": "check-readiness",
+          "leadLaneId": "protocol-review"
+        },
+        {
+          "caseId": "ADM-045",
+          "phaseId": "queue-top-up",
+          "leadLaneId": "protocol-review",
+          "verifyLaneIds": ["garden-member"],
+          "handoff": "The Garden steward verifies the destination Garden and balance; no commitment ID is involved.",
+          "knownGate": "Protocol treasury funding requires explicit value authority and a live ProtocolToGarden funding path. If unavailable, record Blocked and do not imply that funds moved."
+        }
+      ]
     }
   ],
   "cases": [
@@ -2152,7 +2323,7 @@
       "id": "ADM-026",
       "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
-      "priority": "P1",
+      "priority": "P0",
       "kind": "transaction",
       "area": "Garden Pool",
       "scenario": "Seed a commitment: 4-step wizard, named confirmers, review, queued creation",
@@ -3090,6 +3261,386 @@
       "requiresProduction": false,
       "status": "active",
       "source": "pr-792-review"
+    },
+    {
+      "id": "ADM-037",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden Assessment",
+      "scenario": "Record a starting assessment for the test Garden",
+      "preconditions": [
+        "Signed in with Tester A's allowlisted wallet",
+        "Tester A can evaluate the test Garden"
+      ],
+      "steps": [
+        "Select the test Garden and start a new assessment",
+        "Record the Garden's starting context with enough detail for Tester B to recognize it",
+        "Review and submit the assessment",
+        "Wait for the submitted assessment to appear on the Garden"
+      ],
+      "expected": "The assessment is recorded against the test Garden and is visible as starting context, without being described as a prerequisite for opening a Season or Campaign",
+      "evidence": "Screenshot of the recorded assessment with the Garden identity visible",
+      "role": "steward",
+      "tags": ["assessment", "garden", "journey-relay", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-journey-mode-2026-09-02"
+    },
+    {
+      "id": "PWA-046",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Garden Assessment",
+      "scenario": "Garden member can read the starting assessment",
+      "preconditions": [
+        "Signed in with Tester B's allowlisted wallet",
+        "Tester B is a member of the test Garden",
+        "ADM-037 is complete"
+      ],
+      "steps": [
+        "Open the test Garden",
+        "Open its assessment history",
+        "Find the starting assessment recorded by Tester A",
+        "Read enough detail to confirm it belongs to this QA cycle"
+      ],
+      "expected": "The same starting assessment is readable from the Garden experience and is presented as context, not as a gate on the cycle",
+      "evidence": "Screenshot of the assessment in the test Garden",
+      "role": "gardener",
+      "tags": ["assessment", "garden", "journey-relay"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-journey-mode-2026-09-02"
+    },
+    {
+      "id": "ADM-038",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Garden Cycle",
+      "scenario": "Open the test Season and Campaign independently of assessment state",
+      "preconditions": [
+        "Signed in with Tester A's allowlisted wallet",
+        "Tester A is a steward of the test Garden",
+        "The test Garden commitment pool is ready"
+      ],
+      "steps": [
+        "Open the test Garden's pool setup",
+        "Create or select the QA Season",
+        "Open one Campaign for the commitment relay",
+        "Confirm the open cycle is visible before seeding commitments"
+      ],
+      "expected": "The Season and Campaign open successfully whether or not the starting assessment has finished indexing; the assessment remains contextual",
+      "evidence": "Screenshot of the open Season and Campaign",
+      "role": "steward",
+      "tags": ["season", "campaign", "garden-pool", "journey-relay", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-journey-mode-2026-09-02"
+    },
+    {
+      "id": "ADM-039",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Protocol Pool",
+      "scenario": "Seed an approval-gated protocol Request for a concrete service",
+      "preconditions": [
+        "Signed in with Tester A's allowlisted wallet",
+        "Tester A is a protocol steward",
+        "The protocol pool has an open cycle"
+      ],
+      "steps": [
+        "Open the Green Goods protocol pool",
+        "Seed a Request that names a concrete service and clear evidence",
+        "Require approval before a claimant is accepted",
+        "Review and submit the Request",
+        "Wait for the Request to appear in the protocol pool"
+      ],
+      "expected": "One approval-gated Request appears in the protocol pool with its service, evidence, and confirmation expectations intact",
+      "evidence": "Screenshot of the Request in the protocol pool",
+      "role": "steward",
+      "tags": ["protocol-pool", "request", "journey-relay", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-journey-mode-2026-09-02"
+    },
+    {
+      "id": "PWA-047",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Protocol Pool",
+      "scenario": "Claim the protocol Request for the test Garden",
+      "preconditions": [
+        "Signed in with Tester B's allowlisted wallet",
+        "Tester B is a steward of the test Garden",
+        "ADM-039 is complete"
+      ],
+      "steps": [
+        "Open the protocol Request",
+        "Choose to take it up for the test Garden",
+        "Review the Garden identity and submit the claim",
+        "Wait for the claim to show as pending approval"
+      ],
+      "expected": "The claim is pending for the test Garden; it is not presented as a personal claim and the Request has not moved out of the protocol pool",
+      "evidence": "Screenshot of the pending Garden claim",
+      "role": "steward",
+      "tags": ["protocol-pool", "claim", "garden", "journey-relay", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-journey-mode-2026-09-02"
+    },
+    {
+      "id": "ADM-040",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Protocol Pool",
+      "scenario": "Accept the test Garden's institutional claim",
+      "preconditions": [
+        "Signed in with Tester A's allowlisted wallet",
+        "Tester A is a protocol steward",
+        "PWA-047 is complete"
+      ],
+      "steps": [
+        "Open pending claims for the protocol Request",
+        "Identify the claim from the test Garden",
+        "Accept the Garden claim",
+        "Reopen the Request after the state updates"
+      ],
+      "expected": "The claim becomes Accepted, the Garden is the institutional provider, and the original Request remains in the protocol pool",
+      "evidence": "Screenshot showing Accepted, the Garden provider, and protocol-pool context",
+      "role": "steward",
+      "tags": ["protocol-pool", "claim", "garden", "journey-relay", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-journey-mode-2026-09-02"
+    },
+    {
+      "id": "PWA-048",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Protocol Request Work",
+      "scenario": "Submit Work and evidence against the original protocol Request",
+      "preconditions": [
+        "Signed in with Tester B's allowlisted wallet",
+        "Tester B is the accountable lead and a contributor for the test Garden",
+        "ADM-040 is complete"
+      ],
+      "steps": [
+        "Open the Accepted protocol Request",
+        "Start or link the Work completed for the service",
+        "Add clear evidence from Tester B",
+        "Submit the Work",
+        "Return to the Request and verify the Work is linked"
+      ],
+      "expected": "Tester B's Work and evidence link to the original protocol-pool Request while the test Garden remains the accountable provider",
+      "evidence": "Screenshot of the linked Work and evidence on the Request",
+      "role": "gardener",
+      "tags": ["protocol-pool", "work", "evidence", "journey-relay", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-journey-mode-2026-09-02"
+    },
+    {
+      "id": "ADM-041",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Protocol Request Work",
+      "scenario": "Approve Work linked to the protocol Request without joining its contributors",
+      "preconditions": [
+        "Signed in with Tester A's allowlisted wallet",
+        "Tester A can review the test Garden but is not a contributor",
+        "PWA-048 is complete"
+      ],
+      "steps": [
+        "Open the pending Work linked to the protocol Request",
+        "Inspect Tester B's evidence and Garden context",
+        "Approve the Work",
+        "Verify the review state updates without adding Tester A as a contributor"
+      ],
+      "expected": "The linked Work is approved by an independent reviewer and Tester A remains outside the contributor roster",
+      "evidence": "Screenshot of the approved Work and contributor roster",
+      "role": "steward",
+      "tags": ["protocol-pool", "review", "work", "journey-relay", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-journey-mode-2026-09-02"
+    },
+    {
+      "id": "ADM-042",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Protocol Pool",
+      "scenario": "Confirm the protocol Request after its Work is approved",
+      "preconditions": [
+        "Signed in with Tester A's allowlisted wallet",
+        "Tester A created the protocol Request",
+        "ADM-041 is complete"
+      ],
+      "steps": [
+        "Open the protocol Request awaiting confirmation",
+        "Verify the approved Work and evidence are named",
+        "Confirm fulfillment as the Request creator",
+        "Reopen the Request after the state updates"
+      ],
+      "expected": "The Request becomes Fulfilled with the test Garden still named as provider and Tester B's Work preserved as evidence",
+      "evidence": "Screenshot of the Fulfilled protocol Request",
+      "role": "steward",
+      "tags": ["protocol-pool", "confirm", "fulfillment", "journey-relay", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-journey-mode-2026-09-02"
+    },
+    {
+      "id": "ADM-043",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Earned Compensation",
+      "scenario": "Settle earned G$ compensation from the protocol to the Garden",
+      "preconditions": [
+        "Signed in with Tester A's allowlisted wallet",
+        "ADM-042 is complete",
+        "The destination Garden Safe is known"
+      ],
+      "steps": [
+        "Open the Fulfilled protocol Request's settlement action",
+        "Verify the beneficiary is the destination Garden Safe",
+        "If settlement UI and value authority are available, review and submit the payout",
+        "Otherwise stop at the visible gate and record Blocked",
+        "Ask Tester B to verify the destination state"
+      ],
+      "expected": "When enabled, earned compensation targets the Garden Safe and the result is visible; when unavailable, the UI states the gate and no value movement is implied",
+      "evidence": "Screenshot of the Garden beneficiary and completed settlement or visible gate",
+      "role": "steward",
+      "tags": ["protocol-pool", "settlement", "garden-safe", "journey-relay", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-journey-mode-2026-09-02"
+    },
+    {
+      "id": "PWA-049",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Garden Commitment",
+      "scenario": "Take up the separate local Garden commitment",
+      "preconditions": [
+        "Signed in with Tester B's allowlisted wallet",
+        "Tester B is a member of the test Garden",
+        "ADM-026 is complete"
+      ],
+      "steps": [
+        "Open the test Garden's current Campaign",
+        "Open the local commitment seeded for the member",
+        "Take up the commitment with Tester B's own identity",
+        "Verify its identity differs from the protocol Request"
+      ],
+      "expected": "Tester B takes up a separate Garden-pool commitment; it is neither moved from nor mirrored to the protocol pool",
+      "evidence": "Screenshot with the local commitment ID and Garden Campaign context",
+      "role": "gardener",
+      "tags": ["garden-pool", "commitment", "claim", "journey-relay", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-journey-mode-2026-09-02"
+    },
+    {
+      "id": "PWA-050",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Garden Commitment Work",
+      "scenario": "Submit Work and evidence for the local Garden commitment",
+      "preconditions": ["Signed in with Tester B's allowlisted wallet", "PWA-049 is complete"],
+      "steps": [
+        "Open the local Garden commitment",
+        "Start or link its Work",
+        "Add evidence that identifies the local delivery",
+        "Submit the Work",
+        "Verify the Work is linked to the local commitment"
+      ],
+      "expected": "The member's Work and evidence are submitted against the separate Garden commitment and are ready for independent review",
+      "evidence": "Screenshot of the local Work and evidence link",
+      "role": "gardener",
+      "tags": ["garden-pool", "work", "evidence", "journey-relay", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-journey-mode-2026-09-02"
+    },
+    {
+      "id": "ADM-044",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Member Compensation",
+      "scenario": "Settle the Garden's contributor payout to the member",
+      "preconditions": [
+        "Signed in with Tester A's allowlisted wallet",
+        "The local Garden commitment is complete",
+        "Tester B's receiving account is known"
+      ],
+      "steps": [
+        "Open the completed local Garden commitment's payout action",
+        "Verify Tester B is the intended contributor recipient",
+        "If contributor payout UI and value authority are available, review and submit the payout",
+        "Otherwise stop at the visible gate and record Blocked",
+        "Ask Tester B to verify the receiving state"
+      ],
+      "expected": "When enabled, the Garden pays the contributing member and the result is visible; when unavailable, the UI states the gate while the completed non-value workflow remains intact",
+      "evidence": "Screenshot of the member recipient and completed payout or visible gate",
+      "role": "steward",
+      "tags": ["garden-pool", "settlement", "member", "journey-relay", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-journey-mode-2026-09-02"
+    },
+    {
+      "id": "ADM-045",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Protocol Treasury",
+      "scenario": "Queue a discretionary ProtocolToGarden treasury top-up",
+      "preconditions": [
+        "Signed in with Tester A's allowlisted wallet",
+        "ADM-014 has confirmed funding readiness",
+        "The destination Garden and amount are explicitly authorized"
+      ],
+      "steps": [
+        "Open the protocol treasury funding action",
+        "Choose ProtocolToGarden and identify the destination Garden",
+        "Verify no commitment ID is requested or attached",
+        "If value authority is available, review and queue the top-up",
+        "Otherwise stop at the visible gate and record Blocked",
+        "Ask Tester B to verify the Garden balance or readiness state"
+      ],
+      "expected": "When authorized and enabled, a discretionary top-up is queued for the correct Garden and its balance reflects the result; it never substitutes for earned compensation or references a commitment",
+      "evidence": "Screenshot of the ProtocolToGarden review and resulting balance or visible gate",
+      "role": "steward",
+      "tags": ["protocol-treasury", "funding", "garden", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-journey-mode-2026-09-02"
     }
   ]
 }

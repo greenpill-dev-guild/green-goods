@@ -15,7 +15,7 @@
     "format": "bun run check:foundry-version && forge fmt",
     "format:check": "bun run check:foundry-version && forge fmt --check",
     "lint": "bun run format && solhint --config ./.solhint.json 'src/**/*.sol' --ignore-path .solhintignore",
-    "lint:check": "bun run format:check && solhint --config ./.solhint.json 'src/**/*.sol' --ignore-path .solhintignore",
+    "lint:check": "node ../../scripts/dev/node-cli.js node ../../scripts/contracts/check-contract-lint.mjs",
     "lint:fix": "bun run format && solhint --config ./.solhint.json 'src/**/*.sol' --ignore-path .solhintignore --fix",
     "build": "bun script/utils/build-adaptive.ts",
     "build:changed": "bun script/utils/build-changed.ts",

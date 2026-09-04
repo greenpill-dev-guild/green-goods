@@ -322,6 +322,11 @@
     },
     {
       "check": "browser-proof",
+      "exact": ["packages/qa/index.html", "scripts/data/qa-test-catalog.json"],
+      "prefixes": ["packages/qa/locales/"]
+    },
+    {
+      "check": "browser-proof",
       "match": "all",
       "prefixes": ["packages/client/src/", "packages/admin/src/"],
       "extensions": [".jsx", ".tsx", ".css", ".scss"]
@@ -330,6 +335,7 @@
       "check": "agent-tools-test",
       "runInQa": true,
       "runInEvidence": true,
+      "prefixes": ["packages/qa/locales/"],
       "exact": [
         "scripts/data/qa-test-catalog.json",
         "scripts/data/qa-test-id-ledger.json",
@@ -749,8 +755,8 @@
     {
       "id": "qa-id-ledger",
       "command": "bun run check:qa-id-ledger",
-      "risk": "a QA Test ID is removed or reused, so OBS records, Linear slices, and past verdicts keyed on it change meaning",
-      "expectedSignal": "every Test ID present at the merge-base survives into the working tree and none repeats",
+      "risk": "a QA Test ID is removed, reintroduced, or reactivated after retirement, so OBS records, Linear slices, and past verdicts keyed on it change meaning",
+      "expectedSignal": "every Test ID present at the merge-base survives in the ledger and catalog, none repeats or is reintroduced, and retired ids remain retired",
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 15,
       "stopRule": "stop-dependent-checks",

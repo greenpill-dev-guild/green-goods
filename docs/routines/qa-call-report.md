@@ -279,7 +279,7 @@ the @mention.
 | Create one Issue per failed test case | The slice is the work unit (one slice = one branch = one PR); test-case detail lives inside the slice body and the report |
 | Set `In Progress` or assignees — or `Done` on anything with open work | Fix sessions and humans drive those; you create `Todo`/`Backlog` records, plus the one carve-out: an all-pass session's parent is created `Done`, a record with nothing to fix |
 | Write Customer Needs or Sheet rows | The report + slices are the session record; the Sheet belongs to the interactive skill with its privacy re-acknowledgement |
-| Hand-count coverage or severity | Rollups come from `bun run qa:report` (the pull joined to the catalog); severity derives from case priority + verdict per the mandate above |
+| Hand-count coverage or derive severity | Rollups come from `bun run qa:report` (the pull joined to the catalog); case priority + verdict only seed Linear queue priority, while defect severity remains an independent triage decision |
 | Copy tester names, wallets, or replay URLs into Linear | Aggregate coverage only — the privacy boundary in [`.claude/context/qa.md`](../../.claude/context/qa.md) |
 | File when `/qa-triage --call` already ran this session | One writer per session — dedupe links instead |
 | Run from a checkout missing the qa scripts | Verify `scripts/agents/qa-state-pull.ts` exists rather than trusting a branch name; today the scripts ship on `develop` only |

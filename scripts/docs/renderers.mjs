@@ -323,6 +323,34 @@ export function renderQaCatalog({ root, sources, digest }) {
   body += "\n\nPriority sets run order only. A failure's severity is assigned separately during triage.";
   body += "\n\nEach case carries one **kind**, the category axis:\n\n";
   body += catalog.kinds.map((kind) => `- **${esc(kind.label)}** — ${esc(kind.verifies)}.`).join("\n");
+  if (catalog.journeys?.length) {
+    body += "\n\n## Guided journeys\n\n";
+    body += "Guided journeys choreograph active Test IDs across surfaces. A case's kind still describes that individual check; a guided journey describes who acts, who verifies, and when the handoff happens.\n\n";
+    for (const journey of catalog.journeys) {
+      const lanes = new Map(journey.lanes.map((lane) => [lane.id, lane]));
+      body += `### ${esc(journey.label)}\n\n${esc(journey.summary)}\n\n`;
+      body += "**Parts**\n\n";
+      body += journey.lanes.map((lane) => `- **${esc(lane.label)}** — ${esc(lane.role)}.`).join("\n");
+      body += "\n\n**Phases and Test IDs**\n\n";
+      let stepNumber = 0;
+      for (const phase of journey.phases) {
+        const phaseSteps = journey.steps.filter((step) => step.phaseId === phase.id);
+        if (!phaseSteps.length) continue;
+        const renderedSteps = phaseSteps.map((step) => {
+          stepNumber += 1;
+          const lead = lanes.get(step.leadLaneId)?.label ?? step.leadLaneId;
+          const verify = (step.verifyLaneIds ?? [])
+            .map((laneId) => lanes.get(laneId)?.label ?? laneId)
+            .join(", ");
+          const roles = `Act: ${esc(lead)}${verify ? `; verify: ${esc(verify)}` : ""}`;
+          const handoff = step.handoff ? `\n   - **Handoff:** ${esc(step.handoff)}` : "";
+          const knownGate = step.knownGate ? `\n   - **Known gate:** ${esc(step.knownGate)}` : "";
+          return `${stepNumber}. \`${esc(step.caseId)}\` — ${roles}${handoff}${knownGate}`;
+        });
+        body += `**${esc(phase.label)}**\n\n${renderedSteps.join("\n")}\n\n`;
+      }
+    }
+  }
   body += "\n\n## How this catalog changes {#lifecycle}\n\n";
   body += "`scripts/data/qa-test-catalog.json` is the source of truth, and it changes the way code does: by pull request. Every case carries one **status**:\n\n";
   body += catalog.statuses.map((status) => `- **${esc(status.id)}** — ${esc(status.means)}.`).join("\n");

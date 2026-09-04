@@ -196,6 +196,19 @@ describe("QA app page", () => {
     }
   });
 
+  it("loads the generated Warm Earth radius tokens", () => {
+    const dev = readFileSync(path.join(appDir, "dev.mjs"), "utf8");
+    expect(page).toContain('<link rel="stylesheet" href="design-md.generated.css">');
+    expect(dev).toContain('["/design-md.generated.css", "design-md.generated.css"]');
+    expect(dev).toContain('".css": "text/css; charset=utf-8"');
+    expect(page).toMatch(/--radius-md\s*:\s*var\(--gg-radius-md\)/);
+    expect(page).toMatch(/--radius-full\s*:\s*var\(--gg-radius-full\)/);
+    expect(page).toMatch(/\.journey-chip\s*\{[^}]*border-radius\s*:\s*var\(--radius-full\)/s);
+    expect(page).toMatch(
+      /\.journey-handoff, \.known-gate\s*\{[^}]*border-radius\s*:\s*0 var\(--radius-md\) var\(--radius-md\) 0/s,
+    );
+  });
+
   it("names an unnamed tester the same way on both sides", () => {
     // Shards are keyed by address and the display name is self-declared, so
     // there is no roster to agree on any more — but a tester who has not named
@@ -283,6 +296,9 @@ describe("QA app build", () => {
     execFileSync("node", [path.join(appDir, "build.mjs")], { stdio: "pipe" });
     const dist = path.join(appDir, "dist");
     expect(existsSync(path.join(dist, "index.html"))).toBe(true);
+    expect(readFileSync(path.join(dist, "design-md.generated.css"), "utf8")).toBe(
+      readFileSync(path.join(repoRoot, "packages", "shared", "src", "styles", "design-md.generated.css"), "utf8"),
+    );
 
     const built = JSON.parse(readFileSync(path.join(dist, "catalog.json"), "utf8"));
     const source = JSON.parse(
@@ -296,8 +312,72 @@ describe("QA app build", () => {
     // A retired case on a run sheet is a tester walking a scenario we removed.
     for (const testCase of built.cases) expect(retired.has(testCase.id)).toBe(false);
     expect(Object.keys(built.cases[0]).sort()).toEqual(
-      ["area", "expected", "id", "pri", "rd", "rp", "scenario", "tab", "tx"],
+      ["area", "expected", "id", "preconditions", "pri", "rd", "role", "rp", "scenario", "steps", "tab", "tx"],
     );
+    expect(built.journeys.map((journey: { id: string }) => journey.id)).toEqual([
+      "service-relay",
+      "protocol-treasury-top-up",
+    ]);
+    const activeIds = new Set(built.cases.map((testCase: { id: string }) => testCase.id));
+    const journeyCaseIds = new Set<string>();
+    for (const journey of built.journeys) {
+      for (const step of journey.steps) {
+        expect(activeIds.has(step.caseId)).toBe(true);
+        journeyCaseIds.add(step.caseId);
+      }
+    }
+    const gated = built.journeys.flatMap((journey: { steps: Array<{ knownGate?: string }> }) =>
+      journey.steps.filter((step) => step.knownGate),
+    );
+    expect(gated).toHaveLength(3);
+    expect(gated.every((step: { knownGate: string }) => step.knownGate.trim().length > 0)).toBe(true);
+    expect(Object.keys(built.locales).sort()).toEqual(["en", "es", "pt"]);
+    for (const locale of Object.values(built.locales) as Array<{
+      ui: Record<string, string>;
+      journeys: Record<string, unknown>;
+      cases: Record<string, {
+        scenario: string;
+        preconditions: string[];
+        steps: string[];
+        expected: string;
+        role: string;
+      }>;
+    }>) {
+      expect(locale.ui.journey.trim()).not.toBe("");
+      expect(locale.ui.caseRole.trim()).not.toBe("");
+      expect(locale.ui.preconditions.trim()).not.toBe("");
+      expect(locale.ui.roleRequirements.trim()).not.toBe("");
+      expect(Object.keys(locale.journeys).sort()).toEqual([
+        "protocol-treasury-top-up",
+        "service-relay",
+      ]);
+      expect(Object.keys(locale.cases).sort()).toEqual([...journeyCaseIds].sort());
+      for (const copy of Object.values(locale.cases)) {
+        expect(copy.scenario.trim()).not.toBe("");
+        expect(copy.preconditions.every((item) => item.trim().length > 0)).toBe(true);
+        expect(copy.steps.every((step) => step.trim().length > 0)).toBe(true);
+        expect(copy.expected.trim()).not.toBe("");
+        expect(copy.role.trim()).not.toBe("");
+      }
+    }
+    const builtById = new Map(built.cases.map((testCase: { id: string }) => [testCase.id, testCase]));
+    expect(builtById.get("ADM-038").preconditions).toContain(
+      "The test Garden commitment pool is ready",
+    );
+    expect(builtById.get("ADM-043").preconditions).toContain(
+      "The destination Garden Safe is known",
+    );
+    expect(builtById.get("ADM-045").preconditions).toContain(
+      "The destination Garden and amount are explicitly authorized",
+    );
+    expect(builtById.get("ADM-045").role).toBe("steward");
+    for (const locale of Object.values(built.locales) as Array<{
+      cases: Record<string, { preconditions: string[] }>;
+    }>) {
+      for (const [caseId, copy] of Object.entries(locale.cases)) {
+        expect(copy.preconditions).toHaveLength(builtById.get(caseId).preconditions.length);
+      }
+    }
   });
 });
 

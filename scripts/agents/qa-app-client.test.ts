@@ -120,6 +120,11 @@ async function clientRaceHarness() {
     assert.equal(signInPanel?.hidden, true);
     assert.equal(dom.window.getComputedStyle(signInPanel).display, "none");
     assert.ok(pollCallback, jsdomError || "poll interval was not registered");
+    assert.equal(
+      dom.window.document.querySelector('[data-sort="journey"]'),
+      null,
+      "older deployed catalogs must not show empty Journey controls",
+    );
     const pendingPoll = pollCallback();
     await flush();
     assert.ok(releaseStalePoll, "slow poll did not start");
@@ -706,6 +711,377 @@ async function displayLabelHarness() {
   }
 }
 
+async function journeyModeHarness() {
+  const dynamicImport = new Function("specifier", "return import(specifier)");
+  const assert = (await dynamicImport("node:assert/strict")).default;
+  const { readFileSync } = await dynamicImport("node:fs");
+  const path = await dynamicImport("node:path");
+  const { JSDOM, VirtualConsole } = await dynamicImport("jsdom");
+
+  const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
+  const cases = [
+    { id: "ADM-002", tab: "Admin Dashboard", area: "Delivery", pri: "P0", scenario: "Third", preconditions: ["Third condition"], steps: ["Third step"], expected: "Third result", role: "steward", rp: false, rd: false, tx: true },
+    { id: "PWA-001", tab: "PWA", area: "Claim", pri: "P0", scenario: "Second", preconditions: ["Second condition"], steps: ["Second step"], expected: "Second result", role: "gardener", rp: false, rd: false, tx: true },
+    { id: "ADM-001", tab: "Admin Dashboard", area: "Prepare", pri: "P1", scenario: "First", preconditions: ["First condition", "Shared cycle visible"], steps: ["First step"], expected: "First result", role: "steward", rp: false, rd: false, tx: true },
+  ];
+  const lanes = [
+    { id: "review", label: "Protocol & review", role: "Protocol steward" },
+    { id: "member", label: "Garden & member", role: "Garden member" },
+  ];
+  const journeys = [
+    {
+      id: "relay",
+      label: "Service relay",
+      summary: "Two people follow one service relay.",
+      lanes,
+      phases: [
+        { id: "prepare", label: "Prepare" },
+        { id: "deliver", label: "Deliver" },
+      ],
+      steps: [
+        { caseId: "ADM-001", phaseId: "prepare", leadLaneId: "review" },
+        {
+          caseId: "PWA-001",
+          phaseId: "deliver",
+          leadLaneId: "member",
+          verifyLaneIds: ["review"],
+          handoff: "Wait for the reviewer.",
+          knownGate: "Settlement is not enabled.",
+        },
+        { caseId: "ADM-002", phaseId: "deliver", leadLaneId: "member" },
+      ],
+    },
+    {
+      id: "treasury",
+      label: "Treasury top-up",
+      summary: "Review one separate funding rail.",
+      lanes,
+      phases: [{ id: "fund", label: "Fund" }],
+      steps: [{ caseId: "ADM-002", phaseId: "fund", leadLaneId: "review" }],
+    },
+  ];
+  const localizedJourney = {
+    relay: {
+      label: "Relevo de servicios",
+      summary: "Dos personas siguen un relevo de servicios.",
+      lanes: {
+        review: { label: "Protocolo y revisión", role: "Responsable del protocolo" },
+        member: { label: "Garden y miembro", role: "Steward y miembro del Garden" },
+      },
+      phases: { prepare: "Preparar", deliver: "Entregar" },
+      steps: {
+        "PWA-001": {
+          handoff: "Espera a que la persona revisora continúe.",
+          knownGate: "La liquidación no está habilitada.",
+        },
+      },
+    },
+    treasury: {
+      label: "Recarga de tesorería",
+      summary: "Revisa una vía de financiación separada.",
+      lanes: {
+        review: { label: "Protocolo y revisión", role: "Responsable del protocolo" },
+        member: { label: "Garden y miembro", role: "Steward y miembro del Garden" },
+      },
+      phases: { fund: "Financiar" },
+      steps: {},
+    },
+  };
+  const locales = {
+    es: {
+      name: "Español",
+      ui: {
+        journey: "Recorrido",
+        part: "Parte",
+        allParts: "Todas las partes",
+        allSurfaces: "Todas las superficies",
+        act: "Actuar",
+        verify: "Verificar",
+        surface: "Superficie",
+        caseRole: "Rol requerido",
+        preconditions: "Antes de empezar",
+        handoff: "Coordinación",
+        knownGate: "Condición conocida",
+        journeyRoles: "Roles del recorrido",
+        roleRequirements: "Responsabilidades del rol",
+        language: "Idioma del recorrido",
+        orderJourney: "Recorrido",
+      },
+      journeys: localizedJourney,
+      cases: {
+        "ADM-001": {
+          scenario: "Primero en español",
+          preconditions: ["Primera condición", "El ciclo compartido está visible"],
+          steps: ["Primer paso", "Segundo paso detallado"],
+          expected: "Primer resultado",
+          role: "Steward",
+        },
+        "PWA-001": { scenario: "Segundo en español", preconditions: ["Segunda condición"], steps: ["Segundo paso"], expected: "Segundo resultado", role: "Miembro del Garden" },
+        "ADM-002": { scenario: "Tercero en español", preconditions: ["Tercera condición"], steps: ["Tercer paso"], expected: "Tercer resultado", role: "Steward" },
+      },
+    },
+    pt: {
+      name: "Português",
+      ui: {
+        journey: "Jornada",
+        part: "Parte",
+        allParts: "Todas as partes",
+        allSurfaces: "Todas as superfícies",
+        act: "Agir",
+        verify: "Verificar",
+        surface: "Superfície",
+        caseRole: "Papel necessário",
+        preconditions: "Antes de começar",
+        handoff: "Passagem",
+        knownGate: "Limitação conhecida",
+        journeyRoles: "Papéis da jornada",
+        roleRequirements: "Responsabilidades do papel",
+        language: "Idioma da jornada",
+        orderJourney: "Jornada",
+      },
+      journeys: {
+        ...localizedJourney,
+        relay: {
+          ...localizedJourney.relay,
+          label: "Revezamento de serviços",
+          summary: "Duas pessoas acompanham um revezamento de serviços.",
+          lanes: {
+            review: { label: "Protocolo e revisão", role: "Responsável pelo protocolo" },
+            member: { label: "Garden e membro", role: "Steward e membro do Garden" },
+          },
+          phases: { prepare: "Preparar", deliver: "Entregar" },
+          steps: {
+            "PWA-001": {
+              handoff: "Espere a pessoa revisora continuar.",
+              knownGate: "A liquidação não está habilitada.",
+            },
+          },
+        },
+      },
+      cases: {
+        "ADM-001": { scenario: "Primeiro em português", preconditions: ["Primeira condição", "O ciclo compartilhado está visível"], steps: ["Primeiro passo"], expected: "Primeiro resultado", role: "Steward" },
+        "PWA-001": { scenario: "Segundo em português", preconditions: ["Segunda condição"], steps: ["Segundo passo"], expected: "Segundo resultado", role: "Pessoa integrante do Garden" },
+        "ADM-002": { scenario: "Terceiro em português", preconditions: ["Terceira condição"], steps: ["Terceiro passo"], expected: "Terceiro resultado", role: "Steward" },
+      },
+    },
+  };
+  const response = (body) => ({ ok: true, status: 200, json: async () => structuredClone(body) });
+  const flush = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+  const posts = [];
+  const timers = new Map();
+  let timerId = 0;
+  let restoredScroll = null;
+  const virtualConsole = new VirtualConsole();
+  let jsdomError = "";
+  virtualConsole.on("jsdomError", (error) => {
+    jsdomError = error.cause?.stack || error.cause?.message || error.message;
+  });
+
+  const dom = new JSDOM(page, {
+    runScripts: "dangerously",
+    url: "http://localhost:4610/",
+    virtualConsole,
+    beforeParse(window) {
+      Object.defineProperty(window, "innerWidth", { value: 375, configurable: true });
+      window.sessionStorage.setItem("qa-view", JSON.stringify({
+        tab: "Admin Dashboard",
+        filter: "all",
+        sort: "journey",
+        scope: "overview",
+        journey: "relay",
+        part: "",
+        surface: "all",
+        scroll: 73,
+      }));
+      window.localStorage.setItem("qa-locale", "es");
+      window.scrollTo = (_x, y) => { restoredScroll = y; };
+      window.setTimeout = (callback, delay = 0) => {
+        const id = ++timerId;
+        timers.set(id, { callback, delay });
+        return id;
+      };
+      window.clearTimeout = (id) => timers.delete(id);
+      window.setInterval = () => 1;
+      window.fetch = async (input, init = {}) => {
+        const target = String(input);
+        if (target === "catalog.json") {
+          return response({ tabs: ["PWA", "Admin Dashboard"], journeys, locales, cases });
+        }
+        if (target !== "/api/state") throw new Error(`unexpected fetch ${target}`);
+        if (init.method === "POST") {
+          posts.push(JSON.parse(String(init.body)));
+          return response({ ok: true });
+        }
+        return response({
+          team: ["Tester A", "Tester B"],
+          you: "Tester A",
+          address: "0x0000000000000000000000000000000000000001",
+          entries: { "PWA-001": { "Tester B": { s: "fail", n: "visible issue" } } },
+        });
+      };
+    },
+  });
+
+  const runTimer = async (delay) => {
+    const timer = [...timers.entries()].find(([, pending]) => pending.delay === delay);
+    assert.ok(timer, `expected a ${delay}ms timer`);
+    timers.delete(timer[0]);
+    await timer[1].callback();
+    await flush();
+  };
+
+  try {
+    await flush();
+    const document = dom.window.document;
+    assert.equal(restoredScroll, 73, jsdomError || "journey scroll was not restored");
+    assert.equal(document.querySelector('[data-sort="journey"]')?.getAttribute("aria-pressed"), "true");
+    assert.equal(document.querySelector('[data-tab="all"]')?.textContent.startsWith("Todas las superficies"), true);
+    assert.equal(document.querySelector('label[for="qa-journey-select"]')?.textContent.includes("Recorrido"), true);
+    assert.equal(document.querySelector('label[for="qa-part-select"]')?.textContent.includes("Parte"), true);
+    assert.equal(document.querySelector("#qa-part-select option")?.textContent, "Todas las partes");
+    assert.equal(document.querySelector(".journey-row")?.getAttribute("lang"), "es");
+    assert.equal(document.querySelector("#qa-part-select")?.getAttribute("aria-describedby"), "qa-part-role");
+    assert.equal(document.querySelector("#qa-part-role")?.textContent.includes("Responsabilidades del rol"), true);
+    assert.equal(document.querySelector("#qa-part-role")?.textContent.includes("Responsable del protocolo"), true);
+    assert.equal(document.querySelector("#qa-part-role")?.textContent.includes("miembro del Garden"), true);
+    assert.deepEqual(
+      [...document.querySelectorAll(".rid b")].map((node) => node.textContent),
+      ["ADM-001", "PWA-001", "ADM-002"],
+      "journey steps did not override catalog/surface order",
+    );
+    assert.equal(document.querySelector(".scen")?.textContent.includes("Primero en español"), true);
+    assert.equal(document.querySelector(".scen")?.textContent.includes("Primer resultado"), true);
+    assert.equal(document.querySelector(".scen")?.getAttribute("lang"), "es");
+    const firstJourneyPrerequisites = document.querySelector(".journey-prerequisites");
+    assert.equal(firstJourneyPrerequisites?.textContent.includes("Antes de empezar"), true);
+    assert.equal(firstJourneyPrerequisites?.textContent.includes("Rol requerido: Steward"), true);
+    assert.deepEqual(
+      [...firstJourneyPrerequisites.querySelectorAll(".journey-preconditions li")].map((node) => node.textContent),
+      ["Primera condición", "El ciclo compartido está visible"],
+    );
+    const firstJourneySteps = document.querySelector(".journey-steps");
+    assert.equal(firstJourneySteps?.tagName, "OL");
+    assert.ok(
+      firstJourneyPrerequisites.compareDocumentPosition(firstJourneySteps)
+        & dom.window.Node.DOCUMENT_POSITION_FOLLOWING,
+      "the prerequisites must appear before authored actions",
+    );
+    assert.deepEqual(
+      [...firstJourneySteps.querySelectorAll("li")].map((node) => node.textContent),
+      ["Primer paso", "Segundo paso detallado"],
+    );
+    assert.deepEqual(
+      [...document.querySelectorAll("h2.area")].map((node) => node.textContent),
+      ["Preparar · 1", "Entregar · 2"],
+    );
+    assert.equal(document.querySelector(".known-gate")?.textContent.includes("La liquidación no está habilitada"), true);
+    assert.equal(document.querySelector(".journey-handoff")?.textContent.includes("Espera a que la persona revisora"), true);
+    assert.equal([...timers.values()].filter((timer) => timer.delay === 900).length, 0);
+    assert.equal(posts.length, 0, "rendering a known gate must not write a Blocked verdict");
+
+    const initialJourneySelect = document.querySelector("#qa-journey-select");
+    initialJourneySelect.focus();
+    initialJourneySelect.value = "treasury";
+    initialJourneySelect.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    assert.equal(document.activeElement?.id, "qa-journey-select");
+    assert.deepEqual([...document.querySelectorAll(".rid b")].map((node) => node.textContent), ["ADM-002"]);
+
+    const treasuryJourneySelect = document.querySelector("#qa-journey-select");
+    treasuryJourneySelect.value = "relay";
+    treasuryJourneySelect.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    assert.equal(document.activeElement?.id, "qa-journey-select");
+
+    const viewSelect = document.querySelector("#qa-view-select");
+    viewSelect.value = "Tester A";
+    viewSelect.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    const gatedRow = [...document.querySelectorAll(".row")].find((row) =>
+      row.querySelector(".rid b")?.textContent === "PWA-001"
+    );
+    assert.equal(gatedRow?.querySelectorAll("button.st").length, 4);
+    assert.equal(gatedRow?.querySelectorAll('button.st[aria-pressed="true"]').length, 0);
+    gatedRow?.querySelector('[data-s="blocked"]')?.click();
+    assert.equal(
+      document.querySelector('[data-id="PWA-001"][data-s="blocked"]')?.getAttribute("aria-pressed"),
+      "true",
+    );
+    await runTimer(900);
+    assert.deepEqual(posts[0]?.entries, { "PWA-001": { s: "blocked" } });
+
+    const part = document.querySelector("#qa-part-select");
+    part.focus();
+    part.value = "review";
+    part.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    assert.equal(document.activeElement?.id, "qa-part-select");
+    assert.equal(document.querySelector("#qa-part-role")?.textContent.includes("Responsable del protocolo"), true);
+    assert.equal(document.querySelector("#qa-part-role")?.textContent.includes("miembro del Garden"), false);
+    assert.deepEqual(
+      [...document.querySelectorAll(".rid b")].map((node) => node.textContent),
+      ["ADM-001", "PWA-001"],
+    );
+    const roleText = [...document.querySelectorAll(".journey-meta")].map((node) => node.textContent);
+    assert.equal(roleText[0].includes("ActuarProtocolo y revisión"), true);
+    assert.equal(roleText[1].includes("VerificarProtocolo y revisión"), true);
+    assert.equal(JSON.parse(dom.window.sessionStorage.getItem("qa-view")).part, "review");
+
+    const locale = document.querySelector("#qa-locale-select");
+    locale.focus();
+    locale.value = "pt";
+    locale.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    assert.equal(document.activeElement?.id, "qa-locale-select");
+    assert.equal(document.querySelector(".journey-row")?.getAttribute("lang"), "pt");
+    assert.equal(document.querySelector('label[for="qa-journey-select"]')?.textContent.includes("Jornada"), true);
+    assert.equal(document.querySelector(".scen")?.textContent.includes("Primeiro em português"), true);
+    assert.equal(document.querySelector(".scen")?.textContent.includes("Primeiro resultado"), true);
+    assert.equal(document.querySelector(".scen")?.getAttribute("lang"), "pt");
+    assert.equal(document.querySelector(".journey-prerequisites")?.textContent.includes("Antes de começar"), true);
+    assert.equal(document.querySelector(".journey-preconditions")?.textContent.includes("Primeira condição"), true);
+    assert.equal(dom.window.localStorage.getItem("qa-locale"), "pt");
+
+    const mobileRules = [...document.styleSheets[0].cssRules]
+      .filter((rule) => rule.conditionText === "(max-width:720px)")
+      .flatMap((rule) => [...rule.cssRules]);
+    const mobileVerdicts = mobileRules.find((rule) => rule.selectorText === ".st");
+    const mobileSavebar = mobileRules.find((rule) => rule.selectorText === ".savebar");
+    assert.equal(mobileVerdicts.style.width, "44px");
+    assert.equal(mobileVerdicts.style.height, "44px");
+    assert.equal(mobileSavebar.style.position, "static");
+
+    document.querySelector('[data-f="issues"]')?.click();
+    assert.deepEqual([...document.querySelectorAll(".rid b")].map((node) => node.textContent), ["PWA-001"]);
+    document.querySelector('[data-f="open"]')?.click();
+    assert.deepEqual([...document.querySelectorAll(".rid b")].map((node) => node.textContent), ["ADM-001"]);
+    document.querySelector('[data-f="all"]')?.click();
+    document.querySelector('[data-tab="Admin Dashboard"]')?.click();
+    assert.deepEqual([...document.querySelectorAll(".rid b")].map((node) => node.textContent), ["ADM-001"]);
+    assert.equal([...timers.values()].filter((timer) => timer.delay === 900).length, 0);
+    assert.equal(posts.length, 1, "filtering journey rows must remain read-only");
+
+    document.querySelector('[data-sort="walk"]')?.click();
+    assert.equal(document.querySelector("#qa-journey-select"), null);
+    assert.equal(document.querySelector(".journey-prerequisites"), null);
+    assert.equal(document.querySelector(".journey-steps"), null);
+    assert.equal(document.querySelector(".scen")?.textContent.includes("Third"), true);
+    assert.equal(document.querySelector(".scen")?.textContent.includes("Terceiro em português"), false);
+    assert.deepEqual(
+      [...document.querySelectorAll(".rid b")].map((node) => node.textContent),
+      ["ADM-002", "ADM-001"],
+      "Walk should keep the selected tab's catalog order",
+    );
+    document.querySelector('[data-sort="priority"]')?.click();
+    assert.deepEqual(
+      [...document.querySelectorAll("h2.area")].map((node) => node.textContent),
+      ["P0 · 1", "P1 · 1"],
+      "Priority should keep its severity bands",
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 describe("QA app client races", () => {
   // Each case spawns a Node subprocess and boots JSDOM once per page life, which
   // runs past Vitest's 5s default — the cause of the intermittent timeout here.
@@ -776,6 +1152,20 @@ describe("QA app client races", () => {
         "--input-type=module",
         "--eval",
         `await (${displayLabelHarness.toString()})()`,
+      ],
+      { cwd: repoRoot, stdio: "pipe" },
+    );
+  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
+
+  it("orders a cross-surface journey, restores its view, and separates Act from Verify", () => {
+    execFileSync(
+      "node",
+      [
+        "scripts/dev/node-cli.js",
+        "node",
+        "--input-type=module",
+        "--eval",
+        `await (${journeyModeHarness.toString()})()`,
       ],
       { cwd: repoRoot, stdio: "pipe" },
     );

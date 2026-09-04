@@ -5,13 +5,12 @@
 #
 # Verifies contracts are ready for production deployment by running:
 #   Phase 1: Full compilation (via_ir, all sources including test/script)
-#   Phase 2: Lint (forge fmt --check) + Solhint (parallel, no forge lock)
+#   Phase 2: Lint (pinned forge fmt --check + Solhint through the real-Node wrapper)
 #   Phase 3: Unit tests + E2E workflow test (sequential, forge lock)
 #   Phase 4: Deployment dry runs — Sepolia, Arbitrum, Celo (sequential, cached)
 #
 # Parallelism constraints:
 #   All forge subcommands share out/ and cache/ dirs → single lock, must serialize.
-#   Only solhint (non-forge) can run truly parallel with forge tasks.
 #
 # Usage:
 #   ./scripts/contracts/verify-production.sh            # Full verification
@@ -102,47 +101,17 @@ success "Build passed"
 phase_end
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Phase 2: Lint (forge fmt ∥ solhint)
+# Phase 2: Lint
 # ═══════════════════════════════════════════════════════════════════════════════
-# forge fmt --check: read-only source formatting check (~1s)
-# solhint: independent static analysis (no forge lock) — runs in background
-#
-# These two are the ONLY tasks that can truly parallelize since solhint
-# doesn't touch forge's out/cache directories.
+# Keep this on the package's canonical lint entrypoint. It checks the pinned
+# Foundry version and runs Solhint through the repository's real-Node wrapper,
+# avoiding Bun's nested-script temp-directory shim in restricted environments.
 # ═══════════════════════════════════════════════════════════════════════════════
 phase "Phase 2/4: Lint"
 phase_start "lint"
 
-LINT_TMPDIR=$(mktemp -d)
-
-# Background: solhint (independent of forge). Resolve the package-local binary
-# through Bun so the root wrapper does not depend on a globally installed CLI.
-bun run solhint --config ./.solhint.json 'src/**/*.sol' --ignore-path .solhintignore \
-  > "$LINT_TMPDIR/solhint.log" 2>&1 &
-SOLHINT_PID=$!
-
-# Foreground: forge fmt check (fast, read-only)
-if forge fmt --check > "$LINT_TMPDIR/fmt.log" 2>&1; then
-  success "forge fmt --check passed"
-else
-  echo -e "${YELLOW}  forge fmt --check output:${NC}"
-  cat "$LINT_TMPDIR/fmt.log"
-  wait "$SOLHINT_PID" 2>/dev/null || true
-  rm -rf "$LINT_TMPDIR"
-  fail "Formatting check failed — run 'bun lint' to fix"
-fi
-
-# Collect solhint result
-if wait "$SOLHINT_PID"; then
-  success "solhint passed"
-else
-  echo -e "${YELLOW}  solhint output:${NC}"
-  cat "$LINT_TMPDIR/solhint.log"
-  rm -rf "$LINT_TMPDIR"
-  fail "Solhint found issues"
-fi
-
-rm -rf "$LINT_TMPDIR"
+bun run lint:check || fail "Contract lint failed"
+success "Contract lint passed"
 phase_end
 
 # ═══════════════════════════════════════════════════════════════════════════════

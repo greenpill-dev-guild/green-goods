@@ -21,11 +21,18 @@
  * example and the Discord lede, nothing else.
  */
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { type Entry, type MergedEntries, notesFor, rollupVerdict } from "./qa-state";
+import {
+  acquirePrivateSessionLock,
+  assertPrivateOutputPath,
+  releasePrivateSessionLock,
+  verifyPrivateArtifactSet,
+  writePrivateFileAtomically,
+} from "./qa-state-pull";
 import { DEFAULT_STALE_DAYS, findStaleCases, type StaleCase } from "./qa-status";
 import { type Catalog, type CatalogCase, loadCatalog, SEVERITY_VALUES } from "./qa-workbook-build";
 
@@ -217,6 +224,12 @@ export function buildReportModel(cases: CatalogCase[], entries: MergedEntries, o
   let window = options.window ?? parseWindow(undefined, options.slug);
   let windowNote: string | undefined;
   const pulledAtMs = Date.parse(options.pulledAt);
+  if (!ZONED.test(options.pulledAt) || !Number.isFinite(pulledAtMs)) {
+    throw new Error("snapshot pull time must be a valid timestamp with a time zone");
+  }
+  if (pulledAtMs < Date.parse(window.start)) {
+    throw new Error("snapshot pull time precedes the report window");
+  }
   // The routine pads the call end by an hour but pulls right away; a snapshot
   // cannot hold entries recorded after it, so say exactly what the report covers.
   if (Number.isFinite(pulledAtMs) && pulledAtMs < Date.parse(window.end)) {
@@ -463,15 +476,16 @@ export function parseArgs(argv: string[]): CliOptions {
 }
 
 interface PulledState {
+  slug?: string;
   pulledAt?: string;
   entries: MergedEntries;
 }
 
-/** Parse a pulled state file without ever quoting its contents — notes live in there. */
-function readState(filePath: string, label: string): PulledState {
+/** Parse pulled state text without ever quoting its contents — notes live in there. */
+function parseState(text: string, label: string): PulledState {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(readFileSync(filePath, "utf8"));
+    parsed = JSON.parse(text);
   } catch {
     throw new Error(`${label} is not valid JSON`);
   }
@@ -480,6 +494,10 @@ function readState(filePath: string, label: string): PulledState {
     throw new Error(`${label} has no entries object`);
   }
   return parsed as PulledState;
+}
+
+function readState(filePath: string, label: string): PulledState {
+  return parseState(readFileSync(filePath, "utf8"), label);
 }
 
 /** Minimal RFC 4180 reader for our own results.csv: quoted fields, doubled quotes, newlines inside quotes. */
@@ -538,7 +556,7 @@ export function resultsNotes(text: string): Map<string, string> {
 
 export async function runReport(
   options: CliOptions,
-  deps: { catalog: Catalog; repoRoot: string },
+  deps: { catalog: Catalog; repoRoot: string; afterSnapshotVerified?: () => void },
 ): Promise<{ report: string; publicReport?: string; windowNote?: string }> {
   const privateRoot = path.join(deps.repoRoot, "tmp");
   const outDir = path.resolve(deps.repoRoot, options.out ?? path.join("tmp", "qa-session", options.slug));
@@ -550,39 +568,60 @@ export async function runReport(
   ) {
     throw new Error("--out must stay under the repo's gitignored tmp/ directory — the report carries tester names and notes");
   }
+  assertPrivateOutputPath(deps.repoRoot, outDir);
   const statePath = path.join(outDir, "qa-state.json");
   if (!existsSync(statePath)) {
     throw new Error(
       `${path.relative(deps.repoRoot, statePath)} is missing — run bun run qa:pull --slug ${options.slug} first`,
     );
   }
-  const state = readState(statePath, "qa-state.json");
-  const resultsPath = path.join(outDir, "results.csv");
-  const noteOverrides = existsSync(resultsPath) ? resultsNotes(readFileSync(resultsPath, "utf8")) : undefined;
-  let previous: ReportOptions["previous"];
-  if (options.previous) {
-    const previousPath = path.resolve(deps.repoRoot, options.previous);
-    if (!existsSync(previousPath)) throw new Error(`--previous file ${options.previous} is missing`);
-    previous = { path: options.previous, entries: readState(previousPath, "--previous file").entries };
-  }
-  const window = parseWindow(options.window, options.slug);
-  const active = deps.catalog.cases.filter((testCase) => testCase.status !== "retired");
-  const model = buildReportModel(active, state.entries, {
-    slug: options.slug,
-    pulledAt: state.pulledAt ?? "unknown",
-    window,
-    build: options.build,
-    staleDays: options.staleDays,
-    previous,
-    noteOverrides,
-  });
+  const lock = acquirePrivateSessionLock(outDir, "qa:report");
+  try {
+    const stateText = readFileSync(statePath, "utf8");
+    const state = parseState(stateText, "qa-state.json");
+    if (state.slug !== options.slug) {
+      throw new Error("qa-state.json belongs to a different session slug");
+    }
+    const resultsPath = path.join(outDir, "results.csv");
+    const resultsText = existsSync(resultsPath) ? readFileSync(resultsPath, "utf8") : undefined;
+    verifyPrivateArtifactSet(
+      outDir,
+      {
+        "qa-state.json": stateText,
+        ...(resultsText === undefined ? {} : { "results.csv": resultsText }),
+      },
+      undefined,
+      lock,
+    );
+    deps.afterSnapshotVerified?.();
+    const noteOverrides = resultsText === undefined ? undefined : resultsNotes(resultsText);
+    let previous: ReportOptions["previous"];
+    if (options.previous) {
+      const previousPath = path.resolve(deps.repoRoot, options.previous);
+      if (!existsSync(previousPath)) throw new Error(`--previous file ${options.previous} is missing`);
+      previous = { path: options.previous, entries: readState(previousPath, "--previous file").entries };
+    }
+    const window = parseWindow(options.window, options.slug);
+    const active = deps.catalog.cases.filter((testCase) => testCase.status !== "retired");
+    const model = buildReportModel(active, state.entries, {
+      slug: options.slug,
+      pulledAt: state.pulledAt ?? "unknown",
+      window,
+      build: options.build,
+      staleDays: options.staleDays,
+      previous,
+      noteOverrides,
+    });
 
-  const report = path.join(outDir, "report.md");
-  writeFileSync(report, renderReport(model, deps.catalog, { variant: "private" }));
-  if (!options.public) return { report, windowNote: model.windowNote };
-  const publicReport = path.join(outDir, "report.public.md");
-  writeFileSync(publicReport, renderReport(model, deps.catalog, { variant: "public" }));
-  return { report, publicReport, windowNote: model.windowNote };
+    const report = path.join(outDir, "report.md");
+    writePrivateFileAtomically(report, renderReport(model, deps.catalog, { variant: "private" }));
+    if (!options.public) return { report, windowNote: model.windowNote };
+    const publicReport = path.join(outDir, "report.public.md");
+    writePrivateFileAtomically(publicReport, renderReport(model, deps.catalog, { variant: "public" }));
+    return { report, publicReport, windowNote: model.windowNote };
+  } finally {
+    releasePrivateSessionLock(lock);
+  }
 }
 
 async function main(): Promise<void> {
