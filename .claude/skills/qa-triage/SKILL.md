@@ -38,36 +38,65 @@ The post-QA-call variant: same phases, three deltas. The unattended sibling is t
 write rules; this mode runs them interactively at the desk. Run one of the two per session; the
 Phase 3b dedupe catches the other's records if both ran.
 
-- **Phases 1-2** — the source is twofold: `bun run qa:pull --slug <date>` (the QA app's verdicts
-  and notes, exact Test IDs) plus the call's Gemini notes from Drive (title contains "QA" or
-  "Build Sync"). App verdicts recorded **during the call window** are ground truth — the store
-  is long-lived and the pull merges every shard ever written, so filter joined entries by their
-  `at` timestamps (the routine's session-window rule) before calling anything verdict-backed;
-  older entries are standing state. Then `bun run qa:report --slug <date> --window <start>..<end>`
-  — with `--out <the directory you pulled into>` whenever the collision branch below sent the pull
-  to `tmp/qa-session/<date>-call`, so the report reads that pull and not the earlier session's
-  (add `--build client=<sha>,admin=<sha>` once Phase 6 has the deploys): the `report.md` written
-  beside that pull is where both results blocks of the parent come from — never count by hand.
-  Note items without a Test ID may be fuzzy-matched into
-  *proposals* here, because the Phase 4 gate confirms each one with you — the unattended routine
-  never guesses an ID. If `tmp/qa-session/<date>/` already holds a pulled session (a local
-  close, or an earlier failed run), `qa:pull` refuses to overwrite it: pull to a fresh directory
-  with `--out tmp/qa-session/<date>-call` and continue from that path — never `--force` over an
-  existing pull, whose severity edits and redactions are sacred.
-- **Phases 3-5** — findings cluster into slices: same catalog area + same suspected seam, split
-  past 3 Test IDs or a package boundary, cap 8 by priority with overflow named in the report.
-  Payloads use [linear-templates.md § QA session report / § QA slice](./linear-templates.md) —
-  one `QA session <date>` parent, slices as sub-issues via `parentId`. Before drafting the
-  parent, look for an existing one — use the `qa-sync:<date>` label to narrow candidates, but
-  require the parent shape before reuse: the exact `QA session <date>` title and no `package:*`
-  label (the pulse stamps the same label on its pre-staged tracking Issues, and Phase 3b's
-  package-scoped scan cannot see the parent at all); an existing parent is reused, never
-  duplicated. Verdict-backed slices
-  propose `Todo` + derived priority (P0-case fail → High, P1 → Medium, else Low; Urgent only for
-  call-flagged release blockers); note-only items propose `Backlog`. The Phase 4 scope-lock gate
-  runs unchanged over the slice list.
+- **Phases 1-2** — the source is threefold: `bun run qa:pull --slug <date>` (the QA app's verdicts
+  and notes, exact Test IDs), the call's Gemini notes from Drive (title contains "QA" or "Build
+  Sync"), and any evidence page a tester linked from a note (a Notion or Drive URL beside an issue
+  number, carried into the slice's evidence comment as a link, never re-typed). App verdicts
+  recorded **during the call window** are ground truth — the store is long-lived and the pull
+  merges every shard ever written, so filter joined entries by their `at` timestamps (the
+  routine's session-window rule) before calling anything verdict-backed; older entries are
+  standing state. `N/A` means out of scope, never skipped
+  ([`.claude/context/qa.md § Verdict vocabulary`](../../context/qa.md)); ask the tester to clear a
+  skipped case in the app before the pull rather than caveating the report. Then
+  `bun run qa:report --slug <date> --window <start>..<end>` — with `--out <the directory you
+  pulled into>` whenever the collision branch below sent the pull to `tmp/qa-session/<date>-call`,
+  so the report reads that pull and not the earlier session's (add `--build client=<sha>,admin=<sha>`
+  once Phase 6 has the deploys): the `report.md` written beside that pull is where both results
+  blocks of the parent come from — never count by hand. Note items without a Test ID may be
+  fuzzy-matched into *proposals* here, because the Phase 4 gate confirms each one with you — the
+  unattended routine never guesses an ID. If `tmp/qa-session/<date>/` already holds a pulled
+  session (a local close, or an earlier failed run), `qa:pull` refuses to overwrite it: pull to a
+  fresh directory with `--out tmp/qa-session/<date>-call` and continue from that path — never
+  `--force` over an existing pull, whose severity edits and redactions are sacred.
+- **Phase 2b — split, then classify.** A dictated app note is several observations, not one
+  finding: on 2026-09-04 one note carried six polish items and the session's only release blocker
+  in a single paragraph. Before anything clusters, extract one numbered observation per distinct
+  symptom from every app note (the Phase 2 extraction rule, applied to app notes exactly as to
+  meeting notes), each tagged with its Test ID, tester, and verdict, and give each observation one
+  disposition from [`.claude/context/qa.md § Finding dispositions`](../../context/qa.md):
+  `defect`, `polish`, `decision`, `investigate`, `catalog`, or `environment`. Write the `catalog`
+  observations to `tmp/qa-triage/<slug>/catalog-feedback.md` — they feed the next catalog change
+  and never reach Linear. A note that says "major regression", "major blocker", or "completely
+  broken" proposes Urgent for its cluster; the gate confirms.
+- **Phases 3-5** — `defect` and `polish` observations cluster into slices: same catalog area +
+  same suspected seam, split past 3 Test IDs or a package boundary, ordered by priority. The
+  default cap is 8 slices; the gate may raise it when the week's fixing capacity matches (12 on
+  2026-09-04) — record the cap used in the parent's Slices intro and name overflow in
+  `Not sliced`. Standing fail/blocked entries **outside** the window are never slices by default;
+  the gate may accept ones that were never filed (no open Issue carries their Test ID), and such a
+  slice opens with `Standing since <date>.` and is listed that way in the parent. `decision`
+  observations become the parent's `Decisions needed` section plus one child issue
+  ([linear-templates.md § Product decisions child](./linear-templates.md)); `investigate`
+  observations become `Not sliced · investigate` lines; `environment` observations become one line
+  in the parent. Each slice states where its Test IDs can be verified — `local` (dev:prod on a
+  laptop), `device` (a case marked `requiresDevice`), or `production` (`requiresProduction`) — so
+  the fix loop takes local-verifiable slices first. Payloads use
+  [linear-templates.md § QA session report / § QA slice](./linear-templates.md) — one
+  `QA session <date>` parent, slices as sub-issues via `parentId`. Before drafting the parent,
+  look for an existing one — use the `qa-sync:<date>` label to narrow candidates, but require the
+  parent shape before reuse: the exact `QA session <date>` title and no `package:*` label (the
+  pulse stamps the same label on its pre-staged tracking Issues, and Phase 3b's package-scoped
+  scan cannot see the parent at all); an existing parent is reused, never duplicated.
+  Verdict-backed slices propose `Todo` + derived priority (P0-case fail → High, P1 → Medium, else
+  Low; Urgent when the call or a tester's note flagged it release-blocking); note-only items
+  propose `Backlog`. **Human-filed issues**: list Product Issues created since the window opened,
+  whatever their labels (a teammate filing from the call rarely stamps `activity:qa`); propose a
+  match per slice by title and surface; the gate confirms each. A confirmed match is linked as
+  `already tracked`, and the slice's Test IDs are posted as a comment on that Issue so the reverse
+  lookup works next time. The Phase 4 scope-lock gate runs over the slice list, the decisions
+  list, and the proposed matches together.
 - **Phase 6** — write the parent first — Results by priority and Results by kind pasted verbatim
-  from `report.md` — then the children. The routine's window-scoped
+  from `report.md` — then the decisions child, then the slices. The routine's window-scoped
   enrichment runs here too (build under test via Vercel; PostHog/Sentry safe summaries into each
   slice's first comment — see `qa-call-report.md` § Phase 4); Sheet Defects rows are still
   offered per slice member with the usual confirmation (the routine never writes the Sheet), and

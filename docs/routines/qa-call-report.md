@@ -22,7 +22,7 @@ connectors:
   - sentry        # when available — resolves projects by name through the connector, no env vars; absent = skip silently
 model: claude-opus-5
 allow-unrestricted-branch-pushes: false  # Linear + Discord only; no PRs, no Sheet writes, no GitHub Issues
-last_updated: "2026-09-02"
+last_updated: "2026-09-05"
 ---
 
 # Prompt
@@ -127,8 +127,23 @@ pulled session and `--force` would discard any redactions) — and run `qa:repor
   opaque shard reference (`shard 2 of 3 failed validation`), never the shard path or the raw
   parse error, both of which embed the tester's wallet address. Do not fall back to notes-only
   silently; rerun after the store is fixed.
+- `N/A` means intentionally out of scope, never skipped
+  ([`.claude/context/qa.md § Verdict vocabulary`](../../.claude/context/qa.md)); the report counts
+  it as judged. When a note beside an `N/A` says the case was skipped, say so in the lede's
+  coverage sentence instead of treating the case as covered.
 
 ## Phase 3: Join and cluster into slices
+
+Before keying anything, split every app note into one observation per distinct symptom (a
+dictated note often carries several: six polish items and one blocker in one paragraph on
+2026-09-04), keep the Test ID, tester, and verdict on each, and give each observation one
+disposition from [`.claude/context/qa.md § Finding dispositions`](../../.claude/context/qa.md):
+`defect`, `polish`, `decision`, `investigate`, `catalog`, or `environment`. Only `defect` and
+`polish` cluster. `decision` feeds the parent's `Decisions needed` section and the decisions child
+(Phase 7); `investigate` becomes a `Not sliced · investigate` line; `environment` one line in the
+parent; `catalog` (a tester's remark about the test case itself) becomes one `Catalog feedback`
+comment on the parent — never a slice and never a `Not sliced` line, because it is catalog work,
+not product work.
 
 1. Key every finding by **exact Test ID** where one exists (all app entries have one; notes
    items may name one). A notes item **without** an exact ID never gets one guessed for it — the
@@ -141,9 +156,13 @@ pulled session and `--force` would discard any redactions) — and run `qa:repor
    notes item separate rather than merging — a wrong merge attaches the quote to the wrong case.
 3. **Cluster into slices**: same catalog `area` + same suspected seam (the module/component the
    failures share). Split a cluster past 3 Test IDs or when it crosses packages. A cross-surface
-   cluster whose root cause sits in shared code is ONE slice on the shared package.
+   cluster whose root cause sits in shared code is ONE slice on the shared package. Each slice
+   states where it can be verified — `local`, `device`, or `production`, from its cases'
+   `requiresDevice` and `requiresProduction` flags — so a fix session takes `local` first.
 4. Cap **8 slices**, ordered by highest member priority; overflow findings are listed in the
-   parent's "Not sliced" section, not silently dropped.
+   parent's "Not sliced" section, not silently dropped. Standing fail/blocked entries outside the
+   window are never slices unattended; those with no open Issue carrying their Test ID are listed
+   in `Not sliced` as `standing since <date>` lines for a human to promote at the desk.
 
 ## Phase 4: Enrich from the product (non-blocking)
 
@@ -195,7 +214,9 @@ the call's identity, since the week's `qa-sync` label is shared) and no `package
 **reuse it** — add missing children under it and a comment for new context; never a second
 parent, and never attach slices to anything that fails the shape test.
 
-Then the findings: list open Product Issues carrying `activity:qa` or any `qa-sync:*` label.
+Then the findings: list open Product Issues carrying `activity:qa` or any `qa-sync:*` label, plus
+every Issue created on the team since the window opened whatever its labels (a teammate filing
+from the call rarely stamps `activity:qa`).
 "Already tracked" needs an **exact key**: the same catalog Test ID in the existing Issue's
 source line, or the same PostHog error hash. Wording or surface similarity alone never earns it
 unattended — an uncertain match stays in this session's record (its slice, or `Not sliced`)
@@ -219,20 +240,25 @@ exposure: redact in place and fail loud in the Discord summary.
    its counter, `QA session <YYYY-MM-DD> · 2` (only that ` · N` counter keeps the
    word-backstop exemption; a wordier suffix loses it) — body per the § QA session report
    template — lede, then Results by priority and Results by kind pasted verbatim from
-   `tmp/qa-session/<slug>/report.md`, Decisions from the call (omit in app-only mode), Slices,
-   Not sliced, `Done when`, source line with the Drive notes link. State `Todo`. Labels: `green-goods` + `qa` + `qa-session` + `routine` +
+   `tmp/qa-session/<slug>/report.md`, Decisions from the call (omit in app-only mode), Decisions needed (when
+   any), Slices, Not sliced, `Done when`, source line with the Drive notes link. The lede names
+   the session's default environment. State `Todo`. Labels: `green-goods` + `qa` + `qa-session` + `routine` +
    `qa-sync:<date>`; **no `package:*`** on the parent. The parent's `Done when` defines its
    closure — every slice Done or explicitly deferred, re-QA re-recorded; the fix flow closes it,
    never this routine. **One exception**: an all-pass session (zero slices, zero related
    Issues) creates its parent directly in `Done` — it is a record with nothing to fix, and
    nothing downstream would ever close a `Todo` shell. App-only runs use the app-state
    source-line variant from the template — never a fabricated Drive link.
-2. **Then each slice** as a sub-issue via `parentId`, body per the § QA slice template (problem
+2. **Then the decisions child** when `Decisions needed` is non-empty: `Product decisions from QA
+   session <date>` per § Product decisions child in the templates — `Backlog`, unassigned, the
+   parent label set, no `package:*`.
+3. **Then each slice** as a sub-issue via `parentId`, body per the § QA slice template (problem
    cluster in prose with Test IDs and verdicts, "Where to start" map, "Done when" = the Test IDs
    re-record as pass, fix-posture pointer, validation command, source line).
    - **Verdict-backed** (a tester recorded fail/blocked in the app **during the session
      window**): `Todo`; priority High for a P0-case fail, Medium for P1, Low otherwise — Urgent
-     only when the notes flag it release-blocking. This seeded priority is a queue-ordering
+     only when the notes flag it release-blocking or a tester's own note calls it a major
+     regression, major blocker, or completely broken. This seeded priority is a queue-ordering
      default derived from walk priority, not a severity judgment
      ([`.claude/context/qa.md`](../../.claude/context/qa.md) § Verdict and severity rules); the
      fix session re-judges it at take-up. Todo-on-write is a deliberate, owner-approved
@@ -241,7 +267,7 @@ exposure: redact in place and fail loud in the Discord summary.
      because every slice remains a proposal until a person takes it up.
    - **Notes-only** (no app verdict): `Backlog`, priority unset.
    - Labels: the parent set plus ONE `package:*` (primary surface; secondary named in prose).
-3. A failed parent write aborts the run (children without a parent are orphans); a failed child
+4. A failed parent write aborts the run (children without a parent are orphans); a failed child
    write is retried once, then reported.
 
 ## Phase 8: Discord summary to #product
@@ -286,6 +312,7 @@ the @mention.
 | Block the report on enrichment | PostHog/Vercel/Sentry are context, not the record; flag a degraded source and continue |
 | Paste replay URLs, session IDs, or distinct IDs anywhere in Linear | The privacy boundary does not move for enrichment; the recipe line replaces the link |
 | Promote a `[derived:telemetry]` line into a slice | Nobody recorded it — unattended promotion invents work; a human decides at the next triage |
+| Turn a tester's remark about the test case into a slice | Split it, rename it, move it, unclear: that is catalog work, not product work — one `Catalog feedback` comment on the parent |
 
 ## Rebuilding the cloud routine from this file
 
