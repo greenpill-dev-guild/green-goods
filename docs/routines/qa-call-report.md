@@ -64,9 +64,11 @@ decision log is a human-gated local step, never yours.
   `QA session YYYY-MM-DD` parent title is exempt from the word backstop) and the two templates in
   [`.claude/skills/qa-triage/linear-templates.md`](../../.claude/skills/qa-triage/linear-templates.md)
   § QA session report / § QA slice.
-- Pass labels to `save_issue` as **bare child names** plus the literal `qa-sync:<date>` string
-  (e.g. `["green-goods", "qa", "qa-session", "routine", "qa-sync:2026-09-02"]`); the
-  `group:child` display form is rejected, and one unresolvable entry files nothing.
+- Pass labels to `save_issue` as **bare child names**: `protocol:green-goods`, `activity:qa`,
+  `source:qa-session`, `ai:routine`, and `qa-sync:<date>` are written as
+  `["green-goods", "qa", "qa-session", "routine", "2026-09-02"]` — the `group:child` display
+  form is rejected, and one unresolvable entry files nothing. Every label list in this prompt names
+  the canonical `group:child` label; the bare child name is only the wire form.
 
 ## Phase 1: Discover the call's notes (Drive)
 
@@ -128,9 +130,11 @@ pulled session and `--force` would discard any redactions) — and run `qa:repor
   parse error, both of which embed the tester's wallet address. Do not fall back to notes-only
   silently; rerun after the store is fixed.
 - `N/A` means intentionally out of scope, never skipped
-  ([`.claude/context/qa.md § Verdict vocabulary`](../../.claude/context/qa.md)); the report counts
-  it as judged. When a note beside an `N/A` says the case was skipped, say so in the lede's
-  coverage sentence instead of treating the case as covered.
+  ([`.claude/context/qa.md § Verdict vocabulary`](../../.claude/context/qa.md)), and the generator
+  counts it as judged. When a note beside an in-window `N/A` says the case was skipped, pass those
+  IDs to `qa:report --skipped <ID,ID>`: the generator then treats them as not walked and lists them
+  in its header, so the pasted results blocks never overstate coverage. Name them on the parent's
+  environment line and add one Discord line asking the tester to clear them before the next pull.
 
 ## Phase 3: Join and cluster into slices
 
@@ -150,7 +154,9 @@ not product work.
    linkage contract ([`.claude/context/qa.md`](../../.claude/context/qa.md) § Test ID linkage)
    forbids fuzzy-guessing, and unattended is where a plausible-but-wrong match does the most
    damage: the fixing agent would repair and re-record the wrong case. ID-less items go to the
-   parent's `Not sliced` list as note-only follow-ups; the interactive `/qa-triage --call` may
+   parent's `Not sliced` list as note-only follow-ups — except `decision` observations, which need
+   no case: they go to `Decisions needed` and the decisions child whether or not an ID exists, and
+   `environment` observations, which become the parent's environment line; the interactive `/qa-triage --call` may
    propose fuzzy candidates because a human confirms each one at its gate.
 2. Dedupe notes↔app by exact Test ID; when only title similarity suggests a match, keep the
    notes item separate rather than merging — a wrong merge attaches the quote to the wrong case.
@@ -218,7 +224,8 @@ Then the findings: list open Product Issues carrying `activity:qa` or any `qa-sy
 every Issue created on the team since the window opened whatever its labels (a teammate filing
 from the call rarely stamps `activity:qa`).
 "Already tracked" needs an **exact key**: the same catalog Test ID in the existing Issue's
-source line, or the same PostHog error hash. Wording or surface similarity alone never earns it
+source line or in a comment the QA pipeline posted on it (the interactive mode records confirmed
+matches that way), or the same PostHog error hash. Wording or surface similarity alone never earns it
 unattended — an uncertain match stays in this session's record (its slice, or `Not sliced`)
 with a `possible duplicate of <key>` note for a human to settle. A confirmed match gets a
 comment on the existing Issue (today's date + the new evidence, privacy-grepped before posting)
@@ -247,16 +254,23 @@ exposure: redact in place and fail loud in the Discord summary.
    the session's default environment. State `Todo`. Labels: `green-goods` + `qa` + `qa-session` + `routine` +
    `qa-sync:<date>`; **no `package:*`** on the parent. The parent's `Done when` defines its
    closure — every slice Done or explicitly deferred, re-QA re-recorded; the fix flow closes it,
-   never this routine. **One exception**: an all-pass session (zero slices, zero related
-   Issues) creates its parent directly in `Done` — it is a record with nothing to fix, and
-   nothing downstream would ever close a `Todo` shell. App-only runs use the app-state
+   never this routine. **One exception**: an all-pass session — zero fail or blocked verdicts inside the window,
+   zero slices, zero related Issues, and no decisions child — creates its parent directly in
+   `Done`: it is a record with nothing to fix, and nothing downstream would ever close a `Todo`
+   shell. A session whose only findings are decision or investigate lines is not all-pass; it
+   stays `Todo` until those lines are ruled on or promoted. App-only runs use the app-state
    source-line variant from the template — never a fabricated Drive link.
 2. **Then the full report as a document**: `save_document` with `issue` = the parent, title exactly
-   `QA session <YYYY-MM-DD> · full report` (same counter rule as the parent), content =
-   `tmp/qa-session/<slug>/report.md` verbatim after the Phase 6 grep, per
+   `QA session <YYYY-MM-DD> · full report` (same counter rule as the parent), content = the
+   `report.md` of the pull the results blocks came from (the `-final` directory when Phase 2
+   re-pulled after the window closed) verbatim after the Phase 6 grep, per
    [linear-templates.md § Full report document](../../.claude/skills/qa-triage/linear-templates.md).
-   Then patch the parent's lede with the document link, resending the title so the length
-   exemption holds. A rerun updates the existing document by id; never a second one.
+   Idempotency and failure: look for an existing document of that title under the parent first and
+   update it by id; a failed create is retried once, and a second failure is recorded as
+   `document: failed` in the Discord summary while the run continues (the report is recoverable
+   from the pull, the slices are not). Only after the document exists, patch the parent's lede with
+   its link, resending the title so the length exemption holds; a failed lede patch is retried once
+   and then reported the same way. Children are written after these two steps, never before.
 3. **Then the decisions child** when `Decisions needed` is non-empty: `Product decisions from QA
    session <date>` per § Product decisions child in the templates — `Backlog`, unassigned, the
    parent label set, no `package:*`.
@@ -265,8 +279,12 @@ exposure: redact in place and fail loud in the Discord summary.
    re-record as pass, fix-posture pointer, validation command, source line).
    - **Verdict-backed** (a tester recorded fail/blocked in the app **during the session
      window**): `Todo`; priority High for a P0-case fail, Medium for P1, Low otherwise — Urgent
-     only when the notes flag it release-blocking or a tester's own note calls it a major
-     regression, major blocker, or completely broken. This seeded priority is a queue-ordering
+     only when the call notes flag it release-blocking. A tester's own note calling it a major
+     regression, major blocker, or completely broken keeps the derived priority unattended and adds
+     an `Urgent proposed` line to the slice's first comment and to the Discord summary, for a
+     human to confirm at the desk. A `polish` cluster lands Low whatever its cases' priority:
+     `Todo` when at least one member entry sits inside the window, `Backlog` when reconstructed
+     from notes alone. This seeded priority is a queue-ordering
      default derived from walk priority, not a severity judgment
      ([`.claude/context/qa.md`](../../.claude/context/qa.md) § Verdict and severity rules); the
      fix session re-judges it at take-up. Todo-on-write is a deliberate, owner-approved

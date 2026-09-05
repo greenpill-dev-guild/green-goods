@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-09-05T04:08:09.130Z",
-    "updated_at": "2026-09-05T04:16:34.577Z"
+    "updated_at": "2026-09-05T19:02:47.910Z"
   },
   "links": {
     "brief": "brief.md",
@@ -45,7 +45,7 @@
       "owner": "claude",
       "status": "todo",
       "branch": null,
-      "depends_on": [],
+      "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
       "tdd": {
         "mode": "required",
@@ -85,7 +85,7 @@
     },
     "contracts": {
       "owner": "codex",
-      "status": "todo",
+      "status": "n/a",
       "branch": null,
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
@@ -102,7 +102,8 @@
         },
         "note": ""
       },
-      "skill_tags": ["contracts"]
+      "skill_tags": ["contracts"],
+      "manual_blocked": false
     },
     "qa_pass_1": {
       "owner": "claude",
@@ -110,7 +111,7 @@
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": null,
-      "depends_on": ["ui", "state_api", "contracts"],
+      "depends_on": ["ui", "state_api"],
       "handoff": "handoffs/claude-qa-pass-1.md",
       "skill_tags": ["testing", "review"]
     },
@@ -141,6 +142,14 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-09-05T19:02:47.913Z",
+      "actor": "claude",
+      "lane": "contracts",
+      "status": "n/a",
+      "branch": null,
+      "note": "No contract changes in scope; see brief.md Boundaries"
     }
   ]
 }

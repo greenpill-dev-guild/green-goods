@@ -17,9 +17,13 @@ cases to their successors.
 
 1. A run is one team pass over the catalog; sessions are timestamps inside it. The store keeps one
    shard per run per tester; a small run index carries label, opened/closed time, opener, catalog
-   version, default environment, and build SHAs.
-2. Today's shards migrate as Run 1 ("Baseline · 2026-08-29 → 2026-09-04"). Closed runs are
-   read-only server-side; nothing is ever erased.
+   version, default environment, and build SHAs. Exactly one run is open at any time: closing is
+   a rollover that closes the current run and opens its successor in one conditional write, so
+   there is never a zero-open state.
+2. Today's shards migrate as Run 1 ("Baseline"): legacy latest-state, not a session snapshot. Its
+   window is the earliest and latest migrated entry timestamps and the index says so. Closed runs
+   are read-only server-side; nothing is ever erased, and a write that arrives for a closed run
+   is re-targeted at the open run by the page, never dropped.
 3. Any allowlisted tester may open or close a run; the index records who did.
 4. `N/A` means intentionally out of scope; a skipped case has no entry. The app's N/A control says
    so. Environment is a run-level field; a note prefixed `[beta]` or `[prod]` marks a verdict taken

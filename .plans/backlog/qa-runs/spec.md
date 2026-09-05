@@ -9,14 +9,24 @@ agents that pull the store to write the session report and slices.
 
 1. **Run model.** A run has an id, label, `openedAt`, `openedBy`, `closedAt`, `closedBy`,
    `catalogVersion`, `environment` (`production | beta | local`), and optional build SHAs per
-   surface. Exactly one run is open at a time. The run index lives beside the shards
-   (`qa/runs.json`); shards move to `qa/runs/<runId>/entries/<address>.json`.
+   surface. Exactly one run is open at a time: the only close is a rollover that closes the current run and
+   opens its successor in one ETag-conditional write of the index, so no request can observe a
+   zero-open state. The run index lives beside the shards (`qa/runs.json`); shards move to
+   `qa/runs/<runId>/entries/<address>.json`.
 2. **Migration.** The existing `qa/entries/<address>.json` shards become Run 1 by a one-time
    server-side move; the legacy path is read only until the move completes, then never written.
+   Run 1 is legacy latest-state, not a bounded session: its index entry records
+   `openedAt` = the earliest migrated entry timestamp, `closedAt` = the migration time, and
+   `legacy: true`, and the compare treats it as a baseline of last-known verdicts rather than a
+   dated walk.
 3. **Immutability.** `POST /api/state` writes only to the open run; a write against a closed run is
-   refused with a message the page shows. The outbox is keyed by owner and run.
-4. **Open and close.** Any allowlisted session may open a run (label, environment, optional build
-   SHAs) or close the open one; both are recorded in the index. Closing never deletes.
+   refused with the open run's id in the response. The page then re-targets that pending outbox at
+   the open run, saves it there, and tells the tester which run received it, so a tester who was
+   offline or mid-save when a teammate rolled the run over loses nothing; the closed run stays
+   immutable. The outbox is keyed by owner and run.
+4. **Open and close.** Any allowlisted session may roll the run over (close the open one and open
+   its successor with a label, environment, and optional build SHAs) in one action; the index
+   records who did it and when. Closing never deletes, and there is no standalone close.
 5. **View.** A Run select beside View defaults to the open run; closed runs are readable. A compare
    toggle shows, per row, the compared run's rollup verdict and notes; the tally adds fixed, still
    failing, regressed, and newly walked. A Re-QA filter lists cases that were fail or blocked in the
@@ -26,7 +36,11 @@ agents that pull the store to write the session report and slices.
 7. **Vocabulary.** The N/A control's hint says "out of scope for this run"; a not-walked case has
    no entry. The run's environment shows in the header; the `[beta]`/`[prod]` note prefix is
    documented in the app's help line.
-8. **Scripts.** `qa:pull --run <id>` pulls one run (default: the open run); `qa:report --previous`
+8. **Scripts.** `qa:pull --run <id | open | latest-closed>` pulls one run; the default is `open`
+   for a live session, but the call-report flow pulls the run the call recorded into: `qa-session`
+   writes the run id into the session header, `/qa-triage --call` and the routine read it from
+   there (or from the parent's lede on a rerun) and pass it explicitly, and `latest-closed` is the
+   documented fallback when the run was rolled over before the report ran. `qa:report --previous`
    accepts a run id or a pulled directory; the delta section names both runs.
 9. **Catalog split (lane input: catalog-feedback-2026-09-04.md).** Retire grouped rows walked or
    failing on 2026-09-04 with `replacedBy` successors, add the Android twins, fix wrong-surface and

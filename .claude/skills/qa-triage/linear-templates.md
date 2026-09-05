@@ -194,7 +194,7 @@ testers, on which surfaces, and the headline — "P0 coverage is green except
 review actions; two cross-surface failures trace to shared date handling.">
 
 Build under test: client `<sha>` · admin `<sha>`
-Environment: <production | beta (staging) | local — the session default; a verdict taken elsewhere carries a `[beta]`/`[prod]` note prefix>
+Environment: <production | beta (staging) | local — the session default; a verdict taken elsewhere carries a `[beta]`, `[prod]`, or `[local]` note prefix>
 Full report: [QA session YYYY-MM-DD · full report](<linear-document-url>)
 
 ## Results by priority
@@ -265,7 +265,8 @@ an agent with only Linear access can read the whole session. Rules:
 
 - Title exactly `QA session YYYY-MM-DD · full report` (a second same-day call appends its counter
   to the date, as the parent does). Parent = the session issue (`issue`), never a project.
-- Content = `report.md` verbatim after the privacy grep: redact `0x` strings, replay or session
+- Content = the `report.md` of the pull the results blocks were pasted from — the `-final`
+  directory when the routine re-pulled after the window closed — verbatim after the privacy grep: redact `0x` strings, replay or session
   identifiers, and any name outside the team; team members' display names and their own notes stay
   (decided 2026-09-05, [`.claude/context/qa.md`](../../context/qa.md) § Public-repository boundary).
 - Created right after the parent and before the children; the parent's lede then links it (a
@@ -276,7 +277,9 @@ an agent with only Linear access can read the whole session. Rules:
 ## Product decisions child — one per session, only when testing surfaced decisions
 
 Title exactly `Product decisions from QA session YYYY-MM-DD`, a sub-issue of the session parent via
-`parentId`, state `Backlog`, labels = the parent set, no `package:*`. The interactive skill assigns
+`parentId`, state `Backlog`, labels = the parent set, no `package:*`. The missing package label is
+load-bearing: slice pickup (`debug` § QA Slice Fix Protocol) takes only sub-issues that carry one, so
+this record is never mistaken for a slice. The interactive skill assigns
 the product owner; the routine leaves it unassigned. It exists so a ruling has a place to land that
 outlives the parent, and so a Linear-only agent reads the open questions before touching the slices
 they block.
@@ -336,7 +339,10 @@ gate accepted from standing state opens its body with `Standing since <date>.`
 
 **State + priority**: verdict-backed (a tester recorded fail/blocked in the QA app during the
 session window, exact Test IDs) → `Todo`; priority High for a P0-case fail, Medium for P1, Low
-otherwise — Urgent only when the call flagged it release-blocking. The seeded priority is a
+otherwise — Urgent only when the call flagged it release-blocking, or when a tester's note proposed
+it and the gate confirmed. A `polish` slice lands Low whatever its cases' priority: `Todo` when at
+least one member entry was recorded inside the window (a pass with a note counts), `Backlog` when
+reconstructed from notes alone. The seeded priority is a
 queue-ordering default (walk priority × verdict), **not a severity judgment** — the fix session
 re-judges it at take-up, and Sheet severity stays independently assigned
 (`.claude/context/qa.md` § Verdict and severity rules). Reconstructed from meeting notes alone
@@ -390,7 +396,7 @@ The Customer Need then links to this Issue via the `issue` parameter and carries
 
 ## Disposition resolution
 
-Linear's API constraint that Customer Needs must link to an Issue eliminates the standalone Need column. Every accepted item gets an Issue — main or lightweight track-only.
+Linear's API constraint that Customer Needs must link to an Issue eliminates the standalone Need column. Every accepted defect, polish, idea, or feedback item gets an Issue — main or lightweight track-only. The call-report dispositions that record without an Issue (decision lines plus the one decisions child, investigate lines, catalog feedback, environment lines) are the named exceptions in the table below.
 
 | Item shape | Issue type | Issue status | Customer Need |
 |---|---|---|---|
@@ -408,7 +414,8 @@ Linear's API constraint that Customer Needs must link to an Issue eliminates the
 | Notes-only cluster (call report) | QA slice sub-issue of the session report | `Backlog` | No |
 | Decision needed (call report) | Line under the parent's `Decisions needed` + the session's decisions child | `Backlog` | No |
 | Investigate (call report) | `Not sliced · investigate` line in the parent; no Issue until someone looks | — | No |
-| Catalog feedback (call report) | Never a slice — `tmp/qa-triage/<slug>/catalog-feedback.md` (skill) or one `Catalog feedback` comment on the parent (routine) | — | No |
+| Catalog feedback (call report) | Never a slice — `tmp/qa-triage/<slug>/catalog-feedback.md` (skill), copied de-attributed into the catalog-owning plan hub at close, or one `Catalog feedback` comment on the parent (routine) | — | No |
+| Environment finding (call report) | One `environment:` line under the parent's `Not sliced`; never a slice | — | No |
 | Never-filed standing fail accepted at the gate (call report) | QA slice sub-issue opening with `Standing since <date>.` | `Todo` + derived priority | No |
 
 The default for ambiguous items is **track-only** — create a Customer Need linked to a lightweight Backlog tracking Issue. The Issue exists only because Linear requires a link target; it is not committed work until a human promotes it.

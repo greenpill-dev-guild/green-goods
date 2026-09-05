@@ -98,9 +98,13 @@ or baseline fails before any file is written. Error text never includes note con
 
 ## Privacy
 
-The private report lives in gitignored `tmp/qa-session/<slug>/` and follows the receipt's upload
-gate. The public projection reuses the `qa:status` rule and is the only variant that may leave the
-private folder — and only for the two uses in Decision 2.
+The private report lives in gitignored `tmp/qa-session/<slug>/`. It leaves that folder by exactly
+one route: the privacy-gated Linear document attached to the session parent (Decision 11), after
+the same grep that gates every Linear write has redacted wallet addresses, session and replay
+identifiers, and names outside the team; team display names and notes may remain. The public
+projection reuses the `qa:status` rule and is the only variant that may reach a public surface —
+and only for the two uses in Decision 2. Wiring: the routine, `/qa-triage --call`, and the
+qa-session close attach the document right after the parent exists and link it from the lede.
 
 ## Non-goals
 

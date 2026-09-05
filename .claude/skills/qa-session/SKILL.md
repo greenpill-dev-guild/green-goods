@@ -239,9 +239,11 @@ Per accepted fix (or batched in a fix window):
    totals by disposition, fix list (OBS → commit SHA →
    revalidated), deferred list, locked DL IDs, environment notes (watchdog trips,
    dep-optimization reloads, restarts), remaining risk. When the session has a Linear parent (a team call, or a solo session that
-   produced slices), attach `report.md` to it as the `QA session <slug> · full report` document per
-   [linear-templates.md § Full report document](../qa-triage/linear-templates.md) before uploading
-   the receipt; the receipt and any media go to the restricted Drive QA folder. Apply the text,
+   produced slices), show the user the privacy-grepped `report.md` and ask, in one line, whether to attach it to that
+   parent as the `QA session <slug> · full report` document per
+   [linear-templates.md § Full report document](../qa-triage/linear-templates.md); attach only on
+   an explicit yes — this is the one Linear write this skill makes itself, and the review of that
+   exact payload is its confirmation gate — then upload the receipt; the receipt and any media go to the restricted Drive QA folder. Apply the text,
    media, destination, and public-repository boundary in
    [`.claude/context/qa.md`](../../context/qa.md). An unresolved
    privacy finding fails closed; do not upload or delete the local evidence.

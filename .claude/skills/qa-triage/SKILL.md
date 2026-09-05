@@ -47,7 +47,9 @@ Phase 3b dedupe catches the other's records if both ran.
   routine's session-window rule) before calling anything verdict-backed; older entries are
   standing state. `N/A` means out of scope, never skipped
   ([`.claude/context/qa.md § Verdict vocabulary`](../../context/qa.md)); ask the tester to clear a
-  skipped case in the app before the pull rather than caveating the report. Then
+  skipped case in the app before the pull; when that cannot happen, pass those IDs to
+  `qa:report --skipped <ID,ID>` so the generator counts them as not walked and lists them in its
+  header, never as covered. Then
   `bun run qa:report --slug <date> --window <start>..<end>` — with `--out <the directory you
   pulled into>` whenever the collision branch below sent the pull to `tmp/qa-session/<date>-call`,
   so the report reads that pull and not the earlier session's (add `--build client=<sha>,admin=<sha>`
@@ -66,8 +68,10 @@ Phase 3b dedupe catches the other's records if both ran.
   disposition from [`.claude/context/qa.md § Finding dispositions`](../../context/qa.md):
   `defect`, `polish`, `decision`, `investigate`, `catalog`, or `environment`. Write the `catalog`
   observations to `tmp/qa-triage/<slug>/catalog-feedback.md` — they feed the next catalog change
-  and never reach Linear. A note that says "major regression", "major blocker", or "completely
-  broken" proposes Urgent for its cluster; the gate confirms.
+  and never reach Linear; at Phase 7 copy the file, de-attributed (no verdicts, no tester names),
+  into the plan hub that owns the next catalog change (today `.plans/backlog/qa-runs/`) before the
+  workspace is removed, so cleanup cannot lose it. A note that says "major regression", "major blocker", or "completely
+  broken" proposes Urgent for its cluster; the priority stays derived until the gate confirms.
 - **Phases 3-5** — `defect` and `polish` observations cluster into slices: same catalog area +
   same suspected seam, split past 3 Test IDs or a package boundary, ordered by priority. The
   default cap is 8 slices; the gate may raise it when the week's fixing capacity matches (12 on
@@ -88,13 +92,19 @@ Phase 3b dedupe catches the other's records if both ran.
   pulse stamps the same label on its pre-staged tracking Issues, and Phase 3b's package-scoped
   scan cannot see the parent at all); an existing parent is reused, never duplicated.
   Verdict-backed slices propose `Todo` + derived priority (P0-case fail → High, P1 → Medium, else
-  Low; Urgent when the call or a tester's note flagged it release-blocking); note-only items
-  propose `Backlog`. **Human-filed issues**: list Product Issues created since the window opened,
+  Low; Urgent when the call flagged it release-blocking, or proposed from a tester's note and
+  confirmed at the gate); `polish` slices propose Low (`Todo` when a member entry sits inside the
+  window, else `Backlog`); note-only items propose `Backlog`. **Human-filed issues**: list Product Issues created since the window opened,
   whatever their labels (a teammate filing from the call rarely stamps `activity:qa`); propose a
   match per slice by title and surface; the gate confirms each. A confirmed match is linked as
-  `already tracked`, and the slice's Test IDs are posted as a comment on that Issue so the reverse
-  lookup works next time. The Phase 4 scope-lock gate runs over the slice list, the decisions
-  list, and the proposed matches together.
+  `already tracked`, and the slice's Test IDs are posted as a comment on that Issue; the routine's
+  exact-key scan reads pipeline comments as well as source lines, so the reverse lookup works next
+  time. The Phase 4 scope-lock gate runs once over everything the run proposes, with this reply
+  grammar in place of the default prompt's tags: slice numbers, `all`, or `none`; `S3:urgent` /
+  `S3:high` / `S3:medium` / `S3:low` to override a priority; `D2:drop` to drop a decision line;
+  `I1:slice` to promote an investigate line into a slice; `M2:PRD-849` to confirm a proposed match
+  or `M2:none` to reject it; catalog and environment lines are recorded as listed unless the reply
+  says `C3:slice` or `E1:slice`. Nothing outside the reply is filed.
 - **Phase 6** — write the parent first — Results by priority and Results by kind pasted verbatim
   from `report.md` — then attach the full `report.md` to the parent as a Linear document
   ([linear-templates.md § Full report document](./linear-templates.md), after the privacy grep;
@@ -137,6 +147,7 @@ Contents:
 - `schema-bootstrap.csv` — emitted only when the Defects tab needs the 6 new PostHog/Linear columns
 - `codex-merge.json` — idempotency ledger for the background Codex result (result digest, stable item keys, assigned item numbers, and merge status)
 - `report.md` — Phase 7 final summary
+- `catalog-feedback.md` — call mode only: the `catalog` observations from Phase 2b; copied de-attributed into the catalog-owning plan hub at Phase 7 before cleanup
 
 Skill-wide cache: `~/.config/qa-triage/cache.json` — stores the resolved Sheet file
 id, column ordering, and last-verified permissions snapshot. User-specific assignment
@@ -497,7 +508,8 @@ Write `report.md` and print:
 ```
 
 Then run Codex worktree cleanup for the current run only if dispatched (unless
-`--dry-run`). After all confirmed Linear and Sheet writes succeed, remove only
+`--dry-run`). After all confirmed Linear and Sheet writes succeed — and, in call mode, after
+`catalog-feedback.md` has been copied into its plan hub — remove only
 `tmp/qa-triage/<slug>/`; for dry runs, failed writes, or incomplete runs, keep it and
 surface the resume path.
 

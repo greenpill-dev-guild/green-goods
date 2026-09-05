@@ -166,8 +166,9 @@ skipped case recorded as `N/A` overstates coverage and hides the gap the next wa
 
 Environment attribution: the session header and the Linear parent lede name the session's default
 environment (production, beta/staging, or local). A tester who crosses to another environment for
-one case prefixes that note with `[beta]` or `[prod]`. Until the QA app records runs with their own
-environment field, the prefix is the only per-verdict environment record.
+one case prefixes that note with `[beta]`, `[prod]`, or `[local]`: every verdict taken outside the
+session default carries its prefix, whichever of the three the default is. Until the QA app records
+runs with their own environment field, the prefix is the only per-verdict environment record.
 
 ## Finding dispositions
 
@@ -179,10 +180,10 @@ ID, tester, and verdict, before assigning dispositions or clustering.
 | Disposition | What it is | Where it lands |
 | --- | --- | --- |
 | `defect` | The product does not do what the case expects | A slice, or an existing tracked Issue |
-| `polish` | It works but looks or reads wrong | A slice at Low priority, clustered by seam |
+| `polish` | It works but looks or reads wrong; it may sit beside a Pass verdict | A slice at Low priority regardless of case priority, clustered by seam: `Todo` when at least one member entry was recorded inside the session window (a pass with a note counts), `Backlog` when reconstructed from notes alone |
 | `decision` | Needs a product or design ruling before a fix is honest (limits, copy direction, flow choices) | The parent's `Decisions needed` section plus the session's single decisions child |
 | `investigate` | A symptom whose cause or intent is unknown; not fixable until someone looks | A `Not sliced · investigate` line in the parent; a slice only after the look |
-| `catalog` | Feedback about the test case itself: split it, rename it, move it, unclear, missing twin | `tmp/qa-triage/<slug>/catalog-feedback.md` from the skill, or one `Catalog feedback` comment on the parent from the routine; folded into the next catalog change; never a slice |
+| `catalog` | Feedback about the test case itself: split it, rename it, move it, unclear, missing twin | `tmp/qa-triage/<slug>/catalog-feedback.md` from the skill, copied at close into the plan hub that owns the next catalog change (de-attributed: no verdicts, no tester names, because the repository is public), or one `Catalog feedback` comment on the parent from the routine; never a slice |
 | `environment` | Behaviour caused by the harness or environment, not the product (cold start, beta-only data, wrong wallet) | One environment line in the parent; never a slice |
 
 Observations that already carry a tracked Issue (exact Test ID or error hash, or a title match a

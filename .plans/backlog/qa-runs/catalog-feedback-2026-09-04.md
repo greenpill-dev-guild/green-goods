@@ -16,7 +16,7 @@ C12 PWA-IOS-003/004/005 — no Android twins; add PWA-AND rows for login recover
 C13 PWA-IOS-006 — expectation assumes a queue "flushes once"; rewrite to the real offline-queue behaviour.
 C14 PWA-IOS-008 — incoherent scenario; the PWA-IOS/PWA-AND/PWA-ROLE ID scheme reads oddly (Afo).
 C15 Principle (Afo, PWA-036 note): isolate actions from viewing — split reading from writing across the PWA rows.
-C16 N/A was recorded as "skipped" on PWA-032/033/034/046–050 and PWA-IOS-002; app copy should say what N/A means (qa.md § Verdict vocabulary).
+C16 N/A is being used to mean "skipped this pass"; the app's N/A control should say what N/A means (qa.md § Verdict vocabulary), and a skipped case should simply have no entry.
 
 From reading all 142 active rows (2026-09-05):
 C17 Expectations that encode current bugs ("currently silent", "currently a silent no-op", "currently opens the wallet modal"): PWA-038, ADM-020, ADM-026, ADM-028, PUB-003, PUB-020, PUB-024. Expected results must state the intended behaviour only.

@@ -101,6 +101,8 @@ export interface ReportModel {
   standing: { failing: string[]; blocked: string[] };
   delta: ReportDelta | null;
   testers: { count: number; perPerson: Record<string, { touched: number; decided: number }> };
+  /** IDs passed as --skipped and how many in-window N/A entries that set aside. */
+  skipped: { ids: string[]; excluded: number };
 }
 
 export interface ReportOptions {
@@ -121,6 +123,12 @@ export interface ReportOptions {
    * that is, when someone redacted or corrected it.
    */
   noteOverrides?: Map<string, string>;
+  /**
+   * Test IDs whose in-window N/A entries were a tester's "skipped", not an
+   * out-of-scope call. Those entries are set aside so the case counts as not
+   * walked; any other verdict on the same case stands.
+   */
+  skipped?: string[];
 }
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -239,6 +247,19 @@ export function buildReportModel(cases: CatalogCase[], entries: MergedEntries, o
   }
   const staleDays = options.staleDays ?? DEFAULT_STALE_DAYS;
   const session = new Map(cases.map((testCase) => [testCase.id, sessionEntries(entries[testCase.id], window)]));
+  const skippedIds = [...new Set(options.skipped ?? [])];
+  const known = new Set(cases.map((testCase) => testCase.id));
+  const unknownSkipped = skippedIds.filter((id) => !known.has(id));
+  if (unknownSkipped.length) {
+    throw new Error(`--skipped names unknown or retired Test IDs: ${unknownSkipped.join(", ")}`);
+  }
+  let excluded = 0;
+  for (const id of skippedIds) {
+    const byPerson = session.get(id) ?? {};
+    const kept = Object.fromEntries(Object.entries(byPerson).filter(([, entry]) => entry.s !== "na"));
+    excluded += Object.keys(byPerson).length - Object.keys(kept).length;
+    session.set(id, kept);
+  }
   // null = nobody touched the case inside the window; "" = touched, no verdict yet.
   const verdictOf = (testCase: CatalogCase): string | null => {
     const byPerson = session.get(testCase.id) ?? {};
@@ -299,6 +320,7 @@ export function buildReportModel(cases: CatalogCase[], entries: MergedEntries, o
     },
     delta: options.previous ? compareStanding(cases, entries, options.previous) : null,
     testers: { count: perPerson.size, perPerson: sortedPeople },
+    skipped: { ids: skippedIds, excluded },
   };
 }
 
@@ -341,6 +363,11 @@ export function renderReport(model: ReportModel, catalog: Pick<Catalog, "kinds">
     `Window: ${model.window.start} – ${model.window.end} (${model.window.source === "flag" ? "from --window" : "slug day, UTC"}) · pulled ${model.pulledAt}`,
     ...(model.windowNote ? [`Caveat: ${model.windowNote}`] : []),
     ...(build.length ? [`Build under test: ${build.join(" · ")}`] : []),
+    ...(model.skipped.ids.length
+      ? [
+          `Skipped: ${idList(model.skipped.ids)} — recorded N/A during the walk; ${model.skipped.excluded} in-window entr${model.skipped.excluded === 1 ? "y" : "ies"} set aside and counted as not walked`,
+        ]
+      : []),
     ...(!isPublic && model.notesFromResults
       ? [`Notes: results.csv for ${model.notesFromResults} case(s) — redactions and corrections honored`]
       : []),
@@ -425,9 +452,20 @@ export interface CliOptions {
   public: boolean;
   staleDays: number;
   out?: string;
+  skipped?: string[];
 }
 
-const VALUE_FLAGS = new Set(["--slug", "--window", "--previous", "--build", "--stale-days", "--out"]);
+const VALUE_FLAGS = new Set(["--slug", "--window", "--previous", "--build", "--stale-days", "--out", "--skipped"]);
+// Catalog Test IDs (PWA-032, PWA-IOS-002, XPLAT-005): validated here by shape, against the catalog in the model.
+const TEST_ID = /^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+$/;
+
+function parseSkipped(value: string): string[] {
+  const ids = value.split(",").map((id) => id.trim()).filter(Boolean);
+  if (!ids.length || ids.some((id) => !TEST_ID.test(id))) {
+    throw new Error("--skipped must be a comma-separated list of catalog Test IDs (e.g. PWA-032,PWA-IOS-002)");
+  }
+  return [...new Set(ids)];
+}
 // Both values are printed in report headers, the public one included: keep them to identifiers.
 const SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const COMMIT_SHA = /^[0-9a-f]{7,40}$/;
@@ -464,6 +502,7 @@ export function parseArgs(argv: string[]): CliOptions {
     else if (flag === "--previous") options.previous = value;
     else if (flag === "--out") options.out = value;
     else if (flag === "--build") options.build = parseBuild(value);
+    else if (flag === "--skipped") options.skipped = parseSkipped(value);
     else {
       options.staleDays = Number(value);
       if (!Number.isInteger(options.staleDays) || options.staleDays <= 0) {
@@ -611,6 +650,7 @@ export async function runReport(
       staleDays: options.staleDays,
       previous,
       noteOverrides,
+      skipped: options.skipped,
     });
 
     const report = path.join(outDir, "report.md");
