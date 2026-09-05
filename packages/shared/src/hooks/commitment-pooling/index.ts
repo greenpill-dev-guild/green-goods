@@ -81,6 +81,7 @@ export {
   useLoanPrincipalRelationship,
 } from "./useCredit";
 export {
+  useCeloWallet,
   useCommitmentPayoutPlan,
   useSettlementAccount,
   useSettlementConfigurations,
@@ -130,5 +131,3 @@ export {
   useSettlementMutation,
   useSettlementOperationsCapabilities,
 } from "./useSettlement";
-export type { SettlementWalletTransferInput } from "./useSettlementWalletTransfer";
-export { useSettlementWalletTransfer } from "./useSettlementWalletTransfer";

@@ -542,3 +542,7 @@ proof comes from the mined receipt instead.
 - Before any value canary, reconcile one parent payout plan against its complete recognition vector/hash, amount-derived payment vector/hash, declared amount, explicit garden-retained amount, no-child finalization, idempotently prepared immutable contributor children, stable commitment pointer, and payer garden Safe. Prove an all-retained zero-child plan completes without CCIP or a self-transfer.
 - The canary must prove a child failure/retry does not duplicate value or alter sibling receipts, commitment fulfillment, or Hypercert recognition.
 - This amendment does not authorize deployment, broadcast, Safe role changes, or value movement.
+
+## Gardener Celo wallets — reopened 2026-09-05
+
+The approved W23 wallet extension and its fresh proof live in [the wallet handoff](codex-gardener-celo-wallets.md). Earlier dated evidence remains historical.

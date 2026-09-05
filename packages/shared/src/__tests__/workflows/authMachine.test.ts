@@ -6,6 +6,7 @@
  * wallet connection, session restoration, and error handling.
  */
 
+import { createSmartAccountClientResolver } from "../../modules/auth/smartAccountClientResolver";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type AnyActorRef, createActor, fromPromise } from "xstate";
 
@@ -899,5 +900,64 @@ describe("workflows/authMachine", () => {
 
       expect(actor.getSnapshot().context.embeddedAddress).toBeNull();
     });
+  });
+});
+
+describe("passkey resolver session lifecycle", () => {
+  function session() {
+    const result = createMockPasskeySessionResult();
+    result.smartAccountClient.chain = {
+      id: MOCK_CHAIN_ID,
+    } as typeof result.smartAccountClient.chain;
+    result.resolveSmartAccountClient = createSmartAccountClientResolver({
+      credential: result.credential,
+      primaryClient: result.smartAccountClient,
+      primaryChainId: MOCK_CHAIN_ID,
+      expectedAddress: result.smartAccountAddress,
+      buildSmartAccount: vi.fn(),
+    });
+    return result;
+  }
+
+  it("revokes the old resolver immediately on sign-out and creates a new session capability", async () => {
+    const first = session();
+    const second = session();
+    const actor = await startAndSettle(
+      createTestMachine({
+        restoreSession: async () => first,
+        authenticatePasskey: async () => second,
+      })
+    );
+    expect(actor.getSnapshot().context.resolveSmartAccountClient).toBe(
+      first.resolveSmartAccountClient
+    );
+    expect(await first.resolveSmartAccountClient!(MOCK_CHAIN_ID)).toBe(first.smartAccountClient);
+    actor.send({ type: "SIGN_OUT" });
+    expect(actor.getSnapshot().context.resolveSmartAccountClient).toBeNull();
+    await expect(first.resolveSmartAccountClient!(MOCK_CHAIN_ID)).rejects.toMatchObject({
+      code: "session_expired",
+    });
+    actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: MOCK_USERNAME });
+    await flushPromises();
+    expect(actor.getSnapshot().context.resolveSmartAccountClient).toBe(
+      second.resolveSmartAccountClient
+    );
+    expect(await second.resolveSmartAccountClient!(MOCK_CHAIN_ID)).toBe(second.smartAccountClient);
+    await expect(first.resolveSmartAccountClient!(MOCK_CHAIN_ID)).rejects.toMatchObject({
+      code: "session_expired",
+    });
+    actor.stop();
+  });
+
+  it("revokes the passkey resolver when explicitly switching to the external wallet", async () => {
+    const result = session();
+    const actor = await startAndSettle(createTestMachine({ restoreSession: async () => result }));
+    actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address: MOCK_ADDRESSES.deployer });
+    actor.send({ type: "SWITCH_TO_WALLET" });
+    expect(actor.getSnapshot().context.resolveSmartAccountClient).toBeNull();
+    await expect(result.resolveSmartAccountClient!(MOCK_CHAIN_ID)).rejects.toMatchObject({
+      code: "session_expired",
+    });
+    actor.stop();
   });
 });

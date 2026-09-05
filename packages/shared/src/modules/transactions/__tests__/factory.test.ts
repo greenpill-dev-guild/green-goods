@@ -62,26 +62,19 @@ describe("createTransactionSender", () => {
       expect(sender.supportsSponsorship).toBe(true);
     });
 
-    it("falls back to WalletSender when smartAccountClient is missing but wagmi deps available", () => {
-      const sender = createTransactionSender({
-        authMode: "passkey",
-        wagmiConfig: mockWagmiConfig,
-        writeContractAsync: mockWriteContractAsync,
-      });
-
-      expect(sender).toBeInstanceOf(WalletSender);
-      expect(sender.authMode).toBe("wallet");
-    });
-
-    it("falls back to WalletSender when smartAccountClient has no account", () => {
-      const sender = createTransactionSender({
-        authMode: "passkey",
-        smartAccountClient: { ...mockSmartAccountClient, account: undefined } as any,
-        wagmiConfig: mockWagmiConfig,
-        writeContractAsync: mockWriteContractAsync,
-      });
-
-      expect(sender).toBeInstanceOf(WalletSender);
+    it.each([
+      undefined,
+      { ...mockSmartAccountClient, account: undefined },
+    ])("never falls back to an external wallet while passkey client is unavailable", (client) => {
+      expect(() =>
+        createTransactionSender({
+          authMode: "passkey",
+          smartAccountClient: client,
+          wagmiConfig: mockWagmiConfig,
+          writeContractAsync: mockWriteContractAsync,
+        })
+      ).toThrow("smartAccountClient is required for passkey auth mode");
+      expect(mockWriteContractAsync).not.toHaveBeenCalled();
     });
 
     it("throws when smartAccountClient is missing and no wagmi deps available", () => {

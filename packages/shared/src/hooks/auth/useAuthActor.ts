@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { invalidateSmartAccountClientResolver } from "../../modules/auth/smartAccountClientResolver";
 import type { PasskeyAdapters } from "../../workflows/auth-passkey-adapters";
 import { createAuthActor, getAuthActor } from "../../workflows/authActor";
 import { createAuthServices } from "../../workflows/authServices";
@@ -13,6 +14,7 @@ export function useAuthActor(adapters?: PasskeyAdapters) {
     if (!actor || !adapters) return;
     actor.start();
     return () => {
+      invalidateSmartAccountClientResolver(actor.getSnapshot().context.resolveSmartAccountClient);
       actor.stop();
     };
   }, [actor, adapters]);

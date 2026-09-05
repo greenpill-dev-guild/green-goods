@@ -71,6 +71,7 @@ const walletAuthState: AuthStateValue = {
   credential: null,
   smartAccountAddress: null,
   smartAccountClient: null,
+  resolveSmartAccountClient: null,
   userName: "Storybook steward",
   hasStoredCredential: false,
   walletAddress: STORYBOOK_STEWARD,

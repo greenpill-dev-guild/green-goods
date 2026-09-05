@@ -10,11 +10,18 @@
 
 import type { SmartAccountClient } from "permissionless";
 import { encodeFunctionData } from "viem";
+import type { SmartAccountClientResolver } from "../../types/auth";
+import {
+  assertSmartAccountClient,
+  assertSmartAccountClientResolverActive,
+  SmartAccountClientError,
+} from "../auth/smartAccountClientResolver";
 import { logger } from "../app/logger";
 import { assertLocalArbitrumForkSmartAccountsDisabled } from "./local-fork-safety";
 import type { ContractCall, TransactionSender, TxResult } from "./types";
 
 export interface PasskeySenderDeps {
+  resolveSmartAccountClient?: SmartAccountClientResolver | null;
   assertWriteSafety?: () => Promise<void>;
 }
 
@@ -37,15 +44,28 @@ export class PasskeySender implements TransactionSender {
   async sendContractCall(call: ContractCall): Promise<TxResult> {
     await this.deps.assertWriteSafety?.();
 
+    const chainId = call.chainId ?? this.client.chain?.id;
+    if (chainId === undefined) throw new SmartAccountClientError("chain_mismatch");
+    if (call.chainId !== undefined && !this.deps.resolveSmartAccountClient) {
+      throw new SmartAccountClientError("resolver_unavailable");
+    }
+    const client = this.deps.resolveSmartAccountClient
+      ? await this.deps.resolveSmartAccountClient(chainId)
+      : this.client;
+    if (!this.client.account) throw new SmartAccountClientError("address_mismatch");
+    assertSmartAccountClient(client, chainId, this.client.account.address);
+    if (call.account) assertSmartAccountClient(client, chainId, call.account);
+
     const data = encodeFunctionData({
       abi: call.abi,
       functionName: call.functionName,
       args: call.args as unknown[],
     });
 
-    const hash = await this.client.sendTransaction({
-      account: this.client.account!,
-      chain: this.client.chain,
+    assertSmartAccountClientResolverActive(this.deps.resolveSmartAccountClient);
+    const hash = await client.sendTransaction({
+      account: client.account!,
+      chain: client.chain,
       to: call.address,
       value: call.value ?? 0n,
       data,

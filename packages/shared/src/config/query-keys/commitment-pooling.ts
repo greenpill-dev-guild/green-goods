@@ -136,6 +136,14 @@ export const commitmentPoolingKeys = {
     ] as const,
   settlementConfiguration: (chainId: number) =>
     [...commitmentPoolingKeys.all(chainId), "settlement-configuration"] as const,
+  gardenerDelivery: (sourceChainId: number, destinationChainId: number) =>
+    [...commitmentPoolingKeys.all(sourceChainId), "gardener-delivery", destinationChainId] as const,
+  gardenerSettlementHistory: (chainId: number, account: Address | string) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "gardener-settlement-history",
+      normalizeAddress(account),
+    ] as const,
   settlementAccount: (chainId: number, garden: Address | string) =>
     [
       ...commitmentPoolingKeys.all(chainId),

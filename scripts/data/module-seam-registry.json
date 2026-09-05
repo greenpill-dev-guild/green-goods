@@ -36,8 +36,8 @@
         "conformance": ["packages/shared/src/__tests__/workflows/authServices.test.ts"],
         "integration": ["packages/shared/src/__tests__/providers/Auth.wallet-login.test.tsx"]
       },
-      "reviewedAt": "2026-08-31",
-      "evidenceFingerprint": "sha256:9bbee70e7bed8a3db75019875a6856192bffdeb03a30f879b896c1f7510f3ab2"
+      "reviewedAt": "2026-09-05",
+      "evidenceFingerprint": "sha256:f82d987f8e14202fcc2ab69de3e212d42cecd7e19436e14f068ad9b6bbf9ccb8"
     },
     {
       "id": "shared-work-provider-command",
@@ -57,8 +57,8 @@
         ],
         "integration": ["packages/shared/src/__tests__/providers/WorkProvider.test.tsx"]
       },
-      "reviewedAt": "2026-08-31",
-      "evidenceFingerprint": "sha256:6b4078a8f8da01c1f9491f4e3fbf78a33516b58097f795f3f7f8b09e0dd8d5b9"
+      "reviewedAt": "2026-09-05",
+      "evidenceFingerprint": "sha256:018ca292541b2eab81a46ca3e38d4af4ec0e08a922e42ce13190a7acc32e3110"
     },
     {
       "id": "shared-commitment-pooling-public",

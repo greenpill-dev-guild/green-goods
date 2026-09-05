@@ -90,6 +90,8 @@ const sourceMessageTriggerTokens = [
 ];
 const allowedIdenticalLocalizedKeys = new Set([
   "app.admin.nav.cookieJars",
+  // Token symbol and network proper name have no words to translate.
+  "app.celoWallet.asset",
   "app.community.weightScheme.linear",
   "cockpit.community.stats.pools",
   "public.fund.vaults.vaultCount",

@@ -12,6 +12,20 @@ Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-gui
 >
 > **Canonical historical mapping (2026-07-20).** References to the retired identifiers resolve as **PRD-701 → COM-3** and **RESR-62 → COM-7**. Preserve the old identifiers inside frozen archives and dated history; use COM-3 and COM-7 for active instructions. **Extended 2026-07-24: PRD-735 → COM-11** (the settlement-evidence lane issue moved to the Community team; parent PRD-650, Follow On / Hardening milestone, and 2026-09-30 due date unchanged) — use COM-11 for active instructions (corrections-log §13).
 
+## Gardener Celo wallets — approved 2026-09-05
+
+The [accepted wallet plan](gardener-celo-wallets.md) reopens `state_api`, `ui_client`, and
+`release_ops`. The existing Garden Safe/CCIP canary remains accepted. The separate Kernel
+passkey/G$ canary and production activation remain human release prerequisites.
+
+- [x] Complete chain-aware passkey routing and the dedicated Celo policy binding.
+- [x] Complete the Celo balance, contributor receipts, and fee-aware existing send flow.
+- [ ] Complete W23 translations, DOM tests, and the critical release checks.
+- [ ] Complete authenticated Brave proof and the production Kernel canary.
+- [ ] Obtain fresh authorization for production policy activation and the delivery toggle.
+
+Current implementation and proof: [wallet handoff](handoffs/codex-gardener-celo-wallets.md).
+
 ## Document map
 
 Every file in this hub, by role — **192 files**: 42 at the hub root, 42 under `artifacts/`,
@@ -27,6 +41,7 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 
 | Document | Role | Authority |
 |---|---|---|
+| `gardener-celo-wallets.md` | Approved W23 implementation and separate Kernel canary plan | User-approved scope |
 | `plan.todo.md` | **This file.** Decisions, tracks, lane checklists, follow-ups. The hub entry point. | Lane-level execution truth |
 | `standing-commitments-spec.md` | Offer once or Offer over time → pool-scoped internal `CommitmentSeries` for the ongoing path → finite Offer instances → linked Story; honest availability, persistence, trust, succession, and artifact ownership | **Ongoing-Offer architecture source of truth** |
 | `contract-spec.md` | Pooling module + register: state machines, events, §6.1 permission matrix | **Contract-layer source of truth** |

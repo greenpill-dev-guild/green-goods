@@ -15,6 +15,9 @@ import {
 import type { Address } from "../../types/domain";
 import { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailability";
 
+export { useCeloWallet } from "./useCeloWallet";
+export type { GardenerSettlementReceipt } from "../../modules/commitment-pooling/types-settlement";
+
 export function useSettlementConfigurations(input: { chainId: number }) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({

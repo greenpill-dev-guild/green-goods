@@ -1,3 +1,7 @@
+import type { SmartAccountClient } from "permissionless";
+
+export type SmartAccountClientResolver = (chainId: number) => Promise<SmartAccountClient>;
+
 /**
  * Authentication Types
  *

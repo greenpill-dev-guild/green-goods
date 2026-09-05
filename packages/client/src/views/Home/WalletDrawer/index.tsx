@@ -11,11 +11,7 @@ interface WalletDrawerProps {
   onClose: () => void;
 }
 
-/**
- * The wallet holds balances: one fungible number each, no lifecycle, nothing
- * waiting on anyone. Commitments left for their own sheet because they are none
- * of those things (see views/Home/CommitmentsDrawer).
- */
+/** Balances, token transfers, and the gardener's recent support receipts. */
 export const WalletDrawer: React.FC<WalletDrawerProps> = ({ isOpen, onClose }) => {
   const { formatMessage } = useIntl();
   const [activeTab, setActiveTab] = useState("cookie-jar");

@@ -43,7 +43,7 @@ type SenderExpectations = {
   sponsored: boolean;
   supportsBatching: boolean;
   batch: true | string;
-  chainSource: "client" | "call";
+  chainSource: "resolver" | "call";
   receipt: "none" | "always" | "canonical-only";
   revertedReceipt: true | string;
   nonCanonicalHash: true | string;
@@ -117,7 +117,7 @@ const cases: SenderCase[] = [
       sponsored: true,
       supportsBatching: false,
       batch: true,
-      chainSource: "client",
+      chainSource: "resolver",
       receipt: "none",
       revertedReceipt: "the bundler returns an included transaction hash without a receipt wait",
       nonCanonicalHash: "the bundler result is returned directly and has no receipt branch",
@@ -143,7 +143,13 @@ const cases: SenderCase[] = [
         trace.push("safety");
       });
       return {
-        sender: new PasskeySender(client, { assertWriteSafety }),
+        sender: new PasskeySender(client, {
+          assertWriteSafety,
+          resolveSmartAccountClient: async (chainId) => ({
+            ...client,
+            chain: { ...client.chain!, id: chainId },
+          }),
+        }),
         trace,
         forwarded,
         guardedChains: [],
@@ -233,8 +239,8 @@ const laws: ConformanceLaw<SenderCase>[] = [
       const fallback = make();
       await fallback.sender.sendContractCall(createMockContractCall({ chainId: undefined }));
 
-      if (expectations.chainSource === "client") {
-        expect(explicit.forwarded[0]?.clientChainId).toBe(11155111);
+      if (expectations.chainSource === "resolver") {
+        expect(explicit.forwarded[0]?.clientChainId).toBe(42161);
         expect(fallback.forwarded[0]?.clientChainId).toBe(11155111);
         expect(explicit.guardedChains).toEqual([]);
       } else {
