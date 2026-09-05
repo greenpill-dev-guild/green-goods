@@ -1,6 +1,7 @@
 # Gardener Celo wallets
 
-Status: implementation under validation. Authenticated browser and production evidence are pending.
+Status: source implementation and automated release checks complete. Authenticated browser and
+production evidence are blocked.
 The approved scope is [Enable Gardener Celo Wallets](../gardener-celo-wallets.md).
 This reopens `state_api`, `ui_client`, and `release_ops`; it does not reopen the accepted Garden
 Safe/CCIP canary or authorize a production transaction.
@@ -102,8 +103,27 @@ Historical receipts remain visible, and no completed transfer is reversed.
 
 ## Validation receipt
 
-Pending final validation at an implementation commit. Working-tree checks are development evidence,
-not a commit-attributed release receipt. The final results and exact commands will be recorded here.
+Tested commit: `ea193295f9ce1f6ebac415481c320c5d7a61baae` on `develop`, containing implementation
+commit `b2ab43024` and its UI-test fixture correction. The tree was clean after the run completed at
+2026-09-05 22:32:48 UTC. No passing-receipt cache was used.
+
+```sh
+bun run validation:plan -- --intent release --base 7d60a27d4640fc00a78eaae8c2fafd613030f420 --head ea193295f9ce1f6ebac415481c320c5d7a61baae --capability authenticatedBrave=false --check storybook-build --json
+node scripts/dev/ci-local.js --intent release --base 7d60a27d4640fc00a78eaae8c2fafd613030f420 --head ea193295f9ce1f6ebac415481c320c5d7a61baae --capability authenticatedBrave=false --check storybook-build --no-fail-fast
+bun run agentic:check
+```
+
+All 35 automated checks passed. The release runner exited 2 solely because authenticated Brave
+proof is unavailable. Shared passed 4,657 tests (18 existing skips); Client 1,068; Admin 847;
+Agent 311 unit/API tests plus nine SQLite tests (one existing skip); Indexer 320 (one pending);
+Contracts 2,083 Solidity tests plus 295 script tests. The contract verifier, all selected typechecks
+and builds, Storybook, design/vocabulary, ontology, source-structure, validation-system, and Plan Hub
+guards passed. `agentic:check` passed independently.
+
+The [machine-readable receipt](../evidence/gardener-celo-wallet-validation-2026-09-05.json) records
+each check, its selection reason, duration, command, and validated paths. Localhost fixtures needed
+an approved sandbox escalation; no production transaction was involved. Earlier failed or
+superseded runs are not counted as passing evidence.
 
 Development TDD on September 5, 2026:
 
@@ -127,6 +147,8 @@ test/story auth fixtures now explicitly supply a null resolver for wallet/unauth
 The existing auth and Work-command seam fingerprints were refreshed for the changed auth
 composition and sender conformance proof; the registry gained no entries or exceptions. The auth
 machine's redundant state/event inventory comment was shortened to retain its frozen size ceiling.
+The two new client tests use explicit fixtures so they satisfy the repository's isolated-import
+contract; all 196 validation-system tests pass.
 
 Review covered auth/session routing, send mutation/controller, gate/history composition, and the
 WalletDrawer consumers. Two safety facts have executed local proof: explicit Celo calls cannot use
