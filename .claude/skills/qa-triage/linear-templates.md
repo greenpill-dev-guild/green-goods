@@ -194,6 +194,7 @@ testers, on which surfaces, and the headline — "P0 coverage is green except
 review actions; two cross-surface failures trace to shared date handling.">
 
 Build under test: client `<sha>` · admin `<sha>`
+Environment: <production | beta (staging) | local — the session default; a verdict taken elsewhere carries a `[beta]`/`[prod]` note prefix>
 
 ## Results by priority
 - P0: <walked>/<total> — <pass> pass · <fail> fail · <blocked> blocked · <na> n/a · <noted> noted only
@@ -208,16 +209,26 @@ Build under test: client `<sha>` · admin `<sha>`
 ## Decisions from the call
 - <ruling the team aligned on, one line each — drop the section when none>
 
+## Decisions needed
+- <a product or design ruling the testing surfaced but nobody has made — one line each, with the Test IDs it blocks; mirrored in the session's decisions child (§ Product decisions child) — drop the section when none>
+
 ## Slices
+Slice cap <N> this session.
 - <one line per slice: what it covers and its Test IDs — Linear renders the
   sub-issue links; this list gives the reading order and the overflow context>
 - already tracked: <PRD-NNN> — <one line> (an existing open Issue, related to
   this parent so the fix queue still sees it)
+- standing since <date>: <a never-filed fail from an earlier walk that the gate
+  accepted as a slice — one line>
 
 ## Not sliced
 - <note-only follow-ups, anything past the slice cap, and `[derived:telemetry]`
   uncorrelated window errors (testers or ordinary production traffic — the
   telemetry has no tester predicate) — one line each>
+- investigate: <a symptom whose cause or intent is unknown — one line; a slice
+  only after someone looks>
+- environment: <behaviour caused by the harness or environment, not the product —
+  one line>
 
 **Done when**
 - every slice below — and every related already-tracked Issue — is Done or explicitly
@@ -244,6 +255,29 @@ per-tester detail stays in the pulled results and the private Sheet. Parent labe
 no `package:*` (a session spans surfaces). The parent closes when its `Done when` holds — the
 fix flow closes it, never the writer that filed it.
 
+## Product decisions child — one per session, only when testing surfaced decisions
+
+Title exactly `Product decisions from QA session YYYY-MM-DD`, a sub-issue of the session parent via
+`parentId`, state `Backlog`, labels = the parent set, no `package:*`. The interactive skill assigns
+the product owner; the routine leaves it unassigned. It exists so a ruling has a place to land that
+outlives the parent, and so a Linear-only agent reads the open questions before touching the slices
+they block.
+
+```markdown
+<One sentence: what testing surfaced that needs a product or design ruling before a fix is
+honest, and which slices wait on it.>
+
+- <Decision one, as a question a person can answer in a sentence, with the Test IDs and slice it
+  blocks — "Should the cookie-jar withdraw floor stay at one cent for DAI? (`PWA-028`)">
+- <Decision two …>
+
+**Done when**
+- every question above has a ruling recorded here, and design rulings are also locked in
+  `.claude/skills/design/decision-log.md`
+
+QA session — <slug>.
+```
+
 ## QA slice — sub-issue (one slice = one branch = one PR)
 
 Children of the session report via `parentId`. A slice is a root-cause cluster — same catalog
@@ -261,6 +295,11 @@ a paraphrase would lose.>
 <One or two lines mapping the feature: the owning module/component paths and
 the seam the failures share. A starting map, not a certified diagnosis.>
 
+**Verify on**
+<local | device | production — from the member cases' `requiresDevice` and
+`requiresProduction` flags; `local` is the dev:prod stack on a laptop, `device` an
+installed phone, `production` the deployed origin. The fix loop takes `local` first.>
+
 **Done when**
 - <each Test ID's expected result holds and is re-recorded as pass in the QA app>
 - <second observable outcome when the slice has two halves>
@@ -271,8 +310,11 @@ Validation: `<command>`. QA session — <slug>. Test IDs: `<ID>, <ID>`.
 
 **Evidence comment (slice)**: window-scoped enrichment — PostHog safe summary, Sentry issue link
 and top frame, deploy correlation — goes in the slice's first comment per § Evidence comment
-above, never the body. Replay URLs, session IDs, and distinct IDs never reach Linear; the
-parent's recipe line points a human at the recordings view instead.
+above, never the body. Evidence pages a tester linked from a note (a Notion or Drive page beside
+an issue number) go in the same comment as links, never re-typed; the page stays private and the
+link carries no session or replay identifier. Replay URLs, session IDs, and distinct IDs never
+reach Linear; the parent's recipe line points a human at the recordings view instead. A slice the
+gate accepted from standing state opens its body with `Standing since <date>.`
 
 **State + priority**: verdict-backed (a tester recorded fail/blocked in the QA app during the
 session window, exact Test IDs) → `Todo`; priority High for a P0-case fail, Medium for P1, Low
@@ -346,5 +388,9 @@ Linear's API constraint that Customer Needs must link to an Issue eliminates the
 | `[derived:recurring]` accepted in Phase 4 | linked to parent Issue | yes (recurring-pattern parent) |
 | Verdict-backed cluster (call report) | QA slice sub-issue of the session report | `Todo` + derived priority | No — the report is the record |
 | Notes-only cluster (call report) | QA slice sub-issue of the session report | `Backlog` | No |
+| Decision needed (call report) | Line under the parent's `Decisions needed` + the session's decisions child | `Backlog` | No |
+| Investigate (call report) | `Not sliced · investigate` line in the parent; no Issue until someone looks | — | No |
+| Catalog feedback (call report) | Never a slice — `tmp/qa-triage/<slug>/catalog-feedback.md` (skill) or one `Catalog feedback` comment on the parent (routine) | — | No |
+| Never-filed standing fail accepted at the gate (call report) | QA slice sub-issue opening with `Standing since <date>.` | `Todo` + derived priority | No |
 
 The default for ambiguous items is **track-only** — create a Customer Need linked to a lightweight Backlog tracking Issue. The Issue exists only because Linear requires a link target; it is not committed work until a human promotes it.

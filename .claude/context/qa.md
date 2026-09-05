@@ -147,6 +147,41 @@ slice's Linear *priority* from case priority plus verdict — a queue-ordering d
 session re-judges at take-up, not a severity judgment; Sheet severity stays independently
 assigned.
 
+## Verdict vocabulary
+
+`Pass`, `Fail`, and `Blocked` describe what happened on the walk. `N/A` means the case was
+intentionally outside the run's agreed scope: a device or role nobody on the walk could hold, or a
+surface consciously excluded when scope was set. A case nobody walked has **no entry**. Do not
+record `N/A` to mean "skipped this time": the report counts `N/A` as walked and judged, so a
+skipped case recorded as `N/A` overstates coverage and hides the gap the next walk should close.
+(Decided 2026-09-05, after the 2026-09-04 call recorded thirteen skipped commitment cases as N/A.)
+
+Environment attribution: the session header and the Linear parent lede name the session's default
+environment (production, beta/staging, or local). A tester who crosses to another environment for
+one case prefixes that note with `[beta]` or `[prod]`. Until the QA app records runs with their own
+environment field, the prefix is the only per-verdict environment record.
+
+## Finding dispositions
+
+Every observation a session produces (an app note, a dictated OBS record, or a meeting-notes item)
+resolves to exactly one disposition before anything is filed. A dictated app note usually carries
+several observations; split it into one observation per distinct symptom, each keeping its Test
+ID, tester, and verdict, before assigning dispositions or clustering.
+
+| Disposition | What it is | Where it lands |
+| --- | --- | --- |
+| `defect` | The product does not do what the case expects | A slice, or an existing tracked Issue |
+| `polish` | It works but looks or reads wrong | A slice at Low priority, clustered by seam |
+| `decision` | Needs a product or design ruling before a fix is honest (limits, copy direction, flow choices) | The parent's `Decisions needed` section plus the session's single decisions child |
+| `investigate` | A symptom whose cause or intent is unknown; not fixable until someone looks | A `Not sliced · investigate` line in the parent; a slice only after the look |
+| `catalog` | Feedback about the test case itself: split it, rename it, move it, unclear, missing twin | `tmp/qa-triage/<slug>/catalog-feedback.md` from the skill, or one `Catalog feedback` comment on the parent from the routine; folded into the next catalog change; never a slice |
+| `environment` | Behaviour caused by the harness or environment, not the product (cold start, beta-only data, wrong wallet) | One environment line in the parent; never a slice |
+
+Observations that already carry a tracked Issue (exact Test ID or error hash, or a title match a
+human confirmed at the gate) are linked, not re-filed. A tester's own words carry severity: "major
+regression", "major blocker", or "completely broken" in a note proposes Urgent at the gate, where a
+human confirms it.
+
 ## Roster and attribution
 
 The deployed roster is the unique address list in `QA_ALLOWLIST`; it is discovered at runtime and is
