@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 900 900" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="tas-circulation-title tas-circulation-desc">
+  <title id="tas-circulation-title">How G$ moves through Tech and Sun</title>
+  <desc id="tas-circulation-desc">A case study circulation drawing for the Tech and Sun garden with four blocks and eight arrows, all drawn in one solid style and all blocks the same white fill. The House of Alignment supports Green Goods, and Green Goods reports back by September 15. Green Goods pays the Tech and Sun pool for Requests the garden keeps, plus top ups, and pays a gardener who keeps a Request directly; gardeners also keep Green Goods Requests. The Tech and Sun pool pays gardeners for kept promises at their own Green Goods account and pays Green Goods for Offers it takes up. Gardeners spend G$ at the hub. Quantities are illustrative.</desc>
+  <defs>
+    <marker id="tas-circulation-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 Z" fill="#988D77"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="900" height="900" fill="#FBF8F2"/>
+
+  <text x="450" y="46" text-anchor="middle" font-size="30" font-weight="700" fill="#2A2722">How G$ moves through Tech and Sun</text>
+  <text x="450" y="74" text-anchor="middle" font-size="17" fill="#6E6857">Who is paid follows who kept the promise.</text>
+
+  <!-- ============ arrows, one style ============ -->
+
+  <!-- 1 · House of Alignment supports Green Goods -->
+  <path class="edge" d="M 400 178 L 400 258" fill="none" stroke="#988D77" stroke-width="3" marker-end="url(#tas-circulation-arrow)"/>
+  <!-- 7 · Green Goods reports back -->
+  <path class="edge" d="M 520 262 L 520 182" fill="none" stroke="#988D77" stroke-width="3" marker-end="url(#tas-circulation-arrow)"/>
+
+  <!-- 2 · Green Goods pays the Tech and Sun pool -->
+  <path class="edge" d="M 630 388 C 720 460, 750 540, 750 610" fill="none" stroke="#988D77" stroke-width="3" marker-end="url(#tas-circulation-arrow)"/>
+  <!-- 3 · Tech and Sun pays Green Goods for Offers -->
+  <path class="edge" d="M 590 616 C 580 540, 540 470, 520 392" fill="none" stroke="#988D77" stroke-width="3" marker-end="url(#tas-circulation-arrow)"/>
+  <!-- 4 · Green Goods pays a gardener who keeps a Request -->
+  <path class="edge" d="M 290 388 C 200 450, 150 540, 150 610" fill="none" stroke="#988D77" stroke-width="3" marker-end="url(#tas-circulation-arrow)"/>
+  <!-- 8 · gardeners keep Green Goods Requests -->
+  <path class="edge" d="M 270 616 C 300 540, 340 470, 380 392" fill="none" stroke="#988D77" stroke-width="3" marker-end="url(#tas-circulation-arrow)"/>
+  <!-- 5 · Tech and Sun pays gardeners for kept promises -->
+  <path class="edge" d="M 540 664 L 366 664" fill="none" stroke="#988D77" stroke-width="3" marker-end="url(#tas-circulation-arrow)"/>
+  <!-- 6 · gardeners spend G$ at the hub -->
+  <path class="edge" d="M 360 720 L 534 720" fill="none" stroke="#988D77" stroke-width="3" marker-end="url(#tas-circulation-arrow)"/>
+
+  <!-- ============ arrow labels ============ -->
+  <g font-size="18" fill="#6E6857" text-anchor="middle">
+    <text x="382" y="224" text-anchor="end">supports Green Goods</text>
+    <text x="538" y="224" text-anchor="start">reports back by September 15</text>
+
+    <rect x="598" y="466" width="300" height="58" rx="8" fill="#FBF8F2"/>
+    <text x="748" y="490">pays for Requests</text>
+    <text x="748" y="512">Tech and Sun keeps, plus top ups</text>
+
+    <rect x="330" y="428" width="270" height="36" rx="8" fill="#FBF8F2"/>
+    <text x="465" y="452">pays for Green Goods Offers</text>
+
+    <rect x="0" y="446" width="236" height="58" rx="8" fill="#FBF8F2"/>
+    <text x="118" y="470">pays a gardener who</text>
+    <text x="118" y="492">keeps a Request</text>
+
+    <rect x="262" y="526" width="208" height="52" rx="8" fill="#FBF8F2"/>
+    <text x="366" y="548">keep Green Goods</text>
+    <text x="366" y="570">Requests</text>
+
+    <text x="450" y="632" font-size="16">pays gardeners</text>
+    <text x="450" y="650" font-size="16">for kept promises</text>
+
+    <text x="450" y="705" font-size="16">spend G$ at the hub</text>
+  </g>
+
+  <!-- ============ blocks ============ -->
+
+  <!-- House of Alignment -->
+  <g class="node">
+    <rect x="260" y="92" width="380" height="86" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2.5"/>
+    <text x="450" y="128" text-anchor="middle" font-size="26" font-weight="600" fill="#3B372E">House of Alignment</text>
+    <text x="450" y="158" text-anchor="middle" font-size="17" fill="#6E6857">GoodDollar's support stream</text>
+  </g>
+
+  <!-- Green Goods -->
+  <g class="node">
+    <rect x="240" y="262" width="420" height="126" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2.5"/>
+    <text x="450" y="318" text-anchor="middle" font-size="28" font-weight="600" fill="#3B372E">Green Goods</text>
+    <text x="450" y="352" text-anchor="middle" font-size="17" fill="#6E6857">the Green Goods pool</text>
+  </g>
+
+  <!-- Tech and Sun gardeners -->
+  <g class="node">
+    <rect x="20" y="616" width="340" height="128" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2.5"/>
+    <text x="190" y="672" text-anchor="middle" font-size="26" font-weight="600" fill="#3B372E">Tech and Sun gardeners</text>
+    <text x="190" y="704" text-anchor="middle" font-size="17" fill="#6E6857">paid at their own Green Goods account</text>
+  </g>
+
+  <!-- Tech and Sun -->
+  <g class="node">
+    <rect x="540" y="616" width="340" height="128" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2.5"/>
+    <text x="710" y="672" text-anchor="middle" font-size="28" font-weight="600" fill="#3B372E">Tech and Sun</text>
+    <text x="710" y="704" text-anchor="middle" font-size="17" fill="#6E6857">the Tech and Sun pool</text>
+  </g>
+
+  <text x="450" y="790" text-anchor="middle" font-size="16" font-style="italic" fill="#6E6857">Quantities illustrative. Who is paid follows who kept the promise.</text>
+
+  <text x="450" y="886" text-anchor="middle" font-size="15" fill="#6E6857">Green Goods · Commitment Pooling · v1 (2026-09)</text>
+</svg>
