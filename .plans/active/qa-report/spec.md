@@ -17,6 +17,7 @@ open to challenge before implementation starts.
 | 8 | Report sections are additive to the parent template; the "Results by priority" lines are byte-identical to the template's line shape, zero segments dropped | The routine and `--call` paste them verbatim, so the template and the generator cannot drift |
 | 9 | The public projection follows the `qa:status` rule: catalog IDs, counts, and timestamps only — no notes, no person labels or addresses; per-tester coverage collapses to a tester count | Reuses the privacy contract that already exists instead of inventing a second one |
 | 10 | `report.md` is a derived artifact and regenerating overwrites it | Unlike `results.csv`, it carries no hand edits; determinism from inputs is the whole point |
+| 11 | (2026-09-05) `report.md` is also attached to the session's Linear parent as the document `QA session YYYY-MM-DD · full report`; team display names and notes may appear there, nothing else private | Team calls produce no receipt, so the attributed report lived only in `tmp/`; Linear is where the session is tracked and what Linear-only agents can read. The privacy grep still bans wallets, session and replay identifiers, and names outside the team; decision 2's public projection is unchanged |
 
 ## Inputs
 
@@ -97,9 +98,13 @@ or baseline fails before any file is written. Error text never includes note con
 
 ## Privacy
 
-The private report lives in gitignored `tmp/qa-session/<slug>/` and follows the receipt's upload
-gate. The public projection reuses the `qa:status` rule and is the only variant that may leave the
-private folder — and only for the two uses in Decision 2.
+The private report lives in gitignored `tmp/qa-session/<slug>/`. It leaves that folder by exactly
+one route: the privacy-gated Linear document attached to the session parent (Decision 11), after
+the same grep that gates every Linear write has redacted wallet addresses, session and replay
+identifiers, and names outside the team; team display names and notes may remain. The public
+projection reuses the `qa:status` rule and is the only variant that may reach a public surface —
+and only for the two uses in Decision 2. Wiring: the routine, `/qa-triage --call`, and the
+qa-session close attach the document right after the parent exists and link it from the lede.
 
 ## Non-goals
 

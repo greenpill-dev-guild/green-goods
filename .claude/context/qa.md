@@ -34,7 +34,8 @@ connects them.
    that pull — results by priority and by kind, the fail/blocked list, coverage gaps, standing
    state, and per-tester coverage, private and attributed — and, with `--public`,
    `report.public.md` under the `qa:status` projection rule. The public file exists only for the
-   docs example and the Discord lede; every session record embeds the private one.
+   docs example and the Discord lede. The private file is attached to the session's Linear parent
+   as a document (§ Artifact ownership), so the full record outlives the laptop that pulled it.
 5. **Triage** — [`qa-triage`](../skills/qa-triage/SKILL.md) enriches and scope-locks accepted
    findings, then writes safe Issue and Customer Need records to Linear and appends private defect
    rows to the Green Goods v1.1 QA Sheet. After a team QA call, the
@@ -75,11 +76,12 @@ deferred handoff, or a live session — works in this order:
 | --- | --- | --- |
 | Test-case definitions | `scripts/data/qa-test-catalog.json` in git | Product or engineering change, reviewed like code |
 | Verdicts and notes | QA app private Blob store | The allowlisted signing address through the app |
-| Session log, pulled results, generated report, local handoff | `tmp/qa-session/<slug>/` | `qa-session`, `qa:pull`, and `qa:report`; local and gitignored — only `report.public.md` may leave, for the docs example or the Discord lede |
+| Session log, pulled results, generated report, local handoff | `tmp/qa-session/<slug>/` | `qa-session`, `qa:pull`, and `qa:report`; local and gitignored — `report.md` leaves only as the session parent's attached Linear document (below), `report.public.md` only for the docs example or the Discord lede |
 | Coverage report | Standard output from `bun run qa:status` | Read-only command; nothing is persisted |
 | Defect tracking | Linear plus the private Green Goods v1.1 QA Sheet | `qa-triage`, after explicit scope and write confirmation |
 | Session report and fix slices | Linear Product team — `QA session YYYY-MM-DD` parent plus slice sub-issues | [`qa-call-report`](../../docs/routines/qa-call-report.md) after a team call, or `/qa-triage --call` interactively |
-| Session receipts and cleared evidence | Restricted Drive QA folder | `qa-session`, after content inspection |
+| Full session report, attributed | Linear document `QA session YYYY-MM-DD · full report` attached to the session parent; beside the receipt in the restricted Drive QA folder when a solo session has no parent | [`qa-call-report`](../../docs/routines/qa-call-report.md), `/qa-triage --call`, or the `qa-session` close, after the privacy grep |
+| Session receipts, screenshots, and recordings | Restricted Drive QA folder | `qa-session`, after content inspection |
 | Locked design decisions | `.claude/skills/design/decision-log.md` in git | `qa-session`, after the decision lock gate |
 
 ## Public-repository boundary
@@ -87,17 +89,23 @@ deferred handoff, or a live session — works in this order:
 This repository is public. QA results, notes, wallet addresses, the address allowlist, and the identity
 attached to a tester's results never enter it. `QA_ALLOWLIST` lives in the deployment environment;
 display names live inside private address-owned shards. Operational artifacts stay under gitignored
-`tmp/` until cleared receipts and evidence move to the restricted Drive QA folder.
+`tmp/` until the full report is attached to the session parent in Linear and cleared media moves to
+the restricted Drive QA folder.
 
 `qa:status` is safe to print because it projects only catalog IDs, aggregate verdict counts, entry
 timestamps, and optional Linear issue keys. It never prints notes or shard-owner names. Do not add a
 notes, attribution, or per-person flag.
 
-Linear receives only the public-safe issue narrative allowed by
-[`linear-routing-rules.md`](linear-routing-rules.md). The private QA Sheet is the one narrow
-exception that may hold a PostHog session ID and replay URL after its permissions are verified.
-Distinct IDs, wallet addresses, and reporter identifiers stay out of both. Media must be inspected
-visually before upload; a text scan cannot clear pixels.
+Linear issue bodies and comments receive only the public-safe narrative allowed by
+[`linear-routing-rules.md`](linear-routing-rules.md). One carve-out, decided 2026-09-05: the full
+session report is attached to the `QA session YYYY-MM-DD` parent as a Linear **document**, and that
+document may carry team members' display names and their own notes, because the workspace is
+private and the report is useless without them. Wallet addresses, session IDs, replay URLs, and the
+identity of anyone outside the team stay out of the document too: the privacy grep that gates every
+Linear write runs on it first, and a hit is redacted before the document is saved. The private QA
+Sheet remains the one place that may hold a PostHog session ID and replay URL after its permissions
+are verified. Media must be inspected visually before upload; a text scan cannot clear pixels, so
+screenshots and recordings go to the restricted Drive QA folder, never into Linear.
 
 ## Wallet authentication and trust boundary
 
@@ -146,6 +154,42 @@ assigned during triage and is never derived from catalog priority. The call-repo
 slice's Linear *priority* from case priority plus verdict — a queue-ordering default the fix
 session re-judges at take-up, not a severity judgment; Sheet severity stays independently
 assigned.
+
+## Verdict vocabulary
+
+`Pass`, `Fail`, and `Blocked` describe what happened on the walk. `N/A` means the case was
+intentionally outside the run's agreed scope: a device or role nobody on the walk could hold, or a
+surface consciously excluded when scope was set. A case nobody walked has **no entry**. Do not
+record `N/A` to mean "skipped this time": the report counts `N/A` as walked and judged, so a
+skipped case recorded as `N/A` overstates coverage and hides the gap the next walk should close.
+(Decided 2026-09-05, after the 2026-09-04 call recorded thirteen skipped commitment cases as N/A.)
+
+Environment attribution: the session header and the Linear parent lede name the session's default
+environment (production, beta/staging, or local). A tester who crosses to another environment for
+one case prefixes that note with `[beta]`, `[prod]`, or `[local]`: every verdict taken outside the
+session default carries its prefix, whichever of the three the default is. Until the QA app records
+runs with their own environment field, the prefix is the only per-verdict environment record.
+
+## Finding dispositions
+
+Every observation a session produces (an app note, a dictated OBS record, or a meeting-notes item)
+resolves to exactly one disposition before anything is filed. A dictated app note usually carries
+several observations; split it into one observation per distinct symptom, each keeping its Test
+ID, tester, and verdict, before assigning dispositions or clustering.
+
+| Disposition | What it is | Where it lands |
+| --- | --- | --- |
+| `defect` | The product does not do what the case expects | A slice, or an existing tracked Issue |
+| `polish` | It works but looks or reads wrong; it may sit beside a Pass verdict | A slice at Low priority regardless of case priority, clustered by seam: `Todo` when at least one member entry was recorded inside the session window (a pass with a note counts), `Backlog` when reconstructed from notes alone |
+| `decision` | Needs a product or design ruling before a fix is honest (limits, copy direction, flow choices) | The parent's `Decisions needed` section plus the session's single decisions child |
+| `investigate` | A symptom whose cause or intent is unknown; not fixable until someone looks | A `Not sliced · investigate` line in the parent; a slice only after the look |
+| `catalog` | Feedback about the test case itself: split it, rename it, move it, unclear, missing twin | `tmp/qa-triage/<slug>/catalog-feedback.md` from the skill, copied at close into the plan hub that owns the next catalog change (de-attributed: no verdicts, no tester names, because the repository is public), or one `Catalog feedback` comment on the parent from the routine; never a slice |
+| `environment` | Behaviour caused by the harness or environment, not the product (cold start, beta-only data, wrong wallet) | One environment line in the parent; never a slice |
+
+Observations that already carry a tracked Issue (exact Test ID or error hash, or a title match a
+human confirmed at the gate) are linked, not re-filed. A tester's own words carry severity: "major
+regression", "major blocker", or "completely broken" in a note proposes Urgent at the gate, where a
+human confirms it.
 
 ## Roster and attribution
 

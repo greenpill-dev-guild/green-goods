@@ -194,6 +194,8 @@ testers, on which surfaces, and the headline — "P0 coverage is green except
 review actions; two cross-surface failures trace to shared date handling.">
 
 Build under test: client `<sha>` · admin `<sha>`
+Environment: <production | beta (staging) | local — the session default; a verdict taken elsewhere carries a `[beta]`, `[prod]`, or `[local]` note prefix>
+Full report: [QA session YYYY-MM-DD · full report](<linear-document-url>)
 
 ## Results by priority
 - P0: <walked>/<total> — <pass> pass · <fail> fail · <blocked> blocked · <na> n/a · <noted> noted only
@@ -208,20 +210,33 @@ Build under test: client `<sha>` · admin `<sha>`
 ## Decisions from the call
 - <ruling the team aligned on, one line each — drop the section when none>
 
+## Decisions needed
+- <a product or design ruling the testing surfaced but nobody has made — one line each, with the Test IDs it blocks; mirrored in the session's decisions child (§ Product decisions child) — drop the section when none>
+
 ## Slices
+Slice cap <N> this session.
 - <one line per slice: what it covers and its Test IDs — Linear renders the
   sub-issue links; this list gives the reading order and the overflow context>
 - already tracked: <PRD-NNN> — <one line> (an existing open Issue, related to
   this parent so the fix queue still sees it)
+- standing since <date>: <a never-filed fail from an earlier walk that the gate
+  accepted as a slice — one line>
 
 ## Not sliced
 - <note-only follow-ups, anything past the slice cap, and `[derived:telemetry]`
   uncorrelated window errors (testers or ordinary production traffic — the
   telemetry has no tester predicate) — one line each>
+- investigate: <a symptom whose cause or intent is unknown — one line; a slice
+  only after someone looks>
+- environment: <behaviour caused by the harness or environment, not the product —
+  one line>
 
 **Done when**
 - every slice below — and every related already-tracked Issue — is Done or explicitly
   deferred, and the re-QA walk has re-recorded its Test IDs
+- every `Decisions needed` line has its ruling recorded on the decisions child and that child
+  is Done or Canceled, and every `investigate:` line under Not sliced is promoted to a slice or
+  closed with a finding
 
 Session <slug>. [Meeting notes](<drive-url>)
 ```
@@ -238,11 +253,55 @@ Both results blocks are pasted verbatim from `tmp/qa-session/<slug>/report.md`, 
 per-case priority and kind, never hand-counted — and cover **this session's entries only** (the
 call-window rule; the store is long-lived). The generator already includes the `n/a` and
 noted-without-a-verdict counts (recorded states without which the walked numerator does not
-reconcile) and drops zero segments rather than rendering them. No tester attribution, wallet addresses, session IDs, or replay URLs anywhere;
-per-tester detail stays in the pulled results and the private Sheet. Parent labels:
+reconcile) and drops zero segments rather than rendering them. No tester attribution, wallet addresses, session IDs, or replay URLs in the body or its
+comments; per-tester detail lives in the full report attached to this parent as a Linear document
+(§ Full report document) and in the private Sheet. Parent labels:
 `protocol:green-goods` + `activity:qa` + `source:qa-session` + `qa-sync:<date>` + one `ai:*` —
 no `package:*` (a session spans surfaces). The parent closes when its `Done when` holds — the
-fix flow closes it, never the writer that filed it.
+fix flow closes it, never the writer that filed it — and an open decisions child or investigate
+line holds it open after the last slice lands.
+
+## Full report document — one per session parent
+
+The private `report.md` that `qa:report` writes is attached to the session parent as a Linear
+document, so the attributed notes and per-tester coverage outlive the laptop that pulled them and
+an agent with only Linear access can read the whole session. Rules:
+
+- Title exactly `QA session YYYY-MM-DD · full report` (a second same-day call appends its counter
+  to the date, as the parent does). Parent = the session issue (`issue`), never a project.
+- Content = the `report.md` of the pull the results blocks were pasted from — the `-final`
+  directory when the routine re-pulled after the window closed — verbatim after the privacy grep: redact `0x` strings, replay or session
+  identifiers, and any name outside the team; team members' display names and their own notes stay
+  (decided 2026-09-05, [`.claude/context/qa.md`](../../context/qa.md) § Public-repository boundary).
+- Created right after the parent and before the children; the parent's lede then links it (a
+  `save_issue` update that resends the title so the length exemption holds).
+- A rerun or a refreshed pull updates the same document by id; never a second document. Media
+  never goes into it; screenshots and recordings stay in the restricted Drive QA folder.
+
+## Product decisions child — one per session, only when testing surfaced decisions
+
+Title exactly `Product decisions from QA session YYYY-MM-DD`, a sub-issue of the session parent via
+`parentId`, state `Backlog`, labels = the parent set, no `package:*`. The missing package label is
+load-bearing: slice pickup (`debug` § QA Slice Fix Protocol) takes only sub-issues that carry one, so
+this record is never mistaken for a slice. The interactive skill assigns
+the product owner; the routine leaves it unassigned. It exists so a ruling has a place to land that
+outlives the parent, and so a Linear-only agent reads the open questions before touching the slices
+they block.
+
+```markdown
+<One sentence: what testing surfaced that needs a product or design ruling before a fix is
+honest, and which slices wait on it.>
+
+- <Decision one, as a question a person can answer in a sentence, with the Test IDs and slice it
+  blocks — "Should the cookie-jar withdraw floor stay at one cent for DAI? (`PWA-028`)">
+- <Decision two …>
+
+**Done when**
+- every question above has a ruling recorded here, and design rulings are also locked in
+  `.claude/skills/design/decision-log.md`
+
+QA session — <slug>.
+```
 
 ## QA slice — sub-issue (one slice = one branch = one PR)
 
@@ -261,6 +320,11 @@ a paraphrase would lose.>
 <One or two lines mapping the feature: the owning module/component paths and
 the seam the failures share. A starting map, not a certified diagnosis.>
 
+**Verify on**
+<local | device | production — from the member cases' `requiresDevice` and
+`requiresProduction` flags; `local` is the dev:prod stack on a laptop, `device` an
+installed phone, `production` the deployed origin. The fix loop takes `local` first.>
+
 **Done when**
 - <each Test ID's expected result holds and is re-recorded as pass in the QA app>
 - <second observable outcome when the slice has two halves>
@@ -271,12 +335,18 @@ Validation: `<command>`. QA session — <slug>. Test IDs: `<ID>, <ID>`.
 
 **Evidence comment (slice)**: window-scoped enrichment — PostHog safe summary, Sentry issue link
 and top frame, deploy correlation — goes in the slice's first comment per § Evidence comment
-above, never the body. Replay URLs, session IDs, and distinct IDs never reach Linear; the
-parent's recipe line points a human at the recordings view instead.
+above, never the body. Evidence pages a tester linked from a note (a Notion or Drive page beside
+an issue number) go in the same comment as links, never re-typed; the page stays private and the
+link carries no session or replay identifier. Replay URLs, session IDs, and distinct IDs never
+reach Linear; the parent's recipe line points a human at the recordings view instead. A slice the
+gate accepted from standing state opens its body with `Standing since <date>.`
 
 **State + priority**: verdict-backed (a tester recorded fail/blocked in the QA app during the
 session window, exact Test IDs) → `Todo`; priority High for a P0-case fail, Medium for P1, Low
-otherwise — Urgent only when the call flagged it release-blocking. The seeded priority is a
+otherwise — Urgent only when the call flagged it release-blocking, or when a tester's note proposed
+it and the gate confirmed. A `polish` slice lands Low whatever its cases' priority: `Todo` when at
+least one member entry was recorded inside the window (a pass with a note counts), `Backlog` when
+reconstructed from notes alone. The seeded priority is a
 queue-ordering default (walk priority × verdict), **not a severity judgment** — the fix session
 re-judges it at take-up, and Sheet severity stays independently assigned
 (`.claude/context/qa.md` § Verdict and severity rules). Reconstructed from meeting notes alone
@@ -330,7 +400,7 @@ The Customer Need then links to this Issue via the `issue` parameter and carries
 
 ## Disposition resolution
 
-Linear's API constraint that Customer Needs must link to an Issue eliminates the standalone Need column. Every accepted item gets an Issue — main or lightweight track-only.
+Linear's API constraint that Customer Needs must link to an Issue eliminates the standalone Need column. Every accepted defect, polish, idea, or feedback item gets an Issue — main or lightweight track-only. The call-report dispositions that record without an Issue (decision lines plus the one decisions child, investigate lines, catalog feedback, environment lines) are the named exceptions in the table below.
 
 | Item shape | Issue type | Issue status | Customer Need |
 |---|---|---|---|
@@ -346,5 +416,10 @@ Linear's API constraint that Customer Needs must link to an Issue eliminates the
 | `[derived:recurring]` accepted in Phase 4 | linked to parent Issue | yes (recurring-pattern parent) |
 | Verdict-backed cluster (call report) | QA slice sub-issue of the session report | `Todo` + derived priority | No — the report is the record |
 | Notes-only cluster (call report) | QA slice sub-issue of the session report | `Backlog` | No |
+| Decision needed (call report) | Line under the parent's `Decisions needed` + the session's decisions child | `Backlog` | No |
+| Investigate (call report) | `Not sliced · investigate` line in the parent; no Issue until someone looks | — | No |
+| Catalog feedback (call report) | Never a slice — `tmp/qa-triage/<slug>/catalog-feedback.md` (skill), copied de-attributed into the catalog-owning plan hub at close, or one `Catalog feedback` comment on the parent (routine) | — | No |
+| Environment finding (call report) | One `environment:` line under the parent's `Not sliced`; never a slice | — | No |
+| Never-filed standing fail accepted at the gate (call report) | QA slice sub-issue opening with `Standing since <date>.` | `Todo` + derived priority | No |
 
 The default for ambiguous items is **track-only** — create a Customer Need linked to a lightweight Backlog tracking Issue. The Issue exists only because Linear requires a link target; it is not committed work until a human promotes it.

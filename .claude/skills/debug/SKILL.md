@@ -141,7 +141,9 @@ branch = one PR, and the posture is repair, not feature building.
    list its open sub-issues **and its related already-tracked Issues** in priority order. Only
    `Todo`/`Backlog` items are available to take — a related Issue already `In Progress` or
    `In Review` is someone's active work: show it as context, keep its state, never select it as
-   a slice. Confirm which slice to take — or take the top available one when the user already
+   a slice. A sub-issue with no `package:*` label is not a slice either — the
+   `Product decisions from QA session YYYY-MM-DD` child is that case — so it is context for a design
+   call and never selected. Confirm which slice to take — or take the top available one when the user already
    said to work through them.
 2. **Take ONE slice.** Move it to `In Progress` only when work actually starts — after the
    grounding below and the branch go in step 5; a slice stopped before then (design call,
@@ -174,7 +176,9 @@ branch = one PR, and the posture is repair, not feature building.
    IDs re-record as pass in the QA app (whoever recorded the fail re-records).
 10. **Next slice or stop** — the user's call at each boundary. When the parent report's last
     open slice lands, close the parent against its `Done when` (every slice Done or explicitly
-    deferred, re-QA re-recorded) — or say what still holds it open.
+    deferred with re-QA re-recorded, the decisions child Done or Canceled, no open investigate
+    line) — or say what still holds it open: an unruled decisions child or investigate line
+    keeps a parent open after its last slice lands.
 
 ### User-Observed UI Regression Protocol
 

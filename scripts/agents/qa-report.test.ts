@@ -288,6 +288,7 @@ describe("QA report delta and gaps", () => {
       stillFailing: ["PUB-004"],
       stillBlocked: ["PUB-003"],
       cleared: [],
+      skipped: [],
       unknown: ["XPLAT-001"],
     });
     // The path and unknown ids are private detail; the public variant withholds them.
@@ -320,6 +321,62 @@ describe("QA report delta and gaps", () => {
   });
 });
 
+describe("QA report skipped cases", () => {
+  it("sets a --skipped case's in-window N/A aside as not walked and keeps every other verdict", () => {
+    const cases = [makeCase(), makeCase({ id: "PUB-002" }), makeCase({ id: "PUB-003" })];
+    const merged = mergeShards([
+      shard("Afo", {
+        "PUB-001": { s: "na", n: "skipped for time", at: IN_WINDOW },
+        "PUB-002": { s: "na", n: "", at: IN_WINDOW },
+        "PUB-003": { s: "fail", n: "a real verdict", at: IN_WINDOW },
+      }),
+    ]);
+    const options = { slug: SLUG, window: WINDOW, pulledAt: PULLED_AT };
+    const model = buildReportModel(cases, merged, { ...options, skipped: ["PUB-001", "PUB-003"] });
+    // PUB-001's N/A is set aside; PUB-002's N/A stands as judged; PUB-003's Fail is a verdict, never a skip.
+    expect(model.byPriority.P0).toMatchObject({ walked: 2, na: 1, fail: 1 });
+    expect(model.gaps.neverWalked.P0).toEqual(["PUB-001"]);
+    expect(model.issues.map((issue) => issue.id)).toEqual(["PUB-003"]);
+    expect(model.skipped).toEqual({ ids: ["PUB-001", "PUB-003"], excluded: 1 });
+    const report = renderReport(model, { kinds: KINDS }, { variant: "private" });
+    expect(report).toContain("Skipped: `PUB-001`, `PUB-003` — recorded N/A during the walk; 1 in-window entry set aside");
+    expect(buildReportModel(cases, merged, options).skipped).toEqual({ ids: [], excluded: 0 });
+    expect(() => buildReportModel(cases, merged, { ...options, skipped: ["PUB-999"] })).toThrow(/--skipped.*PUB-999/);
+  });
+
+  it("keeps the delta and the standing lists consistent with a skipped case", () => {
+    const cases = [makeCase(), makeCase({ id: "PUB-002" }), makeCase({ id: "PUB-003" })];
+    const previous = mergeShards([
+      shard("Afo", {
+        "PUB-001": { s: "fail", n: "", at: BEFORE_WINDOW },
+        "PUB-002": { s: "fail", n: "", at: BEFORE_WINDOW },
+        "PUB-003": { s: "pass", n: "", at: BEFORE_WINDOW },
+      }),
+    ]);
+    const current = mergeShards([
+      shard("Afo", {
+        "PUB-001": { s: "na", n: "skipped for time", at: IN_WINDOW },
+        "PUB-002": { s: "na", n: "out of scope now", at: IN_WINDOW },
+        "PUB-003": { s: "fail", n: "", at: IN_WINDOW },
+      }),
+    ]);
+    const model = buildReportModel(cases, current, {
+      slug: SLUG,
+      window: WINDOW,
+      pulledAt: PULLED_AT,
+      previous: { path: "tmp/qa-session/2026-08-31/qa-state.json", entries: previous },
+      skipped: ["PUB-001", "PUB-003"],
+    });
+    // PUB-001 was not walked, so it is neither fixed nor cleared; PUB-002's N/A stands as cleared;
+    // PUB-003's Fail is a real verdict whatever --skipped says.
+    expect(model.delta).toMatchObject({ skipped: ["PUB-001"], cleared: ["PUB-002"], newlyFailing: ["PUB-003"], fixed: [] });
+    expect(model.standing).toEqual({ failing: [], blocked: [] });
+    expect(model.gaps.neverWalked.P0).toEqual(["PUB-001"]);
+    const report = renderReport(model, { kinds: KINDS }, { variant: "private" });
+    expect(report).toContain("- Cleared without a pass (1): `PUB-002`\n- Skipped (baseline fail or blocked, not walked) (1): `PUB-001`\n");
+  });
+});
+
 describe("QA report CLI", () => {
   it("parses the full flag set", () => {
     expect(
@@ -331,6 +388,7 @@ describe("QA report CLI", () => {
         "--public",
         "--stale-days", "14",
         "--out", "tmp/qa-session/2026-09-02-call",
+        "--skipped", "PWA-032, PWA-IOS-002,PWA-032",
       ]),
     ).toEqual({
       slug: "2026-09-02",
@@ -340,6 +398,7 @@ describe("QA report CLI", () => {
       public: true,
       staleDays: 14,
       out: "tmp/qa-session/2026-09-02-call",
+      skipped: ["PWA-032", "PWA-IOS-002"],
     });
     expect(parseArgs(["--slug", "2026-09-02"])).toEqual({ slug: "2026-09-02", public: false, staleDays: 30 });
   });
@@ -350,6 +409,8 @@ describe("QA report CLI", () => {
     expect(() => parseArgs(["--slug", "2026-09-02", "--bogus"])).toThrow(/unknown argument/);
     expect(() => parseArgs(["--slug", "2026-09-02", "--stale-days", "0"])).toThrow(/--stale-days/);
     expect(() => parseArgs(["--slug", "2026-09-02", "--build", "web=abc"])).toThrow(/--build/);
+    expect(() => parseArgs(["--slug", "2026-09-02", "--skipped", "pwa032"])).toThrow(/--skipped/);
+    expect(() => parseArgs(["--slug", "2026-09-02", "--skipped", " , "])).toThrow(/--skipped/);
   });
 
   it("writes report.md and, with --public, report.public.md beside the pulled session", async () => {
