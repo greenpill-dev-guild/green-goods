@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-09-05T04:08:09.130Z",
-    "updated_at": "2026-09-05T04:08:09.130Z"
+    "updated_at": "2026-09-05T04:16:34.577Z"
   },
   "links": {
     "brief": "brief.md",
@@ -19,12 +19,13 @@
     "eval": "eval.md"
   },
   "linear": {
-    "parentIssue": null,
+    "parentIssue": "PRD-878",
     "project": null,
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
     "lastSyncedAt": null,
-    "lanes": {}
+    "lanes": {},
+    "laneSyncMode": "parent_only"
   },
   "taxonomy": {
     "initiative": "engineering-quality",
@@ -132,6 +133,14 @@
       "status": "scaffolded",
       "branch": null,
       "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-09-05T04:16:34.577Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
   ]
 }
