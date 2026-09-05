@@ -23,3 +23,4 @@ C17 Expectations that encode current bugs ("currently silent", "currently a sile
 C18 Grouped admin transaction rows, all still never walked: ADM-020, 021, 022, 023, 025, 027, 028, 029. Split by act like the PWA rows.
 C19 Areas: 33 areas for 53 PWA cases and 33 for 46 admin cases; five PWA areas hold one case. Re-cut to where the walker sits (Home, Garden, Work, Commitments, Wallet, Profile, Auth/Install/Update, Offline) — after Tuesday.
 C20 Missing read-only PWA rows: garden detail, Insights/assessments list, members, commitments list/drawer, notifications on the desktop shell.
+C21 No admin case covers submitting an assessment outside the journey relay: ADM-005 tests gating only and ADM-037 is the relay's starting assessment. Add a P0 transaction row for assessment submission (found via the admin evidence page, item 8, 2026-09-05).
