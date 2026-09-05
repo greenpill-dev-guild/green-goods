@@ -1,5 +1,4 @@
 /** @vitest-environment jsdom */
-import { getStablecoinSendableTokens } from "@green-goods/shared/config";
 import type { useCeloWallet } from "@green-goods/shared/hooks/commitment-pooling/useSettlementQueries";
 import en from "@green-goods/shared/i18n/en.json";
 import es from "@green-goods/shared/i18n/es.json";
@@ -30,7 +29,13 @@ const receipt: Receipt = {
 };
 const wallet: Wallet = {
   token: {
-    ...getStablecoinSendableTokens(42220).find((token) => token.symbol === "G$")!,
+    chainId: 42220,
+    symbol: "G$",
+    label: "GoodDollar",
+    address: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
+    decimals: 18,
+    confersGovernance: false,
+    supported: true,
     balance: 25n * 10n ** 18n,
     errored: false,
   },

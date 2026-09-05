@@ -5,7 +5,6 @@
 
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getStablecoinSendableTokens } from "@green-goods/shared/config";
 import type { useCeloWallet } from "@green-goods/shared/hooks/commitment-pooling/useSettlementQueries";
 import type { SendableTokenBalance } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
 import { renderWithProviders as render, screen } from "../test-utils";
@@ -39,7 +38,13 @@ const usdcToken: SendableTokenBalance = {
 };
 
 const celoToken: SendableTokenBalance = {
-  ...getStablecoinSendableTokens(42220).find((token) => token.symbol === "G$")!,
+  chainId: 42220,
+  symbol: "G$",
+  label: "GoodDollar",
+  address: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
+  decimals: 18,
+  confersGovernance: false,
+  supported: true,
   balance: 25n * 10n ** 18n,
   errored: false,
 };
