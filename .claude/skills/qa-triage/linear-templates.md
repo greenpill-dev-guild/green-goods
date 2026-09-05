@@ -234,6 +234,9 @@ Slice cap <N> this session.
 **Done when**
 - every slice below — and every related already-tracked Issue — is Done or explicitly
   deferred, and the re-QA walk has re-recorded its Test IDs
+- every `Decisions needed` line has its ruling recorded on the decisions child and that child
+  is Done or Canceled, and every `investigate:` line under Not sliced is promoted to a slice or
+  closed with a finding
 
 Session <slug>. [Meeting notes](<drive-url>)
 ```
@@ -255,7 +258,8 @@ comments; per-tester detail lives in the full report attached to this parent as 
 (§ Full report document) and in the private Sheet. Parent labels:
 `protocol:green-goods` + `activity:qa` + `source:qa-session` + `qa-sync:<date>` + one `ai:*` —
 no `package:*` (a session spans surfaces). The parent closes when its `Done when` holds — the
-fix flow closes it, never the writer that filed it.
+fix flow closes it, never the writer that filed it — and an open decisions child or investigate
+line holds it open after the last slice lands.
 
 ## Full report document — one per session parent
 

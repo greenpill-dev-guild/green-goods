@@ -266,11 +266,16 @@ exposure: redact in place and fail loud in the Discord summary.
    re-pulled after the window closed) verbatim after the Phase 6 grep, per
    [linear-templates.md § Full report document](../../.claude/skills/qa-triage/linear-templates.md).
    Idempotency and failure: look for an existing document of that title under the parent first and
-   update it by id; a failed create is retried once, and a second failure is recorded as
-   `document: failed` in the Discord summary while the run continues (the report is recoverable
-   from the pull, the slices are not). Only after the document exists, patch the parent's lede with
-   its link, resending the title so the length exemption holds; a failed lede patch is retried once
-   and then reported the same way. Children are written after these two steps, never before.
+   update it by id; a failed create is retried once. A second failure falls back to `save_comment`
+   on the parent with the same content under a first line `Full report (document write failed)`,
+   because nothing else keeps this record: the Blob store holds one entry per case per tester, so
+   the next QA write can overwrite this session's state, and the run's `tmp/` snapshot dies with
+   the run. Record `document: failed, report in comment` in the Discord summary. If the comment
+   fails too, stop before any child is written — the parent exists, so post the failure block with
+   the parent id and re-run from a fresh pull. Only after the document (or its comment fallback)
+   exists, patch the parent's lede with its link, resending the title so the length exemption
+   holds; a failed lede patch is retried once and then reported the same way. Children are written
+   after these two steps, never before.
 3. **Then the decisions child** when `Decisions needed` is non-empty: `Product decisions from QA
    session <date>` per § Product decisions child in the templates — `Backlog`, unassigned, the
    parent label set, no `package:*`.

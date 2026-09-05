@@ -14,8 +14,8 @@ C10 PWA-043 — mixes local dev and hosted production; performance belongs to Po
 C11 PWA-044 — identity parity spans three surfaces; one row per surface instead.
 C12 PWA-IOS-003/004/005 — no Android twins; add PWA-AND rows for login recovery, camera capture/draft, HEIC/library image.
 C13 PWA-IOS-006 — expectation assumes a queue "flushes once"; rewrite to the real offline-queue behaviour.
-C14 PWA-IOS-008 — incoherent scenario; the PWA-IOS/PWA-AND/PWA-ROLE ID scheme reads oddly (Afo).
-C15 Principle (Afo, PWA-036 note): isolate actions from viewing — split reading from writing across the PWA rows.
+C14 PWA-IOS-008 — incoherent scenario; the PWA-IOS/PWA-AND/PWA-ROLE ID scheme reads oddly.
+C15 Principle (from a PWA-036 note): isolate actions from viewing — split reading from writing across the PWA rows.
 C16 N/A is being used to mean "skipped this pass"; the app's N/A control should say what N/A means (qa.md § Verdict vocabulary), and a skipped case should simply have no entry.
 
 From reading all 142 active rows (2026-09-05):

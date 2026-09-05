@@ -80,7 +80,7 @@ deferred handoff, or a live session — works in this order:
 | Coverage report | Standard output from `bun run qa:status` | Read-only command; nothing is persisted |
 | Defect tracking | Linear plus the private Green Goods v1.1 QA Sheet | `qa-triage`, after explicit scope and write confirmation |
 | Session report and fix slices | Linear Product team — `QA session YYYY-MM-DD` parent plus slice sub-issues | [`qa-call-report`](../../docs/routines/qa-call-report.md) after a team call, or `/qa-triage --call` interactively |
-| Full session report, attributed | Linear document `QA session YYYY-MM-DD · full report` attached to the session parent | [`qa-call-report`](../../docs/routines/qa-call-report.md), `/qa-triage --call`, or the `qa-session` close, after the privacy grep |
+| Full session report, attributed | Linear document `QA session YYYY-MM-DD · full report` attached to the session parent; beside the receipt in the restricted Drive QA folder when a solo session has no parent | [`qa-call-report`](../../docs/routines/qa-call-report.md), `/qa-triage --call`, or the `qa-session` close, after the privacy grep |
 | Session receipts, screenshots, and recordings | Restricted Drive QA folder | `qa-session`, after content inspection |
 | Locked design decisions | `.claude/skills/design/decision-log.md` in git | `qa-session`, after the decision lock gate |
 

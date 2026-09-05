@@ -176,7 +176,9 @@ branch = one PR, and the posture is repair, not feature building.
    IDs re-record as pass in the QA app (whoever recorded the fail re-records).
 10. **Next slice or stop** — the user's call at each boundary. When the parent report's last
     open slice lands, close the parent against its `Done when` (every slice Done or explicitly
-    deferred, re-QA re-recorded) — or say what still holds it open.
+    deferred with re-QA re-recorded, the decisions child Done or Canceled, no open investigate
+    line) — or say what still holds it open: an unruled decisions child or investigate line
+    keeps a parent open after its last slice lands.
 
 ### User-Observed UI Regression Protocol
 

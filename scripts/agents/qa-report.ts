@@ -79,6 +79,8 @@ export interface ReportDelta {
   stillBlocked: string[];
   /** Fail or Blocked in the baseline, now missing, note-only, or N/A — a cleared entry is not a fix. */
   cleared: string[];
+  /** Fail or Blocked in the baseline and set aside by --skipped this run: not walked, so neither fixed nor cleared. */
+  skipped: string[];
   /** Keys on either side that are not active catalog cases — reported, never dropped, never published. */
   unknown: string[];
 }
@@ -203,7 +205,12 @@ function groupBuckets(
   return Object.fromEntries(keys.map((key) => [key, bucket(cases.filter((testCase) => keyOf(testCase) === key), verdictOf)]));
 }
 
-function compareStanding(cases: CatalogCase[], current: MergedEntries, previous: { path: string; entries: MergedEntries }): ReportDelta {
+function compareStanding(
+  cases: CatalogCase[],
+  current: MergedEntries,
+  previous: { path: string; entries: MergedEntries },
+  skipped: Set<string>,
+): ReportDelta {
   const delta: ReportDelta = {
     baseline: previous.path,
     newlyFailing: [],
@@ -212,6 +219,7 @@ function compareStanding(cases: CatalogCase[], current: MergedEntries, previous:
     stillFailing: [],
     stillBlocked: [],
     cleared: [],
+    skipped: [],
     unknown: [],
   };
   for (const testCase of cases) {
@@ -219,7 +227,11 @@ function compareStanding(cases: CatalogCase[], current: MergedEntries, previous:
     const now = rollupVerdict(current[testCase.id]);
     if (now === "Fail") (before === "Fail" ? delta.stillFailing : delta.newlyFailing).push(testCase.id);
     else if (now === "Blocked") (before === "Blocked" ? delta.stillBlocked : delta.newlyBlocked).push(testCase.id);
-    else if (before === "Fail" || before === "Blocked") (now === "Pass" ? delta.fixed : delta.cleared).push(testCase.id);
+    else if (before === "Fail" || before === "Blocked") {
+      if (now === "Pass") delta.fixed.push(testCase.id);
+      else if (now === "" && skipped.has(testCase.id)) delta.skipped.push(testCase.id);
+      else delta.cleared.push(testCase.id);
+    }
   }
   const active = new Set(cases.map((testCase) => testCase.id));
   delta.unknown = [...new Set([...Object.keys(previous.entries), ...Object.keys(current)])]
@@ -254,11 +266,19 @@ export function buildReportModel(cases: CatalogCase[], entries: MergedEntries, o
     throw new Error(`--skipped names unknown or retired Test IDs: ${unknownSkipped.join(", ")}`);
   }
   let excluded = 0;
+  // The standing lists and the delta read the unwindowed store, so the skipped
+  // in-window N/A is set aside there too — or coverage and delta would contradict.
+  const current: MergedEntries = skippedIds.length ? { ...entries } : entries;
   for (const id of skippedIds) {
     const byPerson = session.get(id) ?? {};
     const kept = Object.fromEntries(Object.entries(byPerson).filter(([, entry]) => entry.s !== "na"));
     excluded += Object.keys(byPerson).length - Object.keys(kept).length;
     session.set(id, kept);
+    if (entries[id]) {
+      current[id] = Object.fromEntries(
+        Object.entries(entries[id]).filter(([, entry]) => !(entry.s === "na" && inWindow(entry, window))),
+      );
+    }
   }
   // null = nobody touched the case inside the window; "" = touched, no verdict yet.
   const verdictOf = (testCase: CatalogCase): string | null => {
@@ -285,7 +305,7 @@ export function buildReportModel(cases: CatalogCase[], entries: MergedEntries, o
     }];
   });
 
-  const standingVerdict = (testCase: CatalogCase) => rollupVerdict(entries[testCase.id]);
+  const standingVerdict = (testCase: CatalogCase) => rollupVerdict(current[testCase.id]);
   const neverWalked: Record<string, string[]> = {};
   for (const testCase of untouched) (neverWalked[testCase.priority] ??= []).push(testCase.id);
 
@@ -318,7 +338,7 @@ export function buildReportModel(cases: CatalogCase[], entries: MergedEntries, o
       failing: untouched.filter((testCase) => standingVerdict(testCase) === "Fail").map((testCase) => testCase.id),
       blocked: untouched.filter((testCase) => standingVerdict(testCase) === "Blocked").map((testCase) => testCase.id),
     },
-    delta: options.previous ? compareStanding(cases, entries, options.previous) : null,
+    delta: options.previous ? compareStanding(cases, current, options.previous, new Set(skippedIds)) : null,
     testers: { count: perPerson.size, perPerson: sortedPeople },
     skipped: { ids: skippedIds, excluded },
   };
@@ -392,6 +412,7 @@ export function renderReport(model: ReportModel, catalog: Pick<Catalog, "kinds">
         countedLine("Newly blocked", model.delta.newlyBlocked),
         countedLine("Fixed", model.delta.fixed),
         countedLine("Cleared without a pass", model.delta.cleared),
+        ...(model.delta.skipped.length ? [countedLine("Skipped (baseline fail or blocked, not walked)", model.delta.skipped)] : []),
         countedLine("Still failing", model.delta.stillFailing),
         countedLine("Still blocked", model.delta.stillBlocked),
         ...(model.delta.unknown.length
