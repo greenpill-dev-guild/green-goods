@@ -1,0 +1,674 @@
+{
+  "deck": {
+    "title": "Tech and Sun: the first commitment cycle",
+    "subtitle": "September 2026 · Core team working session",
+    "footer": "Tech and Sun · Green Goods · September 2026",
+    "keyHint": "arrows or tap the sides to move · N for notes"
+  },
+  "slides": [
+    {
+      "id": "s01",
+      "section": "Tech and Sun",
+      "layout": "title",
+      "title": "Tech and Sun: the first commitment cycle",
+      "lead": "September 2026 · Core team working session",
+      "columns": [
+        [
+          {
+            "type": "bullets",
+            "size": "large",
+            "items": [
+              {
+                "text": "What commitment pooling is, how Green Goods implements it, and how G$ moves through Tech and Sun."
+              }
+            ]
+          }
+        ]
+      ],
+      "notes": [
+        "The deck moves from commitment pooling as Grassroots Economics describes it, to how Green Goods implements it, to the money and how it circulates through Tech and Sun.",
+        "It ends with a pause to decide the shape of the Tech and Sun pool and the workshop that writes the first commitments.",
+        "Source: review of 2026-09-03."
+      ],
+      "sources": ["review 2026-09-03"]
+    },
+    {
+      "id": "s02",
+      "section": "Commitment pooling",
+      "title": "Six things a pool does",
+      "lead": "Grassroots Economics names six functions. In plain words:",
+      "columns": [
+        [
+          {
+            "type": "functions",
+            "items": [
+              {
+                "text": "Curation",
+                "sub": "Choosing what the pool recognises: which people, promises and things count."
+              },
+              {
+                "text": "Valuation",
+                "sub": "Saying how promises compare, so a workshop and a solar check can be weighed."
+              },
+              {
+                "text": "Limitation",
+                "sub": "Matching promises to real capacity, so no one promises more than they can keep."
+              },
+              {
+                "text": "Exchange",
+                "sub": "Letting promises be offered, taken up, passed on and settled."
+              },
+              {
+                "text": "Fulfillment",
+                "sub": "Closing a promise with a receipt anyone can check."
+              },
+              {
+                "text": "Repair",
+                "sub": "When a promise slips, changing or repaying it in the open."
+              }
+            ]
+          }
+        ]
+      ],
+      "notes": [
+        "In Grassroots Economics' own wording, curation identifies which commitments, people, businesses, vouchers and assets the community is prepared to recognise; valuation expresses how a pool recognises the relative value of different commitments; limitation connects trust with actual capacity; exchange allows commitments to be seeded, swapped, routed, fulfilled and settled.",
+        "Fulfillment closes an obligation and leaves an auditable receipt, and delays and changes can enter transparent processes of repair.",
+        "Green Goods uses the same six names.",
+        "Source: Grassroots Economics, Circling Back (2026-08-12); Ruddick, Proto-Social Infrastructure and Stewardship of Commitment Pooling (IJCCR, 2026)."
+      ],
+      "sources": ["Grassroots Economics, Circling Back 2026-08-12", "Ruddick, IJCCR 2026"]
+    },
+    {
+      "id": "s03",
+      "section": "Commitment pooling",
+      "title": "One village pool: Binguni, Kenya",
+      "lead": "About 400 households pooled seeds, water, cooking and labour, worth over 50,000 KES a month.",
+      "columns": [
+        [
+          {
+            "type": "functions",
+            "items": [
+              {
+                "text": "Valuation",
+                "sub": "Every pledge was counted, like 10 kg of seeds worth 2,500 KES."
+              },
+              {
+                "text": "Limitation",
+                "sub": "A cap of 50,000 vouchers, 2,300 per member, 4,000 held in reserve."
+              },
+              {
+                "text": "Exchange",
+                "sub": "Women farmers in nearby Mbele accepted the vouchers for labour."
+              },
+              {
+                "text": "Keeping it moving",
+                "sub": "2 percent monthly decay, so vouchers circulate rather than sit."
+              }
+            ]
+          }
+        ]
+      ],
+      "notes": [
+        "The community decided what went into the pool, how each pledge was counted, and the caps; that is curation, valuation and limitation in one village.",
+        "Green Goods records promises and supports them with G$ instead of issuing vouchers, so the lesson is the shape of the pool, not the token.",
+        "Source: Grassroots Economics case study, Commitment Pooling in Binguni and Mbele, docs.grassecon.org (2026-06-04)."
+      ],
+      "sources": ["docs.grassecon.org case study 2026-06-04"]
+    },
+    {
+      "id": "s04",
+      "section": "Commitment pooling",
+      "title": "At scale, and elsewhere",
+      "columns": [
+        [
+          {
+            "type": "numbers",
+            "items": [
+              {
+                "value": "26,600+",
+                "text": "people supported across 290+ communities",
+                "sub": "Grassroots Economics, since 2010"
+              },
+              {
+                "value": "2,140+",
+                "text": "vouchers issued by communities",
+                "sub": "Grassroots Economics"
+              },
+              {
+                "value": "$3 million+",
+                "text": "traded on Sarafu, 2018 to 2020",
+                "sub": "from $147,492 given to 40,000+ people"
+              }
+            ]
+          },
+          {
+            "type": "note",
+            "text": "In Bhutan, Will Ruddick's work with Drinchengang Regenerative Village frames commitment pooling as a gentle way to see and repair what people owe one another, without shame."
+          }
+        ]
+      ],
+      "notes": [
+        "The community and voucher totals are from the Grassroots Economics website; the Sarafu figures are from Rebecca Mqamelo's randomised trial in Frontiers in Blockchain, 2022.",
+        "The Bhutan line follows Ruddick's March 2026 post and the 2026 Regenerative Bonds paper written with Alex (Yeshey) Cahana of Drinchengang Regenerative Village.",
+        "No World Food Programme figures are used, because they cannot be traced to a primary source.",
+        "Source: grassrootseconomics.org; Mqamelo 2022; Ruddick, Cahana and Shael, Regenerative Bonds (2026)."
+      ],
+      "sources": [
+        "grassrootseconomics.org",
+        "Mqamelo, Frontiers in Blockchain, 2022",
+        "Ruddick, Regenerative Bonds 2026"
+      ]
+    },
+    {
+      "id": "s05",
+      "section": "The Green Goods way",
+      "title": "In Green Goods, a promise is an Offer or a Request",
+      "lead": "Someone offers, someone asks, and someone else confirms it was kept. The pool remembers who promised what, and who kept it.",
+      "columns": [
+        [
+          {
+            "type": "flow",
+            "items": [
+              {
+                "text": "Offer",
+                "sub": "I will run a weekly climate discussion."
+              },
+              {
+                "text": "Request",
+                "sub": "Someone keep the monthly solar log."
+              },
+              {
+                "text": "Kept",
+                "sub": "Another person confirms it; the record stays."
+              }
+            ]
+          },
+          {
+            "type": "note",
+            "text": "It is not a currency. Money, like G$, can support a kept promise, but the promise comes first."
+          }
+        ]
+      ],
+      "notes": [
+        "This is how Green Goods implements the pool: an Offer and a Request are the two directions of one promise, and a promise is kept when someone other than the promiser confirms it.",
+        "Grassroots Economics traces the pattern to rotational labour groups in Kenya, where neighbours pool promises of work and keep track of who has been helped.",
+        "Source: Ruddick, Commitment Pooling: an economic protocol inspired by ancestral wisdom (IJCCR, 2023); plan hub contract-spec.md registers #19 and #20."
+      ],
+      "sources": ["Ruddick, IJCCR 2023", "contract-spec.md registers #19, #20"]
+    },
+    {
+      "id": "s06",
+      "section": "The Green Goods way",
+      "title": "A pool belongs to a garden and runs in cycles",
+      "lead": "Tech and Sun is a garden; its gardeners are the members. The Tech and Sun pool is theirs.",
+      "columns": [
+        [
+          {
+            "type": "timeline"
+          },
+          {
+            "type": "functions",
+            "items": [
+              {
+                "text": "Season",
+                "sub": "The pool's long run, usually a quarter. One open at a time."
+              },
+              {
+                "text": "Campaign",
+                "sub": "A shorter run for one purpose, like a course cohort. Several can run alongside."
+              },
+              {
+                "text": "Commitment",
+                "sub": "Made inside a season or a campaign, or on its own."
+              },
+              {
+                "text": "Need",
+                "sub": "Sits above them all; commitments in any cycle answer it."
+              }
+            ]
+          }
+        ]
+      ],
+      "notes": [
+        "A pool has at most one open Season and any number of open Campaigns; each cycle ends and the next one is seeded fresh.",
+        "A Need can outlast a season, and a commitment points at the Need it answers, so the Need stays attached to the work.",
+        "Green Goods also runs a pool of its own, the Green Goods pool, which appears later in the deck.",
+        "Source: plan hub uiux-spec.md section 4.2; contract-spec.md section 5.2; community-interface spec."
+      ],
+      "sources": ["uiux-spec.md §4.2", "contract-spec.md §5.2", "community-interface/spec.md"]
+    },
+    {
+      "id": "s07",
+      "section": "Needs",
+      "title": "A Need is a problem paired with the outcome we want",
+      "lead": "Gardeners name the garden's Needs. Commitments answer them.",
+      "columns": [
+        [
+          {
+            "type": "table",
+            "head": ["Need", "Draft commitments"],
+            "rows": [
+              ["Reliable clean energy and internet", "Request: keep the monthly solar log."],
+              [
+                "Climate and AI education",
+                "Offer: a weekly climate discussion. Request: finish a UN CC course and certify."
+              ],
+              [
+                "Space for learning",
+                "Offer: workshops at the hub, starting with AI for content creation."
+              ],
+              [
+                "Incubation hub development and programming",
+                "Written at the workshop, week of September 7."
+              ]
+            ],
+            "caption": "From the July survey. Drafts become real when a gardener confirms them."
+          }
+        ]
+      ],
+      "notes": [
+        "The July survey named these Needs and put hub development first, with programs running inside the hub afterwards.",
+        "Product design appeared in the survey as a skill gardeners can offer, not as a Need, and the drafts here become real commitments only when a gardener will confirm them.",
+        "Source: July 21 survey; plan hub community-interface spec."
+      ],
+      "sources": ["July 21 survey", "community-interface/spec.md"]
+    },
+    {
+      "id": "s08",
+      "section": "The full flow",
+      "layout": "visual",
+      "title": "One promise, around the loop",
+      "columns": [
+        [
+          {
+            "type": "ring",
+            "center": "One promise",
+            "centerSub": "nobody confirms their own",
+            "items": [
+              {
+                "text": "Need",
+                "sub": "the problem and the outcome"
+              },
+              {
+                "text": "Baseline",
+                "sub": "the starting point"
+              },
+              {
+                "text": "Commitment",
+                "sub": "an Offer or a Request"
+              },
+              {
+                "text": "Work",
+                "sub": "evidence, then approval"
+              },
+              {
+                "text": "Confirmed",
+                "sub": "someone else says it was kept"
+              },
+              {
+                "text": "G$ support",
+                "sub": "sent on the kept promise"
+              },
+              {
+                "text": "Delta and testimony",
+                "sub": "what changed, what people say"
+              },
+              {
+                "text": "Certificate",
+                "sub": "the record at the cycle's close"
+              }
+            ]
+          }
+        ]
+      ],
+      "notes": [
+        "The loop runs from a Need through the baseline, the commitment and the work; any G$ support declared for a promise is sent once someone else confirms the promise was kept.",
+        "The certificate comes later, when the cycle closes and the delta and testimony are recorded, so it is the record of the outcome rather than the trigger for support.",
+        "Four kinds of promise share this loop: work with evidence, help for someone where the person helped confirms, a season or campaign promise seeded by the steward, and a promise recorded on a gardener's behalf.",
+        "The one rule that never changes: nobody confirms their own promise.",
+        "Source: plan hub diagrams.md D5; settlement-spec.md section 3.1.3; review of 2026-09-03."
+      ],
+      "sources": ["diagrams.md D5", "settlement-spec.md §3.1.3", "review 2026-09-03"]
+    },
+    {
+      "id": "s09",
+      "section": "The full flow",
+      "title": "Who does what",
+      "columns": [
+        [
+          {
+            "type": "roles",
+            "items": [
+              {
+                "text": "Gardeners",
+                "sub": "Make promises, do the work, confirm help received."
+              },
+              {
+                "text": "Garden Steward",
+                "sub": "Names Needs, seeds commitments, runs the pool."
+              },
+              {
+                "text": "Evaluator",
+                "sub": "Records the baseline and what changed."
+              },
+              {
+                "text": "Funder",
+                "sub": "Reads the record. GoodDollar is the first."
+              },
+              {
+                "text": "Community",
+                "sub": "Confirms help received, gives testimony."
+              }
+            ]
+          }
+        ]
+      ],
+      "notes": [
+        "Gardeners are the members of the garden; the steward runs the pool; the evaluator records the baseline and the delta; funders read the record; the community confirms help and gives testimony.",
+        "Nobody confirms their own promise, on any path.",
+        "Source: plan hub diagrams.md D4; external-brief-roles in visual-assets.md."
+      ],
+      "sources": ["diagrams.md D4", "visual-assets.md"]
+    },
+    {
+      "id": "s10",
+      "section": "House of Alignment",
+      "title": "House of Alignment: what each side wants",
+      "lead": "GoodDollar supports Green Goods with $800 per month, paid in G$, July through September 2026, $2,400 total.",
+      "columns": [
+        [
+          {
+            "type": "goals",
+            "columns": [
+              {
+                "heading": "Green Goods wants",
+                "items": [
+                  "Gardens funded for verified work",
+                  "G$ circulating through real activity",
+                  "Evidence funders can read"
+                ]
+              },
+              {
+                "heading": "GoodDollar wants",
+                "items": [
+                  "More people using G$, and staying",
+                  "Transactions: volume and count",
+                  "Circulation, not sitting balances"
+                ]
+              }
+            ],
+            "meet": "Where they meet: G$ paid for kept promises, spent again at the hub and on Green Goods Offers, reported by September 15. Allocation model due September 9."
+          }
+        ]
+      ],
+      "notes": [
+        "The Good Labs Foundation funds the pilot directly after the DAO vote, GIP-26, did not pass; Green Goods is one of four members with Gardens, ReFi DAO and Textile, and GoodDollar confirmed on August 8 that it wants to see circulation.",
+        "The September 15 report shows G$ received and redistributed, new active wallets and retention, transaction volume and count, stories and photos, and the split across the Green Goods pool, the Tech and Sun pool and gardeners.",
+        "Source: Linear GROW-6, GROW-8 and COM-6; plan hub reports/external-verification-2026-07-20.md."
+      ],
+      "sources": [
+        "Linear GROW-6",
+        "Linear GROW-8",
+        "Linear COM-6",
+        "reports/external-verification-2026-07-20.md"
+      ]
+    },
+    {
+      "id": "s11",
+      "section": "The hub",
+      "title": "The Tech and Sun hub: size and funding",
+      "columns": [
+        [
+          {
+            "type": "numbers",
+            "items": [
+              {
+                "value": "150 to 170",
+                "text": "people served at the hub",
+                "sub": "Nnamdi Azikiwe University, Awka"
+              },
+              {
+                "value": "6 panels",
+                "text": "7.2 kWh battery bank, plus Starlink",
+                "sub": "on a container hub"
+              },
+              {
+                "value": "$800",
+                "text": "the Tech and Sun share of the pilot",
+                "sub": "running costs to cover through year end"
+              }
+            ]
+          },
+          {
+            "type": "facts",
+            "items": [
+              {
+                "label": "Monthly running cost",
+                "blank": true
+              },
+              {
+                "label": "G$ the hub wants to hold in its pool",
+                "blank": true
+              }
+            ]
+          }
+        ]
+      ],
+      "notes": [
+        "The three figures are verified from the Tech and Sun Artizen draft and the September 1 sync; the two blanks are filled by the core team in the room.",
+        "What goes in the blanks feeds the allocation model due September 9.",
+        "Source: Tech and Sun Artizen fund application draft (2026-08-28); Tech and Sun weekly sync (2026-09-01); Linear GROW-8."
+      ],
+      "sources": [
+        "Artizen fund application draft 2026-08-28",
+        "Tech and Sun weekly sync 2026-09-01",
+        "Linear GROW-8"
+      ]
+    },
+    {
+      "id": "s12",
+      "section": "Circulation",
+      "layout": "visual",
+      "title": "How G$ moves through Tech and Sun",
+      "columns": [
+        [
+          {
+            "type": "visual",
+            "asset": "tas-first-cycle-circulation",
+            "crop": [0, 84, 900, 690],
+            "caption": "Quantities illustrative. Who is paid follows who kept the promise."
+          }
+        ]
+      ],
+      "notes": [
+        "GoodDollar supports Green Goods; Green Goods pays the Tech and Sun pool for Requests the garden keeps, plus top ups, and pays a gardener who keeps a Request directly; gardeners also keep Green Goods Requests themselves.",
+        "The Tech and Sun pool pays gardeners for kept promises and pays Green Goods for Offers it takes up; gardeners spend G$ back at the hub, and the report closes the loop by September 15.",
+        "Source: plan hub settlement-spec.md section 2; visual-assets.md."
+      ],
+      "sources": ["settlement-spec.md §2", "visual-assets.md"]
+    },
+    {
+      "id": "s13",
+      "section": "Circulation",
+      "title": "Three ways to split the $800",
+      "lead": "No recommendation. Tech and Sun chooses.",
+      "columns": [
+        [
+          {
+            "type": "table",
+            "head": [
+              "Split",
+              "Day one, to the Tech and Sun pool",
+              "Earned through commitments",
+              "What the September 15 report can show"
+            ],
+            "num": [1, 2],
+            "rows": [
+              ["Garden led", "$600", "$200", "A funded pool, and what it paid out"],
+              ["Balanced", "$400", "$400", "A seeded base with earned flow"],
+              ["Earn led", "$200", "$600", "Mostly earned flow"]
+            ],
+            "caption": "Tech and Sun is the first garden. The $800 per garden split stays; the other $1,600 is held for the next two gardens, not reassigned."
+          }
+        ]
+      ],
+      "notes": [
+        "Three shapes for the same $800, with no recommendation; the choice is made on this slide.",
+        "Garden led moves the most on day one; earn led shows the most earned flow in the September 15 report.",
+        "Source: Linear GROW-8; plan hub external-brief.md pilot funding fact."
+      ],
+      "sources": ["Linear GROW-8", "external-brief.md"]
+    },
+    {
+      "id": "s14",
+      "section": "The Green Goods pool",
+      "title": "The Green Goods pool: whoever asked pays",
+      "columns": [
+        [
+          {
+            "type": "goals",
+            "columns": [
+              {
+                "heading": "Green Goods asks gardens to",
+                "items": [
+                  "Take the garden survey",
+                  "Host a garden event",
+                  "Report an issue",
+                  "Update your garden in the app",
+                  "Give testimony for the GoodDollar report"
+                ],
+                "more": "More will be added",
+                "foot": "Paid by Green Goods to the Tech and Sun pool, or to the gardener who did it."
+              },
+              {
+                "heading": "Green Goods offers",
+                "items": [
+                  "Technical support hour",
+                  "Onboarding or workshop session",
+                  "One on one career call",
+                  "AI subscription month"
+                ],
+                "foot": "Paid from the Tech and Sun pool with earned G$."
+              }
+            ]
+          }
+        ]
+      ],
+      "notes": [
+        "A Request the garden keeps is paid to the Tech and Sun pool; one a gardener keeps is paid to that gardener; an Offer the garden takes up is paid from its pool.",
+        "Updating your garden in the app includes uploading activations with photos.",
+        "Source: plan hub contract-spec.md register #91; settlement-spec.md section 2."
+      ],
+      "sources": ["contract-spec.md register #91", "settlement-spec.md §2"]
+    },
+    {
+      "id": "s15",
+      "section": "The Tech and Sun pool",
+      "title": "The Tech and Sun pool: four questions",
+      "lead": "A pause to decide. Draft answers from the July survey sit under each.",
+      "columns": [
+        [
+          {
+            "type": "questions",
+            "items": [
+              {
+                "text": "What will the pool curate?",
+                "sub": "Start with the survey drafts. Add only what a gardener will confirm."
+              },
+              {
+                "text": "How will promises be valued?",
+                "sub": "Flat for now. G$ support declared per commitment, or none."
+              },
+              {
+                "text": "How will they be limited?",
+                "sub": "Small caps per gardener and per commitment, raised as promises are kept."
+              },
+              {
+                "text": "How will people exchange?",
+                "sub": "The person helped confirms; the steward confirms hub Requests. Support follows the kept promise."
+              }
+            ]
+          }
+        ]
+      ],
+      "notes": [
+        "This slide is the pause: the four questions are the decisions the Tech and Sun pool owns, and the drafts under them come from the July survey.",
+        "The survey also answered the slipping promise question: repay a different way first, repay later second, talk it through third, forgive fourth, decided case by case with no fixed limit.",
+        "G$ support declared for a promise is sent once the promise is confirmed kept; the certificate is the cycle's record and comes later.",
+        "Source: July 21 survey; plan hub contract-spec.md amendment 2026-08-01; settlement-spec.md section 3.1.3."
+      ],
+      "sources": [
+        "July 21 survey",
+        "contract-spec.md amendment 2026-08-01",
+        "settlement-spec.md §3.1.3"
+      ]
+    },
+    {
+      "id": "s16",
+      "section": "Workshop",
+      "title": "Commitment mapping workshop, week of September 7",
+      "columns": [
+        [
+          {
+            "type": "steps",
+            "size": "large",
+            "items": [
+              {
+                "text": "A short primer on commitment pooling",
+                "sub": "promises first, money second"
+              },
+              {
+                "text": "The Needs",
+                "sub": "what gardeners need, as problems paired with outcomes"
+              },
+              {
+                "text": "The resources",
+                "sub": "what each gardener can give: skills, time, tools, space, connections, voice"
+              },
+              {
+                "text": "Map resources into Offers and Requests",
+                "sub": "and write the first commitments"
+              }
+            ]
+          },
+          {
+            "type": "note",
+            "text": "Output: the Tech and Sun pool's first commitment list, with G$ support where chosen."
+          }
+        ]
+      ],
+      "notes": [
+        "The workshop follows the Grassroots Economics shape: a primer, then needs, then resources, then mapping resources into Offers and Requests as the first commitments.",
+        "It is the second workshop at the hub; the August 11 Green Goods workshop had more than fifteen participants.",
+        "Lesson from last time: first time users hit passkey errors and lacked gas for first uploads; gas is handled by the Green Goods team and has nothing to do with G$.",
+        "Source: Tech and Sun weekly sync notes (July 28 and August 11); Grassroots Economics workshop format."
+      ],
+      "sources": ["weekly sync notes", "Grassroots Economics workshop format"]
+    },
+    {
+      "id": "s17",
+      "section": "Thank you",
+      "layout": "closing",
+      "title": "Thank you",
+      "lead": "By creating these commitments, we lay the foundation for the hub to grow and flourish.",
+      "columns": [
+        [
+          {
+            "type": "bullets",
+            "size": "large",
+            "items": [
+              {
+                "text": "Next: the commitment mapping workshop, week of September 7."
+              }
+            ]
+          }
+        ]
+      ],
+      "notes": [
+        "Close on the call to action: the first commitments are the foundation the hub grows on, and the workshop is where they get written.",
+        "Source: review of 2026-09-03."
+      ],
+      "sources": ["review 2026-09-03"]
+    }
+  ]
+}
