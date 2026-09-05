@@ -229,8 +229,10 @@ Never a duplicate Issue.
 ## Phase 6: Privacy sweep
 
 Grep every draft body and comment for `replay`, `session_id`, `distinct_id`, `0x`, and any
-tester or reporter identifier seen this run. The report carries **no tester attribution** —
-aggregate coverage only; per-tester detail stays in the pulled results and the private Sheet.
+tester or reporter identifier seen this run. The parent body and every comment carry **no
+tester attribution** — aggregate coverage only. The full `report.md`, with its attributed notes,
+goes into the parent's attached document (Phase 7) after the same grep, with `0x` strings, replay
+or session identifiers, and any name outside the team redacted; team display names stay.
 Wallet addresses, session IDs, and replay URLs appear nowhere. A hit after a write is an
 exposure: redact in place and fail loud in the Discord summary.
 
@@ -249,10 +251,16 @@ exposure: redact in place and fail loud in the Discord summary.
    Issues) creates its parent directly in `Done` — it is a record with nothing to fix, and
    nothing downstream would ever close a `Todo` shell. App-only runs use the app-state
    source-line variant from the template — never a fabricated Drive link.
-2. **Then the decisions child** when `Decisions needed` is non-empty: `Product decisions from QA
+2. **Then the full report as a document**: `save_document` with `issue` = the parent, title exactly
+   `QA session <YYYY-MM-DD> · full report` (same counter rule as the parent), content =
+   `tmp/qa-session/<slug>/report.md` verbatim after the Phase 6 grep, per
+   [linear-templates.md § Full report document](../../.claude/skills/qa-triage/linear-templates.md).
+   Then patch the parent's lede with the document link, resending the title so the length
+   exemption holds. A rerun updates the existing document by id; never a second one.
+3. **Then the decisions child** when `Decisions needed` is non-empty: `Product decisions from QA
    session <date>` per § Product decisions child in the templates — `Backlog`, unassigned, the
    parent label set, no `package:*`.
-3. **Then each slice** as a sub-issue via `parentId`, body per the § QA slice template (problem
+4. **Then each slice** as a sub-issue via `parentId`, body per the § QA slice template (problem
    cluster in prose with Test IDs and verdicts, "Where to start" map, "Done when" = the Test IDs
    re-record as pass, fix-posture pointer, validation command, source line).
    - **Verdict-backed** (a tester recorded fail/blocked in the app **during the session
@@ -267,7 +275,7 @@ exposure: redact in place and fail loud in the Discord summary.
      because every slice remains a proposal until a person takes it up.
    - **Notes-only** (no app verdict): `Backlog`, priority unset.
    - Labels: the parent set plus ONE `package:*` (primary surface; secondary named in prose).
-4. A failed parent write aborts the run (children without a parent are orphans); a failed child
+5. A failed parent write aborts the run (children without a parent are orphans); a failed child
    write is retried once, then reported.
 
 ## Phase 8: Discord summary to #product
@@ -292,8 +300,8 @@ Report: <{parent-url}> · {N} slices ({T} Todo · {B} Backlog){if overflow: " ·
 
 No per-surface count tables in the post — they live in the report. The lede may quote the `P0:`
 line from `report.public.md`; that public projection is the only report text that reaches a public
-surface. The private `report.md` feeds the Linear parent's results blocks (Phase 7), but its
-attributed notes and per-tester sections never leave `tmp/`. Enrichment flags
+surface. The private `report.md` feeds the Linear parent's results blocks and is attached to the parent
+as a document (Phase 7); it reaches no other surface, and the Discord post never quotes it. Enrichment flags
 (`posthog: degraded`, `sentry: unavailable`) join the failure list when they occurred. Quiet
 failure is forbidden: a run that wrote nothing because something broke posts the failure with
 the @mention.

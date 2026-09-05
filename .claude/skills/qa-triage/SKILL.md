@@ -96,7 +96,10 @@ Phase 3b dedupe catches the other's records if both ran.
   lookup works next time. The Phase 4 scope-lock gate runs over the slice list, the decisions
   list, and the proposed matches together.
 - **Phase 6** — write the parent first — Results by priority and Results by kind pasted verbatim
-  from `report.md` — then the decisions child, then the slices. The routine's window-scoped
+  from `report.md` — then attach the full `report.md` to the parent as a Linear document
+  ([linear-templates.md § Full report document](./linear-templates.md), after the privacy grep;
+  team display names allowed, nothing else private) and link it from the lede, then the decisions
+  child, then the slices. The routine's window-scoped
   enrichment runs here too (build under test via Vercel; PostHog/Sentry safe summaries into each
   slice's first comment — see `qa-call-report.md` § Phase 4); Sheet Defects rows are still
   offered per slice member with the usual confirmation (the routine never writes the Sheet), and

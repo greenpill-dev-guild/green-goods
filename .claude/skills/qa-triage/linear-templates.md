@@ -195,6 +195,7 @@ review actions; two cross-surface failures trace to shared date handling.">
 
 Build under test: client `<sha>` · admin `<sha>`
 Environment: <production | beta (staging) | local — the session default; a verdict taken elsewhere carries a `[beta]`/`[prod]` note prefix>
+Full report: [QA session YYYY-MM-DD · full report](<linear-document-url>)
 
 ## Results by priority
 - P0: <walked>/<total> — <pass> pass · <fail> fail · <blocked> blocked · <na> n/a · <noted> noted only
@@ -249,11 +250,28 @@ Both results blocks are pasted verbatim from `tmp/qa-session/<slug>/report.md`, 
 per-case priority and kind, never hand-counted — and cover **this session's entries only** (the
 call-window rule; the store is long-lived). The generator already includes the `n/a` and
 noted-without-a-verdict counts (recorded states without which the walked numerator does not
-reconcile) and drops zero segments rather than rendering them. No tester attribution, wallet addresses, session IDs, or replay URLs anywhere;
-per-tester detail stays in the pulled results and the private Sheet. Parent labels:
+reconcile) and drops zero segments rather than rendering them. No tester attribution, wallet addresses, session IDs, or replay URLs in the body or its
+comments; per-tester detail lives in the full report attached to this parent as a Linear document
+(§ Full report document) and in the private Sheet. Parent labels:
 `protocol:green-goods` + `activity:qa` + `source:qa-session` + `qa-sync:<date>` + one `ai:*` —
 no `package:*` (a session spans surfaces). The parent closes when its `Done when` holds — the
 fix flow closes it, never the writer that filed it.
+
+## Full report document — one per session parent
+
+The private `report.md` that `qa:report` writes is attached to the session parent as a Linear
+document, so the attributed notes and per-tester coverage outlive the laptop that pulled them and
+an agent with only Linear access can read the whole session. Rules:
+
+- Title exactly `QA session YYYY-MM-DD · full report` (a second same-day call appends its counter
+  to the date, as the parent does). Parent = the session issue (`issue`), never a project.
+- Content = `report.md` verbatim after the privacy grep: redact `0x` strings, replay or session
+  identifiers, and any name outside the team; team members' display names and their own notes stay
+  (decided 2026-09-05, [`.claude/context/qa.md`](../../context/qa.md) § Public-repository boundary).
+- Created right after the parent and before the children; the parent's lede then links it (a
+  `save_issue` update that resends the title so the length exemption holds).
+- A rerun or a refreshed pull updates the same document by id; never a second document. Media
+  never goes into it; screenshots and recordings stay in the restricted Drive QA folder.
 
 ## Product decisions child — one per session, only when testing surfaced decisions
 
