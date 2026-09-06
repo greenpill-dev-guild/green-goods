@@ -86,7 +86,7 @@ For shared team secrets, edit `.env.template` and set the value to `op://Vault/I
 bun run dev:health
 ```
 
-`bun run dev:health` runs the repo-native full-stack doctor. Use
+`bun run dev:health` checks the default local services. Use
 `bun run dev:doctor -- --profile web` when you only need the browser-facing
 readiness check.
 
@@ -96,7 +96,19 @@ readiness check.
 bun run dev
 ```
 
-Starts the repo-native PM2 full stack and opens the review URLs. The default
+Starts client, admin, agent, the Docker indexer, and Anvil under PM2. Open
+OrbStack or Docker Desktop first; the launcher checks Docker before starting
+services and repairs a stale local Docker socket when OrbStack is running.
+Client and admin URLs print when ready. Use `bun run dev:full` to also start
+docs and Storybook and open review tabs. Public tunnels are opt-in through
+`bun run dev:tunnel`. Ctrl+C stops services owned by this launch.
+
+The indexer preserves its local database between runs. If Envio reports an
+incompatible saved configuration, startup stops; replaying that local dataset
+requires an explicit decision. A successful fresh-database check does not prove
+that an older dataset can resume with the current contracts.
+
+The default
 chain target is an Arbitrum One fork on port `3009`, so client/admin reads and
 wallet writes use chain id `42161` while transactions are mined only in local
 Anvil state.
@@ -120,18 +132,33 @@ override; it does not sign transactions.
 
 ### Testing
 
+Use `bun run dev:smoke:full` after `bun run dev:full` to include docs and
+Storybook in the checks.
+
 ```bash
 bun run dev:smoke:web
-bun run dev:smoke:full
+bun run dev:smoke
 ```
 
-Run `bun run dev:smoke:web` after the browser stack is starting. Run
-`bun run dev:smoke:full` after `bun run dev` when you need proof that the
-browser surfaces, local agent, local indexer/Hasura/Postgres, and Arbitrum fork
-are all responding. The local indexer stack mirrors the configured live
-networks into local Docker services, so reliable lag proof requires
-`ENVIO_API_TOKEN`; without it, HyperSync can rate-limit and the full smoke
-should fail on indexer lag instead of pretending the local mirror is current.
+`bun run dev` automatically runs the local smoke after the service ports open.
+It reports QA readiness only after the client, admin, agent, database, and
+Arbitrum fork respond and the indexer has completed its initial replay, contains
+Arbitrum gardens, and is within 2,000 blocks of its source. A failed smoke leaves
+services running so replay can continue; rerun `bun run dev:smoke` to check again.
+Use `bun run dev:smoke:web` for browser services alone.
+
+The local indexer mirrors configured live networks into PostgreSQL. Normal
+restarts retain the data and resume indexing. `ENVIO_API_TOKEN` is required for
+HyperSync access, but a configured token can still exhaust its quota and delay
+replay. A healthy container alone does not establish data readiness.
+
+Keep `bun run dev` open in your terminal. Ctrl-C stops the services it owns,
+including the indexer containers, and preserves the indexed database. If the
+terminal or launcher crashes, the next `bun run dev` automatically recovers
+leftover services after verifying their PM2 owner and checkout against the
+saved leases. Startup and recovery are serialized so two launches cannot take
+ownership concurrently. Services owned by a live launcher or an unverified
+external process are not stopped by recovery.
 
 ## Tech Stack
 
@@ -156,11 +183,11 @@ Client and admin can start with generated defaults. Live data, uploads, authenti
 | --- | --- | --- |
 | Client PWA + editorial website | <https://localhost:3001> | `bun run dev`; narrow target: `dev launch green-goods:client` |
 | Admin | <https://localhost:3002> | `bun run dev`; narrow target: `dev launch green-goods:admin` |
-| Docs | <http://localhost:3003> | `bun run dev`; narrow target: `dev launch green-goods:docs` |
-| Storybook | <http://localhost:3004> | `bun run dev`; narrow target: `dev launch green-goods:storybook` |
+| Docs | <http://localhost:3003> | `bun run dev:full`; narrow target: `dev launch green-goods:docs` |
+| Storybook | <http://localhost:3004> | `bun run dev:full`; narrow target: `dev launch green-goods:storybook` |
 | Agent | <http://localhost:3005/health> | `bun run dev`; narrow target: `dev launch green-goods:agent` |
 | Indexer | <http://localhost:3006/v1/graphql> | `bun run dev` with Docker running; narrow target: `dev launch green-goods:indexer-graphql` |
-| Arbitrum fork | <http://127.0.0.1:3009> | started automatically by `bun run dev`; narrow target: `dev launch green-goods:anvil-arbitrum` |
+| Arbitrum fork | <http://127.0.0.1:3009> | explicit `bun run dev:fork`; narrow target: `dev launch green-goods:anvil-arbitrum` |
 
 ### Dev Commands
 
@@ -170,9 +197,11 @@ Client and admin can start with generated defaults. Live data, uploads, authenti
 bun run dev
 ```
 
-Runs the repo-native Green Goods PM2 stack. The default stack starts the
-Arbitrum fork, then the app surfaces that depend on it. The client opens both
-review presentations on port `3001`:
+Runs the local client, admin, agent, and Docker indexer against live Arbitrum One.
+The client and admin use the local agent on `3005` and local indexer on `3006`;
+confirmed wallet and passkey transactions write to production. Anvil stays stopped.
+Use `bun run dev:full` to add docs, Storybook, and browser opening. Both client
+presentations are available on port `3001`:
 
 - <https://localhost:3001/?presentation=pwa>
 - <https://localhost:3001/?presentation=website>
@@ -190,7 +219,7 @@ dev launch green-goods:indexer-graphql
 
 Fork-mode transaction testing uses wallet auth, not mock auth:
 
-1. Start the fork-backed stack with `bun run dev`.
+1. Start the fork-backed stack with `bun run dev:fork`.
 2. Open a dedicated dev browser profile.
 3. Add a wallet network named `Green Goods Local Arbitrum Fork` with RPC
    `http://127.0.0.1:3009`, chain id `42161`, and currency symbol `ETH`.
@@ -200,7 +229,8 @@ Fork-mode transaction testing uses wallet auth, not mock auth:
 5. Connect that wallet in the app and sign normally.
 
 The fork uses the real Arbitrum deployment artifact, but writes are mined only
-in local Anvil state. Restarting the fork resets local chain state. Passkey and
+in local Anvil state. The indexer still mirrors live networks and does not ingest Anvil-only writes.
+Use `bun run dev:fork:smoke` for fork checks. Restarting the fork resets local chain state. Passkey and
 smart-account writes are intentionally blocked in fork mode until local account
 abstraction infrastructure exists. `?mockAuth=operator` is useful for UI state
 review, but it does not sign transactions and cannot replace the wallet step.
@@ -226,12 +256,12 @@ they are useful.
 After the stack is up, run the non-mutating full-local smoke:
 
 ```bash
-bun run dev:smoke:full
+bun run dev:smoke
 ```
 
-This proves both client presentations, admin, docs, Storybook, local agent
-health, Anvil chain id `42161`, deployed Arbitrum bytecode on the fork, funded
-Anvil accounts, local Envio/Hasura GraphQL, local indexer service health, and
+This proves both client presentations, admin, local agent
+health, live Arbitrum chain id `42161`, deployed contract bytecode,
+local Envio/Hasura GraphQL, local indexer service health, and
 the Postgres TCP listener. The indexer lag check proves the local read model is
 close enough to live configured chain state for review; set `ENVIO_API_TOKEN` in
 the root `.env` for reliable HyperSync catch-up. It does not submit
@@ -239,13 +269,14 @@ transactions.
 
 #### Start production-backed local stack
 
-Green Goods has three local-development modes. Use the production-backed modes
-only when you intentionally want local browser surfaces to talk to live
-infrastructure.
+The default runs local services against live Arbitrum. Optional modes select
+a local fork or hosted agent/indexer services. Stop the current owning launcher
+with Ctrl-C before switching modes; the launcher rejects incompatible live processes.
 
 | Mode | Command | Chain target | Indexer | Agent/API | Writes |
 | --- | --- | --- | --- | --- | --- |
-| Fully local default | `bun run dev` | Arbitrum fork on `http://127.0.0.1:3009` with chain id `42161` | Local Docker-backed Envio/Hasura on `3006`-`3008` | Local agent on `3005` | Wallet writes are mined only in local Anvil state |
+| Default | `bun run dev` | Live Arbitrum One `42161` | Local Docker-backed live indexer on `3006`-`3008` | Local agent on `3005` | Wallet and passkey transactions write to production |
+| Explicit fork | `bun run dev:fork` | Local Arbitrum fork on `3009`, chain `42161` | Local indexer mirrors live networks; it does not ingest Anvil-only writes | Local agent on `3005` | Disposable wallet writes are mined in Anvil; passkeys are blocked |
 | Hosted production-backed | `bun run dev:prod` | Arbitrum One `42161` | Hosted production indexer | `https://agent.greengoods.app` | Wallet-confirmed writes are real Arbitrum transactions |
 | Local live-indexer mirror | `bun run dev:prod:mirror` | Arbitrum One `42161` | Local Docker-backed Envio/Hasura indexing live Arbitrum | `https://agent.greengoods.app` | Wallet-confirmed writes are real Arbitrum transactions |
 

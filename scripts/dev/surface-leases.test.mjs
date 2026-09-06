@@ -3,12 +3,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { execFileSync } from "node:child_process";
 
 import {
   claimSurface,
   inspectSurface,
   readLeaseStore,
   releaseSurface,
+  withStartupLock,
 } from "./surface-leases.mjs";
 
 function fixture(t) {
@@ -21,6 +23,31 @@ const livePids = (...pids) => {
   const live = new Set(pids);
   return (pid) => live.has(pid);
 };
+
+test("startup lock remains held throughout asynchronous recovery", async (t) => {
+  const leasePath = fixture(t);
+  let release;
+  const held = withStartupLock(() => new Promise((resolve) => { release = resolve; }), leasePath);
+  assert.throws(() => withStartupLock(() => {}, leasePath), /busy/);
+  release();
+  await held;
+  assert.doesNotThrow(() => withStartupLock(() => {}, leasePath));
+});
+
+test("failed asynchronous startup releases its lock", async (t) => {
+  const leasePath = fixture(t);
+  await assert.rejects(withStartupLock(async () => { throw new Error("startup failed"); }, leasePath), /startup failed/);
+  assert.doesNotThrow(() => withStartupLock(() => {}, leasePath));
+});
+
+test("a launcher crash does not leave even a fresh startup lock blocking recovery", (t) => {
+  const leasePath = fixture(t);
+  execFileSync(process.execPath, ["-e",
+    "require('fs').writeFileSync(process.argv[1], JSON.stringify({pid:process.pid}))",
+    `${leasePath}.startup.lock`,
+  ]);
+  assert.doesNotThrow(() => withStartupLock(() => {}, leasePath));
+});
 
 test("claims a free surface", (t) => {
   const leasePath = fixture(t);

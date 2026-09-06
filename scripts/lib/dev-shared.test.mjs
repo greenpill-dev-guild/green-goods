@@ -6,6 +6,8 @@ import test from "node:test";
 
 import {
   findCompatibleNode,
+  dockerEnvironment,
+  assertDockerReady,
   parseSubmoduleStatus,
   profileRequiresContractSubmodules,
   reexecUnderCompatibleNodeIfNeeded,
@@ -14,6 +16,32 @@ import {
 } from "./dev-shared.js";
 
 const GIBIBYTE = 1024 ** 3;
+
+test("Docker repairs a missing local socket without overriding an intentional endpoint", () => {
+  const home = "/home/dev";
+  const socket = `${home}/.orbstack/run/docker.sock`;
+  const existing = new Set([socket, "/usr/local/bin/docker", "/live.sock"]);
+  const resolve = (env) => dockerEnvironment({ env, home, exists: (file) => existing.has(file) });
+  const stale = { PATH: "/bin", DOCKER_HOST: "unix:///missing.sock" };
+  assert.equal(resolve(stale).DOCKER_HOST, `unix://${socket}`);
+  assert.equal(stale.DOCKER_HOST, "unix:///missing.sock");
+  assert.ok(resolve(stale).PATH.includes("/usr/local/bin"));
+  const desktop = resolve({ DOCKER_CONTEXT: "desktop-linux", DOCKER_HOST: `unix://${home}/.docker/run/docker.sock` });
+  assert.equal(desktop.DOCKER_CONTEXT, "orbstack");
+  assert.equal(desktop.DOCKER_HOST, `unix://${socket}`);
+  for (const env of [
+    { DOCKER_HOST: "unix:///live.sock" },
+    { DOCKER_HOST: "ssh://docker-host" },
+    { DOCKER_HOST: "unix:///missing.sock", DOCKER_CONTEXT: "remote" },
+    {},
+  ]) assert.equal(resolve(env).DOCKER_HOST, env.DOCKER_HOST);
+  existing.delete(socket);
+  assert.equal(resolve(stale).DOCKER_HOST, stale.DOCKER_HOST);
+});
+
+test("Docker preflight fails clearly when no CLI can be reached", () => {
+  assert.throws(() => assertDockerReady({ PATH: "/nonexistent" }), /Docker is unavailable.*No services were started/);
+});
 
 test("submodule status parser distinguishes every actionable git state", () => {
   const fixtures = [

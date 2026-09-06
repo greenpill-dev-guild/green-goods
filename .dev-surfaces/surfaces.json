@@ -11,13 +11,14 @@
       "name": "client PWA + editorial website",
       "kind": "ui",
       "ports": [3001],
-      "dependsOn": ["anvil-arbitrum"],
       "command": ["bun", "run", "dev:client"],
       "env": {
-        "VITE_DEV_CHAIN_MODE": "arbitrum_fork",
+        "VITE_DEV_CHAIN_MODE": "",
         "VITE_CHAIN_ID": "42161",
-        "VITE_LOCAL_FORK_RPC_URL": "http://127.0.0.1:3009",
-        "VITE_ENABLE_ANVIL_WALLETS": "true"
+        "VITE_LOCAL_FORK_RPC_URL": "",
+        "VITE_ENABLE_ANVIL_WALLETS": "false",
+        "VITE_API_BASE_URL": "http://127.0.0.1:3005",
+        "VITE_ENVIO_INDEXER_URL": "http://localhost:3006/v1/graphql"
       },
       "urls": [
         "https://localhost:3001/?presentation=pwa",
@@ -35,13 +36,14 @@
       "name": "admin UI",
       "kind": "ui",
       "ports": [3002],
-      "dependsOn": ["anvil-arbitrum"],
       "command": ["bun", "run", "dev:admin"],
       "env": {
-        "VITE_DEV_CHAIN_MODE": "arbitrum_fork",
+        "VITE_DEV_CHAIN_MODE": "",
         "VITE_CHAIN_ID": "42161",
-        "VITE_LOCAL_FORK_RPC_URL": "http://127.0.0.1:3009",
-        "VITE_ENABLE_ANVIL_WALLETS": "true"
+        "VITE_LOCAL_FORK_RPC_URL": "",
+        "VITE_ENABLE_ANVIL_WALLETS": "false",
+        "VITE_API_BASE_URL": "http://127.0.0.1:3005",
+        "VITE_ENVIO_INDEXER_URL": "http://localhost:3006/v1/graphql"
       },
       "urls": ["https://localhost:3002/"],
       "health": [
@@ -53,6 +55,7 @@
     },
     {
       "id": "docs",
+      "autostart": false,
       "name": "docs",
       "kind": "docs",
       "ports": [3003],
@@ -67,6 +70,7 @@
     },
     {
       "id": "storybook",
+      "autostart": false,
       "name": "Storybook",
       "kind": "docs-ui",
       "ports": [3004],
@@ -84,15 +88,18 @@
       "name": "agent/API",
       "kind": "api",
       "ports": [3005],
-      "dependsOn": ["anvil-arbitrum"],
       "command": ["bun", "run", "dev:agent"],
       "env": {
         "PORT": "3005",
         "HOST": "127.0.0.1",
         "AGENT_DISABLE_TELEGRAM_RUNTIME": "true",
-        "VITE_DEV_CHAIN_MODE": "arbitrum_fork",
+        "ARBITRUM_RPC_URL": "https://arb1.arbitrum.io/rpc",
+        "VITE_DEV_CHAIN_MODE": "",
         "VITE_CHAIN_ID": "42161",
-        "VITE_LOCAL_FORK_RPC_URL": "http://127.0.0.1:3009"
+        "VITE_LOCAL_FORK_RPC_URL": "",
+        "VITE_ENABLE_ANVIL_WALLETS": "false",
+        "VITE_API_BASE_URL": "http://127.0.0.1:3005",
+        "VITE_ENVIO_INDEXER_URL": "http://localhost:3006/v1/graphql"
       },
       "urls": ["http://localhost:3005/health"],
       "health": [
@@ -157,15 +164,16 @@
         "docker-compose.indexer.yaml",
         "up",
         "--build",
-        "--watch"
+        "--watch",
+        "--abort-on-container-failure"
       ],
       "cwd": "packages/indexer",
       "env": {
         "HASURA_EXTERNAL_PORT": "3006",
         "INDEXER_EXTERNAL_PORT": "3007",
         "ENVIO_PG_PORT": "3008",
-        "GREEN_GOODS_DEV_CHAIN_MODE": "arbitrum_fork",
-        "ARBITRUM_RPC_URL": "http://host.docker.internal:3009"
+        "GREEN_GOODS_DEV_CHAIN_MODE": "",
+        "ARBITRUM_RPC_URL": "https://arb1.arbitrum.io/rpc"
       },
       "downCommand": ["docker", "compose", "-f", "docker-compose.indexer.yaml", "down"],
       "urls": ["http://localhost:3006/v1/graphql"]
@@ -211,7 +219,23 @@
       "env": {
         "ANVIL_PORT": "3009"
       },
-      "urls": []
+      "urls": [],
+      "autostart": false
+    },
+    {
+      "id": "fork",
+      "name": "explicit local Arbitrum fork stack",
+      "kind": "project-mode",
+      "ports": [3001, 3002, 3005, 3006, 3007, 3008, 3009],
+      "command": ["bun", "run", "dev:fork"],
+      "autostart": false,
+      "urls": ["https://localhost:3001/?presentation=pwa", "https://localhost:3002/"],
+      "health": [
+        {
+          "type": "command",
+          "command": ["bun", "run", "dev:fork:smoke"]
+        }
+      ]
     }
   ]
 }

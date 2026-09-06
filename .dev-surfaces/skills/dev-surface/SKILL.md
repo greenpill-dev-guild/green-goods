@@ -13,9 +13,11 @@ bun install
 bun run dev
 ```
 
-`bun run dev` runs `node scripts/dev/stack.js full`. It starts the full PM2-backed local stack, streams logs in the foreground, opens review URLs through the repo browser helper, and cleans up PM2 services on Ctrl-C.
+`bun run dev` runs `node scripts/dev/stack.js local`. It starts client, admin, agent and indexer under PM2 against live Arbitrum One, prints local URLs, streams logs in the foreground, and cleans up owned services on Ctrl-C. Start OrbStack or Docker Desktop first; Docker readiness is checked before services launch, and a missing local Docker socket is redirected to a running OrbStack socket.
 
-Expected ports:
+Docs and Storybook are optional: `bun run dev:full` includes them and opens browser tabs. Tunnels are explicit through `bun run dev:tunnel`.
+
+Default ports (docs and Storybook require `bun run dev:full`):
 
 - `3001`: client PWA and editorial website
 - `3002`: admin UI
@@ -25,20 +27,23 @@ Expected ports:
 - `3006`: indexer GraphQL/Hasura
 - `3007`: indexer service
 - `3008`: indexer Postgres
-- `3009`: Anvil Arbitrum fork
+- `3009`: Anvil Arbitrum fork, started only by explicit `bun run dev:fork`
 
-Local chain mode defaults to Arbitrum fork mode. For transaction QA, add RPC `http://127.0.0.1:3009` with chain id `42161` to a dedicated dev browser wallet and use an Anvil-funded private key from `packages/contracts/.generated/runtime/arbitrum-fork.json`. The launcher silences Anvil startup output and redacts the fork endpoint in that generated file so provider credentials do not appear in logs. Mock-auth URLs do not sign transactions.
+The default clears fork settings, keeps the browser API on the local agent, and permits production wallet and passkey transactions. For explicit fork transaction QA, stop the owning launcher, run `bun run dev:fork`, and add RPC `http://127.0.0.1:3009` with chain id `42161` to a dedicated dev browser wallet and use an Anvil-funded private key from `packages/contracts/.generated/runtime/arbitrum-fork.json`. The launcher silences Anvil startup output and redacts the fork endpoint in that generated file so provider credentials do not appear in logs. Mock-auth URLs do not sign transactions.
 
-After `bun run dev` is up, run `bun run dev:smoke:full` for a current
-full-local proof. It checks both client presentations, admin, docs, Storybook,
-local agent `/health`, Anvil chain id `42161`, deployed Arbitrum bytecode on the
-fork, funded Anvil accounts, local Envio/Hasura GraphQL, local indexer service
+After `bun run dev` is up, run `bun run dev:smoke` for a current
+local proof. It checks both client presentations and admin,
+local agent `/health`, live Arbitrum chain id `42161`, deployed contract bytecode,
+local Envio/Hasura GraphQL, local indexer service
 health, and the Postgres TCP listener. The Docker indexer is local
 infrastructure, but it mirrors the configured live networks; set
 `ENVIO_API_TOKEN` in the root `.env` when you need fresh catch-up and a passing
 indexer-lag proof. Without it, HyperSync can return `429 Too Many Requests` and
 the smoke should fail on lag instead of claiming the local mirror is current. It
-never submits transactions.
+never submits transactions. `bun run dev:fork:smoke` selects Anvil checks. The
+indexer continues to mirror live networks in fork mode and does not ingest
+Anvil-only writes. Restart the owning launcher before switching profiles; never
+reuse a fork process as a live one.
 
 For production-backed local review, use `bun run dev:prod` from the repo root.
 It starts the local client, admin, docs, and Storybook against Arbitrum One, the
@@ -62,7 +67,7 @@ only when you want the workbench to start and open that explicit mode.
 containers can start but HyperSync may rate-limit and the smoke should fail on
 mirror lag.
 
-`dev health all` still checks the default full-local Green Goods surface. When
+`dev health all` checks the default local Green Goods surfaces; docs and Storybook are opt-in. When
 production-backed Green Goods is the intentional active mode, use
 `dev health green-goods:prod coop portfolio greenpill-network wefa`.
 
@@ -77,6 +82,10 @@ Useful native commands:
 ```sh
 bun run dev
 bun run dev:web
+bun run dev:smoke
+bun run dev:full
+bun run dev:fork
+bun run dev:fork:smoke
 bun run dev:smoke:full
 bun run dev:prod
 bun run dev:prod:health

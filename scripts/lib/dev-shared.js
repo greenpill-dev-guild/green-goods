@@ -10,8 +10,47 @@ import http from "node:http";
 import https from "node:https";
 import path from "node:path";
 import { homedir } from "node:os";
-import { accessSync, constants, readFileSync, readdirSync, realpathSync } from "node:fs";
+import { accessSync, constants, existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+
+// Use the same Docker environment in the launcher and doctor. Only replace a
+// missing local socket; custom contexts and remote/live endpoints are intentional.
+export function dockerEnvironment({ env = process.env, home = homedir(), exists = existsSync } = {}) {
+  const result = { ...env };
+  const dockerDirs = [
+    path.join(home, ".orbstack/bin"),
+    "/Applications/OrbStack.app/Contents/MacOS/xbin",
+    "/Applications/Docker.app/Contents/Resources/bin",
+    "/usr/local/bin",
+  ].filter((dir) => exists(path.join(dir, "docker")));
+  result.PATH = [...new Set([...(env.PATH || "").split(path.delimiter), ...dockerDirs])].filter(Boolean).join(path.delimiter);
+  const socket = path.join(home, ".orbstack/run/docker.sock");
+  const staleDesktopContext = env.DOCKER_CONTEXT === "desktop-linux" &&
+    env.DOCKER_HOST === `unix://${path.join(home, ".docker/run/docker.sock")}`;
+  if (
+    (!env.DOCKER_CONTEXT || staleDesktopContext) && env.DOCKER_HOST?.startsWith("unix://") &&
+    !exists(env.DOCKER_HOST.slice(7)) && exists(socket)
+  ) {
+    result.DOCKER_HOST = `unix://${socket}`;
+    if (staleDesktopContext) result.DOCKER_CONTEXT = "orbstack";
+  }
+  return result;
+}
+
+export function assertDockerReady(env = dockerEnvironment()) {
+  const result = spawnSync("docker", ["info", "--format", "{{.ServerVersion}}"], {
+    env, encoding: "utf8", timeout: 10_000,
+  });
+  if (result.status !== 0) {
+    throw new Error(
+      "Docker is unavailable. Open OrbStack or Docker Desktop, check your Docker context/DOCKER_HOST, then rerun bun run dev. No services were started."
+    );
+  }
+  const compose = spawnSync("docker", ["compose", "version", "--short"], {
+    env, encoding: "utf8", timeout: 10_000,
+  });
+  if (compose.status !== 0) throw new Error("Docker Compose is unavailable. Enable Compose before running bun run dev.");
+}
 
 /**
  * Find a system Node executable by skipping bun's node shim. Bun installs

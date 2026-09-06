@@ -19,6 +19,7 @@ import {
 import {
   SUBMODULE_RECOVERY_COMMAND,
   commandExists,
+  dockerEnvironment,
   commandVersion,
   inspectPinnedSubmodules,
   majorVersion,
@@ -58,7 +59,6 @@ const profilePorts = {
     { port: 3005, label: "agent" },
     { port: 3006, label: "indexer graphql" },
     { port: 3007, label: "envio indexer" },
-    { port: 3009, label: "anvil arbitrum fork" },
   ],
   contracts: [],
   upload: [
@@ -95,6 +95,8 @@ const serviceByPort = {
   3009: "anvil-arbitrum",
 };
 
+const dockerEnv = dockerEnvironment();
+
 const requiredTools = [
   { cmd: "node", label: "Node.js", minMajor: 22 },
   { cmd: "bun", label: "Bun", minMajor: 1 },
@@ -114,7 +116,7 @@ let opReady = null;
 function usage(exitCode = 0) {
   const stream = exitCode === 0 ? process.stdout : process.stderr;
   stream.write(
-    `Usage: node scripts/dev/doctor.js [--profile web|full|contracts|upload|prod|prod-mirror] [--json]\n`
+    `Usage: node scripts/dev/doctor.js [--profile web|full|contracts|upload|prod|prod-mirror] [--core] [--json]\n`
   );
   process.exit(exitCode);
 }
@@ -125,6 +127,10 @@ function parseArgs(argv) {
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index];
 
+    if (arg === "--core") {
+      options.core = true;
+      continue;
+    }
     if (arg === "--help" || arg === "-h") usage(0);
     if (arg === "--json") {
       options.json = true;
@@ -167,7 +173,7 @@ function expectedCompatibilityKey(port) {
   const profile =
     options.profile === "prod" || options.profile === "prod-mirror"
       ? options.profile
-      : "local";
+      : "local-live";
   return `${serviceByPort[port]}:${profile}`;
 }
 
@@ -295,12 +301,12 @@ function checkTools() {
   }
 
   if (options.profile === "full" || options.profile === "prod-mirror") {
-    if (!commandExists("docker")) {
+    if (spawnSync("docker", ["--version"], { env: dockerEnv, timeout: 5_000 }).status !== 0) {
       add("fail", "Docker not found", "Required for full-stack/indexer work.", "Install OrbStack, Docker Desktop, or Docker Engine.", {
         check: "tool:docker",
       });
     } else {
-      add("pass", "Docker available", commandVersion("docker"), "", { check: "tool:docker" });
+      add("pass", "Docker available", "Docker CLI detected", "", { check: "tool:docker" });
     }
 
   }
@@ -332,9 +338,9 @@ function checkTools() {
 }
 
 function checkDocker() {
-  if ((options.profile !== "full" && options.profile !== "prod-mirror") || !commandExists("docker")) return;
+  if ((options.profile !== "full" && options.profile !== "prod-mirror") || spawnSync("docker", ["--version"], { env: dockerEnv, timeout: 5_000 }).status !== 0) return;
 
-  const result = spawnSync("docker", ["ps"], { stdio: "ignore" });
+  const result = spawnSync("docker", ["info"], { env: dockerEnv, stdio: "ignore", timeout: 10_000 });
   if (result.status === 0) {
     add("pass", "Docker daemon running", "Required for full-stack/indexer development.", "", {
       check: "docker-daemon",
@@ -482,7 +488,7 @@ function checkEnv() {
   const pinataJwt = valueFor(envFile, "PINATA_JWT");
   const envioApiToken = valueFor(envFile, "ENVIO_API_TOKEN");
   const envioApiTokenOpRef = valueFor(envFile, "ENVIO_API_TOKEN_OP_REF");
-  const apiBaseUrl = valueFor(envFile, "VITE_API_BASE_URL") || schema.VITE_API_BASE_URL;
+  const apiBaseUrl = options.profile === "full" ? "http://127.0.0.1:3005" : valueFor(envFile, "VITE_API_BASE_URL") || schema.VITE_API_BASE_URL;
   const hasPinataOpRef = hasOpRef(pinataJwtOpRef);
   const hasPinataServer =
     hasUsableValue(pinataJwt) || (options.profile === "upload" && hasPinataOpRef && opReady);
@@ -620,7 +626,7 @@ function checkEnv() {
     options.profile === "full" ||
     options.profile === "upload"
   ) {
-    const indexerUrl = valueFor(envFile, "VITE_ENVIO_INDEXER_URL") || schema.VITE_ENVIO_INDEXER_URL || "";
+    const indexerUrl = options.profile === "full" ? "http://localhost:3006/v1/graphql" : valueFor(envFile, "VITE_ENVIO_INDEXER_URL") || schema.VITE_ENVIO_INDEXER_URL || "";
     if (indexerUrl.includes("localhost:3006")) {
       add("pass", "Indexer URL points to local GraphQL", "http://localhost:3006/v1/graphql", "", {
         check: "env:indexer-url",
@@ -650,8 +656,8 @@ function checkEnv() {
   } else if (options.profile === "full") {
     add(
       "pass",
-      "Full-local stack targets an Arbitrum fork",
-      "The stack overlays VITE_DEV_CHAIN_MODE=arbitrum_fork, VITE_CHAIN_ID=42161, VITE_LOCAL_FORK_RPC_URL=http://127.0.0.1:3009, and VITE_ENABLE_ANVIL_WALLETS=true. Wallet writes mine in local Anvil state only.",
+      "Local stack targets live Arbitrum One",
+      "bun run dev clears fork mode, selects chain 42161, and routes the client/admin to the local agent and local live indexer. Confirmed transactions write to production Arbitrum.",
       "",
       { check: "env:chain-id" }
     );
@@ -743,7 +749,7 @@ function checkIndexerGenerated() {
 }
 
 async function checkPorts() {
-  for (const item of profilePorts[options.profile]) {
+  for (const item of profilePorts[options.profile].filter(({ port }) => !options.core || ![3003, 3004].includes(port))) {
     const available = await checkPort(item.port);
     const ownership = inspectSurface({ port: item.port, portLive: !available });
     if (available) {

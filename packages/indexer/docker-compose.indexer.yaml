@@ -76,7 +76,8 @@ services:
     depends_on:
       graphql-engine:
         condition: service_healthy
-    restart: unless-stopped
+    # Surface incompatible saved state instead of hiding it in a restart loop.
+    restart: "no"
     # Envio tracks its entity tables in Hasura on fresh init but leaves its
     # internal envio_* progress tables untracked, which local smoke proofs query.
     # The tracker waits for the schema, backfills what is missing, then exits.
@@ -100,13 +101,6 @@ services:
       ENVIO_API_TOKEN: ${ENVIO_API_TOKEN:-}
       ENVIO_HYPERSYNC_CLIENT_TIMEOUT_MILLIS: ${ENVIO_HYPERSYNC_CLIENT_TIMEOUT_MILLIS:-120000}
       ENVIO_HYPERSYNC_CLIENT_MAX_RETRIES: ${ENVIO_HYPERSYNC_CLIENT_MAX_RETRIES:-0}
-    volumes:
-      # Mount source for read access without rebuild. `develop.watch` below
-      # owns the change-detection + restart loop; the mounts give graceful
-      # degradation when running plain `up` (no --watch).
-      - ./src:/app/packages/indexer/src:ro
-      - ./config.yaml:/app/packages/indexer/config.yaml:ro
-      - ./schema.graphql:/app/packages/indexer/schema.graphql:ro
     develop:
       watch:
         # Handler TS edits: sync to container and restart envio.
@@ -129,6 +123,14 @@ services:
           path: ./Dockerfile
         - action: rebuild
           path: ./package.json
+        - action: rebuild
+          path: ../../bun.lock
+        - action: rebuild
+          path: ../../package.json
+        - action: rebuild
+          path: ../../bunfig.toml
+        - action: rebuild
+          path: ../../patches
     networks:
       - indexer-network
 

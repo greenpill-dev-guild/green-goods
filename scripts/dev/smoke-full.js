@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * Read-only smoke check for the default full-local Green Goods stack.
+ * Read-only smoke check for the local Green Goods stack (optionally including docs and Storybook).
  *
  * This validates browser surfaces, the local agent, local Envio/Hasura/Postgres,
- * and the local Arbitrum Anvil fork. It never submits transactions.
+ * and live Arbitrum (or the explicitly selected Anvil fork). It never submits transactions.
  */
 
 import fs from "node:fs";
@@ -12,12 +12,15 @@ import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { requestUrl, reexecUnderSystemNodeIfNeeded } from "../lib/dev-shared.js";
+import { inspectSurface } from "./surface-leases.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
 
-reexecUnderSystemNodeIfNeeded({
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === __filename;
+
+if (isMain) reexecUnderSystemNodeIfNeeded({
   scriptPath: __filename,
   sentinel: "GREEN_GOODS_FULL_SMOKE_NODE_REEXEC",
   cwd: projectRoot,
@@ -31,7 +34,6 @@ const LOCAL_INDEXER_SERVICE_HEALTH_URL = "http://127.0.0.1:3007/healthz";
 const LOCAL_POSTGRES_HOST = "127.0.0.1";
 const LOCAL_POSTGRES_PORT = 3008;
 const DEFAULT_MAX_INDEXER_LAG_BLOCKS = 2_000;
-const rootEnv = parseRootEnv();
 
 const services = [
   {
@@ -68,7 +70,7 @@ function usage(exitCode = 0) {
   const stream = exitCode === 0 ? process.stdout : process.stderr;
   stream.write(
     [
-      "Usage: node scripts/dev/smoke-full.js [--json] [--timeout seconds]",
+      "Usage: node scripts/dev/smoke-full.js [--core] [--fork] [--json] [--timeout seconds]",
       "",
       "Options:",
       `  --max-indexer-lag-blocks <blocks>  Maximum accepted local indexer lag (default: ${DEFAULT_MAX_INDEXER_LAG_BLOCKS})`,
@@ -80,6 +82,7 @@ function usage(exitCode = 0) {
 
 function parseArgs(argv) {
   const options = {
+    fork: false,
     json: false,
     timeoutMs: 60_000,
     maxIndexerLagBlocks: DEFAULT_MAX_INDEXER_LAG_BLOCKS,
@@ -88,6 +91,14 @@ function parseArgs(argv) {
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index];
 
+    if (arg === "--fork") {
+      options.fork = true;
+      continue;
+    }
+    if (arg === "--core") {
+      options.core = true;
+      continue;
+    }
     if (arg === "--help" || arg === "-h") usage(0);
     if (arg === "--json") {
       options.json = true;
@@ -131,35 +142,8 @@ function parseArgs(argv) {
   return options;
 }
 
-const options = parseArgs(process.argv.slice(2));
-
-function parseRootEnv() {
-  const envPath = path.join(projectRoot, ".env");
-  if (!fs.existsSync(envPath)) return {};
-
-  const env = {};
-  for (const rawLine of fs.readFileSync(envPath, "utf8").split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) continue;
-
-    const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
-    if (!match) continue;
-
-    let value = match[2].trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-    env[match[1]] = value;
-  }
-  return env;
-}
-
-function hasEnvioApiToken() {
-  return Boolean((process.env.ENVIO_API_TOKEN || rootEnv.ENVIO_API_TOKEN || "").trim());
-}
+const options = parseArgs(isMain ? process.argv.slice(2) : []);
+const rpcUrl = options.fork ? LOCAL_RPC_URL : "https://arb1.arbitrum.io/rpc";
 
 async function waitForService(service, deadlineMs) {
   const attempts = [];
@@ -214,7 +198,7 @@ async function postJson(url, body, timeoutMs = 12_000) {
 }
 
 async function rpc(method, params = []) {
-  const { response, payload, text } = await postJson(LOCAL_RPC_URL, {
+  const { response, payload, text } = await postJson(rpcUrl, {
     jsonrpc: "2.0",
     id: 1,
     method,
@@ -274,32 +258,39 @@ async function checkLocalAgent() {
   }
 }
 
-async function checkAnvilChain() {
+export async function checkChain({ request = rpc, fork = options.fork } = {}) {
   try {
-    const result = await rpc("eth_chainId");
+    const result = await request("eth_chainId");
     const chainId = typeof result === "string" ? Number.parseInt(result, 16) : Number(result);
     if (chainId !== ARBITRUM_CHAIN_ID) {
       throw new Error(`expected ${ARBITRUM_CHAIN_ID}, got ${chainId || "unknown"}`);
     }
+    const version = await request("web3_clientVersion");
+    const local = typeof version === "string" && /anvil|foundry|hardhat/i.test(version);
+    if (fork !== local) {
+      throw new Error(fork ? "Expected an Anvil fork RPC" : "Live Arbitrum mode reached a local fork RPC");
+    }
+    const headBlock = Number(BigInt(await request("eth_blockNumber")));
     return {
-      name: "anvil-arbitrum-chain",
+      headBlock,
+      name: fork ? "anvil-arbitrum-chain" : "live-arbitrum-chain",
       level: "pass",
       ready: true,
       detail: `eth_chainId=${chainId}`,
-      url: LOCAL_RPC_URL,
+      url: rpcUrl,
     };
   } catch (error) {
     return {
-      name: "anvil-arbitrum-chain",
+      name: fork ? "anvil-arbitrum-chain" : "live-arbitrum-chain",
       level: "fail",
       ready: false,
       detail: error instanceof Error ? error.message : String(error),
-      url: LOCAL_RPC_URL,
+      url: rpcUrl,
     };
   }
 }
 
-async function checkAnvilContractBytecode() {
+async function checkContractBytecode() {
   const candidates = deploymentAddresses();
 
   for (const candidate of candidates) {
@@ -307,30 +298,30 @@ async function checkAnvilContractBytecode() {
       const code = await rpc("eth_getCode", [candidate.address, "latest"]);
       if (typeof code === "string" && code !== "0x") {
         return {
-          name: "anvil-contract-bytecode",
+          name: options.fork ? "anvil-contract-bytecode" : "live-contract-bytecode",
           level: "pass",
           ready: true,
           detail: `${candidate.key} has bytecode at ${candidate.address}`,
-          url: LOCAL_RPC_URL,
+          url: rpcUrl,
         };
       }
     } catch (error) {
       return {
-        name: "anvil-contract-bytecode",
+        name: options.fork ? "anvil-contract-bytecode" : "live-contract-bytecode",
         level: "fail",
         ready: false,
         detail: error instanceof Error ? error.message : String(error),
-        url: LOCAL_RPC_URL,
+        url: rpcUrl,
       };
     }
   }
 
   return {
-    name: "anvil-contract-bytecode",
+    name: options.fork ? "anvil-contract-bytecode" : "live-contract-bytecode",
     level: "fail",
     ready: false,
-    detail: "No checked Arbitrum deployment address returned bytecode on the local fork.",
-    url: LOCAL_RPC_URL,
+    detail: "No checked Arbitrum deployment address returned bytecode on the selected RPC.",
+    url: rpcUrl,
   };
 }
 
@@ -352,7 +343,7 @@ async function checkAnvilFundedWallet() {
       level: "pass",
       ready: true,
       detail: `${accounts.length} account(s); first account funded`,
-      url: LOCAL_RPC_URL,
+      url: rpcUrl,
     };
   } catch (error) {
     return {
@@ -360,7 +351,7 @@ async function checkAnvilFundedWallet() {
       level: "fail",
       ready: false,
       detail: error instanceof Error ? error.message : String(error),
-      url: LOCAL_RPC_URL,
+      url: rpcUrl,
     };
   }
 }
@@ -369,7 +360,7 @@ async function checkLocalIndexerGraphql() {
   try {
     const { response, payload, text } = await postJson(LOCAL_INDEXER_URL, {
       query:
-        "query GreenGoodsFullLocalSmoke { envio_chains { id progress_block source_block events_processed ready_at } }",
+        "query GreenGoodsFullLocalSmoke { Garden(where: {chainId: {_eq: 42161}}, limit: 1) { id } envio_chains { id progress_block source_block events_processed ready_at } }",
     });
 
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${text.slice(0, 120)}`);
@@ -389,6 +380,15 @@ async function checkLocalIndexerGraphql() {
     const eventsProcessed = Number(chainRow.events_processed);
     if (!Number.isFinite(progressBlock) || progressBlock <= 0) {
       throw new Error(`progress_block is not a positive number: ${chainRow.progress_block}`);
+    }
+    if (!Number.isFinite(sourceBlock) || sourceBlock <= 0) {
+      throw new Error(`source_block is not a positive number: ${chainRow.source_block}`);
+    }
+    if (!chainRow.ready_at) {
+      throw new Error(`Arbitrum replay is incomplete: indexed=${progressBlock}; source=${sourceBlock}`);
+    }
+    if (!payload.data.Garden?.length) {
+      throw new Error("No Arbitrum gardens are indexed yet.");
     }
 
     return {
@@ -411,7 +411,7 @@ async function checkLocalIndexerGraphql() {
   }
 }
 
-function checkIndexerLag(indexerResult) {
+export function checkIndexerLag(indexerResult, headBlock, maxLag = options.maxIndexerLagBlocks) {
   if (
     typeof indexerResult.progressBlock !== "number" ||
     typeof indexerResult.sourceBlock !== "number" ||
@@ -426,16 +426,15 @@ function checkIndexerLag(indexerResult) {
     };
   }
 
-  const lagBlocks = Math.max(0, indexerResult.sourceBlock - indexerResult.progressBlock);
-  if (lagBlocks > options.maxIndexerLagBlocks) {
-    const tokenHint = hasEnvioApiToken()
-      ? ""
-      : "; ENVIO_API_TOKEN is not configured, so HyperSync may rate-limit local catch-up";
+  const sourceBlock = Math.max(indexerResult.sourceBlock, headBlock ?? 0);
+  const lagBlocks = Math.max(0, sourceBlock - indexerResult.progressBlock);
+  if (lagBlocks > maxLag) {
+    const tokenHint = "; check indexer logs and ENVIO_API_TOKEN configuration if catch-up is stalled";
     return {
       name: "local-indexer-lag",
       level: "fail",
       ready: false,
-      detail: `lag=${lagBlocks} blocks exceeds max=${options.maxIndexerLagBlocks}; source=${indexerResult.sourceBlock}; indexed=${indexerResult.progressBlock}${tokenHint}`,
+      detail: `lag=${lagBlocks} blocks exceeds max=${maxLag}; source=${sourceBlock}; indexed=${indexerResult.progressBlock}${tokenHint}`,
     };
   }
 
@@ -443,7 +442,7 @@ function checkIndexerLag(indexerResult) {
     name: "local-indexer-lag",
     level: "pass",
     ready: true,
-    detail: `lag=${lagBlocks} blocks; source=${indexerResult.sourceBlock}; indexed=${indexerResult.progressBlock}; max=${options.maxIndexerLagBlocks}`,
+    detail: `lag=${lagBlocks} blocks; source=${sourceBlock}; indexed=${indexerResult.progressBlock}; max=${maxLag}`,
   };
 }
 
@@ -536,52 +535,73 @@ function printText(payload) {
   }
 }
 
-const serviceResults = await Promise.all(
-  services.map((service) => waitForService(service, Date.now() + options.timeoutMs))
-);
-const agentResult = await checkLocalAgent();
-const anvilChainResult = await checkAnvilChain();
-const anvilContractResult = await checkAnvilContractBytecode();
-const anvilWalletResult = await checkAnvilFundedWallet();
-const indexerGraphqlResult = await checkLocalIndexerGraphql();
-const indexerLagResult = checkIndexerLag(indexerGraphqlResult);
-const indexerServiceResult = await checkLocalIndexerService();
-const postgresResult = await checkPostgresTcp();
-
-const results = [
-  ...serviceResults,
-  agentResult,
-  anvilChainResult,
-  anvilContractResult,
-  anvilWalletResult,
-  indexerGraphqlResult,
-  indexerLagResult,
-  indexerServiceResult,
-  postgresResult,
-];
-const failures = results.filter((result) => !result.ready).length;
-const payload = {
-  mode: "full-local",
-  results,
-  summary: {
-    ready: failures === 0,
-    failures,
-    timeoutMs: options.timeoutMs,
-  },
-  entrypoints: {
-    start: "bun run dev",
-    smoke: "bun run dev:smoke:full",
-    health: "bun run dev:health",
-    stop: "bun run dev:stop",
-  },
-};
-
-if (options.json) {
-  console.log(JSON.stringify(payload, null, 2));
-} else {
-  printText(payload);
+export function checkStackProfiles({ inspect = inspectSurface, fork = options.fork } = {}) {
+  const profile = fork ? "fork" : "local-live";
+  const mismatched = [[3001, "client"], [3002, "admin"], [3005, "agent"]]
+    .filter(([port, service]) => inspect({ port, portLive: true }).claim?.compatibilityKey !== `${service}:${profile}`)
+    .map(([, service]) => service);
+  return {
+    name: "local-stack-profile",
+    level: mismatched.length ? "fail" : "pass",
+    ready: mismatched.length === 0,
+    detail: mismatched.length
+      ? `Cannot verify ${profile} configuration for ${mismatched.join(", ")}. Stop the old owning launcher and restart with bun run dev${fork ? ":fork" : ""}.`
+      : `Client, admin, and agent were launched with the ${profile} profile.`,
+  };
 }
 
-if (!payload.summary.ready) {
-  process.exitCode = 1;
+async function main() {
+  const serviceResults = await Promise.all(
+    services.filter(({ port }) => !options.core || ![3003, 3004].includes(port)).map((service) => waitForService(service, Date.now() + options.timeoutMs))
+  );
+  const agentResult = await checkLocalAgent();
+  const chainResult = await checkChain();
+  const contractResult = await checkContractBytecode();
+  const walletResults = options.fork ? [await checkAnvilFundedWallet()] : [];
+  const indexerGraphqlResult = await checkLocalIndexerGraphql();
+  const indexerLagResult = checkIndexerLag(indexerGraphqlResult, options.fork ? undefined : chainResult.headBlock);
+  const indexerServiceResult = await checkLocalIndexerService();
+  const postgresResult = await checkPostgresTcp();
+
+  const results = [
+    ...serviceResults,
+    checkStackProfiles(),
+    agentResult,
+    chainResult,
+    contractResult,
+    ...walletResults,
+    indexerGraphqlResult,
+    indexerLagResult,
+    indexerServiceResult,
+    postgresResult,
+  ];
+  const failures = results.filter((result) => !result.ready).length;
+  const payload = {
+    mode: options.fork ? "fork" : "local-live",
+    results,
+    summary: {
+      ready: failures === 0,
+      failures,
+      timeoutMs: options.timeoutMs,
+    },
+    entrypoints: {
+      start: options.fork ? "bun run dev:fork" : "bun run dev",
+      smoke: options.fork ? "bun run dev:fork:smoke" : options.core ? "bun run dev:smoke" : "bun run dev:smoke:full",
+      health: "bun run dev:health",
+      stop: "bun run dev:stop",
+    },
+  };
+
+  if (options.json) {
+    console.log(JSON.stringify(payload, null, 2));
+  } else {
+    printText(payload);
+  }
+
+  if (!payload.summary.ready) {
+    process.exitCode = 1;
+  }
+
 }
+
+if (isMain) await main();

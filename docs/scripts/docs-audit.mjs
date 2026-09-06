@@ -132,10 +132,6 @@ const readmeRequiredSnippets = [
 
 const readmeForbiddenPatterns = [
   {
-    pattern: /bun run dev:full/i,
-    message: "Contains removed full-stack command: use `bun run dev` instead.",
-  },
-  {
     pattern: /docs\.greengoods\.app\/welcome\//i,
     message: "Contains stale docs link pattern: docs.greengoods.app/welcome/...",
   },
