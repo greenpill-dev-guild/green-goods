@@ -1,17 +1,20 @@
+import {
+  FormattedAmountInput,
+  useFormattedAmountInput,
+} from "@green-goods/shared/components/Form/FormattedAmountInput";
 import type { Address } from "@green-goods/shared/types/domain";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
 import {
   formatTokenAmount,
   getVaultAssetSymbol,
-  validateDecimalInput,
 } from "@green-goods/shared/utils/blockchain/vaults";
 import { useCookieJarWithdraw } from "@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw";
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { RiLoader4Line } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
-import { formatUnits, parseUnits } from "viem";
+import { formatUnits } from "viem";
 
 export interface CookieJarCardProps {
   jar: CookieJar;
@@ -21,7 +24,7 @@ export interface CookieJarCardProps {
 
 export function CookieJarCard({ jar, gardenAddress, gardenName }: CookieJarCardProps) {
   const { formatMessage } = useIntl();
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const withdrawMutation = useCookieJarWithdraw(gardenAddress);
   const [expanded, setExpanded] = useState(false);
   const [amountInput, setAmountInput] = useState("");
@@ -30,19 +33,11 @@ export function CookieJarCard({ jar, gardenAddress, gardenName }: CookieJarCardP
 
   const decimals = jar.decimals;
   const assetSymbol = getVaultAssetSymbol(jar.assetAddress, undefined);
-  const inputError = useMemo(
-    () => validateDecimalInput(amountInput, decimals),
-    [amountInput, decimals]
+  const { parsedAmount: amount, formatErrorId: inputError } = useFormattedAmountInput(
+    amountInput,
+    decimals
   );
-
-  const parsedAmount = useMemo(() => {
-    if (!amountInput.trim() || inputError) return 0n;
-    try {
-      return parseUnits(amountInput, decimals);
-    } catch {
-      return 0n;
-    }
-  }, [amountInput, decimals, inputError]);
+  const parsedAmount = amount ?? 0n;
 
   const cooldownSeconds = Number(jar.withdrawalInterval);
   const cooldownDisplay =
@@ -101,37 +96,31 @@ export function CookieJarCard({ jar, gardenAddress, gardenName }: CookieJarCardP
 
       {expanded && !jar.isPaused && (
         <div className="mt-3 space-y-2 border-t border-stroke-soft-200 pt-3">
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              inputMode="decimal"
-              value={amountInput}
-              onChange={(e) => setAmountInput(e.target.value)}
-              placeholder={formatMessage({ id: "app.cookieJar.amount" })}
-              aria-label={formatMessage({ id: "app.cookieJar.amount" })}
-              aria-invalid={Boolean(inputError)}
-              className={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
-                inputError
-                  ? "border-error-base focus:border-error-base"
-                  : "border-stroke-sub-300 bg-bg-white-0 focus:border-primary-base"
-              }`}
-            />
-            <button
-              type="button"
-              onClick={() => {
-                const max = jar.maxWithdrawal < jar.balance ? jar.maxWithdrawal : jar.balance;
-                setAmountInput(formatUnits(max, decimals));
-              }}
-              className="min-h-11 min-w-11 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
-            >
-              {formatMessage({ id: "app.treasury.max" })}
-            </button>
-          </div>
-          {inputError && (
-            <p className="text-xs text-error-dark" role="alert">
-              {formatMessage({ id: inputError })}
-            </p>
-          )}
+          <FormattedAmountInput
+            value={amountInput}
+            onValueChange={setAmountInput}
+            placeholder={formatMessage({ id: "app.cookieJar.amount" })}
+            aria-label={formatMessage({ id: "app.cookieJar.amount" })}
+            error={inputError ? formatMessage({ id: inputError }) : undefined}
+            inputClassName={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
+              inputError
+                ? "border-error-base focus:border-error-base"
+                : "border-stroke-sub-300 bg-bg-white-0 focus:border-primary-base"
+            }`}
+            errorClassName="text-xs text-error-dark"
+            endSlot={
+              <button
+                type="button"
+                onClick={() => {
+                  const max = jar.maxWithdrawal < jar.balance ? jar.maxWithdrawal : jar.balance;
+                  setAmountInput(formatUnits(max, decimals));
+                }}
+                className="min-h-11 min-w-11 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
+              >
+                {formatMessage({ id: "app.treasury.max" })}
+              </button>
+            }
+          />
 
           <textarea
             value={purpose}

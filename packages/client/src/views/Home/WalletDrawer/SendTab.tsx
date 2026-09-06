@@ -8,7 +8,7 @@ import {
   useCurrentChain,
 } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useSendFlowController } from "@green-goods/shared/hooks/client-ui/wallet/useSendFlowController";
 import { useSendableTokens } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
 import { useSendToken } from "@green-goods/shared/hooks/blockchain/useSendToken";
@@ -46,7 +46,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
   const { formatMessage } = useIntl();
   const { primaryAddress, authMode } = useUser();
   const chainId = useCurrentChain();
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const { tokens, isLoading, isError, refetch } = useSendableTokens(
     primaryAddress as Address | null,
     chainId

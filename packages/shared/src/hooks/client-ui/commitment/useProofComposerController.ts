@@ -18,7 +18,7 @@ import { selectCommitmentSeat } from "../../../modules/commitment-pooling/select
 import { isVideoFile, prepareMediaForUpload } from "../../../modules/work/media-processing";
 import type { Address } from "../../../types/domain";
 import { imageCompressor } from "../../../utils/work/image-compression";
-import { useOffline } from "../../app/useOffline";
+import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
 import { useCommitmentMetadataFor } from "../../commitment-pooling/useCommitmentMetadata";
@@ -49,7 +49,7 @@ function sameAddress(left: Address, right: Address): boolean {
 export function useProofComposerController(
   input: UseProofComposerControllerInput
 ): ProofComposerController {
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const draftRepository = input.draftRepository ?? proofDraftRepository;
   const viewer = (usePrimaryAddress() as Address | null) ?? null;
   const routeGarden = (input.routeGarden as Address | null | undefined) ?? null;

@@ -30,9 +30,9 @@ vi.mock("../../hooks/blockchain/useChainConfig", () => ({
   useCurrentChain: () => 42161,
 }));
 
-vi.mock("../../modules/profile-avatar", () => ({
-  createProfileAvatarSigner: () => async () => "0x1234",
-  resolveProfileAvatarFactoryArgs: vi.fn(async () => undefined),
+vi.mock("../../modules/auth/account-message-signer", () => ({
+  createAccountMessageSigner: () => async () => "0x1234",
+  resolveAccountFactoryArgs: vi.fn(async () => undefined),
 }));
 
 vi.mock("../../modules/garden-join-requests", () => ({

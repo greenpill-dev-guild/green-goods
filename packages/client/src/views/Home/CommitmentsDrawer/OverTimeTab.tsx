@@ -1,6 +1,6 @@
 import type { Garden } from "@green-goods/shared/types/domain";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
   type CommitmentPoolRecord,
   type CommitmentSeriesRecord,
@@ -34,7 +34,7 @@ export interface OverTimeTabProps {
  */
 export function OverTimeTab({ inbox, pools, gardens, series, onOpenCommitment }: OverTimeTabProps) {
   const { formatMessage } = useIntl();
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const { byCID } = useCommitmentMetadata(
     useMemo(() => inbox.settled.map((row) => row.commitment), [inbox.settled])
   );

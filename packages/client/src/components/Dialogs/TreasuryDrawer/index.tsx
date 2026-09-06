@@ -6,7 +6,7 @@ import {
 import { useDebouncedValue } from "@green-goods/shared/hooks/utils/useDebouncedValue";
 import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
 import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
 import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposits";
@@ -36,7 +36,7 @@ export function EndowmentDrawer({
 }: EndowmentDrawerProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const depositMutation = useVaultDeposit();
   const [activeTab, setActiveTab] = useState("treasury");
 

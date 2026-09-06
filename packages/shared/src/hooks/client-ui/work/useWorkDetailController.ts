@@ -15,7 +15,7 @@ import {
   type WorkData,
 } from "../../../utils/work/workActions";
 import { useNavigateToTop } from "../../app/useNavigateToTop";
-import { useOffline } from "../../app/useOffline";
+import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { useUser } from "../../auth/useUser";
 import { useActions, useGardens } from "../../blockchain/useBaseLists";
 import { useTransactionSender } from "../../blockchain/useTransactionSender";
@@ -34,7 +34,7 @@ export function useWorkDetailController() {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const chainId = DEFAULT_CHAIN_ID;
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const gardenId = (gardenIdFromContext || gardenIdParam) as string;

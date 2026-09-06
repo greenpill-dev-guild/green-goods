@@ -1,3 +1,4 @@
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({ useOnlineStatus: () => true }));
 import { fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";

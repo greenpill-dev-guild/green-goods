@@ -24,8 +24,8 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
-vi.mock("@green-goods/shared/hooks/app/useOffline", () => ({
-  useOffline: () => mockOfflineState,
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
+  useOnlineStatus: () => mockOfflineState.isOnline,
 }));
 
 vi.mock("@green-goods/shared/providers/App", () => ({

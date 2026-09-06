@@ -3069,7 +3069,7 @@
   "app.treasury.configureVaultSuccess": "Permissões do cofre configuradas com sucesso. Depósitos estão agora habilitados.",
   "app.treasury.configuringVault": "Configurando permissões do cofre...",
   "app.treasury.confirmWithdrawAction": "Confirmar retirada",
-  "app.treasury.confirmWithdrawDescription": "Você está prestes a retirar {shares} participações ({estimatedValue} {asset}). Esta é uma transação na blockchain.",
+  "app.treasury.confirmWithdrawDescription": "Você está prestes a retirar {amount} {asset}. Esta é uma transação na blockchain.",
   "app.treasury.confirmWithdrawTitle": "Confirmar retirada",
   "app.treasury.connectToDeposit": "Conecte sua carteira para realizar um depósito",
   "app.treasury.currentYield": "Rendimento de impacto ainda não colhido",

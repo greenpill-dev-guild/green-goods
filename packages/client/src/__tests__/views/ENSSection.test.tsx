@@ -33,8 +33,8 @@ vi.mock("@green-goods/shared/utils/blockchain/ens", () => ({
   validateSlug: (slug: string) => mockValidateSlug(slug),
 }));
 
-vi.mock("@green-goods/shared/hooks/app/useOffline", () => ({
-  useOffline: () => ({ isOnline: true }),
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
+  useOnlineStatus: () => true,
 }));
 
 vi.mock("@green-goods/shared/hooks/ens/useProtocolMemberStatus", () => ({
