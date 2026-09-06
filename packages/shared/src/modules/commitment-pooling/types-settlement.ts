@@ -1,6 +1,24 @@
 import type { Address } from "../../types/domain";
 import type { HexString } from "./types-core";
 import type { CommitmentSettlementFlow, DisbursementKind } from "./types-vocabulary";
+import type { SettlementDeliveryState } from "./settlement";
+
+export interface GardenerSettlementReceipt {
+  id: string;
+  sourceChainId: number;
+  chainId: 42220;
+  payoutPlanId: bigint;
+  commitmentId: bigint;
+  contributor: Address;
+  recipient: Address;
+  amount: bigint;
+  createdAt: number;
+  updatedAt: number;
+  metadataCID: string | null;
+  title: string | null;
+  metadataUnavailable: boolean;
+  delivery: SettlementDeliveryState;
+}
 
 export interface SettlementConfigurationRecord {
   id: string;

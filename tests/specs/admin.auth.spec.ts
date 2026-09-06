@@ -19,6 +19,7 @@ test.describe("Admin Authentication", () => {
 
   test("renders the current hub connect shell without mock auth", async ({ page }) => {
     await page.goto("/hub", { waitUntil: "domcontentloaded", timeout: 45000 });
+    await new AdminTestHelper(page).waitForPageLoad();
 
     await expect(page).toHaveURL(/\/hub(?:\?.*)?$/);
     await expect(page.getByRole("heading", { name: "Connect to continue" })).toBeVisible();

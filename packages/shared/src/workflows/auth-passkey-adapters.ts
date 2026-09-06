@@ -19,6 +19,7 @@ import {
   createPimlicoClientForChain,
   createPublicClientForChain,
   getPimlicoBundlerUrl,
+  getPimlicoSponsorshipPolicyId,
 } from "../config/pimlico";
 import {
   trackAuthPasskeyLoginFailed,
@@ -41,8 +42,6 @@ import {
   setStoredSmartAccountAddress,
   setStoredUsername,
 } from "../modules/auth/session";
-
-const DEFAULT_SPONSORSHIP_POLICY_ID = "sp_next_monster_badoon";
 
 export type PasskeyServerClientAdapter = ReturnType<typeof createPasskeyServerClient>;
 
@@ -90,6 +89,7 @@ async function buildSmartAccount(
   chainId: number
 ): Promise<{ client: SmartAccountClient; address: Hex }> {
   assertPrimaryPasskeyProfile(chainId);
+  const sponsorshipPolicyId = getPimlicoSponsorshipPolicyId(chainId);
   const chain = getChain(chainId);
   const publicClient = createPublicClientForChain(chainId);
   const pimlicoClient = createPimlicoClientForChain(chainId);
@@ -100,8 +100,6 @@ async function buildSmartAccount(
     owners: [toWebAuthnAccount({ credential, rpId })],
     entryPoint: { address: entryPoint07Address, version: "0.7" },
   });
-  const sponsorshipPolicyId =
-    import.meta.env.VITE_PIMLICO_SPONSORSHIP_POLICY_ID || DEFAULT_SPONSORSHIP_POLICY_ID;
   const client = createSmartAccountClient({
     account,
     chain,

@@ -1,12 +1,11 @@
+import { BOOLEAN_PAUSED_ABI, GOOD_DOLLAR_ABI } from "../../utils/blockchain/abis/goodDollar";
 import type { PublicClient } from "viem";
 
 import { createPublicClientForChain } from "../../config/pimlico";
 import type { Address } from "../../types/domain";
 import {
   allowanceTuple,
-  BOOLEAN_PAUSED_ABI,
   EXECUTOR_ABI,
-  GOOD_DOLLAR_ABI,
   type PoolFundingLiveRoute,
   periodSpendTuple,
   ROLES_ALLOWANCE_ABI,

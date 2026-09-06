@@ -110,3 +110,5 @@ linear.laneSyncMode is lane_issues (register #37, amended by registers #39 and #
   conserves retained plus payout amounts, completes all-retained plans without CCIP, and never
   clears the parent pointer on child cancellation. This is a payout plan, not a garden-held member
   claim.
+
+- [Gardener Celo wallets](codex-gardener-celo-wallets.md): reopened shared, client, and human release work for W23.

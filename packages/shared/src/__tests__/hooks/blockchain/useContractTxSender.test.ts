@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { arbitrum, celo } from "viem/chains";
 import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../test-utils/mock-factories";
 import { MOCK_CONTRACT_ABI } from "../../test-utils/transaction-fakes";
 
@@ -18,14 +19,25 @@ import { MOCK_CONTRACT_ABI } from "../../test-utils/transaction-fakes";
 // ============================================
 
 const mockWriteContractAsync = vi.fn();
-const mockSendTransaction = vi.fn();
+const mockSendUserOperation = vi.fn();
 const mockWaitForTransactionReceipt = vi.fn().mockResolvedValue({ status: "success" });
 
 const mockSmartAccountClient = {
   account: { address: MOCK_ADDRESSES.smartAccount },
-  chain: { id: 11155111, name: "Sepolia" },
-  sendTransaction: mockSendTransaction,
+  chain: arbitrum,
+  sendUserOperation: mockSendUserOperation,
+  waitForUserOperationReceipt: vi.fn(async ({ hash }) => ({
+    userOpHash: hash,
+    sender: MOCK_ADDRESSES.smartAccount,
+    success: true,
+    receipt: { status: "success", transactionHash: MOCK_TX_HASH },
+  })),
 };
+
+const mockResolveSmartAccountClient = vi.fn(async (chainId: number) =>
+  chainId === 42220 ? { ...mockSmartAccountClient, chain: celo } : mockSmartAccountClient
+);
+let mockResolverAvailable = true;
 
 let mockAuthMode: "wallet" | "passkey" | "embedded" | null = "passkey";
 let mockSmartAccountRef: typeof mockSmartAccountClient | null = mockSmartAccountClient;
@@ -35,6 +47,7 @@ vi.mock("../../../hooks/auth/useUser", () => ({
   useUser: () => ({
     authMode: mockAuthMode,
     smartAccountClient: mockSmartAccountRef,
+    resolveSmartAccountClient: mockResolverAvailable ? mockResolveSmartAccountClient : null,
   }),
 }));
 
@@ -95,7 +108,8 @@ describe("useContractTxSender", () => {
     vi.clearAllMocks();
     mockAuthMode = "passkey";
     mockSmartAccountRef = mockSmartAccountClient;
-    mockSendTransaction.mockResolvedValue(MOCK_TX_HASH);
+    mockResolverAvailable = true;
+    mockSendUserOperation.mockResolvedValue(MOCK_TX_HASH);
     mockWriteContractAsync.mockResolvedValue(MOCK_TX_HASH);
     mockWaitForTransactionReceipt.mockResolvedValue({ status: "success" });
   });
@@ -128,7 +142,28 @@ describe("useContractTxSender", () => {
       });
 
       expect(txHash!).toBe(MOCK_TX_HASH);
-      expect(mockSendTransaction).toHaveBeenCalledOnce();
+      expect(mockSendUserOperation).toHaveBeenCalledOnce();
+      expect(mockResolveSmartAccountClient).toHaveBeenCalledWith(42161);
+      expect(mockWriteContractAsync).not.toHaveBeenCalled();
+    });
+
+    it("routes an explicit Celo request through the Celo resolver client", async () => {
+      const { result } = renderHook(() => useContractTxSender(), { wrapper: createWrapper() });
+      await result.current({ ...TEST_REQUEST, chainId: 42220 });
+      expect(mockResolveSmartAccountClient).toHaveBeenCalledWith(42220);
+      expect(mockSendUserOperation).toHaveBeenCalledWith(
+        expect.objectContaining({ account: mockSmartAccountClient.account })
+      );
+      expect(mockWriteContractAsync).not.toHaveBeenCalled();
+    });
+
+    it("fails closed when an explicit chain has no resolver", async () => {
+      mockResolverAvailable = false;
+      const { result } = renderHook(() => useContractTxSender(), { wrapper: createWrapper() });
+      await expect(result.current({ ...TEST_REQUEST, chainId: 42220 })).rejects.toMatchObject({
+        code: "resolver_unavailable",
+      });
+      expect(mockSendUserOperation).not.toHaveBeenCalled();
       expect(mockWriteContractAsync).not.toHaveBeenCalled();
     });
 
@@ -141,18 +176,17 @@ describe("useContractTxSender", () => {
         await result.current(TEST_REQUEST);
       });
 
-      const sendTxArgs = mockSendTransaction.mock.calls[0][0];
+      const sendTxArgs = mockSendUserOperation.mock.calls[0][0];
       expect(sendTxArgs.account).toEqual(mockSmartAccountClient.account);
-      expect(sendTxArgs.chain).toEqual(mockSmartAccountClient.chain);
-      expect(sendTxArgs.to).toBe(TEST_REQUEST.address);
-      expect(sendTxArgs.value).toBe(0n);
+      expect(sendTxArgs.calls[0].to).toBe(TEST_REQUEST.address);
+      expect(sendTxArgs.calls[0].value).toBe(0n);
       // data should be a hex-encoded calldata string
-      expect(sendTxArgs.data).toMatch(/^0x/);
+      expect(sendTxArgs.calls[0].data).toMatch(/^0x/);
     });
 
-    it("propagates errors from smart account sendTransaction", async () => {
+    it("propagates errors from smart account sendUserOperation", async () => {
       const error = new Error("Smart account rejected");
-      mockSendTransaction.mockRejectedValueOnce(error);
+      mockSendUserOperation.mockRejectedValueOnce(error);
 
       const { result } = renderHook(() => useContractTxSender(), {
         wrapper: createWrapper(),
@@ -188,7 +222,7 @@ describe("useContractTxSender", () => {
 
       expect(txHash!).toBe(MOCK_TX_HASH);
       expect(mockWriteContractAsync).toHaveBeenCalledOnce();
-      expect(mockSendTransaction).not.toHaveBeenCalled();
+      expect(mockSendUserOperation).not.toHaveBeenCalled();
     });
 
     it("passes correct parameters to writeContractAsync", async () => {
@@ -221,7 +255,7 @@ describe("useContractTxSender", () => {
       expect(mockWaitForTransactionReceipt).toHaveBeenCalledOnce();
       expect(mockWaitForTransactionReceipt).toHaveBeenCalledWith(
         {},
-        { hash: MOCK_TX_HASH, chainId: 42161 }
+        { hash: MOCK_TX_HASH, chainId: 42161, onReplaced: expect.any(Function) }
       );
     });
 
@@ -263,7 +297,7 @@ describe("useContractTxSender", () => {
   // ------------------------------------------
 
   describe("passkey mode without smart account", () => {
-    it("falls back to wagmi when smartAccountClient is null", async () => {
+    it("blocks submission while the passkey client is unavailable", async () => {
       mockAuthMode = "passkey";
       mockSmartAccountRef = null;
 
@@ -271,15 +305,13 @@ describe("useContractTxSender", () => {
         wrapper: createWrapper(),
       });
 
-      await act(async () => {
-        await result.current(TEST_REQUEST);
-      });
+      await expect(result.current(TEST_REQUEST)).rejects.toThrow("TransactionSender not available");
 
-      expect(mockWriteContractAsync).toHaveBeenCalledOnce();
-      expect(mockSendTransaction).not.toHaveBeenCalled();
+      expect(mockWriteContractAsync).not.toHaveBeenCalled();
+      expect(mockSendUserOperation).not.toHaveBeenCalled();
     });
 
-    it("falls back to wagmi when smartAccountClient has no account", async () => {
+    it("blocks submission when the passkey client has no account", async () => {
       mockAuthMode = "passkey";
       mockSmartAccountRef = { ...mockSmartAccountClient, account: undefined } as any;
 
@@ -287,12 +319,10 @@ describe("useContractTxSender", () => {
         wrapper: createWrapper(),
       });
 
-      await act(async () => {
-        await result.current(TEST_REQUEST);
-      });
+      await expect(result.current(TEST_REQUEST)).rejects.toThrow("TransactionSender not available");
 
-      expect(mockWriteContractAsync).toHaveBeenCalledOnce();
-      expect(mockSendTransaction).not.toHaveBeenCalled();
+      expect(mockWriteContractAsync).not.toHaveBeenCalled();
+      expect(mockSendUserOperation).not.toHaveBeenCalled();
     });
   });
 });

@@ -43,7 +43,7 @@ type SenderExpectations = {
   sponsored: boolean;
   supportsBatching: boolean;
   batch: true | string;
-  chainSource: "client" | "call";
+  chainSource: "resolver" | "call";
   receipt: "none" | "always" | "canonical-only";
   revertedReceipt: true | string;
   nonCanonicalHash: true | string;
@@ -117,11 +117,11 @@ const cases: SenderCase[] = [
       sponsored: true,
       supportsBatching: false,
       batch: true,
-      chainSource: "client",
-      receipt: "none",
-      revertedReceipt: "the bundler returns an included transaction hash without a receipt wait",
-      nonCanonicalHash: "the bundler result is returned directly and has no receipt branch",
-      guardOrder: ["safety", "send"],
+      chainSource: "resolver",
+      receipt: "always",
+      revertedReceipt: true,
+      nonCanonicalHash: "passkey mode confirms a UserOperation receipt",
+      guardOrder: ["safety", "send", "receipt"],
       omittedValue: 0n,
     },
     make: (scenario = {}) => {
@@ -129,25 +129,42 @@ const cases: SenderCase[] = [
       const forwarded: ForwardedCall[] = [];
       const hashes = sequence(scenario.hashes ?? [], SECOND_TX_HASH);
       const client = createFakeSmartAccountClient();
-      client.sendTransaction.mockImplementation(async (call) => {
+      const receiptHashes: Hex[] = [];
+      client.sendUserOperation.mockImplementation(async (call) => {
         trace.push("send");
-        const transaction = call as { chain?: { id: number }; value?: bigint };
+        const transaction = call as { calls: { value?: bigint }[] };
         forwarded.push({
-          clientChainId: transaction.chain?.id,
-          value: transaction.value,
+          clientChainId: client.chain!.id,
+          value: transaction.calls[0]?.value,
         });
         if (scenario.transportFailure) throw scenario.transportFailure;
         return hashes();
+      });
+      client.waitForUserOperationReceipt.mockImplementation(async ({ hash }) => {
+        trace.push("receipt");
+        receiptHashes.push(hash);
+        return {
+          userOpHash: hash,
+          sender: client.account!.address,
+          success: true,
+          receipt: { status: scenario.receiptStatus ?? "success", transactionHash: hash },
+        } as Awaited<ReturnType<typeof client.waitForUserOperationReceipt>>;
       });
       const assertWriteSafety = vi.fn(async () => {
         trace.push("safety");
       });
       return {
-        sender: new PasskeySender(client, { assertWriteSafety }),
+        sender: new PasskeySender(client, {
+          assertWriteSafety,
+          resolveSmartAccountClient: async (chainId) => {
+            client.chain = { ...client.chain!, id: chainId };
+            return client;
+          },
+        }),
         trace,
         forwarded,
         guardedChains: [],
-        receiptHashes: [],
+        receiptHashes,
       };
     },
   },
@@ -233,8 +250,8 @@ const laws: ConformanceLaw<SenderCase>[] = [
       const fallback = make();
       await fallback.sender.sendContractCall(createMockContractCall({ chainId: undefined }));
 
-      if (expectations.chainSource === "client") {
-        expect(explicit.forwarded[0]?.clientChainId).toBe(11155111);
+      if (expectations.chainSource === "resolver") {
+        expect(explicit.forwarded[0]?.clientChainId).toBe(42161);
         expect(fallback.forwarded[0]?.clientChainId).toBe(11155111);
         expect(explicit.guardedChains).toEqual([]);
       } else {

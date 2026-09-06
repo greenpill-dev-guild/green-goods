@@ -59,6 +59,7 @@ import {
   setEmbeddedAddress,
   setSignedOutSentinel,
 } from "../modules/auth/session";
+import type { SmartAccountClientResolver } from "../types/auth";
 import type { PasskeyAdapters } from "../workflows/auth-passkey-adapters";
 import type { AuthActor } from "../workflows/authActor";
 import type { WalletConnectionType } from "../workflows/authMachine";
@@ -80,6 +81,7 @@ export interface AuthStateValue {
   credential: P256Credential | null;
   smartAccountAddress: Hex | null;
   smartAccountClient: SmartAccountClient | null;
+  resolveSmartAccountClient: SmartAccountClientResolver | null;
   userName: string | null;
   hasStoredCredential: boolean;
   walletAddress: Hex | null;
@@ -587,6 +589,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
         credential: null,
         smartAccountAddress: null,
         smartAccountClient: null,
+        resolveSmartAccountClient: null,
         userName: null,
         hasStoredCredential: false,
         walletAddress: null,
@@ -641,6 +644,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       credential: snapshot.context.credential,
       smartAccountAddress: snapshot.context.smartAccountAddress,
       smartAccountClient: snapshot.context.smartAccountClient,
+      resolveSmartAccountClient: snapshot.context.resolveSmartAccountClient,
       userName: snapshot.context.userName,
       hasStoredCredential: storedCredential,
       // Wallet address is only set when wallet is the PRIMARY auth
@@ -668,6 +672,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       credential: computedValues.credential,
       smartAccountAddress: computedValues.smartAccountAddress,
       smartAccountClient: computedValues.smartAccountClient,
+      resolveSmartAccountClient: computedValues.resolveSmartAccountClient,
       userName: computedValues.userName,
       hasStoredCredential: computedValues.hasStoredCredential,
       walletAddress: computedValues.walletAddress,

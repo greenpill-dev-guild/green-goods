@@ -75,6 +75,10 @@ type SmartAccountSendTransaction = SmartAccountClient["sendTransaction"];
 
 export type FakeSmartAccountClient = SmartAccountClient & {
   sendTransaction: ReturnType<typeof vi.fn<SmartAccountSendTransaction>>;
+  sendUserOperation: ReturnType<typeof vi.fn<SmartAccountClient["sendUserOperation"]>>;
+  waitForUserOperationReceipt: ReturnType<
+    typeof vi.fn<SmartAccountClient["waitForUserOperationReceipt"]>
+  >;
 };
 
 export interface FakeSmartAccountClientOptions {
@@ -101,6 +105,19 @@ export function createFakeSmartAccountClient(
     account: { address: accountAddress } as NonNullable<SmartAccountClient["account"]>,
     chain,
     sendTransaction,
+    sendUserOperation: vi.fn<SmartAccountClient["sendUserOperation"]>(async () => {
+      if (fail !== undefined) throw fail;
+      return `0x${"d".repeat(64)}`;
+    }),
+    waitForUserOperationReceipt: vi.fn<SmartAccountClient["waitForUserOperationReceipt"]>(
+      async ({ hash }) =>
+        ({
+          userOpHash: hash,
+          sender: accountAddress,
+          success: true,
+          receipt: { status: "success", transactionHash: result },
+        }) as Awaited<ReturnType<SmartAccountClient["waitForUserOperationReceipt"]>>
+    ),
   };
 
   return client as FakeSmartAccountClient;

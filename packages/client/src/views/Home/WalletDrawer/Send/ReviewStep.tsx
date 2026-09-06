@@ -1,5 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
-import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { formatUnits } from "viem";
 import type { SendableTokenBalance } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
 import { RiPencilLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -84,13 +84,15 @@ export function ReviewStep({
         />
         <SummaryRow
           label={formatMessage({ id: "app.send.review.token" })}
-          value={token.symbol}
+          value={
+            token.chainId === 42220 ? formatMessage({ id: "app.celoWallet.asset" }) : token.symbol
+          }
           onEdit={onEditAmount}
           editLabel={editLabel}
         />
         <SummaryRow
           label={formatMessage({ id: "app.send.review.amount" })}
-          value={`${formatTokenAmount(parsedAmount, token.decimals)} ${token.symbol}`}
+          value={`${formatUnits(parsedAmount, token.decimals)} ${token.symbol}`}
           onEdit={onEditAmount}
           editLabel={editLabel}
         />

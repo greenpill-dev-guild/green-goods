@@ -1,5 +1,5 @@
 import type { Address } from "../../types/domain";
-import { ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
+import { BOOLEAN_PAUSED_ABI } from "../../utils/blockchain/abis/goodDollar";
 import { address, integer } from "./data-core";
 import type { ZodiacAllowance } from "./pool-funding";
 
@@ -9,35 +9,6 @@ export interface PoolFundingLiveRoute {
   allowanceKey: `0x${string}`;
   active: boolean;
 }
-
-export const BOOLEAN_PAUSED_ABI = [
-  {
-    type: "function",
-    name: "paused",
-    stateMutability: "view",
-    inputs: [],
-    outputs: [{ name: "", type: "bool" }],
-  },
-] as const;
-
-export const GOOD_DOLLAR_ABI = [
-  ...ERC20_BALANCE_ABI,
-  ...BOOLEAN_PAUSED_ABI,
-  {
-    type: "function",
-    name: "getFees",
-    stateMutability: "view",
-    inputs: [
-      { name: "amount", type: "uint256" },
-      { name: "sender", type: "address" },
-      { name: "recipient", type: "address" },
-    ],
-    outputs: [
-      { name: "fee", type: "uint256" },
-      { name: "senderPays", type: "bool" },
-    ],
-  },
-] as const;
 
 export const EXECUTOR_ABI = [
   ...BOOLEAN_PAUSED_ABI,

@@ -57,6 +57,7 @@ const authContextValue: AuthContextValue = {
   credential: null,
   smartAccountAddress: null,
   smartAccountClient: null,
+  resolveSmartAccountClient: null,
   userName: null,
   hasStoredCredential: false,
   walletAddress: OPERATOR,

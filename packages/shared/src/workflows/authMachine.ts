@@ -1,39 +1,8 @@
 /**
- * Authentication State Machine
- *
- * XState 5 machine for managing passkey and wallet authentication flows.
- * Uses client-only credential storage in localStorage.
- *
- * Design Principles:
- * 1. ALL state transitions defined in the machine (no React-side filtering)
- * 2. External events (wallet connect/disconnect) are always received
- * 3. Passkey and wallet auth are MUTUALLY EXCLUSIVE
- * 4. Explicit transitions for switching auth methods
- *
- * States:
- * - initializing: Checking for existing session (localStorage)
- * - restoring.wallet / restoring.embedded: Waiting for a persisted wallet connector
- * - unauthenticated: No active session, ready for login
- * - registering: Creating new passkey (new user flow)
- * - authenticating: Logging in with existing passkey (returning user flow)
- * - wallet_connecting: Opening wallet modal, waiting for connection
- * - authenticated.passkey: Active passkey session
- * - authenticated.wallet: Active wallet session
- * - error: Recoverable error state
- *
- * External Events (from wagmi/wallet):
- * - EXTERNAL_WALLET_CONNECTED: Wallet connected (browser extension, etc.)
- * - EXTERNAL_WALLET_DISCONNECTED: Wallet disconnected
- *
- * User Actions:
- * - LOGIN_PASSKEY_NEW: Create new passkey account
- * - LOGIN_PASSKEY_EXISTING: Login with existing passkey
- * - LOGIN_WALLET: Open wallet modal to connect
- * - SWITCH_TO_WALLET: Switch from passkey to connected wallet
- * - SWITCH_TO_PASSKEY: Switch from wallet to passkey (triggers login flow)
- * - SIGN_OUT: Clear all auth state
- *
- * Reference: https://docs.pimlico.io/docs/how-tos/signers/passkey
+ * XState auth transitions keep passkey and wallet identities mutually exclusive.
+ * External wallet events are always received; switching the primary identity is explicit.
+ * Session replacement and sign-out revoke chain-client resolvers before clearing credentials.
+ * Stored recovery metadata supports restoring wallet/embedded connectors and passkey sessions.
  */
 
 import { type SmartAccountClient } from "permissionless";
@@ -42,7 +11,8 @@ import { type P256Credential } from "viem/account-abstraction";
 import { assign, fromPromise, setup } from "xstate";
 import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 import { logger } from "../modules/app/logger";
-import type { AuthMode } from "../types/auth";
+import { invalidateSmartAccountClientResolver } from "../modules/auth/smartAccountClientResolver";
+import type { AuthMode, SmartAccountClientResolver } from "../types/auth";
 import { authGlobalWalletEvents, authStartupStates } from "./authStartupState";
 
 export type WalletConnectionType = "wallet" | "embedded";
@@ -57,6 +27,7 @@ export interface AuthContext {
   credential: P256Credential | null;
   userName: string | null;
   smartAccountClient: SmartAccountClient | null;
+  resolveSmartAccountClient: SmartAccountClientResolver | null;
   smartAccountAddress: Hex | null;
 
   // Wallet session state (when authenticated via wallet)
@@ -119,6 +90,7 @@ export type AuthEvent =
 export interface PasskeySessionResult {
   credential: P256Credential;
   smartAccountClient: SmartAccountClient;
+  resolveSmartAccountClient?: SmartAccountClientResolver;
   smartAccountAddress: Hex;
   userName: string;
 }
@@ -169,6 +141,10 @@ const authSetup = setup({
       credential: null,
       userName: null,
       smartAccountClient: null,
+      resolveSmartAccountClient: ({ context }: { context: AuthContext }) => {
+        invalidateSmartAccountClientResolver(context.resolveSmartAccountClient);
+        return null;
+      },
       smartAccountAddress: null,
       walletAddress: null,
       embeddedAddress: null,
@@ -181,6 +157,10 @@ const authSetup = setup({
     clearPasskeySession: assign({
       credential: null,
       smartAccountClient: null,
+      resolveSmartAccountClient: ({ context }: { context: AuthContext }) => {
+        invalidateSmartAccountClientResolver(context.resolveSmartAccountClient);
+        return null;
+      },
       smartAccountAddress: null,
     }),
 
@@ -199,11 +179,13 @@ const authSetup = setup({
     // ─────────────────────────────────────────────────────────────────────────
 
     /** Store passkey session from successful auth */
-    storePasskeySession: assign(({ event }) => {
+    storePasskeySession: assign(({ context, event }) => {
+      invalidateSmartAccountClientResolver(context.resolveSmartAccountClient);
       const { output } = event as { output: PasskeySessionResult };
       return {
         credential: output.credential,
         smartAccountClient: output.smartAccountClient,
+        resolveSmartAccountClient: output.resolveSmartAccountClient ?? null,
         smartAccountAddress: output.smartAccountAddress,
         userName: output.userName,
         error: null,
@@ -358,6 +340,7 @@ export const authMachine = authSetup.createMachine({
     credential: null,
     userName: null,
     smartAccountClient: null,
+    resolveSmartAccountClient: null,
     smartAccountAddress: null,
     walletAddress: null,
     embeddedAddress: null,

@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-08-25T19:06:14.589Z"
+    "updated_at": "2026-09-05T22:45:56.684Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -45,7 +45,10 @@
     "garden_safe_erc6551_owner_spike": "erc6551-garden-safe-owner-spike.md",
     "celo_garden_account_safe_ownership": "../celo-garden-account-safe-ownership/plan.todo.md",
     "celo_zodiac_roles_pin": "evidence/celo-zodiac-roles-mastercopies-2026-08-18.json",
-    "work_linking_closure_handoff": "handoffs/codex-work-linking.md"
+    "work_linking_closure_handoff": "handoffs/codex-work-linking.md",
+    "gardener_celo_wallets": "gardener-celo-wallets.md",
+    "gardener_celo_wallets_handoff": "handoffs/codex-gardener-celo-wallets.md",
+    "gardener_celo_wallets_validation": "evidence/gardener-celo-wallet-validation-2026-09-05.json"
   },
   "linear": {
     "parentIssue": "PRD-650",
@@ -218,26 +221,26 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "passed",
+      "status": "in_progress",
       "branch": "feature/commitment-pooling-api-modules",
       "depends_on": ["contracts"],
       "manual_blocked": false,
       "blocked_reason": null,
       "handoff": "handoffs/codex-state-api.md",
-      "handoff_note": "PRD-722 source gap closure and PRD-723 shared/Agent source implementation are complete and locally GREEN. Runtime availability remains independently fail-closed in the capability ledger until the human-owned hosted Envio deployment, full sync, and live read-back; production Saved Offers additionally require human-owned root environment configuration.",
+      "handoff_note": "Gardener Celo wallet source implementation and TDD complete at ea193295f9ce1f6ebac415481c320c5d7a61baae. All 35 automated release checks pass; authenticated Brave, hosted policy and production canary evidence remain blocked. See handoffs/codex-gardener-celo-wallets.md and the linked validation receipt.",
       "linear_issues": ["PRD-650"],
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "git cat-file -e HEAD:packages/shared/src/modules/commitment-pooling/index.ts; git cat-file -e HEAD:packages/agent/src/api/routes/saved-offers.ts",
-          "evidence": "RED: the shared commitment-pooling module, focused tests, and Agent Saved Offer route/tests were absent from the branch base (each git object lookup exited 128). The handoff recorded the selector, disclosure, retry-identity, settlement, and persistence test contracts before implementation."
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/hooks/blockchain/useSendToken.test.ts",
+          "evidence": "2026-09-05: 9 failed, 5 passed before implementation; Celo chain routing, fee/gate checks and receipt/invalidation behavior were absent. Resolver and wallet/embedded regression RED/GREEN details are in handoffs/codex-gardener-celo-wallets.md."
         },
         "green": {
-          "command": "Run the exact Phase 1 commands plus the focused shared and Agent commands recorded in handoffs/codex-state-api.md.",
-          "evidence": "GREEN 2026-08-16: all 255 indexer tests pass with codegen, the 14-contract/3-chain boundary, build, and ontology guards; the full shared lane passes 3,502 tests with one governed skip plus typecheck and Storybook guards; Agent passes 259 unit/API tests with one governed skip, 5 real-SQLite tests, build, and typecheck. The canonical repository suite and deterministic Sepolia build pass."
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/hooks/blockchain/useSendToken.test.ts src/__tests__/hooks/client-ui/wallet/useSendFlowController.test.tsx",
+          "evidence": "2026-09-05 22:02:06Z: 23 passed across 2 files. Separate transaction module proof: 105 passed, 5 existing skips; auth regression: 192 passed, 5 existing skips. Final release receipt and tested commit are recorded in handoffs/codex-gardener-celo-wallets.md. Final fresh release receipt: ea193295f9ce1f6ebac415481c320c5d7a61baae, 35 automated checks passed; browser-proof BLOCKED. See evidence/gardener-celo-wallet-validation-2026-09-05.json."
         },
-        "note": "Source GREEN does not claim hosted Envio availability, production Saved Offer configuration, a live Celo canary, deployment, or broadcast."
+        "note": "Gardener Celo wallet RED/GREEN proof recorded; earlier lane proof remains historical."
       },
       "skill_tags": ["indexer", "react", "tanstack-query", "data-layer"]
     },
@@ -254,16 +257,16 @@
       "linear_issues": ["PRD-650", "PRD-682"],
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run --filter @green-goods/client test -- src/__tests__/views/SendTab.test.tsx",
+          "evidence": "2026-09-05 21:48:58Z: 9 failed, 14 passed; all new Celo cases failed because the G$ · Celo card, controls and state copy were absent. Representative failure: missing accessible heading G$ · Celo."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run --filter @green-goods/client test -- src/__tests__/views/SendTab.test.tsx src/__tests__/views/CeloWalletCard.test.tsx src/__tests__/views/WalletDrawer.test.tsx",
+          "evidence": "2026-09-05: 53 passed across 3 files, including exact fee precision and real dialog focus restoration. Authenticated Brave proof remains BLOCKED; final release receipt and tested commit are recorded in handoffs/codex-gardener-celo-wallets.md. Final fresh release receipt: ea193295f9ce1f6ebac415481c320c5d7a61baae, 35 automated checks passed; browser-proof BLOCKED. See evidence/gardener-celo-wallet-validation-2026-09-05.json."
         },
-        "note": ""
+        "note": "Gardener Celo WalletDrawer RED/GREEN proof recorded. Authenticated Brave proof is blocked; this does not close other UI sub-lanes."
       },
       "skill_tags": ["ui", "react", "design"]
     },
@@ -385,7 +388,7 @@
     "state_api": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "passed",
+      "status": "in_progress",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "blocked_reason": null,
@@ -403,7 +406,8 @@
       "payer_settlement_boundary_2026_08_08": "The settlement ABI and shared read-model types now exist, so the older ABI-wait clause is retired. PRD-723 remains blocked on the full indexer/query freeze and on implementing the state/API consumers; this checkpoint did not add hooks, mutations, jobs, or UI runtime behavior.",
       "acceptance_amendment_2026_08_05": "Closes readiness-review P1-2. PoolMemberHistory disclosure is now a lane-completion contract rather than a prose input. usePoolMemberHistory is the only sanctioned consumer of the entity; it takes an explicit viewer and returns visible / hidden / unauthenticated, with hidden for a former (non-current) pool steward. usePoolParticipationSummary is the separate aggregate-only editorial selector. Core GREEN requires the five disclosure cases plus a boundary test proving no packages/client/src or packages/admin/src file binds the raw entity, query, or type, and an aggregation test proving declared-value sums stay within one exact declaredValueBasis and never produce a per-person figure. New RED-first file: packages/shared/src/__tests__/pool-member-history-disclosure.test.ts.",
       "acceptance_amendment_2026_08_02": "Supersedes five-job references below: add the sixth commitmentSeries job, stable clientSeriesId dependency materialization without retry consumption, signed offchain private-by-default saved-Offer persistence, Offer once/over-time selection, series query/mutation/selectors, exact Story counts, and capacity-backed availability. Unsaved drafts alone may remain device-local.",
-      "acceptance": "Two-phase core/full shared types, query keys, hooks, missing-evidence/readiness outputs, canonical claimant/requestedBy identity, bounded repeatable requirement-row types and per-commitment approvedUnits, contributor roster/assignment/credit selectors, one-credit-per-Work-UID semantics, opened-cycle RecognitionPolicy plus cycle-less 20/80 recognition/payment default with cycle-less Hypercert rejection, canonical recognition snapshot helpers, and provider-garden payout-plan/retention/versioned-ordered-row/child types; state-count and exact-label unit-summary selectors with case-sensitive labels; promiseKeptRate as the sole cross-commitment percentage; six complete-ABI offline job payloads (commitmentSeries, commitment, claim, evidence, workLink, confirmation) with membership waiting that consumes no retry, including stable clientSeriesId dependency materialization, DomainImpact commitment payloads with requirements but no caller domainTags, and evidence payloads with durable creditedContributors through retry; online roster, accept/decline/acceptExchange/assessment/Ready/override mutations plus exchange-pair creation, status, and feed selectors; positive-only confirmation plus online raiseDispute; explicit 421614/11142220 Pimlico endpoints and a typed fail-closed account-profile registry with Kernel 0.2.4 on both testnets and Kernel 0.3.1 on Arbitrum One/Celo Mainnet, same-address profile assertions, testnet evidence that cannot enable production gardener delivery, an AA-gated online wallet transfer, confirmed/cancelled-by-origin/failed/executed-ack-pending/dispatched/delayed/queued settlement precedence before the no-disbursement gardenerDeliveryEnabled guard, exact router/peer/dispatcher/fee readiness, unbatched-Queued/Failed individual cancellation mutations plus one atomic Queued-batch cancellation mutation with no partial-entry affordance, typed fail-closed Operations capability selectors where canQueueFunding resolves protocol-steward or SettlementModule owner authority, canOperateSettlement resolves the settlement write capabilities, and showOperations = isDeployer || canQueueFunding || canOperateSettlement is route visibility that confers no write authority and never lets deployer status alone satisfy canQueueFunding, composite-ID queries, and mutation invalidation flow."
+      "acceptance": "Two-phase core/full shared types, query keys, hooks, missing-evidence/readiness outputs, canonical claimant/requestedBy identity, bounded repeatable requirement-row types and per-commitment approvedUnits, contributor roster/assignment/credit selectors, one-credit-per-Work-UID semantics, opened-cycle RecognitionPolicy plus cycle-less 20/80 recognition/payment default with cycle-less Hypercert rejection, canonical recognition snapshot helpers, and provider-garden payout-plan/retention/versioned-ordered-row/child types; state-count and exact-label unit-summary selectors with case-sensitive labels; promiseKeptRate as the sole cross-commitment percentage; six complete-ABI offline job payloads (commitmentSeries, commitment, claim, evidence, workLink, confirmation) with membership waiting that consumes no retry, including stable clientSeriesId dependency materialization, DomainImpact commitment payloads with requirements but no caller domainTags, and evidence payloads with durable creditedContributors through retry; online roster, accept/decline/acceptExchange/assessment/Ready/override mutations plus exchange-pair creation, status, and feed selectors; positive-only confirmation plus online raiseDispute; explicit 421614/11142220 Pimlico endpoints and a typed fail-closed account-profile registry with Kernel 0.2.4 on both testnets and Kernel 0.3.1 on Arbitrum One/Celo Mainnet, same-address profile assertions, testnet evidence that cannot enable production gardener delivery, an AA-gated online wallet transfer, confirmed/cancelled-by-origin/failed/executed-ack-pending/dispatched/delayed/queued settlement precedence before the no-disbursement gardenerDeliveryEnabled guard, exact router/peer/dispatcher/fee readiness, unbatched-Queued/Failed individual cancellation mutations plus one atomic Queued-batch cancellation mutation with no partial-entry affordance, typed fail-closed Operations capability selectors where canQueueFunding resolves protocol-steward or SettlementModule owner authority, canOperateSettlement resolves the settlement write capabilities, and showOperations = isDeployer || canQueueFunding || canOperateSettlement is route visibility that confers no write authority and never lets deployer status alone satisfy canQueueFunding, composite-ID queries, and mutation invalidation flow.",
+      "handoff_note": "Gardener Celo wallet source implementation and TDD complete at ea193295f9ce1f6ebac415481c320c5d7a61baae. All 35 automated release checks pass; authenticated Brave, hosted policy and production canary evidence remain blocked. See handoffs/codex-gardener-celo-wallets.md and the linked validation receipt."
     },
     "ui_client": {
       "machine_lane": "ui",
@@ -423,7 +427,8 @@
       },
       "linear_issues": ["PRD-724", "PRD-650"],
       "acceptance_amendment_2026_08_02": "Supersedes older job-count references below: Things I can offer; private saved Offer metadata; Offer once or Offer over time; garden selection for the ongoing path; finite capacity-backed places; claim one pre-created instance; series Story; ask-again next cycle; rest/resume/retire; truthful persistence; no learning state in this flow, active succession controls, auto-renewal, inferred participants, score, or cross-pool identity.",
-      "acceptance": "Garden pool routes, template-first creation, exchange-pair proposal/match/counterpart-lapsed states, atomic acceptExchange confirmation, direction-aware eligible confirmation, Not yet -> online raiseDispute, repeatable DomainImpact {actionUID,requiredCount} creation rows with derived domain tags, requirementIndex-bound per-action progress and per-commitment approvedUnits, accountable lead plus contributor roster/assignment/credit UI with online-only roster mutations, evidence composer plus durable creditedContributors offline payload/retry, opened-cycle/cycle-less recognition preview with no zero-eligible or metadata-only fallback and a cycle-less not-certificate-eligible state, provider-garden payout-plan/retention/child-receipt UI, state counts plus exact-label unit groups with promiseKeptRate as the only cross-commitment percentage, and six offline job kinds (commitmentSeries, commitment, claim, evidence, workLink, confirmation) with membership waiting/recovery, online-only transfer, and no settlement job. Gardener reward rows use exactly three phrases: queue/dispatch/execution/ack/delay states render 'support on its way', authenticated success renders 'support arrived', and authenticated failure renders 'support is being rearranged' with no success phrase; calm action copy may accompany them while steward/ops retains the full state set. Unless gardenerDeliveryEnabled is explicitly true, first contributor-child preparation and gardener sends are unavailable: null means unknown/not configured and fails closed like false. The Fulfilled commitment, provider-garden payout plan, retention, unprepared rows, and historical child states remain visible, with no retry on an unprepared row; ProtocolToGarden remains separate treasury funding, not a Garden-reward bypass."
+      "acceptance": "Garden pool routes, template-first creation, exchange-pair proposal/match/counterpart-lapsed states, atomic acceptExchange confirmation, direction-aware eligible confirmation, Not yet -> online raiseDispute, repeatable DomainImpact {actionUID,requiredCount} creation rows with derived domain tags, requirementIndex-bound per-action progress and per-commitment approvedUnits, accountable lead plus contributor roster/assignment/credit UI with online-only roster mutations, evidence composer plus durable creditedContributors offline payload/retry, opened-cycle/cycle-less recognition preview with no zero-eligible or metadata-only fallback and a cycle-less not-certificate-eligible state, provider-garden payout-plan/retention/child-receipt UI, state counts plus exact-label unit groups with promiseKeptRate as the only cross-commitment percentage, and six offline job kinds (commitmentSeries, commitment, claim, evidence, workLink, confirmation) with membership waiting/recovery, online-only transfer, and no settlement job. Gardener reward rows use exactly three phrases: queue/dispatch/execution/ack/delay states render 'support on its way', authenticated success renders 'support arrived', and authenticated failure renders 'support is being rearranged' with no success phrase; calm action copy may accompany them while steward/ops retains the full state set. Unless gardenerDeliveryEnabled is explicitly true, first contributor-child preparation and gardener sends are unavailable: null means unknown/not configured and fails closed like false. The Fulfilled commitment, provider-garden payout plan, retention, unprepared rows, and historical child states remain visible, with no retry on an unprepared row; ProtocolToGarden remains separate treasury funding, not a Garden-reward bypass.",
+      "handoff_note": "Gardener Celo wallet source implementation and TDD complete at ea193295f9ce1f6ebac415481c320c5d7a61baae. All 35 automated release checks pass; authenticated Brave, hosted policy and production canary evidence remain blocked. See handoffs/codex-gardener-celo-wallets.md and the linked validation receipt."
     },
     "ui_admin": {
       "machine_lane": "ui",
@@ -552,7 +557,7 @@
       "garden_safe_recovery_owner": "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
       "status": "blocked",
       "manual_blocked": true,
-      "blocked_reason": "The deployer-owned contract deployment, exact root-Protocol-first plus seventeen-Garden registration backfill, and separately authorized Commitment Pooling unpause are complete and receipt-verified. The Celo Safe/Zodiac ceremony is also complete: 18 Garden Safes, 18 Roles modifiers, 18 module enablements, and 18 write-once executor routes are live and verified, the manifest records that authority as enabled with every boundary's permission hash, and both fee reserves are funded above their floors. SettlementModule and CeloSettlementExecutor remain paused. Protocol ownership still sits on the deployment sender, and peer wiring is a tier-3 boundary, so the ceremony is re-scoped to paused-safe-owned: ownership transfer to the approved Safe comes first, then the Arbitrum setCcipRoute boundary sent by that Safe and proven against its receipt, then message-only ping and the minimum-value canary. The Celo executor transfer is blocked until the Celo protocol Safe is raised from 1-of-4 to the repository floor. Indexer activation and cap increases remain separate human authorization events.",
+      "blocked_reason": "The accepted Garden Safe/CCIP canary is not repeated. Dedicated Kernel passkey/G$ canary, hosted sponsorship policy restrictions, authenticated Brave proof, and fresh human authorization for production actions remain required.",
       "branch": null,
       "depends_on": ["contracts", "indexer", "state_api"],
       "handoff": "handoffs/human-release-ops.md",
@@ -563,7 +568,8 @@
         "milestone": "release"
       },
       "linear_issues": ["PRD-731"],
-      "acceptance": "The pooling/register/schema, SettlementModule, CreditRegistry, integration-upgrade, and Celo executor candidates are live. The exact root Protocol pool plus seventeen Garden pools are registered with contiguous receipt and pool-ID evidence, and Commitment Pooling boundary 19 is unpaused at transaction 0x69129f9cf15f537aca062770d579f13453700a09d01acd02910eecfb586227a4, Arbitrum block 493999183. The Celo Safe/Zodiac ceremony ended at block 75390218 with settlement:garden-roles:verify and settlement:garden-routes:verify green, and release:verify recomputes all 18 frozen permission hashes. SettlementModule and CeloSettlementExecutor remain paused. Accepted when protocol ownership on Arbitrum is verified on the 2-of-6 Safe, the Celo executor is owned by a Celo protocol Safe at or above the repository floor, setCcipRoute is verified from a mined receipt carrying the module's CcipRouteUpdated event with both peers still paused, and the ping/ack and minimum-value canary have each been separately authorized and witnessed."
+      "acceptance": "The pooling/register/schema, SettlementModule, CreditRegistry, integration-upgrade, and Celo executor candidates are live. The exact root Protocol pool plus seventeen Garden pools are registered with contiguous receipt and pool-ID evidence, and Commitment Pooling boundary 19 is unpaused at transaction 0x69129f9cf15f537aca062770d579f13453700a09d01acd02910eecfb586227a4, Arbitrum block 493999183. The Celo Safe/Zodiac ceremony ended at block 75390218 with settlement:garden-roles:verify and settlement:garden-routes:verify green, and release:verify recomputes all 18 frozen permission hashes. SettlementModule and CeloSettlementExecutor remain paused. Accepted when protocol ownership on Arbitrum is verified on the 2-of-6 Safe, the Celo executor is owned by a Celo protocol Safe at or above the repository floor, setCcipRoute is verified from a mined receipt carrying the module's CcipRouteUpdated event with both peers still paused, and the ping/ack and minimum-value canary have each been separately authorized and witnessed.",
+      "handoff_note": "Reopened 2026-09-05 for Enable Gardener Celo Wallets. See handoffs/codex-gardener-celo-wallets.md; previous lane evidence is historical."
     },
     "community": {
       "machine_lane": "ui",
@@ -1263,6 +1269,46 @@
       "status": "validated",
       "branch": "develop",
       "note": "Validated the selected one-command Arbitrum ownership ceremony using the existing release operator password lease. The full repository tests and builds, contract release verifier, package typechecks, ontology, plan integrity, guidance, and test-quality checks passed. Eight onchain boundaries remain independently nonce-pinned, receipt-verified, checkpointed, resumable, and stop-on-first-failure; no transaction was broadcast during implementation."
+    },
+    {
+      "timestamp": "2026-09-05T21:44:41.153Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/commitment-pooling-api-modules",
+      "note": "Reopened for the approved Enable Gardener Celo Wallets plan. Prior evidence remains historical; new auth routing, Celo reads, fee-aware sends and W23 proof are pending."
+    },
+    {
+      "timestamp": "2026-09-05T21:44:42.603Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-09-05T22:12:06.145Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-api-modules",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-05T22:12:09.330Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-05T22:45:56.684Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "automated_release_checks_passed",
+      "branch": "develop",
+      "note": "Gardener Celo wallets implemented at ea193295f9ce1f6ebac415481c320c5d7a61baae; 35 fresh automated release checks pass. Authenticated Brave is unavailable and production policy/canary/activation remain human-authorized release work. Evidence: evidence/gardener-celo-wallet-validation-2026-09-05.json."
     }
   ]
 }

@@ -719,6 +719,9 @@ export class AdminTestHelper {
     // failed to mount. Let that propagate: a URL- or body-only assertion must
     // never pass against the boot fallback.
     await this.page.locator("#boot-fallback").waitFor({ state: "hidden", timeout: 30000 });
+    // React boot and router hydration can outlive the HTML fallback. Waiting
+    // for real route content also prevents absence assertions passing on a spinner.
+    await this.page.getByRole("main").waitFor({ state: "visible", timeout: 30000 });
     await this.page
       .locator('[data-testid="loading"], .loading, .spinner, .animate-spin')
       .waitFor({ state: "hidden", timeout: 10000 })

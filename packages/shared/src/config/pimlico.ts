@@ -1,5 +1,6 @@
 import { createPimlicoClient } from "permissionless/clients/pimlico";
 import { ENV } from "../lib/env";
+import { SmartAccountClientError } from "../modules/auth/smartAccountClientResolver";
 import { type Chain, createPublicClient, http } from "viem";
 import { entryPoint07Address } from "viem/account-abstraction";
 import { mainnet, sepolia } from "viem/chains";
@@ -29,6 +30,16 @@ const celoSepoliaProfileChain = {
   nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
   rpcUrls: { default: { http: [PIMLICO_API_ENDPOINTS[11142220]] } },
 } as const satisfies Chain;
+
+/** Celo deliberately has no shared-policy fallback. Hosted policy activation is a release step. */
+export function getPimlicoSponsorshipPolicyId(chainId: number): string {
+  if (chainId === 42220) {
+    const policyId = ENV.VITE_PIMLICO_CELO_SPONSORSHIP_POLICY_ID?.trim();
+    if (!policyId) throw new SmartAccountClientError("policy_unavailable");
+    return policyId;
+  }
+  return ENV.VITE_PIMLICO_SPONSORSHIP_POLICY_ID?.trim() || "sp_next_monster_badoon";
+}
 
 export function getPimlicoApiKey(): string {
   const apiKey = ENV.VITE_PIMLICO_API_KEY;
