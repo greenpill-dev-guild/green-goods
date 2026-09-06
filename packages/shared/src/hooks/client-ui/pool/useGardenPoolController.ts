@@ -3,7 +3,7 @@ import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
 import { useJobQueue } from "../../../providers/JobQueue";
 import type { Address } from "../../../types/domain";
-import { useOffline } from "../../app/useOffline";
+import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useHasRole } from "../../roles/useHasRole";
 import {
@@ -25,7 +25,7 @@ const NON_PARTICIPATING_STATES = new Set(["NOT_READY", "READY", "CLOSED", "COMPO
 export function useGardenPoolController(pool: CommitmentPoolRecord) {
   const chainId = DEFAULT_CHAIN_ID;
   const viewer = usePrimaryAddress();
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const [selectedCycleId, setSelectedCycleId] = useState<bigint | null>(null);
   const [direction, setDirection] = useState<GardenPoolDirection>("all");
   // The daily list defaults to the living; the settled fold behind a scope

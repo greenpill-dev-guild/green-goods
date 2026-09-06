@@ -3069,7 +3069,7 @@
   "app.treasury.configureVaultSuccess": "Roles de bóveda configurados correctamente. Los depósitos están ahora habilitados.",
   "app.treasury.configuringVault": "Configurando roles de bóveda...",
   "app.treasury.confirmWithdrawAction": "Confirmar retiro",
-  "app.treasury.confirmWithdrawDescription": "Estás a punto de retirar {shares} participaciones ({estimatedValue} {asset}). Esta es una transacción en blockchain.",
+  "app.treasury.confirmWithdrawDescription": "Estás a punto de retirar {amount} {asset}. Esta es una transacción en blockchain.",
   "app.treasury.confirmWithdrawTitle": "Confirmar retiro",
   "app.treasury.connectToDeposit": "Conecta tu billetera para realizar un depósito",
   "app.treasury.currentYield": "Rendimiento de impacto sin cosechar",

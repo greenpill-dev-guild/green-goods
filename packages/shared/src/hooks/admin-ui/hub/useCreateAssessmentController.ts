@@ -25,7 +25,7 @@ import { useNavigate } from "react-router-dom";
 import { isAddress } from "viem";
 import { useAccount } from "wagmi";
 import { useShallow } from "zustand/react/shallow";
-import { selectAssessmentDirtyState } from "../hypercerts/wizardTransitions";
+import { selectAssessmentDirtyState } from "../../../stores/transitions/create-assessment";
 
 function useCreateAssessmentStepConfigs(): Step[] {
   const { formatMessage } = useIntl();

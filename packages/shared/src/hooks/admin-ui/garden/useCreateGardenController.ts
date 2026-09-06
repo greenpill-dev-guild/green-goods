@@ -1,10 +1,11 @@
+import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { toastService } from "../../../components/Toast/toast.service";
 import { useCreateGardenStore } from "../../../stores/useCreateGardenStore";
 import { gardenStepFields, useCreateGardenForm } from "../../garden/useCreateGardenForm";
 import { useCreateGardenWorkflow } from "../../garden/useCreateGardenWorkflow";
 import { useFormWizardStepValidation } from "../../ui/useFormWizardStepValidation";
 import { useTxErrorMessages } from "../../utils/useTxErrorMessages";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
@@ -17,18 +18,7 @@ export function useCreateGardenController() {
   const form = useCreateGardenStore(useShallow((state) => state.form));
   const resetForm = useCreateGardenStore((state) => state.reset);
   const goToStep = useCreateGardenStore((state) => state.goToStep);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-
-  useEffect(() => {
-    const onOnline = () => setIsOnline(true);
-    const onOffline = () => setIsOnline(false);
-    window.addEventListener("online", onOnline);
-    window.addEventListener("offline", onOffline);
-    return () => {
-      window.removeEventListener("online", onOnline);
-      window.removeEventListener("offline", onOffline);
-    };
-  }, []);
+  const isOnline = useOnlineStatus();
 
   const { trigger, reset: resetValidationForm } = useCreateGardenForm();
   const { state, openFlow, closeFlow, goNext, goBack, goToReview, submitCreation, retry, draft } =

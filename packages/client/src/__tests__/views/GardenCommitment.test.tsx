@@ -80,6 +80,13 @@ vi.mock("@green-goods/shared/hooks/app/useOffline", async (importOriginal) => {
   };
 });
 
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useOnlineStatus: () => true,
+  };
+});
+
 vi.mock("@green-goods/shared/providers/JobQueue", async (importOriginal) => {
   return {
     ...(await importOriginal()),

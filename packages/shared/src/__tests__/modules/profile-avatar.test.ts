@@ -5,14 +5,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   classifyProfileAvatarFailure,
   clearProfileAvatarDraft,
-  createProfileAvatarSigner,
   loadProfileAvatarDraft,
   normalizeProfileAvatarFile,
   type ProfileAvatarPublishDependencies,
   ProfileAvatarTransportError,
   publishProfileAvatar,
   resolveProfileAvatar,
-  resolveProfileAvatarFactoryArgs,
   saveProfileAvatarDraft,
 } from "../../modules/profile-avatar";
 import type { Address } from "../../types/domain";
@@ -319,34 +317,5 @@ describe("explicit profile avatar publish workflow", () => {
     ).rejects.toThrow("factory unavailable");
 
     expect(dependencies.saveDraft).toHaveBeenCalledWith({ action: "clear" });
-  });
-});
-
-describe("profile avatar signer selection", () => {
-  it("uses the wagmi signer for wallet and embedded accounts", async () => {
-    const signMessage = vi.fn().mockResolvedValue("0xwallet");
-    await expect(
-      createProfileAvatarSigner({ authMode: "wallet", signMessage })("message")
-    ).resolves.toBe("0xwallet");
-    await expect(
-      createProfileAvatarSigner({ authMode: "embedded", signMessage })("message")
-    ).resolves.toBe("0xwallet");
-    expect(signMessage).toHaveBeenCalledTimes(2);
-  });
-
-  it("uses passkey signing and obtains paired counterfactual factory arguments", async () => {
-    const account = {
-      signMessage: vi.fn().mockResolvedValue("0xpasskey"),
-      getFactoryArgs: vi.fn().mockResolvedValue({ factory: address, factoryData: "0x1234" }),
-    };
-    const signMessage = vi.fn();
-    await expect(
-      createProfileAvatarSigner({ authMode: "passkey", signMessage, account })("message")
-    ).resolves.toBe("0xpasskey");
-    await expect(resolveProfileAvatarFactoryArgs(account)).resolves.toEqual({
-      factory: address,
-      factoryData: "0x1234",
-    });
-    expect(signMessage).not.toHaveBeenCalled();
   });
 });

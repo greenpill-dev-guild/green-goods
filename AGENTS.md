@@ -130,6 +130,8 @@ When you are dispatched from a Linear issue (delegated/assigned, labeled `ai:cod
 2. For specialized work, route through [`.claude/context/task-routing.json`](.claude/context/task-routing.json); it defines each core task's skill, mutation boundary, output, and handoff.
 3. Apply [the Implementation Quality Contract](.claude/context/values.md#implementation-quality-contract)
    while planning, writing, and reviewing code.
+   For new components/helpers or cross-feature dependencies, also apply the
+   [reuse and capability ownership rules](.claude/context/codebase-architecture.md#reuse-and-capability-ownership).
 4. Keep the change inside the smallest sensible package boundary.
 5. Run the lightest validation loop that still proves the change.
 6. Escalate to cross-package verification when shared contracts, shared types, or public APIs move.

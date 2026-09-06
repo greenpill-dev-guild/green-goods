@@ -1,6 +1,6 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useApp } from "@green-goods/shared/providers/App";
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { RiCheckLine, RiCloudOffLine, RiDownloadLine, RiUserLine } from "@remixicon/react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -22,7 +22,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
 }) => {
   const navigate = useNavigate();
   const { formatMessage } = useIntl();
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const { isMobile, isInstalled } = useApp();
 
   // State for tracking "back online" message

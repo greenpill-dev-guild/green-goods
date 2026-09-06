@@ -11,10 +11,13 @@ One command for change review. Three passes over one resolved scope, then a verd
 `--fix` is explicitly requested. Evidence/diagnosis review is targeted by default; full production
 readiness is a separate, explicit intent.
 
-When the candidate changes module shape, public exports, dependency direction, composition, or test
-seams, read [`../../context/codebase-architecture.md`](../../context/codebase-architecture.md). Apply
+When the candidate adds components/helpers or changes module shape, public exports, dependency
+direction, composition, or test seams, read [`../../context/codebase-architecture.md`](../../context/codebase-architecture.md). Apply
 that shared depth, locality, leverage, export-taxonomy, and proof model to the changed design. Route
 repository-wide architecture opportunity discovery to `plan`; this skill judges a resolved change.
+Verify the contract's reuse evidence: closest existing implementation, actual behavior gap, and
+capability owner. Report unjustified duplicate UI, misplaced general helpers, or pass-through layers
+as design gaps; passing graph checks alone does not settle module depth or seam placement.
 
 It answers three questions with fresh evidence: **regression safety** (Pass 1), **requirement closure**
 (Pass 2), and the user's requested **evidence or readiness level** (Pass 3). `APPROVE` is reserved for

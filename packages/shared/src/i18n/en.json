@@ -3069,7 +3069,7 @@
   "app.treasury.configureVaultSuccess": "Vault roles configured successfully. Deposits are now enabled.",
   "app.treasury.configuringVault": "Configuring vault roles...",
   "app.treasury.confirmWithdrawAction": "Confirm Withdrawal",
-  "app.treasury.confirmWithdrawDescription": "You are about to withdraw {shares} shares ({estimatedValue} {asset}). This is a blockchain transaction.",
+  "app.treasury.confirmWithdrawDescription": "You are about to withdraw {amount} {asset}. This is a blockchain transaction.",
   "app.treasury.confirmWithdrawTitle": "Confirm Withdrawal",
   "app.treasury.connectToDeposit": "Connect your wallet to make a deposit",
   "app.treasury.currentYield": "Unharvested impact yield",

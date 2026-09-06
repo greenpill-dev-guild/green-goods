@@ -1,5 +1,5 @@
 import type { HypercertDraft } from "../../types/hypercerts";
-import { transitionWizardStep } from "../../hooks/admin-ui/hypercerts/wizardTransitions";
+import { transitionWizardStep } from "./wizard-navigation";
 import type { HypercertWizardStore, MintingState } from "../useHypercertWizardStore";
 
 const MIN_STEP = 1;
@@ -121,4 +121,19 @@ export function resetHypercertWizardTransition(
   initial: Partial<HypercertWizardStore>
 ): Partial<HypercertWizardStore> {
   return initial;
+}
+
+export function selectHypercertDirtyState({
+  currentStep,
+  mintingStatus,
+  selectedAttestationIds,
+}: {
+  currentStep: number;
+  mintingStatus: MintingState["status"];
+  selectedAttestationIds: string[];
+}) {
+  const isDirty =
+    !["pending", "confirmed"].includes(mintingStatus) &&
+    (selectedAttestationIds.length > 0 || currentStep > 1);
+  return { isDirty, isPristine: !isDirty };
 }

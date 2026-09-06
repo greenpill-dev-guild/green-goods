@@ -14,7 +14,7 @@ import { useConvictionStrategies } from "@green-goods/shared/hooks/conviction/us
 import { useGardenCommunity } from "@green-goods/shared/hooks/conviction/useGardenCommunity";
 import { useHypercertConviction } from "@green-goods/shared/hooks/conviction/useHypercertConviction";
 import { useMemberVotingPower } from "@green-goods/shared/hooks/conviction/useMemberVotingPower";
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useYieldAllocations } from "@green-goods/shared/hooks/yield/useYieldAllocations";
 import { RiLoader4Line } from "@remixicon/react";
@@ -188,7 +188,7 @@ export function ConvictionDrawer({
 }: ConvictionDrawerProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
 
   // Fetch configured strategy addresses from the garden's HatsModule
   const { strategies } = useConvictionStrategies(gardenAddress, { enabled: isOpen });

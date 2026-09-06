@@ -22,8 +22,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => "0x1111111111111111111111111111111111111111",
 }));
-vi.mock("../../../hooks/app/useOffline", () => ({
-  useOffline: () => ({ isOnline: mocks.isOnline }),
+vi.mock("../../../hooks/app/useOnlineStatus", () => ({
+  useOnlineStatus: () => mocks.isOnline,
 }));
 vi.mock("../../../hooks/roles/useHasRole", () => ({
   useHasRole: () => ({ hasRole: mocks.hasRole, isLoading: false }),

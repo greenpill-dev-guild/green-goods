@@ -72,8 +72,8 @@ vi.mock("../../../hooks/app/useNavigateToTop", () => ({
   useNavigateToTop: () => mocks.navigateToTop,
 }));
 
-vi.mock("../../../hooks/app/useOffline", () => ({
-  useOffline: () => ({ isOnline: true }),
+vi.mock("../../../hooks/app/useOnlineStatus", () => ({
+  useOnlineStatus: () => true,
 }));
 
 vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({

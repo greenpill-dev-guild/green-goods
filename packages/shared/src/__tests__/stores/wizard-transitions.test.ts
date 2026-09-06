@@ -1,11 +1,11 @@
+import { selectAssessmentDirtyState } from "../../stores/transitions/create-assessment";
+import { selectHypercertDirtyState } from "../../stores/transitions/hypercert-wizard";
 import { describe, expect, it } from "vitest";
 import {
-  selectAssessmentDirtyState,
-  selectHypercertDirtyState,
   transitionWizardStep,
   type WizardNavigationEvent,
-} from "../../../hooks/admin-ui/hypercerts/wizardTransitions";
-import { createEmptyAssessmentForm } from "../../../stores/useCreateAssessmentStore";
+} from "../../stores/transitions/wizard-navigation";
+import { createEmptyAssessmentForm } from "../../stores/useCreateAssessmentStore";
 
 describe("wizard navigation transitions", () => {
   it.each<{
@@ -94,20 +94,32 @@ describe("wizard dirty-state projections", () => {
   });
 
   it.each([
-    { name: "untouched hypercert", currentStep: 1, ids: [], status: "idle", expected: false },
+    {
+      name: "untouched hypercert",
+      currentStep: 1,
+      ids: [],
+      status: "idle" as const,
+      expected: false,
+    },
     {
       name: "selected hypercert",
       currentStep: 1,
       ids: ["attestation-1"],
-      status: "idle",
+      status: "idle" as const,
       expected: true,
     },
-    { name: "advanced hypercert", currentStep: 2, ids: [], status: "idle", expected: true },
+    {
+      name: "advanced hypercert",
+      currentStep: 2,
+      ids: [],
+      status: "idle" as const,
+      expected: true,
+    },
     {
       name: "pending hypercert",
       currentStep: 2,
       ids: ["attestation-1"],
-      status: "pending",
+      status: "pending" as const,
       expected: false,
     },
   ])("marks $name", ({ currentStep, ids, status, expected }) => {

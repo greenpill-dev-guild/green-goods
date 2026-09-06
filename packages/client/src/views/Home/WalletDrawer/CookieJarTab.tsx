@@ -4,7 +4,7 @@ import {
   FormattedAmountInput,
   useFormattedAmountInput,
 } from "@green-goods/shared/components/Form/FormattedAmountInput";
-import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useAccessibleCookieJars } from "@green-goods/shared/hooks/cookie-jar/useAccessibleCookieJars";
 import { useCookieJarWithdraw } from "@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw";
@@ -48,7 +48,7 @@ function compareClaimableFirst(left: CookieJar, right: CookieJar) {
 
 function JarCard({ jar, gardenName }: JarCardProps) {
   const { formatMessage } = useIntl();
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const withdrawMutation = useCookieJarWithdraw(jar.gardenAddress);
   const [expanded, setExpanded] = useState(false);
   const [amountInput, setAmountInput] = useState("");
@@ -238,7 +238,7 @@ function JarCard({ jar, gardenName }: JarCardProps) {
 
 export const CookieJarTab: React.FC = () => {
   const { formatMessage } = useIntl();
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const {
     jars,
     isLoading,
