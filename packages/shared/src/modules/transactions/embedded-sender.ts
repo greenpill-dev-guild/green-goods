@@ -15,24 +15,36 @@
  */
 
 import {
+  getAccount as defaultGetAccount,
   waitForTransactionReceipt as defaultWaitForReceipt,
   writeContract as defaultWriteContract,
   type Config,
 } from "@wagmi/core";
 import type { Hex } from "viem";
+import type { Address } from "../../types/domain";
 import { logger } from "../app/logger";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { ensureWagmiWalletChain } from "./chain-guard";
+import { assertWalletAccount, ensureWagmiWalletChain } from "./chain-guard";
 import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
-import type { ContractCall, TransactionSender, TxResult } from "./types";
+import {
+  TransactionReplacementError,
+  type ContractCall,
+  type TransactionSender,
+  type TxResult,
+} from "./types";
 
 /** Injectable wagmi functions for testability */
 export interface EmbeddedSenderDeps {
   writeContract: (config: Config, params: Record<string, unknown>) => Promise<Hex>;
   waitForTransactionReceipt: (
     config: Config,
-    params: { hash: Hex; chainId?: number }
-  ) => Promise<{ status: string }>;
+    params: {
+      hash: Hex;
+      chainId?: number;
+      onReplaced?: (replacement: { reason: "cancelled" | "replaced" | "repriced" }) => void;
+    }
+  ) => Promise<{ status: string; transactionHash?: Hex }>;
+  getAccount?: () => { address?: Address };
   assertWriteSafety?: () => Promise<void>;
   ensureWalletChain?: (chainId: number) => Promise<void>;
 }
@@ -56,6 +68,7 @@ export class EmbeddedSender implements TransactionSender {
       assertWriteSafety: assertLocalArbitrumForkWallet,
       ensureWalletChain: (chainId: number) => ensureWagmiWalletChain(this.config, chainId),
     };
+    this.deps.getAccount ??= () => defaultGetAccount(this.config);
     this.deps.assertWriteSafety ??= assertLocalArbitrumForkWallet;
     this.deps.ensureWalletChain ??= (chainId: number) =>
       ensureWagmiWalletChain(this.config, chainId);
@@ -66,8 +79,10 @@ export class EmbeddedSender implements TransactionSender {
     const chainId = call.chainId ?? DEFAULT_CHAIN_ID;
     await this.deps.ensureWalletChain?.(chainId);
     await this.deps.assertWriteSafety?.();
+    if (call.account) assertWalletAccount(call.account, this.deps.getAccount?.().address);
 
     const hash = await this.deps.writeContract(this.config, {
+      ...(call.account ? { account: call.account } : {}),
       address: call.address,
       abi: call.abi,
       functionName: call.functionName,
@@ -76,20 +91,29 @@ export class EmbeddedSender implements TransactionSender {
       ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
     });
 
-    const receipt = await this.deps.waitForTransactionReceipt(this.config, { hash, chainId });
+    let invalidReplacement: "cancelled" | "replaced" | undefined;
+    const receipt = await this.deps.waitForTransactionReceipt(this.config, {
+      hash,
+      chainId,
+      onReplaced: ({ reason }) => {
+        if (reason !== "repriced") invalidReplacement = reason;
+      },
+    });
+    if (invalidReplacement) throw new TransactionReplacementError(invalidReplacement);
     if (receipt.status === "reverted") {
       throw new Error("Transaction reverted on-chain");
     }
 
+    const confirmedHash = receipt.transactionHash ?? hash;
     logger.debug("Embedded transaction sent", {
       source: "EmbeddedSender",
       functionName: call.functionName,
       address: call.address,
-      hash,
+      hash: confirmedHash,
       erc7677ProxyUrl: this.erc7677ProxyUrl,
     });
 
-    return { hash, sponsored: false };
+    return { hash: confirmedHash, sponsored: false };
   }
 
   async sendBatch(calls: ContractCall[]): Promise<TxResult> {

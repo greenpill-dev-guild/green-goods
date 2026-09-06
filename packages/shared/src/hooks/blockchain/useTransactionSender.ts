@@ -44,7 +44,7 @@ import { useUser } from "../auth/useUser";
  * Returns null when authentication is not yet initialized.
  */
 export function useTransactionSender(): TransactionSender | null {
-  const { authMode, smartAccountClient } = useUser();
+  const { authMode, smartAccountClient, resolveSmartAccountClient } = useUser();
   const { writeContractAsync } = useWriteContract();
   const config = useConfig();
 
@@ -57,6 +57,7 @@ export function useTransactionSender(): TransactionSender | null {
       return createTransactionSender({
         authMode,
         smartAccountClient,
+        resolveSmartAccountClient,
         wagmiConfig: config,
         writeContractAsync:
           writeContractAsync as unknown as TransactionSenderOptions["writeContractAsync"],
@@ -67,5 +68,12 @@ export function useTransactionSender(): TransactionSender | null {
       // loading during passkey init), return null gracefully.
       return null;
     }
-  }, [authMode, smartAccountClient, writeContractAsync, config, erc7677ProxyUrl]);
+  }, [
+    authMode,
+    smartAccountClient,
+    resolveSmartAccountClient,
+    writeContractAsync,
+    config,
+    erc7677ProxyUrl,
+  ]);
 }

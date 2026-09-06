@@ -16,6 +16,8 @@ import { isZeroAddress } from "../utils/blockchain/address";
 import type { Address } from "../types/domain";
 
 export interface SendableToken {
+  /** The chain used for balance reads, signing, and receipt confirmation. */
+  chainId: number;
   /** Token symbol, e.g. "GOODS", "USDC". */
   symbol: string;
   /** Human-readable label/name. */
@@ -53,6 +55,7 @@ export const GOODS_TOKEN_META = {
  */
 export function getStablecoinSendableTokens(chainId: number): SendableToken[] {
   return getCampaignCookieJarPayoutAssets(chainId).map((asset) => ({
+    chainId,
     symbol: asset.symbol,
     label: asset.label,
     // Unsupported assets carry no address; the zero placeholder is never used
@@ -81,7 +84,7 @@ export function buildSendableTokens(
   const tokens: SendableToken[] = [];
 
   if (goodsAddress && !isZeroAddress(goodsAddress)) {
-    tokens.push({ ...GOODS_TOKEN_META, address: goodsAddress, supported: true });
+    tokens.push({ ...GOODS_TOKEN_META, chainId, address: goodsAddress, supported: true });
   }
 
   tokens.push(...getStablecoinSendableTokens(chainId));
@@ -89,9 +92,20 @@ export function buildSendableTokens(
   const seen = new Set<string>();
   return tokens.filter((token) => {
     if (!token.supported) return false;
-    const key = token.address.toLowerCase();
+    const key = `${token.chainId}:${token.address.toLowerCase()}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
+}
+
+export const CELO_G_DOLLAR_TOKEN: SendableToken = getStablecoinSendableTokens(42220).find(
+  (token) => token.symbol === "G$" && token.supported
+)!;
+
+export function isCeloGoodDollar(token: SendableToken): boolean {
+  return (
+    token.chainId === 42220 &&
+    token.address.toLowerCase() === CELO_G_DOLLAR_TOKEN.address.toLowerCase()
+  );
 }

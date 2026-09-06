@@ -175,7 +175,7 @@ export const queryInvalidation = {
   /** Refresh sendable-token balances after a token send (direct RPC reads). */
   onTokenSent: (account: string, chainId: number) => [
     queryKeys.tokens.balances(account, chainId),
-    queryKeys.tokens.all,
+    ...(chainId === 42220 ? [queryKeys.tokens.celoBalance(account)] : []),
   ],
 
   ...financeInvalidation,

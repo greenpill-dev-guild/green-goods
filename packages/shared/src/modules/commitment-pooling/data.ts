@@ -23,6 +23,7 @@ export * from "./data-public-pools";
 export * from "./data-pool-funding";
 export * from "./data-series";
 export * from "./data-settlement";
+export * from "./data-gardener-settlement";
 
 // The reads the member's screens depend on answer from the demo world in dev
 // with `?mockPooling=1`; everywhere else they are the real readers unchanged.

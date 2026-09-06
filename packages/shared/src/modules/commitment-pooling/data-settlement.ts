@@ -8,6 +8,7 @@ import type {
 } from "./types";
 import { type RawRow, queryRows, strings } from "./data-core";
 import { rowsByIds } from "./data-commitments";
+import { isGardenerDeliveryEnabled } from "./account-profiles";
 import {
   mapCommitmentPayoutPlan,
   mapContributorPayout,
@@ -18,6 +19,17 @@ import {
   mapSettlementMessage,
   mapSettlementSubject,
 } from "./data-settlement-mappers";
+
+/** A fresh source-index read is required at review and submission time. */
+export async function getGardenerDeliveryEnabled(): Promise<boolean> {
+  const configurations = await getSettlementConfigurations(42161);
+  const source = configurations.find((row) => row.chainId === 42161 && row.role === "SOURCE");
+  return isGardenerDeliveryEnabled({
+    sourceChainId: 42161,
+    chainId: 42220,
+    indexed: source?.gardenerDeliveryEnabled ?? null,
+  });
+}
 
 export async function getSettlementConfigurations(
   chainId: number

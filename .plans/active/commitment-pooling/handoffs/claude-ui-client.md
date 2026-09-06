@@ -231,3 +231,7 @@ carries or trusts:
 
 Neither is fixed on the branch. Whoever picks this lane up next should read the review before D2:
 the claim/confirm garden is the same code D2's ongoing-Offer path will build on.
+
+## Gardener Celo wallets — reopened 2026-09-05
+
+The approved W23 wallet extension and its fresh proof live in [the wallet handoff](codex-gardener-celo-wallets.md). Earlier dated evidence remains historical.

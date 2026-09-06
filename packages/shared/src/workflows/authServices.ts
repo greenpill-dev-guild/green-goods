@@ -3,6 +3,7 @@ import type { P256Credential } from "viem/account-abstraction";
 import { fromPromise } from "xstate";
 import type { AuthPasskeyReason, AuthPasskeySource } from "../modules/app/analytics-events";
 import { logger } from "../modules/app/logger";
+import { createSmartAccountClientResolver } from "../modules/auth/smartAccountClientResolver";
 import {
   defaultPasskeyAdapters,
   type PasskeyAdapters,
@@ -168,6 +169,13 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     return {
       credential,
       smartAccountClient: client,
+      resolveSmartAccountClient: createSmartAccountClientResolver({
+        credential,
+        primaryClient: client,
+        primaryChainId: chainId,
+        expectedAddress: address,
+        buildSmartAccount: adapters.buildSmartAccount,
+      }),
       smartAccountAddress: address,
       userName,
     };
@@ -305,6 +313,13 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
         return {
           credential,
           smartAccountClient: client,
+          resolveSmartAccountClient: createSmartAccountClientResolver({
+            credential,
+            primaryClient: client,
+            primaryChainId: input.chainId,
+            expectedAddress: address,
+            buildSmartAccount: adapters.buildSmartAccount,
+          }),
           smartAccountAddress: address,
           userName: session.getStoredUsername() || "",
         };

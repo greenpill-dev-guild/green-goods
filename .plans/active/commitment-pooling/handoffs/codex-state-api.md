@@ -499,3 +499,7 @@ with their expected seat.
 This amendment adds fields and one selector. It changes no query, no entity, no handler, no
 contract, and no existing selector's behaviour. `selectConfirmationEligibility()` stays as it is —
 it answers a narrower question (may this viewer confirm *now*) and remains the authority for that.
+
+## Gardener Celo wallets — reopened 2026-09-05
+
+The approved W23 wallet extension and its fresh proof live in [the wallet handoff](codex-gardener-celo-wallets.md). Earlier dated evidence remains historical.

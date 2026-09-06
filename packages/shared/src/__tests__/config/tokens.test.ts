@@ -11,6 +11,14 @@ const GOODS = "0x6Fc6bF735d2884dec59B0E9c8a00A9740C305c9e" as Address;
 const ZERO = "0x0000000000000000000000000000000000000000" as Address;
 
 describe("sendable token registry", () => {
+  it("retains the chain on every primary token and explicitly scopes Celo tokens", () => {
+    expect(buildSendableTokens(ARBITRUM, GOODS).every((token) => token.chainId === ARBITRUM)).toBe(
+      true
+    );
+    expect(getStablecoinSendableTokens(42220).find((token) => token.symbol === "G$")?.chainId).toBe(
+      42220
+    );
+  });
   it("marks USDC/DAI/WETH supported on Arbitrum and GoodDollar unsupported", () => {
     const bySymbol = Object.fromEntries(
       getStablecoinSendableTokens(ARBITRUM).map((token) => [token.symbol, token])
