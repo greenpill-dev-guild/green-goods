@@ -2817,6 +2817,7 @@
   "app.proof.review.queues": "Adding it queues the proof on this phone and returns you to the commitment. It sends when connected.",
   "app.proof.submit": "Add This Proof",
   "app.proof.title": "Add Proof",
+  "app.receive.network": "Network",
   "app.receive.instruction": "Show this code or share your address to receive tokens.",
   "app.receive.qrLabel": "Your wallet QR code",
   "app.receive.unavailable": "Connect your wallet to receive tokens.",

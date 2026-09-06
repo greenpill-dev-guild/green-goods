@@ -3,13 +3,16 @@ import { Alert } from "@green-goods/shared/components/Alert";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { formatUnits } from "viem";
-import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
+import {
+  getNetworkConfigForChain,
+  useCurrentChain,
+} from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import { useSendFlowController } from "@green-goods/shared/hooks/client-ui/wallet/useSendFlowController";
 import { useSendableTokens } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
 import { useSendToken } from "@green-goods/shared/hooks/blockchain/useSendToken";
-import { useCeloWallet } from "@green-goods/shared/hooks/commitment-pooling/useSettlementQueries";
+import { useCeloWallet } from "@green-goods/shared/hooks/client-ui/wallet/useCeloWallet";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import type { WalletMode } from "@green-goods/shared/modules/wallet/send-flow";
 import { RiArrowLeftLine, RiLoader4Line, RiPencilLine } from "@remixicon/react";
@@ -18,8 +21,9 @@ import { useIntl } from "react-intl";
 import { PWA_DRAWER_SCROLL_CLASSNAME } from "@/components/Pwa/drawerScrollStyles";
 import { AmountStep } from "./Send/AmountStep";
 import { BalanceView } from "./Send/BalanceView";
-import { CeloWalletCard, CeloWalletStatus } from "./Send/CeloWalletCard";
-import { FeeSummary } from "./Send/FeeSummary";
+import { CeloWalletStatus } from "./Send/CeloWalletStatus";
+import { WalletSupportHistory } from "./Send/WalletSupportHistory";
+import { GoodDollarFeeSummary } from "./Send/GoodDollarFeeSummary";
 import { ReceiveView } from "./Send/ReceiveView";
 import { RecipientPicker } from "./Send/RecipientPicker";
 import { ReviewStep } from "./Send/ReviewStep";
@@ -125,26 +129,53 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
 
       {mode === "balance" ? (
         <div className={PWA_DRAWER_SCROLL_CLASSNAME}>
-          <CeloWalletCard
-            wallet={celoWallet}
-            sponsored={authMode === "passkey"}
-            onSend={() => acts.startSend(celoWallet.token)}
-            onReceive={() => {
-              setReceiveCelo(true);
-              acts.selectMode("receive");
-            }}
-          />
           <BalanceView
-            tokens={tokens}
-            isLoading={isLoading}
+            tokens={allTokens.map((token) => ({
+              ...token,
+              label: `${token.label} · ${getNetworkConfigForChain(token.chainId).name}`,
+              ...(token.chainId === 42220
+                ? {
+                    sendDisabled: !celoWallet.canSend || !token.balance,
+                    balanceLoading: celoWallet.balanceLoading,
+                    details: <CeloWalletStatus wallet={celoWallet} showRetry />,
+                  }
+                : {}),
+            }))}
+            isLoading={isLoading && celoWallet.balanceLoading}
             isError={isError}
             isOnline={isOnline}
-            onRetry={refetch}
+            onRetry={() => {
+              void refetch();
+              void celoWallet.refetch();
+            }}
             onSend={acts.startSend}
+          />
+          <WalletSupportHistory
+            receipts={celoWallet.receipts}
+            decimals={celoWallet.token.decimals}
+            isLoading={celoWallet.historyLoading}
+            isError={Boolean(celoWallet.historyError)}
+            isOffline={celoWallet.isOffline}
+            onRetry={() => void celoWallet.refetch()}
           />
         </div>
       ) : mode === "receive" ? (
         <div className={PWA_DRAWER_SCROLL_CLASSNAME}>
+          <fieldset className="mx-4 mt-4 flex gap-4 text-sm text-text-sub-600">
+            <legend className="mb-2 text-xs">{formatMessage({ id: "app.receive.network" })}</legend>
+            {[false, true].map((celo) => (
+              <label key={String(celo)} className="flex min-h-11 items-center gap-2">
+                <input
+                  type="radio"
+                  name="receive-network"
+                  checked={receiveCelo === celo}
+                  onChange={() => setReceiveCelo(celo)}
+                  className="accent-primary-base"
+                />
+                {getNetworkConfigForChain(celo ? 42220 : chainId).name}
+              </label>
+            ))}
+          </fieldset>
           <ReceiveView
             celo={receiveCelo}
             addressMismatch={celoWallet.readiness === "address-mismatch"}
@@ -200,7 +231,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
                     <CeloWalletStatus wallet={celoWallet} showRetry />
                   </div>
                 ) : null}
-                <FeeSummary
+                <GoodDollarFeeSummary
                   quote={feeQuote}
                   decimals={selectedToken.decimals}
                   loading={feeLoading}

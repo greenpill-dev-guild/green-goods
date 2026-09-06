@@ -2817,6 +2817,7 @@
   "app.proof.review.queues": "Ao adicionar, a prova entra na fila neste telefone e você volta ao compromisso. Ela é enviada quando houver conexão.",
   "app.proof.submit": "Adicionar esta prova",
   "app.proof.title": "Adicionar prova",
+  "app.receive.network": "Rede",
   "app.receive.instruction": "Mostre este código ou compartilhe seu endereço para receber tokens.",
   "app.receive.qrLabel": "Código QR da sua carteira",
   "app.receive.unavailable": "Conecte sua carteira para receber tokens.",

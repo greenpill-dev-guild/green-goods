@@ -81,7 +81,6 @@ export {
   useLoanPrincipalRelationship,
 } from "./useCredit";
 export {
-  useCeloWallet,
   useCommitmentPayoutPlan,
   useSettlementAccount,
   useSettlementConfigurations,

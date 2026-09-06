@@ -1,19 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { createPublicClientForChain } from "../../config/pimlico";
-import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
-import { STALE_TIME_FAST, STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
-import { tokensKeys } from "../../config/query-keys/tokens";
-import { CELO_G_DOLLAR_TOKEN } from "../../config/tokens";
-import { getGardenerSettlementHistory } from "../../modules/commitment-pooling/data-gardener-settlement";
-import { getGardenerDeliveryEnabled } from "../../modules/commitment-pooling/data-settlement";
-import type { GardenerSettlementReceipt } from "../../modules/commitment-pooling/types-settlement";
-import type { SmartAccountClientResolver } from "../../types/auth";
-import { ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
-import { useOnlineStatus } from "../app/useOnlineStatus";
-import { useUser } from "../auth/useUser";
-import type { SendableTokenBalance } from "../blockchain/useSendableTokens";
-import { useCommitmentMetadata } from "./useCommitmentMetadata";
+import { createPublicClientForChain } from "../../../config/pimlico";
+import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
+import { STALE_TIME_FAST, STALE_TIME_MEDIUM } from "../../../config/query-keys/constants";
+import { tokensKeys } from "../../../config/query-keys/tokens";
+import { CELO_G_DOLLAR_TOKEN } from "../../../config/tokens";
+import { getGardenerSettlementHistory } from "../../../modules/commitment-pooling/data-gardener-settlement";
+import { getGardenerDeliveryEnabled } from "../../../modules/commitment-pooling/data-settlement";
+import type { GardenerSettlementReceipt } from "../../../modules/commitment-pooling/types-settlement";
+import type { SmartAccountClientResolver } from "../../../types/auth";
+import { ERC20_BALANCE_ABI } from "../../../utils/blockchain/abis/erc20";
+import { useOnlineStatus } from "../../app/useOnlineStatus";
+import { useUser } from "../../auth/useUser";
+import type { SendableTokenBalance } from "../../blockchain/useSendableTokens";
+import { useCommitmentMetadata } from "../../commitment-pooling/useCommitmentMetadata";
 
 type CeloWalletReadiness =
   | "loading"

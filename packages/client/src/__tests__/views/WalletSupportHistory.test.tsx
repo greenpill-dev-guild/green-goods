@@ -1,15 +1,15 @@
 /** @vitest-environment jsdom */
-import type { useCeloWallet } from "@green-goods/shared/hooks/commitment-pooling/useSettlementQueries";
+import type { ComponentProps } from "react";
 import en from "@green-goods/shared/i18n/en.json";
 import es from "@green-goods/shared/i18n/es.json";
 import pt from "@green-goods/shared/i18n/pt.json";
 import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
-import { CeloWalletCard } from "../../views/Home/WalletDrawer/Send/CeloWalletCard";
+import { WalletSupportHistory } from "../../views/Home/WalletDrawer/Send/WalletSupportHistory";
 
-type Wallet = ReturnType<typeof useCeloWallet>;
-type Receipt = Wallet["receipts"][number];
+type History = ComponentProps<typeof WalletSupportHistory>;
+type Receipt = History["receipts"][number];
 
 const receipt: Receipt = {
   id: "receipt-1",
@@ -27,41 +27,18 @@ const receipt: Receipt = {
   delivery: { status: "queued" },
   metadataUnavailable: false,
 };
-const wallet: Wallet = {
-  token: {
-    chainId: 42220,
-    symbol: "G$",
-    label: "GoodDollar",
-    address: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
-    decimals: 18,
-    confersGovernance: false,
-    supported: true,
-    balance: 25n * 10n ** 18n,
-    errored: false,
-  },
-  balanceLoading: false,
-  balanceError: null,
-  deliveryEnabled: true,
-  deliveryLoading: false,
-  deliveryError: null,
-  readiness: "ready",
+const history: History = {
   receipts: [receipt],
-  historyLoading: false,
-  historyError: null,
-  canSend: true,
+  decimals: 18,
+  isLoading: false,
+  isError: false,
   isOffline: false,
-  refetch: vi.fn(async () => {}),
+  onRetry: vi.fn(),
 };
-
-function show(overrides: Partial<Wallet> = {}, locale = "en", messages = en) {
+function show(overrides: Partial<History> = {}, locale = "en", messages = en) {
   return render(
     <IntlProvider locale={locale} messages={messages}>
-      <CeloWalletCard
-        wallet={{ ...wallet, ...overrides }}
-        sponsored
-        onSend={vi.fn()}
-        onReceive={vi.fn()}
-      />
+      <WalletSupportHistory {...history} {...overrides} />
     </IntlProvider>
   );
 }
@@ -102,44 +79,32 @@ describe("Celo contributor receipts", () => {
     expect(screen.getByText("5 G$")).toBeInTheDocument();
   });
 
-  it("keeps loaded receipts when history or balance refresh fails", () => {
-    show({ historyError: new Error("unavailable"), balanceError: new Error("unavailable") });
+  it("keeps loaded receipts when history refresh fails", () => {
+    show({ isError: true });
     expect(screen.getByText("Restore the garden beds")).toBeInTheDocument();
     expect(
       screen.getByText(
         "Your support history couldn't refresh. Any receipts already loaded are still shown."
       )
     ).toBeInTheDocument();
-    expect(screen.getByText("25 G$")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Retry Celo wallet" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
   });
 
-  it("keeps balance, account, and history loading visible without showing empty or zero", () => {
-    show({
-      balanceLoading: true,
-      readiness: "loading",
-      deliveryLoading: true,
-      historyLoading: true,
-      receipts: [],
-      token: { ...wallet.token, balance: null },
-      canSend: false,
-    });
-    expect(screen.getAllByText("Checking your Celo wallet…")).toHaveLength(2);
+  it("keeps history loading visible without claiming it is empty", () => {
+    show({ isLoading: true, receipts: [] });
     expect(screen.getByText("Loading your support history…")).toBeInTheDocument();
-    expect(screen.queryByText("0 G$")).not.toBeInTheDocument();
     expect(
       screen.queryByText("Support sent to you by gardens will appear here.")
     ).not.toBeInTheDocument();
   });
 
   it.each([
-    ["en", en, "Receive G$ on Celo", "Recent support"],
-    ["es", es, "Recibir G$ en Celo", "Apoyo reciente"],
-    ["pt", pt, "Receber G$ na Celo", "Apoio recente"],
-  ])("renders translated controls and complete Celo copy in %s", (locale, messages, receive, history) => {
+    ["en", en, "Recent support"],
+    ["es", es, "Apoyo reciente"],
+    ["pt", pt, "Apoio recente"],
+  ])("renders translated controls and complete Celo copy in %s", (locale, messages, title) => {
     show({}, locale as string, messages as typeof en);
-    expect(screen.getByRole("button", { name: receive as string })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: history as string })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: title as string })).toBeInTheDocument();
     for (const key of Object.keys(en).filter((id) => id.startsWith("app.celoWallet."))) {
       expect((messages as Record<string, string>)[key]).toBeTruthy();
     }

@@ -39,12 +39,13 @@ const TEST_CALL = createMockContractCall({ chainId: undefined });
 
 describe("PasskeySender", () => {
   let sender: PasskeySender;
-  let mockSendTransaction: ReturnType<typeof createFakeSmartAccountClient>["sendTransaction"];
+  let client: ReturnType<typeof createFakeSmartAccountClient>;
+  let mockSendUserOperation: ReturnType<typeof createFakeSmartAccountClient>["sendUserOperation"];
 
   beforeEach(() => {
     vi.clearAllMocks();
-    const client = createFakeSmartAccountClient();
-    mockSendTransaction = client.sendTransaction;
+    client = createFakeSmartAccountClient();
+    mockSendUserOperation = client.sendUserOperation;
     sender = new PasskeySender(client);
   });
 
@@ -63,21 +64,25 @@ describe("PasskeySender", () => {
   });
 
   describe("sendContractCall", () => {
-    it("sends transaction via smartAccountClient.sendTransaction", async () => {
+    it("sends transaction via smartAccountClient.sendUserOperation", async () => {
       const result = await sender.sendContractCall(TEST_CALL);
 
       expect(result.hash).toBe(MOCK_TX_HASH);
       expect(result.sponsored).toBe(true);
-      expect(mockSendTransaction).toHaveBeenCalledOnce();
+      expect(mockSendUserOperation).toHaveBeenCalledOnce();
+      expect(client.waitForUserOperationReceipt).toHaveBeenCalledWith({
+        hash: await mockSendUserOperation.mock.results[0].value,
+      });
+      expect(client.sendTransaction).not.toHaveBeenCalled();
     });
 
     it("encodes function data and passes correct parameters", async () => {
       await sender.sendContractCall(TEST_CALL);
 
-      const sendTxArgs = mockSendTransaction.mock.calls[0][0] as {
-        to: string;
-        value: bigint;
-        data: string;
+      const {
+        calls: [sendTxArgs],
+      } = mockSendUserOperation.mock.calls[0][0] as {
+        calls: { to: string; value: bigint; data: string }[];
       };
       expect(sendTxArgs.to).toBe(TEST_CALL.address);
       expect(sendTxArgs.value).toBe(0n);
@@ -92,12 +97,16 @@ describe("PasskeySender", () => {
       };
       await sender.sendContractCall(callWithValue);
 
-      const sendTxArgs = mockSendTransaction.mock.calls[0][0] as { value: bigint };
+      const {
+        calls: [sendTxArgs],
+      } = mockSendUserOperation.mock.calls[0][0] as {
+        calls: { value: bigint }[];
+      };
       expect(sendTxArgs.value).toBe(1000000n);
     });
 
-    it("propagates errors from sendTransaction", async () => {
-      mockSendTransaction.mockRejectedValueOnce(new Error("UserOp failed"));
+    it("propagates errors from sendUserOperation", async () => {
+      mockSendUserOperation.mockRejectedValueOnce(new Error("UserOp failed"));
 
       await expect(sender.sendContractCall(TEST_CALL)).rejects.toThrow("UserOp failed");
     });
@@ -107,14 +116,23 @@ describe("PasskeySender", () => {
     it("sends multiple calls sequentially and returns the last hash", async () => {
       const hash1 = `0x${"a".repeat(64)}` as `0x${string}`;
       const hash2 = `0x${"b".repeat(64)}` as `0x${string}`;
-      mockSendTransaction.mockResolvedValueOnce(hash1).mockResolvedValueOnce(hash2);
+      const receipt = await client.waitForUserOperationReceipt({ hash: `0x${"d".repeat(64)}` });
+      client.waitForUserOperationReceipt
+        .mockResolvedValueOnce({
+          ...receipt,
+          receipt: { ...receipt.receipt, transactionHash: hash1 },
+        })
+        .mockResolvedValueOnce({
+          ...receipt,
+          receipt: { ...receipt.receipt, transactionHash: hash2 },
+        });
 
       const calls: ContractCall[] = [TEST_CALL, { ...TEST_CALL, args: [VALID_RECIPIENT, 2000n] }];
       const result = await sender.sendBatch(calls);
 
       expect(result.hash).toBe(hash2);
       expect(result.sponsored).toBe(true);
-      expect(mockSendTransaction).toHaveBeenCalledTimes(2);
+      expect(mockSendUserOperation).toHaveBeenCalledTimes(2);
     });
 
     it("throws on empty batch", async () => {
@@ -124,13 +142,57 @@ describe("PasskeySender", () => {
 });
 
 describe("passkey chain routing", () => {
+  it.each([
+    "userOpHash",
+    "sender",
+  ] as const)("rejects a receipt for a different %s", async (field) => {
+    const client = createFakeSmartAccountClient();
+    const hash = await client.sendUserOperation({ account: client.account!, calls: [] });
+    const receipt = await client.waitForUserOperationReceipt({ hash });
+    client.waitForUserOperationReceipt.mockResolvedValue({
+      ...receipt,
+      [field]: field === "sender" ? VALID_RECIPIENT : MOCK_TX_HASH,
+    });
+    await expect(new PasskeySender(client).sendContractCall(TEST_CALL)).rejects.toThrow(
+      "UserOperation receipt does not match"
+    );
+  });
+
+  it("propagates receipt failures without resubmitting", async () => {
+    const client = createFakeSmartAccountClient();
+    client.waitForUserOperationReceipt.mockRejectedValue(new Error("receipt unavailable"));
+    await expect(new PasskeySender(client).sendContractCall(TEST_CALL)).rejects.toThrow(
+      "receipt unavailable"
+    );
+    expect(client.sendUserOperation).toHaveBeenCalledOnce();
+  });
+
+  it("stops a sequential batch at a failed UserOperation", async () => {
+    const client = createFakeSmartAccountClient();
+    const receipt = await client.waitForUserOperationReceipt({ hash: MOCK_TX_HASH });
+    client.waitForUserOperationReceipt.mockResolvedValue({ ...receipt, success: false });
+    await expect(new PasskeySender(client).sendBatch([TEST_CALL, TEST_CALL])).rejects.toThrow(
+      "Transaction reverted on-chain"
+    );
+    expect(client.sendUserOperation).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a failed UserOperation inside a successful outer transaction", async () => {
+    const client = createFakeSmartAccountClient();
+    const receipt = await client.waitForUserOperationReceipt({ hash: MOCK_TX_HASH });
+    client.waitForUserOperationReceipt.mockResolvedValue({ ...receipt, success: false });
+    await expect(new PasskeySender(client).sendContractCall(TEST_CALL)).rejects.toThrow(
+      "Transaction reverted on-chain"
+    );
+  });
+
   it("rejects a quoted account that differs from the passkey account", async () => {
     const primary = createFakeSmartAccountClient();
     const sender = new PasskeySender(primary);
     await expect(
       sender.sendContractCall({ ...TEST_CALL, account: VALID_RECIPIENT })
     ).rejects.toMatchObject({ code: "address_mismatch" });
-    expect(primary.sendTransaction).not.toHaveBeenCalled();
+    expect(primary.sendUserOperation).not.toHaveBeenCalled();
   });
 
   it("blocks an in-flight send when sign-out occurs after client resolution", async () => {
@@ -153,7 +215,7 @@ describe("passkey chain routing", () => {
     await Promise.resolve();
     invalidateSmartAccountClientResolver(resolveSmartAccountClient);
     await expect(pending).rejects.toMatchObject({ code: "session_expired" });
-    expect(primary.sendTransaction).not.toHaveBeenCalled();
+    expect(primary.sendUserOperation).not.toHaveBeenCalled();
   });
 
   it("resolves explicitly requested Celo without submitting on the primary chain", async () => {
@@ -163,9 +225,9 @@ describe("passkey chain routing", () => {
     const sender = new PasskeySender(primary, { resolveSmartAccountClient });
     await sender.sendContractCall({ ...TEST_CALL, chainId: 42220 });
     expect(resolveSmartAccountClient).toHaveBeenCalledWith(42220);
-    expect(primary.sendTransaction).not.toHaveBeenCalled();
-    expect(celo.sendTransaction).toHaveBeenCalledWith(
-      expect.objectContaining({ chain: celo.chain, account: celo.account })
+    expect(primary.sendUserOperation).not.toHaveBeenCalled();
+    expect(celo.sendUserOperation).toHaveBeenCalledWith(
+      expect.objectContaining({ account: celo.account, calls: expect.any(Array) })
     );
   });
 
@@ -175,7 +237,7 @@ describe("passkey chain routing", () => {
     await expect(
       sender.sendContractCall({ ...TEST_CALL, chainId: primary.chain!.id })
     ).rejects.toMatchObject({ code: "resolver_unavailable" });
-    expect(primary.sendTransaction).not.toHaveBeenCalled();
+    expect(primary.sendUserOperation).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -190,8 +252,8 @@ describe("passkey chain routing", () => {
     await expect(sender.sendContractCall({ ...TEST_CALL, chainId: 42220 })).rejects.toMatchObject({
       code,
     });
-    expect(primary.sendTransaction).not.toHaveBeenCalled();
-    expect(client.sendTransaction).not.toHaveBeenCalled();
+    expect(primary.sendUserOperation).not.toHaveBeenCalled();
+    expect(client.sendUserOperation).not.toHaveBeenCalled();
   });
 
   it("uses the primary chain for calls without a chain ID", async () => {
@@ -199,6 +261,6 @@ describe("passkey chain routing", () => {
     const resolveSmartAccountClient = vi.fn().mockResolvedValue(primary);
     await new PasskeySender(primary, { resolveSmartAccountClient }).sendContractCall(TEST_CALL);
     expect(resolveSmartAccountClient).toHaveBeenCalledWith(primary.chain!.id);
-    expect(primary.sendTransaction).toHaveBeenCalledOnce();
+    expect(primary.sendUserOperation).toHaveBeenCalledOnce();
   });
 });

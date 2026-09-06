@@ -1,9 +1,10 @@
-import type { useSendFlowController } from "@green-goods/shared/hooks/client-ui/wallet/useSendFlowController";
+import type { GoodDollarFeeQuote } from "@green-goods/shared/modules/wallet/good-dollar-fees";
+import { Button } from "@/components/Actions/Button";
 import { formatUnits } from "viem";
 import { RiErrorWarningLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
-export function FeeSummary({
+export function GoodDollarFeeSummary({
   quote,
   decimals,
   loading,
@@ -14,7 +15,7 @@ export function FeeSummary({
   onRetry,
   isOnline,
 }: {
-  quote: ReturnType<typeof useSendFlowController>["feeQuote"];
+  quote: GoodDollarFeeQuote | undefined;
   decimals: number;
   loading: boolean;
   error: boolean;
@@ -68,14 +69,14 @@ export function FeeSummary({
         ) : null}
       </div>
       {error ? (
-        <button
+        <Button
           type="button"
+          variant="neutral"
+          mode="stroke"
           onClick={onRetry}
           disabled={!isOnline}
-          className="min-h-11 rounded-md border border-stroke-sub-300 px-3 py-2 font-medium text-text-sub-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base disabled:opacity-60"
-        >
-          {formatMessage({ id: "app.celoWallet.fee.retry" })}
-        </button>
+          label={formatMessage({ id: "app.celoWallet.fee.retry" })}
+        />
       ) : null}
       <p className="text-text-sub-600">
         {formatMessage({

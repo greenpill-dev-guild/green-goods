@@ -2,8 +2,8 @@
  * Passkey Transaction Sender
  *
  * Sends transactions via a SmartAccountClient (Pimlico bundler).
- * UserOps are gas-sponsored by default. The bundler waits for
- * UserOp inclusion, so the returned hash is confirmed on-chain.
+ * UserOps are gas-sponsored by default. Return the included transaction
+ * hash only after the matching UserOperation executes successfully.
  *
  * @module modules/transactions/passkey-sender
  */
@@ -20,7 +20,7 @@ import { logger } from "../app/logger";
 import { assertLocalArbitrumForkSmartAccountsDisabled } from "./local-fork-safety";
 import type { ContractCall, TransactionSender, TxResult } from "./types";
 
-export interface PasskeySenderDeps {
+interface PasskeySenderDeps {
   resolveSmartAccountClient?: SmartAccountClientResolver | null;
   assertWriteSafety?: () => Promise<void>;
 }
@@ -63,13 +63,23 @@ export class PasskeySender implements TransactionSender {
     });
 
     assertSmartAccountClientResolverActive(this.deps.resolveSmartAccountClient);
-    const hash = await client.sendTransaction({
+    const userOpHash = await client.sendUserOperation({
       account: client.account!,
-      chain: client.chain,
-      to: call.address,
-      value: call.value ?? 0n,
-      data,
+      calls: [{ to: call.address, value: call.value ?? 0n, data }],
     });
+    // sendTransaction discards UserOperation.success in the installed SDK.
+    // A successful EntryPoint transaction can contain a reverted operation.
+    const operation = await client.waitForUserOperationReceipt({ hash: userOpHash });
+    if (operation.success !== true || operation.receipt.status !== "success") {
+      throw new Error("Transaction reverted on-chain");
+    }
+    if (
+      operation.userOpHash.toLowerCase() !== userOpHash.toLowerCase() ||
+      operation.sender.toLowerCase() !== client.account!.address.toLowerCase()
+    ) {
+      throw new Error("UserOperation receipt does not match the submitted operation");
+    }
+    const hash = operation.receipt.transactionHash;
 
     logger.debug("Passkey transaction sent", {
       source: "PasskeySender",
@@ -86,8 +96,7 @@ export class PasskeySender implements TransactionSender {
       throw new Error("Cannot send empty batch");
     }
 
-    // TODO: When permissionless supports sendUserOperation with multiple calls,
-    // use that for atomic batching. For now, send calls sequentially.
+    // This adapter's existing batch contract is sequential, not atomic.
     let lastResult: TxResult | null = null;
     for (const call of calls) {
       lastResult = await this.sendContractCall(call);

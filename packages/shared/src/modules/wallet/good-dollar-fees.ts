@@ -2,7 +2,7 @@ import { maxUint256 } from "viem";
 import { createPublicClientForChain } from "../../config/pimlico";
 import { CELO_G_DOLLAR_TOKEN } from "../../config/tokens";
 import type { Address } from "../../types/domain";
-import { GOOD_DOLLAR_ABI } from "../commitment-pooling/data-pool-funding-chain-support";
+import { GOOD_DOLLAR_ABI } from "../../utils/blockchain/abis/goodDollar";
 
 export interface GoodDollarFeeQuote {
   amount: bigint;

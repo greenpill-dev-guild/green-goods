@@ -546,3 +546,65 @@ proof comes from the mined receipt instead.
 ## Gardener Celo wallets — reopened 2026-09-05
 
 The approved W23 wallet extension and its fresh proof live in [the wallet handoff](codex-gardener-celo-wallets.md). Earlier dated evidence remains historical.
+
+### Gardener wallet setup follow-up
+
+[The QA and setup checklist](../gardener-celo-launch.md) contains the read-only policy/preflight/
+receipt helper and manual Pimlico settings. Production activation remains pending. Two prerequisites
+need explicit implementation and proof: a Kernel-aware sponsorship request guard (hosted policy
+limits alone do not constrain G$ calldata), and an operator passkey canary path while the public
+WalletDrawer delivery gate is false. This follow-up does not change the public gate or authorize
+any broadcast. The original shipping-app canary sequence must account for that gate before use.
+
+### Community transfer policy — selected network scope
+
+The user selected a direct community pilot for DAI/USDC/WETH on Arbitrum One and G$ on Celo.
+[The updated setup guide](../gardener-celo-launch.md) and policy generator use one two-chain
+policy with exact chain/token pairs, community recipient requirements, 5/account/day and
+200/global/day proposed limits, and explicit per-operation/daily USD inputs. The separate
+one-operation canary policy and canary-derived initial budget are superseded. First-transfer
+proof can use the same community policy; this does not authorize a production broadcast.
+
+The new policy must be selected only for the scoped token transfers; the app's general Arbitrum
+sponsorship also serves other actions and must not be replaced wholesale. Guard implementation,
+recipient eligibility, runtime policy routing, gas ceilings and browser proof remain pending.
+
+Local preparation proof, 2026-09-06 04:40 UTC, uncommitted working tree based on `1b842c740`:
+`node --test .plans/active/commitment-pooling/gardener-celo-setup.test.mjs` first reproduced three
+policy failures with the older generator (24 passed/3 failed), then passed all 27 tests after the
+update. The direct Bun CLI generated exactly four chain-bound allowed token contracts with explicit
+USD limits; the retired `--phase canary` flag was rejected. Plan Hub validation passed for 31 hubs.
+The `qa`/`sensitive` selector for the four local setup/handoff paths selected format and lint;
+`ci-local.js` with that same scope passed, but these configured checks processed zero `.plans`
+files and do not prove runtime behavior. Direct tests supply the helper's behavior proof. No
+browser, live sponsorship or network transaction evidence is claimed by this local receipt.
+
+### Review fixes — 2026-09-06
+
+Working-copy proof on `feature/gardener-celo-wallets`, based on `1b842c740`; these fixes are
+uncommitted. Sponsorship configuration and activation remain explicitly deferred.
+
+The passkey sender now waits for the submitted UserOperation and requires its success, matching
+hash/account, and a successful outer receipt. Failed execution cannot return a success result;
+receipt errors do not resubmit, and a failed sequential call stops the batch. The regression
+first reproduced the old false-success result, then passed with the shared adapter fix.
+
+The setup helper now verifies Kernel's deployment-chain and cached EIP-712 domain constants
+before comparing the remaining code. Raw hashes remain in the evidence. Tests reject wrong,
+duplicate, swapped, and unrelated bytecode changes. Fresh public reads at Arbitrum block
+502244351 / Celo block 76772749 passed all preflight checks except funding; delivery remains
+disabled. This is public read evidence, not signing or transfer proof.
+
+The Admin CI artifact showed React boot/router hydration, with its lazy import still pending
+when the five-second auth assertion expired. The existing Admin page helper now waits for a
+visible main region, and the initial auth test uses it. Authenticated-profile Brave rendered
+the expected connect heading/button for both `/hub` and `/hub?mockAuth=disconnected`. The
+updated Playwright suite still needs GitHub CI; no isolated local browser was substituted.
+
+The `qa` selector for the changed paths passed its format/lint, Shared source/test typechecks,
+focused sender/hook tests (63 passed, four existing skips), Client (1,068), Admin (847), and
+Agent typecheck/tests (311 plus nine SQLite tests). Additional direct proof passed Work command/
+provider consumers (48), `node --test .plans/active/commitment-pooling/gardener-celo-setup.test.mjs`
+(30), test-quality, and the selected guidance checks. The conformance evidence fingerprint was
+refreshed without adding a registry entry or exception. Final Shared typecheck and diff checks
+passed at 05:46 UTC. Passkey possession/recovery and actual transfer proof remain outstanding.

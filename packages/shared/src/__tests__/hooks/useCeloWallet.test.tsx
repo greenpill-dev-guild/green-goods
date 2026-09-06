@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useCeloWallet } from "../../hooks/commitment-pooling/useCeloWallet";
+import { useCeloWallet } from "../../hooks/client-ui/wallet/useCeloWallet";
 import { createTestQueryClient, renderHookWithProviders } from "../test-utils";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { tokensKeys } from "../../config/query-keys/tokens";

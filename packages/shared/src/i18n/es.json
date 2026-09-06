@@ -2817,6 +2817,7 @@
   "app.proof.review.queues": "Al añadirla, la prueba queda en cola en este teléfono y vuelves al compromiso. Se envía cuando haya conexión.",
   "app.proof.submit": "Añadir esta prueba",
   "app.proof.title": "Añadir prueba",
+  "app.receive.network": "Red",
   "app.receive.instruction": "Muestra este código o comparte tu dirección para recibir tokens.",
   "app.receive.qrLabel": "Código QR de tu billetera",
   "app.receive.unavailable": "Conecta tu billetera para recibir tokens.",
