@@ -179,7 +179,7 @@ ID, tester, and verdict, before assigning dispositions or clustering.
 
 | Disposition | What it is | Where it lands |
 | --- | --- | --- |
-| `defect` | The product does not do what the case expects | A slice, or an existing tracked Issue |
+| `defect` | The product does not do what the case expects | A slice, or an existing tracked Issue — always one or the other, whatever the session's slice cap |
 | `polish` | It works but looks or reads wrong; it may sit beside a Pass verdict | A slice at Low priority regardless of case priority, clustered by seam: `Todo` when at least one member entry was recorded inside the session window (a pass with a note counts), `Backlog` when reconstructed from notes alone |
 | `decision` | Needs a product or design ruling before a fix is honest (limits, copy direction, flow choices) | The parent's `Decisions needed` section plus the session's single decisions child |
 | `investigate` | A symptom whose cause or intent is unknown; not fixable until someone looks | A `Not sliced · investigate` line in the parent; a slice only after the look |

@@ -73,10 +73,14 @@ Phase 3b dedupe catches the other's records if both ran.
   workspace is removed, so cleanup cannot lose it. A note that says "major regression", "major blocker", or "completely
   broken" proposes Urgent for its cluster; the priority stays derived until the gate confirms.
 - **Phases 3-5** — `defect` and `polish` observations cluster into slices: same catalog area +
-  same suspected seam, split past 3 Test IDs or a package boundary, ordered by priority. The
-  default cap is 8 slices; the gate may raise it when the week's fixing capacity matches (12 on
-  2026-09-04) — record the cap used in the parent's Slices intro and name overflow in
-  `Not sliced`. Standing fail/blocked entries **outside** the window are never slices by default;
+  same suspected seam, split past 3 Test IDs or a package boundary, ordered by priority. **Every
+  `defect` and `polish` cluster is filed as a slice.** The cap orders the queue, it does not decide
+  what exists: the first N clusters by priority propose `Todo`, and everything past N is filed all
+  the same at `Backlog`, so a finding a tester recorded always has a work item someone can pick
+  up. The default cap is 8; the gate may raise it when the week's fixing capacity matches (12 on
+  2026-09-04). Record the cap used in the parent's Slices intro and mark the overflow slices
+  `Backlog`. A recorded cluster never becomes a `Not sliced` line — that list holds only items no
+  fix could be verified against. Standing fail/blocked entries **outside** the window are never slices by default;
   the gate may accept ones that were never filed (no open Issue carries their Test ID), and such a
   slice opens with `Standing since <date>.` and is listed that way in the parent. `decision`
   observations become the parent's `Decisions needed` section plus one child issue

@@ -223,9 +223,11 @@ Slice cap <N> this session.
   accepted as a slice — one line>
 
 ## Not sliced
-- <note-only follow-ups, anything past the slice cap, and `[derived:telemetry]`
-  uncorrelated window errors (testers or ordinary production traffic — the
-  telemetry has no tester predicate) — one line each>
+- <note-only follow-ups (no Test ID, so no fix could be verified against them)
+  and `[derived:telemetry]` uncorrelated window errors (testers or ordinary
+  production traffic — the telemetry has no tester predicate) — one line each.
+  A defect or polish cluster a tester recorded never appears here: it is a
+  slice, `Backlog` when it fell past the cap>
 - investigate: <a symptom whose cause or intent is unknown — one line; a slice
   only after someone looks>
 - environment: <behaviour caused by the harness or environment, not the product —

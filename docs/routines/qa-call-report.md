@@ -165,8 +165,11 @@ not product work.
    cluster whose root cause sits in shared code is ONE slice on the shared package. Each slice
    states where it can be verified — `local`, `device`, or `production`, from its cases'
    `requiresDevice` and `requiresProduction` flags — so a fix session takes `local` first.
-4. Cap **8 slices**, ordered by highest member priority; overflow findings are listed in the
-   parent's "Not sliced" section, not silently dropped. Standing fail/blocked entries outside the
+4. Order clusters by highest member priority and file **every** `defect` and `polish` cluster as
+   a slice. The cap of **8** governs the queue, not what exists: the first eight propose `Todo`,
+   and every cluster past eight is filed at `Backlog`, so nothing a tester recorded is left as
+   prose for a human to notice later. Say in the parent's Slices intro how many landed `Todo` and
+   how many `Backlog`. Standing fail/blocked entries outside the
    window are never slices unattended; those with no open Issue carrying their Test ID are listed
    in `Not sliced` as `standing since <date>` lines for a human to promote at the desk.
 
