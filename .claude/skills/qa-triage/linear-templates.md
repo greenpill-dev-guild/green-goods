@@ -214,16 +214,16 @@ Full report: [QA session YYYY-MM-DD · full report](<linear-document-url>)
 - <a product or design ruling the testing surfaced but nobody has made — one line each, with the Test IDs it blocks; mirrored in the session's decisions child (§ Product decisions child) — drop the section when none>
 
 ## Slices
-Slice cap <N> this session.
+Todo queue budget <N> this session: <T> Todo, <B> Backlog. Every accepted cluster is tracked.
 - <one line per slice: what it covers and its Test IDs — Linear renders the
-  sub-issue links; this list gives the reading order and the overflow context>
+  sub-issue links; include its priority and Todo/Backlog state, in queue order>
 - already tracked: <PRD-NNN> — <one line> (an existing open Issue, related to
   this parent so the fix queue still sees it)
 - standing since <date>: <a never-filed fail from an earlier walk that the gate
   accepted as a slice — one line>
 
 ## Not sliced
-- <note-only follow-ups, anything past the slice cap, and `[derived:telemetry]`
+- <note-only follow-ups without an exact Test ID, and `[derived:telemetry]`
   uncorrelated window errors (testers or ordinary production traffic — the
   telemetry has no tester predicate) — one line each>
 - investigate: <a symptom whose cause or intent is unknown — one line; a slice
@@ -341,7 +341,7 @@ link carries no session or replay identifier. Replay URLs, session IDs, and dist
 reach Linear; the parent's recipe line points a human at the recordings view instead. A slice the
 gate accepted from standing state opens its body with `Standing since <date>.`
 
-**State + priority**: verdict-backed (a tester recorded fail/blocked in the QA app during the
+**State + priority (before the Todo queue budget)**: verdict-backed (a tester recorded fail/blocked in the QA app during the
 session window, exact Test IDs) → `Todo`; priority High for a P0-case fail, Medium for P1, Low
 otherwise — Urgent only when the call flagged it release-blocking, or when a tester's note proposed
 it and the gate confirmed. A `polish` slice lands Low whatever its cases' priority: `Todo` when at
@@ -352,6 +352,12 @@ re-judges it at take-up, and Sheet severity stays independently assigned
 (`.claude/context/qa.md` § Verdict and severity rules). Reconstructed from meeting notes alone
 (no app verdict) → `Backlog`, priority unset. **Labels**: the parent set plus ONE `package:*` for the slice's
 primary surface (secondary packages named in the prose, as always).
+
+**Queue budget**: file every accepted defect and polish cluster, or link its existing tracked
+Issue. The first N Todo-eligible slices by priority land in `Todo`; every remaining slice lands in
+`Backlog` with its derived priority unchanged. N defaults to 8 and may be raised at the interactive
+gate. A slice already assigned `Backlog` by the rules above stays there even when Todo slots remain.
+List all slices under `Slices`; `Not sliced` never holds overflow.
 
 ---
 
@@ -421,5 +427,8 @@ Linear's API constraint that Customer Needs must link to an Issue eliminates the
 | Catalog feedback (call report) | Never a slice — `tmp/qa-triage/<slug>/catalog-feedback.md` (skill), copied de-attributed into the catalog-owning plan hub at close, or one `Catalog feedback` comment on the parent (routine) | — | No |
 | Environment finding (call report) | One `environment:` line under the parent's `Not sliced`; never a slice | — | No |
 | Never-filed standing fail accepted at the gate (call report) | QA slice sub-issue opening with `Standing since <date>.` | `Todo` + derived priority | No |
+
+The call-report states above are subject to the QA slice's Todo queue budget; overflow lands in
+`Backlog`, with priority unchanged.
 
 The default for ambiguous items is **track-only** — create a Customer Need linked to a lightweight Backlog tracking Issue. The Issue exists only because Linear requires a link target; it is not committed work until a human promotes it.
