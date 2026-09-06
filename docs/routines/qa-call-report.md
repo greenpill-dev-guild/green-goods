@@ -165,10 +165,16 @@ not product work.
    cluster whose root cause sits in shared code is ONE slice on the shared package. Each slice
    states where it can be verified — `local`, `device`, or `production`, from its cases'
    `requiresDevice` and `requiresProduction` flags — so a fix session takes `local` first.
-4. Cap **8 slices**, ordered by highest member priority; overflow findings are listed in the
-   parent's "Not sliced" section, not silently dropped. Standing fail/blocked entries outside the
-   window are never slices unattended; those with no open Issue carrying their Test ID are listed
-   in `Not sliced` as `standing since <date>` lines for a human to promote at the desk.
+4. Use a **Todo queue budget of 8**, not a limit on filing. File every defect and polish cluster
+   admitted by the join and session-window rules, or link its existing tracked Issue. Derive state
+   and priority from the QA slice template, then put the first 8 Todo-eligible slices by priority
+   in `Todo` and every remaining slice in `Backlog`, keeping its derived priority. Record the
+   budget and the Todo/Backlog split in the parent's Slices intro and list all slices there;
+   overflow never goes in `Not sliced`. That section holds note-only follow-ups without an exact
+   Test ID and uncorrelated telemetry, alongside investigate and environment lines; catalog
+   feedback keeps its separate disposition. Standing fail/blocked entries outside the window
+   remain standing-state context (Phase 2), never slices unattended; a human may accept never-filed
+   findings at the desk.
 
 ## Phase 4: Enrich from the product (non-blocking)
 
@@ -282,6 +288,8 @@ exposure: redact in place and fail loud in the Discord summary.
 4. **Then each slice** as a sub-issue via `parentId`, body per the § QA slice template (problem
    cluster in prose with Test IDs and verdicts, "Where to start" map, "Done when" = the Test IDs
    re-record as pass, fix-posture pointer, validation command, source line).
+   Derive state and priority below, then apply Phase 3's Todo queue budget before writing: overflow
+   is `Backlog` at the same priority, and every admitted cluster gets a slice or existing Issue.
    - **Verdict-backed** (a tester recorded fail/blocked in the app **during the session
      window**): `Todo`; priority High for a P0-case fail, Medium for P1, Low otherwise — Urgent
      only when the call notes flag it release-blocking. A tester's own note calling it a major
@@ -317,7 +325,7 @@ filed, the admin review pair is the one to take first."}
 
 {Top slices — up to 3, one line each:} - **{slice title}** · {priority} → <{linear-url}>
 
-Report: <{parent-url}> · {N} slices ({T} Todo · {B} Backlog){if overflow: " · {M} findings not sliced"}
+Report: <{parent-url}> · {N} slices ({T} Todo · {B} Backlog){if not_sliced: " · {M} follow-ups not sliced"}
 {if any_failure: "⚠ {short failure list}"}
 ```
 
