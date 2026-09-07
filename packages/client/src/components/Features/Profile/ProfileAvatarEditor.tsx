@@ -172,23 +172,16 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
             <img src={previewSrc} alt="" className="h-20 w-20 rounded-full object-cover" />
-            <div className="min-w-0 flex-1">
-              {hasUnpublishedDraft ? (
+            {hasUnpublishedDraft ? (
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-text-strong" aria-live="polite">
                   {formatMessage({
                     id: "profile.avatar.unpublishedDraft",
                     defaultMessage: "This draft photo has not been published.",
                   })}
                 </p>
-              ) : (
-                <p className="text-sm text-text-sub">
-                  {formatMessage({
-                    id: "profile.avatar.chooseFile",
-                    defaultMessage: "Choose Photo",
-                  })}
-                </p>
-              )}
-            </div>
+              </div>
+            ) : null}
           </div>
 
           <label
@@ -201,10 +194,6 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
               accept="image/jpeg,image/png,image/webp"
               aria-invalid={Boolean(displayedError) || undefined}
               aria-describedby={displayedError ? `${inputId}-error` : undefined}
-              aria-label={formatMessage({
-                id: "profile.avatar.chooseFile",
-                defaultMessage: "Choose Photo",
-              })}
               className="sr-only"
               onChange={(event) => {
                 const file = event.currentTarget.files?.[0] ?? null;

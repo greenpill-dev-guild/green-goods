@@ -106,6 +106,8 @@ describe("ProfileAvatarEditor", () => {
 
     await user.click(screen.getByRole("button", { name: /edit profile photo/i }));
     const input = screen.getByLabelText(/choose photo/i) as HTMLInputElement;
+    expect(screen.getAllByText(/choose photo/i)).toHaveLength(1);
+    expect(input.closest("label")).toHaveTextContent("Choose Photo");
     const file = new File(["image"], "profile.webp", { type: "image/webp" });
     await user.upload(input, file);
 
@@ -275,8 +277,12 @@ describe("ProfileAvatarEditor", () => {
       new File(["image"], "new.webp", { type: "image/webp" })
     );
     await user.click(screen.getByRole("button", { name: /replace photo/i }));
-    expect(await screen.findByRole("alert")).toBeVisible();
-    expect(screen.getByRole("button", { name: /continue/i })).toBeVisible();
+    expect(await screen.findByRole("alert")).toHaveTextContent(/please try again/i);
+    expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled();
+    expect(screen.getByRole("img", { name: /profile photo/i })).toHaveAttribute(
+      "src",
+      "https://cdn.example/avatar.webp"
+    );
   });
 
   it("announces shared draft restoration errors", async () => {
