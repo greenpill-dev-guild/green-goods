@@ -3641,6 +3641,34 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-journey-mode-2026-09-02"
+    },
+    {
+      "id": "PWA-051",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "resilience",
+      "area": "Offline Startup",
+      "scenario": "First-load connectivity loss: accurate offline state and automatic reconnect recovery",
+      "preconditions": [
+        "Authenticated session with existing local app data preserved",
+        "Network interruption can be scoped to the QA tab",
+        "AppShell import is not yet complete"
+      ],
+      "steps": [
+        "Reload the PWA and take only the QA tab offline before the AppShell module finishes loading",
+        "Capture the failed AppShell request and the visible startup state",
+        "Restore the QA tab's connectivity and wait for automatic recovery",
+        "Repeat with the retried module load still failing, then load normally online",
+        "Exercise a genuine stale-build chunk failure separately"
+      ],
+      "expected": "Connectivity loss shows the offline state instead of the update prompt; reconnect reloads once and reaches the authenticated app without losing local data; another failed load stops on a usable fallback; normal startup and stale-build recovery remain intact; repeated connectivity changes add no reload loop or duplicate listener",
+      "evidence": "Offline and recovered screenshots, failed request, reload count, and authentication/local-data continuity note",
+      "role": "gardener",
+      "tags": ["offline", "startup", "recovery", "update"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-888"
     }
   ]
 }

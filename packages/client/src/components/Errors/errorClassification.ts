@@ -1,5 +1,7 @@
 export type ErrorCategory = "chunk" | "loop" | "network" | "offline" | "unknown";
 
+export const CHUNK_RELOAD_SESSION_KEY = "gg-chunk-reload";
+
 const CHUNK_ERROR_PATTERNS = [
   /chunkloaderror/i,
   /loading chunk\s+\S+\s+failed/i,
@@ -25,13 +27,49 @@ const NETWORK_ERROR_MESSAGES = [
 
 const OFFLINE_ERROR_MESSAGES = ["offline", "job_queue", "sync", "indexeddb"];
 
+export function isChunkLoadErrorMessage(rawMessage: string): boolean {
+  return CHUNK_ERROR_PATTERNS.some((pattern) => pattern.test(rawMessage));
+}
+
+function getSessionStorage(): Storage | undefined {
+  try {
+    return typeof window === "undefined" ? undefined : window.sessionStorage;
+  } catch {
+    return undefined;
+  }
+}
+
+export function hasChunkReloadAttempt(): boolean {
+  try {
+    return getSessionStorage()?.getItem(CHUNK_RELOAD_SESSION_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function markChunkReloadAttempt(): void {
+  try {
+    getSessionStorage()?.setItem(CHUNK_RELOAD_SESSION_KEY, "1");
+  } catch {
+    // Recovery remains best-effort when session storage is unavailable.
+  }
+}
+
+export function clearChunkReloadAttempt(): void {
+  try {
+    getSessionStorage()?.removeItem(CHUNK_RELOAD_SESSION_KEY);
+  } catch {
+    // Recovery remains best-effort when session storage is unavailable.
+  }
+}
+
 /** Classifies boundary failures without treating offline chunk misses as stale deploys. */
 export function classifyErrorMessage(
   rawMessage: string,
   isOnline = typeof navigator === "undefined" || navigator.onLine !== false
 ): ErrorCategory {
   const message = rawMessage.toLowerCase();
-  if (CHUNK_ERROR_PATTERNS.some((pattern) => pattern.test(message))) {
+  if (isChunkLoadErrorMessage(message)) {
     return isOnline ? "chunk" : "offline";
   }
   if (LOOP_ERROR_PATTERNS.some((pattern) => pattern.test(message))) return "loop";

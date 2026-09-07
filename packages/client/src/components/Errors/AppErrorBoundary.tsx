@@ -17,9 +17,14 @@ import {
   type ErrorBoundaryMessages as Messages,
   loadErrorBoundaryMessages,
 } from "./messages";
-import { classifyErrorMessage, type ErrorCategory } from "./errorClassification";
-
-const CHUNK_RELOAD_SESSION_KEY = "gg-eb-chunk-reload";
+import {
+  classifyErrorMessage,
+  clearChunkReloadAttempt,
+  hasChunkReloadAttempt,
+  isChunkLoadErrorMessage,
+  markChunkReloadAttempt,
+  type ErrorCategory,
+} from "./errorClassification";
 
 function getBrowserLocale(): Locale {
   if (typeof navigator === "undefined") return "en";
@@ -36,30 +41,6 @@ function getBrowserLocale(): Locale {
 function classifyError(error: Error | null): ErrorCategory {
   if (!error) return "unknown";
   return classifyErrorMessage(error.message || "");
-}
-
-function readSessionFlag(key: string): boolean {
-  try {
-    return window.sessionStorage.getItem(key) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function writeSessionFlag(key: string): void {
-  try {
-    window.sessionStorage.setItem(key, "1");
-  } catch {
-    // private mode / storage denied — best-effort, fall through
-  }
-}
-
-function clearSessionFlag(key: string): void {
-  try {
-    window.sessionStorage.removeItem(key);
-  } catch {
-    // best-effort
-  }
 }
 
 interface Props {
@@ -98,9 +79,34 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   private copyResetTimer: number | null = null;
   private mounted = false;
+  private reconnectListening = false;
+
+  private stopReconnectListening = () => {
+    if (!this.reconnectListening) return;
+    window.removeEventListener("online", this.handleOnline);
+    this.reconnectListening = false;
+  };
+
+  private handleOnline = () => {
+    if (navigator.onLine === false || hasChunkReloadAttempt()) return;
+    markChunkReloadAttempt();
+    this.stopReconnectListening();
+    logger.info("[AppErrorBoundary] Connectivity restored — retrying failed app load", {
+      message: this.state.error?.message,
+    });
+    window.location.reload();
+  };
+
+  private waitForReconnect() {
+    if (this.reconnectListening || hasChunkReloadAttempt()) return;
+    window.addEventListener("online", this.handleOnline);
+    this.reconnectListening = true;
+    if (navigator.onLine !== false) this.handleOnline();
+  }
 
   componentWillUnmount() {
     this.mounted = false;
+    this.stopReconnectListening();
     if (this.copyResetTimer !== null) {
       window.clearTimeout(this.copyResetTimer);
       this.copyResetTimer = null;
@@ -214,18 +220,19 @@ export class AppErrorBoundary extends Component<Props, State> {
     void loadErrorBoundaryMessages(this.state.locale).then((messages) => {
       if (this.mounted) this.setState({ messages });
     });
-    // Clean boot — clear the chunk-reload one-shot so the NEXT deploy can also auto-recover.
-    if (!this.state.hasError && readSessionFlag(CHUNK_RELOAD_SESSION_KEY)) {
-      clearSessionFlag(CHUNK_RELOAD_SESSION_KEY);
-    }
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     const category = classifyError(error);
     (window as Window & { __GG_MARK_BOOT_FAILED?: () => void }).__GG_MARK_BOOT_FAILED?.();
+    const isChunkFailure = isChunkLoadErrorMessage(error.message);
+    if (category === "offline" && isChunkFailure) {
+      this.waitForReconnect();
+    }
+
     // Auto-recover transient post-deploy chunk failures with a one-shot reload.
-    if (category === "chunk" && !readSessionFlag(CHUNK_RELOAD_SESSION_KEY)) {
-      writeSessionFlag(CHUNK_RELOAD_SESSION_KEY);
+    if (category === "chunk" && !hasChunkReloadAttempt()) {
+      markChunkReloadAttempt();
       logger.warn("[AppErrorBoundary] Chunk load error — auto-reloading once", {
         message: error.message,
       });
@@ -250,6 +257,15 @@ export class AppErrorBoundary extends Component<Props, State> {
   }
 
   handleRetry = () => {
+    if (this.state.error && isChunkLoadErrorMessage(this.state.error.message)) {
+      if (navigator.onLine === false) {
+        this.waitForReconnect();
+        return;
+      }
+      markChunkReloadAttempt();
+      window.location.reload();
+      return;
+    }
     this.setState({
       hasError: false,
       error: null,
@@ -290,7 +306,7 @@ export class AppErrorBoundary extends Component<Props, State> {
     } catch (error) {
       logger.warn("[AppErrorBoundary] Failed to clear IndexedDB", { error });
     }
-    clearSessionFlag(CHUNK_RELOAD_SESSION_KEY);
+    clearChunkReloadAttempt();
     window.location.replace("/");
   };
 
@@ -319,6 +335,9 @@ export class AppErrorBoundary extends Component<Props, State> {
     const { category, error, showDetails } = this.state;
     const isLoopBug = category === "loop";
     const isOfflineOrNetwork = category === "offline" || category === "network";
+    const isConnectivityFailure =
+      category === "network" ||
+      (category === "offline" && isChunkLoadErrorMessage(error?.message ?? ""));
 
     return (
       <div className="min-h-screen bg-bg-white-0 flex items-center justify-center p-4">
@@ -336,7 +355,7 @@ export class AppErrorBoundary extends Component<Props, State> {
                   />
                 </div>
                 <div className="relative flex items-center justify-center w-24 h-24 rounded-full bg-bg-soft-200 shadow-lg">
-                  {category === "network" ? (
+                  {isConnectivityFailure ? (
                     <RiWifiOffLine className="h-12 w-12 text-warning-base" />
                   ) : category === "offline" ? (
                     <RiErrorWarningLine className="h-12 w-12 text-warning-base" />
@@ -347,7 +366,7 @@ export class AppErrorBoundary extends Component<Props, State> {
               </div>
 
               <h1 className="text-3xl font-bold text-text-strong-950 mb-3">
-                {category === "network"
+                {isConnectivityFailure
                   ? this.t("app.error.boundary.title.garden")
                   : category === "offline"
                     ? this.t("app.error.boundary.title.maintenance")
@@ -355,7 +374,7 @@ export class AppErrorBoundary extends Component<Props, State> {
               </h1>
 
               <h2 className="text-lg font-semibold text-text-strong-950 mb-4">
-                {category === "network"
+                {isConnectivityFailure
                   ? this.t("app.error.boundary.subtitle.connection")
                   : category === "offline"
                     ? this.t("app.error.boundary.subtitle.technical")
@@ -364,7 +383,7 @@ export class AppErrorBoundary extends Component<Props, State> {
 
               <div className="space-y-3 mb-8">
                 <p className="text-text-sub-600 leading-relaxed">
-                  {category === "network"
+                  {isConnectivityFailure
                     ? this.t("app.error.boundary.description.network")
                     : category === "offline"
                       ? this.t("app.error.boundary.description.offline")

@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:3439769998f10c92979941ca1941df118d4d29226fc45f353036a2e19090fb79"
+source_digest: "sha256:ab69b0e72a4c3b3a4eebf9b763df2e817746db235e4c468950d32241791f3022"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -227,7 +227,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-ROLE-002` | Transaction | Review | Reject pending work with reason on iOS | Screen recording plus account role |
 | `PWA-ROLE-003` | Journey | Permissions | Insufficient-role user cannot approve or reject on iOS | Screenshot plus account role |
 
-### P1 (26) {#pwa-p1}
+### P1 (27) {#pwa-p1}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -246,6 +246,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-042` | Accessibility | Accessibility | Keyboard and focus smoke on core PWA flows: wizard, drawers, dialogs | Notes per surface + screenshots |
 | `PWA-043` | Resilience | Performance | Boot performance: warm reload locally; cold-start budget on a production build | Console timings screenshot |
 | `PWA-046` | Journey | Garden Assessment | Garden member can read the starting assessment | Screenshot of the assessment in the test Garden |
+| `PWA-051` | Resilience | Offline Startup | First-load connectivity loss: accurate offline state and automatic reconnect recovery | Offline and recovered screenshots, failed request, reload count, and authentication/local-data continuity note |
 | `PWA-AND-005` | Accessibility | Mobile UI | Keyboard and drawer layout remain usable on Android | Screenshots |
 | `PWA-IOS-005` | Data integrity | Upload | [iOS] HEIC or library image survives submission draft | Screenshot before and after reopen |
 | `PWA-IOS-007` | Accessibility | Mobile UI | Drawers and bottom nav respect safe areas | Screenshots with drawer and keyboard |
