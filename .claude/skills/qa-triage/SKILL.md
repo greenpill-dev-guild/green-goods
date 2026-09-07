@@ -74,9 +74,15 @@ Phase 3b dedupe catches the other's records if both ran.
   broken" proposes Urgent for its cluster; the priority stays derived until the gate confirms.
 - **Phases 3-5** — `defect` and `polish` observations cluster into slices: same catalog area +
   same suspected seam, split past 3 Test IDs or a package boundary, ordered by priority. The
-  default cap is 8 slices; the gate may raise it when the week's fixing capacity matches (12 on
-  2026-09-04) — record the cap used in the parent's Slices intro and name overflow in
-  `Not sliced`. Standing fail/blocked entries **outside** the window are never slices by default;
+  cap is a **Todo queue budget**, default 8; the gate may raise it when the week's fixing
+  capacity matches. File every accepted defect and polish cluster, or link its existing tracked
+  Issue. After deriving state and priority below, the first N Todo-eligible slices by priority
+  propose `Todo`; file every remaining slice as `Backlog`, keeping its derived priority. Record
+  the budget and the Todo/Backlog split in the parent's Slices intro and list all slices there;
+  the cap never sends a formed slice to `Not sliced`. That section holds note-only follow-ups
+  without an exact Test ID and uncorrelated telemetry, alongside investigate and environment
+  lines; catalog feedback keeps its separate disposition. Standing fail/blocked entries
+  **outside** the window are never slices by default;
   the gate may accept ones that were never filed (no open Issue carries their Test ID), and such a
   slice opens with `Standing since <date>.` and is listed that way in the parent. `decision`
   observations become the parent's `Decisions needed` section plus one child issue

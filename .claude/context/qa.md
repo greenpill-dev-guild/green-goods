@@ -179,12 +179,20 @@ ID, tester, and verdict, before assigning dispositions or clustering.
 
 | Disposition | What it is | Where it lands |
 | --- | --- | --- |
-| `defect` | The product does not do what the case expects | A slice, or an existing tracked Issue |
+| `defect` | The product does not do what the case expects | Every accepted cluster becomes a slice, or links an existing tracked Issue; the Todo queue budget limits ordering, never filing — overflow is `Backlog` at its derived priority, never `Not sliced` |
 | `polish` | It works but looks or reads wrong; it may sit beside a Pass verdict | A slice at Low priority regardless of case priority, clustered by seam: `Todo` when at least one member entry was recorded inside the session window (a pass with a note counts), `Backlog` when reconstructed from notes alone |
 | `decision` | Needs a product or design ruling before a fix is honest (limits, copy direction, flow choices) | The parent's `Decisions needed` section plus the session's single decisions child |
 | `investigate` | A symptom whose cause or intent is unknown; not fixable until someone looks | A `Not sliced · investigate` line in the parent; a slice only after the look |
 | `catalog` | Feedback about the test case itself: split it, rename it, move it, unclear, missing twin | `tmp/qa-triage/<slug>/catalog-feedback.md` from the skill, copied at close into the plan hub that owns the next catalog change (de-attributed: no verdicts, no tester names, because the repository is public), or one `Catalog feedback` comment on the parent from the routine; never a slice |
 | `environment` | Behaviour caused by the harness or environment, not the product (cold start, beta-only data, wrong wallet) | One environment line in the parent; never a slice |
+
+The same queue budget applies to `polish`: derive state and priority first, then keep only the
+first N Todo-eligible slices by priority in `Todo` and file the rest as `Backlog`. The default is 8;
+the interactive gate may raise it. List every accepted slice in the parent's `Slices`, including
+Backlog. Session-window acceptance and Test ID linkage still apply; the budget never admits
+standing state or guesses a case. `Not sliced` holds note-only follow-ups without an exact Test ID
+and uncorrelated telemetry, plus investigate and environment lines; catalog feedback keeps its
+separate disposition above.
 
 Observations that already carry a tracked Issue (exact Test ID or error hash, or a title match a
 human confirmed at the gate) are linked, not re-filed. A tester's own words carry severity: "major
