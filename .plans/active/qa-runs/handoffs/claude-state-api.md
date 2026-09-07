@@ -61,3 +61,21 @@
 - A POST that read the index just before a rollover is caught after its shard write: the closed shard is restored to its pre-write text and the delta is re-applied to the open run (`retargeted: true`); the store test proves it with a put hook that slips a rollover between the check and the write. The restore itself is one conditional write into the closed run that returns it to its at-close content.
 - The migration enumerates the allowlist, so a de-listed tester's legacy shard stays only on the legacy path; `qa:pull`'s fallback still reads it.
 - `ensureRunIndex` adds one origin read per request; acceptable for a three-tester team.
+
+## Second pass · PWA half (2026-09-07, `feature/qa-runs-pwa-split`)
+
+- Branch stacked on `feature/qa-runs`; PR targets `feature/qa-runs`, not `develop`, so the first PR's review stays intact and the two merge together.
+- Catalog: 7 retirements with `replacedBy` (PWA-027, 029, 030, 031, 032, 033, 039) and 36 new ids (PWA-067…102); the successor table and the acts the grouped rows never named are in `catalog-feedback-2026-09-04.md § Second pass`. Ledger append; `test-cases.mdx` regenerated; no journey-referenced row changed, so the QA app locales are untouched. Active cases 185 (PWA 93); the QA app projection ships `replaces` for every successor, and PWA-081…093 also inherit PWA-IOS-009 through the existing PWA-032/033 chain.
+- Read-only rows (feedback C20): PWA-097 garden header and Work tab, PWA-098 Insights, PWA-099 Gardeners, PWA-100 Pool tab, PWA-101 commitment detail, PWA-102 Commitments drawer; the steward bell on the garden page is PWA-094.
+- Still post-Tuesday: admin C18 rows, public rows, the C19 area re-cut (the new rows already use the target area names), a desktop work-detail read row, "Offer It Again".
+
+### Validation Receipt
+
+- Tested implementation commit SHA: `bfd4a501606af90274ccb6ceecbbc5c7a0917a14`
+- Run at (UTC): `2026-09-07T23:28Z`
+- Exact command(s): `node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts && bun run test:review-guardrails && bun run check:docs-generated && bun run check:guidance-links && node scripts/quality/check-qa-id-ledger.mjs --base feature/qa-runs && node scripts/harness/plan-hub.mjs validate qa-runs && node packages/qa/build.mjs`
+- Result: `push gate: format, lint, docs-authority, agent-guidance, qa-id-ledger (211 ids), agent-tools-test (11 files, 250 tests) passed; browser-proof blocked: the authenticated Brave QA profile was unreachable through the Claude-in-Chrome extension (tabs_context probe failed), so rendered proof of the new rows belongs to the 2026-09-08 deployed smoke; review guardrails 205 passed; 18 projections current; 61 guidance files OK; ledger clean against feature/qa-runs; 31 hubs valid; qa build 185 active cases, 66 successors carrying replaces`
+- Validated paths: `scripts/data, docs/docs/builders/quality, .plans/active/qa-runs`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- scripts/data docs/docs/builders/quality .plans/active/qa-runs` → `` (empty before this receipt was written)
+- Evidence-only diff command and result (if applicable): not applicable
+- Evidence-only worktree-status command and result (if applicable): not applicable
