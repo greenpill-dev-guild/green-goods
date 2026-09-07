@@ -17,8 +17,9 @@ export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
           <div key={step} className="flex flex-col justify-center items-center flex-1 group">
             <div className="inline-flex items-center text-xs align-middle">
               <span
+                aria-current={isCurrentStep ? "step" : undefined}
                 className={cn(
-                  "relative grid place-items-center w-5 h-5 font-medium rounded-full transition-[color,border-color,background-color] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] border border-stroke-soft-200",
+                  "relative grid h-6 w-6 place-items-center rounded-full border border-stroke-soft-200 text-xs font-medium transition-[color,border-color,background-color] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
                   isCompletedStep &&
                     cn(
                       pwaStatusStyles.success.progress,
@@ -28,22 +29,18 @@ export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
                   isCurrentStep &&
                     cn(
                       pwaStatusStyles.primary.border,
-                      "before:absolute before:-inset-1 before:bg-primary before:rounded-full before:w-6 before:h-6 before:z-[-10] before:m-auto"
+                      pwaStatusStyles.primary.progress,
+                      pwaStatusStyles.primary.foreground,
+                      "font-semibold"
                     )
                 )}
               >
                 {isCompletedStep ? (
                   <RiCheckFill className={cn("w-3 h-3", pwaStatusStyles.success.foreground)} />
                 ) : (
-                  <div
-                    className={cn(
-                      isCurrentStep
-                        ? pwaStatusStyles.primary.foreground
-                        : pwaStatusStyles.neutral.foreground
-                    )}
-                  >
+                  <span className={cn(!isCurrentStep && pwaStatusStyles.neutral.foreground)}>
                     {index + 1}
-                  </div>
+                  </span>
                 )}
               </span>
               <div

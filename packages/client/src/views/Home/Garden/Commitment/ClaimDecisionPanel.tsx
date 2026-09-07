@@ -70,7 +70,7 @@ export function ClaimDecisionPanel({
                   onChange={(event) => setReason(event.target.value)}
                   rows={3}
                   maxLength={MAX_REASON}
-                  className="w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
+                  className="gg-control gg-control-textarea"
                 />
                 <div className="grid grid-cols-2 gap-2">
                   <button

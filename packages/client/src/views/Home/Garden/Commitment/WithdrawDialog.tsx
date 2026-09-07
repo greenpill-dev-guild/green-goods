@@ -66,7 +66,7 @@ export function WithdrawDialog({
           // Matches the pinned document's limit, so the words that are stored
           // are the words that were on screen.
           maxLength={MAX_REASON}
-          className="w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
+          className="gg-control gg-control-textarea"
           placeholder={formatMessage({ id: "app.commitment.withdraw.reasonPlaceholder" })}
         />
         {pinFailed ? (

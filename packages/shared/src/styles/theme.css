@@ -783,7 +783,7 @@
     color: rgb(var(--text-strong-950));
     font-size: var(--text-paragraph-md);
     line-height: var(--text-paragraph-md--line-height);
-    padding: 0.625rem 0.75rem;
+    padding: 0.5625rem 0.75rem;
     transition:
       border-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
       box-shadow var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
@@ -827,7 +827,7 @@
 
   .gg-control[data-size="lg"] {
     min-height: 3rem;
-    padding: 0.75rem 1rem;
+    padding: 0.6875rem 1rem;
   }
 
   .gg-control[data-surface="admin"] {
@@ -875,14 +875,13 @@
     justify-content: space-between;
     gap: 0.75rem;
     text-align: left;
-    white-space: nowrap;
+    white-space: normal;
   }
 
   .gg-control-trigger > span {
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   .gg-control-trigger[data-placeholder] {

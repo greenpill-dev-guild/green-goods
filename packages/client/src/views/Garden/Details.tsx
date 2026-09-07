@@ -187,6 +187,24 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
       id: "app.garden.details.feedbackPlaceholder",
       defaultMessage: "Provide feedback or any observations",
     });
+  const locationMessages = {
+    idle: intl.formatMessage({
+      id: "app.garden.details.locationHint",
+      defaultMessage: "Share your location to auto-fill coordinates",
+    }),
+    loading: intl.formatMessage({
+      id: "app.garden.details.locationHint",
+      defaultMessage: "Share your location to auto-fill coordinates",
+    }),
+    success: intl.formatMessage({
+      id: "app.garden.details.locationCaptured",
+      defaultMessage: "Location captured",
+    }),
+    denied: intl.formatMessage({
+      id: "app.garden.details.locationDenied",
+      defaultMessage: "Location access denied",
+    }),
+  } satisfies Record<typeof locationStatus, string>;
 
   const handleLocationToggle = useCallback(() => {
     if (locationEnabled) {
@@ -424,42 +442,45 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
       })}
 
       {/* Share location toggle (decision #27: optional, user-triggered, privacy-first) */}
-      <div className="flex items-center justify-between p-3 rounded-xl border border-stroke-sub-300 bg-bg-weak-50">
-        <div className="flex items-center gap-2">
-          <RiMapPinLine className="w-5 h-5 text-text-sub-600" />
-          <div>
+      <div className="flex items-start justify-between gap-3 rounded-xl border border-stroke-sub-300 bg-bg-weak-50 p-3">
+        <div className="flex min-w-0 flex-1 items-start gap-2">
+          <RiMapPinLine className="h-5 w-5 shrink-0 text-text-sub-600" />
+          <div className="min-w-0 flex-1">
             <span id="share-location-label" className="text-sm font-medium text-text-strong-950">
               {intl.formatMessage({
                 id: "app.garden.details.shareLocation",
                 defaultMessage: "Share Location",
               })}
             </span>
-            <p className="text-xs text-text-soft-400">
-              {locationStatus === "success"
-                ? intl.formatMessage({
-                    id: "app.garden.details.locationCaptured",
-                    defaultMessage: "Location captured",
-                  })
-                : locationStatus === "denied"
-                  ? intl.formatMessage({
-                      id: "app.garden.details.locationDenied",
-                      defaultMessage: "Location access denied",
-                    })
-                  : intl.formatMessage({
-                      id: "app.garden.details.locationHint",
-                      defaultMessage: "Share your location to auto-fill coordinates",
-                    })}
-            </p>
+            <div className="grid text-xs text-text-soft-400" aria-live="polite">
+              {Object.entries(locationMessages).map(([status, message]) => {
+                const isCurrent = status === locationStatus;
+                return (
+                  <p
+                    key={status}
+                    aria-hidden={!isCurrent}
+                    style={{
+                      gridArea: "1 / 1",
+                      overflowWrap: "anywhere",
+                      visibility: isCurrent ? "visible" : "hidden",
+                    }}
+                  >
+                    {message}
+                  </p>
+                );
+              })}
+            </div>
           </div>
         </div>
         <button
           type="button"
           role="switch"
           aria-checked={locationEnabled}
+          aria-busy={locationStatus === "loading" || undefined}
           aria-labelledby="share-location-label"
           onClick={handleLocationToggle}
           disabled={locationStatus === "loading"}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base ${
+          className={`relative inline-flex h-6 w-11 shrink-0 self-center items-center rounded-full transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base ${
             locationEnabled ? "bg-primary-base" : "bg-bg-soft-200"
           }`}
         >

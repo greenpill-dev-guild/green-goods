@@ -244,10 +244,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
                     maxLength={GARDEN_JOIN_REQUEST_DISPLAY_NAME_MAX_LENGTH}
                     value={displayName}
                     onChange={(event) => setDisplayName(event.target.value)}
-                    className={cn(
-                      "min-h-11 w-full rounded-[var(--radius-md)] border border-stroke-soft-200 bg-bg-white-0 px-3 text-base",
-                      pwaStatusStyles.primary.focus
-                    )}
+                    className="gg-control"
                   />
                 </label>
                 <label className="block space-y-1.5">
@@ -262,10 +259,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
                     rows={4}
                     value={note}
                     onChange={(event) => setNote(event.target.value)}
-                    className={cn(
-                      "w-full rounded-[var(--radius-md)] border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-base",
-                      pwaStatusStyles.primary.focus
-                    )}
+                    className="gg-control gg-control-textarea"
                   />
                 </label>
                 <div className="flex flex-wrap gap-2">

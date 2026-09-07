@@ -12,7 +12,12 @@ export function TimeFilterControl<T extends string>({
   const { formatMessage } = useIntl();
   return (
     <select
-      className="border border-stroke-soft-200 text-xs rounded-md px-2 py-1 bg-bg-white-0"
+      aria-label={formatMessage({
+        id: "app.workDashboard.timeFilter.label",
+        defaultMessage: "Time period",
+      })}
+      className="gg-control gg-control-select w-auto"
+      data-size="sm"
       value={value}
       onChange={(e) => onChange(e.target.value as T)}
     >

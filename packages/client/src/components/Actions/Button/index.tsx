@@ -40,7 +40,7 @@ export const Button = ({
       ) : (
         leadingIcon
       )}
-      <span className="min-w-0 truncate">{label}</span>
+      {label ? <span className="min-w-0 truncate">{label}</span> : null}
       {trailingIcon}
     </Root>
   );

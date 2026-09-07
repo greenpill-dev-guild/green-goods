@@ -350,7 +350,8 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                           autoCapitalize="none"
                           autoComplete="off"
                           spellCheck={false}
-                          className="h-9 w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 font-mono text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24"
+                          className="gg-control font-mono"
+                          data-size="sm"
                         />
                       </label>
                       <label className="flex flex-col gap-1 text-xs text-text-sub-600">
@@ -363,7 +364,8 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                           onChange={(event) =>
                             setRequestReason(event.target.value as ENSUsernameChangeReason)
                           }
-                          className="h-9 w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24"
+                          className="gg-control gg-control-select"
+                          data-size="sm"
                         >
                           {requestReasonOptions.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -384,7 +386,8 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                             id: "app.profile.ensChangeContactPlaceholder",
                             defaultMessage: "@telegram, email, or phone",
                           })}
-                          className="h-9 w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24"
+                          className="gg-control"
+                          data-size="sm"
                         />
                       </label>
                       <label className="flex flex-col gap-1 text-xs text-text-sub-600">
@@ -400,7 +403,8 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                             defaultMessage: "Anything support should know",
                           })}
                           rows={3}
-                          className="w-full resize-none rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24"
+                          className="gg-control gg-control-textarea resize-none"
+                          data-size="sm"
                         />
                       </label>
                       {requestError && <p className="text-xs text-error-base">{requestError}</p>}
@@ -518,7 +522,8 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                     autoCapitalize="none"
                     autoComplete="off"
                     spellCheck={false}
-                    className="h-9 w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 pr-10 font-mono text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24"
+                    className="gg-control pr-10 font-mono"
+                    data-size="sm"
                   />
                   {slugValue && slugValue.length >= 3 && (
                     <span className="absolute right-3 top-1/2 -translate-y-1/2">

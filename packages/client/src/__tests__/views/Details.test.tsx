@@ -286,4 +286,40 @@ describe("WorkDetails", () => {
       configurable: true,
     });
   });
+
+  it("keeps every location status in the same layout slot during capture", () => {
+    const original = navigator.geolocation;
+    Object.defineProperty(navigator, "geolocation", {
+      value: {
+        getCurrentPosition: (onSuccess: PositionCallback) =>
+          onSuccess({
+            coords: { latitude: 6.52, longitude: 3.38, accuracy: 20 },
+          } as GeolocationPosition),
+      },
+      writable: true,
+      configurable: true,
+    });
+
+    renderDetails();
+
+    const statusRegion = screen.getByText("Location captured").parentElement;
+    expect(statusRegion).not.toBeNull();
+    expect(statusRegion).toHaveAttribute("aria-live", "polite");
+    expect(statusRegion?.children).toHaveLength(4);
+    for (const message of Array.from(statusRegion?.children ?? [])) {
+      expect(message).toHaveStyle({ gridArea: "1 / 1" });
+    }
+
+    fireEvent.click(screen.getByRole("switch"));
+
+    expect(screen.getByRole("switch")).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByText("Location captured")).toHaveAttribute("aria-hidden", "false");
+    expect(statusRegion?.children).toHaveLength(4);
+
+    Object.defineProperty(navigator, "geolocation", {
+      value: original,
+      writable: true,
+      configurable: true,
+    });
+  });
 });

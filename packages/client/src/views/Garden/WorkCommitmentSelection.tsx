@@ -131,7 +131,7 @@ export function WorkCommitmentSelection({
             aria-describedby="work-commitment-selection-description"
             value={selectedKey ?? ""}
             onChange={(event) => onSelectedKeyChange?.(event.target.value || null)}
-            className="w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-3 text-sm text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-alpha-24"
+            className="gg-control gg-control-select"
           >
             <option value="">
               {intl.formatMessage({

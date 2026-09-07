@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 import { type Control, Controller, type FieldPath, type FieldValues } from "react-hook-form";
 import Select, { type StylesConfig } from "react-select";
+import { FormFieldWrapper } from "../FormFieldWrapper";
 
 export interface FormSelectOption {
   label: string;
@@ -23,35 +24,45 @@ export interface FormSelectProps<T extends FieldValues = FieldValues> {
  * These styles match the Green Goods design system.
  */
 const customStyles: StylesConfig = {
-  control: (provided, state) => ({
-    ...provided,
-    backgroundColor: "rgb(var(--bg-white-0))",
-    borderColor: state.isFocused ? "rgb(var(--primary-base))" : "rgb(var(--stroke-soft-200))",
-    borderRadius: "0.5rem",
-    borderWidth: "1px",
-    padding: "0.375rem 0.5rem",
-    minHeight: "3rem",
-    boxShadow: state.isFocused ? "0 0 0 3px rgba(var(--primary-base), 0.1)" : "none",
-    transition: "all 150ms",
-    "&:hover": {
-      borderColor: state.isFocused ? "rgb(var(--primary-base))" : "rgb(var(--stroke-sub-300))",
-    },
-  }),
+  control: (provided, state) => {
+    const invalid = state.selectProps["aria-invalid"] === true;
+    const borderColor = invalid
+      ? "rgb(var(--error-base))"
+      : state.isFocused
+        ? "rgb(var(--focus-ring))"
+        : "rgb(var(--stroke-sub-300))";
+
+    return {
+      ...provided,
+      backgroundColor: "rgb(var(--bg-white-0))",
+      borderColor,
+      borderRadius: "var(--radius-xl)",
+      borderWidth: "1px",
+      minHeight: "2.75rem",
+      boxShadow: state.isFocused
+        ? `0 0 0 3px rgb(var(${invalid ? "--error-base" : "--focus-ring"}) / 0.12)`
+        : "none",
+      transition:
+        "border-color var(--spring-effects-fast-duration) var(--spring-effects-fast-easing), box-shadow var(--spring-effects-fast-duration) var(--spring-effects-fast-easing)",
+      "&:hover": { borderColor },
+    };
+  },
   valueContainer: (provided) => ({
     ...provided,
-    padding: "0.125rem 0.25rem",
+    padding: "0.5625rem 0.75rem",
     gap: "0.375rem",
   }),
   multiValue: (provided) => ({
     ...provided,
     backgroundColor: "rgb(var(--success-lighter))",
-    borderRadius: "0.375rem",
+    borderRadius: "var(--radius-md)",
     padding: "0.125rem 0.25rem",
     display: "flex",
     alignItems: "center",
     gap: "0.25rem",
     border: "1px solid rgb(var(--success-light))",
-    transition: "all 150ms",
+    transition:
+      "background-color var(--spring-effects-fast-duration) var(--spring-effects-fast-easing), border-color var(--spring-effects-fast-duration) var(--spring-effects-fast-easing)",
   }),
   multiValueLabel: (provided) => ({
     ...provided,
@@ -64,7 +75,8 @@ const customStyles: StylesConfig = {
     ...provided,
     color: "rgb(var(--success-base))",
     cursor: "pointer",
-    transition: "all 150ms",
+    transition:
+      "background-color var(--spring-effects-fast-duration) var(--spring-effects-fast-easing), color var(--spring-effects-fast-duration) var(--spring-effects-fast-easing)",
     "&:hover": {
       backgroundColor: "rgb(var(--success-light))",
       color: "rgb(var(--success-dark))",
@@ -73,19 +85,25 @@ const customStyles: StylesConfig = {
   placeholder: (provided) => ({
     ...provided,
     color: "rgb(var(--text-soft-400))",
-    fontSize: "0.875rem",
+    fontSize: "var(--text-paragraph-md)",
+    lineHeight: "var(--text-paragraph-md--line-height)",
+    overflowWrap: "anywhere",
+    whiteSpace: "normal",
   }),
   input: (provided) => ({
     ...provided,
     color: "rgb(var(--text-strong-950))",
-    fontSize: "0.875rem",
+    fontSize: "var(--text-paragraph-md)",
+    lineHeight: "var(--text-paragraph-md--line-height)",
+    margin: 0,
+    padding: 0,
   }),
   menu: (provided) => ({
     ...provided,
     backgroundColor: "rgb(var(--bg-white-0))",
-    borderRadius: "0.5rem",
+    borderRadius: "var(--radius-lg)",
     marginTop: "0.25rem",
-    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+    boxShadow: "var(--shadow-regular-md)",
     border: "1px solid rgb(var(--stroke-soft-200))",
   }),
   menuList: (provided) => ({
@@ -101,11 +119,13 @@ const customStyles: StylesConfig = {
         : "rgb(var(--bg-white-0))",
     color: state.isSelected ? "rgb(var(--success-dark))" : "rgb(var(--text-strong-950))",
     cursor: "pointer",
-    fontSize: "0.875rem",
+    fontSize: "var(--text-paragraph-md)",
+    lineHeight: "var(--text-paragraph-md--line-height)",
     fontWeight: state.isSelected ? "500" : "400",
     padding: "0.5rem 0.75rem",
-    borderRadius: "0.375rem",
-    transition: "all 150ms",
+    borderRadius: "var(--radius-md)",
+    transition:
+      "background-color var(--spring-effects-fast-duration) var(--spring-effects-fast-easing), color var(--spring-effects-fast-duration) var(--spring-effects-fast-easing)",
     "&:active": {
       backgroundColor: "rgb(var(--success-lighter))",
     },
@@ -113,6 +133,12 @@ const customStyles: StylesConfig = {
   singleValue: (provided) => ({
     ...provided,
     color: "rgb(var(--text-strong-950))",
+    fontSize: "var(--text-paragraph-md)",
+    lineHeight: "var(--text-paragraph-md--line-height)",
+    overflow: "visible",
+    overflowWrap: "anywhere",
+    textOverflow: "clip",
+    whiteSpace: "normal",
   }),
   indicatorSeparator: (provided) => ({
     ...provided,
@@ -159,11 +185,7 @@ const FormSelectComponent = forwardRef<HTMLSelectElement, FormSelectProps<any>>(
         control={control}
         defaultValue={isMulti ? [] : ""}
         render={({ field }) => (
-          <div className="flex flex-col gap-1">
-            <label htmlFor={name} className="font-semibold text-text-strong-950 text-label-sm">
-              {label}
-              {required && <span className="text-error-base ml-0.5">*</span>}
-            </label>
+          <FormFieldWrapper id={name} label={label} required={required} error={error}>
             <Select
               inputId={name}
               placeholder={placeholder}
@@ -183,16 +205,11 @@ const FormSelectComponent = forwardRef<HTMLSelectElement, FormSelectProps<any>>(
               isMulti={isMulti}
               required={required}
               aria-invalid={Boolean(error) || undefined}
-              aria-describedby={error ? `${name}-helper-text` : undefined}
+              aria-describedby={`${name}-helper-text`}
               styles={customStyles}
               classNamePrefix="select"
             />
-            {error && (
-              <p className="text-xs h-3 text-error-base" id={`${name}-helper-text`}>
-                {error}
-              </p>
-            )}
-          </div>
+          </FormFieldWrapper>
         )}
       />
     );

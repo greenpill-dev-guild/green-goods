@@ -111,7 +111,7 @@ export function ComposeDetails({ form }: ComposeDetailsProps) {
             onChange={(event) =>
               form.setValue("note", event.target.value, { shouldValidate: true, shouldDirty: true })
             }
-            className="mt-1.5 w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
+            className="gg-control gg-control-textarea mt-1.5"
           />
         </div>
 
@@ -133,7 +133,7 @@ export function ComposeDetails({ form }: ComposeDetailsProps) {
                   addLink();
                 }
               }}
-              className="min-w-0 flex-1 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
+              className="gg-control min-w-0 flex-1"
             />
             <button
               type="button"

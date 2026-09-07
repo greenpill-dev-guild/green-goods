@@ -73,7 +73,7 @@ export function ConfirmNotYet({
           maxLength={2000}
           placeholder={formatMessage({ id: `app.confirm.notYet.placeholder.${cast}` })}
           onChange={(event) => setDraftReason(event.target.value)}
-          className="mt-1.5 w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
+          className="gg-control gg-control-textarea mt-1.5"
         />
       </div>
       {notYetFailed ? (

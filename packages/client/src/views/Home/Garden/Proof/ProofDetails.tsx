@@ -138,7 +138,7 @@ export function ProofDetails({
           maxLength={2000}
           placeholder={formatMessage({ id: "app.proof.details.notePlaceholder" })}
           onChange={(event) => onNote(event.target.value)}
-          className="mt-1.5 w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
+          className="gg-control gg-control-textarea mt-1.5"
         />
       </div>
 
@@ -160,7 +160,7 @@ export function ProofDetails({
                 addLink();
               }
             }}
-            className="min-w-0 flex-1 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
+            className="gg-control min-w-0 flex-1"
           />
           <button
             type="button"

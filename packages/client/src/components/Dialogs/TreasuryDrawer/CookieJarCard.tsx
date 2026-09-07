@@ -110,11 +110,8 @@ export function CookieJarCard({ jar, gardenAddress, gardenName }: CookieJarCardP
               placeholder={formatMessage({ id: "app.cookieJar.amount" })}
               aria-label={formatMessage({ id: "app.cookieJar.amount" })}
               aria-invalid={Boolean(inputError)}
-              className={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
-                inputError
-                  ? "border-error-base focus:border-error-base"
-                  : "border-stroke-sub-300 bg-bg-white-0 focus:border-primary-base"
-              }`}
+              data-invalid={Boolean(inputError) || undefined}
+              className="gg-control"
             />
             <button
               type="button"
@@ -138,7 +135,7 @@ export function CookieJarCard({ jar, gardenAddress, gardenName }: CookieJarCardP
             onChange={(e) => setPurpose(e.target.value)}
             placeholder={formatMessage({ id: "app.cookieJar.purposePlaceholder" })}
             aria-label={formatMessage({ id: "app.cookieJar.purpose" })}
-            className="w-full rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-sm text-text-strong-950 placeholder:text-text-soft-400 focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20 resize-none"
+            className="gg-control gg-control-textarea resize-none"
             rows={2}
           />
 

@@ -168,7 +168,7 @@ function JarCard({ jar, gardenName }: JarCardProps) {
                   placeholder={formatMessage({ id: "app.cookieJar.purposePlaceholder" })}
                   required
                   aria-required="true"
-                  className="w-full rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-sm text-text-strong-950 placeholder:text-text-soft-400 focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20 resize-none"
+                  className="gg-control gg-control-textarea resize-none"
                   rows={2}
                 />
                 <p className="text-xs text-text-soft-400">

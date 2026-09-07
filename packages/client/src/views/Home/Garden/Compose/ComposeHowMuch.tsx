@@ -114,7 +114,7 @@ export function ComposeHowMuch({ form, chainId, actions }: ComposeHowMuchProps) 
                 shouldDirty: true,
               })
             }
-            className="mt-1.5 w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
+            className="gg-control mt-1.5"
           />
         </fieldset>
       )}
@@ -148,7 +148,7 @@ export function ComposeHowMuch({ form, chainId, actions }: ComposeHowMuchProps) 
           min={1}
           value={Number.isFinite(targetUnits) ? targetUnits : ""}
           onChange={(event) => setUnits(Number(event.target.value))}
-          className="mt-1.5 w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
+          className="gg-control mt-1.5"
         />
       </fieldset>
 

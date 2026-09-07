@@ -132,7 +132,8 @@ export const Splash: React.FC<SplashProps> = ({
         aria-describedby={usernameDescription || undefined}
         aria-invalid={Boolean(errorMessage)}
         data-testid="username-input"
-        className="w-full h-11 px-4 rounded-full border border-stroke-soft-200 bg-bg-white-0 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24 text-center text-text-strong-950 placeholder:text-text-soft-400"
+        data-invalid={Boolean(errorMessage) || undefined}
+        className="gg-control rounded-full px-4 text-center"
         disabled={busy}
         onKeyDown={(e) => {
           if (e.key === "Enter" && login && !isLoginDisabled && !busy) {

@@ -179,7 +179,7 @@ export function useDraftResume(options: UseDraftResumeOptions) {
     /** Handler for starting fresh */
     handleStartFresh,
     /** Whether a draft is currently being resumed from URL */
-    isResumingFromUrl: hasResumedDraft.current,
+    isResumingFromUrl: Boolean(draftIdFromUrl),
     /** Clear the active draft (e.g., after successful submission) */
     clearActiveDraft,
   };

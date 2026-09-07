@@ -1,6 +1,6 @@
-import type { Address } from "@green-goods/shared/types/domain";
 import { useWorkSubmissionFlowController } from "@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowController";
 import { WorkTab } from "@green-goods/shared/stores/workFlowTypes";
+import type { Address } from "@green-goods/shared/types/domain";
 import {
   RiArrowRightSLine,
   RiCameraFill,
@@ -20,13 +20,13 @@ import { FormProgress } from "@/components/Communication";
 import { DraftDialog } from "@/components/Dialogs";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
-import { APP_ROUTES } from "@/config/pwaRouting";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import { trackWorkMediaJourneyEvent } from "@/config/mediaAnalytics";
+import { APP_ROUTES } from "@/config/pwaRouting";
 import { WorkDetails } from "./Details";
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
 import { WorkReview } from "./Review";
-import { trackWorkMediaJourneyEvent } from "@/config/mediaAnalytics";
 
 const trackControllerMediaEvent = (
   event: "work_media_preview_failed" | "work_media_removed" | "work_broken_media_removed",
@@ -197,6 +197,7 @@ const Work: React.FC = () => {
               else document.getElementById("work-media-upload")?.click();
             }}
             label=""
+            aria-label={intl.formatMessage({ id: "app.proof.media.gallery" })}
             className="min-w-11 w-11 px-0 shrink-0"
             variant="neutral"
             type="button"
@@ -210,6 +211,7 @@ const Work: React.FC = () => {
               else document.getElementById("work-media-camera")?.click();
             }}
             label=""
+            aria-label={intl.formatMessage({ id: "app.proof.media.camera" })}
             className="min-w-11 w-11 px-0 shrink-0"
             variant="neutral"
             type="button"
@@ -220,6 +222,9 @@ const Work: React.FC = () => {
           <Button
             onClick={toggleAudioRecording}
             label=""
+            aria-label={intl.formatMessage({
+              id: isRecording ? "app.proof.media.stopRecording" : "app.proof.media.record",
+            })}
             className="min-w-11 w-11 px-0 shrink-0"
             variant={isRecording ? "error" : "neutral"}
             type="button"

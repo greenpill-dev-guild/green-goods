@@ -234,7 +234,7 @@ export const GardenWork: React.FC = () => {
                   defaultMessage:
                     "Add feedback for the gardener (optional for approval, required for rejection)...",
                 })}
-                className="w-full min-h-[120px] max-h-[40vh] p-3 rounded-xl border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 placeholder:text-text-soft-400 focus:outline-none focus:ring-2 focus:ring-primary resize-none overflow-y-auto [touch-action:pan-y] [overscroll-behavior-y:auto]"
+                className="gg-control gg-control-textarea min-h-[120px] max-h-[40vh] resize-none overflow-y-auto [touch-action:pan-y] [overscroll-behavior-y:auto]"
               />
             </div>
 

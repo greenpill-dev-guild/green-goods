@@ -152,7 +152,8 @@ function SupportInput({
             aria-label={formatMessage({ id: "app.signal.allocatePoints" })}
             aria-describedby={inputError ? `support-error-${hypercertId}` : undefined}
             aria-invalid={inputError ? true : undefined}
-            className="w-full rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-sm text-text-strong-950 placeholder:text-text-soft-400 focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20 disabled:opacity-60"
+            data-invalid={Boolean(inputError) || undefined}
+            className="gg-control"
           />
           <button
             type="button"

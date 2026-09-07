@@ -223,7 +223,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
                     rows={3}
                     value={reason}
                     onChange={(event) => setReason(event.target.value)}
-                    className="w-full rounded-[var(--radius-md)] border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
+                    className="gg-control gg-control-textarea"
                   />
                 </label>
                 <div className="flex flex-wrap gap-2">

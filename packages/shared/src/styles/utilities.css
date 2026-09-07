@@ -636,6 +636,12 @@
   background: linear-gradient(to top, rgb(var(--static-black) / 0.5), transparent);
 }
 
+/* Active thumbnails scale within this scroll owner. Insets keep the scaled
+ * border visible on every edge, including the first and last thumbnails. */
+[data-component="ImagePreviewDialog"] [data-slot="filmstrip"] > div {
+  padding: 0.5rem;
+}
+
 [data-component="ImagePreviewDialog"][data-variant="app"] [data-slot="thumb"] {
   border: 2px solid rgb(var(--static-white) / 0.3);
   border-radius: var(--radius-md);

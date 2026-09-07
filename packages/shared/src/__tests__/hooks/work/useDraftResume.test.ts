@@ -170,6 +170,23 @@ describe("useDraftResume", () => {
   // ------------------------------------------
 
   describe("URL-based draft resumption", () => {
+    it("reports the URL resume as pending before restored values can paint", () => {
+      mockResumeDraft.mockReturnValue(new Promise(() => {}));
+
+      const { result } = renderHook(
+        () =>
+          useDraftResume({
+            formState: createDefaultFormState(),
+            isOnIntroTab: true,
+            searchParams: new URLSearchParams("draftId=pending-draft"),
+            setSearchParams: mockSetSearchParams,
+          }),
+        { wrapper: createWrapper(queryClient) }
+      );
+
+      expect(result.current.isResumingFromUrl).toBe(true);
+    });
+
     it("resumes draft from draftId URL parameter", async () => {
       const searchParams = new URLSearchParams("draftId=url-draft-123");
 

@@ -97,11 +97,8 @@ export function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProp
           placeholder={`0.0 ${assetSymbol}`}
           aria-label={formatMessage({ id: "app.treasury.withdrawAmount" })}
           aria-invalid={Boolean(inputError)}
-          className={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
-            inputError
-              ? "border-error-base focus:border-error-base"
-              : "border-stroke-sub-300 bg-bg-white-0 focus:border-primary-base"
-          }`}
+          data-invalid={Boolean(inputError) || undefined}
+          className="gg-control"
         />
         <button
           type="button"

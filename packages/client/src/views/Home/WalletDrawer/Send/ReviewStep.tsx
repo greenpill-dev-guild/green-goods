@@ -109,7 +109,7 @@ export function ReviewStep({
           onChange={(event) => onNoteChange(event.target.value)}
           placeholder={formatMessage({ id: "app.send.note.placeholder" })}
           rows={2}
-          className="w-full resize-none rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-sm text-text-strong-950 placeholder:text-text-soft-400 focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20"
+          className="gg-control gg-control-textarea resize-none"
         />
       </div>
 

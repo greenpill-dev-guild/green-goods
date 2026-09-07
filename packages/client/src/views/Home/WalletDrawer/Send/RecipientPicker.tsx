@@ -99,7 +99,7 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
           onChange={(event) => setQuery(event.target.value)}
           placeholder={formatMessage({ id: "app.send.recipient.searchPlaceholder" })}
           aria-label={formatMessage({ id: "app.send.recipient.searchPlaceholder" })}
-          className="w-full rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-sm text-text-strong-950 placeholder:text-text-soft-400 focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20"
+          className="gg-control"
         />
         {isQrScanSupported() ? (
           <button

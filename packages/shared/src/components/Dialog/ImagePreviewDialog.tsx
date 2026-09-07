@@ -421,7 +421,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
             {/* Thumbnail Navigation */}
             {images.length > 1 && (
               <div data-slot="filmstrip">
-                <div className="flex items-center justify-center gap-2 overflow-x-auto pb-2">
+                <div className="flex items-center justify-center gap-2 overflow-x-auto">
                   {images.map((image, index) => (
                     <button
                       key={index}

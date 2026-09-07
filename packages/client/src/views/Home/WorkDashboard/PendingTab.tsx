@@ -139,7 +139,12 @@ export const PendingTab: React.FC<PendingTabProps> = ({
       headerContent={
         <div className="flex items-center gap-2">
           <select
-            className="border border-stroke-soft-200 text-xs rounded-md px-2 py-1 bg-bg-white-0"
+            aria-label={intl.formatMessage({
+              id: "app.workDashboard.pendingFilter.label",
+              defaultMessage: "Pending work filter",
+            })}
+            className="gg-control gg-control-select w-auto"
+            data-size="sm"
             value={pendingFilter}
             onChange={(e) =>
               onPendingFilterChange(e.target.value as "all" | "needsReview" | "mySubmissions")

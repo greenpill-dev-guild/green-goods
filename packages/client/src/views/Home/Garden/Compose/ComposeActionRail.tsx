@@ -195,7 +195,7 @@ export function ComposeActionRail({ form, chainId, actions: allActions }: Compos
                   min={1}
                   value={Number.isFinite(row.requiredCount) ? row.requiredCount : ""}
                   onChange={(event) => setRowCount(row.actionUID, Number(event.target.value))}
-                  className="w-20 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-2 text-sm text-text-strong-950"
+                  className="gg-control w-20"
                 />
               </div>
             </li>

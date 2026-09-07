@@ -192,7 +192,7 @@ export function LinkWorkDialog({
                 setRequirementIndex(event.target.value === "" ? null : Number(event.target.value));
                 setOperationId(crypto.randomUUID());
               }}
-              className="mt-1.5 w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
+              className="gg-control gg-control-select mt-1.5"
             >
               <option value="">{formatMessage({ id: "app.commitment.link.rowChoose" })}</option>
               {eligibleRows.map((row) => (

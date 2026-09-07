@@ -176,7 +176,7 @@ export function ComposeWhat({ form, openCycles, cycleNames }: ComposeWhatProps) 
           onChange={(event) =>
             form.setValue("title", event.target.value, { shouldValidate: true, shouldDirty: true })
           }
-          className="mt-1.5 w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
+          className="gg-control mt-1.5"
         />
         <p className="mt-1.5 text-xs text-text-soft-400">
           {formatMessage({ id: "app.compose.what.titleHelp" })}

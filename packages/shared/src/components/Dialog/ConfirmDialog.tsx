@@ -265,7 +265,7 @@ export function ConfirmDialog({
           data-component="ConfirmDialog"
           data-slot="surface"
           role={isDestructive ? "alertdialog" : "dialog"}
-          className="fixed z-modal w-full max-w-[calc(100vw-2rem)] sm:max-w-md overflow-hidden bg-[var(--color-material-solid)] border border-stroke-soft-200 shadow-[var(--shadow-float)] focus:outline-none bottom-0 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2"
+          className="fixed bottom-0 left-1/2 z-modal w-full max-w-none -translate-x-1/2 overflow-hidden border border-stroke-soft-200 bg-[var(--color-material-solid)] shadow-[var(--shadow-float)] focus:outline-none sm:bottom-auto sm:top-1/2 sm:max-w-md sm:-translate-y-1/2"
           style={dialogSurfaceStyle}
           data-testid="confirm-dialog"
           onPointerDownOutside={(e: Event) => {
@@ -330,11 +330,13 @@ export function ConfirmDialog({
               disabled={isLoading}
               aria-busy={isLoading || undefined}
               className={cn(
-                "flex min-h-11 w-full min-w-0 items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium whitespace-nowrap transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2 sm:flex-1",
+                "relative flex min-h-11 w-full min-w-0 items-center justify-center rounded-lg px-4 py-3 text-center text-sm font-medium transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2 sm:flex-1",
                 styles.confirmBtn
               )}
             >
-              {isLoading && <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden />}
+              {isLoading && (
+                <RiLoader4Line className="absolute left-4 h-4 w-4 animate-spin" aria-hidden />
+              )}
               {resolvedConfirmLabel}
             </button>
           </div>

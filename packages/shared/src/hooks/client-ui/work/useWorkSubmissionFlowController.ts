@@ -186,20 +186,25 @@ export function useWorkSubmissionFlowController({
     gardenAddress,
     actionUID,
   });
-  const { showDraftDialog, handleContinueDraft, handleStartFresh, clearActiveDraft } =
-    useDraftResume({
-      formState: {
-        images,
-        gardenAddress,
-        actionUID,
-        feedback,
-        timeSpentMinutes: timeSpentMinutes ?? 0,
-      },
-      isOnIntroTab: activeTab === WorkTab.Intro,
-      searchParams,
-      setSearchParams,
-      restoreForm: form.reset,
-    });
+  const {
+    showDraftDialog,
+    handleContinueDraft,
+    handleStartFresh,
+    isResumingFromUrl,
+    clearActiveDraft,
+  } = useDraftResume({
+    formState: {
+      images,
+      gardenAddress,
+      actionUID,
+      feedback,
+      timeSpentMinutes: timeSpentMinutes ?? 0,
+    },
+    isOnIntroTab: activeTab === WorkTab.Intro,
+    searchParams,
+    setSearchParams,
+    restoreForm: form.reset,
+  });
 
   useEffect(() => {
     ensureWorkSubmissionJourneyId();
@@ -453,7 +458,8 @@ export function useWorkSubmissionFlowController({
     reviewConfig,
     reviewData,
     setAudioNotes,
-    showSkeleton: selection.isLoading && actions.length === 0 && gardens.length === 0,
+    showSkeleton:
+      isResumingFromUrl || (selection.isLoading && actions.length === 0 && gardens.length === 0),
     submissionCompleted,
     submit,
     toggleAudioRecording: audio.toggle,

@@ -38,8 +38,16 @@ export function FormFieldWrapper({
         role={error ? "alert" : undefined}
         tabIndex={helperText || error ? 0 : undefined}
         // Reserve wrapped feedback; longer messages stay readable without moving the form.
-        style={{ blockSize: "3lh", flexShrink: 0, overflowY: "auto", overflowWrap: "anywhere" }}
-        className={cn("text-body-sm", error ? "text-error-dark" : "text-text-sub-600")}
+        style={{
+          blockSize: "3lh",
+          flexShrink: 0,
+          fontSize: "var(--type-body-sm)",
+          letterSpacing: "var(--type-body-sm-ls)",
+          lineHeight: "var(--type-body-sm-lh)",
+          overflowY: "auto",
+          overflowWrap: "anywhere",
+        }}
+        className={cn("gg-field-feedback", error ? "text-error-dark" : "text-text-sub-600")}
       >
         {error || helperText}
       </p>
