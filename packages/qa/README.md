@@ -9,10 +9,10 @@ their taps never save. This is the same interface with a store behind it.
 
 ## How it stays correct with two writers
 
-Each tester owns exactly one blob — `qa/entries/<lowercase-address>.json` — and only ever writes that one.
-Two people recording the same case touch **different objects**, so there is nothing to resolve
-between them and no way for one tester's work to overwrite another's. `GET /api/state` reads every
-shard and merges.
+Each tester owns exactly one blob per run — `qa/runs/<runId>/entries/<lowercase-address>.json` —
+and only ever writes that one. Two people recording the same case touch **different objects**, so
+there is nothing to resolve between them and no way for one tester's work to overwrite another's.
+`GET /api/state` reads every shard of one run and merges.
 
 Within one tester there *is* a conflict to handle, because the workflow expects a phone on the PWA
 and a laptop on admin at once. Three things make that safe:
@@ -39,6 +39,39 @@ Two more details that look like bugs if you get them wrong:
   tab, or a failed save never costs anyone their notes — a pending delta outlives the page session
   and goes out on the next open, and is dropped only once the server confirms the write. The page
   says "not saved — kept locally, retrying" rather than claiming success.
+
+## Runs
+
+A **run** is one team pass over the catalog. The store keeps a small index at `qa/runs.json`
+(label, environment, who opened and closed it and when, the catalog revision and optional build
+SHAs) beside the per-run shards, and exactly one run is open at any time:
+
+- The first authenticated request after the runs deploy copied every pre-runs shard
+  (`qa/entries/<address>.json`) byte for byte into **Run 1 · Baseline** and created the index with
+  Run 1 open. Every copy and the index are create-only, so concurrent first requests cannot
+  clobber each other and running the migration again changes nothing; the legacy shards are never
+  written or deleted, which keeps it reversible. A tester the allowlist no longer names is not
+  migrated (the app never showed them either); `qa:pull`'s legacy fallback still reads them.
+- **Start new run** (any allowlisted tester) closes the open run and opens its successor in one
+  ETag-conditional write of the index. Two testers pressing it at once get one winner and one 409
+  carrying the fresh index — never two open runs. The closed run stays readable and comparable;
+  nothing is ever deleted. The winner also carries every named tester into the new run as an
+  empty shard, so the roster does not fall back to short addresses.
+- `POST /api/state` writes only to the open run. A save that names a closed or unknown run is
+  refused with `409 { reason, openRun }` and no write; the page re-keys its pending queue
+  (`qa-outbox:<address>:<runId>`) at the open run, sends it once more, and says which run
+  received it. A page that names no run — the version before runs — records into the open run.
+- The page can show any run (closed runs render read-only) and compare the run on screen with
+  any closed run: the compared verdict and notes sit under every row, the tally adds fixed, still
+  failing, regressed, and newly walked, and the **Re-QA** filter lists what the compared run left
+  failing or blocked. A verdict on a case retired since that run is read on each active successor
+  named by the catalog's `replacedBy` chain (the build ships that reverse map as `replaces`) and
+  labelled *inherited*.
+- N/A means out of scope for this run; a skipped case has no entry. A note starting with
+  `[beta]`, `[prod]`, or `[local]` marks a verdict taken outside the run's environment.
+
+The run lifecycle itself — what a run is, the index shape, rollover, the legacy baseline — lives
+in `runs.ts`, one pure module both the deployed functions and the local server import.
 
 ### The trust boundary
 
@@ -70,12 +103,15 @@ read the shared run and change only their own address-owned shard.
 | Path | What it is |
 |---|---|
 | `index.html` | The whole UI — static, inline CSS/JS, no bundler |
-| `auth.ts` | SIWE message, nonce, allowlist, cookie, and session verification |
+| `auth.ts` | SIWE message, nonce, allowlist, cookie, session verification, and the caller resolver both endpoints share |
+| `runs.ts` | What a run is: the index shape and its validation, the legacy baseline, and the rollover — pure, imported by the functions and by `dev.mjs` |
+| `store.ts` | The Blob-facing half: shard shape, create-only and ETag-conditional writes, the run index, and the one-time migration |
 | `api/auth.ts` | `GET` issues a challenge, `POST` consumes it once and creates a session, `DELETE` signs out |
-| `api/state.ts` | Authenticated `GET` merges shards; authenticated `POST` merges the caller's delta |
+| `api/state.ts` | Authenticated `GET` merges one run's shards (`?run=<id>`, default open); authenticated `POST` merges the caller's delta into the open run and refuses a closed one |
+| `api/runs.ts` | Authenticated `GET` lists the runs; `POST { action: "rollover" }` closes the open run and opens its successor |
 | `locales/{en,es,pt}.json` | Journey controls, roles, case instructions, handoffs, and gates in each supported language |
-| `build.mjs` | Copies the page and Warm Earth radius tokens, then projects the active catalog and journey locales into `dist/catalog.json` |
-| `dev.mjs` | Loopback-only rehearsal server with a local identity bypass and state in `tmp/qa/` |
+| `build.mjs` | Copies the page and Warm Earth radius tokens, then projects the active catalog (with the retired ids each case replaces and the catalog revision) and journey locales into `dist/catalog.json` |
+| `dev.mjs` | Loopback-only rehearsal server with a local identity bypass and state in `tmp/qa/` (`runs.json` plus `runs/<runId>/<name>.json`; `QA_DEV_STATE_DIR` points it elsewhere) |
 
 Case **definitions** come from `scripts/data/qa-test-catalog.json` at build time, so a deployment is
 pinned to the catalog revision it shipped with and a case cannot change shape mid-session. Only
@@ -125,7 +161,9 @@ node packages/qa/build.mjs && node packages/qa/dev.mjs
 
 Serves <http://127.0.0.1:4610> with state in gitignored `tmp/qa/`. It binds only to `127.0.0.1` and
 does not use a wallet or the production allowlist. Open `?as=Afo`, `?as=Nansel`, or `?as=Gui` to pin
-that browser to a local test identity. The bypass is implemented only by `dev.mjs`; it is not imported
+that browser to a local test identity. A pre-runs `tmp/qa/<name>.json` store migrates into Run 1
+on the first request exactly like the deployment, so the rollover, the closed-run refusal, and
+the compare can be rehearsed locally before a session. The bypass is implemented only by `dev.mjs`; it is not imported
 by either deployed function and `dist/` contains only the static page, catalog, and generated
 radius-token stylesheet.
 
@@ -168,13 +206,14 @@ or the repository root `.env`; do not add a package-level `.env`.
 ## Getting results back into the repo
 
 ```bash
-bun run qa:pull
+bun run qa:pull --slug <slug> --run open        # or latest-closed, or run-N
 ```
 
-Reads the shards straight from the Blob store (needs `BLOB_READ_WRITE_TOKEN` in the process environment
-or root `.env`) and
-writes `tmp/qa-session/<slug>/results.csv` plus `qa-state.json`, the artifacts the `qa-session`
-skill closes out with. It reads the store rather than the app, so it needs no browser session and
+Reads one run's shards straight from the Blob store (needs `BLOB_READ_WRITE_TOKEN` in the process
+environment or root `.env`) and writes `tmp/qa-session/<slug>/results.csv` plus `qa-state.json`
+(which names the run), the artifacts the `qa-session` skill closes out with. Pull the previous run
+into `tmp/qa-session/<slug>/previous` and hand it to `qa:report --previous` for a run-versus-run
+delta; `bun run qa:status` reads the open run and names it first. It reads the store rather than the app, so it needs no browser session and
 still works if the deployment is down. Results stay in gitignored `tmp/` —
 definitions live in git, results never do. It lists address-keyed shards from the store rather than
 copying the deployment allowlist into the repository.
@@ -185,6 +224,5 @@ with `--out`, or pass `--force` to say the local copy is expendable.
 
 ## Deliberately not here yet
 
-Dev-stack/PM2 registration, named per-release runs (storage is keyed so adding them is additive),
-ERC-1271 contract-wallet authentication, severity capture in the UI, nonce-marker cleanup, and
-screenshot upload.
+Dev-stack/PM2 registration, ERC-1271 contract-wallet authentication, severity capture in the UI,
+nonce-marker cleanup, and screenshot upload.

@@ -38,14 +38,18 @@ The post-QA-call variant: same phases, three deltas. The unattended sibling is t
 write rules; this mode runs them interactively at the desk. Run one of the two per session; the
 Phase 3b dedupe catches the other's records if both ran.
 
-- **Phases 1-2** — the source is threefold: `bun run qa:pull --slug <date>` (the QA app's verdicts
-  and notes, exact Test IDs), the call's Gemini notes from Drive (title contains "QA" or "Build
-  Sync"), and any evidence page a tester linked from a note (a Notion or Drive URL beside an issue
-  number, carried into the slice's evidence comment as a link, never re-typed). App verdicts
-  recorded **during the call window** are ground truth — the store is long-lived and the pull
-  merges every shard ever written, so filter joined entries by their `at` timestamps (the
-  routine's session-window rule) before calling anything verdict-backed; older entries are
-  standing state. `N/A` means out of scope, never skipped
+- **Phases 1-2** — the source is threefold: `bun run qa:pull --slug <date> --run <id>` (the QA
+  app's verdicts and notes, exact Test IDs, from the run the call recorded into: the `run-N` id
+  in the session header, or in the parent's lede on a rerun; `--run latest-closed` when the run
+  was rolled over before this ran), the call's Gemini notes from Drive (title contains "QA" or
+  "Build Sync"), and any evidence page a tester linked from a note (a Notion or Drive URL beside
+  an issue number, carried into the slice's evidence comment as a link, never re-typed). App
+  verdicts recorded **during the call window** are ground truth — a run can hold several
+  sessions, so filter joined entries by their `at` timestamps (the routine's session-window rule)
+  before calling anything verdict-backed; older entries are standing state. For a re-QA also pull
+  the run it checks (`bun run qa:pull --slug <date> --run <previous id> --out
+  tmp/qa-session/<date>/previous`) and pass `--previous tmp/qa-session/<date>/previous/qa-state.json`
+  to `qa:report`, whose delta then names both runs. `N/A` means out of scope, never skipped
   ([`.claude/context/qa.md § Verdict vocabulary`](../../context/qa.md)); ask the tester to clear a
   skipped case in the app before the pull; when that cannot happen, pass those IDs to
   `qa:report --skipped <ID,ID>` so the generator counts them as not walked and lists them in its
@@ -69,7 +73,7 @@ Phase 3b dedupe catches the other's records if both ran.
   `defect`, `polish`, `decision`, `investigate`, `catalog`, or `environment`. Write the `catalog`
   observations to `tmp/qa-triage/<slug>/catalog-feedback.md` — they feed the next catalog change
   and never reach Linear; at Phase 7 copy the file, de-attributed (no verdicts, no tester names),
-  into the plan hub that owns the next catalog change (today `.plans/backlog/qa-runs/`) before the
+  into the plan hub that owns the next catalog change (today `.plans/active/qa-runs/`) before the
   workspace is removed, so cleanup cannot lose it. A note that says "major regression", "major blocker", or "completely
   broken" proposes Urgent for its cluster; the priority stays derived until the gate confirms.
 - **Phases 3-5** — `defect` and `polish` observations cluster into slices: same catalog area +

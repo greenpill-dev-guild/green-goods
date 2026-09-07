@@ -4,13 +4,13 @@
     "slug": "qa-runs",
     "title": "QA Runs",
     "kind": "feature",
-    "stage": "backlog"
+    "stage": "active"
   },
   "workflow": {
-    "overall_status": "backlog",
+    "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-05T04:08:09.130Z",
-    "updated_at": "2026-09-05T19:02:47.910Z"
+    "updated_at": "2026-09-07T05:09:37.205Z"
   },
   "links": {
     "brief": "brief.md",
@@ -29,13 +29,19 @@
   },
   "taxonomy": {
     "initiative": "engineering-quality",
-    "tracks": [],
-    "work_types": ["implementation"],
-    "surfaces": [],
+    "tracks": ["ops", "docs"],
+    "work_types": ["implementation", "qa", "hardening"],
+    "surfaces": [
+      "packages/qa",
+      "scripts/agents",
+      "scripts/data/qa-test-catalog.json",
+      "scripts/data/qa-test-id-ledger.json",
+      "docs/docs/builders/quality"
+    ],
     "depends_on_features": []
   },
   "notes": [
-    "Mark unused lanes as n/a before promoting QA.",
+    "Decisions of 2026-09-07: migration runs on the first authenticated request after deploy and Run 1 stays open until the Tuesday rollover; all lanes run serially in one Claude session on feature/qa-runs; Vercel deploys packages/qa from develop; the pre-Tuesday catalog split includes PWA-025/042/043/044.",
     "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",
     "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
     ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
@@ -63,11 +69,11 @@
       "skill_tags": ["ui", "frontend-design", "react"]
     },
     "state_api": {
-      "owner": "codex",
-      "status": "todo",
-      "branch": null,
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": "feature/qa-runs",
       "depends_on": [],
-      "handoff": "handoffs/codex-state-api.md",
+      "handoff": "handoffs/claude-state-api.md",
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -81,7 +87,8 @@
         },
         "note": ""
       },
-      "skill_tags": ["react", "tanstack-query", "data-layer"]
+      "skill_tags": ["data-layer", "vercel-blob", "scripts"],
+      "manual_blocked": false
     },
     "contracts": {
       "owner": "codex",
@@ -150,6 +157,22 @@
       "status": "n/a",
       "branch": null,
       "note": "No contract changes in scope; see brief.md Boundaries"
+    },
+    {
+      "timestamp": "2026-09-07T05:08:56.577Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_active",
+      "branch": null,
+      "note": "Moved feature hub from backlog to active"
+    },
+    {
+      "timestamp": "2026-09-07T05:09:37.206Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/qa-runs",
+      "note": "Store, API, scripts, and catalog split start; owner moved to claude per the 2026-09-07 serial-execution decision"
     }
   ]
 }

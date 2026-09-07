@@ -1,8 +1,8 @@
 # QA Runs
 
-**Stage**: `backlog`
-**Status**: Decisions locked 2026-09-05; implementation planned for the 2026-09-06/07 weekend, before the 2026-09-08 re-QA
-**Approved**: 2026-09-05 (Afo, three alignment rounds after the 2026-09-04 team QA call)
+**Stage**: `active`
+**Status**: In progress since 2026-09-07 on `feature/qa-runs`; must be deployed before the 2026-09-08 re-QA
+**Approved**: 2026-09-05 (Afo, three alignment rounds after the 2026-09-04 team QA call); execution decisions 8 to 11 locked 2026-09-07
 
 ## Summary
 
@@ -23,7 +23,8 @@ cases to their successors.
 2. Today's shards migrate as Run 1 ("Baseline"): legacy latest-state, not a session snapshot. Its
    window is the earliest and latest migrated entry timestamps and the index says so. Closed runs
    are read-only server-side; nothing is ever erased, and a write that arrives for a closed run
-   is re-targeted at the open run by the page, never dropped.
+   is re-targeted at the open run by the page, never dropped. (Amended by decision 8: Run 1 is
+   migrated open and closes at the first rollover, not at migration time.)
 3. Any allowlisted tester may open or close a run; the index records who did.
 4. `N/A` means intentionally out of scope; a skipped case has no entry. The app's N/A control says
    so. Environment is a run-level field; a note prefixed `[beta]` or `[prod]` marks a verdict taken
@@ -34,6 +35,15 @@ cases to their successors.
 6. `qa:pull` and `qa:report` become run-aware; the report's delta compares runs, not snapshots.
 7. Catalog split before Tuesday, scoped to rows walked or failing on 2026-09-04 plus the Android
    twins; the broader area re-cut waits until after Tuesday. Catalog lifecycle rules unchanged.
+8. (2026-09-07) Migration runs on the first authenticated request after deploy: the legacy
+   shards are copied into Run 1, which opens as the legacy baseline and keeps receiving
+   latest-state writes until a tester rolls it over on 2026-09-08. Legacy shards are never
+   written or deleted again.
+9. (2026-09-07) All lanes run serially in one Claude session on `feature/qa-runs`; the
+   `state_api` lane owner is claude, not codex.
+10. (2026-09-07) Vercel deploys `packages/qa` from `develop`; merging the PR is the redeploy.
+11. (2026-09-07) The pre-Tuesday split also retires or rescopes the four un-walked rows the
+    feedback named (PWA-025, PWA-042, PWA-043, PWA-044).
 
 ## Boundaries
 

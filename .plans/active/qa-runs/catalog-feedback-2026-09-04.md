@@ -24,3 +24,29 @@ C18 Grouped admin transaction rows, all still never walked: ADM-020, 021, 022, 0
 C19 Areas: 33 areas for 53 PWA cases and 33 for 46 admin cases; five PWA areas hold one case. Re-cut to where the walker sits (Home, Garden, Work, Commitments, Wallet, Profile, Auth/Install/Update, Offline) — after Tuesday.
 C20 Missing read-only PWA rows: garden detail, Insights/assessments list, members, commitments list/drawer, notifications on the desktop shell.
 C21 No admin case covers submitting an assessment outside the journey relay: ADM-005 tests gating only and ADM-037 is the relay's starting assessment. Add a P0 transaction row for assessment submission (found via the admin evidence page, item 8, 2026-09-05).
+
+## Disposition (2026-09-07, pre-Tuesday split on `feature/qa-runs`)
+
+| Item | Disposition |
+|---|---|
+| C1 PWA-020 | Reworded in place: "Wallet login in the app…" |
+| C2 PWA-021 | Retired → PWA-051 (join open), PWA-052 (request + withdraw), PWA-053 (steward welcome/decline), PWA-054 (resubmit) |
+| C3 PWA-023 | Steps rewritten with the three concrete deep links |
+| C4 PWA-025 | Narrowed in place to a pt/es spot-check of Home, one garden, Profile; the sweep belongs to an automated locale check |
+| C5 PWA-035 | Retired → ADM-012 (desktop review lives in the admin) |
+| C6 PWA-036 | Retired → PWA-055 (drawer visibility + stake), PWA-056 (allocate) |
+| C7 PWA-037 | Retired → PWA-057 (deposit), PWA-058 (withdraw own deposit), PWA-059 (in-drawer jar claim) |
+| C8 PWA-038 | Retired → PWA-060 (avatar + draft recovery), PWA-061 (theme + language), PWA-062 (ENS), PWA-063 (badges), PWA-064 (logout) |
+| C9 PWA-042 | Rescoped in place to the desktop shell with a keyboard precondition |
+| C10 PWA-043 | Retired → PWA-065 (hosted cold start only; local timings leave the catalog) |
+| C11 PWA-044 | Retired → PWA-066 (PWA), PUB-034 (website), ADM-047 (admin) |
+| C12 PWA-IOS-003/004/005 | Twins added: PWA-AND-006 (login recovery), PWA-AND-007 (capture + draft), PWA-AND-008 (gallery); PWA-AND-003 retired into 007/008 |
+| C13 PWA-IOS-006 | Expectation rewritten to the real job-queue behaviour (pending while offline, submitted once with backed-off retries, clientWorkId dedupe, failed state); PWA-AND-004 matched |
+| C14 PWA-IOS-008 | Scenario reworded in place; the prefix scheme itself waits for the re-cut |
+| C15 principle | Applied through the splits above |
+| C16 N/A meaning | QA app N/A control now says "out of scope for this run" (page lane) |
+| C17 bug-encoding expectations | ADM-020, ADM-026 (+ locales), ADM-028, PUB-003, PUB-020, PUB-024 restated as intended behaviour; PWA-038 retired |
+| C18 admin grouped tx rows | Deferred to the post-Tuesday re-cut |
+| C19 areas | Deferred to the post-Tuesday re-cut |
+| C20 missing read-only PWA rows | Deferred to the post-Tuesday re-cut |
+| C21 assessment submission | Added ADM-046 (P0 transaction) |

@@ -42,7 +42,8 @@
   "notes": [
     "The implementation is on feature/qa-journey-mode in PR #796.",
     "Automated and single-browser rehearsal evidence is green; redeployment and the human two-wallet smoke remain release blockers.",
-    "No Linear mirror was requested for this repository-local QA tool change."
+    "No Linear mirror was requested for this repository-local QA tool change.",
+    "2026-09-07: PR #796 merged to develop; the QA app redeploys with the qa-runs change (feature/qa-runs) and the 2026-09-08 two-tester smoke recorded in .plans/active/qa-runs/handoffs/claude-qa-pass-1.md is this hub's qa_pass_1 proof."
   ],
   "lanes": {
     "ui": {
