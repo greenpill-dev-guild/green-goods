@@ -199,6 +199,8 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
               id={inputId}
               type="file"
               accept="image/jpeg,image/png,image/webp"
+              aria-invalid={Boolean(displayedError) || undefined}
+              aria-describedby={displayedError ? `${inputId}-error` : undefined}
               aria-label={formatMessage({
                 id: "profile.avatar.chooseFile",
                 defaultMessage: "Choose Photo",
@@ -259,11 +261,15 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
               </button>
             </div>
           ) : null}
-          {displayedError ? (
-            <p role="alert" className="text-sm text-error-base">
-              {displayedError}
-            </p>
-          ) : null}
+          <p
+            id={`${inputId}-error`}
+            role={displayedError ? "alert" : undefined}
+            tabIndex={displayedError ? 0 : undefined}
+            className="text-sm text-error-base"
+            style={{ blockSize: "3lh", flexShrink: 0, overflowY: "auto", overflowWrap: "anywhere" }}
+          >
+            {displayedError}
+          </p>
 
           <div className="flex flex-wrap items-center gap-2">
             <button

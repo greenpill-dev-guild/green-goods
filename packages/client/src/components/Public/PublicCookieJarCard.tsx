@@ -437,6 +437,17 @@ function CampaignCookieJarInlineActions({
 
   const claimTooLarge = !fixedClaim && parsedClaim > 0n && parsedClaim > jar.maxWithdrawal;
   const claimExceedsBalance = parsedClaim > jar.balance;
+  const claimErrorMessage = claimTooLarge
+    ? formatMessage(
+        { id: "public.cookies.claimTooLarge", defaultMessage: "Maximum claim is {amount}." },
+        { amount: formatDisplayAmount(jar.maxWithdrawal, decimals, symbol) }
+      )
+    : claimExceedsBalance
+      ? formatMessage({
+          id: "public.cookies.claimExceedsBalance",
+          defaultMessage: "The jar does not have enough funds for that claim.",
+        })
+      : claimInputErrorMessage;
   const claimDisabled =
     !primaryAddress ||
     !jar.isEligible ||
@@ -580,39 +591,26 @@ function CampaignCookieJarInlineActions({
         <ClaimEligibilityNote jar={jar} nextClaimLabel={nextClaimLabel} />
 
         {!fixedClaim ? (
-          <label className="block" htmlFor={claimId}>
-            <span className="text-sm font-medium text-text-strong-950">
+          <div>
+            <label htmlFor={claimId} className="text-sm font-medium text-text-strong-950">
               {formatMessage({
                 id: "public.cookies.amountToClaim",
                 defaultMessage: "Amount to claim",
               })}
-            </span>
+            </label>
             <FormattedAmountInput
               id={claimId}
               value={claimAmount}
               onValueChange={setClaimAmount}
+              error={claimErrorMessage}
+              errorClassName="mt-3 text-sm text-error-dark"
               inputClassName="mt-2 w-full rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-sm text-text-strong-950 outline-none focus:border-primary-base focus:ring-2 focus:ring-primary-base/30"
               placeholder="0.00"
             />
-          </label>
-        ) : null}
-
-        {claimInputErrorMessage || claimTooLarge || claimExceedsBalance ? (
-          <p className="text-sm text-error-dark">
-            {claimTooLarge
-              ? formatMessage(
-                  {
-                    id: "public.cookies.claimTooLarge",
-                    defaultMessage: "Maximum claim is {amount}.",
-                  },
-                  { amount: formatDisplayAmount(jar.maxWithdrawal, decimals, symbol) }
-                )
-              : claimExceedsBalance
-                ? formatMessage({
-                    id: "public.cookies.claimExceedsBalance",
-                    defaultMessage: "The jar does not have enough funds for that claim.",
-                  })
-                : claimInputErrorMessage}
+          </div>
+        ) : claimErrorMessage ? (
+          <p role="alert" className="text-sm text-error-dark">
+            {claimErrorMessage}
           </p>
         ) : null}
 
@@ -630,21 +628,23 @@ function CampaignCookieJarInlineActions({
       </div>
 
       <div className="grid gap-3 border-t border-stroke-soft-200 pt-4">
-        <label className="block" htmlFor={depositId}>
-          <span className="text-sm font-medium text-text-strong-950">
+        <div>
+          <label htmlFor={depositId} className="text-sm font-medium text-text-strong-950">
             {formatMessage({
               id: "public.cookies.depositAmount",
               defaultMessage: "Deposit amount",
             })}
-          </span>
+          </label>
           <FormattedAmountInput
             id={depositId}
             value={depositAmount}
             onValueChange={setDepositAmount}
+            error={depositErrorMessage}
+            errorClassName="mt-3 text-sm text-error-dark"
             inputClassName="mt-2 w-full rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-sm text-text-strong-950 outline-none focus:border-primary-base focus:ring-2 focus:ring-primary-base/30"
             placeholder="0.00"
           />
-        </label>
+        </div>
 
         {walletBalance ? (
           <p className="text-xs text-text-soft-400">
@@ -656,10 +656,6 @@ function CampaignCookieJarInlineActions({
               { amount: `${walletBalance.formatted} ${walletBalance.symbol}` }
             )}
           </p>
-        ) : null}
-
-        {depositErrorMessage ? (
-          <p className="text-sm text-error-dark">{depositErrorMessage}</p>
         ) : null}
 
         <Button

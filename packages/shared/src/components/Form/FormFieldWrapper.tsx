@@ -33,18 +33,16 @@ export function FormFieldWrapper({
         {required && <span className="ml-0.5 text-error-base">*</span>}
       </label>
       {children}
-      {(helperText || error) && (
-        <p
-          id={id ? `${id}-helper-text` : undefined}
-          role={error ? "alert" : undefined}
-          className={cn(
-            "text-body-sm min-h-[1rem]",
-            error ? "text-error-dark" : "text-text-sub-600"
-          )}
-        >
-          {error || helperText}
-        </p>
-      )}
+      <p
+        id={id ? `${id}-helper-text` : undefined}
+        role={error ? "alert" : undefined}
+        tabIndex={helperText || error ? 0 : undefined}
+        // Reserve wrapped feedback; longer messages stay readable without moving the form.
+        style={{ blockSize: "3lh", flexShrink: 0, overflowY: "auto", overflowWrap: "anywhere" }}
+        className={cn("text-body-sm", error ? "text-error-dark" : "text-text-sub-600")}
+      >
+        {error || helperText}
+      </p>
     </div>
   );
 }

@@ -146,6 +146,7 @@ function JarCard({ jar, gardenName }: JarCardProps) {
                     {formatMessage({ id: "app.treasury.max" })}
                   </button>
                 }
+                containerClassName="[--form-feedback-block-size:2lh]"
                 errorClassName="mt-2 text-xs text-error-dark"
                 error={inputError ? formatMessage({ id: inputError }) : null}
               />

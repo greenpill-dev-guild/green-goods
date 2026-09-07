@@ -86,6 +86,41 @@ describe("FormattedAmountInput", () => {
     expect(input.getAttribute("aria-describedby")).toBe(error.id);
   });
 
+  it("keeps its feedback slot mounted while announcing and clearing validation", () => {
+    const { rerender, container } = render(
+      <FormattedAmountInput id="amount" value="1" onValueChange={() => {}} aria-label="Amount" />
+    );
+    const input = screen.getByRole("textbox", { name: "Amount" });
+    const feedback = container.querySelector("#amount-error");
+    expect(feedback).toBeInTheDocument();
+    expect(feedback).toBeEmptyDOMElement();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+    rerender(
+      <FormattedAmountInput
+        id="amount"
+        value="0.0000001"
+        onValueChange={() => {}}
+        aria-label="Amount"
+        error="Too many decimal places"
+      />
+    );
+    expect(screen.getByRole("alert")).toBe(feedback);
+    expect(input).toHaveAccessibleDescription("Too many decimal places");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(feedback).toHaveAttribute("tabindex", "0");
+
+    rerender(
+      <FormattedAmountInput id="amount" value="1" onValueChange={() => {}} aria-label="Amount" />
+    );
+    expect(container.querySelector("#amount-error")).toBe(feedback);
+    expect(feedback).toBeEmptyDOMElement();
+    expect(feedback).not.toHaveAttribute("tabindex");
+    expect(input).not.toHaveAttribute("aria-invalid");
+    expect(input).not.toHaveAttribute("aria-describedby");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("renders the end slot beside the input", () => {
     render(
       <FormattedAmountInput

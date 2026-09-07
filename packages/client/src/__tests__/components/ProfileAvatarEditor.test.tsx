@@ -289,6 +289,39 @@ describe("ProfileAvatarEditor", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(/could not restore your saved/i);
   });
 
+  it("keeps feedback space and clears the photo input's error description", async () => {
+    const user = userEvent.setup();
+    const rendered = renderEditor();
+    await user.click(screen.getByRole("button", { name: /edit profile photo/i }));
+    const input = screen.getByLabelText(/choose photo/i);
+    const feedback = rendered.container.querySelector(`[id="${input.id}-error"]`);
+    expect(feedback).toBeInTheDocument();
+    expect(feedback).toBeEmptyDOMElement();
+
+    avatarEditorMocks.editor.error = new Error("Draft restoration failed");
+    const editor = (
+      <IntlProvider locale="en" messages={{}}>
+        <ProfileAvatarEditor fallbackAvatar="/images/avatar.png" />
+      </IntlProvider>
+    );
+    rendered.rerender(editor);
+    expect(screen.getByRole("alert")).toBe(feedback);
+    expect(input).toHaveAccessibleDescription(/could not restore your saved profile photo draft/i);
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(feedback).toHaveAttribute("tabindex", "0");
+
+    avatarEditorMocks.editor.error = null;
+    rendered.rerender(
+      <IntlProvider locale="en" messages={{}}>
+        <ProfileAvatarEditor fallbackAvatar="/images/avatar.png" />
+      </IntlProvider>
+    );
+    expect(feedback).toBeEmptyDOMElement();
+    expect(input).not.toHaveAttribute("aria-invalid");
+    expect(input).not.toHaveAttribute("aria-describedby");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("reports remove, continue, and discard failures with action-specific copy", async () => {
     const user = userEvent.setup();
     avatarEditorMocks.clear.mockRejectedValueOnce(new Error("remove failed"));

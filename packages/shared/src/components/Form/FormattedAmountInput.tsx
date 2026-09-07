@@ -126,11 +126,20 @@ export function FormattedAmountInput({
         />
         {endSlot}
       </div>
-      {error ? (
-        <p id={errorRegionId} role="alert" className={cn(errorClassName)}>
-          {error}
-        </p>
-      ) : null}
+      <p
+        id={errorRegionId}
+        role={error ? "alert" : undefined}
+        tabIndex={error ? 0 : undefined}
+        className={cn(errorClassName)}
+        style={{
+          blockSize: "var(--form-feedback-block-size, 3lh)",
+          flexShrink: 0,
+          overflowY: "auto",
+          overflowWrap: "anywhere",
+        }}
+      >
+        {error}
+      </p>
     </div>
   );
 }
