@@ -10,6 +10,7 @@
 
 import { readFileSync } from "node:fs";
 
+import { describeRun } from "../../packages/qa/runs";
 import { loadCatalog, type CatalogCase } from "./qa-workbook-build";
 import {
   mergeShards,
@@ -17,7 +18,7 @@ import {
   summarize,
   type MergedEntries,
 } from "./qa-state";
-import { readShards, resolveBlobToken } from "./qa-state-pull";
+import { readRun, resolveBlobToken, runSummary, type RunSummary } from "./qa-state-pull";
 
 export const DEFAULT_STALE_DAYS = 30;
 
@@ -32,6 +33,14 @@ interface ReportOptions {
   staleDays?: number;
   issues?: IssueMap;
   now?: Date;
+  /** The run the shards came from; the report's first line names it. */
+  run?: RunSummary;
+}
+
+/** "Open run: Run 2 · Re-QA 2026-09-08 · beta · opened 2026-09-08T15:00:00.000Z" */
+export function runLine(run: RunSummary): string {
+  const state = run.closedAt ? `closed ${run.closedAt}` : `opened ${run.openedAt}`;
+  return `${run.closedAt ? "Run" : "Open run"}: ${describeRun(run)} · ${run.environment} · ${state}${run.legacy ? " · migrated baseline" : ""}`;
 }
 
 export interface StaleCase {
@@ -133,6 +142,7 @@ export function buildStatusReport(
   const blocked = cases.filter((testCase) => rollupVerdict(merged[testCase.id]) === "Blocked");
 
   const lines = [
+    ...(options.run ? [runLine(options.run)] : []),
     `QA status — ${summary.recorded}/${summary.total} active cases walked`,
     `Recency uses each case's latest entry timestamp, not a build SHA. Stale means older than ${staleDays} days.`,
     "",
@@ -173,9 +183,9 @@ async function main(): Promise<void> {
   const token = resolveBlobToken();
   const catalog = await loadCatalog();
   const active = catalog.cases.filter((testCase) => testCase.status !== "retired");
-  let shards;
+  let pulled;
   try {
-    shards = await readShards(token);
+    pulled = await readRun(token, "open", undefined, () => {});
   } catch {
     // qa:pull owns shard-level diagnostics. Status output remains identity-free.
     throw new Error("the QA store could not be read; run bun run qa:pull for shard-level diagnostics");
@@ -184,9 +194,10 @@ async function main(): Promise<void> {
     ? parseIssueMap(readFileSync(options.issuesPath, "utf8"))
     : {};
   process.stdout.write(
-    buildStatusReport(active, mergeShards(shards), {
+    buildStatusReport(active, mergeShards(pulled.shards), {
       issues,
       staleDays: options.staleDays,
+      run: runSummary(pulled),
     }),
   );
 }

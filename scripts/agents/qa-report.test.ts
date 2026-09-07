@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { buildReportModel, parseArgs, parseWindow, renderReport, resultsNotes, runReport } from "./qa-report";
+import { buildReportModel, parseArgs, parseWindow, renderReport, resultsNotes, runReport, successorMap } from "./qa-report";
 import { mergeShards, type Shard } from "./qa-state";
 import { writePrivateArtifactSetAtomically } from "./qa-state-pull";
 import type { Catalog, CatalogCase } from "./qa-workbook-build";
@@ -255,6 +255,90 @@ describe("QA report rendering", () => {
   });
 });
 
+const RUN_1 = {
+  id: "run-1",
+  n: 1,
+  label: "Baseline",
+  environment: "beta",
+  openedAt: "2026-08-29T09:00:00.000Z",
+  closedAt: "2026-09-08T14:00:00.000Z",
+  legacy: true,
+  window: { from: "2026-08-29T09:00:00.000Z", to: "2026-09-08T14:00:00.000Z" },
+};
+const RUN_2 = {
+  id: "run-2",
+  n: 2,
+  label: "Re-QA 2026-09-08",
+  environment: "beta",
+  openedAt: "2026-09-08T14:00:00.000Z",
+  closedAt: null,
+  legacy: false,
+  window: null,
+};
+
+describe("QA report runs", () => {
+  it("names both runs in the header and the delta heading", () => {
+    const cases = [makeCase()];
+    const previous = mergeShards([shard("Afo", { "PUB-001": { s: "fail", n: "", at: BEFORE_WINDOW } })]);
+    const built = model(cases, [shard("Afo", { "PUB-001": { s: "pass", n: "", at: IN_WINDOW } })], {
+      run: RUN_2,
+      previous: { path: "tmp/qa-session/2026-09-08/previous/qa-state.json", entries: previous, run: RUN_1 },
+    });
+    expect(built.delta?.baseline).toBe("Run 1 · Baseline (closed 2026-09-08T14:00:00.000Z)");
+    for (const variant of ["private", "public"] as const) {
+      const report = renderReport(built, { kinds: KINDS }, { variant });
+      expect(report).toContain("QA session 2026-09-02\nRun: Run 2 · Re-QA 2026-09-08 · beta · open\n");
+      expect(report).toContain(
+        variant === "public"
+          ? "## Delta vs previous run\n"
+          : "## Delta vs Run 1 · Baseline (closed 2026-09-08T14:00:00.000Z)\n",
+      );
+      expect(report).toContain("- Fixed (1): `PUB-001`\n");
+    }
+  });
+
+  it("maps a retired baseline id onto each replacedBy successor as inherited, and never counts an unwalked successor as cleared", () => {
+    const cases = [makeCase({ id: "PWA-051" }), makeCase({ id: "PWA-052" }), makeCase({ id: "PWA-053" })];
+    const previous = mergeShards([
+      shard("Afo", {
+        "PWA-021": { s: "fail", n: "request to join not visible", at: BEFORE_WINDOW },
+        "PWA-053": { s: "pass", n: "", at: BEFORE_WINDOW },
+      }),
+    ]);
+    const built = model(cases, [shard("Afo", { "PWA-051": { s: "pass", n: "", at: IN_WINDOW } })], {
+      previous: { path: "previous/qa-state.json", entries: previous, run: RUN_1 },
+      replacedBy: { "PWA-021": ["PWA-051", "PWA-052", "PWA-053"] },
+    });
+    expect(built.delta).toMatchObject({
+      fixed: ["PWA-051"],
+      cleared: [],
+      stillFailing: [],
+      newlyWalked: [],
+      // PWA-053 had its own baseline verdict, so it inherits nothing.
+      inherited: [
+        { id: "PWA-051", from: "PWA-021" },
+        { id: "PWA-052", from: "PWA-021" },
+      ],
+      unknown: [],
+    });
+    const report = renderReport(built, { kinds: KINDS }, { variant: "public" });
+    expect(report).toContain("- Inherited from retired cases (2): `PWA-051` ← `PWA-021`, `PWA-052` ← `PWA-021`\n");
+    expect(report).not.toContain("Unknown or retired");
+  });
+
+  it("follows replacedBy chains to active ids and ignores cycles", () => {
+    expect(
+      successorMap([
+        { id: "A", status: "retired", replacedBy: ["B"] },
+        { id: "B", status: "retired", replacedBy: ["C", "D"] },
+        { id: "C", status: "active" },
+        { id: "D", status: "retired", replacedBy: ["D"] },
+        { id: "E", status: "retired" },
+      ]),
+    ).toEqual({ A: ["C"], B: ["C"] });
+  });
+});
+
 describe("QA report delta and gaps", () => {
   it("compares standing verdicts against a previous snapshot and reports unknown ids", () => {
     const cases = ["PUB-001", "PUB-002", "PUB-003", "PUB-004", "PUB-005"].map((id) => makeCase({ id }));
@@ -289,6 +373,8 @@ describe("QA report delta and gaps", () => {
       stillBlocked: ["PUB-003"],
       cleared: [],
       skipped: [],
+      newlyWalked: ["PUB-005"],
+      inherited: [],
       unknown: ["XPLAT-001"],
     });
     // The path and unknown ids are private detail; the public variant withholds them.
@@ -542,7 +628,7 @@ describe("QA report review hardening", () => {
 
     expect(privateReport).toContain(`## Delta vs ${baseline}`);
     expect(privateReport).toContain("`0xdeadbeefcafe`");
-    expect(publicReport).toContain("## Delta vs previous snapshot\n");
+    expect(publicReport).toContain("## Delta vs previous run\n");
     expect(publicReport).toContain("- Unknown or retired on one side (1): withheld in the public variant\n");
     for (const secret of ["0xdeadbeef", "/home/afo"]) expect(publicReport).not.toContain(secret);
   });
