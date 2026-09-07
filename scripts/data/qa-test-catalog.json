@@ -62,12 +62,30 @@
         }
       ],
       "phases": [
-        { "id": "prepare", "label": "Prepare" },
-        { "id": "protocol-asks", "label": "Protocol asks" },
-        { "id": "garden-delivers", "label": "Garden delivers" },
-        { "id": "garden-earns", "label": "Garden earns" },
-        { "id": "garden-distributes", "label": "Garden distributes" },
-        { "id": "member-receives", "label": "Member receives" }
+        {
+          "id": "prepare",
+          "label": "Prepare"
+        },
+        {
+          "id": "protocol-asks",
+          "label": "Protocol asks"
+        },
+        {
+          "id": "garden-delivers",
+          "label": "Garden delivers"
+        },
+        {
+          "id": "garden-earns",
+          "label": "Garden earns"
+        },
+        {
+          "id": "garden-distributes",
+          "label": "Garden distributes"
+        },
+        {
+          "id": "member-receives",
+          "label": "Member receives"
+        }
       ],
       "steps": [
         {
@@ -195,8 +213,14 @@
         }
       ],
       "phases": [
-        { "id": "check-readiness", "label": "Check readiness" },
-        { "id": "queue-top-up", "label": "Queue top-up" }
+        {
+          "id": "check-readiness",
+          "label": "Check readiness"
+        },
+        {
+          "id": "queue-top-up",
+          "label": "Queue top-up"
+        }
       ],
       "steps": [
         {
@@ -268,11 +292,11 @@
       "preconditions": ["Indexer or deployed public data available"],
       "steps": [
         "Open /gardens and scroll the full listing; watch for layout jumps and lazy-image pop-in",
-        "Search for a term and confirm the live count narrows (note: the query is lost on refresh — known)",
+        "Search for a term and confirm the live count narrows",
         "Search for gibberish and read the empty state",
         "Open a garden detail URL from a card"
       ],
-      "expected": "All gardens render with lazy images and no layout jumps; search narrows with a live count (note: query is lost on refresh); empty state is honest",
+      "expected": "All gardens render with lazy images and no layout jumps; search narrows with a live count; the empty state is honest",
       "evidence": "Screenshot of listing and detail",
       "role": "none",
       "tags": ["data", "empty-state"],
@@ -493,7 +517,7 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Offline Queue",
-      "scenario": "Offline work submission queues and flushes once",
+      "scenario": "Offline work submission queues and is submitted once on reconnect",
       "preconditions": ["Submission-capable account; network toggle available"],
       "steps": [
         "Start submission online",
@@ -503,7 +527,7 @@
         "Reopen",
         "Return online"
       ],
-      "expected": "Queued item flushes once with no duplicate work",
+      "expected": "The queued submission stays visible while offline, is submitted once on reconnect with backed-off retries, and never creates a duplicate work record; a job that exhausts its retries shows as failed rather than disappearing",
       "evidence": "Screen recording plus queue/status screenshot",
       "role": "gardener",
       "tags": ["offline", "sync", "queue", "tx"],
@@ -595,7 +619,7 @@
       "priority": "P1",
       "kind": "data-integrity",
       "area": "Garden Discovery",
-      "scenario": "Home and Garden discovery handle real, empty, and stale data",
+      "scenario": "Home and garden discovery handle real, empty, and stale data on the installed app",
       "preconditions": ["Authenticated account; at least one joined garden"],
       "steps": [
         "Open /home and inspect content",
@@ -765,8 +789,11 @@
       "tags": ["upload", "media", "draft"],
       "requiresProduction": false,
       "requiresDevice": true,
-      "status": "active",
-      "source": "sheet-v1.1"
+      "status": "retired",
+      "source": "sheet-v1.1",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split into the Android twins of the iOS capture and gallery rows",
+      "replacedBy": ["PWA-AND-007", "PWA-AND-008"]
     },
     {
       "id": "PWA-AND-004",
@@ -778,7 +805,7 @@
       "scenario": "Offline queue survives app close and reconnect",
       "preconditions": ["Submission-capable account; network toggle available"],
       "steps": ["Submit while offline", "Close app", "Reopen while offline", "Reconnect"],
-      "expected": "Queued item remains visible and flushes once",
+      "expected": "The queued submission stays visible while offline, is submitted once on reconnect with backed-off retries, and never creates a duplicate work record; a job that exhausts its retries shows as failed rather than disappearing",
       "evidence": "Screen recording plus queue/status screenshot",
       "role": "gardener",
       "tags": ["offline", "sync", "queue", "tx"],
@@ -805,6 +832,75 @@
       "requiresDevice": true,
       "status": "active",
       "source": "sheet-v1.1"
+    },
+    {
+      "id": "PWA-AND-006",
+      "tab": "PWA",
+      "platform": "Android Chrome Installed PWA",
+      "priority": "P0",
+      "kind": "resilience",
+      "area": "Auth",
+      "scenario": "[Android] Login, passkey, and wallet gate are recoverable on Android",
+      "preconditions": ["Test account available"],
+      "steps": ["Open /home", "Start login", "Cancel once", "Retry", "Complete if possible"],
+      "expected": "Cancel and retry never strand the user; the retry path completes the login",
+      "evidence": "Screen recording plus account role",
+      "role": "any",
+      "tags": ["auth", "passkey", "recovery"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "PWA-AND-007",
+      "tab": "PWA",
+      "platform": "Android Chrome Installed PWA",
+      "priority": "P0",
+      "kind": "data-integrity",
+      "area": "Upload",
+      "scenario": "[Android] Camera capture preview and draft persist on Android",
+      "preconditions": ["Garden/account able to submit work"],
+      "steps": [
+        "Start work submission",
+        "Capture a photo",
+        "Verify the preview",
+        "Save the draft",
+        "Close the app",
+        "Reopen"
+      ],
+      "expected": "The preview matches the captured media and the draft is still there after reopening",
+      "evidence": "Screen recording",
+      "role": "gardener",
+      "tags": ["upload", "draft", "media"],
+      "requiresProduction": false,
+      "requiresDevice": true,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "PWA-AND-008",
+      "tab": "PWA",
+      "platform": "Android Chrome Installed PWA",
+      "priority": "P1",
+      "kind": "data-integrity",
+      "area": "Upload",
+      "scenario": "[Android] Gallery image survives the submission draft and replacement",
+      "preconditions": ["Android photo library with a PNG or JPG"],
+      "steps": [
+        "Start work submission",
+        "Select an image from the gallery",
+        "Save the draft",
+        "Reopen",
+        "Replace the image"
+      ],
+      "expected": "The image preview persists across reopening, and replacing it is coherent",
+      "evidence": "Screenshot before and after reopen",
+      "role": "gardener",
+      "tags": ["upload", "media"],
+      "requiresProduction": false,
+      "requiresDevice": true,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
     },
     {
       "id": "PWA-ROLE-004",
@@ -1453,10 +1549,10 @@
       "priority": "P0",
       "kind": "journey",
       "area": "Auth",
-      "scenario": "Desktop-shell wallet login connects, signs, and recovers from a rejected signature",
+      "scenario": "Wallet login in the app connects, signs, and recovers from a rejected signature",
       "preconditions": ["dev:prod stack", "Browser wallet"],
       "steps": [
-        "Open the PWA login on desktop",
+        "Open the app's login in a desktop browser",
         "Connect a wallet and sign; land on Home",
         "Repeat and reject the signature; confirm the retry path"
       ],
@@ -1491,8 +1587,11 @@
       "role": "gardener",
       "tags": ["garden-join", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by actor and act after the 2026-09-04 call: one row per join act",
+      "replacedBy": ["PWA-051", "PWA-052", "PWA-053", "PWA-054"]
     },
     {
       "id": "PWA-023",
@@ -1503,8 +1602,12 @@
       "area": "Routing",
       "scenario": "Refresh and direct deep links preserve garden/work context",
       "preconditions": ["Authenticated session"],
-      "steps": ["Hard-refresh on a deep work route", "Paste a deep URL into a fresh tab"],
-      "expected": "Hard refresh on a deep route and pasting a deep URL both land correctly — no blank page, no lost context",
+      "steps": [
+        "Hard-refresh on /home/:gardenId/work/:workId",
+        "Paste /home/:gardenId/commitments/:commitmentId into a fresh tab",
+        "Paste /home/:gardenId/assessments/:assessmentId into a fresh tab"
+      ],
+      "expected": "Hard refresh on a deep work route and pasting a deep commitment or assessment URL all land on the right record with the garden context intact — no blank page, no lost context",
       "evidence": "Screenshot after refresh",
       "role": "gardener",
       "tags": ["routing"],
@@ -1519,13 +1622,13 @@
       "priority": "P1",
       "kind": "content",
       "area": "Locale Quality",
-      "scenario": "Portuguese/Spanish render dates, plurals, and diacritics on the client",
+      "scenario": "Portuguese and Spanish spot-check: dates, plurals, and diacritics on Home, one garden, and Profile",
       "preconditions": ["Production data (via local dev:prod or hosted)"],
       "steps": [
         "Switch the app to pt, then es",
-        "Review dates, plurals, and diacritics on real records"
+        "On Home, one garden detail, and the Profile, read dates, plurals, and diacritics against real records"
       ],
-      "expected": "No English-formatted dates or raw plural forms in pt/es with real records",
+      "expected": "No English-formatted dates or raw plural forms on those three screens in pt or es; coverage beyond them belongs to the automated locale check",
       "evidence": "Screenshots per locale",
       "role": "gardener",
       "tags": ["locale-quality"],
@@ -1748,7 +1851,7 @@
         "Deposit into a jar (approve+deposit)",
         "Use the connection line's Disconnect control and observe what it does"
       ],
-      "expected": "Approve+deposit prompts; deep link scrolls and focus-rings the jar; the 'Disconnect' control does what it says (it currently opens the wallet modal instead)",
+      "expected": "Approve and deposit prompt in order; the deep link scrolls to and focus-rings the jar; the connection line's Disconnect control disconnects the wallet",
       "evidence": "Screenshot of deep-link focus",
       "role": "funder",
       "tags": ["cookies", "tx"],
@@ -1837,7 +1940,7 @@
         "Apply kind/domain/garden filters and page through results",
         "Open an evidence drawer; use Cite this record"
       ],
-      "expected": "Kind/domain/garden filters narrow with honest counts; pagination clamps; evidence drawer shows sources; Cite copies with visible confirmation (currently silent)",
+      "expected": "Kind, domain, and garden filters narrow with honest counts; pagination clamps; the evidence drawer shows sources; Cite copies with a visible confirmation",
       "evidence": "Screenshot of filtered results",
       "role": "none",
       "tags": ["impact"],
@@ -2071,8 +2174,11 @@
       "role": "steward",
       "tags": ["review", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Desktop review lives in the admin dashboard; the PWA review rows cover the installed app and ADM-012 covers the admin decision path",
+      "replacedBy": ["ADM-012"]
     },
     {
       "id": "PWA-036",
@@ -2093,8 +2199,11 @@
       "role": "steward",
       "tags": ["governance", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split reading from writing: drawer visibility and current stake are one check, allocation is another",
+      "replacedBy": ["PWA-055", "PWA-056"]
     },
     {
       "id": "PWA-037",
@@ -2115,8 +2224,11 @@
       "role": "funder",
       "tags": ["endowment", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by act: deposit, own-deposit withdraw, and the in-drawer jar claim are separate transactions",
+      "replacedBy": ["PWA-057", "PWA-058", "PWA-059"]
     },
     {
       "id": "PWA-038",
@@ -2138,8 +2250,11 @@
       "role": "gardener",
       "tags": ["profile", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by act after the 2026-09-04 call; the grouped row also encoded a known bug in its expectation",
+      "replacedBy": ["PWA-060", "PWA-061", "PWA-062", "PWA-063", "PWA-064"]
     },
     {
       "id": "PWA-039",
@@ -2200,7 +2315,7 @@
         "Fail one mid-run; confirm the remaining draft survives",
         "Try removing the last domain; close dirty"
       ],
-      "expected": "Each dirty field saves as its own sequential transaction with honest progress; a mid-run failure keeps the remaining draft (no silent partial loss); removing the last domain is refused with a message (currently silent); dirty-close prompts",
+      "expected": "Each dirty field saves as its own sequential transaction with honest progress; a mid-run failure keeps the remaining draft with no silent partial loss; removing the last domain is refused with a message; dirty-close prompts",
       "evidence": "Recording of sequential saves",
       "role": "steward",
       "tags": ["garden-settings", "tx"],
@@ -2333,7 +2448,7 @@
         "Add named confirmers incl. one bad address",
         "Review, queue, and watch the queued row"
       ],
-      "expected": "Beats validate; a bad/duplicate confirmer address is rejected visibly (currently a silent no-op); review precedes queueing; the queued row appears before the indexer catches up",
+      "expected": "Beats validate; a bad or duplicate confirmer address is rejected visibly; review precedes queueing; the queued row appears before the indexer catches up",
       "evidence": "Screenshot of queued row",
       "role": "steward",
       "tags": ["garden-pool", "tx"],
@@ -2377,7 +2492,7 @@
         "Complete approvals; list for yield",
         "Cancel the listing"
       ],
-      "expected": "The approvals gate unlocks listing; listing walks its signing steps honestly; cancel works (currently a bare unguarded button, and the whole panel may be dead due to a hardcoded permission — reachability is part of the test)",
+      "expected": "The approvals gate unlocks listing; listing walks its signing steps honestly; cancel asks for confirmation and works; the panel is reachable by a steward with the right permission",
       "evidence": "Screenshot of listing state",
       "role": "steward",
       "tags": ["impact", "tx"],
@@ -2768,8 +2883,10 @@
       "priority": "P1",
       "kind": "accessibility",
       "area": "Accessibility",
-      "scenario": "Keyboard and focus smoke on core PWA flows: wizard, drawers, dialogs",
-      "preconditions": ["Authenticated session"],
+      "scenario": "Keyboard and focus smoke on the desktop shell: wizard, drawers, dialogs",
+      "preconditions": [
+        "Authenticated session in a desktop browser with a physical keyboard, not a touch device"
+      ],
       "steps": [
         "Tab through the submission wizard end to end",
         "Open drawers/dialogs: check trap, Escape order, focus return"
@@ -2804,8 +2921,11 @@
       "role": "none",
       "tags": ["performance"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Local dev timings are environment artifacts, not QA evidence, and boot performance is measured by PostHog benchmarks; the hosted cold start keeps one human row",
+      "replacedBy": ["PWA-065"]
     },
     {
       "id": "PWA-044",
@@ -2825,8 +2945,11 @@
       "role": "none",
       "tags": ["identity"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Identity parity spans three surfaces; one row per surface instead",
+      "replacedBy": ["PWA-066", "PUB-034", "ADM-047"]
     },
     {
       "id": "PUB-031",
@@ -3195,6 +3318,24 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-session-2026-08-29"
+    },
+    {
+      "id": "PUB-034",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P2",
+      "kind": "data-integrity",
+      "area": "Garden Records",
+      "scenario": "Website garden records show a gardener's ENS name and avatar",
+      "preconditions": ["Gardener with ENS set and public work records"],
+      "steps": ["Open a garden's records on the website", "Find the gardener's work"],
+      "expected": "The ENS name and avatar resolve on the record; no raw address where a name exists",
+      "evidence": "Screenshot of the record",
+      "role": "none",
+      "tags": ["identity"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
     },
     {
       "id": "PWA-045",
@@ -3586,6 +3727,345 @@
       "source": "qa-journey-mode-2026-09-02"
     },
     {
+      "id": "PWA-051",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Garden Join",
+      "scenario": "Join an open garden from the garden page",
+      "preconditions": ["A garden with open joining", "Gardener not yet a member"],
+      "steps": [
+        "Open a garden with open joining",
+        "Tap Join and watch the membership flip",
+        "Reload the garden and confirm membership persisted"
+      ],
+      "expected": "Joining flips membership optimistically with a distinct toast, and the membership survives a reload",
+      "evidence": "Screenshot of the joined state and toast",
+      "role": "gardener",
+      "tags": ["garden-join", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "PWA-052",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Garden Join",
+      "scenario": "Request to join a closed garden with a note, then withdraw the request",
+      "preconditions": ["A garden with closed joining", "Gardener not yet a member"],
+      "steps": [
+        "Open a garden with closed joining",
+        "Request to join with a note and a display name",
+        "Withdraw the pending request"
+      ],
+      "expected": "The request is accepted and shown as pending with the note and display name; withdrawing removes it and leaves the garden requestable again",
+      "evidence": "Screenshots of the pending and withdrawn states",
+      "role": "gardener",
+      "tags": ["garden-join", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "PWA-053",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Garden Join",
+      "scenario": "Steward welcomes one join request and declines another with a reason",
+      "preconditions": ["Steward of a garden with two pending join requests"],
+      "steps": [
+        "Open the garden's join queue as steward",
+        "Welcome one request",
+        "Decline another with a reason"
+      ],
+      "expected": "The welcomed gardener becomes a member and the declined request records its reason; both leave the queue with distinct toasts",
+      "evidence": "Screenshot of the queue before and after",
+      "role": "steward",
+      "tags": ["garden-join", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "PWA-054",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden Join",
+      "scenario": "A declined gardener resubmits a join request",
+      "preconditions": ["A join request declined with a reason for this gardener"],
+      "steps": [
+        "Open the garden that declined the request",
+        "Read the decline reason",
+        "Resubmit the request with a new note"
+      ],
+      "expected": "The decline reason is visible, and the resubmitted request appears as pending again",
+      "evidence": "Screenshot of the decline reason and the new pending request",
+      "role": "gardener",
+      "tags": ["garden-join", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "PWA-055",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Governance",
+      "scenario": "Governance drawer shows the current stake to eligible roles only",
+      "preconditions": [
+        "Garden with strategies",
+        "One steward or evaluator identity and one gardener identity"
+      ],
+      "steps": [
+        "Open the garden as steward or evaluator and open the governance drawer",
+        "Read the current support points and stake",
+        "Open the same garden as a gardener"
+      ],
+      "expected": "The drawer appears only for stewards and evaluators of a garden with strategies and shows the current stake accurately; a gardener sees no drawer",
+      "evidence": "Screenshots of the drawer and the gardener view",
+      "role": "steward",
+      "tags": ["governance"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "PWA-056",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Governance",
+      "scenario": "Allocate conviction support points in the governance drawer",
+      "preconditions": ["Garden with strategies", "Steward or evaluator identity"],
+      "steps": [
+        "Open the governance drawer",
+        "Allocate support points and submit",
+        "Confirm the stake updates"
+      ],
+      "expected": "Allocation validates, submits, and the updated stake is shown after confirmation",
+      "evidence": "Screenshot of the updated stake",
+      "role": "steward",
+      "tags": ["governance", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "PWA-057",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Endowment",
+      "scenario": "Deposit into the garden vault from the endowment drawer",
+      "preconditions": ["Garden with a vault", "Wallet with test funds"],
+      "steps": ["Open the garden endowment drawer", "Deposit an amount"],
+      "expected": "Deposit walks approve then deposit with honest progress, and the vault balance updates",
+      "evidence": "Screenshot of the deposit confirmation and balance",
+      "role": "funder",
+      "tags": ["endowment", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "PWA-058",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Endowment",
+      "scenario": "Withdraw an own deposit from the endowment drawer",
+      "preconditions": ["A prior own deposit into the garden vault"],
+      "steps": [
+        "Open the garden endowment drawer",
+        "Withdraw the own deposit",
+        "Confirm the payout"
+      ],
+      "expected": "Withdraw asks for confirmation, pays out, and the balances update",
+      "evidence": "Screenshot of the withdraw confirmation and balance",
+      "role": "funder",
+      "tags": ["endowment", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "PWA-059",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Endowment",
+      "scenario": "Claim from the cookie jar inside the endowment drawer",
+      "preconditions": ["Garden with a jar holding funds", "Member eligible to claim"],
+      "steps": [
+        "Open the garden endowment drawer",
+        "Claim from the in-drawer jar",
+        "Compare with a claim from the wallet drawer"
+      ],
+      "expected": "The in-drawer jar claim pays out and matches the wallet-drawer claim behaviour",
+      "evidence": "Screenshot of the claim result",
+      "role": "gardener",
+      "tags": ["endowment", "cookies", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "PWA-060",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Profile",
+      "scenario": "Edit and remove the profile avatar, recovering an interrupted edit",
+      "preconditions": ["Authenticated session"],
+      "steps": [
+        "Open the profile and edit the avatar",
+        "Interrupt once mid-edit and reopen",
+        "Recover the draft and save",
+        "Remove the avatar"
+      ],
+      "expected": "The avatar saves and removes, and an interrupted edit is recoverable from its draft",
+      "evidence": "Screenshots of the saved, recovered, and removed states",
+      "role": "gardener",
+      "tags": ["profile", "draft"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "PWA-061",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Profile",
+      "scenario": "Switch theme and language from the profile",
+      "preconditions": ["Authenticated session"],
+      "steps": [
+        "Switch the theme and confirm it applies across the app",
+        "Switch the language and confirm the current locale is selected"
+      ],
+      "expected": "The theme applies immediately and persists; the language select shows the current locale and the app renders in it",
+      "evidence": "Screenshots per theme and locale",
+      "role": "gardener",
+      "tags": ["profile", "locale-quality"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "PWA-062",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Profile",
+      "scenario": "Claim and release an ENS name from the profile, online and offline",
+      "preconditions": ["Authenticated session with a claimable ENS name"],
+      "steps": ["Claim the ENS name", "Release it", "Go offline and try again"],
+      "expected": "Claim and release complete online; offline, both are gated with a clear message rather than failing silently",
+      "evidence": "Screenshots of the claim, release, and offline gate",
+      "role": "gardener",
+      "tags": ["profile", "ens", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "PWA-063",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Profile",
+      "scenario": "Claim a badge and read the feedback on success and failure",
+      "preconditions": ["Authenticated session with a claimable badge"],
+      "steps": ["Claim a badge", "Force or observe a failed claim"],
+      "expected": "A successful claim shows the badge, and a failed claim shows a clear message instead of silence",
+      "evidence": "Screenshots of both outcomes",
+      "role": "gardener",
+      "tags": ["profile", "badges", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "PWA-064",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Auth",
+      "scenario": "Log out from the profile and log back in",
+      "preconditions": ["Authenticated session"],
+      "steps": ["Log out from the profile", "Log back in"],
+      "expected": "Logout lands on the login screen with no residual session, and logging back in restores the account",
+      "evidence": "Screenshot of the login screen after logout",
+      "role": "gardener",
+      "tags": ["auth", "profile"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "PWA-065",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "resilience",
+      "area": "Performance",
+      "scenario": "Cold start on the hosted build stays under the boot watchdog",
+      "preconditions": ["A hosted origin (beta or production)", "Site data and caches cleared"],
+      "steps": [
+        "Clear site data and caches",
+        "Cold-start the app",
+        "Time to interactive against the watchdog budget"
+      ],
+      "expected": "A cleared-cache cold start stays under the boot watchdog threshold and never shows the recovery screen",
+      "evidence": "Console timings screenshot",
+      "role": "none",
+      "tags": ["performance"],
+      "requiresProduction": true,
+      "requiresProductionReason": "Cold-start timing is only meaningful against a hosted build; a local Vite transform tripping the watchdog is an environment artifact",
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "PWA-066",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P2",
+      "kind": "data-integrity",
+      "area": "Identity",
+      "scenario": "A gardener with ENS is shown by name and avatar in the app",
+      "preconditions": ["Gardener with ENS set"],
+      "steps": [
+        "Find the gardener in a garden member list and on a work record",
+        "Compare the name and avatar with their ENS record"
+      ],
+      "expected": "The ENS name and avatar resolve everywhere the gardener appears; no raw address where a name exists",
+      "evidence": "Screenshot of the member list and record",
+      "role": "none",
+      "tags": ["identity"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
       "id": "ADM-044",
       "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
@@ -3641,6 +4121,47 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-journey-mode-2026-09-02"
+    },
+    {
+      "id": "ADM-046",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Assess",
+      "scenario": "Submit an assessment end to end from the admin",
+      "preconditions": ["Steward session with a garden that can be assessed"],
+      "steps": [
+        "Open /hub/assess/create",
+        "Complete every required field",
+        "Review and submit",
+        "Wait for the assessment to appear on the garden"
+      ],
+      "expected": "The assessment submits with honest progress and appears on the garden; a failure names its cause instead of leaving the wizard stuck",
+      "evidence": "Screen recording of the submission and a screenshot of the recorded assessment",
+      "role": "steward",
+      "tags": ["assess", "critical-path", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "ADM-047",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "data-integrity",
+      "area": "Work Queue",
+      "scenario": "The admin work queue shows a gardener's ENS name and avatar",
+      "preconditions": ["Steward session", "A submission from a gardener with ENS set"],
+      "steps": ["Open /hub/work", "Find the gardener's submission"],
+      "expected": "The ENS name and avatar resolve in the queue and on the submission; no raw address where a name exists",
+      "evidence": "Screenshot of the queue row and submission",
+      "role": "steward",
+      "tags": ["identity"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-split-2026-09-07"
     }
   ]
 }

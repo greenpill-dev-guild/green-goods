@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:3439769998f10c92979941ca1941df118d4d29226fc45f353036a2e19090fb79"
+source_digest: "sha256:a69f25c780987ff307f089dffc1a6d4665b5ea78387c99d9849d25e6af0ccad3"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -182,7 +182,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PUB-030` | Journey | Funding | Read-only browse of /vaults and /fund without signing | Screenshot of read-only browse |
 | `PUB-031` | Content & vocabulary | Locale Quality | Editorial language switch: en/pt/es with persistence and no mixed-language pages | Screenshot per locale |
 
-### P2 (9) {#public-website-p2}
+### P2 (10) {#public-website-p2}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -195,61 +195,72 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PUB-029` | Journey | Garden Records | Certificates and steward identities on the garden page | Screenshot of both sections |
 | `PUB-032` | Content & vocabulary | SEO & Meta | Social and SEO meta on home and garden detail | Screenshot of preview render |
 | `PUB-033` | Content & vocabulary | Vocabulary | Editorial vocabulary holds: no admin/cockpit jargon on public pages | List of offending terms with routes (or a clean pass note) |
+| `PUB-034` | Data integrity | Garden Records | Website garden records show a gardener's ENS name and avatar | Screenshot of the record |
 
 ## PWA
 
-### P0 — run these first (24) {#pwa-p0}
+### P0 — run these first (26) {#pwa-p0}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
-| `PWA-020` | Journey | Auth | Desktop-shell wallet login connects, signs, and recovers from a rejected signature | Recording of reject + retry |
-| `PWA-021` | Transaction | Garden Join | Join flows: open joining, request-to-join with note, withdraw request, steward welcome/decline | Screenshots of each toast |
+| `PWA-020` | Journey | Auth | Wallet login in the app connects, signs, and recovers from a rejected signature | Recording of reject + retry |
 | `PWA-028` | Transaction | Cookies | Claim from a garden cookie jar in the Wallet drawer (purpose required) | Screenshot of claim result |
 | `PWA-030` | Journey | My Work | Work dashboard: drafts resume/delete, pending and completed filters, open items | Screenshot of dashboard states |
 | `PWA-031` | Transaction | Work Submission | Full work submission on desktop shell: action, garden, media upload, audio note, details, location, review, submit | Recording of wizard + submit |
 | `PWA-033` | Transaction | Commitments | Commitment detail acts: take up, withdraw with reason, confirm / not-yet, link work, steward claim decisions | Screenshots per act |
-| `PWA-035` | Transaction | Review | Review work on desktop shell: approve with optional feedback, reject requires feedback | Screenshot of decided states |
 | `PWA-047` | Transaction | Protocol Pool | Claim the protocol Request for the test Garden | Screenshot of the pending Garden claim |
 | `PWA-048` | Transaction | Protocol Request Work | Submit Work and evidence against the original protocol Request | Screenshot of the linked Work and evidence on the Request |
 | `PWA-049` | Transaction | Garden Commitment | Take up the separate local Garden commitment | Screenshot with the local commitment ID and Garden Campaign context |
 | `PWA-050` | Transaction | Garden Commitment Work | Submit Work and evidence for the local Garden commitment | Screenshot of the local Work and evidence link |
+| `PWA-051` | Transaction | Garden Join | Join an open garden from the garden page | Screenshot of the joined state and toast |
+| `PWA-052` | Transaction | Garden Join | Request to join a closed garden with a note, then withdraw the request | Screenshots of the pending and withdrawn states |
+| `PWA-053` | Transaction | Garden Join | Steward welcomes one join request and declines another with a reason | Screenshot of the queue before and after |
 | `PWA-AND-001` | Journey | Install | [Android] Fresh Android install launches standalone | Screen recording |
 | `PWA-AND-002` | Resilience | Update | [Android] Existing Android install updates without split state | Screen recording |
-| `PWA-AND-003` | Data integrity | Upload | [Android] Camera and gallery image handling works on Android | Screen recording |
 | `PWA-AND-004` | Transaction | Offline Queue | Offline queue survives app close and reconnect | Screen recording plus queue/status screenshot |
+| `PWA-AND-006` | Resilience | Auth | [Android] Login, passkey, and wallet gate are recoverable on Android | Screen recording plus account role |
+| `PWA-AND-007` | Data integrity | Upload | [Android] Camera capture preview and draft persist on Android | Screen recording |
 | `PWA-IOS-001` | Journey | Install | [iOS] Fresh iOS install launches standalone | Photo or screen recording |
 | `PWA-IOS-002` | Resilience | Update | [iOS] Existing iOS install updates without split state | Screen recording |
 | `PWA-IOS-003` | Resilience | Auth | Login/passkey/wallet gate is recoverable on iOS | Screen recording plus account role |
 | `PWA-IOS-004` | Data integrity | Upload | [iOS] Camera capture preview and draft persist on iOS | Screen recording |
-| `PWA-IOS-006` | Transaction | Offline Queue | Offline work submission queues and flushes once | Screen recording plus queue/status screenshot |
+| `PWA-IOS-006` | Transaction | Offline Queue | Offline work submission queues and is submitted once on reconnect | Screen recording plus queue/status screenshot |
 | `PWA-IOS-014` | Transaction | Upload | Submission validation blocks incomplete work and rapid double-taps | Screenshot of validation errors; work list showing a single submission |
 | `PWA-ROLE-001` | Transaction | Review | Approve pending work with valid role on iOS | Screen recording plus account role |
 | `PWA-ROLE-002` | Transaction | Review | Reject pending work with reason on iOS | Screen recording plus account role |
 | `PWA-ROLE-003` | Journey | Permissions | Insufficient-role user cannot approve or reject on iOS | Screenshot plus account role |
 
-### P1 (26) {#pwa-p1}
+### P1 (34) {#pwa-p1}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
 | `PWA-023` | Journey | Routing | Refresh and direct deep links preserve garden/work context | Screenshot after refresh |
-| `PWA-025` | Content & vocabulary | Locale Quality | Portuguese/Spanish render dates, plurals, and diacritics on the client | Screenshots per locale |
+| `PWA-025` | Content & vocabulary | Locale Quality | Portuguese and Spanish spot-check: dates, plurals, and diacritics on Home, one garden, and Profile | Screenshots per locale |
 | `PWA-026` | Resilience | Auth | In-app wallet edge states: wrong network and mid-session disconnect recover | Screenshot of the network gate |
 | `PWA-027` | Journey | Home | Home orientation: pull-to-refresh (online/offline), filters, drawer entry points, arrival toast | Screenshot of filters + drawer |
 | `PWA-029` | Transaction | Wallet | Send tokens: recipient search/QR/browse, amount+Max, review with note, confirm | Recording of the full send |
 | `PWA-032` | Transaction | Commitments | Compose a commitment: beats, draft resume, read-to-end gate, place offer/request | Screenshot of done screen |
 | `PWA-034` | Transaction | Commitments | Proof composer: media and audio capture, beats, submit proof | Screenshot of composer |
-| `PWA-036` | Transaction | Governance | Allocate conviction support points in the governance drawer | Screenshot of updated stake |
-| `PWA-037` | Transaction | Endowment | Garden endowment drawer: vault deposit, own-deposit withdraw, in-drawer jar claim | Screenshot of drawer states |
-| `PWA-038` | Transaction | Profile | Profile actions: avatar edit/remove with draft recovery, theme, language, ENS claim/release, badges, logout | Screenshots of profile flows |
 | `PWA-040` | Resilience | Offline | Offline mid-browse: toggle devtools offline while navigating, then reconnect | Screenshot of offline state |
 | `PWA-041` | Resilience | Update | Desktop service-worker update: banner on a new deploy, refresh applies cleanly | Screenshot of the banner |
-| `PWA-042` | Accessibility | Accessibility | Keyboard and focus smoke on core PWA flows: wizard, drawers, dialogs | Notes per surface + screenshots |
-| `PWA-043` | Resilience | Performance | Boot performance: warm reload locally; cold-start budget on a production build | Console timings screenshot |
+| `PWA-042` | Accessibility | Accessibility | Keyboard and focus smoke on the desktop shell: wizard, drawers, dialogs | Notes per surface + screenshots |
 | `PWA-046` | Journey | Garden Assessment | Garden member can read the starting assessment | Screenshot of the assessment in the test Garden |
+| `PWA-054` | Transaction | Garden Join | A declined gardener resubmits a join request | Screenshot of the decline reason and the new pending request |
+| `PWA-055` | Journey | Governance | Governance drawer shows the current stake to eligible roles only | Screenshots of the drawer and the gardener view |
+| `PWA-056` | Transaction | Governance | Allocate conviction support points in the governance drawer | Screenshot of the updated stake |
+| `PWA-057` | Transaction | Endowment | Deposit into the garden vault from the endowment drawer | Screenshot of the deposit confirmation and balance |
+| `PWA-058` | Transaction | Endowment | Withdraw an own deposit from the endowment drawer | Screenshot of the withdraw confirmation and balance |
+| `PWA-059` | Transaction | Endowment | Claim from the cookie jar inside the endowment drawer | Screenshot of the claim result |
+| `PWA-060` | Journey | Profile | Edit and remove the profile avatar, recovering an interrupted edit | Screenshots of the saved, recovered, and removed states |
+| `PWA-062` | Transaction | Profile | Claim and release an ENS name from the profile, online and offline | Screenshots of the claim, release, and offline gate |
+| `PWA-063` | Transaction | Profile | Claim a badge and read the feedback on success and failure | Screenshots of both outcomes |
+| `PWA-064` | Journey | Auth | Log out from the profile and log back in | Screenshot of the login screen after logout |
+| `PWA-065` | Resilience | Performance | Cold start on the hosted build stays under the boot watchdog | Console timings screenshot |
 | `PWA-AND-005` | Accessibility | Mobile UI | Keyboard and drawer layout remain usable on Android | Screenshots |
+| `PWA-AND-008` | Data integrity | Upload | [Android] Gallery image survives the submission draft and replacement | Screenshot before and after reopen |
 | `PWA-IOS-005` | Data integrity | Upload | [iOS] HEIC or library image survives submission draft | Screenshot before and after reopen |
 | `PWA-IOS-007` | Accessibility | Mobile UI | Drawers and bottom nav respect safe areas | Screenshots with drawer and keyboard |
-| `PWA-IOS-008` | Data integrity | Garden Discovery | Home and Garden discovery handle real, empty, and stale data | Screenshots of home, list, and detail |
+| `PWA-IOS-008` | Data integrity | Garden Discovery | Home and garden discovery handle real, empty, and stale data on the installed app | Screenshots of home, list, and detail |
 | `PWA-IOS-010` | Journey | Assessments | Assessment detail is readable without losing garden context | Screenshots of assessment and return |
 | `PWA-IOS-012` | Journey | Installed Navigation | Bottom AppBar behavior holds through flows and back navigation | Screen recording of navigation loop |
 | `PWA-IOS-013` | Journey | Auth | Logout clears the session and re-login works cleanly | Screen recording of the loop |
@@ -258,17 +269,18 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-ROLE-006` | Journey | Permissions | Insufficient-role user cannot approve or reject on Android | Screenshot plus account role |
 | `XPLAT-005` | Journey | Install | Website-to-install handoff keeps browser and PWA shells separate | Screen recording across the handoff |
 
-### P2 (3) {#pwa-p2}
+### P2 (4) {#pwa-p2}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
 | `PWA-039` | Journey | Home | Notifications popover, ENS reminder toast, AppBar badges and auto-hide | Screenshot of popover + badge |
-| `PWA-044` | Data integrity | Identity | Identity parity: the same gardener across website records, PWA, and admin queue | Three-surface screenshot set |
 | `PWA-045` | Content & vocabulary | Vocabulary | PWA vocabulary holds: gardener-facing language, no internal or admin terms | List of offending terms with routes (or a clean pass note) |
+| `PWA-061` | Content & vocabulary | Profile | Switch theme and language from the profile | Screenshots per theme and locale |
+| `PWA-066` | Data integrity | Identity | A gardener with ENS is shown by name and avatar in the app | Screenshot of the member list and record |
 
 ## Admin Dashboard
 
-### P0 — run these first (23) {#admin-dashboard-p0}
+### P0 — run these first (24) {#admin-dashboard-p0}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -295,6 +307,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-042` | Transaction | Protocol Pool | Confirm the protocol Request after its Work is approved | Screenshot of the Fulfilled protocol Request |
 | `ADM-043` | Transaction | Earned Compensation | Settle earned G$ compensation from the protocol to the Garden | Screenshot of the Garden beneficiary and completed settlement or visible gate |
 | `ADM-044` | Transaction | Member Compensation | Settle the Garden's contributor payout to the member | Screenshot of the member recipient and completed payout or visible gate |
+| `ADM-046` | Transaction | Assess | Submit an assessment end to end from the admin | Screen recording of the submission and a screenshot of the recorded assessment |
 
 ### P1 (17) {#admin-dashboard-p1}
 
@@ -318,7 +331,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-037` | Transaction | Garden Assessment | Record a starting assessment for the test Garden | Screenshot of the recorded assessment with the Garden identity visible |
 | `ADM-045` | Transaction | Protocol Treasury | Queue a discretionary ProtocolToGarden treasury top-up | Screenshot of the ProtocolToGarden review and resulting balance or visible gate |
 
-### P2 (6) {#admin-dashboard-p2}
+### P2 (7) {#admin-dashboard-p2}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -327,6 +340,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-034` | Accessibility | Accessibility | Admin keyboard smoke: palette, dialogs, wizard focus order | Notes + screenshots |
 | `ADM-035` | Content & vocabulary | Vocabulary | Admin vocabulary holds: cockpit language, no editorial 'hero/story' terms | List of offending terms with routes (or a clean pass note) |
 | `ADM-036` | Accessibility | Accessibility | Admin light and dark themes keep every control legible | Paired light/dark screenshots of any issue |
+| `ADM-047` | Data integrity | Work Queue | The admin work queue shows a gardener's ENS name and avatar | Screenshot of the queue row and submission |
 | `XPLAT-007` | Transaction | Hub Work Review | Two stewards acting on the same submission converge on one state | Screenshots from both sessions |
 
 ## Docs
@@ -368,6 +382,14 @@ Retired cases never ship to a run sheet, but their IDs stay reserved and their h
 | `PUB-004` | Public Website · Fund page and funding dialog render without provider crash | 2026-08-29 | Superseded by the end-to-end funding walks in catalog v2 | `PUB-014`, `PUB-030` |
 | `PUB-005` | Public Website · Funding dialog is usable on mobile | 2026-08-29 | Mobile funding-dialog coverage folded into the end-to-end donate walk in catalog v2 | `PUB-014` |
 | `PUB-009` | Public Website · Vaults page explains donate/endow boundaries and fails safely | 2026-08-29 | Vaults explanation and safe-failure coverage folded into the vault checkout and read-only browse walks | `PUB-017`, `PUB-030` |
+| `PWA-021` | PWA · Join flows: open joining, request-to-join with note, withdraw request, steward welcome/decline | 2026-09-07 | Split by actor and act after the 2026-09-04 call: one row per join act | `PWA-051`, `PWA-052`, `PWA-053`, `PWA-054` |
+| `PWA-035` | PWA · Review work on desktop shell: approve with optional feedback, reject requires feedback | 2026-09-07 | Desktop review lives in the admin dashboard; the PWA review rows cover the installed app and ADM-012 covers the admin decision path | `ADM-012` |
+| `PWA-036` | PWA · Allocate conviction support points in the governance drawer | 2026-09-07 | Split reading from writing: drawer visibility and current stake are one check, allocation is another | `PWA-055`, `PWA-056` |
+| `PWA-037` | PWA · Garden endowment drawer: vault deposit, own-deposit withdraw, in-drawer jar claim | 2026-09-07 | Split by act: deposit, own-deposit withdraw, and the in-drawer jar claim are separate transactions | `PWA-057`, `PWA-058`, `PWA-059` |
+| `PWA-038` | PWA · Profile actions: avatar edit/remove with draft recovery, theme, language, ENS claim/release, badges, logout | 2026-09-07 | Split by act after the 2026-09-04 call; the grouped row also encoded a known bug in its expectation | `PWA-060`, `PWA-061`, `PWA-062`, `PWA-063`, `PWA-064` |
+| `PWA-043` | PWA · Boot performance: warm reload locally; cold-start budget on a production build | 2026-09-07 | Local dev timings are environment artifacts, not QA evidence, and boot performance is measured by PostHog benchmarks; the hosted cold start keeps one human row | `PWA-065` |
+| `PWA-044` | PWA · Identity parity: the same gardener across website records, PWA, and admin queue | 2026-09-07 | Identity parity spans three surfaces; one row per surface instead | `PWA-066`, `PUB-034`, `ADM-047` |
+| `PWA-AND-003` | PWA · [Android] Camera and gallery image handling works on Android | 2026-09-07 | Split into the Android twins of the iOS capture and gallery rows | `PWA-AND-007`, `PWA-AND-008` |
 | `PWA-IOS-009` | PWA iOS · Commitment compose, accept/decline, and proof loop is coherent | 2026-08-29 | PWA tabs merged in catalog v2; commitments are covered by device-neutral rows | `PWA-032`, `PWA-033`, `PWA-034` |
 | `PWA-IOS-011` | PWA iOS · Profile handles identity, language, and session exit | 2026-08-29 | PWA tabs merged in catalog v2; profile is covered by the device-neutral row | `PWA-038` |
 | `XPLAT-001` | Cross Surface · No code-correct but visually broken controls | 2026-08-29 | Cross Surface dissolved in catalog v2; visual integrity is checked inside each surface's shell and accessibility rows | — |

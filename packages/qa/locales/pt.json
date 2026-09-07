@@ -68,7 +68,7 @@
         "Adicione confirmadores identificados, incluindo um endereço incorreto",
         "Revise, coloque na fila e acompanhe a linha em espera"
       ],
-      "expected": "As etapas validam; um endereço de confirmador incorreto ou duplicado é rejeitado de forma visível (atualmente nada acontece); a revisão vem antes da fila e a linha aparece antes da atualização do indexador",
+      "expected": "As etapas validam; um endereço de confirmador incorreto ou duplicado é rejeitado de forma visível; a revisão vem antes da fila e a linha aparece antes da atualização do indexador",
       "role": "Steward"
     },
     "ADM-037": {
