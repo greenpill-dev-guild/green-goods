@@ -184,7 +184,13 @@ export const RouteErrorBoundary: React.FC = () => {
     if (hasChunkReloadAttempt()) return;
 
     if (category === "chunk") {
-      markChunkReloadAttempt();
+      if (!markChunkReloadAttempt()) {
+        logger.warn(
+          "[RouteErrorBoundary] Reload guard unavailable — keeping error fallback visible",
+          { message: error.message }
+        );
+        return;
+      }
       logger.warn("[RouteErrorBoundary] Chunk load error — auto-reloading once", {
         message: error.message,
       });
@@ -197,8 +203,14 @@ export const RouteErrorBoundary: React.FC = () => {
 
     const handleOnline = () => {
       if (navigator.onLine === false || hasChunkReloadAttempt()) return;
-      markChunkReloadAttempt();
       window.removeEventListener("online", handleOnline);
+      if (!markChunkReloadAttempt()) {
+        logger.warn(
+          "[RouteErrorBoundary] Reload guard unavailable — keeping error fallback visible",
+          { message: error.message }
+        );
+        return;
+      }
       logger.info("[RouteErrorBoundary] Connectivity restored — retrying failed app load", {
         message: error.message,
       });
@@ -297,7 +309,13 @@ export const RouteErrorBoundary: React.FC = () => {
     // Reload to retry from a clean route boot.
     if (isChunkLoadErrorMessage(error.message)) {
       if (navigator.onLine === false) return;
-      markChunkReloadAttempt();
+      if (!markChunkReloadAttempt()) {
+        logger.warn(
+          "[RouteErrorBoundary] Reload guard unavailable — keeping error fallback visible",
+          { message: error.message }
+        );
+        return;
+      }
     }
     window.location.reload();
   }, [error.message]);

@@ -89,8 +89,13 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   private handleOnline = () => {
     if (navigator.onLine === false || hasChunkReloadAttempt()) return;
-    markChunkReloadAttempt();
     this.stopReconnectListening();
+    if (!markChunkReloadAttempt()) {
+      logger.warn("[AppErrorBoundary] Reload guard unavailable — keeping error fallback visible", {
+        message: this.state.error?.message,
+      });
+      return;
+    }
     logger.info("[AppErrorBoundary] Connectivity restored — retrying failed app load", {
       message: this.state.error?.message,
     });
@@ -232,14 +237,18 @@ export class AppErrorBoundary extends Component<Props, State> {
 
     // Auto-recover transient post-deploy chunk failures with a one-shot reload.
     if (category === "chunk" && !hasChunkReloadAttempt()) {
-      markChunkReloadAttempt();
-      logger.warn("[AppErrorBoundary] Chunk load error — auto-reloading once", {
+      if (markChunkReloadAttempt()) {
+        logger.warn("[AppErrorBoundary] Chunk load error — auto-reloading once", {
+          message: error.message,
+        });
+        this.setState({ isAutoRecovering: true });
+        // Give React a tick to commit the fallback render, then reload to fetch fresh assets.
+        window.setTimeout(() => window.location.reload(), 50);
+        return;
+      }
+      logger.warn("[AppErrorBoundary] Reload guard unavailable — keeping error fallback visible", {
         message: error.message,
       });
-      this.setState({ isAutoRecovering: true });
-      // Give React a tick to commit the fallback render, then reload to fetch fresh assets.
-      window.setTimeout(() => window.location.reload(), 50);
-      return;
     }
 
     logger.error("App Error Boundary caught an error", { error, errorInfo, category });
@@ -262,7 +271,13 @@ export class AppErrorBoundary extends Component<Props, State> {
         this.waitForReconnect();
         return;
       }
-      markChunkReloadAttempt();
+      if (!markChunkReloadAttempt()) {
+        logger.warn(
+          "[AppErrorBoundary] Reload guard unavailable — keeping error fallback visible",
+          { message: this.state.error.message }
+        );
+        return;
+      }
       window.location.reload();
       return;
     }

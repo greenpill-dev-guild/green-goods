@@ -83,6 +83,7 @@ describe("boot error fallback handoff", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
     console.error = originalConsoleError;
     Object.defineProperty(window.navigator, "onLine", { configurable: true, value: true });
     delete window.__GG_MARK_BOOT_FAILED;
@@ -183,6 +184,61 @@ describe("boot error fallback handoff", () => {
 
     expect(window.location.reload).toHaveBeenCalledTimes(1);
     expect(hasChunkReloadAttempt()).toBe(true);
+  });
+
+  it("keeps the route fallback when the reload guard cannot be persisted", async () => {
+    vi.useFakeTimers();
+    mocks.routeError = FAILED_APP_SHELL_IMPORT;
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("Session storage denied", "SecurityError");
+    });
+
+    render(<RouteErrorBoundary />);
+    await act(() => vi.advanceTimersByTimeAsync(50));
+
+    expect(window.location.reload).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Oops!");
+
+    screen.getByRole("button", { name: "Try Again" }).click();
+    expect(window.location.reload).not.toHaveBeenCalled();
+  });
+
+  it("keeps the offline fallback when reconnect recovery cannot persist its guard", async () => {
+    mocks.routeError = FAILED_APP_SHELL_IMPORT;
+    Object.defineProperty(window.navigator, "onLine", { configurable: true, value: false });
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("Session storage denied", "SecurityError");
+    });
+
+    render(<RouteErrorBoundary />);
+    expect(await screen.findByRole("heading", { level: 1 })).toHaveTextContent("Garden Offline");
+
+    Object.defineProperty(window.navigator, "onLine", { configurable: true, value: true });
+    window.dispatchEvent(new Event("online"));
+    window.dispatchEvent(new Event("online"));
+
+    expect(window.location.reload).not.toHaveBeenCalled();
+    expect(window.removeEventListener).toHaveBeenCalledWith("online", expect.any(Function));
+  });
+
+  it("keeps the app fallback when the reload guard cannot be persisted", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("Session storage denied", "SecurityError");
+    });
+
+    render(
+      <AppErrorBoundary>
+        <ThrowFailedAppShellImport />
+      </AppErrorBoundary>
+    );
+    await act(() => vi.advanceTimersByTimeAsync(50));
+
+    expect(window.location.reload).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Oops!");
+
+    screen.getByRole("button", { name: "Try Again" }).click();
+    expect(window.location.reload).not.toHaveBeenCalled();
   });
 
   it("clears the one-shot only after a normal route root commits", () => {

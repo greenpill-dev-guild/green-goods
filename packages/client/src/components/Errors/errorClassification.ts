@@ -47,11 +47,15 @@ export function hasChunkReloadAttempt(): boolean {
   }
 }
 
-export function markChunkReloadAttempt(): void {
+export function markChunkReloadAttempt(): boolean {
+  const storage = getSessionStorage();
+  if (!storage) return false;
+
   try {
-    getSessionStorage()?.setItem(CHUNK_RELOAD_SESSION_KEY, "1");
+    storage.setItem(CHUNK_RELOAD_SESSION_KEY, "1");
+    return storage.getItem(CHUNK_RELOAD_SESSION_KEY) === "1";
   } catch {
-    // Recovery remains best-effort when session storage is unavailable.
+    return false;
   }
 }
 
