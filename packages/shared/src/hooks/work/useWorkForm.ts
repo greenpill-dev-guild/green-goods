@@ -8,7 +8,7 @@
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { type Resolver, useForm } from "react-hook-form";
 import { z } from "zod";
 import type { WorkInput } from "../../types/domain";
@@ -37,7 +37,8 @@ function buildFieldValidator(input: WorkInput): z.ZodTypeAny {
       for (const field of input.repeaterFields ?? []) {
         rowShape[field.key] = buildFieldValidator(field);
       }
-      return z.array(z.object(rowShape)).optional();
+      const base = z.array(z.object(rowShape));
+      return input.required ? base.min(1) : base.optional();
     }
     default: {
       // text, textarea
@@ -117,23 +118,23 @@ export function useWorkForm(inputs?: WorkInput[]) {
     mode: "onChange",
     resolver,
   });
+  const { trigger } = form;
 
-  const { watch, getValues } = form;
+  useEffect(() => {
+    void trigger();
+  }, [schema, trigger]);
 
-  // Watch only specific fields that need reactive updates
-  const feedback = watch("feedback") ?? "";
-  const timeSpentMinutes = normalizeTimeSpentMinutes(watch("timeSpentMinutes"));
+  // Subscribe to all fields so current action details are available to draft persistence.
+  const values = form.watch();
+  const feedback = values.feedback ?? "";
+  const timeSpentMinutes = normalizeTimeSpentMinutes(values.timeSpentMinutes);
 
   return {
     ...form,
     // Normalized watch values
     feedback,
     timeSpentMinutes,
-    // Use getValues() instead of watch() to read all form values on demand
-    // without subscribing to every field change (avoids unnecessary re-renders)
-    get values() {
-      return getValues() as unknown as Record<string, unknown>;
-    },
+    values: values as Record<string, unknown>,
   };
 }
 

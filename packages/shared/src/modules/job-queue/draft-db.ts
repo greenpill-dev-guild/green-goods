@@ -33,6 +33,21 @@ interface DraftDB {
   draft_images: DraftImage;
 }
 
+function isMeaningfulDraftValue(value: unknown): boolean {
+  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value === "number") return Number.isFinite(value);
+  if (typeof value === "boolean") return true;
+  if (Array.isArray(value)) return value.some(isMeaningfulDraftValue);
+  if (value && typeof value === "object") {
+    return Object.values(value).some(isMeaningfulDraftValue);
+  }
+  return false;
+}
+
+export function hasMeaningfulDraftDetails(details: Record<string, unknown> | undefined): boolean {
+  return details ? Object.values(details).some(isMeaningfulDraftValue) : false;
+}
+
 /**
  * Compute the first incomplete step based on draft data
  */
@@ -115,6 +130,10 @@ class DraftDatabase {
       gardenAddress: data.gardenAddress ?? null,
       actionUID: data.actionUID ?? null,
       feedback: data.feedback ?? "",
+      details: data.details ?? {},
+      ...(typeof data.timeSpentMinutes === "number"
+        ? { timeSpentMinutes: data.timeSpentMinutes }
+        : {}),
       currentStep: data.currentStep ?? "intro",
       firstIncompleteStep: data.firstIncompleteStep ?? "intro",
       createdAt: now,
@@ -406,8 +425,12 @@ class DraftDatabase {
 
     const images = await this.getImagesForDraft(draftId);
 
-    // Draft has progress if it has images or feedback
-    return images.length > 0 || draft.feedback.trim().length > 0;
+    return (
+      images.length > 0 ||
+      draft.feedback.trim().length > 0 ||
+      (draft.timeSpentMinutes ?? 0) > 0 ||
+      hasMeaningfulDraftDetails(draft.details)
+    );
   }
 
   /**

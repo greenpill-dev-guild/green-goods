@@ -15,6 +15,7 @@ export interface FormSelectProps<T extends FieldValues = FieldValues> {
   options: FormSelectOption[] | undefined;
   control: Control<T>;
   isMulti?: boolean;
+  required?: boolean;
 }
 
 /**
@@ -149,7 +150,7 @@ const customStyles: StylesConfig = {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const FormSelectComponent = forwardRef<HTMLSelectElement, FormSelectProps<any>>(
-  ({ name, label, options, placeholder, control, error, isMulti = true }, _ref) => {
+  ({ name, label, options, placeholder, control, error, isMulti = true, required }, _ref) => {
     const normalizedOptions = Array.isArray(options) ? options : [];
 
     return (
@@ -161,6 +162,7 @@ const FormSelectComponent = forwardRef<HTMLSelectElement, FormSelectProps<any>>(
           <div className="flex flex-col gap-1">
             <label htmlFor={name} className="font-semibold text-text-strong-950 text-label-sm">
               {label}
+              {required && <span className="text-error-base ml-0.5">*</span>}
             </label>
             <Select
               inputId={name}
@@ -179,6 +181,9 @@ const FormSelectComponent = forwardRef<HTMLSelectElement, FormSelectProps<any>>(
                 }
               }}
               isMulti={isMulti}
+              required={required}
+              aria-invalid={Boolean(error) || undefined}
+              aria-describedby={error ? `${name}-helper-text` : undefined}
               styles={customStyles}
               classNamePrefix="select"
             />

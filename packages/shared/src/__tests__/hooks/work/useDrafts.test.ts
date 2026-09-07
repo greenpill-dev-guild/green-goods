@@ -31,6 +31,8 @@ vi.mock("../../../modules/job-queue/draft-db", () => ({
     setImagesForDraft: vi.fn(),
   },
   computeFirstIncompleteStep: vi.fn(() => "intro"),
+  hasMeaningfulDraftDetails: (details: Record<string, unknown> | undefined) =>
+    Boolean(details && Object.values(details).some((value) => value !== undefined && value !== "")),
 }));
 
 let mockUserAddress: string | null = MOCK_ADDRESSES.user;
@@ -429,13 +431,42 @@ describe("useDrafts", () => {
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
       let targetTab: WorkTab;
+      const restoreForm = vi.fn();
       await act(async () => {
-        targetTab = await result.current.resumeDraft("resume-draft");
+        targetTab = await result.current.resumeDraft("resume-draft", { restoreForm });
       });
 
       // computeFirstIncompleteStep is mocked to return "intro"
       expect(targetTab!).toBe(WorkTab.Intro);
       expect(result.current.activeDraftId).toBe("resume-draft");
+      expect(restoreForm).toHaveBeenCalledWith(
+        expect.objectContaining({ feedback: "saved feedback" })
+      );
+    });
+
+    it("restores action details and converts saved minutes back to form hours", async () => {
+      mockDraftDB.getDraft.mockResolvedValue(
+        createMockDraftRecord({
+          details: { capacity: 10, sessionType: "Workshop" },
+          timeSpentMinutes: 90,
+        })
+      );
+      const restoreForm = vi.fn();
+      const { result } = renderHook(() => useDrafts(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      await act(async () => {
+        await result.current.resumeDraft("draft-1", { restoreForm });
+      });
+
+      expect(restoreForm).toHaveBeenCalledWith({
+        capacity: 10,
+        sessionType: "Workshop",
+        feedback: "Test feedback",
+        timeSpentMinutes: 1.5,
+      });
     });
 
     it("throws when draft is not found", async () => {

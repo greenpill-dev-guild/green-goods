@@ -10,10 +10,15 @@
 import type { Address } from "../../types/domain";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
-import { computeFirstIncompleteStep, draftDB } from "../../modules/job-queue/draft-db";
+import {
+  computeFirstIncompleteStep,
+  draftDB,
+  hasMeaningfulDraftDetails,
+} from "../../modules/job-queue/draft-db";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import { WorkTab } from "../../stores/workFlowTypes";
 import type { DraftStep, WorkDraftRecord } from "../../types/job-queue";
+import type { WorkFormData } from "./useWorkForm";
 import { createDraftErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
@@ -56,6 +61,11 @@ export interface DraftWithImages extends WorkDraftRecord {
   thumbnailUrl: string | null;
 }
 
+interface ResumeDraftOptions {
+  signal?: AbortSignal;
+  restoreForm?: (values: WorkFormData) => void;
+}
+
 /**
  * Hook for managing work drafts
  */
@@ -92,7 +102,13 @@ export function useDrafts() {
       );
 
       // Filter out drafts with no meaningful progress
-      return draftsWithImages.filter((d) => d.images.length > 0 || d.feedback.trim().length > 0);
+      return draftsWithImages.filter(
+        (draft) =>
+          draft.images.length > 0 ||
+          draft.feedback.trim().length > 0 ||
+          (draft.timeSpentMinutes ?? 0) > 0 ||
+          hasMeaningfulDraftDetails(draft.details)
+      );
     },
     enabled: !!userAddress,
     staleTime: 1000 * 60, // 1 minute
@@ -228,7 +244,7 @@ export function useDrafts() {
    * @param options - Optional configuration including AbortSignal for cancellation
    */
   const resumeDraft = useCallback(
-    async (draftId: string, options?: { signal?: AbortSignal }): Promise<WorkTab> => {
+    async (draftId: string, options?: ResumeDraftOptions): Promise<WorkTab> => {
       // Check if already aborted before starting
       options?.signal?.throwIfAborted();
 
@@ -249,8 +265,16 @@ export function useDrafts() {
       store.setGardenAddress(draft.gardenAddress);
       store.setActionUID(draft.actionUID);
       store.setFeedback(draft.feedback);
+      store.setDetails(draft.details ?? {});
       store.setTimeSpentMinutes(draft.timeSpentMinutes);
       store.setImages(files);
+      options?.restoreForm?.({
+        ...(draft.details ?? {}),
+        feedback: draft.feedback,
+        ...(typeof draft.timeSpentMinutes === "number"
+          ? { timeSpentMinutes: draft.timeSpentMinutes / 60 }
+          : {}),
+      });
 
       // Set active draft
       setActiveDraftId(draftId);
@@ -281,6 +305,7 @@ export function useDrafts() {
           gardenAddress: store.gardenAddress,
           actionUID: store.actionUID,
           feedback: store.feedback,
+          details: store.details,
           timeSpentMinutes: store.timeSpentMinutes,
           currentStep: workTabToDraftStep(store.activeTab),
         },

@@ -9,9 +9,11 @@
  */
 
 import type { Address } from "../../types/domain";
+import type { DraftStep } from "../../types/job-queue";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { trackStorageError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
+import { hasMeaningfulDraftDetails } from "../../modules/job-queue/draft-db";
 import { requestPersistentStorageOnce } from "../../utils/storage/quota";
 import { useDrafts } from "./useDrafts";
 
@@ -19,7 +21,9 @@ interface DraftFormData {
   gardenAddress: Address | null;
   actionUID: number | null;
   feedback: string;
+  details: Record<string, unknown>;
   timeSpentMinutes?: number;
+  currentStep?: DraftStep;
 }
 
 interface UseDraftAutoSaveOptions {
@@ -34,8 +38,11 @@ function hasMeaningfulProgress(formData: DraftFormData, imageCount: number): boo
   // Images are the strongest indicator of progress
   if (imageCount > 0) return true;
 
-  // Having form input (feedback or time spent) indicates progress
-  const hasFormInput = formData.feedback.trim().length > 0 || (formData.timeSpentMinutes ?? 0) > 0;
+  // Any form input, including action-specific details, indicates progress.
+  const hasFormInput =
+    formData.feedback.trim().length > 0 ||
+    (formData.timeSpentMinutes ?? 0) > 0 ||
+    hasMeaningfulDraftDetails(formData.details);
 
   return hasFormInput;
 }
@@ -115,8 +122,9 @@ export function useDraftAutoSave(
           gardenAddress: currentFormData.gardenAddress,
           actionUID: currentFormData.actionUID,
           feedback: currentFormData.feedback,
+          details: currentFormData.details,
           timeSpentMinutes: currentFormData.timeSpentMinutes,
-          currentStep: "intro",
+          currentStep: currentFormData.currentStep ?? "intro",
           firstIncompleteStep: "intro",
         });
       } else {
@@ -127,7 +135,9 @@ export function useDraftAutoSave(
             gardenAddress: currentFormData.gardenAddress,
             actionUID: currentFormData.actionUID,
             feedback: currentFormData.feedback,
+            details: currentFormData.details,
             timeSpentMinutes: currentFormData.timeSpentMinutes,
+            ...(currentFormData.currentStep ? { currentStep: currentFormData.currentStep } : {}),
           },
         });
       }

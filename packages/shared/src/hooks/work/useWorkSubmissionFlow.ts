@@ -6,7 +6,13 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import type { Control, FormState, UseFormRegister, UseFormSetValue } from "react-hook-form";
+import type {
+  Control,
+  FormState,
+  UseFormRegister,
+  UseFormReset,
+  UseFormSetValue,
+} from "react-hook-form";
 import { useShallow } from "zustand/react/shallow";
 import { validationToasts } from "../../components/toast";
 import { getDefaultChain } from "../../config/blockchain";
@@ -55,7 +61,7 @@ export interface WorkFormValue {
   feedback: string;
   timeSpentMinutes: number | undefined;
   values: Record<string, unknown>;
-  reset: () => void;
+  reset: UseFormReset<WorkFormData>;
   uploadWork: (event?: BaseSyntheticEvent) => Promise<void>;
   workMutation: ReturnType<typeof useWorkMutation>;
   validationErrors: string[];
@@ -83,7 +89,7 @@ export interface WorkDataProps {
     feedback: string;
     timeSpentMinutes: number | undefined;
     values: Record<string, unknown>;
-    reset: () => void;
+    reset: UseFormReset<WorkFormData>;
     validationErrors: string[];
   };
   activeTab: WorkTab;

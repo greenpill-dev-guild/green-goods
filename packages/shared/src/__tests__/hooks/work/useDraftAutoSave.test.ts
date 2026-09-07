@@ -70,6 +70,8 @@ vi.mock("../../../modules/job-queue/draft-db", () => ({
     setImagesForDraft: vi.fn(),
   },
   computeFirstIncompleteStep: vi.fn(() => "intro"),
+  hasMeaningfulDraftDetails: (details: Record<string, unknown> | undefined) =>
+    Boolean(details && Object.values(details).some((value) => value !== undefined && value !== "")),
 }));
 
 vi.mock("../../../utils/storage/quota", () => ({
@@ -102,6 +104,7 @@ function createFormData(overrides = {}) {
     gardenAddress: MOCK_ADDRESSES.garden,
     actionUID: 1,
     feedback: "",
+    details: {},
     plantSelection: [] as string[],
     plantCount: null as number | null,
     timeSpentMinutes: 0,
@@ -164,6 +167,19 @@ describe("useDraftAutoSave", () => {
 
       expect(result.current.hasMeaningfulProgress).toBe(true);
     });
+
+    it("returns true when action-specific details are provided", () => {
+      const { result } = renderHook(
+        () =>
+          useDraftAutoSave(
+            createFormData({ details: { capacity: 10, sessionType: "Workshop" } }),
+            undefined
+          ),
+        { wrapper: createWrapper(queryClient) }
+      );
+
+      expect(result.current.hasMeaningfulProgress).toBe(true);
+    });
   });
 
   // ------------------------------------------
@@ -202,6 +218,11 @@ describe("useDraftAutoSave", () => {
 
       expect(savedId!).toBe("new-draft-id");
       expect(mockCreateDraft).toHaveBeenCalledOnce();
+      expect(mockCreateDraft).toHaveBeenCalledWith(
+        expect.objectContaining({
+          details: expect.any(Object),
+        })
+      );
       expect(mockSetImages).toHaveBeenCalledWith({
         draftId: "new-draft-id",
         files: images,

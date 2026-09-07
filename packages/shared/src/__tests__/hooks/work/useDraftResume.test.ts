@@ -9,7 +9,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { createElement, StrictMode, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 
 import { createMockFile, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
@@ -78,6 +78,16 @@ import { useDraftResume } from "../../../hooks/work/useDraftResume";
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return createElement(QueryClientProvider, { client: queryClient }, children);
+  };
+}
+
+function createStrictWrapper(queryClient: QueryClient) {
+  return function StrictWrapper({ children }: { children: ReactNode }) {
+    return createElement(
+      StrictMode,
+      null,
+      createElement(QueryClientProvider, { client: queryClient }, children)
+    );
   };
 }
 
@@ -270,6 +280,39 @@ describe("useDraftResume", () => {
       rerender();
 
       expect(mockResumeDraft).toHaveBeenCalledTimes(1);
+    });
+
+    it("restores the draft under Strict Mode", async () => {
+      const restoreForm = vi.fn();
+      mockResumeDraft.mockImplementation(
+        (_draftId: string, options?: { signal?: AbortSignal; restoreForm?: typeof restoreForm }) =>
+          new Promise((resolve, reject) => {
+            queueMicrotask(() => {
+              if (options?.signal?.aborted) {
+                reject(new DOMException("Aborted", "AbortError"));
+                return;
+              }
+              options?.restoreForm?.({ feedback: "restored" });
+              resolve("Details");
+            });
+          })
+      );
+
+      renderHook(
+        () =>
+          useDraftResume({
+            formState: createDefaultFormState(),
+            isOnIntroTab: true,
+            searchParams: new URLSearchParams("draftId=strict-draft"),
+            setSearchParams: mockSetSearchParams,
+            restoreForm,
+          }),
+        { wrapper: createStrictWrapper(queryClient) }
+      );
+
+      await waitFor(() => expect(mockSetSearchParams).toHaveBeenCalled());
+      expect(restoreForm).toHaveBeenCalledWith({ feedback: "restored" });
+      expect(mockResumeDraft).toHaveBeenCalled();
     });
   });
 

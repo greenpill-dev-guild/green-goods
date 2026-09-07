@@ -7,6 +7,7 @@
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -29,17 +30,25 @@ vi.mock("@/components/Inputs", () => ({
       }),
       helperText ? createElement("div", { key: "helper-text" }, helperText) : null,
     ]),
-  FormSelect: ({ label, name, options }: any) =>
-    createElement("div", { "data-testid": `form-select-${name}` }, [
-      createElement("label", { key: "label" }, label),
-      createElement(
-        "select",
-        { key: "select", name, "data-testid": `select-${name}` },
-        (options || []).map((opt: any) =>
-          createElement("option", { key: opt.value, value: opt.value }, opt.label)
-        )
-      ),
-    ]),
+  FormSelect: ({ label, name, options, isMulti, required }: any) =>
+    createElement(
+      "div",
+      {
+        "data-testid": `form-select-${name}`,
+        "data-is-multi": String(isMulti),
+        "data-required": String(required),
+      },
+      [
+        createElement("label", { key: "label" }, label),
+        createElement(
+          "select",
+          { key: "select", name, "data-testid": `select-${name}` },
+          (options || []).map((opt: any) =>
+            createElement("option", { key: opt.value, value: opt.value }, opt.label)
+          )
+        ),
+      ]
+    ),
   FormText: ({ label, name, ...rest }: any) =>
     createElement("div", { "data-testid": `form-text-${name || label}` }, [
       createElement("label", { key: "label" }, label),
@@ -54,6 +63,7 @@ vi.mock("@/components/Inputs", () => ({
 
 // Import after mocks
 import type { WorkInput } from "@green-goods/shared/types/domain";
+import type { WorkFormData } from "@green-goods/shared/hooks/work/useWorkForm";
 import { WorkDetails } from "../../views/Garden/Details";
 
 const messages: Record<string, string> = {
@@ -69,25 +79,33 @@ const messages: Record<string, string> = {
   "app.garden.details.locationDenied": "Location access denied",
   "app.garden.details.feedback": "Feedback",
   "app.garden.details.selectRange": "Select a range",
+  "app.common.add": "Add",
+  "app.common.remove": "Remove",
 };
 
-const mockRegister = vi.fn((name: string) => ({ name, ref: vi.fn() }));
-const mockControl = {} as any;
+function DetailsHarness(props: Partial<React.ComponentProps<typeof WorkDetails>>) {
+  const form = useForm<WorkFormData>({ defaultValues: { feedback: "" }, mode: "onChange" });
+  const values = useWatch({ control: form.control });
+  return createElement("div", null, [
+    createElement(WorkDetails, {
+      key: "details",
+      inputs: [],
+      register: form.register,
+      control: form.control,
+      setValue: form.setValue,
+      ...props,
+    }),
+    createElement(
+      "output",
+      { key: "values", "data-testid": "form-values" },
+      JSON.stringify(values)
+    ),
+  ]);
+}
 
 function renderDetails(props: Partial<React.ComponentProps<typeof WorkDetails>> = {}) {
-  const defaultProps: React.ComponentProps<typeof WorkDetails> = {
-    inputs: [],
-    register: mockRegister as any,
-    control: mockControl,
-    ...props,
-  };
-
   return render(
-    createElement(
-      IntlProvider,
-      { locale: "en", messages },
-      createElement(WorkDetails, defaultProps)
-    )
+    createElement(IntlProvider, { locale: "en", messages }, createElement(DetailsHarness, props))
   );
 }
 
@@ -144,6 +162,7 @@ describe("WorkDetails", () => {
     expect(screen.getByText("Soil Type")).toBeInTheDocument();
     const select = screen.getByTestId("select-soilType");
     expect(select).toBeInTheDocument();
+    expect(screen.getByTestId("form-select-soilType")).toHaveAttribute("data-is-multi", "false");
   });
 
   it("renders localized option labels while preserving canonical option values", () => {
@@ -189,7 +208,6 @@ describe("WorkDetails", () => {
   });
 
   it("toggles multi-select options on click and syncs to form", () => {
-    const setValue = vi.fn();
     const inputs: WorkInput[] = [
       {
         key: "plants",
@@ -201,19 +219,19 @@ describe("WorkDetails", () => {
       },
     ];
 
-    renderDetails({ inputs, setValue });
+    renderDetails({ inputs });
 
     // Click "Tomato" to select it
     fireEvent.click(screen.getByText("Tomato"));
-    expect(setValue).toHaveBeenCalledWith("plants", ["Tomato"]);
+    expect(screen.getByText("Tomato")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("form-values")).toHaveTextContent('"plants":["Tomato"]');
 
     // Click "Basil" to add it
     fireEvent.click(screen.getByText("Basil"));
-    expect(setValue).toHaveBeenCalledWith("plants", ["Tomato", "Basil"]);
+    expect(screen.getByTestId("form-values")).toHaveTextContent('"plants":["Tomato","Basil"]');
   });
 
   it("submits canonical multi-select values when localized labels are displayed", () => {
-    const setValue = vi.fn();
     const inputs: WorkInput[] = [
       {
         key: "plants",
@@ -229,11 +247,11 @@ describe("WorkDetails", () => {
       },
     ];
 
-    renderDetails({ inputs, setValue });
+    renderDetails({ inputs });
 
     fireEvent.click(screen.getByText("Tomate"));
 
-    expect(setValue).toHaveBeenCalledWith("plants", ["Tomato"]);
+    expect(screen.getByTestId("form-values")).toHaveTextContent('"plants":["Tomato"]');
   });
 
   it("renders location toggle switch in idle state", () => {

@@ -12,6 +12,31 @@ describe("modules/job-queue/draft-db", () => {
     vi.restoreAllMocks();
   });
 
+  it("persists action details and time before Review", async () => {
+    const draftId = await draftDB.createDraft(
+      "0x1111111111111111111111111111111111111111",
+      11155111,
+      {
+        gardenAddress: "0x2222222222222222222222222222222222222222",
+        actionUID: 1,
+        feedback: "",
+        details: { capacity: 10, sessionType: "Workshop" },
+        timeSpentMinutes: 90,
+        currentStep: "details",
+      }
+    );
+
+    await expect(draftDB.getDraft(draftId)).resolves.toEqual(
+      expect.objectContaining({
+        details: { capacity: 10, sessionType: "Workshop" },
+        timeSpentMinutes: 90,
+        currentStep: "details",
+      })
+    );
+
+    await draftDB.deleteDraft(draftId);
+  });
+
   it("keeps the previous images when an atomic replacement fails", async () => {
     const draftId = await draftDB.createDraft(
       "0x1111111111111111111111111111111111111111",

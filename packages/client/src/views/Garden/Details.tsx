@@ -1,8 +1,15 @@
 import type { WorkFormData } from "@green-goods/shared/hooks/work/useWorkForm";
 import type { Action, WorkInput } from "@green-goods/shared/types/domain";
-import { RiFileFill, RiMapPinLine } from "@remixicon/react";
+import { RiAddLine, RiCloseLine, RiFileFill, RiMapPinLine } from "@remixicon/react";
 import React, { useCallback, useState } from "react";
-import type { Control, Path, UseFormRegister, UseFormSetValue } from "react-hook-form";
+import {
+  Controller,
+  type Control,
+  type Path,
+  type UseFormRegister,
+  type UseFormSetValue,
+  useFieldArray,
+} from "react-hook-form";
 import { useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards";
 
@@ -15,6 +22,139 @@ interface WorkDetailsProps {
   control: Control<WorkFormData>;
   setValue?: UseFormSetValue<WorkFormData>;
 }
+
+function getNumberRegisterOptions() {
+  return {
+    setValueAs: (value: unknown) => {
+      if (value === "" || value === null || value === undefined) return undefined;
+      if (typeof value === "number") return value;
+      if (typeof value === "string") {
+        const parsed = Number(value);
+        return Number.isNaN(parsed) ? undefined : parsed;
+      }
+      return undefined;
+    },
+  };
+}
+
+interface WorkRepeaterInputProps {
+  input: WorkInput;
+  register: UseFormRegister<WorkFormData>;
+  control: Control<WorkFormData>;
+  addLabel: string;
+  removeLabel: string;
+}
+
+const WorkRepeaterInput: React.FC<WorkRepeaterInputProps> = ({
+  input,
+  register,
+  control,
+  addLabel,
+  removeLabel,
+}) => {
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: input.key as never,
+  });
+  const childInputs = input.repeaterFields ?? [];
+
+  return (
+    <fieldset className="flex flex-col gap-3 rounded-xl border border-stroke-sub-300 p-3">
+      <legend className="px-1 text-sm font-medium text-text-strong-950">
+        {input.title}
+        {input.required && <span className="text-error-base ml-0.5">*</span>}
+      </legend>
+      {fields.map((row, index) => (
+        <div key={row.id} className="flex flex-col gap-3 rounded-lg bg-bg-weak-50 p-3">
+          {childInputs.map((child) => {
+            const fieldName = `${input.key}.${index}.${child.key}` as Path<WorkFormData>;
+            const options = child.type === "band" ? (child.bands ?? child.options) : child.options;
+
+            if (child.type === "select" || child.type === "band") {
+              return (
+                <FormSelect
+                  key={child.key}
+                  name={fieldName}
+                  label={child.unit ? `${child.title} (${child.unit})` : child.title}
+                  placeholder={child.placeholder}
+                  options={options.map((option) => ({
+                    label: child.optionLabels?.[option] ?? child.bandLabels?.[option] ?? option,
+                    value: option,
+                  }))}
+                  control={control}
+                  isMulti={false}
+                  required={child.required}
+                />
+              );
+            }
+
+            if (child.type === "multi-select") {
+              return (
+                <FormSelect
+                  key={child.key}
+                  name={fieldName}
+                  label={child.title}
+                  placeholder={child.placeholder}
+                  options={options.map((option) => ({
+                    label: child.optionLabels?.[option] ?? option,
+                    value: option,
+                  }))}
+                  control={control}
+                  isMulti
+                  required={child.required}
+                />
+              );
+            }
+
+            if (child.type === "textarea") {
+              return (
+                <FormText
+                  key={child.key}
+                  {...register(fieldName)}
+                  label={child.title}
+                  placeholder={child.placeholder}
+                  required={child.required}
+                  rows={3}
+                />
+              );
+            }
+
+            return (
+              <FormInput
+                key={child.key}
+                {...register(
+                  fieldName,
+                  child.type === "number" ? getNumberRegisterOptions() : undefined
+                )}
+                label={child.unit ? `${child.title} (${child.unit})` : child.title}
+                type={child.type === "number" ? "number" : "text"}
+                inputMode={child.type === "number" ? "decimal" : undefined}
+                placeholder={child.placeholder}
+                required={child.required}
+              />
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => remove(index)}
+            className="inline-flex min-h-11 items-center justify-center gap-2 self-start rounded-lg border border-stroke-sub-300 px-3 text-sm font-medium text-text-sub-600"
+          >
+            <RiCloseLine className="h-4 w-4" aria-hidden="true" />
+            {removeLabel}
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => append({} as never)}
+        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-stroke-sub-300 px-3 text-sm font-medium text-text-sub-600"
+      >
+        <RiAddLine className="h-4 w-4" aria-hidden="true" />
+        {addLabel}
+      </button>
+    </fieldset>
+  );
+};
 
 export const WorkDetails: React.FC<WorkDetailsProps> = ({
   config,
@@ -82,26 +222,6 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
     );
   }, [locationEnabled, setValue]);
 
-  // Multi-select state tracking (controlled via local state, synced to form)
-  const [multiSelectValues, setMultiSelectValues] = useState<Record<string, string[]>>({});
-
-  const toggleMultiSelectOption = useCallback(
-    (fieldKey: string, option: string) => {
-      setMultiSelectValues((prev) => {
-        const current = prev[fieldKey] || [];
-        const next = current.includes(option)
-          ? current.filter((v) => v !== option)
-          : [...current, option];
-        // Sync to form
-        if (setValue) {
-          setValue(fieldKey as Path<WorkFormData>, next);
-        }
-        return { ...prev, [fieldKey]: next };
-      });
-    },
-    [setValue]
-  );
-
   const handleTextareaFocus = useCallback((event: React.FocusEvent<HTMLTextAreaElement>) => {
     const target = event.currentTarget;
     requestAnimationFrame(() => {
@@ -151,22 +271,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
         } = input;
 
         const selectOptions = Array.isArray(options) ? options : [];
-        const registerOptions =
-          type === "number"
-            ? {
-                setValueAs: (value: unknown) => {
-                  if (value === "" || value === null || value === undefined) {
-                    return undefined;
-                  }
-                  if (typeof value === "number") return value;
-                  if (typeof value === "string") {
-                    const parsed = Number(value);
-                    return Number.isNaN(parsed) ? undefined : parsed;
-                  }
-                  return undefined;
-                },
-              }
-            : undefined;
+        const registerOptions = type === "number" ? getNumberRegisterOptions() : undefined;
 
         // Cast key to Path for dynamic form fields
         const fieldKey = key as Path<WorkFormData>;
@@ -196,6 +301,8 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
                 value: option,
               }))}
               control={control}
+              isMulti={false}
+              required={required}
             />
           );
         }
@@ -219,57 +326,74 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
                 value: band,
               }))}
               control={control}
+              isMulti={false}
+              required={required}
             />
           );
         }
         if (type === "multi-select") {
-          // Multi-select rendered as tag chips
-          const selected = multiSelectValues[key] || [];
           return (
-            <div key={key} className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-text-strong-950">
-                {title}
-                {required && <span className="text-error-base ml-0.5">*</span>}
-              </label>
-              <div className="flex flex-wrap gap-1.5">
-                {selectOptions.map((option) => {
-                  const isSelected = selected.includes(option);
-                  const label = optionLabels?.[option] ?? option;
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() => toggleMultiSelectOption(key, option)}
-                      className={`min-h-11 px-3 py-2.5 rounded-full text-sm font-medium transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] border ${
-                        isSelected
-                          ? "bg-primary-base text-primary-accent-foreground border-primary-base"
-                          : "bg-bg-weak-50 text-text-sub-600 border-stroke-sub-300 hover:bg-bg-soft-200"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-              {/* Hidden input for form registration -- setValueAs parses the JSON string back to an array */}
-              <input
-                type="hidden"
-                {...register(fieldKey, {
-                  setValueAs: (v: unknown) => {
-                    if (Array.isArray(v)) return v;
-                    if (typeof v === "string") {
-                      try {
-                        return JSON.parse(v);
-                      } catch {
-                        return [];
-                      }
-                    }
-                    return [];
-                  },
-                })}
-                value={JSON.stringify(selected)}
-              />
-            </div>
+            <Controller
+              key={key}
+              name={fieldKey}
+              control={control}
+              defaultValue={[]}
+              render={({ field }) => {
+                const selected = Array.isArray(field.value)
+                  ? field.value.filter((value): value is string => typeof value === "string")
+                  : [];
+                return (
+                  <fieldset className="flex flex-col gap-1.5">
+                    <legend className="text-sm font-medium text-text-strong-950">
+                      {title}
+                      {required && <span className="text-error-base ml-0.5">*</span>}
+                    </legend>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectOptions.map((option) => {
+                        const isSelected = selected.includes(option);
+                        const label = optionLabels?.[option] ?? option;
+                        return (
+                          <button
+                            key={option}
+                            type="button"
+                            aria-pressed={isSelected}
+                            onClick={() =>
+                              field.onChange(
+                                isSelected
+                                  ? selected.filter((value) => value !== option)
+                                  : [...selected, option]
+                              )
+                            }
+                            className={`min-h-11 px-3 py-2.5 rounded-full text-sm font-medium transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] border ${
+                              isSelected
+                                ? "bg-primary-base text-primary-accent-foreground border-primary-base"
+                                : "bg-bg-weak-50 text-text-sub-600 border-stroke-sub-300 hover:bg-bg-soft-200"
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                );
+              }}
+            />
+          );
+        }
+        if (type === "repeater") {
+          return (
+            <WorkRepeaterInput
+              key={key}
+              input={input}
+              register={register}
+              control={control}
+              addLabel={intl.formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
+              removeLabel={intl.formatMessage({
+                id: "app.common.remove",
+                defaultMessage: "Remove",
+              })}
+            />
           );
         }
         if (type === "text") {

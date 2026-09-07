@@ -102,6 +102,7 @@ export function useWorkSubmissionFlowController({
     setGardenAddress,
   } = selection;
   const { workMutation, images, setImages, setValue, feedback, timeSpentMinutes } = form;
+  const { feedback: _feedback, timeSpentMinutes: _timeSpentMinutes, ...details } = form.values;
   const commitmentJobs = useCommitmentJobs({ chainId: DEFAULT_CHAIN_ID });
   const parsedLinkIntent = useMemo(() => parseWorkLinkIntent(searchParams), [searchParams]);
   const hasLinkIntentParams = useMemo(() => hasWorkLinkIntentParams(searchParams), [searchParams]);
@@ -165,7 +166,14 @@ export function useWorkSubmissionFlowController({
     },
   });
   const { saveOnExit } = useDraftAutoSave(
-    { gardenAddress, actionUID, feedback, timeSpentMinutes },
+    {
+      gardenAddress,
+      actionUID,
+      feedback,
+      timeSpentMinutes,
+      details,
+      currentStep: activeTab.toLowerCase() as "intro" | "media" | "details" | "review",
+    },
     images
   );
 
@@ -190,6 +198,7 @@ export function useWorkSubmissionFlowController({
       isOnIntroTab: activeTab === WorkTab.Intro,
       searchParams,
       setSearchParams,
+      restoreForm: form.reset,
     });
 
   useEffect(() => {

@@ -229,6 +229,8 @@ export interface WorkDraftRecord {
   gardenAddress: Address | null;
   actionUID: number | null;
   feedback: string;
+  /** Action-specific form values. Optional for drafts created before this field existed. */
+  details?: Record<string, unknown>;
   /** Time spent on the work in minutes */
   timeSpentMinutes?: number;
   /** Current step in the flow (for resume) */

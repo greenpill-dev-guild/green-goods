@@ -9,6 +9,28 @@ import { describe, expect, it } from "vitest";
 
 import { buildWorkFormSchema } from "../../hooks/work/useWorkForm";
 import type { WorkInput } from "../../types/domain";
+import { instructionTemplates } from "../../utils/action/templates";
+
+function validValueForInput(input: WorkInput): unknown {
+  switch (input.type) {
+    case "number":
+      return 1;
+    case "select":
+      return input.options[0] ?? "test";
+    case "band":
+      return input.bands?.[0] ?? input.options[0] ?? "test";
+    case "multi-select":
+      return [input.options[0] ?? "test"];
+    case "repeater":
+      return [
+        Object.fromEntries(
+          (input.repeaterFields ?? []).map((field) => [field.key, validValueForInput(field)])
+        ),
+      ];
+    default:
+      return "test";
+  }
+}
 
 describe("hooks/work/useWorkForm", () => {
   describe("buildWorkFormSchema", () => {
@@ -245,6 +267,34 @@ describe("hooks/work/useWorkForm", () => {
       expect(pass.success).toBe(true);
     });
 
+    it("blocks an empty required repeater", () => {
+      const schema = buildWorkFormSchema([
+        {
+          key: "categoryBreakdown",
+          title: "Category Breakdown",
+          placeholder: "",
+          type: "repeater",
+          required: true,
+          options: [],
+          repeaterFields: [
+            {
+              key: "category",
+              title: "Category",
+              placeholder: "",
+              type: "select",
+              required: true,
+              options: ["Plastic"],
+            },
+          ],
+        },
+      ]);
+
+      expect(schema.safeParse({ feedback: "", categoryBreakdown: [] }).success).toBe(false);
+      expect(
+        schema.safeParse({ feedback: "", categoryBreakdown: [{ category: "Plastic" }] }).success
+      ).toBe(true);
+    });
+
     it("handles mixed required and optional fields", () => {
       const inputs: WorkInput[] = [
         {
@@ -274,6 +324,35 @@ describe("hooks/work/useWorkForm", () => {
         seedlingsPlanted: 50,
       });
       expect(pass.success).toBe(true);
+    });
+
+    it("accepts complete values and blocks missing requirements for every action template", () => {
+      const actionTemplates = Object.entries(instructionTemplates).filter(
+        ([slug]) => slug !== "default"
+      );
+
+      expect(actionTemplates).toHaveLength(23);
+      for (const [slug, template] of actionTemplates) {
+        const inputs = template.uiConfig.details.inputs;
+        const schema = buildWorkFormSchema(inputs);
+        const completeValues = Object.fromEntries(
+          inputs.map((input) => [input.key, validValueForInput(input)])
+        );
+
+        expect(
+          schema.safeParse({ feedback: "", ...completeValues }).success,
+          `${slug} should accept all required details`
+        ).toBe(true);
+
+        for (const requiredInput of inputs.filter((input) => input.required)) {
+          const incompleteValues = { ...completeValues };
+          delete incompleteValues[requiredInput.key];
+          expect(
+            schema.safeParse({ feedback: "", ...incompleteValues }).success,
+            `${slug} should require ${requiredInput.key}`
+          ).toBe(false);
+        }
+      }
     });
   });
 });

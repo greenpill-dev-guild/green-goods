@@ -11,6 +11,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { trackStorageError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
 import { useDrafts } from "./useDrafts";
+import type { WorkFormData } from "./useWorkForm";
 
 interface DraftFormState {
   images: File[];
@@ -29,6 +30,8 @@ interface UseDraftResumeOptions {
   searchParams: URLSearchParams;
   /** Function to update search params */
   setSearchParams: (params: URLSearchParams, options?: { replace?: boolean }) => void;
+  /** Restore persisted action-specific values into the live form. */
+  restoreForm?: (values: WorkFormData) => void;
 }
 
 /**
@@ -52,7 +55,7 @@ interface UseDraftResumeOptions {
  * ```
  */
 export function useDraftResume(options: UseDraftResumeOptions) {
-  const { formState, isOnIntroTab, searchParams, setSearchParams } = options;
+  const { formState, isOnIntroTab, searchParams, setSearchParams, restoreForm } = options;
 
   const { activeDraftId, resumeDraft, clearActiveDraft } = useDrafts();
 
@@ -73,13 +76,15 @@ export function useDraftResume(options: UseDraftResumeOptions) {
     if (!draftIdFromUrl) return;
 
     const controller = new AbortController();
+    let completed = false;
     hasResumedDraft.current = true;
 
-    resumeDraft(draftIdFromUrl, { signal: controller.signal })
+    resumeDraft(draftIdFromUrl, { signal: controller.signal, restoreForm })
       .then(() => {
         // Check if aborted before updating state
         if (controller.signal.aborted) return;
 
+        completed = true;
         const currentParams = new URLSearchParams(searchParams.toString());
         currentParams.delete("draftId");
         setSearchParams(currentParams, { replace: true });
@@ -98,6 +103,7 @@ export function useDraftResume(options: UseDraftResumeOptions) {
           metadata: { draft_id: draftIdFromUrl, operation: "resume_draft" },
         });
 
+        completed = true;
         const currentParams = new URLSearchParams(searchParams.toString());
         currentParams.delete("draftId");
         setSearchParams(currentParams, { replace: true });
@@ -105,9 +111,10 @@ export function useDraftResume(options: UseDraftResumeOptions) {
 
     return () => {
       controller.abort();
+      if (!completed) hasResumedDraft.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- searchParams.toString() is read for snapshot, not as a reactive dep
-  }, [draftIdFromUrl, setSearchParams, resumeDraft]);
+  }, [draftIdFromUrl, setSearchParams, resumeDraft, restoreForm]);
 
   /**
    * Check for meaningful draft progress to show dialog
