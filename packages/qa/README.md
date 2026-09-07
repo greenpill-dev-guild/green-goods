@@ -60,7 +60,12 @@ SHAs) beside the per-run shards, and exactly one run is open at any time:
 - `POST /api/state` writes only to the open run. A save that names a closed or unknown run is
   refused with `409 { reason, openRun }` and no write; the page re-keys its pending queue
   (`qa-outbox:<address>:<runId>`) at the open run, sends it once more, and says which run
-  received it. A page that names no run — the version before runs — records into the open run.
+  received it. A save whose run closes between the server's check and its shard write is caught
+  after the write: the closed shard is put back exactly as it was, the delta is re-applied to
+  the run that is open now, and the response names that run with `retargeted: true`, which the
+  page follows the same way. A rollover names the run the tester confirmed closing
+  (`expectedOpenRun`); a stale tab gets `409 { reason: "stale" }` instead of closing the next
+  run too. A page that names no run — the version before runs — records into the open run.
 - The page can show any run (closed runs render read-only) and compare the run on screen with
   any closed run: the compared verdict and notes sit under every row, the tally adds fixed, still
   failing, regressed, and newly walked, and the **Re-QA** filter lists what the compared run left

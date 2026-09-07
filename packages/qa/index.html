@@ -542,11 +542,18 @@
         const key = localStorage.key(index);
         if (key && key.startsWith(prefix + ":") && key !== outboxKey(owner, openRunId)) stale.push(key);
       }
+      let adopted = false;
       for (const key of stale) {
         const stored = JSON.parse(localStorage.getItem(key) || "null");
-        if (stored && stored.delta && stored.owner === owner) outbox = mergedDictionary(stored.delta, outbox);
-        localStorage.removeItem(key);
+        if (stored && stored.delta && stored.owner === owner) {
+          outbox = mergedDictionary(stored.delta, outbox);
+          adopted = true;
+        }
       }
+      // Persist the merged queue under the open run's key BEFORE the stale
+      // copies go, so a reload in between cannot lose the only copy.
+      if (adopted) saveOutbox();
+      for (const key of stale) localStorage.removeItem(key);
     } catch (e) {}
   }
 
@@ -915,7 +922,8 @@
       if (wasIssue && now === "pass") fixed += 1;
       else if (wasIssue && isIssueNow) still += 1;
       else if (before.status === "pass" && isIssueNow) regressed += 1;
-      if (!before.walked && now) walked += 1;
+      // A note without a verdict counts as walked but not judged.
+      if (!before.walked && Object.keys(entries[testCase.id] || {}).length) walked += 1;
     }
     return ` · vs ${esc(describeRunId(compareRun))}: <b>${fixed}</b> fixed · <b>${still}</b> still failing · <b>${regressed}</b> regressed · <b>${walked}</b> newly walked`;
   }
@@ -1390,7 +1398,9 @@
       return;
     }
     saveView();
-    if (compared && compared.run === target) { render(); return; }
+    // A cached run must not inherit the loading flag of a request the tester
+    // moved away from; that response is ignored on arrival anyway.
+    if (compared && compared.run === target) { compareLoading = false; render(); return; }
     compareLoading = true;
     render();
     fetch("/api/state?run=" + encodeURIComponent(target), { cache: "no-store" })
@@ -1449,6 +1459,9 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "rollover",
+          // The run this tester confirmed closing; the server refuses to close
+          // a different one, so a stale tab cannot roll the next run over too.
+          expectedOpenRun: openRunId,
           label: String(fields.get("label") || "").trim(),
           environment: String(fields.get("environment") || "beta"),
           builds,
@@ -1715,7 +1728,20 @@
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       // Throws on a non-JSON gateway or platform error page, which turns an
       // unavailable write into an honest "not saved" instead of silent loss.
-      await response.json();
+      const result = await response.json();
+      // The server may have re-targeted the write itself: the run closed
+      // between its check and its write, so it landed the delta in the run
+      // that is open now. Follow it the way a refusal is followed.
+      if (result && typeof result.run === "string" && openRunId && result.run !== openRunId) {
+        const closedId = openRunId;
+        rekeyOutbox(closedId, result.run);
+        if (selectedRun === closedId) {
+          selectedRun = result.run;
+          saveView();
+        }
+        refreshAfterSave = true;
+        notice(`${describeRunId(closedId)} was closed — your saves went to ${describeRunId(result.run)}`);
+      }
       // Confirm the exact local version this response represents. Anything
       // typed during the request has a later version and remains pending.
       //

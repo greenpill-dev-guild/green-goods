@@ -35,10 +35,11 @@ cases to their successors.
 6. `qa:pull` and `qa:report` become run-aware; the report's delta compares runs, not snapshots.
 7. Catalog split before Tuesday, scoped to rows walked or failing on 2026-09-04 plus the Android
    twins; the broader area re-cut waits until after Tuesday. Catalog lifecycle rules unchanged.
-8. (2026-09-07) Migration runs on the first authenticated request after deploy: the legacy
-   shards are copied into Run 1, which opens as the legacy baseline and keeps receiving
-   latest-state writes until a tester rolls it over on 2026-09-08. Legacy shards are never
-   written or deleted again.
+8. (2026-09-07) Migration runs on the first authenticated request after deploy: every
+   allowlisted tester's legacy shard is copied into Run 1, which opens as the legacy baseline and
+   keeps receiving latest-state writes until a tester rolls it over on 2026-09-08. Legacy shards
+   are never written or deleted again; a de-listed tester's legacy shard stays on the legacy path
+   (the app never showed it either) and is read only by `qa:pull`'s legacy fallback.
 9. (2026-09-07) All lanes run serially in one Claude session on `feature/qa-runs`; the
    `state_api` lane owner is claude, not codex.
 10. (2026-09-07) Vercel deploys `packages/qa` from `develop`; merging the PR is the redeploy.

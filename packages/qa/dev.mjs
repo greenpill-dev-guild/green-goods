@@ -443,11 +443,23 @@ export function handleRuns(request, response) {
       if (body.catalog !== undefined && body.catalog !== null && catalog === null) {
         return sendJson(response, 400, { error: "catalog must carry a revision and an activeCases count" });
       }
+      const expectedGiven = body.expectedOpenRun !== undefined && body.expectedOpenRun !== null;
+      const expectedOpenRun = expectedGiven ? validateRunId(body.expectedOpenRun) : null;
+      if (expectedGiven && !expectedOpenRun) return sendJson(response, 400, { error: "expectedOpenRun is malformed" });
       let index;
       try {
         index = ensureRunIndex();
       } catch (error) {
         return sendFailure(response, error, "the runs could not be read");
+      }
+      const currentOpen = openRun(index);
+      if (expectedOpenRun && currentOpen.id !== expectedOpenRun) {
+        return sendJson(response, 409, {
+          error: `${describeRun(currentOpen)} is the open run now — reload and look again`,
+          reason: "stale",
+          runs: index.runs,
+          openRun: currentOpen.id,
+        });
       }
       const now = new Date().toISOString();
       const by = devAddress(devIdentity(request));

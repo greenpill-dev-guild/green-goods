@@ -22,9 +22,11 @@ import {
   cleanCatalog,
   cleanLabel,
   openRun,
+  describeRun,
   rolloverIndex,
   runShardPath,
   validateEnvironment,
+  validateRunId,
 } from "../runs.js";
 import {
   ensureRunIndex,
@@ -82,7 +84,14 @@ export async function POST(request: Request): Promise<Response> {
   const caller = await resolveCaller(request);
   if ("error" in caller) return json({ error: caller.error }, caller.status);
 
-  let body: { action?: unknown; label?: unknown; environment?: unknown; builds?: unknown; catalog?: unknown };
+  let body: {
+    action?: unknown;
+    label?: unknown;
+    environment?: unknown;
+    builds?: unknown;
+    catalog?: unknown;
+    expectedOpenRun?: unknown;
+  };
   try {
     const text = await request.text();
     if (text.length > MAX_BODY_BYTES) return json({ error: "payload too large" }, 413);
@@ -108,12 +117,29 @@ export async function POST(request: Request): Promise<Response> {
   if (body.catalog !== undefined && body.catalog !== null && catalog === null) {
     return json({ error: "catalog must carry a revision and an activeCases count" }, 400);
   }
+  // The run the tester confirmed closing. A stale tab (a teammate rolled over
+  // first, or a retry after a lost response) must not close the next run too.
+  const expectedGiven = body.expectedOpenRun !== undefined && body.expectedOpenRun !== null;
+  const expectedOpenRun = expectedGiven ? validateRunId(body.expectedOpenRun) : null;
+  if (expectedGiven && !expectedOpenRun) return json({ error: "expectedOpenRun is malformed" }, 400);
 
   let current: Awaited<ReturnType<typeof ensureRunIndex>>;
   try {
     current = await ensureRunIndex(caller.allowlist);
   } catch (error) {
     return fail(error, "the runs could not be read", "qa/runs");
+  }
+  const currentOpen = openRun(current.index);
+  if (expectedOpenRun && currentOpen.id !== expectedOpenRun) {
+    return json(
+      {
+        error: `${describeRun(currentOpen)} is the open run now — reload and look again`,
+        reason: "stale",
+        runs: current.index.runs,
+        openRun: currentOpen.id,
+      },
+      409,
+    );
   }
 
   const now = new Date().toISOString();

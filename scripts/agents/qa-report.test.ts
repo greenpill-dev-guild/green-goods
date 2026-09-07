@@ -287,7 +287,12 @@ describe("QA report runs", () => {
     expect(built.delta?.baseline).toBe("Run 1 · Baseline (closed 2026-09-08T14:00:00.000Z)");
     for (const variant of ["private", "public"] as const) {
       const report = renderReport(built, { kinds: KINDS }, { variant });
-      expect(report).toContain("QA session 2026-09-02\nRun: Run 2 · Re-QA 2026-09-08 · beta · open\n");
+      // The label is free text a tester typed; only the private variant carries it.
+      expect(report).toContain(
+        variant === "public"
+          ? "QA session 2026-09-02\nRun: Run 2 · beta · open\n"
+          : "QA session 2026-09-02\nRun: Run 2 · Re-QA 2026-09-08 · beta · open\n",
+      );
       expect(report).toContain(
         variant === "public"
           ? "## Delta vs previous run\n"
@@ -324,6 +329,41 @@ describe("QA report runs", () => {
     const report = renderReport(built, { kinds: KINDS }, { variant: "public" });
     expect(report).toContain("- Inherited from retired cases (2): `PWA-051` ← `PWA-021`, `PWA-052` ← `PWA-021`\n");
     expect(report).not.toContain("Unknown or retired");
+  });
+
+  it("merges every retired predecessor of one successor before judging it", () => {
+    // PUB-004 and PUB-005 both lead to PUB-014: a fail on either must still read
+    // as a continuing failure, whatever order the catalog lists them in.
+    const cases = [makeCase({ id: "PUB-014" })];
+    const previous = mergeShards([
+      shard("Afo", {
+        "PUB-004": { s: "pass", n: "", at: BEFORE_WINDOW },
+        "PUB-005": { s: "fail", n: "dialog crashed", at: BEFORE_WINDOW },
+      }),
+    ]);
+    for (const order of [["PUB-004", "PUB-005"], ["PUB-005", "PUB-004"]]) {
+      const replacedBy = Object.fromEntries(order.map((id) => [id, ["PUB-014"]]));
+      const built = model(cases, [shard("Afo", { "PUB-014": { s: "fail", n: "", at: IN_WINDOW } })], {
+        previous: { path: "previous/qa-state.json", entries: previous, run: RUN_1 },
+        replacedBy,
+      });
+      expect(built.delta).toMatchObject({ stillFailing: ["PUB-014"], newlyFailing: [], unknown: [] });
+      expect(built.delta?.inherited).toEqual([
+        { id: "PUB-014", from: "PUB-004" },
+        { id: "PUB-014", from: "PUB-005" },
+      ]);
+    }
+  });
+
+  it("counts a case first touched with only a note as newly walked", () => {
+    const cases = [makeCase(), makeCase({ id: "PUB-002" })];
+    const previous = mergeShards([shard("Afo", { "PUB-002": { s: "pass", n: "", at: BEFORE_WINDOW } })]);
+    const built = model(
+      cases,
+      [shard("Afo", { "PUB-001": { s: "", n: "looked, undecided", at: IN_WINDOW }, "PUB-002": { s: "pass", n: "", at: IN_WINDOW } })],
+      { previous: { path: "previous/qa-state.json", entries: previous, run: RUN_1 } },
+    );
+    expect(built.delta?.newlyWalked).toEqual(["PUB-001"]);
   });
 
   it("follows replacedBy chains to active ids and ignores cycles", () => {
@@ -631,6 +671,25 @@ describe("QA report review hardening", () => {
     expect(publicReport).toContain("## Delta vs previous run\n");
     expect(publicReport).toContain("- Unknown or retired on one side (1): withheld in the public variant\n");
     for (const secret of ["0xdeadbeef", "/home/afo"]) expect(publicReport).not.toContain(secret);
+  });
+
+  it("refuses a later run as the baseline", async () => {
+    const root = mkdtempSync(path.join(tmpdir(), "qa-report-"));
+    const sessionDir = path.join(root, "tmp", "qa-session", SLUG);
+    mkdirSync(path.join(sessionDir, "previous"), { recursive: true });
+    writeFileSync(
+      path.join(sessionDir, "qa-state.json"),
+      JSON.stringify({ slug: SLUG, pulledAt: PULLED_AT, run: RUN_1, entries: {} }),
+    );
+    writeFileSync(
+      path.join(sessionDir, "previous", "qa-state.json"),
+      JSON.stringify({ slug: "2026-09-08", pulledAt: PULLED_AT, run: RUN_2, entries: {} }),
+    );
+    const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
+    await expect(
+      runReport(parseArgs(["--slug", SLUG, "--previous", `tmp/qa-session/${SLUG}/previous/qa-state.json`]), { catalog, repoRoot: root }),
+    ).rejects.toThrow(/earlier run/);
+    expect(existsSync(path.join(sessionDir, "report.md"))).toBe(false);
   });
 
   it("refuses an output directory outside the gitignored tmp/ root", async () => {

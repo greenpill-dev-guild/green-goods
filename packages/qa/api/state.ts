@@ -41,7 +41,9 @@ import {
   fail,
   fallbackName,
   json,
+  readRunIndex,
   readShard,
+  restoreShard,
   shardShapeError,
 } from "../store.js";
 
@@ -170,9 +172,19 @@ export function mergeDelta(
 export async function applyDelta(
   address: Address,
   delta: Record<string, EntryPatch>,
-  declaredName?: string,
-  runId = "run-1",
+  declaredName: string | undefined,
+  runId: string,
 ): Promise<Shard> {
+  return (await writeDelta(address, delta, declaredName, runId)).shard;
+}
+
+/** `applyDelta`, also handing back the shard text the write replaced so a misdirected write can be undone. */
+async function writeDelta(
+  address: Address,
+  delta: Record<string, EntryPatch>,
+  declaredName: string | undefined,
+  runId: string,
+): Promise<{ shard: Shard; previous: { text: string } | null }> {
   for (let attempt = 1; attempt <= MAX_WRITE_ATTEMPTS; attempt++) {
     // Never merge onto an assumed-empty base: that would overwrite this
     // tester's whole record with just the delta in hand. readShard throws
@@ -213,7 +225,7 @@ export async function applyDelta(
       if ((error instanceof BlobPreconditionFailedError || !previous) && attempt < MAX_WRITE_ATTEMPTS) continue;
       throw new StoreError(`${fallbackName(address)}'s entries could not be saved`, error);
     }
-    return shard;
+    return { shard, previous: previous ? { text: previous.text } : null };
   }
   throw new StoreError(`${fallbackName(address)}'s entries are being saved from elsewhere — try again`, "write contention");
 }
@@ -366,9 +378,25 @@ export async function handler(request: Request): Promise<Response> {
 
     // `body.person` sets THIS caller's own display name — a label on their own
     // shard. It cannot change which shard is written; that is the address.
+    const delta = sanitizeDelta(body.entries);
+    const declaredName = body.person as string | undefined;
     let shard: Shard;
+    let landed = target.id;
     try {
-      shard = await applyDelta(caller.address, sanitizeDelta(body.entries), body.person as string | undefined, target.id);
+      const written = await writeDelta(caller.address, delta, declaredName, target.id);
+      shard = written.shard;
+      // The run was validated before the write and a rollover can land in
+      // between. Re-read the index afterwards: if the target closed under us,
+      // put its shard back exactly as it was and re-apply the delta to the run
+      // that is open now, so a closed run stays what it was at close and the
+      // tester's verdicts still land somewhere that records.
+      const after = await readRunIndex();
+      if (after && findRun(after.index, target.id)?.closedAt) {
+        const openAfter = openRun(after.index);
+        await restoreShard(caller.address, target.id, written.previous);
+        shard = (await writeDelta(caller.address, delta, declaredName, openAfter.id)).shard;
+        landed = openAfter.id;
+      }
     } catch (error) {
       // The page keeps the unsent delta in localStorage and retries.
       return fail(error, `${fallbackName(caller.address)}'s entries were not saved`);
@@ -378,7 +406,8 @@ export async function handler(request: Request): Promise<Response> {
       ok: true,
       person: shard.person || fallbackName(shard.address),
       count: Object.keys(shard.entries).length,
-      run: target.id,
+      run: landed,
+      ...(landed !== target.id ? { retargeted: true } : {}),
     });
   }
 

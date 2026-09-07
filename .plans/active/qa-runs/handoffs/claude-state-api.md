@@ -57,6 +57,6 @@
 
 ## Risks / Blockers
 
-- Accepted race: a POST that read the index just before a rollover lands one write in the just-closed run (documented in `packages/qa/README.md`).
+- A POST that read the index just before a rollover is caught after its shard write: the closed shard is restored to its pre-write text and the delta is re-applied to the open run (`retargeted: true`); the store test proves it with a put hook that slips a rollover between the check and the write. The restore itself is one conditional write into the closed run that returns it to its at-close content.
 - The migration enumerates the allowlist, so a de-listed tester's legacy shard stays only on the legacy path; `qa:pull`'s fallback still reads it.
 - `ensureRunIndex` adds one origin read per request; acceptable for a three-tester team.

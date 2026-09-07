@@ -284,7 +284,14 @@ function compareStanding(
     if (!hasEntries(previous.entries[retiredId])) continue;
     for (const successor of successors) {
       if (!active.has(successor) || hasEntries(previous.entries[successor])) continue;
-      baseline[successor] = previous.entries[retiredId];
+      // Several retired ids can converge on one successor (PUB-004 and PUB-005
+      // both lead to PUB-014). Merge every predecessor's entries under keys
+      // that name their source, so the rollup sees all of them and the most
+      // severe verdict wins regardless of catalog order.
+      const inheritedEntries = Object.fromEntries(
+        Object.entries(previous.entries[retiredId]).map(([person, entry]) => [`${person} (${retiredId})`, entry]),
+      );
+      baseline[successor] = { ...(delta.inherited.some((pair) => pair.id === successor) ? baseline[successor] : {}), ...inheritedEntries };
       delta.inherited.push({ id: successor, from: retiredId });
       accounted.add(retiredId);
     }
@@ -293,7 +300,9 @@ function compareStanding(
   for (const testCase of cases) {
     const before = rollupVerdict(baseline[testCase.id]);
     const now = rollupVerdict(current[testCase.id]);
-    if (now && !hasEntries(baseline[testCase.id])) delta.newlyWalked.push(testCase.id);
+    // A note without a verdict counts as walked but not judged (qa.md), so
+    // presence, not a verdict, makes a case newly walked.
+    if (hasEntries(current[testCase.id]) && !hasEntries(baseline[testCase.id])) delta.newlyWalked.push(testCase.id);
     if (now === "Fail") (before === "Fail" ? delta.stillFailing : delta.newlyFailing).push(testCase.id);
     else if (now === "Blocked") (before === "Blocked" ? delta.stillBlocked : delta.newlyBlocked).push(testCase.id);
     else if (before === "Fail" || before === "Blocked") {
@@ -453,9 +462,11 @@ export function renderReport(model: ReportModel, catalog: Pick<Catalog, "kinds">
       : [];
   const header = [
     `QA session ${model.slug}`,
+    // The run label is free text a tester typed; the public projection keeps
+    // to the run number, environment, and timestamps.
     ...(model.run
       ? [
-          `Run: ${describeRun(model.run)} · ${model.run.environment} · ${model.run.closedAt ? `closed ${model.run.closedAt}` : "open"}${model.run.legacy ? " · migrated baseline" : ""}`,
+          `Run: ${isPublic ? `Run ${model.run.n}` : describeRun(model.run)} · ${model.run.environment} · ${model.run.closedAt ? `closed ${model.run.closedAt}` : "open"}${model.run.legacy ? " · migrated baseline" : ""}`,
         ]
       : []),
     `Window: ${model.window.start} – ${model.window.end} (${model.window.source === "flag" ? "from --window" : "slug day, UTC"}) · pulled ${model.pulledAt}`,
@@ -745,6 +756,10 @@ export async function runReport(
       const previousPath = path.resolve(deps.repoRoot, options.previous);
       if (!existsSync(previousPath)) throw new Error(`--previous file ${options.previous} is missing`);
       const previousState = readState(previousPath, "--previous file");
+      // A later run passed as the baseline would read every fix as a regression.
+      if (previousState.run && state.run && previousState.run.n >= state.run.n) {
+        throw new Error("--previous must name an earlier run than qa-state.json");
+      }
       previous = { path: options.previous, entries: previousState.entries, run: previousState.run };
     }
     const window = parseWindow(options.window, options.slug);

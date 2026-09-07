@@ -62,6 +62,9 @@ function memoryBlob(initial: Record<string, string> = {}) {
   // A read gate holds the first N reads of one pathname until all N have
   // started, so two requests provably act on the same ETag before either writes.
   let gate: { pathname: string; readers: number; started: number; release: () => void; open: Promise<void> } | null = null;
+  // A put hook runs before one write lands, so a test can slip a rollover in
+  // between a request's index check and its shard write.
+  let beforePut: ((pathname: string) => Promise<void>) | null = null;
   blob.get.mockImplementation(async (pathname: string) => {
     if (gate && pathname === gate.pathname && gate.started < gate.readers) {
       gate.started += 1;
@@ -69,9 +72,15 @@ function memoryBlob(initial: Record<string, string> = {}) {
       await gate.open;
     }
     const stored = objects.get(pathname);
-    return stored ? { statusCode: 200, stream: stored.body, etag: stored.etag } : null;
+    // The SDK reports the ETag on the blob metadata, not on the result.
+    return stored ? { statusCode: 200, stream: stored.body, blob: { etag: stored.etag } } : null;
   });
   blob.put.mockImplementation(async (pathname: string, body: string, options: Record<string, unknown>) => {
+    if (beforePut) {
+      const hook = beforePut;
+      beforePut = null;
+      await hook(pathname);
+    }
     puts.push({ pathname, options });
     const stored = objects.get(pathname);
     if (options.allowOverwrite === false && stored) throw new Error("pathname already exists");
@@ -88,6 +97,9 @@ function memoryBlob(initial: Record<string, string> = {}) {
         release = resolve;
       });
       gate = { pathname, readers, started: 0, release, open };
+    },
+    onNextPut(hook: (pathname: string) => Promise<void>) {
+      beforePut = hook;
     },
     json: (pathname: string) => JSON.parse(objects.get(pathname)?.body ?? "null"),
     index: () => JSON.parse(objects.get(RUN_INDEX_PATH)?.body ?? "null") as RunIndex | null,
@@ -420,6 +432,38 @@ describe("state endpoint runs", () => {
     });
   });
 
+  it("re-targets a save whose run closed between the index check and the shard write, leaving the closed shard as it was", async () => {
+    const store = legacyStore();
+    await withConfig([ADDRESS, OTHER_ADDRESS], async () => {
+      await ensureRunIndex([ADDRESS, OTHER_ADDRESS], () => NOW);
+      const closedBefore = store.objects.get(runShardPath("run-1", ADDRESS))?.body;
+      // The save reads the index (run-1 open), then a teammate's rollover lands
+      // before the save's shard write does.
+      store.onNextPut(async (pathname) => {
+        expect(pathname).toBe(runShardPath("run-1", ADDRESS));
+        const rolled = await rollover(
+          await signedAs(OTHER_ADDRESS, {
+            path: "/api/runs",
+            method: "POST",
+            body: JSON.stringify({ action: "rollover", label: "Re-QA", environment: "beta" }),
+          }),
+        );
+        expect(rolled.status).toBe(200);
+      });
+      const response = await handler(
+        await signedAs(ADDRESS, {
+          method: "POST",
+          body: JSON.stringify({ run: "run-1", entries: { "PWA-021": { s: "pass", n: "join visible now" } } }),
+        }),
+      );
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({ ok: true, run: "run-2", retargeted: true });
+      // The closed run reads exactly as it did at close; the delta lives in the open run.
+      expect(store.objects.get(runShardPath("run-1", ADDRESS))?.body).toBe(closedBefore);
+      expect(store.json(runShardPath("run-2", ADDRESS)).entries["PWA-021"]).toMatchObject({ s: "pass", n: "join visible now" });
+    });
+  });
+
   it("migrates on the first request and answers from Run 1", async () => {
     const store = legacyStore();
     await withConfig([ADDRESS, OTHER_ADDRESS], async () => {
@@ -500,6 +544,28 @@ describe("rollover endpoint", () => {
     });
   });
 
+  it("refuses a rollover that names a run other than the one that is open", async () => {
+    const store = legacyStore();
+    await withConfig([ADDRESS, OTHER_ADDRESS], async () => {
+      await ensureRunIndex([ADDRESS, OTHER_ADDRESS], () => NOW);
+      const first = await rollover(
+        await rolloverRequest(ADDRESS, { action: "rollover", label: "Re-QA", environment: "beta", expectedOpenRun: "run-1" }),
+      );
+      expect(first.status).toBe(200);
+      // A tab that still shows Run 1 as open retries: it must not close Run 2.
+      const stale = await rollover(
+        await rolloverRequest(ADDRESS, { action: "rollover", label: "Again", environment: "beta", expectedOpenRun: "run-1" }),
+      );
+      expect(stale.status).toBe(409);
+      expect(await stale.json()).toMatchObject({ reason: "stale", openRun: "run-2" });
+      expect(store.index()?.runs).toHaveLength(2);
+      const malformed = await rollover(
+        await rolloverRequest(ADDRESS, { action: "rollover", label: "Again", environment: "beta", expectedOpenRun: "latest" }),
+      );
+      expect(malformed.status).toBe(400);
+    });
+  });
+
   it("rejects a cross-origin, signed-out, or malformed rollover without touching the store", async () => {
     const store = legacyStore();
     await withConfig([ADDRESS], async () => {
@@ -543,7 +609,7 @@ describe("QA app Blob writes", () => {
         return null;
       }
       if (!stored) return null;
-      return { statusCode: 200, stream: stored.body, etag: stored.etag };
+      return { statusCode: 200, stream: stored.body, blob: { etag: stored.etag } };
     });
 
     blob.put.mockImplementation(async (_pathname, body, options) => {

@@ -1,5 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { Readable } from "node:stream";
 
@@ -218,6 +217,13 @@ describe("local server run lifecycle parity", () => {
     );
     expect(closed.status).toBe(409);
     expect(closed.body).toMatchObject({ reason: "closed", openRun: "run-2" });
+
+    const stale = await call(
+      handleRuns,
+      localRequest("POST", "/api/runs", { action: "rollover", label: "Again", environment: "beta", expectedOpenRun: "run-1" }, "Gui"),
+    );
+    expect(stale.status).toBe(409);
+    expect(stale.body).toMatchObject({ reason: "stale", openRun: "run-2" });
 
     const open = await call(
       handleState,

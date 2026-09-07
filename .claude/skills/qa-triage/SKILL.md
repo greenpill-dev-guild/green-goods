@@ -38,7 +38,7 @@ The post-QA-call variant: same phases, three deltas. The unattended sibling is t
 write rules; this mode runs them interactively at the desk. Run one of the two per session; the
 Phase 3b dedupe catches the other's records if both ran.
 
-- **Phases 1-2** — the source is threefold: `bun run qa:pull --slug <date> --run <id>` (the QA
+- **Phases 1-2** — the source is threefold: `bun run qa:pull --slug <slug> --run <id>` (the QA
   app's verdicts and notes, exact Test IDs, from the run the call recorded into: the `run-N` id
   in the session header, or in the parent's lede on a rerun; `--run latest-closed` when the run
   was rolled over before this ran), the call's Gemini notes from Drive (title contains "QA" or
@@ -47,8 +47,8 @@ Phase 3b dedupe catches the other's records if both ran.
   verdicts recorded **during the call window** are ground truth — a run can hold several
   sessions, so filter joined entries by their `at` timestamps (the routine's session-window rule)
   before calling anything verdict-backed; older entries are standing state. For a re-QA also pull
-  the run it checks (`bun run qa:pull --slug <date> --run <previous id> --out
-  tmp/qa-session/<date>/previous`) and pass `--previous tmp/qa-session/<date>/previous/qa-state.json`
+  the run it checks (`bun run qa:pull --slug <slug> --run <previous id> --out
+  tmp/qa-session/<slug>/previous`) and pass `--previous tmp/qa-session/<slug>/previous/qa-state.json`
   to `qa:report`, whose delta then names both runs. `N/A` means out of scope, never skipped
   ([`.claude/context/qa.md § Verdict vocabulary`](../../context/qa.md)); ask the tester to clear a
   skipped case in the app before the pull; when that cannot happen, pass those IDs to

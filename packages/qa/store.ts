@@ -161,7 +161,12 @@ export async function readText(pathname: string, unreadable: string): Promise<{ 
   if (result.statusCode !== 200 || !result.stream) {
     throw new StoreError(unreadable, `unexpected status ${result.statusCode}`);
   }
-  return { text: await new Response(result.stream).text(), etag: result.etag };
+  // The SDK reports the ETag on the blob metadata, not on the result itself.
+  // Reading it from the wrong place silently turned every conditional write
+  // into an unconditional one, which is the failure the ETag exists to stop.
+  const etag = (result as { blob?: { etag?: string }; etag?: string }).blob?.etag ?? (result as { etag?: string }).etag;
+  if (!etag) throw new StoreError(unreadable, "the store returned no ETag");
+  return { text: await new Response(result.stream).text(), etag };
 }
 
 /**
@@ -238,6 +243,20 @@ export async function putConditional(pathname: string, body: string, etag: strin
     if (error instanceof BlobPreconditionFailedError) throw error;
     throw new StoreError(`${pathname} could not be saved`, error);
   }
+}
+
+/**
+ * Put a shard back the way it was before a write that turned out to target a
+ * run that had just closed. With no earlier shard the write created one, and
+ * an empty shard carrying the name is what a rollover would have left there.
+ */
+export async function restoreShard(address: Address, runId: string, previous: { text: string } | null): Promise<void> {
+  const current = await readShard(address, runId);
+  if (!current) return;
+  const body = previous
+    ? previous.text
+    : JSON.stringify({ address: address.toLowerCase(), person: current.shard.person, updatedAt: new Date().toISOString(), entries: {} });
+  await putConditional(runShardPath(runId, address), body, current.etag);
 }
 
 export async function readRunIndex(): Promise<{ index: RunIndex; etag: string } | null> {

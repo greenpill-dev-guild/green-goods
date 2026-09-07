@@ -312,17 +312,26 @@ export async function resolveCaller(
   request: Request,
   now: number = Date.now(),
 ): Promise<Caller | { error: string; status: number }> {
+  // These endpoints answer unauthenticated callers, so a configuration
+  // problem is logged in full here and reported to the caller as one generic
+  // sentence: the deployment's variable names are not the caller's business.
+  const misconfigured = { error: "QA sign-in is misconfigured — ask an operator to check the deployment", status: 503 };
   const secret = process.env.QA_SESSION_SECRET;
   if (!secret || secret.length < 32) {
-    return { error: "QA_SESSION_SECRET is missing or too short (needs 32+ characters)", status: 503 };
+    console.error("qa/auth: QA_SESSION_SECRET is missing or too short (needs 32+ characters)");
+    return misconfigured;
   }
   let allowlist: string[];
   try {
     allowlist = parseAllowlist(process.env.QA_ALLOWLIST);
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "QA_ALLOWLIST is invalid", status: 503 };
+    console.error("qa/auth: QA_ALLOWLIST is invalid", error instanceof Error ? error.message : error);
+    return misconfigured;
   }
-  if (!allowlist.length) return { error: "QA_ALLOWLIST is empty — nobody can sign in", status: 503 };
+  if (!allowlist.length) {
+    console.error("qa/auth: QA_ALLOWLIST is empty — nobody can sign in");
+    return misconfigured;
+  }
 
   const session = await readSession(secret, readCookie(request.headers.get("cookie"), SESSION_COOKIE), now);
   if (!session) return { error: "sign in with your wallet to record QA results", status: 401 };

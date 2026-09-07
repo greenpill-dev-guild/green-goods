@@ -1310,7 +1310,7 @@ async function runsHarness() {
     await flush();
     await flush();
     await flush();
-    assert.deepEqual(rollovers[0], { action: "rollover", label: "Re-QA   2026-09-09", environment: "beta", builds: { client: "d4d860573" }, catalog: { revision: "abc123def456", activeCases: 4 } });
+    assert.deepEqual(rollovers[0], { action: "rollover", expectedOpenRun: "run-3", label: "Re-QA   2026-09-09", environment: "beta", builds: { client: "d4d860573" }, catalog: { revision: "abc123def456", activeCases: 4 } });
     assert.equal(document.querySelector("#qa-rollover"), null);
     assert.equal(document.querySelector("#qa-run-select")?.value, "run-4");
     assert.ok(document.querySelector("#savebar")?.textContent.includes("opened — recording continues there"));
