@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-05T04:08:09.130Z",
-    "updated_at": "2026-09-07T05:09:37.205Z"
+    "updated_at": "2026-09-07T22:19:25.272Z"
   },
   "links": {
     "brief": "brief.md",
@@ -49,41 +49,42 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "todo",
-      "branch": null,
+      "status": "passed",
+      "branch": "feature/qa-runs",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "bun --bun x vitest run --dir scripts/agents qa-app-client",
+          "evidence": "2026-09-07T06:05Z: runsHarness failed at the return to the open run (pending PWA-052 blocked not re-overlaid: aria-pressed false) and at the re-target notice (savebar read 'live — shared results') before the poll overlay rebuilt pending patches on the server copy and notices held through polls"
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "bun --bun x vitest run --dir scripts/agents qa-app-client qa-app-build",
+          "evidence": "2026-09-07T06:20Z: 30 passed (7 client harnesses incl. runsHarness: keyed queues, adoption, compare, Re-QA, inherited, read-only closed run, 409 re-target, rollover form, tolerant mode; build test: replaces projection, revision, N/A hint)"
         },
         "note": ""
       },
-      "skill_tags": ["ui", "frontend-design", "react"]
+      "skill_tags": ["ui", "frontend-design", "react"],
+      "manual_blocked": false
     },
     "state_api": {
       "owner": "claude",
-      "status": "in_progress",
+      "status": "passed",
       "branch": "feature/qa-runs",
       "depends_on": [],
       "handoff": "handoffs/claude-state-api.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "bun --bun x vitest run --dir scripts/agents qa-app-store",
+          "evidence": "2026-09-07T05:40Z: the new 'lets one of two concurrent rollovers win' case failed against the first api/runs.ts (expected [200, 409], got [200, 200]) until the store test gated both index reads on one ETag; the migration, closed-run refusal, and unknown-run cases were written before store.ts and failed on missing imports"
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run test:agent-tools",
+          "evidence": "2026-09-07T06:25Z: Test Files 11 passed, Tests 245 passed (qa-app-store 22, qa-app-parity run lifecycle, qa-state-pull run selection, qa-report run delta and inherited mapping, qa-status run line)"
         },
         "note": ""
       },
@@ -114,7 +115,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "ready",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": null,
@@ -173,6 +174,38 @@
       "status": "in_progress",
       "branch": "feature/qa-runs",
       "note": "Store, API, scripts, and catalog split start; owner moved to claude per the 2026-09-07 serial-execution decision"
+    },
+    {
+      "timestamp": "2026-09-07T22:13:35.011Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/qa-runs",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-07T22:13:35.505Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-07T22:19:24.004Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "passed",
+      "branch": "feature/qa-runs",
+      "note": "Store, API, scripts, and catalog split implemented and proven locally; deployed migration and Tuesday rollover are qa_pass_1"
+    },
+    {
+      "timestamp": "2026-09-07T22:19:25.273Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "passed",
+      "branch": "feature/qa-runs",
+      "note": "Run select, compare, Re-QA, rollover, and queue re-targeting implemented with JSDOM proof and a local rehearsal; deployed rendered proof is qa_pass_1"
     }
   ]
 }
