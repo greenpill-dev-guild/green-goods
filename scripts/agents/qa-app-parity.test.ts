@@ -1,17 +1,30 @@
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { Readable } from "node:stream";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 /**
  * The QA app's merge rules exist twice on purpose: once in the deployed Vercel
  * function (packages/qa/api/state.ts) and once in the local server
  * (packages/qa/dev.mjs), which cannot share a module without making the
- * function's bundle depend on resolution outside its deploy root.
+ * function's bundle depend on resolution outside its deploy root. (The run
+ * lifecycle IS shared — both import packages/qa/runs.ts — so only the store
+ * and the merge rules are duplicated.)
  *
  * That duplication is only safe while the two agree. Local runs are used to
  * prove two-tester behaviour before a session; if the copies drift, a local
  * run proves something the deployment would not do. These tests are the guard.
  */
+
+// dev.mjs resolves its state directory when it loads, so point it at a
+// throwaway directory before the import below runs (vi.hoisted runs first).
+const devStateDir = vi.hoisted(() => {
+  const dir = require("node:fs").mkdtempSync(require("node:path").join(require("node:os").tmpdir(), "qa-dev-parity-"));
+  process.env.QA_DEV_STATE_DIR = dir;
+  return dir;
+});
 
 import {
   displayLabels as displayDeployed,
@@ -20,6 +33,8 @@ import {
 } from "../../packages/qa/api/state";
 import { displayLabels as displayPulled } from "./qa-state";
 import {
+  devAddress,
+  handleRuns,
   handleState,
   mergeDelta as mergeLocal,
   sanitizeDelta as sanitizeLocal,
@@ -131,19 +146,96 @@ describe("QA app merge rules — deployed function vs local server", () => {
   });
 });
 
-describe("local server failure parity", () => {
-  function fakeResponse() {
-    return {
-      status: 0,
-      body: "",
-      writeHead(status: number) {
-        this.status = status;
-      },
-      end(payload: string) {
-        this.body = payload ?? "";
-      },
+function fakeResponse() {
+  return {
+    status: 0,
+    body: "",
+    writeHead(status: number) {
+      this.status = status;
+    },
+    end(payload: string) {
+      this.body = payload ?? "";
+    },
+  };
+}
+
+/** A request the local handlers can read: method, url, optional cookie, optional JSON body. */
+function localRequest(method: string, url: string, body?: unknown, person = "Afo") {
+  const request = Readable.from(body === undefined ? [] : [Buffer.from(JSON.stringify(body))]) as unknown as Parameters<
+    typeof handleState
+  >[0] & { method: string; url: string; headers: Record<string, string> };
+  request.method = method;
+  request.url = `${url}${url.includes("?") ? "&" : "?"}as=${person}`;
+  request.headers = {};
+  return request;
+}
+
+async function call(handler: typeof handleState, request: ReturnType<typeof localRequest>) {
+  const response = fakeResponse();
+  await handler(request, response as unknown as Parameters<typeof handleState>[1]);
+  return { status: response.status, body: JSON.parse(response.body) };
+}
+
+describe("local server run lifecycle parity", () => {
+  it("migrates tmp/qa shards into an open Run 1, rolls over, refuses the closed run, and carries names", async () => {
+    // A pre-runs local store: one shard per tester directly under the state dir.
+    const legacy = {
+      person: "Afo",
+      updatedAt: "2026-09-04T22:00:00.000Z",
+      entries: { "PWA-021": { s: "fail", n: "request to join not visible", at: "2026-09-04T19:10:00.000Z" } },
     };
-  }
+    writeFileSync(path.join(devStateDir, "Afo.json"), `${JSON.stringify(legacy, null, 2)}\n`);
+
+    const first = await call(handleState, localRequest("GET", "/api/state"));
+    expect(first.status).toBe(200);
+    expect(Object.keys(first.body).sort()).toEqual(
+      ["address", "entries", "named", "openRun", "readAt", "run", "runs", "team", "you"].sort(),
+    );
+    expect(first.body.openRun).toBe("run-1");
+    expect(first.body.runs[0]).toMatchObject({ id: "run-1", legacy: true, openedAt: "2026-09-04T19:10:00.000Z" });
+    expect(first.body.entries["PWA-021"].Afo.s).toBe("fail");
+    // The legacy file is untouched; Run 1 holds a byte-identical copy.
+    expect(readFileSync(path.join(devStateDir, "runs", "run-1", "Afo.json"), "utf8")).toBe(
+      readFileSync(path.join(devStateDir, "Afo.json"), "utf8"),
+    );
+
+    const refusedShape = await call(handleRuns, localRequest("POST", "/api/runs", { action: "rollover", label: " " }));
+    expect(refusedShape.status).toBe(400);
+
+    const rolled = await call(
+      handleRuns,
+      localRequest("POST", "/api/runs", { action: "rollover", label: "Re-QA 2026-09-08", environment: "beta" }, "Gui"),
+    );
+    expect(rolled.status).toBe(200);
+    expect(rolled.body.closed).toMatchObject({ id: "run-1", closedBy: devAddress("Gui") });
+    expect(rolled.body.opened).toMatchObject({ id: "run-2", openedBy: devAddress("Gui"), environment: "beta" });
+    // Names carry into the new run as empty shards, like the deployed function.
+    expect(existsSync(path.join(devStateDir, "runs", "run-2", "Afo.json"))).toBe(true);
+
+    const closed = await call(
+      handleState,
+      localRequest("POST", "/api/state", { run: "run-1", entries: { "PWA-021": { s: "pass" } } }),
+    );
+    expect(closed.status).toBe(409);
+    expect(closed.body).toMatchObject({ reason: "closed", openRun: "run-2" });
+
+    const open = await call(
+      handleState,
+      localRequest("POST", "/api/state", { run: "run-2", entries: { "PWA-021": { s: "pass" } } }),
+    );
+    expect(open.body).toMatchObject({ ok: true, run: "run-2" });
+
+    const compared = await call(handleState, localRequest("GET", "/api/state?run=run-1"));
+    expect(compared.body.run).toBe("run-1");
+    expect(compared.body.entries["PWA-021"].Afo.s).toBe("fail");
+    expect(compared.body.runs.map((run: { id: string; closedByLabel: string | null }) => [run.id, run.closedByLabel])).toEqual([
+      ["run-1", "Gui"],
+      ["run-2", null],
+    ]);
+  });
+});
+
+describe("local server failure parity", () => {
 
   it("answers an unreadable request instead of taking the rehearsal server down", async () => {
     // `createServer` ignores the promise handleState returns, so a rejection

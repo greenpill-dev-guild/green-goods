@@ -14,22 +14,511 @@ vi.mock("@vercel/blob", () => {
   };
 });
 
+import { BlobPreconditionFailedError } from "@vercel/blob";
+
+import { issueSession } from "../../packages/qa/auth";
+import { POST as rollover } from "../../packages/qa/api/runs";
 import {
   applyDelta,
   displayLabels,
+  handler,
   mergeDelta,
   sanitizeDelta,
   shardShapeError,
 } from "../../packages/qa/api/state";
+import {
+  RUN_INDEX_PATH,
+  type RunIndex,
+  legacyRunRecord,
+  rolloverIndex,
+  runIndexShapeError,
+  runShardPath,
+} from "../../packages/qa/runs";
+import { ensureRunIndex } from "../../packages/qa/store";
 
 /** Shards are keyed by owner address; the display name inside is only a label. */
 const ADDRESS = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e";
 const OTHER_ADDRESS = "0x22682c3d3848294ff9bcbf3f0ddf48a605446b56";
+const SECRET = "test-secret-that-is-long-enough-to-pass-the-length-check";
+const ORIGIN = "https://qa.greengoods.app";
+const NOW = "2026-09-07T10:00:00.000Z";
 
 interface StoredBlob {
   body: string;
   etag: string;
 }
+
+/**
+ * A keyed in-memory Blob: pathname → object, honouring create-only writes and
+ * ETag-conditional overwrites exactly the way the store does. A losing
+ * conditional write throws the SDK's precondition error, because the
+ * endpoints map that class — and only that class — to a 409.
+ */
+function memoryBlob(initial: Record<string, string> = {}) {
+  const objects = new Map<string, StoredBlob>();
+  let etag = 0;
+  for (const [pathname, body] of Object.entries(initial)) objects.set(pathname, { body, etag: `etag-${++etag}` });
+  const puts: Array<{ pathname: string; options: Record<string, unknown> }> = [];
+  // A read gate holds the first N reads of one pathname until all N have
+  // started, so two requests provably act on the same ETag before either writes.
+  let gate: { pathname: string; readers: number; started: number; release: () => void; open: Promise<void> } | null = null;
+  blob.get.mockImplementation(async (pathname: string) => {
+    if (gate && pathname === gate.pathname && gate.started < gate.readers) {
+      gate.started += 1;
+      if (gate.started === gate.readers) gate.release();
+      await gate.open;
+    }
+    const stored = objects.get(pathname);
+    return stored ? { statusCode: 200, stream: stored.body, etag: stored.etag } : null;
+  });
+  blob.put.mockImplementation(async (pathname: string, body: string, options: Record<string, unknown>) => {
+    puts.push({ pathname, options });
+    const stored = objects.get(pathname);
+    if (options.allowOverwrite === false && stored) throw new Error("pathname already exists");
+    if (options.ifMatch && options.ifMatch !== stored?.etag) throw new BlobPreconditionFailedError("etag mismatch");
+    objects.set(pathname, { body: String(body), etag: `etag-${++etag}` });
+    return {};
+  });
+  return {
+    objects,
+    puts,
+    gate(pathname: string, readers: number) {
+      let release = () => {};
+      const open = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      gate = { pathname, readers, started: 0, release, open };
+    },
+    json: (pathname: string) => JSON.parse(objects.get(pathname)?.body ?? "null"),
+    index: () => JSON.parse(objects.get(RUN_INDEX_PATH)?.body ?? "null") as RunIndex | null,
+  };
+}
+
+const entry = (s: string, at = "2026-09-04T18:30:00.000Z", n = "") => ({ s, n, at });
+
+function shardBody(address: string, person: string, entries: Record<string, ReturnType<typeof entry>>) {
+  return JSON.stringify({ address, person, updatedAt: "2026-09-04T22:00:00.000Z", entries });
+}
+
+async function withConfig<T>(allowlist: string[], run: () => Promise<T>): Promise<T> {
+  const previousSecret = process.env.QA_SESSION_SECRET;
+  const previousAllowlist = process.env.QA_ALLOWLIST;
+  process.env.QA_SESSION_SECRET = SECRET;
+  process.env.QA_ALLOWLIST = JSON.stringify(allowlist);
+  try {
+    return await run();
+  } finally {
+    if (previousSecret === undefined) delete process.env.QA_SESSION_SECRET;
+    else process.env.QA_SESSION_SECRET = previousSecret;
+    if (previousAllowlist === undefined) delete process.env.QA_ALLOWLIST;
+    else process.env.QA_ALLOWLIST = previousAllowlist;
+  }
+}
+
+async function signedAs(address: string, init: RequestInit & { path?: string } = {}): Promise<Request> {
+  const token = await issueSession(SECRET, address, Date.now());
+  const { path = "/api/state", ...rest } = init;
+  const headers = new Headers(rest.headers);
+  headers.set("cookie", `qa_session=${token}`);
+  if (rest.method === "POST") {
+    headers.set("origin", ORIGIN);
+    headers.set("content-type", "application/json");
+  }
+  return new Request(`${ORIGIN}${path}`, { ...rest, headers });
+}
+
+const legacyStore = () =>
+  memoryBlob({
+    [`qa/entries/${ADDRESS}.json`]: shardBody(ADDRESS, "Afo", {
+      "PUB-001": entry("pass", "2026-08-29T09:00:00.000Z"),
+      "PWA-021": entry("fail", "2026-09-04T19:10:00.000Z", "request to join not visible"),
+    }),
+    [`qa/entries/${OTHER_ADDRESS}.json`]: shardBody(OTHER_ADDRESS, "Dida", {
+      "ADM-004": entry("fail", "2026-09-04T20:00:00.000Z"),
+    }),
+  });
+
+describe("run index migration", () => {
+  beforeEach(() => {
+    blob.get.mockReset();
+    blob.put.mockReset();
+  });
+
+  it("migrates legacy shards into an open Run 1 byte for byte, and a second migration changes nothing", async () => {
+    const store = legacyStore();
+    const first = await ensureRunIndex([ADDRESS, OTHER_ADDRESS], () => NOW);
+
+    expect(first.index.runs).toHaveLength(1);
+    expect(first.index.runs[0]).toMatchObject({
+      id: "run-1",
+      n: 1,
+      label: "Baseline",
+      legacy: true,
+      openedAt: "2026-08-29T09:00:00.000Z",
+      openedBy: null,
+      environment: "beta",
+      window: { from: "2026-08-29T09:00:00.000Z", to: "2026-09-04T20:00:00.000Z" },
+    });
+    expect(first.index.runs[0].closedAt).toBeUndefined();
+    for (const address of [ADDRESS, OTHER_ADDRESS]) {
+      expect(store.objects.get(runShardPath("run-1", address))?.body).toBe(
+        store.objects.get(`qa/entries/${address}.json`)?.body,
+      );
+    }
+    // Every migration write is create-only; the legacy path is never written.
+    expect(store.puts.every((write) => write.options.allowOverwrite === false)).toBe(true);
+    expect(store.puts.some((write) => write.pathname.startsWith("qa/entries/"))).toBe(false);
+
+    const putsAfterFirst = store.puts.length;
+    const second = await ensureRunIndex([ADDRESS, OTHER_ADDRESS], () => "2026-09-07T11:00:00.000Z");
+    expect(second.index).toEqual(first.index);
+    expect(second.etag).toBe(first.etag);
+    expect(store.puts).toHaveLength(putsAfterFirst);
+  });
+
+  it("migrates an empty store into a Run 1 with no window", async () => {
+    memoryBlob();
+    const { index } = await ensureRunIndex([ADDRESS], () => NOW);
+    expect(index.runs[0]).toMatchObject({ id: "run-1", openedAt: NOW, window: null, legacy: true });
+  });
+
+  it("finishes a migration another request started, leaving one index", async () => {
+    const store = legacyStore();
+    // A crash after copying one shard but before the index write: the copy
+    // already exists, so the next request must treat "exists" as done.
+    store.objects.set(runShardPath("run-1", ADDRESS), {
+      body: store.objects.get(`qa/entries/${ADDRESS}.json`)?.body ?? "",
+      etag: "etag-copied",
+    });
+    const [a, b] = await Promise.all([
+      ensureRunIndex([ADDRESS, OTHER_ADDRESS], () => NOW),
+      ensureRunIndex([ADDRESS, OTHER_ADDRESS], () => NOW),
+    ]);
+    expect(a.index).toEqual(b.index);
+    expect(store.puts.filter((write) => write.pathname === RUN_INDEX_PATH)).toHaveLength(2);
+    expect(store.index()?.runs).toHaveLength(1);
+  });
+
+  it("treats an unreadable index as a store failure, never as an absent one", async () => {
+    const store = legacyStore();
+    store.objects.set(RUN_INDEX_PATH, { body: "{not json", etag: "etag-bad" });
+    await expect(ensureRunIndex([ADDRESS], () => NOW)).rejects.toThrow(/run index is unreadable/);
+    expect(store.puts).toHaveLength(0);
+
+    store.objects.set(RUN_INDEX_PATH, { body: JSON.stringify({ version: 1, updatedAt: NOW, runs: [] }), etag: "e" });
+    await expect(ensureRunIndex([ADDRESS], () => NOW)).rejects.toThrow(/run index is unreadable/);
+
+    blob.get.mockRejectedValue(new Error("store down"));
+    await expect(ensureRunIndex([ADDRESS], () => NOW)).rejects.toThrow(/run index could not be read/);
+  });
+});
+
+describe("run index shape", () => {
+  const index = () => ({
+    version: 1,
+    updatedAt: NOW,
+    runs: [
+      {
+        id: "run-1",
+        n: 1,
+        label: "Baseline",
+        legacy: true,
+        openedAt: "2026-08-29T09:00:00.000Z",
+        openedBy: null,
+        closedAt: NOW,
+        closedBy: ADDRESS,
+        environment: "beta",
+        catalog: null,
+        builds: {},
+        window: { from: "2026-08-29T09:00:00.000Z", to: NOW },
+      },
+      {
+        id: "run-2",
+        n: 2,
+        label: "Re-QA 2026-09-08",
+        openedAt: NOW,
+        openedBy: ADDRESS,
+        environment: "beta",
+        catalog: { revision: "abc123", activeCases: 150 },
+        builds: { client: "d4d860573" },
+        window: null,
+      },
+    ],
+  });
+
+  it("accepts an index with exactly one open run, the newest", () => {
+    expect(runIndexShapeError(index())).toBeNull();
+  });
+
+  it("refuses zero or two open runs and a malformed record", () => {
+    const none = index();
+    none.runs[1] = { ...none.runs[1], closedAt: NOW, closedBy: ADDRESS, window: { from: NOW, to: NOW } };
+    expect(runIndexShapeError(none)).toMatch(/no open run/);
+
+    const two = index();
+    delete (two.runs[0] as { closedAt?: string }).closedAt;
+    delete (two.runs[0] as { closedBy?: string }).closedBy;
+    expect(runIndexShapeError(two)).toMatch(/more than one open run/);
+
+    const wrongOrder = index();
+    wrongOrder.runs.reverse();
+    expect(runIndexShapeError(wrongOrder)).toMatch(/out of order/);
+
+    const malformed = index();
+    (malformed.runs[1] as { environment: string }).environment = "staging";
+    expect(runIndexShapeError(malformed)).toMatch(/run-2 has no valid environment/);
+    expect(runIndexShapeError({ version: 2, updatedAt: NOW, runs: index().runs })).toMatch(/version/);
+    expect(runIndexShapeError(null)).toMatch(/not an object/);
+  });
+
+  it("rolls the open run over into a closed record and its successor", () => {
+    const current = { version: 1 as const, updatedAt: NOW, runs: [index().runs[0]] };
+    delete (current.runs[0] as { closedAt?: string }).closedAt;
+    delete (current.runs[0] as { closedBy?: string }).closedBy;
+    current.runs[0].window = { from: "2026-08-29T09:00:00.000Z", to: "2026-09-04T20:00:00.000Z" };
+    const later = "2026-09-08T15:00:00.000Z";
+    const { index: next, closed, opened } = rolloverIndex(current, {
+      label: "Re-QA 2026-09-08",
+      environment: "beta",
+      builds: { client: "d4d860573" },
+      catalog: null,
+      by: OTHER_ADDRESS,
+      now: later,
+    });
+    expect(closed).toMatchObject({
+      id: "run-1",
+      closedAt: later,
+      closedBy: OTHER_ADDRESS,
+      // The legacy baseline keeps its earliest entry as the start of its window.
+      window: { from: "2026-08-29T09:00:00.000Z", to: later },
+    });
+    expect(opened).toMatchObject({ id: "run-2", n: 2, openedAt: later, openedBy: OTHER_ADDRESS, window: null });
+    expect(next.runs.map((run) => run.id)).toEqual(["run-1", "run-2"]);
+    expect(runIndexShapeError(next)).toBeNull();
+  });
+
+  it("takes the legacy run's start and window from the earliest and latest entries", () => {
+    const record = legacyRunRecord(
+      [
+        { entries: { A: { at: "2026-09-01T00:00:00.000Z" }, B: { at: "2026-08-20T00:00:00.000Z" } } },
+        null,
+        { entries: { C: { at: "2026-09-05T00:00:00.000Z" } } },
+      ],
+      NOW,
+    );
+    expect(record.openedAt).toBe("2026-08-20T00:00:00.000Z");
+    expect(record.window).toEqual({ from: "2026-08-20T00:00:00.000Z", to: "2026-09-05T00:00:00.000Z" });
+  });
+});
+
+describe("state endpoint runs", () => {
+  beforeEach(() => {
+    blob.get.mockReset();
+    blob.put.mockReset();
+  });
+
+  const rolledOver = () => {
+    const store = legacyStore();
+    const first = { ...legacyRunRecord([], "2026-08-29T09:00:00.000Z"), closedAt: NOW, closedBy: ADDRESS };
+    first.window = { from: "2026-08-29T09:00:00.000Z", to: NOW };
+    const index: RunIndex = {
+      version: 1,
+      updatedAt: NOW,
+      runs: [
+        first,
+        {
+          id: "run-2",
+          n: 2,
+          label: "Re-QA 2026-09-08",
+          openedAt: NOW,
+          openedBy: ADDRESS,
+          environment: "beta",
+          catalog: null,
+          builds: {},
+          window: null,
+        },
+      ],
+    };
+    store.objects.set(RUN_INDEX_PATH, { body: JSON.stringify(index), etag: "etag-index" });
+    store.objects.set(runShardPath("run-1", ADDRESS), {
+      body: store.objects.get(`qa/entries/${ADDRESS}.json`)?.body ?? "",
+      etag: "etag-run1-afo",
+    });
+    return store;
+  };
+
+  it("serves the open run by default, a closed run on ?run=, and keeps the legacy response fields", async () => {
+    const store = rolledOver();
+    await withConfig([ADDRESS, OTHER_ADDRESS], async () => {
+      const open = await (await handler(await signedAs(ADDRESS))).json();
+      expect(Object.keys(open).sort()).toEqual(
+        ["address", "entries", "named", "openRun", "readAt", "run", "runs", "team", "you"].sort(),
+      );
+      expect(open.run).toBe("run-2");
+      expect(open.openRun).toBe("run-2");
+      expect(open.entries).toEqual({});
+      expect(open.runs.map((run: { id: string; closedByLabel: string | null }) => [run.id, run.closedByLabel])).toEqual([
+        ["run-1", "0x2aa6…d35e"],
+        ["run-2", null],
+      ]);
+
+      const closed = await (await handler(await signedAs(ADDRESS, { path: "/api/state?run=run-1" }))).json();
+      expect(closed.run).toBe("run-1");
+      expect(closed.entries["PWA-021"].Afo.s).toBe("fail");
+      expect(store.puts).toHaveLength(0);
+
+      const missing = await handler(await signedAs(ADDRESS, { path: "/api/state?run=run-9" }));
+      expect(missing.status).toBe(404);
+      expect(await missing.json()).toMatchObject({ openRun: "run-2" });
+    });
+  });
+
+  it("refuses a write to a closed run with the open run's id and leaves the closed shard untouched", async () => {
+    const store = rolledOver();
+    await withConfig([ADDRESS, OTHER_ADDRESS], async () => {
+      const refused = await handler(
+        await signedAs(ADDRESS, {
+          method: "POST",
+          body: JSON.stringify({ run: "run-1", entries: { "PWA-021": { s: "pass" } } }),
+        }),
+      );
+      expect(refused.status).toBe(409);
+      expect(await refused.json()).toMatchObject({ reason: "closed", openRun: "run-2", closedAt: NOW });
+      expect(store.objects.get(runShardPath("run-1", ADDRESS))?.etag).toBe("etag-run1-afo");
+      expect(store.puts).toHaveLength(0);
+
+      const unknown = await handler(
+        await signedAs(ADDRESS, { method: "POST", body: JSON.stringify({ run: "run-7", entries: {} }) }),
+      );
+      expect(unknown.status).toBe(409);
+      expect(await unknown.json()).toMatchObject({ reason: "unknown", openRun: "run-2" });
+
+      const malformed = await handler(
+        await signedAs(ADDRESS, { method: "POST", body: JSON.stringify({ run: "latest", entries: {} }) }),
+      );
+      expect(malformed.status).toBe(400);
+    });
+  });
+
+  it("writes to the open run when the body names no run, and to the open run by id", async () => {
+    const store = rolledOver();
+    await withConfig([ADDRESS, OTHER_ADDRESS], async () => {
+      const legacyPage = await handler(
+        await signedAs(ADDRESS, { method: "POST", body: JSON.stringify({ entries: { "PUB-001": { s: "pass" } } }) }),
+      );
+      expect(await legacyPage.json()).toMatchObject({ ok: true, run: "run-2", count: 1 });
+      expect(store.json(runShardPath("run-2", ADDRESS)).entries["PUB-001"].s).toBe("pass");
+
+      const named = await handler(
+        await signedAs(ADDRESS, {
+          method: "POST",
+          body: JSON.stringify({ run: "run-2", entries: { "PWA-021": { s: "pass", n: "join visible now" } } }),
+        }),
+      );
+      expect(await named.json()).toMatchObject({ ok: true, run: "run-2", count: 2 });
+      expect(store.json(runShardPath("run-1", ADDRESS)).entries["PWA-021"].s).toBe("fail");
+    });
+  });
+
+  it("migrates on the first request and answers from Run 1", async () => {
+    const store = legacyStore();
+    await withConfig([ADDRESS, OTHER_ADDRESS], async () => {
+      const first = await (await handler(await signedAs(OTHER_ADDRESS))).json();
+      expect(first.openRun).toBe("run-1");
+      expect(first.you).toBe("Dida");
+      expect(first.named).toBe(true);
+      expect(first.entries["ADM-004"].Dida.s).toBe("fail");
+      expect(store.index()?.runs[0]).toMatchObject({ id: "run-1", legacy: true });
+    });
+  });
+});
+
+describe("rollover endpoint", () => {
+  beforeEach(() => {
+    blob.get.mockReset();
+    blob.put.mockReset();
+  });
+
+  const rolloverRequest = (address: string, body: unknown, origin = ORIGIN) =>
+    signedAs(address, { path: "/api/runs", method: "POST", body: JSON.stringify(body) }).then((request) => {
+      if (origin !== ORIGIN) request.headers.set("origin", origin);
+      return request;
+    });
+
+  it("closes the open run and opens its successor in one conditional write, carrying names along", async () => {
+    const store = legacyStore();
+    await withConfig([ADDRESS, OTHER_ADDRESS], async () => {
+      const response = await rolloverRequest(OTHER_ADDRESS, {
+        action: "rollover",
+        label: "  Re-QA   2026-09-08 ",
+        environment: "beta",
+        builds: { client: "D4D860573", admin: "" },
+        catalog: { revision: "abc123def456", activeCases: 156 },
+      }).then(rollover);
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.closed).toMatchObject({ id: "run-1", closedBy: OTHER_ADDRESS });
+      expect(body.opened).toMatchObject({
+        id: "run-2",
+        label: "Re-QA 2026-09-08",
+        environment: "beta",
+        builds: { client: "d4d860573" },
+        catalog: { revision: "abc123def456", activeCases: 156 },
+        openedBy: OTHER_ADDRESS,
+      });
+      expect(body.openRun).toBe("run-2");
+
+      const indexWrites = store.puts.filter((write) => write.pathname === RUN_INDEX_PATH);
+      expect(indexWrites.at(-1)?.options).toMatchObject({ allowOverwrite: true, ifMatch: expect.any(String) });
+      expect(store.index()?.runs.map((run) => run.id)).toEqual(["run-1", "run-2"]);
+      for (const [address, person] of [
+        [ADDRESS, "Afo"],
+        [OTHER_ADDRESS, "Dida"],
+      ]) {
+        expect(store.json(runShardPath("run-2", address))).toMatchObject({ address, person, entries: {} });
+      }
+      // The closed run's shards are untouched by the rollover.
+      expect(store.json(runShardPath("run-1", ADDRESS)).entries["PWA-021"].s).toBe("fail");
+    });
+  });
+
+  it("lets one of two concurrent rollovers win and answers the other with the fresh index", async () => {
+    const store = legacyStore();
+    await withConfig([ADDRESS, OTHER_ADDRESS], async () => {
+      await ensureRunIndex([ADDRESS, OTHER_ADDRESS], () => NOW);
+      store.gate(RUN_INDEX_PATH, 2);
+      const body = { action: "rollover", label: "Re-QA", environment: "beta" };
+      const [a, b] = await Promise.all([
+        rolloverRequest(ADDRESS, body).then(rollover),
+        rolloverRequest(OTHER_ADDRESS, body).then(rollover),
+      ]);
+      const statuses = [a.status, b.status].sort();
+      expect(statuses).toEqual([200, 409]);
+      const loser = a.status === 409 ? a : b;
+      expect(await loser.json()).toMatchObject({ openRun: "run-2" });
+      expect(store.index()?.runs).toHaveLength(2);
+    });
+  });
+
+  it("rejects a cross-origin, signed-out, or malformed rollover without touching the store", async () => {
+    const store = legacyStore();
+    await withConfig([ADDRESS], async () => {
+      const body = { action: "rollover", label: "Re-QA", environment: "beta" };
+      expect((await rollover(await rolloverRequest(ADDRESS, body, "https://evil.greengoods.app"))).status).toBe(403);
+      const signedOut = new Request(`${ORIGIN}/api/runs`, {
+        method: "POST",
+        headers: { origin: ORIGIN },
+        body: JSON.stringify(body),
+      });
+      expect((await rollover(signedOut)).status).toBe(401);
+      expect((await rollover(await rolloverRequest(ADDRESS, { ...body, label: "   " }))).status).toBe(400);
+      expect((await rollover(await rolloverRequest(ADDRESS, { ...body, environment: "staging" }))).status).toBe(400);
+      expect((await rollover(await rolloverRequest(ADDRESS, { ...body, builds: { client: "main" } }))).status).toBe(400);
+      expect((await rollover(await rolloverRequest(ADDRESS, { action: "close" }))).status).toBe(400);
+      expect(store.puts.filter((write) => write.pathname === RUN_INDEX_PATH && write.options.ifMatch)).toHaveLength(0);
+    });
+  });
+});
 
 describe("QA app Blob writes", () => {
   beforeEach(() => {
@@ -59,14 +548,14 @@ describe("QA app Blob writes", () => {
 
     blob.put.mockImplementation(async (_pathname, body, options) => {
       if (options.allowOverwrite === false && stored) throw new Error("pathname already exists");
-      if (options.ifMatch && options.ifMatch !== stored?.etag) throw new Error("etag mismatch");
+      if (options.ifMatch && options.ifMatch !== stored?.etag) throw new BlobPreconditionFailedError("etag mismatch");
       stored = { body: String(body), etag: `etag-${++etag}` };
       return {};
     });
 
     const [phone, laptop] = await Promise.all([
-      applyDelta(ADDRESS, { "PUB-001": { s: "pass" } }, "Afo"),
-      applyDelta(ADDRESS, { "PUB-002": { n: "laptop note" } }, "Afo"),
+      applyDelta(ADDRESS, { "PUB-001": { s: "pass" } }, "Afo", "run-2"),
+      applyDelta(ADDRESS, { "PUB-002": { n: "laptop note" } }, "Afo", "run-2"),
     ]);
 
     expect(phone.entries).toHaveProperty("PUB-001");
@@ -75,6 +564,7 @@ describe("QA app Blob writes", () => {
       "PUB-001": { s: "pass" },
       "PUB-002": { n: "laptop note" },
     });
+    expect(blob.put.mock.calls.every((call) => call[0] === runShardPath("run-2", ADDRESS))).toBe(true);
     expect(blob.put.mock.calls.slice(0, 2).every((call) => call[2].allowOverwrite === false)).toBe(true);
     expect(blob.put.mock.calls.some((call) => call[2].allowOverwrite === true && call[2].ifMatch)).toBe(true);
   });
