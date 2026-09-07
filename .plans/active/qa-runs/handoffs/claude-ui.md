@@ -19,6 +19,7 @@
 - The poll only overlays pending edits when the served run is the open run, and rebuilds a pending patch on the server copy when the view left and returned (the case is not in the cleared local rows).
 - `#qa-run-rollover` opens `#qa-rollover` (label, environment defaulting to beta, three optional build SHAs, confirm line); submit posts `{ action: "rollover", … , catalog: { revision, activeCases } }` and follows the opened run.
 - `.title-row` wraps so the header actions drop to their own line at phone widths (found in the rehearsal at 401px).
+- Review fixes (PR #805): the rollover request carries `expectedOpenRun`; a 200 whose `run` differs from the open run is followed like a refusal; a cached comparison clears the loading flag; adopted stale queues are persisted before their keys go; note-only rows count as newly walked.
 
 ## What remains
 
@@ -39,10 +40,10 @@
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `62e2d604356c2eb0b1c2c8a2dbb1cb0f3ca25c93`
-- Run at (UTC): `2026-09-07T22:19:00Z`
+- Tested implementation commit SHA: `0bd2c4cdbc5b688ca4398eba32e5d423392d570c`
+- Run at (UTC): `2026-09-07T22:55:00Z`
 - Exact command(s): `bun run test:agent-tools && node scripts/dev/ci-local.js --intent push --reuse-passing-receipts`
-- Result: `245 tests passed; node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts → format, lint, docs-authority, agent-guidance, qa-id-ledger, agent-tools-test (245 tests) passed; browser-proof blocked: the authenticated Brave QA profile was unreachable through the Claude-in-Chrome extension (tabs_context probe failed), so rendered proof is recorded BLOCKED and belongs to the 2026-09-08 deployed smoke`
+- Result: `250 tests passed; node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts → format, lint, docs-authority, agent-guidance, qa-id-ledger, agent-tools-test (250 tests) passed; browser-proof blocked: the authenticated Brave QA profile was unreachable through the Claude-in-Chrome extension (tabs_context probe failed), so rendered proof is recorded BLOCKED and belongs to the 2026-09-08 deployed smoke`
 - Validated paths: `packages/qa/index.html, packages/qa/build.mjs, scripts/agents/qa-app-client.test.ts, scripts/agents/qa-app-build.test.ts`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/qa scripts/agents` → `` (empty)
 - Evidence-only diff command and result (if applicable): not applicable

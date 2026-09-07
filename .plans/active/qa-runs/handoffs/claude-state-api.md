@@ -18,7 +18,8 @@
 - `packages/qa/store.ts` — the Blob half shared by both endpoints: shard shape, `readText`, `putCreateOnly` (create, confirm by read on failure), `putConditional`, `readRunIndex`, `ensureRunIndex` (first-contact migration: create-only copies, create-only index, idempotent, legacy never written).
 - `packages/qa/auth.ts` — `resolveCaller` moved here from the state endpoint.
 - `packages/qa/api/state.ts` — `?run=<id>` (default open; 404 for an unknown id on GET), `runs`/`run`/`openRun` in the response, POST `run` field: missing → open run, malformed → 400, closed or unknown → 409 `{ reason, openRun }` with no write.
-- `packages/qa/api/runs.ts` — GET lists runs; POST `{ action: "rollover", label, environment, builds?, catalog? }` closes and opens in one ETag-conditional write, 409 with the fresh index on contention, carries tester names into the new run.
+- `packages/qa/api/runs.ts` — GET lists runs; POST `{ action: "rollover", expectedOpenRun?, label, environment, builds?, catalog? }` closes and opens in one ETag-conditional write, 409 `stale` when the expected run is no longer open, 409 with the fresh index on contention, carries tester names into the new run.
+- Review fixes (PR #805): `store.readText` reads the ETag from `result.blob.etag` (the pre-existing `result.etag` read had made every conditional write unconditional); a save whose run closed between the index check and the shard write is restored and re-applied to the open run (`retargeted: true`); `qa:report` merges converging predecessors, counts note-only entries as newly walked, keeps the run label out of the public variant, and refuses a later run as the baseline; `resolveCaller` returns one generic misconfiguration message.
 - `packages/qa/dev.mjs` — file-backed runs (`tmp/qa/runs.json`, `runs/<id>/<name>.json`), migration of `tmp/qa/<name>.json`, `/api/runs`, `QA_DEV_STATE_DIR`, dev pseudo-addresses for openedBy/closedBy.
 - `scripts/agents/qa-state-pull.ts` — `--run open|latest-closed|run-N`, `readRunIndex`, `selectRun`, `readRun` with the legacy fallback and warning, `run` in `qa-state.json`; `qa-status.ts` open-run line; `qa-report.ts` run-labelled baseline, `newlyWalked`, `inherited` via `successorMap` (public heading `## Delta vs previous run`); `CatalogCase` gains the lifecycle fields.
 - Catalog: 8 retirements (PWA-021, 035, 036, 037, 038, 043, 044, PWA-AND-003) with `replacedBy`, 22 new ids, wording fixes per `catalog-feedback-2026-09-04.md § Disposition`; ledger append; `docs/docs/builders/quality/test-cases.mdx` regenerated; ADM-026 in all three locales.
@@ -46,10 +47,10 @@
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `62e2d604356c2eb0b1c2c8a2dbb1cb0f3ca25c93`
-- Run at (UTC): `2026-09-07T22:19:00Z`
+- Tested implementation commit SHA: `0bd2c4cdbc5b688ca4398eba32e5d423392d570c`
+- Run at (UTC): `2026-09-07T22:55:00Z`
 - Exact command(s): `bun run test:agent-tools && bun run test:review-guardrails && bun run check:docs-generated && bun run check:qa-id-ledger && bun run check:guidance-links && node scripts/dev/ci-local.js --intent push --reuse-passing-receipts`
-- Result: `245 tests passed; guardrails 0 failures; 18 projections current; ledger 175 ids clean; 61 guidance files OK; node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts → format, lint, docs-authority, agent-guidance, qa-id-ledger, agent-tools-test (245 tests) passed; browser-proof blocked: the authenticated Brave QA profile was unreachable through the Claude-in-Chrome extension (tabs_context probe failed), so rendered proof is recorded BLOCKED and belongs to the 2026-09-08 deployed smoke`
+- Result: `250 tests passed; guardrails 0 failures; 18 projections current; ledger 175 ids clean; 61 guidance files OK; node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts → format, lint, docs-authority, agent-guidance, qa-id-ledger, agent-tools-test (250 tests) passed; browser-proof blocked: the authenticated Brave QA profile was unreachable through the Claude-in-Chrome extension (tabs_context probe failed), so rendered proof is recorded BLOCKED and belongs to the 2026-09-08 deployed smoke`
 - Validated paths: `packages/qa, scripts/agents, scripts/data, docs/docs/builders/quality, .claude/context/qa.md, .claude/skills/qa-session, .claude/skills/qa-triage, docs/routines/qa-call-report.md`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/qa scripts/agents scripts/data docs/docs/builders/quality .claude/context/qa.md .claude/skills/qa-session .claude/skills/qa-triage docs/routines/qa-call-report.md` → `` (empty)
 - Evidence-only diff command and result (if applicable): not applicable
