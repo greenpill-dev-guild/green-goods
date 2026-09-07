@@ -12,6 +12,7 @@
  * and must never appear on a run sheet.
  */
 
+import { createHash } from "node:crypto";
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,8 +39,37 @@ const localeUiKeys = [
   "verify",
 ];
 
+/**
+ * Active id → the retired ids it replaces, following `replacedBy` chains.
+ *
+ * Retired rows never ship, but a run recorded before a split holds verdicts
+ * under the retired ids. The page reads those onto each successor when it
+ * compares runs, so the reverse map is the one piece of retirement history
+ * the catalog projection carries. Cycles and dangling chains contribute nothing.
+ */
+export function replacedIndex(cases) {
+  const byId = new Map(cases.map((testCase) => [testCase.id, testCase]));
+  const successorsOf = (id, trail) => {
+    const testCase = byId.get(id);
+    if (!testCase || trail.has(id)) return [];
+    if (testCase.status !== "retired") return [id];
+    trail.add(id);
+    return (testCase.replacedBy ?? []).flatMap((next) => successorsOf(next, trail));
+  };
+  const replaces = new Map();
+  for (const testCase of cases) {
+    if (testCase.status !== "retired") continue;
+    for (const successor of new Set(successorsOf(testCase.id, new Set()))) {
+      if (!replaces.has(successor)) replaces.set(successor, []);
+      replaces.get(successor).push(testCase.id);
+    }
+  }
+  return replaces;
+}
+
 /** The fields the page actually renders — everything else stays server-side. */
-function projectCase(testCase) {
+function projectCase(testCase, replaces) {
+  const replaced = replaces.get(testCase.id);
   return {
     id: testCase.id,
     tab: testCase.tab,
@@ -53,6 +83,7 @@ function projectCase(testCase) {
     rp: Boolean(testCase.requiresProduction),
     rd: Boolean(testCase.requiresDevice),
     tx: Boolean(testCase.tags?.includes("tx")),
+    ...(replaced?.length ? { replaces: replaced } : {}),
   };
 }
 
@@ -223,11 +254,16 @@ function loadJourneyLocales(journeys, activeCases) {
 }
 
 const catalogPath = path.join(repoRoot, "scripts", "data", "qa-test-catalog.json");
-const catalog = JSON.parse(readFileSync(catalogPath, "utf8"));
+const catalogText = readFileSync(catalogPath, "utf8");
+const catalog = JSON.parse(catalogText);
 const active = catalog.cases.filter((testCase) => testCase.status !== "retired");
 const activeIds = new Set(active.map((testCase) => testCase.id));
 const journeys = (catalog.journeys ?? []).map((journey) => projectJourney(journey, activeIds));
 const locales = loadJourneyLocales(journeys, active);
+const replaces = replacedIndex(catalog.cases);
+// Which catalog this deployment pins: a run records it when it opens, so a
+// compare across a catalog change can say which build each side walked.
+const revision = createHash("sha256").update(catalogText).digest("hex").slice(0, 12);
 
 if (active.length === 0) {
   throw new Error(`qa build: no active cases found in ${catalogPath}`);
@@ -243,10 +279,11 @@ writeFileSync(
   path.join(outDir, "catalog.json"),
   `${JSON.stringify({
     version: catalog.version,
+    revision,
     tabs: catalog.tabs,
     journeys,
     locales,
-    cases: active.map(projectCase),
+    cases: active.map((testCase) => projectCase(testCase, replaces)),
   })}\n`,
 );
 
