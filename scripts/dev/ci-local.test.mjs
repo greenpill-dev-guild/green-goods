@@ -370,6 +370,35 @@ test("ci-local rejects a lane checkpoint without explicit changed paths", () => 
   );
 });
 
+test("ci-local keeps deleted and moved paths out of the scoped format and lint commands", () => {
+  // A hub promotion moves .plans/backlog/<slug>/ to .plans/active/<slug>/; git
+  // reports the old paths as deleted, and Biome fails on a file it cannot open.
+  const options = parseArguments(["--intent", "push"]);
+  const localPlan = buildLocalValidationPlan(
+    options,
+    {
+      base: "base",
+      head: "head",
+      workingCopyFingerprint: "move-fingerprint",
+      changedPaths: [
+        ".plans/active/example/plan.todo.md",
+        ".plans/backlog/example/plan.todo.md",
+        "packages/client/src/components/Panel.tsx",
+      ],
+      deletedPaths: [".plans/backlog/example/plan.todo.md"],
+    },
+    { profile: "test", toolchain: {}, capabilities: {} },
+  );
+
+  const format = localPlan.checks.find((check) => check.id === "format");
+  assert.ok(format, "push plan selects format");
+  assert.equal(format.command.includes(".plans/backlog/example/plan.todo.md"), false);
+  assert.equal(format.command.includes(".plans/active/example/plan.todo.md"), true);
+  const lint = localPlan.checks.find((check) => check.id === "lint");
+  assert.ok(lint, "push plan selects lint");
+  assert.equal(lint.command.includes(".plans/backlog/example/plan.todo.md"), false);
+});
+
 test("ci-local passes explicit lane checkpoint scope into the selector", () => {
   const options = parseArguments([
     "--quick",
