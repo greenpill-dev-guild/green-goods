@@ -1989,8 +1989,11 @@
       "role": "gardener",
       "tags": ["home"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by act after the 2026-09-04 call: refresh, filters, and the arrival toast each stand alone; the drawer entry points open each drawer's own rows",
+      "replacedBy": ["PWA-067", "PWA-068", "PWA-069"]
     },
     {
       "id": "PWA-028",
@@ -2033,8 +2036,11 @@
       "role": "any",
       "tags": ["wallet", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split reading from writing and by recipient path: balances and Receive, a browse-and-send, the recipient entry paths, and the governance send",
+      "replacedBy": ["PWA-070", "PWA-071", "PWA-072", "PWA-073"]
     },
     {
       "id": "PWA-030",
@@ -2056,8 +2062,11 @@
       "role": "gardener",
       "tags": ["my-work"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by dashboard tab: drafts, the pending filters, and the completed filters",
+      "replacedBy": ["PWA-074", "PWA-075", "PWA-076"]
     },
     {
       "id": "PWA-031",
@@ -2079,8 +2088,11 @@
       "role": "gardener",
       "tags": ["work-submission", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by act: the online wizard, Submit Again after wallet expiry, the commitment link, and media removal and recovery",
+      "replacedBy": ["PWA-077", "PWA-078", "PWA-079", "PWA-080"]
     },
     {
       "id": "PWA-032",
@@ -2102,8 +2114,11 @@
       "role": "gardener",
       "tags": ["commitments", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by act: place an offer, place a request, and the draft dialog",
+      "replacedBy": ["PWA-081", "PWA-082", "PWA-083"]
     },
     {
       "id": "PWA-033",
@@ -2129,8 +2144,22 @@
       "role": "gardener",
       "tags": ["commitments", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split into one row per commitment act, adding the acts the grouped row never named: ask to take up, send for confirmation, join the team",
+      "replacedBy": [
+        "PWA-084",
+        "PWA-085",
+        "PWA-086",
+        "PWA-087",
+        "PWA-088",
+        "PWA-089",
+        "PWA-090",
+        "PWA-091",
+        "PWA-092",
+        "PWA-093"
+      ]
     },
     {
       "id": "PWA-034",
@@ -2275,8 +2304,11 @@
       "role": "gardener",
       "tags": ["home"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by act: the steward notifications bell, the ENS reminder toast, and the AppBar badge and auto-hide",
+      "replacedBy": ["PWA-094", "PWA-095", "PWA-096"]
     },
     {
       "id": "PWA-040",
@@ -4064,6 +4096,899 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "PWA-067",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "resilience",
+      "area": "Home",
+      "scenario": "Pull to refresh the garden list online, then read the paused notice offline",
+      "preconditions": ["Authenticated session", "DevTools network panel to toggle offline"],
+      "steps": [
+        "On Home, pull the garden list down to refresh while online",
+        "Toggle the network offline and pull again",
+        "Reconnect and pull once more"
+      ],
+      "expected": "Online, the pull shows the refresh indicator and reloads the list; offline, Home shows 'Offline. Pull to refresh is paused until you reconnect.' and the pull does nothing; after reconnecting the pull refreshes again",
+      "evidence": "Screenshots of the online refresh and the offline notice",
+      "role": "gardener",
+      "tags": ["home", "offline"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-068",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Home",
+      "scenario": "Filter the garden list by scope and sort order, then reset",
+      "preconditions": ["Authenticated gardener who belongs to at least one garden"],
+      "steps": [
+        "Open the Filters drawer from the Home header",
+        "Choose My gardens, then each sort order: Default order, Newest first, Name (A-Z)",
+        "Read the badge on the Filters button and the list",
+        "Press Reset Filters"
+      ],
+      "expected": "My gardens shows only gardens the address belongs to, with the count in its label; each sort reorders the list; the Filters button carries a badge with the number of active filters while any is set; Reset returns to All gardens in Default order and clears the badge",
+      "evidence": "Screenshot of the filtered list with the badge",
+      "role": "gardener",
+      "tags": ["home"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-069",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Home",
+      "scenario": "Arrival toast names the signed-in state and its action lands",
+      "preconditions": [
+        "Authenticated session in a fresh browser tab (the toast fires once per tab session per address)",
+        "A known state to arrive in: queued work, a saved draft, pending reviews as a steward, or none of these"
+      ],
+      "steps": [
+        "Sign in and land on Home",
+        "Read the toast title and press its action",
+        "Reload Home in the same tab"
+      ],
+      "expected": "One toast fires and matches the state: 'Work is waiting to sync', 'You have a draft saved', 'Gardeners are waiting on you', 'All caught up', 'Welcome back', or 'You're signed in'; its action opens the matching work dashboard tab, narrows Home to your gardens or opens your only garden, or opens Help; a reload in the same tab shows no second toast",
+      "evidence": "Screenshot of the toast and where its action landed",
+      "role": "gardener",
+      "tags": ["home"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-070",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Wallet",
+      "scenario": "Tokens tab reads balances and the Receive QR without sending",
+      "preconditions": [
+        "Authenticated wallet, ideally holding one token and one token whose balance cannot be read"
+      ],
+      "steps": [
+        "Open Your Wallet from Home and switch to the Tokens tab",
+        "Read the Balance list",
+        "Switch to Receive",
+        "Toggle the network offline and return to Balance"
+      ],
+      "expected": "Balance lists each token with its amount and tags governance tokens 'Governance'; a token that could not be read shows a dash with 'Balance unavailable', never a zero; an empty wallet says 'No tokens yet'; Receive shows this wallet's QR code and a copyable address; offline, the list explains the connection instead of claiming there are no tokens",
+      "evidence": "Screenshots of Balance and Receive",
+      "role": "any",
+      "tags": ["wallet"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-071",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Wallet",
+      "scenario": "Send a token to a garden member found by browsing, using Max and a note",
+      "preconditions": [
+        "Wallet with a non-governance token balance",
+        "Membership in a garden with at least one other member"
+      ],
+      "steps": [
+        "From Balance, press a token row to start a Send",
+        "Browse into a garden and pick a member",
+        "Press Max, then Change the amount to a smaller one",
+        "Add a note at the review and confirm"
+      ],
+      "expected": "The token row opens Send with that token selected; the directory lists your gardens first and 'All gardens' returns from a drill-down; Max fills the full balance and an amount above it is refused as insufficient; the review shows recipient, amount, and note with Change on the recipient and amount; the send completes and the balance drops by the amount sent",
+      "evidence": "Recording of the send and the updated balance",
+      "role": "any",
+      "tags": ["wallet", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-072",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Wallet",
+      "scenario": "Pick a send recipient by search, pasted address, ENS name, and QR scan",
+      "preconditions": [
+        "Wallet with any token balance",
+        "A second wallet address, an ENS name that resolves, and its QR code on another screen",
+        "Camera access for the scan (skip that step where the browser cannot scan)"
+      ],
+      "steps": [
+        "Start a Send and type part of a member's address or garden name",
+        "Paste a full address, then type an ENS name",
+        "Type a string that is neither",
+        "Scan the QR code",
+        "Stop at the review step without confirming"
+      ],
+      "expected": "Search narrows to matching members; a pasted address and a resolved ENS name each offer a confirmation row; a string that is neither says 'That doesn't look like a valid address or name.'; the scan fills the recipient; the review shows the chosen recipient and nothing is sent",
+      "evidence": "Screenshots of each recipient path",
+      "role": "any",
+      "tags": ["wallet"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-073",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Wallet",
+      "scenario": "Send a governance token and read the warning-variant confirm",
+      "preconditions": ["Wallet holding a token tagged Governance"],
+      "steps": [
+        "Start a Send with the governance token",
+        "Read the token row and the review",
+        "Confirm the send"
+      ],
+      "expected": "The token row carries the 'Governance' tag and hint; the review shows the 'Sending governance' notice; the confirm dialog uses the warning variant and says the recipient can stake what they receive; the send completes and the new balance persists after a reload",
+      "evidence": "Screenshot of the warning confirm",
+      "role": "any",
+      "tags": ["wallet", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-074",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "journey",
+      "area": "My Work",
+      "scenario": "Resume one work draft into the wizard and delete another with confirmation",
+      "preconditions": ["Two saved work drafts, one with a photo"],
+      "steps": [
+        "Open the work dashboard from the Home header and its Draft tab",
+        "Resume the draft with a photo",
+        "Return and press Delete on the other draft",
+        "Cancel the confirmation once, then confirm it"
+      ],
+      "expected": "The Draft tab counts the drafts in its badge and names each draft's garden; Resume opens the wizard with the draft's garden, action, media, and details restored; Delete asks 'Delete Draft?'; Cancel keeps the draft; Confirm removes it and its images and updates the count",
+      "evidence": "Screenshots of the resumed wizard and the confirm dialog",
+      "role": "gardener",
+      "tags": ["my-work", "draft"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-075",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "journey",
+      "area": "My Work",
+      "scenario": "Pending tab filters: All, Needs review, and My submissions with the time filter",
+      "preconditions": [
+        "Steward of one garden with pending work from another gardener",
+        "One own pending submission in any garden"
+      ],
+      "steps": [
+        "Open the work dashboard's Pending tab",
+        "Switch the filter between All, Needs review, and My submissions",
+        "Change the time filter from Month to Day, Week, and Year",
+        "Open a row"
+      ],
+      "expected": "All lists both kinds; Needs review shows only other gardeners' work in gardens you steward, never your own submission, each badged 'Needs review'; My submissions shows only yours; the time filter narrows the list to that window; a row opens its work detail",
+      "evidence": "Screenshots of each filter",
+      "role": "steward",
+      "tags": ["my-work"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-076",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "My Work",
+      "scenario": "Completed tab filters: Reviewed by you and My work reviewed",
+      "preconditions": [
+        "One own work that a steward has approved or rejected",
+        "As a steward, one review you gave (skip that filter when not a steward)"
+      ],
+      "steps": [
+        "Open the work dashboard's Completed tab",
+        "Read My work reviewed, then Reviewed by you",
+        "Widen the time filter to Year",
+        "Open a row"
+      ],
+      "expected": "My work reviewed lists your reviewed submissions with their approved or rejected status; Reviewed by you lists the work you reviewed as a steward; an empty filter says 'Approved and rejected work will appear here'; the time filter applies to both; a row opens its work detail",
+      "evidence": "Screenshots of both filters",
+      "role": "gardener",
+      "tags": ["my-work"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-077",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Work Submission",
+      "scenario": "Submit work online through the four wizard steps",
+      "preconditions": [
+        "dev:prod stack or beta",
+        "Authenticated gardener who is a member of a garden with at least one action"
+      ],
+      "steps": [
+        "Start a submission from a garden and choose the action and garden",
+        "Add a photo and record an audio note",
+        "Fill the details, toggle location on, and continue",
+        "Read the review and press Upload Work"
+      ],
+      "expected": "The progress bar advances through the four steps; required inputs block Review Work until filled; location shows loading then success or denied without blocking; Upload Work shows progress and lands on the completed state; the work appears as pending in the garden's Work tab and on the work dashboard",
+      "evidence": "Recording of the wizard and the pending work",
+      "role": "gardener",
+      "tags": ["work-submission", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-078",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Work Submission",
+      "scenario": "Submit Again after the wallet request expires keeps the filled work",
+      "preconditions": [
+        "A completed wizard at the review step",
+        "A wallet whose signing prompt can be left unanswered until it expires"
+      ],
+      "steps": [
+        "Press Upload Work and leave the wallet prompt unanswered until it expires",
+        "Read the review step",
+        "Press Submit Again and approve the prompt"
+      ],
+      "expected": "The expiry is reported on the review step and the primary button reads 'Submit Again'; the photos, audio, details, and location are unchanged; Submit Again completes the upload once, with no duplicate work",
+      "evidence": "Screenshots of Submit Again and the single resulting work",
+      "role": "gardener",
+      "tags": ["work-submission", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-079",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Work Submission",
+      "scenario": "Link a work submission to a commitment requirement from the wizard",
+      "preconditions": [
+        "An in-progress garden-work commitment the gardener provides or contributes to, with a requirement for the chosen action",
+        "dev:prod stack or beta"
+      ],
+      "steps": [
+        "Start a submission for that garden and action",
+        "Choose the commitment and its requirement row instead of 'Not for a Commitment'",
+        "Upload the work",
+        "If the link reports it could not be queued, press Retry Link"
+      ],
+      "expected": "Only commitments matching the garden and action are offered; after the upload the review reports the commitment link queueing, then queued; the commitment's detail lists the work under its requirement once the link lands; a failed link shows the banner and Retry Link re-queues the link without submitting the work again",
+      "evidence": "Screenshots of the selection and the linked work on the commitment",
+      "role": "gardener",
+      "tags": ["work-submission", "commitments", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-080",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "data-integrity",
+      "area": "Work Submission",
+      "scenario": "Remove a photo before submitting and clear a broken media item from a resumed draft",
+      "preconditions": [
+        "A draft with two photos",
+        "A way to make one stored photo unreadable, for example deleting its blob in DevTools Application storage"
+      ],
+      "steps": [
+        "Resume the draft and remove one photo on the media step",
+        "Leave the wizard so the draft saves",
+        "Make the remaining photo's stored blob unreadable, then resume the draft again",
+        "Press Remove Broken Media and continue to the review"
+      ],
+      "expected": "Removing a photo drops it from the media step and the saved draft; a photo whose preview fails to load is marked broken with a count and the review blocks Upload Work until it is removed; Remove Broken Media clears it while the details stay; the review then submits normally",
+      "evidence": "Screenshots of the broken-media notice and the cleared review",
+      "role": "gardener",
+      "tags": ["work-submission", "draft", "media"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-081",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "Compose and place an offer through the four beats with the read-to-end gate",
+      "preconditions": ["Member of a garden whose pool is open"],
+      "steps": [
+        "From the Pool tab choose Offer",
+        "Try Next with an empty title, then fill What, How much, and Details",
+        "On Review, read the action bar before and after scrolling to the end",
+        "Press Make This Offer and read the done screen"
+      ],
+      "expected": "An empty title or a missing unit blocks Next; the review shows 'Read to the end' and keeps the place button disabled until the end of the review has been on screen; placing lands on the done screen naming the offer and who acts next; the offer appears in the pool under Offers",
+      "evidence": "Screenshot of the done screen and the new pool row",
+      "role": "gardener",
+      "tags": ["commitments", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-082",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "Compose and place a request, including the garden-work kind with action rows",
+      "preconditions": ["Member of a garden whose pool is open and that has at least one action"],
+      "steps": [
+        "From the Pool tab choose Request and pick Garden work",
+        "Add a requirement row with a count, choose a unit and target, set the due days and claim mode",
+        "Review and press Request This Work",
+        "Compose a second request of the 'Help or a service' kind and place it"
+      ],
+      "expected": "Garden work requires at least one action row with a count of one or more before Next; the place button reads 'Request This Work' for garden work and 'Make This Request' otherwise; both land on the done screen and appear under Requests in the pool with the chosen claim mode",
+      "evidence": "Screenshots of both done screens",
+      "role": "gardener",
+      "tags": ["commitments", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-083",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Commitments",
+      "scenario": "Abandon a composer draft, then choose Resume Draft or Start Fresh",
+      "preconditions": ["Member of a garden whose pool is open"],
+      "steps": [
+        "Start an offer, fill the title, and leave the composer",
+        "Return to Offer and read the dialog",
+        "Choose Resume Draft, leave again, and return",
+        "Choose Start Fresh"
+      ],
+      "expected": "Returning asks 'Resume Your Draft?'; Resume Draft restores the title and the other beat values; Start Fresh opens an empty composer and the old draft is gone on the next return",
+      "evidence": "Screenshot of the draft dialog",
+      "role": "gardener",
+      "tags": ["commitments", "draft"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-084",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "Take up an open commitment",
+      "preconditions": [
+        "An offered or requested commitment with open claiming in a pool the gardener belongs to",
+        "The gardener is not its creator"
+      ],
+      "steps": [
+        "Open the commitment from the Pool tab or the Commitments drawer",
+        "Press Take This Up; on a protocol-pool commitment choose the personal option in the context sheet",
+        "Read the status band and the People section",
+        "Reload"
+      ],
+      "expected": "The bar offers 'Take This Up' only to a member who is not the creator; the act queues and lands; the band moves to the accepted state and People lists the gardener as the provider; the state survives a reload",
+      "evidence": "Screenshots before and after the take-up",
+      "role": "gardener",
+      "tags": ["commitments", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-085",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "Ask to take up an approval-gated commitment and read the pending claim",
+      "preconditions": [
+        "A commitment whose claim mode is approval-gated, in a pool the gardener belongs to"
+      ],
+      "steps": [
+        "Open the commitment",
+        "Press Ask to take this up",
+        "Read the claim panel",
+        "Reload"
+      ],
+      "expected": "The bar reads 'Ask to take this up' instead of 'Take This Up'; the request queues and the claim panel shows it as pending with who asked and when; the commitment is not yours until a steward accepts; the pending state survives a reload",
+      "evidence": "Screenshot of the pending claim",
+      "role": "gardener",
+      "tags": ["commitments", "claim", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-086",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "Steward accepts one claim request and declines another with a reason",
+      "preconditions": [
+        "Steward of the pool's garden",
+        "Two pending claim requests from different gardeners (PWA-085 twice)"
+      ],
+      "steps": [
+        "Open the first commitment and press Accept on its request",
+        "Open the second and press Decline with an empty reason, then with one",
+        "Read both commitments as the requesting gardeners"
+      ],
+      "expected": "Accept makes the requester the provider and moves the band on; Decline is disabled until a reason is typed and then records the reason on the claim; each requester sees the accepted or declined state, with the reason where declined",
+      "evidence": "Screenshots of the accepted and declined claims",
+      "role": "steward",
+      "tags": ["commitments", "claim", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-087",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "Withdraw an own commitment with a reason",
+      "preconditions": ["An own offer or request that nobody has taken up yet"],
+      "steps": [
+        "Open the commitment",
+        "Press Withdraw This and try to confirm with an empty reason",
+        "Type a reason and confirm",
+        "Read the band, then the Pool tab and the drawer's History"
+      ],
+      "expected": "Withdraw reads as destructive and its confirm stays disabled until a reason is typed; the withdrawal queues and lands; the band shows the withdrawn state with the reason; the row leaves the live pool list and shows under History",
+      "evidence": "Screenshot of the withdrawn band",
+      "role": "gardener",
+      "tags": ["commitments", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-088",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "Send a commitment for confirmation after its evidence",
+      "preconditions": [
+        "A commitment the gardener provides, with proof already added (PWA-034), that is not a domain-impact commitment"
+      ],
+      "steps": [
+        "Open the commitment",
+        "Press Send for Confirmation",
+        "Read the band",
+        "Open the Commitments drawer as its confirmer"
+      ],
+      "expected": "The bar offers 'Send for Confirmation' only to the provider once evidence exists; the act queues and lands; the band moves to ready for confirmation and names who confirms next; the confirmer's drawer counts it under To confirm",
+      "evidence": "Screenshot of the ready-for-confirmation band",
+      "role": "gardener",
+      "tags": ["commitments", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-089",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "Confirm a commitment was kept from the confirm sheet",
+      "preconditions": [
+        "A commitment ready for confirmation where the tester is its confirmer: the counterparty, a named confirmer, or a steward of the garden that took it up"
+      ],
+      "steps": [
+        "Open the commitment from the drawer's To confirm tab",
+        "Press Confirm It Was Kept and read the sheet",
+        "Confirm"
+      ],
+      "expected": "The sheet names the commitment and the confirmation count against its threshold; confirming queues the act; the sheet shows the pending state, then kept; the band settles to fulfilled once the threshold is met",
+      "evidence": "Screenshot of the kept sheet",
+      "role": "steward",
+      "tags": ["commitments", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-090",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "Not yet: dispute a commitment with a reason, keeping the sheet on failure",
+      "preconditions": [
+        "A commitment ready for confirmation where the tester may dispute: its creator, counterparty, named confirmer, or a steward of its garden",
+        "A way to fail one attempt, for example going offline"
+      ],
+      "steps": [
+        "Open the confirm sheet and choose Not yet",
+        "Type a reason, fail the attempt, and send",
+        "Recover and send again"
+      ],
+      "expected": "Not yet is offered only to who may dispute and the reason is required; a failed attempt keeps the sheet open with the reason intact and says the note is kept on this device while the commitment stays ready to confirm; the retry lands and the band shows the dispute with its reason",
+      "evidence": "Screenshots of the failed and landed states",
+      "role": "steward",
+      "tags": ["commitments", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-091",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "Link existing work to a commitment requirement from the Link Work dialog",
+      "preconditions": [
+        "An in-progress domain-impact commitment the gardener provides or contributes to",
+        "Own work in that garden for a requirement's action"
+      ],
+      "steps": [
+        "Open the commitment and press Link Work beside Add Proof",
+        "Pick a work and, when several rows match, the requirement row",
+        "Confirm with a double tap",
+        "Read the requirement's progress"
+      ],
+      "expected": "Only work matching a requirement's action is offered and a single matching row is preselected; the double tap queues one link, not two; the linked work appears under the requirement with its status and the progress count moves",
+      "evidence": "Screenshot of the linked work under the requirement",
+      "role": "gardener",
+      "tags": ["commitments", "work", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-092",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "Join an open team on an in-progress commitment",
+      "preconditions": [
+        "An in-progress commitment with an open contributor policy, in a garden the gardener belongs to, that the gardener does not provide"
+      ],
+      "steps": [
+        "Open the commitment and read the Team section",
+        "Press Join the Team",
+        "Reload and read the roster"
+      ],
+      "expected": "The Team section reads 'Open team' and offers Join the Team only to a member not yet on it, and only online; joining queues and lands; the roster lists the gardener as a contributor and Add Proof becomes available to them",
+      "evidence": "Screenshot of the roster after joining",
+      "role": "gardener",
+      "tags": ["commitments", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-093",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "resilience",
+      "area": "Commitments",
+      "scenario": "Retry or discard a failed queued commitment act",
+      "preconditions": [
+        "An act that can be made to fail until the queue gives up, for example rejecting the wallet signature on every retry"
+      ],
+      "steps": [
+        "Perform an act and make it fail until the queue stops retrying",
+        "Read the alert on the commitment and the badge on the drawer",
+        "Press Try Again with the failure fixed; on a second failed act press Discard"
+      ],
+      "expected": "While the act waits the bar says the last act is waiting to send; after the queue gives up the alert says so and offers Try Again and, only when the record cannot already be on chain, Discard; Try Again lands the act; Discard removes it and the drawer's failure badge clears",
+      "evidence": "Screenshots of the alert and the cleared state",
+      "role": "gardener",
+      "tags": ["commitments", "queue"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-094",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Garden",
+      "scenario": "Steward notifications on the garden page list pending work and open it",
+      "preconditions": [
+        "Steward of a garden with at least one pending work from another gardener",
+        "A plain member identity for the same garden"
+      ],
+      "steps": [
+        "Open the garden and read the bell in the header",
+        "Open the bell",
+        "Open a pending item",
+        "Open the garden as the plain member"
+      ],
+      "expected": "The bell shows a filled icon with the pending count; the Notifications drawer lists each pending work with the gardener's name and the garden; an item opens the work detail; the plain member sees no bell",
+      "evidence": "Screenshot of the drawer and badge",
+      "role": "steward",
+      "tags": ["garden", "review"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-095",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Home",
+      "scenario": "ENS claim reminder toast fires once per address and routes to the profile",
+      "preconditions": [
+        "Protocol member signed in with an address that has no Green Goods name",
+        "Cleared site data, or a browser profile that has not seen the reminder for this address"
+      ],
+      "steps": ["Sign in and wait on Home", "Press Claim Name", "Return to Home and reload"],
+      "expected": "Within a few seconds one toast titled 'Claim your Green Goods name' appears; Claim Name opens the profile; after a reload the toast does not repeat for this address; an address that already has a name never sees it",
+      "evidence": "Screenshot of the toast",
+      "role": "gardener",
+      "tags": ["home", "ens"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-096",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Home",
+      "scenario": "AppBar badge counts pending work and the bar hides during flows and drawers",
+      "preconditions": [
+        "PWA presentation: the installed app, or the shell opened with the pwa presentation flag",
+        "Pending work exists"
+      ],
+      "steps": [
+        "Read the Home tab badge",
+        "Open the wallet, commitments, and work dashboard drawers in turn",
+        "Start a work submission, open a work detail, and open a commitment"
+      ],
+      "expected": "The Home tab badge shows the pending count, capped at 9+; the AppBar slides away while any drawer is open and on the submission, work detail, and commitment routes, and returns on Home and the profile",
+      "evidence": "Screenshots with and without the bar",
+      "role": "gardener",
+      "tags": ["home", "shell"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-097",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Garden",
+      "scenario": "Garden page header and Work tab read correctly",
+      "preconditions": [
+        "Authenticated gardener",
+        "One garden with work and one garden without a pool"
+      ],
+      "steps": [
+        "Open a garden from Home and read the header",
+        "Read the Work tab, open a work, and come back",
+        "Open the garden without a pool and read its tabs",
+        "Toggle the network offline and open a garden"
+      ],
+      "expected": "The header shows the banner or a named fallback, the name, location, and founded date, and Join Garden or a join request only when you are not a member; the tabs read Work, Pool (only when a pool exists), Insights, Gardeners; the Work tab lists pending work first, opens a work into its detail, and back returns to the garden; an empty tab says so and a failed load offers Try Again",
+      "evidence": "Screenshots of the header and Work tab",
+      "role": "gardener",
+      "tags": ["garden"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-098",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Garden",
+      "scenario": "Insights tab lists the garden description and assessments, and opens one",
+      "preconditions": [
+        "A garden with a description and at least one assessment",
+        "A garden with no assessment"
+      ],
+      "steps": [
+        "Open the garden's Insights tab",
+        "Read an assessment card and press View",
+        "Read the detail and go back",
+        "Open the garden without assessments"
+      ],
+      "expected": "Insights shows the description, then Assessments with each card's date range, phase, SDG alignment, and outcome preview; View opens /home/:id/assessments/:assessmentId with diagnosis, outcomes, alignment, and attachments; back returns to the garden; a garden without assessments says 'No assessments yet for this garden.'",
+      "evidence": "Screenshots of the list and detail",
+      "role": "gardener",
+      "tags": ["garden", "assessments"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-099",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Garden",
+      "scenario": "Gardeners tab lists stewards first with names and avatars, plus a steward's join queue",
+      "preconditions": [
+        "A garden with stewards and gardeners, at least one with an ENS or Green Goods name",
+        "As a steward: a pending join request"
+      ],
+      "steps": [
+        "Open the Gardeners tab as a member",
+        "Read the order, badges, names, and avatars",
+        "Press a member",
+        "Open the tab as a steward with a pending request"
+      ],
+      "expected": "Stewards come first with a 'Steward' badge; each member shows a Green Goods or ENS name where one exists, otherwise a shortened address, with an uploaded avatar before an ENS one and a fallback last; a member opens in a dialog with a copyable address; the steward sees the join request queue and a plain member does not",
+      "evidence": "Screenshot of the list",
+      "role": "gardener",
+      "tags": ["garden", "identity"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-100",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Commitments",
+      "scenario": "Pool tab reads the cycle rail, offer and request filters, and commitment rows",
+      "preconditions": [
+        "A garden with a pool holding offers and requests, ideally across two cycles",
+        "A garden whose pool is paused or closed"
+      ],
+      "steps": [
+        "Open the Pool tab and read the charter and the seasons and campaigns rail",
+        "Select a cycle, then switch the Offers and Requests filters",
+        "Open a row",
+        "Open the paused or closed pool"
+      ],
+      "expected": "The rail names each cycle with its dates and state and selecting one narrows the rows; Offers and Requests filter the list and an empty filter says 'Nothing of this kind is live right now.'; the Offer and Request doors show only to who may create; a row opens its commitment; a paused or closed pool explains its state instead of showing an empty list",
+      "evidence": "Screenshots of the rail and the filtered list",
+      "role": "gardener",
+      "tags": ["commitments", "garden-pool"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-101",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Commitments",
+      "scenario": "Commitment detail reads status, progress, people, evidence, and work without acting",
+      "preconditions": [
+        "Commitments in at least two states, one with evidence and linked work",
+        "One commitment where the tester has no act available"
+      ],
+      "steps": [
+        "Open a commitment from the Pool tab",
+        "Read the status band, identity, progress rows, people or team, evidence, and work",
+        "Open the commitment where you have no act available",
+        "Use back"
+      ],
+      "expected": "The band's title and tone match the state and your seat; requirements show their counts and progress; people names the creator, provider, and confirmers with you marked; evidence and linked work list what was recorded; a reader with nothing to do sees no action bar; back returns to the pool",
+      "evidence": "Screenshots of two commitments in different states",
+      "role": "gardener",
+      "tags": ["commitments"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-102",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Commitments",
+      "scenario": "Commitments drawer groups live and settled acts by garden, with To confirm for stewards",
+      "preconditions": [
+        "Gardener with live and settled commitments in two gardens",
+        "Steward identity with a commitment waiting on their confirmation"
+      ],
+      "steps": [
+        "Open the Commitments drawer from Home and read the Live tab",
+        "Switch the direction chips and open a row",
+        "Read History",
+        "Open the drawer as the steward and read To confirm"
+      ],
+      "expected": "Live and History carry counts and group rows under garden names, with an 'Other' group for rows without a garden; the chips narrow by direction; a row closes the drawer and opens the commitment in its garden; History shows kept and lapsed counts per garden; To confirm appears only for a steward and lists what waits on them; empty tabs say so",
+      "evidence": "Screenshots of the three tabs",
+      "role": "gardener",
+      "tags": ["commitments", "home"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-pwa-split-2026-09-07"
     },
     {
       "id": "ADM-044",

@@ -43,6 +43,7 @@
   "notes": [
     "The implementation is on feature/qa-runs in PR #805 (against develop; merge commit). Merging deploys the QA app; qa_pass_1 is the 2026-09-08 rollover and two-tester smoke on the deployed app.",
     "Decisions of 2026-09-07: migration runs on the first authenticated request after deploy and Run 1 stays open until the Tuesday rollover; all lanes run serially in one Claude session on feature/qa-runs; Vercel deploys packages/qa from develop; the pre-Tuesday catalog split includes PWA-025/042/043/044.",
+    "Second PR (decision 12): feature/qa-runs-pwa-split, stacked on feature/qa-runs, carries the PWA half of the remaining grouped rows (PWA-027/029/030/031/032/033/039 retired into PWA-067…096) and the missing read-only PWA rows (PWA-097…102). Admin C18, the public rows, and the C19 area re-cut stay post-Tuesday.",
     "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",
     "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
     ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."

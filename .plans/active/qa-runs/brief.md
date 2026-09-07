@@ -45,6 +45,11 @@ cases to their successors.
 10. (2026-09-07) Vercel deploys `packages/qa` from `develop`; merging the PR is the redeploy.
 11. (2026-09-07) The pre-Tuesday split also retires or rescopes the four un-walked rows the
     feedback named (PWA-025, PWA-042, PWA-043, PWA-044).
+12. (2026-09-07) The PWA half of the remaining grouped rows ships before Tuesday as a second PR
+    stacked on `feature/qa-runs`: PWA-027, 029, 030, 031, 032, 033, and 039 retire into one row
+    per act (PWA-067 to PWA-096) and the read-only rows the feedback listed as missing land as
+    PWA-097 to PWA-102. The admin grouped rows (C18), the public rows, and the area re-cut (C19)
+    stay post-Tuesday.
 
 ## Boundaries
 

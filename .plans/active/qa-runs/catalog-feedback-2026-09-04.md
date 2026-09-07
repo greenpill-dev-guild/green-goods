@@ -43,10 +43,33 @@ C21 No admin case covers submitting an assessment outside the journey relay: ADM
 | C12 PWA-IOS-003/004/005 | Twins added: PWA-AND-006 (login recovery), PWA-AND-007 (capture + draft), PWA-AND-008 (gallery); PWA-AND-003 retired into 007/008 |
 | C13 PWA-IOS-006 | Expectation rewritten to the real job-queue behaviour (pending while offline, submitted once with backed-off retries, clientWorkId dedupe, failed state); PWA-AND-004 matched |
 | C14 PWA-IOS-008 | Scenario reworded in place; the prefix scheme itself waits for the re-cut |
-| C15 principle | Applied through the splits above |
+| C15 principle | Applied through the splits above and the second pass below |
 | C16 N/A meaning | QA app N/A control now says "out of scope for this run" (page lane) |
 | C17 bug-encoding expectations | ADM-020, ADM-026 (+ locales), ADM-028, PUB-003, PUB-020, PUB-024 restated as intended behaviour; PWA-038 retired |
 | C18 admin grouped tx rows | Deferred to the post-Tuesday re-cut |
-| C19 areas | Deferred to the post-Tuesday re-cut |
-| C20 missing read-only PWA rows | Deferred to the post-Tuesday re-cut |
+| C19 areas | Deferred to the post-Tuesday re-cut; the second pass files its new rows under the target names (Garden, Home, Wallet, My Work, Work Submission, Commitments) |
+| C20 missing read-only PWA rows | Second pass: PWA-097 (garden header + Work tab), PWA-098 (Insights), PWA-099 (Gardeners), PWA-100 (Pool tab), PWA-101 (commitment detail), PWA-102 (Commitments drawer); notifications on the garden page = PWA-094 |
 | C21 assessment submission | Added ADM-046 (P0 transaction) |
+
+## Second pass · PWA half (2026-09-07, `feature/qa-runs-pwa-split`, stacked on `feature/qa-runs`)
+
+A read of the 156 active rows after the first split found seven PWA rows still grouping several
+acts (none named in the tester notes) and the C20 gap still open. Split before Tuesday; the admin
+rows (C18), the public rows, and the area re-cut (C19) remain post-Tuesday.
+
+| Retired | Successors |
+|---|---|
+| PWA-027 Home orientation | PWA-067 (pull to refresh online and offline), PWA-068 (scope and sort filters), PWA-069 (arrival toast); the drawer entry points open each drawer's own rows |
+| PWA-029 Send tokens | PWA-070 (Balance and Receive, read only), PWA-071 (browse-and-send with Max and a note), PWA-072 (recipient paths: search, paste, ENS, QR), PWA-073 (governance send with the warning confirm) |
+| PWA-030 Work dashboard | PWA-074 (drafts resume and delete), PWA-075 (Pending filters and the time filter), PWA-076 (Completed filters) |
+| PWA-031 Full work submission | PWA-077 (online wizard), PWA-078 (Submit Again after wallet expiry), PWA-079 (commitment link and Retry Link), PWA-080 (media removal and broken media) |
+| PWA-032 Compose a commitment | PWA-081 (place an offer, read-to-end gate), PWA-082 (place a request incl. garden work), PWA-083 (draft dialog) |
+| PWA-033 Commitment detail acts | PWA-084 (take up), PWA-085 (ask to take up), PWA-086 (steward accept and decline), PWA-087 (withdraw), PWA-088 (send for confirmation), PWA-089 (confirm), PWA-090 (not yet), PWA-091 (link work), PWA-092 (join the team), PWA-093 (failed act retry or discard) |
+| PWA-039 Notifications, ENS toast, AppBar | PWA-094 (steward bell), PWA-095 (ENS reminder), PWA-096 (AppBar badge and auto-hide) |
+
+Acts the grouped rows never named and that now have a row: ask to take up (approval-gated claim),
+send for confirmation, join an open team. Still open for the post-Tuesday pass: a work detail read
+row on the desktop shell (only the iOS and Android review rows open one today); "Offer It Again"
+after a commitment expires; PWA-034 (proof composer) reads as one flow and stays; the
+`[iOS]`/`PWA-ROLE` prefix scheme (C14).
+
