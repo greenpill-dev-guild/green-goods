@@ -64,7 +64,7 @@
 
 ## Second pass · PWA half (2026-09-07, `feature/qa-runs-pwa-split`)
 
-- Branch stacked on `feature/qa-runs`; PR targets `feature/qa-runs`, not `develop`, so the first PR's review stays intact and the two merge together.
+- Branch stacked on `feature/qa-runs`; PR #806 targets `feature/qa-runs`, not `develop`, so the first PR's review stays intact and the two merge together.
 - Catalog: 7 retirements with `replacedBy` (PWA-027, 029, 030, 031, 032, 033, 039) and 36 new ids (PWA-067…102); the successor table and the acts the grouped rows never named are in `catalog-feedback-2026-09-04.md § Second pass`. Ledger append; `test-cases.mdx` regenerated; no journey-referenced row changed, so the QA app locales are untouched. Active cases 185 (PWA 93); the QA app projection ships `replaces` for every successor, and PWA-081…093 also inherit PWA-IOS-009 through the existing PWA-032/033 chain.
 - Read-only rows (feedback C20): PWA-097 garden header and Work tab, PWA-098 Insights, PWA-099 Gardeners, PWA-100 Pool tab, PWA-101 commitment detail, PWA-102 Commitments drawer; the steward bell on the garden page is PWA-094.
 - Still post-Tuesday: admin C18 rows, public rows, the C19 area re-cut (the new rows already use the target area names), a desktop work-detail read row, "Offer It Again".
