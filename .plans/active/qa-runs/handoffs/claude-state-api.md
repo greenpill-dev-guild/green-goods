@@ -79,3 +79,20 @@
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- scripts/data docs/docs/builders/quality .plans/active/qa-runs` → `` (empty before this receipt was written)
 - Evidence-only diff command and result (if applicable): not applicable
 - Evidence-only worktree-status command and result (if applicable): not applicable
+
+## Third pass · admin, public website, docs (2026-09-07, `feature/qa-runs-catalog-third-pass`)
+
+- Branch stacked on `feature/qa-runs-pwa-split`; the PR targets that branch. Merge order: third → second → `feature/qa-runs` → `develop`.
+- Catalog: 24 retirements with `replacedBy` (ADM-009/010/020/021/022/023/024/025/027/028/029, PUB-014/017/020/021/022/023/024, DOCS-007/008/009/010/012/013), 101 new ids (ADM-048…108, PUB-035…055, DOCS-014…032), 4 in-place rewrites (ADM-019, PUB-001, PUB-010, PUB-031). Successor map and product findings in `catalog-feedback-2026-09-04.md § Third pass`. Journey-referenced rows untouched; locales unchanged. Active cases 262 (Admin 98, Public 45, Docs 26, PWA 93).
+- Evidence pack: admin acts read from `packages/admin/src/routes/views.tsx` and the views it mounts; public acts from `packages/client/src/config/routes.tsx` and `views/Public/*`; labels from `packages/shared/src/i18n/en.json`; docs pages from `docs/sidebars.ts`.
+
+### Validation Receipt
+
+- Tested implementation commit SHA: `d585308d3c65ba172d6fe015be7c1bca759b146c`
+- Run at (UTC): `2026-09-08T03:10Z`
+- Exact command(s): `node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts && bun run test:review-guardrails && bun run check:docs-generated && bun run check:guidance-links && node scripts/quality/check-qa-id-ledger.mjs --base feature/qa-runs-pwa-split && node scripts/harness/plan-hub.mjs validate qa-runs && node packages/qa/build.mjs`
+- Result: `push gate: format, lint, docs-authority, agent-guidance, qa-id-ledger (312 ids), agent-tools-test (11 files, 250 tests) passed; browser-proof blocked: the authenticated Brave QA profile was unreachable through the Claude-in-Chrome extension, so rendered proof belongs to the next deployed smoke; review guardrails # pass 205 # fail 0 ; 18 projections current; 61 guidance files OK; ledger clean against feature/qa-runs-pwa-split; 31 hubs valid; qa build 262 active cases with replaces on 149 successors; parse-level comparison with the parent: 183 rows unchanged, 28 changed (24 retired, 4 rewritten), 101 added, none missing`
+- Validated paths: `scripts/data, docs/docs/builders/quality, .plans/active/qa-runs`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- scripts/data docs/docs/builders/quality .plans/active/qa-runs` → `` (empty before this receipt was written)
+- Evidence-only diff command and result (if applicable): not applicable
+- Evidence-only worktree-status command and result (if applicable): not applicable
