@@ -15,6 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Track mock state
 const mockGardensState = {
   data: [] as any[],
+  isError: false,
   isLoading: false,
   isFetching: false,
   refetch: vi.fn(),
@@ -154,6 +155,7 @@ describe("GardensList", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGardensState.data = [];
+    mockGardensState.isError = false;
     mockGardensState.isLoading = false;
     mockGardensState.isFetching = false;
     mockJoinState.isJoining = false;
@@ -185,6 +187,19 @@ describe("GardensList", () => {
 
     expect(screen.getByText(/no gardens yet/i)).toBeInTheDocument();
     expect(screen.getByText(/join a garden to start documenting/i)).toBeInTheDocument();
+  });
+
+  it("shows a retry state when gardens cannot load without a cache", async () => {
+    const user = userEvent.setup();
+    mockGardensState.isError = true;
+
+    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
+
+    expect(screen.getByText("Gardens are unavailable right now.")).toBeInTheDocument();
+    expect(screen.queryByText(/no gardens yet/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId("btn-Retry"));
+    expect(mockGardensState.refetch).toHaveBeenCalledOnce();
   });
 
   it("navigates to home when Open Gardens is clicked from empty state", async () => {

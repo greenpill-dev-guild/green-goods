@@ -2617,6 +2617,7 @@
   "app.profile.ensName": "Claim your name",
   "app.profile.ensRegistration": "Registration progress",
   "app.profile.gardens": "Gardens",
+  "app.profile.gardensUnavailable": "Gardens are unavailable right now.",
   "app.profile.help": "Help",
   "app.profile.help.category.account": "Account & Identity",
   "app.profile.help.category.documentingWork": "Documenting Work",

@@ -29,7 +29,12 @@ interface GardensListProps {
 export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
   const intl = useIntl();
   const navigate = useNavigate();
-  const { data: gardens = [], isLoading: gardensLoading } = useGardens();
+  const {
+    data: gardens = [],
+    isError: gardensError,
+    isLoading: gardensLoading,
+    refetch: refetchGardens,
+  } = useGardens();
   const { joinGarden, isJoining, joiningGardenId } = useJoinGarden();
   const [pendingGarden, setPendingGarden] = useState<Garden | null>(null);
   const ensDiscoveryTimeout = useTimeout();
@@ -156,6 +161,28 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                 defaultMessage: "Loading gardens...",
               })}
             </span>
+          </div>
+        </Card>
+      ) : gardensError && gardens.length === 0 ? (
+        <Card>
+          <div className="flex flex-col items-center gap-3 w-full py-4">
+            <RiPlantLine className="w-8 h-8 text-text-soft-400" />
+            <p className="text-center text-sm text-text-sub-600">
+              {intl.formatMessage({
+                id: "app.profile.gardensUnavailable",
+                defaultMessage: "Gardens are unavailable right now.",
+              })}
+            </p>
+            <Button
+              variant="neutral"
+              mode="stroke"
+              size="xsmall"
+              onClick={() => void refetchGardens()}
+              label={intl.formatMessage({
+                id: "app.home.retry",
+                defaultMessage: "Retry",
+              })}
+            />
           </div>
         </Card>
       ) : allGardens.length > 0 ? (
