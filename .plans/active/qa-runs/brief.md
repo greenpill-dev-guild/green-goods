@@ -50,6 +50,12 @@ cases to their successors.
     per act (PWA-067 to PWA-096) and the read-only rows the feedback listed as missing land as
     PWA-097 to PWA-102. The admin grouped rows (C18), the public rows, and the area re-cut (C19)
     stay post-Tuesday.
+13. (2026-09-07, supersedes the timing in 12) The admin, public website, and docs pass starts now
+    as a third PR stacked on `feature/qa-runs-pwa-split`: every remaining grouped row on those
+    surfaces retires into one row per act, rows whose wording no longer matches the product are
+    rewritten in place, and acts with no row get one (ADM-048 to ADM-108, PUB-035 to PUB-055,
+    DOCS-014 to DOCS-032). The journey-referenced rows ADM-012, 013, 014, and 026 are untouched.
+    Only the C19 area re-cut remains post-Tuesday; new rows already use the target area names.
 
 ## Boundaries
 

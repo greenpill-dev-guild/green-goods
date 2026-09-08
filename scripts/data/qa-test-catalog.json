@@ -249,8 +249,8 @@
       "area": "Public Shell",
       "scenario": "Public routes use website shell, not PWA shell",
       "preconditions": ["Public URL available"],
-      "steps": ["Open /, /gardens, /fund, /impact, /actions, and /cookies"],
-      "expected": "Public pages load with SiteHeader and no PWA bottom AppBar",
+      "steps": ["Open /, /gardens, /fund, /impact, /actions, /cookies, and /vaults"],
+      "expected": "Public pages load with SiteHeader and no PWA bottom AppBar; /cookies and /vaults are reachable only by direct link and still load in the website shell",
       "evidence": "Screenshot of one public desktop route",
       "role": "none",
       "tags": ["shell", "presentation"],
@@ -374,7 +374,7 @@
         "Open a glossary term by direct URL",
         "Open an unknown route"
       ],
-      "expected": "Terms and cross-links work, back behaves, direct URLs land on the term, unknown routes explain themselves",
+      "expected": "Terms and cross-links work, back behaves, direct URLs land on the term, and an unknown route redirects to the home page without an error",
       "evidence": "Screenshot or notes",
       "role": "none",
       "tags": ["navigation", "glossary"],
@@ -1127,8 +1127,11 @@
       "role": "steward",
       "tags": ["actions", "validation"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "sheet-v1.1"
+      "status": "retired",
+      "source": "sheet-v1.1",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by act: create, edit, validation",
+      "replacedBy": ["ADM-100", "ADM-101", "ADM-102"]
     },
     {
       "id": "ADM-010",
@@ -1145,8 +1148,11 @@
       "role": "steward",
       "tags": ["cookies", "permissions"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "sheet-v1.1"
+      "status": "retired",
+      "source": "sheet-v1.1",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by act: deploy, allowlist, gating",
+      "replacedBy": ["ADM-103", "ADM-104", "ADM-105"]
     },
     {
       "id": "ADM-011",
@@ -1683,10 +1689,13 @@
       "priority": "P2",
       "kind": "journey",
       "area": "Profile",
-      "scenario": "Admin profile renders identity and sign-out lands sensibly",
-      "preconditions": ["Authenticated steward"],
-      "steps": ["Open /profile in admin", "Check identity renders; sign out and note the landing"],
-      "expected": "/profile shows identity/settings; sign-out clears the session and lands on a sensible screen",
+      "scenario": "Admin account: identity renders and sign-out lands sensibly",
+      "preconditions": ["Steward signed in on desktop and on a phone width"],
+      "steps": [
+        "On desktop open the account sheet from the app bar; on a phone open /profile",
+        "Check identity renders; press Disconnect and note the landing"
+      ],
+      "expected": "The account panel shows the wallet, your gardens, and settings; on desktop /profile renders nothing because the sheet owns it; Disconnect clears the session and lands on the connect screen",
       "evidence": "Screenshot of profile + landing",
       "role": "steward",
       "tags": ["profile"],
@@ -1718,8 +1727,11 @@
       "role": "funder",
       "tags": ["funding", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by act: the donation and the reject-and-close recovery",
+      "replacedBy": ["PUB-035", "PUB-036"]
     },
     {
       "id": "PUB-015",
@@ -1790,8 +1802,11 @@
       "role": "funder",
       "tags": ["funding", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by act: the endowment and the Escape unlock edge",
+      "replacedBy": ["PUB-037", "PUB-038"]
     },
     {
       "id": "PUB-018",
@@ -1856,8 +1871,11 @@
       "role": "funder",
       "tags": ["cookies", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split into three unrelated acts: deposit, deep link, disconnect",
+      "replacedBy": ["PUB-039", "PUB-040", "PUB-041"]
     },
     {
       "id": "PUB-021",
@@ -1878,8 +1896,11 @@
       "role": "none",
       "tags": ["install"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by platform branch: desktop QR and copy, mobile steps with Brave variants and the installed flip",
+      "replacedBy": ["PUB-049", "PUB-050"]
     },
     {
       "id": "PUB-022",
@@ -1900,8 +1921,11 @@
       "role": "none",
       "tags": ["home"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by act: subscribe, schedule a call, accordion",
+      "replacedBy": ["PUB-042", "PUB-043", "PUB-044"]
     },
     {
       "id": "PUB-023",
@@ -1923,8 +1947,11 @@
       "role": "none",
       "tags": ["garden-discovery"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by act; the note drawer and lightbox were already PUB-026",
+      "replacedBy": ["PUB-026", "PUB-045", "PUB-046"]
     },
     {
       "id": "PUB-024",
@@ -1945,8 +1972,11 @@
       "role": "none",
       "tags": ["impact"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split reading from acting: filters and paging, evidence dialog and Cite",
+      "replacedBy": ["PUB-047", "PUB-048"]
     },
     {
       "id": "PUB-025",
@@ -2352,8 +2382,11 @@
       "role": "steward",
       "tags": ["garden-settings", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by act after the 2026-09-07 sweep: field saves, banner, joining and cap, domain rules and dirty close",
+      "replacedBy": ["ADM-048", "ADM-049", "ADM-050", "ADM-051"]
     },
     {
       "id": "ADM-021",
@@ -2374,8 +2407,11 @@
       "role": "steward",
       "tags": ["members", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by act: batch add, remove, welcome, decline",
+      "replacedBy": ["ADM-052", "ADM-053", "ADM-054", "ADM-055"]
     },
     {
       "id": "ADM-022",
@@ -2396,8 +2432,21 @@
       "role": "steward",
       "tags": ["garden-pool", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split into one row per pool lifecycle act",
+      "replacedBy": [
+        "ADM-056",
+        "ADM-057",
+        "ADM-058",
+        "ADM-059",
+        "ADM-060",
+        "ADM-061",
+        "ADM-062",
+        "ADM-063",
+        "ADM-064"
+      ]
     },
     {
       "id": "ADM-023",
@@ -2419,8 +2468,11 @@
       "role": "steward",
       "tags": ["endowment", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by act: deposit, withdraw, harvest, owner gates",
+      "replacedBy": ["ADM-066", "ADM-067", "ADM-068", "ADM-069"]
     },
     {
       "id": "ADM-024",
@@ -2441,8 +2493,11 @@
       "role": "steward",
       "tags": ["payouts", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by act and extended to the manage modal the row never named",
+      "replacedBy": ["ADM-070", "ADM-071", "ADM-072", "ADM-073", "ADM-074"]
     },
     {
       "id": "ADM-025",
@@ -2463,8 +2518,20 @@
       "role": "steward",
       "tags": ["hub-confirmations", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split into one row per inspector act",
+      "replacedBy": [
+        "ADM-075",
+        "ADM-076",
+        "ADM-077",
+        "ADM-078",
+        "ADM-079",
+        "ADM-080",
+        "ADM-081",
+        "ADM-082"
+      ]
     },
     {
       "id": "ADM-026",
@@ -2507,8 +2574,11 @@
       "role": "steward",
       "tags": ["coordination", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by act: create pools, strategies, register, allocate",
+      "replacedBy": ["ADM-090", "ADM-091", "ADM-092", "ADM-093"]
     },
     {
       "id": "ADM-028",
@@ -2529,8 +2599,11 @@
       "role": "steward",
       "tags": ["impact", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by act: approve and list, cancel listing; reachability is part of the listing row",
+      "replacedBy": ["ADM-094", "ADM-095"]
     },
     {
       "id": "ADM-029",
@@ -2551,8 +2624,11 @@
       "role": "steward",
       "tags": ["shell"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by act: garden switch, palette, notifications, view public",
+      "replacedBy": ["ADM-096", "ADM-097", "ADM-098", "ADM-099"]
     },
     {
       "id": "ADM-030",
@@ -2749,9 +2825,12 @@
       "role": "gardener",
       "tags": ["guide-truth"],
       "requiresProduction": true,
-      "status": "active",
+      "status": "retired",
       "source": "qa-session-2026-08-29",
-      "requiresProductionReason": "Guide truth is judged against the hosted production surfaces"
+      "requiresProductionReason": "Guide truth is judged against the hosted production surfaces",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split into one row per gardener guide page so drift is tracked per page",
+      "replacedBy": ["DOCS-014", "DOCS-015", "DOCS-016", "DOCS-017"]
     },
     {
       "id": "DOCS-008",
@@ -2772,9 +2851,12 @@
       "role": "steward",
       "tags": ["guide-truth"],
       "requiresProduction": true,
-      "status": "active",
+      "status": "retired",
       "source": "qa-session-2026-08-29",
-      "requiresProductionReason": "Guide truth is judged against the hosted production surfaces"
+      "requiresProductionReason": "Guide truth is judged against the hosted production surfaces",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split into one row per steward guide page so drift is tracked per page",
+      "replacedBy": ["DOCS-018", "DOCS-019", "DOCS-020", "DOCS-021", "DOCS-022", "DOCS-023"]
     },
     {
       "id": "DOCS-009",
@@ -2794,9 +2876,12 @@
       "role": "none",
       "tags": ["guide-truth"],
       "requiresProduction": true,
-      "status": "active",
+      "status": "retired",
       "source": "qa-session-2026-08-29",
-      "requiresProductionReason": "Guide truth is judged against the hosted production surfaces"
+      "requiresProductionReason": "Guide truth is judged against the hosted production surfaces",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split into one row per funder guide page",
+      "replacedBy": ["DOCS-024", "DOCS-025", "DOCS-026"]
     },
     {
       "id": "DOCS-010",
@@ -2817,8 +2902,11 @@
       "role": "none",
       "tags": ["guide-truth"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "The evaluator guide with runnable query samples does not exist in the docs tree; the in-product assessment steps live in the steward guide",
+      "replacedBy": ["DOCS-020"]
     },
     {
       "id": "DOCS-011",
@@ -2861,8 +2949,11 @@
       "role": "any",
       "tags": ["builder-docs"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by page group: journeys, quality, testing",
+      "replacedBy": ["DOCS-027", "DOCS-028", "DOCS-029"]
     },
     {
       "id": "DOCS-013",
@@ -2883,8 +2974,389 @@
       "role": "none",
       "tags": ["reference"],
       "requiresProduction": false,
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-09-07",
+      "retiredReason": "Split by check: FAQ and product history, generated pages; the changelog now redirects to product history",
+      "replacedBy": ["DOCS-030", "DOCS-031"]
+    },
+    {
+      "id": "DOCS-014",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P0",
+      "kind": "content",
+      "area": "Guide Truth",
+      "scenario": "Join a Garden guide page walks true against the live product",
+      "preconditions": ["The gardener-guide/joining-a-garden page open beside the live product"],
+      "steps": ["Follow every step in the app", "Compare each label and screenshot with the app"],
+      "expected": "Every step, label, and screenshot matches the shipping join flow (PWA-051, PWA-052); drift is listed with the page path",
+      "evidence": "List of drifted steps with the page path",
+      "role": "gardener",
+      "tags": ["docs", "guide-truth"],
+      "requiresProduction": true,
       "status": "active",
-      "source": "qa-session-2026-08-29"
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "DOCS-015",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P0",
+      "kind": "content",
+      "area": "Guide Truth",
+      "scenario": "Submit Work guide page walks true against the live product",
+      "preconditions": ["The gardener-guide/uploading-your-work page open beside the live product"],
+      "steps": ["Follow every step in the app", "Compare each label and screenshot with the app"],
+      "expected": "Every step, label, and screenshot matches the shipping submission wizard (PWA-077); drift is listed with the page path",
+      "evidence": "List of drifted steps with the page path",
+      "role": "gardener",
+      "tags": ["docs", "guide-truth"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "DOCS-016",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P0",
+      "kind": "content",
+      "area": "Guide Truth",
+      "scenario": "Recovery and Sync guide page walks true against the live product",
+      "preconditions": ["The gardener-guide/recovery-and-sync page open beside the live product"],
+      "steps": [
+        "Follow every step in the app, including the offline queue",
+        "Compare each label and screenshot with the app"
+      ],
+      "expected": "Every step, label, and screenshot matches the shipping offline queue and draft recovery (PWA-IOS-006, PWA-074); drift is listed with the page path",
+      "evidence": "List of drifted steps with the page path",
+      "role": "gardener",
+      "tags": ["docs", "guide-truth"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "DOCS-017",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P0",
+      "kind": "content",
+      "area": "Guide Truth",
+      "scenario": "Track Status and Attestations guide page walks true against the live product",
+      "preconditions": [
+        "The gardener-guide/track-status-and-attestations page open beside the live product"
+      ],
+      "steps": ["Follow every step in the app", "Compare each label and screenshot with the app"],
+      "expected": "Every step, label, and screenshot matches the shipping work dashboard and attestation links (PWA-075, PWA-076); drift is listed with the page path",
+      "evidence": "List of drifted steps with the page path",
+      "role": "gardener",
+      "tags": ["docs", "guide-truth"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "DOCS-018",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P0",
+      "kind": "content",
+      "area": "Guide Truth",
+      "scenario": "Create a Garden guide page walks true against the live product",
+      "preconditions": ["The steward-guide/creating-a-garden page open beside the live product"],
+      "steps": [
+        "Follow every step in the admin",
+        "Compare each label and screenshot, including renamed roles and Title Case labels"
+      ],
+      "expected": "Every step, label, and screenshot matches the shipping create-garden flow (ADM-017); drift is listed with the page path",
+      "evidence": "List of drifted steps with the page path",
+      "role": "steward",
+      "tags": ["docs", "guide-truth"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "DOCS-019",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P0",
+      "kind": "content",
+      "area": "Guide Truth",
+      "scenario": "Managing Actions guide page walks true against the live product",
+      "preconditions": ["The steward-guide/managing-actions page open beside the live product"],
+      "steps": ["Follow every step in the admin", "Compare each label and screenshot"],
+      "expected": "Every step, label, and screenshot matches the shipping actions registry (ADM-100, ADM-101); drift is listed with the page path",
+      "evidence": "List of drifted steps with the page path",
+      "role": "steward",
+      "tags": ["docs", "guide-truth"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "DOCS-020",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P0",
+      "kind": "content",
+      "area": "Guide Truth",
+      "scenario": "Make an Assessment guide page walks true against the live product",
+      "preconditions": ["The steward-guide/making-an-assessment page open beside the live product"],
+      "steps": ["Follow every step in the admin", "Compare each label and screenshot"],
+      "expected": "Every step, label, and screenshot matches the shipping assessment flow (ADM-046); drift is listed with the page path",
+      "evidence": "List of drifted steps with the page path",
+      "role": "steward",
+      "tags": ["docs", "guide-truth"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "DOCS-021",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P0",
+      "kind": "content",
+      "area": "Guide Truth",
+      "scenario": "Review and Approve Work guide page walks true against the live product",
+      "preconditions": ["The steward-guide/reviewing-work page open beside the live product"],
+      "steps": ["Follow every step in the admin", "Compare each label and screenshot"],
+      "expected": "Every step, label, and screenshot matches the shipping work review (ADM-012); drift is listed with the page path",
+      "evidence": "List of drifted steps with the page path",
+      "role": "steward",
+      "tags": ["docs", "guide-truth"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "DOCS-022",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P0",
+      "kind": "content",
+      "area": "Guide Truth",
+      "scenario": "Mint Impact Certificate guide page walks true against the live product",
+      "preconditions": [
+        "The steward-guide/creating-impact-certificates page open beside the live product"
+      ],
+      "steps": ["Follow every step in the admin", "Compare each label and screenshot"],
+      "expected": "Every step, label, and screenshot matches the shipping mint flow (ADM-106); drift is listed with the page path",
+      "evidence": "List of drifted steps with the page path",
+      "role": "steward",
+      "tags": ["docs", "guide-truth"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "DOCS-023",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P0",
+      "kind": "content",
+      "area": "Guide Truth",
+      "scenario": "Funding and Governance guide page walks true against the live product",
+      "preconditions": [
+        "The steward-guide/funding-and-governance page open beside the live product"
+      ],
+      "steps": ["Follow every step in the admin", "Compare each label and screenshot"],
+      "expected": "Every step, label, and screenshot matches the shipping endowment, payouts, and coordination surfaces (ADM-066 to ADM-074, ADM-090 to ADM-093); drift is listed with the page path",
+      "evidence": "List of drifted steps with the page path",
+      "role": "steward",
+      "tags": ["docs", "guide-truth"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "DOCS-024",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P1",
+      "kind": "content",
+      "area": "Guide Truth",
+      "scenario": "Donate to a Garden guide page walks true against the live product",
+      "preconditions": ["The funder-guide/donating-to-a-garden page open beside the live product"],
+      "steps": ["Compare entry points, labels, and step counts with /fund without transacting"],
+      "expected": "The described entry points, labels, and step counts match /fund and the garden Support handoff (PUB-035, PUB-046); drift is listed with the page path",
+      "evidence": "List of drifted steps with the page path",
+      "role": "none",
+      "tags": ["docs", "guide-truth"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "DOCS-025",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P1",
+      "kind": "content",
+      "area": "Guide Truth",
+      "scenario": "Endow a Garden guide page walks true against the live product",
+      "preconditions": ["The funder-guide/funding-a-garden page open beside the live product"],
+      "steps": [
+        "Compare entry points, labels, and step counts with /fund and /vaults without transacting"
+      ],
+      "expected": "The described entry points, labels, and step counts match the endow paths (PUB-015, PUB-037); drift is listed with the page path",
+      "evidence": "List of drifted steps with the page path",
+      "role": "none",
+      "tags": ["docs", "guide-truth"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "DOCS-026",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P1",
+      "kind": "content",
+      "area": "Guide Truth",
+      "scenario": "Remove an Endowment guide page walks true against the live product",
+      "preconditions": ["The funder-guide/withdraw-from-a-vault page open beside the live product"],
+      "steps": [
+        "Compare entry points, labels, and step counts with the manage panels without transacting"
+      ],
+      "expected": "The described entry points, labels, and step counts match Manage Endowments on /fund and /vaults (PUB-016, PUB-018); drift is listed with the page path",
+      "evidence": "List of drifted steps with the page path",
+      "role": "none",
+      "tags": ["docs", "guide-truth"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "DOCS-027",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Builder Docs",
+      "scenario": "Builder journey pages describe the shipped flows",
+      "preconditions": [
+        "The five journeys pages: Onboarding, Work Submission, Evaluation, Funding, Persona Surfaces Matrix"
+      ],
+      "steps": [
+        "Read each journey against the shipped flow it describes",
+        "Check the persona surfaces matrix against the three surfaces"
+      ],
+      "expected": "Each journey matches the current flow and names current screens; the matrix assigns each persona to the surfaces that ship; drift is listed per page",
+      "evidence": "List of drifted statements with the page path",
+      "role": "any",
+      "tags": ["docs", "builder-docs"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "DOCS-028",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Builder Docs",
+      "scenario": "Quality pages reflect the QA process and point at the catalog",
+      "preconditions": [],
+      "steps": [
+        "Read Product Experience QA against the current run-based process",
+        "Open Test Cases and compare a few ids with the QA app"
+      ],
+      "expected": "Product Experience QA describes runs, the QA app, and the report path as they work today; Test Cases renders from the catalog with matching ids and retired cases at the end",
+      "evidence": "Screenshot of the Test Cases page beside the QA app",
+      "role": "any",
+      "tags": ["docs", "builder-docs"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "DOCS-029",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Builder Docs",
+      "scenario": "Testing pages' commands run as written",
+      "preconditions": ["A fresh checkout with dependencies installed"],
+      "steps": [
+        "Run the commands quoted on the Forge, Playwright, Vitest, and Storybook pages",
+        "Note any command that fails or needs a flag the page omits"
+      ],
+      "expected": "Every quoted command runs as written or the page says what it needs; stale flags and paths are listed",
+      "evidence": "Terminal output for each command",
+      "role": "any",
+      "tags": ["docs", "builder-docs"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "DOCS-030",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Reference",
+      "scenario": "FAQ and product history are current",
+      "preconditions": [],
+      "steps": [
+        "Read each FAQ answer against the product",
+        "Compare the product history page with the latest releases"
+      ],
+      "expected": "FAQ answers describe current behaviour; the product history covers the latest releases and the old changelog URL redirects to it",
+      "evidence": "List of stale answers or missing releases",
+      "role": "none",
+      "tags": ["docs", "reference"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "DOCS-031",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Reference",
+      "scenario": "Generated ontology, claims, and glossary pages render and agree",
+      "preconditions": [],
+      "steps": [
+        "Open the generated ontology, Honest Claims, and glossary pages",
+        "Compare the docs glossary with the site's glossary page and the app's vocabulary"
+      ],
+      "expected": "The generated pages render without broken blocks; the two glossaries agree term for term; the claims page matches the vocabulary the surfaces use",
+      "evidence": "Screenshots of any broken block or mismatched term",
+      "role": "none",
+      "tags": ["docs", "reference"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "DOCS-032",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Deployments",
+      "scenario": "Deployment status and GitHub Actions pages match the live pipeline",
+      "preconditions": [],
+      "steps": [
+        "Compare the Deployment Status page with the deployed environments",
+        "Compare the GitHub Actions page with the workflows in .github"
+      ],
+      "expected": "Environments, URLs, and workflow names match what is deployed and what runs; drift is listed per page",
+      "evidence": "List of drifted rows with the page path",
+      "role": "any",
+      "tags": ["docs", "builder-docs"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
     },
     {
       "id": "PWA-041",
@@ -2990,14 +3462,14 @@
       "priority": "P1",
       "kind": "content",
       "area": "Locale Quality",
-      "scenario": "Editorial language switch: en/pt/es with persistence and no mixed-language pages",
+      "scenario": "Browser language pt and es render the editorial site fully translated",
       "preconditions": ["Public URL available"],
       "steps": [
-        "Switch the site language to pt, then es",
-        "Reload and deep-link; confirm persistence",
-        "Scan for mixed-language strings"
+        "Set the browser language to pt and load /, /gardens, a garden page, /fund, and /impact",
+        "Repeat in es",
+        "Reload and open a deep link"
       ],
-      "expected": "Switching applies everywhere on the page, persists across visits and deep links, and no page renders half-translated",
+      "expected": "The site follows the browser language and the app's language setting when one is set; there is no on-site switcher; every page renders fully translated with no mixed-language strings, and the language holds across reloads and deep links",
       "evidence": "Screenshot per locale",
       "role": "none",
       "tags": ["locale-quality"],
@@ -3368,6 +3840,453 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "PUB-035",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Funding",
+      "scenario": "Donate to a garden from /fund: asset pick, denomination toggle, approve and deposit",
+      "preconditions": ["Wallet with Stablecoin or Wrapped Ether on the right network"],
+      "steps": [
+        "Open /fund and press Donate on a garden row",
+        "Press Connect Wallet on the card",
+        "Pick the asset, toggle the USD and token denomination, and enter an amount",
+        "Press Donate and approve then deposit at the wallet"
+      ],
+      "expected": "The card connects without leaving the page; the denomination toggle converts the amount with the live price and says when the price is stale; two prompts complete with 'Sending…' progress; success names the donation and offers Donate Again",
+      "evidence": "Recording of the donation and the success state",
+      "role": "funder",
+      "tags": ["funding", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-036",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Funding",
+      "scenario": "Reject a donation prompt and close the card mid-flow",
+      "preconditions": ["A donation set up on a garden card (PUB-035)"],
+      "steps": [
+        "Press Donate and reject the first wallet prompt",
+        "Read the card",
+        "Start again and try to close the card while it is sending, then after"
+      ],
+      "expected": "A rejected prompt returns the card to idle with the amount intact and an honest message; the card cannot be closed while it is genuinely sending and closes once it is not",
+      "evidence": "Screenshots of the idle-after-reject card",
+      "role": "funder",
+      "tags": ["funding", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-037",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Funding",
+      "scenario": "Endow a campaign vault on /vaults through wrap, approve, and confirm",
+      "preconditions": [
+        "Wallet with ETH on the right network",
+        "A campaign with wallet endowment enabled"
+      ],
+      "steps": [
+        "Open /vaults, press View Campaign Vaults, and press Endow on the campaign",
+        "Press Connect Wallet and enter an amount above the WETH balance but within the ETH balance",
+        "Follow the step counter through the wrap, Approve vault access, and Confirm endowment",
+        "Press View Transaction, then Manage Endowments"
+      ],
+      "expected": "The step counter matches the transactions actually needed; the wrap step narrates converting ETH; approval and confirm show their n of N; success offers View Transaction and the position appears under Manage Endowments",
+      "evidence": "Recording of the checkout",
+      "role": "funder",
+      "tags": ["funding", "vaults", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-038",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Funding",
+      "scenario": "Escape while connecting on the vault checkout unlocks after 15 seconds",
+      "preconditions": ["The /vaults checkout open"],
+      "steps": [
+        "Press Connect Wallet and press Escape while the wallet is connecting",
+        "Wait 15 seconds and press Escape again"
+      ],
+      "expected": "Escape is held while connecting so the dialog cannot be lost mid-connect; after 15 seconds it closes the dialog",
+      "evidence": "Screen recording with timestamps",
+      "role": "none",
+      "tags": ["funding", "vaults"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-039",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Cookies",
+      "scenario": "Deposit into a campaign cookie jar",
+      "preconditions": ["Wallet holding the jar asset"],
+      "steps": [
+        "Open /cookies, press Explore Cookie Jars, and connect",
+        "Enter a deposit amount on a jar and press Deposit",
+        "Approve then deposit at the wallet"
+      ],
+      "expected": "Deposit approves then deposits in order with progress; 'Deposit received' toasts and the jar balance rises",
+      "evidence": "Screenshots of the toast and the balance",
+      "role": "funder",
+      "tags": ["cookies", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-040",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Cookies",
+      "scenario": "The jar deep link scrolls to and highlights the jar, and rejects an invalid address",
+      "preconditions": ["A known jar address"],
+      "steps": [
+        "Open /cookies?jar=<address>",
+        "Open /cookies?jar=notanaddress",
+        "Open /cookies?campaign=<unknown slug>"
+      ],
+      "expected": "A valid jar is scrolled into view and focus-ringed, and an unlisted jar is added as a direct jar card; an invalid address shows '\"…\" is not a valid jar address.'; an unknown campaign slug says it is not configured yet",
+      "evidence": "Screenshots of the highlighted jar and the error",
+      "role": "none",
+      "tags": ["cookies", "routing"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-041",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Cookies",
+      "scenario": "Disconnect from the cookies connection line",
+      "preconditions": ["A connected wallet on /cookies"],
+      "steps": ["Read the connection line", "Press Disconnect", "Try to claim"],
+      "expected": "The line shows the connected address; Disconnect disconnects the wallet and claiming asks to connect again",
+      "evidence": "Screenshots before and after",
+      "role": "funder",
+      "tags": ["cookies", "wallet"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-042",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Home",
+      "scenario": "Subscribe to the seasonal letter, including the failure path",
+      "preconditions": ["A valid email", "DevTools to block the subscribe request"],
+      "steps": ["Submit an invalid email, then a valid one", "Block the request and submit again"],
+      "expected": "An invalid email is refused inline; a valid one shows 'Subscribing…' then 'Thanks. You're on the list.'; a failed request shows a real error with the schedule-a-call fallback, never a silent success",
+      "evidence": "Screenshots of the success and error states",
+      "role": "none",
+      "tags": ["home", "forms"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-043",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Home",
+      "scenario": "Schedule a Call opens the booking page",
+      "preconditions": [],
+      "steps": ["Press Schedule a Call"],
+      "expected": "The booking page opens in a new tab and the site stays where it was",
+      "evidence": "Screenshot of the booking page",
+      "role": "none",
+      "tags": ["home"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-044",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P2",
+      "kind": "accessibility",
+      "area": "Home",
+      "scenario": "Persona accordion expands and collapses with correct aria",
+      "preconditions": [],
+      "steps": [
+        "Expand and collapse each persona row by mouse and by keyboard",
+        "Inspect aria-expanded on each row"
+      ],
+      "expected": "Each row toggles by click, Enter, and Space; aria-expanded tracks the state; the expanded content is reachable by Tab",
+      "evidence": "Screenshot of the inspector on an expanded row",
+      "role": "none",
+      "tags": ["home", "accessibility"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-045",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Garden Records",
+      "scenario": "Show more pages entries and finished seasons on the garden page",
+      "preconditions": [
+        "A garden with more than twelve field notes and more than one finished season"
+      ],
+      "steps": ["Press Show more entries until the list ends", "Press Show More Seasons"],
+      "expected": "Entries page by twelve with no duplicates and the control disappears at the end; finished seasons page the same way",
+      "evidence": "Screenshots of the paged lists",
+      "role": "none",
+      "tags": ["garden-records"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-046",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Funding",
+      "scenario": "Support This Garden lands on /fund with the garden highlighted",
+      "preconditions": [],
+      "steps": ["Press Support This Garden on a garden page", "Read /fund"],
+      "expected": "The fund page opens with the garden query, scrolls to that garden's row, and highlights it",
+      "evidence": "Screenshot of the highlighted row",
+      "role": "none",
+      "tags": ["funding", "routing"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-047",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Impact",
+      "scenario": "Impact filters and pagination narrow the ledger with honest counts",
+      "preconditions": [],
+      "steps": [
+        "Apply a kind chip, a domain chip, and the garden select",
+        "Page with Prev and Next",
+        "Press Reset Filters"
+      ],
+      "expected": "Each filter narrows with a live count and returns to page one; pagination clamps when filters shrink the set; Reset restores the full ledger",
+      "evidence": "Screenshots of a filtered page",
+      "role": "none",
+      "tags": ["impact"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-048",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Impact",
+      "scenario": "Evidence dialog shows sources and Cite this record copies a citation",
+      "preconditions": [],
+      "steps": [
+        "Open an evidence card",
+        "Follow a source link",
+        "Press Cite this record",
+        "Close with Escape"
+      ],
+      "expected": "The dialog lists the record's sources or 'Source pending'; Cite copies a citation with a visible confirmation; Escape closes and focus returns to the card",
+      "evidence": "Screenshot of the dialog with the copy confirmation",
+      "role": "none",
+      "tags": ["impact"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-049",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Install",
+      "scenario": "Install App on desktop: QR dialog and copy-URL",
+      "preconditions": ["A desktop browser"],
+      "steps": [
+        "Press Install App in the header",
+        "Read the QR panel and the three steps",
+        "Copy the URL",
+        "Close"
+      ],
+      "expected": "The dialog shows the QR code and three steps; copying keeps the dialog open and actually copies; Close returns focus to the header control",
+      "evidence": "Screenshot of the dialog",
+      "role": "none",
+      "tags": ["install"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-050",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Install",
+      "scenario": "Install App on mobile: step list, Brave variants, and the Open App flip",
+      "preconditions": ["A phone browser, a Brave browser, and a phone with the app installed"],
+      "steps": [
+        "Press Install App on a phone and read the steps",
+        "Repeat in Brave",
+        "Repeat with the app installed"
+      ],
+      "expected": "The phone shows the manual steps; Brave offers Open in Chrome or Open in This Tab Instead; an installed app flips the label to Open App and opens it",
+      "evidence": "Screenshots of each branch",
+      "role": "none",
+      "tags": ["install"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-051",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Funding",
+      "scenario": "The funding receipt renders from the intent parameter",
+      "preconditions": ["A completed donation with its intent id (PUB-035)"],
+      "steps": ["Open /fund?intent=<id>", "Read the receipt block", "Press Back to Fund"],
+      "expected": "The receipt shows intent, amount, status, transaction, and receiver, or honest loading and error states; the garden banner is suppressed; Back to Fund returns to the grid",
+      "evidence": "Screenshot of the receipt",
+      "role": "none",
+      "tags": ["funding", "routing"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-052",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Funding",
+      "scenario": "Stale and ambiguous garden parameters on /fund show a status banner",
+      "preconditions": [],
+      "steps": [
+        "Open /fund?garden=<unknown slug>",
+        "Open /fund?garden=<a value that matches two gardens>"
+      ],
+      "expected": "An unknown garden shows the stale banner and the full grid; an ambiguous value shows the ambiguous banner and highlights nothing",
+      "evidence": "Screenshots of both banners",
+      "role": "none",
+      "tags": ["funding", "routing"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-053",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P1",
+      "kind": "resilience",
+      "area": "Garden Discovery",
+      "scenario": "Garden page unavailable state offers Try Again, distinct from not-found",
+      "preconditions": ["DevTools to block the garden detail request"],
+      "steps": [
+        "Block the detail request and open a valid garden URL",
+        "Unblock and press Try Again",
+        "Open a bogus slug"
+      ],
+      "expected": "A failed read shows the unavailable page with Try Again and Browse Gardens, not not-found; Try Again recovers in place; a bogus slug shows not-found (PUB-013)",
+      "evidence": "Screenshots of the unavailable and recovered page",
+      "role": "none",
+      "tags": ["garden-discovery", "error-recovery"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-054",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P2",
+      "kind": "data-integrity",
+      "area": "Impact",
+      "scenario": "Impact ledger partial-data and source-limit notes",
+      "preconditions": [
+        "DevTools to fail one evidence source",
+        "A ledger larger than the fetch cap, where available"
+      ],
+      "steps": [
+        "Fail one evidence source and reload /impact",
+        "Read the ledger note",
+        "On a large ledger read the source-limit note"
+      ],
+      "expected": "A failed source shows the partial-data note instead of silently shrinking the ledger; the source-limit note says the ledger is capped; proof markers never read zero on a failed read",
+      "evidence": "Screenshots of the notes",
+      "role": "none",
+      "tags": ["impact", "data"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "PUB-055",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Actions",
+      "scenario": "An action card opens its source dialog with the install call to action",
+      "preconditions": [],
+      "steps": [
+        "Open /actions and press an action card",
+        "Follow the source link",
+        "Close with Escape and with the scrim"
+      ],
+      "expected": "The dialog shows the action's domain, description, and media where present, an install or open-app call to action, and an external source link; Escape and the scrim close it",
+      "evidence": "Screenshot of the dialog",
+      "role": "none",
+      "tags": ["actions"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
     },
     {
       "id": "PWA-045",
@@ -5087,6 +6006,1398 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-runs-catalog-split-2026-09-07"
+    },
+    {
+      "id": "ADM-048",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Garden Settings",
+      "scenario": "Save garden name, description, and location as sequential transactions",
+      "preconditions": [
+        "Steward with manage rights on a garden",
+        "A wallet that can reject one prompt mid-run"
+      ],
+      "steps": [
+        "Press Edit Garden from the garden workspace and change the name, description, and location",
+        "Read the unsaved-changes count and press Save Changes",
+        "Reject the second wallet prompt",
+        "Read the editor, then press Save Changes again"
+      ],
+      "expected": "Each changed field is its own transaction in sequence with 'Saving changes…' progress; a rejected prompt stops the run with 'Your edits are still here. Review the error and save again.' and the unsaved fields stay dirty; saving again writes only what is left and ends on 'All changes saved'",
+      "evidence": "Screenshots of the mid-run error and the saved state",
+      "role": "steward",
+      "tags": ["garden-settings", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-049",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden Settings",
+      "scenario": "Upload a garden banner, then remove it with undo",
+      "preconditions": ["Steward with manage rights", "An image file"],
+      "steps": [
+        "In Edit Garden choose a new banner and read the preview",
+        "Press Save Changes",
+        "Reopen the editor, press Remove on the banner, then Undo",
+        "Press Remove again and save"
+      ],
+      "expected": "The preview reads 'Preview · uploads on save' and the image pins only on save; after saving the banner shows on the garden; Remove marks it 'Will be removed on save' and Undo restores it without a transaction; saving the removal clears the banner and the public garden page falls back to its named placeholder",
+      "evidence": "Screenshots of the preview, the staged removal, and the cleared banner",
+      "role": "steward",
+      "tags": ["garden-settings", "media", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-050",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden Settings",
+      "scenario": "Toggle open joining and set the gardener cap",
+      "preconditions": ["Steward with manage rights", "A gardener identity that is not a member"],
+      "steps": [
+        "In Edit Garden switch Open joining on and save",
+        "As the gardener open the garden in the app and read the join control",
+        "Switch Limit gardeners on with a cap at the current member count and save",
+        "Read the garden in the app again"
+      ],
+      "expected": "Open joining saves as one transaction and the app offers Join Garden instead of a request; the cap saves as its own transaction; with the cap reached the app no longer offers open joining; switching Limit gardeners off restores unlimited",
+      "evidence": "Screenshots of the settings and the app's join control",
+      "role": "steward",
+      "tags": ["garden-settings", "garden-join", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-051",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Garden Settings",
+      "scenario": "Domain rules and the dirty-close prompt in garden settings",
+      "preconditions": ["Steward with manage rights on a garden with one domain"],
+      "steps": [
+        "In Edit Garden deselect the only domain and try to save",
+        "Select a second domain and read the unsaved-changes count",
+        "Close the editor with X, the scrim, Escape, and browser back while changes are unsaved"
+      ],
+      "expected": "Deselecting the last domain shows 'Select at least one domain' and blocks Save; the unsaved count follows every change; each close path asks 'Discard Changes?' once, Stay keeps the draft, and Discard drops it with nothing written",
+      "evidence": "Screenshots of the domain error and the discard prompt",
+      "role": "steward",
+      "tags": ["garden-settings"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-052",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Members",
+      "scenario": "Batch-add members by address, ENS name, and clipboard paste",
+      "preconditions": [
+        "Steward with manage rights",
+        "Two addresses and one ENS name to add, plus one invalid string"
+      ],
+      "steps": [
+        "Open Community members and press Add Members",
+        "Type an address, then an ENS name, then paste several lines from the clipboard, then an invalid string",
+        "Choose the role and press Add",
+        "Read the directory and the role coverage summary"
+      ],
+      "expected": "Each entry is validated as it is staged: the ENS name shows 'Resolves to {address}' and the invalid string is refused inline; Add transacts once per member and a failed address stays staged for retry; the directory lists the new members under the chosen role and the coverage summary updates",
+      "evidence": "Screenshots of the staged list and the updated directory",
+      "role": "steward",
+      "tags": ["members", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-053",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Members",
+      "scenario": "Remove a member with confirmation",
+      "preconditions": ["Steward with manage rights", "A member who is not a steward"],
+      "steps": [
+        "Open Manage Members",
+        "Press Remove Member on the member and cancel",
+        "Press Remove Member again and confirm"
+      ],
+      "expected": "Removal asks for confirmation naming the member; Cancel changes nothing; Confirm sends one transaction, the member leaves the directory, and the gardener's app no longer lists the garden under My gardens",
+      "evidence": "Screenshots of the confirmation and the directory afterwards",
+      "role": "steward",
+      "tags": ["members", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-054",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Members",
+      "scenario": "Welcome a join request from the admin",
+      "preconditions": [
+        "Steward with manage rights",
+        "A pending join request with a note (PWA-052)"
+      ],
+      "steps": [
+        "Open the join requests on Community members and read the request",
+        "Press Welcome",
+        "Read the directory and, as the requester, the garden in the app"
+      ],
+      "expected": "The request shows the requester, note, and display name; Welcome runs its two-phase add and either lands fully with 'The gardener was welcomed.' or surfaces the partial state without claiming success; the requester becomes a member in the directory and in the app",
+      "evidence": "Screenshots of the request and the welcomed state",
+      "role": "steward",
+      "tags": ["members", "garden-join", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-055",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Members",
+      "scenario": "Decline a join request with a reason from the admin",
+      "preconditions": [
+        "Steward with manage rights",
+        "A pending join request",
+        "A second steward session, where available, to resolve the same request first"
+      ],
+      "steps": [
+        "Open the request and press Decline with an empty reason",
+        "Type a reason and confirm",
+        "Read the request as the gardener in the app",
+        "Where a second session is available, welcome the same request there first, then decline it in the first session"
+      ],
+      "expected": "Decline is disabled until a reason is typed and confirms before sending; the reason reaches the gardener, who can resubmit (PWA-054); a request already resolved elsewhere is reported as stale instead of being declined twice",
+      "evidence": "Screenshots of the decline dialog and the gardener's view",
+      "role": "steward",
+      "tags": ["members", "garden-join", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-056",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Garden Pool",
+      "scenario": "Set up commitments for a garden without a pool",
+      "preconditions": ["Steward with manage rights on a garden with no pool"],
+      "steps": [
+        "Open /garden/pool and read the setup checklist",
+        "Press Set Up Commitments and complete the flow",
+        "Read the pool status card and the app's garden tabs"
+      ],
+      "expected": "The console shows the setup state and checklist instead of an empty list; the flow pins its documents before any chain write and names a failure if pinning fails; on success the status card shows the pool and its readiness and the app's garden gains a Pool tab",
+      "evidence": "Screenshots of the checklist and the created pool",
+      "role": "steward",
+      "tags": ["garden-pool", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-057",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Garden Pool",
+      "scenario": "Start a season and open it to the garden",
+      "preconditions": ["Steward with manage rights on a garden with a pool"],
+      "steps": [
+        "Press Start Season and complete the cycle form",
+        "Read the season in the cycles list",
+        "Press Open to the Garden",
+        "Read the Pool tab in the app"
+      ],
+      "expected": "The season is created in its starting state and listed with its dates; Open to the Garden moves it to open in one transaction; the app's seasons and campaigns rail shows it as open",
+      "evidence": "Screenshots of the cycles list and the app's rail",
+      "role": "steward",
+      "tags": ["garden-pool", "cycle", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-058",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Garden Pool",
+      "scenario": "Start a campaign and open it",
+      "preconditions": ["Steward with manage rights on a garden with an open season"],
+      "steps": [
+        "Press Start Campaign and complete the form",
+        "Press Open on the campaign",
+        "Read the rail in the app"
+      ],
+      "expected": "The campaign is created under the season and opens in one transaction; the app's rail shows it as a campaign with its dates and state",
+      "evidence": "Screenshots of the campaign in the console and the app",
+      "role": "steward",
+      "tags": ["garden-pool", "cycle", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-059",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden Pool",
+      "scenario": "Cancel a cycle with a reason",
+      "preconditions": ["Steward with manage rights", "A season or campaign that can be cancelled"],
+      "steps": [
+        "Press Cancel season… (or Cancel on a campaign) and try to confirm with an empty reason",
+        "Type a reason and confirm",
+        "Read the cycles list and the public garden page"
+      ],
+      "expected": "Cancel names its blast radius and requires a reason; the cancellation is one transaction; the cycle shows as cancelled in the console and never appears on the public commitments story (PUB-027)",
+      "evidence": "Screenshots of the cancel dialog and the public page",
+      "role": "steward",
+      "tags": ["garden-pool", "cycle", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-060",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden Pool",
+      "scenario": "Pause the pool with a reason, then resume it",
+      "preconditions": ["Steward with manage rights on a garden with an open pool"],
+      "steps": [
+        "Press Pause… and confirm with a reason",
+        "Open the app's Pool tab and try to compose an offer",
+        "Press Resume Pool"
+      ],
+      "expected": "Pausing pins the reason first and then sends one transaction; the app shows the paused notice with the reason and takes no new commitments; Resume Pool clears the pause in one transaction and composing works again",
+      "evidence": "Screenshots of the paused notice in the app and the resumed console",
+      "role": "steward",
+      "tags": ["garden-pool", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-061",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden Pool",
+      "scenario": "Close the pool",
+      "preconditions": [
+        "Steward with manage rights on a garden with an open pool and no live commitments"
+      ],
+      "steps": [
+        "Press Close pool… and read the confirmation",
+        "Press Close Pool",
+        "Read the console and the app's Pool tab"
+      ],
+      "expected": "The confirmation states what closing affects; the close is one transaction; the console shows the closed state and the app's Pool tab explains the pool is closed and keeps its history",
+      "evidence": "Screenshots of the confirmation and the closed pool",
+      "role": "steward",
+      "tags": ["garden-pool", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-062",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden Pool",
+      "scenario": "Archive a closed pool, then reopen it",
+      "preconditions": ["Steward with manage rights on a garden with a closed pool"],
+      "steps": [
+        "Press Archive pool… and confirm",
+        "Read the console and the app",
+        "Press Reopen pool… and confirm"
+      ],
+      "expected": "Archiving asks for confirmation and sends one transaction; the console and the app show the archived state; Reopen restores an open pool in one transaction and the app takes new commitments again",
+      "evidence": "Screenshots of the archived and reopened states",
+      "role": "steward",
+      "tags": ["garden-pool", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-063",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden Pool",
+      "scenario": "Edit pool settings and save",
+      "preconditions": ["Steward with manage rights on a garden with a pool"],
+      "steps": [
+        "Press Edit Pool",
+        "Change a setting and press Save Settings",
+        "Reopen, change a setting, and close without saving"
+      ],
+      "expected": "The settings dialog shows the current values; Save Settings sends one transaction and the console reflects the change; closing with an unsaved change asks 'Discard Changes?'",
+      "evidence": "Screenshots of the settings dialog before and after",
+      "role": "steward",
+      "tags": ["garden-pool", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-064",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden Pool",
+      "scenario": "Expire a commitment now",
+      "preconditions": [
+        "Steward with manage rights",
+        "A past-due commitment listed on the console"
+      ],
+      "steps": [
+        "Press Expire now… on the commitment row and read the confirmation",
+        "Press Expire Now",
+        "Open the commitment in the inspector and in the app"
+      ],
+      "expected": "Expire Now confirms before sending and is one transaction; the commitment reads expired in the inspector, in the app's detail, and under History in the app's drawer; the same act is offered inside the inspector",
+      "evidence": "Screenshots of the confirmation and the expired state",
+      "role": "steward",
+      "tags": ["garden-pool", "commitment", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-065",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Garden Pool",
+      "scenario": "Decline a claim with a reason from the pool console",
+      "preconditions": [
+        "Steward of the pool's garden",
+        "A pending claim request on an approval-gated commitment (PWA-085)"
+      ],
+      "steps": [
+        "Open the claims card on /garden/pool and read the request",
+        "Press Decline… with an empty reason",
+        "Type a reason and confirm",
+        "Read the claim as the requester in the app"
+      ],
+      "expected": "The claims card counts requests waiting; Decline requires a reason and confirms; the decline is one transaction; the requester sees the declined state with the reason",
+      "evidence": "Screenshots of the decline dialog and the requester's view",
+      "role": "steward",
+      "tags": ["garden-pool", "claim", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-066",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Endowment",
+      "scenario": "Deposit into the garden vault from the admin, within its limits",
+      "preconditions": [
+        "Steward holding the vault asset on Arbitrum",
+        "A garden with an auto-allocated vault"
+      ],
+      "steps": [
+        "Open /community/endowment and press Deposit",
+        "Enter an amount above the deposit limit, then a valid one",
+        "Approve and deposit at the wallet",
+        "Read the vault position and events"
+      ],
+      "expected": "The dialog states the deposit limit and refuses an amount above it with the reason; a vault that is not auto-allocated says the module owner must enable it and takes no deposit; a valid amount approves then deposits with 'Depositing...' progress and 'Deposit completed successfully'; the position, net deposited, and events update",
+      "evidence": "Screenshots of the refused amount and the completed deposit",
+      "role": "steward",
+      "tags": ["endowment", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-067",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Endowment",
+      "scenario": "Withdraw from the garden vault with the share preview",
+      "preconditions": ["Steward with a vault position"],
+      "steps": [
+        "Open /community/endowment and press Withdraw",
+        "Enter an amount and read the shares to withdraw",
+        "Confirm and read the position"
+      ],
+      "expected": "The dialog previews the shares an amount redeems; the withdrawal is one transaction with 'Withdrawing...' progress and 'Withdrawal completed successfully'; the position and events update",
+      "evidence": "Screenshots of the preview and the completed withdrawal",
+      "role": "steward",
+      "tags": ["endowment", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-068",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Endowment",
+      "scenario": "Harvest vault yield and read the split report",
+      "preconditions": ["Steward with manage rights on a garden whose vault has accrued yield"],
+      "steps": [
+        "Open the vault view and press Harvest",
+        "Confirm at the wallet",
+        "Read the harvest outcome alert and the harvest count"
+      ],
+      "expected": "Harvest is offered only when the vault reports yield; the transaction reports 'Harvest completed successfully' and the outcome alert names the split between gardener rewards, impact certificates, and protocol sustainability, or says the split could not be verified; the harvest count increments",
+      "evidence": "Screenshot of the outcome alert",
+      "role": "steward",
+      "tags": ["endowment", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-069",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Endowment",
+      "scenario": "Emergency pause and auto-allocate respect their owner gates",
+      "preconditions": ["A garden owner identity and a plain steward identity for the same garden"],
+      "steps": [
+        "As the plain steward open the vault view and look for Emergency pause and the auto-allocate control",
+        "As the owner press Emergency pause, read the confirmation, and confirm",
+        "Try a deposit while paused, then read the vault"
+      ],
+      "expected": "The plain steward sees neither control; the owner's Emergency pause explains it blocks new deposits while withdrawals still work and confirms before sending; while paused deposits are refused as disabled; auto-allocate is offered only to the module owner",
+      "evidence": "Screenshots of the confirmation and the paused vault",
+      "role": "steward",
+      "tags": ["endowment", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-070",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Payouts",
+      "scenario": "Fund the garden's payouts cookie jar from the admin",
+      "preconditions": ["Steward holding the jar asset", "A garden with a payouts jar"],
+      "steps": [
+        "Open /community/payouts and press Fund Cookie Jar",
+        "Enter an amount and confirm approve then deposit",
+        "Read the jar balance and the allocation events"
+      ],
+      "expected": "The deposit dialog approves then deposits with progress; the jar balance and payout readiness update; the allocation events list the deposit",
+      "evidence": "Screenshots of the deposit and the updated balance",
+      "role": "steward",
+      "tags": ["payouts", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-071",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Payouts",
+      "scenario": "Claim from the payouts jar with a purpose, within the limit and cooldown",
+      "preconditions": ["Steward eligible to claim from the jar", "A jar with balance"],
+      "steps": [
+        "Press Claim on the jar and try to confirm without a purpose",
+        "Press Max, add a purpose, and confirm",
+        "Claim again immediately"
+      ],
+      "expected": "The withdrawal requires a purpose and Max fills the per-claim limit; the claim is one transaction and the balance updates; a second claim inside the cooldown is refused with the cooldown explained",
+      "evidence": "Screenshots of the claim and the cooldown refusal",
+      "role": "steward",
+      "tags": ["payouts", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-072",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Payouts",
+      "scenario": "Pause and resume the payouts jar",
+      "preconditions": ["Jar owner identity"],
+      "steps": [
+        "Open the jar's manage modal and press Pause Jar",
+        "Try a claim from the app or the admin",
+        "Press Resume Jar"
+      ],
+      "expected": "Pause Jar sends one transaction and the jar reads 'Paused'; claims are refused while paused with the state explained; Resume Jar clears it and claims work again",
+      "evidence": "Screenshots of the paused jar and a refused claim",
+      "role": "steward",
+      "tags": ["payouts", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-073",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Payouts",
+      "scenario": "Emergency-withdraw the payouts jar",
+      "preconditions": ["Jar owner identity", "A test garden's jar with a small balance"],
+      "steps": [
+        "Open the manage modal and press Emergency Withdraw",
+        "Read the confirmation and confirm"
+      ],
+      "expected": "The confirmation reads as destructive and names the garden; the withdrawal empties the jar in one transaction and the balance reads zero afterwards",
+      "evidence": "Screenshots of the confirmation and the emptied jar",
+      "role": "steward",
+      "tags": ["payouts", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-074",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Payouts",
+      "scenario": "Edit the payouts jar's max withdrawal and cooldown",
+      "preconditions": ["Jar owner identity"],
+      "steps": [
+        "In the manage modal press Edit Max Withdrawal, change the value, and press Confirm Max Withdrawal",
+        "Press Edit Withdrawal Cooldown, change it, and press Confirm Withdrawal Cooldown",
+        "Start a third edit and press Cancel Edit",
+        "Read the limits on the jar card and in the app"
+      ],
+      "expected": "Each edit is its own confirm and transaction; Cancel Edit restores the previous value; the new limit and cooldown show on the jar and govern the next claim",
+      "evidence": "Screenshots of both edits",
+      "role": "steward",
+      "tags": ["payouts", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-075",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Commitment Inspector",
+      "scenario": "Send a commitment for confirmation from the inspector",
+      "preconditions": ["Steward on the commitment's roster as provider, with evidence submitted"],
+      "steps": [
+        "Open /garden/pool and the commitment",
+        "Press Send for Confirmation",
+        "Read the timeline and /hub/confirm"
+      ],
+      "expected": "The act is offered only to the provider once evidence exists; it sends in one transaction; the timeline records it and the commitment appears in /hub/confirm for its confirmers",
+      "evidence": "Screenshots of the inspector and the confirm queue",
+      "role": "steward",
+      "tags": ["commitment", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-076",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Commitment Inspector",
+      "scenario": "Confirm a commitment as garden fallback or Green Goods team fallback with a reason",
+      "preconditions": [
+        "Steward of the pool's garden for the garden fallback, or a protocol steward for the team fallback",
+        "A commitment ready for confirmation whose ordinary confirmer has not acted"
+      ],
+      "steps": [
+        "Open the commitment and read which confirm the bar offers",
+        "Press Confirm as garden fallback… (or Confirm for Green Goods team…) with an empty reason",
+        "Type a reason and confirm"
+      ],
+      "expected": "The fallback is offered only when the ordinary path is not reachable for the reader's seat; the reason is required and pinned before the send; the confirmation lands, the band shows fulfilled, and the timeline records the fallback and its reason",
+      "evidence": "Screenshots of the fallback dialog and the fulfilled band",
+      "role": "steward",
+      "tags": ["commitment", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-077",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Commitment Inspector",
+      "scenario": "Raise a dispute with a reason from the inspector",
+      "preconditions": [
+        "Steward who may dispute the commitment",
+        "A commitment ready for confirmation"
+      ],
+      "steps": [
+        "Press Raise dispute… and try to confirm without a reason",
+        "Type a reason and press Raise Dispute",
+        "Read the band, /hub/confirm, and the app"
+      ],
+      "expected": "The reason is required; the dispute is one transaction; the commitment reads disputed in the inspector, the confirm queue, and the app; the ordinary confirm is withheld while disputed and the reason is in the timeline",
+      "evidence": "Screenshots of the dispute dialog and the disputed band",
+      "role": "steward",
+      "tags": ["commitment", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-078",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Commitment Inspector",
+      "scenario": "Resolve a dispute with each outcome",
+      "preconditions": ["Steward who may resolve", "Four disputed commitments, one per outcome"],
+      "steps": [
+        "Press Resolve… and read the outcome choices",
+        "Resolve one as Restore Previous, one as Kept, one as Cancelled, and one as Expired, each with a reason"
+      ],
+      "expected": "Each outcome names what it does before sending and requires a reason; each lands as one transaction and the band moves to the chosen state; the reasons are in the timeline",
+      "evidence": "Screenshots of the four resolved bands",
+      "role": "steward",
+      "tags": ["commitment", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-079",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Commitment Inspector",
+      "scenario": "Mark a commitment ready with an override reason",
+      "preconditions": [
+        "Steward with manage rights",
+        "An in-progress commitment whose provider cannot send it"
+      ],
+      "steps": [
+        "Press Mark ready… and read the override dialog",
+        "Type a reason and press Mark Ready",
+        "Read the band"
+      ],
+      "expected": "The dialog says it is an override and requires a reason; the act is one transaction; the commitment moves to ready for confirmation with the override in its timeline",
+      "evidence": "Screenshots of the override dialog and the ready band",
+      "role": "steward",
+      "tags": ["commitment", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-080",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Commitment Inspector",
+      "scenario": "Attach an assessment to a commitment",
+      "preconditions": [
+        "Steward with manage rights",
+        "A commitment and a submitted assessment for the garden"
+      ],
+      "steps": [
+        "Press Attach assessment…",
+        "Pick the assessment and confirm",
+        "Read the commitment's facts"
+      ],
+      "expected": "The picker lists the garden's assessments; attaching is one transaction; the commitment shows the attached assessment in its facts",
+      "evidence": "Screenshot of the attached assessment",
+      "role": "steward",
+      "tags": ["commitment", "assessment", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-081",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Commitment Inspector",
+      "scenario": "Cancel a commitment with a reason from the inspector",
+      "preconditions": ["Steward with manage rights", "A commitment that has not been fulfilled"],
+      "steps": [
+        "Press Cancel commitment… with an empty reason",
+        "Type a reason and press Cancel Commitment",
+        "Read the commitment in the app's drawer as its provider"
+      ],
+      "expected": "The reason is required and the dialog states the effect; the cancel is one transaction; the commitment reads cancelled with its reason and sits under History in the app",
+      "evidence": "Screenshots of the cancel dialog and the app's History",
+      "role": "steward",
+      "tags": ["commitment", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-082",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Commitment Inspector",
+      "scenario": "Count approved linked work on a commitment",
+      "preconditions": [
+        "Steward with manage rights",
+        "A domain-impact commitment with approved linked work not yet counted"
+      ],
+      "steps": [
+        "Open the recovery section and read the work-decision readback status",
+        "Press Count approved linked work",
+        "Press it again and read the progress rows"
+      ],
+      "expected": "The readback status reads pending, unavailable, or needs fresh review honestly; counting sends one transaction and the requirement progress rises by the approved work; a second press counts nothing twice",
+      "evidence": "Screenshots of the readback status and the progress rows",
+      "role": "steward",
+      "tags": ["commitment", "work", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-083",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Settlement",
+      "scenario": "Create and finalize a payout plan for a fulfilled commitment",
+      "preconditions": ["Steward with manage rights", "A fulfilled commitment with a reward"],
+      "steps": [
+        "Open the commitment's settlement section and read the plan state",
+        "Press Create Payout Plan…, read 'Review before sending', and press Send Transaction",
+        "Press Finalize Payout Plan… and send"
+      ],
+      "expected": "The plan starts as 'Not created yet'; each step reviews before sending and is one transaction; after creation the plan shows its id as Draft, and finalizing moves it to Pending and lists its disbursements",
+      "evidence": "Screenshots of the review step and the pending plan",
+      "role": "steward",
+      "tags": ["settlement", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-084",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Settlement",
+      "scenario": "Prepare the garden payout and a contributor payout",
+      "preconditions": ["A finalized payout plan (ADM-083)"],
+      "steps": [
+        "Press Prepare Garden Payout… and send",
+        "Press Prepare Payout for a contributor and send",
+        "Read the Disbursements table"
+      ],
+      "expected": "Each prepare step reviews before sending and is one transaction; the table lists one disbursement per recipient with its amount and status",
+      "evidence": "Screenshot of the disbursements table",
+      "role": "steward",
+      "tags": ["settlement", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-085",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Settlement",
+      "scenario": "Dispatch a disbursement, then retry or requeue a failed one",
+      "preconditions": [
+        "A plan with prepared disbursements (ADM-084)",
+        "Gardener delivery enabled for the contributor payout (ADM-087)"
+      ],
+      "steps": [
+        "Press Dispatch… on a disbursement and send",
+        "Make one dispatch fail, for example by rejecting the prompt, and read its row",
+        "Press Retry Command…, then Requeue… where offered",
+        "Press Read Again"
+      ],
+      "expected": "Dispatch reviews before sending and the row moves through its statuses; a failed row says so and offers Retry Command and Requeue; Read Again refreshes the table from chain; the plan reads Partial until every row completes, then Complete",
+      "evidence": "Screenshots of the failed row and the completed plan",
+      "role": "steward",
+      "tags": ["settlement", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-086",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Settlement",
+      "scenario": "Cancel a disbursement with a reason",
+      "preconditions": ["A plan with an undispatched disbursement"],
+      "steps": ["Press Cancel… on the row", "Type a reason and confirm"],
+      "expected": "The reason is required; the cancel is one transaction; the row reads cancelled with the reason and the plan status reflects it",
+      "evidence": "Screenshot of the cancelled row",
+      "role": "steward",
+      "tags": ["settlement", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-087",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Settlement",
+      "scenario": "Enable or disable gardener delivery on the settlement card",
+      "preconditions": ["Settlement module owner identity and a plain steward identity"],
+      "steps": [
+        "As the plain steward read the settlement operations card on /community/coordination",
+        "As the owner press Enable Gardener Delivery…, read the confirmation, and press Send Transaction",
+        "Press Check on chain",
+        "Disable it the same way"
+      ],
+      "expected": "The plain steward sees the state but no switch; the confirmation says enabling lets stewards prepare and dispatch member payouts on Celo without moving funds by itself; the switch reads back from chain after confirming; disabling reverses it",
+      "evidence": "Screenshots of the confirmation and the read-back state",
+      "role": "steward",
+      "tags": ["settlement", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-088",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Protocol Funding",
+      "scenario": "Cancel a queued protocol transfer",
+      "preconditions": ["Protocol steward", "A queued seed or top-up (ADM-045)"],
+      "steps": [
+        "Open the protocol funding card on /community/coordination",
+        "Press Cancel transfer and confirm",
+        "Press Refresh funding"
+      ],
+      "expected": "The queued row offers Cancel transfer with a confirmation; cancelling is one transaction and the row leaves the queue; Refresh funding re-reads the facts from chain",
+      "evidence": "Screenshots of the confirmation and the refreshed card",
+      "role": "steward",
+      "tags": ["protocol-funding", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-089",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Protocol Funding",
+      "scenario": "Dispatch, retry, or requeue a protocol transfer",
+      "preconditions": ["Protocol steward", "A queued transfer"],
+      "steps": [
+        "Press Dispatch on the row and confirm",
+        "Make one dispatch fail and press Retry command, then Requeue",
+        "Read the row states"
+      ],
+      "expected": "Dispatch sends the transfer and the row reads Dispatched; a failed dispatch offers Retry command and Requeue, each one transaction; a row never claims a state it did not reach",
+      "evidence": "Screenshots of the dispatched and failed rows",
+      "role": "steward",
+      "tags": ["protocol-funding", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-090",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Coordination",
+      "scenario": "Create the garden's signal pools",
+      "preconditions": [
+        "Steward with manage rights on a garden with community config and no pools"
+      ],
+      "steps": ["Open /community/coordination", "Press Create Signal Pools and confirm", "Reload"],
+      "expected": "Create Signal Pools shows only while no pools exist; it sends one transaction; after success the button is gone and the pools render",
+      "evidence": "Screenshots before and after creation",
+      "role": "steward",
+      "tags": ["coordination", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-091",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Coordination",
+      "scenario": "Add and remove a conviction strategy",
+      "preconditions": [
+        "Steward with manage rights on a garden with signal pools",
+        "A valid strategy address"
+      ],
+      "steps": [
+        "Open the strategies sheet",
+        "Enter an invalid address, then a duplicate, then the valid one and press Add Strategy",
+        "Press Remove on the strategy and confirm"
+      ],
+      "expected": "Invalid and duplicate addresses are refused inline; Add Strategy rewrites the list in one transaction; Remove confirms first and rewrites the list without the strategy",
+      "evidence": "Screenshots of the refused entries and the list",
+      "role": "steward",
+      "tags": ["coordination", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-092",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Coordination",
+      "scenario": "Register and deregister an item in a signal pool",
+      "preconditions": ["Steward with manage rights", "A hypercert or action id to register"],
+      "steps": [
+        "Open a signal pool sheet",
+        "Press Register with an invalid id, then a valid one",
+        "Press Remove on the item and confirm"
+      ],
+      "expected": "Register validates the id; registering and deregistering are one transaction each; the item appears in and leaves the pool's list; a pool that is not found says so",
+      "evidence": "Screenshots of the registered item and the empty pool",
+      "role": "steward",
+      "tags": ["coordination", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-093",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Coordination",
+      "scenario": "Allocate conviction weights from the admin governance panel",
+      "preconditions": ["Steward signed in with support points to allocate"],
+      "steps": [
+        "Open the governance panel; if prompted press Sign In to Allocate Conviction",
+        "Allocate weights and save",
+        "Reload"
+      ],
+      "expected": "Signing in unlocks the panel; the allocation saves in one transaction and the recorded weights persist after a reload",
+      "evidence": "Screenshot of the saved weights",
+      "role": "steward",
+      "tags": ["coordination", "governance", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-094",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Impact",
+      "scenario": "Approve the marketplace and list a hypercert for yield",
+      "preconditions": ["Steward with manage rights", "A minted hypercert on /garden/impact"],
+      "steps": [
+        "Open the hypercert from /garden/impact",
+        "Complete the marketplace approval gate",
+        "Press List for Yield and follow the signing steps"
+      ],
+      "expected": "The approval gate unlocks listing after its transaction; listing walks its signing steps with honest progress; the hypercert reads 'Listed for Yield' with price, expiry, and order id",
+      "evidence": "Screenshots of the approval gate and the listed state",
+      "role": "steward",
+      "tags": ["impact", "hypercert", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-095",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Impact",
+      "scenario": "Cancel a hypercert listing",
+      "preconditions": ["A hypercert listed for yield by this steward"],
+      "steps": ["Open the listed hypercert", "Cancel the listing and confirm"],
+      "expected": "Cancel asks for confirmation; it is one transaction; the hypercert reads 'Not listed on the marketplace' and the trade history keeps the record",
+      "evidence": "Screenshot of the unlisted state",
+      "role": "steward",
+      "tags": ["impact", "hypercert", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-096",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Shell",
+      "scenario": "Switching gardens re-scopes every workspace and syncs the URL",
+      "preconditions": ["Steward of two gardens"],
+      "steps": [
+        "Switch gardens with the header chip",
+        "Open /hub/work, /garden/health, and /community/members",
+        "Read the URL, reload, and use browser back"
+      ],
+      "expected": "Every workspace re-reads for the new garden; the URL carries the garden and a reload keeps it; back returns to the previous garden's view without stranding the user",
+      "evidence": "Screenshots of two workspaces under the second garden",
+      "role": "steward",
+      "tags": ["shell"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-097",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Shell",
+      "scenario": "Command palette finds pages, gardens, and actions and runs quick actions",
+      "preconditions": ["Steward with a keyboard"],
+      "steps": [
+        "Press Cmd or Ctrl K",
+        "Search for a page, a garden, and an action",
+        "Run a quick action from a result"
+      ],
+      "expected": "The palette opens on the shortcut; results group pages, gardens, and actions; choosing a garden re-scopes; a quick action runs and the palette closes with focus returned",
+      "evidence": "Screenshot of the palette results",
+      "role": "steward",
+      "tags": ["shell", "keyboard"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-098",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Shell",
+      "scenario": "Notifications sheet lists needs-attention and recent activity for the garden",
+      "preconditions": ["Steward of a garden with pending work"],
+      "steps": [
+        "Open the notifications control in the app bar",
+        "Read both sections",
+        "Open an item and return"
+      ],
+      "expected": "The sheet groups items into needs attention and recent activity scoped to the selected garden; an item opens its route; there is no mark-as-read control and none is implied",
+      "evidence": "Screenshot of the sheet",
+      "role": "steward",
+      "tags": ["shell"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-099",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Shell",
+      "scenario": "View Public opens the garden's public page",
+      "preconditions": ["Steward with a selected garden"],
+      "steps": ["Press View Public from the garden workspace", "Read where it lands"],
+      "expected": "The public garden page opens for the selected garden in the website shell",
+      "evidence": "Screenshot of the public page",
+      "role": "steward",
+      "tags": ["shell"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-100",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Actions",
+      "scenario": "Create an action through the four-step wizard",
+      "preconditions": ["Deployer identity", "An image for the action"],
+      "steps": [
+        "Open /actions and press Create Action",
+        "Fill basics, capitals, and instructions, then review",
+        "Press Create Action on the review step",
+        "Read the action in the grid and in the app's submission wizard"
+      ],
+      "expected": "Only the review step submits; the instruction config and media pin to IPFS with honest progress; the new action appears in the grid with its domain and lifecycle window and is offered in the app for its garden",
+      "evidence": "Screenshots of the review step and the new action",
+      "role": "steward",
+      "tags": ["actions", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-101",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Actions",
+      "scenario": "Edit an action and save changes including translations",
+      "preconditions": ["Deployer identity", "An existing action"],
+      "steps": [
+        "Open the action from /actions and press Edit",
+        "Change a field, open the translation editor, and change one translation",
+        "Press Save Changes",
+        "Reopen the action"
+      ],
+      "expected": "The edit sheet loads the current values; translations are tracked as their own unsaved state; Save Changes writes the metadata, instruction config, and translations in one flow; the reopened action shows the changes",
+      "evidence": "Screenshots of the edit sheet and the saved action",
+      "role": "steward",
+      "tags": ["actions", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-102",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Actions",
+      "scenario": "Action create and edit forms block incomplete saves",
+      "preconditions": ["Deployer identity"],
+      "steps": [
+        "Start Create Action and press Next with required fields empty",
+        "Open an action's Edit sheet, clear a required field, and press Save Changes",
+        "Close the edit sheet with unsaved changes"
+      ],
+      "expected": "Next and Save Changes stay blocked with the missing field named; closing dirty asks 'Discard Changes?'; nothing is written",
+      "evidence": "Screenshots of the blocked steps",
+      "role": "steward",
+      "tags": ["actions", "validation"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-103",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Cookies",
+      "scenario": "Deploy a campaign cookie jar",
+      "preconditions": ["Deployer identity", "A campaign image", "A configured jar factory"],
+      "steps": [
+        "Open /cookies and press Create Cookie Jar",
+        "Fill the campaign, payout, and eligible gardens sections and review",
+        "Press Create jar and confirm at the wallet",
+        "Read the on-chain readback"
+      ],
+      "expected": "The review lists campaign, payout, and eligible gardens; the deploy pins the image and sends one transaction; the readback shows balance and per-steward claim; if the transaction returns no address, Use jar address accepts a pasted address to recover",
+      "evidence": "Screenshots of the review and the readback",
+      "role": "steward",
+      "tags": ["cookies", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-104",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Cookies",
+      "scenario": "Sync the allowlist and grant or revoke extra addresses on a campaign jar",
+      "preconditions": ["Jar owner or ops Safe connected", "A deployed campaign jar"],
+      "steps": [
+        "Open the jar panel and press Sync Allowlist",
+        "Grant an extra address, then Revoke it",
+        "Enter an invalid address"
+      ],
+      "expected": "Sync writes the generated allowlist in one transaction; Grant and Revoke are one transaction each and the list updates; an invalid address is refused inline; a non-owner is told to connect the jar owner or ops Safe",
+      "evidence": "Screenshots of the allowlist before and after",
+      "role": "steward",
+      "tags": ["cookies", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-105",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Cookies",
+      "scenario": "Cookie jar routes are deployer-gated and the unconfigured factory is honest",
+      "preconditions": ["A steward identity that is not a deployer", "A deployer identity"],
+      "steps": [
+        "As the steward open /cookies and /cookies/deploy",
+        "As the deployer open both",
+        "Where the factory is not configured, read the empty state"
+      ],
+      "expected": "The steward gets an honest gate, never a blank shell; the deployer sees the jar list and the deploy form; a missing factory is explained instead of a broken form",
+      "evidence": "Screenshots of the gate and the deployer view",
+      "role": "steward",
+      "tags": ["cookies", "roles"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-106",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Certify",
+      "scenario": "Mint a hypercert from an assessment",
+      "preconditions": [
+        "Steward with manage rights",
+        "A garden with approved work attestations and an assessment"
+      ],
+      "steps": [
+        "Open /hub/certify, open the assessment, and press Open Mint Flow",
+        "Select attestations, fill the metadata, and set the distribution",
+        "Press Mint Hypercert and keep the tab open",
+        "Read the hypercert on /garden/impact"
+      ],
+      "expected": "The wizard blocks minting until the metadata is complete; progress walks upload metadata, upload allowlist, sign transaction, and confirm on-chain; a failure offers Retry Mint and names its cause; the minted hypercert appears on /garden/impact with its work scopes",
+      "evidence": "Recording of the mint and a screenshot of the hypercert",
+      "role": "steward",
+      "tags": ["certify", "hypercert", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-107",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Hub Work Review",
+      "scenario": "The work inspector blocks self-review and expired-action decisions",
+      "preconditions": [
+        "A steward's own pending submission",
+        "A pending submission for an action whose lifecycle window has ended"
+      ],
+      "steps": [
+        "Open the own submission in /hub/work",
+        "Open the expired-action submission",
+        "Read the action region of each"
+      ],
+      "expected": "The own submission shows the self-review block with no Approve or Reject; the expired action shows its block; neither offers a decision and the copy names why",
+      "evidence": "Screenshots of both blocked inspectors",
+      "role": "steward",
+      "tags": ["review", "permissions"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-108",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Shell",
+      "scenario": "Mobile chrome: the action button and bottom navigation reach the same acts",
+      "preconditions": ["Admin open at a phone width"],
+      "steps": [
+        "Open the floating action button and read its actions",
+        "Switch workspaces with the bottom navigation",
+        "Open the account sheet from the app bar"
+      ],
+      "expected": "The action button offers Submit work, Create assessment, and Create hypercert with the same gating as the desktop header; the bottom navigation switches workspaces; the account sheet shows identity, theme, language, and Disconnect",
+      "evidence": "Screenshots at phone width",
+      "role": "steward",
+      "tags": ["shell", "responsive"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
     }
   ]
 }

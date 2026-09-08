@@ -46,8 +46,8 @@ C21 No admin case covers submitting an assessment outside the journey relay: ADM
 | C15 principle | Applied through the splits above and the second pass below |
 | C16 N/A meaning | QA app N/A control now says "out of scope for this run" (page lane) |
 | C17 bug-encoding expectations | ADM-020, ADM-026 (+ locales), ADM-028, PUB-003, PUB-020, PUB-024 restated as intended behaviour; PWA-038 retired |
-| C18 admin grouped tx rows | Deferred to the post-Tuesday re-cut |
-| C19 areas | Deferred to the post-Tuesday re-cut; the second pass files its new rows under the target names (Garden, Home, Wallet, My Work, Work Submission, Commitments) |
+| C18 admin grouped tx rows | Third pass: ADM-020…025, 027, 028 retired into one row per act (see below) |
+| C19 areas | Still post-Tuesday; the second and third passes file new rows under target names (Garden, Home, Wallet, My Work, Work Submission, Commitments; Commitment Inspector, Settlement, Protocol Funding, Deployments) |
 | C20 missing read-only PWA rows | Second pass: PWA-097 (garden header + Work tab), PWA-098 (Insights), PWA-099 (Gardeners), PWA-100 (Pool tab), PWA-101 (commitment detail), PWA-102 (Commitments drawer); notifications on the garden page = PWA-094 |
 | C21 assessment submission | Added ADM-046 (P0 transaction) |
 
@@ -72,4 +72,54 @@ send for confirmation, join an open team. Still open for the post-Tuesday pass: 
 row on the desktop shell (only the iOS and Android review rows open one today); "Offer It Again"
 after a commitment expires; PWA-034 (proof composer) reads as one flow and stays; the
 `[iOS]`/`PWA-ROLE` prefix scheme (C14).
+
+## Third pass · admin, public website, docs (2026-09-07, `feature/qa-runs-catalog-third-pass`)
+
+A sweep of the 92 non-PWA rows against the admin router, the public route table, and the docs
+sidebar, with an act inventory read from the source. Wording fixes stay in place; grouped rows
+retire into one row per act; acts without a row get one.
+
+| Retired | Successors |
+|---|---|
+| ADM-020 garden settings | ADM-048 sequential field saves · ADM-049 banner upload, remove, undo · ADM-050 open joining and gardener cap · ADM-051 domain rule and dirty close |
+| ADM-021 members | ADM-052 batch add · ADM-053 remove · ADM-054 welcome · ADM-055 decline with reason |
+| ADM-022 pool lifecycle | ADM-056 set up · ADM-057 start and open a season · ADM-058 start and open a campaign · ADM-059 cancel a cycle · ADM-060 pause and resume · ADM-061 close · ADM-062 archive and reopen · ADM-063 edit settings · ADM-064 expire now |
+| ADM-023 endowment | ADM-066 deposit · ADM-067 withdraw · ADM-068 harvest · ADM-069 owner gates |
+| ADM-024 payouts jar | ADM-070 fund · ADM-071 claim · ADM-072 pause and resume · ADM-073 emergency withdraw · ADM-074 edit limit and cooldown |
+| ADM-025 commitment inspector | ADM-075 send for confirmation · ADM-076 fallback confirm · ADM-077 raise dispute · ADM-078 resolve · ADM-079 mark ready · ADM-080 attach assessment · ADM-081 cancel · ADM-082 count linked work |
+| ADM-027 coordination | ADM-090 create pools · ADM-091 strategies · ADM-092 register · ADM-093 allocate |
+| ADM-028 marketplace | ADM-094 approve and list · ADM-095 cancel listing |
+| ADM-029 chrome | ADM-096 garden switch · ADM-097 palette · ADM-098 notifications · ADM-099 view public |
+| ADM-009 actions | ADM-100 create · ADM-101 edit · ADM-102 validation |
+| ADM-010 cookies | ADM-103 deploy · ADM-104 allowlist · ADM-105 gating |
+| PUB-014 donate | PUB-035 donation · PUB-036 reject and close |
+| PUB-017 vault checkout | PUB-037 endow · PUB-038 Escape unlock |
+| PUB-020 cookies | PUB-039 deposit · PUB-040 deep link · PUB-041 disconnect |
+| PUB-021 install | PUB-049 desktop · PUB-050 mobile and Brave |
+| PUB-022 home | PUB-042 subscribe · PUB-043 schedule a call · PUB-044 accordion |
+| PUB-023 garden detail | PUB-026 (existing) · PUB-045 show more · PUB-046 Support handoff |
+| PUB-024 impact | PUB-047 filters and paging · PUB-048 evidence dialog and Cite |
+| DOCS-007 gardener guide | DOCS-014…017, one per page |
+| DOCS-008 steward guide | DOCS-018…023, one per page |
+| DOCS-009 funder guide | DOCS-024…026, one per page |
+| DOCS-010 evaluator guide | DOCS-020 (the guide it named does not exist) |
+| DOCS-012 builder pages | DOCS-027 journeys · DOCS-028 quality · DOCS-029 testing |
+| DOCS-013 reference | DOCS-030 FAQ and product history · DOCS-031 generated pages |
+
+Rows with no predecessor: ADM-065 decline a claim from the console; ADM-083…087 settlement plan,
+disbursements, gardener delivery; ADM-088, 089 protocol transfer cancel, dispatch, retry;
+ADM-106 mint a hypercert; ADM-107 self-review and expired-action blocks; ADM-108 mobile chrome;
+PUB-051 funding receipt; PUB-052 stale and ambiguous garden parameters; PUB-053 garden
+unavailable state; PUB-054 impact partial-data notes; PUB-055 action source dialog; DOCS-032
+deployment pages.
+
+Rewritten in place: ADM-019 (desktop identity lives in the account sheet; /profile renders
+nothing on desktop), PUB-001 (/cookies and /vaults are reachable only by direct link), PUB-010
+(an unknown route redirects home), PUB-031 (no on-site language switcher; the browser language
+drives the site).
+
+Product findings recorded for the owners, not test cases: /vaults and /cookies carry the
+heaviest public transactions yet neither the header nor the footer links to them; the public site
+has no 404 page; dead code in the client (the Landing subscribe form, the vault card-payment endow
+flow, VaultCardWalletManage) and the admin (GreenWillPanel) is unreachable from any route.
 
