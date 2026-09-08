@@ -162,8 +162,9 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
     right: 0,
     marginInline: "auto",
     zIndex: "var(--z-nav)",
-    gridTemplateColumns: `repeat(${desktopSlots.length}, var(--admin-nav-item-width-desktop, 5.875rem))`,
-    width: `min(calc(${desktopSlots.length} * var(--admin-nav-item-width-desktop, 5.875rem) + 0.75rem), calc(100vw - 2rem))`,
+    gridTemplateColumns: `repeat(${desktopSlots.length}, minmax(var(--admin-nav-item-width-desktop, 5.875rem), max-content))`,
+    maxWidth: "calc(100vw - 2rem)",
+    width: "fit-content",
   } as CSSProperties;
 
   return (
