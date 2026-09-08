@@ -1,5 +1,6 @@
 /** @vitest-environment jsdom */
 
+import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { fireEvent } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PullToRefresh } from "@/components/Inputs/PullToRefresh";
@@ -53,5 +54,46 @@ describe("PullToRefresh", () => {
     fireEvent.touchMove(surface, { touches: [{ clientY: 250 }] });
     fireEvent.touchEnd(surface);
     expect(onRefresh).not.toHaveBeenCalled();
+  });
+
+  it("leaves touches alone while a modal sheet holds the document scroll lock", async () => {
+    const onRefresh = vi.fn().mockResolvedValue(undefined);
+    function ModalSheet({ locked }: { locked: boolean }) {
+      useDocumentScrollLock(locked);
+      return (
+        <div role="dialog" aria-modal="true">
+          Your work
+        </div>
+      );
+    }
+    const { container, rerender } = renderWithProviders(
+      <PullToRefresh onRefresh={onRefresh}>
+        <ModalSheet locked />
+      </PullToRefresh>
+    );
+    const sheet = screen.getByRole("dialog");
+    const contentWrapper = container.firstElementChild!.lastElementChild as HTMLElement;
+
+    fireEvent.touchStart(sheet, { touches: [{ clientY: 0 }] });
+    // A downward move inside the sheet keeps its default: the sheet's own scroll survives.
+    expect(fireEvent.touchMove(sheet, { touches: [{ clientY: 250 }] })).toBe(true);
+    fireEvent.touchEnd(sheet);
+
+    expect(contentWrapper.style.transform).toBe("");
+    expect(screen.getByRole("status")).toHaveAccessibleName("Pull to refresh");
+    expect(onRefresh).not.toHaveBeenCalled();
+
+    // Once the sheet releases the lock the same gesture pulls again.
+    rerender(
+      <PullToRefresh onRefresh={onRefresh}>
+        <ModalSheet locked={false} />
+      </PullToRefresh>
+    );
+    fireEvent.touchStart(sheet, { touches: [{ clientY: 0 }] });
+    expect(fireEvent.touchMove(sheet, { touches: [{ clientY: 250 }] })).toBe(false);
+    expect(screen.getByRole("status")).toHaveAccessibleName("Release to refresh");
+    fireEvent.touchEnd(sheet);
+
+    await waitFor(() => expect(onRefresh).toHaveBeenCalledOnce());
   });
 });

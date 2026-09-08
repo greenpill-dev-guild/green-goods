@@ -1,3 +1,4 @@
+import { isDocumentScrollLocked } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiRefreshLine } from "@remixicon/react";
 import { type PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
@@ -126,6 +127,13 @@ export function PullToRefresh({
     const handleTouchStart = (e: TouchEvent) => {
       const { disabled: d, isRefreshing: r } = stateRef.current;
       if (d || r) return;
+
+      // A modal sheet rendered inside this wrapper (the work dashboard, the garden
+      // filter drawer) owns the document while it holds the scroll lock. Claiming its
+      // touches would cancel the sheet's own scroll in the non-passive touchmove below
+      // and translate the content wrapper, which re-contains the sheet's fixed overlay
+      // and pushes it off screen.
+      if (isDocumentScrollLocked()) return;
 
       const scrollContainer = getScrollContainer();
       const scrollTop = scrollContainer?.scrollTop ?? 0;

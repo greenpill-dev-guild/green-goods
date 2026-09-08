@@ -12,6 +12,15 @@ function reconcileDocumentScrollLock(): void {
 }
 
 /**
+ * True while at least one mounted owner holds the document scroll lock, i.e. a
+ * modal sheet or dialog currently owns the document and background gestures
+ * (such as pull-to-refresh) must stay inert.
+ */
+export function isDocumentScrollLocked(): boolean {
+  return documentScrollLockOwners.size > 0;
+}
+
+/**
  * Owns one share of the application-level document scroll lock.
  * The global class is removed only after the final mounted owner releases it.
  */
