@@ -1,7 +1,11 @@
 import type { CaptureResult } from "posthog-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { dropExtensionExceptions, initializePostHog } from "../../modules/app/posthog-browser";
+import {
+  dropDevelopmentHostExceptions,
+  dropExtensionExceptions,
+  initializePostHog,
+} from "../../modules/app/posthog-browser";
 import { restoreExceptionTopLevelProps } from "../../modules/app/posthog";
 
 const posthogMock = vi.hoisted(() => ({
@@ -113,18 +117,60 @@ describe("dropExtensionExceptions", () => {
   });
 });
 
+describe("dropDevelopmentHostExceptions", () => {
+  it("drops an exception raised on localhost", () => {
+    const event = makeEvent({
+      $current_url: "https://localhost:3001/?mockAuth=1&presentation=1",
+      $exception_list: [{ type: "TypeError", value: "Failed to fetch" }],
+    });
+
+    expect(dropDevelopmentHostExceptions(event)).toBeNull();
+  });
+
+  it("drops an exception raised on a loopback address", () => {
+    const event = makeEvent({
+      $current_url: "http://127.0.0.1:3001/gardens",
+      $exception_list: [{ type: "TypeError", value: "Failed to fetch" }],
+    });
+
+    expect(dropDevelopmentHostExceptions(event)).toBeNull();
+  });
+
+  it("keeps an exception raised on the production host", () => {
+    const event = makeEvent({
+      $current_url: "https://www.greengoods.app/gardens",
+      $exception_list: [{ type: "TypeError", value: "Failed to fetch" }],
+    });
+
+    expect(dropDevelopmentHostExceptions(event)).toBe(event);
+  });
+
+  it("passes non-exception events through untouched", () => {
+    const event = makeEvent({ $current_url: "https://localhost:3001/" }, "$pageview");
+    expect(dropDevelopmentHostExceptions(event)).toBe(event);
+  });
+
+  it("handles a null event safely", () => {
+    expect(dropDevelopmentHostExceptions(null)).toBeNull();
+  });
+});
+
 describe("initializePostHog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("chains compatibility restoration before extension filtering", () => {
+  it("drops development-host exceptions before restoring and extension filtering", () => {
     initializePostHog("test-project-key");
 
     expect(posthogMock.init).toHaveBeenCalledWith(
       "test-project-key",
       expect.objectContaining({
-        before_send: [restoreExceptionTopLevelProps, dropExtensionExceptions],
+        before_send: [
+          dropDevelopmentHostExceptions,
+          restoreExceptionTopLevelProps,
+          dropExtensionExceptions,
+        ],
       })
     );
   });
