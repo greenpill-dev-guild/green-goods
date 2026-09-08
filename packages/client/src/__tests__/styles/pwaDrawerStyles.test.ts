@@ -24,6 +24,7 @@ const requiredSlots: (keyof PwaDrawerStyle)[] = [
   "closeIcon",
   "workFeedbackDrawer",
   "workActionBar",
+  "workActionBarStandalone",
   "workCloseButton",
 ];
 
@@ -55,5 +56,14 @@ describe("pwaDrawerStyles", () => {
     expect(parsePwaCssDurationToMs("300ms")).toBe(300);
     expect(parsePwaCssDurationToMs("0.3s")).toBe(300);
     expect(parsePwaCssDurationToMs("")).toBe(0);
+  });
+
+  it("keeps the open feedback drawer and action bar on one continuous surface", () => {
+    expect(pwaDrawerStyles.workFeedbackDrawer).toContain("rounded-t-[var(--radius-lg)]");
+    expect(pwaDrawerStyles.workFeedbackDrawer).toContain("border-b-0");
+    expect(pwaDrawerStyles.workActionBar).not.toContain("rounded-t-");
+    expect(pwaDrawerStyles.workActionBar).not.toContain("border-t");
+    expect(pwaDrawerStyles.workActionBar).not.toContain("shadow-");
+    expect(pwaDrawerStyles.workActionBarStandalone).toContain("rounded-t-[var(--radius-lg)]");
   });
 });

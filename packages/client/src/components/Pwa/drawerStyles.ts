@@ -20,6 +20,7 @@ export interface PwaDrawerStyle {
   closeIcon: string;
   workFeedbackDrawer: string;
   workActionBar: string;
+  workActionBarStandalone: string;
   workCloseButton: string;
 }
 
@@ -49,8 +50,9 @@ export const pwaDrawerStyles = {
     "text-text-soft-400 transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] group-focus-visible:text-primary group-active:text-primary",
   workFeedbackDrawer:
     "absolute bottom-full left-0 right-0 bg-[var(--color-material-solid)] rounded-t-[var(--radius-lg)] shadow-[var(--shadow-float)] border border-stroke-soft-200 border-b-0 overflow-hidden transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)] origin-bottom",
-  workActionBar:
-    "bg-[var(--color-material-solid)] border-t border-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-float)]",
+  workActionBar: "bg-[var(--color-material-solid)] overflow-hidden",
+  workActionBarStandalone:
+    "border-t border-stroke-soft-200 rounded-t-[var(--radius-lg)] shadow-[var(--shadow-float)]",
   workCloseButton:
     "rounded-[var(--radius-md)] text-text-soft-400 transition-[color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:text-text-strong-950 focus:outline-none focus-visible:shadow-button-primary-focus active:text-primary active:scale-95",
 } satisfies PwaDrawerStyle;

@@ -79,7 +79,8 @@ vi.mock("../../views/Home/Garden/WorkViewSection", () => ({
       "div",
       { "data-testid": "work-view-mode" },
       String(props.viewingMode ?? ""),
-      props.fulfills as React.ReactNode
+      props.fulfills as React.ReactNode,
+      props.footer as React.ReactNode
     );
   },
 }));
@@ -277,6 +278,72 @@ describe("Home garden work detail", () => {
     );
 
     expect(screen.getByTestId("work-view-mode")).toHaveTextContent("steward");
+    expect(screen.getByTestId("work-approval-action-bar")).toHaveClass(
+      "rounded-t-[var(--radius-lg)]"
+    );
+  });
+
+  it("joins rejection feedback and actions into one reachable surface", () => {
+    const setInlineFeedback = vi.fn();
+    const handleCancelFeedback = vi.fn();
+    mockUseWorkDetailController.mockReturnValue({
+      ...mockUseWorkDetailController(),
+      feedbackMode: "reject",
+      inlineFeedback: "",
+      setInlineFeedback,
+      handleCancelFeedback,
+      viewingMode: "steward",
+      work: {
+        id: "work-1",
+        actionUID: "1",
+        gardenerAddress: "0x2222222222222222222222222222222222222222",
+        status: "pending",
+        createdAt: Date.now(),
+        media: [],
+      },
+    });
+
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/home/garden-1/work/work-1"] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {} },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, {
+              path: "/home/:id/work/:workId",
+              element: createElement(GardenWork),
+            })
+          )
+        )
+      )
+    );
+
+    const feedbackDrawer = screen.getByTestId("work-feedback-drawer");
+    const actionBar = screen.getByTestId("work-approval-action-bar");
+    const feedback = screen.getByRole("textbox", { name: "Feedback" });
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+
+    expect(feedbackDrawer).toHaveClass("rounded-t-[var(--radius-lg)]", "border-b-0");
+    expect(actionBar).not.toHaveClass(
+      "rounded-t-[var(--radius-lg)]",
+      "border-t",
+      "shadow-[var(--shadow-float)]"
+    );
+    expect(screen.getByRole("button", { name: "Submit" })).toBeDisabled();
+
+    feedback.focus();
+    expect(feedback).toHaveFocus();
+    fireEvent.change(feedback, { target: { value: "Please add a clearer completion photo." } });
+    expect(setInlineFeedback).toHaveBeenCalledWith("Please add a clearer completion photo.");
+
+    cancel.focus();
+    expect(cancel).toHaveFocus();
+    fireEvent.click(cancel);
+    expect(handleCancelFeedback).toHaveBeenCalledTimes(1);
   });
 
   it.each([

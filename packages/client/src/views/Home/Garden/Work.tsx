@@ -159,6 +159,7 @@ export const GardenWork: React.FC = () => {
         <div className="fixed left-0 right-0 bottom-0 z-modal">
           {/* Feedback Drawer - Slides up from behind the footer bar */}
           <div // eslint-disable-line jsx-a11y/no-noninteractive-element-interactions -- dialog surface; handler stops propagation and closes on Escape
+            data-testid="work-feedback-drawer"
             className={cn(
               pwaDrawerStyles.workFeedbackDrawer,
               feedbackMode ? "translate-y-0" : "translate-y-full"
@@ -244,8 +245,10 @@ export const GardenWork: React.FC = () => {
 
           {/* Action Bar - Always visible */}
           <div
+            data-testid="work-approval-action-bar"
             className={cn(
               pwaDrawerStyles.workActionBar,
+              !feedbackMode && pwaDrawerStyles.workActionBarStandalone,
               "p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] relative"
             )}
           >
