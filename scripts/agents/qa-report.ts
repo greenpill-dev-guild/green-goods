@@ -283,7 +283,10 @@ function compareStanding(
   for (const [retiredId, successors] of Object.entries(replacedBy)) {
     if (!hasEntries(previous.entries[retiredId])) continue;
     for (const successor of successors) {
-      if (!active.has(successor) || hasEntries(previous.entries[successor])) continue;
+      // A successor with its own baseline verdict inherits nothing. A note-only
+      // successor row is walked but undecided, so a Fail or Blocked on the
+      // retired predecessor still carries over (mirrors the page's comparedStatus).
+      if (!active.has(successor) || rollupVerdict(previous.entries[successor])) continue;
       // Several retired ids can converge on one successor (PUB-004 and PUB-005
       // both lead to PUB-014). Merge every predecessor's entries under keys
       // that name their source, so the rollup sees all of them and the most
@@ -759,6 +762,13 @@ export async function runReport(
       // A later run passed as the baseline would read every fix as a regression.
       if (previousState.run && state.run && previousState.run.n >= state.run.n) {
         throw new Error("--previous must name an earlier run than qa-state.json");
+      }
+      // A snapshot pulled while its run was still open can miss verdicts recorded
+      // before the close, which the delta would then read as newly walked or fixed.
+      if (previousState.run && !previousState.run.closedAt) {
+        throw new Error(
+          `--previous was pulled while ${previousState.run.id} was still open — pull the closed run with qa:pull --run ${previousState.run.id} and try again`,
+        );
       }
       previous = { path: options.previous, entries: previousState.entries, run: previousState.run };
     }

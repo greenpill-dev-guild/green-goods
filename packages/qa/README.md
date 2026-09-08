@@ -25,6 +25,12 @@ and a laptop on admin at once. Three things make that safe:
 - The poll adopts your own entries too, but rejects an own-entry snapshot that began before a local
   edit was confirmed. That lets the phone and laptop converge without allowing a slow GET to roll
   the UI back after `saved ✓`.
+- Every save and every rollover runs under one **store lock** (`qa/lock.json`, a create-only
+  object with an eight-second lease). A save validates its run and writes its shard under the same
+  lease a rollover takes to close that run, so a run cannot close between the check and the write,
+  and one tester's two clients never interleave. A lease that outlives its holder is taken over
+  conditionally; a holder whose lease ran out never deletes what may already be someone else's.
+  Contention is a few polls, then a 503 the page answers by keeping its outbox and retrying.
 
 Ordering is by **arrival at the server**, which restamps every entry it stores. Client clocks are
 never trusted: a device an hour fast would otherwise win every comparison forever, silently dropping

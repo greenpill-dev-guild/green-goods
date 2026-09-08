@@ -114,3 +114,22 @@
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- scripts/data docs/docs/builders/quality .plans/active/qa-runs` → `` (empty before this receipt was written)
 - Evidence-only diff command and result (if applicable): not applicable
 - Evidence-only worktree-status command and result (if applicable): not applicable
+
+## Review fixes (2026-09-08, `feature/qa-runs-review-fixes`)
+
+- Branch stacked on `feature/qa-runs-area-recut`; the PR targets that branch. Merge order: review fixes → area re-cut → third pass → PWA split → `feature/qa-runs` → `develop`.
+- Store: `qa/lock.json` lease (create-only, 8 s, conditional takeover when expired, holder never deletes an expired lease) taken by every save and every rollover in `store.ts` (`acquireStoreLock`, `releaseStoreLock`, `withStoreLock`), `api/state.ts` (index read, run check, shard write under the lease), and `api/runs.ts` (index read and conditional write under the lease). Lease timing is overridable through `QA_STORE_LOCK_TTL_MS`, `QA_STORE_LOCK_RETRY_MS`, `QA_STORE_LOCK_ATTEMPTS` for tests. The post-write restore and re-target stays as defence in depth.
+- Scripts and page: `qa:status` prints `Run N`; the page and `qa:report` inherit a retired Fail past a note-only successor; `qa:report` refuses an open baseline.
+- Catalog: sixteen rows corrected from the Codex threads on #806 and #807; PWA-103 and ADM-109 added; DOCS-010 lost its unrelated successor. Active 264, ledger 314.
+- Own pass (the reviewer agents died on a rate limit): `auth.ts` (session HMAC, allowlist re-read per request, origin check, SIWE domain and nonce binding), `runs.ts` (rollover assumes the open run is newest, enforced by `runIndexShapeError`), the page's outbox keying, adoption, re-keying, and `postDelta` 409 and re-target paths. No further defects found.
+
+### Validation Receipt
+
+- Tested implementation commit SHA: `c56b9e908f3a358f3fd74b49c3168a29e1784cb6`
+- Run at (UTC): `2026-09-08T07:55Z`
+- Exact command(s): `node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts && bun run test:review-guardrails && bun run check:docs-generated && bun run check:guidance-links && node scripts/quality/check-qa-id-ledger.mjs --base feature/qa-runs-area-recut && node scripts/harness/plan-hub.mjs validate qa-runs && node packages/qa/build.mjs`
+- Result: `push gate: format, lint, validation-system-test, docs-authority, agent-guidance, qa-id-ledger (314 ids), agent-tools-test (11 files, 254 tests) passed; browser-proof blocked: the authenticated Brave QA profile was unreachable through the Claude-in-Chrome extension; review guardrails 205 passed, 0 failed; 18 projections current; 61 guidance files OK; ledger clean against the area re-cut; 31 hubs valid; qa build 264 active cases`
+- Validated paths: `packages/qa, scripts/agents, scripts/data, docs/docs/builders/quality, .plans/active/qa-runs`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/qa scripts/agents scripts/data docs/docs/builders/quality .plans/active/qa-runs` → `` (empty before this receipt was written)
+- Evidence-only diff command and result (if applicable): not applicable
+- Evidence-only worktree-status command and result (if applicable): not applicable

@@ -10,7 +10,6 @@
 
 import { readFileSync } from "node:fs";
 
-import { describeRun } from "../../packages/qa/runs";
 import { loadCatalog, type CatalogCase } from "./qa-workbook-build";
 import {
   mergeShards,
@@ -37,10 +36,16 @@ interface ReportOptions {
   run?: RunSummary;
 }
 
-/** "Open run: Run 2 · Re-QA 2026-09-08 · beta · opened 2026-09-08T15:00:00.000Z" */
+/**
+ * "Open run: Run 2 · beta · opened 2026-09-08T15:00:00.000Z"
+ *
+ * The run label is free text a tester typed and this report is the
+ * privacy-safe projection, so only the run number, environment, and
+ * timestamps are printed — the same projection the public report uses.
+ */
 export function runLine(run: RunSummary): string {
   const state = run.closedAt ? `closed ${run.closedAt}` : `opened ${run.openedAt}`;
-  return `${run.closedAt ? "Run" : "Open run"}: ${describeRun(run)} · ${run.environment} · ${state}${run.legacy ? " · migrated baseline" : ""}`;
+  return `${run.closedAt ? "Run" : "Open run"}: Run ${run.n} · ${run.environment} · ${state}${run.legacy ? " · migrated baseline" : ""}`;
 }
 
 export interface StaleCase {

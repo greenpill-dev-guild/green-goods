@@ -102,7 +102,7 @@ retire into one row per act; acts without a row get one.
 | DOCS-007 gardener guide | DOCS-014…017, one per page |
 | DOCS-008 steward guide | DOCS-018…023, one per page |
 | DOCS-009 funder guide | DOCS-024…026, one per page |
-| DOCS-010 evaluator guide | DOCS-020 (the guide it named does not exist) |
+| DOCS-010 evaluator guide | none: the guide it named does not exist, and DOCS-020 covers only the assessment steps, so no successor inherits its verdicts (review fix) |
 | DOCS-012 builder pages | DOCS-027 journeys · DOCS-028 quality · DOCS-029 testing |
 | DOCS-013 reference | DOCS-030 FAQ and product history · DOCS-031 generated pages |
 
@@ -135,6 +135,26 @@ re-sorted into walking order (tab → active first → area → desktop shell be
 | Admin Dashboard (98) | Shell (7) · App-wide (9) · Hub · Work (9) · Hub · Assess (3) · Hub · Certify (2) · Hub · Confirm (2) · Garden · Lifecycle (2) · Garden · Settings (4) · Garden · Pool (15) · Garden · Commitment (8) · Garden · Settlement (7) · Garden · Impact (2) · Community · Members (4) · Community · Coordination (8) · Community · Endowment (5) · Community · Payouts (5) · Actions (3) · Cookies (3) |
 | Public Website (45) | Site-wide (7) · Home (3) · Gardens (10) · Fund (8) · Vaults (3) · Cookies (5) · Impact (4) · Actions (2) · Glossary (1) · Install (2) |
 | Docs (26) | Site (6) · Gardener Guide (4) · Steward Guide (6) · Funder Guide (3) · Builder Docs (5) · Reference (2) |
+
+## Review corrections (2026-09-08, `feature/qa-runs-review-fixes`, PR #810)
+
+The Codex review of #806 and #807 read fourteen rows against the source and found steps that the UI
+cannot perform or expectations the code contradicts. All were corrected in place, and two rows split
+once more: PWA-086 is now accept only with PWA-103 for decline, and ADM-084 is now the
+garden-beneficiary plan with ADM-109 for the contributor-consideration plan (the two plan kinds never
+coexist on one plan). Other corrections: PWA-067 needs touch input (pull to refresh listens to touch
+only); PWA-069 must start from an address that will not also trigger the ENS reminder; PWA-088 and
+PWA-089 route individual confirmers through Live, since To confirm is for garden stewards; PWA-090
+fails the send by rejecting the wallet prompt, since Send is disabled offline; PWA-094 allows the
+shortened-address fallback for an unnamed gardener; PWA-102 expects a badge only for pending acts;
+ADM-062 expects the setup state after reopening a pool; ADM-082 verifies idempotence by reload, since
+the count control disappears after readback; ADM-085 and ADM-089 test dispatched rows with Retry and
+failed rows with Requeue separately, and a rejected wallet prompt leaves a row unchanged; ADM-108
+uses the bottom navigation's Profile tab on a phone; PUB-051 needs the receipt token fragment;
+DOCS-010 lost its unrelated successor. The same review round fixed the store: saves and rollovers
+now serialize on a store lock, `qa:status` no longer prints the free-form run label, the page and
+`qa:report` inherit a retired Fail past a note-only successor row, and `qa:report` refuses a
+baseline pulled while its run was still open.
 
 Rules applied: cross-cutting quality rows (routing, locale, vocabulary, keyboard, themes,
 performance, identity, error recovery) sit under App-wide or Site-wide rather than a one-row area;

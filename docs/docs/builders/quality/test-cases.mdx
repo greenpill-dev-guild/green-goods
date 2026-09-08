@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:1b8f7883a05c16895c1b020c00c55844394c36d054798db43787010f077fb5e4"
+source_digest: "sha256:84526e7f7cc953cc3285ce9545edc74d22416136850b68527749efc1d9cea65c"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -213,7 +213,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 
 ## PWA
 
-### P0 — run these first (36) {#pwa-p0}
+### P0 — run these first (37) {#pwa-p0}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -233,12 +233,13 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-079` | Transaction | Work | Link a work submission to a commitment requirement from the wizard | Screenshots of the selection and the linked work on the commitment |
 | `PWA-084` | Transaction | Commitments | Take up an open commitment | Screenshots before and after the take-up |
 | `PWA-085` | Transaction | Commitments | Ask to take up an approval-gated commitment and read the pending claim | Screenshot of the pending claim |
-| `PWA-086` | Transaction | Commitments | Steward accepts one claim request and declines another with a reason | Screenshots of the accepted and declined claims |
+| `PWA-086` | Transaction | Commitments | Steward accepts a claim request | Screenshots of the request and the accepted claim |
 | `PWA-087` | Transaction | Commitments | Withdraw an own commitment with a reason | Screenshot of the withdrawn band |
 | `PWA-088` | Transaction | Commitments | Send a commitment for confirmation after its evidence | Screenshot of the ready-for-confirmation band |
 | `PWA-089` | Transaction | Commitments | Confirm a commitment was kept from the confirm sheet | Screenshot of the kept sheet |
 | `PWA-090` | Transaction | Commitments | Not yet: dispute a commitment with a reason, keeping the sheet on failure | Screenshots of the failed and landed states |
 | `PWA-091` | Transaction | Commitments | Link existing work to a commitment requirement from the Link Work dialog | Screenshot of the linked work under the requirement |
+| `PWA-103` | Transaction | Commitments | Steward declines a claim request with a reason | Screenshots of the decline and the requester's view |
 | `PWA-AND-001` | Journey | Install | [Android] Fresh Android install launches standalone | Screen recording |
 | `PWA-AND-002` | Resilience | Update | [Android] Existing Android install updates without split state | Screen recording |
 | `PWA-AND-004` | Transaction | Offline | Offline queue survives app close and reconnect | Screen recording plus queue/status screenshot |
@@ -323,7 +324,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 
 ## Admin Dashboard
 
-### P0 — run these first (36) {#admin-dashboard-p0}
+### P0 — run these first (37) {#admin-dashboard-p0}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -360,9 +361,10 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-077` | Transaction | Garden · Commitment | Raise a dispute with a reason from the inspector | Screenshots of the dispute dialog and the disputed band |
 | `ADM-078` | Transaction | Garden · Commitment | Resolve a dispute with each outcome | Screenshots of the four resolved bands |
 | `ADM-083` | Transaction | Garden · Settlement | Create and finalize a payout plan for a fulfilled commitment | Screenshots of the review step and the pending plan |
-| `ADM-084` | Transaction | Garden · Settlement | Prepare the garden payout and a contributor payout | Screenshot of the disbursements table |
-| `ADM-085` | Transaction | Garden · Settlement | Dispatch a disbursement, then retry or requeue a failed one | Screenshots of the failed row and the completed plan |
+| `ADM-084` | Transaction | Garden · Settlement | Prepare the garden payout on a garden-beneficiary plan | Screenshot of the disbursements table |
+| `ADM-085` | Transaction | Garden · Settlement | Dispatch a disbursement, then retry or requeue a failed one | Screenshots of the dispatched row and the plan status |
 | `ADM-106` | Transaction | Hub · Certify | Mint a hypercert from an assessment | Recording of the mint and a screenshot of the hypercert |
+| `ADM-109` | Transaction | Garden · Settlement | Prepare a contributor payout on a contributor-consideration plan | Screenshot of the disbursements table |
 
 ### P1 (53) {#admin-dashboard-p1}
 
@@ -499,7 +501,7 @@ Retired cases never ship to a run sheet, but their IDs stay reserved and their h
 | `DOCS-007` | Docs · Gardener guide walks true against the live PWA (joining, uploading work, offline sync, track status) | 2026-09-07 | Split into one row per gardener guide page so drift is tracked per page | `DOCS-014`, `DOCS-015`, `DOCS-016`, `DOCS-017` |
 | `DOCS-008` | Docs · Steward guide walks true against the live admin (create garden, review work, assessments, actions/payouts/endowments) | 2026-09-07 | Split into one row per steward guide page so drift is tracked per page | `DOCS-018`, `DOCS-019`, `DOCS-020`, `DOCS-021`, `DOCS-022`, `DOCS-023` |
 | `DOCS-009` | Docs · Funder guide walks true against the editorial funding surfaces (donate, fund, vaults, withdraw) — read-only | 2026-09-07 | Split into one row per funder guide page | `DOCS-024`, `DOCS-025`, `DOCS-026` |
-| `DOCS-010` | Docs · Evaluator guide holds: in-product assessment steps plus runnable query-eas / query-indexer / export instructions | 2026-09-07 | The evaluator guide with runnable query samples does not exist in the docs tree; the in-product assessment steps live in the steward guide | `DOCS-020` |
+| `DOCS-010` | Docs · Evaluator guide holds: in-product assessment steps plus runnable query-eas / query-indexer / export instructions | 2026-09-07 | The evaluator guide with runnable query samples does not exist in the docs tree; the in-product assessment steps live in the steward guide | — |
 | `DOCS-012` | Docs · Builder journeys and quality pages describe shipped reality | 2026-09-07 | Split by page group: journeys, quality, testing | `DOCS-027`, `DOCS-028`, `DOCS-029` |
 | `DOCS-013` | Docs · Reference layer truth: FAQ, changelog, generated ontology/claims pages, glossary consistency | 2026-09-07 | Split by check: FAQ and product history, generated pages; the changelog now redirects to product history | `DOCS-030`, `DOCS-031` |
 | `PUB-004` | Public Website · Fund page and funding dialog render without provider crash | 2026-08-29 | Superseded by the end-to-end funding walks in catalog v2 | `PUB-014`, `PUB-030` |

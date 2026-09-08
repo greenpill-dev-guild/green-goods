@@ -12,7 +12,9 @@
  * partner's entry". Correctness beats the cache here; the payloads are small.
  */
 
-import { BlobPreconditionFailedError, get, put } from "@vercel/blob";
+import { randomUUID } from "node:crypto";
+
+import { BlobPreconditionFailedError, del, get, put } from "@vercel/blob";
 
 import {
   FIRST_RUN_ID,
@@ -305,4 +307,113 @@ export async function ensureRunIndex(
   const created = await readRunIndex();
   if (!created) throw new StoreError("the run index could not be created", "index absent after create");
   return created;
+}
+
+/**
+ * The store lock: one lease that every save and every rollover takes before
+ * reading the run index and writing.
+ *
+ * Sharding keeps testers from clobbering each other, and ETags keep one
+ * tester's two clients from clobbering themselves, but neither orders a save
+ * against a rollover: a save could validate its run against an index read
+ * moments before a teammate closed that run, then write into the closed
+ * shard. Blob has no transaction, so the serialization point is a create-only
+ * object: whoever creates `qa/lock.json` holds the store until they delete it.
+ * The lease carries an expiry so a function that died mid-save cannot wedge
+ * the store; a caller that finds an expired lease takes it over with a
+ * conditional overwrite, and a holder whose own lease ran out never deletes
+ * what may already be someone else's. Contention is a few polls, then a 503
+ * the page answers by keeping its outbox and retrying.
+ */
+export const STORE_LOCK_PATH = "qa/lock.json";
+
+export interface StoreLock {
+  token: string;
+  expiresAt: number;
+}
+
+export interface StoreLockOptions {
+  /** How long one lease lasts. Longer than any save, far shorter than a session. */
+  ttlMs?: number;
+  /** How long to wait between polls of a held lease. */
+  retryMs?: number;
+  /** How many polls before giving up with "busy". */
+  attempts?: number;
+}
+
+function envNumber(name: string, fallback: number): number {
+  const raw = process.env[name];
+  const value = raw === undefined || raw === "" ? Number.NaN : Number(raw);
+  return Number.isFinite(value) && value >= 0 ? value : fallback;
+}
+
+function parseLock(text: string): StoreLock | null {
+  try {
+    const parsed = JSON.parse(text) as Partial<StoreLock>;
+    if (typeof parsed?.token !== "string" || typeof parsed.expiresAt !== "number") return null;
+    return { token: parsed.token, expiresAt: parsed.expiresAt };
+  } catch {
+    return null;
+  }
+}
+
+export async function acquireStoreLock(options: StoreLockOptions = {}): Promise<StoreLock> {
+  const ttlMs = options.ttlMs ?? envNumber("QA_STORE_LOCK_TTL_MS", 8_000);
+  const retryMs = options.retryMs ?? envNumber("QA_STORE_LOCK_RETRY_MS", 120);
+  const attempts = Math.max(1, options.attempts ?? envNumber("QA_STORE_LOCK_ATTEMPTS", 40));
+  const token = randomUUID();
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const lease: StoreLock = { token, expiresAt: Date.now() + ttlMs };
+    const body = JSON.stringify(lease);
+    let outcome: "created" | "exists";
+    try {
+      outcome = await putCreateOnly(STORE_LOCK_PATH, body);
+    } catch (error) {
+      // A create that failed and could not be confirmed as "exists" is most
+      // often a lease deleted between the two calls. Poll again rather than
+      // failing a save on it; a real outage still ends in the busy answer.
+      console.error("qa/store: lock create could not be confirmed", error);
+      outcome = "exists";
+    }
+    if (outcome === "created") return lease;
+    const held = await readText(STORE_LOCK_PATH, "the store lock could not be read");
+    if (held) {
+      const current = parseLock(held.text);
+      if (!current || current.expiresAt <= Date.now()) {
+        // The holder died or overran its lease. Take it over conditionally so
+        // two waiters cannot both believe they did.
+        try {
+          await putConditional(STORE_LOCK_PATH, body, held.etag);
+          return lease;
+        } catch (error) {
+          if (!(error instanceof BlobPreconditionFailedError)) throw error;
+        }
+      }
+    }
+    if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, retryMs));
+  }
+  throw new StoreError("the store is busy saving elsewhere — try again", "lock contention");
+}
+
+export async function releaseStoreLock(lock: StoreLock): Promise<void> {
+  // A lease that ran out may already be somebody else's; only a live holder deletes.
+  if (lock.expiresAt <= Date.now()) return;
+  try {
+    const held = await readText(STORE_LOCK_PATH, "the store lock could not be read");
+    if (!held || parseLock(held.text)?.token !== lock.token) return;
+    await del(STORE_LOCK_PATH);
+  } catch (error) {
+    // Nothing to do for the caller: the lease expires on its own.
+    console.error("qa/store: the store lock could not be released", error);
+  }
+}
+
+/** Run one unit of store work under the lease, releasing it however the work ends. */
+export async function withStoreLock<T>(work: () => Promise<T>, options?: StoreLockOptions): Promise<T> {
+  const lock = await acquireStoreLock(options);
+  try {
+    return await work();
+  } finally {
+    await releaseStoreLock(lock);
+  }
 }

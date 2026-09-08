@@ -803,9 +803,16 @@
       "kind": "journey",
       "area": "Fund",
       "scenario": "The funding receipt renders from the intent parameter",
-      "preconditions": ["A completed donation with its intent id (PUB-035)"],
-      "steps": ["Open /fund?intent=<id>", "Read the receipt block", "Press Back to Fund"],
-      "expected": "The receipt shows intent, amount, status, transaction, and receiver, or honest loading and error states; the garden banner is suppressed; Back to Fund returns to the grid",
+      "preconditions": [
+        "A funding-intent receipt URL carrying its #receiptToken fragment, from a checkout that issues one or seeded for the test"
+      ],
+      "steps": [
+        "Open the full receipt URL with its token",
+        "Read the receipt block",
+        "Open /fund?intent=<id> without the token",
+        "Press Back to Fund"
+      ],
+      "expected": "With the token the receipt shows intent, amount, status, transaction, and receiver, with honest loading and error states; without it the receipt reports the missing token instead of pretending; the garden banner is suppressed either way; Back to Fund returns to the grid",
       "evidence": "Screenshot of the receipt",
       "role": "none",
       "tags": ["funding", "routing"],
@@ -1703,7 +1710,11 @@
       "kind": "resilience",
       "area": "Home",
       "scenario": "Pull to refresh the garden list online, then read the paused notice offline",
-      "preconditions": ["Authenticated session", "DevTools network panel to toggle offline"],
+      "preconditions": [
+        "Authenticated session",
+        "A touch screen, or the DevTools device toolbar with touch emulation: pull to refresh listens to touch only",
+        "DevTools network panel to toggle offline"
+      ],
       "steps": [
         "On Home, pull the garden list down to refresh while online",
         "Toggle the network offline and pull again",
@@ -1750,6 +1761,7 @@
       "scenario": "Arrival toast names the signed-in state and its action lands",
       "preconditions": [
         "Authenticated session in a fresh browser tab (the toast fires once per tab session per address)",
+        "An address that already has a Green Goods name, or that dismissed the ENS reminder before, so only the arrival toast fires (PWA-095 covers the reminder)",
         "A known state to arrive in: queued work, a saved draft, pending reviews as a steward, or none of these"
       ],
       "steps": [
@@ -1931,7 +1943,7 @@
         "Open a pending item",
         "Open the garden as the plain member"
       ],
-      "expected": "The bell shows a filled icon with the pending count; the Notifications drawer lists each pending work with the gardener's name and the garden; an item opens the work detail; the plain member sees no bell",
+      "expected": "The bell shows a filled icon with the pending count; the Notifications drawer lists each pending work with the gardener's name where one resolves, otherwise their shortened address, and the garden; an item opens the work detail; the plain member sees no bell",
       "evidence": "Screenshot of the drawer and badge",
       "role": "steward",
       "tags": ["garden", "review"],
@@ -2717,8 +2729,8 @@
       "area": "Commitments",
       "scenario": "Commitments drawer groups live and settled acts by garden, with To confirm for stewards",
       "preconditions": [
-        "Gardener with live and settled commitments in two gardens",
-        "Steward identity with a commitment waiting on their confirmation"
+        "Gardener with live and settled commitments in two gardens, at least one live commitment waiting on their act",
+        "Steward identity with a commitment waiting on the garden's confirmation"
       ],
       "steps": [
         "Open the Commitments drawer from Home and read the Live tab",
@@ -2726,7 +2738,7 @@
         "Read History",
         "Open the drawer as the steward and read To confirm"
       ],
-      "expected": "Live and History carry counts and group rows under garden names, with an 'Other' group for rows without a garden; the chips narrow by direction; a row closes the drawer and opens the commitment in its garden; History shows kept and lapsed counts per garden; To confirm appears only for a steward and lists what waits on them; empty tabs say so",
+      "expected": "Live carries a count only while acts wait on you, and History carries no badge; both group rows under garden names, with an 'Other' group for rows without a garden; the chips narrow by direction; a row closes the drawer and opens the commitment in its garden; History shows kept and lapsed counts per garden; To confirm appears only for a steward and lists what waits on their garden; empty tabs say so",
       "evidence": "Screenshots of the three tabs",
       "role": "gardener",
       "tags": ["commitments", "home"],
@@ -2861,23 +2873,48 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Commitments",
-      "scenario": "Steward accepts one claim request and declines another with a reason",
+      "scenario": "Steward accepts a claim request",
       "preconditions": [
         "Steward of the pool's garden",
-        "Two pending claim requests from different gardeners (PWA-085 twice)"
+        "A pending claim request on an approval-gated commitment (PWA-085)"
       ],
       "steps": [
-        "Open the first commitment and press Accept on its request",
-        "Open the second and press Decline with an empty reason, then with one",
-        "Read both commitments as the requesting gardeners"
+        "Open the commitment and read the request in the claim panel",
+        "Press Accept",
+        "Read the commitment as the requesting gardener"
       ],
-      "expected": "Accept makes the requester the provider and moves the band on; Decline is disabled until a reason is typed and then records the reason on the claim; each requester sees the accepted or declined state, with the reason where declined",
-      "evidence": "Screenshots of the accepted and declined claims",
+      "expected": "Accept is offered only to a steward of the pool's garden; it sends one transaction; the requester becomes the provider and the band moves on; the requester's app shows the accepted claim",
+      "evidence": "Screenshots of the request and the accepted claim",
       "role": "steward",
       "tags": ["commitments", "claim", "tx"],
       "requiresProduction": false,
       "status": "active",
       "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-103",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "Steward declines a claim request with a reason",
+      "preconditions": [
+        "Steward of the pool's garden",
+        "A pending claim request on an approval-gated commitment (PWA-085)"
+      ],
+      "steps": [
+        "Open the commitment and press Decline with an empty reason",
+        "Type a reason and press Decline",
+        "Read the commitment as the requesting gardener"
+      ],
+      "expected": "Decline is disabled until a reason is typed; it sends one transaction and records the reason on the claim; the requester's app shows the declined state with the reason and the commitment stays open for other claims",
+      "evidence": "Screenshots of the decline and the requester's view",
+      "role": "steward",
+      "tags": ["commitments", "claim", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-review-fixes-2026-09-08"
     },
     {
       "id": "PWA-087",
@@ -2939,9 +2976,9 @@
         "Open the commitment",
         "Press Send for Confirmation",
         "Read the band",
-        "Open the Commitments drawer as its confirmer"
+        "Open the Commitments drawer as its confirmer: To confirm when a garden confirms through its stewards, Live when a person confirms"
       ],
-      "expected": "The bar offers 'Send for Confirmation' only to the provider once evidence exists; the act queues and lands; the band moves to ready for confirmation and names who confirms next; the confirmer's drawer counts it under To confirm",
+      "expected": "The bar offers 'Send for Confirmation' only to the provider once evidence exists; the act queues and lands; the band moves to ready for confirmation and names who confirms next; the confirmer finds it under To confirm when a garden is the confirming party, otherwise in their Live inbox",
       "evidence": "Screenshot of the ready-for-confirmation band",
       "role": "gardener",
       "tags": ["commitments", "tx"],
@@ -2958,10 +2995,10 @@
       "area": "Commitments",
       "scenario": "Confirm a commitment was kept from the confirm sheet",
       "preconditions": [
-        "A commitment ready for confirmation where the tester is its confirmer: the counterparty, a named confirmer, or a steward of the garden that took it up"
+        "A commitment ready for confirmation that the tester confirms: a steward of the garden when a garden is the confirming party, otherwise the counterparty or a named confirmer"
       ],
       "steps": [
-        "Open the commitment from the drawer's To confirm tab",
+        "Open the commitment from the drawer: the To confirm tab when a garden confirms, the Live inbox when a person does",
         "Press Confirm It Was Kept and read the sheet",
         "Confirm"
       ],
@@ -2983,14 +3020,14 @@
       "scenario": "Not yet: dispute a commitment with a reason, keeping the sheet on failure",
       "preconditions": [
         "A commitment ready for confirmation where the tester may dispute: its creator, counterparty, named confirmer, or a steward of its garden",
-        "A way to fail one attempt, for example going offline"
+        "A way to fail the send after it starts, for example rejecting the wallet prompt (Send is disabled while offline)"
       ],
       "steps": [
         "Open the confirm sheet and choose Not yet",
-        "Type a reason, fail the attempt, and send",
-        "Recover and send again"
+        "Type a reason, press Send, and reject the wallet prompt",
+        "Press Send again and approve it"
       ],
-      "expected": "Not yet is offered only to who may dispute and the reason is required; a failed attempt keeps the sheet open with the reason intact and says the note is kept on this device while the commitment stays ready to confirm; the retry lands and the band shows the dispute with its reason",
+      "expected": "Not yet is offered only to who may dispute and the reason is required; a rejected send keeps the sheet open with the reason intact and says the note is kept on this device while the commitment stays ready to confirm; the second send lands and the band shows the dispute with its reason",
       "evidence": "Screenshots of the failed and landed states",
       "role": "steward",
       "tags": ["commitments", "tx"],
@@ -4131,9 +4168,9 @@
       "steps": [
         "Open the floating action button and read its actions",
         "Switch workspaces with the bottom navigation",
-        "Open the account sheet from the app bar"
+        "Open the Profile tab from the bottom navigation and read the Account page"
       ],
-      "expected": "The action button offers Submit work, Create assessment, and Create hypercert with the same gating as the desktop header; the bottom navigation switches workspaces; the account sheet shows identity, theme, language, and Disconnect",
+      "expected": "The action button offers Submit work, Create assessment, and Create hypercert with the same gating as the desktop header; the bottom navigation switches workspaces; the Profile tab opens the mobile Account page with identity, theme, language, and Disconnect",
       "evidence": "Screenshots at phone width",
       "role": "steward",
       "tags": ["shell", "responsive"],
@@ -5039,9 +5076,10 @@
       "steps": [
         "Press Archive pool… and confirm",
         "Read the console and the app",
-        "Press Reopen pool… and confirm"
+        "Press Reopen pool… and confirm",
+        "Start and open a season again (ADM-057), then read the app's Pool tab"
       ],
-      "expected": "Archiving asks for confirmation and sends one transaction; the console and the app show the archived state; Reopen restores an open pool in one transaction and the app takes new commitments again",
+      "expected": "Archiving asks for confirmation and sends one transaction; the console and the app show the archived state; Reopen returns the pool to its setup state in one transaction, not to open; once a season is started and opened again the app takes new commitments",
       "evidence": "Screenshots of the archived and reopened states",
       "role": "steward",
       "tags": ["garden-pool", "tx"],
@@ -5379,9 +5417,9 @@
       "steps": [
         "Open the recovery section and read the work-decision readback status",
         "Press Count approved linked work",
-        "Press it again and read the progress rows"
+        "Reload and read the progress rows and the recovery section"
       ],
-      "expected": "The readback status reads pending, unavailable, or needs fresh review honestly; counting sends one transaction and the requirement progress rises by the approved work; a second press counts nothing twice",
+      "expected": "The readback status reads pending, unavailable, or needs fresh review honestly; counting sends one transaction and the requirement progress rises by the approved work; afterwards the control is gone or disabled while the readback settles, and a reload keeps the counted total",
       "evidence": "Screenshots of the readback status and the progress rows",
       "role": "steward",
       "tags": ["commitment", "work", "tx"],
@@ -5418,20 +5456,42 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Garden · Settlement",
-      "scenario": "Prepare the garden payout and a contributor payout",
-      "preconditions": ["A finalized payout plan (ADM-083)"],
+      "scenario": "Prepare the garden payout on a garden-beneficiary plan",
+      "preconditions": ["A finalized payout plan of the garden-beneficiary kind (ADM-083)"],
       "steps": [
-        "Press Prepare Garden Payout… and send",
-        "Press Prepare Payout for a contributor and send",
+        "Press Prepare Garden Payout…, read 'Review before sending', and press Send Transaction",
         "Read the Disbursements table"
       ],
-      "expected": "Each prepare step reviews before sending and is one transaction; the table lists one disbursement per recipient with its amount and status",
+      "expected": "The prepare step reviews before sending and is one transaction; the table lists the garden's disbursement with its amount and status; no contributor action is offered on this plan kind",
       "evidence": "Screenshot of the disbursements table",
       "role": "steward",
       "tags": ["settlement", "tx"],
       "requiresProduction": false,
       "status": "active",
       "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-109",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Garden · Settlement",
+      "scenario": "Prepare a contributor payout on a contributor-consideration plan",
+      "preconditions": [
+        "A finalized payout plan of the contributor-consideration kind on a commitment with a contributor (ADM-083 on that commitment)"
+      ],
+      "steps": [
+        "Press Prepare Payout for the contributor, read 'Review before sending', and press Send Transaction",
+        "Read the Disbursements table"
+      ],
+      "expected": "The prepare step names the contributor, reviews before sending, and is one transaction; the table lists one disbursement for that contributor with its amount and status; no garden payout action is offered on this plan kind",
+      "evidence": "Screenshot of the disbursements table",
+      "role": "steward",
+      "tags": ["settlement", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-review-fixes-2026-09-08"
     },
     {
       "id": "ADM-085",
@@ -5442,17 +5502,18 @@
       "area": "Garden · Settlement",
       "scenario": "Dispatch a disbursement, then retry or requeue a failed one",
       "preconditions": [
-        "A plan with prepared disbursements (ADM-084)",
-        "Gardener delivery enabled for the contributor payout (ADM-087)"
+        "A plan with a prepared disbursement (ADM-084 or ADM-109)",
+        "Gardener delivery enabled for a contributor payout (ADM-087)",
+        "Where one can be produced, a disbursement the indexer reports as Failed; otherwise record the Requeue step as Blocked"
       ],
       "steps": [
-        "Press Dispatch… on a disbursement and send",
-        "Make one dispatch fail, for example by rejecting the prompt, and read its row",
-        "Press Retry Command…, then Requeue… where offered",
-        "Press Read Again"
+        "Press Dispatch… on a prepared row, read 'Review before sending', and send",
+        "On the dispatched row press Retry Command… and send",
+        "On a row the indexer reports as Failed press Requeue…",
+        "Reject a wallet prompt on one send, then press Read Again"
       ],
-      "expected": "Dispatch reviews before sending and the row moves through its statuses; a failed row says so and offers Retry Command and Requeue; Read Again refreshes the table from chain; the plan reads Partial until every row completes, then Complete",
-      "evidence": "Screenshots of the failed row and the completed plan",
+      "expected": "Dispatch reviews before sending and the row moves to dispatched; Retry Command is offered on a dispatched row and re-sends the same command; Requeue is offered only on a failed row and returns it to the queue; a rejected wallet prompt leaves the row exactly as it was, never marked failed; Read Again refreshes the table from chain; the plan reads Partial until every row completes, then Complete",
+      "evidence": "Screenshots of the dispatched row and the plan status",
       "role": "steward",
       "tags": ["settlement", "tx"],
       "requiresProduction": false,
@@ -5865,13 +5926,18 @@
       "kind": "transaction",
       "area": "Community · Coordination",
       "scenario": "Dispatch, retry, or requeue a protocol transfer",
-      "preconditions": ["Protocol steward", "A queued transfer"],
-      "steps": [
-        "Press Dispatch on the row and confirm",
-        "Make one dispatch fail and press Retry command, then Requeue",
-        "Read the row states"
+      "preconditions": [
+        "Protocol steward",
+        "A queued transfer",
+        "Where one can be produced, a transfer the indexer reports as failed; otherwise record the Requeue step as Blocked"
       ],
-      "expected": "Dispatch sends the transfer and the row reads Dispatched; a failed dispatch offers Retry command and Requeue, each one transaction; a row never claims a state it did not reach",
+      "steps": [
+        "Press Dispatch on the queued row and confirm",
+        "On the dispatched row press Retry command",
+        "On a row the indexer reports as failed press Requeue",
+        "Reject a wallet prompt on one send and read the row"
+      ],
+      "expected": "Dispatch sends the transfer and the row reads Dispatched; Retry command re-sends a dispatched row's command; Requeue is offered only on a failed row and returns it to the queue; a rejected wallet prompt leaves the row as it was; a row never claims a state it did not reach",
       "evidence": "Screenshots of the dispatched and failed rows",
       "role": "steward",
       "tags": ["protocol-funding", "tx"],
@@ -5959,7 +6025,7 @@
         "Confirm at the wallet",
         "Read the harvest outcome alert and the harvest count"
       ],
-      "expected": "Harvest is offered only when the vault reports yield; the transaction reports 'Harvest completed successfully' and the outcome alert names the split between gardener rewards, impact certificates, and protocol sustainability, or says the split could not be verified; the harvest count increments",
+      "expected": "Harvest sends one transaction and reports 'Harvest completed successfully'; the outcome alert names the split between gardener rewards, impact certificates, and protocol sustainability, or says the split could not be verified; the harvest count increments",
       "evidence": "Screenshot of the outcome alert",
       "role": "steward",
       "tags": ["endowment", "tx"],
@@ -7157,8 +7223,7 @@
       "status": "retired",
       "source": "qa-session-2026-08-29",
       "retiredOn": "2026-09-07",
-      "retiredReason": "The evaluator guide with runnable query samples does not exist in the docs tree; the in-product assessment steps live in the steward guide",
-      "replacedBy": ["DOCS-020"]
+      "retiredReason": "The evaluator guide with runnable query samples does not exist in the docs tree; the in-product assessment steps live in the steward guide"
     },
     {
       "id": "DOCS-012",

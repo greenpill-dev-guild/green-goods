@@ -692,6 +692,25 @@ describe("QA report review hardening", () => {
     expect(existsSync(path.join(sessionDir, "report.md"))).toBe(false);
   });
 
+  it("refuses a baseline pulled while its run was still open", async () => {
+    const root = mkdtempSync(path.join(tmpdir(), "qa-report-"));
+    const sessionDir = path.join(root, "tmp", "qa-session", SLUG);
+    mkdirSync(path.join(sessionDir, "previous"), { recursive: true });
+    writeFileSync(
+      path.join(sessionDir, "qa-state.json"),
+      JSON.stringify({ slug: SLUG, pulledAt: PULLED_AT, run: RUN_2, entries: {} }),
+    );
+    writeFileSync(
+      path.join(sessionDir, "previous", "qa-state.json"),
+      JSON.stringify({ slug: "2026-09-04", pulledAt: PULLED_AT, run: { ...RUN_1, closedAt: null }, entries: {} }),
+    );
+    const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
+    await expect(
+      runReport(parseArgs(["--slug", SLUG, "--previous", `tmp/qa-session/${SLUG}/previous/qa-state.json`]), { catalog, repoRoot: root }),
+    ).rejects.toThrow(/still open/);
+    expect(existsSync(path.join(sessionDir, "report.md"))).toBe(false);
+  });
+
   it("refuses an output directory outside the gitignored tmp/ root", async () => {
     const root = mkdtempSync(path.join(tmpdir(), "qa-report-"));
     const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
