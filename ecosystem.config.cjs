@@ -35,7 +35,22 @@ function envValue(key, fallback = "") {
 }
 
 const viteEnableSwDev = envValue("VITE_ENABLE_SW_DEV", "false");
+const viteDisableLocalChain = envValue("VITE_DISABLE_LOCAL_CHAIN", "false") === "true";
+const viteDisableLocalAgent = envValue("VITE_DISABLE_LOCAL_AGENT", "false") === "true";
+const viteDisableLocalIndexer = envValue("VITE_DISABLE_LOCAL_INDEXER", "false") === "true";
 const localAgentApiBaseUrl = "http://127.0.0.1:3005";
+const localViteChainEnv = viteDisableLocalChain
+  ? {}
+  : {
+      VITE_DEV_CHAIN_MODE: "",
+      VITE_CHAIN_ID: "42161",
+      VITE_LOCAL_FORK_RPC_URL: "",
+      VITE_ENABLE_ANVIL_WALLETS: "false",
+    };
+const localViteAgentEnv = viteDisableLocalAgent ? {} : { VITE_API_BASE_URL: localAgentApiBaseUrl };
+const localViteIndexerEnv = viteDisableLocalIndexer
+  ? {}
+  : { VITE_ENVIO_INDEXER_URL: "http://localhost:3006/v1/graphql" };
 
 module.exports = {
   apps: [
@@ -62,12 +77,9 @@ module.exports = {
       cwd: ".",
       env: {
         NODE_ENV: "development",
-        VITE_DEV_CHAIN_MODE: "",
-        VITE_CHAIN_ID: "42161",
-        VITE_ENVIO_INDEXER_URL: "http://localhost:3006/v1/graphql",
-        VITE_LOCAL_FORK_RPC_URL: "",
-        VITE_ENABLE_ANVIL_WALLETS: "false",
-        VITE_API_BASE_URL: localAgentApiBaseUrl,
+        ...localViteChainEnv,
+        ...localViteIndexerEnv,
+        ...localViteAgentEnv,
       },
       merge_logs: true,
       autorestart: true,
@@ -84,12 +96,9 @@ module.exports = {
       cwd: ".",
       env: {
         NODE_ENV: "development",
-        VITE_DEV_CHAIN_MODE: "",
-        VITE_CHAIN_ID: "42161",
-        VITE_ENVIO_INDEXER_URL: "http://localhost:3006/v1/graphql",
-        VITE_LOCAL_FORK_RPC_URL: "",
-        VITE_ENABLE_ANVIL_WALLETS: "false",
-        VITE_API_BASE_URL: localAgentApiBaseUrl,
+        ...localViteChainEnv,
+        ...localViteIndexerEnv,
+        ...localViteAgentEnv,
       },
       merge_logs: true,
       autorestart: true,
@@ -108,12 +117,9 @@ module.exports = {
         NODE_ENV: "development",
         VITE_ENABLE_SW_DEV: viteEnableSwDev,
         VITE_USE_POLLING: envValue("VITE_USE_POLLING", "true"),
-        VITE_API_BASE_URL: localAgentApiBaseUrl,
-        VITE_DEV_CHAIN_MODE: "",
-        VITE_CHAIN_ID: "42161",
-        VITE_ENVIO_INDEXER_URL: "http://localhost:3006/v1/graphql",
-        VITE_LOCAL_FORK_RPC_URL: "",
-        VITE_ENABLE_ANVIL_WALLETS: "false",
+        ...localViteChainEnv,
+        ...localViteIndexerEnv,
+        ...localViteAgentEnv,
       },
       merge_logs: true,
       autorestart: true,
