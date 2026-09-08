@@ -37,7 +37,6 @@ function envValue(key, fallback = "") {
 const viteEnableSwDev = envValue("VITE_ENABLE_SW_DEV", "false");
 const viteDisableLocalChain = envValue("VITE_DISABLE_LOCAL_CHAIN", "false") === "true";
 const viteDisableLocalAgent = envValue("VITE_DISABLE_LOCAL_AGENT", "false") === "true";
-const viteDisableLocalIndexer = envValue("VITE_DISABLE_LOCAL_INDEXER", "false") === "true";
 const localAgentApiBaseUrl = "http://127.0.0.1:3005";
 const localViteChainEnv = viteDisableLocalChain
   ? {}
@@ -48,9 +47,8 @@ const localViteChainEnv = viteDisableLocalChain
       VITE_ENABLE_ANVIL_WALLETS: "false",
     };
 const localViteAgentEnv = viteDisableLocalAgent ? {} : { VITE_API_BASE_URL: localAgentApiBaseUrl };
-const localViteIndexerEnv = viteDisableLocalIndexer
-  ? {}
-  : { VITE_ENVIO_INDEXER_URL: "http://localhost:3006/v1/graphql" };
+
+  console.log("localViteIndexerEnv", localViteIndexerEnv)
 
 module.exports = {
   apps: [
@@ -77,8 +75,12 @@ module.exports = {
       cwd: ".",
       env: {
         NODE_ENV: "development",
+      VITE_ENVIO_INDEXER_URL: envValue(
+        "VITE_ENVIO_INDEXER_URL",
+        "http://localhost:3006/v1/graphql"
+      ),
+    
         ...localViteChainEnv,
-        ...localViteIndexerEnv,
         ...localViteAgentEnv,
       },
       merge_logs: true,
@@ -97,7 +99,6 @@ module.exports = {
       env: {
         NODE_ENV: "development",
         ...localViteChainEnv,
-        ...localViteIndexerEnv,
         ...localViteAgentEnv,
       },
       merge_logs: true,
@@ -118,7 +119,6 @@ module.exports = {
         VITE_ENABLE_SW_DEV: viteEnableSwDev,
         VITE_USE_POLLING: envValue("VITE_USE_POLLING", "true"),
         ...localViteChainEnv,
-        ...localViteIndexerEnv,
         ...localViteAgentEnv,
       },
       merge_logs: true,
