@@ -82,7 +82,7 @@
 
 ## Third pass · admin, public website, docs (2026-09-07, `feature/qa-runs-catalog-third-pass`)
 
-- Branch stacked on `feature/qa-runs-pwa-split`; the PR targets that branch. Merge order: third → second → `feature/qa-runs` → `develop`.
+- Branch stacked on `feature/qa-runs-pwa-split`; PR #807 targets that branch. Merge order: third → second → `feature/qa-runs` → `develop`.
 - Catalog: 24 retirements with `replacedBy` (ADM-009/010/020/021/022/023/024/025/027/028/029, PUB-014/017/020/021/022/023/024, DOCS-007/008/009/010/012/013), 101 new ids (ADM-048…108, PUB-035…055, DOCS-014…032), 4 in-place rewrites (ADM-019, PUB-001, PUB-010, PUB-031). Successor map and product findings in `catalog-feedback-2026-09-04.md § Third pass`. Journey-referenced rows untouched; locales unchanged. Active cases 262 (Admin 98, Public 45, Docs 26, PWA 93).
 - Evidence pack: admin acts read from `packages/admin/src/routes/views.tsx` and the views it mounts; public acts from `packages/client/src/config/routes.tsx` and `views/Public/*`; labels from `packages/shared/src/i18n/en.json`; docs pages from `docs/sidebars.ts`.
 
