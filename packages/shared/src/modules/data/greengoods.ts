@@ -349,12 +349,11 @@ export async function getGardens(reader: GraphQLReader = greenGoodsIndexer): Pro
 
     const { data, error } = await reader.query(QUERY, { chainId }, "getGardens");
 
-    if (error) {
-      logger.error("[getGardens] Indexer query failed", { error: error.message });
-      return [];
-    }
+    if (error) throw error;
 
-    if (!data || !data.Garden || !Array.isArray(data.Garden)) return [];
+    if (!data || !Array.isArray(data.Garden)) {
+      throw new Error("Garden indexer response is missing the garden list");
+    }
 
     // Garden.id can be checksummed while GardenDomains.garden is normalized
     // lower-case by the indexer, so join by a normalized lookup key.
@@ -406,7 +405,7 @@ export async function getGardens(reader: GraphQLReader = greenGoodsIndexer): Pro
     });
   } catch (error) {
     logger.error("[getGardens] Failed to fetch gardens", { error });
-    return [];
+    throw error;
   }
 }
 

@@ -176,14 +176,12 @@ describe("modules/data/greengoods", () => {
       expect(result[0].openJoining).toBe(false);
     });
 
-    it("returns empty array on GraphQL error", async () => {
+    it("rejects a GraphQL error instead of presenting it as an empty garden list", async () => {
       mockQuery.mockResolvedValue({
         error: { message: "Indexer unavailable" },
       });
 
-      const result = await getGardens(reader);
-
-      expect(result).toEqual([]);
+      await expect(getGardens(reader)).rejects.toThrow("Indexer unavailable");
     });
 
     it("returns empty array when no gardens exist", async () => {

@@ -7,10 +7,10 @@
  * with proper caching, stale times, and placeholder data.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { onlineManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockAction, createMockGarden } from "../../test-utils/mock-factories";
 
 // ============================================
@@ -52,7 +52,13 @@ import { useActions, useGardeners, useGardens } from "../../../hooks/blockchain/
 function createQueryClient() {
   return new QueryClient({
     defaultOptions: {
-      queries: { retry: false, gcTime: 0, staleTime: 0 },
+      queries: {
+        retry: false,
+        gcTime: 0,
+        staleTime: 0,
+        networkMode: "offlineFirst",
+        refetchOnReconnect: "always",
+      },
     },
   });
 }
@@ -73,6 +79,11 @@ describe("useBaseLists", () => {
   beforeEach(() => {
     queryClient = createQueryClient();
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    onlineManager.setOnline(true);
+    queryClient.clear();
   });
 
   // ------------------------------------------
@@ -227,6 +238,75 @@ describe("useBaseLists", () => {
         expect(result.current.isSuccess).toBe(true);
       });
       expect(result.current.data).toEqual([]);
+    });
+
+    it("keeps warm gardens after a failed refresh and refreshes on reconnect", async () => {
+      const cachedGardens = [createMockGarden({ name: "Cached Garden" })];
+      const refreshedGardens = [createMockGarden({ name: "Refreshed Garden" })];
+      mockGetGardens
+        .mockResolvedValueOnce(cachedGardens)
+        .mockRejectedValueOnce(new Error("Indexer unavailable"))
+        .mockResolvedValueOnce(refreshedGardens);
+
+      const { result } = renderHook(() => useGardens(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(result.current.data).toEqual(cachedGardens);
+      });
+
+      await act(async () => {
+        await result.current.refetch();
+      });
+
+      expect(mockGetGardens).toHaveBeenCalledTimes(2);
+      expect(result.current.data).toEqual(cachedGardens);
+      expect(queryClient.getQueryData(["greengoods", "gardens", 11155111])).toEqual(cachedGardens);
+
+      act(() => onlineManager.setOnline(false));
+      act(() => onlineManager.setOnline(true));
+
+      await waitFor(() => {
+        expect(result.current.data).toEqual(refreshedGardens);
+      });
+    });
+
+    it("keeps cached gardens through a failed reconnect and allows a later retry", async () => {
+      const cachedGardens = [createMockGarden({ name: "Cached Garden" })];
+      const recoveredGardens = [createMockGarden({ name: "Recovered Garden" })];
+      mockGetGardens
+        .mockResolvedValueOnce(cachedGardens)
+        .mockRejectedValueOnce(new Error("Offline"))
+        .mockRejectedValueOnce(new Error("Indexer still unavailable"))
+        .mockResolvedValueOnce(recoveredGardens);
+
+      const { result } = renderHook(() => useGardens(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(result.current.data).toEqual(cachedGardens);
+      });
+
+      await act(async () => {
+        await result.current.refetch();
+      });
+      expect(mockGetGardens).toHaveBeenCalledTimes(2);
+
+      act(() => onlineManager.setOnline(false));
+      act(() => onlineManager.setOnline(true));
+      await waitFor(() => {
+        expect(mockGetGardens).toHaveBeenCalledTimes(3);
+      });
+      expect(result.current.data).toEqual(cachedGardens);
+
+      await act(async () => {
+        await result.current.refetch();
+      });
+      await waitFor(() => {
+        expect(result.current.data).toEqual(recoveredGardens);
+      });
     });
   });
 

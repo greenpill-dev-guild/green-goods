@@ -33,22 +33,28 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
 
   // Handle online/offline transitions
   useEffect(() => {
-    if (wasOffline && isOnline) {
-      setShowBackOnline(true);
-      const timer = setTimeout(() => {
-        setShowBackOnline(false);
-      }, 3000);
-      return () => clearTimeout(timer);
+    if (!isOnline) {
+      setShowBackOnline(false);
+      setWasOffline(true);
+      return;
     }
-    setWasOffline(!isOnline);
+
+    if (!wasOffline) return;
+
+    setShowBackOnline(true);
+    const timer = setTimeout(() => {
+      setShowBackOnline(false);
+      setWasOffline(false);
+    }, 3000);
+    return () => clearTimeout(timer);
   }, [isOnline, wasOffline]);
 
   // Display priority: offline > back-online > install nudge
   const displayPriority = useMemo((): IndicatorState => {
     if (testState !== undefined) return testState;
 
-    if (showBackOnline) return "back-online";
     if (!isOnline) return "offline";
+    if (showBackOnline) return "back-online";
 
     // Install nudge: mobile web (not installed) and not dismissed
     if (isMobile && !isInstalled && !installDismissed) return "install";

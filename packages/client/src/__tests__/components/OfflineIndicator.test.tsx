@@ -5,7 +5,7 @@
  * and install nudge states.
  */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, type ReactElement } from "react";
 import { IntlProvider } from "react-intl";
@@ -51,6 +51,7 @@ describe("OfflineIndicator", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     cleanup();
   });
 
@@ -160,6 +161,71 @@ describe("OfflineIndicator", () => {
 
       expect(screen.getByText("Offline Mode")).toBeInTheDocument();
       expect(screen.queryByText("Install for full experience.")).not.toBeInTheDocument();
+    });
+
+    it("returns to offline mode when a new disconnect interrupts the back-online notice", () => {
+      const { rerender } = renderWithIntl(
+        createElement(MemoryRouter, null, createElement(OfflineIndicator))
+      );
+
+      mockOfflineState.isOnline = false;
+      rerender(
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {} },
+          createElement(MemoryRouter, null, createElement(OfflineIndicator))
+        )
+      );
+      expect(screen.getByText("Offline Mode")).toBeInTheDocument();
+
+      mockOfflineState.isOnline = true;
+      rerender(
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {} },
+          createElement(MemoryRouter, null, createElement(OfflineIndicator))
+        )
+      );
+      expect(screen.getByText("Back Online")).toBeInTheDocument();
+
+      mockOfflineState.isOnline = false;
+      rerender(
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {} },
+          createElement(MemoryRouter, null, createElement(OfflineIndicator))
+        )
+      );
+      expect(screen.getByText("Offline Mode")).toBeInTheDocument();
+      expect(screen.queryByText("Back Online")).not.toBeInTheDocument();
+    });
+
+    it("clears the back-online notice after the transition window", () => {
+      vi.useFakeTimers();
+      const { rerender } = renderWithIntl(
+        createElement(MemoryRouter, null, createElement(OfflineIndicator))
+      );
+
+      mockOfflineState.isOnline = false;
+      rerender(
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {} },
+          createElement(MemoryRouter, null, createElement(OfflineIndicator))
+        )
+      );
+      mockOfflineState.isOnline = true;
+      rerender(
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {} },
+          createElement(MemoryRouter, null, createElement(OfflineIndicator))
+        )
+      );
+
+      expect(screen.getByText("Back Online")).toBeInTheDocument();
+      act(() => vi.advanceTimersByTime(3000));
+      expect(screen.queryByText("Back Online")).not.toBeInTheDocument();
     });
 
     it("renders install nudge when online with no recent offline transition", () => {
