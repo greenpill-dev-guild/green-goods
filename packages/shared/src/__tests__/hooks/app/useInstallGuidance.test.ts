@@ -288,14 +288,17 @@ describe("hooks/app/useInstallGuidance", () => {
       expect(result.current.manualInstructions![0].icon).toBe("menu");
     });
 
-    it("lets verified negative WebAPK evidence override stale install history", () => {
+    it("lets an observed install prompt override stale install history after it is dismissed", () => {
+      // Chromium only offers beforeinstallprompt while the app is absent. Once the
+      // prompt was consumed or dismissed, deferredPrompt is gone but the verdict
+      // stands, so a remembered install must not turn back into Open App.
       mockDetect.mockReturnValue(chromeBrowser);
       mockCanTrigger.mockReturnValue(false);
 
       const { result } = renderHook(() =>
         useInstallGuidanceOptions({
           platform: "android",
-          installedAppEvidence: { status: "not-installed", source: "related-app" },
+          installedAppEvidence: { status: "not-installed", source: "install-prompt" },
           wasInstalled: true,
           deferredPrompt: null,
           isMobile: true,

@@ -61,10 +61,22 @@ export interface InstallGuidance {
 
 export type InstalledAppEvidenceStatus = "checking" | "installed" | "not-installed" | "unknown";
 
+/**
+ * Where the current installed-app verdict comes from.
+ *
+ * - `standalone`: the page runs in an installed display mode.
+ * - `appinstalled`: Chromium fired `appinstalled` this page session.
+ * - `install-prompt`: Chromium fired `beforeinstallprompt` this page session, which
+ *   it only does while the app is not installed; dismissing that prompt changes nothing.
+ * - `related-app`: `navigator.getInstalledRelatedApps()` listed this app.
+ * - `history`: only the remembered install flag remains; it is not proof either way.
+ * - `unsupported`: no platform signal exists.
+ */
 export type InstalledAppEvidenceSource =
   | "standalone"
   | "related-app"
   | "appinstalled"
+  | "install-prompt"
   | "history"
   | "unsupported";
 
@@ -287,9 +299,11 @@ export function useInstallGuidance({
     // Chrome/Android link-capturing hands off to the installed app.
     //
     // Remembered install state can also be stale after the user removes the
-    // WebAPK, so keep manual reinstall guidance attached as a secondary path.
-    // iOS has no link capturing (and no WebAPK), so it keeps the manual reinstall
-    // guidance as the primary path below.
+    // WebAPK, so keep manual reinstall guidance attached as a secondary path. A
+    // verified negative (Chromium offered the install prompt again, which it only
+    // does while the app is absent) wins over the remembered flag and falls
+    // through to the plain install guidance. iOS has no link capturing (and no
+    // WebAPK), so it keeps the manual reinstall guidance as the primary path below.
     if (wasInstalled && platform === "android" && installedAppEvidence.status !== "not-installed") {
       return {
         browserInfo,

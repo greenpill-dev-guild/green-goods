@@ -33,6 +33,14 @@ export interface PwaRoutingConfig {
   assetBasePath: "/" | "./";
   manifestId: typeof PWA_MANIFEST_ID;
   manifestScope: typeof PWA_APP_SCOPE | typeof PWA_IPFS_SCOPE;
+  /**
+   * The manifest's own URL as `related_applications` should declare it, relative to
+   * the manifest so it resolves to whichever host served it. Chromium answers
+   * `navigator.getInstalledRelatedApps()` for the page's own WebAPK only when this
+   * equals the manifest URL it fetched; an absolute production URL left every
+   * beta, preview, and tunnel host reporting its installed app as absent.
+   */
+  relatedApplicationManifestUrl: "/manifest.webmanifest" | "./manifest.webmanifest";
   serviceWorkerScriptUrl: "/sw.js" | "./sw.js";
   startUrl: string;
   shortcutUrl: (path: string) => string;
@@ -45,6 +53,7 @@ export function createPwaRoutingConfig(isIPFSBuild: boolean): PwaRoutingConfig {
     assetBasePath: isIPFSBuild ? "./" : "/",
     manifestId: PWA_MANIFEST_ID,
     manifestScope: isIPFSBuild ? PWA_IPFS_SCOPE : PWA_APP_SCOPE,
+    relatedApplicationManifestUrl: isIPFSBuild ? "./manifest.webmanifest" : "/manifest.webmanifest",
     serviceWorkerScriptUrl: isIPFSBuild ? "./sw.js" : "/sw.js",
     startUrl: shortcutUrl(APP_ROUTES.home),
     shortcutUrl,

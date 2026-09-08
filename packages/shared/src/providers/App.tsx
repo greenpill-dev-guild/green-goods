@@ -155,6 +155,11 @@ export const AppProvider = ({
   const [locale, setLocale] = useState<Locale>(defaultLocale as Locale);
   const [localeMessages, setLocaleMessages] = useState<LocaleMessages>({});
   const [deferredPrompt, setDeferredPrompt] = useState<InstallPromptEvent | null>(null);
+  // Chromium fires `beforeinstallprompt` only while the app is not installed, so
+  // observing it is a verified negative that outlives the prompt itself: consuming
+  // or dismissing the prompt clears `deferredPrompt` but must not read as installed.
+  // `appinstalled` is the only event that retires it.
+  const [installPromptObserved, setInstallPromptObserved] = useState(false);
   const installSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const installAttemptHadExistingInstallRef = useRef<boolean | null>(null);
   const installReadinessSettledRef = useRef(false);
@@ -273,6 +278,7 @@ export const AppProvider = ({
     (e: InstallPromptEvent | null) => {
       e?.preventDefault(); // Prevent the automatic prompt
       setDeferredPrompt(e);
+      if (e) setInstallPromptObserved(true);
 
       if (isAppInstalled()) {
         installReadinessSettledRef.current = true;
@@ -288,9 +294,11 @@ export const AppProvider = ({
   const handleBeforeInstall = useCallback((e: Event) => {
     e.preventDefault();
     setDeferredPrompt(e as InstallPromptEvent);
+    setInstallPromptObserved(true);
   }, []);
 
   const handleAppInstalled = useCallback(() => {
+    setInstallPromptObserved(false);
     if (installReadinessSettledRef.current) return;
 
     const wasPreviouslyInstalled =
@@ -385,6 +393,7 @@ export const AppProvider = ({
     isStandalone,
     wasInstalled,
     installConfirmed: installState === "installed",
+    installPromptObserved,
   });
   const isInstalled = installedAppEvidence.status === "installed";
   const isInstalling = installState === "installing" || installState === "finalizing";

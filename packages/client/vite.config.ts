@@ -433,7 +433,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         related_applications: [
           {
             platform: "webapp",
-            url: "https://www.greengoods.app/manifest.webmanifest",
+            url: pwaRouting.relatedApplicationManifestUrl,
           },
         ],
         share_target: {

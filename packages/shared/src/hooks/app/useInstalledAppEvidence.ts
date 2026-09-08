@@ -17,7 +17,15 @@ export interface InstalledAppEvidenceOptions {
   platform: Platform;
   isStandalone: boolean;
   wasInstalled: boolean;
+  /** `appinstalled` fired this page session and the install has settled. */
   installConfirmed?: boolean;
+  /**
+   * Chromium fired `beforeinstallprompt` this page session and nothing has
+   * installed since. The browser only offers that prompt while the app is not
+   * installed, so it is the one reliable negative signal a browser tab gets;
+   * dismissing the prompt does not change it.
+   */
+  installPromptObserved?: boolean;
 }
 
 function fallbackEvidence(wasInstalled: boolean): InstalledAppEvidence {
@@ -27,36 +35,57 @@ function fallbackEvidence(wasInstalled: boolean): InstalledAppEvidence {
   };
 }
 
+function resolveSessionEvidence({
+  isStandalone,
+  installConfirmed,
+  installPromptObserved,
+}: Pick<
+  InstalledAppEvidenceOptions,
+  "isStandalone" | "installConfirmed" | "installPromptObserved"
+>): InstalledAppEvidence | null {
+  if (isStandalone) return { status: "installed", source: "standalone" };
+  if (installConfirmed) return { status: "installed", source: "appinstalled" };
+  if (installPromptObserved) return { status: "not-installed", source: "install-prompt" };
+  return null;
+}
+
+function getRelatedAppsQuery(platform: Platform) {
+  if (platform !== "android" || typeof navigator === "undefined") return null;
+  const relatedApps = (navigator as NavigatorWithRelatedApps).getInstalledRelatedApps;
+  return typeof relatedApps === "function" ? relatedApps : null;
+}
+
 export function useInstalledAppEvidence({
   platform,
   isStandalone,
   wasInstalled,
   installConfirmed = false,
+  installPromptObserved = false,
 }: InstalledAppEvidenceOptions): InstalledAppEvidence {
   const [evidence, setEvidence] = useState<InstalledAppEvidence>(() => {
-    if (isStandalone) return { status: "installed", source: "standalone" };
-    if (installConfirmed) return { status: "installed", source: "appinstalled" };
-    if (platform === "android" && typeof navigator !== "undefined") {
-      const relatedApps = (navigator as NavigatorWithRelatedApps).getInstalledRelatedApps;
-      if (typeof relatedApps === "function") {
-        return { status: "checking", source: "related-app" };
-      }
-    }
+    const sessionEvidence = resolveSessionEvidence({
+      isStandalone,
+      installConfirmed,
+      installPromptObserved,
+    });
+    if (sessionEvidence) return sessionEvidence;
+    if (getRelatedAppsQuery(platform)) return { status: "checking", source: "related-app" };
     return fallbackEvidence(wasInstalled);
   });
 
   useEffect(() => {
-    if (isStandalone) {
-      setEvidence({ status: "installed", source: "standalone" });
-      return;
-    }
-    if (installConfirmed) {
-      setEvidence({ status: "installed", source: "appinstalled" });
+    const sessionEvidence = resolveSessionEvidence({
+      isStandalone,
+      installConfirmed,
+      installPromptObserved,
+    });
+    if (sessionEvidence) {
+      setEvidence(sessionEvidence);
       return;
     }
 
-    const relatedApps = (navigator as NavigatorWithRelatedApps).getInstalledRelatedApps;
-    if (platform !== "android" || typeof relatedApps !== "function") {
+    const relatedApps = getRelatedAppsQuery(platform);
+    if (!relatedApps) {
       setEvidence(fallbackEvidence(wasInstalled));
       return;
     }
@@ -67,10 +96,16 @@ export function useInstalledAppEvidence({
       .call(navigator)
       .then((apps) => {
         if (cancelled) return;
-        setEvidence({
-          status: apps.some((app) => app.platform === "webapp") ? "installed" : "not-installed",
-          source: "related-app",
-        });
+        // A listed web app is proof of installation. An empty list is not proof of
+        // absence: Chromium only reports a WebAPK bound to the exact manifest URL
+        // this page declares, so a beta or preview host, a home-screen shortcut,
+        // or a missing asset-link association all answer empty for an app that is
+        // installed. Empty therefore falls back to history instead of overriding it.
+        setEvidence(
+          apps.some((app) => app.platform === "webapp")
+            ? { status: "installed", source: "related-app" }
+            : fallbackEvidence(wasInstalled)
+        );
       })
       .catch(() => {
         if (!cancelled) setEvidence(fallbackEvidence(wasInstalled));
@@ -79,7 +114,7 @@ export function useInstalledAppEvidence({
     return () => {
       cancelled = true;
     };
-  }, [installConfirmed, isStandalone, platform, wasInstalled]);
+  }, [installConfirmed, installPromptObserved, isStandalone, platform, wasInstalled]);
 
   return evidence;
 }
