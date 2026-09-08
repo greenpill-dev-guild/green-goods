@@ -96,3 +96,21 @@
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- scripts/data docs/docs/builders/quality .plans/active/qa-runs` → `` (empty before this receipt was written)
 - Evidence-only diff command and result (if applicable): not applicable
 - Evidence-only worktree-status command and result (if applicable): not applicable
+
+## Fourth pass · C19 area re-cut (2026-09-07, `feature/qa-runs-area-recut`)
+
+- Branch stacked on `feature/qa-runs-catalog-third-pass`; the PR targets that branch. Merge order: fourth → third → second → `feature/qa-runs` → `develop`.
+- Catalog: every active row's `area` names where the walker sits (74 → 45 areas; 181 of 262 active rows re-labelled); the cases array is re-sorted tab → active first → walking-order area → desktop shell before installed devices → previous order; retired rows keep their historical area; no id or lifecycle change; journeys untouched. Taxonomy per tab in `catalog-feedback-2026-09-04.md § Fourth pass`.
+- Reading the diff: it is a full reorder. Parse-level comparison with the parent (`git show feature/qa-runs-catalog-third-pass:scripts/data/qa-test-catalog.json` versus the working copy, keyed by id): 181 rows differ only in `area`, 131 byte-identical, none added or removed, `journeys` and the header equal.
+- Consumers checked: the QA app groups areas by first appearance (`packages/qa/index.html` walk order), the workbook groups by area, the docs page prints the column, `qa-report` prints the area on issue lines, and `qa-app-client.test.ts` uses its own fixture areas. Nothing reads an area name by value.
+
+### Validation Receipt
+
+- Tested implementation commit SHA: `7ef9f108ec0dcccb8192511ce1134dc2fb778496`
+- Run at (UTC): `2026-09-08T04:01Z`
+- Exact command(s): `node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts && bun run test:review-guardrails && bun run check:docs-generated && bun run check:guidance-links && node scripts/quality/check-qa-id-ledger.mjs --base feature/qa-runs-catalog-third-pass && node scripts/harness/plan-hub.mjs validate qa-runs && node packages/qa/build.mjs && bun --bun x vitest run --dir scripts/agents qa-app-build qa-workbook-build qa-report qa-status qa-state-pull qa-app-client`
+- Result: `push gate: format, lint, validation-system-test, docs-authority, agent-guidance, qa-id-ledger (312 ids), agent-tools-test passed (exact receipts reused on the second run); browser-proof blocked: the authenticated Brave QA profile was unreachable through the Claude-in-Chrome extension, so rendered proof of the Area view belongs to the next deployed smoke; review guardrails 205 passed, 0 failed; 18 projections current; 61 guidance files OK; ledger clean against the third pass; 31 hubs valid; qa build 262 active cases with areas in walking order; 6 catalog test files, 147 tests passed`
+- Validated paths: `scripts/data, docs/docs/builders/quality, .plans/active/qa-runs`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- scripts/data docs/docs/builders/quality .plans/active/qa-runs` → `` (empty before this receipt was written)
+- Evidence-only diff command and result (if applicable): not applicable
+- Evidence-only worktree-status command and result (if applicable): not applicable
