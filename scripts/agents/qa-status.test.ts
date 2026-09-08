@@ -141,7 +141,8 @@ describe("QA status run line", () => {
         window: null,
       },
     });
-    expect(report.startsWith("Open run: Run 2 · Re-QA 2026-09-08 · beta · opened 2026-09-08T15:00:00.000Z\nQA status")).toBe(true);
+    expect(report.startsWith("Open run: Run 2 · beta · opened 2026-09-08T15:00:00.000Z\nQA status")).toBe(true);
+    expect(report).not.toContain("Re-QA 2026-09-08");
   });
 
   it("marks a migrated baseline as such", () => {
@@ -157,7 +158,7 @@ describe("QA status run line", () => {
         window: null,
       },
     });
-    expect(report).toContain("Open run: Run 1 · Baseline · beta · opened 2026-08-29T09:00:00.000Z · migrated baseline\n");
+    expect(report).toContain("Open run: Run 1 · beta · opened 2026-08-29T09:00:00.000Z · migrated baseline\n");
   });
 });
 
