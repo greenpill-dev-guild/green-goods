@@ -2,6 +2,8 @@
 
 ## Decision Log
 
+- 2026-09-07 — decision 5's rationale ("the store cannot reconstruct pre-session state") is superseded by the `qa-runs` hub: the store now keeps immutable runs, `qa:pull --run` reads any run, and `--previous` normally names the previous run's pull, whose `run` field labels the delta. The flag's form and the `## Delta vs <baseline>` heading contract are unchanged.
+
 Decisions 1–4 were locked with Afo on 2026-09-01; 5–10 are derived from the code and are
 open to challenge before implementation starts.
 

@@ -14,11 +14,13 @@ agents that pull the store to write the session report and slices.
    zero-open state. The run index lives beside the shards (`qa/runs.json`); shards move to
    `qa/runs/<runId>/entries/<address>.json`.
 2. **Migration.** The existing `qa/entries/<address>.json` shards become Run 1 by a one-time
-   server-side move; the legacy path is read only until the move completes, then never written.
-   Run 1 is legacy latest-state, not a bounded session: its index entry records
-   `openedAt` = the earliest migrated entry timestamp, `closedAt` = the migration time, and
-   `legacy: true`, and the compare treats it as a baseline of last-known verdicts rather than a
-   dated walk.
+   server-side copy on the first authenticated request after deploy; the legacy path is read once
+   by that copy and never written or deleted afterwards. Run 1 is legacy latest-state, not a
+   bounded session: its index entry records `openedAt` = the earliest migrated entry timestamp,
+   `window` = the earliest and latest migrated entry timestamps, and `legacy: true`; it stays
+   open until the first rollover stamps `closedAt`, and the compare treats it as a baseline of
+   last-known verdicts rather than a dated walk. The copy is idempotent (create-only per shard,
+   create-only index) and enumerates the allowlist the way GET does. (Amended 2026-09-07.)
 3. **Immutability.** `POST /api/state` writes only to the open run; a write against a closed run is
    refused with the open run's id in the response. The page then re-targets that pending outbox at
    the open run, saves it there, and tells the tester which run received it, so a tester who was

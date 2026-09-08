@@ -24,15 +24,19 @@ connects them.
    app; retired cases remain in git as audit history. Catalog v3's top-level `journeys` are ordered,
    role-aware choreography over active Test IDs. They do not replace the per-case `kind` axis.
 2. **Recording** — the wallet-authenticated [QA app](../../packages/qa/README.md) records one private
-   shard per allowlisted signing address in the Blob store. Testers enter verdicts and notes there.
+   shard per allowlisted signing address **per run** in the Blob store. A run is one team pass
+   over the catalog: exactly one run is open, testers record into it, and a rollover closes it
+   and opens its successor, so a re-QA never overwrites the pass it is checking (§ Runs).
 3. **Session** — [`qa-session`](../skills/qa-session/SKILL.md) runs the live, paired, or transcript
    loop: pre-flight, observation capture, bounded fix-now work, revalidation, deferred handoff, and
    receipt preparation.
-4. **Pull** — `bun run qa:pull --slug <slug>` reads the live shards into gitignored
-   `tmp/qa-session/<slug>/results.csv` and `qa-state.json`. It is the private close-out artifact,
-   not a public coverage report. `bun run qa:report --slug <slug>` then derives `report.md` from
-   that pull — results by priority and by kind, the fail/blocked list, coverage gaps, standing
-   state, and per-tester coverage, private and attributed — and, with `--public`,
+4. **Pull** — `bun run qa:pull --slug <slug> --run <open | latest-closed | run-N>` reads one
+   run's shards into gitignored `tmp/qa-session/<slug>/results.csv` and `qa-state.json` (the
+   default is the open run; `qa-state.json` names the run it came from). It is the private
+   close-out artifact, not a public coverage report. `bun run qa:report --slug <slug>` then
+   derives `report.md` from that pull — results by priority and by kind, the fail/blocked list,
+   coverage gaps, standing state, a run-versus-run delta when `--previous` names the earlier
+   run's pull, and per-tester coverage, private and attributed — and, with `--public`,
    `report.public.md` under the `qa:status` projection rule. The public file exists only for the
    docs example and the Discord lede. The private file is attached to the session's Linear parent
    as a document (§ Artifact ownership), so the full record outlives the laptop that pulled it.
@@ -164,11 +168,35 @@ record `N/A` to mean "skipped this time": the report counts `N/A` as walked and 
 skipped case recorded as `N/A` overstates coverage and hides the gap the next walk should close.
 (Decided 2026-09-05, after the 2026-09-04 call recorded thirteen skipped commitment cases as N/A.)
 
-Environment attribution: the session header and the Linear parent lede name the session's default
-environment (production, beta/staging, or local). A tester who crosses to another environment for
-one case prefixes that note with `[beta]`, `[prod]`, or `[local]`: every verdict taken outside the
-session default carries its prefix, whichever of the three the default is. Until the QA app records
-runs with their own environment field, the prefix is the only per-verdict environment record.
+Environment attribution: a run records its environment (production, beta/staging, or local) when
+it opens, the QA app shows it in the header, and the session header and the Linear parent lede
+repeat it. A tester who crosses to another environment for one case prefixes that note with
+`[beta]`, `[prod]`, or `[local]`: every verdict taken outside the run's environment carries its
+prefix, whichever of the three the run's is.
+
+## Runs
+
+A **run** is one team pass over the catalog; several sessions may feed it. The store keeps one
+shard per tester per run plus a small index (`qa/runs.json`: label, environment, who opened and
+closed it and when, the catalog revision and optional build SHAs). Exactly one run is open at any
+time. Any allowlisted tester may press **Start new run** in the app: that closes the open run and
+opens its successor in one conditional write, and the closed run stays readable forever — nothing
+is ever erased. The first request after the runs deploy migrated the pre-runs shards into
+**Run 1 · Baseline**, a legacy latest-state run rather than a dated walk; its window is the span
+of everything recorded before runs existed.
+
+Rules that follow from this:
+
+- Record into the open run only. The app refuses a save that names a closed run and re-targets
+  the pending queue at the open run, so a tester who was offline through a rollover loses nothing.
+- Before a re-QA, start a new run. The compare control shows the previous run's verdict and notes
+  on every row, the tally adds fixed, still failing, regressed, and newly walked, and the **Re-QA**
+  filter lists what the compared run left failing or blocked.
+- A verdict on a case retired between two runs is read on each active successor named by the
+  catalog's `replacedBy` chain and labelled *inherited*, in the app and in `qa:report`.
+- The session header names the run id (`run-N`) the walk records into; the call-report path
+  pulls that run (`qa:pull --run <id>`, `latest-closed` when it was rolled over before the report
+  ran) and the previous run beside it for `qa:report --previous`.
 
 ## Finding dispositions
 
@@ -245,8 +273,9 @@ completed.
 
 Use two queries for two different questions:
 
-- `bun run qa:status` answers what has been walked in the live store. It reports per-surface
-  walked/total and verdict counts, never-walked cases, stale cases, and failing or blocked Test IDs.
+- `bun run qa:status` answers what has been walked in the open run of the live store. Its first
+  line names that run; it then reports per-surface walked/total and verdict counts, never-walked
+  cases, stale cases, and failing or blocked Test IDs.
   Staleness defaults to 30 days and can be changed with `--stale-days <N>`. It uses each case's
   newest `entry.at` timestamp because the store has no build SHA; the result is recency evidence,
   not build-aware coverage.

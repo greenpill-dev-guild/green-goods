@@ -97,6 +97,10 @@ export interface CatalogCase {
   requiresProductionReason?: string;
   requiresDevice?: boolean;
   status: "active" | "retired";
+  /** Set on retired rows: when, why, and which active cases now prove what this one proved. */
+  retiredOn?: string;
+  retiredReason?: string;
+  replacedBy?: string[];
   source: string;
 }
 

@@ -127,6 +127,41 @@ describe("QA status issue linkage", () => {
   });
 });
 
+describe("QA status run line", () => {
+  it("names the open run on the first line", () => {
+    const report = buildStatusReport([makeCase()], mergeShards([]), {
+      run: {
+        id: "run-2",
+        n: 2,
+        label: "Re-QA 2026-09-08",
+        environment: "beta",
+        openedAt: "2026-09-08T15:00:00.000Z",
+        closedAt: null,
+        legacy: false,
+        window: null,
+      },
+    });
+    expect(report.startsWith("Open run: Run 2 · beta · opened 2026-09-08T15:00:00.000Z\nQA status")).toBe(true);
+    expect(report).not.toContain("Re-QA 2026-09-08");
+  });
+
+  it("marks a migrated baseline as such", () => {
+    const report = buildStatusReport([makeCase()], mergeShards([]), {
+      run: {
+        id: "run-1",
+        n: 1,
+        label: "Baseline",
+        environment: "beta",
+        openedAt: "2026-08-29T09:00:00.000Z",
+        closedAt: null,
+        legacy: true,
+        window: null,
+      },
+    });
+    expect(report).toContain("Open run: Run 1 · beta · opened 2026-08-29T09:00:00.000Z · migrated baseline\n");
+  });
+});
+
 describe("QA status privacy", () => {
   it("does not echo private input when the issues file is malformed", () => {
     for (const privateValue of ["Afo", "Nansel", "Gui", "PRIVATE_NOTE_CANARY"]) {

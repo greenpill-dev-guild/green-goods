@@ -95,11 +95,13 @@ and modifiedTime > '<24h-ago RFC3339>' and mimeType = 'application/vnd.google-ap
 
 ## Phase 2: Pull the QA app state
 
-Run `bun run qa:pull --slug <YYYY-MM-DD>` (the call date; a **second call on the same date**
-takes the slug `<YYYY-MM-DD>-2`, mirroring qa-session's slug rule, and everything downstream —
-window, parent title, artifacts — keys off that slug). It writes
-`tmp/qa-session/<date>/results.csv` and `qa-state.json` from the Blob shards. **The store is
-long-lived and the pull merges every shard ever written**, so scope the session first: a *session
+Run `bun run qa:pull --slug <YYYY-MM-DD> --run <id>` (the call date; a **second call on the same
+date** takes the slug `<YYYY-MM-DD>-2`, mirroring qa-session's slug rule, and everything
+downstream — window, parent title, artifacts — keys off that slug). The run id is the `run-N` the
+session header names, or the one in the parent's lede on a rerun; when the team rolled the run
+over before this ran, pass `--run latest-closed`. It writes `tmp/qa-session/<date>/results.csv`
+and `qa-state.json` (which names the run) from that run's Blob shards. **A run can hold several
+sessions**, so scope the session first: a *session
 entry* is one whose `at` timestamp falls inside the **call interval** — the meeting's start and
 end from the notes header, padded 15 minutes before and 60 after (late recording is normal). A
 rolling day is not the session: a rehearsal that morning or yesterday's solo pass must not back
@@ -112,14 +114,20 @@ are standing state: at most one context line in the report, and never the backin
 `scripts/data/qa-test-catalog.json` by Test ID and writes `tmp/qa-session/<slug>/report.md`:
 results by priority and by kind, the fail/blocked list with attributed notes, coverage gaps,
 and standing state. Every rollup in the parent comes from that file, never from hand counting.
+When the call was a re-QA, also pull the run it checks — `bun run qa:pull --slug <slug> --run
+<previous id> --out tmp/qa-session/<slug>/previous` — and pass
+`--previous tmp/qa-session/<slug>/previous/qa-state.json` so the report's delta names both runs
+and reads a verdict on a since-retired case onto its successors as inherited.
 Once Phase 4 has the deploys, re-run it with `--build client=<sha>,admin=<sha>` (the report is
 deterministic, so re-running is free) and add `--public` for the Discord lede. The snapshot must
 postdate the window: a pull taken before the padded window closes cannot hold entries recorded
 later, so `qa:report` clamps such a window to the pull time and says so in its header. When that
 happens, pull again once the window has closed — into a fresh directory
-(`bun run qa:pull --slug <slug> --out tmp/qa-session/<slug>-final`; the pull refuses to overwrite a
-pulled session and `--force` would discard any redactions) — and run `qa:report` with the same
-`--out` so the final report and its `--build` re-run read the complete snapshot.
+(`bun run qa:pull --slug <slug> --run <the same run id> --out tmp/qa-session/<slug>-final` — the
+run selector travels with every follow-up pull, or a rollover in between would swap in the next
+run's verdicts; the pull refuses to overwrite a pulled session and `--force` would discard any
+redactions) — and run `qa:report` with the same `--out` so the final report and its `--build`
+re-run read the complete snapshot.
 
 - No shards or zero **session-window** entries: **notes-only mode** — extract from the notes
   alone; every slice lands `Backlog` (no verdict backing), and the report says the app carried
@@ -257,7 +265,7 @@ exposure: redact in place and fail loud in the Discord summary.
    template — lede, then Results by priority and Results by kind pasted verbatim from
    `tmp/qa-session/<slug>/report.md`, Decisions from the call (omit in app-only mode), Decisions needed (when
    any), Slices, Not sliced, `Done when`, source line with the Drive notes link. The lede names
-   the session's default environment. State `Todo`. Labels: `green-goods` + `qa` + `qa-session` + `routine` +
+   the run the call recorded into (`Run N · <label>`) and its environment. State `Todo`. Labels: `green-goods` + `qa` + `qa-session` + `routine` +
    `qa-sync:<date>`; **no `package:*`** on the parent. The parent's `Done when` defines its
    closure — every slice Done or explicitly deferred, re-QA re-recorded; the fix flow closes it,
    never this routine. **One exception**: an all-pass session — zero fail or blocked verdicts inside the window,
@@ -274,9 +282,9 @@ exposure: redact in place and fail loud in the Discord summary.
    Idempotency and failure: look for an existing document of that title under the parent first and
    update it by id; a failed create is retried once. A second failure falls back to `save_comment`
    on the parent with the same content under a first line `Full report (document write failed)`,
-   because nothing else keeps this record: the Blob store holds one entry per case per tester, so
-   the next QA write can overwrite this session's state, and the run's `tmp/` snapshot dies with
-   the run. Record `document: failed, report in comment` in the Discord summary. If the comment
+   because nothing else keeps this record where a human reads it: the closed run stays in the
+   private Blob store, but its attributed report exists only in the routine's `tmp/`, which dies
+   with the routine. Record `document: failed, report in comment` in the Discord summary. If the comment
    fails too, stop before any child is written — the parent exists, so post the failure block with
    the parent id and re-run from a fresh pull. Only after the document (or its comment fallback)
    exists, patch the parent's lede with its link, resending the title so the length exemption

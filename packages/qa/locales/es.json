@@ -68,7 +68,7 @@
         "Añade confirmadores identificados, incluida una dirección incorrecta",
         "Revisa, pon en cola y observa la fila en espera"
       ],
-      "expected": "Los pasos validan; una dirección de confirmador incorrecta o duplicada se rechaza de forma visible (ahora no ocurre nada); la revisión precede a la puesta en cola y la fila aparece antes de que el indexador se actualice",
+      "expected": "Los pasos validan; una dirección de confirmador incorrecta o duplicada se rechaza de forma visible; la revisión precede a la puesta en cola y la fila aparece antes de que el indexador se actualice",
       "role": "Steward"
     },
     "ADM-037": {

@@ -1082,6 +1082,302 @@ async function journeyModeHarness() {
   }
 }
 
+async function runsHarness() {
+  const dynamicImport = new Function("specifier", "return import(specifier)");
+  const assert = (await dynamicImport("node:assert/strict")).default;
+  const { readFileSync } = await dynamicImport("node:fs");
+  const path = await dynamicImport("node:path");
+  const { JSDOM, VirtualConsole } = await dynamicImport("jsdom");
+
+  const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
+  const OWNER = "0x0000000000000000000000000000000000000001";
+  const at = "2026-09-04T19:00:00.000Z";
+  const cases = [
+    { id: "PWA-051", tab: "PWA", area: "Garden Join", pri: "P0", scenario: "Join an open garden", preconditions: [], steps: ["Join"], expected: "Joined", role: "gardener", rp: false, rd: false, tx: true, replaces: ["PWA-021"] },
+    { id: "PWA-052", tab: "PWA", area: "Garden Join", pri: "P0", scenario: "Request to join", preconditions: [], steps: ["Request"], expected: "Pending", role: "gardener", rp: false, rd: false, tx: true, replaces: ["PWA-021"] },
+    { id: "PUB-001", tab: "PWA", area: "Home", pri: "P1", scenario: "Home renders", preconditions: [], steps: ["Open /"], expected: "Usable", role: "none", rp: false, rd: false, tx: false },
+    { id: "ADM-001", tab: "Admin Dashboard", area: "Shell", pri: "P0", scenario: "Admin shell", preconditions: [], steps: ["Open /hub"], expected: "Usable", role: "steward", rp: false, rd: false, tx: false },
+  ];
+  const runs = [
+    { id: "run-1", n: 1, label: "Baseline", legacy: true, openedAt: "2026-08-29T09:00:00.000Z", openedBy: null, openedByLabel: null, closedAt: "2026-09-08T14:00:00.000Z", closedBy: OWNER, closedByLabel: "Tester A", environment: "beta", catalog: null, builds: {}, window: { from: "2026-08-29T09:00:00.000Z", to: "2026-09-08T14:00:00.000Z" } },
+    { id: "run-2", n: 2, label: "Re-QA 2026-09-08", openedAt: "2026-09-08T14:00:00.000Z", openedBy: OWNER, openedByLabel: "Tester B", closedByLabel: null, environment: "beta", catalog: null, builds: {}, window: null },
+  ];
+  const entriesByRun = {
+    "run-1": {
+      "PWA-021": { "Tester A": { s: "fail", n: "request to join not visible", at } },
+      // A note-only row on a successor is walked but undecided: the retired
+      // predecessor's Fail must still be inherited onto it.
+      "PWA-052": { "Tester B": { s: "", n: "looked, undecided", at } },
+      "PUB-001": { "Tester B": { s: "fail", n: "", at } },
+      "ADM-001": { "Tester A": { s: "pass", n: "", at } },
+    },
+    "run-2": { "PUB-001": { "Tester A": { s: "pass", n: "", at: "2026-09-08T15:00:00.000Z" } } },
+    "run-3": {},
+    "run-4": {},
+  };
+  const server = { openRun: "run-2" };
+  const posts = [];
+  const gets = [];
+  const rollovers = [];
+  const response = (body, status = 200) => ({ ok: status < 400, status, json: async () => structuredClone(body) });
+  const flush = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+  const stateFor = (runId) => ({
+    team: ["Tester A", "Tester B"],
+    you: "Tester A",
+    address: OWNER,
+    named: true,
+    entries: entriesByRun[runId] || {},
+    readAt: new Date().toISOString(),
+    runs,
+    run: runId,
+    openRun: server.openRun,
+  });
+  const openNext = (label) => {
+    const current = runs[runs.length - 1];
+    current.closedAt = "2026-09-08T16:00:00.000Z";
+    current.closedBy = OWNER;
+    current.closedByLabel = "Tester B";
+    const opened = { id: "run-" + (current.n + 1), n: current.n + 1, label, openedAt: "2026-09-08T16:00:00.000Z", openedBy: OWNER, openedByLabel: "Tester B", closedByLabel: null, environment: "beta", catalog: null, builds: {}, window: null };
+    runs.push(opened);
+    server.openRun = opened.id;
+    return { closed: current, opened };
+  };
+
+  const timers = new Map();
+  let timerId = 0;
+  let pollCallback = null;
+  let jsdomError = null;
+  const virtualConsole = new VirtualConsole();
+  virtualConsole.on("jsdomError", (error) => {
+    jsdomError = error.cause?.stack || error.cause?.message || error.message;
+  });
+
+  const dom = new JSDOM(page, {
+    runScripts: "dangerously",
+    url: "http://localhost:4610/",
+    virtualConsole,
+    beforeParse(window) {
+      window.sessionStorage.setItem("qa-view", JSON.stringify({ tab: "PWA", filter: "all", sort: "walk", scope: "Tester A" }));
+      // A queue written by the page before it keyed queues by run.
+      window.localStorage.setItem("qa-outbox:" + OWNER, JSON.stringify({ owner: OWNER, person: "Tester A", delta: { "ADM-001": { s: "blocked" } } }));
+      window.setTimeout = (callback, delay = 0) => {
+        const id = ++timerId;
+        timers.set(id, { callback, delay });
+        return id;
+      };
+      window.clearTimeout = (id) => timers.delete(id);
+      window.setInterval = (callback) => { pollCallback = callback; return 1; };
+      window.clearInterval = () => {};
+      window.fetch = async (input, init = {}) => {
+        const target = String(input);
+        if (target === "catalog.json") {
+          return response({ revision: "abc123def456", tabs: ["PWA", "Admin Dashboard"], journeys: [], locales: {}, cases });
+        }
+        if (target === "/api/runs") {
+          const body = JSON.parse(String(init.body));
+          rollovers.push(body);
+          const { closed, opened } = openNext(body.label);
+          return response({ ok: true, closed, opened, runs, openRun: opened.id });
+        }
+        const [route, query] = target.split("?");
+        if (route !== "/api/state") throw new Error("unexpected fetch " + target);
+        if (init.method === "POST") {
+          const body = JSON.parse(String(init.body));
+          posts.push(body);
+          const run = runs.find((candidate) => candidate.id === body.run);
+          if (body.run && (!run || run.closedAt)) {
+            return response({ error: body.run + " is closed", reason: run ? "closed" : "unknown", openRun: server.openRun }, 409);
+          }
+          const target = body.run || server.openRun;
+          for (const [caseId, patch] of Object.entries(body.entries || {})) {
+            (entriesByRun[target][caseId] ??= {})["Tester A"] = { s: patch.s || "", n: patch.n || "", at };
+          }
+          return response({ ok: true, person: "Tester A", count: 1, run: target });
+        }
+        const requested = query ? new URLSearchParams(query).get("run") : null;
+        gets.push(requested || "open");
+        return response(stateFor(requested || server.openRun));
+      };
+    },
+  });
+
+  const runTimer = async (delay) => {
+    const timer = [...timers.entries()].find(([, pending]) => pending.delay === delay);
+    assert.ok(timer, "expected a " + delay + "ms timer");
+    timers.delete(timer[0]);
+    await timer[1].callback();
+    await flush();
+  };
+  const rowIds = () => [...dom.window.document.querySelectorAll(".row .rid b")].map((cell) => cell.textContent);
+  const rowFor = (id) => [...dom.window.document.querySelectorAll(".row")].find((row) => row.querySelector(".rid b")?.textContent === id);
+  const change = (selector, value) => {
+    const control = dom.window.document.querySelector(selector);
+    assert.ok(control, "missing " + selector);
+    control.value = value;
+    control.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+  };
+
+  try {
+    await flush();
+    await flush();
+    const document = dom.window.document;
+    assert.equal(jsdomError, null, jsdomError);
+
+    // 1. Runs arrive with the state: the run select shows both runs with the
+    //    open one selected, the header names it, and N/A explains itself.
+    const runSelect = document.querySelector("#qa-run-select");
+    assert.ok(runSelect, "run select");
+    assert.deepEqual([...runSelect.options].map((option) => option.textContent), ["Run 1 · Baseline · closed", "Run 2 · Re-QA 2026-09-08 · open"]);
+    assert.equal(runSelect.value, "run-2");
+    assert.ok(document.querySelector(".run-summary")?.textContent.includes("Run 2 · Re-QA 2026-09-08"));
+    assert.ok(document.querySelector(".run-summary")?.textContent.includes("opened by Tester B"));
+    assert.ok(document.querySelector(".helpline")?.textContent.includes("[beta]"));
+    assert.equal(document.querySelector('[data-id="PUB-001"][data-s="na"]')?.getAttribute("title"), "N/A — out of scope for this run");
+    assert.ok(document.querySelector("#qa-run-rollover"), "start new run button");
+
+    // 2. The run-less queue was adopted into the open run's key, once, and is
+    //    sent against that run.
+    assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER), null);
+    const adopted = JSON.parse(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"));
+    assert.deepEqual(adopted, { owner: OWNER, person: "Tester A", run: "run-2", delta: { "ADM-001": { s: "blocked" } } });
+    await runTimer(400);
+    assert.deepEqual(posts[0], { entries: { "ADM-001": { s: "blocked" } }, run: "run-2" });
+    assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"), null);
+
+    // 3. Compare with the closed baseline: verdicts and notes per row, a
+    //    verdict on a retired id inherited by each successor, the delta tally,
+    //    and the Re-QA filter.
+    change("#qa-compare-select", "run-1");
+    await flush();
+    await flush();
+    assert.equal(gets.filter((run) => run === "run-1").length, 1);
+    const joinRow = rowFor("PWA-051");
+    assert.ok(joinRow?.querySelector(".compare-verdict.fail")?.textContent.includes("Run 1 · Baseline:Fail"), joinRow?.querySelector(".compare")?.textContent);
+    assert.ok(joinRow?.querySelector(".inherited")?.textContent.includes("inherited from PWA-021"));
+    assert.ok(joinRow?.querySelector(".compare-notes")?.textContent.includes("request to join not visible"));
+    assert.ok(rowFor("PWA-052")?.querySelector(".compare-verdict.fail"), "a note-only successor row still inherits the retired Fail");
+    assert.ok(rowFor("PWA-052")?.querySelector(".inherited")?.textContent.includes("inherited from PWA-021"));
+    const requestNotes = rowFor("PWA-052")?.querySelector(".compare-notes")?.textContent || "";
+    assert.ok(requestNotes.includes("looked, undecided") && requestNotes.includes("request to join not visible"), requestNotes);
+    assert.ok(rowFor("PUB-001")?.querySelector(".compare-verdict.fail"));
+    const tally = document.querySelector(".counts")?.textContent || "";
+    assert.ok(tally.includes("vs Run 1 · Baseline: 1 fixed · 0 still failing · 0 regressed · 0 newly walked"), tally);
+    document.querySelector('.filt[data-f="reqa"]')?.click();
+    assert.deepEqual(rowIds(), ["PWA-051", "PWA-052", "PUB-001"]);
+    assert.equal(document.querySelector('.filt[data-f="reqa"]')?.getAttribute("aria-pressed"), "true");
+    document.querySelector('.filt[data-f="all"]')?.click();
+
+    // 4. A pending edit stays in the open run's queue and never overlays a
+    //    closed run, which renders read-only.
+    rowFor("PWA-052")?.querySelector('[data-s="blocked"]')?.click();
+    assert.equal(rowFor("PWA-052")?.querySelector('[data-s="blocked"]')?.getAttribute("aria-pressed"), "true");
+    change("#qa-run-select", "run-1");
+    await flush();
+    await flush();
+    assert.equal(gets.filter((run) => run === "run-1").length, 2);
+    assert.equal(document.querySelector("#qa-run-select")?.value, "run-1");
+    assert.equal(document.querySelectorAll("button.st").length, 0);
+    assert.equal(rowFor("PWA-052")?.querySelector(".readonly-status")?.textContent, "Undecided");
+    assert.ok(document.querySelector(".run-summary")?.textContent.includes("read only"));
+    assert.equal(document.querySelector("#qa-compare-select"), null, "no closed run other than the one on screen to compare with");
+    change("#qa-run-select", "run-2");
+    await flush();
+    await flush();
+    assert.equal(rowFor("PWA-052")?.querySelector('[data-s="blocked"]')?.getAttribute("aria-pressed"), "true");
+
+    // 5. A teammate rolls the run over under this tab: the refused save is
+    //    re-targeted at the new open run, sent once more, and announced.
+    openNext("Re-QA later");
+    await runTimer(900);
+    assert.equal(posts[1].run, "run-2");
+    assert.deepEqual(posts[2], { entries: { "PWA-052": { s: "blocked" } }, run: "run-3" });
+    assert.ok(document.querySelector("#savebar")?.textContent.includes("Run 2 · Re-QA 2026-09-08 was closed — your pending saves went to run-3"), document.querySelector("#savebar")?.textContent);
+    assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"), null);
+    assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-3"), null);
+    await flush();
+    await flush();
+    assert.equal(gets[gets.length - 1], "open");
+    assert.equal(document.querySelector("#qa-run-select")?.value, "run-3");
+    assert.ok(document.querySelector(".run-summary")?.textContent.includes("Run 3 · Re-QA later"));
+    assert.equal(JSON.parse(dom.window.sessionStorage.getItem("qa-view")).run, "run-3");
+    // A comparison reads baseline → later: a closed run offers only earlier runs.
+    change("#qa-run-select", "run-2");
+    await flush();
+    await flush();
+    assert.deepEqual([...document.querySelectorAll("#qa-compare-select option")].map((option) => option.value), ["", "run-1"]);
+    change("#qa-run-select", "run-3");
+    await flush();
+    await flush();
+    assert.equal(document.querySelector("#qa-run-select")?.value, "run-3");
+
+    // 6. The rollover form closes the open run and opens its successor.
+    document.querySelector("#qa-run-rollover")?.click();
+    const form = document.querySelector("#qa-rollover");
+    assert.ok(form, "rollover form");
+    assert.ok(form.querySelector(".rollover-confirm")?.textContent.includes("Close Run 3 · Re-QA later and open Run 4"));
+    form.querySelector("#qa-rollover-label").value = " Re-QA   2026-09-09 ";
+    form.querySelector('[name="client"]').value = "D4D860573";
+    form.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
+    await flush();
+    await flush();
+    await flush();
+    assert.deepEqual(rollovers[0], { action: "rollover", expectedOpenRun: "run-3", label: "Re-QA   2026-09-09", environment: "beta", builds: { client: "d4d860573" }, catalog: { revision: "abc123def456", activeCases: 4 } });
+    assert.equal(document.querySelector("#qa-rollover"), null);
+    assert.equal(document.querySelector("#qa-run-select")?.value, "run-4");
+    assert.ok(document.querySelector("#savebar")?.textContent.includes("opened — recording continues there"));
+    assert.equal(jsdomError, null, jsdomError);
+  } finally {
+    dom.window.close();
+  }
+
+  // 7. A server without runs leaves the page in tolerant mode: no run
+  //    controls, the old queue key, and saves that name no run.
+  const legacyPosts = [];
+  const legacy = new JSDOM(page, {
+    runScripts: "dangerously",
+    url: "http://localhost:4610/",
+    virtualConsole,
+    beforeParse(window) {
+      window.setTimeout = (callback, delay = 0) => {
+        const id = ++timerId;
+        timers.set(id, { callback, delay });
+        return id;
+      };
+      window.clearTimeout = (id) => timers.delete(id);
+      window.setInterval = () => 1;
+      window.fetch = async (input, init = {}) => {
+        const target = String(input);
+        if (target === "catalog.json") return response({ tabs: ["PWA", "Admin Dashboard"], journeys: [], locales: {}, cases });
+        if (target !== "/api/state") throw new Error("unexpected fetch " + target);
+        if (init.method === "POST") {
+          legacyPosts.push(JSON.parse(String(init.body)));
+          return response({ ok: true });
+        }
+        return response({ team: ["Tester A"], you: "Tester A", address: OWNER, entries: {} });
+      };
+    },
+  });
+  try {
+    await flush();
+    await flush();
+    const document = legacy.window.document;
+    assert.equal(document.querySelector("#qa-run-select"), null);
+    assert.equal(document.querySelector("#qa-run-rollover"), null);
+    assert.equal(document.querySelector(".helpline"), null);
+    document.querySelector('[data-id="PUB-001"][data-s="pass"]')?.click();
+    await runTimer(900);
+    assert.deepEqual(legacyPosts[0], { entries: { "PUB-001": { s: "pass" } } });
+    assert.equal(legacy.window.localStorage.getItem("qa-outbox:" + OWNER), null);
+    assert.equal(jsdomError, null, jsdomError);
+  } finally {
+    legacy.window.close();
+  }
+}
+
 describe("QA app client races", () => {
   // Each case spawns a Node subprocess and boots JSDOM once per page life, which
   // runs past Vitest's 5s default — the cause of the intermittent timeout here.
@@ -1152,6 +1448,20 @@ describe("QA app client races", () => {
         "--input-type=module",
         "--eval",
         `await (${displayLabelHarness.toString()})()`,
+      ],
+      { cwd: repoRoot, stdio: "pipe" },
+    );
+  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
+
+  it("keeps runs apart: keyed queues, read-only closed runs, compare, Re-QA, re-targeting, and rollover", () => {
+    execFileSync(
+      "node",
+      [
+        "scripts/dev/node-cli.js",
+        "node",
+        "--input-type=module",
+        "--eval",
+        `await (${runsHarness.toString()})()`,
       ],
       { cwd: repoRoot, stdio: "pipe" },
     );
