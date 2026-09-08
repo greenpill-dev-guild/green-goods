@@ -2,7 +2,8 @@
 
 import { useWorkForm } from "@green-goods/shared/hooks/work/useWorkForm";
 import type { WorkInput } from "@green-goods/shared/types/domain";
-import { render, screen, waitFor } from "@testing-library/react";
+import { instructionTemplates } from "@green-goods/shared/utils/action/templates";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it } from "vitest";
@@ -43,6 +44,58 @@ function GateHarness({ inputs }: { inputs: WorkInput[] }) {
 }
 
 describe("WorkDetails Review gate", () => {
+  it("exposes every required field across all action templates", async () => {
+    const actionTemplates = Object.entries(instructionTemplates).filter(
+      ([slug]) => slug !== "default"
+    );
+
+    expect(actionTemplates).toHaveLength(23);
+    for (const [slug, template] of actionTemplates) {
+      const view = render(<GateHarness inputs={template.uiConfig.details.inputs} />);
+
+      for (const input of template.uiConfig.details.inputs.filter((field) => field.required)) {
+        const label = input.unit ? `${input.title} (${input.unit})*` : `${input.title}*`;
+
+        if (input.type === "multi-select" || input.type === "repeater") {
+          expect(view.getByRole("group", { name: label }), `${slug}: ${input.key}`).toBeVisible();
+        } else if (input.type === "select" || input.type === "band") {
+          expect(view.getByLabelText(label), `${slug}: ${input.key}`).toHaveAttribute(
+            "id",
+            input.key
+          );
+        } else {
+          expect(view.getByLabelText(label), `${slug}: ${input.key}`).toHaveAttribute(
+            "name",
+            input.key
+          );
+        }
+      }
+
+      await act(async () => {});
+      view.unmount();
+    }
+  });
+
+  it("unlocks Infrastructure Milestone after its required value and type are entered", async () => {
+    const user = userEvent.setup();
+    const inputs = instructionTemplates["solar.install_milestone"].uiConfig.details.inputs;
+    const view = render(<GateHarness inputs={inputs} />);
+
+    const review = screen.getByRole("button", { name: "Review Work" });
+    expect(review).toBeDisabled();
+
+    const milestoneValue = view.container.querySelector<HTMLInputElement>(
+      'input[name="milestoneValue"]'
+    );
+    expect(milestoneValue).not.toBeNull();
+    expect(screen.getByLabelText("Milestone Value*")).toBe(milestoneValue);
+    await user.type(milestoneValue!, "12.5");
+    await user.click(screen.getByLabelText("Milestone Type*"));
+    await user.click(screen.getByRole("option", { name: "Solar kW installed" }));
+
+    await waitFor(() => expect(review).toBeEnabled());
+  });
+
   it("keeps Review blocked until required scalar and single-choice fields are complete", async () => {
     const user = userEvent.setup();
     const view = render(

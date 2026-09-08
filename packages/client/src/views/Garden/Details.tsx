@@ -3,8 +3,8 @@ import type { Action, WorkInput } from "@green-goods/shared/types/domain";
 import { RiAddLine, RiCloseLine, RiFileFill, RiMapPinLine } from "@remixicon/react";
 import React, { useCallback, useState } from "react";
 import {
-  Controller,
   type Control,
+  Controller,
   type Path,
   type UseFormRegister,
   type UseFormSetValue,
@@ -111,6 +111,7 @@ const WorkRepeaterInput: React.FC<WorkRepeaterInputProps> = ({
                 <FormText
                   key={child.key}
                   {...register(fieldName)}
+                  id={fieldName}
                   label={child.title}
                   placeholder={child.placeholder}
                   required={child.required}
@@ -126,6 +127,7 @@ const WorkRepeaterInput: React.FC<WorkRepeaterInputProps> = ({
                   fieldName,
                   child.type === "number" ? getNumberRegisterOptions() : undefined
                 )}
+                id={fieldName}
                 label={child.unit ? `${child.title} (${child.unit})` : child.title}
                 type={child.type === "number" ? "number" : "text"}
                 inputMode={child.type === "number" ? "decimal" : undefined}
@@ -254,6 +256,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
       {/* Time Spent Input - Always shown as a default field */}
       <FormInput
         {...register("timeSpentMinutes")}
+        id="timeSpentMinutes"
         label={intl.formatMessage({
           id: "app.garden.details.timeSpent",
           defaultMessage: "Time Spent (hours)",
@@ -299,6 +302,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
             <FormInput
               key={key}
               {...register(fieldKey, registerOptions)}
+              id={key}
               label={unit ? `${title} (${unit})` : title}
               type="number"
               placeholder={placeholder}
@@ -419,6 +423,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
             <FormInput
               key={key}
               {...register(fieldKey, registerOptions)}
+              id={key}
               label={title}
               placeholder={placeholder}
               required={required}
@@ -430,6 +435,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
             <FormText
               key={key}
               {...register(fieldKey, registerOptions)}
+              id={key}
               label={title}
               rows={3}
               placeholder={placeholder}
@@ -494,6 +500,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
 
       <FormText
         {...register("feedback")}
+        id="feedback"
         label={intl.formatMessage({
           id: "app.garden.details.feedback",
           description: "Feedback",
