@@ -4,7 +4,7 @@ sidebar_label: Product Experience QA
 slug: /builders/quality/product-experience-qa
 audience: developer
 owner: product
-last_verified: 2026-09-02
+last_verified: 2026-09-07
 feature_status: In progress
 source_of_truth:
   - AGENTS.md
@@ -41,7 +41,11 @@ honestly what you saw, you are qualified.
 Walks are recorded in the [QA app](https://qa.greengoods.app), a shared checklist where each
 tester signs in with their wallet and owns their own verdicts. Every test case gets a Pass, Fail,
 Blocked, or N/A call and a short note, saved as you go. Use Blocked when a required path cannot
-complete; use N/A only when a case is intentionally outside the agreed scope:
+complete; use N/A only when a case is intentionally outside the agreed scope. Each team pass is a
+**run**: the app records into the open run, a tester starts a new run before a re-QA, and closed
+runs stay readable. Comparing with an earlier run shows its verdict and notes on every row, counts
+what was fixed, still failing, regressed, or newly walked, and the Re-QA filter lists what that
+run left failing or blocked:
 
 <figure>
   <img src="/img/screenshots/qa-app-priority-view.webp" alt="Synthetic QA app data in Priority view, with the P0 run-first band and priority chips visible" style={{maxWidth: '100%', borderRadius: 'var(--radius-md)', border: '1px solid var(--ifm-color-emphasis-300)'}} />
@@ -158,8 +162,8 @@ opening it.
   consciously skip? What worked well enough to leave alone? Which fails worry us most? Would we
   welcome a new garden onto this build tomorrow?
 - Trigger the `qa-call-report` routine (or run `/qa-triage --call` at a desk). It pulls every
-  tester's verdicts from the QA app (`qa:pull` merges every shard ever written, so the pulled
-  entries are then filtered to the call window by their timestamps), finds the call's Gemini notes
+  tester's verdicts from the run the call recorded into (`qa:pull --run`; a run can hold several
+  sessions, so the pulled entries are then filtered to the call window by their timestamps), finds the call's Gemini notes
   in Drive, joins the two by Test ID, and clusters failures into at most eight fix slices — each
   sized for one branch and one PR.
 - `qa:report` derives the results-by-priority and results-by-kind blocks from that pulled session;
@@ -174,10 +178,11 @@ opening it.
 - Fix sessions then work slice by slice. Every fix is a repair grounded in the feature's history
   and existing structure — updating or removing code before adding any — and is done when the
   slice's test cases pass again.
-- Re-QA later in the week is a scoped walk of the affected cases. Whoever recorded a fail
-  re-records the pass, replacing their current verdict. The standing result remains the most
-  severe current verdict across testers, so someone else's pass cannot clear another tester's
-  fail or blocked result.
+- Re-QA later in the week is a scoped walk of the affected cases in a new run, so the earlier
+  pass stays intact and comparable. Whoever recorded a fail re-records the pass in the new run,
+  and the compare shows what was fixed, what still fails, and what regressed. Within a run the
+  standing result remains the most severe current verdict across testers, so someone else's pass
+  cannot clear another tester's fail or blocked result.
 
 The parent issue is titled `QA session YYYY-MM-DD` (` · 2` appended for a second call on the
 same day) and follows one template, so every session reads the same way:

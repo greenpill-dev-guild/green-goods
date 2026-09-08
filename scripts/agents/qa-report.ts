@@ -9,7 +9,7 @@
  * only the CLI at the bottom touches the filesystem, and nothing here reads the
  * Blob store.
  *
- *   bun run qa:report --slug <slug> [--window a..b] [--previous path]
+ *   bun run qa:report --slug <slug> [--window a..b] [--previous <earlier run's qa-state.json>]
  *     [--build client=sha,admin=sha] [--public] [--stale-days n] [--out dir]
  *
  * `report.md` is the private variant: attributed notes and per-tester coverage,
@@ -25,6 +25,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { describeRun } from "../../packages/qa/runs";
 import { type Entry, type MergedEntries, notesFor, rollupVerdict } from "./qa-state";
 import {
   acquirePrivateSessionLock,
@@ -32,6 +33,7 @@ import {
   releasePrivateSessionLock,
   verifyPrivateArtifactSet,
   writePrivateFileAtomically,
+  type RunSummary,
 } from "./qa-state-pull";
 import { DEFAULT_STALE_DAYS, findStaleCases, type StaleCase } from "./qa-status";
 import { type Catalog, type CatalogCase, loadCatalog, SEVERITY_VALUES } from "./qa-workbook-build";
@@ -69,8 +71,9 @@ export interface ReportIssue {
   notes: string;
 }
 
-/** Standing verdicts compared case by case against an earlier pulled session. */
+/** Standing verdicts compared case by case against an earlier pulled run. */
 export interface ReportDelta {
+  /** "Run 1 · Baseline (closed …)" when the baseline was pulled from a run, else its file path. */
   baseline: string;
   newlyFailing: string[];
   newlyBlocked: string[];
@@ -81,6 +84,10 @@ export interface ReportDelta {
   cleared: string[];
   /** Fail or Blocked in the baseline and set aside by --skipped this run: not walked, so neither fixed nor cleared. */
   skipped: string[];
+  /** Walked now with a verdict, and never recorded in the baseline. */
+  newlyWalked: string[];
+  /** Successors that borrowed the baseline verdict of a case retired between the two runs. */
+  inherited: Array<{ id: string; from: string }>;
   /** Keys on either side that are not active catalog cases — reported, never dropped, never published. */
   unknown: string[];
 }
@@ -105,6 +112,8 @@ export interface ReportModel {
   testers: { count: number; perPerson: Record<string, { touched: number; decided: number }> };
   /** IDs passed as --skipped and how many in-window N/A entries that set aside. */
   skipped: { ids: string[]; excluded: number };
+  /** The run the state was pulled from, when the pull recorded one. */
+  run?: RunSummary;
 }
 
 export interface ReportOptions {
@@ -113,12 +122,21 @@ export interface ReportOptions {
   window?: ReportWindow;
   build?: { client?: string; admin?: string };
   staleDays?: number;
+  /** The run this state was pulled from, when the pull recorded one. */
+  run?: RunSummary;
   /**
-   * An earlier qa-state.json to diff against. Shards keep one entry per case per
-   * tester and a re-record overwrites the previous verdict, so this snapshot is
-   * the only place a pre-session verdict survives.
+   * An earlier qa-state.json to diff against — normally the previous run,
+   * pulled with `qa:pull --run <id>`. Its `run` names the baseline in the
+   * report; an older pull without one is named by its path.
    */
-  previous?: { path: string; entries: MergedEntries };
+  previous?: { path: string; entries: MergedEntries; run?: RunSummary };
+  /**
+   * Retired Test ID → the active successors that now prove what it proved,
+   * from the catalog's `replacedBy` chains. A baseline verdict on a retired id
+   * is read on each successor, labelled as inherited, so a case split between
+   * two runs still shows what was failing.
+   */
+  replacedBy?: Record<string, string[]>;
   /**
    * Test ID → notes text from results.csv. results.csv is unwindowed, so a cell
    * only wins when it differs from what the raw state would have written there —
@@ -139,7 +157,7 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const ZONED = /(?:Z|[+-]\d{2}:?\d{2})$/i;
 
 /**
- * The store is long-lived and the pull merges every shard ever written, so only
+ * A run can hold several sessions and the pull merges every shard in it, so only
  * entries inside the window are this session's verdicts. Without an explicit
  * window the slug's UTC day stands in, the same fallback the routine uses.
  */
@@ -205,14 +223,46 @@ function groupBuckets(
   return Object.fromEntries(keys.map((key) => [key, bucket(cases.filter((testCase) => keyOf(testCase) === key), verdictOf)]));
 }
 
+/** The name a delta heading gives its baseline: the run when known, else the file. */
+export function describeBaseline(previous: { path: string; run?: RunSummary }): string {
+  if (!previous.run) return previous.path;
+  const closed = previous.run.closedAt ? ` (closed ${previous.run.closedAt})` : " (still open)";
+  return `${describeRun(previous.run)}${closed}`;
+}
+
+/**
+ * Successors of every retired id, following `replacedBy` chains to the active
+ * ids at their ends. A cycle or a dangling chain contributes nothing.
+ */
+export function successorMap(cases: Array<Pick<CatalogCase, "id" | "status" | "replacedBy">>): Record<string, string[]> {
+  const byId = new Map(cases.map((testCase) => [testCase.id, testCase]));
+  const resolve = (id: string, seen: Set<string>): string[] => {
+    const testCase = byId.get(id);
+    if (!testCase || seen.has(id)) return [];
+    if (testCase.status !== "retired") return [id];
+    seen.add(id);
+    return (testCase.replacedBy ?? []).flatMap((successor) => resolve(successor, seen));
+  };
+  const map: Record<string, string[]> = {};
+  for (const testCase of cases) {
+    if (testCase.status !== "retired") continue;
+    const successors = [...new Set(resolve(testCase.id, new Set()))];
+    if (successors.length) map[testCase.id] = successors;
+  }
+  return map;
+}
+
+const hasEntries = (byPerson: Record<string, Entry> | undefined) => Boolean(byPerson && Object.keys(byPerson).length);
+
 function compareStanding(
   cases: CatalogCase[],
   current: MergedEntries,
-  previous: { path: string; entries: MergedEntries },
+  previous: { path: string; entries: MergedEntries; run?: RunSummary },
   skipped: Set<string>,
+  replacedBy: Record<string, string[]> = {},
 ): ReportDelta {
   const delta: ReportDelta = {
-    baseline: previous.path,
+    baseline: describeBaseline(previous),
     newlyFailing: [],
     newlyBlocked: [],
     fixed: [],
@@ -220,22 +270,54 @@ function compareStanding(
     stillBlocked: [],
     cleared: [],
     skipped: [],
+    newlyWalked: [],
+    inherited: [],
     unknown: [],
   };
+  const active = new Set(cases.map((testCase) => testCase.id));
+  // A verdict on an id retired since the baseline is read on each successor
+  // that has no baseline verdict of its own; the retired id is then accounted
+  // for rather than reported as unknown.
+  const baseline: MergedEntries = { ...previous.entries };
+  const accounted = new Set<string>();
+  for (const [retiredId, successors] of Object.entries(replacedBy)) {
+    if (!hasEntries(previous.entries[retiredId])) continue;
+    for (const successor of successors) {
+      // A successor with its own baseline verdict inherits nothing. A note-only
+      // successor row is walked but undecided, so a Fail or Blocked on the
+      // retired predecessor still carries over (mirrors the page's comparedStatus).
+      if (!active.has(successor) || rollupVerdict(previous.entries[successor])) continue;
+      // Several retired ids can converge on one successor (PUB-004 and PUB-005
+      // both lead to PUB-014). Merge every predecessor's entries under keys
+      // that name their source, so the rollup sees all of them and the most
+      // severe verdict wins regardless of catalog order.
+      const inheritedEntries = Object.fromEntries(
+        Object.entries(previous.entries[retiredId]).map(([person, entry]) => [`${person} (${retiredId})`, entry]),
+      );
+      baseline[successor] = { ...(delta.inherited.some((pair) => pair.id === successor) ? baseline[successor] : {}), ...inheritedEntries };
+      delta.inherited.push({ id: successor, from: retiredId });
+      accounted.add(retiredId);
+    }
+  }
+  delta.inherited.sort((a, b) => a.id.localeCompare(b.id) || a.from.localeCompare(b.from));
   for (const testCase of cases) {
-    const before = rollupVerdict(previous.entries[testCase.id]);
+    const before = rollupVerdict(baseline[testCase.id]);
     const now = rollupVerdict(current[testCase.id]);
+    // A note without a verdict counts as walked but not judged (qa.md), so
+    // presence, not a verdict, makes a case newly walked.
+    if (hasEntries(current[testCase.id]) && !hasEntries(baseline[testCase.id])) delta.newlyWalked.push(testCase.id);
     if (now === "Fail") (before === "Fail" ? delta.stillFailing : delta.newlyFailing).push(testCase.id);
     else if (now === "Blocked") (before === "Blocked" ? delta.stillBlocked : delta.newlyBlocked).push(testCase.id);
     else if (before === "Fail" || before === "Blocked") {
       if (now === "Pass") delta.fixed.push(testCase.id);
       else if (now === "" && skipped.has(testCase.id)) delta.skipped.push(testCase.id);
+      // An inherited failure nobody re-walked is not cleared: the successor was simply not walked yet.
+      else if (!hasEntries(current[testCase.id]) && delta.inherited.some((pair) => pair.id === testCase.id)) continue;
       else delta.cleared.push(testCase.id);
     }
   }
-  const active = new Set(cases.map((testCase) => testCase.id));
   delta.unknown = [...new Set([...Object.keys(previous.entries), ...Object.keys(current)])]
-    .filter((id) => !active.has(id))
+    .filter((id) => !active.has(id) && !accounted.has(id))
     .sort();
   return delta;
 }
@@ -338,9 +420,12 @@ export function buildReportModel(cases: CatalogCase[], entries: MergedEntries, o
       failing: untouched.filter((testCase) => standingVerdict(testCase) === "Fail").map((testCase) => testCase.id),
       blocked: untouched.filter((testCase) => standingVerdict(testCase) === "Blocked").map((testCase) => testCase.id),
     },
-    delta: options.previous ? compareStanding(cases, current, options.previous, new Set(skippedIds)) : null,
+    delta: options.previous
+      ? compareStanding(cases, current, options.previous, new Set(skippedIds), options.replacedBy)
+      : null,
     testers: { count: perPerson.size, perPerson: sortedPeople },
     skipped: { ids: skippedIds, excluded },
+    run: options.run,
   };
 }
 
@@ -380,6 +465,13 @@ export function renderReport(model: ReportModel, catalog: Pick<Catalog, "kinds">
       : [];
   const header = [
     `QA session ${model.slug}`,
+    // The run label is free text a tester typed; the public projection keeps
+    // to the run number, environment, and timestamps.
+    ...(model.run
+      ? [
+          `Run: ${isPublic ? `Run ${model.run.n}` : describeRun(model.run)} · ${model.run.environment} · ${model.run.closedAt ? `closed ${model.run.closedAt}` : "open"}${model.run.legacy ? " · migrated baseline" : ""}`,
+        ]
+      : []),
     `Window: ${model.window.start} – ${model.window.end} (${model.window.source === "flag" ? "from --window" : "slug day, UTC"}) · pulled ${model.pulledAt}`,
     ...(model.windowNote ? [`Caveat: ${model.windowNote}`] : []),
     ...(build.length ? [`Build under test: ${build.join(" · ")}`] : []),
@@ -405,16 +497,21 @@ export function renderReport(model: ReportModel, catalog: Pick<Catalog, "kinds">
   const stale = model.gaps.stale.map(({ id, lastEntryAt }) => `\`${id}\` — last entry ${lastEntryAt}`);
   // Unknown keys and the baseline path are the two delta fields not drawn from the
   // catalog; the public variant carries their counts, never their text.
+  const inherited = model.delta?.inherited.map((pair) => `\`${pair.id}\` ← \`${pair.from}\``) ?? [];
   const delta = model.delta
     ? [
-        isPublic ? "## Delta vs previous snapshot" : `## Delta vs ${model.delta.baseline}`,
+        isPublic ? "## Delta vs previous run" : `## Delta vs ${model.delta.baseline}`,
         countedLine("Newly failing", model.delta.newlyFailing),
         countedLine("Newly blocked", model.delta.newlyBlocked),
         countedLine("Fixed", model.delta.fixed),
+        countedLine("Newly walked", model.delta.newlyWalked),
         countedLine("Cleared without a pass", model.delta.cleared),
         ...(model.delta.skipped.length ? [countedLine("Skipped (baseline fail or blocked, not walked)", model.delta.skipped)] : []),
         countedLine("Still failing", model.delta.stillFailing),
         countedLine("Still blocked", model.delta.stillBlocked),
+        ...(inherited.length
+          ? [`- Inherited from retired cases (${inherited.length}): ${inherited.join(", ")}`]
+          : []),
         ...(model.delta.unknown.length
           ? [
               isPublic
@@ -538,6 +635,8 @@ export function parseArgs(argv: string[]): CliOptions {
 interface PulledState {
   slug?: string;
   pulledAt?: string;
+  /** Present on pulls made since the store gained runs. */
+  run?: RunSummary;
   entries: MergedEntries;
 }
 
@@ -659,7 +758,19 @@ export async function runReport(
     if (options.previous) {
       const previousPath = path.resolve(deps.repoRoot, options.previous);
       if (!existsSync(previousPath)) throw new Error(`--previous file ${options.previous} is missing`);
-      previous = { path: options.previous, entries: readState(previousPath, "--previous file").entries };
+      const previousState = readState(previousPath, "--previous file");
+      // A later run passed as the baseline would read every fix as a regression.
+      if (previousState.run && state.run && previousState.run.n >= state.run.n) {
+        throw new Error("--previous must name an earlier run than qa-state.json");
+      }
+      // A snapshot pulled while its run was still open can miss verdicts recorded
+      // before the close, which the delta would then read as newly walked or fixed.
+      if (previousState.run && !previousState.run.closedAt) {
+        throw new Error(
+          `--previous was pulled while ${previousState.run.id} was still open — pull the closed run with qa:pull --run ${previousState.run.id} and try again`,
+        );
+      }
+      previous = { path: options.previous, entries: previousState.entries, run: previousState.run };
     }
     const window = parseWindow(options.window, options.slug);
     const active = deps.catalog.cases.filter((testCase) => testCase.status !== "retired");
@@ -669,7 +780,9 @@ export async function runReport(
       window,
       build: options.build,
       staleDays: options.staleDays,
+      run: state.run,
       previous,
+      replacedBy: successorMap(deps.catalog.cases),
       noteOverrides,
       skipped: options.skipped,
     });

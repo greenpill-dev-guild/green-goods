@@ -366,6 +366,10 @@ export function buildLocalValidationPlan(options, gitInputs, environment) {
     head: gitInputs.head,
     workingCopyFingerprint: gitInputs.workingCopyFingerprint,
     changedPaths: gitInputs.changedPaths,
+    // A path deleted or moved since the base is still a changed path; without
+    // this the scoped format and lint commands hand Biome a file that no
+    // longer exists and the whole plan fails at its first check.
+    deletedPaths: gitInputs.deletedPaths ?? [],
     risk: options.risk,
     cancelled: options.cancelled,
     testPaths: options.testPaths,
@@ -782,6 +786,7 @@ async function main() {
         base: options.base ?? null,
         head: options.head ?? null,
         changedPaths: options.changedPaths,
+        deletedPaths: [],
         workingCopyFingerprint: null,
       }
     : resolveGitInputs(options);

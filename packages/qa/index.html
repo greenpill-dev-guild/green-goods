@@ -71,7 +71,8 @@
     font-family:"Inter",system-ui,sans-serif; font-size:14px; line-height:1.45; }
   header { position:sticky; top:0; z-index:5; background:var(--paper);
     border-bottom:1px solid var(--line); padding:14px 18px 10px; }
-  .title-row { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+  .title-row { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .title-row > div:first-child { flex:1 1 320px; min-width:0; }
   h1 { font-family:"Plus Jakarta Sans",sans-serif; font-size:19px; font-weight:800;
     margin:0 0 2px; letter-spacing:-0.01em; }
   .runline { font-size:12px; color:var(--soft); }
@@ -209,9 +210,45 @@
   .counts b { color:var(--ink); }
   .counts .current-tester { color:var(--ink); font-weight:700; }
   .counts .warn { color:var(--amber); }
+  .helpline { font-size:11px; color:var(--soft); margin-top:2px; }
+  .runline b { color:var(--ink); font-weight:600; }
+  .run-control select, .compare-control select { max-width:260px; }
+  .rollover-btn { border:1px solid var(--green); background:var(--green); color:var(--on-green);
+    border-radius:999px; min-height:32px; padding:4px 12px; font:inherit; font-size:12px; font-weight:600;
+    cursor:pointer; white-space:nowrap; }
+  .rollover-btn:focus-visible { outline:2px solid var(--green); outline-offset:2px; }
+  .rollover-form { display:grid; gap:8px; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
+    align-items:end; width:100%; padding:10px 12px; border:1px solid var(--line);
+    border-radius:var(--radius-md); background:var(--linen); }
+  .rollover-form label { display:grid; gap:3px; font-size:11px; color:var(--soft);
+    text-transform:uppercase; letter-spacing:0.04em; }
+  .rollover-form input, .rollover-form select { min-height:32px; border:1px solid var(--line);
+    border-radius:var(--radius-md); background:var(--surface); color:var(--ink); padding:3px 9px;
+    font:inherit; font-size:12.5px; text-transform:none; letter-spacing:0; }
+  .rollover-form input:focus-visible, .rollover-form select:focus-visible,
+  .cancel-btn:focus-visible { outline:2px solid var(--green); outline-offset:2px; }
+  .rollover-confirm { grid-column:1 / -1; font-size:12.5px; color:var(--ink); }
+  .rollover-actions { grid-column:1 / -1; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .cancel-btn { border:1px solid var(--line); background:var(--surface); color:var(--ink);
+    border-radius:999px; min-height:32px; padding:4px 12px; font:inherit; font-size:12px; font-weight:600;
+    cursor:pointer; }
+  .rollover-err { color:var(--red); font-size:12px; }
+  .compare { grid-column:2 / -1; display:flex; flex-wrap:wrap; gap:6px; align-items:center;
+    font-size:11.5px; color:var(--soft); }
+  .compare-verdict { display:inline-flex; align-items:center; gap:5px; border:1px solid var(--line);
+    border-radius:999px; padding:2px 8px; background:var(--surface); color:var(--soft); font-weight:600; }
+  .compare-verdict b { color:var(--ink); font-weight:600; }
+  .compare-verdict.pass { background:var(--green-wash); border-color:var(--green); color:var(--green); }
+  .compare-verdict.fail { background:var(--red-wash); border-color:var(--red); color:var(--red); }
+  .compare-verdict.blocked { background:var(--amber-wash); border-color:var(--amber); color:var(--amber); }
+  .compare-verdict.untested { border-style:dashed; }
+  .inherited { font-style:italic; }
+  .compare-notes { flex-basis:100%; }
   @media (max-width:720px) {
     header { position:static; padding-inline:14px; }
+    .compare { grid-column:1 / -1; }
     .title-row { align-items:center; }
+    .header-actions { width:100%; justify-content:flex-end; flex-wrap:wrap; }
     .tabs { flex-basis:100%; }
     .scoperow, .counts { margin-left:0; }
     .counts { flex-basis:100%; text-align:left; }
@@ -274,6 +311,27 @@
   const LOCALE_KEY = "qa-locale";
   /** The single shared key this page used before it kept one queue per tester. */
   const LEGACY_OUTBOX_KEY = "qa-outbox";
+  const ENVIRONMENTS = [["beta", "beta (staging)"], ["production", "production"], ["local", "local"]];
+
+  // ── Runs ─────────────────────────────────────────────────────────────
+  // A run is one team pass over the catalog. The server keeps one open run;
+  // closed runs are immutable and readable, and the page can compare the run
+  // it shows against any closed one. A server that sends no `openRun` (an
+  // older deploy, or an old fixture) puts the page in tolerant mode: no run
+  // controls, one outbox key per tester, and saves that name no run.
+  let RUNS = [];
+  let runsSupported = false;
+  let openRunId = "";
+  let selectedRun = "";
+  let compareRun = "";
+  /** The compared run's entries. Closed runs are immutable, so one fetch per page life. */
+  let compared = null;
+  let compareLoading = false;
+  let rolloverOpen = false;
+  let rolloverBusy = false;
+  let rolloverProblem = "";
+  let refreshAfterSave = false;
+  let CATALOG_META = null;
 
   let CASES = [];
   let TABS = [];
@@ -412,8 +470,10 @@
   // or dismisses the installed PWA during the debounce, or while saves are
   // failing, reopens to find the retry has nothing left to send. Entries leave
   // here only once the server has confirmed that write.
-  function outboxKey(owner) {
-    return OUTBOX_PREFIX + owner;
+  // Keyed by owner AND run: a queue written against a run that has since
+  // closed must be re-targeted, never silently sent as if the run were open.
+  function outboxKey(owner, runId) {
+    return OUTBOX_PREFIX + owner + (runId ? ":" + runId : "");
   }
 
   /**
@@ -428,7 +488,10 @@
   function storedOutboxFor(owner, legacyPerson) {
     if (!owner) return null;
     for (const read of [
-      () => localStorage.getItem(outboxKey(owner)),
+      () => localStorage.getItem(outboxKey(owner, openRunId)),
+      // Written before this page keyed the queue by run. Adopt it into the
+      // open run once; `retireLegacyOutbox` then removes it.
+      () => openRunId ? localStorage.getItem(outboxKey(owner)) : null,
       // The first wallet-auth page keyed by display name. Migrate that queue
       // after the authenticated response supplies the stable owner address.
       () => owner !== legacyPerson && legacyPerson ? localStorage.getItem(outboxKey(legacyPerson)) : null,
@@ -455,11 +518,59 @@
   function writeOutbox(owner, person, delta) {
     try {
       if (Object.keys(delta).length) {
-        localStorage.setItem(outboxKey(owner), JSON.stringify({ owner, person, delta }));
+        localStorage.setItem(
+          outboxKey(owner, openRunId),
+          JSON.stringify({ owner, person, ...(openRunId ? { run: openRunId } : {}), delta }),
+        );
       } else {
-        localStorage.removeItem(outboxKey(owner));
+        localStorage.removeItem(outboxKey(owner, openRunId));
       }
     } catch (e) {}
+  }
+
+  /**
+   * Adopt queues left under other runs' keys — a tester who was offline, or
+   * mid-save, when a teammate rolled the run over — into the open run, and
+   * remove them so they cannot be found and re-sent again later.
+   */
+  function adoptStaleRunOutboxes(owner) {
+    if (!owner || !openRunId) return;
+    const prefix = outboxKey(owner, "");
+    const stale = [];
+    try {
+      for (let index = 0; index < localStorage.length; index++) {
+        const key = localStorage.key(index);
+        if (key && key.startsWith(prefix + ":") && key !== outboxKey(owner, openRunId)) stale.push(key);
+      }
+      let adopted = false;
+      for (const key of stale) {
+        const stored = JSON.parse(localStorage.getItem(key) || "null");
+        if (stored && stored.delta && stored.owner === owner) {
+          outbox = mergedDictionary(stored.delta, outbox);
+          adopted = true;
+        }
+      }
+      // Persist the merged queue under the open run's key BEFORE the stale
+      // copies go, so a reload in between cannot lose the only copy.
+      if (adopted) saveOutbox();
+      for (const key of stale) localStorage.removeItem(key);
+    } catch (e) {}
+  }
+
+  /**
+   * Move this tester's pending queue from a run the server just closed to the
+   * run it named as open. Nothing is dropped: the closed run stays immutable
+   * and the pending verdicts land in the run that is actually recording.
+   */
+  function rekeyOutbox(fromRun, toRun) {
+    if (!identity || fromRun === toRun) return;
+    try {
+      const stored = JSON.parse(localStorage.getItem(outboxKey(identity, fromRun)) || "null");
+      if (stored && stored.delta && stored.owner === identity) outbox = mergedDictionary(stored.delta, outbox);
+      localStorage.removeItem(outboxKey(identity, fromRun));
+    } catch (e) {}
+    openRunId = toRun;
+    saveOutbox();
   }
 
   /**
@@ -485,6 +596,14 @@
       try {
         const stored = JSON.parse(localStorage.getItem(outboxKey(person)) || "null");
         if (stored && !stored.owner && stored.person === person) localStorage.removeItem(outboxKey(person));
+      } catch (e) {}
+    }
+    // The run-less per-tester key from before runs: its contents are in the
+    // open run's queue now, and `storedOutboxFor` would otherwise find it again.
+    if (openRunId) {
+      try {
+        const stored = JSON.parse(localStorage.getItem(outboxKey(owner)) || "null");
+        if (stored && stored.owner === owner) localStorage.removeItem(outboxKey(owner));
       } catch (e) {}
     }
   }
@@ -717,12 +836,118 @@
   }
   function tally() {
     const metrics = counts(currentSurface());
+    const delta = compareTally(currentSurface());
     if (scope === null) {
-      return `<b>${metrics.done}/${metrics.total}</b> decided · <b>${metrics.fails}</b> issues · <b>${metrics.total - metrics.done}</b> undecided`;
+      return `<b>${metrics.done}/${metrics.total}</b> decided · <b>${metrics.fails}</b> issues · <b>${metrics.total - metrics.done}</b> undecided${delta}`;
     }
     const nameClass = scope === who ? "current-tester" : "tester-name";
     const you = scope === who ? ' <span class="you-summary">(You)</span>' : "";
-    return `<span class="${nameClass}">${esc(scope)}</span>${you} · <b>${metrics.touched}</b> touched · <b>${metrics.done}/${metrics.total}</b> decided · <b>${metrics.fails}</b> issues`;
+    return `<span class="${nameClass}">${esc(scope)}</span>${you} · <b>${metrics.touched}</b> touched · <b>${metrics.done}/${metrics.total}</b> decided · <b>${metrics.fails}</b> issues${delta}`;
+  }
+
+  // ── Runs and compare ───────────────────────────────────────────────
+  function runById(runId) {
+    return RUNS.find((run) => run.id === runId) || null;
+  }
+  /** "Run 2 · Re-QA 2026-09-08" — the same phrase the scripts print. */
+  function describeRunId(runId) {
+    const run = runById(runId);
+    return run ? `Run ${run.n} · ${run.label}` : runId;
+  }
+  /** Whether verdicts may be recorded into the run on screen. */
+  function runOpen() {
+    return !runsSupported || selectedRun === openRunId;
+  }
+  function shortDate(iso) {
+    return typeof iso === "string" && iso.length >= 10 ? iso.slice(0, 10) : "";
+  }
+  function runSummaryLine() {
+    const run = runById(selectedRun);
+    if (!run) return "";
+    const who_ = run.openedByLabel ? ` · opened by ${esc(run.openedByLabel)} on ${esc(shortDate(run.openedAt))}` : "";
+    const state = run.closedAt
+      ? ` · <b>closed</b> ${esc(shortDate(run.closedAt))} — read only`
+      : " · <b>open</b>";
+    return `<b>${esc(describeRunId(run.id))}</b> · ${esc(run.environment)}${run.legacy ? " · migrated baseline" : ""}${who_}${state}`;
+  }
+  function comparedRollup(caseId) {
+    const all = Object.values(compared && hasOwn(compared.entries, caseId) ? compared.entries[caseId] : {})
+      .map((e) => e.s).filter(Boolean);
+    if (!all.length) return "";
+    return all.sort((a, b) => RANK[b] - RANK[a])[0];
+  }
+  /**
+   * The compared run's verdict for a case. A case retired since that run maps
+   * onto each successor named by the catalog (`replaces`), labelled inherited,
+   * so a split case still shows what was failing before the split.
+   */
+  function comparedStatus(testCase) {
+    if (!compared) return { status: "", inheritedFrom: [], walked: false };
+    const own = hasOwn(compared.entries, testCase.id) ? compared.entries[testCase.id] : null;
+    const ownWalked = Boolean(own && Object.keys(own).length);
+    // A successor's own verdict is authoritative. A note-only successor row is
+    // walked but undecided, so a Fail or Blocked recorded on the retired
+    // predecessor still carries over and keeps the case in the Re-QA filter.
+    const ownStatus = ownWalked ? comparedRollup(testCase.id) : "";
+    if (ownStatus) return { status: ownStatus, inheritedFrom: [], walked: true };
+    let status = "";
+    const inheritedFrom = [];
+    for (const retiredId of testCase.replaces || []) {
+      const row = hasOwn(compared.entries, retiredId) ? compared.entries[retiredId] : null;
+      if (!row || !Object.keys(row).length) continue;
+      inheritedFrom.push(retiredId);
+      const candidate = comparedRollup(retiredId);
+      if (candidate && (!status || RANK[candidate] > RANK[status])) status = candidate;
+    }
+    return { status, inheritedFrom, walked: ownWalked || inheritedFrom.length > 0 };
+  }
+  function comparedNotes(testCase, inheritedFrom) {
+    const sources = [testCase.id, ...inheritedFrom];
+    const notes = [];
+    for (const sourceId of sources) {
+      const row = compared && hasOwn(compared.entries, sourceId) ? compared.entries[sourceId] : {};
+      for (const [person, entry] of Object.entries(row)) {
+        if (entry && entry.n && entry.n.trim()) notes.push({ person, note: entry.n, from: sourceId === testCase.id ? "" : sourceId });
+      }
+    }
+    return notes;
+  }
+  function isReQa(testCase) {
+    const status = comparedStatus(testCase).status;
+    return status === "fail" || status === "blocked";
+  }
+  function compareTally(surface) {
+    if (!compareRun || !compared) return "";
+    let fixed = 0, still = 0, regressed = 0, walked = 0;
+    for (const testCase of currentRows(surface)) {
+      const before = comparedStatus(testCase);
+      const now = verdict(testCase.id);
+      const wasIssue = before.status === "fail" || before.status === "blocked";
+      const isIssueNow = now === "fail" || now === "blocked";
+      if (wasIssue && now === "pass") fixed += 1;
+      else if (wasIssue && isIssueNow) still += 1;
+      else if (before.status === "pass" && isIssueNow) regressed += 1;
+      // A note without a verdict counts as walked but not judged.
+      if (!before.walked && Object.keys(entries[testCase.id] || {}).length) walked += 1;
+    }
+    return ` · vs ${esc(describeRunId(compareRun))}: <b>${fixed}</b> fixed · <b>${still}</b> still failing · <b>${regressed}</b> regressed · <b>${walked}</b> newly walked`;
+  }
+  function compareBlock(testCase) {
+    if (!compareRun) return "";
+    if (compareLoading || !compared) return `<div class="compare"><span class="compare-verdict untested">loading ${esc(describeRunId(compareRun))}…</span></div>`;
+    const before = comparedStatus(testCase);
+    const label = before.status ? STATUS_NAME[before.status] : before.walked ? "Noted only" : "Not walked";
+    const inherited = before.inheritedFrom.length
+      ? `<span class="inherited">inherited from ${before.inheritedFrom.map(esc).join(", ")}</span>`
+      : "";
+    const notes = comparedNotes(testCase, before.inheritedFrom);
+    const notesId = notePanelId(`${compareRun}-${testCase.id}`);
+    const noteSummary = notes.length
+      ? `<button type="button" class="notes-toggle" data-notes-toggle="${esc(notesId)}" data-case="${esc(testCase.id)}" data-count="${notes.length}" aria-expanded="false" aria-controls="${esc(notesId)}" aria-label="Show ${notes.length} ${notes.length === 1 ? "note" : "notes"} from ${esc(describeRunId(compareRun))} for ${esc(testCase.id)}">Show ${notes.length} ${notes.length === 1 ? "note" : "notes"}</button>
+        <div class="overview-notes compare-notes" id="${esc(notesId)}" hidden>${notes.map((item) =>
+          `<div class="onote"><b>${esc(item.person)}${item.from ? ` (${esc(item.from)})` : ""}:</b> ${esc(item.note)}</div>`).join("")}</div>`
+      : "";
+    return `<div class="compare" data-compare="${esc(testCase.id)}"><span class="compare-verdict ${before.status || "untested"}"><b>${esc(describeRunId(compareRun))}:</b>${esc(label)}</span>${inherited}${noteSummary}</div>`;
   }
 
   function caseFlags(testCase) {
@@ -800,20 +1025,25 @@
         <div class="scen"${testCase.journeyStep ? ` lang="${esc(locale)}"` : ""}>${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span>${journeyCasePrerequisites(testCase)}${journeyCaseSteps(testCase)}${journeyCaseContext(testCase)}</div>
         <div class="team-statuses" role="list" aria-label="${esc(testCase.id)} team verdicts">${statuses}</div>
         <div class="overview-note-summary">${noteSummary}</div>
+        ${compareBlock(testCase)}
       </div>`;
     }).join("");
   }
 
   function renderPersonRows(rows, showArea) {
     const selected = scope;
-    const editable = selected === who;
+    // Only the signed-in tester records, and only into the open run: a closed
+    // run is read-only for everyone, including its own authors.
+    const editable = selected === who && runOpen();
+    // N/A means "out of scope for this run"; a case simply skipped has no entry.
+    const hint = (candidate) => candidate === "na" ? "N/A — out of scope for this run" : `${who}: ${candidate}`;
     return rows.map((testCase) => {
       const entry = entryFor(testCase.id, selected);
       const status = entry && entry.s ? entry.s : "";
       const quietlyResolved = status === "pass" || status === "na";
       const controls = editable
         ? `<div class="ctl" role="group" aria-label="${esc(testCase.id)} verdict">${STATUSES.map((candidate) =>
-          `<button class="st ${candidate} ${status === candidate ? "on" : ""}" data-id="${esc(testCase.id)}" data-s="${candidate}" aria-pressed="${status === candidate ? "true" : "false"}" aria-label="${esc(SPOKEN[candidate])}" title="${esc(who)}: ${candidate}">${LABEL[candidate]}</button>`).join("")}</div>`
+          `<button class="st ${candidate} ${status === candidate ? "on" : ""}" data-id="${esc(testCase.id)}" data-s="${candidate}" aria-pressed="${status === candidate ? "true" : "false"}" aria-label="${esc(SPOKEN[candidate])}" title="${esc(hint(candidate))}">${LABEL[candidate]}</button>`).join("")}</div>`
         : `<div class="ctl"><span class="readonly-status ${status}">${esc(status ? STATUS_NAME[status] : "Undecided")}</span></div>`;
       const note = editable
         ? `<div class="note"><textarea data-note="${esc(testCase.id)}" rows="1" maxlength="4000" aria-label="${esc(testCase.id)} — ${esc(who)}'s notes" placeholder="${esc(who)}'s notes — saves as you go…">${esc(entry ? entry.n || "" : "")}</textarea></div>`
@@ -822,11 +1052,14 @@
         ${caseRid(testCase)}
         <div class="scen"${testCase.journeyStep ? ` lang="${esc(locale)}"` : ""}>${esc(testCase.scenario)}${caseFlags(testCase)}<span class="why">${showArea ? `${esc(testCase.area)} · ` : ""}${esc(testCase.expected)}</span>${journeyCasePrerequisites(testCase)}${journeyCaseSteps(testCase)}${journeyCaseContext(testCase)}</div>
         ${controls}${note}
+        ${compareBlock(testCase)}
       </div>`;
     }).join("");
   }
 
   function matchesCurrentView(testCase) {
+    // Re-QA: what the compared run left failing or blocked, whoever recorded it.
+    if (filter === "reqa") return compareRun ? isReQa(testCase) : true;
     if (scope === null) {
       if (filter === "issues") return isIssue(testCase.id);
       if (filter === "open") return !verdict(testCase.id);
@@ -890,26 +1123,79 @@
   }
 
   // ── Render ──────────────────────────────────────────────────────────
+  function runControls() {
+    if (!runsSupported) return "";
+    // A comparison reads baseline → later, so only runs earlier than the one
+    // on screen are offered; the report CLI refuses the reverse the same way.
+    const shown = runById(selectedRun);
+    const closedRuns = RUNS.filter((run) => run.closedAt && run.id !== selectedRun && (!shown || run.n < shown.n));
+    const runSelect = `<label class="view-control run-control" for="qa-run-select"><span class="grouplabel">run</span>
+          <select id="qa-run-select" data-run-select aria-label="QA run">
+            ${RUNS.map((run) => `<option value="${esc(run.id)}"${run.id === selectedRun ? " selected" : ""}>${esc(describeRunId(run.id))} · ${run.closedAt ? "closed" : "open"}</option>`).join("")}
+          </select>
+        </label>`;
+    const compareSelect = closedRuns.length || compareRun
+      ? `<label class="view-control compare-control" for="qa-compare-select"><span class="grouplabel">compare</span>
+          <select id="qa-compare-select" data-compare-select aria-label="Compare with run">
+            <option value=""${compareRun === "" ? " selected" : ""}>no comparison</option>
+            ${closedRuns.map((run) => `<option value="${esc(run.id)}"${run.id === compareRun ? " selected" : ""}>${esc(describeRunId(run.id))}</option>`).join("")}
+          </select>
+        </label>`
+      : "";
+    return runSelect + compareSelect;
+  }
+
+  function rolloverForm() {
+    if (!runsSupported || !rolloverOpen) return "";
+    const current = runById(openRunId);
+    const nextNumber = current ? current.n + 1 : "?";
+    const today = new Date().toISOString().slice(0, 10);
+    return `<div class="header-row rollover-row"><form class="rollover-form" id="qa-rollover" aria-label="Start a new run">
+        <label>Label <input id="qa-rollover-label" name="label" type="text" maxlength="60" required value="Re-QA ${esc(today)}" autocomplete="off"></label>
+        <label>Environment <select id="qa-rollover-environment" name="environment">${ENVIRONMENTS.map(([value, label]) =>
+          `<option value="${value}"${value === "beta" ? " selected" : ""}>${label}</option>`).join("")}</select></label>
+        <label>Client build <input name="client" type="text" placeholder="sha (optional)" pattern="[0-9a-fA-F]{7,40}" autocomplete="off"></label>
+        <label>Admin build <input name="admin" type="text" placeholder="sha (optional)" pattern="[0-9a-fA-F]{7,40}" autocomplete="off"></label>
+        <label>Website build <input name="website" type="text" placeholder="sha (optional)" pattern="[0-9a-fA-F]{7,40}" autocomplete="off"></label>
+        <p class="rollover-confirm">Close <b>${esc(describeRunId(openRunId))}</b> and open Run ${esc(nextNumber)}? The closed run stays readable and comparable; nothing is deleted.</p>
+        <div class="rollover-actions">
+          <button type="submit" class="rollover-btn" id="qa-rollover-submit"${rolloverBusy ? " disabled" : ""}>${rolloverBusy ? "Starting…" : `Close ${esc(describeRunId(openRunId))} and open Run ${esc(nextNumber)}`}</button>
+          <button type="button" class="cancel-btn" id="qa-rollover-cancel">Cancel</button>
+          ${rolloverProblem ? `<span class="rollover-err" role="alert">${esc(rolloverProblem)}</span>` : ""}
+        </div>
+      </form></div>`;
+  }
+
   function render() {
     const modeDescription = scope === null
       ? "Compare team coverage, verdicts, and notes"
       : scope === who
-        ? `Recording as ${esc(who)} — your wallet owns these entries`
+        ? runOpen()
+          ? `Recording as ${esc(who)} — your wallet owns these entries`
+          : `${esc(who)}'s entries in a closed run — read only`
         : `Reviewing ${esc(scope)} — read only`;
+    const runLine = runSummaryLine();
+    const helpLine = runsSupported
+      ? `<div class="helpline">A note starting with [beta], [prod], or [local] marks a verdict taken outside this run's environment. N/A means out of scope for this run; a skipped case has no entry.</div>`
+      : "";
+    const startRun = runsSupported && who && !rolloverOpen
+      ? '<button type="button" class="rollover-btn" id="qa-run-rollover">Start new run</button>'
+      : "";
     const head = `<header>
-      <div class="title-row"><div><h1>Green Goods QA</h1><div class="runline">${modeDescription}</div></div><div class="header-actions">${themeControl()}${who ? '<button type="button" class="signout-btn">Sign out</button>' : ""}</div></div>
+      <div class="title-row"><div><h1>Green Goods QA</h1>${runLine ? `<div class="runline run-summary">${runLine}</div>` : ""}<div class="runline">${modeDescription}</div>${helpLine}</div><div class="header-actions">${startRun}${themeControl()}${who ? '<button type="button" class="signout-btn">Sign out</button>' : ""}</div></div>
       <div class="header-row tab-row">
         <div class="tabs" role="group" aria-label="QA surface">${surfaceButtons()}</div>
-        <div class="scoperow"><label class="view-control" for="qa-view-select"><span class="grouplabel">view</span>
+        <div class="scoperow">${runControls()}<label class="view-control" for="qa-view-select"><span class="grouplabel">view</span>
           <select id="qa-view-select" data-view-select aria-label="QA view">
             <option value=""${scope === null ? " selected" : ""}>Overview · ${scopeCount(currentSurface(), null)}</option>
             ${TEAM.map((name) => `<option value="${esc(name)}"${scope === name ? " selected" : ""}>${esc(name)}${name === who ? " (you)" : ""} · ${scopeCount(currentSurface(), name)}</option>`).join("")}
           </select>
         </label></div>
       </div>
+      ${rolloverForm()}
       ${journeyControls()}
       <div class="header-row filter-row">
-        <div class="filters" role="group" aria-label="case status">${[["all", "All"], ["issues", "Issues"], ["open", "Undecided"]].map(([k, l]) =>
+        <div class="filters" role="group" aria-label="case status">${[["all", "All"], ["issues", "Issues"], ["open", "Undecided"], ...(compareRun ? [["reqa", "Re-QA"]] : [])].map(([k, l]) =>
           `<button class="filt ${filter === k ? "on" : ""}" data-f="${k}" aria-pressed="${filter === k ? "true" : "false"}">${l}</button>`).join("")}</div>
         <div class="orderrow" role="group" aria-label="case order"><span class="grouplabel">order</span>${[["walk", "Walk"], ["priority", "Priority"], ...(JOURNEYS.length ? [["journey", uiText("orderJourney", "Journey")]] : [])].map(([k, l]) =>
           `<button class="ord ${sort === k ? "on" : ""}" data-sort="${k}" aria-pressed="${sort === k ? "true" : "false"}"${k === "journey" ? ` lang="${esc(locale)}"` : ""}>${esc(l)}</button>`).join("")}</div>
@@ -973,6 +1259,28 @@
     mount.querySelector("[data-view-select]")?.addEventListener("change", (event) => {
       scope = event.target.value === "" ? null : event.target.value; saveView(); render();
     });
+    mount.querySelector("[data-run-select]")?.addEventListener("change", (event) => {
+      selectRun(event.target.value);
+      mount.querySelector("[data-run-select]")?.focus({ preventScroll: true });
+    });
+    mount.querySelector("[data-compare-select]")?.addEventListener("change", (event) => {
+      setCompare(event.target.value);
+      mount.querySelector("[data-compare-select]")?.focus({ preventScroll: true });
+    });
+    mount.querySelector("#qa-run-rollover")?.addEventListener("click", () => {
+      rolloverOpen = true;
+      rolloverProblem = "";
+      renderAndRestoreFocus("#qa-rollover-label");
+    });
+    mount.querySelector("#qa-rollover-cancel")?.addEventListener("click", () => {
+      rolloverOpen = false;
+      rolloverProblem = "";
+      renderAndRestoreFocus("#qa-run-rollover");
+    });
+    mount.querySelector("#qa-rollover")?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      rollover(event.target);
+    });
     mount.querySelectorAll(".ord").forEach((b) => b.addEventListener("click", () => {
       const requested = b.dataset.sort;
       sort = requested === "priority" ? "priority" : requested === "journey" && JOURNEYS.length ? "journey" : "walk";
@@ -1008,7 +1316,7 @@
     }));
     mount.querySelector(".signout-btn")?.addEventListener("click", signOut);
     mount.querySelectorAll(".st").forEach((b) => b.addEventListener("click", () => {
-      if (!who || scope !== who) return;
+      if (!who || scope !== who || !runOpen()) return;
       const id = b.dataset.id;
       const cur = entryFor(id, who) || { s: "", n: "" };
       const next = cur.s === b.dataset.s ? "" : b.dataset.s;
@@ -1019,7 +1327,7 @@
     mount.querySelectorAll("[data-note]").forEach((i) => {
       growEl(i);
       i.addEventListener("input", () => {
-        if (!who || scope !== who) return;
+        if (!who || scope !== who || !runOpen()) return;
         growEl(i);
         const id = i.dataset.note;
         const cur = entryFor(id, who) || { s: "" };
@@ -1052,9 +1360,155 @@
         journey: activeJourney,
         part: activePart,
         surface: journeySurface,
+        run: selectedRun,
+        compare: compareRun,
         scroll: window.scrollY,
       }));
     } catch (e) {}
+  }
+
+  /**
+   * A one-line status the tester should read. The idle poll text would replace
+   * it within four seconds, so it holds through a few polls; a save replaces
+   * it at once, because "saving…" is the more urgent truth.
+   */
+  let noticeHold = 0;
+  function notice(text, tone) {
+    savebar.className = "savebar " + (tone || "saved");
+    savebar.textContent = text;
+    noticeHold = 3;
+  }
+
+  /**
+   * Show another run. A closed run is read-only; the open run is where the
+   * queue lives, and its pending edits re-appear as soon as its entries load.
+   */
+  function selectRun(runId) {
+    if (!runsSupported || !runById(runId) || runId === selectedRun) return;
+    selectedRun = runId;
+    const chosen = runById(runId);
+    const baseline = runById(compareRun);
+    if (compareRun === runId || (chosen && baseline && baseline.n >= chosen.n)) { compareRun = ""; compared = null; }
+    if (filter === "reqa" && !compareRun) filter = "all";
+    entries = Object.create(null);
+    saveView();
+    render();
+    poll();
+  }
+
+  function setCompare(runId) {
+    const candidate = runById(runId);
+    const shown = runById(selectedRun);
+    const target = candidate && shown && candidate.closedAt && runId !== selectedRun && candidate.n < shown.n ? runId : "";
+    compareRun = target;
+    if (!target) {
+      compared = null;
+      compareLoading = false;
+      if (filter === "reqa") filter = "all";
+      saveView();
+      render();
+      return;
+    }
+    saveView();
+    // A cached run must not inherit the loading flag of a request the tester
+    // moved away from; that response is ignored on arrival anyway.
+    if (compared && compared.run === target) { compareLoading = false; render(); return; }
+    compareLoading = true;
+    render();
+    fetch("/api/state?run=" + encodeURIComponent(target), { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`)))
+      .then((data) => {
+        if (compareRun !== target) return;
+        compared = { run: target, entries: entryRows(data.entries) };
+        compareLoading = false;
+        render();
+      })
+      .catch(() => {
+        if (compareRun !== target) return;
+        compareRun = "";
+        compared = null;
+        compareLoading = false;
+        if (filter === "reqa") filter = "all";
+        saveView();
+        render();
+        notice(`could not load ${describeRunId(target)} — try again`, "ro");
+      });
+  }
+
+  /**
+   * A teammate rolled the run over. Pending edits move to the run that is
+   * open now, and a tester who was looking at the old open run follows it.
+   */
+  function adoptRollover(data) {
+    const closedId = openRunId;
+    const openedId = data.openRun;
+    RUNS = Array.isArray(data.runs) ? data.runs : RUNS;
+    rekeyOutbox(closedId, openedId);
+    if (selectedRun === closedId) {
+      selectedRun = openedId;
+      saveView();
+    }
+    const opener = runById(openedId)?.openedByLabel;
+    notice(`${describeRunId(openedId)} opened${opener ? ` by ${opener}` : ""} — recording continues there`);
+    if (Object.keys(outbox).length) queueSave(400);
+  }
+
+  /** Close the open run and open its successor from the form. */
+  async function rollover(form) {
+    if (rolloverBusy) return;
+    const fields = new FormData(form);
+    const builds = {};
+    for (const surface of ["client", "admin", "website"]) {
+      const sha = String(fields.get(surface) || "").trim().toLowerCase();
+      if (sha) builds[surface] = sha;
+    }
+    rolloverBusy = true;
+    rolloverProblem = "";
+    render();
+    try {
+      const response = await fetch("/api/runs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "rollover",
+          // The run this tester confirmed closing; the server refuses to close
+          // a different one, so a stale tab cannot roll the next run over too.
+          expectedOpenRun: openRunId,
+          label: String(fields.get("label") || "").trim(),
+          environment: String(fields.get("environment") || "beta"),
+          builds,
+          ...(CATALOG_META ? { catalog: CATALOG_META } : {}),
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (response.status === 401 || response.status === 403) {
+        showSignIn("Your QA session expired. Sign in again to start a new run.");
+        return;
+      }
+      if (!response.ok) {
+        rolloverProblem = result.error || `HTTP ${response.status}`;
+        if (Array.isArray(result.runs) && result.openRun) {
+          RUNS = result.runs;
+          if (result.openRun !== openRunId) adoptRollover(result);
+        }
+        return;
+      }
+      const closedId = openRunId;
+      RUNS = Array.isArray(result.runs) ? result.runs : RUNS;
+      rekeyOutbox(closedId, result.openRun);
+      selectedRun = result.openRun;
+      rolloverOpen = false;
+      entries = Object.create(null);
+      saveView();
+      notice(`${describeRunId(result.openRun)} opened — recording continues there`);
+      if (Object.keys(outbox).length) queueSave(400);
+      poll();
+    } catch (error) {
+      rolloverProblem = "could not reach the server — try again";
+    } finally {
+      rolloverBusy = false;
+      render();
+    }
   }
 
   let scrollTimer = null;
@@ -1234,11 +1688,19 @@
     if (saving) return saving;
     const person = owner || who;
     if (!person) return Promise.resolve();
-    saving = postDelta(person).finally(() => { saving = null; });
+    saving = postDelta(person).finally(() => {
+      saving = null;
+      // A save that discovered a rollover switched runs; fetch the run that
+      // is open now rather than showing the closed one under its new name.
+      if (refreshAfterSave) {
+        refreshAfterSave = false;
+        poll();
+      }
+    });
     return saving;
   }
 
-  async function postDelta(person) {
+  async function postDelta(person, retargeted) {
     const sent = dictionary(outbox);
     const sentVersions = dictionary(outboxVersions);
     if (!Object.keys(sent).length) { dirty = false; return; }
@@ -1247,7 +1709,7 @@
       const response = await fetch("/api/state", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ entries: sent }),
+        body: JSON.stringify({ entries: sent, ...(openRunId ? { run: openRunId } : {}) }),
       });
       if (response.status === 401 || response.status === 403) {
         // The session lapsed mid-walk. The outbox is still on disk, so signing
@@ -1256,10 +1718,42 @@
         showSignIn("Your QA session expired. Sign in again — the notes you have typed are still here.");
         throw new Error(`HTTP ${response.status}`);
       }
+      if (response.status === 409) {
+        // The run this queue targeted was closed under us (a teammate rolled
+        // over, or this tab was offline through a rollover). Nothing is lost:
+        // the server names the open run, the queue moves there, and the send
+        // is repeated once against it before the ordinary retry takes over.
+        const refusal = await response.json().catch(() => ({}));
+        if (refusal.openRun && refusal.openRun !== openRunId && !retargeted) {
+          const closedId = openRunId;
+          rekeyOutbox(closedId, refusal.openRun);
+          if (selectedRun === closedId) {
+            selectedRun = refusal.openRun;
+            saveView();
+          }
+          refreshAfterSave = true;
+          notice(`${describeRunId(closedId)} was closed — your pending saves went to ${describeRunId(refusal.openRun)}`);
+          return postDelta(person, true);
+        }
+        throw new Error("HTTP 409");
+      }
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       // Throws on a non-JSON gateway or platform error page, which turns an
       // unavailable write into an honest "not saved" instead of silent loss.
-      await response.json();
+      const result = await response.json();
+      // The server may have re-targeted the write itself: the run closed
+      // between its check and its write, so it landed the delta in the run
+      // that is open now. Follow it the way a refusal is followed.
+      if (result && typeof result.run === "string" && openRunId && result.run !== openRunId) {
+        const closedId = openRunId;
+        rekeyOutbox(closedId, result.run);
+        if (selectedRun === closedId) {
+          selectedRun = result.run;
+          saveView();
+        }
+        refreshAfterSave = true;
+        notice(`${describeRunId(closedId)} was closed — your saves went to ${describeRunId(result.run)}`);
+      }
       // Confirm the exact local version this response represents. Anything
       // typed during the request has a later version and remains pending.
       //
@@ -1304,7 +1798,7 @@
         saveTimer = setTimeout(save, 400);
         savebar.className = "savebar saving";
         savebar.textContent = "saving…";
-      } else {
+      } else if (!retargeted) {
         savebar.className = "savebar saved";
         savebar.textContent = "saved ✓";
       }
@@ -1338,8 +1832,11 @@
     const sequence = ++pollSequence;
     const startedLocalVersions = dictionary(localVersions);
     const startedConfirmedVersions = dictionary(confirmedVersions);
+    // The run on screen. The open run needs no query; a closed run is asked
+    // for by id and comes back read-only.
+    const requestedRun = runsSupported && selectedRun !== openRunId ? selectedRun : "";
     try {
-      const response = await fetch("/api/state", { cache: "no-store" });
+      const response = await fetch("/api/state" + (requestedRun ? "?run=" + encodeURIComponent(requestedRun) : ""), { cache: "no-store" });
       if (response.status === 401 || response.status === 403) {
         clearInterval(pollTimer);
         showSignIn("Your QA session expired. Sign in again to keep recording.");
@@ -1350,6 +1847,13 @@
       // A slower, older GET must never apply after a newer poll already did.
       if (sequence < lastAppliedPoll) return;
       lastAppliedPoll = sequence;
+      if (runsSupported && typeof data.openRun === "string" && data.openRun) {
+        RUNS = Array.isArray(data.runs) ? data.runs : RUNS;
+        if (data.openRun !== openRunId) adoptRollover(data);
+        // The view moved on while this request was in flight; the next poll
+        // asks for the run that is on screen now.
+        if (data.run !== selectedRun) return;
+      }
       const previousWho = who;
       const nextWho = typeof data.you === "string" && data.you ? data.you : previousWho;
       const nextTeam = Array.isArray(data.team) && data.team.length ? data.team : TEAM;
@@ -1359,9 +1863,14 @@
       // The server may relabel the roster when a newly named tester collides
       // with an existing display name. Its response is one complete snapshot,
       // so replace old labels rather than merging the new names beside them.
-      // Only this browser's unconfirmed own entry survives over that snapshot.
+      // Only this browser's unconfirmed own entry survives over that snapshot —
+      // and only in the open run: a closed run's snapshot is final, and
+      // pending edits belong to the run that is recording, not to the one on
+      // screen.
       const versionOwner = identity || previousWho;
-      for (const caseId of new Set(Object.keys(remote).concat(Object.keys(entries)))) {
+      const overlayPending = !runsSupported || data.run === data.openRun;
+      for (const caseId of new Set(Object.keys(remote).concat(Object.keys(entries), Object.keys(outbox)))) {
+        if (!overlayPending) break;
         const key = versionKey(versionOwner, caseId);
         const started = startedLocalVersions[key] || 0;
         const keepLocal =
@@ -1370,8 +1879,14 @@
           (localVersions[key] || 0) > started;
         if (!keepLocal) continue;
 
-        const local = entryFor(caseId, previousWho);
         const row = hasOwn(remote, caseId) ? remote[caseId] : Object.create(null);
+        let local = entryFor(caseId, previousWho);
+        // A pending patch can outlive the entry it was made on: the view moved
+        // to another run and back, and the rows were rebuilt from the server.
+        // Rebuild the local entry on the server's copy rather than dropping it.
+        if (!local && !hasOwn(entries, caseId) && hasOwn(outbox, caseId) && !outbox[caseId].delete) {
+          local = patchEntry(rowEntry(row, nextWho), outbox[caseId]);
+        }
         if (local) row[nextWho] = local;
         else delete row[nextWho];
         if (Object.keys(row).length) remote[caseId] = row;
@@ -1400,8 +1915,11 @@
         }
       }
       if (!dirty && !saving) {
-        savebar.className = "savebar saved";
-        savebar.textContent = "live — shared results";
+        if (noticeHold > 0) noticeHold -= 1;
+        else {
+          savebar.className = "savebar saved";
+          savebar.textContent = "live — shared results";
+        }
       }
     } catch (e) {
       // A dropped poll is not worth alarming anyone about; the next one retries.
@@ -1425,6 +1943,10 @@
       JOURNEYS = Array.isArray(catalog.journeys) ? catalog.journeys : [];
       LOCALES = dictionary(catalog.locales);
       locale = preferredLocale();
+      // Which catalog build this page runs on, so a run can record it when it opens.
+      CATALOG_META = typeof catalog.revision === "string" && catalog.revision
+        ? { revision: catalog.revision, activeCases: CASES.length }
+        : null;
 
       if (stateResponse.ok) {
         const data = await stateResponse.json();
@@ -1433,6 +1955,14 @@
         // The server names you from your signed session. The page never guesses.
         who = typeof data.you === "string" ? data.you : "";
         identity = typeof data.address === "string" && data.address ? data.address.toLowerCase() : who;
+        // Runs ride in the state payload. A server without them leaves the
+        // page in tolerant mode: one queue per tester, saves that name no run.
+        if (typeof data.openRun === "string" && data.openRun) {
+          runsSupported = true;
+          RUNS = Array.isArray(data.runs) ? data.runs : [];
+          openRunId = data.openRun;
+          selectedRun = openRunId;
+        }
         // Allowlisted but unnamed: ask once, then reload into a named session.
         if (data.named === false && data.address) {
           askForName(data.address);
@@ -1452,6 +1982,8 @@
       // Now that the session has named this tester, pick up anything a previous
       // page life left unsent for them.
       outbox = dictionary(storedOutboxFor(identity, who));
+      // Queues left under runs that have since closed join the open run's.
+      adoptStaleRunOutboxes(identity);
       // Persist the migrated copy before removing any legacy name-based key.
       saveOutbox();
       // The contents are in memory now; retire the legacy copy so a drained
@@ -1460,6 +1992,11 @@
 
       activeTab = TABS.includes(view.tab) ? view.tab : TABS[0];
       filter = ["all", "issues", "open"].includes(view.filter) ? view.filter : "all";
+      // A remembered comparison (and its Re-QA filter) comes back once the run loads.
+      const rememberedCompare = runsSupported && view.compare && view.compare !== selectedRun && runById(view.compare)?.closedAt
+        ? view.compare
+        : "";
+      if (view.filter === "reqa" && rememberedCompare) filter = "reqa";
       sort = view.sort === "priority"
         ? "priority"
         : view.sort === "journey" && JOURNEYS.length
@@ -1488,6 +2025,10 @@
         savebar.textContent = "live — shared results";
       }
       pollTimer = setInterval(poll, POLL_MS);
+      // A remembered closed run or comparison needs its own fetch; do that
+      // after the open run has rendered so nothing waits on it.
+      if (rememberedCompare) setCompare(rememberedCompare);
+      if (runsSupported && view.run && view.run !== selectedRun && runById(view.run)) selectRun(view.run);
     } catch (e) {
       mount.innerHTML = `<main><p class="empty">Could not load the checklist: ${esc(e.message)}. Reload to retry.</p></main>`;
       savebar.className = "savebar ro";

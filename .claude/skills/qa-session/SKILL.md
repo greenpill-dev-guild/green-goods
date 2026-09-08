@@ -124,8 +124,10 @@ Run before the user starts walking. Print the checklist results compactly; stop 
    and reuse that exact slug for every artifact this session (directory, log, results, receipt,
    handoff). Create `tmp/qa-session/<slug>/` and open
    `qa-session-<slug>.md` with the header: commit SHA, branch, surfaces in scope, gardens,
-   identity modes, pairing style, Journey and Part assignments when used, write boundary, and the
-   in-scope catalog case IDs. The session **stays on the
+   identity modes, pairing style, Journey and Part assignments when used, write boundary, the
+   QA run the walk records into (the `run-N` id and label shown in the app header — start a new
+   run first when this walk is a re-QA, so the pass it checks stays intact and comparable), and
+   the in-scope catalog case IDs. The session **stays on the
    current branch** — per `AGENTS.md § Multi-Agent Repo Safety`, never create or switch branches
    without the user explicitly asking for that branch action; branching is decided at the first
    accepted fix (Phase 3), not at session start.
@@ -219,8 +221,12 @@ Per accepted fix (or batched in a fix window):
    meeting notes; this input is agent-authored and structured. qa-triage's PostHog cross-ref,
    scope lock, Linear templates, and Sheet Defects flow run unchanged. If the user is out of
    time, the handoff command is the named next step in the receipt.
-3. **Pull results, then report.** Run `bun run qa:pull --slug <slug>`, then
-   `bun run qa:report --slug <slug> --window <walk start>..<walk end>` — the UTC times the walk
+3. **Pull results, then report.** Run `bun run qa:pull --slug <slug> --run <run id from the
+   header>` (`latest-closed` if the run was rolled over after the walk), and when the walk was a
+   re-QA also `bun run qa:pull --slug <slug> --run <previous run id> --out
+   tmp/qa-session/<slug>/previous`, then `bun run qa:report --slug <slug> --window <walk
+   start>..<walk end>` (add `--previous tmp/qa-session/<slug>/previous/qa-state.json` for the
+   run-versus-run delta) — the UTC times the walk
    actually began and ended, noted at pre-flight and at close (an OBS span would drop pass-only
    stretches, and an all-pass session has no OBS at all; the slug day is the fallback) — to write
    `tmp/qa-session/<slug>/report.md` — the deterministic core

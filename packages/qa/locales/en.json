@@ -68,7 +68,7 @@
         "Add named confirmers incl. one bad address",
         "Review, queue, and watch the queued row"
       ],
-      "expected": "Beats validate; a bad/duplicate confirmer address is rejected visibly (currently a silent no-op); review precedes queueing; the queued row appears before the indexer catches up",
+      "expected": "Beats validate; a bad or duplicate confirmer address is rejected visibly; review precedes queueing; the queued row appears before the indexer catches up",
       "role": "steward"
     },
     "ADM-037": {

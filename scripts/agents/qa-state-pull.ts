@@ -7,11 +7,13 @@
  * expects, so a session that ran in the browser closes out exactly like one
  * driven from the terminal.
  *
- *   bun run qa:pull [--slug 2026-09-02] [--out tmp/qa-session/<slug>] [--force]
+ *   bun run qa:pull [--slug 2026-09-02] [--run open|latest-closed|run-N] [--out tmp/qa-session/<slug>] [--force]
  *
- * Reads the per-tester shards straight from the Blob store with
+ * Reads the per-tester shards of ONE run straight from the Blob store with
  * BLOB_READ_WRITE_TOKEN, NOT through the deployed app — so ingestion works
- * without an app session, and still works if the deploy is down.
+ * without an app session, and still works if the deploy is down. The default
+ * is the open run; a call report that ran after a rollover pulls the run the
+ * call recorded into by id, or `latest-closed`.
  *
  * Results never enter git: everything lands under gitignored tmp/.
  */
@@ -34,6 +36,17 @@ import {
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  LEGACY_SHARD_PREFIX,
+  RUN_INDEX_PATH,
+  type RunIndex,
+  type RunRecord,
+  describeRun,
+  legacyRunRecord,
+  openRun,
+  runIndexShapeError,
+  runShardPrefix,
+} from "../../packages/qa/runs";
 import { loadCatalog } from "./qa-workbook-build";
 import { mergeShards, summarize, toResultsCsv, type Shard } from "./qa-state";
 // @ts-expect-error -- plain JS helper shared with the env tooling
@@ -47,6 +60,44 @@ export interface Options {
   slug: string;
   outDir: string;
   force: boolean;
+  /** `open`, `latest-closed`, or a run id such as `run-2`. */
+  run: string;
+}
+
+const RUN_SELECTOR = /^(?:open|latest-closed|run-[1-9]\d{0,5})$/;
+
+/** The run a pull read, with every shard it holds. */
+export interface PulledRun {
+  run: RunRecord;
+  shards: Array<Shard | null>;
+  /** True when the store predates runs and the legacy shards stood in for Run 1. */
+  legacy: boolean;
+}
+
+/** What `qa-state.json` records about the run it was pulled from. */
+export interface RunSummary {
+  id: string;
+  n: number;
+  label: string;
+  environment: string;
+  openedAt: string;
+  closedAt: string | null;
+  legacy: boolean;
+  window: { from: string; to: string } | null;
+}
+
+export function runSummary(pulled: PulledRun): RunSummary {
+  const { run } = pulled;
+  return {
+    id: run.id,
+    n: run.n,
+    label: run.label,
+    environment: run.environment,
+    openedAt: run.openedAt,
+    closedAt: run.closedAt ?? null,
+    legacy: pulled.legacy || run.legacy === true,
+    window: run.window,
+  };
 }
 
 /** What a completed pull leaves behind, and therefore what a rerun would replace. */
@@ -400,19 +451,23 @@ export function parseArgs(argv: string[]): Options {
   let slug = new Date().toISOString().slice(0, 10);
   let outDir = "";
   let force = false;
+  let run = "open";
   for (let index = 0; index < argv.length; index++) {
     const flag = argv[index];
     if (flag === "--force") {
       force = true;
       continue;
     }
-    if (flag !== "--slug" && flag !== "--out") {
-      throw new Error(`unknown argument '${flag}' — expected --slug, --out or --force`);
+    if (flag !== "--slug" && flag !== "--out" && flag !== "--run") {
+      throw new Error(`unknown argument '${flag}' — expected --slug, --run, --out or --force`);
     }
     const value = argv[index + 1];
     if (!value || value.startsWith("--")) throw new Error(`missing value for '${flag}'`);
     if (flag === "--slug") slug = value;
-    else outDir = value;
+    else if (flag === "--run") {
+      if (!RUN_SELECTOR.test(value)) throw new Error("--run must be open, latest-closed, or a run id such as run-2");
+      run = value;
+    } else outDir = value;
     index++;
   }
   const resolvedOutDir = path.resolve(repoRoot, outDir || path.join("tmp", "qa-session", slug));
@@ -424,7 +479,7 @@ export function parseArgs(argv: string[]): Options {
   if (escapesPrivateRoot) {
     throw new Error("--out must stay under the repo's gitignored tmp/ directory");
   }
-  return { slug, outDir: resolvedOutDir, force };
+  return { slug, outDir: resolvedOutDir, force, run };
 }
 
 /**
@@ -560,24 +615,98 @@ export async function readShard(
 }
 
 /**
- * Read every shard in the store.
+ * Read every shard under one prefix.
  *
  * Enumerated rather than derived from a roster: shards are keyed by owner
  * address and the allowlist lives in the deployment's environment, not here.
  * Listing means these commands need no copy of who the testers are, and pick up
- * somebody added mid-season without a code change.
+ * somebody added mid-season without a code change. The default prefix is the
+ * legacy store; `readRun` passes a run's prefix.
  */
-export async function readShards(token: string, access?: BlobAccess): Promise<Array<Shard | null>> {
+export async function readShards(
+  token: string,
+  access?: BlobAccess,
+  prefix: string = LEGACY_SHARD_PREFIX,
+): Promise<Array<Shard | null>> {
   const list = access?.list ?? (await import("@vercel/blob")).list;
   const blobs: Awaited<ReturnType<typeof list>>["blobs"] = [];
   let cursor: string | undefined;
   do {
-    const page = await list({ prefix: "qa/entries/", token, ...(cursor ? { cursor } : {}) });
+    const page = await list({ prefix, token, ...(cursor ? { cursor } : {}) });
     blobs.push(...page.blobs);
     cursor = page.hasMore ? page.cursor : undefined;
   } while (cursor);
   const shards = blobs.filter((blob) => blob.pathname.endsWith(".json"));
   return Promise.all(shards.map((blob) => readShard(blob.pathname, token, access)));
+}
+
+/** The run index, or null when the store predates runs. Malformed is an error, never "absent". */
+export async function readRunIndex(token: string, access?: Pick<BlobAccess, "get">): Promise<RunIndex | null> {
+  const get = access?.get ?? (await import("@vercel/blob")).get;
+  let text: string;
+  try {
+    const result = await get(RUN_INDEX_PATH, { access: "private", useCache: false, token });
+    if (!result) return null;
+    if (result.statusCode !== 200 || !result.stream) {
+      throw new Error(`unexpected status ${result.statusCode}`);
+    }
+    text = await new Response(result.stream).text();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/not.?found|404/i.test(message)) return null;
+    throw new Error(`could not read ${RUN_INDEX_PATH}: ${message}`);
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch (error) {
+    throw new Error(`${RUN_INDEX_PATH} is not valid JSON: ${error instanceof Error ? error.message : error}`);
+  }
+  const invalid = runIndexShapeError(parsed);
+  if (invalid) throw new Error(`${RUN_INDEX_PATH} is malformed: ${invalid}`);
+  return parsed as RunIndex;
+}
+
+/** Resolve `open`, `latest-closed`, or a run id against the index, or throw a message that names the runs. */
+export function selectRun(index: RunIndex, selector: string): RunRecord {
+  if (selector === "open") return openRun(index);
+  if (selector === "latest-closed") {
+    const closed = index.runs.filter((run) => run.closedAt);
+    if (!closed.length) throw new Error("no run has been closed yet — pass --run open or a run id");
+    return closed[closed.length - 1];
+  }
+  const run = index.runs.find((candidate) => candidate.id === selector);
+  if (!run) {
+    throw new Error(`run ${selector} does not exist — the store holds ${index.runs.map((r) => r.id).join(", ")}`);
+  }
+  return run;
+}
+
+/**
+ * Read one run's shards.
+ *
+ * A store the deployed app has not touched since runs shipped has no index
+ * yet; its legacy shards are exactly what Run 1 will be migrated from, so the
+ * open run is read from there and the caller is told. Any other selector needs
+ * a real index, because nothing else exists to select.
+ */
+export async function readRun(
+  token: string,
+  selector = "open",
+  access?: BlobAccess,
+  warn: (message: string) => void = (message) => console.warn(message),
+): Promise<PulledRun> {
+  const index = await readRunIndex(token, access);
+  if (!index) {
+    if (selector !== "open") {
+      throw new Error("the store has no run index yet, so only --run open (the legacy shards) can be pulled");
+    }
+    warn("qa:pull: the store has no run index yet — reading the legacy shards as Run 1; open the deployed app once to migrate");
+    const shards = await readShards(token, access, LEGACY_SHARD_PREFIX);
+    return { run: legacyRunRecord(shards, new Date().toISOString()), shards, legacy: true };
+  }
+  const run = selectRun(index, selector);
+  return { run, shards: await readShards(token, access, runShardPrefix(run.id)), legacy: false };
 }
 
 export async function runPull(
@@ -586,13 +715,14 @@ export async function runPull(
     repoRoot: string;
     token: string;
     loadCatalog: typeof loadCatalog;
-    readShards: typeof readShards;
+    readRun: (token: string, selector: string) => Promise<PulledRun>;
     now?: () => Date;
   },
 ): Promise<{
   csvPath: string;
   statePath: string;
   summary: ReturnType<typeof summarize>;
+  run: RunSummary;
 }> {
   assertPrivateOutputPath(deps.repoRoot, options.outDir);
 
@@ -620,8 +750,9 @@ export async function runPull(
   try {
     const catalog = await deps.loadCatalog();
     const active = catalog.cases.filter((testCase) => testCase.status !== "retired");
-    const shards = await deps.readShards(deps.token);
-    const merged = mergeShards(shards);
+    const pulled = await deps.readRun(deps.token, options.run);
+    const run = runSummary(pulled);
+    const merged = mergeShards(pulled.shards);
     const summary = summarize(active, merged);
 
     try {
@@ -629,7 +760,7 @@ export async function runPull(
         options.outDir,
         {
           "results.csv": toResultsCsv(active, merged),
-          "qa-state.json": `${JSON.stringify({ slug: options.slug, pulledAt: (deps.now?.() ?? new Date()).toISOString(), summary, entries: merged }, null, 2)}\n`,
+          "qa-state.json": `${JSON.stringify({ slug: options.slug, pulledAt: (deps.now?.() ?? new Date()).toISOString(), run, summary, entries: merged }, null, 2)}\n`,
         },
         undefined,
         options.force,
@@ -639,7 +770,7 @@ export async function runPull(
       if (error instanceof PrivateArtifactSetIncompleteError) releaseLock = false;
       throw error;
     }
-    return { csvPath, statePath, summary };
+    return { csvPath, statePath, summary, run };
   } finally {
     if (releaseLock) releasePrivateSessionLock(lock);
   }
@@ -648,19 +779,21 @@ export async function runPull(
 async function main(): Promise<void> {
   const options = parseArgs(process.argv.slice(2));
   const token = resolveBlobToken();
-  const { csvPath, statePath, summary } = await runPull(options, {
+  const { csvPath, statePath, summary, run } = await runPull(options, {
     repoRoot,
     token,
     loadCatalog,
-    readShards,
+    readRun: (blobToken, selector) => readRun(blobToken, selector),
   });
 
   const per = Object.entries(summary.perPerson)
     .filter(([, count]) => count > 0)
     .map(([person, count]) => `${person} ${count}`)
     .join(", ");
+  const runState = run.closedAt ? `closed ${run.closedAt}` : "open";
   console.log(
-    `qa:pull: ${summary.recorded}/${summary.total} cases recorded (${per || "nobody yet"}) — ` +
+    `qa:pull: ${describeRun(run)} (${runState}${run.legacy ? ", legacy baseline" : ""}) · ${run.environment}\n` +
+      `qa:pull: ${summary.recorded}/${summary.total} cases recorded (${per || "nobody yet"}) — ` +
       `${summary.pass} pass, ${summary.fail} fail, ${summary.blocked} blocked, ${summary.na} n/a` +
       (summary.noVerdict ? `, ${summary.noVerdict} noted without a verdict` : ""),
   );
