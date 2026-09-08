@@ -2430,6 +2430,33 @@
       "source": "qa-journey-mode-2026-09-02"
     },
     {
+      "id": "PWA-105",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Work",
+      "scenario": "Work detail reads media, details, status, feedback, and the commitment it fulfils",
+      "preconditions": [
+        "A reviewed work with media in a garden the gardener belongs to",
+        "A work linked to a commitment"
+      ],
+      "steps": [
+        "Open the work from the garden's Work tab",
+        "Read the media, details, and status; download one media item",
+        "Read the steward's feedback on the reviewed work",
+        "Open the linked work and follow its commitment",
+        "Use back"
+      ],
+      "expected": "Media renders with a download; details and status match the submission; a reviewed work shows the steward's feedback and approved or rejected status; a linked work names the commitment it fulfils and opens it; back returns to the garden",
+      "evidence": "Screenshots of the detail and the fulfils section",
+      "role": "gardener",
+      "tags": ["work"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-review-fixes-2026-09-08"
+    },
+    {
       "id": "PWA-IOS-004",
       "tab": "PWA",
       "platform": "iOS Safari Installed PWA",
@@ -3108,6 +3135,30 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-runs-pwa-split-2026-09-07"
+    },
+    {
+      "id": "PWA-104",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Commitments",
+      "scenario": "Offer It Again on an expired offer returns to the garden to compose anew",
+      "preconditions": [
+        "An own offer that expired when its season moved on, in a pool the gardener belongs to"
+      ],
+      "steps": [
+        "Open the expired commitment from the drawer's History",
+        "Read the band",
+        "Press Offer It Again"
+      ],
+      "expected": "The band reads 'This one ran out of time' and 'The season moved on without it. You can offer it again.'; the bar offers 'Offer It Again' only to the provider; pressing it returns to the garden so a new offer can be composed from the Pool tab, and the expired one stays under History",
+      "evidence": "Screenshots of the expired band and where Offer It Again lands",
+      "role": "gardener",
+      "tags": ["commitments"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-review-fixes-2026-09-08"
     },
     {
       "id": "PWA-047",
@@ -5539,29 +5590,6 @@
       "source": "qa-runs-catalog-third-pass-2026-09-07"
     },
     {
-      "id": "ADM-087",
-      "tab": "Admin Dashboard",
-      "platform": "Chromium Desktop",
-      "priority": "P1",
-      "kind": "transaction",
-      "area": "Garden · Settlement",
-      "scenario": "Enable or disable gardener delivery on the settlement card",
-      "preconditions": ["Settlement module owner identity and a plain steward identity"],
-      "steps": [
-        "As the plain steward read the settlement operations card on /community/coordination",
-        "As the owner press Enable Gardener Delivery…, read the confirmation, and press Send Transaction",
-        "Press Check on chain",
-        "Disable it the same way"
-      ],
-      "expected": "The plain steward sees the state but no switch; the confirmation says enabling lets stewards prepare and dispatch member payouts on Celo without moving funds by itself; the switch reads back from chain after confirming; disabling reverses it",
-      "evidence": "Screenshots of the confirmation and the read-back state",
-      "role": "steward",
-      "tags": ["settlement", "tx"],
-      "requiresProduction": false,
-      "status": "active",
-      "source": "qa-runs-catalog-third-pass-2026-09-07"
-    },
-    {
       "id": "ADM-043",
       "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
@@ -5941,6 +5969,29 @@
       "evidence": "Screenshots of the dispatched and failed rows",
       "role": "steward",
       "tags": ["protocol-funding", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-087",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Community · Coordination",
+      "scenario": "Enable or disable gardener delivery on the settlement card",
+      "preconditions": ["Settlement module owner identity and a plain steward identity"],
+      "steps": [
+        "As the plain steward read the settlement operations card on /community/coordination",
+        "As the owner press Enable Gardener Delivery…, read the confirmation, and press Send Transaction",
+        "Press Check on chain",
+        "Disable it the same way"
+      ],
+      "expected": "The plain steward sees the state but no switch; the confirmation says enabling lets stewards prepare and dispatch member payouts on Celo without moving funds by itself; the switch reads back from chain after confirming; disabling reverses it",
+      "evidence": "Screenshots of the confirmation and the read-back state",
+      "role": "steward",
+      "tags": ["settlement", "tx"],
       "requiresProduction": false,
       "status": "active",
       "source": "qa-runs-catalog-third-pass-2026-09-07"

@@ -47,7 +47,7 @@ C21 No admin case covers submitting an assessment outside the journey relay: ADM
 | C16 N/A meaning | QA app N/A control now says "out of scope for this run" (page lane) |
 | C17 bug-encoding expectations | ADM-020, ADM-026 (+ locales), ADM-028, PUB-003, PUB-020, PUB-024 restated as intended behaviour; PWA-038 retired |
 | C18 admin grouped tx rows | Third pass: ADM-020…025, 027, 028 retired into one row per act (see below) |
-| C19 areas | Fourth pass: every active row re-labelled to where the walker sits (see below); 74 → 45 areas; no id changes |
+| C19 areas | Fourth pass: every active row re-labelled to where the walker sits (see below); 94 → 45 tab-scoped areas (74 → 40 distinct names); no id changes |
 | C20 missing read-only PWA rows | Second pass: PWA-097 (garden header + Work tab), PWA-098 (Insights), PWA-099 (Gardeners), PWA-100 (Pool tab), PWA-101 (commitment detail), PWA-102 (Commitments drawer); notifications on the garden page = PWA-094 |
 | C21 assessment submission | Added ADM-046 (P0 transaction) |
 
@@ -69,8 +69,8 @@ rows (C18), the public rows, and the area re-cut (C19) remain post-Tuesday.
 
 Acts the grouped rows never named and that now have a row: ask to take up (approval-gated claim),
 send for confirmation, join an open team. Still open for the post-Tuesday pass: a work detail read
-row on the desktop shell (only the iOS and Android review rows open one today); "Offer It Again"
-after a commitment expires; PWA-034 (proof composer) reads as one flow and stays; the
+row on the desktop shell (only the iOS and Android review rows open one today; PWA-105 now covers it); "Offer It Again"
+after a commitment expires (PWA-104 now covers it); PWA-034 (proof composer) reads as one flow and stays; the
 `[iOS]`/`PWA-ROLE` prefix scheme (C14).
 
 ## Third pass · admin, public website, docs (2026-09-07, `feature/qa-runs-catalog-third-pass`)

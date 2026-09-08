@@ -67,7 +67,7 @@
 - Branch stacked on `feature/qa-runs`; PR #806 targets `feature/qa-runs`, not `develop`, so the first PR's review stays intact and the two merge together.
 - Catalog: 7 retirements with `replacedBy` (PWA-027, 029, 030, 031, 032, 033, 039) and 36 new ids (PWA-067…102); the successor table and the acts the grouped rows never named are in `catalog-feedback-2026-09-04.md § Second pass`. Ledger append; `test-cases.mdx` regenerated; no journey-referenced row changed, so the QA app locales are untouched. Active cases 185 (PWA 93); the QA app projection ships `replaces` for every successor, and PWA-081…093 also inherit PWA-IOS-009 through the existing PWA-032/033 chain.
 - Read-only rows (feedback C20): PWA-097 garden header and Work tab, PWA-098 Insights, PWA-099 Gardeners, PWA-100 Pool tab, PWA-101 commitment detail, PWA-102 Commitments drawer; the steward bell on the garden page is PWA-094.
-- Still post-Tuesday: admin C18 rows, public rows, the C19 area re-cut (the new rows already use the target area names), a desktop work-detail read row, "Offer It Again".
+- Still post-Tuesday at the time: admin C18 rows, public rows, the C19 area re-cut, a desktop work-detail read row, "Offer It Again" (all closed by the fourth pass and its review fixes: PWA-104, PWA-105).
 
 ### Validation Receipt
 
@@ -100,7 +100,7 @@
 ## Fourth pass · C19 area re-cut (2026-09-07, `feature/qa-runs-area-recut`)
 
 - Branch stacked on `feature/qa-runs-catalog-third-pass`; PR #808 targets that branch. Merge order: fourth → third → second → `feature/qa-runs` → `develop`.
-- Catalog: every active row's `area` names where the walker sits (74 → 45 areas; 181 of 262 active rows re-labelled); the cases array is re-sorted tab → active first → walking-order area → desktop shell before installed devices → previous order; retired rows keep their historical area; no id or lifecycle change; journeys untouched. Taxonomy per tab in `catalog-feedback-2026-09-04.md § Fourth pass`.
+- Catalog: every active row's `area` names where the walker sits (94 → 45 tab-scoped areas, 74 → 40 distinct names; 181 of 262 active rows re-labelled); the cases array is re-sorted tab → active first → walking-order area → desktop shell before installed devices → previous order; retired rows keep their historical area; no id or lifecycle change; journeys untouched. Taxonomy per tab in `catalog-feedback-2026-09-04.md § Fourth pass`.
 - Reading the diff: it is a full reorder. Parse-level comparison with the parent (`git show feature/qa-runs-catalog-third-pass:scripts/data/qa-test-catalog.json` versus the working copy, keyed by id): 181 rows differ only in `area`, 131 byte-identical, none added or removed, `journeys` and the header equal.
 - Consumers checked: the QA app groups areas by first appearance (`packages/qa/index.html` walk order), the workbook groups by area, the docs page prints the column, `qa-report` prints the area on issue lines, and `qa-app-client.test.ts` uses its own fixture areas. Nothing reads an area name by value.
 

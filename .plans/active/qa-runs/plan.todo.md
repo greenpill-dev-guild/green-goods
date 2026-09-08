@@ -16,7 +16,7 @@
 | Catalog split with `replacedBy`, Android twins, redeploy (spec 9) | `state_api` | ✅ catalog + ledger (22 new ids, 8 retirements); redeploy = merge to develop |
 | PWA half of the remaining grouped rows + missing read-only PWA rows (feedback C15/C20; decision 12) | `state_api` | ✅ `feature/qa-runs-pwa-split`, stacked on `feature/qa-runs` (36 new ids PWA-067…102, 7 retirements) |
 | Admin, public website, and docs rows split by act, wording fixes, uncovered acts (feedback C18; decision 13) | `state_api` | ✅ `feature/qa-runs-catalog-third-pass`, stacked on `feature/qa-runs-pwa-split` (101 new ids, 24 retirements, 4 rewrites) |
-| Area re-cut to where the walker sits (feedback C19; decision 14) | `state_api` | ✅ `feature/qa-runs-area-recut`, stacked on the third pass (74 → 45 areas, 181 rows re-labelled, array re-sorted into walking order, no id changes) |
+| Area re-cut to where the walker sits (feedback C19; decision 14) | `state_api` | ✅ `feature/qa-runs-area-recut`, stacked on the third pass (94 → 45 tab-scoped areas, or 74 → 40 distinct names; 181 rows re-labelled, array re-sorted into walking order, no id changes) |
 | Guidance + docs name runs; two-tester smoke on 2026-09-08 | `qa_pass_1` | ✅ guidance; ⏳ smoke on 2026-09-08 |
 
 ## Implementation Steps
@@ -54,7 +54,7 @@
    `packages/shared/src/i18n/en.json`.
 4d. ✅ **Area re-cut (C19)** — on `feature/qa-runs-area-recut`, stacked on the third pass:
    every active row's `area` names where the walker sits (11 PWA, 18 admin, 10 website, 6
-   docs areas; 74 → 45); the cases array is re-sorted tab → active first → walking order →
+   docs areas; 94 → 45 tab-scoped areas, 74 → 40 distinct names); the cases array is re-sorted tab → active first → walking order →
    desktop shell before installed devices, so the QA app's Area view and the workbook read in
    walking order; retired rows keep their historical area; no id or lifecycle change. The
    `[iOS]`/`PWA-ROLE` prefix scheme (C14) stays as a policy: ids are permanent and the Area

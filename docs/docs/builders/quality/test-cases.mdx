@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:84526e7f7cc953cc3285ce9545edc74d22416136850b68527749efc1d9cea65c"
+source_digest: "sha256:f989bd914ebdb35b296bc37ae90c13aa6bd2b6c9ddf7e646caacf1322edfe3dc"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -255,7 +255,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-ROLE-002` | Transaction | Work | Reject pending work with reason on iOS | Screen recording plus account role |
 | `PWA-ROLE-003` | Journey | Work | Insufficient-role user cannot approve or reject on iOS | Screenshot plus account role |
 
-### P1 (52) {#pwa-p1}
+### P1 (53) {#pwa-p1}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -299,6 +299,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-100` | Journey | Commitments | Pool tab reads the cycle rail, offer and request filters, and commitment rows | Screenshots of the rail and the filtered list |
 | `PWA-101` | Journey | Commitments | Commitment detail reads status, progress, people, evidence, and work without acting | Screenshots of two commitments in different states |
 | `PWA-102` | Journey | Commitments | Commitments drawer groups live and settled acts by garden, with To confirm for stewards | Screenshots of the three tabs |
+| `PWA-105` | Journey | Work | Work detail reads media, details, status, feedback, and the commitment it fulfils | Screenshots of the detail and the fulfils section |
 | `PWA-AND-005` | Accessibility | App-wide | Keyboard and drawer layout remain usable on Android | Screenshots |
 | `PWA-AND-008` | Data integrity | Work | [Android] Gallery image survives the submission draft and replacement | Screenshot before and after reopen |
 | `PWA-IOS-005` | Data integrity | Work | [iOS] HEIC or library image survives submission draft | Screenshot before and after reopen |
@@ -312,7 +313,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-ROLE-006` | Journey | Work | Insufficient-role user cannot approve or reject on Android | Screenshot plus account role |
 | `XPLAT-005` | Journey | Install | Website-to-install handoff keeps browser and PWA shells separate | Screen recording across the handoff |
 
-### P2 (5) {#pwa-p2}
+### P2 (6) {#pwa-p2}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -321,6 +322,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-066` | Data integrity | App-wide | A gardener with ENS is shown by name and avatar in the app | Screenshot of the member list and record |
 | `PWA-095` | Journey | Home | ENS claim reminder toast fires once per address and routes to the profile | Screenshot of the toast |
 | `PWA-096` | Journey | Home | AppBar badge counts pending work and the bar hides during flows and drawers | Screenshots with and without the bar |
+| `PWA-104` | Journey | Commitments | Offer It Again on an expired offer returns to the garden to compose anew | Screenshots of the expired band and where Offer It Again lands |
 
 ## Admin Dashboard
 
@@ -404,7 +406,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-081` | Transaction | Garden · Commitment | Cancel a commitment with a reason from the inspector | Screenshots of the cancel dialog and the app's History |
 | `ADM-082` | Transaction | Garden · Commitment | Count approved linked work on a commitment | Screenshots of the readback status and the progress rows |
 | `ADM-086` | Transaction | Garden · Settlement | Cancel a disbursement with a reason | Screenshot of the cancelled row |
-| `ADM-087` | Transaction | Garden · Settlement | Enable or disable gardener delivery on the settlement card | Screenshots of the confirmation and the read-back state |
+| `ADM-087` | Transaction | Community · Coordination | Enable or disable gardener delivery on the settlement card | Screenshots of the confirmation and the read-back state |
 | `ADM-088` | Transaction | Community · Coordination | Cancel a queued protocol transfer | Screenshots of the confirmation and the refreshed card |
 | `ADM-089` | Transaction | Community · Coordination | Dispatch, retry, or requeue a protocol transfer | Screenshots of the dispatched and failed rows |
 | `ADM-090` | Transaction | Community · Coordination | Create the garden's signal pools | Screenshots before and after creation |
