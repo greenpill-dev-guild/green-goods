@@ -25,6 +25,15 @@ test("recovery leaves live launchers and unverified listeners untouched", () => 
     [], () => false), []);
 });
 
+test("recovery reclaims a detached indexer from a partial stale lease", () => {
+  const claims = Object.fromEntries([3006, 3008].map(port => [port, {
+    ...orphanClaim, port, service: "indexer", compatibilityKey: "indexer:local-live",
+  }]));
+  assert.deepEqual(findOrphanedApps([{ name: "indexer" }], claims, [], () => false), [{
+    name: "indexer", ownerId: "old-qa", ports: [3006, 3007, 3008], detached: true,
+  }]);
+});
+
 test("recovery refuses mismatched PM2 owners, checkouts, and duplicate names", () => {
   for (const processes of [
     [{ ...orphanProcess, pm2_env: { ...orphanProcess.pm2_env, GREEN_GOODS_DEV_OWNER: "another-owner" } }],
@@ -36,7 +45,7 @@ test("recovery refuses mismatched PM2 owners, checkouts, and duplicate names", (
   }
 });
 
-test("indexer recovery requires consistent ownership across all three ports", () => {
+test("indexer recovery requires consistent ownership across its present claims", () => {
   const claims = Object.fromEntries([3006, 3007, 3008].map(port => [port, {
     ...orphanClaim, port, service: "indexer", compatibilityKey: "indexer:local-live",
   }]));

@@ -217,12 +217,19 @@ export function findOrphanedApps(apps, claims, processes, processAlive = isProce
     const ports = portsByApp[app.name] || [];
     const appClaims = ports.map((port) => claims[port]).filter(Boolean);
     if (appClaims.length === 0 || appClaims.some((claim) => processAlive(claim.ownerPid))) continue;
-    const matching = processes.filter((entry) => entry.name === app.name);
-    if (matching.length === 0) continue; // Ordinary claims still reject an unknown live listener.
-    const entry = matching[0];
     const ownerId = appClaims[0].ownerId;
-    if (matching.length !== 1 || appClaims.length !== ports.length ||
-      appClaims.some((claim) => claim.ownerId !== ownerId || claim.service !== app.name) ||
+    if (appClaims.some((claim) => claim.ownerId !== ownerId || claim.service !== app.name)) {
+      throw new Error(`Cannot verify orphaned ${app.name} ownership; leaving its processes untouched.`);
+    }
+    const matching = processes.filter((entry) => entry.name === app.name);
+    if (matching.length === 0) {
+      // Compose containers survive both their foreground PM2 wrapper and PM2's own
+      // state. stopIndexerContainers performs the final checkout-label proof.
+      if (app.name === "indexer") orphaned.push({ name: app.name, ownerId, ports, detached: true });
+      continue; // Ordinary claims still reject an unknown live listener.
+    }
+    const entry = matching[0];
+    if (matching.length !== 1 ||
       pm2Owner(entry) !== ownerId || path.resolve(entry.pm2_env?.pm_cwd || "/") !== projectRoot) {
       throw new Error(`Cannot verify orphaned ${app.name} ownership; leaving its processes untouched.`);
     }
@@ -235,10 +242,11 @@ async function recoverOrphanedApps(apps) {
   const orphaned = findOrphanedApps(apps, readLeaseStore().claims, await listPm2Apps());
   for (const app of orphaned) {
     console.log(`[stack] recovering ${app.name} left by exited launcher ${app.ownerId}.`);
-    await deleteOwnedApps([app.name], app.ownerId);
+    if (app.detached) stopIndexerContainers();
+    else await deleteOwnedApps([app.name], app.ownerId);
     for (const port of app.ports) {
       if (await portIsLive(port)) {
-        throw new Error(`${app.name}:${port} is still occupied after stopping its verified PM2 service; leaving the listener untouched.`);
+        throw new Error(`${app.name}:${port} is still occupied after stopping its verified service; leaving the listener untouched.`);
       }
     }
     await releaseClaims(app.ports, app.ownerId);
