@@ -54,15 +54,15 @@ Phase 3b dedupe catches the other's records if both ran.
   skipped case in the app before the pull; when that cannot happen, pass those IDs to
   `qa:report --skipped <ID,ID>` so the generator counts them as not walked and lists them in its
   header, never as covered. Then
-  `bun run qa:report --slug <date> --window <start>..<end>` — with `--out <the directory you
-  pulled into>` whenever the collision branch below sent the pull to `tmp/qa-session/<date>-call`,
+  `bun run qa:report --slug <slug> --window <start>..<end>` — with `--out <the directory you
+  pulled into>` whenever the collision branch below sent the pull to `tmp/qa-session/<slug>-call`,
   so the report reads that pull and not the earlier session's (add `--build client=<sha>,admin=<sha>`
   once Phase 6 has the deploys): the `report.md` written beside that pull is where both results
   blocks of the parent come from — never count by hand. Note items without a Test ID may be
   fuzzy-matched into *proposals* here, because the Phase 4 gate confirms each one with you — the
-  unattended routine never guesses an ID. If `tmp/qa-session/<date>/` already holds a pulled
+  unattended routine never guesses an ID. If `tmp/qa-session/<slug>/` already holds a pulled
   session (a local close, or an earlier failed run), `qa:pull` refuses to overwrite it: pull to a
-  fresh directory with `--out tmp/qa-session/<date>-call` and continue from that path — never
+  fresh directory with `--out tmp/qa-session/<slug>-call` and continue from that path — never
   `--force` over an existing pull, whose severity edits and redactions are sacred.
 - **Phase 2b — split, then classify.** A dictated app note is several observations, not one
   finding: on 2026-09-04 one note carried six polish items and the session's only release blocker

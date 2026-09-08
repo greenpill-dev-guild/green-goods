@@ -1125,7 +1125,10 @@
   // ── Render ──────────────────────────────────────────────────────────
   function runControls() {
     if (!runsSupported) return "";
-    const closedRuns = RUNS.filter((run) => run.closedAt && run.id !== selectedRun);
+    // A comparison reads baseline → later, so only runs earlier than the one
+    // on screen are offered; the report CLI refuses the reverse the same way.
+    const shown = runById(selectedRun);
+    const closedRuns = RUNS.filter((run) => run.closedAt && run.id !== selectedRun && (!shown || run.n < shown.n));
     const runSelect = `<label class="view-control run-control" for="qa-run-select"><span class="grouplabel">run</span>
           <select id="qa-run-select" data-run-select aria-label="QA run">
             ${RUNS.map((run) => `<option value="${esc(run.id)}"${run.id === selectedRun ? " selected" : ""}>${esc(describeRunId(run.id))} · ${run.closedAt ? "closed" : "open"}</option>`).join("")}
@@ -1383,7 +1386,9 @@
   function selectRun(runId) {
     if (!runsSupported || !runById(runId) || runId === selectedRun) return;
     selectedRun = runId;
-    if (compareRun === runId) { compareRun = ""; compared = null; }
+    const chosen = runById(runId);
+    const baseline = runById(compareRun);
+    if (compareRun === runId || (chosen && baseline && baseline.n >= chosen.n)) { compareRun = ""; compared = null; }
     if (filter === "reqa" && !compareRun) filter = "all";
     entries = Object.create(null);
     saveView();
@@ -1392,7 +1397,9 @@
   }
 
   function setCompare(runId) {
-    const target = runId && runById(runId) && runId !== selectedRun ? runId : "";
+    const candidate = runById(runId);
+    const shown = runById(selectedRun);
+    const target = candidate && shown && candidate.closedAt && runId !== selectedRun && candidate.n < shown.n ? runId : "";
     compareRun = target;
     if (!target) {
       compared = null;

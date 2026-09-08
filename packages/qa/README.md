@@ -29,8 +29,12 @@ and a laptop on admin at once. Three things make that safe:
   object with an eight-second lease). A save validates its run and writes its shard under the same
   lease a rollover takes to close that run, so a run cannot close between the check and the write,
   and one tester's two clients never interleave. A lease that outlives its holder is taken over
-  conditionally; a holder whose lease ran out never deletes what may already be someone else's.
-  Contention is a few polls, then a 503 the page answers by keeping its outbox and retrying.
+  conditionally, and a holder releases by expiring its own lease conditionally on the version that
+  carries its token, so an old holder can never remove a successor's lease. Contention is a few
+  polls, then a 503 the page answers by keeping its outbox and retrying.
+- A run's roster is everyone who recorded into it plus everyone allowlisted now. Removing an
+  address from `QA_ALLOWLIST` stops it making requests; it never rewrites a run's history or hides
+  a former tester's verdicts from a comparison, because reads enumerate the run's shard prefix.
 
 Ordering is by **arrival at the server**, which restamps every entry it stores. Client clocks are
 never trusted: a device an hour fast would otherwise win every comparison forever, silently dropping

@@ -1304,6 +1304,15 @@ async function runsHarness() {
     assert.equal(document.querySelector("#qa-run-select")?.value, "run-3");
     assert.ok(document.querySelector(".run-summary")?.textContent.includes("Run 3 · Re-QA later"));
     assert.equal(JSON.parse(dom.window.sessionStorage.getItem("qa-view")).run, "run-3");
+    // A comparison reads baseline → later: a closed run offers only earlier runs.
+    change("#qa-run-select", "run-2");
+    await flush();
+    await flush();
+    assert.deepEqual([...document.querySelectorAll("#qa-compare-select option")].map((option) => option.value), ["", "run-1"]);
+    change("#qa-run-select", "run-3");
+    await flush();
+    await flush();
+    assert.equal(document.querySelector("#qa-run-select")?.value, "run-3");
 
     // 6. The rollover form closes the open run and opens its successor.
     document.querySelector("#qa-run-rollover")?.click();

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const blob = vi.hoisted(() => ({
   del: vi.fn(),
   get: vi.fn(),
+  list: vi.fn(),
   put: vi.fn(),
 }));
 
@@ -12,6 +13,7 @@ vi.mock("@vercel/blob", () => {
     BlobPreconditionFailedError,
     del: blob.del,
     get: blob.get,
+    list: blob.list,
     put: blob.put,
   };
 });
@@ -36,7 +38,7 @@ import {
   runIndexShapeError,
   runShardPath,
 } from "../../packages/qa/runs";
-import { STORE_LOCK_PATH, ensureRunIndex } from "../../packages/qa/store";
+import { STORE_LOCK_PATH, ensureRunIndex, releaseStoreLock } from "../../packages/qa/store";
 
 /** Shards are keyed by owner address; the display name inside is only a label. */
 const ADDRESS = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e";
@@ -93,6 +95,11 @@ function memoryBlob(initial: Record<string, string> = {}) {
   blob.del.mockImplementation(async (target: string | string[]) => {
     for (const pathname of Array.isArray(target) ? target : [target]) objects.delete(pathname);
   });
+  blob.list.mockImplementation(async (options: { prefix?: string } = {}) => ({
+    blobs: [...objects.keys()].filter((pathname) => pathname.startsWith(options.prefix ?? "")).map((pathname) => ({ pathname })),
+    cursor: undefined,
+    hasMore: false,
+  }));
   return {
     objects,
     puts,
@@ -112,6 +119,12 @@ function memoryBlob(initial: Record<string, string> = {}) {
 }
 
 const entry = (s: string, at = "2026-09-04T18:30:00.000Z", n = "") => ({ s, n, at });
+
+/** A released lease is either gone or expired; the object itself may remain as an expired lease. */
+function leaseReleased(store: ReturnType<typeof memoryBlob>): boolean {
+  const raw = store.objects.get(STORE_LOCK_PATH)?.body;
+  return !raw || (JSON.parse(raw) as { expiresAt: number }).expiresAt <= Date.now();
+}
 
 function shardBody(address: string, person: string, entries: Record<string, ReturnType<typeof entry>>) {
   return JSON.stringify({ address, person, updatedAt: "2026-09-04T22:00:00.000Z", entries });
@@ -481,8 +494,37 @@ describe("state endpoint runs", () => {
       expect(shardWrite).toBeGreaterThanOrEqual(0);
       expect(shardWrite).toBeLessThan(indexWrite);
       // Both holders released the lease.
-      expect(store.objects.has(STORE_LOCK_PATH)).toBe(false);
+      expect(leaseReleased(store)).toBe(true);
     });
+  });
+
+  it("keeps a former tester's shard in a run's view after they leave the allowlist", async () => {
+    const store = legacyStore();
+    await withConfig([ADDRESS, OTHER_ADDRESS], async () => {
+      await ensureRunIndex([ADDRESS, OTHER_ADDRESS], () => NOW);
+    });
+    // Dida is removed from the allowlist after recording into Run 1.
+    await withConfig([ADDRESS], async () => {
+      const state = await (await handler(await signedAs(ADDRESS))).json();
+      expect(state.team).toEqual(expect.arrayContaining(["Afo", "Dida"]));
+      expect(state.entries["ADM-004"].Dida.s).toBe("fail");
+      // The removed address can no longer record.
+      const refused = await handler(await signedAs(OTHER_ADDRESS, { method: "POST", body: JSON.stringify({ entries: { "ADM-004": { s: "pass" } } }) }));
+      expect(refused.status).toBe(403);
+      expect(store.json(runShardPath("run-1", OTHER_ADDRESS)).entries["ADM-004"].s).toBe("fail");
+    });
+  });
+
+  it("lets a live holder expire only its own lease, never a successor's", async () => {
+    const store = legacyStore();
+    const later = Date.now() + 60_000;
+    store.objects.set(STORE_LOCK_PATH, { body: JSON.stringify({ token: "successor", expiresAt: later }), etag: "etag-successor" });
+    await releaseStoreLock({ token: "old-holder", expiresAt: later });
+    expect(JSON.parse(store.objects.get(STORE_LOCK_PATH)?.body ?? "{}")).toEqual({ token: "successor", expiresAt: later });
+    store.objects.set(STORE_LOCK_PATH, { body: JSON.stringify({ token: "mine", expiresAt: later }), etag: "etag-mine" });
+    await releaseStoreLock({ token: "mine", expiresAt: later });
+    expect(JSON.parse(store.objects.get(STORE_LOCK_PATH)?.body ?? "{}")).toEqual({ token: "mine", expiresAt: 0 });
+    expect(leaseReleased(store)).toBe(true);
   });
 
   it("refuses to save while another request holds a live lease, without touching any shard", async () => {
@@ -518,7 +560,7 @@ describe("state endpoint runs", () => {
       );
       expect(response.status).toBe(200);
       expect(store.json(runShardPath("run-1", ADDRESS)).entries["PWA-021"].s).toBe("pass");
-      expect(store.objects.has(STORE_LOCK_PATH)).toBe(false);
+      expect(leaseReleased(store)).toBe(true);
     });
   });
 
@@ -635,7 +677,24 @@ describe("rollover endpoint", () => {
       const loser = a.status === 409 ? a : b;
       expect(await loser.json()).toMatchObject({ reason: "stale", openRun: "run-2" });
       expect(store.index()?.runs).toHaveLength(2);
-      expect(store.objects.has(STORE_LOCK_PATH)).toBe(false);
+      expect(leaseReleased(store)).toBe(true);
+    });
+  });
+
+  it("carries names through two consecutive rollovers", async () => {
+    const store = legacyStore();
+    await withConfig([ADDRESS, OTHER_ADDRESS], async () => {
+      await ensureRunIndex([ADDRESS, OTHER_ADDRESS], () => NOW);
+      for (const [expected, label] of [["run-1", "Re-QA"], ["run-2", "Re-QA again"]]) {
+        const response = await rollover(
+          await rolloverRequest(ADDRESS, { action: "rollover", label, environment: "beta", expectedOpenRun: expected }),
+        );
+        expect(response.status).toBe(200);
+      }
+      expect(store.index()?.runs.map((run) => run.id)).toEqual(["run-1", "run-2", "run-3"]);
+      expect(store.json(runShardPath("run-3", ADDRESS)).person).toBe("Afo");
+      expect(store.json(runShardPath("run-3", OTHER_ADDRESS)).person).toBe("Dida");
+      expect(leaseReleased(store)).toBe(true);
     });
   });
 

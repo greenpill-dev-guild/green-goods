@@ -61,8 +61,10 @@ export async function GET(request: Request): Promise<Response> {
  * `named` and the roster labels come from the shards of the run being served,
  * so a fresh run with no shards would ask every tester for their name again
  * and show short addresses until they answered. An empty-entries shard with
- * the person already set costs nothing and keeps the roster stable. Best
- * effort: a failure here is logged, never a failed rollover.
+ * the person already set costs nothing and keeps the roster stable. It runs
+ * under the same lease that published the new run, so a second rollover cannot
+ * close that run before its names are in place. Best effort within the lease:
+ * a failure here is logged, never a failed rollover.
  */
 async function carryNames(allowlist: string[], closedRunId: string, openedRunId: string, now: string): Promise<void> {
   await Promise.all(
@@ -127,9 +129,8 @@ export async function POST(request: Request): Promise<Response> {
   if (expectedGiven && !expectedOpenRun) return json({ error: "expectedOpenRun is malformed" }, 400);
 
   let next: ReturnType<typeof rolloverIndex>;
-  let now: string;
   try {
-    const outcome = await withStoreLock(async (): Promise<Response | { next: ReturnType<typeof rolloverIndex>; now: string }> => {
+    const outcome = await withStoreLock(async (): Promise<Response | { next: ReturnType<typeof rolloverIndex> }> => {
       const current = await ensureRunIndex(caller.allowlist);
       const currentOpen = openRun(current.index);
       if (expectedOpenRun && currentOpen.id !== expectedOpenRun) {
@@ -161,15 +162,14 @@ export async function POST(request: Request): Promise<Response> {
           409,
         );
       }
-      return { next: rolled, now: stamp };
+      await carryNames(caller.allowlist, rolled.closed.id, rolled.opened.id, stamp);
+      return { next: rolled };
     });
     if (outcome instanceof Response) return outcome;
     next = outcome.next;
-    now = outcome.now;
   } catch (error) {
     return fail(error, "the run could not be rolled over", "qa/runs");
   }
 
-  await carryNames(caller.allowlist, next.closed.id, next.opened.id, now);
   return json({ ok: true, closed: next.closed, opened: next.opened, runs: next.index.runs, openRun: next.opened.id });
 }

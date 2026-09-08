@@ -43,6 +43,7 @@ import {
   fail,
   fallbackName,
   json,
+  listShardAddresses,
   readRunIndex,
   readShard,
   restoreShard,
@@ -294,25 +295,32 @@ export async function handler(request: Request): Promise<Response> {
       served = run;
     }
 
+    // The roster is everyone who recorded into this run plus everyone allowed
+    // to record now. Removing an address from the allowlist stops it making
+    // requests; it never rewrites a run's history or hides a former tester's
+    // verdicts from a comparison.
+    let roster: string[];
     let reads: Array<{ shard: Shard; etag: string } | null>;
     try {
-      reads = await Promise.all(caller.allowlist.map((address) => readShard(address, served.id)));
+      const recorded = await listShardAddresses(served.id);
+      roster = [...new Set([...caller.allowlist, ...recorded])];
+      reads = await Promise.all(roster.map((address) => readShard(address, served.id)));
     } catch (error) {
       // Returning a partial view would render as "that tester cleared their
       // entries". Fail the poll instead; the page keeps what it has and retries.
       return fail(error, "session state could not be read");
     }
-    // The roster is whoever the allowlist admits, labelled by the name they
-    // declared. Somebody who has never signed in has no shard and so no name
-    // yet — they still belong on the roster, under their short address.
-    const owners = caller.allowlist.map((address, position) => ({
+    // Labelled by the name each tester declared. Somebody who has never
+    // signed in has no shard and so no name yet — they still belong on the
+    // roster, under their short address.
+    const owners = roster.map((address, position) => ({
       address,
       person: reads[position]?.shard.person ?? "",
     }));
     const team = displayLabels(owners);
     let you = fallbackName(caller.address);
     const nameFor = new Map<string, string>();
-    caller.allowlist.forEach((address, position) => {
+    roster.forEach((address, position) => {
       const label = team[position];
       nameFor.set(address, label);
       if (address === caller.address) you = label;
@@ -333,7 +341,7 @@ export async function handler(request: Request): Promise<Response> {
       // The page shows this once so a tester can confirm which wallet is
       // recording before they trust the name beside it.
       address: caller.address,
-      named: Boolean(reads[caller.allowlist.indexOf(caller.address)]?.shard.person?.trim()),
+      named: Boolean(reads[roster.indexOf(caller.address)]?.shard.person?.trim()),
       entries,
       readAt: new Date().toISOString(),
       runs: labelledRuns(index, nameFor),

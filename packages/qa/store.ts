@@ -14,7 +14,7 @@
 
 import { randomUUID } from "node:crypto";
 
-import { BlobPreconditionFailedError, del, get, put } from "@vercel/blob";
+import { BlobPreconditionFailedError, get, list, put } from "@vercel/blob";
 
 import {
   FIRST_RUN_ID,
@@ -25,6 +25,7 @@ import {
   legacyShardPath,
   runIndexShapeError,
   runShardPath,
+  runShardPrefix,
 } from "./runs.js";
 
 export type Address = string;
@@ -318,12 +319,14 @@ export async function ensureRunIndex(
  * against a rollover: a save could validate its run against an index read
  * moments before a teammate closed that run, then write into the closed
  * shard. Blob has no transaction, so the serialization point is a create-only
- * object: whoever creates `qa/lock.json` holds the store until they delete it.
- * The lease carries an expiry so a function that died mid-save cannot wedge
- * the store; a caller that finds an expired lease takes it over with a
- * conditional overwrite, and a holder whose own lease ran out never deletes
- * what may already be someone else's. Contention is a few polls, then a 503
- * the page answers by keeping its outbox and retrying.
+ * object: whoever creates `qa/lock.json` holds the store until they expire
+ * their lease. The lease carries an expiry so a function that died mid-save
+ * cannot wedge the store; a caller that finds an expired lease takes it over
+ * with a conditional overwrite. Release is itself a conditional overwrite of
+ * the version that carries the holder's token, so an old holder can never
+ * remove a successor's lease: the fence is the ETag, not a check-then-delete.
+ * Contention is a few polls, then a 503 the page answers by keeping its
+ * outbox and retrying.
  */
 export const STORE_LOCK_PATH = "qa/lock.json";
 
@@ -396,16 +399,55 @@ export async function acquireStoreLock(options: StoreLockOptions = {}): Promise<
 }
 
 export async function releaseStoreLock(lock: StoreLock): Promise<void> {
-  // A lease that ran out may already be somebody else's; only a live holder deletes.
+  // A lease that ran out may already be somebody else's; only a live holder releases.
   if (lock.expiresAt <= Date.now()) return;
   try {
     const held = await readText(STORE_LOCK_PATH, "the store lock could not be read");
     if (!held || parseLock(held.text)?.token !== lock.token) return;
-    await del(STORE_LOCK_PATH);
+    // Expire the lease conditionally on the exact version that carries this
+    // token. If a successor took the lease over between the read and this
+    // write, the ETag no longer matches and the write is refused, so the old
+    // holder cannot remove the new holder's lease.
+    try {
+      await putConditional(STORE_LOCK_PATH, JSON.stringify({ token: lock.token, expiresAt: 0 }), held.etag);
+    } catch (error) {
+      if (!(error instanceof BlobPreconditionFailedError)) throw error;
+    }
   } catch (error) {
     // Nothing to do for the caller: the lease expires on its own.
     console.error("qa/store: the store lock could not be released", error);
   }
+}
+
+/**
+ * Every address that holds a shard in a run, whether or not it is on today's
+ * allowlist.
+ *
+ * The allowlist decides who may record now. A run's roster is everyone who
+ * recorded into it: removing an address stops it making new requests and must
+ * never rewrite what a closed run holds, so reads enumerate the run's shard
+ * prefix and union it with the allowlist rather than fanning out over the
+ * allowlist alone.
+ */
+export async function listShardAddresses(runId: string): Promise<string[]> {
+  const prefix = runShardPrefix(runId);
+  const addresses: string[] = [];
+  let cursor: string | undefined;
+  do {
+    let page: Awaited<ReturnType<typeof list>>;
+    try {
+      page = await list({ prefix, cursor, limit: 1000 });
+    } catch (error) {
+      throw new StoreError("the run's entries could not be listed", error);
+    }
+    for (const blob of page.blobs) {
+      const rest = blob.pathname.startsWith(prefix) ? blob.pathname.slice(prefix.length) : "";
+      const match = /^(0x[0-9a-f]{40})\.json$/.exec(rest);
+      if (match) addresses.push(match[1]);
+    }
+    cursor = page.hasMore ? page.cursor : undefined;
+  } while (cursor);
+  return addresses;
 }
 
 /** Run one unit of store work under the lease, releasing it however the work ends. */
