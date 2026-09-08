@@ -136,6 +136,15 @@ describe("dropDevelopmentHostExceptions", () => {
     expect(dropDevelopmentHostExceptions(event)).toBeNull();
   });
 
+  it("drops an exception raised on a Cloudflare dev tunnel host", () => {
+    const event = makeEvent({
+      $current_url: "https://calm-forest-1234.trycloudflare.com/gardens",
+      $exception_list: [{ type: "TypeError", value: "Failed to fetch" }],
+    });
+
+    expect(dropDevelopmentHostExceptions(event)).toBeNull();
+  });
+
   it("keeps an exception raised on the production host", () => {
     const event = makeEvent({
       $current_url: "https://www.greengoods.app/gardens",

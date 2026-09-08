@@ -50,7 +50,10 @@ function isDevelopmentHost(hostname: string): boolean {
     normalized === "127.0.0.1" ||
     normalized === "0.0.0.0" ||
     normalized === "::1" ||
-    normalized === "[::1]"
+    normalized === "[::1]" ||
+    // `bun run dev:tunnel` exposes the local dev server over a generated
+    // Cloudflare quick-tunnel host for mobile/device QA.
+    normalized.endsWith(".trycloudflare.com")
   );
 }
 
