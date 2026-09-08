@@ -20,6 +20,11 @@ const queueProcessJob = vi.fn();
 vi.mock("../../hooks/auth/useUser", () => ({
   useUser: () => mockUseUser(),
 }));
+// useSafeMutation reads the signer mode straight from the auth context to
+// decide whether a pending mutation is an external wallet handoff.
+vi.mock("../../providers/Auth", () => ({
+  useOptionalAuthContext: () => ({ authMode: mockUseUser().authMode }),
+}));
 
 vi.mock("../../modules/work/wallet-submission", () => ({
   submitApprovalDirectly: vi.fn(),

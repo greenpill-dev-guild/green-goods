@@ -437,9 +437,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
     },
   });
 
-  const safeMutation = useSafeMutation(mutation, "approval", {
-    warnBeforeUnload: authMode !== "wallet",
-  });
+  const safeMutation = useSafeMutation(mutation, "approval");
   return {
     ...safeMutation,
     approvalLifecycleStage: lifecycle.stage,

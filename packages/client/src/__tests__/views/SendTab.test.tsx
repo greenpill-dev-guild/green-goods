@@ -47,11 +47,24 @@ let mockTokensState: { tokens: SendableTokenBalance[]; isLoading: boolean; isErr
 vi.mock("@green-goods/shared/components/Dialog/ConfirmDialog", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    ConfirmDialog: ({ isOpen, onConfirm }: { isOpen: boolean; onConfirm: () => void }) =>
+    ConfirmDialog: ({
+      isOpen,
+      onConfirm,
+      onClose,
+    }: {
+      isOpen: boolean;
+      onConfirm: () => void;
+      onClose: () => void;
+    }) =>
       isOpen ? (
-        <button type="button" data-testid="confirm-send" onClick={onConfirm}>
-          confirm
-        </button>
+        <>
+          <button type="button" data-testid="confirm-send" onClick={onConfirm}>
+            confirm
+          </button>
+          <button type="button" data-testid="cancel-send" onClick={onClose}>
+            cancel
+          </button>
+        </>
       ) : null,
   };
 });
@@ -238,6 +251,43 @@ describe("SendTab", () => {
 
     expect(await screen.findByRole("button", { name: /^Send GOODS/ })).toBeInTheDocument();
     expect(screen.queryByText(/Sending to/i)).not.toBeInTheDocument();
+  });
+
+  it("sends nothing and stays on review when the confirm is cancelled", async () => {
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await pickMemberAndToken(user, /GOODS/);
+    await user.click(screen.getByRole("button", { name: "Review" }));
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    await user.click(screen.getByTestId("cancel-send"));
+
+    expect(mockSend).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("confirm-send")).not.toBeInTheDocument();
+    expect(screen.getByText("Sending governance")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
+  });
+
+  it("keeps the review step ready to retry when a send does not succeed", async () => {
+    // The mutation reports its own toast; the flow only resets on success.
+    mockSend.mockImplementation(() => undefined);
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await pickMemberAndToken(user, /GOODS/);
+    await user.click(screen.getByRole("button", { name: "Review" }));
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    await user.click(screen.getByTestId("confirm-send"));
+
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Sending governance")).toBeInTheDocument();
+    const send = screen.getByRole("button", { name: "Send" });
+    expect(send).toBeEnabled();
+
+    await user.click(send);
+    await user.click(screen.getByTestId("confirm-send"));
+
+    expect(mockSend).toHaveBeenCalledTimes(2);
+    expect(mockSend.mock.calls[1][0]).toMatchObject({ to: MEMBER, amount: 10n * 10n ** 18n });
   });
 
   it("lets you edit the recipient from the review step", async () => {
