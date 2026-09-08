@@ -136,7 +136,7 @@ re-sorted into walking order (tab → active first → area → desktop shell be
 | Public Website (45) | Site-wide (7) · Home (3) · Gardens (10) · Fund (8) · Vaults (3) · Cookies (5) · Impact (4) · Actions (2) · Glossary (1) · Install (2) |
 | Docs (26) | Site (6) · Gardener Guide (4) · Steward Guide (6) · Funder Guide (3) · Builder Docs (5) · Reference (2) |
 
-## Review corrections (2026-09-08, `feature/qa-runs-review-fixes`, PR #809)
+## Review corrections (2026-09-08, `feature/qa-runs-review-fixes`, PR #810)
 
 The Codex review of #806 and #807 read fourteen rows against the source and found steps that the UI
 cannot perform or expectations the code contradicts. All were corrected in place, and two rows split
