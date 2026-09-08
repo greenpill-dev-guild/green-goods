@@ -500,12 +500,21 @@ function productionProfileEnv(group) {
 }
 
 export function applyGroupEnvironment(app, group) {
-  const env = productionProfileEnv(group);
+  const profileEnv = productionProfileEnv(group);
+  const configuredIndexerUrl = app.env?.VITE_ENVIO_INDEXER_URL;
+  const preserveConfiguredIndexer = !["prod", "prod-mirror"].includes(group);
+  const { VITE_ENVIO_INDEXER_URL: profileIndexerUrl, ...sharedProfileEnv } = profileEnv;
+
   return {
     ...app,
     env: {
       ...(app.env || {}),
-      ...env,
+      ...sharedProfileEnv,
+      ...(preserveConfiguredIndexer
+        ? configuredIndexerUrl === undefined
+          ? {}
+          : { VITE_ENVIO_INDEXER_URL: configuredIndexerUrl }
+        : { VITE_ENVIO_INDEXER_URL: profileIndexerUrl }),
     },
   };
 }

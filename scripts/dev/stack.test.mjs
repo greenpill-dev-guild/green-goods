@@ -147,7 +147,7 @@ test("a smoke process that cannot start never reports QA readiness", async () =>
 });
 
 
-test("live profiles override stale fork settings and use the local agent and indexer", () => {
+test("live profiles preserve the configured indexer while overriding stale fork settings", () => {
   for (const group of ["local", "full", "web", ""]) {
     for (const name of ["client", "admin", "agent"]) {
       const { env } = applyGroupEnvironment({ name, env: {
@@ -162,7 +162,7 @@ test("live profiles override stale fork settings and use the local agent and ind
       assert.equal(env.VITE_ENABLE_ANVIL_WALLETS, "false");
       assert.equal(env.ARBITRUM_RPC_URL, "https://arb1.arbitrum.io/rpc");
       assert.equal(env.VITE_API_BASE_URL, "http://127.0.0.1:3005");
-      assert.equal(env.VITE_ENVIO_INDEXER_URL, "http://localhost:3006/v1/graphql");
+      assert.equal(env.VITE_ENVIO_INDEXER_URL, "https://hosted.example/graphql");
     }
   }
 });
