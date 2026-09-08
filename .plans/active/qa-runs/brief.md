@@ -50,6 +50,25 @@ cases to their successors.
     per act (PWA-067 to PWA-096) and the read-only rows the feedback listed as missing land as
     PWA-097 to PWA-102. The admin grouped rows (C18), the public rows, and the area re-cut (C19)
     stay post-Tuesday.
+13. (2026-09-07, supersedes the timing in 12) The admin, public website, and docs pass starts now
+    as a third PR stacked on `feature/qa-runs-pwa-split`: every remaining grouped row on those
+    surfaces retires into one row per act, rows whose wording no longer matches the product are
+    rewritten in place, and acts with no row get one (ADM-048 to ADM-108, PUB-035 to PUB-055,
+    DOCS-014 to DOCS-032). The journey-referenced rows ADM-012, 013, 014, and 026 are untouched.
+    Only the C19 area re-cut remains post-Tuesday; new rows already use the target area names.
+14. (2026-09-07, supersedes the timing in 7 and 13) The C19 area re-cut ships now as a fourth
+    PR stacked on the third pass. Areas name where the walker sits: the PWA by app surface
+    (Install, Update, Auth, Home, Garden, Work, Commitments, Wallet, Profile, Offline, App-wide),
+    the admin by workspace and route (Shell, App-wide, Hub · Work, Hub · Assess, Hub · Certify,
+    Hub · Confirm, Garden · Lifecycle, Garden · Settings, Garden · Pool, Garden · Commitment,
+    Garden · Settlement, Garden · Impact, Community · Members, Community · Coordination,
+    Community · Endowment, Community · Payouts, Actions, Cookies), the website by page
+    (Site-wide, Home, Gardens, Fund, Vaults, Cookies, Impact, Actions, Glossary, Install), and
+    the docs by section (Site, Gardener Guide, Steward Guide, Funder Guide, Builder Docs,
+    Reference). Areas are wording, so no id changes and no retirements; retired rows keep their
+    historical area. The cases array is re-sorted into walking order so the QA app's Area view
+    reads the same way. The device-row prefix scheme (C14) stays: ids are permanent, and the
+    Area view no longer groups by prefix, which was the reading problem.
 
 ## Boundaries
 

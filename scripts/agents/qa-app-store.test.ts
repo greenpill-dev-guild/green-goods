@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const blob = vi.hoisted(() => ({
+  del: vi.fn(),
   get: vi.fn(),
   put: vi.fn(),
 }));
@@ -9,6 +10,7 @@ vi.mock("@vercel/blob", () => {
   class BlobPreconditionFailedError extends Error {}
   return {
     BlobPreconditionFailedError,
+    del: blob.del,
     get: blob.get,
     put: blob.put,
   };
@@ -34,7 +36,7 @@ import {
   runIndexShapeError,
   runShardPath,
 } from "../../packages/qa/runs";
-import { ensureRunIndex } from "../../packages/qa/store";
+import { STORE_LOCK_PATH, ensureRunIndex } from "../../packages/qa/store";
 
 /** Shards are keyed by owner address; the display name inside is only a label. */
 const ADDRESS = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e";
@@ -76,7 +78,7 @@ function memoryBlob(initial: Record<string, string> = {}) {
     return stored ? { statusCode: 200, stream: stored.body, blob: { etag: stored.etag } } : null;
   });
   blob.put.mockImplementation(async (pathname: string, body: string, options: Record<string, unknown>) => {
-    if (beforePut) {
+    if (beforePut && pathname !== STORE_LOCK_PATH) {
       const hook = beforePut;
       beforePut = null;
       await hook(pathname);
@@ -87,6 +89,9 @@ function memoryBlob(initial: Record<string, string> = {}) {
     if (options.ifMatch && options.ifMatch !== stored?.etag) throw new BlobPreconditionFailedError("etag mismatch");
     objects.set(pathname, { body: String(body), etag: `etag-${++etag}` });
     return {};
+  });
+  blob.del.mockImplementation(async (target: string | string[]) => {
+    for (const pathname of Array.isArray(target) ? target : [target]) objects.delete(pathname);
   });
   return {
     objects,
@@ -115,8 +120,11 @@ function shardBody(address: string, person: string, entries: Record<string, Retu
 async function withConfig<T>(allowlist: string[], run: () => Promise<T>): Promise<T> {
   const previousSecret = process.env.QA_SESSION_SECRET;
   const previousAllowlist = process.env.QA_ALLOWLIST;
+  const previousRetry = process.env.QA_STORE_LOCK_RETRY_MS;
   process.env.QA_SESSION_SECRET = SECRET;
   process.env.QA_ALLOWLIST = JSON.stringify(allowlist);
+  // Poll the store lock fast: the tests wait on real timers.
+  process.env.QA_STORE_LOCK_RETRY_MS = "2";
   try {
     return await run();
   } finally {
@@ -124,6 +132,8 @@ async function withConfig<T>(allowlist: string[], run: () => Promise<T>): Promis
     else process.env.QA_SESSION_SECRET = previousSecret;
     if (previousAllowlist === undefined) delete process.env.QA_ALLOWLIST;
     else process.env.QA_ALLOWLIST = previousAllowlist;
+    if (previousRetry === undefined) delete process.env.QA_STORE_LOCK_RETRY_MS;
+    else process.env.QA_STORE_LOCK_RETRY_MS = previousRetry;
   }
 }
 
@@ -215,7 +225,7 @@ describe("run index migration", () => {
     const store = legacyStore();
     store.objects.set(RUN_INDEX_PATH, { body: "{not json", etag: "etag-bad" });
     await expect(ensureRunIndex([ADDRESS], () => NOW)).rejects.toThrow(/run index is unreadable/);
-    expect(store.puts).toHaveLength(0);
+    expect(store.puts.filter((write) => write.pathname !== STORE_LOCK_PATH)).toHaveLength(0);
 
     store.objects.set(RUN_INDEX_PATH, { body: JSON.stringify({ version: 1, updatedAt: NOW, runs: [] }), etag: "e" });
     await expect(ensureRunIndex([ADDRESS], () => NOW)).rejects.toThrow(/run index is unreadable/);
@@ -377,7 +387,7 @@ describe("state endpoint runs", () => {
       const closed = await (await handler(await signedAs(ADDRESS, { path: "/api/state?run=run-1" }))).json();
       expect(closed.run).toBe("run-1");
       expect(closed.entries["PWA-021"].Afo.s).toBe("fail");
-      expect(store.puts).toHaveLength(0);
+      expect(store.puts.filter((write) => write.pathname !== STORE_LOCK_PATH)).toHaveLength(0);
 
       const missing = await handler(await signedAs(ADDRESS, { path: "/api/state?run=run-9" }));
       expect(missing.status).toBe(404);
@@ -397,7 +407,7 @@ describe("state endpoint runs", () => {
       expect(refused.status).toBe(409);
       expect(await refused.json()).toMatchObject({ reason: "closed", openRun: "run-2", closedAt: NOW });
       expect(store.objects.get(runShardPath("run-1", ADDRESS))?.etag).toBe("etag-run1-afo");
-      expect(store.puts).toHaveLength(0);
+      expect(store.puts.filter((write) => write.pathname !== STORE_LOCK_PATH)).toHaveLength(0);
 
       const unknown = await handler(
         await signedAs(ADDRESS, { method: "POST", body: JSON.stringify({ run: "run-7", entries: {} }) }),
@@ -432,13 +442,94 @@ describe("state endpoint runs", () => {
     });
   });
 
-  it("re-targets a save whose run closed between the index check and the shard write, leaving the closed shard as it was", async () => {
+  it("makes a rollover wait for a save in flight, so the closed run holds exactly what landed before the close", async () => {
+    const store = legacyStore();
+    await withConfig([ADDRESS, OTHER_ADDRESS], async () => {
+      await ensureRunIndex([ADDRESS, OTHER_ADDRESS], () => NOW);
+      let rolled: Promise<Response> | undefined;
+      // The save holds the store lock when its shard write starts; a teammate's
+      // rollover that begins now polls the lock instead of closing the run.
+      store.onNextPut(async (pathname) => {
+        expect(pathname).toBe(runShardPath("run-1", ADDRESS));
+        rolled = rollover(
+          await signedAs(OTHER_ADDRESS, {
+            path: "/api/runs",
+            method: "POST",
+            body: JSON.stringify({ action: "rollover", label: "Re-QA", environment: "beta" }),
+          }),
+        );
+      });
+      const response = await handler(
+        await signedAs(ADDRESS, {
+          method: "POST",
+          body: JSON.stringify({ run: "run-1", entries: { "PWA-021": { s: "pass", n: "join visible now" } } }),
+        }),
+      );
+      expect(response.status).toBe(200);
+      const saved = await response.json();
+      expect(saved).toMatchObject({ ok: true, run: "run-1" });
+      expect(saved.retargeted).toBeUndefined();
+      expect(rolled).toBeDefined();
+      const rolledResponse = await (rolled as Promise<Response>);
+      expect(rolledResponse.status).toBe(200);
+      expect(await rolledResponse.json()).toMatchObject({ ok: true, openRun: "run-2" });
+      // The verdict landed in Run 1 before it closed; the index write came after the shard write.
+      expect(store.json(runShardPath("run-1", ADDRESS)).entries["PWA-021"]).toMatchObject({ s: "pass", n: "join visible now" });
+      expect(store.index()?.runs.find((run) => run.id === "run-1")?.closedAt).toBeTruthy();
+      const shardWrite = store.puts.findIndex((entry) => entry.pathname === runShardPath("run-1", ADDRESS) && entry.options.ifMatch);
+      const indexWrite = store.puts.findIndex((entry) => entry.pathname === RUN_INDEX_PATH && entry.options.ifMatch);
+      expect(shardWrite).toBeGreaterThanOrEqual(0);
+      expect(shardWrite).toBeLessThan(indexWrite);
+      // Both holders released the lease.
+      expect(store.objects.has(STORE_LOCK_PATH)).toBe(false);
+    });
+  });
+
+  it("refuses to save while another request holds a live lease, without touching any shard", async () => {
+    const store = legacyStore();
+    store.objects.set(STORE_LOCK_PATH, { body: JSON.stringify({ token: "someone-else", expiresAt: Date.now() + 60_000 }), etag: "etag-lease" });
+    await withConfig([ADDRESS, OTHER_ADDRESS], async () => {
+      await ensureRunIndex([ADDRESS, OTHER_ADDRESS], () => NOW);
+      const before = store.objects.get(runShardPath("run-1", ADDRESS))?.body;
+      process.env.QA_STORE_LOCK_ATTEMPTS = "3";
+      try {
+        const response = await handler(
+          await signedAs(ADDRESS, { method: "POST", body: JSON.stringify({ entries: { "PWA-021": { s: "pass" } } }) }),
+        );
+        expect(response.status).toBe(503);
+        expect((await response.json()).error).toMatch(/busy/);
+      } finally {
+        delete process.env.QA_STORE_LOCK_ATTEMPTS;
+      }
+      expect(store.objects.get(runShardPath("run-1", ADDRESS))?.body).toBe(before);
+      expect(store.puts.some((entry) => entry.pathname === runShardPath("run-1", ADDRESS) && entry.options.ifMatch)).toBe(false);
+      // The foreign lease is left for its holder.
+      expect(JSON.parse(store.objects.get(STORE_LOCK_PATH)?.body ?? "{}").token).toBe("someone-else");
+    });
+  });
+
+  it("takes over an expired lease and releases its own afterwards", async () => {
+    const store = legacyStore();
+    store.objects.set(STORE_LOCK_PATH, { body: JSON.stringify({ token: "died-mid-save", expiresAt: Date.now() - 1 }), etag: "etag-lease" });
+    await withConfig([ADDRESS, OTHER_ADDRESS], async () => {
+      await ensureRunIndex([ADDRESS, OTHER_ADDRESS], () => NOW);
+      const response = await handler(
+        await signedAs(ADDRESS, { method: "POST", body: JSON.stringify({ entries: { "PWA-021": { s: "pass" } } }) }),
+      );
+      expect(response.status).toBe(200);
+      expect(store.json(runShardPath("run-1", ADDRESS)).entries["PWA-021"].s).toBe("pass");
+      expect(store.objects.has(STORE_LOCK_PATH)).toBe(false);
+    });
+  });
+
+  it("falls back to restore and re-target when the lease ran out under a slow save and a rollover took it over", async () => {
     const store = legacyStore();
     await withConfig([ADDRESS, OTHER_ADDRESS], async () => {
       await ensureRunIndex([ADDRESS, OTHER_ADDRESS], () => NOW);
       const closedBefore = store.objects.get(runShardPath("run-1", ADDRESS))?.body;
-      // The save reads the index (run-1 open), then a teammate's rollover lands
-      // before the save's shard write does.
+      // A zero-length lease expires at once, so the rollover that starts between
+      // the save's index check and its shard write takes the lock over and lands first.
+      process.env.QA_STORE_LOCK_TTL_MS = "0";
       store.onNextPut(async (pathname) => {
         expect(pathname).toBe(runShardPath("run-1", ADDRESS));
         const rolled = await rollover(
@@ -456,6 +547,7 @@ describe("state endpoint runs", () => {
           body: JSON.stringify({ run: "run-1", entries: { "PWA-021": { s: "pass", n: "join visible now" } } }),
         }),
       );
+      delete process.env.QA_STORE_LOCK_TTL_MS;
       expect(response.status).toBe(200);
       expect(await response.json()).toMatchObject({ ok: true, run: "run-2", retargeted: true });
       // The closed run reads exactly as it did at close; the delta lives in the open run.
@@ -530,8 +622,10 @@ describe("rollover endpoint", () => {
     const store = legacyStore();
     await withConfig([ADDRESS, OTHER_ADDRESS], async () => {
       await ensureRunIndex([ADDRESS, OTHER_ADDRESS], () => NOW);
-      store.gate(RUN_INDEX_PATH, 2);
-      const body = { action: "rollover", label: "Re-QA", environment: "beta" };
+      // Both testers confirmed closing Run 1 at the same moment. The store lock
+      // serializes them: the second reads the index the first just wrote, finds
+      // Run 2 open, and is answered with the fresh index instead of closing Run 2.
+      const body = { action: "rollover", label: "Re-QA", environment: "beta", expectedOpenRun: "run-1" };
       const [a, b] = await Promise.all([
         rolloverRequest(ADDRESS, body).then(rollover),
         rolloverRequest(OTHER_ADDRESS, body).then(rollover),
@@ -539,8 +633,9 @@ describe("rollover endpoint", () => {
       const statuses = [a.status, b.status].sort();
       expect(statuses).toEqual([200, 409]);
       const loser = a.status === 409 ? a : b;
-      expect(await loser.json()).toMatchObject({ openRun: "run-2" });
+      expect(await loser.json()).toMatchObject({ reason: "stale", openRun: "run-2" });
       expect(store.index()?.runs).toHaveLength(2);
+      expect(store.objects.has(STORE_LOCK_PATH)).toBe(false);
     });
   });
 

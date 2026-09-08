@@ -5,9 +5,11 @@
  *   POST /api/runs  → { action: "rollover", label, environment, builds?, catalog? }
  *                     closes the open run and opens its successor
  *
- * A rollover is one conditional write of the index. Two testers rolling over
- * at once produce one winner and one 409 that carries the fresh index, so the
- * loser looks again instead of opening a second run. Nothing is retried on
+ * A rollover is one conditional write of the index, taken under the store
+ * lock that every save also takes, so no save can validate against the run
+ * being closed and write after it closed. Two testers rolling over at once
+ * produce one winner and one 409 that carries the fresh index, so the loser
+ * looks again instead of opening a second run. Nothing is retried on
  * the server: a rollover is not idempotent, and the human should see what the
  * store looks like now. Named method exports, never a default export (see
  * ./state.ts for why).
@@ -37,6 +39,7 @@ import {
   putCreateOnly,
   readRunIndex,
   readShard,
+  withStoreLock,
 } from "../store.js";
 
 const MAX_BODY_BYTES = 8 * 1024;
@@ -123,34 +126,31 @@ export async function POST(request: Request): Promise<Response> {
   const expectedOpenRun = expectedGiven ? validateRunId(body.expectedOpenRun) : null;
   if (expectedGiven && !expectedOpenRun) return json({ error: "expectedOpenRun is malformed" }, 400);
 
-  let current: Awaited<ReturnType<typeof ensureRunIndex>>;
+  let next: ReturnType<typeof rolloverIndex>;
+  let now: string;
   try {
-    current = await ensureRunIndex(caller.allowlist);
-  } catch (error) {
-    return fail(error, "the runs could not be read", "qa/runs");
-  }
-  const currentOpen = openRun(current.index);
-  if (expectedOpenRun && currentOpen.id !== expectedOpenRun) {
-    return json(
-      {
-        error: `${describeRun(currentOpen)} is the open run now — reload and look again`,
-        reason: "stale",
-        runs: current.index.runs,
-        openRun: currentOpen.id,
-      },
-      409,
-    );
-  }
-
-  const now = new Date().toISOString();
-  const next = rolloverIndex(current.index, { label, environment, builds, catalog, by: caller.address, now });
-  try {
-    await putConditional(RUN_INDEX_PATH, JSON.stringify(next.index), current.etag);
-  } catch (error) {
-    if (error instanceof BlobPreconditionFailedError) {
-      // Somebody else rolled over (or the index moved) between the read and
-      // the write. Hand back what the store holds now and let the human look.
+    const outcome = await withStoreLock(async (): Promise<Response | { next: ReturnType<typeof rolloverIndex>; now: string }> => {
+      const current = await ensureRunIndex(caller.allowlist);
+      const currentOpen = openRun(current.index);
+      if (expectedOpenRun && currentOpen.id !== expectedOpenRun) {
+        return json(
+          {
+            error: `${describeRun(currentOpen)} is the open run now — reload and look again`,
+            reason: "stale",
+            runs: current.index.runs,
+            openRun: currentOpen.id,
+          },
+          409,
+        );
+      }
+      const stamp = new Date().toISOString();
+      const rolled = rolloverIndex(current.index, { label, environment, builds, catalog, by: caller.address, now: stamp });
       try {
+        await putConditional(RUN_INDEX_PATH, JSON.stringify(rolled.index), current.etag);
+      } catch (error) {
+        if (!(error instanceof BlobPreconditionFailedError)) throw error;
+        // Only a lease that ran out lets the index move under the lock. Hand
+        // back what the store holds now and let the human look.
         const fresh = await readRunIndex();
         return json(
           {
@@ -160,10 +160,13 @@ export async function POST(request: Request): Promise<Response> {
           },
           409,
         );
-      } catch (readError) {
-        return fail(readError, "the runs could not be read", "qa/runs");
       }
-    }
+      return { next: rolled, now: stamp };
+    });
+    if (outcome instanceof Response) return outcome;
+    next = outcome.next;
+    now = outcome.now;
+  } catch (error) {
     return fail(error, "the run could not be rolled over", "qa/runs");
   }
 

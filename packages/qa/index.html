@@ -884,7 +884,12 @@
   function comparedStatus(testCase) {
     if (!compared) return { status: "", inheritedFrom: [], walked: false };
     const own = hasOwn(compared.entries, testCase.id) ? compared.entries[testCase.id] : null;
-    if (own && Object.keys(own).length) return { status: comparedRollup(testCase.id), inheritedFrom: [], walked: true };
+    const ownWalked = Boolean(own && Object.keys(own).length);
+    // A successor's own verdict is authoritative. A note-only successor row is
+    // walked but undecided, so a Fail or Blocked recorded on the retired
+    // predecessor still carries over and keeps the case in the Re-QA filter.
+    const ownStatus = ownWalked ? comparedRollup(testCase.id) : "";
+    if (ownStatus) return { status: ownStatus, inheritedFrom: [], walked: true };
     let status = "";
     const inheritedFrom = [];
     for (const retiredId of testCase.replaces || []) {
@@ -894,10 +899,10 @@
       const candidate = comparedRollup(retiredId);
       if (candidate && (!status || RANK[candidate] > RANK[status])) status = candidate;
     }
-    return { status, inheritedFrom, walked: inheritedFrom.length > 0 };
+    return { status, inheritedFrom, walked: ownWalked || inheritedFrom.length > 0 };
   }
   function comparedNotes(testCase, inheritedFrom) {
-    const sources = inheritedFrom.length ? inheritedFrom : [testCase.id];
+    const sources = [testCase.id, ...inheritedFrom];
     const notes = [];
     for (const sourceId of sources) {
       const row = compared && hasOwn(compared.entries, sourceId) ? compared.entries[sourceId] : {};

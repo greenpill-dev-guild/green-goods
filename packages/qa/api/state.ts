@@ -19,7 +19,9 @@
  * Runs make past passes immutable: writes land only in the open run, a write
  * that names a closed run is refused with the open run's id so the page can
  * re-target it, and the first request after the deploy migrates the legacy
- * `qa/entries/` shards into Run 1 (see ../store.ts and ../runs.ts).
+ * `qa/entries/` shards into Run 1 (see ../store.ts and ../runs.ts). A save
+ * validates its run and writes its shard under the store lock that rollover
+ * also takes, so a run cannot close between the check and the write.
  */
 
 import { BlobPreconditionFailedError, put } from "@vercel/blob";
@@ -45,6 +47,7 @@ import {
   readShard,
   restoreShard,
   shardShapeError,
+  withStoreLock,
 } from "../store.js";
 
 export { fallbackName, shardShapeError };
@@ -272,17 +275,16 @@ export async function handler(request: Request): Promise<Response> {
   const caller = await resolveCaller(request);
   if ("error" in caller) return json({ error: caller.error }, caller.status);
 
-  // The index is load-bearing on every request: GET must resolve the default
-  // run and POST must refuse a closed one, so it is read at origin each time.
-  let index: RunIndex;
-  try {
-    index = (await ensureRunIndex(caller.allowlist)).index;
-  } catch (error) {
-    return fail(error, "the runs could not be read");
-  }
-  const open = openRun(index);
-
   if (request.method === "GET") {
+    // The index is load-bearing: GET must resolve the default run, so it is
+    // read at origin each time.
+    let index: RunIndex;
+    try {
+      index = (await ensureRunIndex(caller.allowlist)).index;
+    } catch (error) {
+      return fail(error, "the runs could not be read");
+    }
+    const open = openRun(index);
     const requested = new URL(request.url).searchParams.get("run");
     let served: RunRecord = open;
     if (requested) {
@@ -356,59 +358,68 @@ export async function handler(request: Request): Promise<Response> {
       return json({ error: "invalid JSON" }, 400);
     }
 
-    // A page that names no run — the version deployed before runs existed —
-    // records into the open run. A page that names a run must name the open
-    // one: a closed or unknown run is refused WITHOUT a write, and the refusal
-    // carries the open run's id so the page can re-target its outbox there.
-    // Never a 404: the page treats any other failure as "retry every 5s".
-    let target: RunRecord = open;
-    if (body.run !== undefined && body.run !== null && body.run !== "") {
-      const runId = validateRunId(body.run);
-      if (!runId) return json({ error: "run id is malformed" }, 400);
-      const run = findRun(index, runId);
-      if (!run) return json({ error: `run ${runId} does not exist here`, reason: "unknown", openRun: open.id }, 409);
-      if (run.closedAt) {
-        return json(
-          { error: `${describeRun(run)} is closed`, reason: "closed", openRun: open.id, closedAt: run.closedAt },
-          409,
-        );
-      }
-      target = run;
-    }
-
     // `body.person` sets THIS caller's own display name — a label on their own
     // shard. It cannot change which shard is written; that is the address.
     const delta = sanitizeDelta(body.entries);
     const declaredName = body.person as string | undefined;
-    let shard: Shard;
-    let landed = target.id;
+
     try {
-      const written = await writeDelta(caller.address, delta, declaredName, target.id);
-      shard = written.shard;
-      // The run was validated before the write and a rollover can land in
-      // between. Re-read the index afterwards: if the target closed under us,
-      // put its shard back exactly as it was and re-apply the delta to the run
-      // that is open now, so a closed run stays what it was at close and the
-      // tester's verdicts still land somewhere that records.
-      const after = await readRunIndex();
-      if (after && findRun(after.index, target.id)?.closedAt) {
-        const openAfter = openRun(after.index);
-        await restoreShard(caller.address, target.id, written.previous);
-        shard = (await writeDelta(caller.address, delta, declaredName, openAfter.id)).shard;
-        landed = openAfter.id;
-      }
+      // Everything from the index read to the shard write runs under the store
+      // lock that rollover also takes: the run this save is checked against is
+      // the run it writes into, and one tester's two clients never interleave.
+      // Lock contention is a 503 the page answers by keeping its outbox.
+      return await withStoreLock(async () => {
+        const index = (await ensureRunIndex(caller.allowlist)).index;
+        const open = openRun(index);
+
+        // A page that names no run — the version deployed before runs existed —
+        // records into the open run. A page that names a run must name the open
+        // one: a closed or unknown run is refused WITHOUT a write, and the refusal
+        // carries the open run's id so the page can re-target its outbox there.
+        // Never a 404: the page treats any other failure as "retry every 5s".
+        let target: RunRecord = open;
+        if (body.run !== undefined && body.run !== null && body.run !== "") {
+          const runId = validateRunId(body.run);
+          if (!runId) return json({ error: "run id is malformed" }, 400);
+          const run = findRun(index, runId);
+          if (!run) return json({ error: `run ${runId} does not exist here`, reason: "unknown", openRun: open.id }, 409);
+          if (run.closedAt) {
+            return json(
+              { error: `${describeRun(run)} is closed`, reason: "closed", openRun: open.id, closedAt: run.closedAt },
+              409,
+            );
+          }
+          target = run;
+        }
+
+        const written = await writeDelta(caller.address, delta, declaredName, target.id);
+        let shard = written.shard;
+        let landed = target.id;
+        // Defence in depth for a lease that ran out under a slow save, when a
+        // rollover may have taken the lock over and closed the target: put its
+        // shard back exactly as it was and re-apply the delta to the run that
+        // is open now, so a closed run stays what it was at close and the
+        // tester's verdicts still land somewhere that records.
+        const after = await readRunIndex();
+        if (after && findRun(after.index, target.id)?.closedAt) {
+          const openAfter = openRun(after.index);
+          await restoreShard(caller.address, target.id, written.previous);
+          shard = (await writeDelta(caller.address, delta, declaredName, openAfter.id)).shard;
+          landed = openAfter.id;
+        }
+
+        return json({
+          ok: true,
+          person: shard.person || fallbackName(shard.address),
+          count: Object.keys(shard.entries).length,
+          run: landed,
+          ...(landed !== target.id ? { retargeted: true } : {}),
+        });
+      });
     } catch (error) {
       // The page keeps the unsent delta in localStorage and retries.
       return fail(error, `${fallbackName(caller.address)}'s entries were not saved`);
     }
-
-    return json({
-      ok: true,
-      person: shard.person || fallbackName(shard.address),
-      count: Object.keys(shard.entries).length,
-      run: landed,
-      ...(landed !== target.id ? { retargeted: true } : {}),
-    });
   }
 
   return json({ error: "method not allowed" }, 405);
