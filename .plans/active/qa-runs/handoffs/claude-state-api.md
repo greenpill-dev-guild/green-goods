@@ -144,3 +144,18 @@
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/qa scripts/agents scripts/data docs/docs/builders/quality .plans/active/qa-runs` → `` (empty before this receipt was written)
 - Evidence-only diff command and result (if applicable): not applicable
 - Evidence-only worktree-status command and result (if applicable): not applicable
+
+## Review fixes, second round (2026-09-08, `feature/qa-runs`, PR #805 at adae142c5)
+
+- CodeRabbit and Codex re-reviewed #805 after the stack merged down. Fixed on `feature/qa-runs`: the lock release is a conditional overwrite of the token-bearing version (no delete, so an old holder cannot remove a successor's lease); `carryNames` runs inside the rollover lease; a run's roster is the union of the allowlist and the addresses that hold shards in that run (`listShardAddresses`), so a de-listed tester's verdicts stay visible in closed runs and comparisons; the page compares only with earlier runs; the qa-triage call mode uses `<slug>` for the report and session paths.
+
+### Validation Receipt
+
+- Tested implementation commit SHA: `4b69e6a97d12aa87ff3fc1c2b0110a453c520fa4`
+- Run at (UTC): `2026-09-08T08:38Z`
+- Exact command(s): `node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts && bun run test:review-guardrails && bun run check:docs-generated && bun run check:guidance-links && bun run test:agent-tools`
+- Result: `push gate: format, lint, docs-authority, agent-guidance, qa-id-ledger (316 ids), agent-tools-test (11 files, 257 tests) passed; browser-proof blocked: the authenticated Brave QA profile was unreachable; review guardrails # pass 205 # fail 0 ; 18 projections current; 61 guidance files OK`
+- Validated paths: `packages/qa, scripts/agents, .claude/skills/qa-triage, docs/docs/builders/agentic`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/qa scripts/agents .claude/skills/qa-triage docs/docs/builders/agentic` → `` (empty before this receipt was written)
+- Evidence-only diff command and result (if applicable): not applicable
+- Evidence-only worktree-status command and result (if applicable): not applicable
