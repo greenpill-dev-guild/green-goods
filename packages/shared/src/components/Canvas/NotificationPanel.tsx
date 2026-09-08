@@ -5,6 +5,7 @@ import {
   RiInformationLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { buttonVariants } from "../Button";
 import { SheetBody } from "./SheetBody";
 
 export type NotificationPanelTone = "info" | "warn" | "critical";
@@ -119,11 +120,16 @@ function NotificationRow({ item }: { item: NotificationPanelItem }) {
 
   const trailing = showActionButton ? (
     <span
-      className="ml-auto inline-flex shrink-0 items-center gap-0.5 self-start rounded-full px-2 py-1 text-[11px] font-semibold"
-      style={{ color: "rgb(var(--tone-action, var(--green-800)))" }}
+      className={`${buttonVariants({ size: "sm" })} ml-auto shrink-0 self-start`}
+      style={{
+        maxWidth: "45%",
+        minWidth: 0,
+        overflowWrap: "anywhere",
+        whiteSpace: "normal",
+      }}
     >
       {item.actionLabel}
-      <RiArrowRightSLine className="h-3 w-3" />
+      <RiArrowRightSLine className="h-3 w-3" style={{ flexShrink: 0 }} />
     </span>
   ) : item.onSelect ? (
     <RiArrowRightSLine className="ml-auto mt-1 h-4 w-4 shrink-0 text-text-soft" />
@@ -176,7 +182,7 @@ function SkeletonRow() {
  * - Unread dot at top-right corner when `unread` is true
  * - Title 13/600, body 12/400, meta 11/500
  * - When `onSelect` + `actionLabel` are both set the row renders a labeled
- *   ghost-style action button on the right (handoff "Review" / "View"); if
+ *   primary action treatment on the right (handoff "Review" / "View"); if
  *   only `onSelect` is set we keep a quiet chevron affordance.
  * - Optional grouped sections with quiet sentence-case label headings, and an
  *   optional scope line naming the garden the feed follows.

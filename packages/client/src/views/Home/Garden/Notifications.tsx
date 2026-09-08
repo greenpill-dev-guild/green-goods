@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import type { Garden, Work } from "@green-goods/shared/types/domain";
@@ -87,19 +88,21 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
             defaultMessage: "Start documenting your regenerative work!",
           })}
           action={
-            <button
+            <Button
+              type="button"
+              size="md"
               onClick={() => {
                 onClose?.();
                 navigate(APP_ROUTES.garden, { state: { gardenId: garden.id } });
               }}
-              className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-[background-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] active:scale-95 focus:outline-none focus-visible:shadow-button-primary-focus"
+              style={{ maxWidth: "100%", overflowWrap: "anywhere", whiteSpace: "normal" }}
             >
-              <RiSeedlingFill className="w-4 h-4" />
+              <RiSeedlingFill className="h-4 w-4 shrink-0" />
               {intl.formatMessage({
                 id: "app.home.notifications.visitGarden",
                 defaultMessage: "Visit Your Garden",
               })}
-            </button>
+            </Button>
           }
         />
       ) : (

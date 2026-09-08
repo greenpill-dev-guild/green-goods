@@ -5,6 +5,7 @@ import { logger } from "../../modules/app/logger";
 import { useUIStore } from "../../stores/useUIStore";
 import { capitalize } from "../../utils/app/text";
 import { cn } from "../../utils/styles/cn";
+import { Button } from "../Button";
 import { createToastDismissQueue } from "./toast.queue";
 
 type ToastFn = typeof toast.success;
@@ -44,7 +45,7 @@ export interface ToastDescriptor {
    * `duration: Infinity`, but reads as intent at the call site.
    */
   persistent?: boolean;
-  /** Optional toast action rendered as a subtle button. */
+  /** Optional toast action rendered with the standard primary button treatment. */
   action?: ToastAction;
   /** Optional flag to silence diagnostics for known, handled errors. */
   suppressLogging?: boolean;
@@ -128,8 +129,12 @@ const STATUS_ARIA_ROLE: Record<ToastStatus, "status" | "alert"> = {
   error: "alert",
 };
 
-const ACTION_BUTTON_BASE =
-  "inline-flex items-center text-xs font-medium text-[var(--color-primary-base)] hover:text-[var(--color-primary-dark)] focus:outline-none focus:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary-base)] rounded transition-colors";
+const ACTION_BUTTON_STYLE: React.CSSProperties = {
+  maxWidth: "100%",
+  minWidth: 0,
+  overflowWrap: "anywhere",
+  whiteSpace: "normal",
+};
 
 /**
  * Self-managed auto-dismiss timers.
@@ -566,30 +571,32 @@ function ToastMessage({
           </div>
         ) : null}
         {/* Action buttons row */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3" style={{ flexWrap: "wrap" }}>
           {action ? (
-            <button
+            <Button
               type="button"
+              size="md"
               onClick={handleAction}
-              className={ACTION_BUTTON_BASE}
+              style={ACTION_BUTTON_STYLE}
               data-testid={action.testId}
             >
               {buttonLabel}
-            </button>
+            </Button>
           ) : null}
           {/* Debug mode: copy error button */}
           {onCopyError ? (
-            <button
+            <Button
               type="button"
+              size="md"
               onClick={(e) => {
                 e.stopPropagation(); // Prevent triggering dismiss
                 onCopyError();
               }}
-              className={cn(ACTION_BUTTON_BASE, copySuccess && "text-[var(--color-success-base)]")}
+              style={ACTION_BUTTON_STYLE}
               data-testid="toast-copy-error"
             >
               {copySuccess ? "✓ Copied" : "📋 Copy Error"}
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>
@@ -618,30 +625,32 @@ function ToastMessage({
         </div>
       ) : null}
       {/* Action buttons row */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3" style={{ flexWrap: "wrap" }}>
         {action ? (
-          <button
+          <Button
             type="button"
+            size="md"
             onClick={handleAction}
-            className={ACTION_BUTTON_BASE}
+            style={ACTION_BUTTON_STYLE}
             data-testid={action.testId}
           >
             {buttonLabel}
-          </button>
+          </Button>
         ) : null}
         {/* Debug mode: copy error button */}
         {onCopyError ? (
-          <button
+          <Button
             type="button"
+            size="md"
             onClick={(e) => {
               e.stopPropagation(); // Prevent triggering dismiss
               onCopyError();
             }}
-            className={cn(ACTION_BUTTON_BASE, copySuccess && "text-[var(--color-success-base)]")}
+            style={ACTION_BUTTON_STYLE}
             data-testid="toast-copy-error"
           >
             {copySuccess ? "✓ Copied" : "📋 Copy Error"}
-          </button>
+          </Button>
         ) : null}
       </div>
     </div>

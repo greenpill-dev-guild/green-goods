@@ -99,6 +99,71 @@ describe("toastService auto-dismiss (service-owned timers)", () => {
     expect(dismissSpy).toHaveBeenCalledWith("wallet-submission");
   });
 
+  it("renders actions with the shared primary button treatment and preserves activation", () => {
+    const onClick = vi.fn();
+    render(<Toaster />);
+
+    act(() => {
+      toastService.info({
+        id: "action",
+        message: "Review the pending work.",
+        action: {
+          label: "Review Pending Work from This Garden",
+          onClick,
+          dismissOnClick: true,
+        },
+      });
+    });
+
+    const action = screen.getByRole("button", {
+      name: "Review Pending Work from This Garden",
+    });
+    expect(action).toHaveClass("gg-button", "gg-button-primary", "gg-button-size-md");
+    expect(action).toHaveStyle({ overflowWrap: "anywhere", whiteSpace: "normal" });
+
+    fireEvent.click(action);
+
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(dismissSpy).toHaveBeenCalledWith("action");
+  });
+
+  it("does not add an action control to notifications without actions", () => {
+    render(<Toaster />);
+
+    act(() => {
+      toastService.info({ id: "no-action", message: "Nothing else is required." });
+    });
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("keeps actions independently usable when notifications stack", () => {
+    const firstAction = vi.fn();
+    const secondAction = vi.fn();
+    render(<Toaster />);
+
+    act(() => {
+      toastService.info({
+        id: "stacked-first",
+        message: "First notification",
+        action: { label: "Open first", onClick: firstAction },
+      });
+      toastService.info({
+        id: "stacked-second",
+        message: "Second notification",
+        action: { label: "Open second", onClick: secondAction },
+      });
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Open first" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open second" }));
+
+    expect(firstAction).toHaveBeenCalledTimes(1);
+    expect(secondAction).toHaveBeenCalledTimes(1);
+    expect(dismissSpy).toHaveBeenCalledWith("stacked-first");
+    expect(dismissSpy).toHaveBeenCalledWith("stacked-second");
+  });
+
   describe("hover/focus pause (rendered)", () => {
     it("pauses the countdown while hovered and resumes on leave", () => {
       render(<Toaster />);
