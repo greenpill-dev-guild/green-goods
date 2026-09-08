@@ -107,6 +107,7 @@ module.exports = {
       env: {
         NODE_ENV: "development",
         VITE_ENABLE_SW_DEV: viteEnableSwDev,
+        VITE_USE_POLLING: envValue("VITE_USE_POLLING", "true"),
         VITE_API_BASE_URL: localAgentApiBaseUrl,
         VITE_DEV_CHAIN_MODE: "",
         VITE_CHAIN_ID: "42161",

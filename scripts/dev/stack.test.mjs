@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import test from "node:test";
 import { EventEmitter } from "node:events";
+import { copyFile, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { applyGroupEnvironment, compatibilityKey, findOrphanedApps, parseArgs, reportReadiness, runStartupSmoke } from "./stack.js";
 import { fileURLToPath } from "node:url";
 
@@ -66,6 +70,32 @@ test("default launch starts local app services and keeps extras opt-in", () => {
   assert.ok(!parse("full").names.includes("tunnel"));
   assert.ok(!parse("web").names.includes("tunnel"));
   assert.equal(parse("unknown").mode, "error");
+});
+
+test("repository-managed client polling defaults on and honors an explicit override", async () => {
+  const fixture = await mkdtemp(path.join(tmpdir(), "green-goods-ecosystem-"));
+  const configPath = path.join(fixture, "ecosystem.config.cjs");
+  await copyFile(fileURLToPath(new URL("../../ecosystem.config.cjs", import.meta.url)), configPath);
+
+  const readPolling = (value) => {
+    const environment = value === undefined ? {} : { VITE_USE_POLLING: value };
+    return execFileSync(
+      process.execPath,
+      [
+        "-e",
+        `const config = require(${JSON.stringify(configPath)}); ` +
+          `process.stdout.write(config.apps.find((app) => app.name === "client").env.VITE_USE_POLLING);`,
+      ],
+      { encoding: "utf8", env: environment }
+    );
+  };
+
+  try {
+    assert.equal(readPolling(undefined), "true");
+    assert.equal(readPolling("false"), "false");
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
 });
 
 test("an indexer that exited before log subscription fails readiness immediately", async () => {

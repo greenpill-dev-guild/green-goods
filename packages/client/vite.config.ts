@@ -17,8 +17,9 @@ import {
   resolvePwaManifestFlavor,
 } from "./src/config/pwaManifest";
 import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwaRouting";
-import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
 import { createPwaShellAssetsPlugin } from "./vite/pwa-shell";
+import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
+import { resolveViteWatchOptions } from "./vite/watch";
 
 const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
 const CLIENT_VERCEL_PROJECT_ID = "prj_AFl9rmdB5VJFKcpK4Art9had9DmG";
@@ -172,6 +173,15 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   }
 
   const enableRpcBgSync = process.env.VITE_ENABLE_RPC_BG_SYNC === "true";
+  const watch = resolveViteWatchOptions(process.env);
+  if (command === "serve") {
+    const polling = watch.usePolling === true;
+    console.info(
+      `[vite-watch] checkout=${rootDir} clientRoot=${__dirname} ` +
+        `watcher=${polling ? "polling" : "native"} polling=${polling} ` +
+        `interval=${polling ? `${watch.interval}ms` : "n/a"}`
+    );
+  }
 
   const rpcBgSyncCaching: NonNullable<NonNullable<VitePWAOptions["workbox"]>["runtimeCaching"]> =
     enableRpcBgSync
@@ -669,13 +679,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       // cloudflared quick tunnels change hostname each run; allow remote Host headers in dev.
       allowedHosts: tunnelHmr ? true : undefined,
       hmr: tunnelHmr ? { overlay: true, ...tunnelHmr } : { overlay: true },
-      // Polling is only required on Docker bind mounts and some network filesystems.
-      // On macOS native FSEvents the default watcher is much cheaper than polling
-      // every 100ms across hundreds of files. Opt in with VITE_USE_POLLING=true.
-      watch: {
-        ignored: ["**/dev-dist/**"],
-        ...(process.env.VITE_USE_POLLING === "true" ? { usePolling: true, interval: 100 } : {}),
-      },
+      watch,
       proxy: {
         "/api/graphql": {
           target: indexerProxyTarget,

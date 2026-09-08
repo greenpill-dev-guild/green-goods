@@ -33,7 +33,7 @@ scripts/
 | `env-check.js` | `bun run env:check`, called from `doctor.js` | Validate `.env` has all required `.env.schema` keys non-empty |
 | `node-cli.js` | `packages/client dev`, `packages/admin dev`, `packages/shared storybook`, `docs dev` | Run local JS dev CLIs under real system Node instead of Bun's injected `node` shim |
 | `remove-public-sourcemaps.js` | `packages/client build`, `packages/admin build` | Remove emitted `.map` files after Sentry upload so Vercel does not publish browser source maps |
-| `stack.js` | `bun run dev:stack` / `dev:web` / `dev:full` / `dev:fork` / `dev:prod` / `dev:prod:mirror` / `dev:stack:stop` | Start/stop PM2 groups; default local services against live Arbitrum, explicit fork mode, optional full browser tools, Docker preflight, early exit detection, and automatic QA smoke |
+| `stack.js` | `bun run dev:stack` / `dev:web` / `dev:full` / `dev:fork` / `dev:prod` / `dev:prod:mirror` / `dev:stack:stop` | Start/stop PM2 groups; default local services against live Arbitrum, explicit fork mode, optional full browser tools, Docker preflight, early exit detection, automatic QA smoke, and polling-backed client HMR (`VITE_USE_POLLING=false` opts out) |
 | `smoke-web.js` | `bun run dev:smoke:web` | Verify client/admin/docs/storybook respond on local ports |
 | `smoke-full.js` | `bun run dev:smoke` / `dev:smoke:full` / `dev:fork:smoke` | Verify local services (full adds docs and Storybook), completed Arbitrum replay with gardens and bounded lag, live Arbitrum chain id `42161`, deployed bytecode, and indexer lag against live head (`dev:fork:smoke` explicitly checks Anvil and funded wallets) |
 | `smoke-prod.js` | `bun run dev:prod:smoke`; auto-run by `bun run dev:prod` and `bun run dev:prod:mirror` | Verify local browser surfaces plus read-only production agent health, Arbitrum RPC, contract bytecode, production/local indexer health, and indexer lag |
@@ -46,6 +46,8 @@ scripts/
 | `stack.test.mjs` | `bun run test:validation-system` | Default service selection and startup failure/readiness behavior |
 | `surface-leases.mjs` | `stack.js`, `doctor.js` | Coordinate port/service ownership, compatible reuse, stale-claim cleanup, and owner-only release for concurrent development sessions |
 | `surface-leases.test.mjs` | `bun run test:validation-system`, CI Gate | Deterministic coverage for claims, reuse, conflicts, stale-owner handling, and owner-only release |
+
+Client startup prints one `[vite-watch]` line with the checkout, client root, watcher mode, polling state, and interval. For a stale-module report, pair that line with Vite's nearest `hmr update`, the browser's `[vite] connected` or disconnect message, and the canonical module response. Those signals distinguish a wrong checkout, a missed watcher event, a disconnected HMR client, and browser-only caching without adding another diagnostics layer.
 
 ### `mcp/` — project-scoped MCP server launchers
 | Script | Caller | Purpose |
