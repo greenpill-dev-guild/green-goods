@@ -133,3 +133,14 @@
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/qa scripts/agents scripts/data docs/docs/builders/quality .plans/active/qa-runs` → `` (empty before this receipt was written)
 - Evidence-only diff command and result (if applicable): not applicable
 - Evidence-only worktree-status command and result (if applicable): not applicable
+
+### Validation Receipt (fourth pass, re-run at the reviewed head after the #808 review fixes)
+
+- Tested implementation commit SHA: `07650893c0a3ea281bb16973fd66425c575400d6`
+- Run at (UTC): `2026-09-08T08:10Z`
+- Exact command(s): `node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts && node scripts/quality/check-qa-id-ledger.mjs --base feature/qa-runs-catalog-third-pass && node scripts/harness/plan-hub.mjs validate qa-runs && node packages/qa/build.mjs && bun --bun x vitest run --dir scripts/agents qa-app-build qa-workbook-build`
+- Result: `push gate: format, lint, docs-authority, qa-id-ledger (316 ids), agent-tools-test (11 files, 254 tests) passed with validation-system-test and agent-guidance reused from their exact passing receipts; browser-proof blocked: the authenticated Brave QA profile was unreachable; ledger clean against the third pass; 31 hubs valid; qa build 266 active cases in 45 tab-scoped areas; 57 catalog tests passed`
+- Validated paths: `packages/qa, scripts/agents, scripts/data, docs/docs/builders/quality, .plans/active/qa-runs`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/qa scripts/agents scripts/data docs/docs/builders/quality .plans/active/qa-runs` → `` (empty before this receipt was written)
+- Evidence-only diff command and result (if applicable): not applicable
+- Evidence-only worktree-status command and result (if applicable): not applicable
