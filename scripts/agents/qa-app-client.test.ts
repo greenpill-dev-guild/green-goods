@@ -1105,6 +1105,9 @@ async function runsHarness() {
   const entriesByRun = {
     "run-1": {
       "PWA-021": { "Tester A": { s: "fail", n: "request to join not visible", at } },
+      // A note-only row on a successor is walked but undecided: the retired
+      // predecessor's Fail must still be inherited onto it.
+      "PWA-052": { "Tester B": { s: "", n: "looked, undecided", at } },
       "PUB-001": { "Tester B": { s: "fail", n: "", at } },
       "ADM-001": { "Tester A": { s: "pass", n: "", at } },
     },
@@ -1256,7 +1259,10 @@ async function runsHarness() {
     assert.ok(joinRow?.querySelector(".compare-verdict.fail")?.textContent.includes("Run 1 · Baseline:Fail"), joinRow?.querySelector(".compare")?.textContent);
     assert.ok(joinRow?.querySelector(".inherited")?.textContent.includes("inherited from PWA-021"));
     assert.ok(joinRow?.querySelector(".compare-notes")?.textContent.includes("request to join not visible"));
-    assert.ok(rowFor("PWA-052")?.querySelector(".compare-verdict.fail"));
+    assert.ok(rowFor("PWA-052")?.querySelector(".compare-verdict.fail"), "a note-only successor row still inherits the retired Fail");
+    assert.ok(rowFor("PWA-052")?.querySelector(".inherited")?.textContent.includes("inherited from PWA-021"));
+    const requestNotes = rowFor("PWA-052")?.querySelector(".compare-notes")?.textContent || "";
+    assert.ok(requestNotes.includes("looked, undecided") && requestNotes.includes("request to join not visible"), requestNotes);
     assert.ok(rowFor("PUB-001")?.querySelector(".compare-verdict.fail"));
     const tally = document.querySelector(".counts")?.textContent || "";
     assert.ok(tally.includes("vs Run 1 · Baseline: 1 fixed · 0 still failing · 0 regressed · 0 newly walked"), tally);

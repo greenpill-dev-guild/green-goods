@@ -42,12 +42,12 @@ C21 No admin case covers submitting an assessment outside the journey relay: ADM
 | C11 PWA-044 | Retired → PWA-066 (PWA), PUB-034 (website), ADM-047 (admin) |
 | C12 PWA-IOS-003/004/005 | Twins added: PWA-AND-006 (login recovery), PWA-AND-007 (capture + draft), PWA-AND-008 (gallery); PWA-AND-003 retired into 007/008 |
 | C13 PWA-IOS-006 | Expectation rewritten to the real job-queue behaviour (pending while offline, submitted once with backed-off retries, clientWorkId dedupe, failed state); PWA-AND-004 matched |
-| C14 PWA-IOS-008 | Scenario reworded in place; the prefix scheme itself waits for the re-cut |
+| C14 PWA-IOS-008 | Scenario reworded in place; the prefix scheme stays as policy after the re-cut: ids are permanent, device rows keep their `[iOS]`/`[Android]` scenario prefix, and the Area view no longer groups by prefix (fourth pass) |
 | C15 principle | Applied through the splits above and the second pass below |
 | C16 N/A meaning | QA app N/A control now says "out of scope for this run" (page lane) |
 | C17 bug-encoding expectations | ADM-020, ADM-026 (+ locales), ADM-028, PUB-003, PUB-020, PUB-024 restated as intended behaviour; PWA-038 retired |
 | C18 admin grouped tx rows | Third pass: ADM-020…025, 027, 028 retired into one row per act (see below) |
-| C19 areas | Still post-Tuesday; the second and third passes file new rows under target names (Garden, Home, Wallet, My Work, Work Submission, Commitments; Commitment Inspector, Settlement, Protocol Funding, Deployments) |
+| C19 areas | Fourth pass: every active row re-labelled to where the walker sits (see below); 94 → 45 tab-scoped areas (74 → 40 distinct names); no id changes |
 | C20 missing read-only PWA rows | Second pass: PWA-097 (garden header + Work tab), PWA-098 (Insights), PWA-099 (Gardeners), PWA-100 (Pool tab), PWA-101 (commitment detail), PWA-102 (Commitments drawer); notifications on the garden page = PWA-094 |
 | C21 assessment submission | Added ADM-046 (P0 transaction) |
 
@@ -69,8 +69,8 @@ rows (C18), the public rows, and the area re-cut (C19) remain post-Tuesday.
 
 Acts the grouped rows never named and that now have a row: ask to take up (approval-gated claim),
 send for confirmation, join an open team. Still open for the post-Tuesday pass: a work detail read
-row on the desktop shell (only the iOS and Android review rows open one today); "Offer It Again"
-after a commitment expires; PWA-034 (proof composer) reads as one flow and stays; the
+row on the desktop shell (only the iOS and Android review rows open one today; PWA-105 now covers it); "Offer It Again"
+after a commitment expires (PWA-104 now covers it); PWA-034 (proof composer) reads as one flow and stays; the
 `[iOS]`/`PWA-ROLE` prefix scheme (C14).
 
 ## Third pass · admin, public website, docs (2026-09-07, `feature/qa-runs-catalog-third-pass`)
@@ -102,7 +102,7 @@ retire into one row per act; acts without a row get one.
 | DOCS-007 gardener guide | DOCS-014…017, one per page |
 | DOCS-008 steward guide | DOCS-018…023, one per page |
 | DOCS-009 funder guide | DOCS-024…026, one per page |
-| DOCS-010 evaluator guide | DOCS-020 (the guide it named does not exist) |
+| DOCS-010 evaluator guide | none: the guide it named does not exist, and DOCS-020 covers only the assessment steps, so no successor inherits its verdicts (review fix) |
 | DOCS-012 builder pages | DOCS-027 journeys · DOCS-028 quality · DOCS-029 testing |
 | DOCS-013 reference | DOCS-030 FAQ and product history · DOCS-031 generated pages |
 
@@ -122,4 +122,46 @@ Product findings recorded for the owners, not test cases: /vaults and /cookies c
 heaviest public transactions yet neither the header nor the footer links to them; the public site
 has no 404 page; dead code in the client (the Landing subscribe form, the vault card-payment endow
 flow, VaultCardWalletManage) and the admin (GreenWillPanel) is unreachable from any route.
+
+## Fourth pass · C19 area re-cut (2026-09-07, `feature/qa-runs-area-recut`)
+
+Areas are wording, not identity: no id changes, no retirements, retired rows keep their historical
+area. Every active row now carries the area of the surface the walker is on, and the cases array is
+re-sorted into walking order (tab → active first → area → desktop shell before installed devices).
+
+| Tab | Areas in walking order (rows) |
+|---|---|
+| PWA (93) | Install (3) · Update (3) · Auth (6) · Home (6) · Garden (15) · Work (20) · Commitments (19) · Wallet (5) · Profile (4) · Offline (3) · App-wide (9) |
+| Admin Dashboard (98) | Shell (7) · App-wide (9) · Hub · Work (9) · Hub · Assess (3) · Hub · Certify (2) · Hub · Confirm (2) · Garden · Lifecycle (2) · Garden · Settings (4) · Garden · Pool (15) · Garden · Commitment (8) · Garden · Settlement (7) · Garden · Impact (2) · Community · Members (4) · Community · Coordination (8) · Community · Endowment (5) · Community · Payouts (5) · Actions (3) · Cookies (3) |
+| Public Website (45) | Site-wide (7) · Home (3) · Gardens (10) · Fund (8) · Vaults (3) · Cookies (5) · Impact (4) · Actions (2) · Glossary (1) · Install (2) |
+| Docs (26) | Site (6) · Gardener Guide (4) · Steward Guide (6) · Funder Guide (3) · Builder Docs (5) · Reference (2) |
+
+## Review corrections (2026-09-08, `feature/qa-runs-review-fixes`, PR #810)
+
+The Codex review of #806 and #807 read fourteen rows against the source and found steps that the UI
+cannot perform or expectations the code contradicts. All were corrected in place, and two rows split
+once more: PWA-086 is now accept only with PWA-103 for decline, and ADM-084 is now the
+garden-beneficiary plan with ADM-109 for the contributor-consideration plan (the two plan kinds never
+coexist on one plan). Other corrections: PWA-067 needs touch input (pull to refresh listens to touch
+only); PWA-069 must start from an address that will not also trigger the ENS reminder; PWA-088 and
+PWA-089 route individual confirmers through Live, since To confirm is for garden stewards; PWA-090
+fails the send by rejecting the wallet prompt, since Send is disabled offline; PWA-094 allows the
+shortened-address fallback for an unnamed gardener; PWA-102 expects a badge only for pending acts;
+ADM-062 expects the setup state after reopening a pool; ADM-082 verifies idempotence by reload, since
+the count control disappears after readback; ADM-085 and ADM-089 test dispatched rows with Retry and
+failed rows with Requeue separately, and a rejected wallet prompt leaves a row unchanged; ADM-108
+uses the bottom navigation's Profile tab on a phone; PUB-051 needs the receipt token fragment;
+DOCS-010 lost its unrelated successor. The same review round fixed the store: saves and rollovers
+now serialize on a store lock, `qa:status` no longer prints the free-form run label, the page and
+`qa:report` inherit a retired Fail past a note-only successor row, and `qa:report` refuses a
+baseline pulled while its run was still open.
+
+Rules applied: cross-cutting quality rows (routing, locale, vocabulary, keyboard, themes,
+performance, identity, error recovery) sit under App-wide or Site-wide rather than a one-row area;
+admin areas follow the route the act lives on, so the protocol funding card sits under
+Community · Coordination and the settlement section under Garden · Settlement; the journey-relay rows
+keep their ids and sit with the surface they are walked on (ADM-037 under Hub · Assess, ADM-038 to
+040 under Garden · Pool, ADM-041 under Hub · Work, ADM-042 under Hub · Confirm, ADM-043 and 044
+under Garden · Settlement, ADM-045 under Community · Coordination, PWA-047 and 049 under
+Commitments, PWA-048 and 050 under Work).
 
