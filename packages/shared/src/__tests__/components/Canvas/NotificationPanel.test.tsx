@@ -67,7 +67,7 @@ describe("NotificationPanel", () => {
     expect(screen.getByText("Impact report minted")).toBeInTheDocument();
 
     const actionLabel = screen.getByText("Review Pending Work from This Garden");
-    expect(actionLabel).toHaveClass("gg-button", "gg-button-primary", "gg-button-size-sm");
+    expect(actionLabel).toHaveClass("gg-button", "gg-button-ghost", "gg-button-size-sm");
     expect(actionLabel).toHaveStyle({ overflowWrap: "anywhere", whiteSpace: "normal" });
 
     fireEvent.click(screen.getByRole("button", { name: /3 work submissions need review/i }));

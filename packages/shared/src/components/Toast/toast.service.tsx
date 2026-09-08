@@ -45,7 +45,7 @@ export interface ToastDescriptor {
    * `duration: Infinity`, but reads as intent at the call site.
    */
   persistent?: boolean;
-  /** Optional toast action rendered with the standard primary button treatment. */
+  /** Optional toast action rendered with the standard green text-button treatment. */
   action?: ToastAction;
   /** Optional flag to silence diagnostics for known, handled errors. */
   suppressLogging?: boolean;
@@ -130,9 +130,12 @@ const STATUS_ARIA_ROLE: Record<ToastStatus, "status" | "alert"> = {
 };
 
 const ACTION_BUTTON_STYLE: React.CSSProperties = {
+  color: "rgb(var(--tone-action, var(--primary-action)))",
   maxWidth: "100%",
-  minWidth: 0,
+  minHeight: "44px",
+  minWidth: "44px",
   overflowWrap: "anywhere",
+  paddingInline: "0.25rem",
   whiteSpace: "normal",
 };
 
@@ -575,7 +578,8 @@ function ToastMessage({
           {action ? (
             <Button
               type="button"
-              size="md"
+              variant="ghost"
+              size="sm"
               onClick={handleAction}
               style={ACTION_BUTTON_STYLE}
               data-testid={action.testId}
@@ -587,7 +591,8 @@ function ToastMessage({
           {onCopyError ? (
             <Button
               type="button"
-              size="md"
+              variant="ghost"
+              size="sm"
               onClick={(e) => {
                 e.stopPropagation(); // Prevent triggering dismiss
                 onCopyError();
@@ -629,7 +634,8 @@ function ToastMessage({
         {action ? (
           <Button
             type="button"
-            size="md"
+            variant="ghost"
+            size="sm"
             onClick={handleAction}
             style={ACTION_BUTTON_STYLE}
             data-testid={action.testId}
@@ -641,7 +647,8 @@ function ToastMessage({
         {onCopyError ? (
           <Button
             type="button"
-            size="md"
+            variant="ghost"
+            size="sm"
             onClick={(e) => {
               e.stopPropagation(); // Prevent triggering dismiss
               onCopyError();

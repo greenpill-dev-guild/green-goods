@@ -99,7 +99,7 @@ describe("toastService auto-dismiss (service-owned timers)", () => {
     expect(dismissSpy).toHaveBeenCalledWith("wallet-submission");
   });
 
-  it("renders actions with the shared primary button treatment and preserves activation", () => {
+  it("renders actions with the shared green text-button treatment and preserves activation", () => {
     const onClick = vi.fn();
     render(<Toaster />);
 
@@ -118,8 +118,13 @@ describe("toastService auto-dismiss (service-owned timers)", () => {
     const action = screen.getByRole("button", {
       name: "Review Pending Work from This Garden",
     });
-    expect(action).toHaveClass("gg-button", "gg-button-primary", "gg-button-size-md");
-    expect(action).toHaveStyle({ overflowWrap: "anywhere", whiteSpace: "normal" });
+    expect(action).toHaveClass("gg-button", "gg-button-ghost", "gg-button-size-sm");
+    expect(action).toHaveStyle({
+      color: "rgb(var(--tone-action, var(--primary-action)))",
+      minHeight: "44px",
+      overflowWrap: "anywhere",
+      whiteSpace: "normal",
+    });
 
     fireEvent.click(action);
 

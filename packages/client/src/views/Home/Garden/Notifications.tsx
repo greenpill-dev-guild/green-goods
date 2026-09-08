@@ -90,12 +90,21 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
           action={
             <Button
               type="button"
-              size="md"
+              variant="ghost"
+              size="sm"
               onClick={() => {
                 onClose?.();
                 navigate(APP_ROUTES.garden, { state: { gardenId: garden.id } });
               }}
-              style={{ maxWidth: "100%", overflowWrap: "anywhere", whiteSpace: "normal" }}
+              style={{
+                color: "rgb(var(--tone-action, var(--primary-action)))",
+                maxWidth: "100%",
+                minHeight: "44px",
+                minWidth: "44px",
+                overflowWrap: "anywhere",
+                paddingInline: "0.25rem",
+                whiteSpace: "normal",
+              }}
             >
               <RiSeedlingFill className="h-4 w-4 shrink-0" />
               {intl.formatMessage({
