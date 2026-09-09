@@ -1,0 +1,51 @@
+# Review repair evidence
+
+The four approved reliability repairs are implemented in the local working tree. Automated proof is recorded below; authenticated Brave and physical Android acceptance remain blocked. Review verdict: **COMMENT_ONLY**, not production approval.
+
+Evidence date: 2026-09-09 UTC. Base commit: `beb933e9727962fbbc448b99d5c673c7ed64318d` on `develop`. The implementation is now committed locally as `7bb26ff86409b3312ad4f8b70f5d8a42c07b937b`; the evidence below was collected before that commit and is not a clean-commit receipt. No PR, deployment, dependency installation, early pinning or remote unpinning was performed.
+
+## Repair review
+
+1. **Transactions — implemented, automated checks passed.** Direct submission, queue execution and batch sync reconcile existing hashes before another send. Optional awaited sender callbacks preserve broadcast state before receipt waiting. Uncertain confirmations retain queue ownership, are rechecked automatically, and do not consume submission attempts. Confirmed reverts require explicit Retry and retain media checkpoints. A failed checkpoint write retains the hash in memory; batch writes commit all participating hashes atomically. Ordinary and batch execution share a job claim. Pending and failed-confirmation messages exist in all three locales. Known noncanonical wallet identifiers retain their prior handling and never enter an Ethereum receipt lookup.
+
+2. **Deletion — implemented, automated checks passed.** Dashboard deletion, Intro discard and submission retirement use the shared serialized lifecycle. The epoch changes before deletion and makes old timers/unmount flushes stale. Attachment membership, record deletion and active-pointer deletion share one transaction. Successful active discard clears the store and registered form; failure retains evidence and permits future saves in the new generation. Other-account and unrelated-draft completions cannot reset the active composer. Delayed retirement navigation also checks account and generation.
+
+3. **Previews — implemented, automated checks passed.** Draft queries return summaries. Visible thumbnails read one photo; legacy summaries derive one with an IndexedDB cursor. Full bytes load on resume, and repository reads allocate no URLs. Media, Review, draft thumbnails and queue consumers acquire URLs in mounted effects using attachment identity/hash. Cleanup evicts strong file references and every matching cache entry, including when revocation itself throws. Empty asynchronous preview placeholders are not treated as broken media.
+
+4. **Legacy recovery — implemented, automated checks passed.** Entries copy sequentially with independent failure handling. Named missing records preserve order and stable identity beside readable evidence. A durable recovery marker points retries to the same canonical record. Reselect retains attachment identity/order; Remove resolves the missing entry. Previously replaced or removed entries are never re-imported from the original picker data. Cleanup, quota and draft-limit failures preserve recovery state and never evict another draft.
+
+The recurrence sweep covered direct submission and its mutation/controller consumers; all three senders; queue admission, execution, processing, recovery, provider scheduling and batch sync; draft snapshots, resume, autosave and dashboard deletion; the resource manager plus Media/Review/cards/queue previews; and legacy markers, byte reads and reselection. Review batches follow those four failure classes. Runtime repairs stay in Shared and Client. The generated API index and existing module-seam fingerprint registry were refreshed because the new declared Shared export changes their inputs; Auth and commitment module source/proof files were unchanged.
+
+Two safety facts have executed evidence: (a) a recorded broadcast cannot authorize another send while unresolved, including batch write failure and later retry; (b) deleting the active draft invalidates prior save generations and cannot reset another account after asynchronous completion. Tests prove the local state transitions; they do not establish behavior on a physical Android storage provider.
+
+## Automated evidence
+
+The selector ran before validation and was refreshed for the final scope:
+`bun run validation:plan -- --intent readiness --base HEAD --changed-file /tmp/draft-repairs-paths.txt --json`.
+Plan: `/tmp/draft-repairs-readiness-final.json`. It retains critical Work/JobQueue/transaction overrides, dependent-package checks, design/accessibility guidance and browser proof. The full runner used `node scripts/dev/ci-local.js --intent readiness --base HEAD --changed <explicit comma-separated path list> --no-fail-fast`; its complete output is `/tmp/draft-repairs-full-readiness.log`.
+
+Temporary negative probes were promoted before behavior changes. `/tmp/draft-repairs-red.log` records the initial failing cases; `/tmp/draft-deletion-red.log` records the deletion failure. They are negative evidence, not reused as passing results.
+
+- Shared, package cwd: `bun run test` — 428 files passed, 2 skipped; 4,602 tests passed, 18 governed skips. `/tmp/draft-repairs-final-shared.log`. This full run precedes the final retirement extraction and cleanup hardening; the later focused checks below cover those edits.
+- Client, package cwd: `bun run test` — all 127 files and 1,063 tests passed. `/tmp/draft-repairs-client-clean.log`. The local Vite fixture required loopback permission. The later retirement extraction was checked through its controller tests and the final Client build.
+- Final boundary checks, Shared cwd: `bun run test src/__tests__/modules/media-resource-manager.test.ts src/__tests__/hooks/work/useDraftAutoSave.test.ts src/__tests__/modules/job-executors.test.ts src/__tests__/hooks/work/useBatchWorkSync.test.ts src/modules/transactions/__tests__/wallet-sender.test.ts` — 76 tests passed. `/tmp/draft-repairs-final-boundaries.log`.
+- Final direct-consumer checks, Shared cwd: `bun run test src/__tests__/hooks/client-ui/useWorkSubmissionFlowController.test.tsx src/__tests__/hooks/useWorkMutation.test.ts src/__tests__/modules/job-queue.seam.test.ts src/__tests__/modules/submit-work-command.test.ts src/modules/transactions/__tests__/sender-conformance.test.ts src/__tests__/providers/WorkProvider.test.tsx` — 122 passed, 5 governed skips. `/tmp/draft-repairs-seam-proof.log`.
+- `bun run test src/__tests__/hooks/work/useWorkDraftRetirement.test.ts` — 2 passed, including account change after retirement and retry after failed deletion. `/tmp/draft-repairs-retirement-proof.log`.
+- Recovery checks — 32 tests passed in `/tmp/draft-repairs-recovery-tests.log`; reselection checks — 7 passed in `/tmp/draft-repairs-reselection.log`; corrected Review UI checks — 10 passed in `/tmp/draft-repairs-final-review-ui.log`.
+- Shared `bun run typecheck:full`, Client `bun run typecheck:tests`, root `bun run lint`, and Client `VITE_CHAIN_ID=11155111 bun run build` passed. Latest logs: `/tmp/draft-repairs-types-last.log`, `/tmp/draft-repairs-client-types-clean.log`, `/tmp/draft-repairs-lint-last.log`, `/tmp/draft-repairs-build-last.log`. Client PWA budgets passed.
+- The full runner passed Admin and Agent tests/typechecks/builds, Indexer build, contract build, 2,083 Solidity tests and release gas boundaries. Indexer tests initially hit sandbox EPERM on a local HTTP fixture; `bun run test` with loopback permission passed 320 tests, one pending (`/tmp/draft-repairs-indexer-local.log`). Both contract wrapper runs reached the same sandbox-blocked script fixture; `bun run test:script` with local Anvil access subsequently passed all 295 script tests (`/tmp/draft-repairs-contract-scripts-clean.log`). No production-chain action occurred.
+- DesignMD/generated/tokens/vocabulary, ontology, staged modules and `bun run agentic:check` passed. Story coverage and quality passed. Docs tests/build passed; generated API drift was corrected with `bun run docs:generate --scope package`, and `bun run check:docs-generated` passed afterward.
+- `bun run check:source-structure` and `bun run check:test-quality` passed after the focused hook extraction and registry refresh. No ceilings, baselines or skip policies were weakened. Registry proof uses the full Shared results and final direct-consumer checks; the manifest-only changes for unchanged Auth/commitment entries were inspected.
+- Plan Hub validation passed for 32 hubs; its 54 harness tests passed. Root guidance consistency, guidance links and immutable-report checks passed. `git diff --check` passed.
+
+The first full runner exited nonzero; each actionable code/fixture or generated-evidence failure was corrected and its relevant check repeated. Sandbox loopback failures were repeated with approved local-fixture access. The runner is not presented as an aggregate green receipt. Solidity lint warnings predate this change and did not fail lint. No failed result is counted as a pass.
+
+## Remaining acceptance
+
+Authenticated Brave is blocked: the existing Green Goods tab was discovered, but the browser extension reported **Debugger unattached**. Reconnection was requested. No isolated browser session was substituted. The earlier browser proof in `validation.md` predates these repairs and cannot close the new pending-confirmation, deletion, preview or mixed-recovery acceptance items.
+
+Physical Android Chrome/PWA remains unavailable. Verify background/resume, Android back, offline restart, process termination after Saved, complete photo/audio/video restoration and accepted video playback. These requirements remain open in `eval.md`; production acceptance is pending.
+
+Automatic confirmation checks operate only while the app can run and resume on reopen. A broadcast identifier never exposed, or lost both in memory and durable storage, remains outside the guarantee. Successful remote uploads whose responses/checkpoints are both lost may need another request. A Saved snapshot means a committed transaction; an edit still marked Saving can be lost at termination.
+
+The pre-existing Agent Dockerfile change and unowned Client `.gitignore` were left untouched. The implementation commit was created locally; no push or external tracking update was made.
